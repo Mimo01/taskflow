@@ -1,260 +1,199 @@
-# Stack Research: Tempo Timesheets Integration + Dashboard Redesign
+# Stack Research
 
-**Milestone:** Taskflow v1.9 — Tempo, Dashboard Redesign & Cleanup
-**Researched:** 2026-05-20
-**Confidence:** HIGH (codebase analysis, removal safety) / MEDIUM (Tempo Server auth model)
+**Domain:** Jira desktop client — drag-and-drop interaction features, non-blocking slideover, bulk issue creation
+**Researched:** 2026-06-02
+**Confidence:** HIGH (verified against npm, Context7, official Atlassian docs, Tauri issue tracker)
 
 ---
 
 ## Scope
 
-This is a SUBSEQUENT MILESTONE document. The validated v1.8 stack (Tauri 2, React 18,
-TypeScript, TanStack Query v5, shadcn/ui, Tailwind v4, Zustand, Vitest, Biome, @dnd-kit,
-@tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook,
-cmdk, babel-plugin-react-compiler, recharts) is NOT re-researched. Only net-new questions
-for v1.9 are assessed here.
+v1.12 adds interaction features to an existing Tauri 2 + React 19 + TypeScript codebase. This file covers only the **new dependencies** the new features require. The existing validated stack (Tauri 2, React 19, TypeScript, Zustand, TanStack Query, shadcn/ui, @base-ui/react, Tailwind v4, Vitest, Biome, @tanstack/react-virtual, react-hotkeys-hook, cmdk) is **not re-researched**.
 
 ---
 
-## New Dependencies Needed
+## Recommended Stack
 
-**None.**
+### Core Technologies (additions only)
 
-The existing stack is sufficient for all v1.9 features. No new packages need to be installed.
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| @dnd-kit/core | 6.3.1 | DnD primitive layer — sensors, context, collision detection | Uses Pointer Events API (not HTML5 DnD API), so zero conflict with Tauri's `dragDropEnabled` interceptor on any platform. Active maintenance. React 19-compatible. |
+| @dnd-kit/sortable | 10.0.0 | Vertical list rank reordering | Provides `useSortable` + `SortableContext` — covers the Backlog active-sprint list rank use-case directly with minimal boilerplate. |
+| @dnd-kit/utilities | 3.2.2 | CSS transform helpers | `CSS.Transform.toString()` needed for smooth drag-item visual transform. Ships separately from core. |
+| @dnd-kit/modifiers | 9.0.0 | Constrain drag axis | `restrictToVerticalAxis` for the backlog list; `restrictToWindowEdges` as a safety net. Prevents accidental horizontal drift on a vertical-only list. |
+
+**Note on React version:** `package.json` shows `react: ^19.1.0` (not React 18 as the milestone context states). All @dnd-kit packages are compatible with React 19. No issue.
+
+### Supporting Libraries (no new installs needed)
+
+| Library | Already Installed | Why it covers v1.12 needs |
+|---------|------------------|--------------------------|
+| @base-ui/react ^1.2.0 | YES | `Dialog` supports `modal={false}` since v1.0.0-alpha.8 — this is the non-blocking slideover primitive. The existing `Sheet` component wraps `@base-ui/react/dialog`; passing `modal={false}` (or `modal="trap-focus"`) to the `Sheet` root unlocks the non-blocking peek without installing anything new. |
+| shadcn/ui (Sheet) | YES | SheetContent already handles right-side slide-in animation, close button, and portal. The `IssueDetailSheet` component exists and can be adapted or duplicated for the peek use-case. |
+| Tailwind v4 | YES | Left-edge color stripes = single `border-l-4` utility with a dynamic `style` prop for the color value. Zero new library needed. |
+| Zustand + createTauriStorage | YES | Peek state (open issue key, history stack) is ephemeral session state — plain Zustand store, same pattern as pinned-tabs.store.ts and tempo-filters.store.ts. |
+| TanStack Query | YES | `useQuery` for createmeta fetch on the template builder. Existing `discoverCustomFields()` + createmeta infrastructure reused as-is. |
+
+### Development Tools (no changes needed)
+
+Biome, Vitest, TypeScript 5.9 — all remain unchanged. The absence guard test in `src/test/package-deps.guard.test.ts` (Phase 67 / SETUI-02) **must be removed or updated** when @dnd-kit is reintroduced — the guard explicitly prevents the packages from coming back. This is a mandatory pre-install step.
 
 ---
 
-## Dependencies to Remove
-
-| Package | Version in package.json | Why Safe to Remove |
-|---------|--------------------------|-------------------|
-| `react-grid-layout` | `^2.2.2` | Used exclusively in `src/routes/dashboard/WidgetGrid.tsx` and `src/routes/dashboard/index.tsx`. The entire widget dashboard system is being deleted in v1.9. No other files import it — confirmed via codebase grep. |
-| `@types/react-grid-layout` | `^1.3.6` | Type declarations for `react-grid-layout` — redundant once the lib is removed. Note: react-grid-layout v2 ships its own types; `@types/react-grid-layout` is already deprecated upstream. Remove alongside the library. |
-| `react-resizable` | Transitive dep of react-grid-layout | Only imported in `WidgetGrid.tsx` via CSS (`import 'react-resizable/css/styles.css'`). Safe to remove alongside react-grid-layout. |
-
-**Removal safety check:**
+## Installation
 
 ```bash
-# These are the only two files that reference react-grid-layout:
-# taskflow/src/routes/dashboard/WidgetGrid.tsx
-# taskflow/src/routes/dashboard/index.tsx
-# Both files are being deleted entirely as part of the dashboard cleanup.
-# No other source file imports from react-grid-layout or react-resizable.
+# Remove the @dnd-kit absence guard before installing (the guard will immediately fail otherwise).
+# Edit src/test/package-deps.guard.test.ts — remove the Phase 67 @dnd-kit describe block.
+
+# Install @dnd-kit packages
+npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities @dnd-kit/modifiers
 ```
 
-The `DashboardLayoutItem` type exported from `src/stores/settings.store.ts` and the
-`dashboardLayout`, `addDashboardWidget`, `removeDashboardWidget` store actions are also
-being deleted. Any tests referencing these (e.g. `settings.store.test.ts`) will need
-corresponding removal. All widget components under `src/routes/dashboard/widgets/` and
-`WidgetCard.tsx`, `WidgetPicker.tsx` are deleted in the cleanup pass.
+No other packages required for v1.12 features.
 
 ---
 
-## Tempo Timesheets REST API
+## GreenHopper Rank Mutation API
 
-### Authentication Model — CRITICAL FINDING
+**Endpoint:** `PUT /rest/agile/1.0/issue/rank`
+**Auth:** Bearer PAT (same `Authorization: Bearer <token>` header used throughout Taskflow)
+**Base path:** Uses `rest/agile/1.0/` — not the GreenHopper `greenhopper/1.0/` path. This is the Jira Agile REST API, available on Data Center 10.x.
 
-**The Tempo Timesheets Server/DC REST API does NOT accept the Jira PAT Bearer token.**
-
-Tempo is a third-party plugin that stores its data separately from core Jira. It has its
-own authentication system requiring a **Tempo API Integration Token** generated from within
-Tempo's own settings UI:
-
-> Tempo → Settings → Data Access → API Integration → New Token
-
-The generated token is used as a Bearer token in a separate Authorization header:
-```
-Authorization: Bearer <TempoAPIIntegrationToken>
-```
-
-The official documentation shows Basic Auth for Server/DC, but community-confirmed behavior
-is:
-- Basic Auth (`username:password`) — works on some older endpoints
-- Jira PAT Bearer — does NOT work for `tempo-timesheets` endpoints (produces 401)
-- Tempo API Integration Token as Bearer — the correct approach
-
-**Implication for v1.9:** A new Tempo PAT credential must be added to the onboarding flow,
-stored in Stronghold alongside the Jira PAT. This means extending `useAuthStore` with a
-`tempoToken` field, adding a Tempo token input to Settings → Connections, and storing it
-via `writeSecret('tempo-pat', token)`. A `tempoEnabled` toggle (same pattern as `aioEnabled`)
-should gate all Tempo API calls.
-
-**Confidence:** MEDIUM — auth model inferred from multiple community reports and the
-architecture of Tempo as a separate plugin. Must be probe-verified in Phase 1 of v1.9
-(same probe-first approach used for AIO in v1.8).
-
-### Endpoint Structure
-
-**Base path (Timesheets plugin v4):**
-```
-{jiraBaseUrl}/rest/tempo-timesheets/4/
-```
-
-**Primary worklog endpoint (POST — search/filter):**
-```
-POST {jiraBaseUrl}/rest/tempo-timesheets/4/worklogs/search
-```
-
-Request body:
+**Request body:**
 ```json
 {
-  "from": "2026-05-01",
-  "to": "2026-05-31",
-  "workerKeys": ["jdoe", "jsmith"],
-  "projectKeys": ["ESHOP"]
+  "issues": ["PROJ-123"],
+  "rankBeforeIssue": "PROJ-124",
+  "rankCustomFieldId": 10020
 }
 ```
+- Use `rankBeforeIssue` when the dragged item is dropped above the target.
+- Use `rankAfterIssue` when dropped below.
+- `rankCustomFieldId` is optional — if omitted, the server uses the board's default rank field. However, it is safer to supply it.
 
-Query params for pagination: `?limit=1000&offset=0`
+**Getting `rankCustomFieldId`:**
+```
+GET /rest/agile/1.0/board/{boardId}/configuration
+→ response.ranking.rankCustomFieldId (integer)
+```
+The board configuration is already fetched by GreenHopper adapters in `services/jira/greenhopper/`. Cache `rankCustomFieldId` alongside the board config — it never changes.
 
-**Response structure:**
-```json
-{
-  "metadata": {
-    "count": 42,
-    "limit": 1000,
-    "offset": 0
-  },
-  "results": [
-    {
-      "tempoWorklogId": 3920,
-      "jiraWorklogId": 14020,
-      "issue": {
-        "key": "ESHOP-123",
-        "id": 10991
-      },
-      "timeSpentSeconds": 3600,
-      "startDate": "2026-05-15",
-      "startTime": "09:00:00",
-      "description": "Worked on checkout flow",
-      "author": {
-        "key": "jdoe",
-        "displayName": "John Doe"
-      }
-    }
-  ]
-}
+**Response codes:**
+- `204` — success
+- `207` — partial success (some issues failed; per-issue detail in body)
+- `403` — user lacks Schedule Issue permission
+
+**Optimistic update pattern:** On drag-end, reorder the local list immediately (optimistic), fire the PUT, and roll back on error — same pattern as the existing `StatusPopover` transition mutation.
+
+**Constraint:** At most 50 issues per request. For Taskflow's use-case (one item dragged at a time), this is never a concern.
+
+---
+
+## DnD Library Decision: @dnd-kit vs Alternatives
+
+### Requirement
+
+Two distinct drag-and-drop scenarios must be satisfied:
+1. **Vertical list rank reordering** — Backlog active-sprint list, one item at a time, fire `PUT /rest/agile/1.0/issue/rank`.
+2. **Board column transition with dynamic drop zones** — Sprint board, card dragged across columns; during drag each column that spans multiple statuses splits into per-transition sub-zones (one drop zone per workflow transition in that column).
+
+### Options Evaluated
+
+| Library | HTML5 DnD API? | Tauri Windows compat | Custom drop zones | Complexity | Bundle |
+|---------|---------------|---------------------|-------------------|------------|--------|
+| @dnd-kit/core + sortable | NO (Pointer Events) | Native, no config | First-class via `useDroppable` | Medium | ~6 KB core |
+| @atlaskit/pragmatic-drag-and-drop | YES (HTML5 DnD) | Requires `dragDropEnabled: false` in tauri.conf.json | Low-level, manual | High | <4 KB |
+| react-aria/react-stately DnD | YES (HTML5 DnD) | Same Windows caveat | Medium | High | Large (full system) |
+| Native HTML5 DnD | YES | Broken on Tauri Windows by default | DIY | Very high | 0 |
+| @hello-pangea/dnd | NO (Pointer Events) | Compatible | No — lists only | Low | ~30 KB |
+
+### Verdict: @dnd-kit
+
+**Use @dnd-kit/core + @dnd-kit/sortable.**
+
+Rationale:
+
+1. **Tauri compatibility is automatic.** @dnd-kit uses Pointer Events, not the HTML5 Drag API. Tauri's `dragDropEnabled: true` default intercepts the HTML5 `ondragstart`/`ondrop` events at the native window layer on Windows — pragmatic-drag-and-drop would require setting `dragDropEnabled: false` in `tauri.conf.json`, which would silently break the existing file attachment drag-drop upload in `AttachmentsSection.tsx`. @dnd-kit avoids this entirely.
+
+2. **Both use-cases are natively covered.** `@dnd-kit/sortable` (vertical list) and `@dnd-kit/core` with custom `useDroppable` targets (kanban board with dynamic per-transition drop zones) are both supported primitives. The board scenario — dynamically registering drop zones that appear only during a drag — is handled with `DndContext` + `useDroppable` per transition zone, with `active` state controlling zone visibility.
+
+3. **Previous codebase history.** @dnd-kit was installed and used in v1.5 (sidebar drag reorder, dashboard grid). The team already has pattern experience with it. It was removed in Phase 67 only because it was overkill for a checkbox-only sidebar settings list — the absence guard reflects that removal, not a quality concern.
+
+4. **React 19 compatible.** All four packages (core 6.3.1, sortable 10.0.0, utilities 3.2.2, modifiers 9.0.0) are compatible with React 19.
+
+5. **Collision detection is built-in.** `closestCenter` and `closestCorners` cover both scenarios without custom implementation. Pragmatic-drag-and-drop offloads collision detection entirely to the consumer.
+
+**Why NOT pragmatic-drag-and-drop:**
+- Built on HTML5 DnD API → requires disabling Tauri's `dragDropEnabled` on Windows → breaks existing file attachment drop upload in `AttachmentsSection.tsx`.
+- No built-in collision detection — the board's dynamic drop-zone split would require bespoke hitbox code.
+- No built-in animations or drag overlay — more implementation work.
+- @atlaskit/pragmatic-drag-and-drop v1.8.1 is the current version, but its React-specific integration layer adds dependency surface.
+
+**Why NOT react-aria DnD:**
+- Also HTML5 DnD API based → same Tauri Windows problem.
+- Large bundle (pulls in react-stately + full aria system).
+- Overkill for this scope; accessibility is already handled by @dnd-kit's built-in keyboard sensor and ARIA live regions.
+
+**Why NOT @hello-pangea/dnd:**
+- Fork of deprecated react-beautiful-dnd. Limited to vertical/horizontal list reordering. Custom drop zones (the per-transition board zones) are not supported.
+
+---
+
+## Non-Blocking Slideover: Sheet + `modal={false}`
+
+**Conclusion: No new library needed.**
+
+The existing `Sheet` component (`src/components/ui/sheet.tsx`) is built on `@base-ui/react/dialog`. As of @base-ui/react v1.0.0-alpha.8, the `Dialog` component accepts a `modal` prop:
+
+- `modal={true}` (default) — focus trapped, scroll locked, pointer events on underlying content disabled.
+- `modal={false}` — focus NOT trapped, scroll NOT locked, pointer interactions on the rest of the document are **allowed**. This is the non-blocking peek behavior needed for v1.12.
+- `modal="trap-focus"` — middle option: focus trapped but scroll and pointer events outside remain live.
+
+For the universal issue peek, pass `modal={false}` to `<Sheet>` (which passes it through to `<SheetPrimitive.Root>`). The underlying view (board, backlog, etc.) stays fully interactive — clicking an issue in the board while the peek is open triggers a peek-swap (update the open issue key in the peek store).
+
+The current `IssueDetailSheet` (used for epic detail and search results) already exists and can be adapted. A new `IssuePeekSheet` component — styled narrower and without the dimming overlay — is the recommended approach to avoid conflating peek with the existing full-detail sheet.
+
+**Key implementation note:** `SheetOverlay` (the backdrop) should be omitted or rendered as transparent/zero-pointer-events for the peek, since the overlay's `bg-black/10` tint would visually obscure the underlying view in non-modal mode.
+
+---
+
+## Card Color Stripes
+
+No new library. Tailwind utility + inline style:
+
+```tsx
+<div
+  className="border-l-4"
+  style={{ borderColor: priorityColor(issue.priority) }}
+>
 ```
 
-**Note on issue.key:** The v4 Cloud API omits `issue.key` and returns only `issue.id`.
-The Data Center v4 endpoint at `apidocs.tempo.io/dc` does return `issue.key`. This must
-be probe-verified on the actual instance — if only `issue.id` is available, issue keys
-must be resolved via a Jira API call (`/rest/api/2/issue/{id}`), which can be batched.
-
-**Pagination:** Max 1,000 per page. For typical team date ranges (2–4 weeks, 5–10 people),
-response count is well under 1,000 — single-page fetch is sufficient. Add offset pagination
-only if needed.
-
-### Additional Useful Endpoints
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/rest/tempo-teams/2/team` | GET | List teams (needed for team-member filter) |
-| `/rest/tempo-timesheets/4/timesheet-approval/user/{userKey}/log` | GET | Timesheet approval status per user |
-
-For the v1.9 worklog viewer (showing people + date range), the worklogs search endpoint
-is sufficient. Teams endpoint is optional — team membership can be inferred from Jira project
-members already fetched for sprint board.
+Priority and issue-type color maps are a plain TypeScript constant — no dependency.
 
 ---
 
-## Date Range Handling — No New Library Needed
+## Subtask Templates & Bulk Create
 
-The worklog viewer needs:
-1. Date range selection (configurable from/to dates)
-2. Date preset generation ("this week", "last week", "this month", "last 2 weeks")
-3. Day-column table header generation (list of dates between from/to)
-4. Working-day calculation (optional: highlight weekends differently)
-
-**Recommendation: Use native Date API + small utility functions.**
-
-The native `Date` API is sufficient for all these use cases without adding `date-fns`
-(~18 KB gzip). The operations needed are:
-
-```typescript
-// Generate date range array
-function dateRange(from: Date, to: Date): Date[] { ... }
-
-// ISO date string for API params
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);  // "YYYY-MM-DD"
-}
-
-// Preset: this week (Mon–Sun)
-function thisWeekRange(): [Date, Date] { ... }
-
-// Check weekend
-function isWeekend(d: Date): boolean {
-  return d.getDay() === 0 || d.getDay() === 6;
-}
-```
-
-None of these require `date-fns`. The range length for the worklog table (max ~31 days) is
-small enough that vanilla Date arithmetic is readable and maintainable. Only add `date-fns`
-if locale-aware date formatting or complex business-day offset arithmetic is needed — neither
-is required for v1.9.
-
-**Confidence:** HIGH — confirmed via native Date API capability check.
+No new library. Uses:
+- Existing `discoverCustomFields()` / createmeta infrastructure.
+- Zustand for ephemeral template-builder state.
+- TanStack Query `useQuery` for createmeta fetch (already cached).
+- Sequential `createIssue` mutations in a loop (one at a time, preserving order). The Jira bulk-create REST endpoint does not guarantee order and is not available on all DC versions — the loop approach is correct per the PROJECT.md decision.
+- Settings persistence via `createTauriStorage` (same LazyStore pattern as pinned-tabs).
 
 ---
 
-## Table Virtualization — Existing Library Sufficient
+## Alternatives Considered
 
-The worklog table has:
-- Rows: team members (5–15 people) × hierarchy levels (epic → story → subtask, ~3–4 levels)
-- Columns: day columns across the date range (7–31 columns) + fixed first column (issue/person)
-
-**Row count: ~50–200 rows maximum.** This is well within `@tanstack/react-virtual`'s
-sweet spot. The existing `useVirtualizer` usage in `BacklogPage.tsx` and `SprintBoardTab.tsx`
-provides proven patterns.
-
-**Column virtualization: NOT needed.** With max 31 day columns (one month) plus the fixed
-label column, the DOM column count never exceeds ~35 elements. This is trivially small —
-column virtualization adds complexity for no performance benefit at this scale.
-
-**Sticky first column and sticky header row:** Achievable with CSS `position: sticky` +
-`left: 0` / `top: 0` on the container. This is a pure CSS concern, not a library
-concern. The existing `@tanstack/react-virtual` handles vertical row virtualization if the
-hierarchical row list grows large; sticky CSS handles the fixed dimensions.
-
-**No `@tanstack/react-table` needed.** The worklog table is a specialized layout (day
-columns as sum/dot cells, not generic sortable columns). TanStack Table's column model adds
-overhead without benefit for a fixed-structure display. Build a bespoke table component
-with custom row/column rendering — the same approach used for `SprintBoardTab` and
-`BacklogPage`.
-
----
-
-## Static Dashboard — No New Dependencies
-
-The new minimal static dashboard (sprint health bar + my in-progress subtasks + next
-release countdown) reuses:
-
-- **Sprint health data:** Already fetched by `useSprintIssues` query used in `SprintBoardTab`
-- **My in-progress subtasks:** Already fetched by `useMyTasks` query used in `MyTasksTab`
-- **Next release countdown:** Already fetched by `useFixVersions` query used in `ReleasesTab`
-
-All three panels render from cached TanStack Query data — no new API calls needed, no
-new libraries needed. The static layout is plain Tailwind CSS grid/flex — no grid
-library required. The existing `SprintHealthPanel`, `SubtasksPanel`, and `ReleasesTab`
-components can be adapted or their query hooks reused directly.
-
----
-
-## Existing Stack — What Covers Each v1.9 Need
-
-| v1.9 Need | Covered By | No New Dep |
-|-----------|------------|------------|
-| Tempo API HTTP calls | `@tauri-apps/plugin-http` via existing `apiFetch` pattern | YES |
-| Tempo auth token storage | Stronghold (`writeSecret`/`readSecret`) — same pattern as Jira PAT | YES |
-| Date range inputs | shadcn `<Input type="date">` or `<Popover>` + `<Calendar>` (shadcn calendar already available via shadcn/ui) | YES |
-| Date preset buttons | shadcn `<Button>` + native Date arithmetic | YES |
-| Worklog table render | Custom component + CSS sticky + `@tanstack/react-virtual` for rows | YES |
-| Row hierarchy (epic/story/subtask) | Collapsible pattern already established in `SprintBoardTab` + `StoryHeaderRow` | YES |
-| Saved filters persistence | TanStack Query + `LazyStore` — same pattern as saved sprint board filters | YES |
-| Sprint health panel | `SprintHealthPanel.tsx` exists — reuse or adapt | YES |
-| Release countdown | `ReleasesTab.tsx` data + countdown display component | YES |
-| Dashboard static layout | Tailwind CSS grid/flex — no library | YES |
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| @dnd-kit (Pointer Events) | pragmatic-drag-and-drop (HTML5 DnD) | HTML5 DnD conflicts with Tauri `dragDropEnabled` on Windows; breaks existing file attachment drop upload |
+| @dnd-kit (Pointer Events) | react-aria DnD | Also HTML5 DnD; large bundle; same Tauri incompatibility |
+| @base-ui/react Dialog modal={false} | New slideover library (e.g., vaul) | @base-ui/react is already installed and supports modal={false} natively; vaul is a third dependency with no benefit |
+| Tailwind border-l-4 + inline style | CSS-in-JS color library | Zero dependency needed; Tailwind v4 handles the utility class; color is a runtime value from priority map |
+| Sequential createIssue loop | Jira bulk-create endpoint | DC bulk endpoint availability is inconsistent; does not preserve order; existing createIssue mutation is proven and tested |
 
 ---
 
@@ -262,76 +201,46 @@ components can be adapted or their query hooks reused directly.
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `date-fns` | 18 KB for simple date arithmetic that 10 lines of native code handles | Native `Date` API + utility functions in `src/lib/date-utils.ts` |
-| `@tanstack/react-table` | Heavy abstraction for a fixed-schema display table; adds complexity without benefit at 50–200 row scale | Custom table component with bespoke rendering |
-| `react-datepicker` / `@mui/x-date-pickers` | Large dependencies for date inputs; shadcn/ui's `Calendar` + `Popover` pattern already available in the codebase | shadcn `<Calendar>` + `<Popover>` |
-| New grid/layout library to replace react-grid-layout | The new dashboard is static — CSS grid handles it perfectly | Tailwind `grid` classes |
-| `swr` or `axios` | Project uses TanStack Query + Tauri plugin-http exclusively | Existing `apiFetch` wrapper |
-| Tempo JavaScript SDK (if one exists) | Adds vendor lock-in; typed interfaces over raw fetch is the established pattern across all services | Raw `apiFetch('tempo', ...)` calls in a new `src/services/tempo/` module |
-
----
-
-## Tempo Service Module Pattern
-
-Create `src/services/tempo/` mirroring the Jira domain module structure:
-
-```
-src/services/tempo/
-  index.ts           # barrel re-export
-  types.ts           # TempoWorklog, TempoAuthor, TempoSearchParams interfaces
-  worklogs.ts        # fetchWorklogs(baseUrl, token, params): Promise<TempoWorklogPage>
-  client.ts          # shared apiFetch wrapper with 'tempo' source type
-```
-
-The `apiFetch` wrapper needs a new `'tempo'` source type (unlike AIO which reused `'jira'`,
-Tempo has a separate credential and a separate auth failure signal — a 401 should mark
-`tempoConnected: false`, not `jiraConnected: false`).
-
-**Query key convention:**
-```typescript
-queryKey: ['tempo-worklogs', jiraBaseUrl, searchParams]
-queryKey: ['tempo-worklogs', jiraBaseUrl, { from, to, workerKeys }]
-```
-
-**staleTime:** 5 minutes — worklogs don't change frequently during a viewing session.
-
----
-
-## Installation Commands
-
-```bash
-# No new packages to install
-
-# Remove:
-npm uninstall react-grid-layout @types/react-grid-layout
-# react-resizable is a transitive dep — removed automatically when react-grid-layout is removed
-```
+| pragmatic-drag-and-drop (@atlaskit/pragmatic-drag-and-drop) | HTML5 DnD API → breaks Tauri Windows `dragDropEnabled` and the existing file attachment drop upload in `AttachmentsSection.tsx` | @dnd-kit (Pointer Events) |
+| react-beautiful-dnd / @hello-pangea/dnd | Deprecated / fork; no custom drop zone support | @dnd-kit |
+| vaul (drawer/slideover) | Not needed — @base-ui/react Dialog already supports modal={false} | Sheet with modal={false} |
+| Framer Motion | Not needed for DnD animations; @dnd-kit transform+transition covers it; Framer Motion conflicts with React Compiler auto-memo | @dnd-kit CSS.Transform + Tailwind transitions |
+| react-dnd (HTML5 backend) | HTML5 DnD API → Tauri Windows incompatibility | @dnd-kit |
+| Any global drag state manager / external store for DnD | DndContext is the correct boundary; lifting drag state into Zustand causes unnecessary re-renders | DndContext + local drag-end handler calling Zustand |
 
 ---
 
 ## Version Compatibility
 
-| Concern | Notes |
-|---------|-------|
-| react-grid-layout removal | v2.2.2 has no reverse dependencies in this codebase — safe to uninstall after deleting WidgetGrid.tsx, WidgetCard.tsx, WidgetPicker.tsx, widgets/ directory, and dashboard/index.tsx |
-| `@types/react-grid-layout` | Already deprecated upstream (react-grid-layout v2 ships own types) — no risk removing it |
-| Native Date API | Fully supported in all Tauri 2 webviews (Chromium-based on Windows/Linux, WebKit on macOS) — no polyfill needed |
+| Package | Version | Compatible With | Notes |
+|---------|---------|-----------------|-------|
+| @dnd-kit/core | 6.3.1 | React 19.1.0, TypeScript 5.9 | Pointer Events API; no HTML5 DnD |
+| @dnd-kit/sortable | 10.0.0 | @dnd-kit/core 6.3.1 | Peer-dep aligned; verified on npm |
+| @dnd-kit/utilities | 3.2.2 | @dnd-kit/core 6.3.1 | CSS.Transform.toString() helper |
+| @dnd-kit/modifiers | 9.0.0 | @dnd-kit/core 6.3.1 | restrictToVerticalAxis, restrictToWindowEdges |
+| @base-ui/react | ^1.2.0 (installed) | React 19 | modal={false} available since alpha.8; current 1.2.0 confirmed |
 
 ---
 
-## Confidence Assessment
+## Guard Test Update (mandatory)
 
-| Area | Confidence | Basis |
-|------|------------|-------|
-| react-grid-layout safe to remove | HIGH | Grep-confirmed: only 2 files import it; both are being deleted |
-| No new library needed for date handling | HIGH | All needed operations are trivial with native Date API |
-| No new library needed for table | HIGH | Row counts are small; existing @tanstack/react-virtual is sufficient |
-| Tempo auth requires separate token | MEDIUM | Multiple community reports + Tempo architecture (separate plugin, separate data store); must be probe-verified against the actual instance |
-| Tempo API base path `/rest/tempo-timesheets/4/` | MEDIUM | Documented + community-confirmed; version "4" is the current DC API version; probe required to confirm 19.2.3 uses v4 vs. newer path |
-| `issue.key` in DC v4 response | MEDIUM | DC docs suggest it's available; Cloud v4 omits it; probe required |
-| Static dashboard reuses existing queries | HIGH | Sprint health, my tasks, and releases are already fetched — TanStack Query cache makes these zero-cost for the new dashboard page |
+`src/test/package-deps.guard.test.ts` contains a `describe` block (lines 52-80) titled `@dnd-kit absence guard (Phase 67 / SETUI-02)` that will cause the test suite to fail immediately after install. The guard must be **removed** (not just commented) before the packages are installed. Document the removal in the commit message with a reference to v1.12 Phase (whichever phase performs the install).
 
 ---
 
-*Stack research for: Taskflow v1.9 Tempo Timesheets + Dashboard Redesign*
-*Researched: 2026-05-20*
+## Sources
+
+- @dnd-kit npm versions — verified via `npm view @dnd-kit/core version` etc. (2026-06-02)
+- Context7 /clauderic/dnd-kit — PointerSensor, DragDropProvider, useSortable patterns
+- Context7 /atlassian/pragmatic-drag-and-drop — drop target API shape
+- Context7 /mui/base-ui — Dialog `modal` prop documentation (v1.2.0)
+- Tauri drag-drop issue tracker — github.com/tauri-apps/tauri/issues/8581, #6695, #14373 — `dragDropEnabled` HTML5 DnD conflict on Windows
+- Atlassian Jira Agile Server REST API 7.3.1 — `PUT /rest/agile/1.0/issue/rank` endpoint, `rankBeforeIssue`/`rankAfterIssue`/`rankCustomFieldId`
+- Atlassian Jira Agile REST API Cloud reference — api-group-issue rank endpoint
+- Taskflow `tauri.conf.json` — dragDropEnabled not set (defaults to true); AttachmentsSection.tsx uses onDrop (HTML5 events active)
+- Taskflow `src/test/package-deps.guard.test.ts` — @dnd-kit absence guard location (lines 52-80)
+- pkgpulse.com dnd-kit vs pragmatic-drag-and-drop 2026 comparison
+
+---
+*Stack research for: Taskflow v1.12 Jira Experience Improvements*
+*Researched: 2026-06-02*

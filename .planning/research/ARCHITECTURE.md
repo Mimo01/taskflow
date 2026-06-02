@@ -1,578 +1,535 @@
 # Architecture Research
 
-**Domain:** Tempo Timesheets integration + dashboard redesign in existing Tauri/React app
-**Researched:** 2026-05-20
-**Confidence:** HIGH (based on direct codebase inspection + official Tempo DC documentation)
+**Domain:** v1.12 Jira Experience Improvements — integration with existing Tauri 2 / React 18 / TypeScript codebase
+**Researched:** 2026-06-02
+**Confidence:** HIGH — all claims drawn directly from reading the live source files
 
 ---
 
-## System Overview
+## Standard Architecture
+
+### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Route Layer                               │
-│  ┌───────────────┐  ┌───────────────────────────────────────┐   │
-│  │ /dashboard    │  │ /tempo                                 │   │
-│  │ (new static)  │  │ TempoPage.tsx — table + filter bar    │   │
-│  └───────┬───────┘  └──────────────────┬────────────────────┘   │
-│          │                             │                         │
-│  ┌───────┴──────────┐    ┌────────────┴───────────────────┐     │
-│  │ SprintHealthPanel│    │ useTempoWorklogs                │     │
-│  │ MyInProgressPanel│    │ (TanStack Query hook)           │     │
-│  │ NextReleasePanel │    └────────────┬───────────────────┘     │
-│  └──────────────────┘                │                          │
-├───────────────────────────────────────┼──────────────────────────┤
-│                  Service Layer        │                          │
-│  ┌────────────────┐  ┌───────────────┴──────────────────────┐   │
-│  │ src/services/  │  │ src/services/tempo/                   │   │
-│  │ jira/ (14 mods)│  │   client.ts   (tempoFetch wrapper)   │   │
-│  │ sprints.ts     │  │   worklogs.ts (fetchWorklogs)        │   │
-│  │ versions.ts    │  │   users.ts    (fetchTempoUsers)      │   │
-│  │ worklogs.ts    │  │   types.ts                           │   │
-│  └────────┬───────┘  │   index.ts    (barrel export)       │   │
-│           │          └──────────────────────────────────────┘   │
-├───────────┴──────────────────────────────────────────────────────┤
-│                  Data / State Layer                               │
-│  ┌──────────────────┐  ┌─────────────────────────────────────┐  │
-│  │ TanStack Query   │  │ Zustand Stores                       │  │
-│  │ cache            │  │  settings.store (tempoEnabled,       │  │
-│  │ ['tempo', ...]   │  │    savedTempoFilters via Tauri Store)│  │
-│  │ ['jira-issues',  │  │  session-only active filter state    │  │
-│  │   'sprint-board']│  │    (local component state only)      │  │
-│  └──────────────────┘  └─────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  AppLayout (main.tsx)                                             │
+│  ┌─────────┐  ┌──────────┐  ┌───────────────────────────────┐   │
+│  │ Sidebar │  │  TopBar  │  │  PinnedTabStrip                │   │
+│  └─────────┘  └──────────┘  └───────────────────────────────┘   │
+│  handleIssueClick → navigate('/issue/:key')                       │
+│  Outlet context: { onIssueClick, openEdit, openClone,             │
+│                    openAddSubtask, openCreateStory }              │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │  <main> — route Outlet                                       │ │
+│  │  /sprint-board → SprintBoardTab                              │ │
+│  │  /backlog      → BacklogPage                                 │ │
+│  │  /issue/:key   → IssueDetailPage                             │ │
+│  │  /dashboard    → Dashboard (cards: Sprint/InProgress/Release)│ │
+│  │  /standup-notes→ StandupNotesPage                            │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+│  Global overlays: CommandPalette, CreateEditIssueModal,           │
+│                   KeyboardShortcutsPanel, IssueDetailSheet (on    │
+│                   disk, unused as peek — v1.12 reactivates it),   │
+│                   UpdateDialog, WhatsNewDialog                    │
+└──────────────────────────────────────────────────────────────────┘
+
+Data layer:
+  GreenHopper API  → useGhAllData(boardId)   → allData.json  (board)
+                   → useGhBacklogData(boardId)→ data.json     (backlog)
+  Transitions cache→ useGhTransitions(projectId, issueTypeId) (per-project)
+  REST v2 API      → fetchIssueDetail, fetchComments, createIssue, etc.
+
+Persistence layer:
+  Zustand persist + createTauriStorage('*.json')
+  → tempo-filters.store.ts, pinned-tabs.store.ts (pattern for v1.12 subtask-templates store)
 ```
-
-### Component Responsibilities
-
-| Component | Responsibility | Implementation |
-|-----------|----------------|----------------|
-| `src/services/tempo/client.ts` | tempoFetch wrapper — auth, base path, apiFetch delegation | Same pattern as `aio/client.ts`: exports `tempoFetch(baseUrl, token, path, operation, params?)` |
-| `src/services/tempo/worklogs.ts` | `fetchWorklogs(baseUrl, token, params)` — date range + user filter | Calls `/rest/timesheet-gadget/1.0/raw-timesheet.json` |
-| `src/services/tempo/users.ts` | `fetchTempoUsers(baseUrl, token)` — people list for filter picker | Delegates to Jira `/rest/api/2/user/search?username=.` |
-| `src/services/tempo/types.ts` | `TempoWorklog`, `TempoSavedFilter`, `TempoRawTimesheetResponse` TypeScript interfaces | Mirrors Tempo raw-timesheet JSON shape |
-| `src/routes/dashboard/TempoPage.tsx` | Full-page worklog viewer route component | Lazy-loaded, owns filter bar + table |
-| `src/routes/dashboard/TempoTable.tsx` | Scrollable day-column table | Receives flat `TempoWorklog[]`, renders hierarchy |
-| `src/routes/dashboard/TempoFilterBar.tsx` | People picker + date preset chips + saved filters | Reads/writes settings store savedTempoFilters |
-| `src/routes/dashboard/index.tsx` (new) | Static dashboard: SprintHealth + MyInProgress + NextRelease | Replaces widget-grid Dashboard |
 
 ---
 
-## Recommended Project Structure
+## Feature Integration Points
 
+### Feature 1: Drag-to-Rank (Backlog active-sprint list)
+
+**Integration target:** `BacklogPage.tsx` — specifically the `VirtualizedBacklogTable` inner component and the active-sprint `sprintSections[0]` section.
+
+**What changes:**
+
+`BacklogPage` is already managing `sprintSections` (ACTIVE + FUTURE) via the `useGhBacklogData` hook and the `issueIdToSprintId` reverse index. The active sprint's issues are an ordered `JiraIssue[]` derived from `adaptedIssues`. Rank re-ordering needs to:
+
+1. Wrap the active-sprint `VirtualizedBacklogTable` in a `DndContext` + `SortableContext` from `@dnd-kit/core` + `@dnd-kit/sortable`. These packages are NOT currently installed (they were removed in v1.10 Phase 67 from the sidebar reorder feature). They must be re-added.
+2. On `onDragEnd`, call the GreenHopper rank API (`PUT /rest/agile/1.0/issue/rank` with `{ rankCustomFieldId, issues: [dragged], rankBeforeIssue or rankAfterIssue }`) via a new `rankIssue()` function in `services/jira/` (or `services/jira/greenhopper/`).
+3. Apply an optimistic reorder directly on the `['gh-backlog', boardId]` cache using `queryClient.setQueryData<GhBacklogResponse>`. The backlog cache stores `sprints[n].issuesIds[]` (numeric IDs); the optimistic update reorders those IDs, which flows through the existing `issueIdToSprintId` reverse index to reorder the rendered `adaptedIssues`.
+4. On error, roll back via the `previous` snapshot pattern (exactly as `confirmMoveToSprint` does already in `BacklogPage`).
+5. On settle, call `invalidateGhBacklogData(queryClient, boardId)` to refetch the authoritative order.
+
+**DnD context provider placement:** The `DndContext` wraps only the active-sprint `VirtualizedBacklogTable` subtree, not the full `BacklogPage`. Place it inside `renderSection()` when `sectionId` is the active sprint. The `SortableContext` wraps the `<tbody>` rows.
+
+**New service function:** `rankIssue(baseUrl, token, issueKey, rankBeforeIssue | rankAfterIssue, rankCustomFieldId)` — calls `PUT /rest/agile/1.0/issue/rank`. The `rankCustomFieldId` is discovered via `discoverCustomFields()` (already runs at app start in `main.tsx`) and stored in `settings.store.ts` as a new `rankFieldKey` field (persist version bump to 24).
+
+**New vs modified components:**
+- MODIFIED: `BacklogPage.tsx` — add DnD context, optimistic reorder, rank API call
+- MODIFIED: `BacklogRow.tsx` — add `useSortable` drag handle affordance
+- NEW: `services/jira/rank.ts` — `rankIssue()` function
+- MODIFIED: `services/jira.ts` barrel — re-export `rankIssue`
+- MODIFIED: `stores/settings.store.ts` — add `rankFieldKey` field; bump persist version to 24
+- MODIFIED: `main.tsx` `useCustomFieldDiscovery` — populate `rankFieldKey`
+- ADDED DEPENDENCY: `@dnd-kit/core`, `@dnd-kit/sortable`
+
+**Data flow:**
 ```
-src/
-├── services/
-│   ├── jira/               # unchanged — 14 modules
-│   ├── aio/                # unchanged
-│   ├── gitlab.ts           # unchanged
-│   └── tempo/              # NEW — follows aio/ pattern exactly
-│       ├── client.ts       # tempoFetch wrapper (NOT re-exported from index)
-│       ├── worklogs.ts     # fetchWorklogs — primary data function
-│       ├── users.ts        # fetchTempoUsers — people for filter dropdown
-│       ├── types.ts        # TempoWorklog, TempoRawTimesheetResponse, TempoSavedFilter
-│       ├── index.ts        # barrel: export * from './worklogs'; export * from './types'
-│       ├── worklogs.test.ts
-│       └── users.test.ts
-│
-├── stores/
-│   ├── settings.store.ts   # MODIFIED — add tempoEnabled, savedTempoFilters[], version 19
-│   └── ...                 # rest unchanged
-│
-└── routes/
-    └── dashboard/
-        ├── index.tsx           # REPLACED — static 3-panel dashboard (no WidgetGrid)
-        ├── MyInProgressPanel.tsx  # NEW — in-progress subtasks for current user
-        ├── NextReleasePanel.tsx   # NEW — nearest unreleased fix version + countdown
-        ├── SprintHealthPanel.tsx  # UNCHANGED — already exists, reused directly
-        ├── TempoPage.tsx       # NEW — worklog viewer route
-        ├── TempoTable.tsx      # NEW — day-column table component
-        ├── TempoFilterBar.tsx  # NEW — people picker + date presets + saved filters
-        ├── TempoSkeleton.tsx   # NEW — skeleton for loading state
-        │
-        │   # DELETE — widget system (14 files)
-        ├── WidgetCard.tsx      # DELETE
-        ├── WidgetGrid.tsx      # DELETE
-        ├── WidgetPicker.tsx    # DELETE
-        ├── WorkloadTab.tsx     # DELETE
-        ├── WorkloadSkeleton.tsx# DELETE
-        ├── WorkloadTab.test.tsx# DELETE
-        └── widgets/            # DELETE entire folder
-            ├── registry.ts
-            ├── SubtasksWidget.tsx
-            ├── MrHealthWidget.tsx
-            ├── SprintHealthWidget.tsx
-            ├── NotificationsWidget.tsx
-            ├── SprintProgressWidget.tsx
-            ├── ReleasesWidget.tsx
-            ├── WorkloadWidget.tsx
-            ├── SavedFiltersWidget.tsx
-            ├── PinnedIssuesWidget.tsx
-            └── CustomJqlWidget.tsx
+User drags BacklogRow
+  → onDragEnd in BacklogPage
+    → optimistic: queryClient.setQueryData(['gh-backlog', boardId], reorder issuesIds)
+    → rankIssue(PUT /rest/agile/1.0/issue/rank)
+      → success: invalidateGhBacklogData
+      → error: queryClient.setQueryData(previous snapshot)
 ```
-
-### Structure Rationale
-
-- **`tempo/` follows `aio/` exactly:** `client.ts` internal-only, domain modules re-exported from `index.ts`, `types.ts` in same folder.
-- **Route at `/tempo`:** New first-class route, lazy-loaded like AIO pages. Workload is `/workload` (deleted), Tempo is `/tempo` (new) — no collision.
-- **Static dashboard replaces `index.tsx` in-place:** Route registration in `routes.tsx` stays `{ path: '/dashboard', element: <Dashboard /> }` — no change needed there.
-- **Widget folder fully deleted:** Nothing in `widgets/` survives. All 10 widget wrapper files are thin shells around panels that either already exist as standalone components or are deleted (WorkloadWidget).
 
 ---
 
-## New vs. Modified Components
+### Feature 2: Drag-to-Transition (Sprint Board)
 
-| File | Status | Notes |
-|------|--------|-------|
-| `src/services/tempo/` (entire folder) | NEW | 7 files: client, worklogs, users, types, index, 2 test files |
-| `src/routes/dashboard/index.tsx` | REPLACED | Static 3-panel; all widget system code removed |
-| `src/routes/dashboard/MyInProgressPanel.tsx` | NEW | In-progress subtasks for current user |
-| `src/routes/dashboard/NextReleasePanel.tsx` | NEW | Nearest unreleased fix version with countdown |
-| `src/routes/dashboard/TempoPage.tsx` | NEW | Route component; owns filter + table |
-| `src/routes/dashboard/TempoTable.tsx` | NEW | Day-column table rendering |
-| `src/routes/dashboard/TempoFilterBar.tsx` | NEW | People picker + date presets + saved filter management |
-| `src/routes/dashboard/TempoSkeleton.tsx` | NEW | Skeleton for loading state |
-| `src/routes/routes.tsx` | MODIFIED | Add `/tempo` route, remove `/workload` route |
-| `src/stores/settings.store.ts` | MODIFIED | Add `tempoEnabled`, `savedTempoFilters`, bump to version 19; remove all widget state |
-| `src/components/app/sidebar-items.ts` | MODIFIED | Replace `workload` entry with `tempo`; update presets |
-| `src/main.tsx` | MODIFIED | Replace `/workload` pathname label with `/tempo` |
-| `src/routes/dashboard/WikiRenderer.tsx` | MODIFIED | Replace `/workload` label with `/tempo` in route name map |
-| `src/routes/dashboard/DiscussionThreads.tsx` | MODIFIED | Replace `/workload` label with `/tempo` in route name map |
-| `src/components/app/Sidebar.test.tsx` | MODIFIED | Update preset fixtures (workload → tempo) |
+**Integration target:** `SprintBoardTab.tsx` — specifically the column cells inside `renderSwimlane()`.
+
+**What changes:**
+
+The sprint board currently shows three fixed `CATEGORY_COLUMNS` cells per swimlane. During a drag:
+
+1. The dragged `TaskCard` becomes the drag overlay (via `DragOverlay` from `@dnd-kit/core`).
+2. Each column cell that maps to multiple workflow statuses expands into per-status drop zones ("Transition Columns"). The available transitions for the dragged card are sourced from `getTransitions(card)` (already available in the render scope via the `peekGhTransitions` mechanism).
+3. On `onDragEnd`, if the card was dropped on a different status zone, call the existing `handleTransition()` function directly — this already does the optimistic update + rollback + `invalidateGhAllData` pattern.
+
+**DnD context provider placement:** `DndContext` wraps the entire board scrollable area (`<div ref={scrollContainerRef}>`), not just one swimlane. `SortableContext` is not needed (cards don't sort within columns; they only transition between columns). `DragOverlay` renders inside `SprintBoardTab` as a sibling to the scroll container but inside the `boardRef` wrapper — same z-level as `stickyOverlayRef`.
+
+**Drop zone strategy:** Each column cell that covers multiple workflow statuses renders a visible expanded drop-zone list of status names during drag (only the statuses reachable from the dragged card's current status, using `filterTransitionsForStatus` — already available). When not dragging, columns collapse back to the normal CATEGORY_COLUMNS view.
+
+**New vs modified components:**
+- MODIFIED: `SprintBoardTab.tsx` — add `DndContext`, `DragOverlay`, `useDraggable` on cards, `useDroppable` on column cells, per-status drop zone expansion during drag
+- MODIFIED: `TaskCard.tsx` — add `useDraggable` hook integration; card becomes a drag source (the existing `onClick` must be protected with `e.defaultPrevented` / drag-distance guard so a click that was a failed drag doesn't open the issue)
+- ADDED DEPENDENCY: `@dnd-kit/core` (shared with Feature 1)
+
+**Data flow:**
+```
+User drag-starts TaskCard
+  → DragOverlay renders clone of card
+  → Column cells expand to per-transition drop zones
+User drops on status drop zone
+  → onDragEnd fires with overId = transitionId
+    → calls existing handleTransition(cardKey, transitionId, toStatusName, toStatusId)
+      → optimistic localIssues update
+      → postTransition REST call
+      → invalidateGhAllData on settle
+```
+
+**Key constraint:** The board uses a custom JS-driven sticky header system that overlays content via absolute positioning (`stickyOverlayRef`). The `DragOverlay` must render outside the virtualizer scroll flow — mount it inside `boardRef` at the same level as `stickyOverlayRef`, not inside the `scrollContainerRef`.
 
 ---
 
-## Files to Delete
+### Feature 3: Universal Non-Blocking Peek Slideover
 
-**Widget system (14 files):**
-- `src/routes/dashboard/WidgetCard.tsx`
-- `src/routes/dashboard/WidgetGrid.tsx`
-- `src/routes/dashboard/WidgetPicker.tsx`
-- `src/routes/dashboard/widgets/registry.ts`
-- `src/routes/dashboard/widgets/SubtasksWidget.tsx`
-- `src/routes/dashboard/widgets/MrHealthWidget.tsx`
-- `src/routes/dashboard/widgets/SprintHealthWidget.tsx`
-- `src/routes/dashboard/widgets/NotificationsWidget.tsx`
-- `src/routes/dashboard/widgets/SprintProgressWidget.tsx`
-- `src/routes/dashboard/widgets/ReleasesWidget.tsx`
-- `src/routes/dashboard/widgets/WorkloadWidget.tsx`
-- `src/routes/dashboard/widgets/SavedFiltersWidget.tsx`
-- `src/routes/dashboard/widgets/PinnedIssuesWidget.tsx`
-- `src/routes/dashboard/widgets/CustomJqlWidget.tsx`
+**Mounting decision:** App-level, inside `AppLayout` in `main.tsx` — exactly where `IssueDetailSheet` would belong per the Key Decisions table: "Global IssueDetailSheet lifted to AppLayout (not Dashboard) — Search and notifications live in TopBar (global shell), not inside a route — sheet must be at the same level." The peek slideover is reachable from any view (board, backlog, standup, dashboard, search) because it lives above the `<main>` Outlet, the same way `CommandPalette` and `CreateEditIssueModal` do.
 
-**Workload page (3 files):**
-- `src/routes/dashboard/WorkloadTab.tsx`
-- `src/routes/dashboard/WorkloadSkeleton.tsx`
-- `src/routes/dashboard/WorkloadTab.test.tsx`
+**State:** A single `useState<string | null>` called `peekIssueKey` in `AppLayout` — analogous to `createModalOpen`. This state is NOT in a Zustand store (the existing pattern for pop-over and modal state is local to `AppLayout`). It is threaded down via the Outlet context.
 
-**Dead code in `settings.store.ts` to remove:**
-- `DashboardLayoutItem` interface export
-- `dashboardLayout` state field
-- `setDashboardLayout`, `addDashboardWidget`, `removeDashboardWidget`, `updateWidgetConfig` actions
-- Import of `getDefaultDashboardLayout`, `WIDGET_REGISTRY` from `widgets/registry`
-- `dashboardLayout` initialization and migrate blocks (versions < 9)
-- `applyPreset` call to `getDefaultDashboardLayout`
+**Distinguishing peek vs full-page click:**
+The existing `handleIssueClick(key)` in `main.tsx` always navigates to `/issue/:key`. The peek is triggered by a separate handler `handleIssuePeek(key)` that sets `peekIssueKey` instead of navigating. Consumer components (board, backlog, standup rows) call `onIssueClick` for the issue key text and `onIssuePeek` for the rest of the row or card body. The Outlet context gains an `onIssuePeek` field alongside the existing `onIssueClick`.
 
-**`sidebar-items.ts` changes:**
-- Remove `workload` entry from `SIDEBAR_NAV_ITEMS`
-- Remove `workload` from `pmVisible` set in `getDefaultSidebarItems`
-- Add `tempo` to both `devVisible` and `pmVisible`
+**Explicit "open full page" affordance:** The slideover header has an "Open full page" button (`ExternalLink` icon) that calls `handleIssueClick(peekIssueKey, true)` and then `setPeekIssueKey(null)`.
+
+**Click-to-swap:** When the underlying view is interactive (the slideover has no backdrop), clicking a different row triggers `handleIssuePeek(newKey)` which just updates `peekIssueKey`. TanStack Query caches the fetched issue detail; the new key causes `fetchIssueDetail` to run with its existing 30s staleTime — the previously-fetched issue stays in cache.
+
+**IssueDetailSheet.tsx reuse decision:** `IssueDetailSheet.tsx` is already on disk and is functionally complete — it renders `IssueDetailContent` + `IssueDetailSidebar` inside a `Sheet` from shadcn/ui. Reuse it. The only necessary changes are:
+- Add a close button / explicit "open full page" button in a thin header strip rendered at the top of `SheetContent`
+- Add `modal={false}` prop on the `Sheet` component to suppress the backdrop and allow interaction with the underlying view
+- Ensure `onOpenIssue` inside the sheet calls `handleIssuePeek` (swap within peek) except for the issue key text span which calls `handleIssueClick` (full page)
+
+Do not create a new component. `IssueDetailSheet` already encapsulates the query (`fetchIssueDetail`), loading skeleton, `IssueDetailContent`, and `IssueDetailSidebar`. Its `EpicDetailSheet` branch (isEpic=true) works automatically.
+
+**Outlet context delta:**
+```typescript
+// existing
+{ onIssueClick, onEpicClick, onMRClick, openEdit, openClone, openAddSubtask, openCreateStory }
+// v1.12 addition
+{ ..., onIssuePeek }
+```
+
+**New vs modified components:**
+- MODIFIED: `IssueDetailSheet.tsx` — add thin peek-header with close + "Open full page" button; add `modal={false}` on `Sheet`
+- MODIFIED: `main.tsx` AppLayout — add `peekIssueKey` state, `handleIssuePeek`, mount `IssueDetailSheet` as global peek overlay, add `onIssuePeek` to Outlet context
+- MODIFIED: `SprintBoardTab.tsx` — read `onIssuePeek` from Outlet context; card body click → `onIssuePeek`; issue key text span → `onIssueClick`
+- MODIFIED: `BacklogPage.tsx` — same split: row body click → `onIssuePeek`; issue key cell → `onIssueClick`
+- MODIFIED: `BacklogRow.tsx` — split click handler on issue key span vs row body
+- MODIFIED: `TaskCard.tsx` — split click handler on `issue.key` span vs card body
+- MODIFIED: `TodayInProgressSection.tsx`, `TodayUpNextSection.tsx` (standup) — pass `onIssuePeek` for row-body click; issue key → full page
+- MODIFIED: `DashboardInProgressCard.tsx` — split click for peek
+- MODIFIED: `StandupNotesPage.tsx` — thread `onIssuePeek` via `useOutletContext`
+
+**Non-blocking behavior:** shadcn `Sheet` with `modal={false}` (no overlay/backdrop) allows interaction with the underlying view. The `peekIssueKey` state update that re-renders the sheet is cheap — the query result is already cached for recently-viewed issues.
+
+---
+
+### Feature 4: Done-State Strikethrough
+
+**Integration target:** `BacklogRow.tsx`, `DashboardSprintCard.tsx`, `DashboardInProgressCard.tsx`, `TodayInProgressSection.tsx`, `TodayUpNextSection.tsx`.
+
+**Pattern:** The sprint board's `TaskCard` already has the strikethrough pattern on the issue key text (line 115-119 of `TaskCard.tsx`). Extract this into a shared utility to avoid duplication across surfaces.
+
+Extract `lib/issueDisplayUtils.ts` exporting:
+```typescript
+export function isDoneStatus(issue: JiraIssue): boolean {
+  return issue.fields.status.statusCategory?.key === 'done';
+}
+// Returns Tailwind class string for summary text when issue is done
+export function doneSummaryClass(issue: JiraIssue): string {
+  return isDoneStatus(issue) ? 'line-through opacity-60' : '';
+}
+```
+
+**New vs modified components:**
+- NEW: `lib/issueDisplayUtils.ts` — `isDoneStatus()`, `doneSummaryClass()`, `priorityStripeClass()` (shared by Features 4 and 5)
+- MODIFIED: `BacklogRow.tsx` — apply `doneSummaryClass(issue)` to the summary `<td>`
+- MODIFIED: `DashboardSprintCard.tsx` — apply to story rows
+- MODIFIED: `DashboardInProgressCard.tsx` — apply to task rows
+- MODIFIED: `TodayInProgressSection.tsx` — apply to subtask/story rows
+- MODIFIED: `TodayUpNextSection.tsx` — apply to rows
+- NOT CHANGED: `TaskCard.tsx` — already has the pattern inline; optionally migrate to the shared util but not required for v1.12
+
+---
+
+### Feature 5: Card Colors (Left-Edge Stripe)
+
+**Integration targets:** `TaskCard.tsx` (sprint board cards) is the primary surface. `BacklogRow.tsx` is a secondary surface (small priority pip or stripe).
+
+**Pattern:** A 3px left border on the card driven by `issue.fields.priority?.name`. The `priorityStripeClass` helper lives in `lib/issueDisplayUtils.ts` (created for Feature 4):
+
+```typescript
+export function priorityStripeClass(priority: string | undefined): string {
+  switch (priority) {
+    case 'Highest': return 'border-l-[3px] border-l-red-500';
+    case 'High':    return 'border-l-[3px] border-l-orange-500';
+    case 'Medium':  return 'border-l-[3px] border-l-yellow-400';
+    case 'Low':     return 'border-l-[3px] border-l-blue-400';
+    case 'Lowest':  return 'border-l-[3px] border-l-slate-400';
+    default:        return 'border-l-[3px] border-l-transparent';
+  }
+}
+```
+
+The existing `isSubtask` prop on `TaskCard` applies `border-l-2 border-l-muted`. Card colors replace this — the dynamic stripe covers all cases.
+
+**New vs modified components:**
+- MODIFIED: `lib/issueDisplayUtils.ts` — add `priorityStripeClass()` (part of Feature 4's new file)
+- MODIFIED: `TaskCard.tsx` — replace `isSubtask && 'border-l-2 border-l-muted'` with `priorityStripeClass(issue.fields.priority?.name)` in the card wrapper `cn()` call
+- MODIFIED: `BacklogRow.tsx` — optionally add a small color dot or left border in the leftmost column cell
+
+---
+
+### Feature 6: Issue Detail Refinements
+
+**Subtask parent moved from sidebar to main content:**
+
+Currently `FieldsSection.tsx` renders `{isSubtask && f.parent && <MetaRow label="Parent">...}` in the sidebar (inside `IssueDetailSidebar` → `FieldsSection`). Moving it to `IssueDetailContent.tsx` puts it in the main left column, matching Jira's own layout.
+
+`IssueDetailContent.tsx` already receives the `issue` prop which contains `issue.fields.parent` and already renders the subtask list for stories. For subtasks, add a "Parent" section directly below the issue summary/header. Call `onOpenIssue(f.parent.key)` on click — `onOpenIssue` is already wired as a prop to `IssueDetailContent`.
+
+**New vs modified components:**
+- MODIFIED: `IssueDetailContent.tsx` — add parent story link section (rendered only when `issue.fields.issuetype.subtask && issue.fields.parent`) below the header row or as a breadcrumb; call `onOpenIssue(f.parent.key)` on click
+- MODIFIED: `issue-detail/FieldsSection.tsx` — remove the `isSubtask && f.parent` MetaRow block to avoid duplication
+
+**cursor-pointer fixes:** A sweep of `IssueDetailContent.tsx` and `FieldsSection.tsx` for click-handling elements lacking `cursor-pointer`. This is a QA pass within the existing files, not a new component.
+
+---
+
+### Feature 7: Subtask Templates and Bulk Creation
+
+**Store (mirror tempo-filters.store.ts exactly):**
+```typescript
+// stores/subtask-templates.store.ts
+interface SubtaskTemplate {
+  id: string;         // nanoid or crypto.randomUUID()
+  name: string;       // display name for the template
+  fields: {
+    summary: string;  // required
+    description?: string;
+    assignee?: { name: string };
+    priority?: { name: string };
+    labels?: string[];
+    [fieldKey: string]: unknown; // original estimate, story points, due date, components, custom fields
+  };
+}
+
+interface SubtaskTemplatesState {
+  templates: SubtaskTemplate[];
+  addTemplate: (t: SubtaskTemplate) => void;
+  updateTemplate: (id: string, patch: Partial<SubtaskTemplate>) => void;
+  removeTemplate: (id: string) => void;
+  reorderTemplate: (id: string, direction: 'up' | 'down') => void;
+}
+
+export const useSubtaskTemplatesStore = create<SubtaskTemplatesState>()(
+  persist(..., {
+    name: 'subtask-templates-store',
+    storage: createTauriStorage('subtask-templates.json'),
+    version: 1,
+    migrate: (persisted, _version) => persisted as SubtaskTemplatesState,
+  }),
+);
+```
+
+**Settings page entry:** A new `SubtaskTemplatesSection.tsx` in `routes/settings/` — a CRUD list where users create, edit, rename, reorder, and delete named templates. Registered as a new sidebar item in `Settings.tsx`.
+
+**Bulk create flow from a parent issue:**
+
+The entry point is `IssueDetailContent.tsx` for a story/epic. A "Bulk Create Subtasks" button (visible only when `issue.fields.issuetype.name !== 'Subtask'`) opens `BulkCreateSubtasksModal.tsx`. The flow:
+
+1. **Pick/build list:** User selects saved templates and/or adds ad-hoc subtask definitions. Each row shows the template name + inline-editable title. Parent-inheritance placeholders (`{{parent.assignee}}`, `{{parent.summary}}`) are resolved at submit time.
+2. **createmeta-driven optional fields:** `useCreateEditQueries` already fetches createmeta for the Subtask issue type. `BulkCreateSubtasksModal` reuses `useCreateEditQueries({ open: true, selectedIssueType: 'Subtask', parentKey: issueKey })` to discover available optional fields per Jira instance. Per-row optional fields are shown in a collapsible "Advanced" section per row.
+3. **Create all at once:** Submit calls `createIssue()` sequentially in a `for` loop (not `Promise.all`, to preserve order). Each call passes `{ parent: { key: issueKey }, issuetype: 'Subtask', ...resolvedTemplateFields }`.
+4. **Partial failure handling:** Track per-row result state `{ status: 'pending' | 'success' | 'error'; error?: string }`. After the loop, show a summary: "X of Y created successfully." Failures show inline error per row with a retry button. On any success, call `invalidateGhAllData` and `queryClient.invalidateQueries(['jira-issue-detail', parentKey])` and `queryClient.invalidateQueries(['jira-subtask-enrichment', parentKey])`.
+
+**Parent-key propagation:** `BulkCreateSubtasksModal` receives `parentKey` as a prop from `IssueDetailContent`, which already receives `issueKey`. The modal state (open/closed) is local to `IssueDetailPage` / `IssueDetailContent`, not AppLayout-level — bulk creation is only triggered from within a parent issue detail.
+
+**New vs modified components:**
+- NEW: `stores/subtask-templates.store.ts`
+- NEW: `stores/subtask-templates.store.test.ts`
+- NEW: `routes/settings/SubtaskTemplatesSection.tsx` — CRUD UI for named templates
+- NEW: `routes/dashboard/BulkCreateSubtasksModal.tsx` — pick list + preview + sequential create with per-row feedback
+- MODIFIED: `routes/settings/Settings.tsx` — add "Subtask Templates" sidebar link
+- MODIFIED: `routes/dashboard/IssueDetailContent.tsx` — add "Bulk Create Subtasks" button; wire modal open state (local useState)
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Service Module with Internal Client
+### Pattern 1: Optimistic Update with GH Cache Mutation
 
-**What:** `client.ts` exports the fetch wrapper privately to the service folder. Domain modules import directly from `./client`. Barrel `index.ts` re-exports only domain functions and types — never `client.ts`.
+**What:** Mutate `['gh-backlog', boardId]` or `['gh-all-data', boardId]` cache directly via `queryClient.setQueryData`, execute API call, roll back on error via saved snapshot, then `invalidateGh*Data` on settle.
 
-**When to use:** Every new integration service. Established by `aio/` in v1.8.
+**When to use:** Any mutation that changes data visible in the board or backlog — rank, transition, flag, sprint move.
 
+**Example (rank reorder):**
 ```typescript
-// src/services/tempo/client.ts  — NOT in index.ts exports
-export async function tempoFetch(
-  baseUrl: string,
-  token: string,
-  path: string,
-  operation: string,
-  params?: Record<string, string>,
-): Promise<Response> {
-  const url = new URL(`${baseUrl.replace(/\/$/, '')}/rest/timesheet-gadget/1.0${path}`);
-  if (params) {
-    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  }
-  return apiFetch('jira', url.toString(), {
-    headers: { Authorization: `Bearer ${token}` },
-  }, operation);
-}
-```
-
-**Note on auth:** Tempo on Jira DC uses the same Jira host and the same PAT Bearer auth. No separate credential. `source: 'jira'` in `apiFetch` is correct — confirmed by `fields.ts` line 77 which already calls `/rest/tempo-accounts/1/account/search` using the Jira token.
-
-### Pattern 2: Tempo API Endpoint — raw-timesheet
-
-**What:** `/rest/timesheet-gadget/1.0/raw-timesheet.json` is the correct DC endpoint for bulk worklog retrieval by date range and user.
-
-**Key parameters:**
-- `targetUser` — Jira username (single user filter; omit for current authenticated user)
-- `startDate` / `endDate` — format `YYYY-MM-DD`
-- `projectid` — numeric Jira project ID (optional scope filter)
-- `moreFields` — additional issue fields to include (e.g. `issuetype`, `status`)
-
-**Response shape (confirmed from Tempo DC documentation):**
-```typescript
-// src/services/tempo/types.ts
-export interface TempoRawTimesheetResponse {
-  worklog: TempoWorklogGroup[];
-}
-export interface TempoWorklogGroup {
-  key: string;        // Jira issue key, e.g. "PROJ-123"
-  summary: string;    // issue summary
-  entries: TempoWorklogEntry[];
-  fields?: Array<{ label: string; value: string }>;  // moreFields content
-}
-export interface TempoWorklogEntry {
-  id: number;
-  comment: string;
-  timeSpent: number;       // seconds
-  author: string;          // Jira username
-  authorFullName: string;  // display name
-  startDate: number;       // UNIX milliseconds
-  created: number;         // UNIX milliseconds
-}
-export interface TempoWorklog {
-  id: number;
-  issueKey: string;
-  issueSummary: string;
-  comment: string;
-  timeSpentSeconds: number;
-  authorUsername: string;
-  authorDisplayName: string;
-  startDate: Date;         // parsed from UNIX ms
-}
-export interface TempoSavedFilter {
-  id: string;
-  name: string;
-  usernames: string[];
-  datePreset: 'this-week' | 'last-week' | 'this-month' | 'custom';
-  customFrom?: string;   // ISO date string
-  customTo?: string;
-}
-```
-
-**Important probe requirement:** The raw-timesheet endpoint behavior (single-user vs. multi-user, max results per issue) should be verified against the actual Jira instance before building the UI. The endpoint documentation states it "returns only the first 20 worklogs per issue" for the gadget view — confirm whether this applies to the REST JSON endpoint too. Plan a probe step in Phase 1.
-
-### Pattern 3: Jira Issue Enrichment via Cache Reads
-
-**What:** Tempo worklogs return issue keys and summaries from the raw-timesheet endpoint but no epic, issue type, or other Jira metadata. Rather than N+1 fetches, read the TanStack Query cache for sprint-board data already loaded, and fall back to individual `fetchIssue(key)` calls only for cache misses.
-
-**Implementation:**
-```typescript
-// In TempoPage.tsx
-const queryClient = useQueryClient();
-const sprintIssues = queryClient.getQueryData<JiraIssue[]>(
-  ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey]
-) ?? [];
-const issueMap = new Map(sprintIssues.map(i => [i.key, i]));
-
-// Cache misses: backlog/closed/epic issues not in sprint
-const missedKeys = worklogIssueKeys.filter(k => !issueMap.has(k));
-// useQueries for cache-deduped individual fetches — TanStack deduplicates by key
-const individualResults = useQueries({
-  queries: missedKeys.map(key => ({
-    queryKey: ['jira-issue', key, jiraBaseUrl],
-    queryFn: () => fetchIssue(jiraBaseUrl!, jiraToken!, key),
-    staleTime: 5 * 60_000,
-  }))
+const cacheKey = ['gh-backlog', boardId] as const;
+const previous = queryClient.getQueryData<GhBacklogResponse>(cacheKey);
+queryClient.setQueryData<GhBacklogResponse>(cacheKey, (old) => {
+  if (!old) return old;
+  return {
+    ...old,
+    sprints: old.sprints.map(s =>
+      s.id === activeSprint.id
+        ? { ...s, issuesIds: reorderedIds }
+        : s
+    ),
+  };
 });
-```
-
-**Note:** The raw-timesheet endpoint already returns `summary` for each issue group. Epic/issue type enrichment is "nice to have" for issue type icons — mark it as optional enhancement, not required for v1 of Tempo view.
-
-### Pattern 4: Saved Tempo Filters via settings.store Persistence
-
-**What:** Tempo filters (saved people + date presets) persist across restarts via `settings.store` Tauri Store. Active session filter state lives in local component state (not a Zustand store) because it doesn't need cross-component sharing.
-
-**Decision rationale:** Jira saved filters are session-only because they mirror server state. Tempo filters are app-local user preferences — no server equivalent. Use `settings.store` persist (same as `aioEnabled`, `selectedAioProjectKey`). A separate store file is not warranted for a small filter array.
-
-**settings.store additions:**
-```typescript
-// Interface additions
-tempoEnabled: boolean;
-savedTempoFilters: TempoSavedFilter[];
-addTempoFilter: (f: TempoSavedFilter) => void;
-removeTempoFilter: (id: string) => void;
-updateTempoFilter: (id: string, f: TempoSavedFilter) => void;
-
-// Initializer defaults
-tempoEnabled: false,
-savedTempoFilters: [],
-
-// migrate() — version bump to 19
-if (version < 19) {
-  if (s.tempoEnabled === undefined) s.tempoEnabled = false;
-  if (s.savedTempoFilters === undefined) s.savedTempoFilters = [];
-  // Remove dead widget state from persisted store
-  delete s.dashboardLayout;
+try {
+  await rankIssue(baseUrl, token, issueKey, rankBeforeIssue);
+  invalidateGhBacklogData(queryClient, boardId);
+} catch {
+  if (previous) queryClient.setQueryData(cacheKey, previous);
 }
 ```
 
-### Pattern 5: Static Dashboard — Props-Down Thin Index
+### Pattern 2: Outlet Context Prop Threading
 
-**What:** The new `/dashboard` follows the existing codebase decision: "Dashboard panels receive props from thin index.tsx — token loading centralized; panels own their queries." No WidgetGrid, no edit mode, no layout persistence. Three fixed panels in a CSS grid.
+**What:** Pass new handlers via the `Outlet context` object in `AppLayout`, consumed via `useOutletContext<{...}>()` in route components. No React context / createContext is used anywhere in the codebase.
 
-**SprintHealthPanel already exists** — reuse directly with no modifications. `MyInProgressPanel` and `NextReleasePanel` are new but each roughly 80 lines.
+**When to use:** For any AppLayout-level handler needed by route components — `onIssuePeek` follows this pattern exactly like `onIssueClick`.
 
-```typescript
-// src/routes/dashboard/index.tsx — new version
-export default function Dashboard() {
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const [jiraToken, setJiraToken] = useState<string | null>(null);
-  useEffect(() => {
-    readSecret('jira-pat').then(setJiraToken).catch(() => setJiraToken(null));
-  }, [jiraBaseUrl]);
+### Pattern 3: Zustand Persist with createTauriStorage
 
-  if (!jiraBaseUrl || !activeJiraProject || !jiraToken) return null;
-  return (
-    <div className="flex flex-col gap-4 p-4 overflow-y-auto h-full">
-      <h1 className="text-xl font-semibold">Overview</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <SprintHealthPanel jiraBaseUrl={jiraBaseUrl} jiraToken={jiraToken} activeJiraProject={activeJiraProject} />
-        <MyInProgressPanel jiraBaseUrl={jiraBaseUrl} jiraToken={jiraToken} activeJiraProject={activeJiraProject} />
-        <NextReleasePanel jiraBaseUrl={jiraBaseUrl} jiraToken={jiraToken} activeJiraProject={activeJiraProject} />
-      </div>
-    </div>
-  );
-}
-```
+**What:** `create<State>()(persist(..., { storage: createTauriStorage('filename.json'), version: N }))`.
+
+**When to use:** Any client-side persistent state that must survive app restarts. The subtask-templates store is a direct structural copy of `tempo-filters.store.ts`.
+
+### Pattern 4: createmeta-Driven Field Discovery
+
+**What:** `useCreateEditQueries({ open, projectKey, jiraBaseUrl, selectedIssueType: 'Subtask', parentKey })` returns `customFields: CreatemetaField[]` for the Subtask issue type on this Jira instance. The `BulkCreateSubtasksModal` calls this hook to discover optional fields without hardcoding field IDs.
 
 ---
 
 ## Data Flow
 
-### Tempo Worklog Request Flow
+### Issue Click Routing (existing + peek extension)
 
 ```
-User selects date range + people in TempoFilterBar
-    ↓
-useQuery({ queryKey: ['tempo', jiraBaseUrl, from, to, ...usernames] })
-    ↓ (parallel per user, or omit targetUser for current user only)
-tempoFetch(baseUrl, token, '/raw-timesheet.json', 'Load Tempo Worklogs', { startDate, endDate, targetUser })
-    ↓
-apiFetch('jira', url, { Authorization: Bearer }, 'Load Tempo Worklogs')
-    ↓
-raw-timesheet.json: { worklog: [{ key, summary, entries: [...] }] }
-    ↓
-Transform: flatten groups → TempoWorklog[], sort by date
-    ↓
-TempoTable renders day-column hierarchy (epic → story → subtask rows)
+User clicks issue key text
+  → onIssueClick(key) [existing]
+    → handleIssueClick in AppLayout
+      → breadcrumb push + navigate('/issue/:key')
+
+User clicks issue row body / card body (new)
+  → onIssuePeek(key) [new]
+    → handleIssuePeek in AppLayout
+      → setPeekIssueKey(key)
+        → IssueDetailSheet opens (peekIssueKey !== null)
+          → fetchIssueDetail(key) via ['jira-issue-detail', key, baseUrl]
+          → renders IssueDetailContent + IssueDetailSidebar
+
+User clicks "Open full page" in peek header
+  → handleIssueClick(peekIssueKey, resetTrail=true)
+  → setPeekIssueKey(null)
 ```
 
-### Jira Issue Enrichment Flow
+### Drag-to-Rank Data Flow
 
 ```
-TempoPage: worklog data loaded
-    ↓
-Extract unique issue keys from worklogs
-    ↓
-queryClient.getQueryData(['jira-issues', 'sprint-board', ...]) → issueMap (zero cost)
-    ↓
-missedKeys = worklogKeys not in issueMap
-    ↓
-useQueries for missed keys → ['jira-issue', key, jiraBaseUrl]
-    → TanStack deduplicates identical keys automatically
-    ↓
-Merge issueMap + individual fetches → enriched rows (epic, issue type)
+useGhBacklogData(boardId) → GhBacklogResponse
+  → adaptedIssues (useMemo chain)
+    → sprintSections[0].issues (active sprint, ordered by issuesIds[])
+
+User drag-ends
+  → optimistic: setQueryData reorders issuesIds[]
+  → adaptedIssues re-derives (useMemo)
+  → sprintSections[0].issues renders in new order
+  → rankIssue() API call
+    → settle: invalidateGhBacklogData → refetch canonical order
 ```
 
-### Static Dashboard Flow
+### Drag-to-Transition Data Flow
 
 ```
-Dashboard mounts
-    ↓ (parallel — all cache-warm if user has visited those routes)
-SprintHealthPanel  → ['jira-issues', 'sprint-board', project, spField]
-                   → ['jira-active-sprint', project]
-MyInProgressPanel  → ['jira-issues', 'my-tasks', project, spField]
-NextReleasePanel   → ['jira-fix-versions', project]
-    ↓
-stale-while-revalidate from gcTime: Infinity — instant on repeat visits
-```
+useGhAllData(boardId) → adaptedIssues → localIssues (useState)
+getTransitions(card) → peekGhTransitions → filterTransitionsForStatus
 
-### State Management
-
-```
-settings.store (Tauri persist)
-    savedTempoFilters → TempoFilterBar (load/save presets)
-    tempoEnabled      → gates Tempo sidebar item visibility
-
-TanStack Query cache
-    ['tempo', jiraBaseUrl, from, to, ...usernames] → TempoWorklog[]
-    ['jira-issues', 'sprint-board', project, spField] → JiraIssue[] (shared)
-    ['jira-issue', key, jiraBaseUrl] → JiraIssue (individual enrichment)
+User drag-ends on transition drop zone
+  → handleTransition(cardKey, transitionId, toStatusName, toStatusId)
+    → setLocalIssues optimistic update (existing path)
+    → postTransition REST call
+    → invalidateGhAllData on settle
 ```
 
 ---
 
-## Query Key Strategy
+## Component Inventory
 
-All Tempo queries use the `['tempo', ...]` prefix, following the established `['aio', ...]` pattern:
+### New Components
 
-```typescript
-// Tempo worklogs — one entry per unique filter combination
-['tempo', jiraBaseUrl, 'worklogs', from, to, ...usernames.sort()]
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `BulkCreateSubtasksModal.tsx` | `routes/dashboard/` | Pick templates + preview + create all subtasks |
+| `SubtaskTemplatesSection.tsx` | `routes/settings/` | CRUD for named subtask templates in Settings |
+| `subtask-templates.store.ts` | `stores/` | Persisted Zustand store for templates |
+| `subtask-templates.store.test.ts` | `stores/` | Tests for the store |
+| `services/jira/rank.ts` | `services/jira/` | `rankIssue()` API call to GH rank endpoint |
+| `lib/issueDisplayUtils.ts` | `lib/` | `isDoneStatus()`, `doneSummaryClass()`, `priorityStripeClass()` |
 
-// Tempo users list — for people picker
-['tempo', jiraBaseUrl, 'users']
-```
+### Modified Components
 
-This is isolated from:
-- `['jira-issues', ...]` — Jira issue data
-- `['aio', ...]` — AIO test data
-
-`queryClient.invalidateQueries({ queryKey: ['jira-issues'] })` will NOT clear Tempo cache. Established pattern from PROJECT.md Key Decisions: "AIO query keys use `['aio', jiraBaseUrl, ...]` prefix — prevents Jira invalidation sweeps from clearing AIO cache."
+| Component | Change |
+|-----------|--------|
+| `main.tsx` (AppLayout) | Add `peekIssueKey` state, `handleIssuePeek`, `IssueDetailSheet` as peek overlay, `onIssuePeek` in Outlet context |
+| `IssueDetailSheet.tsx` | Add thin peek-header (close + "Open full page"); add `modal={false}` on `Sheet` |
+| `SprintBoardTab.tsx` | Add `DndContext`, `DragOverlay`, per-status drop zones during drag; read `onIssuePeek` from Outlet context |
+| `BacklogPage.tsx` | Add `DndContext` + `SortableContext` for active-sprint section; rank optimistic update + API call; read `onIssuePeek` |
+| `BacklogRow.tsx` | Add drag handle for rank; split row-body click (peek) vs issue-key click (full page); done strikethrough; optional color stripe |
+| `TaskCard.tsx` | Add `useDraggable`; split card-body click (peek) vs issue-key span click (full page); `priorityStripeClass` left border |
+| `IssueDetailContent.tsx` | Add parent story link for subtasks; add "Bulk Create Subtasks" button for stories/epics |
+| `issue-detail/FieldsSection.tsx` | Remove `isSubtask && f.parent` MetaRow (moved to content); cursor-pointer sweep |
+| `DashboardSprintCard.tsx` | Add done strikethrough on story rows |
+| `DashboardInProgressCard.tsx` | Add done strikethrough; split peek vs full-page click |
+| `TodayInProgressSection.tsx` | Add done strikethrough; split peek vs full-page click |
+| `TodayUpNextSection.tsx` | Add done strikethrough; split peek vs full-page click |
+| `StandupNotesPage.tsx` | Thread `onIssuePeek` from Outlet context to section components |
+| `routes/settings/Settings.tsx` | Add "Subtask Templates" sidebar link |
+| `stores/settings.store.ts` | Add `rankFieldKey` field; bump persist version to 24 |
+| `services/jira.ts` barrel | Re-export `rankIssue` |
+| `main.tsx` `useCustomFieldDiscovery` | Populate `rankFieldKey` from discovery result |
 
 ---
 
-## Build Order
+## Dependency-Aware Build Order
 
-```
-Phase 1: Deletion + cleanup
-  Delete WorkloadTab, WorkloadSkeleton, WorkloadTab.test
-  Delete widgets/ folder (10 files)
-  Delete WidgetCard, WidgetGrid, WidgetPicker
-  Remove widget state from settings.store (+ migrate version 19)
-  Remove /workload from routes.tsx, sidebar-items.ts, main.tsx,
-    WikiRenderer.tsx, DiscussionThreads.tsx
-  Rationale: Clean break before building new code; reduces noise
-             in tests and imports
+Dependencies flow: shared primitives → peek infrastructure → board/backlog DnD → issue detail features.
 
-Phase 2: Service layer (src/services/tempo/)
-  types.ts → client.ts → worklogs.ts → users.ts → index.ts
-  + worklogs.test.ts, users.test.ts
-  Rationale: UI components depend on service types and functions
+**Phase A — Shared primitives (no cross-feature dependencies, safe to build first)**
+1. `lib/issueDisplayUtils.ts` — `isDoneStatus`, `doneSummaryClass`, `priorityStripeClass`
+2. `stores/subtask-templates.store.ts` + tests
+3. `services/jira/rank.ts` — `rankIssue()` + unit test
+4. `stores/settings.store.ts` — add `rankFieldKey`; bump persist version to 24; update `useCustomFieldDiscovery` in `main.tsx`
 
-Phase 3: settings.store + sidebar
-  Add tempoEnabled, savedTempoFilters, version 19 migration
-  Add tempo entry to sidebar-items.ts
-  Rationale: TempoFilterBar reads saved filters from store;
-             sidebar must know about tempo item
+**Phase B — Done strikethrough and card colors (depend only on Phase A utils)**
+5. Apply `doneSummaryClass` to `BacklogRow.tsx`, `DashboardSprintCard.tsx`, `DashboardInProgressCard.tsx`, `TodayInProgressSection.tsx`, `TodayUpNextSection.tsx`
+6. Apply `priorityStripeClass` to `TaskCard.tsx`, `BacklogRow.tsx` (replaces `isSubtask && 'border-l-2 border-l-muted'`)
 
-Phase 4: New static dashboard
-  Replace src/routes/dashboard/index.tsx with static 3-panel version
-  Add MyInProgressPanel.tsx, NextReleasePanel.tsx
-  (SprintHealthPanel.tsx already exists — no changes)
-  Rationale: Dashboard replaces in-place; route registration unchanged
+**Phase C — Peek slideover (consumed by all list surfaces; must precede DnD which also splits click handlers)**
+7. `IssueDetailSheet.tsx` — peek-header with close + "Open full page"; `modal={false}`
+8. `main.tsx` AppLayout — add `peekIssueKey`, `handleIssuePeek`, mount `IssueDetailSheet` as global peek, add `onIssuePeek` to Outlet context
+9. `BacklogRow.tsx` + `TaskCard.tsx` — split click handler (key → full page, body → peek)
+10. `SprintBoardTab.tsx` — wire `onIssuePeek` on card body click; issue key text → `onIssueClick`
+11. `BacklogPage.tsx` — wire `onIssuePeek` on row click
+12. Standup + Dashboard surfaces — thread `onIssuePeek`; apply done strikethrough
 
-Phase 5: Tempo route UI
-  TempoPage.tsx, TempoTable.tsx, TempoFilterBar.tsx, TempoSkeleton.tsx
-  Add /tempo route to routes.tsx
-  Add tempo item to sidebar
-  Rationale: Depends on Phase 2 (service) + Phase 3 (store)
+**Phase D — Drag-to-rank (depends on Phase C for correct click/drag distinction on backlog rows)**
+13. Install `@dnd-kit/core` + `@dnd-kit/sortable`
+14. `BacklogPage.tsx` + `BacklogRow.tsx` — add rank DnD, optimistic reorder, `rankIssue` API call
 
-Phase 6: Test + cleanup pass
-  Update settings.store.test.ts for new fields
-  Update Sidebar.test.tsx for preset changes
-  New TempoPage smoke test
-  Dead code sweep, unused imports
-```
+**Phase E — Drag-to-transition (depends on @dnd-kit from Phase D)**
+15. `SprintBoardTab.tsx` + `TaskCard.tsx` — add board drag-to-transition with per-status drop zones
+
+**Phase F — Issue detail refinements**
+16. `IssueDetailContent.tsx` — parent story link for subtasks; cursor-pointer sweep
+17. `FieldsSection.tsx` — remove duplicate parent MetaRow
+
+**Phase G — Subtask templates and bulk creation (depends on store from Phase A)**
+18. `routes/settings/SubtaskTemplatesSection.tsx` + wire into `Settings.tsx`
+19. `BulkCreateSubtasksModal.tsx` — full pick/preview/create flow with partial-failure handling
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Separate Tempo Credential
+### Anti-Pattern 1: DndContext at the Wrong Level
 
-**What people do:** Create a new `tempo-pat` Stronghold key and a separate Tempo auth flow.
+**What people do:** Wrapping the entire `<main>` or `AppLayout` in a `DndContext`.
 
-**Why it's wrong:** Tempo on Jira DC lives on the same Jira host and accepts the same PAT. Evidence: `fields.ts` line 77 already calls `/rest/tempo-accounts/1/account/search` using the Jira Bearer token with no separate auth.
+**Why it's wrong:** The board's custom JS-driven sticky header system uses `position: absolute` overlays that interfere with `DragOverlay` z-index and pointer events. The backlog rank DnD only needs to be active on the active-sprint section.
 
-**Do this instead:** Use `readSecret('jira-pat')` in Tempo pages as-is. Use `source: 'jira'` in `apiFetch`.
+**Do this instead:** Scope `DndContext` to the individual feature surface — inside `SprintBoardTab` for transitions, inside `BacklogPage`'s active-sprint `renderSection` call for ranking.
 
-### Anti-Pattern 2: Per-User Sequential Worklog Fetches
+### Anti-Pattern 2: Storing Peek State in Zustand
 
-**What people do:** Loop through selected users, firing one `raw-timesheet.json?targetUser=X` request at a time.
+**What people do:** Creating a Zustand store for `peekIssueKey` so any component can open the peek directly.
 
-**Why it's wrong:** 5 team members = 5 sequential requests. Perceived latency 5x worse than parallel.
+**Why it's wrong:** The existing codebase uses zero `createContext/useContext` and threads handlers explicitly. Peek state is ephemeral UI state with no persistence requirement. A Zustand store breaks the prop-threading consistency documented in the Key Decisions table.
 
-**Do this instead:** Use `Promise.all` for parallel per-user fetches. Reuse `getJiraLimit()` from `src/lib/concurrency.ts` for the concurrency guard. If the endpoint supports omitting `targetUser` to get all users' data at once, probe that first.
+**Do this instead:** `useState` in `AppLayout`, threaded via Outlet context as `onIssuePeek`.
 
-### Anti-Pattern 3: Leaving Dead Widget State in settings.store
+### Anti-Pattern 3: Parallel createIssue calls in bulk creation
 
-**What people do:** Keep `dashboardLayout`, `DashboardLayoutItem`, and widget actions in the store interface after deleting the widget system.
+**What people do:** `await Promise.all(subtasks.map(s => createIssue(...)))` to speed up bulk creation.
 
-**Why it's wrong:** The store imports `WIDGET_REGISTRY` from `widgets/registry.ts` (a route file, not a lib). After deletion, this import becomes a broken reference. Additionally, dead persisted state accumulates in users' `settings.json` files.
+**Why it's wrong:** Jira DC rate limits parallel POSTs and the user wants order preserved (template order = subtask rank order). Parallel calls also make per-item failure tracking harder.
 
-**Do this instead:** Full removal — type, state fields, actions, import. Add a migrate step that `delete s.dashboardLayout` on version < 19 upgrade.
+**Do this instead:** Sequential `for` loop with per-item status tracking. Total time for 5-10 subtasks is acceptable with a progress indicator.
 
-### Anti-Pattern 4: Enriching All Issue Keys via Individual Fetches
+### Anti-Pattern 4: Creating a new peek component instead of reusing IssueDetailSheet
 
-**What people do:** After loading worklogs, fire `fetchIssue(key)` for every unique issue key.
+**What people do:** Creating a new `IssuePeekSlideOver.tsx` that duplicates the query + loading skeleton + content layout from `IssueDetailSheet`.
 
-**Why it's wrong:** Sprint board cache already contains most current-sprint issues. Firing N fetches for already-cached data defeats stale-while-revalidate.
+**Why it's wrong:** `IssueDetailSheet.tsx` is functional and already on disk. It loads `IssueDetailContent` + `IssueDetailSidebar` which are the same components used in `IssueDetailPage`. A duplicate means two places to maintain the same query key and loading pattern.
 
-**Do this instead:** Read sprint-board cache via `queryClient.getQueryData` first. Fire individual `useQuery` calls only for cache misses. Note: the raw-timesheet endpoint already provides `summary` per issue — individual enrichment fetches are optional (only needed for epic/issue type metadata).
-
----
-
-## Integration Points
-
-### Sidebar Integration
-
-Add to `SIDEBAR_NAV_ITEMS` in `sidebar-items.ts`:
-```typescript
-{
-  id: 'tempo',
-  label: 'Timesheets',
-  path: '/tempo',
-  iconName: 'Clock',   // lucide-react Clock icon
-  section: 'tracking',
-}
-```
-
-Remove the `workload` entry. Add `'tempo'` to both `devVisible` and `pmVisible` sets (timesheets are relevant to both roles). The settings.store version 19 migration replaces `workload` with `tempo` in any persisted `sidebarItems` arrays:
-
-```typescript
-if (version < 19) {
-  if (Array.isArray(s.sidebarItems)) {
-    s.sidebarItems = (s.sidebarItems as Array<{ id: string; visible: boolean }>)
-      .filter(item => item.id !== 'workload')
-      .concat([{ id: 'tempo', visible: true }]);
-  }
-}
-```
-
-### tempoEnabled Toggle
-
-Mirror the `aioEnabled` pattern exactly:
-- `tempoEnabled: boolean` in settings.store, default `false`
-- Gates sidebar item visibility and all Tempo API calls
-- Settings → Integrations section (alongside `aioEnabled`)
-
-This ensures users without Tempo installed see no Tempo UI and fire zero Tempo requests.
-
----
-
-## Probes Required Before Phase 5 Implementation
-
-The Tempo `raw-timesheet.json` endpoint behavior on this specific Jira DC instance needs verification:
-
-1. **Multi-user support:** Does omitting `targetUser` return all users' worklogs, or only the authenticated user's?
-2. **Result truncation:** The documentation mentions 20 worklogs/issue for the gadget. Does the REST JSON endpoint have the same limit?
-3. **Date format:** Confirm `YYYY-MM-DD` is accepted (vs. `DD/Mon/YYYY`).
-4. **Authentication:** Confirm Bearer PAT works (vs. Basic Auth) — very likely yes given Tempo accounts endpoint already works.
-
-Probe in a Phase 5 pre-implementation task using the same probe-first approach as v1.8 Phase 51 (AIO base path discovery).
+**Do this instead:** Add the thin peek-header (close + open-full-page) to the existing `IssueDetailSheet.tsx`.
 
 ---
 
 ## Sources
 
-- Codebase: `src/services/aio/client.ts`, `src/services/jira/client.ts`, `src/services/jira/fields.ts`, `src/stores/settings.store.ts`, `src/routes/dashboard/index.tsx`, `src/routes/routes.tsx`, `src/components/app/sidebar-items.ts` — HIGH confidence
-- PROJECT.md Key Decisions table — HIGH confidence (authoritative for this codebase)
-- [Tempo REST API Integrations for DC](https://help.tempo.io/trg-dc/latest/rest-api-integrations) — raw-timesheet.json endpoint confirmed — MEDIUM confidence
-- [Tempo raw-timesheet response shape from community sources](https://help.tempo.io/timesheet-reports-and-gadgets/en/timesheet-reports-and-gadgets-for-jira-server-and-data-center/timesheet-reports-and-gadgets/rest-api-integrations.html) — MEDIUM confidence (response fields cross-referenced from multiple sources)
-- Existing `jira/fields.ts` line 77: `/rest/tempo-accounts/1/account/search` using Bearer PAT — HIGH confidence that Tempo endpoints accept same auth
+- `taskflow/src/main.tsx` — AppLayout structure, Outlet context shape, `handleIssueClick`, `IssueDetailSheet` mounting decision (Key Decisions table entry)
+- `taskflow/src/routes/dashboard/SprintBoardTab.tsx` — `CATEGORY_COLUMNS`, `handleTransition`, `invalidateGhAllData` pattern, `stickyOverlayRef` / `DragOverlay` placement constraints
+- `taskflow/src/routes/dashboard/BacklogPage.tsx` — `GhBacklogResponse` cache mutation pattern, `issueIdToSprintId` optimistic update, `sprintSections` ordering, `confirmMoveToSprint` rollback reference
+- `taskflow/src/routes/dashboard/IssueDetailSheet.tsx` — existing sheet structure, queries, and layout
+- `taskflow/src/routes/dashboard/IssueDetailPage.tsx` — full-page detail layout, Outlet context consumption
+- `taskflow/src/routes/dashboard/TaskCard.tsx` — click handler shape, existing `border-l-2` pattern, done-state `line-through` at lines 115-119
+- `taskflow/src/routes/dashboard/BacklogRow.tsx` — row click handler shape, epic color pattern
+- `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` — parent MetaRow location (line 638-650), `transitionMutation.onSettled` invalidation chain
+- `taskflow/src/routes/dashboard/create-edit-issue/useCreateEditQueries.ts` — createmeta discovery pattern
+- `taskflow/src/routes/dashboard/IssueDetailContent.tsx` — subtask list rendering location, `onOpenIssue` prop already threaded
+- `taskflow/src/stores/tempo-filters.store.ts` — exact store pattern to mirror for subtask-templates
+- `taskflow/src/services/jira.ts` — `createIssue()` signature (line 1588)
+- `taskflow/package.json` — confirmed no `@dnd-kit/*` packages currently installed
+- `.planning/PROJECT.md` — Key Decisions table, v1.11 architecture decisions, v1.12 requirements
 
 ---
-*Architecture research for: Tempo integration + dashboard redesign in Tauri/React app*
-*Researched: 2026-05-20*
+*Architecture research for: v1.12 Jira Experience Improvements*
+*Researched: 2026-06-02*

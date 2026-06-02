@@ -1,259 +1,361 @@
 # Pitfalls Research
 
-**Domain:** Tempo Timesheets integration + react-grid-layout removal + dashboard redesign
-**Researched:** 2026-05-20
-**Confidence:** HIGH (codebase verified) / MEDIUM (Tempo API auth specifics — external sources contradict each other; probe required)
+**Domain:** Drag-and-drop rank/transition + non-blocking peek slideover + bulk subtask creation in Tauri 2 / React 18 / TanStack Query
+**Researched:** 2026-06-02
+**Confidence:** HIGH (codebase-verified + official docs) / MEDIUM (Tauri webview quirks — platform-specific reports vary)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Tempo REST API auth is NOT the Jira Bearer PAT
+### Pitfall 1: Optimistic reorder flicker — TanStack Query cache as DnD source of truth
 
 **What goes wrong:**
-The existing `aioFetch` and `jira.ts` both use `Authorization: Bearer <jira-pat>`. Developers assume the same Jira PAT token works for Tempo's REST API. It does not. Community reports consistently document that sending a Jira PAT to `/rest/tempo-timesheets/4/worklogs` returns HTTP 401. Tempo Timesheets on Jira DC uses either its own OAuth 2.0 token (generated in Tempo → Settings → API Integration) or Basic Auth — depending on the Tempo version and instance configuration. There is no public documentation confirming Bearer PAT works for this endpoint.
+When `onDragEnd` fires, the optimistic reorder is written to the TanStack Query cache via `setQueryData`. React re-renders from the cache, which momentarily returns to the pre-drag server order because a background refetch (triggered by invalidation or staleness) overwrites the cache before the mutation call completes. The card visibly snaps back to its old position for a frame, then re-settles — a jarring "flicker on drop" users immediately notice.
+
+The existing backlog optimistic pattern (Phase 74) avoids this for sprint-move operations by snapshotting the `['gh-backlog', boardId]` cache and patching it in place (`queryClient.setQueryData`). The rank-reorder case is more sensitive because the mutation is asynchronous and the data.json poll interval (if active) can fire during the mutation window.
 
 **Why it happens:**
-AIO TCMS on the same Jira host accepted the Jira Bearer PAT (confirmed in Phase 51 probe). Developers carry this expectation into Tempo. Tempo is a third-party plugin with its own auth layer that is distinct from Jira's native token system.
+`data.json` polling is route-aware and paused on inactive routes (`useIsActiveRoute`), but when BacklogPage is the active route the poll fires every 60s. If the poll completes between the `setQueryData` optimistic write and the `PUT /rest/agile/1.0/issue/rank` mutation response, the poll response replaces the optimistic order with the server's pre-mutation order.
 
 **How to avoid:**
-Treat Tempo auth as a new credential type requiring a dedicated probe. Write a `probeTempoAuth` function that tries `Authorization: Bearer <jira-pat>` and reports success or failure. If 401, surface a `tempoToken` input in Settings → Integrations (same pattern as `aioEnabled`). Store the Tempo token in Stronghold under key `tempo-pat`. Create a `tempoFetch` wrapper that reads from `tempo-pat` and never shares with `jiraFetch`. Do not assume the Jira PAT grants access to Tempo endpoints.
+1. Maintain a **local `items` state** (array of issue IDs in display order) that is the single source of truth for rendered order during an active drag. Only sync this local state from the query cache when `isDragging === false` (gate the `useEffect` with an `isDraggingRef`).
+2. In `onDragEnd`: update local state immediately (instant visual confirmation), then fire the mutation. In mutation `onMutate`, also call `queryClient.cancelQueries({ queryKey: ['gh-backlog', boardId] })` to prevent the in-flight poll from overwriting.
+3. In mutation `onError`: snapshot was taken in `onMutate`; restore the local state and the query cache from the snapshot.
+4. In mutation `onSettled`: call `invalidateGhBacklogData(queryClient, boardId)` to sync fresh server rank order.
 
 **Warning signs:**
-- All Tempo API calls return 401 despite valid Jira PAT
-- Tempo UI can be opened in the browser but API calls from the app fail
+- Card returns to old position for one frame after drop
+- Optimistic order matches server but still flickers on high-latency connections
+- Duplicate rows briefly visible on rapid back-to-back reorders
 
 **Phase to address:**
-Tempo service layer phase — first task. Auth must be probe-confirmed before writing any worklog fetch logic. Do not build the UI until the probe resolves auth.
+Drag-to-rank (Backlog) phase — the local-state/isDragging pattern must be in the initial implementation, not retrofitted.
 
 ---
 
-### Pitfall 2: Tempo API base path varies by plugin version
+### Pitfall 2: GreenHopper rank API requires `rankCustomFieldId` — wrong field ID silently places issue at the end
 
 **What goes wrong:**
-The Tempo Server API has at minimum three documented base paths: `/rest/tempo-timesheets/1/`, `/rest/tempo-timesheets/3/`, `/rest/tempo-timesheets/4/`, and an undocumented internal path. Community members have confirmed that paths documented as current return 404 on actual instances. There is no standard discovery endpoint. The specific instance in this project (Orange eshop Jira DC v10.3.15) may use a different path than the documentation describes, and Tempo's own documentation is acknowledged to be outdated and misleading for DC/Server.
+The `PUT /rest/agile/1.0/issue/rank` endpoint accepts an optional `rankCustomFieldId`. If omitted, Jira uses the board's default rank field. If the wrong field ID is passed (e.g., derived from a guess rather than the backlog response), the issue is silently placed at the last position instead of the requested position. There is no error — the server returns 200 and the list appears reordered, but the rank field updated is wrong and on next page load the issue is back at the end.
+
+The `GhBacklogResponse` carries `rankCustomFieldId: number` at the top level (confirmed in `types.ts` line 207 and `data.real.json` fixture). This is the authoritative source.
 
 **Why it happens:**
-Tempo's official documentation does not clearly map plugin version to API path. The AIO probe pattern succeeded because there were two distinct path prefixes; Tempo has at least three and they are not all simultaneously active. Guessing the correct path without probing produces silent 404s that look like "no data" rather than "wrong endpoint."
+Developers hardcode `customfield_10119` (a common default) rather than reading `data.rankCustomFieldId` from the cached `['gh-backlog', boardId]` response. The rank succeeds silently against the wrong field. The bug only manifests on the next page load.
 
 **How to avoid:**
-Use the same probe-first pattern as AIO (`AIO_API_PATH` / `AIO_PROJECTS_API_PATH` in `aio/client.ts`). Write a `probeTempoEndpoints` function that tries candidate paths in sequence and records which one responds with a non-404. Gate all worklog fetches on probe success. Store the confirmed base path as a constant with a comment citing the probe result and Tempo plugin version observed.
+Read `rankCustomFieldId` directly from the cached `GhBacklogResponse`: `queryClient.getQueryData<GhBacklogResponse>(['gh-backlog', boardId])?.rankCustomFieldId`. Pass this value to the rank mutation. If the value is missing (cache miss or undefined), refuse the mutation and log a warn rather than proceeding with a hardcoded fallback. Write a unit test that asserts the mutation passes the field ID from the fixture, not a hardcoded constant.
 
 **Warning signs:**
-- API call returns 404 with an HTML error page (Jira "page not found") rather than JSON
-- Worklog table shows an empty state error rather than "no worklogs found"
+- Rank API returns 200 but issue reappears at original position on next `data.json` fetch
+- No error in the console or network panel
+- Bug is reproducible only after a page reload or data invalidation
 
 **Phase to address:**
-Tempo service layer phase — first task, immediately after auth probe.
+Drag-to-rank (Backlog) phase — add the field ID assertion to the unit test for the rank mutation before the mutation code is written.
 
 ---
 
-### Pitfall 3: Worklog timestamps cause off-by-one day errors across timezones
+### Pitfall 3: Mixing vertical-rank drag with horizontal-transition drag on the same board in one DnD context
 
 **What goes wrong:**
-Jira's native worklog API returns `started` as `"2024-03-15T09:30:00.000+0200"` — local server time with an offset. Tempo's own API may return epoch milliseconds, a date-only string `"YYYY-MM-DD"`, or a different format depending on the endpoint version. When the frontend assigns a worklog to a calendar day column using `new Date(started).toLocaleDateString()`, DST boundaries and timezone differences cause assignments to shift by one day. A worklog logged at 23:30 CET (UTC+1) appears as the next day in UTC. For the Orange team, Jira server likely runs in CET/CEST — users running the app from UTC machines would see all late-evening worklogs on the wrong day.
+The sprint board requires **two drag semantics**: rank reorder within a column (vertical, same status) and status transition by dropping onto a different column (horizontal). Using a single `DndContext` with `SortableContext` for both means the sorting strategy (`verticalListSortingStrategy`) assumes items remain in one axis. When a card crosses a column boundary, the `SortableContext` of the source column loses track of the active item and the UI shows a ghost in the wrong column or no ghost at all.
 
 **Why it happens:**
-`new Date("2024-03-15T23:30:00.000+0100")` converts to UTC as March 15 22:30:00 UTC — correct. But `new Date("2024-03-15").toLocaleDateString()` on a UTC machine produces March 14 in UTC-offset environments due to midnight-UTC parsing. The safe pattern for day bucketing is to use the date string portion directly, not a converted `Date` object.
+`@dnd-kit/sortable`'s `verticalListSortingStrategy` and `rectSortingStrategy` are both column-local. They do not know about sibling columns. Multi-column kanban boards need a custom `collisionDetection` strategy that distinguishes "drop on same column" (rank reorder) from "drop on different column" (transition).
 
 **How to avoid:**
-For day-column bucketing: parse the date portion of the timestamp as `started.slice(0, 10)` (produces `"YYYY-MM-DD"`) rather than converting through a `Date` object. If the response returns epoch milliseconds, convert using `new Date(ms).toISOString().slice(0, 10)` (UTC date) — then confirm whether the Jira server intends UTC or server-local date for the worklog's "day." Add tests with fixtures timestamped at 23:00 and 01:00 across a DST boundary (last Sunday of October for CET/CEST) and verify day assignment does not shift.
+Use `closestCenter` collision for within-column rank reorder, and use a **custom droppable zone** (not a SortableContext item) for the column headers or column drop areas for cross-column transition. The drag architecture should be:
+- Each column is a `Droppable` target identified by its status ID.
+- Cards within a column are `Sortable` items for rank reorder.
+- On `onDragEnd`: if `active.data.current.sortable.containerId === over.id`, it is a rank reorder. If they differ, it is a status transition.
+- For the split per-transition drop zone feature: render each valid transition target as a separate named droppable (not the column header), visible only during drag.
+
+On the backlog (ranked list), there is no horizontal dimension — use only `verticalListSortingStrategy` without column droppables.
 
 **Warning signs:**
-- Worklogs appear on the wrong day for users in timezones other than CET
-- Totals match but day-column distribution differs from Tempo's own web UI
-- Off-by-one on DST changeover dates
+- Drag ghost appears at wrong position when crossing column boundary
+- `onDragEnd` fires with `over === null` when dropping on a column (not a card)
+- Rank reorder fires when dropping cross-column, instead of transition
 
 **Phase to address:**
-Tempo worklog viewer phase. Write timezone fixtures before writing rendering logic — not after.
+Drag-to-transition (Sprint Board) phase — the droppable/sortable split is architecture, not a detail. Must be designed before the first drag is implemented on the board.
 
 ---
 
-### Pitfall 4: Persisted `dashboardLayout` and widget store actions survive in Zustand if migration is skipped
+### Pitfall 4: Per-transition split drop zones derive stale transition data — the `peekGhTransitions` miss case
 
 **What goes wrong:**
-`settings.store.ts` currently persists `dashboardLayout: DashboardLayoutItem[]` at version 18. It exposes `addDashboardWidget`, `removeDashboardWidget`, `setDashboardLayout`, and `updateWidgetConfig`. More critically, the store imports `getDefaultDashboardLayout` and `WIDGET_REGISTRY` directly from `@/routes/dashboard/widgets/registry`:
+The per-transition drop zones on the sprint board must show only valid target transitions for the dragged card's current status. These are derived via `peekGhTransitions(queryClient, projectId, issueTypeId)` — a synchronous cache read that returns `undefined` when the envelope is not loaded. If the board renders before the `['gh-transitions-envelope', projectId]` query settles, `peekGhTransitions` returns `undefined` and the drop zones are not rendered. The user drags a card and sees empty drop zones or no drop zones.
 
+Additionally, the transition list is filtered through `filterTransitionsForStatus(transitions, currentStatusId)` but the card's `currentStatusId` comes from the adapted issue in the TanStack Query cache. If the cache is stale (e.g., the status was changed from the issue detail panel and the sprint board has not yet re-fetched), the filter produces the wrong valid-transition set.
+
+**Why it happens:**
+`peekGhTransitions` is intentionally synchronous (no `await`, no hook call inside a map) so it can be called during render for every card simultaneously. The tradeoff is that it returns `undefined` on cache miss. Phase 73 already wired `invalidateGhAllData` from `FieldsSection.transitionMutation.onSettled` to keep the board live after issue-detail status changes — but the transitions envelope is separate from allData.
+
+**How to avoid:**
+1. Ensure `useGhTransitions(projectId, issueTypeId)` is called at the board level (not per-card) during board mount, pre-warming the envelope cache before any drag starts. The board already renders cards with their project ID — a single `useGhTransitions` call at the parent is sufficient.
+2. During drag: read drop zone targets from the pre-warmed cache via `peekGhTransitions`. If still `undefined`, show a "Loading transitions…" placeholder drop zone rather than nothing.
+3. After a successful status transition on the board, call `invalidateGhTransitions(queryClient, projectId)` in addition to `invalidateGhAllData`. Stale transitions become visible only if a transition's `fromStatusId` list changes — rare, but possible after workflow edits.
+
+**Warning signs:**
+- Drop zones do not appear during first drag after board load
+- After inline issue-detail status change, drag shows wrong available transitions
+- Cards with different issue types show the same transition options (type indexing broken)
+
+**Phase to address:**
+Drag-to-transition (Sprint Board) phase — transition pre-warming must be a named step in the implementation plan.
+
+---
+
+### Pitfall 5: Transitions with `hasScreen: true` or `hasValidators: true` silently block the drag-drop
+
+**What goes wrong:**
+The GreenHopper `GhTransition` type carries `hasScreen: boolean` and `hasValidators: boolean`. Dragging a card into a drop zone and triggering `POST /rest/api/2/issue/{key}/transitions` on a transition that has a required screen returns HTTP 400 with a workflow validation error body. The optimistic update has already moved the card visually. The rollback restores the card — but with no user-facing explanation, the card appears to "refuse to drop" with no feedback.
+
+A validator might also block the transition (e.g., "all subtasks must be done before moving story to Done") returning HTTP 400 or HTTP 500 with a workflow error. The current `postTransition` call (used by `StatusPopover`) handles rollback but surfaces a generic "Failed" label, which is acceptable for a deliberate click but disorienting when caused by a drag.
+
+**Why it happens:**
+The transition list shown during drag does not filter out `hasScreen` or `hasValidator` transitions — they appear as valid drop targets. The user drops and the POST fails. Screen-required transitions need a modal form; validator-blocked transitions need an explanation.
+
+**How to avoid:**
+1. Read `hasScreen` and `hasValidators` from the `GhTransition` shape (available in `transitions.ts`'s `__adaptToJiraTransition` — but these fields are not currently propagated through to the `JiraTransition` shape). Add `hasScreen?: boolean` and `hasValidators?: boolean` to `JiraTransition` during this phase so the board can read them.
+2. Filter `hasScreen: true` transitions out of the drag drop zone targets. Transitions requiring a screen can still be triggered via the `StatusPopover` click flow (which can open the screen form).
+3. For `hasValidators: true`: show the drop zone but, on API failure with a workflow error body, display an inline toast: "Transition blocked: [validator message from response body]". Do not silently roll back.
+
+**Warning signs:**
+- Card snaps back after drop with no error message
+- Network panel shows 400 with `{"errorMessages":["Workflow..."]}` body
+- Specific transitions only fail for certain issue types or when issue has open subtasks
+
+**Phase to address:**
+Drag-to-transition (Sprint Board) phase — `hasScreen`/`hasValidators` filtering must be in the initial drop zone rendering logic.
+
+---
+
+### Pitfall 6: Drag vs click disambiguation — peek opens on card click, drag must not trigger peek
+
+**What goes wrong:**
+The universal peek opens on any click that is not on the issue key. Adding drag handles to cards means pointer-down on the card body could be either the start of a drag or the start of a click. If there is no disambiguation, dropping a card (even a 5px drag) fires both `onDragEnd` and the click handler, opening the peek for the dropped card immediately after a transition drop. Conversely, if click is suppressed too aggressively, the user cannot open the peek by clicking a card that happens to have a drag handle.
+
+**Why it happens:**
+dnd-kit's `PointerSensor` stops propagation of click events once activation constraints are satisfied. With no activation constraint, any `pointerdown` immediately starts the drag and the subsequent `pointerup` does not fire a click. With a distance constraint (e.g., 8px), a click that does not move 8px fires a click normally — but with a zero-movement quick-drag, neither drag nor click fires (known edge case in dnd-kit issue #495: distance-constrained sensor can emit `onDragStart` without `onDragEnd`).
+
+**How to avoid:**
+Use the **delay + tolerance** sensor configuration, not a distance constraint:
 ```typescript
-import { getDefaultDashboardLayout, WIDGET_REGISTRY } from '@/routes/dashboard/widgets/registry';
+useSensor(PointerSensor, {
+  activationConstraint: { delay: 150, tolerance: 5 },
+})
 ```
+150ms hold before drag activates; a quick release (< 150ms) fires the click handler normally. 5px tolerance means a tiny hand-shake during the hold does not abort the drag. This mirrors the approach used by Jira's own board (empirically observed: ~120-150ms delay).
 
-When `registry.ts` is deleted, the entire store module fails to compile — the app does not start. This is a hard dependency, not an optional one. If the widget fields are removed from the store interface but the migration version is not bumped, existing users keep stale `dashboardLayout` data in their `settings.json` that the new code never reads, causing type inconsistencies on rehydration.
-
-**Why it happens:**
-The store initializes its `dashboardLayout` default from `getDefaultDashboardLayout()` and uses `WIDGET_REGISTRY` in `addDashboardWidget` to look up widget size constraints. These are used at store initialization time, so the import is load-order critical. Deleting the registry without updating the store causes an immediate module resolution failure.
-
-**How to avoid:**
-1. Remove `dashboardLayout`, `addDashboardWidget`, `removeDashboardWidget`, `setDashboardLayout`, `updateWidgetConfig` from the store interface and implementation in the same commit as deleting the registry.
-2. Remove the `import { getDefaultDashboardLayout, WIDGET_REGISTRY }` line from `settings.store.ts`.
-3. Update `applyPreset` to remove the `dashboardLayout: getDefaultDashboardLayout(preset)` line (line 369 in current code).
-4. Bump the store version (19) and add a migration step that `delete`s `s.dashboardLayout` from persisted state.
-5. Delete the `DashboardLayoutItem` interface from the store file.
+Additionally, on `onDragEnd` set a ref `justDragged = true` and clear it after `requestAnimationFrame`. In the click handler: `if (justDragged) return;` to suppress peek on card that was just dropped.
 
 **Warning signs:**
-- TypeScript error: `Cannot find module '@/routes/dashboard/widgets/registry'`
-- App fails to start after registry deletion but before store update
+- Peek opens on every successful drag-drop
+- A fast click does not open peek because it is captured as an aborted drag
+- dnd-kit drag overlay never disappears (stuck `onDragStart` without `onDragEnd` — distance-constraint edge case)
 
 **Phase to address:**
-Dashboard removal phase. Store and registry must be modified atomically in the same commit. This is the single highest-risk operation in v1.9.
+Both drag phases (backlog rank and board transition) — and the peek slideover phase. All three must agree on the disambiguation contract before any of them ship.
 
 ---
 
-### Pitfall 5: `settings.store.test.ts` imports deleted symbols and crashes the entire test file
+### Pitfall 7: Drag inside `@tanstack/react-virtual` — the `rectSortingStrategy` does not work with virtual rows
 
 **What goes wrong:**
-`settings.store.test.ts` imports `WIDGET_REGISTRY`, `DEV_DASHBOARD_PRESET`, and `PM_DASHBOARD_PRESET` from `@/routes/dashboard/widgets/registry`. When `registry.ts` is deleted, this import fails before the first test runs. Vitest reports the entire file as a suite-level failure — all tests in the file are marked as failed — which can obscure which specific change caused the failure and lead to incorrect diagnosis.
+`BacklogPage` uses `@tanstack/react-virtual` with `useVirtualizer`. The current code has `useVirtual = false` (the comment explains that `position: absolute` on `<tr>` elements is undefined behavior). If virtualization is re-enabled for the rank-drag feature (to handle very long backlog lists), using `rectSortingStrategy` (the default) fails because it needs all items to be mounted to calculate sort positions. Items outside the viewport are unmounted by the virtualizer.
 
-The test file also contains a `describe('settings.store — layout customization (Phase 34)')` block with 9 tests for `addDashboardWidget`, `removeDashboardWidget`, `setDashboardLayout`, `updateWidgetConfig`, and the dashboard portion of `applyPreset`. These tests must be deleted — not commented out — because Biome will report unreachable code as an error.
+Additionally, the currently-dragged item may scroll out of the virtual window during a long drag. When it does, the item is unmounted. The `DragOverlay` shows a ghost, but when the drag ends and the overlay animates back, there is no mounted element to animate to — causing an abrupt disappear.
 
 **Why it happens:**
-When removing a feature, the instinct is to delete component files and then rely on the test suite to identify what broke. But failing imports prevent the test file from loading at all, so the test suite reports failures rather than guiding cleanup.
+Virtualization intentionally unmounts off-screen rows. `rectSortingStrategy` calls `getBoundingClientRect()` on every item in the list to compute positions. Items outside the viewport have no DOM node to measure.
 
 **How to avoid:**
-Delete the entire `describe('settings.store — layout customization')` block from `settings.store.test.ts` in the same commit as deleting the registry. Run `npx vitest run src/stores/settings.store.test.ts` directly to verify the file loads and all remaining tests pass before calling the phase done.
+1. Do not re-enable `useVirtual` in `VirtualizedBacklogTable` as part of the rank-drag feature. The current `useVirtual = false` setting is intentional (see the comment in the source). The active sprint backlog section is bounded in practice (one sprint = 20-50 items) — non-virtual DOM rendering is fine.
+2. If the backlog section (unsprinted issues) grows large enough to require virtualization, use `verticalListSortingStrategy` (supports virtualized lists), ensure the active drag item is always included in the rendered set regardless of scroll position (add its ID to the overscan window), and use a `DragOverlay` to render the drag ghost independently of the source item's DOM presence.
 
 **Warning signs:**
-- `Error: Cannot find module '@/routes/dashboard/widgets/registry'` in test output
-- All 20+ tests in `settings.store.test.ts` reported as failed (not individual failures)
+- Drag ghost disappears mid-drag when scrolling a long list
+- `rectSortingStrategy` console warning: "Could not find draggable node"
+- Sort order jumps when passing the virtual window boundary
 
 **Phase to address:**
-Dashboard removal phase. Test cleanup is a required deliverable, not an afterthought.
+Drag-to-rank (Backlog) phase — explicitly document the `useVirtual = false` decision in the implementation plan.
 
 ---
 
-### Pitfall 6: `react-grid-layout` CSS imports break `vite build` after package uninstall
+### Pitfall 8: Tauri webview `mouseup` event loss on Windows — drag state gets stuck
 
 **What goes wrong:**
-`WidgetGrid.tsx` imports:
-```typescript
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
-```
-When `react-grid-layout` and `react-resizable` are uninstalled, Vite fails to resolve these CSS imports at build time. TypeScript (`tsc --noEmit`) does not process CSS imports and reports no error — making it possible to pass the TypeScript check while the build is broken. The test suite (`vitest`) also does not catch this because test module resolution differs from Vite's production bundler.
+On Windows, the Tauri webview (WebView2/Edge) has a known bug where clicking on a drag-region within the webview causes the `mouseup` event to be swallowed by the native window manager (Tauri issue #10767). If the drag handle area overlaps with any native drag region, a `pointerdown` is received but no `pointerup` arrives in the webview. dnd-kit's `PointerSensor` never fires `onDragEnd`. The drag overlay remains on screen and follows the pointer indefinitely until the user clicks again.
+
+This is separate from the HTML5 drag API bug (Tauri issue #6695) — dnd-kit uses pointer events, not the HTML5 drag API, but the `mouseup` loss still affects it on Windows when native drag regions overlap.
 
 **Why it happens:**
-CSS imports in component files are resolved by Vite's build graph, not by TypeScript. Deleting the component file but forgetting to run `npm run build` after uninstalling the package means the build is broken but tests pass — creating a false sense of completeness.
+Taskflow uses `data-tauri-drag-region` on the header titlebar. Card drag handles near the top of the viewport (within the header) may overlap the drag region. Even without overlap, WebView2 on some Windows versions intercepts pointer events differently than macOS WebKit.
 
 **How to avoid:**
-Delete `WidgetGrid.tsx` and all files in `src/routes/dashboard/widgets/` before running `npm uninstall react-grid-layout react-resizable`. Also remove `"@types/react-grid-layout"` from devDependencies. Include `npm run build` as an explicit step in the phase verification checklist — not just `vitest`.
+1. Explicitly exclude card drag handles from `data-tauri-drag-region` overlap. Cards are in the main scrollable content area, well below the header — this should not be an issue structurally, but verify by inspecting z-index and the element tree.
+2. Use dnd-kit's `PointerSensor` (not the HTML5 drag API). Do not use `draggable` HTML attributes — those trigger HTML5 drag which is known-broken in Tauri webviews (issue #6695).
+3. Add a global `pointermove` listener during drag that calls `sensor.cancel()` on `pointercancel` — dnd-kit already handles this internally, but verify it fires on Windows.
+4. Test on Windows before shipping the drag feature. macOS drag works first; Windows needs explicit validation.
 
 **Warning signs:**
-- `vite build` error: `Cannot resolve 'react-grid-layout/css/styles.css'`
-- Tests pass but CI build job fails
+- Drag overlay stays visible after mouse button released (Windows only)
+- Board/backlog becomes unresponsive after a drag (stuck drag state)
+- Issue only reproducible on Tauri builds, not in browser dev server
 
 **Phase to address:**
-Dashboard removal phase. Include `npm run build` in the verification step explicitly.
+Both drag phases — add "test on Windows" as an explicit UAT step. Use `touch-action: none` on all draggable elements (required for PointerSensor on all platforms).
 
 ---
 
-### Pitfall 7: `WorkloadTab.test.tsx` left in place with 15+ tests after component deletion
+### Pitfall 9: Non-blocking peek — shadcn Sheet focus trap blocks the underlying view
 
 **What goes wrong:**
-`WorkloadTab.test.tsx` contains at minimum 15 tests that all `import('./WorkloadTab')`. When `WorkloadTab.tsx` is deleted, every test in the file fails with a module-not-found error. The test suite appears to have ~15 new failures, which can be alarming if the developer doesn't immediately recognize these as expected cleanup failures rather than regressions.
-
-Additionally, `WorkloadSkeleton.tsx` is referenced by `WorkloadTab.tsx` — deleting `WorkloadTab.tsx` but leaving `WorkloadSkeleton.tsx` leaves a dead component on disk that Biome may not flag (no imports means no lint error, but the file adds to dead code count).
+The existing `IssueDetailSheet` uses shadcn's `Sheet` component (`sheet.tsx`), which is built on Radix UI `Dialog`. Radix `Dialog` applies `aria-hidden="true"` to the rest of the document and traps focus inside the sheet via `focus-trap`. This makes the underlying backlog/board completely inaccessible via keyboard and effectively modal — the opposite of the desired non-blocking behavior. The user cannot J/K navigate the underlying list, click another card to swap the peeked issue, or interact with any UI outside the sheet while it is open.
 
 **Why it happens:**
-Test files for a deleted component are easy to overlook because they are not in the component's import graph — nothing imports the test file, so no compilation error surfaces until the test runner loads it.
+Radix Dialog's accessibility model is designed for modals. Using it for a non-blocking panel is the wrong primitive. The existing `IssueDetailSheet` (used for epics and the old sheet) inherits this behavior.
 
 **How to avoid:**
-Delete `WorkloadTab.test.tsx`, `WorkloadTab.tsx`, and `WorkloadSkeleton.tsx` as a group in the same commit. Run `vitest run --reporter=verbose` to confirm zero failures from this batch before proceeding.
+Do not use shadcn `Sheet` / Radix `Dialog` for the universal peek. Instead, build the peek as a **positioned panel** (`position: fixed; right: 0; top: 0; height: 100vh`) with no focus trap and no `aria-hidden` on the document. Use Radix `FocusScope` with `trapped={false}` if keyboard navigation within the panel is still desired, or simply rely on natural tab order. The panel should have `role="complementary"` or `role="region"` with an `aria-label="Issue preview"`. Escape key closes it via a `useEffect` on `keydown`.
+
+Do not render a backdrop/overlay — the underlying view must remain fully pointer-interactive. Use `z-index` only to float the panel above content, not to block it.
 
 **Warning signs:**
-- 15+ test failures all reporting `Cannot find module './WorkloadTab'`
-- Dead `WorkloadSkeleton.tsx` file on disk with no imports
+- Clicking the backlog rows behind the open panel does nothing (pointer events blocked)
+- Tab key cycles only within the panel, can never reach the list
+- Screen reader announces "application" role instead of navigating normally
 
 **Phase to address:**
-Workload removal phase. Treat test file deletion as part of the component deletion step.
+Universal peek slideover phase — the component must be designed as a positioned panel, not a dialog. This is the single most important architectural decision for the peek.
 
 ---
 
-### Pitfall 8: Sidebar and route entries left behind after WorkloadTab deletion
+### Pitfall 10: Stale query data when swapping the peeked issue by clicking a different card
 
 **What goes wrong:**
-Workload removal is a three-file operation: `WorkloadTab.tsx`, `routes.tsx`, and `sidebar-items.ts`. If any one is missed:
-- `routes.tsx` still has `const WorkloadTab = lazy(() => import('./dashboard/WorkloadTab'))` and `{ path: '/workload', element: withLazy(WorkloadTab) }`. This causes a runtime chunk-loading error on navigation to `/workload`. The `ChunkErrorBoundary` swallows the error and shows an error state — silent but broken.
-- `sidebar-items.ts` still has `{ id: 'workload', label: 'Workload', path: '/workload', ... }`. The sidebar renders a link to a broken route.
-- `PM_SIDEBAR_PRESET` includes `'workload'` in the visible set. If tests call `applyPreset('pm')` and check the sidebar items count or content, they fail because the preset references a removed item.
+The peek shows issue A (loaded into `['jira-issue-detail', 'A']` query). The user clicks card B in the underlying view. The `issueKey` prop changes to B. The `useQuery` for B fires with `staleTime: Infinity` (the session-persistent cache configured in v1.7). If B was previously opened, TanStack Query immediately returns the cached stale data while refetching in the background. The peek shows B's old description/status/comments for a moment before the fresh data arrives. If the user closes the peek before the background fetch completes, the stale data remains in the cache and the next open of B shows old data again.
+
+This is particularly visible when the user transitions B's status via the board and then opens the peek — the peek shows the pre-transition status until the refetch completes.
 
 **Why it happens:**
-Route and sidebar definitions live in separate files from the component. They are not in the compile-time dependency graph of `WorkloadTab.tsx`, so deleting the component does not trigger any TypeScript error that points to the stale references.
+`gcTime: Infinity` and `staleTime: Infinity` (v1.7 decisions) trade network requests for instant navigation. The tradeoff is acceptable for read-only views but creates visible stale data for frequently-mutated fields (status, assignee, comments).
 
 **How to avoid:**
-Treat workload removal as an atomic four-file operation: `WorkloadTab.tsx`, `WorkloadTab.test.tsx`, `WorkloadSkeleton.tsx`, plus the entries in `routes.tsx` and `sidebar-items.ts`. Update `getDefaultSidebarItems` to remove `'workload'` from the `pmVisible` set. Run a global search for the string `'workload'` across all non-test source files before calling the phase done.
+For the issue detail queries used inside the peek, use `staleTime: 0` and `refetchOnMount: 'always'`. This ensures a fresh fetch every time the `issueKey` changes. The `gcTime: Infinity` can remain to keep the data in cache between views, but the stale threshold is zero so the background refetch always fires. The peek's loading state should show a skeleton for the fields that are likely to change (status, assignee) while revalidating, rather than showing old data without indication.
+
+Alternatively, on mutation `onSettled` for any status/field mutation, call `queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey] })` — this already happens in some mutation paths (Phase 74) but must be verified for all mutation entry points that affect peek-visible fields.
 
 **Warning signs:**
-- `ChunkErrorBoundary` shown at `/workload` route
-- Sidebar shows a Workload link that leads to an error
-- `applyPreset('pm')` test fails with unexpected sidebar item count
+- Peek shows old status immediately after a board transition for the same issue
+- Comment thread appears stale (new comment not visible) on second peek open
+- `isFetching` is `true` but the peek shows outdated data without a loading indicator
 
 **Phase to address:**
-Workload removal phase. Route + sidebar cleanup is step one.
+Universal peek slideover phase — set `staleTime: 0` on the issue-detail query used within the peek. Add a test fixture that verifies the peek query refetches on `issueKey` change.
 
 ---
 
-### Pitfall 9: Sidebar and Settings test mocks reference removed `workload` item
+### Pitfall 11: Issue-key click vs row-click disambiguation for the peek
 
 **What goes wrong:**
-After `workload` is removed from `sidebar-items.ts` and presets, two test files contain stale mock data:
-- `Sidebar.test.tsx` line 77: `{ id: 'workload', visible: true }` in the mock `sidebarItems` array
-- `Settings.test.tsx` line 131: `{ id: 'workload', visible: false }` in the mock `sidebarItems` array
+The product spec requires: click anywhere on a row/card opens the peek, EXCEPT clicking the issue key (e.g., "PROJ-123" link) which navigates to the full-page detail. This requires two separate click targets on the same card. If the row has a global `onClick` handler and the issue key has its own `onClick` with `stopPropagation`, keyboard activation (`Enter` on the row) and assistive technology may bypass the key-specific handler and always trigger the row handler.
 
-These mocks don't cause import errors (they're plain objects), so the tests will still load. But any test that validates sidebar item count, renders the sidebar with the mock, or calls `applyPreset` and checks results against the mock structure will fail with a value mismatch.
+Additionally, if the issue key is wrapped in a React Router `<Link>`, the link's default navigation fires before the custom peek handler, causing both the peek to open and the route to change simultaneously.
 
 **Why it happens:**
-Test mock arrays are static snapshots of the real data structure. When the real data changes, the mocks don't update automatically, and the mismatch doesn't produce a compile error.
+Global row click handlers and nested interactive elements (links, buttons) have conflicting event bubbling. `stopPropagation` on the key link prevents the peek handler from firing, but pressing Enter on the row (not the link) still fires the row's click handler. Using `<Link>` for the issue key triggers navigation AND bubbles to the row handler if `stopPropagation` is missed.
 
 **How to avoid:**
-After removing `workload` from `sidebar-items.ts`, run `grep -rn "'workload'" src/ --include="*.test.*"` to find all test files that reference the workload item. Update every mock array that includes it. Run the full test suite to verify zero failures before proceeding.
+Structure the card as: row has `onClick` (opens peek) and `role="button"` for keyboard. Issue key is a `<button type="button">` (not `<a>` or `<Link>`) with `onClick={(e) => { e.stopPropagation(); navigate('/issues/' + key); }}`. The key button also handles `onKeyDown` Enter separately. Using a button (not a link) prevents the navigation-before-peek race.
+
+`cursor-pointer` must be on both the row and the key button explicitly — this matches the "fix `cursor-pointer` on clickable areas" requirement already in the v1.12 scope.
 
 **Warning signs:**
-- `Sidebar.test.tsx` fails with unexpected array element count
-- `Settings.test.tsx` fails on sidebar-related assertions
+- Clicking issue key both opens peek and navigates to full page
+- Keyboard Enter on the issue key label opens peek instead of navigating
+- Screen reader announces row as a link that triggers peek (incorrect semantic)
 
 **Phase to address:**
-Workload removal phase. Search for mock references as a completion check.
+Universal peek slideover phase — define the exact click/keyboard event contract in the design before implementing.
 
 ---
 
-### Pitfall 10: Tempo pagination defaults to 50 records — full date range silently truncated
+### Pitfall 12: Bulk subtask creation — partial failure leaves orphaned subtasks with no recovery path
 
 **What goes wrong:**
-The Tempo Server API defaults to paginating at 50 worklogs. A single month of worklogs for a 15-person team exceeds this. If the fetch function does not pass `paginate=false` (v1 path) or loop with offset/limit (v4 path), the viewer silently displays incomplete data. Users see hours that don't match Tempo's own reports and assume the data is wrong.
+Bulk creation loops `createIssue` N times in order (confirmed in `PROJECT.md`). If subtask 3 of 5 fails (API error, rate limit, required field missing), subtasks 1 and 2 are already created in Jira. There is no "delete created subtasks" rollback. The user sees a partial failure state with no clear indication of which subtasks were created and which were not. If they dismiss the dialog and retry the entire batch, they get duplicate subtasks 1 and 2.
 
 **Why it happens:**
-The AIO batch summary endpoint returns a total count, making truncation obvious. Tempo's worklog endpoint returns a list without a clearly visible "there are more" indicator in the first response. Developers test with small date ranges (1 week, few users) where 50 records is sufficient, and the bug only surfaces in production with larger teams.
+Sequential `createIssue` calls have no batch atomicity. Each call commits to Jira immediately. A mid-batch failure leaves the project in an inconsistent state.
 
 **How to avoid:**
-For the v1 path: add `&paginate=false` to the query string. For the v4 path: implement a pagination loop that continues fetching until `offset + limit >= total`. Write a test fixture that simulates a 50-item first page with `total: 73` and verify the service function makes a second request.
+1. Track creation progress with a per-subtask status array: `[{ title, status: 'pending' | 'creating' | 'created' | 'failed', issueKey?: string, error?: string }]`. Show this state in the preview/progress UI during creation.
+2. On partial failure: show the status array with clear per-row indicators (checkmark / spinner / X). Do not retry the entire batch. Provide a "Retry failed" action that only re-attempts the failed items by index, skipping already-created ones.
+3. Deduplicate by title+parent: before retrying, check if a subtask with the same summary and parent key already exists. The `['jira-issue-detail', parentKey]` query's subtasks array is the cheapest check.
+4. Never reset the status array on dialog close if any subtasks were created — persist it so the user can see what was created even after closing.
 
 **Warning signs:**
-- Worklog table shows exactly 50 entries regardless of date range
-- PM reports hours don't match Tempo's own report
-- No obvious error — data appears present but is incomplete
+- User retries bulk create and ends up with duplicate subtasks
+- Progress modal closes on partial failure with no indication of what succeeded
+- Created subtasks not visible in the parent's subtask list (cache not invalidated after partial success)
 
 **Phase to address:**
-Tempo service layer phase. Pagination must be verified in a service test, not assumed correct.
+Bulk subtask creation phase — the per-subtask status array must be in the initial state design, not added when the first partial failure is reported.
 
 ---
 
-### Pitfall 11: Worklog table renders N people × M day columns with no performance guard
+### Pitfall 13: `createmeta` required field validation — fields that are required on the instance but absent from the template
 
 **What goes wrong:**
-A worklog viewer with people as rows and days as columns generates `people × days` cells. For a 30-day range with 20 people, that is 600 cells per render. Without a column count limit, users selecting a 90-day range with 30 team members produce 2700 cells. React Compiler handles memoization automatically, but re-renders from filter changes (date range update, assignee filter toggle) still reconcile all cells.
+The subtask template stores fields the user configured: title, description, assignee, priority, etc. When `createIssue` is called, Jira validates against the project's `createmeta` for the subtask issue type. If the project has a required custom field (e.g., a mandatory team-specific `Epic Link` or a required label field) that is not in the template and has no default value, the create call returns HTTP 400 with `{"errors":{"customfield_XXXXX":"Field is required"}}`. The batch fails for every subtask in the template.
 
 **Why it happens:**
-The team already has `@tanstack/react-virtual` for row virtualization (backlog, notifications). The worklog table is two-dimensional — row virtualization alone leaves all columns rendered per row. Full 2D virtualization with `@tanstack/react-virtual` requires a flat-array mapping approach that is significantly more complex than the existing usage.
+`createmeta` returns the required fields at template-build time. But the project's scheme can be modified after the template is saved (a new required field added by a Jira admin). The saved template does not know about the new required field.
+
+Additionally, the existing `CreateEditIssueModal` already uses `discoverCustomFields()` + `createmeta` to discover required fields dynamically — but the subtask template creation UI may not call createmeta fresh each time the user opens the "create" dialog.
 
 **How to avoid:**
-Cap the date range selector at 31 days maximum in the UI. For 31 days × 20 people = 620 cells, full DOM rendering is acceptable at ~100-200 bytes per cell (no virtualization needed). Use an overflow-x scroll container with a sticky first column for the person/issue label. Do not attempt 2D virtualization in v1.9 — the cap makes it unnecessary. If the cap is later lifted, revisit.
+1. Call `createmeta` fresh when the user opens the subtask creation wizard (not from a cached snapshot). Use the same `discoverCustomFields` pattern from `CreateEditIssueModal`.
+2. On 400 error in `createIssue`: parse the `errors` object to extract the missing field names. Display them in the per-subtask status row: "Failed: 'Epic Link' is required". Surface a "Fill required fields" inline editor for the failed subtask's row before retry.
+3. Add a "validate all" dry-run step before committing any creates: call `createmeta` and diff the template's fields against the required field list. Warn about missing required fields before starting creation.
 
 **Warning signs:**
-- React DevTools profiler shows >16ms render time on date range changes
-- UI input lag when typing in date range fields
+- All subtasks fail with 400, same error
+- Error message references a `customfield_` ID rather than a human-readable name
+- Template was built on a different project's issue type configuration
 
 **Phase to address:**
-Tempo worklog viewer phase. Define the maximum date range in the product spec before building the table.
+Bulk subtask creation phase — the createmeta fresh-fetch must be in the wizard open flow. The required-field diff check is the recommended pre-create validation step.
+
+---
+
+### Pitfall 14: Card color left-edge stripe fails WCAG contrast in dark mode
+
+**What goes wrong:**
+Priority colors (e.g., Highest = red, High = orange, Medium = yellow, Low = blue, Lowest = gray) as defined by Jira's default priority scheme are designed for light backgrounds. The hex values `#FF0000` (Highest), `#FF7722` (High), `#FFAA33` (Medium) fail the WCAG 3:1 minimum contrast ratio for UI components against the app's dark mode surface color (`hsl(240 3.7% 15.9%)` from shadcn dark). Yellow/orange priority colors are particularly problematic: they appear washed out or invisible as thin left-edge stripes in dark mode.
+
+**Why it happens:**
+The existing `epicColorToTailwind` mapping in `lib/epicColors.ts` maps Jira color names to Tailwind classes optimized for the `bg-` use case (background chips). A 3px left-edge stripe at the same color value does not have enough surface area for the contrast to be perceptually adequate. Also, the Jira priority icon URLs (returned by `fields.priority.iconUrl`) link to SVGs hosted on the Jira instance — these cannot be CSS-colored and may not be legible at small sizes.
+
+**How to avoid:**
+1. Define a separate `priorityToStripeColor` map that uses **slightly adjusted HSL values** tuned for dark mode: increase saturation and luminosity for dark mode, decrease for light mode. Use a CSS custom property per priority so the dark-mode override can be applied via Tailwind's `dark:` variant.
+2. Supplement the color stripe with a **priority icon** (Lucide icon or the Jira priority icon) displayed inside the card, not just the edge stripe. Color alone cannot be the only indicator (WCAG 1.4.1).
+3. Use the 4 most distinct hues: red (Highest/High), amber (Medium), blue (Low/Lowest), with icon+label as fallback when colors are insufficient. Avoid yellow and cyan in the stripe — they fail contrast against both light and dark backgrounds.
+4. Test with `prefers-color-scheme: dark` in DevTools and validate each priority stripe with a contrast checker.
+
+**Warning signs:**
+- Left-edge stripe is invisible in dark mode (yellow/orange on dark surface)
+- Contrast checker reports < 3:1 for any stripe color against the card background
+- Users cannot distinguish priorities by color alone without labels
+
+**Phase to address:**
+Card colors phase — define the dark-mode-aware color map before implementing the stripe component.
 
 ---
 
@@ -261,13 +363,13 @@ Tempo worklog viewer phase. Define the maximum date range in the product spec be
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Hardcode Tempo base path without probe | Saves 1-2 hours | Breaks on instances with different Tempo plugin versions | Never — probe is cheap, inconsistency is expensive |
-| Assume Jira PAT works for Tempo | No new credential UI | 401s on every Tempo request; blocks the entire feature | Never for shipping code |
-| Leave `dashboardLayout` in store without migration version bump | Avoids boilerplate | Stale widget data in user `settings.json`; type inconsistencies | Never — migration is 3 lines |
-| Comment out instead of delete widget tests | Faster cleanup | Biome errors on dead code; misleading test counts | Never |
-| Use `new Date(timestamp).toLocaleDateString()` for day bucketing | Simplest code | Wrong day for users in non-server-timezone | Never — use `.slice(0, 10)` |
-| Skip `npm run build` in removal phase verification | Faster | CSS import errors from deleted packages pass `tsc` but fail the build | Never — add it to the checklist |
-| Delete `WorkloadTab.tsx` but not `WorkloadTab.test.tsx` | Faster commit | 15+ test failures masking as regressions | Never |
+| Use shadcn Sheet for peek | Reuses existing component | Focus trap blocks underlying view — must be replaced entirely | Never — wrong primitive for non-blocking panel |
+| Hardcode `rankCustomFieldId` as a constant | Avoids cache read | Silent rank-to-wrong-field on instances with non-default field IDs | Never |
+| Skip `cancelQueries` in rank mutation `onMutate` | Simpler code | Poll overwrites optimistic order, causing flicker | Never for the active-route backlog |
+| Single `onClick` on card row without drag/click disambiguation | Simpler event model | Peek opens on every drag drop | Never with drag enabled |
+| Retry entire bulk-create batch on partial failure | Simpler retry logic | Duplicate subtasks in Jira | Never |
+| Cache createmeta at template-save time | Fewer API calls | Required fields added after save cause silent batch 400s | Only acceptable with an explicit "re-validate" affordance |
+| Skip `hasScreen` filtering on drag drop zones | All transitions shown | Cards snap back silently when screen-required transition is dragged | Never — filter at drop zone render time |
 
 ---
 
@@ -275,12 +377,14 @@ Tempo worklog viewer phase. Define the maximum date range in the product spec be
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Tempo Timesheets DC | Reusing Jira Bearer PAT | Probe auth first; create `tempoFetch` wrapper; store Tempo token in Stronghold key `tempo-pat` |
-| Tempo Timesheets DC | Using documented base path without probing | Probe `/rest/tempo-timesheets/{1,3,4}/worklogs` in sequence; store confirmed path as a documented constant |
-| Tempo Timesheets DC | Trusting response date format without inspecting actual response | Log first raw response; confirm whether `started` is ISO string, epoch ms, or date-only string |
-| Tempo Timesheets DC | Fetching without pagination exhaustion | Pass `paginate=false` (v1) or loop with offset (v4); test with exactly-50-item fixture |
-| Tempo Timesheets DC | Assuming `timeSpent` is always seconds | v1 API may return `timeSpentSeconds` (int); v4 may return `"2h 30m"` string; verify before parsing |
-| Zustand persist | Removing fields without migration version bump | Bump `version` to 19; `delete s.dashboardLayout` in migrate function |
+| GreenHopper rank API | Omit `rankCustomFieldId` | Read `data.rankCustomFieldId` from `GhBacklogResponse` cache; pass explicitly |
+| GreenHopper rank API | Use `rankBeforeIssue` / `rankAfterIssue` with a key that is not in the index | Validate the target issue key is present in the current backlog data before calling rank |
+| GreenHopper transitions | Not filtering `hasScreen: true` transitions from drop zones | Propagate `hasScreen` through to `JiraTransition`; filter at drop zone render |
+| GreenHopper transitions | Calling `peekGhTransitions` before envelope loads | Pre-warm envelope with `useGhTransitions` at board mount; show placeholder if still `undefined` |
+| Jira createIssue (subtasks) | Assuming template fields cover all required fields | Fresh `createmeta` call on wizard open; diff required fields before batch create |
+| Jira createIssue (subtasks) | No per-subtask status tracking | Track status array `pending/creating/created/failed` per item; never retry already-created |
+| dnd-kit PointerSensor in Tauri | Using HTML5 `draggable` attribute | Never use HTML5 drag API in Tauri; use dnd-kit PointerSensor with `touch-action: none` |
+| dnd-kit + TanStack Query | Relying on query cache as DnD state | Maintain separate `localItems` state; only sync from cache when `isDragging === false` |
 
 ---
 
@@ -288,20 +392,10 @@ Tempo worklog viewer phase. Define the maximum date range in the product spec be
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Rendering all N×M worklog cells | Janky filter changes, input lag | Cap date range to 31 days; overflow-x scroll with sticky column | 20+ people × 30+ days |
-| N+1 user-details fetches per worklog row | 20 Jira requests for 20 team members | Batch user lookup in one call; TanStack Query deduplication | Any team > 5 |
-| Fetching full Tempo worklog response without pagination | Silently returns 50 records maximum | Always paginate to exhaustion | Default 50-record limit |
-| Re-fetching Tempo on every keystroke in date range input | Multiple in-flight requests, stale data | `enabled: isValidDateRange` guard on `useQuery`; no debounce needed with TanStack Query's `enabled` pattern | Immediate on typing |
-
----
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Storing Tempo token in `settings.json` (Tauri Store, plaintext) | Token readable from disk | Store in Stronghold under key `tempo-pat`; same pattern as Jira PAT |
-| Sending Tempo token to Jira endpoints by accident | Token exposure in network logs, potential auth confusion | `tempoFetch` wrapper is separate from `jiraFetch`; no shared token reads |
-| Logging Tempo Authorization header in DevTools request log | Token visible in dev tools capture | Follow existing pattern: `source: 'tempo'`; dev tools must redact Authorization header same as Jira |
+| `rectSortingStrategy` with virtualized rows | "Could not find draggable node" errors; sort jumps at scroll boundary | Use `verticalListSortingStrategy`; do not re-enable `useVirtual` for the sprint list | Any backlog with virtualization enabled |
+| Calling `peekGhTransitions` every render per card | Recomputes `statusMap` on every call (O(n) statuses each time) | Memoize the `statusMap` at the board level; pass as prop to card renderers | Boards with > 10 cards (immediate) |
+| Bulk subtask create N sequential awaits | UI blocked during creation; no progress | Use `Promise.allSettled` with a concurrency limit of 2-3; update per-subtask status on each resolution | Batch size > 5 |
+| Fresh `createmeta` call per subtask in batch | N × createmeta fetches for N subtasks | Call `createmeta` once at wizard open; cache for session | Batch size > 1 |
 
 ---
 
@@ -309,26 +403,29 @@ Tempo worklog viewer phase. Define the maximum date range in the product spec be
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Empty worklog table with no error when Tempo is unreachable | User thinks they logged nothing this period | Show `ErrorState` with "Tempo Timesheets is unreachable — verify credentials" message; same pattern as AIO disabled state |
-| Date range picker allows multi-month or open-ended ranges | 600+ cell render; table becomes unreadable | Preset shortcuts (This Week / This Month / Last Month) + 31-day max custom range |
-| Dashboard route shows blank after widget removal but before static dashboard is built | Users see empty page on app open | Build static dashboard before removing widget system; do not delete Dashboard before its replacement is wired |
-| Worklog table shows weekend columns with no hours | Visual noise; empty cells for Sat/Sun | Default to weekdays-only columns; optional "show weekends" toggle |
+| Peek opens on drag drop | Unexpected panel opens after every rank reorder | Set `justDragged` ref; suppress peek click handler for one animation frame after drag end |
+| No visual feedback during drag for per-transition drop zones | User doesn't know where they can drop | Render highlighted drop zone targets (visible only during drag) showing transition names |
+| Bulk create progress dialog closes on any error | User loses track of which subtasks were created | Never auto-close on partial failure; show per-subtask status array; require explicit dismiss |
+| Card color stripe too thin to distinguish in dark mode | Users cannot identify priority at a glance | Use 4px stripe + icon; test all color values against dark background in DevTools |
+| Peek panel covers ≥ 50% of board in mobile-like window sizes | Underlying view is effectively hidden | Set max-width to 480px; below 768px breakpoint, increase width to 100% and add a close affordance |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Tempo auth probe**: A real Tempo API call returns 200 (not TypeScript-clean with no actual request made)
-- [ ] **Tempo pagination**: Service test fixture with exactly 50 worklogs verifies that a second page request is made when total > 50
-- [ ] **Widget store cleanup**: `settings.store.ts` no longer imports `registry.ts`; store version bumped to 19; migration deletes `dashboardLayout` from persisted state
-- [ ] **Dashboard removal build check**: `npm run build` passes (not just `tsc --noEmit` and `vitest`)
-- [ ] **Workload route removal**: `grep -rn "'/workload'" src/ --include="*.tsx"` returns zero matches in `routes.tsx` and `sidebar-items.ts`
-- [ ] **Workload sidebar preset**: `PM_SIDEBAR_PRESET` does not include `'workload'` in the visible set
-- [ ] **Test mock cleanup**: `grep -rn "'workload'" src/ --include="*.test.*"` returns zero matches in any mock `sidebarItems` array
-- [ ] **Test cleanup**: `grep -rn "dashboardLayout\|WIDGET_REGISTRY\|DEV_DASHBOARD_PRESET\|PM_DASHBOARD_PRESET\|addDashboardWidget\|removeDashboardWidget" src/ --include="*.test.*"` returns zero matches
-- [ ] **Worklog day bucketing**: Unit tests verify a worklog timestamped at 23:30 CET (UTC+1) is assigned to the correct calendar day for a UTC consumer
-- [ ] **Package removal**: `react-grid-layout` and `react-resizable` absent from `package.json`; `@types/react-grid-layout` absent from devDependencies
-- [ ] **WorkloadTab test file deleted**: `src/routes/dashboard/WorkloadTab.test.tsx` does not exist on disk
+- [ ] **Drag-to-rank**: `cancelQueries` is called in mutation `onMutate` — verify the poll cannot overwrite the optimistic order
+- [ ] **Drag-to-rank**: `rankCustomFieldId` is read from the cache, not hardcoded — verified by unit test asserting the exact field ID from the fixture
+- [ ] **Drag-to-transition**: `hasScreen: true` transitions are absent from drop zone targets — test with a fixture that includes a screened transition
+- [ ] **Drag-to-transition**: `peekGhTransitions` returns valid data at board mount (envelope pre-warmed) — verified by loading the board and immediately dragging a card
+- [ ] **Peek slideover**: no `aria-hidden` on document root when peek is open — inspect DOM with DevTools
+- [ ] **Peek slideover**: clicking a backlog row behind the open peek opens the new issue in the peek (row is pointer-interactive) — verified by test
+- [ ] **Peek slideover**: issue-key click navigates to full page without opening peek — both actions tested separately
+- [ ] **Peek slideover**: `staleTime: 0` on the issue-detail query within the peek — verified by network tab showing fresh fetch on each `issueKey` change
+- [ ] **Bulk create**: per-subtask status array is shown in progress UI — manual test with a forced failure on subtask 2 of 4
+- [ ] **Bulk create**: retry sends only failed subtasks, not already-created ones — test with partial failure fixture
+- [ ] **Card colors**: all priority stripe colors pass 3:1 contrast check in dark mode — verified with DevTools contrast checker
+- [ ] **Card colors**: priority indicator includes icon + color (not color alone) — checked against WCAG 1.4.1
+- [ ] **Tauri Windows**: drag does not get stuck after drop — manual test on Windows build
 
 ---
 
@@ -336,13 +433,12 @@ Tempo worklog viewer phase. Define the maximum date range in the product spec be
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Tempo auth wrong (Jira PAT rejected) | MEDIUM | Add `tempoToken` field to Settings → Integrations; store in Stronghold `tempo-pat`; update `tempoFetch` wrapper; re-probe |
-| Tempo base path wrong (404s) | LOW | Update `TEMPO_API_PATH` constant; re-run probe; no UI changes |
-| Store version not bumped after field removal | HIGH | Emergency patch release with correct migration; users with broken persisted state need store reset |
-| `react-grid-layout` CSS import missed | LOW | One-line fix; caught immediately by `vite build` |
-| Test suite broken by deleted registry import | LOW | Delete the `describe` block; 15-minute fix |
-| Day bucketing timezone bug caught in production | MEDIUM | Hotfix: replace `new Date(s).toLocaleDateString()` with `s.slice(0, 10)` throughout |
-| WorkloadTab test file left in place | LOW | Delete the file; run suite; 5-minute fix |
+| Peek built on shadcn Sheet (focus trap) | HIGH | Full component rewrite as positioned panel; cannot be patched |
+| Rank mutation uses wrong `rankCustomFieldId` | LOW | One-line fix in mutation call; add unit test |
+| Flicker on drop (cache/local-state mismatch) | MEDIUM | Add `isDraggingRef` gate to cache sync `useEffect`; 30-minute fix |
+| Duplicate subtasks from full batch retry | MEDIUM | Add title+parent deduplication check before retry; user must manually delete duplicates in Jira |
+| `hasScreen` transitions in drop zones cause silent snap-back | LOW | Filter `hasScreen: true` transitions at drop zone render; propagate field through `JiraTransition` type |
+| Card color fails WCAG in dark mode | LOW | Update color map with dark-mode-adjusted values; `dark:` variant CSS property override |
 
 ---
 
@@ -350,32 +446,35 @@ Tempo worklog viewer phase. Define the maximum date range in the product spec be
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Tempo auth (Jira PAT rejected) | Tempo service layer — probe is first task | `probeTempoAuth` returns 200 with actual credentials |
-| Tempo base path version mismatch | Tempo service layer — probe is first task | Constant documented with probe citation; no 404s in dev tools log |
-| Worklog timestamp timezone bug | Tempo worklog viewer phase | Service test: 23:30 CET timestamp assigned to correct calendar day |
-| Tempo pagination truncation | Tempo service layer phase | Service test with 50-item fixture verifies second-page request |
-| Dashboard store import from registry | Dashboard removal phase | `settings.store.ts` compiles without `registry.ts` on disk |
-| Store version not bumped | Dashboard removal phase | `grep "version: 19"` in `settings.store.ts`; migration deletes `dashboardLayout` |
-| `react-grid-layout` CSS build failure | Dashboard removal phase | `npm run build` passes in phase verification |
-| `settings.store.test.ts` broken imports | Dashboard removal phase | `vitest run src/stores/settings.store.test.ts` passes before phase is complete |
-| `WorkloadTab.test.tsx` left behind | Workload removal phase | `ls src/routes/dashboard/WorkloadTab.test.tsx` returns not-found |
-| Workload route not removed | Workload removal phase | `grep "workload" src/routes/routes.tsx` returns zero matches |
-| Sidebar test mocks reference removed item | Workload removal phase | Full suite passes; `grep "'workload'" src/ --include="*.test.*"` zero matches |
-| N×M cell render performance | Tempo worklog viewer phase | Date range capped at 31 days in date picker component |
+| Optimistic reorder flicker | Drag-to-rank (Backlog) | Drop a card on slow connection (throttled DevTools); no flicker observed |
+| Wrong `rankCustomFieldId` | Drag-to-rank (Backlog) | Unit test: mutation receives `rankCustomFieldId` matching `data.real.json` fixture |
+| Mixed vertical/horizontal DnD context | Drag-to-transition (Sprint Board) | Drop zone architecture review before first card is draggable on the board |
+| Stale `peekGhTransitions` on first drag | Drag-to-transition (Sprint Board) | Pre-warming step in board mount; drag a card immediately after load |
+| `hasScreen` transition in drop zone | Drag-to-transition (Sprint Board) | Fixture with `hasScreen: true` transition absent from drop zone targets |
+| Drag vs click — peek fires on drop | Both drag phases + peek phase | Drop a card; peek must not open. Click a card; peek must open |
+| `@tanstack/react-virtual` + drag | Drag-to-rank (Backlog) | `useVirtual = false` documented; no regression on virtualization flag |
+| Tauri Windows mouse event loss | Both drag phases | Manual test on Windows Tauri build before phase is marked done |
+| Focus trap blocks underlying view | Peek slideover phase | Inspect DOM: no `aria-hidden` on document; click behind open peek navigates correctly |
+| Stale query on issue key swap | Peek slideover phase | Network tab: fresh fetch fired each time `issueKey` changes in the peek |
+| Partial bulk create failure | Bulk subtask creation phase | Force failure on subtask 2 of 4; verify subtasks 1 created, 3-4 show "failed", retry sends only 3-4 |
+| Missing required fields in template | Bulk subtask creation phase | Add a required custom field to the test Jira project; verify pre-create validation surfaces it |
+| Card color WCAG fail in dark mode | Card colors phase | DevTools contrast check on each priority stripe in dark mode; all pass 3:1 |
 
 ---
 
 ## Sources
 
-- Codebase inspection: `settings.store.ts` (v18 persist migration, `dashboardLayout` fields, registry import), `sidebar-items.ts` (`workload` entry, `PM_SIDEBAR_PRESET`), `routes.tsx` (`WorkloadTab` lazy import), `WidgetGrid.tsx` (CSS imports), `registry.ts` (widget definitions), `settings.store.test.ts` (WIDGET_REGISTRY/DEV_DASHBOARD_PRESET imports), `Settings.test.tsx`, `Sidebar.test.tsx`, `WorkloadTab.test.tsx`, `aio/client.ts` (probe pattern reference)
-- Tempo Server/DC REST API community: [Atlassian Community — Tempo API confusion](https://community.atlassian.com/forums/Jira-questions/Tempo-API-Documentation-is-Extra-confusing/qaq-p/2650722)
-- Tempo worklog retrieval practical guide: [Retrieving Worklogs Using Jira Tempo REST API — Dario Djuric](https://dario-djuric.medium.com/retrieving-worklogs-using-jira-tempo-rest-api-f7a0c77c4832)
-- Tempo official migration guide: [REST APIs for Jira Data Center — Tempo Help Center](https://help.tempo.io/cloudmigration/latest/rest-apis-for-jira-server-data-center)
-- Tempo Server API documentation index: [tempo.io/server-api-documentation](https://www.tempo.io/server-api-documentation)
-- Zustand persist migration patterns: [Persisting store data — Zustand docs](https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data)
-- JavaScript DST edge cases: [Say Goodbye to JavaScript's DST Date Confusion — DEV Community](https://dev.to/urin/say-goodbye-to-javascripts-dst-date-confusion-24mj)
-- Business day vs calendar day pitfalls: [Business Days vs Calendar Days — DEV Community](https://dev.to/work_hau_cb718f47075930f9/business-days-vs-calendar-days-the-date-math-mistake-that-breaks-your-deadlines-174a)
+- Codebase: `taskflow/src/services/jira/greenhopper/transitions.ts` (Phase 72 cache layer, `peekGhTransitions`, `filterTransitionsForStatus`, `GhTransition.hasScreen/hasValidators`), `types.ts` (`GhBacklogResponse.rankCustomFieldId`), `BacklogPage.tsx` (Phase 74 optimistic sprint-move pattern, `useVirtual = false` comment), `SprintBoardTab.tsx` (Phase 73 column architecture, `peekGhTransitions` usage), `IssueDetailSheet.tsx` (existing Sheet primitive)
+- dnd-kit drag vs click: [dnd-kit Discussion #476](https://github.com/clauderic/dnd-kit/discussions/476), [dnd-kit Issue #591](https://github.com/clauderic/dnd-kit/issues/591)
+- dnd-kit + TanStack Query flicker: [dnd-kit Discussion #1522](https://github.com/clauderic/dnd-kit/discussions/1522)
+- dnd-kit + @tanstack/react-virtual: [dnd-kit Issue #1720](https://github.com/clauderic/dnd-kit/issues/1720), [Issue #1674](https://github.com/clauderic/dnd-kit/issues/1674), [Discussion #411](https://github.com/clauderic/dnd-kit/discussions/411)
+- Tauri webview drag bugs: [Tauri Issue #6695 (webkit drag)](https://github.com/tauri-apps/tauri/issues/6695), [Tauri Issue #10767 (mouseup loss on Windows)](https://github.com/tauri-apps/tauri/issues/10767)
+- TanStack Query optimistic updates: [TanStack Query v4 Optimistic Updates](https://tanstack.com/query/v4/docs/react/guides/optimistic-updates)
+- GreenHopper rank API: [Jira Agile REST API — rank endpoint](https://docs.atlassian.com/jira-software/REST/7.3.1/), [RankService 11.2.1](https://docs.atlassian.com/jira-software/11.2.1/com/atlassian/greenhopper/api/rank/RankService.html), [LexoRank management (DC)](https://confluence.atlassian.com/adminjiraserver/managing-lexorank-938847803.html)
+- Jira transitions + screens: [Jira workflow transitions blog](https://www.herocoders.com/blog/understanding-jira-workflow-transitions)
+- Focus trap / scroll bleed: [react-focus-lock npm](https://www.npmjs.com/package/react-focus-lock), [react-remove-scroll npm](https://www.npmjs.com/package/react-remove-scroll)
+- WCAG card colors: [WCAG 2.2 contrast guide](https://www.allaccessible.org/blog/color-contrast-accessibility-wcag-guide-2025), [InclusiveColors tool](https://www.inclusivecolors.com/)
 
 ---
-*Pitfalls research for: Tempo Timesheets integration + dashboard/workload removal in Tauri 2 / React 18 / Zustand / Vitest stack*
-*Researched: 2026-05-20*
+*Pitfalls research for: Drag-and-drop rank + transition + non-blocking peek + bulk subtask creation in Tauri 2 / React 18 / TanStack Query / dnd-kit*
+*Researched: 2026-06-02*
