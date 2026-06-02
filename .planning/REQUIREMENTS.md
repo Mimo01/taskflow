@@ -86,44 +86,44 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VISUAL-01 | TBD | Pending |
-| VISUAL-02 | TBD | Pending |
-| VISUAL-03 | TBD | Pending |
-| VISUAL-04 | TBD | Pending |
-| VISUAL-05 | TBD | Pending |
-| RANK-01 | TBD | Pending |
-| RANK-02 | TBD | Pending |
-| RANK-03 | TBD | Pending |
-| RANK-04 | TBD | Pending |
-| RANK-05 | TBD | Pending |
-| TRAN-01 | TBD | Pending |
-| TRAN-02 | TBD | Pending |
-| TRAN-03 | TBD | Pending |
-| TRAN-04 | TBD | Pending |
-| TRAN-05 | TBD | Pending |
-| PEEK-01 | TBD | Pending |
-| PEEK-02 | TBD | Pending |
-| PEEK-03 | TBD | Pending |
-| PEEK-04 | TBD | Pending |
-| PEEK-05 | TBD | Pending |
-| PEEK-06 | TBD | Pending |
-| PEEK-07 | TBD | Pending |
-| DETAIL-01 | TBD | Pending |
-| DETAIL-02 | TBD | Pending |
-| SUBTPL-01 | TBD | Pending |
-| SUBTPL-02 | TBD | Pending |
-| SUBTPL-03 | TBD | Pending |
-| SUBTPL-04 | TBD | Pending |
-| SUBTPL-05 | TBD | Pending |
-| SUBTPL-06 | TBD | Pending |
-| SUBTPL-07 | TBD | Pending |
-| SUBTPL-08 | TBD | Pending |
+| VISUAL-01 | Phase 76 | Pending |
+| VISUAL-02 | Phase 76 | Pending |
+| VISUAL-03 | Phase 76 | Pending |
+| VISUAL-04 | Phase 76 | Pending |
+| VISUAL-05 | Phase 76 | Pending |
+| RANK-01 | Phase 78 | Pending |
+| RANK-02 | Phase 78 | Pending |
+| RANK-03 | Phase 78 | Pending |
+| RANK-04 | Phase 78 | Pending |
+| RANK-05 | Phase 78 | Pending |
+| TRAN-01 | Phase 79 | Pending |
+| TRAN-02 | Phase 79 | Pending |
+| TRAN-03 | Phase 79 | Pending |
+| TRAN-04 | Phase 79 | Pending |
+| TRAN-05 | Phase 79 | Pending |
+| PEEK-01 | Phase 77 | Pending |
+| PEEK-02 | Phase 77 | Pending |
+| PEEK-03 | Phase 77 | Pending |
+| PEEK-04 | Phase 77 | Pending |
+| PEEK-05 | Phase 77 | Pending |
+| PEEK-06 | Phase 77 | Pending |
+| PEEK-07 | Phase 77 | Pending |
+| DETAIL-01 | Phase 77 | Pending |
+| DETAIL-02 | Phase 77 | Pending |
+| SUBTPL-01 | Phase 80 | Pending |
+| SUBTPL-02 | Phase 80 | Pending |
+| SUBTPL-03 | Phase 80 | Pending |
+| SUBTPL-04 | Phase 80 | Pending |
+| SUBTPL-05 | Phase 80 | Pending |
+| SUBTPL-06 | Phase 80 | Pending |
+| SUBTPL-07 | Phase 80 | Pending |
+| SUBTPL-08 | Phase 80 | Pending |
 
 **Coverage:**
 - v1.12 requirements: 32 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 32 ⚠️
+- Mapped to phases: 32 (100%)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-02*
-*Last updated: 2026-06-02 after initial definition*
+*Last updated: 2026-06-02 — traceability filled in after roadmap creation*

@@ -14,6 +14,7 @@
 - ✅ **v1.9 Tempo, Dashboard Redesign & Cleanup** — Phases 59-64 (shipped 2026-05-23)
 - ✅ **v1.10 Cleanup, Roles Removal & Standup Notes** — Phases 65-70 (shipped 2026-05-25)
 - ✅ **v1.11 GreenHopper API Migration** — Phases 71-75 (shipped 2026-06-01)
+- 🚧 **v1.12 Jira Experience Improvements** — Phases 76-80 (in progress)
 
 ## Phases
 
@@ -189,9 +190,80 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 </details>
 
+### 🚧 v1.12 Jira Experience Improvements (In Progress)
+
+**Milestone Goal:** Make day-to-day Jira work faster and more direct — consistent done-state visuals, drag-driven ranking and transitions, a non-blocking universal issue peek, tighter issue-detail interactions, and templated bulk subtask creation.
+
+## Phase Details
+
+### Phase 76: Visual Polish and Shared Primitives
+**Goal**: Done-state items are visually consistent app-wide and sprint board cards show priority color stripes; shared display utilities and rank service are in place for downstream phases.
+**Depends on**: Phase 75
+**Requirements**: VISUAL-01, VISUAL-02, VISUAL-03, VISUAL-04, VISUAL-05
+**Success Criteria** (what must be TRUE):
+  1. Done stories on the Backlog active-sprint list appear struck-through and dimmed, matching the kanban board's existing treatment
+  2. Done items in the Standup Notes Today section appear struck-through
+  3. Sprint board cards display a left-edge color stripe driven by issue priority, legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
+  4. `lib/issueDisplayUtils.ts` exports `isDoneStatus`, `doneSummaryClass`, and `priorityStripeClass`; `services/jira/rank.ts` exports `rankIssue`; settings store bumped to persist v24 with `rankFieldKey`
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 77: Universal Peek Slideover and Issue-Detail Refinements
+**Goal**: Clicking any issue anywhere in the app opens a non-blocking right-edge slideover preview; clicking the issue key still navigates full-page; the underlying view stays fully interactive; subtask parent link moves to main content and cursor styles are correct throughout issue detail.
+**Depends on**: Phase 76
+**Requirements**: PEEK-01, PEEK-02, PEEK-03, PEEK-04, PEEK-05, PEEK-06, PEEK-07, DETAIL-01, DETAIL-02
+**Success Criteria** (what must be TRUE):
+  1. Clicking the body of any issue card or row (board, backlog, standup, dashboard, search, notifications) opens the peek slideover for that issue — all issue types work
+  2. The underlying view (board, backlog, etc.) remains scrollable and clickable while the peek is open; no backdrop swallows interaction
+  3. Clicking a different issue in the underlying view swaps the previewed issue without closing the peek; clicking the issue key in any list navigates to the full-page detail instead
+  4. The peek provides a visible close control and an explicit "Open full page" button; pressing Escape dismisses the peek
+  5. On a subtask's full-page detail, the parent story link appears in the main content area (above the description), not the sidebar; all clickable areas in issue detail show a pointer cursor on hover
+**Plans**: TBD
+**Notes**: Resolve Sheet `modal={false}` vs CSS `position:fixed` panel at plan time — `@base-ui/react Dialog modal={false}` must not apply `aria-hidden` to the document root. Decide peek close-on-route-change behavior before writing plans. DETAIL-01/02 folded here because both require the `onIssuePeek` click model established in this phase.
+**UI hint**: yes
+
+### Phase 78: Drag-to-Rank on Backlog
+**Goal**: Users can drag stories within the Backlog active-sprint list to reorder them; the new order persists to Jira and survives background polling without flicker.
+**Depends on**: Phase 77
+**Requirements**: RANK-01, RANK-02, RANK-03, RANK-04, RANK-05
+**Success Criteria** (what must be TRUE):
+  1. The Backlog active-sprint list renders stories in Jira rank order on initial load
+  2. User can drag a story row to a new position; the card visually moves immediately on drop with no snap-back flicker even when the 60s background poll fires during the drag window
+  3. After a successful drag, the new order persists to Jira via `PUT /rest/agile/1.0/issue/rank` using `rankCustomFieldId` read from the cached GreenHopper backlog response (never hardcoded)
+  4. If the rank API call fails, the list rolls back to the pre-drag order and surfaces an inline error
+**Plans**: TBD
+**Notes**: Remove the `@dnd-kit` absence guard from `package-deps.guard.test.ts` as a pre-step. Install all four `@dnd-kit` packages here (reused by Phase 79). Flicker mitigation: `cancelQueries` in `onMutate` + `isDraggingRef`-gated local state as the rendered source of truth during drag. Confirm `rankCustomFieldId` from `GhBacklogResponse` cache; unit-test that the mutation passes the fixture value, not a hardcoded constant. Drag/click disambiguation: `PointerSensor` activation constraint `{ delay: 150, tolerance: 5 }` + `justDragged` ref guard on `onIssuePeek`.
+
+### Phase 79: Drag-to-Transition on Sprint Board
+**Goal**: Users can drag sprint board cards between columns to change their workflow status; multi-status columns split into named per-transition drop zones during the drag; transitions requiring a screen or validators are not offered as silent drop targets.
+**Depends on**: Phase 78
+**Requirements**: TRAN-01, TRAN-02, TRAN-03, TRAN-04, TRAN-05
+**Success Criteria** (what must be TRUE):
+  1. User can drag a card from one sprint board column and drop it on another column to trigger a workflow status transition; the card moves immediately (optimistic) and the board refreshes on settle
+  2. When a target column maps to multiple workflow statuses, the column visually expands into labelled per-transition drop boxes during the drag; only valid transitions reachable from the card's current status are shown
+  3. Transitions with a required screen or validators (`hasScreen: true`) are filtered out of the drop zone targets; they remain accessible via the right-click StatusPopover
+  4. If the transition API call fails, the card rolls back to its original column and an inline error is surfaced
+**Plans**: TBD
+**Notes**: `DndContext` scoped to the board scroll area only (not AppLayout). `DragOverlay` mounted inside `boardRef` at the same z-level as `stickyOverlayRef`. Confirm `hasScreen` propagation through `__adaptToJiraTransition` before writing plans — add `hasScreen`/`hasValidators` to `JiraTransition` type if absent. Reuses `@dnd-kit` installed in Phase 78. Drag/click disambiguation re-uses `justDragged` ref from Phase 78 backlog implementation. Add explicit Windows UAT step (Tauri WebView2 `mouseup` loss). Apply `touch-action: none` on all draggable elements.
+**UI hint**: yes
+
+### Phase 80: Subtask Templates and Bulk Creation
+**Goal**: Users can create and manage named subtask templates in Settings; from a parent issue they can apply a template, preview and edit the resolved subtask list, then create all subtasks at once with per-row progress and partial-failure recovery.
+**Depends on**: Phase 76
+**Requirements**: SUBTPL-01, SUBTPL-02, SUBTPL-03, SUBTPL-04, SUBTPL-05, SUBTPL-06, SUBTPL-07, SUBTPL-08
+**Success Criteria** (what must be TRUE):
+  1. Settings contains a "Subtask Templates" section where user can create, rename, reorder, and delete named templates; each template defines a required title and optional fields (description, assignee, priority, labels, estimate, story points, due date, components, custom fields) derived from the subtask issue type's createmeta; templates persist across app restarts
+  2. From a parent issue's detail page, a "Bulk Create Subtasks" button opens a modal; user can apply a saved template or build an ad-hoc list; parent-inheritance placeholders (`@inherit`, `@current`, `@unassigned`) resolve at creation time
+  3. User can preview the resolved subtask list, inline-edit any field per row, and reorder before creating
+  4. Clicking "Create All" submits subtasks sequentially in order; a per-row progress indicator shows each item transitioning from pending → creating → created/failed; on full success the modal closes and the parent issue's subtask list refreshes
+  5. On partial failure, the modal stays open showing per-row error messages; a "Retry failed" action re-runs only the failed items; already-created subtasks are never duplicated on retry
+**Plans**: TBD
+**Notes**: Store pattern mirrors `tempo-filters.store.ts` exactly (`createTauriStorage('subtask-templates.json')`). Sequential `for` loop (not `Promise.all`) for creation — order preserved, per-item status trackable. `BulkCreateSubtasksModal` receives `parentKey` prop from `IssueDetailContent` local state (not AppLayout). On any creation success, invalidate `['gh-all-data', boardId]`, `['jira-issue-detail', parentKey]`, and `['jira-subtask-enrichment', parentKey]`.
+**UI hint**: yes
+
 ## Progress
 
-All v1.0-v1.10 phases shipped. See per-milestone archives in `.planning/milestones/v{X.Y}-ROADMAP.md` for phase-level history.
+All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/milestones/v{X.Y}-ROADMAP.md` for phase-level history.
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
@@ -208,6 +280,10 @@ All v1.0-v1.10 phases shipped. See per-milestone archives in `.planning/mileston
 | v1.10 Cleanup, Roles Removal & Standup Notes | 6 (65-70) | 15 | 2026-05-25 |
 | v1.11 GreenHopper API Migration | 5 (71-75) | 22 | 2026-06-01 |
 
----
-
-_v1.11 shipped 2026-06-01. Start next milestone with /gsd-new-milestone._
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 76. Visual Polish and Shared Primitives | 0/TBD | Not started | - |
+| 77. Universal Peek Slideover and Issue-Detail Refinements | 0/TBD | Not started | - |
+| 78. Drag-to-Rank on Backlog | 0/TBD | Not started | - |
+| 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
+| 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
