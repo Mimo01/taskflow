@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.11
-milestone_name: GreenHopper API Migration
-status: complete
-stopped_at: Milestone closed 2026-06-01
-last_updated: "2026-06-01T00:00:00.000Z"
-last_activity: 2026-06-01
+milestone: v1.12
+milestone_name: Jira Experience Improvements
+status: planning
+last_updated: "2026-06-02T21:23:24.407Z"
+last_activity: 2026-06-02
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 22
-  completed_plans: 22
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-01)
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: v1.11 milestone closed 2026-06-01
-Last activity: 2026-06-01 — Closed v1.11 GreenHopper API Migration milestone
+Status: Defining requirements
+Last activity: 2026-06-02 — Milestone v1.12 started
 
 ## Performance Metrics
 
