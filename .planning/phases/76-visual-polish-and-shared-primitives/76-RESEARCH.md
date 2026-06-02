@@ -622,17 +622,19 @@ className={cn(
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Subtask priority stripe (CONTEXT.md Claude's discretion)**
    - What we know: `isSubtask` cards currently use `border-l-2 border-l-muted` as a nesting marker. Stripe width would be `border-l-4`.
    - What's unclear: Should subtasks show priority stripe or retain the nesting marker?
    - Recommendation: Retain `border-l-2 border-l-muted` for subtasks (no priority stripe) — nesting hierarchy signal is more important than priority for subtask cards, and the visual clutter would be high.
+   - **RESOLVED (planning):** Subtasks retain `border-l-2 border-l-muted` (no priority stripe), per CONTEXT.md Claude's Discretion. Plan 76-04 Task 1 implements the ternary `isSubtask ? 'border-l-2 border-l-muted' : ['border-l-4', priorityStripeClass(...)]`.
 
 2. **VISUAL-03 scope (Dashboard per-story list)**
    - What we know: REQUIREMENTS.md says "treated as satisfied where the card is aggregate-only with no per-story rows."
    - What's unclear: Does the Dashboard render any per-story rows with issue keys?
    - Recommendation: Planner should do a quick scan of `DashboardPage` / its child components for `{issue.key}` or `font-mono` renders. If none found, mark VISUAL-03 satisfied as-is per the requirement's own escape hatch.
+   - **RESOLVED (planning):** `DashboardInProgressCard.tsx` DOES render per-story issue-key rows (parent key ~line 134, subtask key ~line 167, orphan key span). The aggregate-only escape hatch therefore does NOT apply — VISUAL-03 is a real surface. Plan 76-04 Task 2 wires `doneSummaryClass` to all three key spans.
 
 ---
 
