@@ -24,6 +24,8 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import type { SprintRow } from './filterSprintItems';
@@ -106,7 +108,14 @@ function IssueRow({ issue, storyPointsFieldKey, onIssueClick, indented = false }
         onClick={() => onIssueClick(key)}
       >
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
-        <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
+        <span
+          className={cn(
+            'text-xs text-muted-foreground font-mono shrink-0',
+            doneSummaryClass(issue.fields.status.statusCategory),
+          )}
+        >
+          {key}
+        </span>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
         {sp != null && (
           <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">

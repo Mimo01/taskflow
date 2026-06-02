@@ -19,6 +19,8 @@ import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
 
@@ -131,7 +133,12 @@ export default function DashboardInProgressCard({
               >
                 <IssueTypeIcon typeName={parentTypeName} />
                 <span className="text-sm font-medium flex-1 truncate">{parentSummary}</span>
-                <span className="text-xs text-muted-foreground font-mono shrink-0">
+                <span
+                  className={cn(
+                    'text-xs text-muted-foreground font-mono shrink-0',
+                    doneSummaryClass(issueByKey.get(parentKey)?.fields.status.statusCategory),
+                  )}
+                >
                   {parentKey}
                 </span>
               </button>
@@ -148,7 +155,12 @@ export default function DashboardInProgressCard({
                   <span className="text-sm text-muted-foreground truncate flex-1">
                     {subtask.fields.summary}
                   </span>
-                  <span className="text-xs text-muted-foreground font-mono shrink-0">
+                  <span
+                    className={cn(
+                      'text-xs text-muted-foreground font-mono shrink-0',
+                      doneSummaryClass(subtask.fields.status.statusCategory),
+                    )}
+                  >
                     {subtask.key}
                   </span>
                 </button>
@@ -164,7 +176,12 @@ export default function DashboardInProgressCard({
               className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => onIssueClick(subtask.key)}
             >
-              <span className="text-xs text-muted-foreground font-mono shrink-0">
+              <span
+                className={cn(
+                  'text-xs text-muted-foreground font-mono shrink-0',
+                  doneSummaryClass(subtask.fields.status.statusCategory),
+                )}
+              >
                 {subtask.key}
               </span>
               <span className="text-sm truncate">{subtask.fields.summary}</span>

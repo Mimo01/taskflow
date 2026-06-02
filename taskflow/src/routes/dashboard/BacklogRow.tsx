@@ -26,6 +26,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { OverdueBadge } from './issue-detail/OverdueBadge';
@@ -76,7 +77,14 @@ function RowCells({
     <>
       {/* Key cell */}
       <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-        <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
+        <span
+          className={cn(
+            'font-mono text-xs text-muted-foreground',
+            doneSummaryClass(issue.fields.status.statusCategory),
+          )}
+        >
+          {issue.key}
+        </span>
       </td>
 
       {/* Summary cell -- takes remaining space, truncates on overflow */}
