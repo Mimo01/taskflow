@@ -210,9 +210,9 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 1**
 
-- [ ] 76-01-PLAN.md — issueDisplayUtils.ts (isDoneStatus/doneSummaryClass/priorityStripeClass) + tests
-- [ ] 76-02-PLAN.md — services/jira/rank.ts LexoRank midpoint (rankIssue) + 9 edge-case tests
-- [ ] 76-03-PLAN.md — settings store v25 + rankFieldKey discovery in BacklogPage
+- [x] 76-01-PLAN.md — issueDisplayUtils.ts (isDoneStatus/doneSummaryClass/priorityStripeClass) + tests
+- [x] 76-02-PLAN.md — services/jira/rank.ts LexoRank midpoint (rankIssue) + 9 edge-case tests
+- [x] 76-03-PLAN.md — settings store v25 + rankFieldKey discovery in BacklogPage
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -306,7 +306,7 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 76. Visual Polish and Shared Primitives | 0/TBD | Not started | - |
+| 76. Visual Polish and Shared Primitives | 3/4 | In Progress|  |
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 0/TBD | Not started | - |
 | 78. Drag-to-Rank on Backlog | 0/TBD | Not started | - |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
