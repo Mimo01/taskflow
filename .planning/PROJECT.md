@@ -4,20 +4,24 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: v1.11 GreenHopper API Migration (Jira Performance)
+## Current Milestone: v1.12 Jira Experience Improvements
 
-**Goal:** Eliminate Jira API n+1 bottlenecks by migrating the app's Jira backbone to the on-prem GreenHopper API (`/rest/greenhopper/1.0/xboard/*`), which returns board/backlog/issue data as a single fat payload with embedded entity lookup maps.
+**Goal:** Make day-to-day Jira work in Taskflow faster and more direct — consistent done-state visuals, drag-driven ranking and transitions, a non-blocking universal issue peek, tighter issue-detail interactions, and templated bulk subtask creation.
 
 **Target features:**
-- Sprint Board fetched via a single `allData.json` call (replaces multi-call sprint-board fetch + per-issue enrichments; includes per-issue `timeInColumn`)
-- Backlog fetched via a single `data.json` call (replaces paginated REST + per-issue lookups)
-- Issue detail panel fetched via a single `details.json` call (operations menu, sprint, all tabs with server-rendered HTML and inline-edit forms)
-- Workflow transitions cached per-project via `transitions.json` (replaces per-issue `/transitions` REST calls)
-- Adapter layer mapping GreenHopper entity shapes (numeric IDs, embedded lookup maps) onto existing UI types so cutover is incremental
+- Done-state strikethrough for done current-sprint stories on the Backlog active-sprint list, Dashboard sprint card, and Standup Today (matching the kanban board's existing treatment)
+- Drag-to-rank stories on the Backlog active-sprint list (drag changes Jira rank; list ordered by rank)
+- Drag-to-transition on the sprint board; columns spanning multiple workflow statuses split into per-transition drop boxes during drag
+- Universal issue slideover (peek): works for any issue type app-wide, non-blocking (underlying view stays interactive), swap the peeked issue by clicking issues in the underlying view, click-anywhere opens the peek except the issue key (which opens full page), explicit "open full page" affordance
+- Issue-detail refinements: move a subtask's parent from the sidebar into main content (like subtasks-under-story); fix `cursor-pointer` on clickable areas
+- Card colors: left-edge color stripe on board cards driven by priority / issue type
+- Subtask templates & bulk creation: Settings-managed named templates (title required + createmeta-driven rich optional fields: description, assignee, priority, labels, original estimate, story points, due date, components, custom fields, with parent-inheritance placeholders); from a parent issue, pick/build a list, preview & inline-edit, create all subtasks at once in order
 
-**Out of scope for v1.11:** REST endpoints not replaced by GreenHopper (write actions, search, createmeta, attachments upload, worklogs, etc.) stay on the existing REST v2 services in `services/jira/*` and `jira.ts`.
+**Dropped after audit:** Flags/impediments and swimlanes (already fully built — fixed parent-story grouping + complete `customfield_10021` flag integration); rapid sequential subtask entry (superseded by subtask templates).
 
-**Latest milestone shipped:** v1.10 Cleanup, Roles Removal & Standup Notes — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, shipped 2026-05-25.
+**Out of scope for v1.12:** Sprint-board swimlane group-by switcher (epic/assignee); priority of subtasks treated as anti-pattern stays optional; batch-create REST endpoint (bulk creation loops `createIssue` in order).
+
+**Latest milestone shipped:** v1.11 GreenHopper API Migration — 5 phases (71-75), 22 plans, 284 commits, shipped 2026-06-01.
 
 ## Core Value
 
@@ -133,7 +137,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- v1.12 — TBD -->
+<!-- v1.12 Jira Experience Improvements — see REQUIREMENTS.md for REQ-IDs -->
+
+- [ ] Done-state strikethrough for done current-sprint stories on Backlog sprint list, Dashboard sprint card, and Standup Today
+- [ ] Drag-to-rank stories on the Backlog active-sprint list (ordered by Jira rank)
+- [ ] Drag-to-transition on the sprint board; multi-status columns split into per-transition drop boxes
+- [ ] Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance
+- [ ] Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas
+- [ ] Card colors: left-edge stripe by priority / issue type
+- [ ] Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent)
 
 ### Out of Scope
 
@@ -315,4 +327,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `jira-board-quickfilters` system removed post-Phase 73 verification (v1.11 quick task `e1c098f0`) | GH `allData.json` doesn't return quickfilter data; the Jira-loaded quickfilters were replaced by app's own saved filters | ✓ Good — app's saved filter system is the correct replacement; no functionality lost |
 
 ---
-*Last updated: 2026-06-01 after v1.11 GreenHopper API Migration milestone close*
+*Last updated: 2026-06-02 after starting v1.12 Jira Experience Improvements milestone*
