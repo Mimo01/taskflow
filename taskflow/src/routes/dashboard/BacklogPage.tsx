@@ -214,6 +214,8 @@ export default function BacklogPage() {
     epicNameFieldKey,
     epicColorFieldKey,
     flaggedFieldKey,
+    rankFieldKey,
+    setRankFieldKey,
   } = useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
@@ -249,6 +251,15 @@ export default function BacklogPage() {
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : '';
+
+  // D-11: Populate rankFieldKey once from backlog response when not yet discovered.
+  // Probe-verified: backlog.rankCustomFieldId === 10105 → rankFieldKey = 'customfield_10105'.
+  // Guard (!rankFieldKey) prevents background poll re-triggering after first write.
+  useEffect(() => {
+    if (backlog?.rankCustomFieldId && !rankFieldKey) {
+      setRankFieldKey(`customfield_${backlog.rankCustomFieldId}`);
+    }
+  }, [backlog?.rankCustomFieldId, rankFieldKey, setRankFieldKey]);
 
   // D-09b adapter useMemo chain — same model as SprintBoardTab (Pattern S3).
   const entityMaps = useMemo(
