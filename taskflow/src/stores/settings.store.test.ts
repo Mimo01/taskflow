@@ -469,3 +469,32 @@ describe('auth.store — resetAuth() (quick 260524-pqo)', () => {
     expect(typeof useAuthStore.getState().resetAuth).toBe('function');
   });
 });
+
+describe('settings.store — rankFieldKey (Phase 76)', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({
+        rankFieldKey: null,
+      } as any);
+    });
+  });
+
+  it('persist version is 25 (v25 migration smoke)', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
+    const match = src.match(/version:\s*(\d+),/);
+    expect(match).not.toBeNull();
+    const version = Number(match?.[1]);
+    expect(version).toBe(25);
+  });
+
+  it('rankFieldKey defaults to null', () => {
+    expect(useSettingsStore.getState().rankFieldKey).toBeNull();
+  });
+
+  it("setRankFieldKey('customfield_10105') sets state to 'customfield_10105' (D-11 composed-key contract)", () => {
+    act(() => useSettingsStore.getState().setRankFieldKey('customfield_10105'));
+    expect(useSettingsStore.getState().rankFieldKey).toBe('customfield_10105');
+  });
+});
