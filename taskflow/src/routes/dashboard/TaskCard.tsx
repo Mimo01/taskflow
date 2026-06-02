@@ -30,6 +30,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { formatTimeAgo, formatTimeAgoStrict } from '@/lib/formatTimeAgo';
+import { isDoneStatus, priorityStripeClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
@@ -93,7 +94,14 @@ export default function TaskCard({
         type="button"
         className={cn(
           'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
-          isSubtask && 'border-l-2 border-l-muted',
+          isSubtask
+            ? 'border-l-2 border-l-muted'
+            : [
+                'border-l-4',
+                priorityStripeClass(
+                  (issue.fields.priority as { name: string } | null | undefined)?.name,
+                ),
+              ],
           isFlagged &&
             'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
         )}
@@ -111,7 +119,7 @@ export default function TaskCard({
             <span
               className={cn(
                 'text-xs font-mono text-muted-foreground',
-                issue.fields.status.statusCategory?.key === 'done'
+                isDoneStatus(issue.fields.status.statusCategory)
                   ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
                   : 'group-hover:underline',
               )}
