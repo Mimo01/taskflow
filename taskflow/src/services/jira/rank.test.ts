@@ -2,9 +2,22 @@ import { describe, expect, it } from 'vitest';
 
 import { rankIssue } from './rank';
 
-// Helper: lexicographic comparison of two full rank strings
+/**
+ * Compare two rank strings by their VALUE portion (between '|' and ':').
+ * Full-string comparison is incorrect for rank strings because ':' (ASCII 58) is
+ * greater than digits '0'-'9' (ASCII 48-57) but less than letters 'a'-'z' (ASCII 97-122).
+ * When the extension position of one rank string is a digit and the other is ':', the
+ * full-string order does not match the intended rank order.
+ * Comparing the value portions avoids this: values are pure base-36 strings with no ':'.
+ */
 function rankLt(a: string, b: string): boolean {
-  return a < b;
+  const valOf = (r: string): string => {
+    const pipeIdx = r.indexOf('|');
+    const colonIdx = r.indexOf(':');
+    if (pipeIdx === -1) return r;
+    return r.slice(pipeIdx + 1, colonIdx === -1 ? undefined : colonIdx);
+  };
+  return valOf(a) < valOf(b);
 }
 
 describe('rankIssue', () => {
