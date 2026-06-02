@@ -55,6 +55,7 @@ const initialSettings = {
   tempoEnabled: false,
   selectedAioProjectKey: null as string | null,
   quickFilters: [] as QuickFilter[],
+  rankFieldKey: null as string | null,
   notifCommentMentionEnabled: true,
   notifIssueUpdateEnabled: true,
   notifMrNoteEnabled: true,
@@ -91,6 +92,9 @@ interface SettingsState {
   flaggedFieldKey: string;
   /** Discovered account custom field key. Reserved for Phase 11. */
   accountFieldKey: string | null;
+  /** Discovered rank custom field key. Null until populated from GreenHopper backlog response. */
+  rankFieldKey: string | null;
+  setRankFieldKey: (key: string) => void;
   /** Master toggle for developer tools. Default: false. */
   devToolsEnabled: boolean;
   /** Enable request/response logging to debug log store. Default: false. */
@@ -309,6 +313,7 @@ export const useSettingsStore = create<SettingsState>()(
       setEpicColorFieldKey: (key) => set({ epicColorFieldKey: key }),
       setFlaggedFieldKey: (key) => set({ flaggedFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
+      setRankFieldKey: (key) => set({ rankFieldKey: key }),
       setSidebarItems: (items) => set({ sidebarItems: items }),
       setSidebarItemVisible: (id, visible) =>
         set((s) => ({
@@ -331,13 +336,14 @@ export const useSettingsStore = create<SettingsState>()(
             epicColorFieldKey: s.epicColorFieldKey,
             flaggedFieldKey: s.flaggedFieldKey,
             accountFieldKey: s.accountFieldKey,
+            rankFieldKey: s.rankFieldKey,
           };
         }),
     }),
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 24,
+      version: 25,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -437,6 +443,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 24) {
           delete (s as Record<string, unknown>).showSubtasksInMyTasks;
+        }
+        if (version < 25) {
+          if (s.rankFieldKey === undefined) s.rankFieldKey = null;
         }
         return persisted as SettingsState;
       },
