@@ -24,6 +24,7 @@ import { isResponseLikeError } from './jira/client';
 import type { JiraComment } from './jira/types';
 
 export { addIssuesToSprint } from './jira/sprints';
+export { rankIssueApi } from './jira/rank-api';
 // Re-export changelog and watcher modules for barrel access via '@/services/jira'
 export * from './jira-changelog';
 export * from './jira-watchers';
