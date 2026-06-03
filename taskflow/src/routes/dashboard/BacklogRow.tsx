@@ -36,6 +36,8 @@ import { OverdueBadge } from './issue-detail/OverdueBadge';
 export interface BacklogRowProps {
   issue: JiraIssue;
   onIssueClick: (key: string) => void;
+  /** Phase 77 Plan 04 (PEEK-01): clicking the row body opens the peek panel. */
+  onOpenIssue?: (key: string) => void;
   storyPointsFieldKey: string;
   epicLinkFieldKey: string;
   epicNameFieldKey: string;
@@ -75,16 +77,21 @@ function RowCells({
 }) {
   return (
     <>
-      {/* Key cell */}
+      {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
       <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-        <span
+        <button
+          type="button"
           className={cn(
-            'font-mono text-xs text-muted-foreground',
+            'font-mono text-xs text-muted-foreground cursor-pointer hover:underline',
             doneSummaryClass(issue.fields.status.statusCategory),
           )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onIssueClick(issue.key);
+          }}
         >
           {issue.key}
-        </span>
+        </button>
       </td>
 
       {/* Summary cell -- takes remaining space, truncates on overflow */}
@@ -159,6 +166,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     {
       issue,
       onIssueClick,
+      onOpenIssue,
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
@@ -214,7 +222,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           ref={ref}
           data-testid={`backlog-row-${issue.key}`}
           className={rowClassName}
-          onClick={() => onIssueClick(issue.key)}
+          onClick={() => (onOpenIssue ?? onIssueClick)(issue.key)}
           aria-current={isFocused ? 'true' : undefined}
         >
           <RowCells {...cellsProps} />
@@ -230,7 +238,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
               ref={ref}
               data-testid={`backlog-row-${issue.key}`}
               className={rowClassName}
-              onClick={() => onIssueClick(issue.key)}
+              onClick={() => (onOpenIssue ?? onIssueClick)(issue.key)}
               aria-current={isFocused ? 'true' : undefined}
             >
               <RowCells {...cellsProps} />

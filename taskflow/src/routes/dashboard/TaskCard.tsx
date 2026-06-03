@@ -16,6 +16,12 @@
  * - onTransition: callback when a transition menu item is clicked
  * - transitionError: error message shown below the card on failed transition
  * When onTransition is not provided, no context menu is rendered (safe for non-board contexts).
+ *
+ * PEEK-01/PEEK-05 (Phase 77 Plan 04 — D-10):
+ * - When onOpenIssue is provided, outer wrapper becomes div[role=button] (body → peek)
+ *   and the issue key renders as an inner <button> (key → full-page, stopPropagation).
+ * - When only onClick is provided (backward-compat), outer stays a <button> with a plain
+ *   key <span> (no nested buttons).
  */
 import { ChevronDown, ChevronRight, Flag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +48,19 @@ interface TaskCardProps {
   onToggle?: () => void;
   isSubtask?: boolean;
   showStatus?: boolean;
+  /** @deprecated Use onOpenIssue + onIssueClick for the PEEK-01/05 key/body split. Kept for backward-compat callers. */
   onClick?: () => void;
+  /**
+   * Phase 77 Plan 04 (PEEK-01/PEEK-05): clicking the card body opens the peek panel.
+   * When provided, the outer wrapper becomes a div[role=button] so the inner key
+   * button is valid HTML (no nested buttons — D-10 / Pitfall 1).
+   */
+  onOpenIssue?: (key: string) => void;
+  /**
+   * Phase 77 Plan 04 (PEEK-05): clicking the issue key navigates full-page.
+   * stopPropagation prevents the body onOpenIssue from also firing.
+   */
+  onIssueClick?: (key: string) => void;
   /** Pre-fetched transitions for the context menu (sprint board only) */
   transitions?: JiraTransition[];
   /** Called when user selects a transition from the context menu */
@@ -67,6 +85,162 @@ interface TaskCardProps {
   timeInColumn?: { enteredStatus: number; durationPreviously?: number };
 }
 
+// ── Shared card body content (layout is identical in both render paths) ────────
+
+interface CardBodyProps {
+  issue: JiraIssue;
+  assignee: JiraIssue['fields']['assignee'];
+  avatarUrl: string | undefined;
+  displayName: string;
+  issueTypeName: string | undefined;
+  storyPoints: number | null | undefined;
+  showStatus?: boolean;
+  isFlagged?: boolean;
+  subtaskCount?: number;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  timeInColumn?: { enteredStatus: number; durationPreviously?: number };
+  /** When true, the key renders as a <button> with stopPropagation (PEEK-05 path). */
+  useKeyButton?: boolean;
+  onIssueClick?: (key: string) => void;
+}
+
+function CardBody({
+  issue,
+  assignee,
+  avatarUrl,
+  displayName,
+  issueTypeName,
+  storyPoints,
+  showStatus,
+  isFlagged,
+  subtaskCount,
+  isExpanded,
+  onToggle,
+  timeInColumn,
+  useKeyButton,
+  onIssueClick,
+}: CardBodyProps) {
+  return (
+    <>
+      {/* Top row: flag icon (when flagged) + issue key (left) + issue type name (right) */}
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1">
+          {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
+          {useKeyButton ? (
+            /* PEEK-05: key button — stopPropagation prevents outer body onOpenIssue */
+            <button
+              type="button"
+              className={cn(
+                'text-xs font-mono text-muted-foreground cursor-pointer',
+                isDoneStatus(issue.fields.status.statusCategory)
+                  ? 'line-through hover:[text-decoration-line:underline_line-through]'
+                  : 'hover:underline',
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onIssueClick?.(issue.key);
+              }}
+            >
+              {issue.key}
+            </button>
+          ) : (
+            /* Legacy path: plain span inside <button> outer */
+            <span
+              className={cn(
+                'text-xs font-mono text-muted-foreground',
+                isDoneStatus(issue.fields.status.statusCategory)
+                  ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
+                  : 'group-hover:underline',
+              )}
+            >
+              {issue.key}
+            </span>
+          )}
+        </span>
+        {issueTypeName && (
+          <span className="text-[11px] text-muted-foreground/60 truncate max-w-[50%] text-right">
+            {issueTypeName}
+          </span>
+        )}
+      </div>
+
+      {/* Summary — max 2 lines */}
+      <div
+        className="text-sm leading-snug overflow-hidden"
+        style={{
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {issue.fields.summary}
+      </div>
+
+      {/* Bottom row: assignee avatar + name (left) + story points + status badge (right) */}
+      <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {assignee && (
+            <>
+              <CachedAvatar url={avatarUrl} name={displayName} size={20} />
+              <span className="text-[11px] text-muted-foreground/80 truncate">{displayName}</span>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Story points badge */}
+          {storyPoints != null && storyPoints > 0 && (
+            <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
+              {storyPoints}
+            </span>
+          )}
+
+          {/* Phase 73 Plan 02 — timeInColumn badge (UI-SPEC §1 / D-05 / R-03).
+              Decorative metadata only; native `title` provides the tooltip
+              (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
+          {timeInColumn?.enteredStatus != null && (
+            <span
+              className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
+              title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
+            >
+              {formatTimeAgoStrict(timeInColumn.enteredStatus)}
+            </span>
+          )}
+
+          {/* Status badge — shown when not in a column context */}
+          {showStatus && (
+            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+              {issue.fields.status.name}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Subtask count chip + chevron — only when subtaskCount > 0 */}
+      {subtaskCount != null && subtaskCount > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle?.();
+          }}
+          className="flex items-center gap-1 p-1 -mx-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
+        >
+          <Badge variant="secondary" className="text-xs py-0 pointer-events-none">
+            {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
+          </Badge>
+          {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </button>
+      )}
+    </>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function TaskCard({
   issue,
   subtaskCount,
@@ -75,6 +249,8 @@ export default function TaskCard({
   isSubtask,
   showStatus,
   onClick,
+  onOpenIssue,
+  onIssueClick,
   transitions,
   onTransition,
   transitionError,
@@ -88,124 +264,73 @@ export default function TaskCard({
   const issueTypeName = issue.fields.issuetype?.name;
   const storyPoints = issue.fields.customfield_10016 as number | null | undefined;
 
+  // PEEK-01/PEEK-05 (D-10 / Pitfall 1): when onOpenIssue is wired, outer becomes
+  // div[role=button] so the inner key <button> is valid HTML.
+  const useKeyBodySplit = !!onOpenIssue;
+
+  const sharedBodyProps: CardBodyProps = {
+    issue,
+    assignee,
+    avatarUrl,
+    displayName,
+    issueTypeName,
+    storyPoints,
+    showStatus,
+    isFlagged,
+    subtaskCount,
+    isExpanded,
+    onToggle,
+    timeInColumn,
+    useKeyButton: useKeyBodySplit,
+    onIssueClick,
+  };
+
+  const outerClassName = cn(
+    'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
+    isSubtask
+      ? 'border-l-2 border-l-muted'
+      : [
+          'border-l-4',
+          priorityStripeClass(
+            issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined,
+          ),
+        ],
+    isFlagged &&
+      'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
+  );
+
+  const outerElement = useKeyBodySplit ? (
+    // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested <button> inside <button> is invalid HTML (D-10 / Pitfall 1)
+    <div
+      role="button"
+      tabIndex={0}
+      className={outerClassName}
+      onClick={() => onOpenIssue(issue.key)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenIssue(issue.key);
+        }
+      }}
+    >
+      <CardBody {...sharedBodyProps} />
+    </div>
+  ) : (
+    <button
+      type="button"
+      className={outerClassName}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onClick?.();
+      }}
+    >
+      <CardBody {...sharedBodyProps} />
+    </button>
+  );
+
   const cardContent = (
     <>
-      <button
-        type="button"
-        className={cn(
-          'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
-          isSubtask
-            ? 'border-l-2 border-l-muted'
-            : [
-                'border-l-4',
-                priorityStripeClass(
-                  issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined,
-                ),
-              ],
-          isFlagged &&
-            'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
-        )}
-        onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') onClick?.();
-        }}
-      >
-        {/* Top row: flag icon (when flagged) + issue key (left) + issue type name (right) */}
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1">
-            {isFlagged && (
-              <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
-            )}
-            <span
-              className={cn(
-                'text-xs font-mono text-muted-foreground',
-                isDoneStatus(issue.fields.status.statusCategory)
-                  ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
-                  : 'group-hover:underline',
-              )}
-            >
-              {issue.key}
-            </span>
-          </span>
-          {issueTypeName && (
-            <span className="text-[11px] text-muted-foreground/60 truncate max-w-[50%] text-right">
-              {issueTypeName}
-            </span>
-          )}
-        </div>
-
-        {/* Summary — max 2 lines */}
-        <div
-          className="text-sm leading-snug overflow-hidden"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {issue.fields.summary}
-        </div>
-
-        {/* Bottom row: assignee avatar + name (left) + story points + status badge (right) */}
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {assignee && (
-              <>
-                <CachedAvatar url={avatarUrl} name={displayName} size={20} />
-                <span className="text-[11px] text-muted-foreground/80 truncate">{displayName}</span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Story points badge */}
-            {storyPoints != null && storyPoints > 0 && (
-              <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
-                {storyPoints}
-              </span>
-            )}
-
-            {/* Phase 73 Plan 02 — timeInColumn badge (UI-SPEC §1 / D-05 / R-03).
-                Decorative metadata only; native `title` provides the tooltip
-                (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
-            {timeInColumn?.enteredStatus != null && (
-              <span
-                className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
-                title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
-              >
-                {formatTimeAgoStrict(timeInColumn.enteredStatus)}
-              </span>
-            )}
-
-            {/* Status badge — shown when not in a column context */}
-            {showStatus && (
-              <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-                {issue.fields.status.name}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Subtask count chip + chevron — only when subtaskCount > 0 */}
-        {subtaskCount != null && subtaskCount > 0 && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle?.();
-            }}
-            className="flex items-center gap-1 p-1 -mx-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
-          >
-            <Badge variant="secondary" className="text-xs py-0 pointer-events-none">
-              {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
-            </Badge>
-            {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-          </button>
-        )}
-      </button>
-
+      {outerElement}
       {/* Transition error — shown below card on failed transitions */}
       {transitionError && <p className="text-xs text-destructive px-1">{transitionError}</p>}
     </>
