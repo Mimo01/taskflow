@@ -270,7 +270,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 1** *(parallel — no file overlap)*
 
-- [ ] 78-01-PLAN.md — Remove @dnd-kit absence guard + install 4 packages (D-12); add cancelLabel to ConfirmSprintMoveDialog; Wave-0 test scaffolds (rank-api.test.ts, BacklogPage.rank.test.ts)
+- [x] 78-01-PLAN.md — Remove @dnd-kit absence guard + install 4 packages (D-12); add cancelLabel to ConfirmSprintMoveDialog; Wave-0 test scaffolds (rank-api.test.ts, BacklogPage.rank.test.ts)
 - [ ] 78-02-PLAN.md — Fix rank.ts CR-01 (cross-bucket) + CR-02 (BigInt base-36) and strengthen rank.test.ts (E10/E11/E12); remove KNOWN-BROKEN header (D-10)
 
 **Wave 2** *(blocked on Wave 1)*
@@ -339,6 +339,6 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
-| 78. Drag-to-Rank on Backlog | 0/4 | Planned | - |
+| 78. Drag-to-Rank on Backlog | 1/4 | In Progress|  |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
