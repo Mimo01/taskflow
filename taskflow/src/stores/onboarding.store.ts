@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import type { GitLabProject } from '@/services/gitlab';
 import type { JiraProject } from '@/services/jira';
+import type { JiraBoard } from '@/services/jira/sprints';
 
 interface OnboardingState {
   step: number;
@@ -15,6 +16,8 @@ interface OnboardingState {
   jiraToken: string;
   jiraProject: string | null;
   jiraProjects: JiraProject[];
+  jiraBoards: JiraBoard[];
+  jiraBoardId: number | null;
   gitlabUrl: string;
   gitlabToken: string;
   gitlabProject: number | null;
@@ -33,6 +36,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   jiraToken: '',
   jiraProject: null,
   jiraProjects: [],
+  jiraBoards: [],
+  jiraBoardId: null,
   gitlabUrl: '',
   gitlabToken: '',
   gitlabProject: null,
