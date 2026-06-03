@@ -1100,7 +1100,7 @@ export async function fetchActiveSprint(
     if (resolvedBoardId === undefined) {
       const boardRes = await apiFetch(
         'jira',
-        `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+        `${base}/rest/agile/1.0/board?projectKeyOrId=${encodeURIComponent(projectKey)}&type=scrum`,
         { headers },
         'Discover Board',
       );
@@ -1115,7 +1115,7 @@ export async function fetchActiveSprint(
       'jira',
       `${base}/rest/agile/1.0/board/${resolvedBoardId}/sprint?state=active`,
       { headers },
-      'Discover Board',
+      'Load Active Sprint',
     );
     if (!sprintRes.ok) return null;
     const sprintData = await sprintRes.json();
