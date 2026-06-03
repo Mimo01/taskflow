@@ -3,6 +3,18 @@
  *
  * Pure function — no side effects, no API calls.
  * Phase 78 (drag-to-rank) consumes `rankIssue` directly.
+ *
+ * ⚠️ KNOWN-BROKEN — DO NOT CONSUME until fixed (Phase 76 code review, 76-REVIEW.md):
+ *   - CR-01: cross-bucket calls are wrong. `rankIssue` keeps `before`'s bucket and
+ *     averages only the value portions, so e.g. rankIssue('0|zzzzzz:', '1|000000:')
+ *     returns a rank that sorts BEFORE `before`. Different-bucket neighbours are not
+ *     handled.
+ *   - CR-02: precision loss. `BigInt(parseInt(s, 36))` rounds through float64 before
+ *     the BigInt cast, so value portions ≳11 base-36 chars collapse distinct ranks
+ *     to the same number — the "precise BigInt arithmetic" claim below is false.
+ * Phase 78 MUST fix both (correct cross-bucket handling + true big-base-36 math) and
+ * strengthen rank.test.ts (assert rankLt(before, result) && rankLt(result, after) on
+ * EVERY case) before wiring drag-to-rank. Tracked in .planning/todos/pending.
  */
 
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
