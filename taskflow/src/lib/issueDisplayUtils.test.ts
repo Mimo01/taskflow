@@ -12,7 +12,7 @@ const BLOCKER = 'border-l-red-700 dark:border-l-red-400';
 const MAJOR = 'border-l-red-500 dark:border-l-red-500';
 const HIGHEST = 'border-l-orange-600 dark:border-l-orange-400';
 const HIGH = 'border-l-amber-600 dark:border-l-amber-400';
-const YELLOW = 'border-l-yellow-700 dark:border-l-yellow-500';
+const YELLOW = 'border-l-yellow-500 dark:border-l-yellow-400';
 const GRAY_500 = 'border-l-gray-500 dark:border-l-gray-400';
 const GRAY_600 = 'border-l-gray-600 dark:border-l-gray-300';
 const GRAY_700 = 'border-l-gray-700 dark:border-l-gray-500';
@@ -67,8 +67,8 @@ describe('priorityStripeClass', () => {
     expect(priorityStripeClass('High')).toBe('border-l-orange-600 dark:border-l-orange-400');
   });
 
-  it('returns correct WCAG-verified class for "Medium" (yellow-700 light, NOT yellow-500)', () => {
-    expect(priorityStripeClass('Medium')).toBe('border-l-yellow-700 dark:border-l-yellow-500');
+  it('returns the bright Medium class (yellow-500 light / yellow-400 dark)', () => {
+    expect(priorityStripeClass('Medium')).toBe('border-l-yellow-500 dark:border-l-yellow-400');
   });
 
   it('returns correct class for "Low"', () => {
