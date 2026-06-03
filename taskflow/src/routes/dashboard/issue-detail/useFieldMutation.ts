@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import type { JiraIssueDetail } from '@/services/jira';
-import { invalidateGhBacklogData, updateIssueField } from '@/services/jira';
+import { invalidateGhAllData, invalidateGhBacklogData, updateIssueField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 
 /**
@@ -46,14 +46,19 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+      // Sprint board cards render from the gh-all-data envelope
+      // (SprintBoardTab -> useGhAllData -> ['gh-all-data', boardId]). Field edits
+      // (assignee, priority, story points, labels, fixVersions) must invalidate it
+      // so the board card refreshes immediately instead of staying stale until a
+      // full reload. Mirrors transitionMutation/sprintMoveMutation in FieldsSection.
       // WR-06: scope to the active board when a boardId is available
-      // (prevents N redundant refetches across every project's gh-backlog
-      // envelope on every field edit). When not available, fall back to
-      // the broader invalidation.
+      // (prevents N redundant refetches across every project's gh envelope on
+      // every field edit). When not available, fall back to the broader invalidation.
       if (boardId != null) {
+        invalidateGhAllData(queryClient, boardId);
         invalidateGhBacklogData(queryClient, boardId);
       } else {
+        invalidateGhAllData(queryClient);
         invalidateGhBacklogData(queryClient);
       }
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
