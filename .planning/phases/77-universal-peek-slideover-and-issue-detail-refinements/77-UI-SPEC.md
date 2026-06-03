@@ -1,10 +1,11 @@
 ---
 phase: 77
 slug: universal-peek-slideover-and-issue-detail-refinements
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-06-03
+reviewed_at: 2026-06-03
 ---
 
 # Phase 77 — UI Design Contract
