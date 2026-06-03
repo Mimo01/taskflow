@@ -59,6 +59,8 @@ function JiraConnectionCard({
   const [selectedProject, setSelectedProject] = useState<string>(activeProject ?? '');
   const [boards, setBoards] = useState<JiraBoard[]>([]);
   const [boardsLoading, setBoardsLoading] = useState(false);
+  const [boardsError, setBoardsError] = useState<string | null>(null);
+  const [boardsReloadKey, setBoardsReloadKey] = useState(0);
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(activeBoardId);
 
   const resetTestStatus = () => {
@@ -69,6 +71,7 @@ function JiraConnectionCard({
   };
 
   // Load boards whenever a project is selected after a successful test.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: boardsReloadKey is an intentional re-run trigger (IN-03 retry) — the body doesn't reference it but bumping it re-fetches the board list.
   useEffect(() => {
     if (testStatus !== 'success' || !selectedProject) {
       setBoards([]);
@@ -76,13 +79,19 @@ function JiraConnectionCard({
     }
     let cancelled = false;
     setBoardsLoading(true);
+    setBoardsError(null);
     (async () => {
       try {
         const token = await readSecret('jira-pat');
         const list = await listProjectBoards(draftUrl || initialBaseUrl, token, selectedProject);
         if (!cancelled) setBoards(list);
-      } catch {
-        if (!cancelled) setBoards([]);
+      } catch (err) {
+        // Surface the failure (vs. silently degrading to the zero-board fallback,
+        // which is indistinguishable from "project has no scrum boards").
+        if (!cancelled) {
+          setBoards([]);
+          setBoardsError((err as Error)?.message ?? 'Failed to load boards');
+        }
       } finally {
         if (!cancelled) setBoardsLoading(false);
       }
@@ -90,7 +99,7 @@ function JiraConnectionCard({
     return () => {
       cancelled = true;
     };
-  }, [testStatus, selectedProject, draftUrl, initialBaseUrl]);
+  }, [testStatus, selectedProject, draftUrl, initialBaseUrl, boardsReloadKey]);
 
   const handleUrlChange = (value: string) => {
     setDraftUrl(value);
@@ -222,6 +231,8 @@ function JiraConnectionCard({
           value={selectedBoardId}
           onChange={handleBoardChange}
           isLoading={boardsLoading}
+          error={boardsError}
+          onRetry={() => setBoardsReloadKey((k) => k + 1)}
         />
       )}
 

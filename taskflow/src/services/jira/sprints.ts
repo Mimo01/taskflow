@@ -29,7 +29,7 @@ export async function fetchBoardId(
   try {
     const boardRes = await apiFetch(
       'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${encodeURIComponent(projectKey)}&type=scrum`,
       { headers },
       'Discover Board',
     );
@@ -73,7 +73,7 @@ export async function listProjectBoards(
   try {
     const res = await apiFetch(
       'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum&maxResults=100`,
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${encodeURIComponent(projectKey)}&type=scrum&maxResults=100`,
       { headers },
       'List Boards',
     );

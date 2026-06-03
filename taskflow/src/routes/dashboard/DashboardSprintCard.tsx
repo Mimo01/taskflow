@@ -55,7 +55,7 @@ export default function DashboardSprintCard({
   });
 
   const { data: activeSprint, isLoading: sprintLoading } = useQuery({
-    queryKey: ['jira-active-sprint', activeJiraProject, boardId],
+    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
     queryFn: () =>
       fetchActiveSprint(
         jiraBaseUrl ?? '',

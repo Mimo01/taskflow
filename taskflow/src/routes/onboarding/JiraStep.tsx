@@ -32,7 +32,10 @@ export default function JiraStep() {
 
   const projects = jiraProjects;
   const selectedProject = jiraProject ?? '';
-  const setSelectedProject = (v: string) => set({ jiraProject: v });
+  // Clear the chosen board when the project changes so a board id from a previous
+  // project can never be persisted under a different project's key (WR-02). The
+  // BoardPicker re-resolves: single board auto-selects, multiple boards gate Continue.
+  const setSelectedProject = (v: string) => set({ jiraProject: v, jiraBoardId: null });
 
   // Fetch the scrum boards for the chosen project (FB8-4). Persist them in the
   // onboarding store so back-nav preserves the list and the chosen board id.

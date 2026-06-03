@@ -14,7 +14,7 @@
  * - boards.length  > 1  -> a Select dropdown
  */
 import { Loader2 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -37,15 +37,15 @@ export default function BoardPicker({
   error,
   onRetry,
 }: BoardPickerProps) {
-  // Auto-select the only board exactly once when a single board resolves.
-  const autoSelectedRef = useRef<number | null>(null);
+  // Auto-select the only board when a single board resolves. Driven off the
+  // `value` prop (not a private ref) so it self-corrects across project switches:
+  // if the current value doesn't match the only board, re-select it.
   const singleBoardId = boards.length === 1 ? boards[0].id : null;
   useEffect(() => {
-    if (singleBoardId != null && autoSelectedRef.current !== singleBoardId) {
-      autoSelectedRef.current = singleBoardId;
+    if (singleBoardId != null && value !== singleBoardId) {
       onChange(singleBoardId);
     }
-  }, [singleBoardId, onChange]);
+  }, [singleBoardId, value, onChange]);
 
   if (isLoading) {
     return (
