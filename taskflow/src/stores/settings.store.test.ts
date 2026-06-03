@@ -479,14 +479,14 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     });
   });
 
-  it('persist version is 25 (v25 migration smoke)', () => {
+  it('persist version is 26 (v26 migration smoke — peekPanelWidth added in Phase 77 Plan 01)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     const match = src.match(/version:\s*(\d+),/);
     expect(match).not.toBeNull();
     const version = Number(match?.[1]);
-    expect(version).toBe(25);
+    expect(version).toBe(26);
   });
 
   it('rankFieldKey defaults to null', () => {
