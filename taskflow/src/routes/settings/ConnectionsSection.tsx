@@ -64,12 +64,14 @@ function JiraConnectionCard({
   const [boardsError, setBoardsError] = useState<string | null>(null);
   const [boardsReloadKey, setBoardsReloadKey] = useState(0);
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(activeBoardId);
+  const [saved, setSaved] = useState(false);
 
   const resetTestStatus = () => {
     setTestStatus('idle');
     setTestError(null);
     setProjects([]);
     setBoards([]);
+    setSaved(false);
   };
 
   // Load boards whenever a project is selected after a successful test.
@@ -115,12 +117,14 @@ function JiraConnectionCard({
 
   const handleSave = () => {
     onConnected(draftUrl);
+    setSaved(true);
   };
 
   const handleTest = async () => {
     setTestStatus('pending');
     setTestError(null);
     setProjects([]);
+    setSaved(false);
     try {
       const token = await readSecret('jira-pat');
       await validateJira(draftUrl || initialBaseUrl, token);
@@ -271,6 +275,12 @@ function JiraConnectionCard({
             'Test Connection'
           )}
         </Button>
+        {saved && (
+          <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+            <CheckCircle2 className="h-4 w-4" />
+            Saved
+          </span>
+        )}
       </div>
     </div>
   );
@@ -301,11 +311,13 @@ function GitLabConnectionCard({
   const [testError, setTestError] = useState<string | null>(null);
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(activeProject);
+  const [saved, setSaved] = useState(false);
 
   const resetTestStatus = () => {
     setTestStatus('idle');
     setTestError(null);
     setProjects([]);
+    setSaved(false);
   };
 
   const handleUrlChange = (value: string) => {
@@ -320,12 +332,14 @@ function GitLabConnectionCard({
 
   const handleSave = () => {
     onConnected(draftUrl);
+    setSaved(true);
   };
 
   const handleTest = async () => {
     setTestStatus('pending');
     setTestError(null);
     setProjects([]);
+    setSaved(false);
     try {
       const token = await readSecret('gitlab-pat');
       await validateGitLab(draftUrl || initialBaseUrl, token);
@@ -453,6 +467,12 @@ function GitLabConnectionCard({
             'Test Connection'
           )}
         </Button>
+        {saved && (
+          <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+            <CheckCircle2 className="h-4 w-4" />
+            Saved
+          </span>
+        )}
       </div>
     </div>
   );
