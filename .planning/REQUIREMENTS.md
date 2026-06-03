@@ -9,11 +9,11 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 
 ### Visual Consistency (done-state + card colors)
 
-- [ ] **VISUAL-01**: Done current-sprint stories appear struck-through on the Backlog active-sprint list (matching the kanban board)
-- [ ] **VISUAL-02**: Done current-sprint items appear struck-through in the Standup Notes Today section
-- [ ] **VISUAL-03**: Any per-story/issue list the Dashboard renders for the current sprint shows done items struck-through (treated as satisfied where the card is aggregate-only with no per-story rows)
-- [ ] **VISUAL-04**: Sprint board cards show a left-edge color stripe driven by issue priority
-- [ ] **VISUAL-05**: The card color stripe is legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
+- [x] **VISUAL-01**: Done current-sprint stories appear struck-through on the Backlog active-sprint list (matching the kanban board)
+- [x] **VISUAL-02**: Done current-sprint items appear struck-through in the Standup Notes Today section
+- [x] **VISUAL-03**: Any per-story/issue list the Dashboard renders for the current sprint shows done items struck-through (treated as satisfied where the card is aggregate-only with no per-story rows)
+- [x] **VISUAL-04**: Sprint board cards show a left-edge color stripe driven by issue priority
+- [x] **VISUAL-05**: The card color stripe is legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
 
 ### Backlog Drag-to-Rank
 
@@ -86,11 +86,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VISUAL-01 | Phase 76 | Pending |
-| VISUAL-02 | Phase 76 | Pending |
-| VISUAL-03 | Phase 76 | Pending |
-| VISUAL-04 | Phase 76 | Pending |
-| VISUAL-05 | Phase 76 | Pending |
+| VISUAL-01 | Phase 76 | Complete |
+| VISUAL-02 | Phase 76 | Complete |
+| VISUAL-03 | Phase 76 | Complete |
+| VISUAL-04 | Phase 76 | Complete |
+| VISUAL-05 | Phase 76 | Complete |
 | RANK-01 | Phase 78 | Pending |
 | RANK-02 | Phase 78 | Pending |
 | RANK-03 | Phase 78 | Pending |
@@ -120,6 +120,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SUBTPL-08 | Phase 80 | Pending |
 
 **Coverage:**
+
 - v1.12 requirements: 32 total
 - Mapped to phases: 32 (100%)
 - Unmapped: 0 ✓
