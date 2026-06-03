@@ -80,6 +80,7 @@ function VirtualizedSwimlanes({
   collapsedStories,
   toggleStory,
   setSelectedIssueKey,
+  onOpenIssue,
   cardErrors,
   subtasksLoading,
   onStickyHeaderChange,
@@ -98,6 +99,8 @@ function VirtualizedSwimlanes({
   collapsedStories: Set<string>;
   toggleStory: (key: string) => void;
   setSelectedIssueKey: (key: string) => void;
+  /** Phase 77 Plan 04 (PEEK-01): body click on card opens peek panel. */
+  onOpenIssue: (key: string) => void;
   cardErrors: Map<string, string>;
   /**
    * When true, subtask cells show Skeleton placeholders instead of cards.
@@ -381,7 +384,8 @@ function VirtualizedSwimlanes({
                           issue={card}
                           isSubtask={card.fields.issuetype.subtask}
                           showStatus
-                          onClick={() => setSelectedIssueKey(card.key)}
+                          onOpenIssue={onOpenIssue}
+                          onIssueClick={setSelectedIssueKey}
                           transitions={getTransitions(card)}
                           onTransition={(tid, name, toId, catKey) =>
                             onTransition(card.key, tid, name, toId, catKey)
@@ -493,7 +497,8 @@ function VirtualizedSwimlanes({
                               issue={card}
                               isSubtask={card.fields.issuetype.subtask}
                               showStatus
-                              onClick={() => setSelectedIssueKey(card.key)}
+                              onOpenIssue={onOpenIssue}
+                              onIssueClick={setSelectedIssueKey}
                               transitions={getTransitions(card)}
                               onTransition={(tid, name, toId, catKey) =>
                                 onTransition(card.key, tid, name, toId, catKey)
@@ -533,8 +538,9 @@ export default function SprintBoardTab() {
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
-  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{
+  const { onIssueClick: setSelectedIssueKey, onOpenIssue } = useOutletContext<{
     onIssueClick: (key: string) => void;
+    onOpenIssue: (key: string) => void;
   }>();
   const queryClient = useQueryClient();
 
@@ -1231,6 +1237,7 @@ export default function SprintBoardTab() {
                 collapsedStories={collapsedStories}
                 toggleStory={toggleStory}
                 setSelectedIssueKey={setSelectedIssueKey}
+                onOpenIssue={onOpenIssue}
                 cardErrors={cardErrors}
                 subtasksLoading={subtasksLoading}
                 onStickyHeaderChange={handleStickyHeaderChange}

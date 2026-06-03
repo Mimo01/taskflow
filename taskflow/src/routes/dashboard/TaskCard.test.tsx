@@ -16,7 +16,7 @@
  * `title` attribute (no other element on the card carries `title="Entered status …"`).
  */
 
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // lucide-react icons are SVGs — stub for jsdom stability (mirrors SprintBoardTab.test).
@@ -131,18 +131,38 @@ describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
   });
 });
 
-// Phase 77 — PEEK-05 stubs (convert to it() when Plan 04 lands the key/body click split)
+// Phase 77 — PEEK-05 key/body click split (Plan 04)
 describe('TaskCard — PEEK-05 key/body click split (Phase 77 Plan 04)', () => {
-  // PEEK-05: clicking the issue key element calls navigate to /issue/:key and stopPropagation
-  //          prevents body onOpenIssue
-  // When the key/body split lands: render TaskCard with onOpenIssue mock and navigate mock;
-  // click the key button — assert navigate('/issue/PROJ-1') called and onOpenIssue NOT called.
-  it.todo(
-    'PEEK-05: clicking the issue key element calls navigate to /issue/:key and stopPropagation prevents body onOpenIssue',
-  );
+  it('PEEK-05: clicking the issue key button calls onIssueClick and NOT onOpenIssue (stopPropagation)', () => {
+    const onIssueClick = vi.fn();
+    const onOpenIssue = vi.fn();
 
-  // Complementary: clicking the card body calls onOpenIssue with the key, not navigate
-  // When the key/body split lands: click the card body area (not the key button) and assert
-  // onOpenIssue('PROJ-1') was called and navigate was NOT called.
-  it.todo('PEEK-05: clicking the card body calls onOpenIssue with the key, not navigate');
+    render(<TaskCard issue={makeIssue()} onIssueClick={onIssueClick} onOpenIssue={onOpenIssue} />);
+
+    // The key renders as a button when onOpenIssue is provided
+    const keyButton = screen.getByRole('button', { name: 'PROJ-1' });
+    fireEvent.click(keyButton);
+
+    expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
+    expect(onOpenIssue).not.toHaveBeenCalled();
+  });
+
+  it('PEEK-05: clicking the card body calls onOpenIssue with the key, not onIssueClick', () => {
+    const onIssueClick = vi.fn();
+    const onOpenIssue = vi.fn();
+
+    render(<TaskCard issue={makeIssue()} onIssueClick={onIssueClick} onOpenIssue={onOpenIssue} />);
+
+    // The outer wrapper has role="button" when onOpenIssue is provided
+    const cardBody = screen.getByRole('button', { name: /Sample summary/i });
+    // Click the summary text (body area), not the key button
+    const summaryEl = screen.getByText('Sample summary');
+    fireEvent.click(summaryEl);
+
+    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1');
+    expect(onIssueClick).not.toHaveBeenCalled();
+
+    // Silence unused variable lint
+    expect(cardBody).toBeTruthy();
+  });
 });

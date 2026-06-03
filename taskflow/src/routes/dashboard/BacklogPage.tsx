@@ -70,6 +70,7 @@ function VirtualizedBacklogTable({
   filteredIssues,
   scrollElement,
   onIssueClick,
+  onOpenIssue,
   storyPointsFieldKey,
   epicLinkFieldKey,
   epicNameFieldKey,
@@ -88,6 +89,7 @@ function VirtualizedBacklogTable({
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
   onIssueClick: (key: string) => void;
+  onOpenIssue?: (key: string) => void;
   storyPointsFieldKey: string;
   epicLinkFieldKey: string;
   epicNameFieldKey: string;
@@ -137,6 +139,7 @@ function VirtualizedBacklogTable({
         }}
         issue={issue}
         onIssueClick={onIssueClick}
+        onOpenIssue={onOpenIssue}
         storyPointsFieldKey={storyPointsFieldKey}
         epicLinkFieldKey={epicLinkFieldKey}
         epicNameFieldKey={epicNameFieldKey}
@@ -198,8 +201,9 @@ function VirtualizedBacklogTable({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BacklogPage() {
-  const { onIssueClick, openCreateStory } = useOutletContext<{
+  const { onIssueClick, onOpenIssue, openCreateStory } = useOutletContext<{
     onIssueClick: (key: string) => void;
+    onOpenIssue: (key: string) => void;
     openCreateStory: () => void;
   }>();
 
@@ -792,6 +796,7 @@ export default function BacklogPage() {
                 filteredIssues={filteredIssues}
                 scrollElement={scrollRef.current}
                 onIssueClick={onIssueClick}
+                onOpenIssue={onOpenIssue}
                 storyPointsFieldKey={storyPointsFieldKey}
                 epicLinkFieldKey={epicLinkFieldKey}
                 epicNameFieldKey={epicNameFieldKey}
