@@ -18,7 +18,7 @@ export interface ApiLogEntry {
   requestBody?: string;
   status: number | null; // null if network error
   durationMs: number;
-  responseBody: string; // raw text, truncated to 10_000 chars if longer
+  responseBody: string; // raw text, full (pretty-printed if JSON)
   error?: string; // set only on network-level failure (catch block)
   operation?: string; // optional operation label for grouping
 }
