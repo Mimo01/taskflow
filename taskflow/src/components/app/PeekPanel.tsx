@@ -48,9 +48,13 @@ export function PeekPanel({
     direction: 'left',
   });
 
-  // Escape dismisses peek — but NOT while the command palette is open (Pitfall 6 / A3)
+  // Escape dismisses peek — but NOT while the command palette is open (Pitfall 6 / A3) and
+  // NOT while focus is inside a form element (input, textarea, select). Setting
+  // enableOnFormTags: false ensures that Escape inside a comment composer or inline
+  // edit field is handled locally by that control first, rather than closing the panel
+  // and discarding in-progress text.
   useHotkeys('escape', onClose, {
-    enableOnFormTags: true,
+    enableOnFormTags: false,
     enabled: !!issueKey && !paletteOpen,
   });
 
