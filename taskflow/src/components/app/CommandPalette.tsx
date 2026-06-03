@@ -165,19 +165,18 @@ export default function CommandPalette({
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  function handleIssueSelect(issueKey: string, title?: string) {
-    const resolvedTitle = title ?? issuesMap.get(issueKey)?.fields.summary;
-    pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
-    // Body selection → open peek (PEEK-01).
+  function handleIssueSelect(issueKey: string) {
+    // Recent-item tracking is owned by IssueDetailView's effect once the peek loads.
+    // Pushing here would race with the authoritative push (which has the real title from the API).
     onOpenIssue(issueKey);
     onClose();
   }
 
   /** PEEK-05: clicking the issue key element navigates full-page and closes the palette. */
-  function handleIssueKeyClick(e: React.MouseEvent, issueKey: string, title?: string) {
+  function handleIssueKeyClick(e: React.MouseEvent, issueKey: string) {
     e.stopPropagation();
-    const resolvedTitle = title ?? issuesMap.get(issueKey)?.fields.summary;
-    pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
+    // Recent-item tracking is owned by handleIssueClick in main.tsx (authoritative push with
+    // cache-resolved title). Pushing here would be a redundant, potentially lower-quality push.
     onIssueClick?.(issueKey);
     onClose();
   }
@@ -218,9 +217,12 @@ export default function CommandPalette({
       const title = cached?.fields.summary ?? item.title;
       return title ? `${item.id} ${title}` : item.id;
     }
-    const cachedMR = allMRs.find((mr) => String(mr.iid) === item.id);
+    // GitLab ids are stored as "project_id/iid" (composite). Split to get the bare iid for
+    // display (e.g. "!67" instead of "!12345/67") and for cache lookup.
+    const iid = item.id.includes('/') ? item.id.split('/').pop() : item.id;
+    const cachedMR = allMRs.find((mr) => String(mr.iid) === iid);
     const title = cachedMR?.title ?? item.title;
-    return title ? `!${item.id} ${title}` : `!${item.id}`;
+    return title ? `!${iid} ${title}` : `!${iid}`;
   }
 
   // ─── Navigation action handlers (for action-based nav items like notifications) ─
@@ -310,17 +312,13 @@ export default function CommandPalette({
                     <CommandItem
                       key={`key-match-${keyMatchResult.key}`}
                       value={`key-match-${keyMatchResult.key} ${keyMatchResult.fields.summary}`}
-                      onSelect={() =>
-                        handleIssueSelect(keyMatchResult.key, keyMatchResult.fields.summary)
-                      }
+                      onSelect={() => handleIssueSelect(keyMatchResult.key)}
                     >
                       {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
                       <button
                         type="button"
                         className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                        onClick={(e) =>
-                          handleIssueKeyClick(e, keyMatchResult.key, keyMatchResult.fields.summary)
-                        }
+                        onClick={(e) => handleIssueKeyClick(e, keyMatchResult.key)}
                       >
                         {keyMatchResult.key}
                       </button>
@@ -390,13 +388,13 @@ export default function CommandPalette({
                       <CommandItem
                         key={`live-${issue.key}`}
                         value={`live-${issue.key} ${issue.fields.summary}`}
-                        onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
+                        onSelect={() => handleIssueSelect(issue.key)}
                       >
                         {/* PEEK-05: key button → full-page */}
                         <button
                           type="button"
                           className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                          onClick={(e) => handleIssueKeyClick(e, issue.key, issue.fields.summary)}
+                          onClick={(e) => handleIssueKeyClick(e, issue.key)}
                         >
                           {issue.key}
                         </button>
@@ -431,13 +429,13 @@ export default function CommandPalette({
                       <CommandItem
                         key={`closed-${issue.key}`}
                         value={`closed-${issue.key} ${issue.fields.summary}`}
-                        onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
+                        onSelect={() => handleIssueSelect(issue.key)}
                       >
                         {/* PEEK-05: key button → full-page */}
                         <button
                           type="button"
                           className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                          onClick={(e) => handleIssueKeyClick(e, issue.key, issue.fields.summary)}
+                          onClick={(e) => handleIssueKeyClick(e, issue.key)}
                         >
                           {issue.key}
                         </button>
