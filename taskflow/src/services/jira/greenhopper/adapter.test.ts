@@ -72,6 +72,23 @@ describe('adaptIssue — Group A: full-iteration over real fixture (success crit
   });
 });
 
+describe('adaptIssue — Group A2: priority synthesis (Phase 76 VISUAL-04/05)', () => {
+  it('synthesizes fields.priority.name from priorityId via resolvePriority', () => {
+    const known = maps.priorities[realIssue.priorityId];
+    if (!known) throw new Error('fixture issue[0] has an unmapped priorityId');
+    const out = adaptIssue(realIssue, maps, 'customfield_10016');
+    expect((out.fields.priority as { name: string } | null | undefined)?.name).toBe(
+      known.priorityName,
+    );
+  });
+
+  it('shims { name: "Unknown" } for an unmapped priorityId (stripe falls back to gray)', () => {
+    const gh = edge({ priorityId: 'nonexistent-priority-id' });
+    const out = adaptIssue(gh, maps, 'customfield_10016');
+    expect((out.fields.priority as { name: string } | null | undefined)?.name).toBe('Unknown');
+  });
+});
+
 describe('adaptIssue — Group B: D-02 story-points gate', () => {
   it('synthesizes customfield_10016 when statFieldId matches storyPointsFieldKey', () => {
     const gh = edge({
