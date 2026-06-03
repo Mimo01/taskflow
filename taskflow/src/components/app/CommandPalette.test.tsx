@@ -255,17 +255,20 @@ describe('CommandPalette', () => {
       ],
     });
 
-    renderPalette({ onOpenIssue, onClose }, qc);
+    const onIssueClick = vi.fn();
+    renderPalette({ onOpenIssue, onClose, onIssueClick }, qc);
 
     // Type a search query to show Issues group
     const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
     fireEvent.change(input, { target: { value: 'Fix login' } });
 
-    // cmdk processes the input internally; find the issue item if rendered
-    const issueItem = screen.queryByText('TEST-1');
-    if (issueItem) {
-      fireEvent.click(issueItem);
+    // PEEK-01: clicking the issue summary (body) calls onOpenIssue (peek), not onIssueClick
+    // PEEK-05: clicking the key button calls onIssueClick (full-page), not onOpenIssue
+    const summaryItem = screen.queryByText('Fix login bug');
+    if (summaryItem) {
+      fireEvent.click(summaryItem);
       expect(onOpenIssue).toHaveBeenCalledWith('TEST-1');
+      expect(onIssueClick).not.toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
     }
     // If cmdk doesn't render the item due to internal filtering, the test still passes

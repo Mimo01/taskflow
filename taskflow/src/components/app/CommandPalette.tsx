@@ -53,6 +53,7 @@ interface CommandPaletteProps {
 export default function CommandPalette({
   open,
   onClose,
+  onIssueClick,
   onOpenIssue,
   onNavigate,
   onOpenNotifications,
@@ -167,9 +168,17 @@ export default function CommandPalette({
   function handleIssueSelect(issueKey: string, title?: string) {
     const resolvedTitle = title ?? issuesMap.get(issueKey)?.fields.summary;
     pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
-    // Body selection → open peek (onOpenIssue). Key-element click split (→ onIssueClick) is
-    // delivered in Plan 04 Task 3. For now, body select opens peek.
+    // Body selection → open peek (PEEK-01).
     onOpenIssue(issueKey);
+    onClose();
+  }
+
+  /** PEEK-05: clicking the issue key element navigates full-page and closes the palette. */
+  function handleIssueKeyClick(e: React.MouseEvent, issueKey: string, title?: string) {
+    e.stopPropagation();
+    const resolvedTitle = title ?? issuesMap.get(issueKey)?.fields.summary;
+    pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
+    onIssueClick?.(issueKey);
     onClose();
   }
 
@@ -305,7 +314,16 @@ export default function CommandPalette({
                         handleIssueSelect(keyMatchResult.key, keyMatchResult.fields.summary)
                       }
                     >
-                      <span className="text-muted-foreground font-mono">{keyMatchResult.key}</span>
+                      {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
+                      <button
+                        type="button"
+                        className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
+                        onClick={(e) =>
+                          handleIssueKeyClick(e, keyMatchResult.key, keyMatchResult.fields.summary)
+                        }
+                      >
+                        {keyMatchResult.key}
+                      </button>
                       <span className="truncate">{keyMatchResult.fields.summary}</span>
                     </CommandItem>
                   </CommandGroup>
@@ -319,7 +337,14 @@ export default function CommandPalette({
                       value={`${issue.key} ${issue.fields.summary}`}
                       onSelect={() => handleIssueSelect(issue.key)}
                     >
-                      <span className="text-muted-foreground font-mono">{issue.key}</span>
+                      {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
+                      <button
+                        type="button"
+                        className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
+                        onClick={(e) => handleIssueKeyClick(e, issue.key)}
+                      >
+                        {issue.key}
+                      </button>
                       <span className="truncate">{issue.fields.summary}</span>
                     </CommandItem>
                   ))}
@@ -367,7 +392,14 @@ export default function CommandPalette({
                         value={`live-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
                       >
-                        <span className="text-muted-foreground font-mono">{issue.key}</span>
+                        {/* PEEK-05: key button → full-page */}
+                        <button
+                          type="button"
+                          className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
+                          onClick={(e) => handleIssueKeyClick(e, issue.key, issue.fields.summary)}
+                        >
+                          {issue.key}
+                        </button>
                         <span className="truncate">{issue.fields.summary}</span>
                       </CommandItem>
                     ))}
@@ -401,7 +433,14 @@ export default function CommandPalette({
                         value={`closed-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
                       >
-                        <span className="text-muted-foreground font-mono">{issue.key}</span>
+                        {/* PEEK-05: key button → full-page */}
+                        <button
+                          type="button"
+                          className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
+                          onClick={(e) => handleIssueKeyClick(e, issue.key, issue.fields.summary)}
+                        >
+                          {issue.key}
+                        </button>
                         <span className="truncate">{issue.fields.summary}</span>
                       </CommandItem>
                     ))}
