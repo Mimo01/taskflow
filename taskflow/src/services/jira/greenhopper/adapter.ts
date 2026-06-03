@@ -41,7 +41,7 @@ import type { JiraIssue } from '../../jira';
 // WR-01: resolveEpic / resolvePriority / resolveParent are intentionally NOT
 // imported here — they are surface-exercised by entityMaps tests and re-exported
 // from index.ts so Phase 73 wiring can import them directly from the barrel.
-import { resolveStatus, resolveType } from './entityMaps';
+import { resolvePriority, resolveStatus, resolveType } from './entityMaps';
 import type { EntityMaps, GhBoardIssue, GhIssue } from './types';
 
 /**
@@ -124,13 +124,14 @@ export function adaptIssue(
     subtask: parent !== undefined,
   };
 
-  // WR-01 fix: removed `void resolveEpic / resolvePriority / resolveParent` —
-  // those calls were dead computation that ran per-issue (~156× per fixture),
-  // and `resolvePriority` would even fire `warnOnce('priority', 'unknown')` for
-  // a result that was immediately discarded — contradicting D-08 "never warn"
-  // by proxy. The resolvers are re-exported from index.ts so static analysers
-  // see them as live for Phase 73 wiring (no top-level `epic`/`priority`
-  // synthesis on fields per RESEARCH ambiguity #3 + D-01 superset list).
+  // Phase 76 (VISUAL-04/05): `fields.priority` is now synthesised — SprintBoardTab's
+  // TaskCard renders a left-edge priority colour stripe via `priorityStripeClass`,
+  // so the priority resolver finally has a live consumer (the WR-01 removal was
+  // valid only while no consumer existed). `resolvePriority` warns-once on a genuine
+  // unknown priorityId and shims `{ name: 'Unknown' }`, which the stripe maps to its
+  // neutral-gray default — correct behaviour, not a spurious warn.
+  // resolveEpic / resolveParent remain unsynthesised (no consumer yet, per D-01).
+  const priority = resolvePriority(gh.priorityId, entityMaps);
 
   const fields: JiraIssue['fields'] = {
     summary: gh.summary,
@@ -139,6 +140,7 @@ export function adaptIssue(
       name: status.name,
       statusCategory: { key: categoryKey },
     },
+    priority: { name: priority.name, iconUrl: priority.iconUrl },
     assignee,
     issuetype: adaptedIssuetype,
     customfield_10016: storyPoints,
