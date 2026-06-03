@@ -3,18 +3,6 @@
  *
  * Pure function — no side effects, no API calls.
  * Phase 78 (drag-to-rank) consumes `rankIssue` directly.
- *
- * ⚠️ KNOWN-BROKEN — DO NOT CONSUME until fixed (Phase 76 code review, 76-REVIEW.md):
- *   - CR-01: cross-bucket calls are wrong. `rankIssue` keeps `before`'s bucket and
- *     averages only the value portions, so e.g. rankIssue('0|zzzzzz:', '1|000000:')
- *     returns a rank that sorts BEFORE `before`. Different-bucket neighbours are not
- *     handled.
- *   - CR-02: precision loss. `BigInt(parseInt(s, 36))` rounds through float64 before
- *     the BigInt cast, so value portions ≳11 base-36 chars collapse distinct ranks
- *     to the same number — the "precise BigInt arithmetic" claim below is false.
- * Phase 78 MUST fix both (correct cross-bucket handling + true big-base-36 math) and
- * strengthen rank.test.ts (assert rankLt(before, result) && rankLt(result, after) on
- * EVERY case) before wiring drag-to-rank. Tracked in .planning/todos/pending.
  */
 
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
@@ -32,8 +20,21 @@ const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
  */
 export function rankIssue(before: string | null, after: string | null): string {
   const beforeVal = extractValue(before);
-  const afterVal = extractValue(after) || pad(beforeVal, beforeVal.length + 1);
-  return `${bucket(before)}|${midpoint(beforeVal, afterVal)}:`;
+  const afterVal = extractValue(after);
+  const beforeBucket = bucket(before);
+  const afterBucket = bucket(after);
+
+  // CR-01: when neighbours are in different buckets, stay in the lower bucket
+  // and extend before's value with the alphabet midpoint character ('i', index 18).
+  // Result is strictly > before (same bucket, longer value) and < after (higher bucket).
+  if (before !== null && after !== null && beforeBucket !== afterBucket) {
+    const midChar = ALPHABET[Math.floor(ALPHABET.length / 2)]; // 'i'
+    return `${beforeBucket}|${beforeVal}${midChar}:`;
+  }
+
+  const targetBucket = beforeBucket || afterBucket || '0';
+  const effectiveAfterVal = afterVal || pad(beforeVal, beforeVal.length + 1);
+  return `${targetBucket}|${midpoint(beforeVal, effectiveAfterVal)}:`;
 }
 
 function extractValue(rank: string | null): string {
@@ -54,19 +55,39 @@ function pad(s: string, len: number): string {
   return s.padEnd(len, ALPHABET[ALPHABET.length - 1]); // pad with 'z'
 }
 
+// CR-02: digit-by-digit BigInt parse to avoid float64 precision loss from parseInt
+function parseBase36(s: string): bigint {
+  let result = 0n;
+  for (const c of s) {
+    result = result * 36n + BigInt(ALPHABET.indexOf(c));
+  }
+  return result;
+}
+
+function toBase36(n: bigint, minLen: number): string {
+  if (n === 0n) return '0'.padStart(minLen, '0');
+  let s = '';
+  let v = n;
+  while (v > 0n) {
+    s = ALPHABET[Number(v % 36n)] + s;
+    v = v / 36n;
+  }
+  return s.padStart(minLen, '0');
+}
+
 function midpoint(a: string, b: string): string {
   // Pad to equal length (right-pad with '0')
   const len = Math.max(a.length, b.length);
   const pa = a.padEnd(len, '0');
   const pb = b.padEnd(len, '0');
 
-  // Convert to BigInt (base-36) for precise integer arithmetic
-  const ia = BigInt(parseInt(pa || '0', 36));
-  const ib = BigInt(parseInt(pb || '0', 36));
+  // CR-02: use digit-by-digit BigInt parsing for arbitrary-precision arithmetic
+  const ia = parseBase36(pa || '0');
+  const ib = parseBase36(pb || '0');
   const mid = (ia + ib) / 2n;
 
   // Convert back to base-36, left-padded to original length
-  let result = mid.toString(36).padStart(len, '0');
+  let result = toBase36(mid, len);
 
   // Adjacent-gap guard (RESEARCH Pitfall 3): if mid == before after integer division,
   // extend with a character at the alphabet midpoint ('i', index 18) to create a
