@@ -153,12 +153,13 @@ export function generateTodayMarkdown(sources: TodayMarkdownSources, todayDate: 
 
 interface TodayColumnProps {
   onIssueClick: (key: string) => void;
+  onOpenIssue?: (key: string) => void;
   onMRClick: (projectIdAndIid: string) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProps) {
+export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: TodayColumnProps) {
   // ─── Auth store ─────────────────────────────────────────────────────────────
   const { jiraBaseUrl, gitlabBaseUrl, activeJiraProject, gitlabUserId } = useAuthStore();
 
@@ -310,6 +311,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
             error={sprintQuery.error}
             onRetry={() => void sprintQuery.refetch()}
             onIssueClick={onIssueClick}
+            onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
           />
 
@@ -323,6 +325,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
             error={sprintQuery.error}
             onRetry={() => void sprintQuery.refetch()}
             onIssueClick={onIssueClick}
+            onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
           />
 

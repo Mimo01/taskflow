@@ -110,8 +110,9 @@ export default function StandupNotesPage() {
   }, []);
 
   // Issue + MR navigation from the app shell.
-  const { onIssueClick, onMRClick } = useOutletContext<{
+  const { onIssueClick, onOpenIssue, onMRClick } = useOutletContext<{
     onIssueClick: (key: string) => void;
+    onOpenIssue: (key: string) => void;
     onMRClick: (projectIdAndIid: string) => void;
   }>();
 
@@ -405,13 +406,18 @@ export default function StandupNotesPage() {
             mrEventsQuery={mrEventsQuery}
             issueMeta={issueMetaQuery.data ?? {}}
             onIssueClick={onIssueClick}
+            onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
           />
         </div>
 
         {/* Right column — Today (50%) */}
         <div className="w-1/2 overflow-auto">
-          <TodayColumn onIssueClick={onIssueClick} onMRClick={onMRClick} />
+          <TodayColumn
+            onIssueClick={onIssueClick}
+            onOpenIssue={onOpenIssue}
+            onMRClick={onMRClick}
+          />
         </div>
       </div>
     </div>

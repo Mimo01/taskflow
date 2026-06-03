@@ -42,8 +42,10 @@ export interface IssueActivityGroupProps {
   /** Jira issue type name — drives the type icon (Story, Bug, Sub-task, Epic, …). */
   issueType?: string;
   subItems: SubItem[];
-  /** Click handler for the header — navigates to the issue detail page. */
+  /** Click handler for the header body — opens the peek panel (PEEK-01). */
   onClick?: () => void;
+  /** Click handler for the issue KEY element — navigates full-page (PEEK-05). */
+  onIssueKeyClick?: () => void;
   /** Click handler for MR sub-items — navigates to MR detail page. */
   onMRClick?: (projectIdAndIid: string) => void;
   /** Click handler for issue sub-items (e.g. subtask worklogs) — navigates to that issue. */
@@ -78,21 +80,40 @@ export default function IssueActivityGroup({
   issueType,
   subItems,
   onClick,
+  onIssueKeyClick,
   onMRClick,
   onIssueClick,
 }: IssueActivityGroupProps) {
   return (
     <div>
-      {/* Group header: [icon] [key] [summary] — opens issue detail */}
-      <button
-        type="button"
-        onClick={onClick}
+      {/* Group header: [icon] [key] [summary] — body → peek (onClick), key → full-page (onIssueKeyClick) */}
+      {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML (D-10 / Pitfall 1) */}
+      <div
+        role="button"
+        tabIndex={0}
         className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick?.();
+          }
+        }}
       >
         <IssueTypeIcon typeName={issueType ?? ''} className="size-4 shrink-0" />
-        <span className="shrink-0 text-xs text-muted-foreground font-mono">{issueKey}</span>
+        {/* PEEK-05: key button navigates full-page; stopPropagation prevents body onOpenIssue */}
+        <button
+          type="button"
+          className="shrink-0 text-xs text-muted-foreground font-mono cursor-pointer hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            onIssueKeyClick?.();
+          }}
+        >
+          {issueKey}
+        </button>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
-      </button>
+      </div>
 
       {/* Sub-items */}
       {subItems.length > 0 && (

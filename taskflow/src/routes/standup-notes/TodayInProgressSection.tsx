@@ -39,6 +39,7 @@ interface TodayInProgressSectionProps {
   error: Error | null;
   onRetry: () => void;
   onIssueClick: (key: string) => void;
+  onOpenIssue?: (key: string) => void;
   onMRClick: (projectIdAndIid: string) => void;
 }
 
@@ -86,32 +87,55 @@ interface IssueRowProps {
   issue: JiraIssue;
   storyPointsFieldKey: string;
   onIssueClick: (key: string) => void;
+  onOpenIssue?: (key: string) => void;
   indented?: boolean;
 }
 
-function IssueRow({ issue, storyPointsFieldKey, onIssueClick, indented = false }: IssueRowProps) {
+function IssueRow({
+  issue,
+  storyPointsFieldKey,
+  onIssueClick,
+  onOpenIssue,
+  indented = false,
+}: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
   const rawSp = issue.fields[storyPointsFieldKey];
   const sp = typeof rawSp === 'number' ? rawSp : null;
 
+  const handleBody = () => (onOpenIssue ?? onIssueClick)(key);
+
   return (
     <div className={indented ? 'pl-6 ml-2' : undefined}>
-      <button
-        type="button"
+      {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML (D-10 / Pitfall 1) */}
+      <div
+        role="button"
+        tabIndex={0}
         className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-        onClick={() => onIssueClick(key)}
+        onClick={handleBody}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleBody();
+          }
+        }}
       >
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
-        <span
+        {/* PEEK-05: key button navigates full-page; stopPropagation prevents body onOpenIssue */}
+        <button
+          type="button"
           className={cn(
-            'text-xs text-muted-foreground font-mono shrink-0',
+            'text-xs text-muted-foreground font-mono shrink-0 cursor-pointer hover:underline',
             doneSummaryClass(issue.fields.status.statusCategory),
           )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onIssueClick(key);
+          }}
         >
           {key}
-        </span>
+        </button>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
         {sp != null && (
           <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
@@ -125,7 +149,7 @@ function IssueRow({ issue, storyPointsFieldKey, onIssueClick, indented = false }
           size={20}
           className="shrink-0"
         />
-      </button>
+      </div>
     </div>
   );
 }
@@ -173,6 +197,7 @@ export default function TodayInProgressSection({
   error,
   onRetry,
   onIssueClick,
+  onOpenIssue,
   onMRClick,
 }: TodayInProgressSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
@@ -198,6 +223,7 @@ export default function TodayInProgressSection({
                 issue={row.issue}
                 storyPointsFieldKey={storyPointsFieldKey}
                 onIssueClick={onIssueClick}
+                onOpenIssue={onOpenIssue}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow
@@ -205,6 +231,7 @@ export default function TodayInProgressSection({
                   issue={subtask}
                   storyPointsFieldKey={storyPointsFieldKey}
                   onIssueClick={onIssueClick}
+                  onOpenIssue={onOpenIssue}
                   indented
                 />
               ))}

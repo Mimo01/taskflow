@@ -31,6 +31,8 @@ export interface DashboardInProgressCardProps {
   jiraUserDisplayName: string;
   storyPointsFieldKey: string;
   onIssueClick: (key: string) => void;
+  /** Phase 77 Plan 04 (PEEK-01): clicking a row body opens the peek panel. */
+  onOpenIssue?: (key: string) => void;
 }
 
 export default function DashboardInProgressCard({
@@ -40,6 +42,7 @@ export default function DashboardInProgressCard({
   jiraUserDisplayName,
   storyPointsFieldKey,
   onIssueClick,
+  onOpenIssue,
 }: DashboardInProgressCardProps) {
   // CACHE KEY MUST MATCH DashboardSprintCard / SprintBoardTab exactly
   const { data: sprintIssuesRaw, isLoading } = useQuery({
@@ -125,67 +128,109 @@ export default function DashboardInProgressCard({
         <div className="flex flex-col gap-1">
           {groups.map(({ parentKey, parentSummary, parentTypeName, subtasks: groupSubtasks }) => (
             <div key={parentKey}>
-              {/* Parent story row */}
-              <button
-                type="button"
-                className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => onIssueClick(parentKey)}
+              {/* Parent story row — div[role=button] so inner key <button> is valid HTML (D-10 / Pitfall 1) */}
+              {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML */}
+              <div
+                role="button"
+                tabIndex={0}
+                className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                onClick={() => (onOpenIssue ?? onIssueClick)(parentKey)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    (onOpenIssue ?? onIssueClick)(parentKey);
+                  }
+                }}
               >
                 <IssueTypeIcon typeName={parentTypeName} />
                 <span className="text-sm font-medium flex-1 truncate">{parentSummary}</span>
-                <span
+                {/* PEEK-05: key button navigates full-page; stopPropagation prevents body onOpenIssue */}
+                <button
+                  type="button"
                   className={cn(
-                    'text-xs text-muted-foreground font-mono shrink-0',
+                    'text-xs text-muted-foreground font-mono shrink-0 cursor-pointer hover:underline',
                     doneSummaryClass(issueByKey.get(parentKey)?.fields.status.statusCategory),
                   )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onIssueClick(parentKey);
+                  }}
                 >
                   {parentKey}
-                </span>
-              </button>
+                </button>
+              </div>
 
               {/* Subtask rows — indented with tree connector */}
               {groupSubtasks.map((subtask) => (
-                <button
-                  type="button"
+                // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML
+                <div
+                  role="button"
+                  tabIndex={0}
                   key={subtask.key}
-                  className="w-full flex items-center gap-1.5 rounded pl-5 pr-2 py-1 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => onIssueClick(subtask.key)}
+                  className="w-full flex items-center gap-1.5 rounded pl-5 pr-2 py-1 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                  onClick={() => (onOpenIssue ?? onIssueClick)(subtask.key)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      (onOpenIssue ?? onIssueClick)(subtask.key);
+                    }
+                  }}
                 >
                   <span className="text-xs text-muted-foreground/60 shrink-0">└</span>
                   <span className="text-sm text-muted-foreground truncate flex-1">
                     {subtask.fields.summary}
                   </span>
-                  <span
+                  {/* PEEK-05: key button navigates full-page */}
+                  <button
+                    type="button"
                     className={cn(
-                      'text-xs text-muted-foreground font-mono shrink-0',
+                      'text-xs text-muted-foreground font-mono shrink-0 cursor-pointer hover:underline',
                       doneSummaryClass(subtask.fields.status.statusCategory),
                     )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onIssueClick(subtask.key);
+                    }}
                   >
                     {subtask.key}
-                  </span>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
           ))}
 
           {/* Orphan subtasks — no parent data available */}
           {orphans.map((subtask) => (
-            <button
-              type="button"
+            // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML
+            <div
+              role="button"
+              tabIndex={0}
               key={subtask.key}
-              className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => onIssueClick(subtask.key)}
+              className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              onClick={() => (onOpenIssue ?? onIssueClick)(subtask.key)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  (onOpenIssue ?? onIssueClick)(subtask.key);
+                }
+              }}
             >
-              <span
+              {/* PEEK-05: key button navigates full-page */}
+              <button
+                type="button"
                 className={cn(
-                  'text-xs text-muted-foreground font-mono shrink-0',
+                  'text-xs text-muted-foreground font-mono shrink-0 cursor-pointer hover:underline',
                   doneSummaryClass(subtask.fields.status.statusCategory),
                 )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onIssueClick(subtask.key);
+                }}
               >
                 {subtask.key}
-              </span>
+              </button>
               <span className="text-sm truncate">{subtask.fields.summary}</span>
-            </button>
+            </div>
           ))}
 
           {/* Overflow caption — plain text, not a link or button (D-12) */}
