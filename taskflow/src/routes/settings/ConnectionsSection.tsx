@@ -238,9 +238,16 @@ function JiraConnectionCard({
 
       {/* Current selection indicator when not in test-success state */}
       {testStatus !== 'success' && activeProject && (
-        <p className="text-xs text-muted-foreground">
-          Active project: <span className="font-medium text-foreground">{activeProject}</span>
-        </p>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">
+            Active project: <span className="font-medium text-foreground">{activeProject}</span>
+          </p>
+          {activeBoardId != null && (
+            <p className="text-xs text-muted-foreground">
+              Active board: <span className="font-medium text-foreground">#{activeBoardId}</span>
+            </p>
+          )}
+        </div>
       )}
 
       {/* Action buttons */}
