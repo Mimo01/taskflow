@@ -214,23 +214,22 @@ export function IssueDetailContent({
   const descriptionTexts = useMemo(() => [description], [description]);
   const userMap = useMentionUserMap(initialUserMap, descriptionTexts, jiraBaseUrl);
 
+  const parent = issue.fields.parent;
+
   return (
     <div className="space-y-6">
       {/* Title (with optional parent breadcrumb above for subtasks — DETAIL-01) */}
       <div>
-        {isSubtask && issue.fields.parent && (
-          <div
+        {isSubtask && parent && (
+          <button
+            type="button"
             className="flex items-center gap-1 mb-1 cursor-pointer hover:underline"
-            onClick={() => onOpenIssue?.(issue.fields.parent!.key)}
+            onClick={() => onOpenIssue?.(parent.key)}
           >
             <ArrowUpRight className="size-3 text-muted-foreground" />
-            <span className="font-mono text-xs text-muted-foreground">
-              {issue.fields.parent.key}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              — {issue.fields.parent.fields.summary}
-            </span>
-          </div>
+            <span className="font-mono text-xs text-muted-foreground">{parent.key}</span>
+            <span className="text-sm text-muted-foreground">— {parent.fields.summary}</span>
+          </button>
         )}
         <p className="text-xs font-mono text-muted-foreground mb-1">{issue.key}</p>
         <h2 className="text-xl font-semibold leading-snug">{summary}</h2>

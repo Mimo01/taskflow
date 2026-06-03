@@ -14,7 +14,9 @@ describe('PeekPanel', () => {
   // Covered by: Plan 03 (PeekPanel component)
   // When PeekPanel exists: render with a mocked useQuery returning story/subtask/bug/epic
   // fixtures and assert data-testid="issue-detail-body" is present in the DOM.
-  it.todo('PEEK-02: PeekPanel renders issue-detail-body (data-testid) for story/subtask/bug/epic fixtures');
+  it.todo(
+    'PEEK-02: PeekPanel renders issue-detail-body (data-testid) for story/subtask/bug/epic fixtures',
+  );
 
   // PEEK-03: no element with role="dialog" is rendered (CSS panel, not Dialog)
   // Covered by: Plan 03 (PeekPanel component)

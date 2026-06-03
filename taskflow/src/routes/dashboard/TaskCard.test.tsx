@@ -137,7 +137,9 @@ describe('TaskCard — PEEK-05 key/body click split (Phase 77 Plan 04)', () => {
   //          prevents body onOpenIssue
   // When the key/body split lands: render TaskCard with onOpenIssue mock and navigate mock;
   // click the key button — assert navigate('/issue/PROJ-1') called and onOpenIssue NOT called.
-  it.todo('PEEK-05: clicking the issue key element calls navigate to /issue/:key and stopPropagation prevents body onOpenIssue');
+  it.todo(
+    'PEEK-05: clicking the issue key element calls navigate to /issue/:key and stopPropagation prevents body onOpenIssue',
+  );
 
   // Complementary: clicking the card body calls onOpenIssue with the key, not navigate
   // When the key/body split lands: click the card body area (not the key button) and assert
