@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useBoardId } from '@/hooks/useBoardId';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -40,6 +41,10 @@ export default function Dashboard() {
         .catch(() => setJiraToken(null));
     }
   }, [jiraBaseUrl]);
+
+  // Resolve the per-project chosen board id (falls back to first board) so the
+  // sprint card's active-sprint query honors the user's board choice.
+  const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -96,6 +101,7 @@ export default function Dashboard() {
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
           activeJiraProject={activeJiraProject ?? ''}
+          boardId={boardId}
           storyPointsFieldKey={storyPointsFieldKey}
         />
         <div className="order-last sm:col-span-2 lg:col-span-1 lg:order-none">

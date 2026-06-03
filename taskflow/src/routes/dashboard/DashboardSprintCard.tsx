@@ -22,6 +22,8 @@ export interface DashboardSprintCardProps {
   jiraToken: string;
   activeJiraProject: string;
   storyPointsFieldKey: string;
+  /** Resolved Jira board id (user-chosen or first board), null while unresolved. */
+  boardId: number | null;
 }
 
 function getDaysRemaining(endDateIso: string | undefined): number | null {
@@ -36,6 +38,7 @@ export default function DashboardSprintCard({
   jiraToken,
   activeJiraProject,
   storyPointsFieldKey,
+  boardId,
 }: DashboardSprintCardProps) {
   const { data: sprintIssuesRaw, isLoading: issuesLoading } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
@@ -52,8 +55,9 @@ export default function DashboardSprintCard({
   });
 
   const { data: activeSprint, isLoading: sprintLoading } = useQuery({
-    queryKey: ['jira-active-sprint', activeJiraProject],
-    queryFn: () => fetchActiveSprint(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
+    queryKey: ['jira-active-sprint', activeJiraProject, boardId],
+    queryFn: () =>
+      fetchActiveSprint(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? '', boardId ?? undefined),
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });
