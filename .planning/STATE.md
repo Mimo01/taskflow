@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: executing
-stopped_at: Phase 76 UI-SPEC approved
-last_updated: "2026-06-03T07:02:13.831Z"
-last_activity: 2026-06-03
+stopped_at: Phase 77 context gathered
+last_updated: "2026-06-03T10:24:16.806Z"
+last_activity: "2026-06-03 - Completed quick task 260603-fb8: Let users select which Jira board (fix wrong rapidViewId)"
 progress:
   total_phases: 5
   completed_phases: 1
@@ -88,7 +88,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-02T22:17:41.183Z
-Stopped at: Phase 76 UI-SPEC approved
-Resume file: .planning/phases/76-visual-polish-and-shared-primitives/76-UI-SPEC.md
+Last session: 2026-06-03T10:24:16.801Z
+Stopped at: Phase 77 context gathered
+Resume file: .planning/phases/77-universal-peek-slideover-and-issue-detail-refinements/77-CONTEXT.md
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
