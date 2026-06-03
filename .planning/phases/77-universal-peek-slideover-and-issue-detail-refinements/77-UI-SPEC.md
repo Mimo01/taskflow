@@ -40,7 +40,7 @@ Declared values (must be multiples of 4):
 | 3xl | 64px | Not used in peek |
 
 Exceptions:
-- Drag resize handle: 4px wide hit area, 20px visible grip indicator height — outside the 8-point scale intentionally (ergonomic touch/pointer target)
+- Drag resize handle: 4px wide hit area, 16px grip indicator height (token: md)
 - Peek panel default width: 480px; min: 360px; max: 720px (persisted, source: CONTEXT.md D-03)
 - Issue key touch/click target in cards: minimum 32px height (cards are already taller; key text is inline so no special padding needed beyond existing card padding)
 
@@ -53,11 +53,12 @@ Reuses the typographic idioms already established in IssueDetailContent.tsx and 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body / subtask row text | 14px (text-sm) | 400 (regular) | 1.5 |
-| Label / section heading | 14px (text-sm) | 500 (medium) | 1.5 |
+| Label / section heading | 14px (text-sm) | 400 (regular) | 1.5 |
 | Issue title (in peek) | 20px (text-xl) | 600 (semibold) | 1.3 (leading-snug) |
 | Issue key / monospace meta | 12px (text-xs, font-mono) | 400 (regular) | 1.5 |
 
 Notes:
+- Body and label rows share 14px/400; visual distinction between body text and section headings comes from size context and color (e.g. `text-muted-foreground` for labels), not weight.
 - The two-column full-page layout uses text-xl for the title at weight 600 — identical in peek (source: IssueDetailContent.tsx:222 `text-xl font-semibold leading-snug`)
 - Peek header bar issue key label: text-xs font-mono (consistent with existing rendering)
 - Parent breadcrumb above title: text-xs font-mono for the key + text-sm for the summary text (matches the FieldsSection parent rendering pattern)
