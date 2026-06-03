@@ -266,8 +266,22 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   3. After a successful drag, the new order persists to Jira via `PUT /rest/agile/1.0/issue/rank` using `rankCustomFieldId` read from the cached GreenHopper backlog response (never hardcoded)
   4. If the rank API call fails, the list rolls back to the pre-drag order and surfaces an inline error
 
-**Plans**: TBD
-**Notes**: Remove the `@dnd-kit` absence guard from `package-deps.guard.test.ts` as a pre-step. Install all four `@dnd-kit` packages here (reused by Phase 79). Flicker mitigation: `cancelQueries` in `onMutate` + `isDraggingRef`-gated local state as the rendered source of truth during drag. Confirm `rankCustomFieldId` from `GhBacklogResponse` cache; unit-test that the mutation passes the fixture value, not a hardcoded constant. Drag/click disambiguation: `PointerSensor` activation constraint `{ delay: 150, tolerance: 5 }` + `justDragged` ref guard on `onIssuePeek`.
+**Plans**: 4 plans
+
+**Wave 1** *(parallel — no file overlap)*
+
+- [ ] 78-01-PLAN.md — Remove @dnd-kit absence guard + install 4 packages (D-12); add cancelLabel to ConfirmSprintMoveDialog; Wave-0 test scaffolds (rank-api.test.ts, BacklogPage.rank.test.ts)
+- [ ] 78-02-PLAN.md — Fix rank.ts CR-01 (cross-bucket) + CR-02 (BigInt base-36) and strengthen rank.test.ts (E10/E11/E12); remove KNOWN-BROKEN header (D-10)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 78-03-PLAN.md — rankIssueApi service (PUT /rest/agile/1.0/issue/rank, integer rankCustomFieldId) + barrel export; rank-api.test.ts GREEN
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 78-04-PLAN.md — BacklogRow useSortable + BacklogPage DndContext/per-section SortableContext + optimistic rank mutation + flicker gate + inline rollback banner + cross-section confirm (Keep Position) + human verify
+
+**Notes**: Scope widened per CONTEXT.md D-01..D-05 — drag enabled in EVERY section (active sprint, future sprints, unassigned backlog) with gated cross-section moves behind ConfirmSprintMoveDialog (sprint-membership + rank). Remove the `@dnd-kit` absence guard from `package-deps.guard.test.ts` as a pre-step; install all four `@dnd-kit` packages here (reused by Phase 79). Flicker mitigation: `cancelQueries` in `onMutate` + `isDraggingRef`-gated local state as the rendered source of truth during drag (corrected: risk is `refetchOnWindowFocus` after staleTime, not a 60s interval). `rankCustomFieldId` is the integer from `GhBacklogResponse` cache, never hardcoded; unit-tested. Drag/click disambiguation: `PointerSensor` `{ delay: 150, tolerance: 5 }` + `justDragged` ref guard.
 
 ### Phase 79: Drag-to-Transition on Sprint Board
 
@@ -325,6 +339,6 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
-| 78. Drag-to-Rank on Backlog | 0/TBD | Not started | - |
+| 78. Drag-to-Rank on Backlog | 0/4 | Planned | - |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
