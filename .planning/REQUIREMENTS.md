@@ -19,9 +19,9 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 
 - [ ] **RANK-01**: The Backlog active-sprint list is ordered by Jira rank
 - [ ] **RANK-02**: User can drag a story within the Backlog active-sprint list to reorder it
-- [ ] **RANK-03**: A reorder persists to Jira via the rank API (`PUT /rest/agile/1.0/issue/rank`, `rankCustomFieldId` from the backlog response)
-- [ ] **RANK-04**: A failed rank update rolls back the optimistic reorder and surfaces an error
-- [ ] **RANK-05**: Drag reordering does not flicker or revert when the background poll refreshes (optimistic order held during drag)
+- [x] **RANK-03**: A reorder persists to Jira via the rank API (`PUT /rest/agile/1.0/issue/rank`, `rankCustomFieldId` from the backlog response)
+- [x] **RANK-04**: A failed rank update rolls back the optimistic reorder and surfaces an error
+- [x] **RANK-05**: Drag reordering does not flicker or revert when the background poll refreshes (optimistic order held during drag)
 
 ### Sprint Board Drag-to-Transition
 
@@ -93,9 +93,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | VISUAL-05 | Phase 76 | Complete |
 | RANK-01 | Phase 78 | Pending |
 | RANK-02 | Phase 78 | Pending |
-| RANK-03 | Phase 78 | Pending |
-| RANK-04 | Phase 78 | Pending |
-| RANK-05 | Phase 78 | Pending |
+| RANK-03 | Phase 78 | Complete |
+| RANK-04 | Phase 78 | Complete |
+| RANK-05 | Phase 78 | Complete |
 | TRAN-01 | Phase 79 | Pending |
 | TRAN-02 | Phase 79 | Pending |
 | TRAN-03 | Phase 79 | Pending |
