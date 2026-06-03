@@ -1,3 +1,6 @@
+// Phase 77 Nyquist stubs — see 77-VALIDATION.md. Convert it.todo → it() as the covered plan lands.
+// Requirements covered: PEEK-05
+
 /**
  * TaskCard tests — Phase 73 Plan 02 (timeInColumn badge slot).
  *
@@ -126,4 +129,18 @@ describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
     // Silence "unused container" lint:
     expect(container).toBeTruthy();
   });
+});
+
+// Phase 77 — PEEK-05 stubs (convert to it() when Plan 04 lands the key/body click split)
+describe('TaskCard — PEEK-05 key/body click split (Phase 77 Plan 04)', () => {
+  // PEEK-05: clicking the issue key element calls navigate to /issue/:key and stopPropagation
+  //          prevents body onOpenIssue
+  // When the key/body split lands: render TaskCard with onOpenIssue mock and navigate mock;
+  // click the key button — assert navigate('/issue/PROJ-1') called and onOpenIssue NOT called.
+  it.todo('PEEK-05: clicking the issue key element calls navigate to /issue/:key and stopPropagation prevents body onOpenIssue');
+
+  // Complementary: clicking the card body calls onOpenIssue with the key, not navigate
+  // When the key/body split lands: click the card body area (not the key button) and assert
+  // onOpenIssue('PROJ-1') was called and navigate was NOT called.
+  it.todo('PEEK-05: clicking the card body calls onOpenIssue with the key, not navigate');
 });
