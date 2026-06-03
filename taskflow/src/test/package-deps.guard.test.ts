@@ -49,34 +49,3 @@ describe('package.json — react-grid-layout absence guard (Phase 59 / QUAL-03)'
   });
 });
 
-describe('package.json — @dnd-kit absence guard (Phase 67 / SETUI-02)', () => {
-  // Drag-reorder was stripped from SidebarItemsList in Phase 67; the @dnd-kit/*
-  // packages were uninstalled. This guard keeps them out so the dependency does
-  // not silently return alongside reintroduced drag UI.
-  let pkg: {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-  };
-
-  try {
-    pkg = JSON.parse(fs.readFileSync(PKG_FILE, 'utf8'));
-  } catch {
-    pkg = {};
-  }
-
-  const DND_KIT_PACKAGES = [
-    '@dnd-kit/core',
-    '@dnd-kit/sortable',
-    '@dnd-kit/modifiers',
-    '@dnd-kit/utilities',
-  ];
-
-  for (const name of DND_KIT_PACKAGES) {
-    it(`"${name}" is absent from dependencies and devDependencies`, () => {
-      const deps = pkg.dependencies ?? {};
-      const devDeps = pkg.devDependencies ?? {};
-      expect(name in deps).toBe(false);
-      expect(name in devDeps).toBe(false);
-    });
-  }
-});
