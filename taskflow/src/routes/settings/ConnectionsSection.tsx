@@ -38,15 +38,17 @@ interface JiraConnectionCardProps {
   initialBaseUrl: string;
   activeProject: string | null;
   activeBoardId: number | null;
+  activeBoardName: string | null;
   onConnected: (url: string) => void;
   onProjectSelected: (projectKey: string) => void;
-  onBoardSelected: (projectKey: string, boardId: number) => void;
+  onBoardSelected: (projectKey: string, boardId: number, boardName: string) => void;
 }
 
 function JiraConnectionCard({
   initialBaseUrl,
   activeProject,
   activeBoardId,
+  activeBoardName,
   onConnected,
   onProjectSelected,
   onBoardSelected,
@@ -139,7 +141,8 @@ function JiraConnectionCard({
 
   const handleBoardChange = (boardId: number) => {
     setSelectedBoardId(boardId);
-    if (selectedProject) onBoardSelected(selectedProject, boardId);
+    const name = boards.find((b) => b.id === boardId)?.name ?? `#${boardId}`;
+    if (selectedProject) onBoardSelected(selectedProject, boardId, name);
   };
 
   const showProjectPicker = testStatus === 'success' && projects.length > 0;
@@ -244,7 +247,10 @@ function JiraConnectionCard({
           </p>
           {activeBoardId != null && (
             <p className="text-xs text-muted-foreground">
-              Active board: <span className="font-medium text-foreground">#{activeBoardId}</span>
+              Active board:{' '}
+              <span className="font-medium text-foreground">
+                {activeBoardName ?? `#${activeBoardId}`}
+              </span>
             </p>
           )}
         </div>
@@ -467,6 +473,7 @@ export default function ConnectionsSection() {
     setActiveGitlabProject,
     activeJiraProject,
     jiraBoardIds,
+    jiraBoardNames,
     activeGitlabProject,
     activeGitlabProjectPath,
   } = useAuthStore();
@@ -479,10 +486,11 @@ export default function ConnectionsSection() {
         initialBaseUrl={jiraBaseUrl ?? ''}
         activeProject={activeJiraProject}
         activeBoardId={activeJiraProject ? (jiraBoardIds?.[activeJiraProject] ?? null) : null}
+        activeBoardName={activeJiraProject ? (jiraBoardNames?.[activeJiraProject] ?? null) : null}
         onConnected={(url) => setJiraConnected(true, url)}
         onProjectSelected={(key) => setActiveJiraProject(key)}
-        onBoardSelected={(key, boardId) => {
-          setJiraBoardId(key, boardId);
+        onBoardSelected={(key, boardId, boardName) => {
+          setJiraBoardId(key, boardId, boardName);
           // The runtime board switch must refresh active-sprint dependent views
           // immediately (RESEARCH pitfall 2 — distinct from the wizard path).
           queryClient.invalidateQueries({ queryKey: ['jira-active-sprint'] });
