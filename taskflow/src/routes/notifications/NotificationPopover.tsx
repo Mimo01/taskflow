@@ -206,6 +206,7 @@ function VirtualizedNotificationList({
                   item={entry.item}
                   isUnread={!readSet.has(entry.item.id)}
                   onClick={() => onRowClick(entry.item)}
+                  onIssueKeyClick={() => onIssueKeyClick(entry.item)}
                   onMarkRead={() => onMarkRead(entry.item)}
                   onDismiss={() => onDismiss(entry.item)}
                   onOpenInBrowser={onOpenInBrowser(entry.item)}
@@ -306,7 +307,11 @@ export default function NotificationPopover({
   }
 
   function handleMarkRead(item: NotificationItem) {
-    readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id);
+    if (readSet.has(item.id)) {
+      markAsUnread(item.id);
+    } else {
+      markAsRead(item.id);
+    }
   }
 
   function handleDismiss(item: NotificationItem) {
