@@ -90,3 +90,4 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 Last session: 2026-06-02T22:17:41.183Z
 Stopped at: Phase 76 UI-SPEC approved
 Resume file: .planning/phases/76-visual-polish-and-shared-primitives/76-UI-SPEC.md
+| 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
