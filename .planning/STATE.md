@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: executing
-stopped_at: Phase 77 context gathered
-last_updated: "2026-06-03T10:24:16.806Z"
-last_activity: "2026-06-03 - Completed quick task 260603-fb8: Let users select which Jira board (fix wrong rapidViewId)"
+stopped_at: Phase 77 UI-SPEC approved
+last_updated: "2026-06-03T11:18:40.895Z"
+last_activity: 2026-06-03 -- Phase 77 planning complete
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
+  total_plans: 8
   completed_plans: 4
   percent: 20
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 
 Phase: 77
 Plan: Not started
-Status: Executing Phase 76
-Last activity: 2026-06-03 - Completed quick task 260603-fb8: Let users select which Jira board (fix wrong rapidViewId)
+Status: Ready to execute
+Last activity: 2026-06-03 -- Phase 77 planning complete
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -88,7 +88,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T10:24:16.801Z
-Stopped at: Phase 77 context gathered
-Resume file: .planning/phases/77-universal-peek-slideover-and-issue-detail-refinements/77-CONTEXT.md
+Last session: 2026-06-03T10:37:35.166Z
+Stopped at: Phase 77 UI-SPEC approved
+Resume file: .planning/phases/77-universal-peek-slideover-and-issue-detail-refinements/77-UI-SPEC.md
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |

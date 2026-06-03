@@ -233,8 +233,25 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   4. The peek provides a visible close control and an explicit "Open full page" button; pressing Escape dismisses the peek
   5. On a subtask's full-page detail, the parent story link appears in the main content area (above the description), not the sidebar; all clickable areas in issue detail show a pointer cursor on hover
 
-**Plans**: TBD
-**Notes**: Resolve Sheet `modal={false}` vs CSS `position:fixed` panel at plan time — `@base-ui/react Dialog modal={false}` must not apply `aria-hidden` to the document root. Decide peek close-on-route-change behavior before writing plans. DETAIL-01/02 folded here because both require the `onIssuePeek` click model established in this phase.
+**Plans**: 4 plans
+
+**Wave 1**
+
+- [ ] 77-01-PLAN.md — Wave 0 test stubs + settings store v26 (peekPanelWidth) + confirm parent type (A1)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 77-02-PLAN.md — extract shared IssueDetailView (full detail incl. comments/timeline/composer, layout prop) + DETAIL-01 parent breadcrumb + DETAIL-02 cursor sweep
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 77-03-PLAN.md — PeekPanel (CSS squeeze panel, single-column, resizable) + main.tsx mount/state/route-close/context + CommandPalette/NotificationPopover onOpenIssue
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 77-04-PLAN.md — per-surface key/body click split (TaskCard, BacklogRow, DashboardInProgressCard, Standup)
+
+**Notes**: Resolved at plan time — D-01 CSS squeeze panel (no Dialog/backdrop/aria-hidden); close-on-route-change = D-07. D-05 OVERRIDE honored: peek renders the full IssueDetailView (comments/timeline/composer) via a shared extraction, not the thin IssueDetailBody. DETAIL-01/02 folded here per onOpenIssue click model.
 **UI hint**: yes
 
 ### Phase 78: Drag-to-Rank on Backlog
@@ -307,7 +324,7 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
-| 77. Universal Peek Slideover and Issue-Detail Refinements | 0/TBD | Not started | - |
+| 77. Universal Peek Slideover and Issue-Detail Refinements | 0/4 | Not started | - |
 | 78. Drag-to-Rank on Backlog | 0/TBD | Not started | - |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
