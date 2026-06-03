@@ -231,9 +231,10 @@ describe('CommandPalette', () => {
     expect(true).toBe(true);
   });
 
-  // PALETTE-02: selecting a Jira issue calls onIssueClick
-  it('selecting a Jira issue calls onIssueClick', () => {
-    const onIssueClick = vi.fn();
+  // PALETTE-02: selecting a Jira issue body calls onOpenIssue (peek), not onIssueClick (full-page)
+  // onIssueClick is reserved for the key-element click split delivered in Plan 04 Task 3.
+  it('selecting a Jira issue body calls onOpenIssue (peek)', () => {
+    const onOpenIssue = vi.fn();
     const onClose = vi.fn();
     const qc = makeQueryClient();
 
@@ -254,21 +255,17 @@ describe('CommandPalette', () => {
       ],
     });
 
-    renderPalette({ onIssueClick, onClose }, qc);
+    renderPalette({ onOpenIssue, onClose }, qc);
 
     // Type a search query to show Issues group
     const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
     fireEvent.change(input, { target: { value: 'Fix login' } });
 
-    // cmdk uses onValueChange which may not be triggered by fireEvent.change
-    // We need to simulate the cmdk input via the onValueChange prop
-    // Since cmdk wraps input, let's try finding the issue in the rendered output
-    // The component shows issues when query.length >= 2
-    // cmdk processes the input internally, so we use the input element directly
+    // cmdk processes the input internally; find the issue item if rendered
     const issueItem = screen.queryByText('TEST-1');
     if (issueItem) {
       fireEvent.click(issueItem);
-      expect(onIssueClick).toHaveBeenCalledWith('TEST-1');
+      expect(onOpenIssue).toHaveBeenCalledWith('TEST-1');
       expect(onClose).toHaveBeenCalled();
     }
     // If cmdk doesn't render the item due to internal filtering, the test still passes
