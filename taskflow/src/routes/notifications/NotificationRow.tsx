@@ -21,6 +21,8 @@ interface NotificationRowProps {
   item: NotificationItem;
   isUnread?: boolean;
   onClick: () => void;
+  /** Phase 77 Plan 04 (PEEK-05): clicking the issue key navigates full-page (stopPropagation). */
+  onIssueKeyClick?: () => void;
   onMarkRead?: () => void;
   onDismiss?: () => void;
   onOpenInBrowser?: () => void;
@@ -171,6 +173,7 @@ export default function NotificationRow({
   item,
   isUnread = false,
   onClick,
+  onIssueKeyClick,
   onMarkRead,
   onDismiss,
   onOpenInBrowser,
@@ -186,9 +189,17 @@ export default function NotificationRow({
   const body = item.bodyPreview ? parseBody(item.bodyPreview) : null;
 
   return (
-    <button
-      type="button"
+    // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML (D-10 / Pitfall 1)
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       data-testid="notification-row"
       className={`group w-full text-left flex gap-3 border-l-[3px] ${sourceColor} pl-3 pr-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
         isUnread ? 'bg-blue-500/[0.04] hover:bg-blue-500/[0.08]' : 'hover:bg-muted/50'
@@ -268,11 +279,17 @@ export default function NotificationRow({
         {/* Line 2: entity — key + title + state badge */}
         <div className="flex items-center gap-1.5 mt-0.5">
           {issueKey && (
-            <span
-              className={`flex-shrink-0 font-mono text-[10px] ${isUnread ? 'text-muted-foreground/60' : 'text-muted-foreground/40'}`}
+            /* PEEK-05: key button navigates full-page; stopPropagation prevents body onOpenIssue */
+            <button
+              type="button"
+              className={`flex-shrink-0 font-mono text-[10px] cursor-pointer hover:underline ${isUnread ? 'text-muted-foreground/60' : 'text-muted-foreground/40'}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onIssueKeyClick?.();
+              }}
             >
               {issueKey}
-            </span>
+            </button>
           )}
           <span
             className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/60'}`}
@@ -336,6 +353,6 @@ export default function NotificationRow({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 }

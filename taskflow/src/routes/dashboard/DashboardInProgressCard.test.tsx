@@ -186,7 +186,7 @@ describe('DashboardInProgressCard', () => {
     expect(caption.closest('a')).toBeNull();
   });
 
-  it('test 3: click navigation — clicking a row calls onIssueClick with issue key', async () => {
+  it('test 3: click navigation — clicking the key button calls onIssueClick; clicking the body calls onOpenIssue', async () => {
     const { useQuery } = await import('@tanstack/react-query');
 
     const issues = [makeSprintIssue('PROJ-101', 'indeterminate', true, 'Alice Doe')];
@@ -197,14 +197,23 @@ describe('DashboardInProgressCard', () => {
       isError: false,
     } as ReturnType<typeof useQuery>);
 
+    const onOpenIssue = vi.fn();
     const { default: DashboardInProgressCard } = await import('./DashboardInProgressCard');
-    renderWithQuery(<DashboardInProgressCard {...defaultProps} />);
+    renderWithQuery(<DashboardInProgressCard {...defaultProps} onOpenIssue={onOpenIssue} />);
 
-    // Click the row button
-    const rowButton = screen.getByRole('button', { name: /PROJ-101/ });
-    await userEvent.click(rowButton);
-
+    // PEEK-05: clicking the key button → onIssueClick (full-page)
+    const keyButton = screen.getByRole('button', { name: 'PROJ-101' });
+    await userEvent.click(keyButton);
     expect(defaultProps.onIssueClick).toHaveBeenCalledWith('PROJ-101');
+    expect(onOpenIssue).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+
+    // PEEK-01: clicking the body (summary text) → onOpenIssue (peek)
+    const summaryEl = screen.getByText(/Sub-task summary 101/);
+    await userEvent.click(summaryEl);
+    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-101');
+    expect(defaultProps.onIssueClick).not.toHaveBeenCalled();
   });
 
   it('test 4: empty state — shows "No subtasks in progress — nice work!" when no matches', async () => {

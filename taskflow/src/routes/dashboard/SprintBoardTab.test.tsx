@@ -29,9 +29,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Shared mock for onIssueClick — tests that need to assert on it can reference this variable.
 let onIssueClickShared = vi.fn();
+// Phase 77 Plan 04: onOpenIssue (peek body click) shared mock
+let onOpenIssueShared = vi.fn();
 
 vi.mock('react-router-dom', () => ({
-  useOutletContext: vi.fn(() => ({ onIssueClick: onIssueClickShared })),
+  useOutletContext: vi.fn(() => ({
+    onIssueClick: onIssueClickShared,
+    onOpenIssue: onOpenIssueShared,
+  })),
   useNavigate: vi.fn(() => vi.fn()),
   useLocation: vi.fn(() => ({ pathname: '/sprint-board' })),
 }));
@@ -631,9 +636,10 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
   describe('BOARD-05: clicking a card opens issue detail', () => {
     beforeEach(() => {
       onIssueClickShared = vi.fn();
+      onOpenIssueShared = vi.fn();
     });
 
-    it('clicking a subtask card fires onIssueClick with the card issue key', async () => {
+    it('clicking a subtask card body fires onOpenIssue (peek) with the card issue key (PEEK-01)', async () => {
       const story = makeIssue(
         'PROJ-1',
         'My Story',
@@ -655,12 +661,15 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       const { default: SprintBoardTab } = await import('./SprintBoardTab');
       renderWithQuery(<SprintBoardTab />);
 
+      // Clicking the card body (summary text) opens the peek panel (PEEK-01)
       const cardText = await screen.findByText('Click Me Subtask');
       fireEvent.click(cardText);
 
       await waitFor(() => {
-        expect(onIssueClickShared).toHaveBeenCalledWith('PROJ-2');
+        expect(onOpenIssueShared).toHaveBeenCalledWith('PROJ-2');
       });
+      // Key click (onIssueClick) should NOT have fired
+      expect(onIssueClickShared).not.toHaveBeenCalled();
     });
   });
 });
