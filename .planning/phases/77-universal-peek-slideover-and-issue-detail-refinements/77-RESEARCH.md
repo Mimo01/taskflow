@@ -690,17 +690,17 @@ ASVS V5 Input Validation: The `peekIssueKey` value is derived from user clicks o
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **IssueDetailBody content scope in the peek (A4)**
+1. **IssueDetailBody content scope in the peek (A4)** — **RESOLVED**
    - What we know: `IssueDetailBody` (lines 62-154 of IssueDetailSheet.tsx) has `useQuery` for the base issue and epic stories. It does NOT have the comments, subtask enrichment, changelog, or worklogs queries that `IssueDetailPage` adds.
    - What's unclear: D-05 says "fully editable — comments, transitions, edit, add subtask". Does "comments" mean the comment composer must appear in the peek? If so, `IssueDetailBody` is insufficient and the peek content must be closer to `IssueDetailPage`'s scope.
-   - Recommendation: Planner should explicitly scope the peek content: either (a) use `IssueDetailBody` as-is (no comments in peek — acceptable as peek is a quick preview) or (b) add the independent queries to `IssueDetailBody` (full comments in peek — matches D-05 literally but adds complexity). Recommend option (a) for Phase 77 scope.
+   - **RESOLVED by orchestrator (D-05 override):** CONTEXT.md D-05 is a LOCKED decision and wins over the researcher's recommendation of option (a). The peek MUST render the full interactive detail INCLUDING comments/composer. Option (b) is chosen — but instead of bolting queries onto the thin `IssueDetailBody`, Plan 77-02 extracts a shared `IssueDetailView` from `IssueDetailPage` (carrying all Phase 75 independent queries: comments, subtask enrichment, changelog, worklogs, plus the comment/worklog mutations and `CommentComposer`) with a `layout: 'two-column' | 'single-column'` prop. The peek renders it single-column (D-06); `IssueDetailPage` renders it two-column. See Plan 77-02 objective.
 
-2. **`issue.fields.parent` type coverage**
+2. **`issue.fields.parent` type coverage** — **RESOLVED**
    - What we know: `FieldsSection.tsx` accesses `f.parent?.key` and `f.parent?.fields.summary` where `f = issue.fields`. This field access works today in the sidebar.
    - What's unclear: Whether `parent` is declared on the `JiraIssueDetail` type vs accessed via a dynamic index.
-   - Recommendation: Wave 0 task to `grep` the type definition in `src/services/jira/types.ts` and confirm `parent?: { key: string; fields: { summary: string } }` is present before implementing DETAIL-01.
+   - **RESOLVED during planning:** `JiraIssueDetail.fields.parent` is already declared at `taskflow/src/services/jira/types.ts:152`. Plan 77-01 Task 1 confirms this only — no type change is required for DETAIL-01.
 
 ---
 
