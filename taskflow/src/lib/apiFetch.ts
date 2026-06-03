@@ -115,10 +115,9 @@ export async function apiFetch(
       const clone = response.clone();
       const text = await clone.text().catch(() => '');
       try {
-        const pretty = JSON.stringify(JSON.parse(text), null, 2);
-        responseBody = pretty.length > 10_000 ? `${pretty.slice(0, 10_000)}\n[truncated]` : pretty;
+        responseBody = JSON.stringify(JSON.parse(text), null, 2);
       } catch {
-        responseBody = text.length > 10_000 ? `${text.slice(0, 10_000)}\n[truncated]` : text;
+        responseBody = text;
       }
     }
   } catch (err) {
