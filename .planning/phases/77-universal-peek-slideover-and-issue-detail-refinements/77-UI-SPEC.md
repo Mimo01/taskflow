@@ -32,7 +32,7 @@ Declared values (must be multiples of 4):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, issue-key inner padding, cursor-target gaps |
-| sm | 8px | Subtask row vertical padding (py-1.5 = 6px, rounds to 8px), button icon gap |
+| sm | 8px | Subtask row vertical padding (py-2 = 8px), button icon gap |
 | md | 16px | Peek panel inner horizontal padding, section spacing |
 | lg | 24px | Peek header bar vertical area, section separator |
 | xl | 32px | Stacked-layout block gaps inside the peek |
@@ -222,7 +222,7 @@ Existing components modified:
 | `src/routes/dashboard/TaskCard.tsx` | Split key into separate inner clickable; stopPropagation → navigate on key click |
 | `src/routes/dashboard/BacklogRow.tsx` | Wire body click to open-peek; key cell already separate — confirm stopPropagation |
 | `src/routes/dashboard/DashboardInProgressCard.tsx` | Same key/body split |
-| `src/routes/dashboard/IssueDetailContent.tsx` | Add parent breadcrumb above title; add cursor-pointer to subtask rows |
+| `src/routes/dashboard/IssueDetailContent.tsx` | Add parent breadcrumb above title; add cursor-pointer to subtask rows; update subtask row vertical padding to py-2 |
 | `src/routes/dashboard/issue-detail/FieldsSection.tsx` | Remove parent MetaRow (~line 641); add cursor-pointer to field chips |
 | `src/routes/dashboard/issue-detail/LinkedIssuesSection.tsx` | Add cursor-pointer; wire onOpenIssue for swap-in-peek behavior |
 | Standup, CommandPalette, NotificationPopover | Key/body split per D-10 |
