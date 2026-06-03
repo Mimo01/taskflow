@@ -27,6 +27,12 @@ export default function IssueDetailPage() {
     openClone: (vals: EditInitialValues) => void;
     openAddSubtask: (parentKey: string) => void;
   }>();
+  // NOTE: `onOpenIssue` is also provided in the outlet context (main.tsx wires it to
+  // handleOpenPeek), but is intentionally NOT consumed here. On the full-page route,
+  // clicking a child issue (subtask, epic story, linked issue) should navigate full-page
+  // via `onIssueClick`, not open a secondary peek panel. The peek-inside-peek swap behavior
+  // (D-13) is only active when the caller is PeekPanel, which passes onOpenIssue directly.
+  // Leaving onOpenIssue unused here is a deliberate product choice, not a wiring bug.
 
   const handleBack = () => {
     if (trail.length > 0) {
