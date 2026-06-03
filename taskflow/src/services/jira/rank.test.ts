@@ -3,21 +3,25 @@ import { describe, expect, it } from 'vitest';
 import { rankIssue } from './rank';
 
 /**
- * Compare two rank strings by their VALUE portion (between '|' and ':').
- * Full-string comparison is incorrect for rank strings because ':' (ASCII 58) is
- * greater than digits '0'-'9' (ASCII 48-57) but less than letters 'a'-'z' (ASCII 97-122).
- * When the extension position of one rank string is a digit and the other is ':', the
- * full-string order does not match the intended rank order.
- * Comparing the value portions avoids this: values are pure base-36 strings with no ':'.
+ * Compare two rank strings using bucket-aware ordering.
+ * Bucket (the integer before '|') takes precedence over value.
+ * If buckets are equal, the value portion (between '|' and ':') is compared lexically.
+ * This correctly handles cross-bucket assertions: '0|zzzzzzg:' < '1|000000:' because
+ * bucket 0 < bucket 1 regardless of the value portions.
  */
 function rankLt(a: string, b: string): boolean {
-  const valOf = (r: string): string => {
+  const parseRank = (r: string) => {
     const pipeIdx = r.indexOf('|');
     const colonIdx = r.indexOf(':');
-    if (pipeIdx === -1) return r;
-    return r.slice(pipeIdx + 1, colonIdx === -1 ? undefined : colonIdx);
+    const bkt = pipeIdx === -1 ? '0' : r.slice(0, pipeIdx);
+    const val = r.slice(pipeIdx + 1, colonIdx === -1 ? undefined : colonIdx);
+    return { bucket: parseInt(bkt, 10), val };
   };
-  return valOf(a) < valOf(b);
+  const ra = parseRank(a);
+  const rb = parseRank(b);
+  if (ra.bucket < rb.bucket) return true;
+  if (ra.bucket > rb.bucket) return false;
+  return ra.val < rb.val;
 }
 
 describe('rankIssue', () => {
@@ -63,11 +67,12 @@ describe('rankIssue', () => {
     expect(rankLt(result, after)).toBe(true);
   });
 
-  it("E7: different buckets — result uses before's bucket (0|)", () => {
-    const before = '0|hzzzzz:';
-    const after = '1|hzzzzz:';
+  it('E7: different buckets — result is strictly between before and after', () => {
+    const before = '0|zzzzzz:';
+    const after = '1|000000:';
     const result = rankIssue(before, after);
-    expect(result.startsWith('0|')).toBe(true);
+    expect(rankLt(before, result)).toBe(true);
+    expect(rankLt(result, after)).toBe(true);
   });
 
   it('E8: near-zero boundary — before=000000, after=000001 — result is strictly between', () => {
@@ -82,5 +87,35 @@ describe('rankIssue', () => {
     const before = '0|zzzzzz:';
     const result = rankIssue(before, null);
     expect(rankLt(before, result)).toBe(true);
+  });
+
+  it('E10: CR-02 — 12-char rank string — no precision collapse', () => {
+    const before = '0|aaaaaaaaaaaa:'; // 12 chars
+    const after = '0|zzzzzzzzzzzz:'; // 12 chars
+    const result = rankIssue(before, after);
+    expect(rankLt(before, result)).toBe(true);
+    expect(rankLt(result, after)).toBe(true);
+  });
+
+  it('E11: CR-01 — 0|zzzzzz before 1|000000 — strict ordering', () => {
+    const before = '0|zzzzzz:';
+    const after = '1|000000:';
+    const result = rankIssue(before, after);
+    expect(rankLt(before, result)).toBe(true);
+    expect(rankLt(result, after)).toBe(true);
+  });
+
+  it('E12: repeated midpoint — insert 5 items between a and b — all strictly ordered', () => {
+    let lo = '0|aaaaaa:';
+    let hi = '0|bbbbbb:';
+    const inserted: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const mid = rankIssue(lo, hi);
+      inserted.push(mid);
+      lo = mid;
+    }
+    for (let i = 0; i < inserted.length - 1; i++) {
+      expect(rankLt(inserted[i], inserted[i + 1])).toBe(true);
+    }
   });
 });
