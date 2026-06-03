@@ -308,10 +308,17 @@ export function IssueDetailView({
 
   // Drag-to-resize for right panel (two-column only).
   const containerRef = useRef<HTMLDivElement>(null);
-  const initialPanelWidth = useMemo(
-    () => issueDetailPanelWidth ?? Math.round((containerRef.current?.offsetWidth ?? 952) * 0.42),
-    [issueDetailPanelWidth],
-  );
+  // Measure the container width after mount so the initial panel width reflects the real
+  // available space rather than the 952px magic fallback (WR-03: reading a ref in useMemo
+  // always sees null on first render). State is set in useLayoutEffect (synchronous before
+  // paint) so there is no visible flash on the first frame.
+  const [measuredInitialWidth, setMeasuredInitialWidth] = useState<number | null>(null);
+  useEffect(() => {
+    if (measuredInitialWidth === null && containerRef.current) {
+      setMeasuredInitialWidth(Math.round(containerRef.current.offsetWidth * 0.42));
+    }
+  });
+  const initialPanelWidth = issueDetailPanelWidth ?? measuredInitialWidth ?? Math.round(952 * 0.42);
   const { width, isDragging, handleMouseDown } = useResizable({
     initialWidth: initialPanelWidth,
     min: 240,
@@ -432,8 +439,12 @@ export function IssueDetailView({
     worklogEditMutation.mutate({
       worklogId,
       timeSpentSeconds: parsed.seconds,
-      // Jira worklog API requires "+0000" offset, not "Z" suffix
-      started: original?.started ?? new Date().toISOString().replace('Z', '+0000'),
+      // Jira worklog API requires a "+0000" offset suffix, not the "Z" shorthand.
+      // Build the UTC timestamp explicitly: toISOString() always returns UTC, so we
+      // replace the trailing "Z" with "+0000". This is safe ONLY because toISOString()
+      // is guaranteed UTC — do NOT use this pattern with local-time formatters, which
+      // would silently shift the value by the local offset.
+      started: original?.started ?? new Date().toISOString().replace(/Z$/, '+0000'),
       comment: editWorklogComment || undefined,
     });
   };
