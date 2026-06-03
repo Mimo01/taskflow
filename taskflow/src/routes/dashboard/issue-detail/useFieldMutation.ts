@@ -46,6 +46,12 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // A parent story renders its subtask rows (incl. assignee avatars) from a
+      // separate enrichment query keyed by the PARENT key
+      // (['jira-subtask-enrichment', parentKey, ...] in IssueDetailPage). Editing a
+      // subtask here doesn't know its parent key, so invalidate the enrichment family
+      // by prefix — keeps the parent's subtasks section fresh when navigating back.
+      queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] });
       // Sprint board cards render from the gh-all-data envelope
       // (SprintBoardTab -> useGhAllData -> ['gh-all-data', boardId]). Field edits
       // (assignee, priority, story points, labels, fixVersions) must invalidate it
