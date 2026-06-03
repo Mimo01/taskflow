@@ -142,8 +142,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - [ ] Done-state strikethrough for done current-sprint stories on Backlog sprint list, Dashboard sprint card, and Standup Today
 - [ ] Drag-to-rank stories on the Backlog active-sprint list (ordered by Jira rank)
 - [ ] Drag-to-transition on the sprint board; multi-status columns split into per-transition drop boxes
-- [ ] Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance
-- [ ] Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas
+- [x] Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance — validated Phase 77
+- [x] Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas — validated Phase 77
 - [ ] Card colors: left-edge stripe by priority / issue type
 - [ ] Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent)
 
@@ -327,4 +327,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `jira-board-quickfilters` system removed post-Phase 73 verification (v1.11 quick task `e1c098f0`) | GH `allData.json` doesn't return quickfilter data; the Jira-loaded quickfilters were replaced by app's own saved filters | ✓ Good — app's saved filter system is the correct replacement; no functionality lost |
 
 ---
-*Last updated: 2026-06-02 after starting v1.12 Jira Experience Improvements milestone*
+*Last updated: 2026-06-03 after completing Phase 77 (Universal Peek Slideover and Issue-Detail Refinements)*
