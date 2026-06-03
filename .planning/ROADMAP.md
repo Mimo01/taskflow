@@ -275,7 +275,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 78-03-PLAN.md — rankIssueApi service (PUT /rest/agile/1.0/issue/rank, integer rankCustomFieldId) + barrel export; rank-api.test.ts GREEN
+- [x] 78-03-PLAN.md — rankIssueApi service (PUT /rest/agile/1.0/issue/rank, integer rankCustomFieldId) + barrel export; rank-api.test.ts GREEN
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -339,6 +339,6 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
-| 78. Drag-to-Rank on Backlog | 2/4 | In Progress|  |
+| 78. Drag-to-Rank on Backlog | 3/4 | In Progress|  |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
