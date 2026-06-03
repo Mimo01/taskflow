@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
-status: executing
-last_updated: "2026-06-03T14:33:39.929Z"
+status: verifying
+last_updated: "2026-06-03T19:40:12.195Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 11
-  percent: 40
+  completed_plans: 12
+  percent: 60
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 
 Phase: 78 (drag-to-rank-on-backlog) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-03
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -77,6 +77,8 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 - [Phase ?]: [Phase 77-04]: D-10 key/body split applied universally — div role=button body→onOpenIssue, inner key button→stopPropagation→navigate; Pitfall 1 avoided by outer-button-to-div conversion
 - [Phase ?]: CR-01: cross-bucket midpoint stays in lower bucket, extends before value with midChar 'i'
 - [Phase ?]: CR-02: digit-by-digit BigInt parseBase36 replaces BigInt(parseInt) to avoid float64 precision loss
+- [Phase 78-04]: SortableContext per-section (sprint-<id>/backlog id), localOrder Map flicker gate, DragOverlay isOverlay, justDragged 50ms guard
+- [Phase 78-04]: rankMutation onMutate calls cancelQueries(['gh-backlog',boardId]) + snapshots cache; onError restores snapshot + localOrder; onSettled invalidates
 
 ### Blockers/Concerns
 
@@ -101,7 +103,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T14:33:39.923Z
+Last session: 2026-06-03T19:39:19.717Z
 Stopped at: Completed 78-02-PLAN.md
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
