@@ -1,7 +1,7 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Flag } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
@@ -112,6 +112,14 @@ export function FieldsSection({
   // Assignee edit state
   const [assigneeOpen, setAssigneeOpen] = useState(false);
   const [assigneeQuery, setAssigneeQuery] = useState('');
+  // Debounced term sent to the server so the assignable-user search filters
+  // across the full user base instead of only the first capped page.
+  const [debouncedAssigneeQuery, setDebouncedAssigneeQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedAssigneeQuery(assigneeQuery.trim()), 200);
+    return () => clearTimeout(timer);
+  }, [assigneeQuery]);
 
   // Labels add state
   const [labelInput, setLabelInput] = useState('');
@@ -154,13 +162,17 @@ export function FieldsSection({
     enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
 
-  // Assignee typeahead: load all assignable users when the popup opens, filter locally
+  // Assignee typeahead: the typed term is sent to the server via `username=` so
+  // Jira filters across the full assignable user base. Previously this fetched a
+  // single capped page (maxResults=50) with no query and filtered client-side, so
+  // any user outside that first page was never selectable (see debug session
+  // assignee-missing-users). `issueKey` scoping keeps results correct for this issue.
   const assigneeUsersQuery = useQuery({
-    queryKey: ['jira-assignable-users', issueKey, jiraBaseUrl],
+    queryKey: ['jira-assignable-users', issueKey, jiraBaseUrl, debouncedAssigneeQuery],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return [];
-      const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&maxResults=50`;
+      const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&username=${encodeURIComponent(debouncedAssigneeQuery)}&maxResults=50`;
       const resp = await apiFetch(
         'jira',
         url,
@@ -174,16 +186,8 @@ export function FieldsSection({
     staleTime: 60_000,
   });
 
-  const filteredAssignees = (() => {
-    const all = assigneeUsersQuery.data ?? [];
-    const q = assigneeQuery.trim().toLowerCase();
-    const filtered = q
-      ? all.filter(
-          (u) => u.displayName.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
-        )
-      : all;
-    return filtered.slice(0, 10);
-  })();
+  // Server already filters by the typed term; just cap the displayed count.
+  const filteredAssignees = (assigneeUsersQuery.data ?? []).slice(0, 10);
 
   const filteredVersions = (() => {
     const all = versionsQuery.data;
