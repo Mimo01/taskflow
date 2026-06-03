@@ -92,6 +92,10 @@ Accent reserved for:
 
 This section is specific to Phase 78's drag interaction. Required by the executor in lieu of a design mockup.
 
+### Idle State — Pre-Drag Focal Point
+
+On initial load, before any drag begins, the backlog page presents its existing visual anchor: the ranked list of issue rows rendered in rank order, with each row's issue key (monospace, `text-xs`) and summary (`text-sm`) providing the primary reading path. No new focal point is introduced by this phase — the eye is guided by the existing `BacklogRow` typography hierarchy and section headings. The drag affordance is latent; it activates only on pointer-down + hold.
+
 ### Drag Initiation (D-06)
 - Entire `<tr>` is the drag trigger.
 - `PointerSensor` activation: `{ delay: 150, tolerance: 5 }` — prevents accidental drags from clicks.
@@ -121,7 +125,7 @@ This section is specific to Phase 78's drag interaction. Required by the executo
 - Drop into different section: show `ConfirmSprintMoveDialog` (existing component at `src/components/ui/confirm-sprint-move-dialog.tsx`).
 - Dialog shows: "Move {ISSUE-KEY} from {Source Sprint / Backlog} to {Target Sprint / Backlog}?"
 - Confirm fires: sprint-membership API call + rank PUT.
-- Cancel: rolls back optimistic position, no API call.
+- "Keep Position": rolls back optimistic position, no API call.
 - API failure on confirmed move: roll back + show inline error banner (same as intra-list failure).
 
 ### Flicker Prevention (D-08)
@@ -139,7 +143,7 @@ This section is specific to Phase 78's drag interaction. Required by the executo
 | Cross-section dialog body | "Move **{ISSUE-KEY}** from **{Source Sprint or Backlog}** to **{Target Sprint or Backlog}**?" |
 | Dialog confirm button (idle) | "Confirm" |
 | Dialog confirm button (pending) | "Moving..." |
-| Dialog cancel button | "Cancel" |
+| Dialog cancel button | "Keep Position" |
 | Inline error banner (rank failure) | "Couldn't save new order — reverted" |
 | Inline error banner (cross-section failure) | "Couldn't move issue — reverted" |
 | Banner dismiss label (aria) | "Dismiss" |
@@ -148,7 +152,7 @@ This section is specific to Phase 78's drag interaction. Required by the executo
 
 Source: D-03, D-09 in 78-CONTEXT.md `<specifics>` section; `ConfirmSprintMoveDialog` pattern from existing component.
 
-No destructive actions in this phase (cross-section move is reversible; confirmation dialog is a scoping gate, not destructive).
+"Keep Position" is consistent with the dialog framing ("Move Issue...?") — it communicates the outcome of declining (the row returns to its original position), paired with "Confirm" which executes the move. No destructive actions in this phase (cross-section move is reversible; confirmation dialog is a scoping gate, not destructive).
 
 ---
 
