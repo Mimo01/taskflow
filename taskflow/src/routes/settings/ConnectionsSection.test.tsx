@@ -6,9 +6,20 @@
  * does not exist yet — that is expected.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConnectionsSection from './ConnectionsSection';
+
+// All renders need a QueryClientProvider — ConnectionsSection calls useQueryClient
+// to invalidate active-sprint caches on a board switch (FB8-4).
+function render(ui: ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return rtlRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 // Mock stronghold — stub readSecret to return a fake token
 vi.mock('@/services/stronghold', () => ({
@@ -25,6 +36,11 @@ const mockValidateJira = vi.fn().mockResolvedValue({
 vi.mock('@/services/jira', () => ({
   validateJira: (...args: unknown[]) => mockValidateJira(...args),
   listJiraProjects: vi.fn().mockResolvedValue([]),
+}));
+
+// Mock sprints service — board listing for the BoardPicker
+vi.mock('@/services/jira/sprints', () => ({
+  listProjectBoards: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock gitlab service
@@ -76,11 +92,13 @@ const mockAuthStore = {
   activeJiraProject: 'PROJECT-1',
   activeGitlabProject: 1,
   activeGitlabProjectPath: 'Org / My Project',
+  jiraBoardIds: {} as Record<string, number>,
   set: vi.fn(),
   setJiraConnected: vi.fn(),
   setGitlabConnected: vi.fn(),
   setActiveJiraProject: vi.fn(),
   setActiveGitlabProject: vi.fn(),
+  setJiraBoardId: vi.fn(),
 };
 
 vi.mock('@/stores/auth.store', () => ({
