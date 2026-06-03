@@ -31,13 +31,15 @@ export function doneSummaryClass(statusCategory: { key: string } | null | undefi
  * Full static class strings required so Tailwind JIT scanner detects all classes.
  * Never use template literals (e.g. `border-l-${color}`) — they are invisible to the scanner.
  *
- * Palette verified at WCAG ≥ 3:1 contrast against bg-card in both light and dark modes.
- * Note: Medium uses yellow-700 (4.92:1) in light mode — yellow-500 (1.92:1) fails WCAG.
+ * Reds/orange/grays are verified at WCAG ≥ 3:1 against bg-card in both modes.
+ * Medium intentionally uses a bright yellow-500 (1.92:1 in light) for visual punch —
+ * an accepted product trade-off over the WCAG-legible-but-olive yellow-700. Kept in
+ * sync with the `medium` entry in ICON_SEVERITY_STRIPE.
  */
 const PRIORITY_STRIPE: Record<string, string> = {
   Highest: 'border-l-red-600 dark:border-l-red-400',
   High: 'border-l-orange-600 dark:border-l-orange-400',
-  Medium: 'border-l-yellow-700 dark:border-l-yellow-500',
+  Medium: 'border-l-yellow-500 dark:border-l-yellow-400',
   Low: 'border-l-gray-500 dark:border-l-gray-400',
   Lowest: 'border-l-gray-600 dark:border-l-gray-300',
 };
@@ -61,7 +63,7 @@ const PRIORITY_STRIPE: Record<string, string> = {
  *   major    → red-500  / red-500
  *   highest  → orange-600 / orange-400
  *   high     → amber-600  / amber-400
- *   medium   → yellow-700 / yellow-500
+ *   medium   → yellow-500 / yellow-400   (bright — see note; below 3:1 in light)
  *   low      → gray-500 / gray-400
  *   lowest   → gray-600 / gray-300
  *   minor    → gray-700 / gray-500
@@ -81,7 +83,11 @@ const ICON_SEVERITY_STRIPE: Record<string, string> = {
   major: 'border-l-red-500 dark:border-l-red-500',
   highest: 'border-l-orange-600 dark:border-l-orange-400',
   high: 'border-l-amber-600 dark:border-l-amber-400',
-  medium: 'border-l-yellow-700 dark:border-l-yellow-500',
+  // Medium intentionally uses a bright yellow for visual punch. yellow-500 is
+  // below the 3:1 floor on the white light card (1.92:1) — an accepted product
+  // trade-off (chosen over the WCAG-legible-but-olive yellow-700); dark mode
+  // yellow-400 is a vivid 11.7:1.
+  medium: 'border-l-yellow-500 dark:border-l-yellow-400',
   low: 'border-l-gray-500 dark:border-l-gray-400',
   lowest: 'border-l-gray-600 dark:border-l-gray-300',
   minor: 'border-l-gray-700 dark:border-l-gray-500',
