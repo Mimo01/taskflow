@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: executing
-last_updated: "2026-06-03T11:28:55.872Z"
+last_updated: "2026-06-03T11:55:25.647Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 7
   percent: 20
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 ## Current Position
 
 Phase: 77 (universal-peek-slideover-and-issue-detail-refinements) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-03
 
-Progress: [██████░░░░] 63%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [██████░░░░] 63%
 | 79 | TRAN-01..05 | Drag-to-transition on Sprint Board with per-transition drop zones |
 | 80 | SUBTPL-01..08 | Subtask templates in Settings + bulk creation modal |
 | Phase 77 P01 | 15 | 2 tasks | 4 files |
+| Phase 77 P03 | 45min | 4 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 - Phase 80 independent of Phases 77-79; depends only on Phase 76 shared primitives
 - [Phase ?]: peekPanelWidth defaults to null (not 480) in initialSettings — mirrors issueDetailPanelWidth; PeekPanel applies ?? 480 at read time (Plan 03)
 - [Phase ?]: A1 confirmed — JiraIssueDetail.fields.parent present at types.ts:152, no type change needed
+- [Phase ?]: CommandPalette body-select routes to peek (onOpenIssue); key-element navigate split delivered in Plan 04 Task 3
+- [Phase ?]: NotificationPopover body row routes to peek; NotificationRow key split delivered in Plan 04 Task 3
+- [Phase ?]: min-h-0 required on flex-row squeeze wrapper (A5) for height containment in Safari
 
 ### Blockers/Concerns
 
@@ -90,7 +94,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T11:28:52.216Z
-Stopped at: Phase 77 UI-SPEC approved
+Last session: 2026-06-03T11:55:25.644Z
+Stopped at: Completed 77-03-PLAN.md
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
