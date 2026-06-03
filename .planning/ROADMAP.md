@@ -249,7 +249,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 77-04-PLAN.md — per-surface key/body click split (TaskCard, BacklogRow, DashboardInProgressCard, Standup)
+- [x] 77-04-PLAN.md — per-surface key/body click split (TaskCard, BacklogRow, DashboardInProgressCard, Standup)
 
 **Notes**: Resolved at plan time — D-01 CSS squeeze panel (no Dialog/backdrop/aria-hidden); close-on-route-change = D-07. D-05 OVERRIDE honored: peek renders the full IssueDetailView (comments/timeline/composer) via a shared extraction, not the thin IssueDetailBody. DETAIL-01/02 folded here per onOpenIssue click model.
 **UI hint**: yes
@@ -324,7 +324,7 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
-| 77. Universal Peek Slideover and Issue-Detail Refinements | 3/4 | In Progress|  |
+| 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete   | 2026-06-03 |
 | 78. Drag-to-Rank on Backlog | 0/TBD | Not started | - |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: executing
-last_updated: "2026-06-03T11:55:25.647Z"
+last_updated: "2026-06-03T12:18:41.044Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
-  percent: 20
+  completed_plans: 8
+  percent: 40
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 ## Current Position
 
 Phase: 77 (universal-peek-slideover-and-issue-detail-refinements) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-06-03
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [█████████░] 88%
 | 80 | SUBTPL-01..08 | Subtask templates in Settings + bulk creation modal |
 | Phase 77 P01 | 15 | 2 tasks | 4 files |
 | Phase 77 P03 | 45min | 4 tasks | 7 files |
+| Phase 77 P04 | 30min | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 - [Phase ?]: CommandPalette body-select routes to peek (onOpenIssue); key-element navigate split delivered in Plan 04 Task 3
 - [Phase ?]: NotificationPopover body row routes to peek; NotificationRow key split delivered in Plan 04 Task 3
 - [Phase ?]: min-h-0 required on flex-row squeeze wrapper (A5) for height containment in Safari
+- [Phase ?]: [Phase 77-04]: D-10 key/body split applied universally — div role=button body→onOpenIssue, inner key button→stopPropagation→navigate; Pitfall 1 avoided by outer-button-to-div conversion
 
 ### Blockers/Concerns
 
@@ -94,7 +96,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T11:55:25.644Z
-Stopped at: Completed 77-03-PLAN.md
+Last session: 2026-06-03T12:18:41.041Z
+Stopped at: Completed 77-04-PLAN.md
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
