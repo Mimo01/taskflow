@@ -11,6 +11,8 @@
  * Right-click opens a context menu with "Move to sprint" options (when onMoveToSprint provided).
  */
 
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Flag } from 'lucide-react';
 import React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -52,6 +54,10 @@ export interface BacklogRowProps {
   isFlagged?: boolean;
   /** Called when user selects Flag/Unflag from the context menu */
   onToggleFlag?: (issueKey: string) => void;
+  /** Set true while the row is in the DragOverlay ghost — suppresses sortable hook */
+  isOverlay?: boolean;
+  /** Passed from parent when justDragged guard is active */
+  justDragged?: React.MutableRefObject<boolean>;
 }
 
 // -- Row cells (shared between both render paths) ----------------------------
@@ -179,9 +185,27 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onMoveToBacklog,
       isFlagged,
       onToggleFlag,
+      isOverlay,
+      justDragged,
     },
-    ref,
+    _ref,
   ) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: issue.key, disabled: isOverlay });
+
+    const dragStyle: React.CSSProperties = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0 : 1,
+      cursor: isDragging ? 'grabbing' : 'grab',
+    };
+
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
     // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
     const epicName = epicKey
@@ -219,11 +243,18 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag) {
       return (
         <tr
-          ref={ref}
+          ref={setNodeRef}
           data-testid={`backlog-row-${issue.key}`}
           className={rowClassName}
-          onClick={() => (onOpenIssue ?? onIssueClick)(issue.key)}
+          style={dragStyle}
+          data-dragging={isDragging ? 'true' : undefined}
+          onClick={() => {
+            if (justDragged?.current) return;
+            (onOpenIssue ?? onIssueClick)(issue.key);
+          }}
           aria-current={isFocused ? 'true' : undefined}
+          {...attributes}
+          {...listeners}
         >
           <RowCells {...cellsProps} />
         </tr>
@@ -235,11 +266,18 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
         <ContextMenuTrigger
           render={
             <tr
-              ref={ref}
+              ref={setNodeRef}
               data-testid={`backlog-row-${issue.key}`}
               className={rowClassName}
-              onClick={() => (onOpenIssue ?? onIssueClick)(issue.key)}
+              style={dragStyle}
+              data-dragging={isDragging ? 'true' : undefined}
+              onClick={() => {
+                if (justDragged?.current) return;
+                (onOpenIssue ?? onIssueClick)(issue.key);
+              }}
               aria-current={isFocused ? 'true' : undefined}
+              {...attributes}
+              {...listeners}
             >
               <RowCells {...cellsProps} />
             </tr>
