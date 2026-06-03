@@ -29,6 +29,7 @@ const initialAuthState = {
   gitlabName: null as string | null,
   gitlabEmail: null as string | null,
   jiraBoardIds: {} as Record<string, number>,
+  jiraBoardNames: {} as Record<string, string>,
 };
 
 interface AuthState {
@@ -67,6 +68,8 @@ interface AuthState {
    * boards. Absent keys fall back to board discovery (first board).
    */
   jiraBoardIds: Record<string, number>;
+  /** Display names for the chosen boards, keyed by project key (parallels jiraBoardIds). */
+  jiraBoardNames: Record<string, string>;
   /**
    * True once the Tauri async storage rehydration has completed.
    * Transient — not persisted. Used by components to avoid collapsing
@@ -87,8 +90,8 @@ interface AuthState {
   setGitlabName: (name: string | null) => void;
   /** Set GitLab account email for standup commit author matching. */
   setGitlabEmail: (email: string | null) => void;
-  /** Set the chosen Jira scrum board id for a project key. */
-  setJiraBoardId: (projectKey: string, boardId: number) => void;
+  /** Set the chosen Jira scrum board id (and optional display name) for a project key. */
+  setJiraBoardId: (projectKey: string, boardId: number, boardName?: string) => void;
   /**
    * Reset all auth data fields to defaults (all null/false).
    * Preserves _hasHydrated and action functions (merge-mode set).
@@ -120,8 +123,14 @@ export const useAuthStore = create<AuthState>()(
       setGitlabUsername: (username) => set({ gitlabUsername: username }),
       setGitlabName: (name) => set({ gitlabName: name }),
       setGitlabEmail: (email) => set({ gitlabEmail: email }),
-      setJiraBoardId: (projectKey, boardId) =>
-        set((state) => ({ jiraBoardIds: { ...state.jiraBoardIds, [projectKey]: boardId } })),
+      setJiraBoardId: (projectKey, boardId, boardName) =>
+        set((state) => ({
+          jiraBoardIds: { ...state.jiraBoardIds, [projectKey]: boardId },
+          jiraBoardNames:
+            boardName != null
+              ? { ...state.jiraBoardNames, [projectKey]: boardName }
+              : state.jiraBoardNames,
+        })),
       resetAuth: () => set({ ...initialAuthState }),
     }),
     {

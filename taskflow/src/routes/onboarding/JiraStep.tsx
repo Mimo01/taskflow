@@ -87,7 +87,10 @@ export default function JiraStep() {
     setActiveJiraProject(selectedProject);
     // Persist the chosen board id (covers both auto-selected-single and explicit
     // multi-board cases). Skipped when no boards exist (discovery fallback).
-    if (chosenBoardId != null) setJiraBoardId(selectedProject, chosenBoardId);
+    if (chosenBoardId != null) {
+      const boardName = boards.find((b) => b.id === chosenBoardId)?.name;
+      setJiraBoardId(selectedProject, chosenBoardId, boardName);
+    }
     const user = mutation.data?.user;
     if (user) setJiraUser(user.displayName, user.name);
     goNext();
