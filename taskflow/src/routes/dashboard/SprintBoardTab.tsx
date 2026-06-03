@@ -705,8 +705,14 @@ export default function SprintBoardTab() {
 
   // Fetch active sprint (for goal text and board ID)
   const { data: activeSprint } = useQuery({
-    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchActiveSprint(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
+    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
+    queryFn: () =>
+      fetchActiveSprint(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        boardId ?? undefined,
+      ),
     staleTime: 5 * 60 * 1000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });

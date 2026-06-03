@@ -41,12 +41,16 @@ vi.mock('react-router-dom', async (importOriginal) => {
   };
 });
 
-vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: () => ({
+vi.mock('@/stores/auth.store', () => {
+  const useAuthStore = () => ({
     jiraBaseUrl: 'https://jira.example.com',
     activeJiraProject: 'PROJ',
-  }),
-}));
+  });
+  // Sidebar reads the chosen board id imperatively via getState(); default to
+  // none so the prefetch falls back to fetchBoardId discovery in these tests.
+  useAuthStore.getState = () => ({ jiraBoardIds: {} as Record<string, number> });
+  return { useAuthStore };
+});
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),

@@ -12,8 +12,10 @@
  * - No createContext/useContext — prop drilling only
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import BoardPicker from '@/components/jira/BoardPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +24,7 @@ import type { GitLabProject } from '@/services/gitlab';
 import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import type { JiraProject } from '@/services/jira';
 import { listJiraProjects, validateJira } from '@/services/jira';
+import { type JiraBoard, listProjectBoards } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -34,15 +37,19 @@ type TestStatus = 'idle' | 'pending' | 'success' | 'error';
 interface JiraConnectionCardProps {
   initialBaseUrl: string;
   activeProject: string | null;
+  activeBoardId: number | null;
   onConnected: (url: string) => void;
   onProjectSelected: (projectKey: string) => void;
+  onBoardSelected: (projectKey: string, boardId: number) => void;
 }
 
 function JiraConnectionCard({
   initialBaseUrl,
   activeProject,
+  activeBoardId,
   onConnected,
   onProjectSelected,
+  onBoardSelected,
 }: JiraConnectionCardProps) {
   const [draftUrl, setDraftUrl] = useState(initialBaseUrl);
   const [draftToken, setDraftToken] = useState('');
@@ -50,12 +57,40 @@ function JiraConnectionCard({
   const [testError, setTestError] = useState<string | null>(null);
   const [projects, setProjects] = useState<JiraProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>(activeProject ?? '');
+  const [boards, setBoards] = useState<JiraBoard[]>([]);
+  const [boardsLoading, setBoardsLoading] = useState(false);
+  const [selectedBoardId, setSelectedBoardId] = useState<number | null>(activeBoardId);
 
   const resetTestStatus = () => {
     setTestStatus('idle');
     setTestError(null);
     setProjects([]);
+    setBoards([]);
   };
+
+  // Load boards whenever a project is selected after a successful test.
+  useEffect(() => {
+    if (testStatus !== 'success' || !selectedProject) {
+      setBoards([]);
+      return;
+    }
+    let cancelled = false;
+    setBoardsLoading(true);
+    (async () => {
+      try {
+        const token = await readSecret('jira-pat');
+        const list = await listProjectBoards(draftUrl || initialBaseUrl, token, selectedProject);
+        if (!cancelled) setBoards(list);
+      } catch {
+        if (!cancelled) setBoards([]);
+      } finally {
+        if (!cancelled) setBoardsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [testStatus, selectedProject, draftUrl, initialBaseUrl]);
 
   const handleUrlChange = (value: string) => {
     setDraftUrl(value);
@@ -89,7 +124,13 @@ function JiraConnectionCard({
 
   const handleProjectChange = (key: string) => {
     setSelectedProject(key);
+    setSelectedBoardId(null);
     onProjectSelected(key);
+  };
+
+  const handleBoardChange = (boardId: number) => {
+    setSelectedBoardId(boardId);
+    if (selectedProject) onBoardSelected(selectedProject, boardId);
   };
 
   const showProjectPicker = testStatus === 'success' && projects.length > 0;
@@ -172,6 +213,16 @@ function JiraConnectionCard({
             </SelectContent>
           </Select>
         </div>
+      )}
+
+      {/* Board picker — appears once a project is selected (FB8-4) */}
+      {showProjectPicker && selectedProject && (
+        <BoardPicker
+          boards={boards}
+          value={selectedBoardId}
+          onChange={handleBoardChange}
+          isLoading={boardsLoading}
+        />
       )}
 
       {/* Current selection indicator when not in test-success state */}
@@ -392,13 +443,16 @@ export default function ConnectionsSection() {
     jiraBaseUrl,
     setJiraConnected,
     setActiveJiraProject,
+    setJiraBoardId,
     gitlabBaseUrl,
     setGitlabConnected,
     setActiveGitlabProject,
     activeJiraProject,
+    jiraBoardIds,
     activeGitlabProject,
     activeGitlabProjectPath,
   } = useAuthStore();
+  const queryClient = useQueryClient();
 
   return (
     <div className="flex flex-col gap-6">
@@ -406,8 +460,15 @@ export default function ConnectionsSection() {
       <JiraConnectionCard
         initialBaseUrl={jiraBaseUrl ?? ''}
         activeProject={activeJiraProject}
+        activeBoardId={activeJiraProject ? (jiraBoardIds?.[activeJiraProject] ?? null) : null}
         onConnected={(url) => setJiraConnected(true, url)}
         onProjectSelected={(key) => setActiveJiraProject(key)}
+        onBoardSelected={(key, boardId) => {
+          setJiraBoardId(key, boardId);
+          // The runtime board switch must refresh active-sprint dependent views
+          // immediately (RESEARCH pitfall 2 — distinct from the wizard path).
+          queryClient.invalidateQueries({ queryKey: ['jira-active-sprint'] });
+        }}
       />
       <GitLabConnectionCard
         initialBaseUrl={gitlabBaseUrl ?? ''}
