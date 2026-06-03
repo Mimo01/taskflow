@@ -120,26 +120,37 @@ export default function Sidebar() {
     if (!jiraBaseUrl || !jiraToken || !activeJiraProject) return;
 
     if (path === '/sprint-board' || path === '/dashboard') {
-      // Phase 73 Plan 03 (D-08 / D-08a): swap legacy sprint-stories prefetch to
-      // getGhAllData via the boardId async-chain pattern (mirrors the backlog
-      // branch below). D-08a: silently skip when boardId is null.
-      queryClient
-        .fetchQuery({
-          queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
-          queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
-          staleTime: Infinity,
-        })
+      // FB8-3: honor a user-chosen board id when one is stored for this project,
+      // otherwise fall back to discovery (first board). Resolving the stored id
+      // first keeps the prefetch on the same board the live views render.
+      const storedBoardId = useAuthStore.getState().jiraBoardIds?.[activeJiraProject];
+      const resolveBoardId =
+        storedBoardId != null
+          ? Promise.resolve<number | null>(storedBoardId)
+          : queryClient.fetchQuery({
+              queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
+              queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
+              staleTime: Infinity,
+            });
+      // Phase 73 Plan 03 (D-08 / D-08a): warm getGhAllData via the resolved
+      // boardId async-chain pattern. D-08a: silently skip when boardId is null.
+      resolveBoardId
         .then((boardId) => {
           if (boardId == null) return; // D-08a guard
           return getGhAllData(queryClient, jiraBaseUrl, jiraToken, boardId);
         })
         .catch(() => {});
       if (path === '/sprint-board') {
-        queryClient.prefetchQuery({
-          queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
-          queryFn: () => fetchActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject),
-          staleTime: 5 * 60 * 1000,
-        });
+        resolveBoardId
+          .then((boardId) => {
+            queryClient.prefetchQuery({
+              queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
+              queryFn: () =>
+                fetchActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject, boardId ?? undefined),
+              staleTime: 5 * 60 * 1000,
+            });
+          })
+          .catch(() => {});
         queryClient.prefetchQuery({
           queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
           queryFn: () =>
