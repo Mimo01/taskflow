@@ -57,7 +57,12 @@ export default function DashboardSprintCard({
   const { data: activeSprint, isLoading: sprintLoading } = useQuery({
     queryKey: ['jira-active-sprint', activeJiraProject, boardId],
     queryFn: () =>
-      fetchActiveSprint(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? '', boardId ?? undefined),
+      fetchActiveSprint(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        boardId ?? undefined,
+      ),
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });
