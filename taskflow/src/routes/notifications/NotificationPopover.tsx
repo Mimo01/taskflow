@@ -48,6 +48,7 @@ function extractJiraIssueKey(item: {
 
 interface NotificationPopoverProps {
   onIssueClick?: (issueKey: string) => void;
+  onOpenIssue?: (issueKey: string) => void;
   onMRClick?: (projectIdAndIid: string) => void;
   onClose?: () => void;
 }
@@ -215,6 +216,7 @@ function VirtualizedNotificationList({
 
 export default function NotificationPopover({
   onIssueClick,
+  onOpenIssue,
   onMRClick,
   onClose,
 }: NotificationPopoverProps) {
@@ -265,11 +267,18 @@ export default function NotificationPopover({
     }
   }
 
-  /** Click row = mark as read + navigate to detail. */
+  /** Click row = mark as read + open peek (issue) or navigate (MR). */
   function handleRowClick(item: NotificationItem) {
     markAsRead(item.id);
-    // Navigate to issue or MR detail
+    // Body row click → open peek for Jira issues (onOpenIssue), keep onIssueClick for key-element
+    // clicks delivered in Plan 04 Task 3 (NotificationRow key split).
     const issueKey = extractJiraIssueKey(item);
+    if (issueKey && onOpenIssue) {
+      onOpenIssue(issueKey);
+      onClose?.();
+      return;
+    }
+    // Fallback to onIssueClick if onOpenIssue not wired yet
     if (issueKey && onIssueClick) {
       onIssueClick(issueKey);
       onClose?.();

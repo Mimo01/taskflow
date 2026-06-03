@@ -22,6 +22,7 @@ import {
 import { AboutDialog } from './components/about/AboutDialog';
 import CommandPalette from './components/app/CommandPalette';
 import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
+import { PeekPanel } from './components/app/PeekPanel';
 import PinnedTabStrip from './components/app/PinnedTabStrip';
 import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner';
 import Sidebar from './components/app/Sidebar';
@@ -136,6 +137,9 @@ function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
+  const [peekIssueKey, setPeekIssueKey] = useState<string | null>(null);
+  const peekPanelWidth = useSettingsStore((s) => s.peekPanelWidth);
+  const setPeekPanelWidth = useSettingsStore((s) => s.setPeekPanelWidth);
   const navigate = useNavigate();
   const location = useLocation();
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
@@ -313,6 +317,19 @@ function AppLayout() {
     if (pathname.startsWith('/release/')) return 'Release';
     return 'Home';
   }
+
+  // Open peek panel — called from CommandPalette, NotificationPopover, and outlet context surfaces
+  const handleOpenPeek = (issueKey: string) => setPeekIssueKey(issueKey);
+
+  // Route-change close (D-07): close the peek on any pathname change.
+  // Swapping a peeked issue does NOT change pathname (Pitfall 3), so swaps stay open.
+  const prevPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (location.pathname !== prevPathRef.current) {
+      setPeekIssueKey(null);
+      prevPathRef.current = location.pathname;
+    }
+  }, [location.pathname]);
 
   // Derive active issue key from current URL for PinnedTabStrip highlight
   const activeIssueKey = location.pathname.startsWith('/issue/')
@@ -515,6 +532,7 @@ function AppLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar
           onIssueClick={(key) => handleIssueClick(key, true)}
+          onOpenIssue={handleOpenPeek}
           onMRClick={handleMRClick}
           paletteOpen={paletteOpen}
           onPaletteOpen={() => setPaletteOpen(true)}
@@ -550,19 +568,36 @@ function AppLayout() {
             onUpdate={handleBannerUpdate}
           />
         )}
-        <main className="flex-1 overflow-auto">
-          <Outlet
-            context={{
-              onIssueClick: handleIssueClick,
-              onEpicClick: handleIssueClick,
-              onMRClick: handleMRClick,
-              openEdit: handleOpenEdit,
-              openClone: handleOpenClone,
-              openAddSubtask: handleOpenAddSubtask,
-              openCreateStory: handleOpenCreateStory,
-            }}
-          />
-        </main>
+        <div className="flex flex-row flex-1 overflow-hidden min-h-0">
+          <main className="flex-1 overflow-auto min-w-0">
+            <Outlet
+              context={{
+                onIssueClick: handleIssueClick,
+                onEpicClick: handleIssueClick,
+                onMRClick: handleMRClick,
+                openEdit: handleOpenEdit,
+                openClone: handleOpenClone,
+                openAddSubtask: handleOpenAddSubtask,
+                openCreateStory: handleOpenCreateStory,
+                onOpenIssue: handleOpenPeek,
+              }}
+            />
+          </main>
+          {peekIssueKey && (
+            <PeekPanel
+              issueKey={peekIssueKey}
+              width={peekPanelWidth}
+              onWidthChange={setPeekPanelWidth}
+              onClose={() => setPeekIssueKey(null)}
+              onOpenIssue={(key) => setPeekIssueKey(key)}
+              onNavigateFull={(key) => {
+                setPeekIssueKey(null);
+                handleIssueClick(key, true);
+              }}
+              paletteOpen={paletteOpen}
+            />
+          )}
+        </div>
       </div>
       {/* Command palette overlay */}
       <CommandPalette
@@ -570,6 +605,10 @@ function AppLayout() {
         onClose={() => setPaletteOpen(false)}
         onIssueClick={(key) => {
           handleIssueClick(key, true);
+          setPaletteOpen(false);
+        }}
+        onOpenIssue={(key) => {
+          handleOpenPeek(key);
           setPaletteOpen(false);
         }}
         onNavigate={handlePaletteNavigate}
