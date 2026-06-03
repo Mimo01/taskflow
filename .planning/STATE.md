@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: executing
-last_updated: "2026-06-03T14:27:15.905Z"
+last_updated: "2026-06-03T14:30:36.883Z"
 last_activity: 2026-06-03
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 40
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 ## Current Position
 
 Phase: 78 (drag-to-rank-on-backlog) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-03
 
-Progress: [████████░░] 75%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [████████░░] 75%
 | Phase 77 P03 | 45min | 4 tasks | 7 files |
 | Phase 77 P04 | 30min | 4 tasks | 8 files |
 | Phase 78-drag-to-rank-on-backlog P01 | 8min | 3 tasks | 6 files |
+| Phase 78-drag-to-rank-on-backlog P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 - [Phase ?]: NotificationPopover body row routes to peek; NotificationRow key split delivered in Plan 04 Task 3
 - [Phase ?]: min-h-0 required on flex-row squeeze wrapper (A5) for height containment in Safari
 - [Phase ?]: [Phase 77-04]: D-10 key/body split applied universally — div role=button body→onOpenIssue, inner key button→stopPropagation→navigate; Pitfall 1 avoided by outer-button-to-div conversion
+- [Phase ?]: CR-01: cross-bucket midpoint stays in lower bucket, extends before value with midChar 'i'
+- [Phase ?]: CR-02: digit-by-digit BigInt parseBase36 replaces BigInt(parseInt) to avoid float64 precision loss
 
 ### Blockers/Concerns
 
@@ -97,7 +100,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T14:27:15.902Z
-Stopped at: Phase 78 UI-SPEC approved
+Last session: 2026-06-03T14:30:36.880Z
+Stopped at: Completed 78-02-PLAN.md
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
