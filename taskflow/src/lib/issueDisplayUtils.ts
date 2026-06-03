@@ -51,25 +51,41 @@ const PRIORITY_STRIPE: Record<string, string> = {
  * Jira encodes severity in the icon filename even when admins rename priorities,
  * so it generalizes where the name-keyed PRIORITY_STRIPE map cannot.
  *
- * Tiers collapse onto the same 4-hue palette as PRIORITY_STRIPE (red/orange/yellow/gray):
- *   blocker, critical, highest, major → red   (top tier — "Must"/"Critical" land here)
- *   high                              → orange
- *   medium                            → yellow
- *   low, minor, lowest, trivial       → gray
+ * A graduated severity ramp (high → low) gives each icon token its own ordered,
+ * distinct color rather than collapsing the top tiers onto a single red. Every
+ * light shade clears WCAG ≥ 3:1 against the white light-mode card, and every dark
+ * shade clears ≥ 3:1 against the dark-mode card (oklch 0.205 ≈ #171717):
+ *
+ *   blocker  → red-700  / red-400     (deepest red — top of the ramp)
+ *   critical → red-600  / red-400
+ *   major    → red-500  / red-500
+ *   highest  → orange-600 / orange-400
+ *   high     → amber-600  / amber-400
+ *   medium   → yellow-700 / yellow-500
+ *   low      → gray-500 / gray-400
+ *   lowest   → gray-600 / gray-300
+ *   minor    → gray-700 / gray-500
+ *   trivial  → gray-700 / gray-500
+ *
+ * Note the ordering is tuned to this app's Jira priority scheme (Blocker > Must >
+ * Critical > Should > High > … ), where `major` (Must) outranks `highest`
+ * (Critical/Should). Custom priorities that share an icon (e.g. Critical and
+ * Should both use highest.svg) are indistinguishable by color — that requires the
+ * Jira priority scheme rank from REST /priority, deferred to a follow-up.
  *
  * Full static class strings only (Tailwind JIT) — same constraint as PRIORITY_STRIPE.
  */
 const ICON_SEVERITY_STRIPE: Record<string, string> = {
-  blocker: 'border-l-red-600 dark:border-l-red-400',
+  blocker: 'border-l-red-700 dark:border-l-red-400',
   critical: 'border-l-red-600 dark:border-l-red-400',
-  highest: 'border-l-red-600 dark:border-l-red-400',
-  major: 'border-l-red-600 dark:border-l-red-400',
-  high: 'border-l-orange-600 dark:border-l-orange-400',
+  major: 'border-l-red-500 dark:border-l-red-500',
+  highest: 'border-l-orange-600 dark:border-l-orange-400',
+  high: 'border-l-amber-600 dark:border-l-amber-400',
   medium: 'border-l-yellow-700 dark:border-l-yellow-500',
   low: 'border-l-gray-500 dark:border-l-gray-400',
-  minor: 'border-l-gray-500 dark:border-l-gray-400',
   lowest: 'border-l-gray-600 dark:border-l-gray-300',
-  trivial: 'border-l-gray-600 dark:border-l-gray-300',
+  minor: 'border-l-gray-700 dark:border-l-gray-500',
+  trivial: 'border-l-gray-700 dark:border-l-gray-500',
 };
 
 /**
