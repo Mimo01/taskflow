@@ -17,6 +17,8 @@ interface ConfirmSprintMoveDialogProps {
   toSprintName: string;
   onConfirm: () => void;
   isPending?: boolean;
+  /** Override the cancel button label. Defaults to "Cancel". Use "Keep Position" for drag context. */
+  cancelLabel?: string;
 }
 
 export function ConfirmSprintMoveDialog({
@@ -27,6 +29,7 @@ export function ConfirmSprintMoveDialog({
   toSprintName,
   onConfirm,
   isPending,
+  cancelLabel = 'Cancel',
 }: ConfirmSprintMoveDialogProps) {
   const from = fromSprintName ?? 'Backlog';
   return (
@@ -41,7 +44,7 @@ export function ConfirmSprintMoveDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>{cancelLabel}</DialogClose>
           <Button onClick={onConfirm} disabled={isPending}>
             {isPending ? 'Moving...' : 'Confirm'}
           </Button>
