@@ -740,7 +740,11 @@ function getRankPosition(
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Both questions are resolved with the recommendations below and implemented in the
+> Phase 78 plans — Q1 (`cancelLabel?` prop) in Plan 01, Q2 (integer `rankCustomFieldId`)
+> in Plan 03. Retained for traceability.
 
 1. **`ConfirmSprintMoveDialog` cancel label: add prop vs create new variant?**
    - What we know: existing dialog hardcodes "Cancel"; UI-SPEC requires "Keep Position" for drag context; existing right-click usage needs "Cancel" preserved.
