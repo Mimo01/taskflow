@@ -465,9 +465,7 @@ export function IssueDetailView({
       onTogglePin={onTogglePin}
       enrichedSubtasks={subtaskEnrichmentQuery.data as never}
       showSubtasksSkeleton={showSubtasksSkeleton}
-      subtaskError={
-        subtaskEnrichmentQuery.isError ? (subtaskEnrichmentQuery.error as Error) : null
-      }
+      subtaskError={subtaskEnrichmentQuery.isError ? (subtaskEnrichmentQuery.error as Error) : null}
       onSubtaskRetry={() =>
         void queryClient.invalidateQueries({
           queryKey: ['jira-subtask-enrichment', issueKey, jiraBaseUrl],
