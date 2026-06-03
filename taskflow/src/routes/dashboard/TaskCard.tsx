@@ -99,7 +99,7 @@ export default function TaskCard({
             : [
                 'border-l-4',
                 priorityStripeClass(
-                  (issue.fields.priority as { name: string } | null | undefined)?.name,
+                  issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined,
                 ),
               ],
           isFlagged &&
