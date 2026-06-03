@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
+import { ArrowUpRight, Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -102,7 +102,7 @@ function subtaskListContent({
               <button
                 type="button"
                 onClick={() => onOpenIssue?.(sub.key)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
+                className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-accent text-sm text-left cursor-pointer"
               >
                 <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
                 <span className="flex-1 truncate">{sub.fields.summary}</span>
@@ -216,8 +216,22 @@ export function IssueDetailContent({
 
   return (
     <div className="space-y-6">
-      {/* Title */}
+      {/* Title (with optional parent breadcrumb above for subtasks — DETAIL-01) */}
       <div>
+        {isSubtask && issue.fields.parent && (
+          <div
+            className="flex items-center gap-1 mb-1 cursor-pointer hover:underline"
+            onClick={() => onOpenIssue?.(issue.fields.parent!.key)}
+          >
+            <ArrowUpRight className="size-3 text-muted-foreground" />
+            <span className="font-mono text-xs text-muted-foreground">
+              {issue.fields.parent.key}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              — {issue.fields.parent.fields.summary}
+            </span>
+          </div>
+        )}
         <p className="text-xs font-mono text-muted-foreground mb-1">{issue.key}</p>
         <h2 className="text-xl font-semibold leading-snug">{summary}</h2>
       </div>
@@ -257,7 +271,7 @@ export function IssueDetailContent({
                   <button
                     type="button"
                     onClick={() => onOpenIssue?.(story.key)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
                   >
                     <span className="font-mono text-xs text-muted-foreground shrink-0">
                       {story.key}
@@ -310,7 +324,7 @@ export function IssueDetailContent({
           <button
             type="button"
             onClick={() => onAddSubtask?.(issueKey)}
-            className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
           >
             <Plus className="size-3.5" />
             Add subtask

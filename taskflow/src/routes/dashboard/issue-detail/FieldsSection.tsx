@@ -638,20 +638,6 @@ export function FieldsSection({
           );
         })()}
 
-      {/* Parent -- subtasks only, navigable */}
-      {isSubtask && f.parent && (
-        <MetaRow label="Parent">
-          <button
-            type="button"
-            onClick={() => onOpenIssue?.(f.parent?.key ?? '')}
-            className="text-left hover:underline cursor-pointer"
-          >
-            <span className="font-mono text-xs">{f.parent.key}</span>
-            <span className="text-xs text-muted-foreground ml-1">— {f.parent.fields.summary}</span>
-          </button>
-        </MetaRow>
-      )}
-
       {/* Sprint -- stories only (dropdown menu, same component as backlog context menu) */}
       {isStory && (
         <MetaRow label="Sprint">
