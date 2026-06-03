@@ -279,7 +279,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 78-04-PLAN.md — BacklogRow useSortable + BacklogPage DndContext/per-section SortableContext + optimistic rank mutation + flicker gate + inline rollback banner + cross-section confirm (Keep Position) + human verify
+- [x] 78-04-PLAN.md — BacklogRow useSortable + BacklogPage DndContext/per-section SortableContext + optimistic rank mutation + flicker gate + inline rollback banner + cross-section confirm (Keep Position) + human verify
 
 **Notes**: Scope widened per CONTEXT.md D-01..D-05 — drag enabled in EVERY section (active sprint, future sprints, unassigned backlog) with gated cross-section moves behind ConfirmSprintMoveDialog (sprint-membership + rank). Remove the `@dnd-kit` absence guard from `package-deps.guard.test.ts` as a pre-step; install all four `@dnd-kit` packages here (reused by Phase 79). Flicker mitigation: `cancelQueries` in `onMutate` + `isDraggingRef`-gated local state as the rendered source of truth during drag (corrected: risk is `refetchOnWindowFocus` after staleTime, not a 60s interval). `rankCustomFieldId` is the integer from `GhBacklogResponse` cache, never hardcoded; unit-tested. Drag/click disambiguation: `PointerSensor` `{ delay: 150, tolerance: 5 }` + `justDragged` ref guard.
 
@@ -339,6 +339,6 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
-| 78. Drag-to-Rank on Backlog | 3/4 | In Progress|  |
+| 78. Drag-to-Rank on Backlog | 4/4 | Complete   | 2026-06-03 |
 | 79. Drag-to-Transition on Sprint Board | 0/TBD | Not started | - |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |

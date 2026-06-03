@@ -17,7 +17,7 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 
 ### Backlog Drag-to-Rank
 
-- [ ] **RANK-01**: The Backlog active-sprint list is ordered by Jira rank
+- [x] **RANK-01**: The Backlog active-sprint list is ordered by Jira rank
 - [x] **RANK-02**: User can drag a story within the Backlog active-sprint list to reorder it
 - [x] **RANK-03**: A reorder persists to Jira via the rank API (`PUT /rest/agile/1.0/issue/rank`, `rankCustomFieldId` from the backlog response)
 - [x] **RANK-04**: A failed rank update rolls back the optimistic reorder and surfaces an error
@@ -91,7 +91,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | VISUAL-03 | Phase 76 | Complete |
 | VISUAL-04 | Phase 76 | Complete |
 | VISUAL-05 | Phase 76 | Complete |
-| RANK-01 | Phase 78 | Pending |
+| RANK-01 | Phase 78 | Complete |
 | RANK-02 | Phase 78 | Complete |
 | RANK-03 | Phase 78 | Complete |
 | RANK-04 | Phase 78 | Complete |
