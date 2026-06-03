@@ -50,6 +50,8 @@ export interface YesterdayColumnProps {
   issueMeta: Record<string, StandupIssueMeta>;
   /** Navigate to the issue detail page (threads the breadcrumb trail). */
   onIssueClick: (key: string) => void;
+  /** Phase 77 Plan 04 (PEEK-01): clicking the group header body opens the peek panel. */
+  onOpenIssue?: (key: string) => void;
   /** Navigate to the MR detail page. Receives "${projectId}/${iid}" string. */
   onMRClick: (projectIdAndIid: string) => void;
 }
@@ -418,6 +420,7 @@ export default function YesterdayColumn({
   mrEventsQuery,
   issueMeta,
   onIssueClick,
+  onOpenIssue,
   onMRClick,
 }: YesterdayColumnProps) {
   // Build joined groups in a stable useMemo
@@ -522,7 +525,8 @@ export default function YesterdayColumn({
                     summary={group.summary}
                     issueType={group.issueType}
                     subItems={group.subItems}
-                    onClick={() => onIssueClick(group.issueKey)}
+                    onClick={() => (onOpenIssue ?? onIssueClick)(group.issueKey)}
+                    onIssueKeyClick={() => onIssueClick(group.issueKey)}
                     onIssueClick={onIssueClick}
                     onMRClick={onMRClick}
                   />

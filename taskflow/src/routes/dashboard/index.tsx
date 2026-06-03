@@ -31,7 +31,10 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, jiraUserDisplayName } = useAuthStore();
   const { storyPointsFieldKey } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
-  const { onIssueClick } = useOutletContext<{ onIssueClick: (key: string) => void }>();
+  const { onIssueClick, onOpenIssue } = useOutletContext<{
+    onIssueClick: (key: string) => void;
+    onOpenIssue: (key: string) => void;
+  }>();
 
   // D-16: single point of PAT load; cards receive it as a prop
   useEffect(() => {
@@ -112,6 +115,7 @@ export default function Dashboard() {
             jiraUserDisplayName={jiraUserDisplayName ?? ''}
             storyPointsFieldKey={storyPointsFieldKey}
             onIssueClick={onIssueClick}
+            onOpenIssue={onOpenIssue}
           />
         </div>
         <DashboardReleaseCard
