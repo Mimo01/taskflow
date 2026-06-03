@@ -41,7 +41,10 @@ const THEME_CYCLE: Theme[] = ['light', 'dark', 'system'];
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
-  onIssueClick: (issueKey: string) => void;
+  /** Navigate to full-page issue detail (used by Plan 04 key-element click split). */
+  onIssueClick?: (issueKey: string) => void;
+  /** Open peek panel for body selection (used by this plan and Plan 04 body click). */
+  onOpenIssue: (issueKey: string) => void;
   onNavigate: (path: string) => void;
   onOpenNotifications: () => void;
   onOpenCreate: () => void;
@@ -50,7 +53,7 @@ interface CommandPaletteProps {
 export default function CommandPalette({
   open,
   onClose,
-  onIssueClick,
+  onOpenIssue,
   onNavigate,
   onOpenNotifications,
   onOpenCreate,
@@ -164,7 +167,9 @@ export default function CommandPalette({
   function handleIssueSelect(issueKey: string, title?: string) {
     const resolvedTitle = title ?? issuesMap.get(issueKey)?.fields.summary;
     pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
-    onIssueClick(issueKey);
+    // Body selection → open peek (onOpenIssue). Key-element click split (→ onIssueClick) is
+    // delivered in Plan 04 Task 3. For now, body select opens peek.
+    onOpenIssue(issueKey);
     onClose();
   }
 

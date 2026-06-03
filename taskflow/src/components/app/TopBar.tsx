@@ -19,6 +19,8 @@ import RecentItemsPopover from './RecentItemsPopover';
 interface TopBarProps {
   /** Called with the Jira issue key when a Jira result in search or notifications is clicked. */
   onIssueClick?: (issueKey: string) => void;
+  /** Called with the Jira issue key to open the peek panel (body row click). */
+  onOpenIssue?: (issueKey: string) => void;
   /** Called with "projectId/iid" when a GitLab MR is clicked from recent items. */
   onMRClick?: (projectIdAndIid: string) => void;
   /** Whether the command palette is currently open (reserved for future visual feedback). */
@@ -33,6 +35,7 @@ interface TopBarProps {
 
 export default function TopBar({
   onIssueClick,
+  onOpenIssue,
   onMRClick,
   onPaletteOpen,
   notifPopoverOpen,
@@ -98,6 +101,7 @@ export default function TopBar({
         <PopoverContent className="p-0 w-[28rem]">
           <NotificationPopover
             onIssueClick={onIssueClick}
+            onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
             onClose={() => onNotifPopoverChange(false)}
           />

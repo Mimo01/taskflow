@@ -123,6 +123,7 @@ const defaultProps = {
   open: true,
   onClose: vi.fn(),
   onIssueClick: vi.fn(),
+  onOpenIssue: vi.fn(),
   onNavigate: vi.fn(),
   onOpenNotifications: vi.fn(),
   onOpenCreate: vi.fn(),
