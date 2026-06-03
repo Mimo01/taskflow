@@ -44,6 +44,12 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
+// Mock useBoardId — Dashboard resolves a board id for the (mocked) sprint card;
+// stub it so these greeting/layout tests need no QueryClientProvider.
+vi.mock('@/hooks/useBoardId', () => ({
+  useBoardId: () => ({ boardId: null, isLoading: false }),
+}));
+
 // Mock react-router-dom — useOutletContext returns null by default in MemoryRouter; mock prevents TypeError
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');

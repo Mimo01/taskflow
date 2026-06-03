@@ -11,25 +11,48 @@
  * storeSecret is called with key='jira-pat' after successful validateJira call.
  * Ref: PLAN 02 key_links → from JiraStep.tsx to stronghold.ts via storeSecret('jira-pat', token)
  */
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
+import BoardPicker from '@/components/jira/BoardPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { listJiraProjects, validateJira } from '@/services/jira';
+import { listProjectBoards } from '@/services/jira/sprints';
 import { storeSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 
 export default function JiraStep() {
-  const { jiraUrl, jiraToken, jiraProject, jiraProjects, set, goBack, goNext } =
+  const { jiraUrl, jiraToken, jiraProject, jiraProjects, jiraBoardId, set, goBack, goNext } =
     useOnboardingStore();
-  const { setJiraConnected, setActiveJiraProject, setJiraUser } = useAuthStore();
+  const { setJiraConnected, setActiveJiraProject, setJiraUser, setJiraBoardId } = useAuthStore();
 
   const projects = jiraProjects;
   const selectedProject = jiraProject ?? '';
   const setSelectedProject = (v: string) => set({ jiraProject: v });
+
+  // Fetch the scrum boards for the chosen project (FB8-4). Persist them in the
+  // onboarding store so back-nav preserves the list and the chosen board id.
+  const {
+    data: boards = [],
+    isLoading: boardsLoading,
+    refetch: refetchBoards,
+  } = useQuery({
+    queryKey: ['jira-boards', selectedProject, jiraUrl],
+    queryFn: () => listProjectBoards(jiraUrl, jiraToken, selectedProject),
+    enabled: !!selectedProject,
+  });
+
+  const chosenBoardId = jiraBoardId;
+  const handleBoardChange = (id: number) => set({ jiraBoardId: id });
+
+  // Mirror the fetched board list into the store so back-nav preserves it.
+  useEffect(() => {
+    set({ jiraBoards: boards });
+  }, [boards, set]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -49,11 +72,19 @@ export default function JiraStep() {
     mutation.mutate();
   };
 
+  // Gate continue only when the user must pick among multiple boards and hasn't
+  // yet. A single board auto-selects (BoardPicker fires onChange) and zero boards
+  // falls back to discovery — both allow continue.
+  const blockedOnBoardChoice = boards.length > 1 && chosenBoardId == null;
+
   const handleContinue = () => {
-    if (!selectedProject) return;
+    if (!selectedProject || blockedOnBoardChoice) return;
     set({ jiraValidated: true });
     setJiraConnected(true, jiraUrl);
     setActiveJiraProject(selectedProject);
+    // Persist the chosen board id (covers both auto-selected-single and explicit
+    // multi-board cases). Skipped when no boards exist (discovery fallback).
+    if (chosenBoardId != null) setJiraBoardId(selectedProject, chosenBoardId);
     const user = mutation.data?.user;
     if (user) setJiraUser(user.displayName, user.name);
     goNext();
@@ -129,6 +160,17 @@ export default function JiraStep() {
             </Select>
           </div>
         )}
+
+        {/* Board picker — appears once a project is selected (FB8-4) */}
+        {showProjectDropdown && selectedProject && (
+          <BoardPicker
+            boards={boards}
+            value={chosenBoardId}
+            onChange={handleBoardChange}
+            isLoading={boardsLoading}
+            onRetry={() => refetchBoards()}
+          />
+        )}
       </div>
 
       <div className="flex gap-3">
@@ -137,7 +179,7 @@ export default function JiraStep() {
         </Button>
 
         {showProjectDropdown ? (
-          <Button onClick={handleContinue} disabled={!selectedProject}>
+          <Button onClick={handleContinue} disabled={!selectedProject || blockedOnBoardChoice}>
             Continue
           </Button>
         ) : (

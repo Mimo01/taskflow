@@ -123,6 +123,7 @@ describe('DashboardSprintCard', () => {
         jiraToken="token"
         activeJiraProject="PROJ"
         storyPointsFieldKey="customfield_10016"
+        boardId={null}
       />,
     );
 
@@ -166,6 +167,7 @@ describe('DashboardSprintCard', () => {
         jiraToken="token"
         activeJiraProject="PROJ"
         storyPointsFieldKey="customfield_10016"
+        boardId={null}
       />,
     );
 
@@ -209,6 +211,7 @@ describe('DashboardSprintCard', () => {
         jiraToken="token"
         activeJiraProject="PROJ"
         storyPointsFieldKey="customfield_10016"
+        boardId={null}
       />,
     );
 
@@ -240,6 +243,7 @@ describe('DashboardSprintCard', () => {
         jiraToken="token"
         activeJiraProject="PROJ"
         storyPointsFieldKey="customfield_10016"
+        boardId={null}
       />,
     );
 
@@ -272,6 +276,7 @@ describe('DashboardSprintCard', () => {
           jiraToken="token"
           activeJiraProject="PROJ"
           storyPointsFieldKey="customfield_10016"
+          boardId={null}
         />,
       ),
     ).not.toThrow();
@@ -296,6 +301,7 @@ describe('DashboardSprintCard', () => {
         jiraToken="token"
         activeJiraProject="PROJ"
         storyPointsFieldKey="customfield_10016"
+        boardId={null}
       />,
     );
 
