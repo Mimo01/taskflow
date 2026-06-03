@@ -23,7 +23,8 @@ findings:
   warning: 7
   info: 4
   total: 12
-status: issues_found
+status: fixed
+resolved: BL-01, WR-01, WR-02, WR-03, WR-04, WR-05, WR-06, WR-07 (commits 6ace4ded, 0bfdc0f2, 11609735, c3204708, 7c876046). IN-01..04 left as tracked tech-debt.
 ---
 
 # Phase 77: Code Review Report
