@@ -27,9 +27,20 @@
  * action will own all manual refreshes.
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ChevronDown, ChevronRight, Inbox, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, Inbox, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
@@ -52,6 +63,7 @@ import {
   invalidateGhBacklogData,
   isIssueFlagged,
   moveIssuesToBacklog,
+  rankIssueApi,
   resolveEpic,
   setIssueFlagged,
   useGhBacklogData,
@@ -85,6 +97,7 @@ function VirtualizedBacklogTable({
   onMoveToBacklog,
   flaggedFieldKey,
   onToggleFlag,
+  justDragged,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -104,6 +117,7 @@ function VirtualizedBacklogTable({
   onMoveToBacklog?: (issueKey: string) => void;
   flaggedFieldKey: string;
   onToggleFlag?: (issueKey: string) => void;
+  justDragged?: React.MutableRefObject<boolean>;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -152,6 +166,7 @@ function VirtualizedBacklogTable({
         onMoveToBacklog={onMoveToBacklog}
         isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
         onToggleFlag={onToggleFlag ? () => onToggleFlag(issue.key) : undefined}
+        justDragged={justDragged}
       />
     );
   }
@@ -209,6 +224,31 @@ export default function BacklogPage() {
 
   // ── Query client ────────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
+
+  // ── Drag-to-rank sensors (D-06: 150ms delay prevents click/drag conflict) ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    }),
+  );
+
+  // ── Drag-to-rank state (D-08, RANK-05) ──────────────────────────────────────
+  const isDraggingRef = useRef(false);
+  const justDragged = useRef(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // Map<sectionId, string[]> — overrides server issue-key order during drag window (D-08)
+  const [localOrder, setLocalOrder] = useState<Map<string, string[]>>(new Map());
+  const [rankError, setRankError] = useState<string | null>(null);
+  // Pending cross-section drag move (D-03/D-04)
+  const [pendingDragMove, setPendingDragMove] = useState<{
+    issueKey: string;
+    fromSectionId: string;
+    toSectionId: string;
+    fromSprintName: string | null;
+    toSprintName: string;
+    newOrder: string[];
+    previousOrder: string[];
+  } | null>(null);
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
@@ -735,6 +775,219 @@ export default function BacklogPage() {
   // surface. The same toggle is still available on the issue detail view
   // (which owns its own mutation handler against the issue-detail cache).
 
+  // ── Rank mutation (RANK-02/04/05, D-08) ──────────────────────────────────────
+  // Follows the useFieldMutation.ts onMutate/onError/onSettled pattern.
+  // rankCustomFieldId is the INTEGER from cached GhBacklogResponse — never
+  // hardcoded (T-78-04A threat mitigated). readSecret in mutationFn reuses
+  // the existing Stronghold PAT path (T-78-04B).
+  const rankMutation = useMutation({
+    mutationFn: async ({
+      issueKey,
+      rankCustomFieldId,
+      position,
+    }: {
+      issueKey: string;
+      sectionId: string;
+      newOrder: string[];
+      previousOrder: string[];
+      rankCustomFieldId: number;
+      position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never>;
+    }) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return rankIssueApi(jiraBaseUrl ?? '', token, issueKey, rankCustomFieldId, position);
+    },
+    onMutate: async ({ sectionId, newOrder, previousOrder }) => {
+      // D-08 / RANK-05: cancel in-flight refetch so server data cannot
+      // overwrite the optimistic order while the user is dragging.
+      await queryClient.cancelQueries({ queryKey: ['gh-backlog', boardId] });
+      const snapshot = queryClient.getQueryData<GhBacklogResponse>(['gh-backlog', boardId]);
+      isDraggingRef.current = true;
+      setLocalOrder((prev) => new Map(prev).set(sectionId, newOrder));
+      return { snapshot, sectionId, previousOrder };
+    },
+    onError: (_err, _vars, context) => {
+      // RANK-04: rollback snapshot and local order; set inline error banner.
+      if (context?.snapshot) {
+        queryClient.setQueryData(['gh-backlog', boardId], context.snapshot);
+      }
+      if (context?.sectionId && context?.previousOrder) {
+        setLocalOrder((prev) =>
+          new Map(prev).set(context.sectionId, context.previousOrder),
+        );
+      }
+      setRankError("Couldn't save new order — reverted");
+      isDraggingRef.current = false;
+    },
+    onSettled: () => {
+      isDraggingRef.current = false;
+      if (boardId != null) invalidateGhBacklogData(queryClient, boardId);
+    },
+  });
+
+  // ── Drag handlers (D-01, D-02, D-03, D-06, D-07) ────────────────────────────
+
+  function handleDragStart({ active }: DragStartEvent) {
+    setActiveId(active.id as string);
+    isDraggingRef.current = true;
+    setRankError(null);
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    isDraggingRef.current = false;
+    setActiveId(null);
+    // Guard post-drop click (D-06): set for 50ms so BacklogRow onClick returns early.
+    justDragged.current = true;
+    setTimeout(() => {
+      justDragged.current = false;
+    }, 50);
+
+    if (!over || active.id === over.id) return;
+
+    const sourceContainer = (
+      active.data.current as { sortable?: { containerId?: string } } | undefined
+    )?.sortable?.containerId;
+    const targetContainer =
+      (over.data.current as { sortable?: { containerId?: string } } | undefined)?.sortable
+        ?.containerId ?? (over.id as string);
+
+    if (!sourceContainer) return;
+
+    if (sourceContainer === targetContainer) {
+      // Intra-section reorder — fire rank mutation immediately (RANK-02).
+      const serverKeys = getSectionKeys(sourceContainer);
+      const sectionKeys = localOrder.get(sourceContainer) ?? serverKeys;
+      const oldIndex = sectionKeys.indexOf(active.id as string);
+      const newIndex = sectionKeys.indexOf(over.id as string);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+      const newOrder = arrayMove(sectionKeys, oldIndex, newIndex);
+      const above = newOrder[newIndex - 1];
+      const below = newOrder[newIndex + 1];
+      const position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never> =
+        above !== undefined
+          ? { rankAfterIssue: above }
+          : below !== undefined
+            ? { rankBeforeIssue: below }
+            : {};
+      rankMutation.mutate({
+        issueKey: active.id as string,
+        sectionId: sourceContainer,
+        newOrder,
+        previousOrder: sectionKeys,
+        rankCustomFieldId: backlog?.rankCustomFieldId ?? 0,
+        position,
+      });
+    } else {
+      // Cross-section — open confirmation dialog (D-03/D-04).
+      const serverKeys = getSectionKeys(sourceContainer);
+      const previousOrder = localOrder.get(sourceContainer) ?? serverKeys;
+      const fromSprintName = sourceContainer.startsWith('sprint-')
+        ? (lookupSprintNameById(parseInt(sourceContainer.replace('sprint-', ''), 10)) ?? null)
+        : null;
+      const toSprintName = targetContainer.startsWith('sprint-')
+        ? (lookupSprintNameById(parseInt(targetContainer.replace('sprint-', ''), 10)) ?? 'Sprint')
+        : 'Backlog';
+      // Optimistically update local order to include the moved item at new position
+      const targetKeys = localOrder.get(targetContainer) ?? getSectionKeys(targetContainer);
+      const overIndex = targetKeys.indexOf(over.id as string);
+      const insertIdx = overIndex === -1 ? targetKeys.length : overIndex;
+      const newTargetOrder = [...targetKeys.slice(0, insertIdx), active.id as string, ...targetKeys.slice(insertIdx)];
+      setPendingDragMove({
+        issueKey: active.id as string,
+        fromSectionId: sourceContainer,
+        toSectionId: targetContainer,
+        fromSprintName,
+        toSprintName,
+        newOrder: newTargetOrder,
+        previousOrder,
+      });
+    }
+  }
+
+  // Helper: get the server-derived issue keys for a given section id.
+  function getSectionKeys(sectionId: string): string[] {
+    if (sectionId === 'backlog') return backlogIssuesAdapted.map((i) => i.key);
+    const sprintId = parseInt(sectionId.replace('sprint-', ''), 10);
+    const section = sprintSections.find((s) => s.sprint.id === sprintId);
+    return section ? section.issues.map((i) => i.key) : [];
+  }
+
+  // ── Cross-section drag confirm handlers (D-03/D-04) ──────────────────────────
+
+  async function confirmDragMove() {
+    if (!pendingDragMove || boardId == null) return;
+    const { issueKey, fromSectionId, toSectionId, newOrder, previousOrder } = pendingDragMove;
+    setPendingDragMove(null);
+
+    // Optimistic: apply new order for target section; remove from source
+    const sourceKeys = (localOrder.get(fromSectionId) ?? getSectionKeys(fromSectionId)).filter(
+      (k) => k !== issueKey,
+    );
+    setLocalOrder((prev) => {
+      const next = new Map(prev);
+      next.set(fromSectionId, sourceKeys);
+      next.set(toSectionId, newOrder);
+      return next;
+    });
+
+    const token = await readSecret('jira-pat').catch(() => null);
+    if (!token) {
+      // Rollback
+      setLocalOrder((prev) => new Map(prev).set(fromSectionId, previousOrder));
+      setRankError("Couldn't move issue — reverted");
+      return;
+    }
+
+    try {
+      // Sprint-membership change first (D-03).
+      if (toSectionId === 'backlog') {
+        await moveIssuesToBacklog(jiraBaseUrl ?? '', token, [issueKey]);
+      } else {
+        const targetSprintId = parseInt(toSectionId.replace('sprint-', ''), 10);
+        await addIssuesToSprint(jiraBaseUrl ?? '', token, targetSprintId, [issueKey]);
+      }
+      // Then rank within target section.
+      const above = newOrder[newOrder.indexOf(issueKey) - 1];
+      const below = newOrder[newOrder.indexOf(issueKey) + 1];
+      const position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never> =
+        above !== undefined
+          ? { rankAfterIssue: above }
+          : below !== undefined
+            ? { rankBeforeIssue: below }
+            : {};
+      await rankIssueApi(
+        jiraBaseUrl ?? '',
+        token,
+        issueKey,
+        backlog?.rankCustomFieldId ?? 0,
+        position,
+      );
+      invalidateGhBacklogData(queryClient, boardId);
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
+    } catch {
+      // Rollback both sections (RANK-04 analog for cross-section).
+      setLocalOrder((prev) => {
+        const next = new Map(prev);
+        next.set(fromSectionId, previousOrder);
+        // Remove optimistic insert from target section
+        next.set(
+          toSectionId,
+          (prev.get(toSectionId) ?? getSectionKeys(toSectionId)).filter((k) => k !== issueKey),
+        );
+        return next;
+      });
+      setRankError("Couldn't move issue — reverted");
+    }
+  }
+
+  function cancelDragMove() {
+    if (!pendingDragMove) return;
+    // "Keep Position" — restore local order, no API call.
+    const { fromSectionId, previousOrder } = pendingDragMove;
+    setLocalOrder((prev) => new Map(prev).set(fromSectionId, previousOrder));
+    setPendingDragMove(null);
+  }
+
   // ── Section renderer ──────────────────────────────────────────────────────────
 
   function renderSection(
@@ -749,6 +1002,23 @@ export default function BacklogPage() {
   ) {
     const isCollapsed = collapsedSections.has(sectionId);
     const filteredIssues = applyFilters(issues);
+    // D-08 / RANK-05: use localOrder override during drag window so a focus-
+    // triggered refetch cannot snap the list back. localOrder keys are
+    // stable section IDs ('sprint-<id>' / 'backlog').
+    const orderedKeys = localOrder.get(sectionId);
+    // Re-sort filteredIssues to match localOrder when a drag override is set.
+    const displayIssues = orderedKeys
+      ? ([...filteredIssues].sort(
+          (a, b) => {
+            const ai = orderedKeys.indexOf(a.key);
+            const bi = orderedKeys.indexOf(b.key);
+            // Issues not in localOrder (e.g. filtered-in mid-drag) go to end.
+            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+          },
+        ))
+      : filteredIssues;
+    // SortableContext items — use localOrder if set, else server keys (RANK-01).
+    const sortableItems = orderedKeys ?? issues.map((i) => i.key);
 
     return (
       <div key={sectionId} className="mb-2" data-testid={`sprint-section-${sectionId}`}>
@@ -791,27 +1061,34 @@ export default function BacklogPage() {
                   <div key={i} className="h-9 w-full animate-pulse rounded bg-muted" />
                 ))}
               </div>
-            ) : filteredIssues.length > 0 ? (
-              <VirtualizedBacklogTable
-                filteredIssues={filteredIssues}
-                scrollElement={scrollRef.current}
-                onIssueClick={onIssueClick}
-                onOpenIssue={onOpenIssue}
-                storyPointsFieldKey={storyPointsFieldKey}
-                epicLinkFieldKey={epicLinkFieldKey}
-                epicNameFieldKey={epicNameFieldKey}
-                epicNames={epicNameMap}
-                epicColors={epicColorMap}
-                epicsLoading={isEpicsLoading}
-                visibleIssueKeys={visibleIssueKeys}
-                focusIndex={focusIndex}
-                rowRefs={rowRefs}
-                sprints={availableSprints}
-                onMoveToSprint={requestMoveToSprint}
-                onMoveToBacklog={moveToBacklog}
-                flaggedFieldKey={flaggedFieldKey}
-                onToggleFlag={handleToggleFlag}
-              />
+            ) : displayIssues.length > 0 ? (
+              <SortableContext
+                id={sectionId}
+                items={sortableItems}
+                strategy={verticalListSortingStrategy}
+              >
+                <VirtualizedBacklogTable
+                  filteredIssues={displayIssues}
+                  scrollElement={scrollRef.current}
+                  onIssueClick={onIssueClick}
+                  onOpenIssue={onOpenIssue}
+                  storyPointsFieldKey={storyPointsFieldKey}
+                  epicLinkFieldKey={epicLinkFieldKey}
+                  epicNameFieldKey={epicNameFieldKey}
+                  epicNames={epicNameMap}
+                  epicColors={epicColorMap}
+                  epicsLoading={isEpicsLoading}
+                  visibleIssueKeys={visibleIssueKeys}
+                  focusIndex={focusIndex}
+                  rowRefs={rowRefs}
+                  sprints={availableSprints}
+                  onMoveToSprint={requestMoveToSprint}
+                  onMoveToBacklog={moveToBacklog}
+                  flaggedFieldKey={flaggedFieldKey}
+                  onToggleFlag={handleToggleFlag}
+                  justDragged={justDragged}
+                />
+              </SortableContext>
             ) : issues.length > 0 ? (
               /* All issues filtered out */
               <p className="px-4 py-3 text-sm text-muted-foreground">
@@ -882,7 +1159,7 @@ export default function BacklogPage() {
         </div>
       </div>
 
-      {/* Sprint move confirmation dialogs */}
+      {/* Sprint move confirmation dialogs (context-menu initiated — keep default "Cancel") */}
       <ConfirmSprintMoveDialog
         open={!!pendingSprintMove}
         onOpenChange={(open) => {
@@ -914,6 +1191,21 @@ export default function BacklogPage() {
         }}
       />
 
+      {/* Cross-section drag confirmation dialog (D-03/D-04) — "Keep Position" cancel */}
+      <ConfirmSprintMoveDialog
+        open={!!pendingDragMove}
+        onOpenChange={(open) => {
+          if (!open) cancelDragMove();
+        }}
+        issueKey={pendingDragMove?.issueKey ?? ''}
+        fromSprintName={pendingDragMove?.fromSprintName ?? null}
+        toSprintName={pendingDragMove?.toSprintName ?? ''}
+        cancelLabel="Keep Position"
+        onConfirm={() => {
+          void confirmDragMove();
+        }}
+      />
+
       {/* Main content */}
       <div ref={scrollRef} className="flex-1 overflow-auto">
         {/* Filter bar — scrolls with content */}
@@ -929,6 +1221,23 @@ export default function BacklogPage() {
         {isError && backlog && !bannerDismissed && (
           <div className="px-4 pt-4">
             <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+          </div>
+        )}
+
+        {/* Rank error banner (D-09, RANK-04) — inline, dismissible */}
+        {rankError && (
+          <div className="px-4 pt-2">
+            <div className="flex items-center gap-2 rounded-lg border bg-muted px-3 py-2 text-sm">
+              <span className="text-muted-foreground flex-1">{rankError}</span>
+              <button
+                type="button"
+                onClick={() => setRankError(null)}
+                className="inline-flex items-center justify-center rounded p-1 hover:bg-accent transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -948,25 +1257,57 @@ export default function BacklogPage() {
             action={<Button onClick={() => openCreateStory()}>Create Issue</Button>}
           />
         ) : backlog && (sprintSections.length > 0 || backlogIssuesAdapted.length > 0) ? (
-          /* Sprint sections + backlog section */
-          <div>
-            {/* Sprint sections (active first, then future) — `data.sprints[]` order */}
-            {sprintSections.map(({ sprint, issues }) =>
-              renderSection(
-                `sprint-${sprint.id}`,
-                sprint.name,
-                sprint.state === 'ACTIVE' ? 'Active' : 'Future',
-                issues,
-                false,
-                true,
-                requestMoveToBacklog,
-                false,
-              ),
-            )}
+          /* Sprint sections + backlog section — wrapped in single DndContext (D-01) */
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div>
+              {/* Sprint sections (active first, then future) — `data.sprints[]` order */}
+              {sprintSections.map(({ sprint, issues }) =>
+                renderSection(
+                  `sprint-${sprint.id}`,
+                  sprint.name,
+                  sprint.state === 'ACTIVE' ? 'Active' : 'Future',
+                  issues,
+                  false,
+                  true,
+                  requestMoveToBacklog,
+                  false,
+                ),
+              )}
 
-            {/* Backlog section — always last */}
-            {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
-          </div>
+              {/* Backlog section — always last */}
+              {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
+            </div>
+
+            {/* DragOverlay ghost (D-07) — opacity-60 clone of the dragged row */}
+            <DragOverlay>
+              {activeId ? (() => {
+                const activeIssue = adaptedIssues.find((i) => i.key === activeId);
+                if (!activeIssue) return null;
+                return (
+                  <table className="w-full text-sm shadow-lg" style={{ opacity: 0.6 }}>
+                    <tbody>
+                      <BacklogRow
+                        issue={activeIssue}
+                        onIssueClick={() => {}}
+                        storyPointsFieldKey={storyPointsFieldKey}
+                        epicLinkFieldKey={epicLinkFieldKey}
+                        epicNameFieldKey={epicNameFieldKey}
+                        epicNames={epicNameMap}
+                        epicColors={epicColorMap}
+                        isOverlay
+                      />
+                    </tbody>
+                  </table>
+                );
+              })() : null}
+            </DragOverlay>
+          </DndContext>
         ) : null}
       </div>
     </div>
