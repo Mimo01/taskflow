@@ -28,6 +28,7 @@ const initialAuthState = {
   gitlabUsername: null as string | null,
   gitlabName: null as string | null,
   gitlabEmail: null as string | null,
+  jiraBoardIds: {} as Record<string, number>,
 };
 
 interface AuthState {
@@ -61,6 +62,12 @@ interface AuthState {
    */
   gitlabEmail: string | null;
   /**
+   * Per-project chosen Jira scrum board id, keyed by Jira project key. Lets the
+   * user override the blind "first board" pick when a project has several scrum
+   * boards. Absent keys fall back to board discovery (first board).
+   */
+  jiraBoardIds: Record<string, number>;
+  /**
    * True once the Tauri async storage rehydration has completed.
    * Transient — not persisted. Used by components to avoid collapsing
    * loading states prematurely before real store values are available.
@@ -80,6 +87,8 @@ interface AuthState {
   setGitlabName: (name: string | null) => void;
   /** Set GitLab account email for standup commit author matching. */
   setGitlabEmail: (email: string | null) => void;
+  /** Set the chosen Jira scrum board id for a project key. */
+  setJiraBoardId: (projectKey: string, boardId: number) => void;
   /**
    * Reset all auth data fields to defaults (all null/false).
    * Preserves _hasHydrated and action functions (merge-mode set).
@@ -111,6 +120,8 @@ export const useAuthStore = create<AuthState>()(
       setGitlabUsername: (username) => set({ gitlabUsername: username }),
       setGitlabName: (name) => set({ gitlabName: name }),
       setGitlabEmail: (email) => set({ gitlabEmail: email }),
+      setJiraBoardId: (projectKey, boardId) =>
+        set((state) => ({ jiraBoardIds: { ...state.jiraBoardIds, [projectKey]: boardId } })),
       resetAuth: () => set({ ...initialAuthState }),
     }),
     {

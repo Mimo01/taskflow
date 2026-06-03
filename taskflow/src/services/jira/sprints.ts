@@ -41,6 +41,51 @@ export async function fetchBoardId(
   }
 }
 
+/** A scrum board returned by the Jira Agile board listing endpoint. */
+export interface JiraBoard {
+  id: number;
+  name: string;
+  type: string;
+}
+
+/**
+ * List all scrum boards for a Jira project.
+ *
+ * Used by the board picker (onboarding wizard + Settings -> Connections) so the
+ * user can choose which board a project consumes when several exist (e.g. a
+ * "Copy of …" board sorts before the real one). Returns [] on any failure,
+ * mirroring fetchBoardId's graceful-hide pattern.
+ *
+ * Capped at maxResults=100 (no pagination loop — agreed defensive cap).
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @returns Array of scrum boards ([] on failure)
+ */
+export async function listProjectBoards(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+): Promise<JiraBoard[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  try {
+    const res = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum&maxResults=100`,
+      { headers },
+      'List Boards',
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    const values: Array<{ id: number; name: string; type: string }> = data?.values ?? [];
+    return values.map((b) => ({ id: b.id, name: b.name, type: b.type }));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Fetch the active sprint for a Jira project using the Agile REST API.
  *
@@ -55,33 +100,41 @@ export async function fetchBoardId(
  * @param baseUrl    - Jira base URL (e.g. "https://jira.example.com")
  * @param token      - Personal Access Token
  * @param projectKey - Jira project key (e.g. "PROJ")
+ * @param boardId    - Optional resolved board id. When provided, skips internal
+ *                     board discovery and uses this board directly (lets callers
+ *                     honor a user-chosen board instead of blindly picking the
+ *                     first one).
  * @returns Active sprint or null
  */
 export async function fetchActiveSprint(
   baseUrl: string,
   token: string,
   projectKey: string,
+  boardId?: number,
 ): Promise<JiraActiveSprint | null> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   try {
-    // Step 1: board discovery
-    const boardRes = await apiFetch(
-      'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
-      { headers },
-      'Load Sprint Board',
-    );
-    if (!boardRes.ok) return null;
-    const boardData = await boardRes.json();
-    const boardId: number | undefined = boardData?.values?.[0]?.id;
-    if (!boardId) return null;
+    // Step 1: board discovery (skipped when a board id is provided)
+    let resolvedBoardId: number | undefined = boardId;
+    if (resolvedBoardId === undefined) {
+      const boardRes = await apiFetch(
+        'jira',
+        `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+        { headers },
+        'Load Sprint Board',
+      );
+      if (!boardRes.ok) return null;
+      const boardData = await boardRes.json();
+      resolvedBoardId = boardData?.values?.[0]?.id;
+    }
+    if (!resolvedBoardId) return null;
 
     // Step 2: active sprint
     const sprintRes = await apiFetch(
       'jira',
-      `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active`,
+      `${base}/rest/agile/1.0/board/${resolvedBoardId}/sprint?state=active`,
       { headers },
       'Load Sprint Board',
     );

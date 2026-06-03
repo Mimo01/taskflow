@@ -1089,27 +1089,31 @@ export async function fetchActiveSprint(
   baseUrl: string,
   token: string,
   projectKey: string,
+  boardId?: number,
 ): Promise<JiraActiveSprint | null> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   try {
-    // Step 1: board discovery
-    const boardRes = await apiFetch(
-      'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
-      { headers },
-      'Discover Board',
-    );
-    if (!boardRes.ok) return null;
-    const boardData = await boardRes.json();
-    const boardId: number | undefined = boardData?.values?.[0]?.id;
-    if (!boardId) return null;
+    // Step 1: board discovery (skipped when a board id is provided)
+    let resolvedBoardId: number | undefined = boardId;
+    if (resolvedBoardId === undefined) {
+      const boardRes = await apiFetch(
+        'jira',
+        `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+        { headers },
+        'Discover Board',
+      );
+      if (!boardRes.ok) return null;
+      const boardData = await boardRes.json();
+      resolvedBoardId = boardData?.values?.[0]?.id;
+    }
+    if (!resolvedBoardId) return null;
 
     // Step 2: active sprint
     const sprintRes = await apiFetch(
       'jira',
-      `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active`,
+      `${base}/rest/agile/1.0/board/${resolvedBoardId}/sprint?state=active`,
       { headers },
       'Discover Board',
     );
