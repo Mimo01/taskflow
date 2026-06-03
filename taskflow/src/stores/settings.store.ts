@@ -49,6 +49,7 @@ const initialSettings = {
   sidebarCollapsed: false,
   sidebarWidth: 224,
   issueDetailPanelWidth: null as number | null,
+  peekPanelWidth: null as number | null,
   mrDetailPanelWidth: 288,
   releaseDetailPanelWidth: 288,
   aioEnabled: false,
@@ -139,6 +140,9 @@ interface SettingsState {
   /** Issue detail right panel width in px. Null = use 42% of container until first drag. */
   issueDetailPanelWidth: number | null;
   setIssueDetailPanelWidth: (w: number) => void;
+  /** Peek panel width in px. Null = use default 480 until first drag. */
+  peekPanelWidth: number | null;
+  setPeekPanelWidth: (w: number) => void;
   /** MR detail right panel width in px. Default: 288 (w-72). */
   mrDetailPanelWidth: number;
   setMrDetailPanelWidth: (w: number) => void;
@@ -244,6 +248,7 @@ export const useSettingsStore = create<SettingsState>()(
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setSidebarWidth: (w) => set({ sidebarWidth: w }),
       setIssueDetailPanelWidth: (w) => set({ issueDetailPanelWidth: w }),
+      setPeekPanelWidth: (w) => set({ peekPanelWidth: w }),
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
       setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
       setAioEnabled: (v) => set({ aioEnabled: v }),
@@ -343,7 +348,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 25,
+      version: 26,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -446,6 +451,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 25) {
           if (s.rankFieldKey === undefined) s.rankFieldKey = null;
+        }
+        if (version < 26) {
+          if (s.peekPanelWidth === undefined) s.peekPanelWidth = null;
         }
         return persisted as SettingsState;
       },
