@@ -33,18 +33,18 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 
 ### Universal Issue Peek (slideover)
 
-- [ ] **PEEK-01**: Clicking an issue anywhere in the app (board, backlog, standup, dashboard, search, notifications) — except on its issue key — opens a slideover preview of that issue
-- [ ] **PEEK-02**: The peek slideover works for any issue type (story, subtask, bug, epic, task)
-- [ ] **PEEK-03**: The underlying view stays fully interactive while the peek is open (non-blocking — no focus trap, no backdrop that swallows clicks)
-- [ ] **PEEK-04**: Clicking a different issue in the underlying view swaps the previewed issue without closing the peek
-- [ ] **PEEK-05**: Clicking an issue's key opens the full-page issue detail (not the peek)
-- [ ] **PEEK-06**: The peek provides an explicit "open full page" affordance
-- [ ] **PEEK-07**: The peek can be dismissed via Escape and an explicit close control
+- [x] **PEEK-01**: Clicking an issue anywhere in the app (board, backlog, standup, dashboard, search, notifications) — except on its issue key — opens a slideover preview of that issue
+- [x] **PEEK-02**: The peek slideover works for any issue type (story, subtask, bug, epic, task)
+- [x] **PEEK-03**: The underlying view stays fully interactive while the peek is open (non-blocking — no focus trap, no backdrop that swallows clicks)
+- [x] **PEEK-04**: Clicking a different issue in the underlying view swaps the previewed issue without closing the peek
+- [x] **PEEK-05**: Clicking an issue's key opens the full-page issue detail (not the peek)
+- [x] **PEEK-06**: The peek provides an explicit "open full page" affordance
+- [x] **PEEK-07**: The peek can be dismissed via Escape and an explicit close control
 
 ### Issue-Detail Refinements
 
-- [ ] **DETAIL-01**: On a subtask's issue detail, the parent is shown in the main content area (not the right sidebar), consistent with how subtasks render under a story
-- [ ] **DETAIL-02**: Clickable areas in issue detail (parent, subtasks, linked issues) show a pointer cursor on hover
+- [x] **DETAIL-01**: On a subtask's issue detail, the parent is shown in the main content area (not the right sidebar), consistent with how subtasks render under a story
+- [x] **DETAIL-02**: Clickable areas in issue detail (parent, subtasks, linked issues) show a pointer cursor on hover
 
 ### Subtask Templates & Bulk Creation
 
@@ -101,15 +101,15 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TRAN-03 | Phase 79 | Pending |
 | TRAN-04 | Phase 79 | Pending |
 | TRAN-05 | Phase 79 | Pending |
-| PEEK-01 | Phase 77 | Pending |
-| PEEK-02 | Phase 77 | Pending |
-| PEEK-03 | Phase 77 | Pending |
-| PEEK-04 | Phase 77 | Pending |
-| PEEK-05 | Phase 77 | Pending |
-| PEEK-06 | Phase 77 | Pending |
-| PEEK-07 | Phase 77 | Pending |
-| DETAIL-01 | Phase 77 | Pending |
-| DETAIL-02 | Phase 77 | Pending |
+| PEEK-01 | Phase 77 | Complete |
+| PEEK-02 | Phase 77 | Complete |
+| PEEK-03 | Phase 77 | Complete |
+| PEEK-04 | Phase 77 | Complete |
+| PEEK-05 | Phase 77 | Complete |
+| PEEK-06 | Phase 77 | Complete |
+| PEEK-07 | Phase 77 | Complete |
+| DETAIL-01 | Phase 77 | Complete |
+| DETAIL-02 | Phase 77 | Complete |
 | SUBTPL-01 | Phase 80 | Pending |
 | SUBTPL-02 | Phase 80 | Pending |
 | SUBTPL-03 | Phase 80 | Pending |

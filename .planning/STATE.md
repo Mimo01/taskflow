@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: executing
-stopped_at: Phase 77 UI-SPEC approved
-last_updated: "2026-06-03T11:18:40.895Z"
-last_activity: 2026-06-03 -- Phase 77 planning complete
+last_updated: "2026-06-03T11:28:55.872Z"
+last_activity: 2026-06-03
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
   percent: 20
 ---
 
@@ -21,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-02)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 76 — visual-polish-and-shared-primitives
+**Current focus:** Phase 77 — universal-peek-slideover-and-issue-detail-refinements
 
 ## Current Position
 
-Phase: 77
-Plan: Not started
+Phase: 77 (universal-peek-slideover-and-issue-detail-refinements) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-06-03 -- Phase 77 planning complete
+Last activity: 2026-06-03
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -49,6 +48,7 @@ Progress: [░░░░░░░░░░] 0%
 | 78 | RANK-01..05 | Drag-to-rank on Backlog active-sprint list |
 | 79 | TRAN-01..05 | Drag-to-transition on Sprint Board with per-transition drop zones |
 | 80 | SUBTPL-01..08 | Subtask templates in Settings + bulk creation modal |
+| Phase 77 P01 | 15 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -64,6 +64,8 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 - Bulk create: sequential `for` loop (not `Promise.all`); per-row status tracking; retry-failed-only on partial failure
 - DETAIL-01/02 folded into Phase 77 — both require the `onIssuePeek` click model established in that phase
 - Phase 80 independent of Phases 77-79; depends only on Phase 76 shared primitives
+- [Phase ?]: peekPanelWidth defaults to null (not 480) in initialSettings — mirrors issueDetailPanelWidth; PeekPanel applies ?? 480 at read time (Plan 03)
+- [Phase ?]: A1 confirmed — JiraIssueDetail.fields.parent present at types.ts:152, no type change needed
 
 ### Blockers/Concerns
 
@@ -88,7 +90,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T10:37:35.166Z
+Last session: 2026-06-03T11:28:52.216Z
 Stopped at: Phase 77 UI-SPEC approved
-Resume file: .planning/phases/77-universal-peek-slideover-and-issue-detail-refinements/77-UI-SPEC.md
+Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
