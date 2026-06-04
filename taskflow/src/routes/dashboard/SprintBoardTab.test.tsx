@@ -631,6 +631,135 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     );
   });
 
+  // ─── Phase 79 Plan 03: drag-to-transition rollback + success (TRAN-04/TRAN-05) ─
+
+  describe('TRAN-04: failed transition rolls back status and shows Transition failed', () => {
+    it('rolls back localIssues to original status when postTransition rejects', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Story With Sub',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      const subtask = makeIssue(
+        'PROJ-2',
+        'Subtask To Transition',
+        true,
+        'PROJ-1',
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story, subtask]);
+
+      const { postTransition } = await import('@/services/jira');
+      vi.mocked(postTransition).mockRejectedValueOnce(new Error('Forbidden'));
+
+      // Wire a known transition so peekGhTransitions returns something
+      const { peekGhTransitions } = await import('@/services/jira');
+      vi.mocked(peekGhTransitions).mockReturnValue([
+        {
+          id: 'T1',
+          name: 'Start',
+          to: { id: '3', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ]);
+      const { filterTransitionsForStatus } = await import('@/services/jira');
+      vi.mocked(filterTransitionsForStatus).mockReturnValue([
+        {
+          id: 'T1',
+          name: 'Start',
+          to: { id: '3', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ]);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      // Wait for the card to render
+      const cardText = await screen.findByText('Subtask To Transition');
+      expect(cardText).toBeTruthy();
+
+      // Right-click to open context menu and trigger transition (StatusPopover path)
+      fireEvent.contextMenu(cardText);
+
+      // The context menu should show the transition
+      await waitFor(() => {
+        const startItem = screen.queryByText('Start');
+        if (startItem) fireEvent.click(startItem);
+      });
+
+      // After the failed postTransition, cardErrors should show "Transition failed"
+      await waitFor(() => {
+        expect(screen.queryByText('Transition failed')).toBeTruthy();
+      });
+    });
+  });
+
+  describe('TRAN-05: successful transition calls invalidateGhAllData with board id', () => {
+    it('invalidates gh-all-data with the board id when postTransition resolves', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Story For Invalidate',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      const subtask = makeIssue(
+        'PROJ-2',
+        'Subtask For Invalidate',
+        true,
+        'PROJ-1',
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story, subtask]);
+
+      const { postTransition, invalidateGhAllData } = await import('@/services/jira');
+      vi.mocked(postTransition).mockResolvedValueOnce(undefined);
+
+      const { peekGhTransitions } = await import('@/services/jira');
+      vi.mocked(peekGhTransitions).mockReturnValue([
+        {
+          id: 'T2',
+          name: 'Done',
+          to: { id: '4', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ]);
+      const { filterTransitionsForStatus } = await import('@/services/jira');
+      vi.mocked(filterTransitionsForStatus).mockReturnValue([
+        {
+          id: 'T2',
+          name: 'Done',
+          to: { id: '4', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ]);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      const cardText = await screen.findByText('Subtask For Invalidate');
+      expect(cardText).toBeTruthy();
+
+      fireEvent.contextMenu(cardText);
+
+      // Use getAllByText to avoid "multiple elements" error — 'Done' also appears
+      // in the column header. The context menu item is a ContextMenuItem element.
+      await waitFor(() => {
+        const doneItems = screen.queryAllByText('Done');
+        // Click the last occurrence which will be the context menu item (rendered after header)
+        const menuItem = doneItems.find((el) => el.closest('[role="menuitem"]'));
+        if (menuItem) fireEvent.click(menuItem);
+      });
+
+      await waitFor(() => {
+        expect(invalidateGhAllData).toHaveBeenCalledWith(expect.anything(), 163);
+      });
+    });
+  });
+
   // ─── BOARD-05: clicking a card opens issue detail ──────────────────────────
 
   describe('BOARD-05: clicking a card opens issue detail', () => {
