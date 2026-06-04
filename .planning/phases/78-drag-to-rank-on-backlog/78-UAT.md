@@ -1,20 +1,14 @@
 ---
-status: diagnosed
+status: complete
 phase: 78-drag-to-rank-on-backlog
 source: [78-01-SUMMARY.md, 78-02-SUMMARY.md, 78-03-SUMMARY.md, 78-04-SUMMARY.md]
 started: 2026-06-04T12:12:42Z
-updated: 2026-06-04T12:13:30Z
+updated: 2026-06-04T16:10:00Z
 ---
 
 ## Current Test
 
-number: 3
-name: No-flicker during background refetch + autoscroll-during-drag (re-verify after fix)
-expected: |
-  Drag a row near the top/bottom edge so the list auto-scrolls during the drag.
-  The layout stays intact and the dragged clone stays under the cursor. Also: a
-  background refetch does not make the list jump or revert.
-awaiting: user response (re-verification of fix 4f0cfdd3)
+[testing complete]
 
 ## Tests
 
@@ -26,11 +20,12 @@ result: pass
 expected: A quick click on a row still opens the issue peek panel. A drag (past the 150ms press-hold) does NOT open the peek on release.
 result: pass
 
-### 3. No-flicker during background refetch
-expected: After dropping a row (or during a drag), a background refetch (e.g. window refocus) does not make the list jump or revert — the new order holds steady.
-result: issue
+### 3. No-flicker during background refetch + autoscroll-during-drag
+expected: After dropping a row (or during a drag), a background refetch does not make the list jump or revert — the new order holds steady. Drag (incl. near edges) keeps the row + drop target synced with the cursor; drop lands correctly and persists.
+result: resolved
 reported: "when i drag and the page auto scrolls, the layout gets a little broken and the drag is not happening where the cursor is"
 severity: major
+resolution: "Root cause was dnd-kit's built-in autoScroll scroll-adjusting measured rects a frame behind (issue #1108) — during autoscroll either the dragged row OR the drop target always lagged the cursor. 8 fix iterations narrowed it but couldn't fully eliminate it (upstream limitation). User-approved final config: autoScroll disabled (commit aeb6b3f4) — row + drop target both perfectly synced, no desync; tradeoff is no auto-scroll while dragging. Kept the supporting improvements (portaled DragOverlay, pointer-based collision, droppable MeasuringStrategy.Always)."
 
 ### 4. Failure rollback banner
 expected: If the rank save fails (offline / 403), the list rolls back to the pre-drag order and an inline banner "Couldn't save new order — reverted" appears.
@@ -45,7 +40,8 @@ result: pass
 
 total: 5
 passed: 3
-issues: 1
+issues: 0
+resolved: 1
 pending: 0
 skipped: 1
 blocked: 0
@@ -87,4 +83,4 @@ blocked: 0
     - "FINAL FIX: remove the DragOverlay and drag the real row in place — dnd-kit's non-overlay path adds activeNodeScrollDelta to the transform, keeping the dragged row + drop target synced during autoScroll. The overlay path inherently skips that compensation, which no amount of measuring/re-render could fix."
   debug_session: ".planning/debug/backlog-drag-autoscroll-residual.md"
   fix_attempts: "1) commit 4f0cfdd3 portal overlay + droppable MeasuringStrategy.Always. 2) commit f4ecf9d9 forced drag-end reconcile re-render. 3) commit 738e1c2c single scroll container (outer overflow-hidden). 4) commit 9fd20297 autoScroll={false} (worked but user wanted autoscroll kept; reverted). 5) quick task 260604-knq commit 2a2a4c30: removed DragOverlay + createPortal, drag real row in place. 6) commit 9f7fd7d8 (dnd-kit#1108 root cause): autoScroll={{ canScroll: (el) => el === scrollRef.current }} — dnd-kit treated all 6 overflow auto/hidden ancestors (scrollRef + <main> + 4 nested shell wrappers in main.tsx) as scroll containers; pinning autoScroll to scrollRef alone fixed the FUNCTIONAL desync."
-  resolution: "FUNCTIONAL desync RESOLVED (human-confirmed round 6): drop lands on the correct row and post-drop clicks hit the row under the cursor. Residual is COSMETIC ONLY — while the list is ACTIVELY autoscrolling, the dragged row trails the cursor by ~one frame (dnd-kit applies scroll-delta transform compensation one frame behind its rAF scroll); it self-corrects the instant scrolling stops or on drop. Inherent dnd-kit limitation; only mitigation is slowing autoScroll speed (tradeoff). Severity downgraded major→cosmetic."
+  resolution: "RESOLVED (human-approved). Full attempt chain (8 rounds): 1) portal overlay + droppable Always (4f0cfdd3). 2) drag-end reconcile re-render (f4ecf9d9). 3) single scroll container (738e1c2c). 4) autoScroll off — worked, reverted (9fd20297). 5) in-place drag, no overlay (2a2a4c30) — fixed drop, row trailed. 6) canScroll pin to scrollRef (9f7fd7d8) — fixed FUNCTIONAL drop. 7) restore portaled overlay + canScroll (619a9d66) — row locked, drop target drifted. 8) pointer-based collision fallback (13f944f6) — drop target still drifted. ROOT LIMITATION: dnd-kit 6.3.1 scroll-adjusts measured rects a frame behind, so during its built-in autoScroll either the row OR the drop target always lags (dnd-kit#1108, unresolved upstream) — both cannot be synced simultaneously. FINAL (user-approved): autoScroll={false} (aeb6b3f4) — nothing scrolls mid-drag, so row + drop target both perfectly synced, zero desync. Tradeoff: no auto-scroll while dragging (drop, scroll, drag again for long moves). Kept portaled DragOverlay, pointer-based collision, droppable MeasuringStrategy.Always (all harmless + correct without autoscroll)."
