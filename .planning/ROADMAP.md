@@ -299,7 +299,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 1**
 
-- [ ] 79-01-PLAN.md — D-08 prerequisite: add hasScreen?/hasValidators? to JiraTransition (both files) + propagate through __adaptToJiraTransition + adapter test
+- [x] 79-01-PLAN.md — D-08 prerequisite: add hasScreen?/hasValidators? to JiraTransition (both files) + propagate through __adaptToJiraTransition + adapter test
 
 **Wave 2** *(blocked on Wave 1 — uses the new type fields)*
 
@@ -308,6 +308,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 **Wave 3** *(blocked on Wave 2)*
 
 - [ ] 79-03-PLAN.md — TaskCard useDraggable + board-scoped DndContext + split-column drop zones + drop→handleTransition (optimistic/rollback/invalidate) + component tests + human verify
+
 **Notes**: `DndContext` scoped to the board scroll area only (not AppLayout). `DragOverlay` mounted inside `boardRef` at the same z-level as `stickyOverlayRef`. Confirm `hasScreen` propagation through `__adaptToJiraTransition` before writing plans — add `hasScreen`/`hasValidators` to `JiraTransition` type if absent. Reuses `@dnd-kit` installed in Phase 78. Drag/click disambiguation re-uses `justDragged` ref from Phase 78 backlog implementation. Add explicit Windows UAT step (Tauri WebView2 `mouseup` loss). Apply `touch-action: none` on all draggable elements.
 **UI hint**: yes
 
@@ -352,5 +353,5 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 | 76. Visual Polish and Shared Primitives | 4/4 | Complete    | 2026-06-03 |
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
 | 78. Drag-to-Rank on Backlog | 4/4 | Complete    | 2026-06-04 |
-| 79. Drag-to-Transition on Sprint Board | 0/3 | Planned | - |
+| 79. Drag-to-Transition on Sprint Board | 1/3 | In Progress|  |
 | 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
