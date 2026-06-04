@@ -27,17 +27,25 @@
  * action will own all manual refreshes.
  */
 
+import type {
+  CollisionDetection,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+} from '@dnd-kit/core';
 import {
+  closestCenter,
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox, RefreshCw, X } from 'lucide-react';
@@ -75,6 +83,7 @@ import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
+import { resolveCrossSectionDrop } from './backlogDragHelpers';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
 
@@ -98,6 +107,8 @@ function VirtualizedBacklogTable({
   flaggedFieldKey,
   onToggleFlag,
   justDragged,
+  dropTargetKey,
+  dropEdge,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -118,6 +129,10 @@ function VirtualizedBacklogTable({
   flaggedFieldKey: string;
   onToggleFlag?: (issueKey: string) => void;
   justDragged?: React.MutableRefObject<boolean>;
+  /** Issue key the pointer is currently over during a drag (D-07 insertion line). */
+  dropTargetKey?: string | null;
+  /** Which edge of the drop-target row to draw the insertion line on. */
+  dropEdge?: 'top' | 'bottom' | null;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -167,6 +182,7 @@ function VirtualizedBacklogTable({
         isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
         onToggleFlag={onToggleFlag ? () => onToggleFlag(issue.key) : undefined}
         justDragged={justDragged}
+        dropEdge={dropTargetKey === issue.key ? (dropEdge ?? null) : null}
       />
     );
   }
@@ -213,6 +229,54 @@ function VirtualizedBacklogTable({
   );
 }
 
+// ── Droppable section wrapper (D-03/D-04/D-05) ────────────────────────────────
+// Makes each section body a dnd-kit droppable so `over.id` resolves to the
+// section even when the pointer is over a header, a gap, or an EMPTY section
+// (which renders only a <p> and otherwise cannot receive a drop). When the
+// pointer hovers this section during a cross-section drag, a highlight ring is
+// applied (D-05).
+function DroppableSection({
+  sectionId,
+  isActiveDropTarget,
+  children,
+}: {
+  sectionId: string;
+  isActiveDropTarget: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: sectionId });
+  return (
+    <div
+      ref={setNodeRef}
+      data-testid={`droppable-section-${sectionId}`}
+      className={
+        isActiveDropTarget
+          ? 'rounded-sm bg-accent/10 ring-1 ring-primary/60 transition-colors'
+          : 'transition-colors'
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Custom collision detection for the multi-container backlog (D-03/D-04).
+ *
+ * `closestCenter` biases toward the source container and frequently fails to
+ * register a cross-section drop (dropping on a header/gap/empty section yields
+ * no target). The dnd-kit multi-container recipe: try `pointerWithin` first
+ * (resolves to whatever is directly under the pointer, including a section
+ * droppable), then fall back to `rectIntersection`, then `closestCenter`.
+ */
+const backlogCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) return pointerCollisions;
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) return rectCollisions;
+  return closestCenter(args);
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BacklogPage() {
@@ -236,6 +300,13 @@ export default function BacklogPage() {
   const isDraggingRef = useRef(false);
   const justDragged = useRef(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // D-05/D-07: current over-target during a drag — drives the cross-section
+  // highlight ring and the per-row insertion line. `overSectionId` is the
+  // section the pointer is currently within; `overRowKey`/`dropEdge` mark the
+  // exact row + edge the insertion line is drawn on.
+  const [overSectionId, setOverSectionId] = useState<string | null>(null);
+  const [overRowKey, setOverRowKey] = useState<string | null>(null);
+  const [dropEdge, setDropEdge] = useState<'top' | 'bottom' | null>(null);
   // Map<sectionId, string[]> — overrides server issue-key order during drag window (D-08)
   const [localOrder, setLocalOrder] = useState<Map<string, string[]>>(new Map());
   const [rankError, setRankError] = useState<string | null>(null);
@@ -812,9 +883,7 @@ export default function BacklogPage() {
         queryClient.setQueryData(['gh-backlog', boardId], context.snapshot);
       }
       if (context?.sectionId && context?.previousOrder) {
-        setLocalOrder((prev) =>
-          new Map(prev).set(context.sectionId, context.previousOrder),
-        );
+        setLocalOrder((prev) => new Map(prev).set(context.sectionId, context.previousOrder));
       }
       setRankError("Couldn't save new order — reverted");
       isDraggingRef.current = false;
@@ -827,15 +896,68 @@ export default function BacklogPage() {
 
   // ── Drag handlers (D-01, D-02, D-03, D-06, D-07) ────────────────────────────
 
+  // Stable set of currently-rendered section ids (sprint-* + backlog). Used by
+  // the cross-section drop resolver to validate a section droppable id.
+  const sectionIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const { sprint } of sprintSections) s.add(`sprint-${sprint.id}`);
+    s.add('backlog');
+    return s;
+  }, [sprintSections]);
+
+  function clearOverState() {
+    setOverSectionId(null);
+    setOverRowKey(null);
+    setDropEdge(null);
+  }
+
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string);
     isDraggingRef.current = true;
     setRankError(null);
+    clearOverState();
+  }
+
+  // D-05/D-07: track the over-target continuously so the highlight ring and
+  // insertion line follow the pointer. Resolve the section the pointer is in
+  // (row container OR section droppable id), and — when over a row — which edge
+  // the insertion line should sit on based on drag direction.
+  function handleDragOver({ active, over }: DragOverEvent) {
+    if (!over) {
+      clearOverState();
+      return;
+    }
+    const overData = over.data.current as { sortable?: { containerId?: string } } | undefined;
+    const rowContainer = overData?.sortable?.containerId;
+    const overIdStr = over.id as string;
+
+    // Resolve the section the pointer is within.
+    const section = rowContainer ?? (sectionIds.has(overIdStr) ? overIdStr : null);
+    setOverSectionId(section);
+
+    if (rowContainer && over.id !== active.id) {
+      setOverRowKey(overIdStr);
+      // Determine edge from relative vertical centers (fallback: bottom).
+      const activeRect = active.rect.current.translated ?? active.rect.current.initial;
+      const overRect = over.rect;
+      if (activeRect && overRect) {
+        const activeCenter = activeRect.top + activeRect.height / 2;
+        const overCenter = overRect.top + overRect.height / 2;
+        setDropEdge(activeCenter < overCenter ? 'top' : 'bottom');
+      } else {
+        setDropEdge('bottom');
+      }
+    } else {
+      // Over a section droppable (header/gap/empty) — no specific row edge.
+      setOverRowKey(null);
+      setDropEdge(null);
+    }
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     isDraggingRef.current = false;
     setActiveId(null);
+    clearOverState();
     // Guard post-drop click (D-06): set for 50ms so BacklogRow onClick returns early.
     justDragged.current = true;
     setTimeout(() => {
@@ -844,14 +966,18 @@ export default function BacklogPage() {
 
     if (!over || active.id === over.id) return;
 
-    const sourceContainer = (
-      active.data.current as { sortable?: { containerId?: string } } | undefined
-    )?.sortable?.containerId;
+    const activeData = active.data.current as { sortable?: { containerId?: string } } | undefined;
+    const overData = over.data.current as { sortable?: { containerId?: string } } | undefined;
+    const sourceContainer = activeData?.sortable?.containerId;
+    // Resolve the target section from EITHER a row's container OR a section
+    // droppable id (header/gap/empty section) — the multi-container recipe
+    // (D-03/D-04). `over.id` of a row is the row key, never a section id, so
+    // only a real section-droppable id resolves here.
     const targetContainer =
-      (over.data.current as { sortable?: { containerId?: string } } | undefined)?.sortable
-        ?.containerId ?? (over.id as string);
+      overData?.sortable?.containerId ??
+      (sectionIds.has(over.id as string) ? (over.id as string) : null);
 
-    if (!sourceContainer) return;
+    if (!sourceContainer || !targetContainer) return;
 
     if (sourceContainer === targetContainer) {
       // Intra-section reorder — fire rank mutation immediately (RANK-02).
@@ -863,7 +989,10 @@ export default function BacklogPage() {
       const newOrder = arrayMove(sectionKeys, oldIndex, newIndex);
       const above = newOrder[newIndex - 1];
       const below = newOrder[newIndex + 1];
-      const position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never> =
+      const position:
+        | { rankBeforeIssue: string }
+        | { rankAfterIssue: string }
+        | Record<string, never> =
         above !== undefined
           ? { rankAfterIssue: above }
           : below !== undefined
@@ -879,6 +1008,17 @@ export default function BacklogPage() {
       });
     } else {
       // Cross-section — open confirmation dialog (D-03/D-04).
+      // Resolve the optimistic target order via the pure helper so dropping on
+      // a row, a section header/gap, OR an empty section (index 0) all work.
+      const resolution = resolveCrossSectionDrop({
+        activeKey: active.id as string,
+        activeData,
+        overId: over.id as string,
+        overData,
+        sectionIds,
+        getTargetKeys: (id) => localOrder.get(id) ?? getSectionKeys(id),
+      });
+      if (!resolution) return;
       const serverKeys = getSectionKeys(sourceContainer);
       const previousOrder = localOrder.get(sourceContainer) ?? serverKeys;
       const fromSprintName = sourceContainer.startsWith('sprint-')
@@ -887,18 +1027,13 @@ export default function BacklogPage() {
       const toSprintName = targetContainer.startsWith('sprint-')
         ? (lookupSprintNameById(parseInt(targetContainer.replace('sprint-', ''), 10)) ?? 'Sprint')
         : 'Backlog';
-      // Optimistically update local order to include the moved item at new position
-      const targetKeys = localOrder.get(targetContainer) ?? getSectionKeys(targetContainer);
-      const overIndex = targetKeys.indexOf(over.id as string);
-      const insertIdx = overIndex === -1 ? targetKeys.length : overIndex;
-      const newTargetOrder = [...targetKeys.slice(0, insertIdx), active.id as string, ...targetKeys.slice(insertIdx)];
       setPendingDragMove({
         issueKey: active.id as string,
         fromSectionId: sourceContainer,
         toSectionId: targetContainer,
         fromSprintName,
         toSprintName,
-        newOrder: newTargetOrder,
+        newOrder: resolution.newTargetOrder,
         previousOrder,
       });
     }
@@ -949,7 +1084,10 @@ export default function BacklogPage() {
       // Then rank within target section.
       const above = newOrder[newOrder.indexOf(issueKey) - 1];
       const below = newOrder[newOrder.indexOf(issueKey) + 1];
-      const position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never> =
+      const position:
+        | { rankBeforeIssue: string }
+        | { rankAfterIssue: string }
+        | Record<string, never> =
         above !== undefined
           ? { rankAfterIssue: above }
           : below !== undefined
@@ -988,6 +1126,17 @@ export default function BacklogPage() {
     setPendingDragMove(null);
   }
 
+  // Section id that currently owns the dragged row — used to suppress the
+  // cross-section highlight on the source section itself (D-05).
+  const activeSourceSectionId = useMemo(() => {
+    if (!activeId) return null;
+    for (const { sprint, issues } of sprintSections) {
+      if (issues.some((i) => i.key === activeId)) return `sprint-${sprint.id}`;
+    }
+    if (backlogIssuesAdapted.some((i) => i.key === activeId)) return 'backlog';
+    return null;
+  }, [activeId, sprintSections, backlogIssuesAdapted]);
+
   // ── Section renderer ──────────────────────────────────────────────────────────
 
   function renderSection(
@@ -1008,14 +1157,12 @@ export default function BacklogPage() {
     const orderedKeys = localOrder.get(sectionId);
     // Re-sort filteredIssues to match localOrder when a drag override is set.
     const displayIssues = orderedKeys
-      ? ([...filteredIssues].sort(
-          (a, b) => {
-            const ai = orderedKeys.indexOf(a.key);
-            const bi = orderedKeys.indexOf(b.key);
-            // Issues not in localOrder (e.g. filtered-in mid-drag) go to end.
-            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-          },
-        ))
+      ? [...filteredIssues].sort((a, b) => {
+          const ai = orderedKeys.indexOf(a.key);
+          const bi = orderedKeys.indexOf(b.key);
+          // Issues not in localOrder (e.g. filtered-in mid-drag) go to end.
+          return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+        })
       : filteredIssues;
     // SortableContext items — use localOrder if set, else server keys (RANK-01).
     const sortableItems = orderedKeys ?? issues.map((i) => i.key);
@@ -1051,9 +1198,16 @@ export default function BacklogPage() {
           </span>
         </button>
 
-        {/* Section body */}
+        {/* Section body — wrapped in a droppable so a cross-section drop
+            resolves to this section even over a header/gap/empty section
+            (D-03/D-04), and the section highlights while hovered (D-05). */}
         {!isCollapsed && (
-          <div>
+          <DroppableSection
+            sectionId={sectionId}
+            isActiveDropTarget={
+              !!activeId && overSectionId === sectionId && activeSourceSectionId !== sectionId
+            }
+          >
             {sectionStoriesLoading ? (
               /* Stories still loading — show skeleton rows */
               <div className="px-4 py-2 space-y-2">
@@ -1087,6 +1241,8 @@ export default function BacklogPage() {
                   flaggedFieldKey={flaggedFieldKey}
                   onToggleFlag={handleToggleFlag}
                   justDragged={justDragged}
+                  dropTargetKey={overRowKey}
+                  dropEdge={dropEdge}
                 />
               </SortableContext>
             ) : issues.length > 0 ? (
@@ -1095,8 +1251,9 @@ export default function BacklogPage() {
                 No issues match the current filters
               </p>
             ) : (
-              /* Sprint has no stories */
-              <p className="px-4 py-3 text-sm text-muted-foreground italic">
+              /* Sprint has no stories — keep some height so the empty section
+                 remains a comfortable drop target (D-04 empty-section drop). */
+              <p className="px-4 py-6 text-sm text-muted-foreground italic">
                 No issues in this sprint
               </p>
             )}
@@ -1114,7 +1271,7 @@ export default function BacklogPage() {
                 </button>
               </div>
             )}
-          </div>
+          </DroppableSection>
         )}
       </div>
     );
@@ -1260,9 +1417,10 @@ export default function BacklogPage() {
           /* Sprint sections + backlog section — wrapped in single DndContext (D-01) */
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={backlogCollisionDetection}
             modifiers={[restrictToVerticalAxis]}
             onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
             <div>
@@ -1284,28 +1442,35 @@ export default function BacklogPage() {
               {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
             </div>
 
-            {/* DragOverlay ghost (D-07) — opacity-60 clone of the dragged row */}
+            {/* DragOverlay ghost (D-07) — strong, near-opaque clone with a
+                primary ring (BacklogRow isOverlay) so the dragged row is
+                unmistakable against the list underneath. */}
             <DragOverlay>
-              {activeId ? (() => {
-                const activeIssue = adaptedIssues.find((i) => i.key === activeId);
-                if (!activeIssue) return null;
-                return (
-                  <table className="w-full text-sm shadow-lg" style={{ opacity: 0.6 }}>
-                    <tbody>
-                      <BacklogRow
-                        issue={activeIssue}
-                        onIssueClick={() => {}}
-                        storyPointsFieldKey={storyPointsFieldKey}
-                        epicLinkFieldKey={epicLinkFieldKey}
-                        epicNameFieldKey={epicNameFieldKey}
-                        epicNames={epicNameMap}
-                        epicColors={epicColorMap}
-                        isOverlay
-                      />
-                    </tbody>
-                  </table>
-                );
-              })() : null}
+              {activeId
+                ? (() => {
+                    const activeIssue = adaptedIssues.find((i) => i.key === activeId);
+                    if (!activeIssue) return null;
+                    return (
+                      <table
+                        className="w-full rounded-md bg-background text-sm shadow-2xl ring-2 ring-primary"
+                        style={{ opacity: 0.95 }}
+                      >
+                        <tbody>
+                          <BacklogRow
+                            issue={activeIssue}
+                            onIssueClick={() => {}}
+                            storyPointsFieldKey={storyPointsFieldKey}
+                            epicLinkFieldKey={epicLinkFieldKey}
+                            epicNameFieldKey={epicNameFieldKey}
+                            epicNames={epicNameMap}
+                            epicColors={epicColorMap}
+                            isOverlay
+                          />
+                        </tbody>
+                      </table>
+                    );
+                  })()
+                : null}
             </DragOverlay>
           </DndContext>
         ) : null}
