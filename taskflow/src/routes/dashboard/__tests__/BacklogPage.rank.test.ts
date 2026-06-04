@@ -17,6 +17,7 @@ vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn() }));
 
 import { QueryClient } from '@tanstack/react-query';
 import { rankIssueApi } from '../../../services/jira/rank-api';
+import { moveIssueAcrossSections } from '../backlogDragHelpers';
 
 vi.mock('../../../services/jira/rank-api', () => ({
   rankIssueApi: vi.fn(),
@@ -76,7 +77,9 @@ describe('BacklogPage rank mutation', () => {
     queryClient.setQueryData(['gh-backlog', BOARD_ID], snapshot);
 
     // Simulate the onError rollback: setQueryData restores snapshot
-    await expect(rankIssueApi('https://jira.example.com', 'test-token', 'PROJ-2', RANK_FIELD_ID, {})).rejects.toThrow('Network error');
+    await expect(
+      rankIssueApi('https://jira.example.com', 'test-token', 'PROJ-2', RANK_FIELD_ID, {}),
+    ).rejects.toThrow('Network error');
 
     // Plan 04 wires: onError calls setQueryData(snapshot) and sets rankError
     // The rollback error message expected in the UI:
@@ -90,5 +93,59 @@ describe('BacklogPage rank mutation', () => {
     // Simulate the onMutate cancelQueries call that Plan 04 will wire
     await queryClient.cancelQueries({ queryKey: ['gh-backlog', BOARD_ID] });
     expect(cancelSpy).toHaveBeenCalledWith({ queryKey: ['gh-backlog', BOARD_ID] });
+  });
+});
+
+describe('Defect-B: optimistic cross-section cache move (moveIssueAcrossSections)', () => {
+  let queryClient: QueryClient;
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  // Section membership is derived from sprints[].issuesIds[]; the optimistic
+  // move must place the issue in the TARGET section before the backend settles
+  // so the row does not "jump" in after the PUT succeeds.
+  const sprints = () => [
+    { id: 1, issuesIds: [101, 102] },
+    { id: 2, issuesIds: [201] },
+  ];
+
+  it('moves the issue into the target sprint section before settle (no post-success jump)', () => {
+    const next = moveIssueAcrossSections(sprints(), 101, 'sprint-2');
+    expect(next.find((s) => s.id === 1)?.issuesIds).toEqual([102]); // removed from source
+    expect(next.find((s) => s.id === 2)?.issuesIds).toEqual([201, 101]); // present in target NOW
+  });
+
+  it('demotes the issue to the backlog bucket by dropping it from every sprint', () => {
+    const next = moveIssueAcrossSections(sprints(), 201, 'backlog');
+    expect(next.find((s) => s.id === 1)?.issuesIds).toEqual([101, 102]);
+    expect(next.find((s) => s.id === 2)?.issuesIds).toEqual([]); // no longer in any sprint
+  });
+
+  it('does not double-insert when the issue already lives in the target sprint', () => {
+    const next = moveIssueAcrossSections(sprints(), 201, 'sprint-2');
+    expect(next.find((s) => s.id === 2)?.issuesIds).toEqual([201]);
+  });
+
+  it('round-trips on the cache shape via setQueryData (target membership visible immediately)', () => {
+    queryClient.setQueryData(['gh-backlog', BOARD_ID], {
+      rankCustomFieldId: RANK_FIELD_ID,
+      issues: [],
+      sprints: sprints(),
+    });
+    queryClient.setQueryData<{
+      rankCustomFieldId: number;
+      issues: unknown[];
+      sprints: Array<{ id: number; issuesIds: number[] }>;
+    }>(['gh-backlog', BOARD_ID], (old) =>
+      old ? { ...old, sprints: moveIssueAcrossSections(old.sprints, 101, 'sprint-2') } : old,
+    );
+    const after = queryClient.getQueryData<{
+      sprints: Array<{ id: number; issuesIds: number[] }>;
+    }>(['gh-backlog', BOARD_ID]);
+    expect(after?.sprints.find((s) => s.id === 2)?.issuesIds).toContain(101);
   });
 });

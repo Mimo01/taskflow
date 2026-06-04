@@ -82,6 +82,32 @@ export function buildTargetOrder(
 }
 
 /**
+ * The over-target state tracked during a drag, used to drive the section
+ * highlight ring (`overSectionId`) and the per-row insertion line
+ * (`overRowKey` + `dropEdge`).
+ */
+export interface OverState {
+  overSectionId: string | null;
+  overRowKey: string | null;
+  dropEdge: 'top' | 'bottom' | null;
+}
+
+/**
+ * True when two over-states are identical. Used by `handleDragOver` to skip
+ * setState calls on steady-state pointer movement (same row + same edge), which
+ * would otherwise re-render the whole virtualized BacklogPage every pointer
+ * frame and interrupt dnd-kit's transform animation (jank). Only a real change
+ * to section / row / edge should trigger a re-render.
+ */
+export function overStateEquals(a: OverState, b: OverState): boolean {
+  return (
+    a.overSectionId === b.overSectionId &&
+    a.overRowKey === b.overRowKey &&
+    a.dropEdge === b.dropEdge
+  );
+}
+
+/**
  * Full cross-section drop resolution used by handleDragEnd. Returns null when
  * the drop is not a valid cross-section move (no target, or target === source).
  */
@@ -90,6 +116,57 @@ export interface CrossSectionResolution {
   targetContainer: string;
   insertIndex: number;
   newTargetOrder: string[];
+}
+
+/**
+ * Optimistic cross-section cache move (Defect-B).
+ *
+ * Section membership in the Backlog is derived from the SERVER `gh-backlog`
+ * cache's `sprints[].issuesIds[]` (the issueId → sprintId reverse index), NOT
+ * from `localOrder` — which only re-sorts keys within a section's existing
+ * server membership. To make a cross-section move render in the target section
+ * IMMEDIATELY (no post-success jump), the issue's numeric id must be moved
+ * between the cached `sprints[].issuesIds[]` arrays before the network awaits.
+ *
+ * Given the current `sprints` membership arrays, the moved issue's numeric id,
+ * and the target section id (`sprint-<id>` or `backlog`), returns the new
+ * `sprints` membership arrays:
+ *   - `backlog`  → drop the id from every sprint (demote to the backlog bucket).
+ *   - `sprint-N` → add the id to sprint N (if absent) and remove it from all
+ *                  other sprints.
+ *
+ * Pure and immutable — does not mutate the input. The full
+ * GhBacklogResponse-shaped `setQueryData` writer in BacklogPage maps over this
+ * result; this helper isolates the membership math so it can be unit-tested
+ * without a real react-query cache or a dnd-kit pointer drag.
+ */
+export interface SprintMembership {
+  id: number;
+  issuesIds: number[];
+}
+
+export function moveIssueAcrossSections<S extends SprintMembership>(
+  sprints: readonly S[],
+  issueNumericId: number,
+  toSectionId: string,
+): S[] {
+  if (toSectionId === 'backlog') {
+    return sprints.map((s) => ({
+      ...s,
+      issuesIds: s.issuesIds.filter((id) => id !== issueNumericId),
+    }));
+  }
+  const targetSprintId = Number.parseInt(toSectionId.replace('sprint-', ''), 10);
+  return sprints.map((s) =>
+    s.id === targetSprintId
+      ? {
+          ...s,
+          issuesIds: s.issuesIds.includes(issueNumericId)
+            ? s.issuesIds
+            : [...s.issuesIds, issueNumericId],
+        }
+      : { ...s, issuesIds: s.issuesIds.filter((id) => id !== issueNumericId) },
+  );
 }
 
 export function resolveCrossSectionDrop(args: {
