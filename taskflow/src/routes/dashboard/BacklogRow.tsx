@@ -56,23 +56,6 @@ export interface BacklogRowProps {
   onToggleFlag?: (issueKey: string) => void;
   /** Set true while the row is in the DragOverlay ghost — suppresses sortable hook */
   isOverlay?: boolean;
-  /**
-   * D-05/D-07 (cross-section ghost): render this row as a purely-presentational
-   * translucent dashed placeholder — the SAME look as the intra-section dragged
-   * ghost — at the cross-section drop slot in the TARGET section. It carries NO
-   * useSortable hook and NO node ref, so it never registers with dnd-kit and
-   * cannot influence collision detection (the source section stays stable).
-   */
-  isGhostPlaceholder?: boolean;
-  /**
-   * D-05/D-07: during a CROSS-section drag the dashed "lands here" ghost is
-   * rendered in the TARGET section (isGhostPlaceholder row). To keep a SINGLE
-   * prominent ghost — matching intra, which shows exactly one — the dragged
-   * row in the SOURCE section drops its dashed placeholder treatment and stays
-   * a plain faded row (opacity only). Defaults to true (intra behaviour: the
-   * dragged row IS the dashed ghost at its drop slot).
-   */
-  showDraggedDashedGhost?: boolean;
   /** Passed from parent when justDragged guard is active */
   justDragged?: React.MutableRefObject<boolean>;
 }
@@ -203,18 +186,13 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       isFlagged,
       onToggleFlag,
       isOverlay,
-      isGhostPlaceholder,
-      showDraggedDashedGhost = true,
       justDragged,
     },
     _ref,
   ) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
       id: issue.key,
-      // Cross-section presentational ghost AND the DragOverlay clone both opt
-      // out of the active sortable wiring (the ghost must not register a second
-      // sortable for the dragged key in a foreign container).
-      disabled: isOverlay || isGhostPlaceholder,
+      disabled: isOverlay,
     });
 
     const dragStyle: React.CSSProperties = {
@@ -243,11 +221,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     // clone, which stays solid.
     const ghostPlaceholderClass =
       isDragging && !isOverlay
-        ? showDraggedDashedGhost
-          ? 'opacity-50 border border-dashed border-primary/50 bg-muted/40'
-          : // Cross-section drag: source row stays a plain faded row so the
-            // single dashed "lands here" ghost is the one in the target section.
-            'opacity-50'
+        ? 'opacity-50 border border-dashed border-primary/50 bg-muted/40'
         : undefined;
 
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
@@ -285,46 +259,6 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       epicsLoading,
       isFlagged,
     };
-
-    // D-05/D-07 cross-section ghost: a non-interactive, non-sortable row that
-    // mirrors the intra ghost's translucent dashed look. No ref, no listeners,
-    // no onClick, and NO focusable children (plain text cells instead of the
-    // button-bearing RowCells) so it can be aria-hidden without tripping the
-    // focusable-aria-hidden rule. Returned early so it never wires the context
-    // menu or sortable attributes.
-    if (isGhostPlaceholder) {
-      // Decorative, transient drag ghost: no focusable children (plain text
-      // cells), no listeners, no ref. We intentionally do NOT set aria-hidden
-      // (biome's noAriaHiddenOnFocusable rule treats a table row as focusable
-      // and rejects it) nor an ARIA role (a <tr> already has the implicit row
-      // role). The row is short-lived (drag duration only) and carries no
-      // interactive content, so leaving it in the a11y tree is harmless.
-      const ghostRow = (
-        <tr
-          data-testid={`backlog-row-ghost-${issue.key}`}
-          className={cn(
-            'border-b border-border opacity-50 border border-dashed border-primary/50 bg-muted/40',
-          )}
-        >
-          <td className="w-24 px-2 py-2 whitespace-nowrap">
-            <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
-          </td>
-          <td className="max-w-0 w-full px-2 py-2 overflow-hidden whitespace-nowrap text-ellipsis">
-            <span className="truncate text-sm">{issue.fields.summary}</span>
-          </td>
-          <td className="max-w-[12rem] px-2 py-2 whitespace-nowrap text-right">
-            {epicName ? <span className="text-xs text-muted-foreground">{epicName}</span> : null}
-          </td>
-          <td className="w-14 px-2 py-2 text-right">
-            <span className="text-xs text-muted-foreground">
-              {storyPoints !== null ? storyPoints : '?'}
-            </span>
-          </td>
-          <td className="w-10 px-2 py-2" />
-        </tr>
-      );
-      return ghostRow;
-    }
 
     if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag) {
       return (

@@ -86,7 +86,6 @@ import { BacklogSkeleton } from './BacklogSkeleton';
 import type { OverState, SortableData } from './backlogDragHelpers';
 import {
   computeLiveReorder,
-  computeTargetGhostIndex,
   keyOrderEquals,
   moveIssueAcrossSections,
   overStateEquals,
@@ -95,44 +94,6 @@ import {
   resolveSourceContainer,
   resolveTargetContainer,
 } from './backlogDragHelpers';
-
-// ── Cross-section ghost placeholder row (D-05/D-07) ───────────────────────────
-// During a CROSS-section drag, the target section renders this purely-
-// presentational row at the over-index so the user sees the SAME translucent
-// dashed "lands here" slot as the intra-section live-reorder ghost. It is NOT
-// a dnd-kit sortable/droppable — it carries no useSortable hook and no node ref
-// — so it cannot feed back into collision detection or shift the resolved
-// section. Reflow it causes is confined to the single target section AT/BELOW
-// the pointer, which is exactly what intra-section already does (the bounce
-// only ever came from SOURCE-section reflow, which we never do here).
-function GhostPlaceholderRow({
-  issue,
-  storyPointsFieldKey,
-  epicLinkFieldKey,
-  epicNameFieldKey,
-  epicNames,
-  epicColors,
-}: {
-  issue: JiraIssue;
-  storyPointsFieldKey: string;
-  epicLinkFieldKey: string;
-  epicNameFieldKey: string;
-  epicNames?: Map<string, string>;
-  epicColors?: Map<string, string>;
-}) {
-  return (
-    <BacklogRow
-      issue={issue}
-      onIssueClick={() => {}}
-      storyPointsFieldKey={storyPointsFieldKey}
-      epicLinkFieldKey={epicLinkFieldKey}
-      epicNameFieldKey={epicNameFieldKey}
-      epicNames={epicNames}
-      epicColors={epicColors}
-      isGhostPlaceholder
-    />
-  );
-}
 
 // ── Virtualized table body ────────────────────────────────────────────────────
 
@@ -156,9 +117,6 @@ function VirtualizedBacklogTable({
   flaggedFieldKey,
   onToggleFlag,
   justDragged,
-  ghostIssue,
-  ghostIndex,
-  suppressDraggedDashedGhost,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -179,16 +137,6 @@ function VirtualizedBacklogTable({
   flaggedFieldKey: string;
   onToggleFlag?: (issueKey: string) => void;
   justDragged?: React.MutableRefObject<boolean>;
-  /** Cross-section drag: the dragged issue to show as the target ghost (else null). */
-  ghostIssue?: JiraIssue | null;
-  /** Index in `filteredIssues` at which to render the ghost placeholder row. */
-  ghostIndex?: number | null;
-  /**
-   * True for the SOURCE section during a cross-section drag — the dragged row
-   * drops its dashed-ghost treatment (stays plain faded) so the single dashed
-   * "lands here" ghost lives only in the target section.
-   */
-  suppressDraggedDashedGhost?: boolean;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -238,7 +186,6 @@ function VirtualizedBacklogTable({
         isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
         onToggleFlag={onToggleFlag ? () => onToggleFlag(issue.key) : undefined}
         justDragged={justDragged}
-        showDraggedDashedGhost={!suppressDraggedDashedGhost}
       />
     );
   }
@@ -279,39 +226,7 @@ function VirtualizedBacklogTable({
                 transform: `translateY(${virtualRow.start}px)`,
               });
             })
-          : // Render the real rows, splicing the cross-section ghost placeholder
-            // at `ghostIndex` when one is active for this section. The ghost is a
-            // presentational <tr> (no sortable hook), so it never registers with
-            // dnd-kit — purely a visual "lands here" slot matching intra.
-            filteredIssues.reduce<React.ReactNode[]>((acc, issue, i) => {
-              if (ghostIssue && ghostIndex === i) {
-                acc.push(
-                  <GhostPlaceholderRow
-                    key="__cross-section-ghost__"
-                    issue={ghostIssue}
-                    storyPointsFieldKey={storyPointsFieldKey}
-                    epicLinkFieldKey={epicLinkFieldKey}
-                    epicNameFieldKey={epicNameFieldKey}
-                    epicNames={epicNames}
-                    epicColors={epicColors}
-                  />,
-                );
-              }
-              acc.push(renderRow(issue));
-              return acc;
-            }, [])}
-        {/* Ghost appended at the end (over header/gap, or empty section). */}
-        {!useVirtual && ghostIssue && ghostIndex != null && ghostIndex >= filteredIssues.length && (
-          <GhostPlaceholderRow
-            key="__cross-section-ghost-end__"
-            issue={ghostIssue}
-            storyPointsFieldKey={storyPointsFieldKey}
-            epicLinkFieldKey={epicLinkFieldKey}
-            epicNameFieldKey={epicNameFieldKey}
-            epicNames={epicNames}
-            epicColors={epicColors}
-          />
-        )}
+          : filteredIssues.map((issue) => renderRow(issue))}
       </tbody>
     </table>
   );
@@ -403,9 +318,8 @@ export default function BacklogPage() {
   // movement then causes ZERO highlight re-renders.
   const [overState, setOverState] = useState<OverState>({
     overSectionId: null,
-    overRowKey: null,
   });
-  const { overSectionId, overRowKey } = overState;
+  const { overSectionId } = overState;
   // Map<sectionId, string[]> — overrides server issue-key order during drag window (D-08)
   const [localOrder, setLocalOrder] = useState<Map<string, string[]>>(new Map());
   // D-07 (ghost placeholder model): pre-drag snapshot of localOrder captured on
@@ -1010,7 +924,6 @@ export default function BacklogPage() {
 
   const EMPTY_OVER_STATE: OverState = {
     overSectionId: null,
-    overRowKey: null,
   };
 
   // Gate the setter so steady-state movement (same over-state) is a no-op and
@@ -1068,27 +981,15 @@ export default function BacklogPage() {
 
     // Resolve the section the pointer is within (row container OR section droppable id).
     const section = rowContainer ?? (sectionIds.has(overIdStr) ? overIdStr : null);
-    const sourceSection = findSectionOfKey(activeKey) ?? section;
 
-    // D-05/D-07 (cross-section ghost): when the pointer is over a section OTHER
-    // than the source, record the row key under the pointer so the target
-    // section can render a purely-presentational ghost placeholder at the
-    // correct slot. When the pointer is over a row, that row's key is `overIdStr`
-    // (the over.id of a sortable item IS the issue key); over a header/gap/empty
-    // section it's the section id (not a row key) → null → append. For the INTRA
-    // case the ghost is driven by the live-reordered dragged row instead, so we
-    // keep overRowKey null there to hold the equality gate stable.
-    const isCrossSection = !!section && section !== sourceSection;
-    const overRowKeyForGhost = isCrossSection && rowContainer ? overIdStr : null;
-
-    // Section highlight ring + cross-section ghost slot (gated by overStateEquals).
-    applyOverState({ overSectionId: section, overRowKey: overRowKeyForGhost });
+    // Section highlight ring (gated by overStateEquals).
+    applyOverState({ overSectionId: section });
 
     if (!section) return;
+    const sourceSection = findSectionOfKey(activeKey) ?? section;
 
     // Intra-section live reorder only — see the function comment for why
-    // cross-section deliberately does not reorder during the drag (it would
-    // reflow the SOURCE section and oscillate dnd-kit collision detection).
+    // cross-section deliberately does not reorder during the drag.
     if (section !== sourceSection) return;
     if (!rowContainer || overIdStr === activeKey) return;
     setLocalOrder((prev) => {
@@ -1373,34 +1274,6 @@ export default function BacklogPage() {
     // SortableContext items — use localOrder if set, else server keys (RANK-01).
     const sortableItems = orderedKeys ?? issues.map((i) => i.key);
 
-    // D-05/D-07 cross-section ghost: when this section is the CURRENT cross-
-    // section drop target (pointer hovering here, and it is NOT the source
-    // section), show the dragged issue as a translucent dashed placeholder at
-    // the over-row index — identical to the intra ghost. Purely presentational;
-    // it never touches `localOrder`, so the source section stays stable and
-    // dnd-kit collision detection cannot oscillate.
-    const isCrossSectionTarget =
-      !!activeId && overSectionId === sectionId && activeSourceSectionId !== sectionId;
-    const ghostIssue = isCrossSectionTarget
-      ? (adaptedIssues.find((i) => i.key === activeId) ?? null)
-      : null;
-    const ghostIndex = ghostIssue
-      ? computeTargetGhostIndex(
-          displayIssues.map((i) => i.key),
-          overRowKey,
-          activeId as string,
-        )
-      : null;
-
-    // Source section during a cross-section drag (pointer currently over a
-    // DIFFERENT section): suppress the dragged row's dashed ghost so the only
-    // dashed "lands here" cue is the target ghost (single-ghost parity w/ intra).
-    const isSourceDuringCrossSection =
-      !!activeId &&
-      activeSourceSectionId === sectionId &&
-      overSectionId != null &&
-      overSectionId !== sectionId;
-
     return (
       <div key={sectionId} className="mb-2" data-testid={`sprint-section-${sectionId}`}>
         {/* Section header */}
@@ -1475,27 +1348,8 @@ export default function BacklogPage() {
                   flaggedFieldKey={flaggedFieldKey}
                   onToggleFlag={handleToggleFlag}
                   justDragged={justDragged}
-                  ghostIssue={ghostIssue}
-                  ghostIndex={ghostIndex}
-                  suppressDraggedDashedGhost={isSourceDuringCrossSection}
                 />
               </SortableContext>
-            ) : ghostIssue ? (
-              /* Empty / fully-filtered section that is the cross-section drop
-                 target — show ONLY the ghost placeholder so the "lands here"
-                 slot is visible even when the section has no real rows. */
-              <table className="w-full text-sm">
-                <tbody>
-                  <GhostPlaceholderRow
-                    issue={ghostIssue}
-                    storyPointsFieldKey={storyPointsFieldKey}
-                    epicLinkFieldKey={epicLinkFieldKey}
-                    epicNameFieldKey={epicNameFieldKey}
-                    epicNames={epicNameMap}
-                    epicColors={epicColorMap}
-                  />
-                </tbody>
-              </table>
             ) : issues.length > 0 ? (
               /* All issues filtered out */
               <p className="px-4 py-3 text-sm text-muted-foreground">

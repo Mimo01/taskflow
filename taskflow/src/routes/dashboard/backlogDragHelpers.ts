@@ -82,70 +82,24 @@ export function buildTargetOrder(
 }
 
 /**
- * The over-target state tracked during a drag.
- *
- * - `overSectionId` — the section the pointer is currently within. Drives the
- *   SUBTLE cross-section highlight ring.
- * - `overRowKey` — the issue key of the row directly under the pointer, or null
- *   when the pointer is over a section header/gap/empty section (→ append at
- *   the end). Used ONLY during a CROSS-section drag to position a purely-
- *   presentational ghost placeholder row in the TARGET section (D-05/D-07).
- *   Intra-section drags drive their ghost via the live-reordered dragged row
- *   in `localOrder`, so `overRowKey` is irrelevant for the intra case.
- *
- * Both fields are part of the equality gate so steady-state pointer movement
- * (same section AND same over-row) is a no-op — zero re-renders.
+ * The over-target state tracked during a drag, used to drive the SUBTLE
+ * cross-section highlight ring (`overSectionId`). The ghost placeholder row
+ * (live-reordered into its drop slot) is now the PRIMARY drop cue, so the old
+ * per-row insertion line state (`overRowKey` + `dropEdge`) is gone.
  */
 export interface OverState {
   overSectionId: string | null;
-  overRowKey: string | null;
 }
 
 /**
  * True when two over-states are identical. Used by `handleDragOver` to skip
- * setState calls on steady-state pointer movement (same section + same over
- * row), which would otherwise re-render the whole BacklogPage every pointer
- * frame and interrupt dnd-kit's transform animation (jank). Only a real
- * section OR over-row change should trigger a re-render.
+ * setState calls on steady-state pointer movement (same section), which would
+ * otherwise re-render the whole BacklogPage every pointer frame and interrupt
+ * dnd-kit's transform animation (jank). Only a real section change should
+ * trigger a re-render of the highlight ring.
  */
 export function overStateEquals(a: OverState, b: OverState): boolean {
-  return a.overSectionId === b.overSectionId && a.overRowKey === b.overRowKey;
-}
-
-/**
- * Compute the index at which to render the purely-presentational ghost
- * placeholder row in the CROSS-section TARGET, given the target section's
- * currently-displayed issue keys and the key under the pointer (`overRowKey`).
- *
- * - When the pointer is over a target row, the ghost goes AT that row's index
- *   (pushing that row and everything below it down by one slot) — matching the
- *   intra-section live-reorder feel where the dragged row sits at the over
- *   row's slot.
- * - When `overRowKey` is null (pointer over a header/gap/empty section) the
- *   ghost is appended at the end.
- *
- * The dragged key is defensively excluded from the lookup; in a cross-section
- * drag it never belongs to the target section anyway. Returns a clamped index
- * in `[0, displayKeys.length]`.
- *
- * This index is PURELY VISUAL — it positions a non-sortable, non-droppable
- * placeholder. It deliberately does NOT mutate the target's sortable
- * `localOrder`, so it cannot feed back into dnd-kit collision detection and
- * cause the section-resolution oscillation that the reverted live-cross-move
- * approach suffered from.
- */
-export function computeTargetGhostIndex(
-  displayKeys: readonly string[],
-  overRowKey: string | null,
-  activeKey: string,
-): number {
-  if (overRowKey == null) return displayKeys.length;
-  const idx = displayKeys.indexOf(overRowKey);
-  if (idx === -1) return displayKeys.length;
-  // If the over row is the dragged key itself (shouldn't happen cross-section),
-  // fall back to the end.
-  if (overRowKey === activeKey) return displayKeys.length;
-  return Math.max(0, Math.min(idx, displayKeys.length));
+  return a.overSectionId === b.overSectionId;
 }
 
 /**
