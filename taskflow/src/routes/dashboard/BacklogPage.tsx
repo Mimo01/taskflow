@@ -87,9 +87,7 @@ import type { OverState, SortableData } from './backlogDragHelpers';
 import {
   computeLiveReorder,
   keyOrderEquals,
-  moveIssueAcrossSections,
   overStateEquals,
-  resolveCrossSectionDrop,
   resolveIntraSectionRank,
   resolveSourceContainer,
   resolveTargetContainer,
@@ -328,21 +326,6 @@ export default function BacklogPage() {
   // restore the exact order both sections had before live-reorder mutated them.
   const preDragOrderRef = useRef<Map<string, string[]> | null>(null);
   const [rankError, setRankError] = useState<string | null>(null);
-  // WR-05: in-flight guard for the cross-section confirm move. The ref blocks a
-  // synchronous double-click re-entry (state flushes async, so setPendingDragMove
-  // alone cannot guard it); the state drives the dialog's disabled/"Moving..." UI.
-  const dragMoveInFlightRef = useRef(false);
-  const [dragMovePending, setDragMovePending] = useState(false);
-  // Pending cross-section drag move (D-03/D-04)
-  const [pendingDragMove, setPendingDragMove] = useState<{
-    issueKey: string;
-    fromSectionId: string;
-    toSectionId: string;
-    fromSprintName: string | null;
-    toSprintName: string;
-    newOrder: string[];
-    previousOrder: string[];
-  } | null>(null);
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
@@ -916,8 +899,7 @@ export default function BacklogPage() {
       // order (from the onSettled invalidation/refetch) takes over. Without this
       // the section is pinned to the stale client order forever — new/refetched
       // issues are forced to the bottom and server rank corrections are ignored.
-      // Mirrors confirmDragMove, which deletes its overrides on success BEFORE
-      // invalidateGhBacklogData. Deleting here (not before the refetch lands) keeps
+      // Deleting here (not before the refetch lands) keeps
       // the D-08/RANK-05 flicker gate intact: onSettled re-invalidates immediately
       // after, so the refetched server order renders cleanly with no snap-back.
       setLocalOrder((prev) => {
@@ -964,7 +946,7 @@ export default function BacklogPage() {
     setRankError(null);
     clearOverState();
     // D-07 (ghost placeholder model): snapshot localOrder so an aborted drag or
-    // a cross-section "Keep Position" cancel restores cleanly. Also seed the
+    // a cross-section drop (now a no-op restore) reverts cleanly. Also seed the
     // source section's localOrder with its current displayed order so the live
     // reorder in handleDragOver has a stable base to arrayMove against.
     preDragOrderRef.current = new Map(localOrder);
@@ -1004,15 +986,22 @@ export default function BacklogPage() {
     // Resolve the section the pointer is within (row container OR section droppable id).
     const section = rowContainer ?? (sectionIds.has(overIdStr) ? overIdStr : null);
 
-    // Section highlight ring (gated by overStateEquals).
-    applyOverState({ overSectionId: section });
-
-    if (!section) return;
+    if (!section) {
+      clearOverState();
+      return;
+    }
     const sourceSection = findSectionOfKey(activeKey) ?? section;
 
-    // Intra-section live reorder only — see the function comment for why
-    // cross-section deliberately does not reorder during the drag.
-    if (section !== sourceSection) return;
+    // Phase 78-04: drag is INTRA-section only. Cross-section is no longer a drop
+    // target — never advertise a non-source section as a highlight target. Only
+    // the source section may light up (and `isActiveDropTarget` already excludes
+    // the source via `activeSourceSectionId !== sectionId`, so the ring stays
+    // inert), and only the source section ever live-reorders.
+    if (section !== sourceSection) {
+      clearOverState();
+      return;
+    }
+    applyOverState({ overSectionId: section });
     if (!rowContainer || overIdStr === activeKey) return;
     setLocalOrder((prev) => {
       const current = prev.get(section) ?? getSectionKeys(section);
@@ -1081,44 +1070,20 @@ export default function BacklogPage() {
         position: rank.position,
       });
     } else {
-      // ── Cross-section — open confirmation dialog (D-03/D-04) ─────────────────
-      // The key was NOT live-moved into the target during the drag (that caused
-      // jank), so build the optimistic target order now by inserting it at the
-      // drop index. The cache move + rollback happen on confirm (confirmDragMove).
-      const resolution = resolveCrossSectionDrop({
-        activeKey,
-        activeData,
-        overId: over.id as string,
-        overData,
-        sectionIds,
-        getTargetKeys: (id) => localOrder.get(id) ?? getSectionKeys(id),
-      });
-      if (!resolution) {
-        restorePreDragOrder();
-        return;
-      }
-      const previousOrder = localOrder.get(sourceContainer) ?? getSectionKeys(sourceContainer);
-      const fromSprintName = sourceContainer.startsWith('sprint-')
-        ? (lookupSprintNameById(parseInt(sourceContainer.replace('sprint-', ''), 10)) ?? null)
-        : null;
-      const toSprintName = targetContainer.startsWith('sprint-')
-        ? (lookupSprintNameById(parseInt(targetContainer.replace('sprint-', ''), 10)) ?? 'Sprint')
-        : 'Backlog';
-      setPendingDragMove({
-        issueKey: activeKey,
-        fromSectionId: sourceContainer,
-        toSectionId: targetContainer,
-        fromSprintName,
-        toSprintName,
-        newOrder: resolution.newTargetOrder,
-        previousOrder,
-      });
+      // ── Cross-section drop is a NO-OP (Phase 78-04) ──────────────────────────
+      // Dragging across sections no longer moves the issue or opens a dialog.
+      // Drag only reorders rows WITHIN their own section (intra-section rank).
+      // A drop that lands in a different section simply restores the pre-drag
+      // order — no membership change, no rank PUT, no confirmation. Sprint
+      // membership changes are available via the right-click context menu.
+      restorePreDragOrder();
     }
   }
 
-  // Restore both sections' localOrder to the pre-drag snapshot — used when a
-  // drag is aborted (no valid drop) or a cross-section move is cancelled. Keeps
-  // the ghost-placeholder live-reorder from "sticking" after a no-op release.
+  // Restore the section's localOrder to the pre-drag snapshot — used when a
+  // drag is aborted (no valid drop) or a cross-section drop lands (now a no-op,
+  // Phase 78-04). Keeps the ghost-placeholder live-reorder from "sticking" after
+  // a no-op release.
   function restorePreDragOrder() {
     const snapshot = preDragOrderRef.current;
     setLocalOrder(snapshot ? new Map(snapshot) : new Map());
@@ -1140,131 +1105,6 @@ export default function BacklogPage() {
     }
     if (backlogIssuesAdapted.some((i) => i.key === key)) return 'backlog';
     return null;
-  }
-
-  // ── Cross-section drag confirm handlers (D-03/D-04) ──────────────────────────
-
-  async function confirmDragMove() {
-    if (!pendingDragMove || boardId == null) return;
-    // WR-05: block a synchronous double-click. setPendingDragMove(null) below
-    // flushes asynchronously, so a fast second click would otherwise re-enter
-    // with the same pendingDragMove and fire the membership + rank PUTs twice.
-    if (dragMoveInFlightRef.current) return;
-    dragMoveInFlightRef.current = true;
-    setDragMovePending(true);
-    const { issueKey, fromSectionId, toSectionId, newOrder, previousOrder } = pendingDragMove;
-    setPendingDragMove(null);
-
-    // Defect-B (optimistic cross-section move): the rendered membership of each
-    // section is derived from the SERVER `gh-backlog` cache via the
-    // issueIdToSprintId reverse index — `localOrder` only re-sorts keys WITHIN a
-    // section's existing server membership. So to make the moved row appear in
-    // the target section IMMEDIATELY (no post-success jump), we must move the
-    // issue between `sprints[].issuesIds[]` in the cache BEFORE the awaits,
-    // mirroring confirmMoveToSprint/confirmMoveToBacklog.
-    const cacheKey = ['gh-backlog', boardId] as const;
-    const snapshot = queryClient.getQueryData<GhBacklogResponse>(cacheKey);
-    const issue = adaptedIssues.find((i) => i.key === issueKey);
-    const issueNumericId = issue ? Number(issue.id) : null;
-
-    // Cancel in-flight refetch so the optimistic cache write can't be clobbered
-    // before the membership PUT settles (mirrors rankMutation.onMutate / D-08).
-    await queryClient.cancelQueries({ queryKey: cacheKey });
-
-    if (issueNumericId != null) {
-      queryClient.setQueryData<GhBacklogResponse>(cacheKey, (old) =>
-        old
-          ? { ...old, sprints: moveIssueAcrossSections(old.sprints, issueNumericId, toSectionId) }
-          : old,
-      );
-    }
-
-    // Optimistic ordering: now that the issue lives in the target section's
-    // server membership, set the within-section order overrides for both
-    // sections (D-08 localOrder gate).
-    const sourceKeys = previousOrder.filter((k) => k !== issueKey);
-    setLocalOrder((prev) => {
-      const next = new Map(prev);
-      next.set(fromSectionId, sourceKeys);
-      next.set(toSectionId, newOrder);
-      return next;
-    });
-
-    const rollback = () => {
-      if (snapshot) queryClient.setQueryData<GhBacklogResponse>(cacheKey, snapshot);
-      setLocalOrder((prev) => {
-        const next = new Map(prev);
-        next.set(fromSectionId, previousOrder);
-        next.delete(toSectionId);
-        return next;
-      });
-      setRankError("Couldn't move issue — reverted");
-    };
-
-    const token = await readSecret('jira-pat').catch(() => null);
-    if (!token) {
-      rollback();
-      dragMoveInFlightRef.current = false;
-      setDragMovePending(false);
-      return;
-    }
-
-    try {
-      // Sprint-membership change first (D-03).
-      if (toSectionId === 'backlog') {
-        await moveIssuesToBacklog(jiraBaseUrl ?? '', token, [issueKey]);
-      } else {
-        const targetSprintId = parseInt(toSectionId.replace('sprint-', ''), 10);
-        await addIssuesToSprint(jiraBaseUrl ?? '', token, targetSprintId, [issueKey]);
-      }
-      // Then rank within target section.
-      const above = newOrder[newOrder.indexOf(issueKey) - 1];
-      const below = newOrder[newOrder.indexOf(issueKey) + 1];
-      const position:
-        | { rankBeforeIssue: string }
-        | { rankAfterIssue: string }
-        | Record<string, never> =
-        above !== undefined
-          ? { rankAfterIssue: above }
-          : below !== undefined
-            ? { rankBeforeIssue: below }
-            : {};
-      await rankIssueApi(
-        jiraBaseUrl ?? '',
-        token,
-        issueKey,
-        backlog?.rankCustomFieldId ?? 0,
-        position,
-      );
-      // Success: reconcile against the server. Because the optimistic cache
-      // already placed the issue in the target section, the refetch lands the
-      // identical membership → no visible jump. Drop the localOrder overrides so
-      // the reconciled server order takes over cleanly (no double-insert).
-      setLocalOrder((prev) => {
-        const next = new Map(prev);
-        next.delete(fromSectionId);
-        next.delete(toSectionId);
-        return next;
-      });
-      invalidateGhBacklogData(queryClient, boardId);
-      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
-    } catch {
-      // Rollback cache + local order (RANK-04 analog for cross-section).
-      rollback();
-    } finally {
-      // WR-05: always release the in-flight guard so the next move can proceed.
-      dragMoveInFlightRef.current = false;
-      setDragMovePending(false);
-    }
-  }
-
-  function cancelDragMove() {
-    if (!pendingDragMove) return;
-    // "Keep Position" — no API call. Cross-section live-reorder mutated BOTH the
-    // source and target localOrder, so restore the full pre-drag snapshot rather
-    // than just the source section.
-    restorePreDragOrder();
-    setPendingDragMove(null);
   }
 
   // Section id that currently owns the dragged row — used to suppress the
@@ -1485,22 +1325,6 @@ export default function BacklogPage() {
             void confirmMoveToBacklog(pendingBacklogMove.issueKey);
             setPendingBacklogMove(null);
           }
-        }}
-      />
-
-      {/* Cross-section drag confirmation dialog (D-03/D-04) — "Keep Position" cancel */}
-      <ConfirmSprintMoveDialog
-        open={!!pendingDragMove}
-        onOpenChange={(open) => {
-          if (!open) cancelDragMove();
-        }}
-        issueKey={pendingDragMove?.issueKey ?? ''}
-        fromSprintName={pendingDragMove?.fromSprintName ?? null}
-        toSprintName={pendingDragMove?.toSprintName ?? ''}
-        cancelLabel="Keep Position"
-        isPending={dragMovePending}
-        onConfirm={() => {
-          void confirmDragMove();
         }}
       />
 
