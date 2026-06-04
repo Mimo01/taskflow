@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 79
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-06-04 - Completed quick task 260604-knq: backlog drag-to-rank in-place drag (keep autoScroll synced)
+Last activity: 2026-06-04 - Phase 78 UAT complete (3 pass, 1 resolved, 1 skipped); backlog drag autoscroll desync resolved via autoScroll=false (dnd-kit#1108 limitation)
 
 Progress: [██████████] 100%
 
