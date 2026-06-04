@@ -149,6 +149,8 @@ export function __adaptToJiraTransition(
         statusCategory: { id: 0, key: 'indeterminate', name: 'Unknown' },
       },
       fromStatusId,
+      hasScreen: gh.hasScreen,
+      hasValidators: gh.hasValidators,
     };
   }
   return {
@@ -156,6 +158,8 @@ export function __adaptToJiraTransition(
     name: gh.name,
     to: { id: toId, name: status.name, statusCategory: status.statusCategory },
     fromStatusId,
+    hasScreen: gh.hasScreen,
+    hasValidators: gh.hasValidators,
   };
 }
 

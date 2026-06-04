@@ -385,6 +385,8 @@ describe('getGhTransitions', () => {
         name: 'In Progress',
         statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
       },
+      hasScreen: false,
+      hasValidators: false,
     });
   });
 });
@@ -428,6 +430,8 @@ describe('peekGhTransitions', () => {
         name: 'In Progress',
         statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
       },
+      hasScreen: false,
+      hasValidators: false,
     });
   });
 
