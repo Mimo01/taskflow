@@ -107,7 +107,7 @@ describe('rankIssue', () => {
 
   it('E12: repeated midpoint — insert 5 items between a and b — all strictly ordered', () => {
     let lo = '0|aaaaaa:';
-    let hi = '0|bbbbbb:';
+    const hi = '0|bbbbbb:';
     const inserted: string[] = [];
     for (let i = 0; i < 5; i++) {
       const mid = rankIssue(lo, hi);
