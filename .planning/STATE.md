@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
-status: ready_to_plan
-last_updated: 2026-06-04T12:08:09.685Z
-last_activity: 2026-06-03
+status: planning
+last_updated: "2026-06-04T14:31:40.411Z"
+last_activity: "2026-06-04 - Phase 78 UAT complete (3 pass, 1 resolved, 1 skipped); backlog drag autoscroll desync resolved via autoScroll=false (dnd-kit#1108 limitation)"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 12
   completed_plans: 12
   percent: 60
-stopped_at: Phase 78 complete (4/4) — ready to discuss Phase 79
 ---
 
 # Project State
@@ -105,7 +104,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Session Continuity
 
-Last session: 2026-06-03T19:39:19.717Z
-Stopped at: Completed 78-02-PLAN.md
-Resume file: None
+Last session: 2026-06-04T14:31:40.406Z
+Stopped at: Phase 79 context gathered
+Resume file: .planning/phases/79-drag-to-transition-on-sprint-board/79-CONTEXT.md
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
