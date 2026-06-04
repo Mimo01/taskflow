@@ -252,6 +252,8 @@ describe('__adaptToJiraTransition', () => {
         name: 'In Progress',
         statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
       },
+      hasScreen: false,
+      hasValidators: false,
     });
     expect(warnSpy).not.toHaveBeenCalled();
   });
@@ -275,8 +277,42 @@ describe('__adaptToJiraTransition', () => {
         name: 'Status 999',
         statusCategory: { id: 0, key: 'indeterminate', name: 'Unknown' },
       },
+      hasScreen: false,
+      hasValidators: false,
     });
     expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('D-08: propagates hasScreen:true through the status-hit branch', () => {
+    const gh: GhTransition = {
+      transitionId: 31,
+      name: 'Start Progress',
+      toStatusId: 3,
+      hasScreen: true,
+      hasConditions: false,
+      hasValidators: false,
+      isInitial: false,
+      isGlobal: false,
+    };
+    const result = __adaptToJiraTransition(gh, map());
+    expect(result.hasScreen).toBe(true);
+    expect(result.hasValidators).toBe(false);
+  });
+
+  it('D-08: propagates hasValidators:true through the status-miss (fallback) branch', () => {
+    const gh: GhTransition = {
+      transitionId: 41,
+      name: 'Approve',
+      toStatusId: 999,
+      hasScreen: false,
+      hasConditions: false,
+      hasValidators: true,
+      isInitial: false,
+      isGlobal: false,
+    };
+    const result = __adaptToJiraTransition(gh, map());
+    expect(result.hasScreen).toBe(false);
+    expect(result.hasValidators).toBe(true);
   });
 });
 
