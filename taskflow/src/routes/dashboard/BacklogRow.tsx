@@ -54,6 +54,8 @@ export interface BacklogRowProps {
   isFlagged?: boolean;
   /** Called when user selects Flag/Unflag from the context menu */
   onToggleFlag?: (issueKey: string) => void;
+  /** Set true while the row is in the DragOverlay ghost — suppresses sortable hook */
+  isOverlay?: boolean;
   /** Passed from parent when justDragged guard is active */
   justDragged?: React.MutableRefObject<boolean>;
 }
@@ -183,27 +185,36 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onMoveToBacklog,
       isFlagged,
       onToggleFlag,
+      isOverlay,
       justDragged,
     },
     _ref,
   ) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
       id: issue.key,
+      disabled: isOverlay,
     });
 
     const dragStyle: React.CSSProperties = {
       transform: CSS.Transform.toString(transform),
       transition,
-      // Phase 78-knq (autoscroll-desync fix): no DragOverlay. The real row is
-      // dragged IN PLACE via the useSortable transform above, keeping it visible
-      // (slightly translucent) and following the pointer. This routes through
-      // dnd-kit's non-overlay path, which adds activeNodeScrollDelta and so
-      // eliminates the one-row autoscroll-during-drag hit-test drift. dnd-kit's
-      // verticalListSortingStrategy still shifts the sibling rows to open the gap.
-      opacity: isDragging ? 0.85 : undefined,
+      // Phase 78-04 (jump fix): canonical dnd-kit DragOverlay setup. There is no
+      // longer a live-reordered in-slot ghost (order changes only on drop), so
+      // the dragged row keeps its original slot while the SOLID DragOverlay clone
+      // follows the cursor. Hide the in-list source row (opacity 0) so it doesn't
+      // double with the overlay; dnd-kit's verticalListSortingStrategy shifts the
+      // sibling rows via transforms to open the drop gap.
+      opacity: isDragging && !isOverlay ? 0 : undefined,
       cursor: isDragging ? 'grabbing' : 'grab',
       position: 'relative',
     };
+
+    // D-07 / Defect-A: ONE coherent, subtle overlay treatment. The previous
+    // ring-2 + ring-offset + shadow-xl HERE stacked on top of the table
+    // wrapper's own ring-2 + shadow-2xl, producing a heavy, janky-looking
+    // ghost. The single soft treatment now lives on the table wrapper in
+    // BacklogPage; the row itself adds nothing extra.
+    const overlayClassName = isOverlay ? 'bg-background' : undefined;
 
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
     // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
@@ -226,11 +237,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
         : 'hover:bg-muted/30',
       isFocused && 'bg-muted border-l-2 border-primary',
-      // Phase 78-knq: in-place drag lift treatment so the dragged row reads as
-      // raised above its siblings (z-10/relative ensures the shadow+ring paint
-      // over neighbouring rows). Applies to both <tr> render paths via this
-      // shared className.
-      isDragging && 'shadow-lg ring-2 ring-primary relative z-10',
+      overlayClassName,
     );
 
     const cellsProps = {
