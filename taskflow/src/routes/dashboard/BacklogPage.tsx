@@ -875,24 +875,26 @@ export default function BacklogPage() {
       setRankError("Couldn't save new order — reverted");
       isDraggingRef.current = false;
     },
-    onSuccess: (_data, { sectionId }) => {
-      // CR-01: drop the section's localOrder override so the reconciled server
-      // order (from the onSettled invalidation/refetch) takes over. Without this
-      // the section is pinned to the stale client order forever — new/refetched
-      // issues are forced to the bottom and server rank corrections are ignored.
-      // Deleting here (not before the refetch lands) keeps
-      // the D-08/RANK-05 flicker gate intact: onSettled re-invalidates immediately
-      // after, so the refetched server order renders cleanly with no snap-back.
+    onSettled: async (_data, _err, { sectionId }) => {
+      isDraggingRef.current = false;
+      // CR-01 + no-settle-jump: the optimistic `localOrder` override must outlive
+      // the refetch. If we drop it before the server cache reflects the new rank
+      // (the old onSuccess behaviour), the row briefly snaps back to the stale
+      // server order, then jumps forward again when the refetch lands. So:
+      //   1) await the gh-backlog refetch so the cache holds the persisted order,
+      //   2) only THEN delete the override — fallback server order already equals
+      //      the optimistic order, so there is no visible jump.
+      // Clearing it (rather than pinning forever) keeps CR-01 fixed: new/refetched
+      // issues and server rank corrections take over once reconciled.
+      if (boardId != null) {
+        await queryClient.invalidateQueries({ queryKey: ['gh-backlog', boardId] });
+      }
       setLocalOrder((prev) => {
         if (!prev.has(sectionId)) return prev;
         const next = new Map(prev);
         next.delete(sectionId);
         return next;
       });
-    },
-    onSettled: () => {
-      isDraggingRef.current = false;
-      if (boardId != null) invalidateGhBacklogData(queryClient, boardId);
     },
   });
 
