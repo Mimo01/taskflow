@@ -8,7 +8,13 @@ updated: 2026-06-04T12:13:30Z
 
 ## Current Test
 
-[testing complete]
+number: 3
+name: No-flicker during background refetch + autoscroll-during-drag (re-verify after fix)
+expected: |
+  Drag a row near the top/bottom edge so the list auto-scrolls during the drag.
+  The layout stays intact and the dragged clone stays under the cursor. Also: a
+  background refetch does not make the list jump or revert.
+awaiting: user response (re-verification of fix 4f0cfdd3)
 
 ## Tests
 
@@ -64,3 +70,4 @@ blocked: 0
     - "Add measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} to DndContext (import MeasuringStrategy from @dnd-kit/core) so row rects re-measure during scroll."
     - "Optional: collapse nested overflow-auto containers into one for deterministic autoScroll. Not required once overlay is portaled. Do NOT change virtualization or restrictToVerticalAxis (both ruled out)."
   debug_session: ".planning/debug/backlog-drag-autoscroll-desync.md"
+  fix_applied: "commit 4f0cfdd3 — portaled DragOverlay to document.body + measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}. npm run check clean; vitest dashboard+jira 810 passed. Awaiting human re-verification of autoscroll-during-drag behavior."
