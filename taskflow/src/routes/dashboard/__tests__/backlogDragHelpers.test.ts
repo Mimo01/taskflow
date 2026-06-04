@@ -18,6 +18,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTargetOrder,
   computeInsertIndex,
+  type OverState,
+  overStateEquals,
   resolveCrossSectionDrop,
   resolveSourceContainer,
   resolveTargetContainer,
@@ -152,5 +154,36 @@ describe('resolveCrossSectionDrop — the dialog-opening seam', () => {
       getTargetKeys,
     });
     expect(res).toBeNull();
+  });
+});
+
+describe('overStateEquals — the per-frame re-render gate (Defect-A smoothness)', () => {
+  const make = (
+    overSectionId: string | null,
+    overRowKey: string | null,
+    dropEdge: OverState['dropEdge'],
+  ): OverState => ({ overSectionId, overRowKey, dropEdge });
+
+  it('is true for identical over-states (steady-state pointer movement → no re-render)', () => {
+    expect(overStateEquals(make('sprint-1', 'A2', 'top'), make('sprint-1', 'A2', 'top'))).toBe(
+      true,
+    );
+    expect(overStateEquals(make(null, null, null), make(null, null, null))).toBe(true);
+  });
+
+  it('is false when the hovered row changes', () => {
+    expect(overStateEquals(make('sprint-1', 'A2', 'top'), make('sprint-1', 'A3', 'top'))).toBe(
+      false,
+    );
+  });
+
+  it('is false when only the edge changes (same row, drag direction flips)', () => {
+    expect(overStateEquals(make('sprint-1', 'A2', 'top'), make('sprint-1', 'A2', 'bottom'))).toBe(
+      false,
+    );
+  });
+
+  it('is false when the section changes (cross-section hover)', () => {
+    expect(overStateEquals(make('sprint-1', null, null), make('sprint-2', null, null))).toBe(false);
   });
 });

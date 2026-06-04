@@ -83,7 +83,12 @@ import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
-import { resolveCrossSectionDrop } from './backlogDragHelpers';
+import type { OverState } from './backlogDragHelpers';
+import {
+  moveIssueAcrossSections,
+  overStateEquals,
+  resolveCrossSectionDrop,
+} from './backlogDragHelpers';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
 
@@ -304,9 +309,18 @@ export default function BacklogPage() {
   // highlight ring and the per-row insertion line. `overSectionId` is the
   // section the pointer is currently within; `overRowKey`/`dropEdge` mark the
   // exact row + edge the insertion line is drawn on.
-  const [overSectionId, setOverSectionId] = useState<string | null>(null);
-  const [overRowKey, setOverRowKey] = useState<string | null>(null);
-  const [dropEdge, setDropEdge] = useState<'top' | 'bottom' | null>(null);
+  //
+  // Defect-A (smoothness): the three pieces are held in ONE state object so
+  // `handleDragOver` can compute the next over-state and bail out via
+  // `overStateEquals` when nothing changed — steady-state pointer movement over
+  // the same row/edge then causes ZERO re-renders, leaving dnd-kit's transform
+  // animation uninterrupted (no jank).
+  const [overState, setOverState] = useState<OverState>({
+    overSectionId: null,
+    overRowKey: null,
+    dropEdge: null,
+  });
+  const { overSectionId, overRowKey, dropEdge } = overState;
   // Map<sectionId, string[]> — overrides server issue-key order during drag window (D-08)
   const [localOrder, setLocalOrder] = useState<Map<string, string[]>>(new Map());
   const [rankError, setRankError] = useState<string | null>(null);
@@ -905,10 +919,20 @@ export default function BacklogPage() {
     return s;
   }, [sprintSections]);
 
+  const EMPTY_OVER_STATE: OverState = {
+    overSectionId: null,
+    overRowKey: null,
+    dropEdge: null,
+  };
+
+  // Gate the setter so steady-state movement (same over-state) is a no-op and
+  // never re-renders — see overStateEquals (Defect-A smoothness fix).
+  function applyOverState(next: OverState) {
+    setOverState((prev) => (overStateEquals(prev, next) ? prev : next));
+  }
+
   function clearOverState() {
-    setOverSectionId(null);
-    setOverRowKey(null);
-    setDropEdge(null);
+    applyOverState(EMPTY_OVER_STATE);
   }
 
   function handleDragStart({ active }: DragStartEvent) {
@@ -933,25 +957,27 @@ export default function BacklogPage() {
 
     // Resolve the section the pointer is within.
     const section = rowContainer ?? (sectionIds.has(overIdStr) ? overIdStr : null);
-    setOverSectionId(section);
 
+    let next: OverState;
     if (rowContainer && over.id !== active.id) {
-      setOverRowKey(overIdStr);
       // Determine edge from relative vertical centers (fallback: bottom).
       const activeRect = active.rect.current.translated ?? active.rect.current.initial;
       const overRect = over.rect;
+      let edge: 'top' | 'bottom' = 'bottom';
       if (activeRect && overRect) {
         const activeCenter = activeRect.top + activeRect.height / 2;
         const overCenter = overRect.top + overRect.height / 2;
-        setDropEdge(activeCenter < overCenter ? 'top' : 'bottom');
-      } else {
-        setDropEdge('bottom');
+        edge = activeCenter < overCenter ? 'top' : 'bottom';
       }
+      next = { overSectionId: section, overRowKey: overIdStr, dropEdge: edge };
     } else {
       // Over a section droppable (header/gap/empty) — no specific row edge.
-      setOverRowKey(null);
-      setDropEdge(null);
+      next = { overSectionId: section, overRowKey: null, dropEdge: null };
     }
+    // Defect-A: only re-render when the over-state actually changed. Computing
+    // `edge` above is cheap; the heavy cost is the re-render, which this gate
+    // skips for steady-state movement over the same row + edge.
+    applyOverState(next);
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
@@ -1054,10 +1080,34 @@ export default function BacklogPage() {
     const { issueKey, fromSectionId, toSectionId, newOrder, previousOrder } = pendingDragMove;
     setPendingDragMove(null);
 
-    // Optimistic: apply new order for target section; remove from source
-    const sourceKeys = (localOrder.get(fromSectionId) ?? getSectionKeys(fromSectionId)).filter(
-      (k) => k !== issueKey,
-    );
+    // Defect-B (optimistic cross-section move): the rendered membership of each
+    // section is derived from the SERVER `gh-backlog` cache via the
+    // issueIdToSprintId reverse index — `localOrder` only re-sorts keys WITHIN a
+    // section's existing server membership. So to make the moved row appear in
+    // the target section IMMEDIATELY (no post-success jump), we must move the
+    // issue between `sprints[].issuesIds[]` in the cache BEFORE the awaits,
+    // mirroring confirmMoveToSprint/confirmMoveToBacklog.
+    const cacheKey = ['gh-backlog', boardId] as const;
+    const snapshot = queryClient.getQueryData<GhBacklogResponse>(cacheKey);
+    const issue = adaptedIssues.find((i) => i.key === issueKey);
+    const issueNumericId = issue ? Number(issue.id) : null;
+
+    // Cancel in-flight refetch so the optimistic cache write can't be clobbered
+    // before the membership PUT settles (mirrors rankMutation.onMutate / D-08).
+    await queryClient.cancelQueries({ queryKey: cacheKey });
+
+    if (issueNumericId != null) {
+      queryClient.setQueryData<GhBacklogResponse>(cacheKey, (old) =>
+        old
+          ? { ...old, sprints: moveIssueAcrossSections(old.sprints, issueNumericId, toSectionId) }
+          : old,
+      );
+    }
+
+    // Optimistic ordering: now that the issue lives in the target section's
+    // server membership, set the within-section order overrides for both
+    // sections (D-08 localOrder gate).
+    const sourceKeys = previousOrder.filter((k) => k !== issueKey);
     setLocalOrder((prev) => {
       const next = new Map(prev);
       next.set(fromSectionId, sourceKeys);
@@ -1065,11 +1115,20 @@ export default function BacklogPage() {
       return next;
     });
 
+    const rollback = () => {
+      if (snapshot) queryClient.setQueryData<GhBacklogResponse>(cacheKey, snapshot);
+      setLocalOrder((prev) => {
+        const next = new Map(prev);
+        next.set(fromSectionId, previousOrder);
+        next.delete(toSectionId);
+        return next;
+      });
+      setRankError("Couldn't move issue — reverted");
+    };
+
     const token = await readSecret('jira-pat').catch(() => null);
     if (!token) {
-      // Rollback
-      setLocalOrder((prev) => new Map(prev).set(fromSectionId, previousOrder));
-      setRankError("Couldn't move issue — reverted");
+      rollback();
       return;
     }
 
@@ -1100,21 +1159,21 @@ export default function BacklogPage() {
         backlog?.rankCustomFieldId ?? 0,
         position,
       );
+      // Success: reconcile against the server. Because the optimistic cache
+      // already placed the issue in the target section, the refetch lands the
+      // identical membership → no visible jump. Drop the localOrder overrides so
+      // the reconciled server order takes over cleanly (no double-insert).
+      setLocalOrder((prev) => {
+        const next = new Map(prev);
+        next.delete(fromSectionId);
+        next.delete(toSectionId);
+        return next;
+      });
       invalidateGhBacklogData(queryClient, boardId);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
     } catch {
-      // Rollback both sections (RANK-04 analog for cross-section).
-      setLocalOrder((prev) => {
-        const next = new Map(prev);
-        next.set(fromSectionId, previousOrder);
-        // Remove optimistic insert from target section
-        next.set(
-          toSectionId,
-          (prev.get(toSectionId) ?? getSectionKeys(toSectionId)).filter((k) => k !== issueKey),
-        );
-        return next;
-      });
-      setRankError("Couldn't move issue — reverted");
+      // Rollback cache + local order (RANK-04 analog for cross-section).
+      rollback();
     }
   }
 
@@ -1442,19 +1501,17 @@ export default function BacklogPage() {
               {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
             </div>
 
-            {/* DragOverlay ghost (D-07) — strong, near-opaque clone with a
-                primary ring (BacklogRow isOverlay) so the dragged row is
-                unmistakable against the list underneath. */}
+            {/* DragOverlay ghost (D-07 / Defect-A) — ONE coherent, clean clone:
+                a soft shadow + thin border at full opacity. No stacked rings or
+                shadow-2xl, so motion reads smooth and consistent across intra-
+                and cross-section drags. */}
             <DragOverlay>
               {activeId
                 ? (() => {
                     const activeIssue = adaptedIssues.find((i) => i.key === activeId);
                     if (!activeIssue) return null;
                     return (
-                      <table
-                        className="w-full rounded-md bg-background text-sm shadow-2xl ring-2 ring-primary"
-                        style={{ opacity: 0.95 }}
-                      >
+                      <table className="w-full rounded-md border border-border bg-background text-sm shadow-lg">
                         <tbody>
                           <BacklogRow
                             issue={activeIssue}
