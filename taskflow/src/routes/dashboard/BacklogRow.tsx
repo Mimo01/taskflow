@@ -93,21 +93,22 @@ function RowCells({
     <>
       {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
       <td className="relative w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-        {/* D-07 insertion line — strong primary 2px bar spanning the full row
-            width, pinned to the dragged-over edge. Rendered inside the first
-            cell (absolutely positioned, overflow-visible) so it renders
-            correctly inside a virtualized/transformed <tr>. */}
+        {/* D-07 insertion line — a single subtle-but-clear 2px primary bar
+            pinned to the dragged-over edge. Defect-A: dialed back from the
+            previous full-screen bar + box-shadow ring + dot anchor to one clean
+            line constrained to the table width (left-0 right-0), so the drop
+            position is clearly but tastefully indicated. Rendered inside the
+            first cell (absolutely positioned) so it anchors correctly inside a
+            transformed <tr>. */}
         {dropEdge && (
           <div
             aria-hidden="true"
             data-testid={`drop-indicator-${dropEdge}`}
             className={cn(
-              'pointer-events-none absolute left-0 z-10 h-0.5 w-screen bg-primary shadow-[0_0_0_1px_var(--color-primary,theme(colors.primary.DEFAULT))]',
+              'pointer-events-none absolute inset-x-0 z-10 h-0.5 rounded-full bg-primary',
               dropEdge === 'top' ? '-top-px' : '-bottom-px',
             )}
-          >
-            <span className="absolute left-0 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary" />
-          </div>
+          />
         )}
         <button
           type="button"
@@ -232,11 +233,12 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       position: 'relative',
     };
 
-    // D-07: stronger DragOverlay ghost — ring + near-opaque so the dragged row
-    // is unmistakable against the list underneath.
-    const overlayClassName = isOverlay
-      ? 'ring-2 ring-primary ring-offset-1 ring-offset-background shadow-xl'
-      : undefined;
+    // D-07 / Defect-A: ONE coherent, subtle overlay treatment. The previous
+    // ring-2 + ring-offset + shadow-xl HERE stacked on top of the table
+    // wrapper's own ring-2 + shadow-2xl, producing a heavy, janky-looking
+    // ghost. The single soft treatment now lives on the table wrapper in
+    // BacklogPage; the row itself adds nothing extra.
+    const overlayClassName = isOverlay ? 'bg-background' : undefined;
 
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
     // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
