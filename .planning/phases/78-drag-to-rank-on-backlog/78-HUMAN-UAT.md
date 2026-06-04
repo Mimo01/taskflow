@@ -24,18 +24,18 @@ result: [pending]
 expected: Begin a drag, trigger a window-focus refetch mid-drag; the list order does not jump or revert (cancelQueries + isDraggingRef gate).
 result: [pending]
 
-### 4. Cross-section drag (accepted design: highlight + dialog)
-expected: Drag a row over another section; the target section highlights, and on drop the ConfirmSprintMoveDialog appears ("Keep Position" / "Confirm"). Confirm moves + persists; Keep Position reverts. (No in-target ghost — accepted per UAT.)
-result: [confirmed live — design accepted]
-
-### 5. Failure rollback banner
+### 4. Failure rollback banner
 expected: Induce a rank failure (offline / 403); the list rolls back to the pre-drag order and the inline banner "Couldn't save new order — reverted" appears and is dismissible.
 result: [pending]
 
+> Cross-section drag was DISABLED per user request (commit 0d8ef8ea) — dragging only
+> reorders within a section; a cross-section drop is a no-op. Sprint membership changes
+> remain available via the right-click "Move to Sprint / Move to Backlog" context menu.
+
 ## Summary
 
-total: 5
-passed: 2
+total: 4
+passed: 1
 issues: 0
 pending: 3
 skipped: 0
