@@ -136,19 +136,47 @@ const boardCollisionDetection: CollisionDetection = (args) => {
 // ── TransitionDropZone ─────────────────────────────────────────────────────────
 
 /**
- * A single droppable sub-zone inside a split column.
- * Renders with idle/hover classes from UI-SPEC.
+ * Per-category drop-zone tones — mirror the app's status category colors
+ * (statusStyles.ts: To Do = muted, In Progress = blue, Done = green) so a zone
+ * reads as the status it transitions to. `idle` is the resting state; `over` is
+ * the stronger hover state when a card is dragged onto the zone.
  */
-function TransitionDropZone({ id, label }: { id: string; label: string }) {
+const DROP_ZONE_TONE: Record<'new' | 'indeterminate' | 'done', { idle: string; over: string }> = {
+  new: {
+    idle: 'bg-muted/60 border-border text-foreground/80',
+    over: 'bg-muted border-foreground/50 text-foreground ring-1 ring-foreground/20',
+  },
+  indeterminate: {
+    idle: 'bg-blue-500/10 border-blue-500/60 text-blue-700 dark:text-blue-300',
+    over: 'bg-blue-500/25 border-blue-500 text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/40',
+  },
+  done: {
+    idle: 'bg-green-500/10 border-green-500/60 text-green-700 dark:text-green-300',
+    over: 'bg-green-500/25 border-green-500 text-green-800 dark:text-green-200 ring-1 ring-green-500/40',
+  },
+};
+
+/**
+ * A single droppable sub-zone inside a column, tinted by its target status
+ * category. `categoryKey` selects the color tone (mirrors the status pills).
+ */
+function TransitionDropZone({
+  id,
+  label,
+  categoryKey,
+}: {
+  id: string;
+  label: string;
+  categoryKey: 'new' | 'indeterminate' | 'done';
+}) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const tone = DROP_ZONE_TONE[categoryKey];
   return (
     <div
       ref={setNodeRef}
-      className={
-        isOver
-          ? 'bg-accent/60 border border-border ring-1 ring-ring/30 text-foreground rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
-          : 'bg-muted/40 border border-dashed border-border/70 text-foreground/80 rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
-      }
+      className={`border-2 border-dashed rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center transition-colors ${
+        isOver ? tone.over : tone.idle
+      }`}
     >
       {label}
     </div>
@@ -503,6 +531,7 @@ function VirtualizedSwimlanes({
                             key={zone.transitionId}
                             id={`zone:${zone.transitionId}`}
                             label={zone.transitionName}
+                            categoryKey={col.key}
                           />
                         ))}
                       </div>
@@ -513,6 +542,7 @@ function VirtualizedSwimlanes({
                         <TransitionDropZone
                           id={`col:${col.key}`}
                           label={colModel.zone.transitionName}
+                          categoryKey={col.key}
                         />
                       </div>
                     ) : colModel?.kind === 'invalid' ? (
@@ -670,6 +700,7 @@ function VirtualizedSwimlanes({
                                 key={zone.transitionId}
                                 id={`zone:${zone.transitionId}`}
                                 label={zone.transitionName}
+                                categoryKey={col.key}
                               />
                             ))}
                           </div>
@@ -679,6 +710,7 @@ function VirtualizedSwimlanes({
                             <TransitionDropZone
                               id={`col:${col.key}`}
                               label={colModel.zone.transitionName}
+                              categoryKey={col.key}
                             />
                           </div>
                         ) : colModel?.kind === 'invalid' ? (
