@@ -1,5 +1,5 @@
 ---
-status: partial
+status: diagnosed
 phase: 78-drag-to-rank-on-backlog
 source: [78-01-SUMMARY.md, 78-02-SUMMARY.md, 78-03-SUMMARY.md, 78-04-SUMMARY.md]
 started: 2026-06-04T12:12:42Z
@@ -51,7 +51,16 @@ blocked: 0
   reason: "User reported: when i drag and the page auto scrolls, the layout gets a little broken and the drag is not happening where the cursor is"
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "DragOverlay (BacklogPage.tsx:1284-1307) is rendered inline inside the inner overflow-auto scroll container (scrollRef div, line 1200) instead of being portaled to document.body. dnd-kit deliberately omits the scroll-delta from the overlay transform when a DragOverlay is used (core.cjs:2993: usesDragOverlay ? modifiedTranslate : add(..., activeNodeScrollDelta)), assuming the overlay lives in viewport/fixed coordinate space. Because the overlay is an in-flow child of the scrolling container, dnd-kit's built-in autoScroll scrolls the clone WITH the content while the pointer stays fixed — the clone drifts from the cursor by exactly the scroll delta. Compounded by missing measuring config: default droppable strategy is MeasuringStrategy.WhileDragging (rects cached at drag-start, never re-measured during scroll) → stale drop gap / collision targets = 'layout gets a little broken'. Virtualization ruled out (useVirtual hard-coded false at line 143)."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/BacklogPage.tsx"
+      issue: "DragOverlay (lines 1284-1307) rendered inline inside DndContext, which sits inside the inner overflow-auto scroll container (scrollRef, line 1200); not portaled to body, so it translates relative to a scrolling ancestor."
+    - path: "taskflow/src/routes/dashboard/BacklogPage.tsx"
+      issue: "DndContext props (lines 1251-1257) have no measuring config → droppable rects default to WhileDragging (cached at drag start, stale after autoScroll)."
+    - path: "taskflow/src/routes/dashboard/BacklogPage.tsx"
+      issue: "Two nested overflow-auto containers (outer line 1131, inner line 1200); the inner scrollRef container is the one dnd-kit autoScrolls and is the overlay's scrolling ancestor."
+  missing:
+    - "Portal the DragOverlay content to document.body (createPortal) so the clone is positioned in viewport coordinates and stays under the cursor during autoScroll — primary fix."
+    - "Add measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} to DndContext (import MeasuringStrategy from @dnd-kit/core) so row rects re-measure during scroll."
+    - "Optional: collapse nested overflow-auto containers into one for deterministic autoScroll. Not required once overlay is portaled. Do NOT change virtualization or restrictToVerticalAxis (both ruled out)."
+  debug_session: ".planning/debug/backlog-drag-autoscroll-desync.md"
