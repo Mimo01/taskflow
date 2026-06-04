@@ -270,10 +270,44 @@ function DroppableSection({
  * no target). The dnd-kit multi-container recipe: try `pointerWithin` first
  * (resolves to whatever is directly under the pointer, including a section
  * droppable), then fall back to `rectIntersection`, then `closestCenter`.
+ *
+ * UAT P78 autoscroll fix — drop-target sync while the list auto-scrolls:
+ * With a DragOverlay, dnd-kit's `collisionRect` is the active rect translated by
+ * the (viewport-fixed) pointer delta WITHOUT scroll-delta compensation. So
+ * `rectIntersection`/`closestCenter` — which key off that rect — drift away from
+ * the cursor as the container scrolls. During an autoscroll drag the pointer is
+ * usually hovering the OPEN GAP (no row beneath it), so `pointerWithin` returns
+ * empty and we constantly fall through to the drifted-rect strategies → the drop
+ * gap desyncs. Fix: when `pointerWithin` is empty, resolve by the droppable whose
+ * (continuously re-measured, MeasuringStrategy.Always) center is closest to the
+ * POINTER coordinates — pointer + droppable rects are both correct viewport-space
+ * values every frame, so this tracks the cursor during autoscroll. Only fall back
+ * to the rect strategies when there are no pointer coordinates at all.
  */
 const backlogCollisionDetection: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args);
   if (pointerCollisions.length > 0) return pointerCollisions;
+
+  const { pointerCoordinates, droppableRects, droppableContainers } = args;
+  if (pointerCoordinates) {
+    let closestId: string | number | null = null;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    for (const container of droppableContainers) {
+      const rect = droppableRects.get(container.id);
+      if (!rect) continue;
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(centerX - pointerCoordinates.x, centerY - pointerCoordinates.y);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestId = container.id;
+      }
+    }
+    if (closestId != null) {
+      return [{ id: closestId }];
+    }
+  }
+
   const rectCollisions = rectIntersection(args);
   if (rectCollisions.length > 0) return rectCollisions;
   return closestCenter(args);
