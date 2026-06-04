@@ -930,6 +930,14 @@ export default function BacklogPage() {
   function handleDragEnd({ active, over }: DragEndEvent) {
     isDraggingRef.current = false;
     setActiveId(null);
+    // Force a reconciliation re-render on EVERY drag-end path (including the
+    // no-op / cross-section / dropped-on-section-gap early returns below). After a
+    // drag that auto-scrolled the inner container, dnd-kit's drag-start active-node
+    // rect and the post-scroll DOM layout can diverge; without a state update the
+    // no-op path leaves rows' hit-test boxes unreconciled and subsequent clicks
+    // select the wrong row. Re-cloning localOrder (same content) re-renders the
+    // sortable rows so their transforms/rects reset against the scrolled layout.
+    setLocalOrder((prev) => new Map(prev));
     // Guard post-drop click (D-06): set for 50ms so BacklogRow onClick returns early.
     justDragged.current = true;
     setTimeout(() => {
@@ -1256,7 +1264,10 @@ export default function BacklogPage() {
             modifiers={[restrictToVerticalAxis]}
             /* Re-measure droppable rects continuously so autoScroll during a drag
                doesn't leave the drop gap / collision targets computed against
-               stale drag-start positions (UAT P78 autoscroll-desync fix). */
+               stale drag-start positions. (dnd-kit's DraggableMeasuring has no
+               strategy toggle — the active-node rect can't be force-re-measured
+               here; the drag-end reconciliation re-render below covers the
+               post-scroll-drop desync.) UAT P78 autoscroll-desync fix. */
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
