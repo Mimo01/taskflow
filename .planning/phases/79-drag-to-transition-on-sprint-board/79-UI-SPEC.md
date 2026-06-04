@@ -1,10 +1,11 @@
 ---
 phase: 79
 slug: drag-to-transition-on-sprint-board
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova
 created: 2026-06-04
+reviewed_at: 2026-06-04
 ---
 
 # Phase 79 — UI Design Contract
