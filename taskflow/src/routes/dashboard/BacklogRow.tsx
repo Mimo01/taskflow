@@ -58,12 +58,6 @@ export interface BacklogRowProps {
   isOverlay?: boolean;
   /** Passed from parent when justDragged guard is active */
   justDragged?: React.MutableRefObject<boolean>;
-  /**
-   * D-07 drop indicator: when this row is the current drop target, render a
-   * strong insertion line at the given edge. Rendered INSIDE the row element
-   * (absolutely positioned) so it stays correct under virtualization.
-   */
-  dropEdge?: 'top' | 'bottom' | null;
 }
 
 // -- Row cells (shared between both render paths) ----------------------------
@@ -77,7 +71,6 @@ function RowCells({
   onIssueClick,
   epicsLoading,
   isFlagged,
-  dropEdge,
 }: {
   issue: JiraIssue;
   epicKey: string | null;
@@ -87,32 +80,11 @@ function RowCells({
   onIssueClick: (key: string) => void;
   epicsLoading?: boolean;
   isFlagged?: boolean;
-  dropEdge?: 'top' | 'bottom' | null;
 }) {
   return (
     <>
       {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
       <td className="relative w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-        {/* D-07 insertion line — the PRIMARY drop cue, identical for intra- AND
-            cross-section drags. A 3px full-row-width rounded primary bar pinned
-            to the dragged-over edge, with a small filled primary dot end-cap at
-            each end. Rendered inside the first cell (absolutely positioned) so it
-            anchors correctly inside a transformed <tr>. The cell is `relative`
-            but the bar uses `inset-x-0` to span the full table-row width (the
-            cell's overflow is not clipped). */}
-        {dropEdge && (
-          <div
-            aria-hidden="true"
-            data-testid={`drop-indicator-${dropEdge}`}
-            className={cn(
-              'pointer-events-none absolute inset-x-0 z-10 h-[3px] rounded-full bg-primary',
-              dropEdge === 'top' ? '-top-px' : '-bottom-px',
-            )}
-          >
-            <span className="absolute left-0 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary" />
-            <span className="absolute right-0 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary" />
-          </div>
-        )}
         <button
           type="button"
           className={cn(
@@ -215,7 +187,6 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onToggleFlag,
       isOverlay,
       justDragged,
-      dropEdge,
     },
     _ref,
   ) {
@@ -227,12 +198,13 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     const dragStyle: React.CSSProperties = {
       transform: CSS.Transform.toString(transform),
       transition,
-      opacity: isDragging ? 0 : 1,
+      // D-07 (ghost placeholder model): the dragged item is live-reordered into
+      // its drop slot in localOrder, so its in-list row IS the drop position.
+      // Instead of hiding it (opacity 0) we render it as a translucent ghost
+      // placeholder (see ghostPlaceholderClass below) so the user sees exactly
+      // where the issue will land — Trello/Jira style. The solid clone floats in
+      // the DragOverlay. Identical treatment for intra- AND cross-section drags.
       cursor: isDragging ? 'grabbing' : 'grab',
-      // Required so the absolutely-positioned insertion line (D-07) inside the
-      // first cell anchors to this row. `<td className="relative">` provides the
-      // actual containing block; keeping the row relative is a belt-and-braces
-      // guard for the virtualized/transformed case.
       position: 'relative',
     };
 
@@ -242,6 +214,15 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     // ghost. The single soft treatment now lives on the table wrapper in
     // BacklogPage; the row itself adds nothing extra.
     const overlayClassName = isOverlay ? 'bg-background' : undefined;
+
+    // D-07 ghost placeholder: when this row is the dragged item (live-reordered
+    // into its drop slot), render it as a translucent, dashed-outlined, muted
+    // row so it reads as "the issue lands here". Suppressed for the DragOverlay
+    // clone, which stays solid.
+    const ghostPlaceholderClass =
+      isDragging && !isOverlay
+        ? 'opacity-50 border border-dashed border-primary/50 bg-muted/40'
+        : undefined;
 
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
     // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
@@ -264,6 +245,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
         : 'hover:bg-muted/30',
       isFocused && 'bg-muted border-l-2 border-primary',
+      ghostPlaceholderClass,
       overlayClassName,
     );
 
@@ -276,7 +258,6 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onIssueClick,
       epicsLoading,
       isFlagged,
-      dropEdge,
     };
 
     if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag) {

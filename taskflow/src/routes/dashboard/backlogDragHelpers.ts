@@ -82,29 +82,59 @@ export function buildTargetOrder(
 }
 
 /**
- * The over-target state tracked during a drag, used to drive the section
- * highlight ring (`overSectionId`) and the per-row insertion line
- * (`overRowKey` + `dropEdge`).
+ * The over-target state tracked during a drag, used to drive the SUBTLE
+ * cross-section highlight ring (`overSectionId`). The ghost placeholder row
+ * (live-reordered into its drop slot) is now the PRIMARY drop cue, so the old
+ * per-row insertion line state (`overRowKey` + `dropEdge`) is gone.
  */
 export interface OverState {
   overSectionId: string | null;
-  overRowKey: string | null;
-  dropEdge: 'top' | 'bottom' | null;
 }
 
 /**
  * True when two over-states are identical. Used by `handleDragOver` to skip
- * setState calls on steady-state pointer movement (same row + same edge), which
- * would otherwise re-render the whole virtualized BacklogPage every pointer
- * frame and interrupt dnd-kit's transform animation (jank). Only a real change
- * to section / row / edge should trigger a re-render.
+ * setState calls on steady-state pointer movement (same section), which would
+ * otherwise re-render the whole BacklogPage every pointer frame and interrupt
+ * dnd-kit's transform animation (jank). Only a real section change should
+ * trigger a re-render of the highlight ring.
  */
 export function overStateEquals(a: OverState, b: OverState): boolean {
-  return (
-    a.overSectionId === b.overSectionId &&
-    a.overRowKey === b.overRowKey &&
-    a.dropEdge === b.dropEdge
-  );
+  return a.overSectionId === b.overSectionId;
+}
+
+/**
+ * Compute the next live-reorder result for an INTRA-section drag.
+ *
+ * Given a section's current key order, the dragged key, and the key currently
+ * under the pointer (the `over` row), returns the new order with the dragged
+ * key moved to the over-row's index (arrayMove semantics). Returns the SAME
+ * array reference when nothing changes (active === over, or either key is
+ * missing) so the caller can cheaply gate the setState and avoid per-frame
+ * re-render jank.
+ */
+export function computeLiveReorder(
+  keys: readonly string[],
+  activeKey: string,
+  overKey: string,
+): string[] {
+  if (activeKey === overKey) return keys as string[];
+  const oldIndex = keys.indexOf(activeKey);
+  const newIndex = keys.indexOf(overKey);
+  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return keys as string[];
+  const next = keys.slice();
+  next.splice(oldIndex, 1);
+  next.splice(newIndex, 0, activeKey);
+  return next;
+}
+
+/** True when two key arrays are element-wise identical (live-reorder gate). */
+export function keyOrderEquals(a: readonly string[], b: readonly string[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
 
 /**
