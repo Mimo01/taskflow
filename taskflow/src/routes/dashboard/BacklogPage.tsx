@@ -32,11 +32,13 @@ import type {
   DragEndEvent,
   DragOverEvent,
   DragStartEvent,
+  DropAnimation,
 } from '@dnd-kit/core';
 import {
   closestCenter,
   DndContext,
   DragOverlay,
+  defaultDropAnimationSideEffects,
   PointerSensor,
   pointerWithin,
   rectIntersection,
@@ -285,6 +287,26 @@ const backlogCollisionDetection: CollisionDetection = (args) => {
   const rectCollisions = rectIntersection(args);
   if (rectCollisions.length > 0) return rectCollisions;
   return closestCenter(args);
+};
+
+// ── Drop animation (D-07 third polish pass — drop-jank fix) ───────────────────
+// The dragged row uses `opacity: isDragging ? 0 : 1`. With dnd-kit's DEFAULT
+// drop animation, the overlay fades toward the source node's *current* opacity
+// (0, because the row is still mid-drag) while, on the same frame, `isDragging`
+// flips false and the real row snaps 0 → 1. The two crossing opacity changes
+// read as a brief double-image / flicker at the moment of drop.
+//
+// Fix: keep a SHORT, smooth overlay-to-target transition (so the ghost settles
+// into place rather than snapping away), but DROP the default active-node
+// opacity side-effect so the overlay no longer fades to 0 while the real row
+// reappears at 1. The two no longer fight → the row settles cleanly. Applies
+// identically to intra- and cross-section drops (same overlay, same animation).
+const backlogDropAnimation: DropAnimation = {
+  duration: 180,
+  easing: 'cubic-bezier(0.2, 0, 0, 1)',
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: '1' } },
+  }),
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -1506,11 +1528,13 @@ export default function BacklogPage() {
               {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
             </div>
 
-            {/* DragOverlay ghost (D-07 / Defect-A) — ONE coherent, clean clone:
-                a soft shadow + thin border at full opacity. No stacked rings or
-                shadow-2xl, so motion reads smooth and consistent across intra-
-                and cross-section drags. */}
-            <DragOverlay>
+            {/* DragOverlay ghost (D-07, third polish pass) — ONE coherent clone:
+                a SOLID row (opacity 1) with a soft `shadow-lg` and a 1px
+                `border border-border`. No ring, no shadow-2xl, no opacity
+                reduction — so the ghost reads as a single clean treatment that
+                settles smoothly (see backlogDropAnimation) and is identical
+                across intra- and cross-section drags. */}
+            <DragOverlay dropAnimation={backlogDropAnimation}>
               {activeId
                 ? (() => {
                     const activeIssue = adaptedIssues.find((i) => i.key === activeId);
