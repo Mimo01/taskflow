@@ -93,6 +93,7 @@ import {
   resolveIntraSectionRank,
   resolveSourceContainer,
   resolveTargetContainer,
+  sortByKeyOrder,
 } from './backlogDragHelpers';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
@@ -327,6 +328,11 @@ export default function BacklogPage() {
   // restore the exact order both sections had before live-reorder mutated them.
   const preDragOrderRef = useRef<Map<string, string[]> | null>(null);
   const [rankError, setRankError] = useState<string | null>(null);
+  // WR-05: in-flight guard for the cross-section confirm move. The ref blocks a
+  // synchronous double-click re-entry (state flushes async, so setPendingDragMove
+  // alone cannot guard it); the state drives the dialog's disabled/"Moving..." UI.
+  const dragMoveInFlightRef = useRef(false);
+  const [dragMovePending, setDragMovePending] = useState(false);
   // Pending cross-section drag move (D-03/D-04)
   const [pendingDragMove, setPendingDragMove] = useState<{
     issueKey: string;
@@ -905,6 +911,22 @@ export default function BacklogPage() {
       setRankError("Couldn't save new order — reverted");
       isDraggingRef.current = false;
     },
+    onSuccess: (_data, { sectionId }) => {
+      // CR-01: drop the section's localOrder override so the reconciled server
+      // order (from the onSettled invalidation/refetch) takes over. Without this
+      // the section is pinned to the stale client order forever — new/refetched
+      // issues are forced to the bottom and server rank corrections are ignored.
+      // Mirrors confirmDragMove, which deletes its overrides on success BEFORE
+      // invalidateGhBacklogData. Deleting here (not before the refetch lands) keeps
+      // the D-08/RANK-05 flicker gate intact: onSettled re-invalidates immediately
+      // after, so the refetched server order renders cleanly with no snap-back.
+      setLocalOrder((prev) => {
+        if (!prev.has(sectionId)) return prev;
+        const next = new Map(prev);
+        next.delete(sectionId);
+        return next;
+      });
+    },
     onSettled: () => {
       isDraggingRef.current = false;
       if (boardId != null) invalidateGhBacklogData(queryClient, boardId);
@@ -1124,6 +1146,12 @@ export default function BacklogPage() {
 
   async function confirmDragMove() {
     if (!pendingDragMove || boardId == null) return;
+    // WR-05: block a synchronous double-click. setPendingDragMove(null) below
+    // flushes asynchronously, so a fast second click would otherwise re-enter
+    // with the same pendingDragMove and fire the membership + rank PUTs twice.
+    if (dragMoveInFlightRef.current) return;
+    dragMoveInFlightRef.current = true;
+    setDragMovePending(true);
     const { issueKey, fromSectionId, toSectionId, newOrder, previousOrder } = pendingDragMove;
     setPendingDragMove(null);
 
@@ -1176,6 +1204,8 @@ export default function BacklogPage() {
     const token = await readSecret('jira-pat').catch(() => null);
     if (!token) {
       rollback();
+      dragMoveInFlightRef.current = false;
+      setDragMovePending(false);
       return;
     }
 
@@ -1221,6 +1251,10 @@ export default function BacklogPage() {
     } catch {
       // Rollback cache + local order (RANK-04 analog for cross-section).
       rollback();
+    } finally {
+      // WR-05: always release the in-flight guard so the next move can proceed.
+      dragMoveInFlightRef.current = false;
+      setDragMovePending(false);
     }
   }
 
@@ -1263,16 +1297,17 @@ export default function BacklogPage() {
     // stable section IDs ('sprint-<id>' / 'backlog').
     const orderedKeys = localOrder.get(sectionId);
     // Re-sort filteredIssues to match localOrder when a drag override is set.
+    // WR-02: sortByKeyOrder uses a finite fallback + key tie-break so a stale
+    // override + active filter (both keys absent) cannot produce a NaN comparator.
     const displayIssues = orderedKeys
-      ? [...filteredIssues].sort((a, b) => {
-          const ai = orderedKeys.indexOf(a.key);
-          const bi = orderedKeys.indexOf(b.key);
-          // Issues not in localOrder (e.g. filtered-in mid-drag) go to end.
-          return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-        })
+      ? sortByKeyOrder(filteredIssues, orderedKeys)
       : filteredIssues;
-    // SortableContext items — use localOrder if set, else server keys (RANK-01).
-    const sortableItems = orderedKeys ?? issues.map((i) => i.key);
+    // SortableContext items — MUST match the rendered rows. WR-03: deriving from
+    // the unfiltered `issues` made dnd-kit's index math reference non-rendered
+    // rows under an active filter, producing wrong reorder targets. Use the
+    // actually-rendered (filtered + ordered) set. When no override is set this is
+    // `filteredIssues`, preserving RANK-01 (server order on load).
+    const sortableItems = displayIssues.map((i) => i.key);
 
     return (
       <div key={sectionId} className="mb-2" data-testid={`sprint-section-${sectionId}`}>
@@ -1463,6 +1498,7 @@ export default function BacklogPage() {
         fromSprintName={pendingDragMove?.fromSprintName ?? null}
         toSprintName={pendingDragMove?.toSprintName ?? ''}
         cancelLabel="Keep Position"
+        isPending={dragMovePending}
         onConfirm={() => {
           void confirmDragMove();
         }}

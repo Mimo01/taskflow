@@ -127,6 +127,31 @@ export function computeLiveReorder(
   return next;
 }
 
+/**
+ * Sort a list of items by an explicit key order (a `localOrder` override),
+ * pushing any item whose key is absent from `orderedKeys` to the end in a
+ * deterministic, stable way.
+ *
+ * WR-02 (regression guard): the naive comparator
+ * `(ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi)` returns
+ * `Infinity - Infinity = NaN` when BOTH keys are absent from `orderedKeys`
+ * (reachable with a stale override + an active filter, or new issues fetched
+ * mid-override). A `NaN` comparator is not a total order — the result is an
+ * implementation-defined, unstable sort. We rank unknown keys with a large
+ * FINITE fallback and break ties on the key string so the order is total and
+ * deterministic. Returns a new array; does not mutate the input.
+ */
+export function sortByKeyOrder<T extends { key: string }>(
+  items: readonly T[],
+  orderedKeys: readonly string[],
+): T[] {
+  const rank = (k: string): number => {
+    const i = orderedKeys.indexOf(k);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  return [...items].sort((a, b) => rank(a.key) - rank(b.key) || a.key.localeCompare(b.key));
+}
+
 /** True when two key arrays are element-wise identical (live-reorder gate). */
 export function keyOrderEquals(a: readonly string[], b: readonly string[]): boolean {
   if (a === b) return true;
