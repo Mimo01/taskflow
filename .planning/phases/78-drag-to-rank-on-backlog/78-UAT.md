@@ -70,4 +70,19 @@ blocked: 0
     - "Add measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} to DndContext (import MeasuringStrategy from @dnd-kit/core) so row rects re-measure during scroll."
     - "Optional: collapse nested overflow-auto containers into one for deterministic autoScroll. Not required once overlay is portaled. Do NOT change virtualization or restrictToVerticalAxis (both ruled out)."
   debug_session: ".planning/debug/backlog-drag-autoscroll-desync.md"
-  fix_applied: "commit 4f0cfdd3 — portaled DragOverlay to document.body + measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}. npm run check clean; vitest dashboard+jira 810 passed. Awaiting human re-verification of autoscroll-during-drag behavior."
+  fix_applied: "commit 4f0cfdd3 — portaled DragOverlay to document.body + measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}. npm run check clean; vitest dashboard+jira 810 passed."
+  reverify_result: "PARTIAL — during-drag clone now tracks the cursor (primary symptom fixed), but a RESIDUAL remains: after releasing a drag that auto-scrolled the page, the pointer is desynced and subsequent clicks select rows NOT under the pointer (visual position != hit-test position post-drop). New diagnosis below."
+
+- truth: "After a drag that auto-scrolled the page, releasing returns the page to a consistent state — subsequent clicks select the row actually under the pointer"
+  status: failed
+  reason: "User reported (re-verify): when letting the drag handle go after drag, if the drag included scroll of the page, the pointer gets desynced and is selecting rows not under the pointer"
+  severity: major
+  test: 3
+  root_cause: "After a drag that auto-scrolled the inner overflow-auto container, dnd-kit's drag-start active-node rect diverges from the post-scroll DOM layout (dnd-kit re-measures only droppables via MeasuringStrategy.Always, not the active node; its layout-shift compensation runs once and can't track continuous autoScroll). The no-op / early-return paths in handleDragEnd (lines 939/950/956/966) performed no state update, leaving rows' hit-test boxes unreconciled with their visual positions — subsequent native clicks selected the wrong row."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/BacklogPage.tsx"
+      issue: "handleDragEnd early-return paths performed no reconciliation after a scrolled drag; dnd-kit DraggableMeasuring has no strategy toggle so the active-node rect can't be force-re-measured."
+  missing:
+    - "Force a reconciliation re-render on every drag-end exit path (setLocalOrder clone) so rows re-render and reset transforms/rects against the scrolled layout."
+  debug_session: ".planning/debug/backlog-drag-autoscroll-residual.md"
+  fix_applied: "commit f4ecf9d9 — forced reconciliation re-render at top of handleDragEnd (covers all exit paths); droppable measuring stays Always. User chose 'keep autoscroll, reconcile' over disabling autoscroll. npm run check clean; vitest dashboard+jira 810 passed. Awaiting human re-verification. Fallback if still desyncs: autoScroll={false} on DndContext."
