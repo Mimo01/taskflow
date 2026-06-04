@@ -1,10 +1,11 @@
 ---
 phase: 79
 slug: drag-to-transition-on-sprint-board
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-04
+audited: 2026-06-04
 ---
 
 # Phase 79 — Validation Strategy
@@ -38,24 +39,25 @@ created: 2026-06-04
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| (D-08 adapter) | 01 | 1 | TRAN-03 | T-79-01 | Transitions sourced from server workflow envelope only | unit | `npx vitest run src/services/jira/greenhopper/transitions.test.ts` | ✅ extend | ⬜ pending |
-| (dropModel build) | 02 | 2 | TRAN-02 | — | N/A | unit | `npx vitest run src/routes/dashboard/sprintBoardDragHelpers.test.ts` | ❌ W0 | ⬜ pending |
-| (transition filter) | 02 | 2 | TRAN-03 | T-79-02 | Screen/validator transitions excluded from drop targets | unit | same helper test | ❌ W0 | ⬜ pending |
-| (drop resolution) | 02 | 2 | TRAN-01 | — | N/A | unit | same helper test | ❌ W0 | ⬜ pending |
-| (optimistic rollback) | 03 | 3 | TRAN-04 | — | Failed transition rolls back, no privilege change | unit (component) | `npx vitest run src/routes/dashboard/SprintBoardTab.test.tsx` | ✅ extend | ⬜ pending |
-| (success refresh) | 03 | 3 | TRAN-05 | — | N/A | unit (component) | same SprintBoardTab test | ✅ extend | ⬜ pending |
+| (D-08 adapter) | 01 | 1 | TRAN-03 | T-79-01 | Transitions sourced from server workflow envelope only | unit | `npx vitest run src/services/jira/greenhopper/transitions.test.ts` | ✅ 24 tests | ✅ green |
+| (dropModel build) | 02 | 2 | TRAN-02 | — | N/A | unit | `npx vitest run src/routes/dashboard/sprintBoardDragHelpers.test.ts` | ✅ 14 tests | ✅ green |
+| (transition filter) | 02 | 2 | TRAN-03 | T-79-02 ⚠️reversed | D-07 reversed: all reachable transitions are valid targets; screened/validated transitions KEPT, rejected move rolls back with inline error (no silent snap-back) | unit | same helper test | ✅ asserts kept | ✅ green |
+| (drop resolution) | 02 | 2 | TRAN-01 | — | N/A | unit | same helper test | ✅ covered | ✅ green |
+| (optimistic rollback) | 03 | 3 | TRAN-04 | — | Failed transition rolls back, no privilege change | unit (component) | `npx vitest run src/routes/dashboard/SprintBoardTab.test.tsx` | ✅ 16 tests | ✅ green |
+| (success refresh) | 03 | 3 | TRAN-05 | — | N/A | unit (component) | same SprintBoardTab test | ✅ covered | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 *Task IDs are placeholders — the planner assigns concrete `{NN-NN-NN}` IDs; rows map to the requirement/seam, not final numbering.*
+*T-79-02 threat was reversed by the D-07 override (user-confirmed 2026-06-04); the helper test now asserts screened/validated transitions are KEPT as drop targets. The "no silent snap-back" guarantee is met by the rollback + inline-error path (TRAN-04). See 79-VERIFICATION.md override block.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/routes/dashboard/sprintBoardDragHelpers.ts` + `sprintBoardDragHelpers.test.ts` — pure drop-logic seam covering TRAN-01/02/03 (`buildDropModel`, `filterDroppableTransitions`, `resolveDropTransitionId`)
-- [ ] Extend `src/services/jira/greenhopper/transitions.test.ts` — assert D-08 `hasScreen`/`hasValidators` round-trip (fixture already carries the fields)
-- [ ] Extend `src/routes/dashboard/SprintBoardTab.test.tsx` — optimistic rollback (TRAN-04) + invalidate-on-success (TRAN-05)
-- [ ] Framework install: none — vitest + RTL already present
+- [x] `src/routes/dashboard/sprintBoardDragHelpers.ts` + `sprintBoardDragHelpers.test.ts` — pure drop-logic seam covering TRAN-01/02/03 (`buildDropModel`, `filterDroppableTransitions`, `resolveDropTransitionId`) — 14 tests green
+- [x] Extend `src/services/jira/greenhopper/transitions.test.ts` — assert D-08 `hasScreen`/`hasValidators` round-trip (fixture already carries the fields) — 24 tests green
+- [x] Extend `src/routes/dashboard/SprintBoardTab.test.tsx` — optimistic rollback (TRAN-04) + invalidate-on-success (TRAN-05) — 16 tests green
+- [x] Framework install: none — vitest + RTL already present
 
 ---
 
@@ -70,11 +72,25 @@ created: 2026-06-04
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (new `sprintBoardDragHelpers` seam)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (new `sprintBoardDragHelpers` seam)
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (audited 2026-06-04)
+
+---
+
+## Validation Audit 2026-06-04
+
+State A — existing VALIDATION.md audited against implemented artifacts. All three planned test files exist and run green (54/54): `transitions.test.ts` (24), `sprintBoardDragHelpers.test.ts` (14), `SprintBoardTab.test.tsx` (16). Every TRAN requirement maps to a passing automated test; no MISSING or PARTIAL gaps found. The T-79-02 threat row was inverted by the user-confirmed D-07 override — the helper test now asserts screened/validated transitions are kept, and the "no silent snap-back" guarantee is carried by the TRAN-04 rollback + inline-error path.
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+Auditor not spawned — zero gaps to fill.
