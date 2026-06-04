@@ -93,22 +93,25 @@ function RowCells({
     <>
       {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
       <td className="relative w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-        {/* D-07 insertion line — a single subtle-but-clear 2px primary bar
-            pinned to the dragged-over edge. Defect-A: dialed back from the
-            previous full-screen bar + box-shadow ring + dot anchor to one clean
-            line constrained to the table width (left-0 right-0), so the drop
-            position is clearly but tastefully indicated. Rendered inside the
-            first cell (absolutely positioned) so it anchors correctly inside a
-            transformed <tr>. */}
+        {/* D-07 insertion line — the PRIMARY drop cue, identical for intra- AND
+            cross-section drags. A 3px full-row-width rounded primary bar pinned
+            to the dragged-over edge, with a small filled primary dot end-cap at
+            each end. Rendered inside the first cell (absolutely positioned) so it
+            anchors correctly inside a transformed <tr>. The cell is `relative`
+            but the bar uses `inset-x-0` to span the full table-row width (the
+            cell's overflow is not clipped). */}
         {dropEdge && (
           <div
             aria-hidden="true"
             data-testid={`drop-indicator-${dropEdge}`}
             className={cn(
-              'pointer-events-none absolute inset-x-0 z-10 h-0.5 rounded-full bg-primary',
+              'pointer-events-none absolute inset-x-0 z-10 h-[3px] rounded-full bg-primary',
               dropEdge === 'top' ? '-top-px' : '-bottom-px',
             )}
-          />
+          >
+            <span className="absolute left-0 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary" />
+            <span className="absolute right-0 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary" />
+          </div>
         )}
         <button
           type="button"

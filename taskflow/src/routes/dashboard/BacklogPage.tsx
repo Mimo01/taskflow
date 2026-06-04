@@ -256,7 +256,12 @@ function DroppableSection({
       data-testid={`droppable-section-${sectionId}`}
       className={
         isActiveDropTarget
-          ? 'rounded-sm bg-accent/10 ring-1 ring-primary/60 transition-colors'
+          ? // D-05/D-07 (third polish pass): the insertion line is now the
+            // single PRIMARY drop cue in both intra- and cross-section drags.
+            // The section tint is demoted to a SUBTLE secondary cue — a faint
+            // accent wash with a soft 30%-primary ring — so it frames the target
+            // section without competing with or replacing the line.
+            'rounded-sm bg-accent/10 ring-1 ring-primary/30 transition-colors'
           : 'transition-colors'
       }
     >
