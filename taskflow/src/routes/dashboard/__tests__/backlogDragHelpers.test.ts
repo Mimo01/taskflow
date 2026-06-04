@@ -19,7 +19,6 @@ import {
   buildTargetOrder,
   computeInsertIndex,
   computeLiveReorder,
-  computeTargetGhostIndex,
   keyOrderEquals,
   type OverState,
   overStateEquals,
@@ -162,55 +161,16 @@ describe('resolveCrossSectionDrop — the dialog-opening seam', () => {
 });
 
 describe('overStateEquals — the per-frame re-render gate (Defect-A smoothness)', () => {
-  const make = (overSectionId: string | null, overRowKey: string | null = null): OverState => ({
-    overSectionId,
-    overRowKey,
-  });
+  const make = (overSectionId: string | null): OverState => ({ overSectionId });
 
   it('is true for identical over-states (steady-state pointer movement → no re-render)', () => {
     expect(overStateEquals(make('sprint-1'), make('sprint-1'))).toBe(true);
     expect(overStateEquals(make(null), make(null))).toBe(true);
-    expect(overStateEquals(make('sprint-1', 'B2'), make('sprint-1', 'B2'))).toBe(true);
   });
 
   it('is false when the section changes (cross-section hover)', () => {
     expect(overStateEquals(make('sprint-1'), make('sprint-2'))).toBe(false);
     expect(overStateEquals(make(null), make('sprint-1'))).toBe(false);
-  });
-
-  it('is false when only the over-row key changes (ghost slot moves within a section)', () => {
-    // Same target section but the ghost should reposition → must re-render.
-    expect(overStateEquals(make('sprint-2', 'B1'), make('sprint-2', 'B2'))).toBe(false);
-    expect(overStateEquals(make('sprint-2', null), make('sprint-2', 'B1'))).toBe(false);
-  });
-});
-
-describe('computeTargetGhostIndex — cross-section ghost placeholder slot (D-05/D-07)', () => {
-  const TARGET = ['B1', 'B2', 'B3'];
-
-  it('places the ghost AT the over-row index (pushing that row down)', () => {
-    expect(computeTargetGhostIndex(TARGET, 'B1', 'A1')).toBe(0);
-    expect(computeTargetGhostIndex(TARGET, 'B2', 'A1')).toBe(1);
-    expect(computeTargetGhostIndex(TARGET, 'B3', 'A1')).toBe(2);
-  });
-
-  it('appends to the end when over the section header/gap (overRowKey null)', () => {
-    expect(computeTargetGhostIndex(TARGET, null, 'A1')).toBe(3);
-  });
-
-  it('appends to the end for an empty target section', () => {
-    expect(computeTargetGhostIndex([], null, 'A1')).toBe(0);
-    expect(computeTargetGhostIndex([], 'whatever', 'A1')).toBe(0);
-  });
-
-  it('appends when the over-row key is not found in the target keys', () => {
-    expect(computeTargetGhostIndex(TARGET, 'ZZZ', 'A1')).toBe(3);
-  });
-
-  it('appends defensively when the over row is the dragged key itself', () => {
-    // Cross-section the active key should never be in the target, but if the
-    // pointer somehow resolves to it, fall back to the end rather than index it.
-    expect(computeTargetGhostIndex(['A1', 'B1'], 'A1', 'A1')).toBe(2);
   });
 });
 
