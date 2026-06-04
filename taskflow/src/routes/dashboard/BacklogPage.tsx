@@ -1271,6 +1271,15 @@ export default function BacklogPage() {
                here; the drag-end reconciliation re-render below covers the
                post-scroll-drop desync.) UAT P78 autoscroll-desync fix. */
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            /* Pin autoScroll to the ONE real scroll container (scrollRef). dnd-kit
+               treats every ancestor with overflow auto/scroll/HIDDEN as a scroll
+               container, so it otherwise sees six (scrollRef + <main overflow-auto>
+               + four nested overflow-hidden shell wrappers in main.tsx) and its
+               autoScroll coordinate math drifts across them — the dragged row lags
+               the cursor by ~one row while scrolling (dnd-kit#1108). canScroll
+               restricts autoScroll to scrollRef alone, eliminating the drift while
+               keeping autoscroll on. */
+            autoScroll={{ canScroll: (el) => el === scrollRef.current }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
