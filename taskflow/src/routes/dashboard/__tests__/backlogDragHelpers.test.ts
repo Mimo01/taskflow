@@ -23,6 +23,7 @@ import {
   type OverState,
   overStateEquals,
   resolveCrossSectionDrop,
+  resolveIntraRankFromDrop,
   resolveIntraSectionRank,
   resolveSourceContainer,
   resolveTargetContainer,
@@ -266,6 +267,35 @@ describe('resolveIntraSectionRank — persist decision after a ghost-placeholder
     });
     expect(rank?.previousOrder).toEqual(['A', 'B', 'C', 'D']);
     expect(rank?.position).toEqual({ rankAfterIssue: 'B' });
+  });
+});
+
+describe('resolveIntraRankFromDrop — canonical dnd-kit "reorder only on drop" (Phase 78-04 jump fix)', () => {
+  const KEYS = ['A', 'B', 'C', 'D'];
+
+  it('moves DOWN and ranks after the new upstairs neighbour', () => {
+    // Drag A onto C → arrayMove(A, idx0 → idx2) → [B, C, A, D]; A now sits after C.
+    const rank = resolveIntraRankFromDrop(KEYS, 'A', 'C');
+    expect(rank).not.toBeNull();
+    expect(rank?.newOrder).toEqual(['B', 'C', 'A', 'D']);
+    expect(rank?.previousOrder).toEqual(KEYS);
+    expect(rank?.position).toEqual({ rankAfterIssue: 'C' });
+  });
+
+  it('moves UP to the TOP and ranks BEFORE the issue below (no upstairs neighbour)', () => {
+    // Drag D onto A → [D, A, B, C]; D lands at the top → rankBeforeIssue A.
+    const rank = resolveIntraRankFromDrop(KEYS, 'D', 'A');
+    expect(rank?.newOrder).toEqual(['D', 'A', 'B', 'C']);
+    expect(rank?.position).toEqual({ rankBeforeIssue: 'A' });
+  });
+
+  it('returns null when active and over are the same index (no movement → no PUT)', () => {
+    expect(resolveIntraRankFromDrop(KEYS, 'B', 'B')).toBeNull();
+  });
+
+  it('returns null when a key is missing from the section (e.g. dropped on the section droppable, not a row)', () => {
+    expect(resolveIntraRankFromDrop(KEYS, 'A', 'sprint-1')).toBeNull();
+    expect(resolveIntraRankFromDrop(KEYS, 'X', 'B')).toBeNull();
   });
 });
 
