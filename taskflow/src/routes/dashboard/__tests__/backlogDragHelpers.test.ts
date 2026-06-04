@@ -23,6 +23,7 @@ import {
   type OverState,
   overStateEquals,
   resolveCrossSectionDrop,
+  resolveIntraSectionRank,
   resolveSourceContainer,
   resolveTargetContainer,
 } from '../backlogDragHelpers';
@@ -210,5 +211,59 @@ describe('keyOrderEquals — the live-reorder setState gate', () => {
 
   it('is false when lengths differ', () => {
     expect(keyOrderEquals(['A', 'B'], ['A', 'B', 'C'])).toBe(false);
+  });
+});
+
+describe('resolveIntraSectionRank — persist decision after a ghost-placeholder drop', () => {
+  const SERVER = ['A', 'B', 'C', 'D'];
+
+  it('REGRESSION: a fresh drag (no pre-drag override) still persists — previousOrder falls back to SERVER, not newOrder', () => {
+    // Live-reorder moved A to slot index 2. preDragOrder is undefined because
+    // this section had no localOrder entry until the drag started. The buggy
+    // `?? newOrder` fallback made previousOrder === newOrder → no-movement guard
+    // tripped → no PUT → snap-back. With the server-order fallback it persists.
+    const rank = resolveIntraSectionRank({
+      activeKey: 'A',
+      liveOrder: ['B', 'C', 'A', 'D'],
+      preDragOrder: undefined,
+      serverKeys: SERVER,
+    });
+    expect(rank).not.toBeNull();
+    expect(rank?.newOrder).toEqual(['B', 'C', 'A', 'D']);
+    expect(rank?.previousOrder).toEqual(SERVER);
+    // A now sits after C → rank it after its upstairs neighbour.
+    expect(rank?.position).toEqual({ rankAfterIssue: 'C' });
+  });
+
+  it('returns null (no PUT) when the drop produced no net movement', () => {
+    expect(
+      resolveIntraSectionRank({
+        activeKey: 'A',
+        liveOrder: SERVER,
+        preDragOrder: undefined,
+        serverKeys: SERVER,
+      }),
+    ).toBeNull();
+  });
+
+  it('uses rankBeforeIssue when the item lands at the top of the section', () => {
+    const rank = resolveIntraSectionRank({
+      activeKey: 'C',
+      liveOrder: ['C', 'A', 'B', 'D'],
+      preDragOrder: undefined,
+      serverKeys: SERVER,
+    });
+    expect(rank?.position).toEqual({ rankBeforeIssue: 'A' });
+  });
+
+  it('honours an existing pre-drag override (second drag in the same section)', () => {
+    const rank = resolveIntraSectionRank({
+      activeKey: 'A',
+      liveOrder: ['B', 'A', 'C', 'D'],
+      preDragOrder: ['A', 'B', 'C', 'D'],
+      serverKeys: ['D', 'C', 'B', 'A'], // server stale; override is the truth
+    });
+    expect(rank?.previousOrder).toEqual(['A', 'B', 'C', 'D']);
+    expect(rank?.position).toEqual({ rankAfterIssue: 'B' });
   });
 });

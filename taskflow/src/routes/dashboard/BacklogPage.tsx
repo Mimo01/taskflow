@@ -91,6 +91,7 @@ import {
   keyOrderEquals,
   moveIssueAcrossSections,
   overStateEquals,
+  resolveIntraSectionRank,
 } from './backlogDragHelpers';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
@@ -1047,33 +1048,28 @@ export default function BacklogPage() {
     if (sourceContainer === targetContainer) {
       // ── Intra-section reorder ───────────────────────────────────────────────
       // localOrder already reflects the final order (live-reorder), so derive
-      // the rank position directly from it — NO extra arrayMove.
-      const newOrder = localOrder.get(sourceContainer) ?? getSectionKeys(sourceContainer);
-      const previousOrder = preDragOrderRef.current?.get(sourceContainer) ?? newOrder;
-      const newIndex = newOrder.indexOf(activeKey);
-      if (newIndex === -1 || keyOrderEquals(previousOrder, newOrder)) {
+      // the rank decision directly from it — NO extra arrayMove. The helper
+      // owns the SERVER-order fallback for previousOrder (regression guard:
+      // a fresh drag must not default previousOrder to newOrder, which would
+      // trip the no-movement guard and snap the issue back without a PUT).
+      const rank = resolveIntraSectionRank({
+        activeKey,
+        liveOrder: localOrder.get(sourceContainer) ?? getSectionKeys(sourceContainer),
+        preDragOrder: preDragOrderRef.current?.get(sourceContainer),
+        serverKeys: getSectionKeys(sourceContainer),
+      });
+      if (!rank) {
         // No net movement — clear any seeded override and bail.
         restorePreDragOrder();
         return;
       }
-      const above = newOrder[newIndex - 1];
-      const below = newOrder[newIndex + 1];
-      const position:
-        | { rankBeforeIssue: string }
-        | { rankAfterIssue: string }
-        | Record<string, never> =
-        above !== undefined
-          ? { rankAfterIssue: above }
-          : below !== undefined
-            ? { rankBeforeIssue: below }
-            : {};
       rankMutation.mutate({
         issueKey: activeKey,
         sectionId: sourceContainer,
-        newOrder,
-        previousOrder,
+        newOrder: rank.newOrder,
+        previousOrder: rank.previousOrder,
         rankCustomFieldId: backlog?.rankCustomFieldId ?? 0,
-        position,
+        position: rank.position,
       });
     } else {
       // ── Cross-section — open confirmation dialog (D-03/D-04) ─────────────────

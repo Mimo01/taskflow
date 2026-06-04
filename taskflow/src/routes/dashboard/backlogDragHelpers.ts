@@ -199,6 +199,52 @@ export function moveIssueAcrossSections<S extends SprintMembership>(
   );
 }
 
+/** Rank-persist decision for an intra-section drop. */
+export interface IntraSectionRank {
+  newOrder: string[];
+  previousOrder: string[];
+  position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never>;
+}
+
+/**
+ * Resolve whether (and how) an INTRA-section drop should persist a rank change,
+ * under the ghost-placeholder model where the dragged key is already live-
+ * reordered into its drop slot by drag end.
+ *
+ * - `liveOrder`    — the section's `localOrder` AFTER live-reorder (drop slot applied).
+ * - `preDragOrder` — the section's `localOrder` snapshot from drag start; may be
+ *                    undefined when the section had no override yet (a fresh drag).
+ * - `serverKeys`   — the server-derived key order for the section.
+ *
+ * Returns null when there is no net movement (no rank PUT should fire).
+ *
+ * CRITICAL (regression guard): `previousOrder` falls back to `serverKeys` — NOT
+ * `liveOrder` — when there was no pre-drag override. Defaulting to `liveOrder`
+ * makes a fresh drag's previousOrder equal newOrder, trips the no-movement
+ * guard, and the issue snaps back to its original position with no PUT fired.
+ */
+export function resolveIntraSectionRank(args: {
+  activeKey: string;
+  liveOrder: readonly string[];
+  preDragOrder: readonly string[] | undefined;
+  serverKeys: readonly string[];
+}): IntraSectionRank | null {
+  const { activeKey, liveOrder, preDragOrder, serverKeys } = args;
+  const newOrder = (liveOrder ?? serverKeys).slice();
+  const previousOrder = (preDragOrder ?? serverKeys).slice();
+  const newIndex = newOrder.indexOf(activeKey);
+  if (newIndex === -1 || keyOrderEquals(previousOrder, newOrder)) return null;
+  const above = newOrder[newIndex - 1];
+  const below = newOrder[newIndex + 1];
+  const position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never> =
+    above !== undefined
+      ? { rankAfterIssue: above }
+      : below !== undefined
+        ? { rankBeforeIssue: below }
+        : {};
+  return { newOrder, previousOrder, position };
+}
+
 export function resolveCrossSectionDrop(args: {
   activeKey: string;
   activeData: SortableData | undefined;
