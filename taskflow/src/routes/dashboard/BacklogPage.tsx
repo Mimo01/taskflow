@@ -1296,22 +1296,21 @@ export default function BacklogPage() {
             sensors={sensors}
             collisionDetection={backlogCollisionDetection}
             modifiers={[restrictToVerticalAxis]}
-            /* Re-measure droppable rects continuously so autoScroll during a drag
-               doesn't leave the drop gap / collision targets computed against
-               stale drag-start positions. (dnd-kit's DraggableMeasuring has no
-               strategy toggle — the active-node rect can't be force-re-measured
-               here; the drag-end reconciliation re-render below covers the
-               post-scroll-drop desync.) UAT P78 autoscroll-desync fix. */
+            /* Re-measure droppable rects continuously (kept as a harmless
+               robustness measure now that autoScroll is off). */
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-            /* Pin autoScroll to the ONE real scroll container (scrollRef). dnd-kit
-               treats every ancestor with overflow auto/scroll/HIDDEN as a scroll
-               container, so it otherwise sees six (scrollRef + <main overflow-auto>
-               + four nested overflow-hidden shell wrappers in main.tsx) and its
-               autoScroll coordinate math drifts across them — the dragged row lags
-               the cursor by ~one row while scrolling (dnd-kit#1108). canScroll
-               restricts autoScroll to scrollRef alone, eliminating the drift while
-               keeping autoscroll on. */
-            autoScroll={{ canScroll: (el) => el === scrollRef.current }}
+            /* autoScroll DISABLED (UAT P78 final decision). dnd-kit 6.3.1 keys its
+               collision/drop-target math off measured rects that it scroll-adjusts
+               a frame behind, so during its built-in autoScroll *something* always
+               lags the cursor — we could lock the dragged row (portaled overlay)
+               OR the drop target, but never both, because the rect data is
+               frame-behind at the source (dnd-kit#1108, unresolved upstream). With
+               autoScroll off, nothing scrolls mid-drag, so the row AND the drop
+               target are both perfectly synced (human-confirmed). Tradeoff: to move
+               a row beyond the visible area, drop, scroll, then drag again. The
+               portaled overlay + canScroll-less config + pointer-based collision
+               remain (harmless and still correct without autoscroll). */
+            autoScroll={false}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
