@@ -26,6 +26,7 @@ import {
   resolveIntraSectionRank,
   resolveSourceContainer,
   resolveTargetContainer,
+  sortByKeyOrder,
 } from '../backlogDragHelpers';
 
 const SECTION_IDS = new Set(['sprint-1', 'sprint-2', 'backlog']);
@@ -265,5 +266,69 @@ describe('resolveIntraSectionRank — persist decision after a ghost-placeholder
     });
     expect(rank?.previousOrder).toEqual(['A', 'B', 'C', 'D']);
     expect(rank?.position).toEqual({ rankAfterIssue: 'B' });
+  });
+});
+
+// WR-02: the localOrder-driven re-sort of displayIssues. The old inline
+// comparator returned `Infinity - Infinity = NaN` when both keys were absent
+// from the override (stale override + active filter), giving an unstable sort.
+describe('sortByKeyOrder (WR-02 displayIssues comparator)', () => {
+  const item = (key: string) => ({ key });
+
+  it('orders items by their position in orderedKeys', () => {
+    const out = sortByKeyOrder([item('A'), item('B'), item('C')], ['C', 'A', 'B']);
+    expect(out.map((i) => i.key)).toEqual(['C', 'A', 'B']);
+  });
+
+  it('pushes keys absent from orderedKeys to the end, sorted by key (no NaN)', () => {
+    // A and B are NOT in the override — the old comparator did Infinity-Infinity=NaN.
+    const out = sortByKeyOrder([item('B'), item('A'), item('Z')], ['Z']);
+    expect(out.map((i) => i.key)).toEqual(['Z', 'A', 'B']);
+  });
+
+  it('is a TOTAL order when orderedKeys contains NONE of the rendered keys', () => {
+    // Pure NaN trigger: every key falls to the MAX_SAFE_INTEGER fallback.
+    const out = sortByKeyOrder([item('C'), item('A'), item('B')], ['X', 'Y']);
+    expect(out.map((i) => i.key)).toEqual(['A', 'B', 'C']); // deterministic key tie-break
+  });
+
+  it('does not mutate the input array', () => {
+    const input = [item('B'), item('A')];
+    sortByKeyOrder(input, ['A', 'B']);
+    expect(input.map((i) => i.key)).toEqual(['B', 'A']);
+  });
+
+  it('keeps known keys ahead of unknown keys', () => {
+    const out = sortByKeyOrder([item('new-1'), item('A'), item('new-2')], ['A']);
+    expect(out[0].key).toBe('A');
+    expect(out.slice(1).map((i) => i.key)).toEqual(['new-1', 'new-2']);
+  });
+});
+
+// WR-03: SortableContext `items` must equal the rendered rows. The fix makes
+// sortableItems = displayIssues.map(i => i.key). This asserts the seam that
+// produces that list: under an active filter the sortable keys are exactly the
+// filtered+ordered rendered keys, never the unfiltered section keys.
+describe('sortableItems derivation (WR-03 filtered SortableContext)', () => {
+  const item = (key: string) => ({ key });
+  // Mirror BacklogPage: displayIssues = override ? sortByKeyOrder(filtered) : filtered
+  const deriveSortableItems = (
+    filtered: ReadonlyArray<{ key: string }>,
+    orderedKeys: readonly string[] | undefined,
+  ): string[] =>
+    (orderedKeys ? sortByKeyOrder(filtered, orderedKeys) : [...filtered]).map((i) => i.key);
+
+  it('matches the filtered rendered rows when no override is set (RANK-01)', () => {
+    const all = [item('A'), item('B'), item('C')];
+    const filtered = all.filter((i) => i.key !== 'B'); // a filter hid B
+    expect(deriveSortableItems(filtered, undefined)).toEqual(['A', 'C']);
+  });
+
+  it('never references non-rendered (filtered-out) rows under an override', () => {
+    const filtered = [item('A'), item('C')]; // B filtered out
+    const override = ['C', 'B', 'A']; // override still mentions B
+    const sortable = deriveSortableItems(filtered, override);
+    expect(sortable).toEqual(['C', 'A']); // B not present — indices line up with DOM
+    expect(sortable).not.toContain('B');
   });
 });
