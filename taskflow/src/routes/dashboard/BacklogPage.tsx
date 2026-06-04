@@ -32,6 +32,7 @@ import {
   closestCenter,
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   pointerWithin,
   rectIntersection,
@@ -45,6 +46,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Badge } from '@/components/ui/badge';
@@ -1252,6 +1254,10 @@ export default function BacklogPage() {
             sensors={sensors}
             collisionDetection={backlogCollisionDetection}
             modifiers={[restrictToVerticalAxis]}
+            /* Re-measure droppable rects continuously so autoScroll during a drag
+               doesn't leave the drop gap / collision targets computed against
+               stale drag-start positions (UAT P78 autoscroll-desync fix). */
+            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
@@ -1281,30 +1287,37 @@ export default function BacklogPage() {
                 disappears and the already-live-reordered list (with the dragged
                 row now landed in its drop slot) is what remains — no jump, no
                 float. Identical across intra- and cross-section drags. */}
-            <DragOverlay dropAnimation={null}>
-              {activeId
-                ? (() => {
-                    const activeIssue = adaptedIssues.find((i) => i.key === activeId);
-                    if (!activeIssue) return null;
-                    return (
-                      <table className="w-full rounded-md border border-border bg-background text-sm shadow-lg">
-                        <tbody>
-                          <BacklogRow
-                            issue={activeIssue}
-                            onIssueClick={() => {}}
-                            storyPointsFieldKey={storyPointsFieldKey}
-                            epicLinkFieldKey={epicLinkFieldKey}
-                            epicNameFieldKey={epicNameFieldKey}
-                            epicNames={epicNameMap}
-                            epicColors={epicColorMap}
-                            isOverlay
-                          />
-                        </tbody>
-                      </table>
-                    );
-                  })()
-                : null}
-            </DragOverlay>
+            {/* Portaled to document.body: dnd-kit omits the scroll-delta from the
+                overlay transform (it assumes viewport/fixed coords), so the clone
+                must NOT live inside the scrollable container — otherwise autoScroll
+                drifts it away from the cursor by the scroll delta (UAT P78 fix). */}
+            {createPortal(
+              <DragOverlay dropAnimation={null}>
+                {activeId
+                  ? (() => {
+                      const activeIssue = adaptedIssues.find((i) => i.key === activeId);
+                      if (!activeIssue) return null;
+                      return (
+                        <table className="w-full rounded-md border border-border bg-background text-sm shadow-lg">
+                          <tbody>
+                            <BacklogRow
+                              issue={activeIssue}
+                              onIssueClick={() => {}}
+                              storyPointsFieldKey={storyPointsFieldKey}
+                              epicLinkFieldKey={epicLinkFieldKey}
+                              epicNameFieldKey={epicNameFieldKey}
+                              epicNames={epicNameMap}
+                              epicColors={epicColorMap}
+                              isOverlay
+                            />
+                          </tbody>
+                        </table>
+                      );
+                    })()
+                  : null}
+              </DragOverlay>,
+              document.body,
+            )}
           </DndContext>
         ) : null}
       </div>
