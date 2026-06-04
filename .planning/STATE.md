@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 79
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-06-04
+Last activity: 2026-06-04 - Completed quick task 260604-knq: backlog drag-to-rank in-place drag (keep autoScroll synced)
 
 Progress: [██████████] 100%
 
@@ -94,6 +94,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 |---|-------------|------|--------|--------|-----------|
 | 260602-x58 | Standup Notes: collapse story status transitions to initial → final | 2026-06-02 | 19ccf8ed | | [260602-x58-on-standup-notes-page-when-presenting-st](./quick/260602-x58-on-standup-notes-page-when-presenting-st/) |
 | 260603-fb8 | Let users select which Jira board (fix wrong rapidViewId/board id) | 2026-06-03 | e3f3b752 | Verified | [260603-fb8-select-jira-board](./quick/260603-fb8-select-jira-board/) |
+| 260604-knq | Backlog drag-to-rank: drop DragOverlay, drag row in place (keep autoScroll synced) | 2026-06-04 | 2a2a4c30 | | [260604-knq-phase-78-backlog-drag-to-rank-keep-dnd-k](./quick/260604-knq-phase-78-backlog-drag-to-rank-keep-dnd-k/) |
 
 ## Deferred Items
 
