@@ -1138,7 +1138,7 @@ export default function BacklogPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full overflow-auto" data-testid="backlog-page">
+    <div className="flex flex-col h-full overflow-hidden" data-testid="backlog-page">
       {/* Page header */}
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
         <h1 className="text-lg font-semibold">Backlog</h1>
@@ -1262,14 +1262,6 @@ export default function BacklogPage() {
             sensors={sensors}
             collisionDetection={backlogCollisionDetection}
             modifiers={[restrictToVerticalAxis]}
-            /* autoScroll disabled (UAT P78): dnd-kit's built-in autoScroll drifts
-               the active-node rect from the scrolled DOM layout by ~one row when
-               the inner overflow-auto container scrolls mid-drag, leaving the drop
-               target / subsequent click hit-tests off by one row. dnd-kit exposes
-               no draggable-rect re-measure to compensate, so we turn autoScroll off
-               entirely — visual position always matches hit-test. Tradeoff: to move
-               a row beyond the visible area, drop, scroll, then drag again. */
-            autoScroll={false}
             /* Re-measure droppable rects continuously so autoScroll during a drag
                doesn't leave the drop gap / collision targets computed against
                stale drag-start positions. (dnd-kit's DraggableMeasuring has no
