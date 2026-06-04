@@ -356,9 +356,11 @@ export default function TaskCard({
   // dragAttributes FIRST so explicit props win; TypeScript's duplicate-attr
   // rule fires on JSX literals, so we extract what we need rather than
   // double-declaring.
-  const { role: _dropRole, tabIndex: _dropTabIndex, ...restDragAttributes } = isDraggable
-    ? dragAttributes
-    : ({} as typeof dragAttributes);
+  const {
+    role: _dropRole,
+    tabIndex: _dropTabIndex,
+    ...restDragAttributes
+  } = isDraggable ? dragAttributes : ({} as typeof dragAttributes);
 
   const outerElement = useKeyBodySplit ? (
     // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested <button> inside <button> is invalid HTML (D-10 / Pitfall 1)

@@ -16,8 +16,8 @@
  * Phase 79 (TRAN-01): resolveDropTransitionId maps over.id → transitionId | null.
  */
 
-import type { JiraTransition } from '../../services/jira/types';
 import { filterTransitionsForStatus } from '../../services/jira/greenhopper/transitions';
+import type { JiraTransition } from '../../services/jira/types';
 
 // ---------------------------------------------------------------------------
 // Exported types
@@ -90,13 +90,11 @@ export function buildDropModel(transitions: JiraTransition[]): DropModel {
   const CATEGORY_KEYS: CategoryKey[] = ['new', 'indeterminate', 'done'];
 
   // Bucket transitions by their destination status category
-  const buckets = new Map<CategoryKey, JiraTransition[]>(
-    CATEGORY_KEYS.map((k) => [k, []]),
-  );
+  const buckets = new Map<CategoryKey, JiraTransition[]>(CATEGORY_KEYS.map((k) => [k, []]));
   for (const t of transitions) {
     const key = t.to.statusCategory?.key as CategoryKey | undefined;
     if (key && buckets.has(key)) {
-      buckets.get(key)!.push(t);
+      buckets.get(key)?.push(t);
     }
   }
 

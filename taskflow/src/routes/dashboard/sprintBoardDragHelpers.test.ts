@@ -186,7 +186,7 @@ describe('resolveDropTransitionId', () => {
     expect(resolveDropTransitionId('zone:11', model)).toBe('11');
   });
 
-  it('a single-column over.id col:<categoryKey> resolves to that column\'s single transitionId (TRAN-01)', () => {
+  it("a single-column over.id col:<categoryKey> resolves to that column's single transitionId (TRAN-01)", () => {
     expect(resolveDropTransitionId('col:done', model)).toBe('20');
   });
 
