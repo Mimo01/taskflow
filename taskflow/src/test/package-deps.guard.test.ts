@@ -48,4 +48,3 @@ describe('package.json — react-grid-layout absence guard (Phase 59 / QUAL-03)'
     expect('@types/react-grid-layout' in devDeps).toBe(false);
   });
 });
-
