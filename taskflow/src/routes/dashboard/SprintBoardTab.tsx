@@ -147,7 +147,7 @@ function TransitionDropZone({ id, label }: { id: string; label: string }) {
       className={
         isOver
           ? 'bg-accent/60 border border-border ring-1 ring-ring/30 text-foreground rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
-          : 'bg-muted/20 border border-dashed border-border/30 text-muted-foreground rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
+          : 'bg-muted/40 border border-dashed border-border/70 text-foreground/80 rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
       }
     >
       {label}
