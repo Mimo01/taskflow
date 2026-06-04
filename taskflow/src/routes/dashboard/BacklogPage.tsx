@@ -32,13 +32,11 @@ import type {
   DragEndEvent,
   DragOverEvent,
   DragStartEvent,
-  DropAnimation,
 } from '@dnd-kit/core';
 import {
   closestCenter,
   DndContext,
   DragOverlay,
-  defaultDropAnimationSideEffects,
   PointerSensor,
   pointerWithin,
   rectIntersection,
@@ -47,7 +45,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox, RefreshCw, X } from 'lucide-react';
@@ -87,9 +85,12 @@ import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 import type { OverState } from './backlogDragHelpers';
 import {
+  buildTargetOrder,
+  computeInsertIndex,
+  computeLiveReorder,
+  keyOrderEquals,
   moveIssueAcrossSections,
   overStateEquals,
-  resolveCrossSectionDrop,
 } from './backlogDragHelpers';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
@@ -114,8 +115,6 @@ function VirtualizedBacklogTable({
   flaggedFieldKey,
   onToggleFlag,
   justDragged,
-  dropTargetKey,
-  dropEdge,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -136,10 +135,6 @@ function VirtualizedBacklogTable({
   flaggedFieldKey: string;
   onToggleFlag?: (issueKey: string) => void;
   justDragged?: React.MutableRefObject<boolean>;
-  /** Issue key the pointer is currently over during a drag (D-07 insertion line). */
-  dropTargetKey?: string | null;
-  /** Which edge of the drop-target row to draw the insertion line on. */
-  dropEdge?: 'top' | 'bottom' | null;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -189,7 +184,6 @@ function VirtualizedBacklogTable({
         isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
         onToggleFlag={onToggleFlag ? () => onToggleFlag(issue.key) : undefined}
         justDragged={justDragged}
-        dropEdge={dropTargetKey === issue.key ? (dropEdge ?? null) : null}
       />
     );
   }
@@ -258,11 +252,12 @@ function DroppableSection({
       data-testid={`droppable-section-${sectionId}`}
       className={
         isActiveDropTarget
-          ? // D-05/D-07 (third polish pass): the insertion line is now the
-            // single PRIMARY drop cue in both intra- and cross-section drags.
-            // The section tint is demoted to a SUBTLE secondary cue — a faint
-            // accent wash with a soft 30%-primary ring — so it frames the target
-            // section without competing with or replacing the line.
+          ? // D-05/D-07 (fourth polish pass): the translucent ghost placeholder
+            // row (live-reordered into its drop slot) is now the single PRIMARY
+            // drop cue in both intra- and cross-section drags. The section tint
+            // stays a SUBTLE secondary cue — a faint accent wash with a soft
+            // 30%-primary ring — framing the target section without competing
+            // with the ghost.
             'rounded-sm bg-accent/10 ring-1 ring-primary/30 transition-colors'
           : 'transition-colors'
       }
@@ -289,26 +284,6 @@ const backlogCollisionDetection: CollisionDetection = (args) => {
   return closestCenter(args);
 };
 
-// ── Drop animation (D-07 third polish pass — drop-jank fix) ───────────────────
-// The dragged row uses `opacity: isDragging ? 0 : 1`. With dnd-kit's DEFAULT
-// drop animation, the overlay fades toward the source node's *current* opacity
-// (0, because the row is still mid-drag) while, on the same frame, `isDragging`
-// flips false and the real row snaps 0 → 1. The two crossing opacity changes
-// read as a brief double-image / flicker at the moment of drop.
-//
-// Fix: keep a SHORT, smooth overlay-to-target transition (so the ghost settles
-// into place rather than snapping away), but DROP the default active-node
-// opacity side-effect so the overlay no longer fades to 0 while the real row
-// reappears at 1. The two no longer fight → the row settles cleanly. Applies
-// identically to intra- and cross-section drops (same overlay, same animation).
-const backlogDropAnimation: DropAnimation = {
-  duration: 180,
-  easing: 'cubic-bezier(0.2, 0, 0, 1)',
-  sideEffects: defaultDropAnimationSideEffects({
-    styles: { active: { opacity: '1' } },
-  }),
-};
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BacklogPage() {
@@ -332,24 +307,23 @@ export default function BacklogPage() {
   const isDraggingRef = useRef(false);
   const justDragged = useRef(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  // D-05/D-07: current over-target during a drag — drives the cross-section
-  // highlight ring and the per-row insertion line. `overSectionId` is the
-  // section the pointer is currently within; `overRowKey`/`dropEdge` mark the
-  // exact row + edge the insertion line is drawn on.
+  // D-05/D-07: current over-section during a drag — drives the SUBTLE
+  // cross-section highlight ring. The ghost placeholder row (live-reordered into
+  // its drop slot, see handleDragOver) is now the PRIMARY drop cue.
   //
-  // Defect-A (smoothness): the three pieces are held in ONE state object so
-  // `handleDragOver` can compute the next over-state and bail out via
-  // `overStateEquals` when nothing changed — steady-state pointer movement over
-  // the same row/edge then causes ZERO re-renders, leaving dnd-kit's transform
-  // animation uninterrupted (no jank).
+  // Defect-A (smoothness): held so `handleDragOver` can bail out via
+  // `overStateEquals` when the section did not change — steady-state pointer
+  // movement then causes ZERO highlight re-renders.
   const [overState, setOverState] = useState<OverState>({
     overSectionId: null,
-    overRowKey: null,
-    dropEdge: null,
   });
-  const { overSectionId, overRowKey, dropEdge } = overState;
+  const { overSectionId } = overState;
   // Map<sectionId, string[]> — overrides server issue-key order during drag window (D-08)
   const [localOrder, setLocalOrder] = useState<Map<string, string[]>>(new Map());
+  // D-07 (ghost placeholder model): pre-drag snapshot of localOrder captured on
+  // drag start so an aborted drag or a cross-section "Keep Position" cancel can
+  // restore the exact order both sections had before live-reorder mutated them.
+  const preDragOrderRef = useRef<Map<string, string[]> | null>(null);
   const [rankError, setRankError] = useState<string | null>(null);
   // Pending cross-section drag move (D-03/D-04)
   const [pendingDragMove, setPendingDragMove] = useState<{
@@ -948,8 +922,6 @@ export default function BacklogPage() {
 
   const EMPTY_OVER_STATE: OverState = {
     overSectionId: null,
-    overRowKey: null,
-    dropEdge: null,
   };
 
   // Gate the setter so steady-state movement (same over-state) is a no-op and
@@ -967,44 +939,80 @@ export default function BacklogPage() {
     isDraggingRef.current = true;
     setRankError(null);
     clearOverState();
+    // D-07 (ghost placeholder model): snapshot localOrder so an aborted drag or
+    // a cross-section "Keep Position" cancel restores cleanly. Also seed the
+    // source section's localOrder with its current displayed order so the live
+    // reorder in handleDragOver has a stable base to arrayMove against.
+    preDragOrderRef.current = new Map(localOrder);
+    const activeKey = active.id as string;
+    const sourceSection = findSectionOfKey(activeKey);
+    if (sourceSection) {
+      setLocalOrder((prev) => {
+        if (prev.has(sourceSection)) return prev;
+        return new Map(prev).set(sourceSection, getSectionKeys(sourceSection));
+      });
+    }
   }
 
-  // D-05/D-07: track the over-target continuously so the highlight ring and
-  // insertion line follow the pointer. Resolve the section the pointer is in
-  // (row container OR section droppable id), and — when over a row — which edge
-  // the insertion line should sit on based on drag direction.
+  // D-07 (ghost placeholder model): live-reorder the dragged item into its drop
+  // slot in real time so its in-list row IS the ghost placeholder. Updates the
+  // SUBTLE section highlight ring too. All setState calls are GATED (section
+  // equality + array equality) so steady-state movement causes ZERO re-renders.
   function handleDragOver({ active, over }: DragOverEvent) {
     if (!over) {
       clearOverState();
       return;
     }
+    const activeKey = active.id as string;
     const overData = over.data.current as { sortable?: { containerId?: string } } | undefined;
     const rowContainer = overData?.sortable?.containerId;
     const overIdStr = over.id as string;
 
-    // Resolve the section the pointer is within.
+    // Resolve the section the pointer is within (row container OR section droppable id).
     const section = rowContainer ?? (sectionIds.has(overIdStr) ? overIdStr : null);
 
-    let next: OverState;
-    if (rowContainer && over.id !== active.id) {
-      // Determine edge from relative vertical centers (fallback: bottom).
-      const activeRect = active.rect.current.translated ?? active.rect.current.initial;
-      const overRect = over.rect;
-      let edge: 'top' | 'bottom' = 'bottom';
-      if (activeRect && overRect) {
-        const activeCenter = activeRect.top + activeRect.height / 2;
-        const overCenter = overRect.top + overRect.height / 2;
-        edge = activeCenter < overCenter ? 'top' : 'bottom';
-      }
-      next = { overSectionId: section, overRowKey: overIdStr, dropEdge: edge };
+    // Section highlight ring (gated by overStateEquals).
+    applyOverState({ overSectionId: section });
+
+    if (!section) return;
+    const sourceSection = findSectionOfKey(activeKey) ?? section;
+
+    if (section === sourceSection) {
+      // ── Intra-section live reorder ──────────────────────────────────────────
+      // Only meaningful when the pointer is over a DIFFERENT row in this section.
+      if (!rowContainer || overIdStr === activeKey) return;
+      setLocalOrder((prev) => {
+        const current = prev.get(section) ?? getSectionKeys(section);
+        const next = computeLiveReorder(current, activeKey, overIdStr);
+        if (keyOrderEquals(current, next)) return prev; // gate: no change → no re-render
+        return new Map(prev).set(section, next);
+      });
     } else {
-      // Over a section droppable (header/gap/empty) — no specific row edge.
-      next = { overSectionId: section, overRowKey: null, dropEdge: null };
+      // ── Cross-section live reorder ──────────────────────────────────────────
+      // Move the dragged key OUT of the source section's order and INTO the
+      // target section's order at the over-index, so the ghost placeholder
+      // appears in the target section identically to the intra-section case.
+      setLocalOrder((prev) => {
+        const sourceKeys = prev.get(sourceSection) ?? getSectionKeys(sourceSection);
+        const targetKeys = prev.get(section) ?? getSectionKeys(section);
+        // Already moved into target at the right index → nothing to do.
+        const insertIndex = rowContainer
+          ? computeInsertIndex(
+              overIdStr,
+              targetKeys.filter((k) => k !== activeKey),
+            )
+          : targetKeys.filter((k) => k !== activeKey).length;
+        const nextSource = sourceKeys.filter((k) => k !== activeKey);
+        const nextTarget = buildTargetOrder(targetKeys, activeKey, insertIndex);
+        const sourceChanged = !keyOrderEquals(sourceKeys, nextSource);
+        const targetChanged = !keyOrderEquals(targetKeys, nextTarget);
+        if (!sourceChanged && !targetChanged) return prev; // gate
+        const map = new Map(prev);
+        if (sourceChanged) map.set(sourceSection, nextSource);
+        if (targetChanged) map.set(section, nextTarget);
+        return map;
+      });
     }
-    // Defect-A: only re-render when the over-state actually changed. Computing
-    // `edge` above is cheap; the heavy cost is the re-render, which this gate
-    // skips for steady-state movement over the same row + edge.
-    applyOverState(next);
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
@@ -1017,29 +1025,37 @@ export default function BacklogPage() {
       justDragged.current = false;
     }, 50);
 
-    if (!over || active.id === over.id) return;
+    if (!over) {
+      restorePreDragOrder();
+      return;
+    }
 
-    const activeData = active.data.current as { sortable?: { containerId?: string } } | undefined;
-    const overData = over.data.current as { sortable?: { containerId?: string } } | undefined;
-    const sourceContainer = activeData?.sortable?.containerId;
-    // Resolve the target section from EITHER a row's container OR a section
-    // droppable id (header/gap/empty section) — the multi-container recipe
-    // (D-03/D-04). `over.id` of a row is the row key, never a section id, so
-    // only a real section-droppable id resolves here.
-    const targetContainer =
-      overData?.sortable?.containerId ??
-      (sectionIds.has(over.id as string) ? (over.id as string) : null);
+    const activeKey = active.id as string;
+    // D-07 (ghost placeholder model): the TRUE source section is where the key
+    // lived BEFORE live-reorder, captured in the pre-drag snapshot. dnd-kit's
+    // `active.data.current.sortable.containerId` reflects the *live* container
+    // (which we mutated during the drag), so it can no longer be trusted as the
+    // source. The target is wherever the key lives NOW in localOrder.
+    const sourceContainer = findSectionOfKeyInOrder(activeKey, preDragOrderRef.current);
+    const targetContainer = findSectionOfKeyInOrder(activeKey, localOrder);
 
-    if (!sourceContainer || !targetContainer) return;
+    if (!sourceContainer || !targetContainer) {
+      restorePreDragOrder();
+      return;
+    }
 
     if (sourceContainer === targetContainer) {
-      // Intra-section reorder — fire rank mutation immediately (RANK-02).
-      const serverKeys = getSectionKeys(sourceContainer);
-      const sectionKeys = localOrder.get(sourceContainer) ?? serverKeys;
-      const oldIndex = sectionKeys.indexOf(active.id as string);
-      const newIndex = sectionKeys.indexOf(over.id as string);
-      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
-      const newOrder = arrayMove(sectionKeys, oldIndex, newIndex);
+      // ── Intra-section reorder ───────────────────────────────────────────────
+      // localOrder already reflects the final order (live-reorder), so derive
+      // the rank position directly from it — NO extra arrayMove.
+      const newOrder = localOrder.get(sourceContainer) ?? getSectionKeys(sourceContainer);
+      const previousOrder = preDragOrderRef.current?.get(sourceContainer) ?? newOrder;
+      const newIndex = newOrder.indexOf(activeKey);
+      if (newIndex === -1 || keyOrderEquals(previousOrder, newOrder)) {
+        // No net movement — clear any seeded override and bail.
+        restorePreDragOrder();
+        return;
+      }
       const above = newOrder[newIndex - 1];
       const below = newOrder[newIndex + 1];
       const position:
@@ -1052,28 +1068,20 @@ export default function BacklogPage() {
             ? { rankBeforeIssue: below }
             : {};
       rankMutation.mutate({
-        issueKey: active.id as string,
+        issueKey: activeKey,
         sectionId: sourceContainer,
         newOrder,
-        previousOrder: sectionKeys,
+        previousOrder,
         rankCustomFieldId: backlog?.rankCustomFieldId ?? 0,
         position,
       });
     } else {
-      // Cross-section — open confirmation dialog (D-03/D-04).
-      // Resolve the optimistic target order via the pure helper so dropping on
-      // a row, a section header/gap, OR an empty section (index 0) all work.
-      const resolution = resolveCrossSectionDrop({
-        activeKey: active.id as string,
-        activeData,
-        overId: over.id as string,
-        overData,
-        sectionIds,
-        getTargetKeys: (id) => localOrder.get(id) ?? getSectionKeys(id),
-      });
-      if (!resolution) return;
-      const serverKeys = getSectionKeys(sourceContainer);
-      const previousOrder = localOrder.get(sourceContainer) ?? serverKeys;
+      // ── Cross-section — open confirmation dialog (D-03/D-04) ─────────────────
+      // The dragged key already lives at its drop slot in the target section's
+      // localOrder (live-reorder), so use that as the optimistic target order.
+      const newOrder = localOrder.get(targetContainer) ?? getSectionKeys(targetContainer);
+      const previousOrder =
+        preDragOrderRef.current?.get(sourceContainer) ?? getSectionKeys(sourceContainer);
       const fromSprintName = sourceContainer.startsWith('sprint-')
         ? (lookupSprintNameById(parseInt(sourceContainer.replace('sprint-', ''), 10)) ?? null)
         : null;
@@ -1081,15 +1089,38 @@ export default function BacklogPage() {
         ? (lookupSprintNameById(parseInt(targetContainer.replace('sprint-', ''), 10)) ?? 'Sprint')
         : 'Backlog';
       setPendingDragMove({
-        issueKey: active.id as string,
+        issueKey: activeKey,
         fromSectionId: sourceContainer,
         toSectionId: targetContainer,
         fromSprintName,
         toSprintName,
-        newOrder: resolution.newTargetOrder,
+        newOrder,
         previousOrder,
       });
     }
+  }
+
+  // Restore both sections' localOrder to the pre-drag snapshot — used when a
+  // drag is aborted (no valid drop) or a cross-section move is cancelled. Keeps
+  // the ghost-placeholder live-reorder from "sticking" after a no-op release.
+  function restorePreDragOrder() {
+    const snapshot = preDragOrderRef.current;
+    setLocalOrder(snapshot ? new Map(snapshot) : new Map());
+  }
+
+  // Locate which section a key currently belongs to, using an explicit
+  // localOrder-style map (pre-drag snapshot OR live localOrder), falling back to
+  // the server-derived section membership when the map has no entry.
+  function findSectionOfKeyInOrder(
+    key: string,
+    order: Map<string, string[]> | null,
+  ): string | null {
+    if (order) {
+      for (const [sectionId, keys] of order) {
+        if (keys.includes(key)) return sectionId;
+      }
+    }
+    return findSectionOfKey(key);
   }
 
   // Helper: get the server-derived issue keys for a given section id.
@@ -1098,6 +1129,16 @@ export default function BacklogPage() {
     const sprintId = parseInt(sectionId.replace('sprint-', ''), 10);
     const section = sprintSections.find((s) => s.sprint.id === sprintId);
     return section ? section.issues.map((i) => i.key) : [];
+  }
+
+  // Helper: locate which section a key belongs to in the SERVER membership
+  // (used to seed live-reorder and resolve the true source on drop).
+  function findSectionOfKey(key: string): string | null {
+    for (const { sprint, issues } of sprintSections) {
+      if (issues.some((i) => i.key === key)) return `sprint-${sprint.id}`;
+    }
+    if (backlogIssuesAdapted.some((i) => i.key === key)) return 'backlog';
+    return null;
   }
 
   // ── Cross-section drag confirm handlers (D-03/D-04) ──────────────────────────
@@ -1206,9 +1247,10 @@ export default function BacklogPage() {
 
   function cancelDragMove() {
     if (!pendingDragMove) return;
-    // "Keep Position" — restore local order, no API call.
-    const { fromSectionId, previousOrder } = pendingDragMove;
-    setLocalOrder((prev) => new Map(prev).set(fromSectionId, previousOrder));
+    // "Keep Position" — no API call. Cross-section live-reorder mutated BOTH the
+    // source and target localOrder, so restore the full pre-drag snapshot rather
+    // than just the source section.
+    restorePreDragOrder();
     setPendingDragMove(null);
   }
 
@@ -1327,8 +1369,6 @@ export default function BacklogPage() {
                   flaggedFieldKey={flaggedFieldKey}
                   onToggleFlag={handleToggleFlag}
                   justDragged={justDragged}
-                  dropTargetKey={overRowKey}
-                  dropEdge={dropEdge}
                 />
               </SortableContext>
             ) : issues.length > 0 ? (
@@ -1528,13 +1568,14 @@ export default function BacklogPage() {
               {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
             </div>
 
-            {/* DragOverlay ghost (D-07, third polish pass) — ONE coherent clone:
-                a SOLID row (opacity 1) with a soft `shadow-lg` and a 1px
-                `border border-border`. No ring, no shadow-2xl, no opacity
-                reduction — so the ghost reads as a single clean treatment that
-                settles smoothly (see backlogDropAnimation) and is identical
-                across intra- and cross-section drags. */}
-            <DragOverlay dropAnimation={backlogDropAnimation}>
+            {/* DragOverlay ghost (D-07, fourth polish pass) — ONE coherent
+                clone: a SOLID row (opacity 1) with a soft `shadow-lg` and a 1px
+                `border border-border`. `dropAnimation={null}` disables the
+                float-back-to-source animation on release: the clone simply
+                disappears and the already-live-reordered list (with the dragged
+                row now landed in its drop slot) is what remains — no jump, no
+                float. Identical across intra- and cross-section drags. */}
+            <DragOverlay dropAnimation={null}>
               {activeId
                 ? (() => {
                     const activeIssue = adaptedIssues.find((i) => i.key === activeId);

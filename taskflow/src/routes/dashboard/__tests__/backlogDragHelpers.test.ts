@@ -18,6 +18,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTargetOrder,
   computeInsertIndex,
+  computeLiveReorder,
+  keyOrderEquals,
   type OverState,
   overStateEquals,
   resolveCrossSectionDrop,
@@ -158,32 +160,55 @@ describe('resolveCrossSectionDrop — the dialog-opening seam', () => {
 });
 
 describe('overStateEquals — the per-frame re-render gate (Defect-A smoothness)', () => {
-  const make = (
-    overSectionId: string | null,
-    overRowKey: string | null,
-    dropEdge: OverState['dropEdge'],
-  ): OverState => ({ overSectionId, overRowKey, dropEdge });
+  const make = (overSectionId: string | null): OverState => ({ overSectionId });
 
   it('is true for identical over-states (steady-state pointer movement → no re-render)', () => {
-    expect(overStateEquals(make('sprint-1', 'A2', 'top'), make('sprint-1', 'A2', 'top'))).toBe(
-      true,
-    );
-    expect(overStateEquals(make(null, null, null), make(null, null, null))).toBe(true);
-  });
-
-  it('is false when the hovered row changes', () => {
-    expect(overStateEquals(make('sprint-1', 'A2', 'top'), make('sprint-1', 'A3', 'top'))).toBe(
-      false,
-    );
-  });
-
-  it('is false when only the edge changes (same row, drag direction flips)', () => {
-    expect(overStateEquals(make('sprint-1', 'A2', 'top'), make('sprint-1', 'A2', 'bottom'))).toBe(
-      false,
-    );
+    expect(overStateEquals(make('sprint-1'), make('sprint-1'))).toBe(true);
+    expect(overStateEquals(make(null), make(null))).toBe(true);
   });
 
   it('is false when the section changes (cross-section hover)', () => {
-    expect(overStateEquals(make('sprint-1', null, null), make('sprint-2', null, null))).toBe(false);
+    expect(overStateEquals(make('sprint-1'), make('sprint-2'))).toBe(false);
+    expect(overStateEquals(make(null), make('sprint-1'))).toBe(false);
+  });
+});
+
+describe('computeLiveReorder — intra-section ghost placeholder live reorder (D-07)', () => {
+  it('moves the active key down to the over-row index', () => {
+    expect(computeLiveReorder(['A', 'B', 'C', 'D'], 'A', 'C')).toEqual(['B', 'C', 'A', 'D']);
+  });
+
+  it('moves the active key up to the over-row index', () => {
+    expect(computeLiveReorder(['A', 'B', 'C', 'D'], 'D', 'B')).toEqual(['A', 'D', 'B', 'C']);
+  });
+
+  it('returns the SAME array reference when active === over (gate → no re-render)', () => {
+    const keys = ['A', 'B', 'C'];
+    expect(computeLiveReorder(keys, 'B', 'B')).toBe(keys);
+  });
+
+  it('returns the SAME array reference when a key is missing (gate)', () => {
+    const keys = ['A', 'B', 'C'];
+    expect(computeLiveReorder(keys, 'X', 'B')).toBe(keys);
+    expect(computeLiveReorder(keys, 'A', 'X')).toBe(keys);
+  });
+});
+
+describe('keyOrderEquals — the live-reorder setState gate', () => {
+  it('is true for the same reference', () => {
+    const a = ['A', 'B'];
+    expect(keyOrderEquals(a, a)).toBe(true);
+  });
+
+  it('is true for element-wise identical arrays', () => {
+    expect(keyOrderEquals(['A', 'B', 'C'], ['A', 'B', 'C'])).toBe(true);
+  });
+
+  it('is false when an element differs', () => {
+    expect(keyOrderEquals(['A', 'B', 'C'], ['A', 'C', 'B'])).toBe(false);
+  });
+
+  it('is false when lengths differ', () => {
+    expect(keyOrderEquals(['A', 'B'], ['A', 'B', 'C'])).toBe(false);
   });
 });
