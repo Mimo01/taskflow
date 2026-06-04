@@ -23,7 +23,10 @@
  * - When only onClick is provided (backward-compat), outer stays a <button> with a plain
  *   key <span> (no nested buttons).
  */
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, ChevronRight, Flag } from 'lucide-react';
+import type React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
@@ -83,6 +86,24 @@ interface TaskCardProps {
    * Separate prop (not on `issue`) preserves backward-compat for non-board callers.
    */
   timeInColumn?: { enteredStatus: number; durationPreviously?: number };
+  /**
+   * Phase 79 (D-04): when true, the card registers a dnd-kit draggable.
+   * Only non-story cards (subtasks/tasks) receive this prop — story header
+   * rows are NOT draggable.
+   */
+  isDraggable?: boolean;
+  /**
+   * Phase 79 (D-12): ref set true for 50ms after a drag drop to suppress the
+   * onClick (prevents stray peek-open after releasing a drag). Mirrors
+   * BacklogRow.tsx:justDragged.
+   */
+  justDragged?: React.MutableRefObject<boolean>;
+  /**
+   * Phase 79: when true, renders the card as the DragOverlay ghost — no active
+   * drag handle (useDraggable disabled), and aria-hidden="true" on the outer
+   * element (UI-SPEC accessibility note).
+   */
+  isOverlay?: boolean;
 }
 
 // ── Shared card body content (layout is identical in both render paths) ────────
@@ -257,12 +278,42 @@ export default function TaskCard({
   isFlagged,
   onToggleFlag,
   timeInColumn,
+  isDraggable,
+  justDragged,
+  isOverlay,
 }: TaskCardProps) {
   const assignee = issue.fields.assignee;
   const avatarUrl = assignee?.avatarUrls['48x48'];
   const displayName = assignee?.displayName ?? '';
   const issueTypeName = issue.fields.issuetype?.name;
   const storyPoints = issue.fields.customfield_10016 as number | null | undefined;
+
+  // Phase 79 (D-04/D-12/D-13): dnd-kit draggable registration.
+  // Disabled when isDraggable is false (story headers) or when rendering as the
+  // DragOverlay ghost (isOverlay) — the ghost must not register a new draggable.
+  const {
+    attributes: dragAttributes,
+    listeners: dragListeners,
+    setNodeRef: setDragNodeRef,
+    transform: dragTransform,
+    isDragging,
+  } = useDraggable({
+    id: issue.key,
+    disabled: !isDraggable || !!isOverlay,
+  });
+
+  // Build drag style only when the card is draggable. touch-action:none is
+  // required for dnd-kit PointerSensor on touch devices and Tauri WebView2
+  // (D-13). opacity:0 hides the in-place ghost so it doesn't double with the
+  // portaled DragOverlay clone.
+  const dragStyle: React.CSSProperties = isDraggable
+    ? {
+        transform: CSS.Transform.toString(dragTransform),
+        opacity: isDragging && !isOverlay ? 0 : undefined,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        touchAction: 'none',
+      }
+    : {};
 
   // PEEK-01/PEEK-05 (D-10 / Pitfall 1): when onOpenIssue is wired, outer becomes
   // div[role=button] so the inner key <button> is valid HTML.
@@ -299,30 +350,59 @@ export default function TaskCard({
       'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
   );
 
+  // dnd-kit's dragAttributes carries role/tabIndex/aria-* for accessibility.
+  // On the div[role=button] path we already declare role + tabIndex explicitly
+  // (required for the nested-button HTML validity invariant, D-10). Spread
+  // dragAttributes FIRST so explicit props win; TypeScript's duplicate-attr
+  // rule fires on JSX literals, so we extract what we need rather than
+  // double-declaring.
+  const { role: _dropRole, tabIndex: _dropTabIndex, ...restDragAttributes } = isDraggable
+    ? dragAttributes
+    : ({} as typeof dragAttributes);
+
   const outerElement = useKeyBodySplit ? (
     // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested <button> inside <button> is invalid HTML (D-10 / Pitfall 1)
     <div
       role="button"
       tabIndex={0}
+      ref={isDraggable ? setDragNodeRef : undefined}
+      style={dragStyle}
+      data-dragging={isDragging ? 'true' : undefined}
+      aria-hidden={isOverlay ? 'true' : undefined}
       className={outerClassName}
-      onClick={() => onOpenIssue(issue.key)}
+      onClick={() => {
+        if (justDragged?.current) return; // D-12: guard — suppress peek after drop
+        onOpenIssue(issue.key);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          if (justDragged?.current) return;
           onOpenIssue(issue.key);
         }
       }}
+      {...restDragAttributes}
+      {...(isDraggable ? dragListeners : {})}
     >
       <CardBody {...sharedBodyProps} />
     </div>
   ) : (
     <button
       type="button"
+      ref={isDraggable ? setDragNodeRef : undefined}
+      style={dragStyle}
+      data-dragging={isDragging ? 'true' : undefined}
+      aria-hidden={isOverlay ? 'true' : undefined}
       className={outerClassName}
-      onClick={onClick}
+      onClick={() => {
+        if (justDragged?.current) return; // D-12: guard
+        onClick?.();
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onClick?.();
       }}
+      {...(isDraggable ? dragAttributes : {})}
+      {...(isDraggable ? dragListeners : {})}
     >
       <CardBody {...sharedBodyProps} />
     </button>
