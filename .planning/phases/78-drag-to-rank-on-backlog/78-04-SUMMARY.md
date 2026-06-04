@@ -170,3 +170,5 @@ Human UAT at the Task 3 checkpoint found two defects; both fixed on `main` with 
 - Commit `1f648bd8` (`fix(78-04): enable cross-section drag via droppable sections + collision detection`).
 
 Verification after fixes: `BacklogPage.rank.test.ts`, `rank.test.ts`, `rank-api.test.ts`, `BacklogPage.network.test.tsx`, `backlogDragHelpers.test.ts` all GREEN; `npx tsc --noEmit` clean; biome clean.
+
+Second gap-closure pass (commits `9c0ee850`, `bdc048c8`): smoothed drag by gating `handleDragOver` re-renders through `overStateEquals` (zero re-renders on steady-state pointer movement) and lightened visuals to one clean insertion line + a single soft `shadow-lg` overlay; made the cross-section move optimistic by moving the issue between the cached `gh-backlog` `sprints[].issuesIds[]` (`moveIssueAcrossSections`) before the awaits so it renders in the target section immediately (no post-success jump), with snapshot rollback on failure.
