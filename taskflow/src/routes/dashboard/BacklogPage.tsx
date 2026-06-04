@@ -31,7 +31,6 @@ import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/
 import {
   closestCenter,
   DndContext,
-  DragOverlay,
   MeasuringStrategy,
   PointerSensor,
   pointerWithin,
@@ -46,7 +45,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Badge } from '@/components/ui/badge';
@@ -301,7 +299,11 @@ export default function BacklogPage() {
   // ── Drag-to-rank state (D-08, RANK-05) ──────────────────────────────────────
   const isDraggingRef = useRef(false);
   const justDragged = useRef(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // Phase 78-knq: the drag-overlay clone was removed (in-place sortable drag
+  // now). The active key is still tracked via setActiveId in the start/end handlers
+  // (harmless, keeps the drag lifecycle explicit), but the value itself is no
+  // longer read by any render path — drop the destructured value.
+  const [, setActiveId] = useState<string | null>(null);
   // Map<sectionId, string[]> — overrides server issue-key order during the
   // drag/commit window (D-08). Phase 78-04 (jump fix): this is no longer mutated
   // DURING a drag — only set once on drop (handleDragEnd → rankMutation.onMutate)
@@ -1290,45 +1292,6 @@ export default function BacklogPage() {
               {/* Backlog section — always last */}
               {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
             </div>
-
-            {/* DragOverlay ghost (D-07, fourth polish pass) — ONE coherent
-                clone: a SOLID row (opacity 1) with a soft `shadow-lg` and a 1px
-                `border border-border`. `dropAnimation={null}` disables the
-                float-back-to-source animation on release: the clone simply
-                disappears and the already-live-reordered list (with the dragged
-                row now landed in its drop slot) is what remains — no jump, no
-                float. Identical across intra- and cross-section drags. */}
-            {/* Portaled to document.body: dnd-kit omits the scroll-delta from the
-                overlay transform (it assumes viewport/fixed coords), so the clone
-                must NOT live inside the scrollable container — otherwise autoScroll
-                drifts it away from the cursor by the scroll delta (UAT P78 fix). */}
-            {createPortal(
-              <DragOverlay dropAnimation={null}>
-                {activeId
-                  ? (() => {
-                      const activeIssue = adaptedIssues.find((i) => i.key === activeId);
-                      if (!activeIssue) return null;
-                      return (
-                        <table className="w-full rounded-md border border-border bg-background text-sm shadow-lg">
-                          <tbody>
-                            <BacklogRow
-                              issue={activeIssue}
-                              onIssueClick={() => {}}
-                              storyPointsFieldKey={storyPointsFieldKey}
-                              epicLinkFieldKey={epicLinkFieldKey}
-                              epicNameFieldKey={epicNameFieldKey}
-                              epicNames={epicNameMap}
-                              epicColors={epicColorMap}
-                              isOverlay
-                            />
-                          </tbody>
-                        </table>
-                      );
-                    })()
-                  : null}
-              </DragOverlay>,
-              document.body,
-            )}
           </DndContext>
         ) : null}
       </div>
