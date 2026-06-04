@@ -270,6 +270,58 @@ export function resolveIntraSectionRank(args: {
   return { newOrder, previousOrder, position };
 }
 
+/**
+ * Resolve the rank-persist decision for an INTRA-section drop under the
+ * CANONICAL dnd-kit single-container sortable model (Phase 78-04 jump fix).
+ *
+ * Unlike `resolveIntraSectionRank` (which assumed `localOrder` had already been
+ * live-reordered into the drop slot during the drag), this helper takes the
+ * section's order as it stood BEFORE the drop (`currentKeys` — the server order
+ * or any prior committed override) and computes the new order ONCE via
+ * arrayMove semantics from the drop's `activeKey`/`overKey`. No data is mutated
+ * during the drag, so there is no oscillation; dnd-kit owns the in-flight
+ * visual row shift and we only persist on release.
+ *
+ * - `currentKeys` — the section's current key order at drop time.
+ * - `activeKey`   — the dragged row's key.
+ * - `overKey`     — the key of the row the drop landed on (over.id).
+ *
+ * Returns null when there is no movement (same index) or either key is missing
+ * from `currentKeys` (e.g. dropped on the section droppable, not a row).
+ *
+ * `previousOrder` is always `currentKeys` (the base the server order is built
+ * on) so RANK-04 rollback restores exactly what was displayed pre-drop.
+ *
+ * `position` is computed from the NEW order's neighbours: rank after the issue
+ * directly above when one exists (the dragged row is not at the top), else rank
+ * before the issue directly below (dragged row landed at the very top).
+ */
+export function resolveIntraRankFromDrop(
+  currentKeys: readonly string[],
+  activeKey: string,
+  overKey: string,
+): IntraSectionRank | null {
+  const oldIndex = currentKeys.indexOf(activeKey);
+  const newIndex = currentKeys.indexOf(overKey);
+  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return null;
+
+  const previousOrder = currentKeys.slice();
+  const newOrder = currentKeys.slice();
+  newOrder.splice(oldIndex, 1);
+  newOrder.splice(newIndex, 0, activeKey);
+
+  const landedIndex = newOrder.indexOf(activeKey);
+  const above = newOrder[landedIndex - 1];
+  const below = newOrder[landedIndex + 1];
+  const position: { rankBeforeIssue: string } | { rankAfterIssue: string } | Record<string, never> =
+    above !== undefined
+      ? { rankAfterIssue: above }
+      : below !== undefined
+        ? { rankBeforeIssue: below }
+        : {};
+  return { newOrder, previousOrder, position };
+}
+
 export function resolveCrossSectionDrop(args: {
   activeKey: string;
   activeData: SortableData | undefined;

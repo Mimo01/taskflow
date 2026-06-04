@@ -198,12 +198,13 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     const dragStyle: React.CSSProperties = {
       transform: CSS.Transform.toString(transform),
       transition,
-      // D-07 (ghost placeholder model): the dragged item is live-reordered into
-      // its drop slot in localOrder, so its in-list row IS the drop position.
-      // Instead of hiding it (opacity 0) we render it as a translucent ghost
-      // placeholder (see ghostPlaceholderClass below) so the user sees exactly
-      // where the issue will land — Trello/Jira style. The solid clone floats in
-      // the DragOverlay. Identical treatment for intra- AND cross-section drags.
+      // Phase 78-04 (jump fix): canonical dnd-kit DragOverlay setup. There is no
+      // longer a live-reordered in-slot ghost (order changes only on drop), so
+      // the dragged row keeps its original slot while the SOLID DragOverlay clone
+      // follows the cursor. Hide the in-list source row (opacity 0) so it doesn't
+      // double with the overlay; dnd-kit's verticalListSortingStrategy shifts the
+      // sibling rows via transforms to open the drop gap.
+      opacity: isDragging && !isOverlay ? 0 : undefined,
       cursor: isDragging ? 'grabbing' : 'grab',
       position: 'relative',
     };
@@ -214,15 +215,6 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     // ghost. The single soft treatment now lives on the table wrapper in
     // BacklogPage; the row itself adds nothing extra.
     const overlayClassName = isOverlay ? 'bg-background' : undefined;
-
-    // D-07 ghost placeholder: when this row is the dragged item (live-reordered
-    // into its drop slot), render it as a translucent, dashed-outlined, muted
-    // row so it reads as "the issue lands here". Suppressed for the DragOverlay
-    // clone, which stays solid.
-    const ghostPlaceholderClass =
-      isDragging && !isOverlay
-        ? 'opacity-50 border border-dashed border-primary/50 bg-muted/40'
-        : undefined;
 
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
     // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
@@ -245,7 +237,6 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
         : 'hover:bg-muted/30',
       isFocused && 'bg-muted border-l-2 border-primary',
-      ghostPlaceholderClass,
       overlayClassName,
     );
 
