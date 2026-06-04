@@ -507,31 +507,14 @@ function VirtualizedSwimlanes({
                         ))}
                       </div>
                     ) : colModel?.kind === 'single' ? (
-                      // D-02: single-transition column — whole column is the target
-                      <SingleColumnDroppable id={`col:${col.key}`}>
-                        {colCards.map((card) => (
-                          <TaskCard
-                            key={card.key}
-                            issue={card}
-                            isSubtask={card.fields.issuetype.subtask}
-                            showStatus
-                            onOpenIssue={onOpenIssue}
-                            onIssueClick={setSelectedIssueKey}
-                            transitions={getTransitions(card)}
-                            onTransition={(tid, name, toId, catKey) =>
-                              onTransition(card.key, tid, name, toId, catKey)
-                            }
-                            transitionError={cardErrors.get(card.key)}
-                            isFlagged={isIssueFlagged(card, flaggedFieldKey)}
-                            onToggleFlag={() => onToggleFlag(card.key)}
-                            timeInColumn={
-                              (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
-                            }
-                            isDraggable={!!card.fields.issuetype.subtask}
-                            justDragged={justDragged}
-                          />
-                        ))}
-                      </SingleColumnDroppable>
+                      // D-02: single-transition column — one labelled drop zone, same
+                      // visual as split. The col: id resolves via the column model.
+                      <div className="flex flex-col gap-1 h-full">
+                        <TransitionDropZone
+                          id={`col:${col.key}`}
+                          label={colModel.zone.transitionName}
+                        />
+                      </div>
                     ) : colModel?.kind === 'invalid' ? (
                       // D-06: zero-transition column — dim + register as droppable (resolves to null)
                       <SingleColumnDroppable id={`col:${col.key}`}>
@@ -691,31 +674,13 @@ function VirtualizedSwimlanes({
                             ))}
                           </div>
                         ) : colModel?.kind === 'single' ? (
-                          <SingleColumnDroppable id={`col:${col.key}`}>
-                            {colCards.map((card) => (
-                              <TaskCard
-                                key={card.key}
-                                issue={card}
-                                isSubtask={card.fields.issuetype.subtask}
-                                showStatus
-                                onOpenIssue={onOpenIssue}
-                                onIssueClick={setSelectedIssueKey}
-                                transitions={getTransitions(card)}
-                                onTransition={(tid, name, toId, catKey) =>
-                                  onTransition(card.key, tid, name, toId, catKey)
-                                }
-                                transitionError={cardErrors.get(card.key)}
-                                isFlagged={isIssueFlagged(card, flaggedFieldKey)}
-                                onToggleFlag={() => onToggleFlag(card.key)}
-                                timeInColumn={
-                                  (card as { timeInColumn?: { enteredStatus: number } })
-                                    .timeInColumn
-                                }
-                                isDraggable={!!card.fields.issuetype.subtask}
-                                justDragged={justDragged}
-                              />
-                            ))}
-                          </SingleColumnDroppable>
+                          // D-02: single-transition column — one labelled drop zone.
+                          <div className="flex flex-col gap-1 h-full">
+                            <TransitionDropZone
+                              id={`col:${col.key}`}
+                              label={colModel.zone.transitionName}
+                            />
+                          </div>
                         ) : colModel?.kind === 'invalid' ? (
                           <SingleColumnDroppable id={`col:${col.key}`}>
                             {colCards.map((card) => (
@@ -824,6 +789,9 @@ export default function SprintBoardTab() {
 
   // Phase 79 (D-04/D-12/D-13): dnd-kit drag state for drag-to-transition.
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Width of the dragged card at drag start, so the DragOverlay ghost matches the
+  // card's real (column-width) dimensions instead of a fixed size.
+  const [activeWidth, setActiveWidth] = useState<number | null>(null);
   const [dropModel, setDropModel] = useState<DropModel | null>(null);
   const isDraggingRef = useRef(false);
   const justDragged = useRef(false);
@@ -1067,6 +1035,9 @@ export default function SprintBoardTab() {
   function handleDragStart({ active }: DragStartEvent) {
     const issueKey = active.id as string;
     setActiveId(issueKey);
+    // Capture the dragged card's measured width so the ghost keeps its real
+    // dimensions (columns are flex-1, so width varies by viewport/board).
+    setActiveWidth(active.rect.current.initial?.width ?? null);
     isDraggingRef.current = true;
 
     // Build the drop model for the dragged card: get all transitions from cache,
@@ -1086,6 +1057,7 @@ export default function SprintBoardTab() {
   function handleDragEnd({ active, over }: DragEndEvent) {
     isDraggingRef.current = false;
     setActiveId(null);
+    setActiveWidth(null);
     setDropModel(null);
 
     // D-12: 50ms guard prevents the card's onClick from firing after a drop
@@ -1630,7 +1602,10 @@ export default function SprintBoardTab() {
                       const activeIssue = localIssues.find((i) => i.key === activeId);
                       if (!activeIssue) return null;
                       return (
-                        <div className="shadow-lg border border-border bg-card rounded-lg w-48">
+                        <div
+                          className="shadow-lg border border-border bg-card rounded-lg"
+                          style={activeWidth != null ? { width: activeWidth } : undefined}
+                        >
                           <TaskCard issue={activeIssue} isOverlay />
                         </div>
                       );
