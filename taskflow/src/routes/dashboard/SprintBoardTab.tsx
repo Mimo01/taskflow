@@ -191,6 +191,7 @@ function VirtualizedSwimlanes({
   flaggedFieldKey,
   onToggleFlag,
   activeId,
+  activeSwimlaneKey,
   dropModel,
   justDragged,
 }: {
@@ -230,6 +231,10 @@ function VirtualizedSwimlanes({
   onToggleFlag: (issueKey: string) => void;
   /** Phase 79: key of the currently-dragged card (null when not dragging). */
   activeId: string | null;
+  /** Phase 79: story key of the swimlane that owns the dragged card. Drop zones
+   *  render ONLY in this swimlane — a transition moves a card horizontally across
+   *  status columns within its own story row, so other rows stay normal. */
+  activeSwimlaneKey: string | null;
   /** Phase 79: per-column drop model built at drag start (null when not dragging). */
   dropModel: DropModel | null;
   /** Phase 79 (D-12): ref set for 50ms after drop to suppress onClick on cards. */
@@ -476,10 +481,12 @@ function VirtualizedSwimlanes({
             <div className="flex bg-muted/10">
               {CATEGORY_COLUMNS.map((col) => {
                 const colCards = cards.filter((c) => categoryOf(c) === col.key);
-                const colModel =
-                  activeId != null
-                    ? (dropModel?.get(col.key) ?? { kind: 'invalid' as const })
-                    : null;
+                // Drop zones render only in the dragged card's own swimlane (D-04):
+                // a transition moves a card across status columns within its story row.
+                const isActiveSwimlane = activeId != null && story.key === activeSwimlaneKey;
+                const colModel = isActiveSwimlane
+                  ? (dropModel?.get(col.key) ?? { kind: 'invalid' as const })
+                  : null;
                 const isInvalid = colModel?.kind === 'invalid';
                 return (
                   <div
@@ -660,10 +667,11 @@ function VirtualizedSwimlanes({
                 <div className="flex bg-muted/10">
                   {CATEGORY_COLUMNS.map((col) => {
                     const colCards = cards.filter((c) => categoryOf(c) === col.key);
-                    const colModel =
-                      activeId != null
-                        ? (dropModel?.get(col.key) ?? { kind: 'invalid' as const })
-                        : null;
+                    // Drop zones render only in the dragged card's own swimlane (D-04).
+                    const isActiveSwimlane = activeId != null && story.key === activeSwimlaneKey;
+                    const colModel = isActiveSwimlane
+                      ? (dropModel?.get(col.key) ?? { kind: 'invalid' as const })
+                      : null;
                     const isInvalid = colModel?.kind === 'invalid';
                     return (
                       <div
@@ -1384,6 +1392,16 @@ export default function SprintBoardTab() {
       .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
   }
 
+  // Phase 79: the swimlane (story row) that owns the dragged card. Drop zones
+  // render only here so a drag doesn't inflate every row's height (scroll jump)
+  // or offer transition zones in unrelated story rows.
+  const activeSwimlaneKey =
+    activeId == null
+      ? null
+      : (filteredSwimlanes.find(
+          (s) => s.story.key === activeId || s.subtasks.some((t) => t.key === activeId),
+        )?.story.key ?? null);
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never';
@@ -1593,6 +1611,7 @@ export default function SprintBoardTab() {
                   flaggedFieldKey={flaggedFieldKey}
                   onToggleFlag={handleToggleFlag}
                   activeId={activeId}
+                  activeSwimlaneKey={activeSwimlaneKey}
                   dropModel={dropModel}
                   justDragged={justDragged}
                 />
