@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
-status: verifying
-last_updated: "2026-06-03T19:40:12.195Z"
+status: ready_to_plan
+last_updated: 2026-06-04T12:08:09.685Z
 last_activity: 2026-06-03
 progress:
   total_phases: 5
@@ -11,6 +11,7 @@ progress:
   total_plans: 12
   completed_plans: 12
   percent: 60
+stopped_at: Phase 78 complete (4/4) — ready to discuss Phase 79
 ---
 
 # Project State
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-02)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 78 — drag-to-rank-on-backlog
+**Current focus:** Phase 79 — drag to transition on sprint board
 
 ## Current Position
 
-Phase: 78 (drag-to-rank-on-backlog) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-06-03
+Phase: 79
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-04
 
 Progress: [██████████] 100%
 
