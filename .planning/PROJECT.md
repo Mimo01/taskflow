@@ -140,7 +140,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 <!-- v1.12 Jira Experience Improvements — see REQUIREMENTS.md for REQ-IDs -->
 
 - [ ] Done-state strikethrough for done current-sprint stories on Backlog sprint list, Dashboard sprint card, and Standup Today
-- [ ] Drag-to-rank stories on the Backlog active-sprint list (ordered by Jira rank)
+- [x] Drag-to-rank stories within Backlog sections (intra-section reorder → Jira rank PUT, optimistic with rollback + flicker gate; cross-section drag descoped — sprint moves stay on the right-click menu) — validated Phase 78
 - [ ] Drag-to-transition on the sprint board; multi-status columns split into per-transition drop boxes
 - [x] Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance — validated Phase 77
 - [x] Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas — validated Phase 77
