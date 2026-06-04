@@ -92,6 +92,18 @@ export interface JiraTransition {
    * imports; both shapes must include `fromStatusId`.
    */
   fromStatusId?: string;
+  /**
+   * Phase 79 (D-08): propagated from GhTransition. When true, the transition
+   * requires a screen (form) that drag-to-transition cannot satisfy — filter
+   * out of drop targets (D-07). Keep in sync with the mirror at
+   * `services/jira.ts:195-210`.
+   */
+  hasScreen?: boolean;
+  /**
+   * Phase 79 (D-08): propagated from GhTransition. When true, the transition
+   * has post-function validators — also filtered from drop targets (D-07).
+   */
+  hasValidators?: boolean;
 }
 
 export interface JiraComment {
