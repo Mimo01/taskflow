@@ -83,15 +83,16 @@ import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
-import type { OverState } from './backlogDragHelpers';
+import type { OverState, SortableData } from './backlogDragHelpers';
 import {
-  buildTargetOrder,
-  computeInsertIndex,
   computeLiveReorder,
   keyOrderEquals,
   moveIssueAcrossSections,
   overStateEquals,
+  resolveCrossSectionDrop,
   resolveIntraSectionRank,
+  resolveSourceContainer,
+  resolveTargetContainer,
 } from './backlogDragHelpers';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
@@ -959,6 +960,15 @@ export default function BacklogPage() {
   // slot in real time so its in-list row IS the ghost placeholder. Updates the
   // SUBTLE section highlight ring too. All setState calls are GATED (section
   // equality + array equality) so steady-state movement causes ZERO re-renders.
+  //
+  // IMPORTANT: live reorder is INTRA-section only. We deliberately do NOT move
+  // the dragged key between sections during a cross-section drag — doing so
+  // reflows both the source and target sections every frame, which shifts the
+  // pointer's position relative to the sections and makes dnd-kit's collision
+  // detection oscillate (the drag feels janky / uncontrollable). A cross-section
+  // drop opens a confirmation dialog anyway, so during the drag we only light up
+  // the target-section highlight ring and let the DragOverlay follow the cursor;
+  // the actual move is resolved from the drop target in handleDragEnd.
   function handleDragOver({ active, over }: DragOverEvent) {
     if (!over) {
       clearOverState();
@@ -978,42 +988,16 @@ export default function BacklogPage() {
     if (!section) return;
     const sourceSection = findSectionOfKey(activeKey) ?? section;
 
-    if (section === sourceSection) {
-      // ── Intra-section live reorder ──────────────────────────────────────────
-      // Only meaningful when the pointer is over a DIFFERENT row in this section.
-      if (!rowContainer || overIdStr === activeKey) return;
-      setLocalOrder((prev) => {
-        const current = prev.get(section) ?? getSectionKeys(section);
-        const next = computeLiveReorder(current, activeKey, overIdStr);
-        if (keyOrderEquals(current, next)) return prev; // gate: no change → no re-render
-        return new Map(prev).set(section, next);
-      });
-    } else {
-      // ── Cross-section live reorder ──────────────────────────────────────────
-      // Move the dragged key OUT of the source section's order and INTO the
-      // target section's order at the over-index, so the ghost placeholder
-      // appears in the target section identically to the intra-section case.
-      setLocalOrder((prev) => {
-        const sourceKeys = prev.get(sourceSection) ?? getSectionKeys(sourceSection);
-        const targetKeys = prev.get(section) ?? getSectionKeys(section);
-        // Already moved into target at the right index → nothing to do.
-        const insertIndex = rowContainer
-          ? computeInsertIndex(
-              overIdStr,
-              targetKeys.filter((k) => k !== activeKey),
-            )
-          : targetKeys.filter((k) => k !== activeKey).length;
-        const nextSource = sourceKeys.filter((k) => k !== activeKey);
-        const nextTarget = buildTargetOrder(targetKeys, activeKey, insertIndex);
-        const sourceChanged = !keyOrderEquals(sourceKeys, nextSource);
-        const targetChanged = !keyOrderEquals(targetKeys, nextTarget);
-        if (!sourceChanged && !targetChanged) return prev; // gate
-        const map = new Map(prev);
-        if (sourceChanged) map.set(sourceSection, nextSource);
-        if (targetChanged) map.set(section, nextTarget);
-        return map;
-      });
-    }
+    // Intra-section live reorder only — see the function comment for why
+    // cross-section deliberately does not reorder during the drag.
+    if (section !== sourceSection) return;
+    if (!rowContainer || overIdStr === activeKey) return;
+    setLocalOrder((prev) => {
+      const current = prev.get(section) ?? getSectionKeys(section);
+      const next = computeLiveReorder(current, activeKey, overIdStr);
+      if (keyOrderEquals(current, next)) return prev; // gate: no change → no re-render
+      return new Map(prev).set(section, next);
+    });
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
@@ -1032,13 +1016,16 @@ export default function BacklogPage() {
     }
 
     const activeKey = active.id as string;
-    // D-07 (ghost placeholder model): the TRUE source section is where the key
-    // lived BEFORE live-reorder, captured in the pre-drag snapshot. dnd-kit's
-    // `active.data.current.sortable.containerId` reflects the *live* container
-    // (which we mutated during the drag), so it can no longer be trusted as the
-    // source. The target is wherever the key lives NOW in localOrder.
-    const sourceContainer = findSectionOfKeyInOrder(activeKey, preDragOrderRef.current);
-    const targetContainer = findSectionOfKeyInOrder(activeKey, localOrder);
+    const activeData = active.data.current as SortableData | undefined;
+    const overData = over.data.current as SortableData | undefined;
+
+    // Source is the dragged row's own container. Because cross-section drags no
+    // longer move the key between sections during the drag (see handleDragOver),
+    // the active container is reliably the source — and intra live-reorder keeps
+    // the same container too. Target is the section under the drop: a row's
+    // container OR a section droppable id (header/gap/empty section).
+    const sourceContainer = resolveSourceContainer(activeData) ?? findSectionOfKey(activeKey);
+    const targetContainer = resolveTargetContainer(over.id as string, overData, sectionIds);
 
     if (!sourceContainer || !targetContainer) {
       restorePreDragOrder();
@@ -1073,11 +1060,22 @@ export default function BacklogPage() {
       });
     } else {
       // ── Cross-section — open confirmation dialog (D-03/D-04) ─────────────────
-      // The dragged key already lives at its drop slot in the target section's
-      // localOrder (live-reorder), so use that as the optimistic target order.
-      const newOrder = localOrder.get(targetContainer) ?? getSectionKeys(targetContainer);
-      const previousOrder =
-        preDragOrderRef.current?.get(sourceContainer) ?? getSectionKeys(sourceContainer);
+      // The key was NOT live-moved into the target during the drag (that caused
+      // jank), so build the optimistic target order now by inserting it at the
+      // drop index. The cache move + rollback happen on confirm (confirmDragMove).
+      const resolution = resolveCrossSectionDrop({
+        activeKey,
+        activeData,
+        overId: over.id as string,
+        overData,
+        sectionIds,
+        getTargetKeys: (id) => localOrder.get(id) ?? getSectionKeys(id),
+      });
+      if (!resolution) {
+        restorePreDragOrder();
+        return;
+      }
+      const previousOrder = localOrder.get(sourceContainer) ?? getSectionKeys(sourceContainer);
       const fromSprintName = sourceContainer.startsWith('sprint-')
         ? (lookupSprintNameById(parseInt(sourceContainer.replace('sprint-', ''), 10)) ?? null)
         : null;
@@ -1090,7 +1088,7 @@ export default function BacklogPage() {
         toSectionId: targetContainer,
         fromSprintName,
         toSprintName,
-        newOrder,
+        newOrder: resolution.newTargetOrder,
         previousOrder,
       });
     }
@@ -1102,21 +1100,6 @@ export default function BacklogPage() {
   function restorePreDragOrder() {
     const snapshot = preDragOrderRef.current;
     setLocalOrder(snapshot ? new Map(snapshot) : new Map());
-  }
-
-  // Locate which section a key currently belongs to, using an explicit
-  // localOrder-style map (pre-drag snapshot OR live localOrder), falling back to
-  // the server-derived section membership when the map has no entry.
-  function findSectionOfKeyInOrder(
-    key: string,
-    order: Map<string, string[]> | null,
-  ): string | null {
-    if (order) {
-      for (const [sectionId, keys] of order) {
-        if (keys.includes(key)) return sectionId;
-      }
-    }
-    return findSectionOfKey(key);
   }
 
   // Helper: get the server-derived issue keys for a given section id.
