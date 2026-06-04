@@ -12,7 +12,8 @@
  *   - `col:<categoryKey>`   — the whole column when it has exactly 1 transition
  *
  * Phase 79 (D-01/D-02/D-06): split/single/invalid column model.
- * Phase 79 (D-05/D-07): filter reachable + exclude screen/validator transitions.
+ * Phase 79 (D-05): filter to reachable transitions (D-07 screen/validator
+ *   exclusion was reversed during UAT — see filterDroppableTransitions).
  * Phase 79 (TRAN-01): resolveDropTransitionId maps over.id → transitionId | null.
  */
 
@@ -54,21 +55,24 @@ export type DropModel = Map<CategoryKey, ColumnDropModel>;
 
 /**
  * Filter the full workflow transition list to only those reachable from
- * `currentStatusId` AND safe for drag-to-transition.
+ * `currentStatusId` (D-05).
  *
- * Two-stage filter (D-05 + D-07):
- *   1. `filterTransitionsForStatus` narrows to reachable transitions (global +
- *      those whose `fromStatusId` matches the current status).
- *   2. Drop any transition with `hasScreen` or `hasValidators` — a drag cannot
- *      satisfy a workflow screen or post-function validator (D-07, TRAN-03).
+ * `filterTransitionsForStatus` narrows to reachable transitions (global + those
+ * whose `fromStatusId` matches the current status).
+ *
+ * NOTE (D-07 reversed during Phase 79 UAT): this previously also dropped any
+ * transition with `hasScreen`/`hasValidators` so screen/validator moves were not
+ * drag targets. UAT showed that excludes legitimate targets like "Done", and the
+ * app has no transition-screen flow anywhere (the right-click path also just
+ * calls `postTransition`), so the exclusion protected nothing. All reachable
+ * transitions are now droppable; a move Jira rejects rolls back with an inline
+ * "Transition failed" message (TRAN-04). See 79-CONTEXT.md § D-07.
  */
 export function filterDroppableTransitions(
   all: JiraTransition[],
   currentStatusId: string | undefined,
 ): JiraTransition[] {
-  return filterTransitionsForStatus(all, currentStatusId).filter(
-    (t) => !t.hasScreen && !t.hasValidators,
-  );
+  return filterTransitionsForStatus(all, currentStatusId);
 }
 
 // ---------------------------------------------------------------------------

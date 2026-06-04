@@ -12,7 +12,8 @@
  *   D-03  Split zones labelled by transition NAME, not status name
  *   D-05  filterDroppableTransitions: only reachable-from-current-status transitions
  *   D-06  0 reachable transitions in a column   → invalid model (snap-back)
- *   D-07  Transitions with hasScreen/hasValidators excluded from drop targets
+ *   D-07  REVERSED during UAT: hasScreen/hasValidators transitions are now valid
+ *         drop targets (no screen flow exists in-app; right-click also just posts)
  *   TRAN-01 resolveDropTransitionId: zone:<id> / col:<key> → transitionId | null
  */
 
@@ -64,7 +65,9 @@ describe('filterDroppableTransitions', () => {
     expect(result[0].id).toBe('1');
   });
 
-  it('REGRESSION: drops a transition with hasScreen:true (D-07)', () => {
+  // D-07 reversed during UAT: screen/validator transitions are now valid drop
+  // targets (the app has no screen flow; the right-click path also just posts).
+  it('keeps a reachable transition with hasScreen:true (D-07 reversed)', () => {
     const all = [
       makeTransition('1', 'Screened', 'indeterminate', {
         fromStatusId: 'status-10',
@@ -73,11 +76,11 @@ describe('filterDroppableTransitions', () => {
       makeTransition('2', 'Clean', 'done', { fromStatusId: 'status-10' }),
     ];
     const result = filterDroppableTransitions(all, 'status-10');
-    expect(result.map((t) => t.id)).not.toContain('1');
+    expect(result.map((t) => t.id)).toContain('1');
     expect(result.map((t) => t.id)).toContain('2');
   });
 
-  it('REGRESSION: drops a transition with hasValidators:true (D-07)', () => {
+  it('keeps a reachable transition with hasValidators:true (D-07 reversed)', () => {
     const all = [
       makeTransition('1', 'Validated', 'indeterminate', {
         fromStatusId: 'status-10',
@@ -86,11 +89,11 @@ describe('filterDroppableTransitions', () => {
       makeTransition('2', 'Clean', 'done', { fromStatusId: 'status-10' }),
     ];
     const result = filterDroppableTransitions(all, 'status-10');
-    expect(result.map((t) => t.id)).not.toContain('1');
+    expect(result.map((t) => t.id)).toContain('1');
     expect(result.map((t) => t.id)).toContain('2');
   });
 
-  it('keeps a transition where both flags are false/undefined (D-07)', () => {
+  it('keeps a transition where both flags are false/undefined', () => {
     const all = [
       makeTransition('1', 'Clean', 'indeterminate', {
         fromStatusId: 'status-10',

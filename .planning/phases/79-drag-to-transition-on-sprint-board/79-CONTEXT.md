@@ -67,12 +67,23 @@ screen-required transitions in the drag UI (they stay in right-click only).
   noise.)
 
 ### Screen / Validator Transitions (TRAN-03)
-- **D-07:** Transitions with `hasScreen: true` **or** `hasValidators: true` are
-  **silently filtered out** of drop targets — **no new hint** in the drag UI.
-  They remain reachable exactly as today via the right-click **StatusPopover**
-  (unchanged). This satisfies TRAN-03's "no silent snap-back" because such
-  transitions are simply never drop targets — there is no failed drop to snap
-  back from. (Claude's discretion — least-intrusive option.)
+- **D-07 (REVERSED during 79-03 UAT, 2026-06-04):** Originally, transitions with
+  `hasScreen: true` **or** `hasValidators: true` were filtered out of drop targets
+  (reachable only via right-click). UAT showed this hid legitimate targets like
+  **Done**, and investigation found the app has **no transition-screen flow
+  anywhere** — the right-click StatusPopover path also just calls `postTransition`
+  with no screen. So the exclusion protected nothing while removing valid targets.
+  **Decision (user-confirmed): all reachable transitions are now valid drop
+  targets**, regardless of `hasScreen`/`hasValidators`. A move Jira rejects rolls
+  back with the inline "Transition failed" message (TRAN-04) — the same outcome
+  the right-click path would produce. `filterDroppableTransitions` no longer
+  applies the screen/validator filter.
+- **TRAN-03 reinterpretation:** "not offered as *silent* drop targets" is now
+  satisfied by the rollback+inline-error path (a rejected drop is never silent),
+  rather than by pre-excluding the transitions.
+- **D-08 note:** the `hasScreen`/`hasValidators` fields added in Plan 01 are still
+  propagated through the adapter (harmless, may be reused for a future
+  badge/affordance) but no longer gate drop targets.
 
 ### hasScreen / hasValidators Propagation (prerequisite)
 - **D-08:** `__adaptToJiraTransition`
