@@ -151,3 +151,22 @@ No new threat surface beyond the plan's threat model:
 ## Next Steps
 
 Task 3 is a human-verify checkpoint. The reviewer exercises the five manual behaviors (drag/ghost/insertion line, click-vs-drag, no-flicker-during-refetch, cross-section confirm, failure rollback) in the running app.
+
+## Gap-Closure (post-UAT, 2026-06-04)
+
+Human UAT at the Task 3 checkpoint found two defects; both fixed on `main` with code committed before this note.
+
+**Defect 1 — Drop indicator too weak (D-07).** The only feedback was the dragged row going `opacity:0` plus a faint `opacity:0.6` ghost; no insertion line. Fix:
+- Added a strong 2px `bg-primary` insertion line rendered INSIDE the row's first `<td>` (absolutely positioned, `position: relative` on the row) so it stays correct under the virtualized/transformed `<tr>`. The edge (top/bottom) is chosen from drag direction in `onDragOver`. New `dropEdge` prop on `BacklogRow`, threaded via `dropTargetKey`/`dropEdge` on `VirtualizedBacklogTable`.
+- Strengthened the `DragOverlay` ghost: `BacklogRow isOverlay` now applies `ring-2 ring-primary shadow-xl`, and the overlay table is near-opaque (`0.95`) with `ring-2 ring-primary shadow-2xl`.
+- Commit `c5dbf106` (`fix(78-04): strengthen drop indicator / insertion line`).
+
+**Defect 2 — Cross-section drag did not work (D-03/D-04/D-05).** `handleDragEnd` only read `over.data.current.sortable.containerId`, undefined when dropping on a section header/gap/empty section; `closestCenter` biased to the source container; empty sprint sections (a `<p>`) could not receive a drop. Fix:
+- Each section body (incl. the empty-section branch) is now wrapped in a `useDroppable({ id: sectionId })` (`DroppableSection`) so `over.id` resolves to the section even with no row under the cursor; empty sections insert at index 0.
+- Replaced `closestCenter` with a custom `collisionDetection` (`pointerWithin` → `rectIntersection` → `closestCenter`).
+- Added `onDragOver` tracking the over-target; drives both the cross-section highlight ring (`bg-accent/10 ring-1 ring-primary/60`, source section suppressed) and the Defect-1 insertion-line edge.
+- `handleDragEnd` resolves `targetContainer` from a row's `sortable.containerId` OR a section droppable id; intra-section reorder, optimistic mutation, flicker gate (D-08), rollback banner (D-09), and confirm/Keep-Position flow unchanged.
+- Container resolution extracted to pure `backlogDragHelpers.ts` (`resolveCrossSectionDrop` et al.) and unit-tested (`backlogDragHelpers.test.ts`, 18 cases: row drop, header/gap drop, empty-section drop, same-section null, no-target null) — the seam that decides whether `ConfirmSprintMoveDialog` opens. jsdom cannot simulate a real pointer drag, so the cross-section interaction still needs human re-verification.
+- Commit `1f648bd8` (`fix(78-04): enable cross-section drag via droppable sections + collision detection`).
+
+Verification after fixes: `BacklogPage.rank.test.ts`, `rank.test.ts`, `rank-api.test.ts`, `BacklogPage.network.test.tsx`, `backlogDragHelpers.test.ts` all GREEN; `npx tsc --noEmit` clean; biome clean.
