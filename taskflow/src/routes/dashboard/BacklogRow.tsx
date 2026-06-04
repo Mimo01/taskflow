@@ -58,6 +58,12 @@ export interface BacklogRowProps {
   isOverlay?: boolean;
   /** Passed from parent when justDragged guard is active */
   justDragged?: React.MutableRefObject<boolean>;
+  /**
+   * D-07 drop indicator: when this row is the current drop target, render a
+   * strong insertion line at the given edge. Rendered INSIDE the row element
+   * (absolutely positioned) so it stays correct under virtualization.
+   */
+  dropEdge?: 'top' | 'bottom' | null;
 }
 
 // -- Row cells (shared between both render paths) ----------------------------
@@ -71,6 +77,7 @@ function RowCells({
   onIssueClick,
   epicsLoading,
   isFlagged,
+  dropEdge,
 }: {
   issue: JiraIssue;
   epicKey: string | null;
@@ -80,11 +87,28 @@ function RowCells({
   onIssueClick: (key: string) => void;
   epicsLoading?: boolean;
   isFlagged?: boolean;
+  dropEdge?: 'top' | 'bottom' | null;
 }) {
   return (
     <>
       {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
-      <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
+      <td className="relative w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
+        {/* D-07 insertion line — strong primary 2px bar spanning the full row
+            width, pinned to the dragged-over edge. Rendered inside the first
+            cell (absolutely positioned, overflow-visible) so it renders
+            correctly inside a virtualized/transformed <tr>. */}
+        {dropEdge && (
+          <div
+            aria-hidden="true"
+            data-testid={`drop-indicator-${dropEdge}`}
+            className={cn(
+              'pointer-events-none absolute left-0 z-10 h-0.5 w-screen bg-primary shadow-[0_0_0_1px_var(--color-primary,theme(colors.primary.DEFAULT))]',
+              dropEdge === 'top' ? '-top-px' : '-bottom-px',
+            )}
+          >
+            <span className="absolute left-0 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary" />
+          </div>
+        )}
         <button
           type="button"
           className={cn(
@@ -187,24 +211,32 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onToggleFlag,
       isOverlay,
       justDragged,
+      dropEdge,
     },
     _ref,
   ) {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: issue.key, disabled: isOverlay });
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+      id: issue.key,
+      disabled: isOverlay,
+    });
 
     const dragStyle: React.CSSProperties = {
       transform: CSS.Transform.toString(transform),
       transition,
       opacity: isDragging ? 0 : 1,
       cursor: isDragging ? 'grabbing' : 'grab',
+      // Required so the absolutely-positioned insertion line (D-07) inside the
+      // first cell anchors to this row. `<td className="relative">` provides the
+      // actual containing block; keeping the row relative is a belt-and-braces
+      // guard for the virtualized/transformed case.
+      position: 'relative',
     };
+
+    // D-07: stronger DragOverlay ghost — ring + near-opaque so the dragged row
+    // is unmistakable against the list underneath.
+    const overlayClassName = isOverlay
+      ? 'ring-2 ring-primary ring-offset-1 ring-offset-background shadow-xl'
+      : undefined;
 
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
     // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
@@ -227,6 +259,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
         : 'hover:bg-muted/30',
       isFocused && 'bg-muted border-l-2 border-primary',
+      overlayClassName,
     );
 
     const cellsProps = {
@@ -238,6 +271,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onIssueClick,
       epicsLoading,
       isFlagged,
+      dropEdge,
     };
 
     if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag) {
