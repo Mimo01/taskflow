@@ -11,11 +11,27 @@
  * Swimlane rows are virtualized via @tanstack/react-virtual for large boards.
  */
 
+import {
+  type CollisionDetection,
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+  MeasuringStrategy,
+  PointerSensor,
+  pointerWithin,
+  rectIntersection,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Columns3, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -51,6 +67,12 @@ import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintBoardSkeleton } from './SprintBoardSkeleton';
 import { SprintGoalBanner } from './SprintGoalBanner';
 import { StoryHeaderRow } from './StoryHeaderRow';
+import {
+  buildDropModel,
+  type DropModel,
+  filterDroppableTransitions,
+  resolveDropTransitionId,
+} from './sprintBoardDragHelpers';
 import TaskCard from './TaskCard';
 
 /** The three fixed columns — all Jira statuses map into one of these via statusCategory. */
@@ -73,6 +95,81 @@ type StickyHeaderData = {
   isExpanded: boolean;
 } | null;
 
+/**
+ * Board-scoped collision detection — pointerWithin-first, then pointer-distance
+ * fallback, then rectIntersection, then closestCenter.
+ *
+ * Copied verbatim from BacklogPage.tsx `backlogCollisionDetection` (PATTERNS.md).
+ * Required for split-zone nested droppables where closestCenter biases toward
+ * the source container. With a DragOverlay the collisionRect is the overlay
+ * translated by pointer coords, so rectIntersection/closestCenter key off that
+ * rect and drift from the pointer during column-gap hover. Pointer-distance
+ * fallback uses continuously re-measured centers (MeasuringStrategy.Always).
+ */
+const boardCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) return pointerCollisions;
+
+  const { pointerCoordinates, droppableRects, droppableContainers } = args;
+  if (pointerCoordinates) {
+    let closestId: string | number | null = null;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    for (const container of droppableContainers) {
+      const rect = droppableRects.get(container.id);
+      if (!rect) continue;
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(centerX - pointerCoordinates.x, centerY - pointerCoordinates.y);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestId = container.id;
+      }
+    }
+    if (closestId != null) return [{ id: closestId }];
+  }
+
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) return rectCollisions;
+  return closestCenter(args);
+};
+
+// ── TransitionDropZone ─────────────────────────────────────────────────────────
+
+/**
+ * A single droppable sub-zone inside a split column.
+ * Renders with idle/hover classes from UI-SPEC.
+ */
+function TransitionDropZone({ id, label }: { id: string; label: string }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={
+        isOver
+          ? 'bg-accent/60 border border-border ring-1 ring-ring/30 text-foreground rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
+          : 'bg-muted/20 border border-dashed border-border/30 text-muted-foreground rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center'
+      }
+    >
+      {label}
+    </div>
+  );
+}
+
+// ── SingleColumnDroppable ──────────────────────────────────────────────────────
+
+/**
+ * Wraps a single-transition column cell in a useDroppable so the whole column
+ * is a drop target. Renders the existing card list unchanged.
+ */
+function SingleColumnDroppable({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id });
+  return (
+    <div ref={setNodeRef} className="contents">
+      {children}
+    </div>
+  );
+}
+
 /** Virtualized swimlane list — renders swimlane rows with measureElement for variable heights. */
 function VirtualizedSwimlanes({
   filteredSwimlanes,
@@ -93,6 +190,9 @@ function VirtualizedSwimlanes({
   epicLinkFieldKey,
   flaggedFieldKey,
   onToggleFlag,
+  activeId,
+  dropModel,
+  justDragged,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -128,6 +228,12 @@ function VirtualizedSwimlanes({
   epicLinkFieldKey: string;
   flaggedFieldKey: string;
   onToggleFlag: (issueKey: string) => void;
+  /** Phase 79: key of the currently-dragged card (null when not dragging). */
+  activeId: string | null;
+  /** Phase 79: per-column drop model built at drag start (null when not dragging). */
+  dropModel: DropModel | null;
+  /** Phase 79 (D-12): ref set for 50ms after drop to suppress onClick on cards. */
+  justDragged: React.MutableRefObject<boolean>;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -370,14 +476,83 @@ function VirtualizedSwimlanes({
             <div className="flex bg-muted/10">
               {CATEGORY_COLUMNS.map((col) => {
                 const colCards = cards.filter((c) => categoryOf(c) === col.key);
+                const colModel =
+                  activeId != null
+                    ? (dropModel?.get(col.key) ?? { kind: 'invalid' as const })
+                    : null;
+                const isInvalid = colModel?.kind === 'invalid';
                 return (
                   <div
                     key={col.key}
-                    className="flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
+                    className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                   >
                     {subtasksLoading ? (
                       <Skeleton className="h-8 w-full" />
+                    ) : colModel?.kind === 'split' ? (
+                      // D-01: multi-transition column — render per-transition drop zones
+                      <div className="flex flex-col gap-1 h-full">
+                        {colModel.zones.map((zone) => (
+                          <TransitionDropZone
+                            key={zone.transitionId}
+                            id={`zone:${zone.transitionId}`}
+                            label={zone.transitionName}
+                          />
+                        ))}
+                      </div>
+                    ) : colModel?.kind === 'single' ? (
+                      // D-02: single-transition column — whole column is the target
+                      <SingleColumnDroppable id={`col:${col.key}`}>
+                        {colCards.map((card) => (
+                          <TaskCard
+                            key={card.key}
+                            issue={card}
+                            isSubtask={card.fields.issuetype.subtask}
+                            showStatus
+                            onOpenIssue={onOpenIssue}
+                            onIssueClick={setSelectedIssueKey}
+                            transitions={getTransitions(card)}
+                            onTransition={(tid, name, toId, catKey) =>
+                              onTransition(card.key, tid, name, toId, catKey)
+                            }
+                            transitionError={cardErrors.get(card.key)}
+                            isFlagged={isIssueFlagged(card, flaggedFieldKey)}
+                            onToggleFlag={() => onToggleFlag(card.key)}
+                            timeInColumn={
+                              (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
+                            }
+                            isDraggable={!!card.fields.issuetype.subtask}
+                            justDragged={justDragged}
+                          />
+                        ))}
+                      </SingleColumnDroppable>
+                    ) : colModel?.kind === 'invalid' ? (
+                      // D-06: zero-transition column — dim + register as droppable (resolves to null)
+                      <SingleColumnDroppable id={`col:${col.key}`}>
+                        {colCards.map((card) => (
+                          <TaskCard
+                            key={card.key}
+                            issue={card}
+                            isSubtask={card.fields.issuetype.subtask}
+                            showStatus
+                            onOpenIssue={onOpenIssue}
+                            onIssueClick={setSelectedIssueKey}
+                            transitions={getTransitions(card)}
+                            onTransition={(tid, name, toId, catKey) =>
+                              onTransition(card.key, tid, name, toId, catKey)
+                            }
+                            transitionError={cardErrors.get(card.key)}
+                            isFlagged={isIssueFlagged(card, flaggedFieldKey)}
+                            onToggleFlag={() => onToggleFlag(card.key)}
+                            timeInColumn={
+                              (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
+                            }
+                            isDraggable={!!card.fields.issuetype.subtask}
+                            justDragged={justDragged}
+                          />
+                        ))}
+                      </SingleColumnDroppable>
                     ) : (
+                      // Not dragging — normal render
                       colCards.map((card) => (
                         <TaskCard
                           key={card.key}
@@ -396,6 +571,8 @@ function VirtualizedSwimlanes({
                           timeInColumn={
                             (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
                           }
+                          isDraggable={!!card.fields.issuetype.subtask}
+                          justDragged={justDragged}
                         />
                       ))
                     )}
@@ -483,13 +660,80 @@ function VirtualizedSwimlanes({
                 <div className="flex bg-muted/10">
                   {CATEGORY_COLUMNS.map((col) => {
                     const colCards = cards.filter((c) => categoryOf(c) === col.key);
+                    const colModel =
+                      activeId != null
+                        ? (dropModel?.get(col.key) ?? { kind: 'invalid' as const })
+                        : null;
+                    const isInvalid = colModel?.kind === 'invalid';
                     return (
                       <div
                         key={col.key}
-                        className="flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
+                        className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                       >
                         {subtasksLoading ? (
                           <Skeleton className="h-8 w-full" />
+                        ) : colModel?.kind === 'split' ? (
+                          <div className="flex flex-col gap-1 h-full">
+                            {colModel.zones.map((zone) => (
+                              <TransitionDropZone
+                                key={zone.transitionId}
+                                id={`zone:${zone.transitionId}`}
+                                label={zone.transitionName}
+                              />
+                            ))}
+                          </div>
+                        ) : colModel?.kind === 'single' ? (
+                          <SingleColumnDroppable id={`col:${col.key}`}>
+                            {colCards.map((card) => (
+                              <TaskCard
+                                key={card.key}
+                                issue={card}
+                                isSubtask={card.fields.issuetype.subtask}
+                                showStatus
+                                onOpenIssue={onOpenIssue}
+                                onIssueClick={setSelectedIssueKey}
+                                transitions={getTransitions(card)}
+                                onTransition={(tid, name, toId, catKey) =>
+                                  onTransition(card.key, tid, name, toId, catKey)
+                                }
+                                transitionError={cardErrors.get(card.key)}
+                                isFlagged={isIssueFlagged(card, flaggedFieldKey)}
+                                onToggleFlag={() => onToggleFlag(card.key)}
+                                timeInColumn={
+                                  (card as { timeInColumn?: { enteredStatus: number } })
+                                    .timeInColumn
+                                }
+                                isDraggable={!!card.fields.issuetype.subtask}
+                                justDragged={justDragged}
+                              />
+                            ))}
+                          </SingleColumnDroppable>
+                        ) : colModel?.kind === 'invalid' ? (
+                          <SingleColumnDroppable id={`col:${col.key}`}>
+                            {colCards.map((card) => (
+                              <TaskCard
+                                key={card.key}
+                                issue={card}
+                                isSubtask={card.fields.issuetype.subtask}
+                                showStatus
+                                onOpenIssue={onOpenIssue}
+                                onIssueClick={setSelectedIssueKey}
+                                transitions={getTransitions(card)}
+                                onTransition={(tid, name, toId, catKey) =>
+                                  onTransition(card.key, tid, name, toId, catKey)
+                                }
+                                transitionError={cardErrors.get(card.key)}
+                                isFlagged={isIssueFlagged(card, flaggedFieldKey)}
+                                onToggleFlag={() => onToggleFlag(card.key)}
+                                timeInColumn={
+                                  (card as { timeInColumn?: { enteredStatus: number } })
+                                    .timeInColumn
+                                }
+                                isDraggable={!!card.fields.issuetype.subtask}
+                                justDragged={justDragged}
+                              />
+                            ))}
+                          </SingleColumnDroppable>
                         ) : (
                           colCards.map((card) => (
                             <TaskCard
@@ -509,6 +753,8 @@ function VirtualizedSwimlanes({
                               timeInColumn={
                                 (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
                               }
+                              isDraggable={!!card.fields.issuetype.subtask}
+                              justDragged={justDragged}
                             />
                           ))
                         )}
@@ -567,6 +813,21 @@ export default function SprintBoardTab() {
 
   const [localIssues, setLocalIssues] = useState<JiraIssue[]>([]);
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
+
+  // Phase 79 (D-04/D-12/D-13): dnd-kit drag state for drag-to-transition.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [dropModel, setDropModel] = useState<DropModel | null>(null);
+  const isDraggingRef = useRef(false);
+  const justDragged = useRef(false);
+
+  // PointerSensor with 150ms delay + 5px tolerance — D-12: short delay so a
+  // quick click still opens the peek panel; tolerance prevents accidental drag
+  // on a tap. Verbatim from BacklogPage.tsx PATTERNS.md.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    }),
+  );
 
   // JS-driven sticky swimlane header — rendered outside the scroll flow so it
   // doesn't interfere with virtualizer layout. Updated by VirtualizedSwimlanes on scroll.
@@ -792,6 +1053,65 @@ export default function SprintBoardTab() {
     const t = setTimeout(() => setReloadBoardStatus(null), 3000);
     return () => clearTimeout(t);
   }, [reloadBoardStatus]);
+
+  // Phase 79 drag handlers ─────────────────────────────────────────────────
+
+  function handleDragStart({ active }: DragStartEvent) {
+    const issueKey = active.id as string;
+    setActiveId(issueKey);
+    isDraggingRef.current = true;
+
+    // Build the drop model for the dragged card: get all transitions from cache,
+    // filter to reachable + droppable (no screen/validators — D-07), then bucket
+    // into the per-column model. If transitions aren't warm yet (A1 assumption:
+    // graceful), use an empty list so every column is invalid (snap-back).
+    const draggedIssue = localIssues.find((i) => i.key === issueKey);
+    if (draggedIssue) {
+      const allTransitions = getTransitions(draggedIssue) ?? [];
+      const droppable = filterDroppableTransitions(allTransitions, draggedIssue.fields.status?.id);
+      setDropModel(buildDropModel(droppable));
+    } else {
+      setDropModel(buildDropModel([]));
+    }
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    isDraggingRef.current = false;
+    setActiveId(null);
+    setDropModel(null);
+
+    // D-12: 50ms guard prevents the card's onClick from firing after a drop
+    // (the pointer-up that ends the drag can also trigger click). Mirrors
+    // BacklogPage.tsx handleDragEnd + BacklogRow.tsx onClick guard.
+    justDragged.current = true;
+    setTimeout(() => {
+      justDragged.current = false;
+    }, 50);
+
+    if (!over) return;
+
+    const transitionId = resolveDropTransitionId(over.id as string, dropModel ?? new Map());
+    if (transitionId === null) return; // D-06: invalid/own column — silent snap-back
+
+    // Resolve the target transition's to-status fields for the optimistic update.
+    // Look in the drop model we computed at drag start.
+    const issueKey = active.id as string;
+    const draggedIssue = localIssues.find((i) => i.key === issueKey);
+    if (!draggedIssue) return;
+
+    const allTransitions = getTransitions(draggedIssue) ?? [];
+    const transition = allTransitions.find((t) => t.id === transitionId);
+    if (!transition) return;
+
+    // D-09: reuse the existing handleTransition mutation — do NOT duplicate.
+    void handleTransition(
+      issueKey,
+      transitionId,
+      transition.to.name,
+      transition.to.id,
+      transition.to.statusCategory?.key,
+    );
+  }
 
   async function handleReloadBoard() {
     // R-04: projectId sourced from raw GH envelope (not adapted issues).
@@ -1173,86 +1493,134 @@ export default function SprintBoardTab() {
             )}
           </div>
 
-          {/* Scrollable content area */}
-          <div ref={scrollContainerRef} className="h-full overflow-auto">
-            {/* Loading skeleton */}
-            {showSkeleton && <SprintBoardSkeleton />}
+          {/* Board-scoped DndContext (D-13): wraps ONLY the scrollable content
+           * area, not the fixed column headers or AppLayout. Sensors use the
+           * Phase 78 foundation verbatim (delay 150ms, tolerance 5px, no
+           * modifiers, autoScroll=false). See PATTERNS.md § DndContext JSX. */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={boardCollisionDetection}
+            /* Re-measure droppable rects continuously — robustness for
+               virtualized layouts where cards near the viewport edge may
+               have stale rects. Verbatim from BacklogPage.tsx L1301. */
+            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            /* autoScroll DISABLED (UAT P78 final decision). dnd-kit 6.3.1 keys
+               its collision/drop-target math off measured rects that it
+               scroll-adjusts a frame behind, so during its built-in autoScroll
+               *something* always lags the cursor (dnd-kit#1108, unresolved
+               upstream). With autoScroll off, everything is frame-accurate.
+               Tradeoff: to move a card beyond the visible area, drop + scroll
+               + drag again. */
+            autoScroll={false}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            {/* Scrollable content area */}
+            <div ref={scrollContainerRef} className="h-full overflow-auto">
+              {/* Loading skeleton */}
+              {showSkeleton && <SprintBoardSkeleton />}
 
-            {/* Error state — no cached data */}
-            {isError && !data && (
-              <div className="m-4">
-                <ErrorState
-                  error={error}
-                  onRetry={() => {
-                    setIsRefreshing(true);
-                    invalidateGhAllData(queryClient, boardId ?? undefined);
-                  }}
-                  viewName="sprint board"
+              {/* Error state — no cached data */}
+              {isError && !data && (
+                <div className="m-4">
+                  <ErrorState
+                    error={error}
+                    onRetry={() => {
+                      setIsRefreshing(true);
+                      invalidateGhAllData(queryClient, boardId ?? undefined);
+                    }}
+                    viewName="sprint board"
+                  />
+                </div>
+              )}
+
+              {/* Stale data banner — error with cached data */}
+              {isError && data && !bannerDismissed && (
+                <div className="m-4">
+                  <StaleDataBanner
+                    onRetry={() => {
+                      setIsRefreshing(true);
+                      invalidateGhAllData(queryClient, boardId ?? undefined);
+                    }}
+                    onDismiss={() => setBannerDismissed(true)}
+                  />
+                </div>
+              )}
+
+              {/* Sprint goal banner */}
+              {!showSkeleton && !isError && data && activeSprint?.goal && (
+                <SprintGoalBanner goal={activeSprint.goal} />
+              )}
+
+              {/* Quick filter chip row */}
+              {!showSkeleton && !isError && data && (
+                <QuickFilterChipRow labels={filterOptions.labels} />
+              )}
+
+              {/* Unified filter bar */}
+              {!showSkeleton && !isError && data && (
+                <UnifiedFilterBar filterOptions={filterOptions} />
+              )}
+
+              {/* Empty */}
+              {!showSkeleton && !isError && data && swimlanes.length === 0 && (
+                <EmptyState
+                  icon={Columns3}
+                  title="No sprint issues"
+                  subtitle="This board will populate when issues are added to the active sprint"
                 />
-              </div>
-            )}
+              )}
 
-            {/* Stale data banner — error with cached data */}
-            {isError && data && !bannerDismissed && (
-              <div className="m-4">
-                <StaleDataBanner
-                  onRetry={() => {
-                    setIsRefreshing(true);
-                    invalidateGhAllData(queryClient, boardId ?? undefined);
-                  }}
-                  onDismiss={() => setBannerDismissed(true)}
+              {/* Virtualized swimlane rows */}
+              {!showSkeleton && !isError && data && filteredSwimlanes.length > 0 && (
+                <VirtualizedSwimlanes
+                  filteredSwimlanes={filteredSwimlanes}
+                  scrollElement={scrollElement}
+                  collapsedStories={collapsedStories}
+                  toggleStory={toggleStory}
+                  setSelectedIssueKey={setSelectedIssueKey}
+                  onOpenIssue={onOpenIssue}
+                  cardErrors={cardErrors}
+                  subtasksLoading={subtasksLoading}
+                  onStickyHeaderChange={handleStickyHeaderChange}
+                  stickyHeaderInnerRef={stickyHeaderInnerRef}
+                  stickyOverlayRef={stickyOverlayRef}
+                  getTransitions={getTransitions}
+                  onTransition={handleTransition}
+                  epicNameMap={epicNameMap}
+                  epicColorMap={epicColorMap}
+                  epicLinkFieldKey={epicLinkFieldKey}
+                  flaggedFieldKey={flaggedFieldKey}
+                  onToggleFlag={handleToggleFlag}
+                  activeId={activeId}
+                  dropModel={dropModel}
+                  justDragged={justDragged}
                 />
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Sprint goal banner */}
-            {!showSkeleton && !isError && data && activeSprint?.goal && (
-              <SprintGoalBanner goal={activeSprint.goal} />
+            {/* Portaled DragOverlay ghost (D-13): portaled to document.body so
+             * the transform coords are in viewport space — inside the scroll
+             * container the overlay would drift by scroll delta (UAT P78 fix).
+             * dropAnimation={null}: disables float-back; the optimistic state
+             * update is already live. Ghost uses aria-hidden (UI-SPEC). */}
+            {createPortal(
+              <DragOverlay dropAnimation={null}>
+                {activeId
+                  ? (() => {
+                      const activeIssue = localIssues.find((i) => i.key === activeId);
+                      if (!activeIssue) return null;
+                      return (
+                        <div className="shadow-lg border border-border bg-card rounded-lg w-48">
+                          <TaskCard issue={activeIssue} isOverlay />
+                        </div>
+                      );
+                    })()
+                  : null}
+              </DragOverlay>,
+              document.body,
             )}
-
-            {/* Quick filter chip row */}
-            {!showSkeleton && !isError && data && (
-              <QuickFilterChipRow labels={filterOptions.labels} />
-            )}
-
-            {/* Unified filter bar */}
-            {!showSkeleton && !isError && data && (
-              <UnifiedFilterBar filterOptions={filterOptions} />
-            )}
-
-            {/* Empty */}
-            {!showSkeleton && !isError && data && swimlanes.length === 0 && (
-              <EmptyState
-                icon={Columns3}
-                title="No sprint issues"
-                subtitle="This board will populate when issues are added to the active sprint"
-              />
-            )}
-
-            {/* Virtualized swimlane rows */}
-            {!showSkeleton && !isError && data && filteredSwimlanes.length > 0 && (
-              <VirtualizedSwimlanes
-                filteredSwimlanes={filteredSwimlanes}
-                scrollElement={scrollElement}
-                collapsedStories={collapsedStories}
-                toggleStory={toggleStory}
-                setSelectedIssueKey={setSelectedIssueKey}
-                onOpenIssue={onOpenIssue}
-                cardErrors={cardErrors}
-                subtasksLoading={subtasksLoading}
-                onStickyHeaderChange={handleStickyHeaderChange}
-                stickyHeaderInnerRef={stickyHeaderInnerRef}
-                stickyOverlayRef={stickyOverlayRef}
-                getTransitions={getTransitions}
-                onTransition={handleTransition}
-                epicNameMap={epicNameMap}
-                epicColorMap={epicColorMap}
-                epicLinkFieldKey={epicLinkFieldKey}
-                flaggedFieldKey={flaggedFieldKey}
-                onToggleFlag={handleToggleFlag}
-              />
-            )}
-          </div>
+          </DndContext>
         </div>
       </div>
     </>
