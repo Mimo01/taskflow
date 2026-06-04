@@ -41,10 +41,25 @@ export async function rankIssueApi(
     },
     'Rank Issue',
   );
-  if (!response.ok && response.status !== 204) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to rank issue', response.status, 'jira');
-    }
+  // 204 No Content is the only unambiguous full-success response.
+  if (response.status === 204) return;
+  if (response.status === 401 || response.status === 403) {
+    throw new ApiError('Failed to rank issue', response.status, 'jira');
+  }
+  // WR-01: 207 Multi-Status means one or more issues could NOT be ranked
+  // (per-issue errors in the body). It is a 2xx, so `response.ok` is true and the
+  // old guard silently accepted it — no rollback, no banner, while the server
+  // never applied the order. Inspect the body and throw if any entry failed so
+  // the optimistic order rolls back (RANK-04).
+  if (response.status === 207) {
+    const body = (await response.json().catch(() => null)) as {
+      entries?: Array<{ status?: number }>;
+    } | null;
+    const failed = body?.entries?.some((e) => (e.status ?? 0) >= 400);
+    if (failed) throw new Error('Rank partially failed (207)');
+    return;
+  }
+  if (!response.ok) {
     throw new Error(`Failed to rank issue: ${response.status}`);
   }
 }
