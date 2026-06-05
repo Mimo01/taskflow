@@ -17,10 +17,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import RecentItemsPopover from './RecentItemsPopover';
 
 interface TopBarProps {
-  /** Called with the Jira issue key when a Jira result in search or notifications is clicked. */
+  /**
+   * Called with the Jira issue key when a Jira result in search or
+   * notifications is clicked. TopBar deliberately exposes NO peek/open-in-
+   * sidebar callback: notification and recent-item issue clicks always
+   * navigate to the full issue page (260605-hb4).
+   */
   onIssueClick?: (issueKey: string) => void;
-  /** Called with the Jira issue key to open the peek panel (body row click). */
-  onOpenIssue?: (issueKey: string) => void;
   /** Called with "projectId/iid" when a GitLab MR is clicked from recent items. */
   onMRClick?: (projectIdAndIid: string) => void;
   /** Whether the command palette is currently open (reserved for future visual feedback). */

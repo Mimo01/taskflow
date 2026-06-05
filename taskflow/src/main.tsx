@@ -532,7 +532,6 @@ function AppLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar
           onIssueClick={(key) => handleIssueClick(key, true)}
-          onOpenIssue={handleOpenPeek}
           onMRClick={handleMRClick}
           paletteOpen={paletteOpen}
           onPaletteOpen={() => setPaletteOpen(true)}

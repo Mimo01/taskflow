@@ -59,7 +59,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+import { useOutletContext } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
+import DashboardInProgressCard from './DashboardInProgressCard';
 import Dashboard from './index';
 
 function renderDashboard() {
@@ -185,5 +187,28 @@ describe('Dashboard', () => {
     renderDashboard();
     expect(screen.getByText(/Bob/)).toBeTruthy();
     expect(screen.queryByText(/\[Disabled\]/)).toBeNull();
+  });
+
+  it('Test 11 (HB4 — In-Progress card opens full page with fresh breadcrumb trail): forwards no peek handler and wraps onIssueClick with resetTrail=true', () => {
+    // The breadcrumb-reset wrapping lives at this call site, not in the card —
+    // dropping the ", true" must fail a test. Capture the props the (mocked)
+    // card receives and exercise its onIssueClick.
+    const outletOnIssueClick = vi.fn();
+    vi.mocked(useOutletContext).mockReturnValue({ onIssueClick: outletOnIssueClick });
+    renderDashboard();
+
+    const cardCalls = vi.mocked(DashboardInProgressCard).mock.calls;
+    expect(cardCalls.length).toBeGreaterThan(0);
+    const cardProps = cardCalls[cardCalls.length - 1][0] as {
+      onIssueClick: (key: string, resetTrail?: boolean) => void;
+      onOpenIssue?: unknown;
+    };
+
+    // No peek handler is forwarded — dashboard-home clicks are full-page only.
+    expect(cardProps.onOpenIssue).toBeUndefined();
+
+    // Invoking the card's onIssueClick navigates full-page AND resets the trail.
+    cardProps.onIssueClick('PROJ-101');
+    expect(outletOnIssueClick).toHaveBeenCalledWith('PROJ-101', true);
   });
 });
