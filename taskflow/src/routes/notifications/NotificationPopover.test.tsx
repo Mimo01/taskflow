@@ -97,6 +97,39 @@ describe('NotificationPopover', () => {
     expect(useNotificationsStore.getState().readIds).toContain('jira-1');
   });
 
+  it('clicking a Jira row body with onIssueClick (no onOpenIssue) navigates full-page, marks read, and closes', () => {
+    act(() => {
+      useNotificationsStore.setState({
+        items: [
+          {
+            id: 'jira-1',
+            source: 'jira',
+            entityTitle: 'PROJ-42: Fix login bug',
+            author: 'Jane',
+            bodyPreview: 'Updated status',
+            fullBody: 'Updated status',
+            createdAt: new Date().toISOString(),
+            url: 'https://jira.example.com/browse/PROJ-42',
+          },
+        ],
+        readIds: [],
+      });
+    });
+
+    const onIssueClick = vi.fn();
+    const onClose = vi.fn();
+    // Rendered WITHOUT onOpenIssue — mirrors the TopBar call site (HB4-01).
+    render(<NotificationPopover onIssueClick={onIssueClick} onClose={onClose} />);
+
+    fireEvent.click(screen.getByTestId('notification-row'));
+
+    // Body click falls through to onIssueClick (full-page) with the issue key
+    expect(onIssueClick).toHaveBeenCalledWith('PROJ-42');
+    // Side effects preserved: marked read + popover closed
+    expect(useNotificationsStore.getState().readIds).toContain('jira-1');
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('renders source tabs (All, Jira, GitLab)', () => {
     render(<NotificationPopover />);
 
