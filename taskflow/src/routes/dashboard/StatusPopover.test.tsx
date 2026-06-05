@@ -16,6 +16,12 @@ vi.mock('@/services/jira', () => ({
   // returning all entries — per-status filtering is exercised in transitions.test.ts.
   filterTransitionsForStatus: vi.fn((ts: unknown[]) => ts),
   fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
+  transitionsWithFieldsKey: (issueKey: string, baseUrl: string, statusId: string) => [
+    'jira-issue-transitions-fields',
+    issueKey,
+    baseUrl,
+    statusId,
+  ],
 }));
 
 vi.mock('@/services/stronghold', () => ({
