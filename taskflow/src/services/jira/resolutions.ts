@@ -29,10 +29,7 @@ export interface JiraResolution {
  * @param baseUrl - Jira base URL (trailing slash tolerated)
  * @param token   - Bearer PAT
  */
-export async function fetchResolutions(
-  baseUrl: string,
-  token: string,
-): Promise<JiraResolution[]> {
+export async function fetchResolutions(baseUrl: string, token: string): Promise<JiraResolution[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/resolution`;
   const response = await apiFetch(
     'jira',

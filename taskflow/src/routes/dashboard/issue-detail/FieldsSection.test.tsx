@@ -69,6 +69,70 @@ vi.mock('@/services/jira/versions', () => ({
   fetchFixVersions: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('@/services/jira/resolutions', () => ({
+  fetchResolutions: vi.fn().mockResolvedValue([
+    { id: '1', name: 'Done' },
+    { id: '2', name: "Won't Do" },
+  ]),
+}));
+
+// Replace the base-ui Select primitive with a deterministic <select>+<option>
+// stand-in. Reason: base-ui Select renders its options into a positioned portal
+// driven by floating-ui, which does not lay out reliably in jsdom — clicking an
+// option never drives onValueChange. The stand-in keeps the same prop API
+// (`value`, `onValueChange`) so the FieldsSection → mutation.mutate wiring is
+// what gets exercised. (Mirrors AioBlock.test.tsx / IntegrationsSection.test.tsx.)
+vi.mock('@/components/ui/select', async () => {
+  const React = await import('react');
+  type SelectProps = {
+    value?: string;
+    onValueChange?: (v: string) => void;
+    children?: React.ReactNode;
+  };
+  type ItemProps = { value: string; children?: React.ReactNode };
+  type GenericProps = { children?: React.ReactNode; [key: string]: unknown };
+
+  const SelectContext = React.createContext<{
+    value: string;
+    onValueChange: (v: string) => void;
+  }>({ value: '', onValueChange: () => {} });
+
+  function Select({ value = '', onValueChange = () => {}, children }: SelectProps) {
+    return (
+      <SelectContext.Provider value={{ value, onValueChange }}>{children}</SelectContext.Provider>
+    );
+  }
+  function SelectTrigger({ children, ...rest }: GenericProps) {
+    return (
+      <button type="button" {...rest}>
+        {children}
+      </button>
+    );
+  }
+  function SelectValue(_props: GenericProps) {
+    return null;
+  }
+  function SelectContent({ children }: GenericProps) {
+    const ctx = React.useContext(SelectContext);
+    return (
+      <select
+        data-testid="select-native"
+        value={ctx.value}
+        onChange={(e) => ctx.onValueChange(e.target.value)}
+      >
+        <option value="" disabled hidden>
+          —
+        </option>
+        {children}
+      </select>
+    );
+  }
+  function SelectItem({ value, children }: ItemProps) {
+    return <option value={value}>{children}</option>;
+  }
+  return { Select, SelectTrigger, SelectValue, SelectContent, SelectItem };
+});
+
 vi.mock('../StatusPopover', () => ({
   default: ({ currentStatus }: { currentStatus: string }) => <span>{currentStatus}</span>,
 }));
@@ -137,6 +201,7 @@ function makeIssue(overrides: Partial<JiraIssueDetail['fields']> = {}): JiraIssu
       status: { id: '1', name: 'Open', statusCategory: { key: 'new' } },
       issuetype: { name: 'Story', subtask: false },
       priority: { name: 'High' },
+      resolution: null,
       assignee: { displayName: 'Jane', name: 'jane', avatarUrls: { '48x48': '' } },
       reporter: { displayName: 'John', name: 'john', avatarUrls: { '48x48': '' } },
       subtasks: [],
@@ -289,6 +354,76 @@ describe('FieldsSection', () => {
       expect(mutateMock).toHaveBeenCalledWith({
         fieldName: 'customfield_10021',
         value: [{ value: 'Impediment' }],
+      });
+    });
+  });
+
+  describe('Resolution MetaRow', () => {
+    async function renderFieldsSectionWithMutate(issue: JiraIssueDetail) {
+      const { FieldsSection } = await import('./FieldsSection');
+      const mutateMock = vi.fn();
+      const mutation = {
+        isPending: false,
+        isError: false,
+        mutate: mutateMock,
+        variables: undefined,
+        data: undefined,
+      };
+      render(
+        <FieldsSection
+          issue={issue}
+          issueKey={issue.key}
+          jiraBaseUrl="https://jira.example.com"
+          storyPointsFieldKey="customfield_10016"
+          epicLinkFieldKey="customfield_10014"
+          epicNameFieldKey="customfield_10015"
+          sprintFieldKey="customfield_10020"
+          epicColorFieldKey="customfield_10013"
+          mutation={mutation as any}
+          epicIssue={null}
+        />,
+        { wrapper },
+      );
+      return mutateMock;
+    }
+
+    const doneIssue = () =>
+      makeIssue({
+        status: { id: '1', name: 'Closed', statusCategory: { key: 'done' } },
+        resolution: null,
+      });
+
+    it('renders read-only value with NO edit button when status is not done', async () => {
+      await renderFieldsSectionWithMutate(makeIssue());
+      expect(screen.getByText('Resolution')).toBeTruthy();
+      expect(screen.queryByTestId('resolution-edit')).toBeNull();
+      expect(screen.getByTestId('resolution-value').textContent).toBe('Unresolved');
+    });
+
+    it('calls mutate with { name } payload when a named resolution is chosen (done)', async () => {
+      const { fireEvent } = await import('@testing-library/react');
+      const mutateMock = await renderFieldsSectionWithMutate(doneIssue());
+      fireEvent.click(screen.getByTestId('resolution-edit'));
+      // Wait for the async resolutions query to populate the Select options.
+      await screen.findByRole('option', { name: 'Done' });
+      fireEvent.change(screen.getByTestId('select-native'), { target: { value: 'Done' } });
+      expect(mutateMock).toHaveBeenCalledWith({
+        fieldName: 'resolution',
+        value: { name: 'Done' },
+      });
+    });
+
+    it('calls mutate with null payload when "Unresolved" is chosen (done)', async () => {
+      const { fireEvent } = await import('@testing-library/react');
+      const mutateMock = await renderFieldsSectionWithMutate(doneIssue());
+      fireEvent.click(screen.getByTestId('resolution-edit'));
+      await screen.findByRole('option', { name: 'Unresolved' });
+      fireEvent.change(screen.getByTestId('select-native'), {
+        target: { value: '__unresolved__' },
+      });
+      expect(mutateMock).toHaveBeenCalledWith({
+        fieldName: 'resolution',
+        value: null,
       });
     });
   });
