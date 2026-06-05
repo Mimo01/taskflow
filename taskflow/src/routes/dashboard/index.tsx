@@ -31,8 +31,8 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, jiraUserDisplayName } = useAuthStore();
   const { storyPointsFieldKey } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
-  const { onIssueClick, onOpenIssue } = useOutletContext<{
-    onIssueClick: (key: string) => void;
+  const { onIssueClick } = useOutletContext<{
+    onIssueClick: (key: string, resetTrail?: boolean) => void;
     onOpenIssue: (key: string) => void;
   }>();
 
@@ -114,8 +114,7 @@ export default function Dashboard() {
             activeJiraProject={activeJiraProject ?? ''}
             jiraUserDisplayName={jiraUserDisplayName ?? ''}
             storyPointsFieldKey={storyPointsFieldKey}
-            onIssueClick={onIssueClick}
-            onOpenIssue={onOpenIssue}
+            onIssueClick={(key) => onIssueClick(key, true)}
           />
         </div>
         <DashboardReleaseCard
