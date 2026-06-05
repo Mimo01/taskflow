@@ -367,4 +367,4 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
 | 78. Drag-to-Rank on Backlog | 4/4 | Complete    | 2026-06-04 |
 | 79. Drag-to-Transition on Sprint Board | 3/3 | Complete   | 2026-06-04 |
-| 80. Subtask Templates and Bulk Creation | 4/4 | Complete   | 2026-06-05 |
+| 80. Subtask Templates and Bulk Creation | 4/4 | Complete    | 2026-06-05 |
