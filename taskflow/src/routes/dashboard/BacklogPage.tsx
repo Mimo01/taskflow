@@ -185,21 +185,6 @@ function VirtualizedBacklogTable({
 
   return (
     <table className="w-full text-sm">
-      <thead className="border-b bg-muted/10">
-        <tr>
-          <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-            Key
-          </th>
-          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</th>
-          <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
-            Epic
-          </th>
-          <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
-            Points
-          </th>
-          <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">Assignee</th>
-        </tr>
-      </thead>
       <tbody
         style={
           useVirtual
