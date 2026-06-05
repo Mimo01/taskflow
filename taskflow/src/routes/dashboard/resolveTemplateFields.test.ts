@@ -38,16 +38,16 @@ describe('resolveTemplateFields (SUBTPL-03/05)', () => {
   });
 
   it('keeps a custom fieldId present in createmeta', () => {
-    const row = makeRow({ customFieldValues: { 'customfield_10100': 'value' } });
+    const row = makeRow({ customFieldValues: { customfield_10100: 'value' } });
     const creatmetaFields = [makeField('customfield_10100')];
     const { resolvedRows, totalSkipped } = resolveTemplateFields([row], creatmetaFields, null);
-    expect(resolvedRows[0].row.customFieldValues['customfield_10100']).toBe('value');
+    expect(resolvedRows[0].row.customFieldValues.customfield_10100).toBe('value');
     expect(resolvedRows[0].skippedFieldIds).toEqual([]);
     expect(totalSkipped).toBe(0);
   });
 
   it('drops a custom fieldId absent from createmeta and counts it as skipped', () => {
-    const row = makeRow({ customFieldValues: { 'customfield_99999': 'orphan' } });
+    const row = makeRow({ customFieldValues: { customfield_99999: 'orphan' } });
     const creatmetaFields: CreatemetaField[] = []; // empty — field not supported
     const { resolvedRows, totalSkipped } = resolveTemplateFields([row], creatmetaFields, null);
     expect(resolvedRows[0].row.customFieldValues).not.toHaveProperty('customfield_99999');
@@ -56,7 +56,15 @@ describe('resolveTemplateFields (SUBTPL-03/05)', () => {
   });
 
   it('NEVER counts core fields (summary/assignee/priority/labels/duedate/timetracking/parent) as skipped', () => {
-    const coreFields = ['summary', 'assignee', 'priority', 'labels', 'duedate', 'timetracking', 'parent'];
+    const coreFields = [
+      'summary',
+      'assignee',
+      'priority',
+      'labels',
+      'duedate',
+      'timetracking',
+      'parent',
+    ];
     // Even if createmeta is empty, these should never appear in skippedFieldIds
     // They are tracked in the row directly, not in customFieldValues, but test the guard explicitly
     const row = makeRow({
@@ -77,14 +85,14 @@ describe('resolveTemplateFields (SUBTPL-03/05)', () => {
   });
 
   it('storyPointsFieldKey is ALWAYS_ALLOWED when non-null', () => {
-    const row = makeRow({ customFieldValues: { 'customfield_10016': '5' } });
+    const row = makeRow({ customFieldValues: { customfield_10016: '5' } });
     const creatmetaFields: CreatemetaField[] = []; // storyPoints not in createmeta
     const { resolvedRows, totalSkipped } = resolveTemplateFields(
       [row],
       creatmetaFields,
       'customfield_10016',
     );
-    expect(resolvedRows[0].row.customFieldValues['customfield_10016']).toBe('5');
+    expect(resolvedRows[0].row.customFieldValues.customfield_10016).toBe('5');
     expect(resolvedRows[0].skippedFieldIds).not.toContain('customfield_10016');
     expect(totalSkipped).toBe(0);
   });
@@ -108,8 +116,8 @@ describe('resolveTemplateFields (SUBTPL-03/05)', () => {
   });
 
   it('totalSkipped equals sum of per-row skippedFieldIds lengths', () => {
-    const row1 = makeRow({ id: 'r1', customFieldValues: { 'cf_a': 'v', 'cf_b': 'v' } });
-    const row2 = makeRow({ id: 'r2', customFieldValues: { 'cf_c': 'v' } });
+    const row1 = makeRow({ id: 'r1', customFieldValues: { cf_a: 'v', cf_b: 'v' } });
+    const row2 = makeRow({ id: 'r2', customFieldValues: { cf_c: 'v' } });
     const creatmetaFields: CreatemetaField[] = []; // all absent
     const { resolvedRows, totalSkipped } = resolveTemplateFields(
       [row1, row2],

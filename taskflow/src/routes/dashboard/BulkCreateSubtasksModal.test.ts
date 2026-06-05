@@ -5,7 +5,7 @@
 // BulkCreateSubtasksModal.tsx. Deferred assertions are marked with it.todo
 // so this file runs green now while documenting the contract.
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Types (mirrored from the future BulkCreateSubtasksModal implementation)
@@ -156,9 +156,7 @@ describe('BulkCreateSubtasksModal — creation loop contract (SUBTPL-06/07)', ()
     it('a previously-failed row that succeeds on retry transitions to "created"', async () => {
       const createIssue = vi.fn(async () => ({ key: 'PROJ-fixed' }));
 
-      const partialStates: RowState[] = [
-        { status: 'failed', error: 'Previous error' },
-      ];
+      const partialStates: RowState[] = [{ status: 'failed', error: 'Previous error' }];
 
       const finalStates = await createAllRows([rows[0]], partialStates, createIssue, () => {});
 
@@ -191,5 +189,7 @@ describe('BulkCreateSubtasksModal — creation loop contract (SUBTPL-06/07)', ()
   it.todo('createIssue payload includes issueTypeId from selected subtask type');
   it.todo('BulkProgressIndicator receives actionVerb="Creating" and noun="subtasks"');
   it.todo('modal Close button is disabled while creating=true');
-  it.todo('cache invalidation: invalidateGhAllData + issue-detail + subtask-enrichment called after any success');
+  it.todo(
+    'cache invalidation: invalidateGhAllData + issue-detail + subtask-enrichment called after any success',
+  );
 });

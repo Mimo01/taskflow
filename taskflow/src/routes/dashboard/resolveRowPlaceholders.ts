@@ -34,9 +34,7 @@ export function resolveAssignee(
   if (assignee === '@current') {
     return {
       payloadName: ctx.jiraUsername,
-      displayHint: ctx.jiraUserDisplayName
-        ? `@current → ${ctx.jiraUserDisplayName}`
-        : '@current',
+      displayHint: ctx.jiraUserDisplayName ? `@current → ${ctx.jiraUserDisplayName}` : '@current',
     };
   }
 
@@ -76,9 +74,7 @@ export function resolveRowForCreate(
 
   // Priority — support @inherit sentinel (D-09)
   const priority =
-    row.priority === '@inherit'
-      ? (ctx.parentIssue.fields.priority?.name ?? null)
-      : row.priority;
+    row.priority === '@inherit' ? (ctx.parentIssue.fields.priority?.name ?? null) : row.priority;
   if (priority) {
     options.priority = { name: priority };
   }
@@ -94,9 +90,7 @@ export function resolveRowForCreate(
 
   // Due date — support '@inherit' sentinel (D-09)
   const duedate =
-    row.duedate === '@inherit'
-      ? (ctx.parentIssue.fields.duedate ?? null)
-      : row.duedate;
+    row.duedate === '@inherit' ? (ctx.parentIssue.fields.duedate ?? null) : row.duedate;
   if (duedate) {
     options.duedate = duedate;
   }

@@ -37,8 +37,7 @@ export const useSubtaskTemplatesStore = create<SubtaskTemplatesState>()(
     (set) => ({
       templates: [],
       addTemplate: (t) => set((s) => ({ templates: [...s.templates, t] })),
-      removeTemplate: (id) =>
-        set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
+      removeTemplate: (id) => set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
       renameTemplate: (id, name) =>
         set((s) => ({
           templates: s.templates.map((t) => (t.id === id ? { ...t, name } : t)),
@@ -67,7 +66,7 @@ export const useSubtaskTemplatesStore = create<SubtaskTemplatesState>()(
       migrate: (persisted, _version) => {
         const p = persisted as Record<string, unknown>;
         if (!Array.isArray(p.templates)) {
-          return { templates: [] } as SubtaskTemplatesState;
+          return { templates: [] } as unknown as SubtaskTemplatesState;
         }
         const safeTemplates = (p.templates as unknown[]).filter(
           (entry): entry is SubtaskTemplate =>

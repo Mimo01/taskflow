@@ -15,10 +15,7 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
-import {
-  useSubtaskTemplatesStore,
-  type SubtaskTemplate,
-} from './subtask-templates.store';
+import { useSubtaskTemplatesStore, type SubtaskTemplate } from './subtask-templates.store';
 
 function makeTemplate(id: string, name: string): SubtaskTemplate {
   return {
@@ -92,11 +89,7 @@ describe('subtask-templates.store (SUBTPL-02)', () => {
     beforeEach(() => {
       act(() => {
         useSubtaskTemplatesStore.setState({
-          templates: [
-            makeTemplate('t1', 'A'),
-            makeTemplate('t2', 'B'),
-            makeTemplate('t3', 'C'),
-          ],
+          templates: [makeTemplate('t1', 'A'), makeTemplate('t2', 'B'), makeTemplate('t3', 'C')],
         });
       });
     });
@@ -164,7 +157,13 @@ describe('subtask-templates.store (SUBTPL-02)', () => {
     // The migration logic: { templates: 'garbage' } → { templates: [] }
     // We access the migrate function through the store's persist.getOptions()
     const store = useSubtaskTemplatesStore;
-    const persistApi = (store as unknown as { persist: { getOptions: () => { migrate?: (persisted: unknown, version: number) => unknown } } }).persist;
+    const persistApi = (
+      store as unknown as {
+        persist: {
+          getOptions: () => { migrate?: (persisted: unknown, version: number) => unknown };
+        };
+      }
+    ).persist;
     if (persistApi?.getOptions) {
       const opts = persistApi.getOptions();
       if (opts.migrate) {
@@ -174,7 +173,14 @@ describe('subtask-templates.store (SUBTPL-02)', () => {
         const result2 = opts.migrate({ templates: [{ id: 'x', name: 'x', rows: 'not-array' }] }, 0);
         expect((result2 as { templates: unknown[] }).templates).toEqual([]);
 
-        const result3 = opts.migrate({ templates: [{ id: 'x', name: 'x', subtaskIssueTypeId: 'y', subtaskIssueTypeName: 'z', rows: [] }] }, 0);
+        const result3 = opts.migrate(
+          {
+            templates: [
+              { id: 'x', name: 'x', subtaskIssueTypeId: 'y', subtaskIssueTypeName: 'z', rows: [] },
+            ],
+          },
+          0,
+        );
         expect((result3 as { templates: SubtaskTemplate[] }).templates).toHaveLength(1);
       }
     }
