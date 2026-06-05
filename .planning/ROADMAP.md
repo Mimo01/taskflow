@@ -325,7 +325,11 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   4. Clicking "Create All" submits subtasks sequentially in order; a per-row progress indicator shows each item transitioning from pending → creating → created/failed; on full success the modal closes and the parent issue's subtask list refreshes
   5. On partial failure, the modal stays open showing per-row error messages; a "Retry failed" action re-runs only the failed items; already-created subtasks are never duplicated on retry
 
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 80-01-PLAN.md — Foundation: persistent store + pure resolvers + Wave-0 tests + components field + progress props
+- [ ] 80-02-PLAN.md — Shared SubtaskTemplateRow (core inline fields + Advanced expand + placeholder chips)
+- [ ] 80-03-PLAN.md — Settings Subtask Templates section + template/row CRUD + Settings registration
+- [ ] 80-04-PLAN.md — Bulk Create Subtasks modal: sequential creation, retry-no-duplicate, invalidations + entry point
 **Notes**: Store pattern mirrors `tempo-filters.store.ts` exactly (`createTauriStorage('subtask-templates.json')`). Sequential `for` loop (not `Promise.all`) for creation — order preserved, per-item status trackable. `BulkCreateSubtasksModal` receives `parentKey` prop from `IssueDetailContent` local state (not AppLayout). On any creation success, invalidate `['gh-all-data', boardId]`, `['jira-issue-detail', parentKey]`, and `['jira-subtask-enrichment', parentKey]`.
 **UI hint**: yes
 
@@ -354,4 +358,4 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
 | 78. Drag-to-Rank on Backlog | 4/4 | Complete    | 2026-06-04 |
 | 79. Drag-to-Transition on Sprint Board | 3/3 | Complete   | 2026-06-04 |
-| 80. Subtask Templates and Bulk Creation | 0/TBD | Not started | - |
+| 80. Subtask Templates and Bulk Creation | 0/4 | Planned | - |
