@@ -454,5 +454,70 @@ describe('FieldsSection', () => {
         );
       });
     });
+
+    // WR-01/WR-02: clearing is a locked product requirement. The "Unresolved"
+    // option must render even when the transition's resolution is `required`,
+    // and selecting it must run the in-place transition with resolution: null.
+    it('always offers an Unresolved clear option, even when resolution is required', async () => {
+      const { fetchIssueTransitionsWithFields, postTransition } = await import(
+        '@/services/jira/transitions'
+      );
+      const requiredTransition = {
+        ...inPlaceTransition('1'),
+        fields: {
+          resolution: {
+            required: true,
+            allowedValues: [{ id: '1', name: 'Done' }],
+          },
+        },
+      };
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValue([requiredTransition]);
+      vi.mocked(postTransition).mockResolvedValue(undefined);
+
+      const issue = makeIssue({
+        status: { id: '1', name: 'Closed', statusCategory: { key: 'done' } },
+        resolution: { id: '1', name: 'Done' },
+      });
+      await renderResolution(issue);
+
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.click(screen.getByTestId('resolution-edit'));
+      // The clear option is present despite required: true.
+      await screen.findByRole('option', { name: 'Unresolved' });
+      fireEvent.change(screen.getByTestId('select-native'), {
+        target: { value: '__unresolved__' },
+      });
+
+      await vi.waitFor(() => {
+        expect(vi.mocked(postTransition)).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'test-token',
+          'PROJ-1',
+          'txn-resolve',
+          { resolution: null },
+        );
+      });
+    });
+
+    // WR-03: when the issue's current resolution is absent from allowedValues,
+    // render it as a synthetic option so the trigger never shows blank.
+    it('includes the current resolution as a synthetic option when missing from allowedValues', async () => {
+      const { fetchIssueTransitionsWithFields } = await import('@/services/jira/transitions');
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValue([inPlaceTransition('1')]);
+
+      const issue = makeIssue({
+        status: { id: '1', name: 'Closed', statusCategory: { key: 'done' } },
+        // id '99' is NOT in the transition's allowedValues (1, 2).
+        resolution: { id: '99', name: 'Legacy Resolution' },
+      });
+      await renderResolution(issue);
+
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.click(screen.getByTestId('resolution-edit'));
+      // Current resolution surfaced as a synthetic option so the value matches.
+      expect(await screen.findByRole('option', { name: 'Legacy Resolution' })).toBeTruthy();
+      // And the normal allowedValues are still present.
+      expect(screen.getByRole('option', { name: 'Done' })).toBeTruthy();
+    });
   });
 });
