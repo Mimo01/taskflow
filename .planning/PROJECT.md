@@ -145,7 +145,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - [x] Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance — validated Phase 77
 - [x] Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas — validated Phase 77
 - [ ] Card colors: left-edge stripe by priority / issue type
-- [ ] Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent)
+- [x] Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent) — validated Phase 80 (automated 5/5; 4 live-app UAT items tracked in 80-HUMAN-UAT.md)
 
 ### Out of Scope
 
@@ -327,4 +327,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `jira-board-quickfilters` system removed post-Phase 73 verification (v1.11 quick task `e1c098f0`) | GH `allData.json` doesn't return quickfilter data; the Jira-loaded quickfilters were replaced by app's own saved filters | ✓ Good — app's saved filter system is the correct replacement; no functionality lost |
 
 ---
-*Last updated: 2026-06-03 after completing Phase 77 (Universal Peek Slideover and Issue-Detail Refinements)*
+*Last updated: 2026-06-05 after completing Phase 80 (Subtask Templates and Bulk Creation)*
