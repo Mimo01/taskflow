@@ -5,7 +5,9 @@
  * in Phase 72-03 (D-08 / GH-CUT-01).
  */
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/jira', () => ({
@@ -13,11 +15,22 @@ vi.mock('@/services/jira', () => ({
   // Pass-through filter so existing test fixtures (without fromStatusId) keep
   // returning all entries — per-status filtering is exercised in transitions.test.ts.
   filterTransitionsForStatus: vi.fn((ts: unknown[]) => ts),
+  fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
 }));
 
-import { useGhTransitions } from '@/services/jira';
+vi.mock('@/services/stronghold', () => ({
+  readSecret: vi.fn().mockResolvedValue('test-token'),
+}));
+
+import { fetchIssueTransitionsWithFields, useGhTransitions } from '@/services/jira';
 
 const mockedUseGhTransitions = vi.mocked(useGhTransitions);
+const mockedFetchTransitions = vi.mocked(fetchIssueTransitionsWithFields);
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+}
 
 const DEFAULT_PROPS = {
   projectId: 10042,
@@ -61,7 +74,7 @@ describe('StatusPopover', () => {
     );
 
     const { default: StatusPopover } = await import('./StatusPopover');
-    render(<StatusPopover {...DEFAULT_PROPS} />);
+    render(<StatusPopover {...DEFAULT_PROPS} />, { wrapper });
 
     expect(mockedUseGhTransitions).toHaveBeenCalledWith(10042, '3');
 
@@ -75,7 +88,7 @@ describe('StatusPopover', () => {
     mockedUseGhTransitions.mockReturnValue(hookResult({ isLoading: true }));
 
     const { default: StatusPopover } = await import('./StatusPopover');
-    render(<StatusPopover {...DEFAULT_PROPS} />);
+    render(<StatusPopover {...DEFAULT_PROPS} />, { wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /To Do/i }));
     expect(await screen.findByText(/Loading\.\.\./i)).toBeTruthy();
@@ -85,7 +98,7 @@ describe('StatusPopover', () => {
     mockedUseGhTransitions.mockReturnValue(hookResult({ isError: true }));
 
     const { default: StatusPopover } = await import('./StatusPopover');
-    render(<StatusPopover {...DEFAULT_PROPS} />);
+    render(<StatusPopover {...DEFAULT_PROPS} />, { wrapper });
 
     fireEvent.click(screen.getByRole('button', { name: /To Do/i }));
     expect(await screen.findByText(/Unable to load transitions/i)).toBeTruthy();
@@ -99,5 +112,83 @@ describe('StatusPopover', () => {
     mockedUseGhTransitions.mockReturnValue(hookResult({ data: [] }));
     const { default: StatusPopover } = await import('./StatusPopover');
     expect(StatusPopover).toBeTruthy();
+  });
+
+  describe('resolution-during-transition', () => {
+    const RESOLUTION_PROPS = {
+      ...DEFAULT_PROPS,
+      issueKey: 'PROJ-1',
+      jiraBaseUrl: 'https://jira.example.com',
+    };
+
+    it('calls onSelect immediately (no opts) for a non-resolution-capable transition', async () => {
+      mockedUseGhTransitions.mockReturnValue(
+        hookResult({
+          data: [{ id: '11', name: 'Start Progress', to: { id: '3', name: 'In Progress' } }],
+        }),
+      );
+      // REST metadata: this transition is NOT resolution-capable.
+      mockedFetchTransitions.mockResolvedValue([
+        { id: '11', name: 'Start Progress', to: { id: '3', name: 'In Progress' }, fields: {} },
+      ]);
+      const onSelect = vi.fn();
+
+      const { default: StatusPopover } = await import('./StatusPopover');
+      render(<StatusPopover {...RESOLUTION_PROPS} onSelect={onSelect} />, { wrapper });
+
+      fireEvent.click(screen.getByRole('button', { name: /To Do/i }));
+      fireEvent.click(await screen.findByText('Start Progress'));
+
+      expect(onSelect).toHaveBeenCalledWith('11', 'In Progress');
+    });
+
+    it('shows a resolution step and forwards the chosen resolution for a capable transition', async () => {
+      mockedUseGhTransitions.mockReturnValue(
+        hookResult({
+          data: [{ id: '21', name: 'Resolve', to: { id: '6', name: 'Resolved' } }],
+        }),
+      );
+      mockedFetchTransitions.mockResolvedValue([
+        {
+          id: '21',
+          name: 'Resolve',
+          to: { id: '6', name: 'Resolved' },
+          fields: {
+            resolution: {
+              required: true,
+              allowedValues: [
+                { id: '1', name: 'Done' },
+                { id: '2', name: "Won't Do" },
+              ],
+            },
+          },
+        },
+      ]);
+      const onSelect = vi.fn();
+
+      const { default: StatusPopover } = await import('./StatusPopover');
+      render(<StatusPopover {...RESOLUTION_PROPS} onSelect={onSelect} />, { wrapper });
+
+      fireEvent.click(screen.getByRole('button', { name: /To Do/i }));
+      await screen.findByText('Resolve');
+
+      // The REST transitions-with-fields fetch resolves asynchronously; clicking
+      // "Resolve" only branches into the resolution step once that metadata is
+      // loaded (loading falls back to a plain transition by design). Wait for the
+      // fetch to have been invoked + resolved before picking the transition.
+      const { waitFor } = await import('@testing-library/react');
+      await waitFor(() => expect(mockedFetchTransitions).toHaveBeenCalled());
+      // Flush the resolved-promise microtask into React Query state.
+      await waitFor(() => expect(screen.getByText('Resolve')).toBeTruthy());
+
+      fireEvent.click(screen.getByText('Resolve'));
+
+      // Resolution step appears instead of closing immediately.
+      const doneBtn = await screen.findByText('Done');
+      expect(onSelect).not.toHaveBeenCalled();
+
+      fireEvent.click(doneBtn);
+      expect(onSelect).toHaveBeenCalledWith('21', 'Resolved', { resolution: { id: '1' } });
+    });
   });
 });
