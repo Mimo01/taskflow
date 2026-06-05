@@ -336,8 +336,8 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 80-03-PLAN.md — Settings Subtask Templates section + template/row CRUD + Settings registration
-- [ ] 80-04-PLAN.md — Bulk Create Subtasks modal: sequential creation, retry-no-duplicate, invalidations + entry point
+- [x] 80-03-PLAN.md — Settings Subtask Templates section + template/row CRUD + Settings registration
+- [x] 80-04-PLAN.md — Bulk Create Subtasks modal: sequential creation, retry-no-duplicate, invalidations + entry point
 
 **Notes**: Store pattern mirrors `tempo-filters.store.ts` exactly (`createTauriStorage('subtask-templates.json')`). Sequential `for` loop (not `Promise.all`) for creation — order preserved, per-item status trackable. `BulkCreateSubtasksModal` receives `parentKey` prop from `IssueDetailContent` local state (not AppLayout). On any creation success, invalidate `['gh-all-data', boardId]`, `['jira-issue-detail', parentKey]`, and `['jira-subtask-enrichment', parentKey]`.
 **UI hint**: yes
@@ -367,4 +367,4 @@ All v1.0-v1.11 phases shipped. See per-milestone archives in `.planning/mileston
 | 77. Universal Peek Slideover and Issue-Detail Refinements | 4/4 | Complete    | 2026-06-03 |
 | 78. Drag-to-Rank on Backlog | 4/4 | Complete    | 2026-06-04 |
 | 79. Drag-to-Transition on Sprint Board | 3/3 | Complete   | 2026-06-04 |
-| 80. Subtask Templates and Bulk Creation | 2/4 | In Progress|  |
+| 80. Subtask Templates and Bulk Creation | 4/4 | Complete   | 2026-06-05 |
