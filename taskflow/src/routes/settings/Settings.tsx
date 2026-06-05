@@ -14,6 +14,7 @@
 import {
   Bell,
   GitBranch,
+  LayoutTemplate,
   Link2,
   Palette,
   PanelLeft,
@@ -29,6 +30,7 @@ import DebugModeSection from './DebugModeSection';
 import IntegrationsSection from './IntegrationsSection';
 import NotificationsSection from './NotificationsSection';
 import SidebarSection from './SidebarSection';
+import SubtaskTemplatesSection from './SubtaskTemplatesSection';
 import UpdatesSection from './UpdatesSection';
 import WorkflowSection from './WorkflowSection';
 
@@ -38,6 +40,7 @@ type SettingsSection =
   | 'sidebar'
   | 'notifications'
   | 'workflow'
+  | 'subtask-templates'
   | 'integrations'
   | 'updates'
   | 'advanced';
@@ -48,6 +51,11 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
   { id: 'sidebar', label: 'Sidebar', icon: <PanelLeft className="h-4 w-4" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
   { id: 'workflow', label: 'Workflow', icon: <GitBranch className="h-4 w-4" /> },
+  {
+    id: 'subtask-templates',
+    label: 'Subtask Templates',
+    icon: <LayoutTemplate className="h-4 w-4" />,
+  },
   { id: 'integrations', label: 'Integrations', icon: <Plug className="h-4 w-4" /> },
   { id: 'updates', label: 'Updates', icon: <RefreshCw className="h-4 w-4" /> },
   { id: 'advanced', label: 'Advanced', icon: <Settings2 className="h-4 w-4" /> },
@@ -90,6 +98,7 @@ export default function Settings() {
         {activeSection === 'sidebar' && <SidebarSection />}
         {activeSection === 'notifications' && <NotificationsSection />}
         {activeSection === 'workflow' && <WorkflowSection />}
+        {activeSection === 'subtask-templates' && <SubtaskTemplatesSection />}
         {activeSection === 'integrations' && <IntegrationsSection />}
         {activeSection === 'updates' && <UpdatesSection />}
         {activeSection === 'advanced' && <DebugModeSection />}
