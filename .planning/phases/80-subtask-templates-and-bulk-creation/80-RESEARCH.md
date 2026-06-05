@@ -632,7 +632,7 @@ This phase does not introduce authentication, session management, or cryptograph
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`components` field in `@inherit`**
    - What we know: `JiraIssueDetail.fields.components` is not typed (accessible only via `[key: string]: unknown`); `fetchIssueDetail` does not currently request `components` in its fields list.
