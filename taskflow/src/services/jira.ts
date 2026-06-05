@@ -2182,7 +2182,7 @@ export {
   useGhBacklogData,
   useGhTransitions,
 } from './jira/greenhopper';
-// Jira statuses (Phase 72) — re-exported per dual-file convention.
-export { fetchAllJiraStatuses, type JiraStatus } from './jira/statuses';
 // Jira resolutions — re-exported per dual-file convention.
 export { fetchResolutions, type JiraResolution } from './jira/resolutions';
+// Jira statuses (Phase 72) — re-exported per dual-file convention.
+export { fetchAllJiraStatuses, type JiraStatus } from './jira/statuses';
