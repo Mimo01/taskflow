@@ -364,8 +364,14 @@ export function FieldsSection({
   });
 
   function handleResolutionSelect(value: string | null) {
-    if (!value || !inPlaceResolutionTransition) return;
+    // No capable transition → nothing to run.
+    if (!inPlaceResolutionTransition) return;
+    // The Select placeholder uses value="" — ignore it (no real choice made).
+    if (value === '' || value == null) return;
     setResolutionEditing(false);
+    // The "__unresolved__" sentinel clears the resolution (resolution: null);
+    // any other value is a real resolution id. Clearing and setting are
+    // distinct operations, so the clear path is handled explicitly.
     const resolution = value === '__unresolved__' ? null : { id: value };
     resolutionTransitionMutation.mutate({
       transitionId: inPlaceResolutionTransition.id,
@@ -556,9 +562,20 @@ export function FieldsSection({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {!inPlaceResolutionTransition.fields?.resolution?.required && (
-                  <SelectItem value="__unresolved__">Unresolved</SelectItem>
-                )}
+                {/* Clearing is always available when an in-place resolution
+                    transition exists: clearing and setting are different
+                    operations, so this is independent of `required` (WR-01). */}
+                <SelectItem value="__unresolved__">Unresolved</SelectItem>
+                {/* WR-03: the current resolution may not appear in the
+                    transition's allowedValues (disabled value, different
+                    scheme). Surface it as a synthetic option so the trigger
+                    never shows blank when a resolution is actually set. */}
+                {f.resolution &&
+                  !resolutionAllowedValues.some((r) => r.id === f.resolution?.id) && (
+                    <SelectItem key={f.resolution.id} value={f.resolution.id}>
+                      {f.resolution.name}
+                    </SelectItem>
+                  )}
                 {resolutionAllowedValues.map((r) => (
                   <SelectItem key={r.id} value={r.id}>
                     {r.name}
