@@ -607,8 +607,12 @@ export { fetchComments, postComment } from './jira/comments';
  * truth for the transition POST logic. New code should import from
  * `@/services/jira/transitions` directly.
  */
-export { postTransition } from './jira/transitions';
+export { fetchIssueTransitionsWithFields, postTransition } from './jira/transitions';
 export type { JiraComment } from './jira/types';
+export type {
+  JiraTransitionFieldMeta,
+  JiraTransitionWithFields,
+} from './jira/types';
 
 // ─── Standup Activity ──────────────────────────────────────────────────────────
 
