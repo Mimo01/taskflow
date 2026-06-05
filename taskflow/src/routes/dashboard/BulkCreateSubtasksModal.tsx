@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LayoutList, Plus, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -275,7 +275,11 @@ export function BulkCreateSubtasksModal({
     parentIssue,
   };
 
-  // Resolve template rows + compute skipped fields count
+  // Select a template: set the subtask type (or clear for ad-hoc). Row
+  // resolution is deferred to the effect below — CR-02: resolving here would
+  // run against `creatmetaFields` before the query for the newly-selected
+  // type has loaded (undefined on first selection), silently dropping every
+  // custom-field value as "skipped".
   const applyTemplate = useCallback(
     (templateId: string, typeId?: string) => {
       if (templateId === '__adhoc__') {
@@ -287,17 +291,6 @@ export function BulkCreateSubtasksModal({
       const template = templates.find((t: SubtaskTemplate) => t.id === templateId);
       if (!template) return;
 
-      const fields = creatmetaFields ?? [];
-      const { resolvedRows, totalSkipped: skipped } = resolveTemplateFields(
-        template.rows,
-        fields,
-        storyPointsFieldKey,
-      );
-      const newRows = resolvedRows.map((r) => r.row as BulkCreateRow);
-      setRows(newRows);
-      setRowStates(newRows.map(() => ({ status: 'pending' as const })));
-      setTotalSkipped(skipped);
-
       // Use the template's stored subtask type, or fall back to current selection
       const typeToUse = typeId ?? template.subtaskIssueTypeId;
       const isTypeAvailable = subtaskTypes.some((t) => t.id === typeToUse);
@@ -308,8 +301,40 @@ export function BulkCreateSubtasksModal({
         setSelectedSubtaskTypeId(subtaskTypes[0].id);
       }
     },
-    [templates, creatmetaFields, storyPointsFieldKey, subtaskTypes],
+    [templates, subtaskTypes],
   );
+
+  // Resolve template rows + compute skipped fields once createmeta for the
+  // selected template's subtask type has loaded. Keyed on
+  // `${templateId}|${effectiveTypeId}` so it runs exactly once per
+  // selection/type change and never clobbers user edits when an unrelated
+  // re-render hands us a new `creatmetaFields` array reference for the same
+  // query (CR-02 fix).
+  const lastResolvedKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectedTemplateId === '__adhoc__') {
+      lastResolvedKeyRef.current = '__adhoc__';
+      return;
+    }
+    const template = templates.find((t: SubtaskTemplate) => t.id === selectedTemplateId);
+    if (!template) return;
+    // Wait for createmeta: undefined while loading; [] is a valid "no extra
+    // fields" result and is safe to resolve against.
+    if (!creatmetaFields) return;
+    const resolveKey = `${selectedTemplateId}|${effectiveTypeId}`;
+    if (lastResolvedKeyRef.current === resolveKey) return;
+    lastResolvedKeyRef.current = resolveKey;
+
+    const { resolvedRows, totalSkipped: skipped } = resolveTemplateFields(
+      template.rows,
+      creatmetaFields,
+      storyPointsFieldKey,
+    );
+    const newRows = resolvedRows.map((r) => r.row as BulkCreateRow);
+    setRows(newRows);
+    setRowStates(newRows.map(() => ({ status: 'pending' as const })));
+    setTotalSkipped(skipped);
+  }, [selectedTemplateId, effectiveTypeId, creatmetaFields, templates, storyPointsFieldKey]);
 
   function handleTemplateChange(templateId: string | null) {
     const id = templateId ?? '__adhoc__';
@@ -442,9 +467,15 @@ export function BulkCreateSubtasksModal({
   ).length;
   const progressSucceeded = rowStates.filter((s) => s.status === 'created').length;
   const progressFailed = rowStates.filter((s) => s.status === 'failed').length;
+  // CR-01: capture the original row index BEFORE filtering, otherwise the
+  // post-filter index points at the wrong (often succeeded) row.
   const progressFailures = rowStates
-    .filter((s) => s.status === 'failed')
-    .map((s, i) => ({ key: rows[i]?.title ?? `Row ${i + 1}`, error: s.error ?? 'Unknown error' }));
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => s.status === 'failed')
+    .map(({ s, i }) => ({
+      key: rows[i]?.title ?? `Row ${i + 1}`,
+      error: s.error ?? 'Unknown error',
+    }));
   const isComplete =
     !creating &&
     rowStates.length > 0 &&
