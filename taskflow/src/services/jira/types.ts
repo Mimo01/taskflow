@@ -106,6 +106,32 @@ export interface JiraTransition {
   hasValidators?: boolean;
 }
 
+/**
+ * Per-transition field metadata returned by
+ * `GET /issue/{key}/transitions?expand=transitions.fields`.
+ *
+ * Distinct from `JiraTransition` (which is fed by the GreenHopper cache and
+ * carries no field metadata — do NOT widen that type). A transition is
+ * "resolution-capable" iff `fields?.resolution` exists; its
+ * `fields.resolution.allowedValues` is the picker source.
+ */
+export interface JiraTransitionFieldMeta {
+  required: boolean;
+  allowedValues?: Array<{ id: string; name: string }>;
+  operations?: string[];
+}
+
+export interface JiraTransitionWithFields {
+  id: string;
+  name: string;
+  to: {
+    id: string;
+    name: string;
+    statusCategory?: { key: string };
+  };
+  fields?: Record<string, JiraTransitionFieldMeta>;
+}
+
 export interface JiraComment {
   id: string;
   author: { displayName: string; name?: string };

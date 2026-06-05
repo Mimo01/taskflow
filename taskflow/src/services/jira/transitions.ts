@@ -8,17 +8,31 @@
 
 import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
+import type { JiraTransitionWithFields } from './types';
 
 /**
  * Transition a Jira issue to a new status.
+ *
+ * The optional `fields` argument is included in the POST body ONLY when supplied
+ * (presence check, NOT truthiness — a clear payload like `{ resolution: null }`
+ * is a legitimate non-empty object that must survive). When omitted, the body is
+ * exactly `{ transition: { id } }`, preserving existing callers.
  */
 export async function postTransition(
   baseUrl: string,
   token: string,
   issueKey: string,
   transitionId: string,
+  fields?: Record<string, unknown>,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/transitions`;
+
+  const body = {
+    transition: { id: transitionId },
+    // Presence check: include `fields` iff the arg was passed at all, so a
+    // `{ resolution: null }` clear payload is preserved.
+    ...(fields !== undefined ? { fields } : {}),
+  };
 
   let response: Response;
   try {
@@ -31,7 +45,7 @@ export async function postTransition(
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ transition: { id: transitionId } }),
+        body: JSON.stringify(body),
       },
       'Issue Transition',
     );
@@ -45,4 +59,39 @@ export async function postTransition(
     }
     throw new Error(`Failed to transition ${issueKey}: status ${response.status}`);
   }
+}
+
+/**
+ * Fetch the issue's available workflow transitions WITH per-transition field
+ * metadata: `GET /rest/api/2/issue/{key}/transitions?expand=transitions.fields`.
+ *
+ * Unlike the bulk GreenHopper transitions cache (which carries no field metadata),
+ * this per-issue REST call exposes `fields.resolution.allowedValues`, used to drive
+ * the interactive resolution pickers (issue-detail sidebar + StatusPopover).
+ *
+ * Error envelope mirrors `fetchResolutions` (resolutions.ts):
+ * 401/403 throw `ApiError`; other non-OK responses throw a generic `Error`.
+ */
+export async function fetchIssueTransitionsWithFields(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraTransitionWithFields[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/transitions?expand=transitions.fields`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Transitions',
+  );
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch transitions', response.status, 'jira');
+    }
+    throw new Error(`Failed to fetch transitions: ${response.status}`);
+  }
+  const data = (await response.json()) as { transitions?: JiraTransitionWithFields[] };
+  return data.transitions ?? [];
 }
