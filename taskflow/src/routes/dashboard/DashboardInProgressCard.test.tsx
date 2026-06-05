@@ -186,7 +186,7 @@ describe('DashboardInProgressCard', () => {
     expect(caption.closest('a')).toBeNull();
   });
 
-  it('test 3: click navigation — clicking the key button calls onIssueClick; clicking the body calls onOpenIssue', async () => {
+  it('test 3: click navigation — both the key button and the body call onIssueClick (full-page, no onOpenIssue)', async () => {
     const { useQuery } = await import('@tanstack/react-query');
 
     const issues = [makeSprintIssue('PROJ-101', 'indeterminate', true, 'Alice Doe')];
@@ -197,23 +197,21 @@ describe('DashboardInProgressCard', () => {
       isError: false,
     } as ReturnType<typeof useQuery>);
 
-    const onOpenIssue = vi.fn();
+    // Rendered WITHOUT onOpenIssue — mirrors the dashboard call site (HB4-01).
     const { default: DashboardInProgressCard } = await import('./DashboardInProgressCard');
-    renderWithQuery(<DashboardInProgressCard {...defaultProps} onOpenIssue={onOpenIssue} />);
+    renderWithQuery(<DashboardInProgressCard {...defaultProps} />);
 
-    // PEEK-05: clicking the key button → onIssueClick (full-page)
+    // Clicking the key button → onIssueClick (full-page)
     const keyButton = screen.getByRole('button', { name: 'PROJ-101' });
     await userEvent.click(keyButton);
     expect(defaultProps.onIssueClick).toHaveBeenCalledWith('PROJ-101');
-    expect(onOpenIssue).not.toHaveBeenCalled();
 
-    vi.clearAllMocks();
+    (defaultProps.onIssueClick as ReturnType<typeof vi.fn>).mockReset();
 
-    // PEEK-01: clicking the body (summary text) → onOpenIssue (peek)
+    // Clicking the body (summary text) → onIssueClick (full-page), NOT peek
     const summaryEl = screen.getByText(/Sub-task summary 101/);
     await userEvent.click(summaryEl);
-    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-101');
-    expect(defaultProps.onIssueClick).not.toHaveBeenCalled();
+    expect(defaultProps.onIssueClick).toHaveBeenCalledWith('PROJ-101');
   });
 
   it('test 4: empty state — shows "No subtasks in progress — nice work!" when no matches', async () => {
