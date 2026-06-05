@@ -35,7 +35,6 @@ interface TopBarProps {
 
 export default function TopBar({
   onIssueClick,
-  onOpenIssue,
   onMRClick,
   onPaletteOpen,
   notifPopoverOpen,
@@ -101,7 +100,6 @@ export default function TopBar({
         <PopoverContent className="p-0 w-[28rem]">
           <NotificationPopover
             onIssueClick={onIssueClick}
-            onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
             onClose={() => onNotifPopoverChange(false)}
           />
