@@ -196,5 +196,42 @@ describe('StatusPopover', () => {
       fireEvent.click(doneBtn);
       expect(onSelect).toHaveBeenCalledWith('21', 'Resolved', { resolution: { id: '1' } });
     });
+
+    // WR-05: resolution required but allowedValues empty → do NOT fire the
+    // plain (doomed-to-400) transition; keep the popover open with a message.
+    it('blocks the transition and shows a message when resolution is required but allowedValues is empty', async () => {
+      mockedUseGhTransitions.mockReturnValue(
+        hookResult({
+          data: [{ id: '31', name: 'Close', to: { id: '7', name: 'Closed' } }],
+        }),
+      );
+      mockedFetchTransitions.mockResolvedValue([
+        {
+          id: '31',
+          name: 'Close',
+          to: { id: '7', name: 'Closed' },
+          fields: { resolution: { required: true, allowedValues: [] } },
+        },
+      ]);
+      const onSelect = vi.fn();
+
+      const { default: StatusPopover } = await import('./StatusPopover');
+      render(<StatusPopover {...RESOLUTION_PROPS} onSelect={onSelect} />, { wrapper });
+
+      fireEvent.click(screen.getByRole('button', { name: /To Do/i }));
+      await screen.findByText('Close');
+
+      const { waitFor } = await import('@testing-library/react');
+      await waitFor(() => expect(mockedFetchTransitions).toHaveBeenCalled());
+      await waitFor(() => expect(screen.getByText('Close')).toBeTruthy());
+
+      fireEvent.click(screen.getByText('Close'));
+
+      // No doomed request fired, and an explicit message is shown.
+      expect(onSelect).not.toHaveBeenCalled();
+      expect(
+        await screen.findByText(/requires a resolution, but none are available/i),
+      ).toBeTruthy();
+    });
   });
 });
