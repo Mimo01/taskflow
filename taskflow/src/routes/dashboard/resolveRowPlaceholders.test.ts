@@ -6,9 +6,7 @@ import type { SubtaskTemplateRow } from '@/stores/subtask-templates.store';
 import { resolveAssignee, resolveRowForCreate } from './resolveRowPlaceholders';
 import type { PlaceholderContext } from './resolveRowPlaceholders';
 
-function makeParentIssue(
-  fields: Partial<JiraIssueDetail['fields']> = {},
-): JiraIssueDetail {
+function makeParentIssue(fields: Partial<JiraIssueDetail['fields']> = {}): JiraIssueDetail {
   return {
     id: 'issue-1',
     key: 'PROJ-1',
@@ -33,9 +31,7 @@ function makeParentIssue(
   } as JiraIssueDetail;
 }
 
-function makeCtx(
-  overrides: Partial<PlaceholderContext> = {},
-): PlaceholderContext {
+function makeCtx(overrides: Partial<PlaceholderContext> = {}): PlaceholderContext {
   return {
     jiraUsername: 'alice',
     jiraUserDisplayName: 'Alice Smith',
