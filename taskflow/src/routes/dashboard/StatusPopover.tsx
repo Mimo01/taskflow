@@ -75,6 +75,11 @@ export default function StatusPopover({
     toName: string;
     allowedValues: Array<{ id: string; name: string }>;
   } | null>(null);
+  // WR-05: set when a transition declares resolution as required but exposes no
+  // allowedValues (mis-configured workflow / partial field expansion). Firing
+  // the plain transition would be rejected by Jira (400), so we keep the popover
+  // open and surface an explicit message instead.
+  const [resolutionUnavailable, setResolutionUnavailable] = useState(false);
 
   // WR-03: projectId=0 / empty issueTypeId means the issue search payload
   // was missing the `project` or `issuetype.id` fields. The hook is gated
@@ -105,7 +110,10 @@ export default function StatusPopover({
   function handleOpenChange(newOpen: boolean) {
     if (disabled) return;
     setOpen(newOpen);
-    if (!newOpen) setPendingResolutionTransition(null);
+    if (!newOpen) {
+      setPendingResolutionTransition(null);
+      setResolutionUnavailable(false);
+    }
   }
 
   function handleSelect(transitionId: string, toStatusName: string) {
@@ -115,7 +123,15 @@ export default function StatusPopover({
     const meta = transitionsWithFields?.find((t) => t.id === transitionId);
     const allowedValues = meta?.fields?.resolution?.allowedValues;
     if (allowedValues && allowedValues.length > 0) {
+      setResolutionUnavailable(false);
       setPendingResolutionTransition({ id: transitionId, toName: toStatusName, allowedValues });
+      return;
+    }
+    // WR-05: resolution is required but no allowedValues were returned. Firing
+    // the plain transition is guaranteed to 400, so keep the popover open and
+    // show an explicit message rather than sending a doomed request.
+    if (meta?.fields?.resolution?.required) {
+      setResolutionUnavailable(true);
       return;
     }
     onSelect(transitionId, toStatusName);
@@ -162,6 +178,12 @@ export default function StatusPopover({
           </>
         ) : (
           <>
+            {resolutionUnavailable && (
+              <div className="px-3 py-2 text-sm text-destructive">
+                This transition requires a resolution, but none are available. Resolve the workflow
+                configuration in Jira.
+              </div>
+            )}
             {!hasContext && (
               <div className="px-3 py-2 text-sm text-muted-foreground">
                 Missing project context — reload the board.
