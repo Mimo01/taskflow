@@ -48,14 +48,14 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 
 ### Subtask Templates & Bulk Creation
 
-- [ ] **SUBTPL-01**: User can create, edit, and delete named subtask templates in Settings
-- [ ] **SUBTPL-02**: Subtask templates persist across sessions (Tauri Store, mirroring the Tempo-filters store pattern)
-- [ ] **SUBTPL-03**: Each template line requires a title; optional fields are resolved from the subtask issue type's createmeta (description, assignee, priority, labels, original estimate, story points, due date, components, custom fields)
-- [ ] **SUBTPL-04**: From a parent issue, user can apply a template (or build an ad-hoc list) to create multiple subtasks at once
-- [ ] **SUBTPL-05**: User can preview and inline-edit the resolved subtask list before creating
-- [ ] **SUBTPL-06**: Creating spawns all subtasks under the parent in listed order
-- [ ] **SUBTPL-07**: A partial failure mid-batch is surfaced per-subtask, and retry skips already-created subtasks
-- [ ] **SUBTPL-08**: Parent-inheritance placeholders (`@inherit`, `@current`, `@unassigned`) resolve at creation time
+- [x] **SUBTPL-01**: User can create, edit, and delete named subtask templates in Settings
+- [x] **SUBTPL-02**: Subtask templates persist across sessions (Tauri Store, mirroring the Tempo-filters store pattern)
+- [x] **SUBTPL-03**: Each template line requires a title; optional fields are resolved from the subtask issue type's createmeta (description, assignee, priority, labels, original estimate, story points, due date, components, custom fields)
+- [x] **SUBTPL-04**: From a parent issue, user can apply a template (or build an ad-hoc list) to create multiple subtasks at once
+- [x] **SUBTPL-05**: User can preview and inline-edit the resolved subtask list before creating
+- [x] **SUBTPL-06**: Creating spawns all subtasks under the parent in listed order
+- [x] **SUBTPL-07**: A partial failure mid-batch is surfaced per-subtask, and retry skips already-created subtasks
+- [x] **SUBTPL-08**: Parent-inheritance placeholders (`@inherit`, `@current`, `@unassigned`) resolve at creation time
 
 ## Future Requirements
 
@@ -110,14 +110,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PEEK-07 | Phase 77 | Complete |
 | DETAIL-01 | Phase 77 | Complete |
 | DETAIL-02 | Phase 77 | Complete |
-| SUBTPL-01 | Phase 80 | Pending |
-| SUBTPL-02 | Phase 80 | Pending |
-| SUBTPL-03 | Phase 80 | Pending |
-| SUBTPL-04 | Phase 80 | Pending |
-| SUBTPL-05 | Phase 80 | Pending |
-| SUBTPL-06 | Phase 80 | Pending |
-| SUBTPL-07 | Phase 80 | Pending |
-| SUBTPL-08 | Phase 80 | Pending |
+| SUBTPL-01 | Phase 80 | Complete |
+| SUBTPL-02 | Phase 80 | Complete |
+| SUBTPL-03 | Phase 80 | Complete |
+| SUBTPL-04 | Phase 80 | Complete |
+| SUBTPL-05 | Phase 80 | Complete |
+| SUBTPL-06 | Phase 80 | Complete |
+| SUBTPL-07 | Phase 80 | Complete |
+| SUBTPL-08 | Phase 80 | Complete |
 
 **Coverage:**
 
