@@ -30,6 +30,7 @@ import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
 import { invalidateGhAllData, invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
+import { fetchResolutions } from '@/services/jira/resolutions';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
 import { postTransition } from '@/services/jira/transitions';
 import { fetchFixVersions } from '@/services/jira/versions';
@@ -104,6 +105,9 @@ export function FieldsSection({
   // Priority edit state
   const [priorityEditing, setPriorityEditing] = useState(false);
 
+  // Resolution edit state (editable only for done-category issues)
+  const [resolutionEditing, setResolutionEditing] = useState(false);
+
   // Story points edit state
   const [spEditing, setSpEditing] = useState(false);
   const [spInput, setSpInput] = useState('');
@@ -145,6 +149,18 @@ export function FieldsSection({
       return fetchFixVersions(jiraBaseUrl, token, activeJiraProject);
     },
     enabled: fixVersionOpen && !!activeJiraProject,
+  });
+
+  // Resolution options (global list — not keyed on activeJiraProject). Fetched on first open.
+  const resolutionsQuery = useQuery({
+    queryKey: ['jira-resolutions', jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) return [];
+      return fetchResolutions(jiraBaseUrl, token);
+    },
+    enabled: resolutionEditing,
+    staleTime: Infinity,
   });
 
   // Token query for sprint picker (same pattern as fix versions)
@@ -311,6 +327,16 @@ export function FieldsSection({
     mutation.mutate({ fieldName: 'priority', value: { name: value } });
   }
 
+  function handleResolutionChange(value: string | null) {
+    if (!value) return;
+    setResolutionEditing(false);
+    if (value === '__unresolved__') {
+      mutation.mutate({ fieldName: 'resolution', value: null });
+      return;
+    }
+    mutation.mutate({ fieldName: 'resolution', value: { name: value } });
+  }
+
   function startSpEdit() {
     spOriginal.current = storyPoints;
     setSpInput(storyPoints != null ? String(storyPoints) : '');
@@ -441,6 +467,51 @@ export function FieldsSection({
               <span>{f.priority?.name ?? '—'}</span>
             </div>
           </button>
+        )}
+      </MetaRow>
+
+      {/* Resolution -- always visible; editable inline Select only for done-category issues */}
+      <MetaRow label="Resolution">
+        {f.status.statusCategory?.key === 'done' ? (
+          resolutionEditing ? (
+            <div>
+              <Select
+                value={f.resolution?.name ?? ''}
+                onValueChange={handleResolutionChange}
+                open
+                onOpenChange={(open) => {
+                  if (!open) setResolutionEditing(false);
+                }}
+              >
+                <SelectTrigger size="sm" className="h-6 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__unresolved__">Unresolved</SelectItem>
+                  {resolutionsQuery.data?.map((r) => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {mutation.isError && mutation.variables?.fieldName === 'resolution' && (
+                <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
+              )}
+            </div>
+          ) : (
+            <button
+              data-testid="resolution-edit"
+              type="button"
+              onClick={() => setResolutionEditing(true)}
+              className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
+              title="Click to edit resolution"
+            >
+              {f.resolution?.name ?? 'Unresolved'}
+            </button>
+          )
+        ) : (
+          <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
         )}
       </MetaRow>
 

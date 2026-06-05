@@ -1213,6 +1213,7 @@ export interface JiraIssueDetail {
     issuetype: { id?: string; name: string; subtask: boolean };
     project?: { id: string; key: string };
     priority: { name: string; iconUrl?: string } | null;
+    resolution: { id: string; name: string; description?: string } | null;
     assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
     reporter: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
     subtasks: Array<{
@@ -1360,6 +1361,7 @@ export async function fetchIssueDetail(
     'assignee',
     'reporter',
     'priority',
+    'resolution',
     'customfield_13415',
     'issuetype',
     'project',
@@ -2180,5 +2182,7 @@ export {
   useGhBacklogData,
   useGhTransitions,
 } from './jira/greenhopper';
+// Jira resolutions — re-exported per dual-file convention.
+export { fetchResolutions, type JiraResolution } from './jira/resolutions';
 // Jira statuses (Phase 72) — re-exported per dual-file convention.
 export { fetchAllJiraStatuses, type JiraStatus } from './jira/statuses';
