@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 80
 Plan: Not started
 Status: Executing Phase 80
-Last activity: 2026-06-05
+Last activity: 2026-06-05 - Completed quick task 260605-hb4: notifications & dashboard open full issue page
 
 Progress: [██████████] 100%
 
@@ -95,6 +95,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260602-x58 | Standup Notes: collapse story status transitions to initial → final | 2026-06-02 | 19ccf8ed | | [260602-x58-on-standup-notes-page-when-presenting-st](./quick/260602-x58-on-standup-notes-page-when-presenting-st/) |
 | 260603-fb8 | Let users select which Jira board (fix wrong rapidViewId/board id) | 2026-06-03 | e3f3b752 | Verified | [260603-fb8-select-jira-board](./quick/260603-fb8-select-jira-board/) |
 | 260604-knq | Backlog drag-to-rank: drop DragOverlay, drag row in place (keep autoScroll synced) | 2026-06-04 | 2a2a4c30 | | [260604-knq-phase-78-backlog-drag-to-rank-keep-dnd-k](./quick/260604-knq-phase-78-backlog-drag-to-rank-keep-dnd-k/) |
+| 260605-hb4 | Notifications & dashboard issue clicks open the full page (not the peek sidebar) | 2026-06-05 | 2cc4a751 | Verified | [260605-hb4-currently-all-clicks-on-issues-except-ke](./quick/260605-hb4-currently-all-clicks-on-issues-except-ke/) |
 
 ## Deferred Items
 
