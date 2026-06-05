@@ -1,10 +1,11 @@
 ---
 phase: 80
 slug: subtask-templates-and-bulk-creation
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-06-05
+reviewed_at: 2026-06-05
 ---
 
 # Phase 80 — UI Design Contract
@@ -42,9 +43,10 @@ Declared values (multiples of 4):
 | 2xl | 48px | — |
 | 3xl | 64px | — |
 
-Exceptions:
+Exceptions (deliberate sub-grid values, inherited from existing primitives — not new scale tokens):
 - Touch targets on icon-only row controls (drag handle, delete, expand): minimum 32px hit area via `p-1` or `size-8` class.
 - Progress bar in bulk modal: full width, no horizontal margin (matches `BulkProgressIndicator` pattern — `w-full`).
+- Placeholder chips and the "N fields skipped" badge use `py-0.5` (2px) vertical padding — the canonical shadcn `Badge` pill padding (`px-2 py-0.5`). This is an intentional primitive-level exception for pill shapes only; all layout/structural spacing stays on the 4px grid.
 
 Source: inherited from project-wide 8-point scale; `WorkflowSection.tsx` uses `gap-4`, `gap-8`; `BulkProgressIndicator.tsx` uses `gap-2`; `CreateEditIssueModal.tsx` uses `px-6 py-4`.
 
@@ -54,13 +56,14 @@ Source: inherited from project-wide 8-point scale; `WorkflowSection.tsx` uses `g
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body / field label | 14px (text-sm) | 500 (font-medium) | 1.5 |
+| Body / field label | 14px (text-sm) | 400 (normal) | 1.5 |
 | Helper / secondary | 12px (text-xs) | 400 (normal) | 1.5 |
 | Section heading (h2) | 18px (text-lg) | 600 (font-semibold) | 1.2 |
 | Subsection heading (h3) | 12px (text-xs), uppercase, tracking-wide | 600 (font-semibold) | 1.2 |
 
 Notes:
-- Modal title: `text-base leading-none font-medium` — matches `dialog.tsx DialogTitle`.
+- Only two weights are used across the entire phase: **400 (normal)** for body, helper, field labels, chips, and badges; **600 (semibold)** for all headings and the modal title.
+- Modal title: `text-lg font-semibold` (weight 600) — see Bulk Modal header below.
 - Subsection headings use `text-sm font-semibold text-muted-foreground uppercase tracking-wide` — matches `WorkflowSection.tsx` h3 pattern.
 - Code / issue keys: `font-mono text-xs text-muted-foreground` — matches `CreateEditIssueModal.tsx`.
 
@@ -94,13 +97,26 @@ All values are CSS custom properties from `index.css` (oklch, dual light/dark):
 - `@current` chip: `bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300` — conveys "you"
 - `@unassigned` chip: `bg-muted text-muted-foreground` — neutral / cleared state
 
-Chip anatomy: `inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium` with hint suffix in lighter weight: `@inherit → Alice`.
+Chip anatomy: `inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-normal` with hint suffix in `text-muted-foreground`: `@inherit → Alice`.
 
 **"N fields skipped" badge (Claude's Discretion — resolved here):**
-`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300`
+`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-normal bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300`
 Copy: `"{N} field{s} skipped"` — no icon, no tooltip by default, placed at the top-right of the preview table header row.
 
 Source: `index.css` L85–139; `BulkProgressIndicator.tsx` L49; `WorkflowSection.tsx` L71–75; `CreateEditIssueModal.tsx` L157.
+
+---
+
+## Visual Hierarchy
+
+Each of the two primary surfaces has one declared focal point; everything else is subordinate.
+
+| Surface | Primary focal point | Subordinate (descending) |
+|---------|--------------------|--------------------------|
+| Settings — Subtask Templates section | The **template list** (card rows) — the content the user came to manage | `"New Template"` CTA (top-right) → per-row `"Edit Rows"`/delete controls → inline row editor when expanded |
+| Bulk Create Subtasks modal | The **preview row list** (the resolved subtasks about to be created) — largest area, vertical center | `"Create Subtasks"` primary CTA (bottom-right, solid `--primary`) → toolbar template/type selectors → header/parent context → `"Close"` ghost button |
+
+Hierarchy is enforced through size (row list dominates vertical space), weight (single solid primary button per surface; all other actions are `ghost`/`outline`), and position (primary CTA bottom-right of the modal footer, `"New Template"` top-right of the Settings section). Placeholder chips and the "N fields skipped" badge are accents, never focal points.
 
 ---
 
@@ -121,8 +137,8 @@ Source: `index.css` L85–139; `BulkProgressIndicator.tsx` L49; `WorkflowSection
 **Template list:**
 - Each template: a card-like row `flex items-center gap-2 rounded-lg border bg-background px-3 py-2`
 - Drag handle (left): `GripVertical` icon, `text-muted-foreground`, cursor-grab
-- Template name: editable inline via `<input>` with `border-none bg-transparent text-sm font-medium focus:outline-none focus:ring-1 focus:ring-ring rounded px-1`
-- Right side controls: `"Edit"` text button (opens template row editor below) + `Trash2` icon button in `text-destructive hover:text-destructive` — both `variant="ghost" size="icon-sm"`
+- Template name: editable inline via `<input>` with `border-none bg-transparent text-sm font-normal focus:outline-none focus:ring-1 focus:ring-ring rounded px-1`
+- Right side controls: `"Edit Rows"` text button (opens template row editor below) + `Trash2` icon button in `text-destructive hover:text-destructive` — both `variant="ghost" size="icon-sm"`
 - Reorder via dnd-kit (matches project dnd pattern from P78/P79); uses `@dnd-kit/core` + `@dnd-kit/sortable`
 
 **Template row editor (inline expand below template):**
@@ -188,7 +204,7 @@ Wider than CreateEditIssueModal (860px vs 680px) to accommodate the multi-field 
 **Header:**
 ```
 <div className="flex items-center justify-between border-b px-6 py-4">
-  <div className="flex flex-col gap-0.5">
+  <div className="flex flex-col gap-1">
     <h2 className="text-lg font-semibold">Bulk Create Subtasks</h2>
     <p className="text-xs text-muted-foreground">Parent: {parentKey}</p>
   </div>
@@ -226,7 +242,7 @@ When no template is selected and no rows exist yet:
 ```
 <div className="-mx-0 flex items-center justify-between gap-2 border-t bg-muted/50 px-6 py-4 rounded-b-lg">
   <!-- Progress indicator (left, hidden until creating) -->
-  <!-- Cancel + Create Subtasks buttons (right) -->
+  <!-- "Close" (variant="ghost") + "Create Subtasks" buttons (right) -->
 </div>
 ```
 - Progress indicator: reuses `BulkProgressIndicator` component (`total`, `completed`, `succeeded`, `failed`, `failures`, `isComplete`, `onDismiss` props). Positioned `flex-1` left of the button group.
@@ -255,7 +271,9 @@ When no template is selected and no rows exist yet:
 | Template selector placeholder | `"No template (ad-hoc)"` |
 | Bulk modal ad-hoc empty state | `"Add rows below, or choose a template above to pre-fill."` |
 | Primary CTA (bulk modal) | `"Create Subtasks"` |
+| Bulk modal dismiss button | `"Close"` (`variant="ghost"`; hidden/disabled while `creating === true`) |
 | Retry CTA | `"Retry Failed"` |
+| Template row editor toggle | `"Edit Rows"` |
 | Progress — in-progress | `"Creating {N} subtasks..."` |
 | Progress — all success | `"{N} subtask{s} created"` |
 | Progress — partial failure | `"{N} created, {M} failed"` |
@@ -281,7 +299,7 @@ When no template is selected and no rows exist yet:
 | Click template name | Puts name field into edit mode (`border border-input` ring appears) |
 | Blur template name (non-empty) | Saves name to store |
 | Blur template name (empty) | Restores previous name |
-| Click "Edit" on template | Expands the inline row editor below that template entry; collapses any other open editor |
+| Click "Edit Rows" on template | Expands the inline row editor below that template entry; collapses any other open editor |
 | Drag template row | dnd-kit sortable; live reorder; persist to store on drop |
 | Click Trash2 on template | Immediately removes template from store; no confirmation dialog |
 | Click "+ Add row" | Appends a blank row with assignee defaulted to `@inherit` chip (D-10) |
@@ -323,6 +341,7 @@ When no template is selected and no rows exist yet:
 | "N fields skipped" badge | `role="status"` |
 | Modal focus trap | `@base-ui/react/dialog` handles focus management automatically |
 | Delete template | `aria-label="Delete template {name}"` on Trash2 button |
+| Remove row | `aria-label="Remove row"` on the per-row `X` ghost button |
 | Keyboard shortcut | Enter on title field submits template name; Tab moves to next field |
 
 ---
@@ -340,11 +359,11 @@ No new shadcn components are installed in this phase — all components are alre
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS (FLAG: addressed — Remove row aria-label added)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS (FLAG: py-0.5 pill padding — declared primitive exception)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED 2026-06-05 (revision 1)
