@@ -30,9 +30,11 @@ import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
 import { invalidateGhAllData, invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
-import { fetchResolutions } from '@/services/jira/resolutions';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
-import { postTransition } from '@/services/jira/transitions';
+import {
+  fetchIssueTransitionsWithFields,
+  postTransition,
+} from '@/services/jira/transitions';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -151,17 +153,29 @@ export function FieldsSection({
     enabled: fixVersionOpen && !!activeJiraProject,
   });
 
-  // Resolution options (global list — not keyed on activeJiraProject). Fetched on first open.
-  const resolutionsQuery = useQuery({
-    queryKey: ['jira-resolutions', jiraBaseUrl],
+  // Resolution is set by EXECUTING a workflow transition (the live Jira rejects a
+  // direct resolution field PUT — see REWORK ADDENDUM). On demand (while editing the
+  // Resolution row) fetch this issue's transitions WITH field metadata so we can find
+  // an in-place (loop) transition that exposes `resolution`. Shared cache key with
+  // StatusPopover.
+  const transitionsWithFieldsQuery = useQuery({
+    queryKey: ['jira-issue-transitions-fields', issueKey, jiraBaseUrl],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return [];
-      return fetchResolutions(jiraBaseUrl, token);
+      return fetchIssueTransitionsWithFields(jiraBaseUrl, token, issueKey);
     },
     enabled: resolutionEditing,
     staleTime: Infinity,
   });
+
+  // An in-place resolution-capable transition: `to.id === current status id` (a loop,
+  // so visible status does NOT change) AND its `fields` map exposes `resolution`.
+  const inPlaceResolutionTransition = (transitionsWithFieldsQuery.data ?? []).find(
+    (t) => t.to.id === f.status.id && t.fields?.resolution,
+  );
+  const resolutionAllowedValues =
+    inPlaceResolutionTransition?.fields?.resolution?.allowedValues ?? [];
 
   // Token query for sprint picker (same pattern as fix versions)
   const { data: jiraToken } = useQuery({
@@ -248,10 +262,17 @@ export function FieldsSection({
   const queryClient = useQueryClient();
 
   const transitionMutation = useMutation({
-    mutationFn: async ({ transitionId }: { transitionId: string; toName: string }) => {
+    mutationFn: async ({
+      transitionId,
+      fields,
+    }: {
+      transitionId: string;
+      toName: string;
+      fields?: Record<string, unknown>;
+    }) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      return postTransition(jiraBaseUrl, token, issueKey, transitionId);
+      return postTransition(jiraBaseUrl, token, issueKey, transitionId, fields);
     },
     onMutate: async ({ toName }) => {
       await queryClient.cancelQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
@@ -292,8 +313,52 @@ export function FieldsSection({
     },
   });
 
-  function handleTransition(transitionId: string, toStatusName: string) {
-    transitionMutation.mutate({ transitionId, toName: toStatusName });
+  function handleTransition(
+    transitionId: string,
+    toStatusName: string,
+    opts?: { resolution: { id: string } | null },
+  ) {
+    transitionMutation.mutate({
+      transitionId,
+      toName: toStatusName,
+      // Forward a resolution chosen during a status change (StatusPopover flow).
+      ...(opts ? { fields: { resolution: opts.resolution } } : {}),
+    });
+  }
+
+  // In-place resolution mutation: runs a loop transition that only sets the
+  // resolution, leaving the visible status unchanged (so NO optimistic status.name
+  // update, unlike a genuine status change).
+  const resolutionTransitionMutation = useMutation({
+    mutationFn: async ({
+      transitionId,
+      resolution,
+    }: {
+      transitionId: string;
+      resolution: { id: string } | null;
+    }) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return postTransition(jiraBaseUrl, token, issueKey, transitionId, { resolution });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
+      if (boardId) invalidateGhAllData(queryClient, boardId);
+      else invalidateGhAllData(queryClient);
+      if (boardId) invalidateGhBacklogData(queryClient, boardId);
+      else invalidateGhBacklogData(queryClient);
+    },
+  });
+
+  function handleResolutionSelect(value: string | null) {
+    if (!value || !inPlaceResolutionTransition) return;
+    setResolutionEditing(false);
+    const resolution = value === '__unresolved__' ? null : { id: value };
+    resolutionTransitionMutation.mutate({
+      transitionId: inPlaceResolutionTransition.id,
+      resolution,
+    });
   }
 
   const sprintMoveMutation = useMutation({
@@ -325,16 +390,6 @@ export function FieldsSection({
     if (!value) return;
     setPriorityEditing(false);
     mutation.mutate({ fieldName: 'priority', value: { name: value } });
-  }
-
-  function handleResolutionChange(value: string | null) {
-    if (!value) return;
-    setResolutionEditing(false);
-    if (value === '__unresolved__') {
-      mutation.mutate({ fieldName: 'resolution', value: null });
-      return;
-    }
-    mutation.mutate({ fieldName: 'resolution', value: { name: value } });
   }
 
   function startSpEdit() {
@@ -470,48 +525,62 @@ export function FieldsSection({
         )}
       </MetaRow>
 
-      {/* Resolution -- always visible; editable inline Select only for done-category issues */}
+      {/* Resolution -- set via a workflow transition (direct field PUT is rejected by
+          this Jira). Editable only when an in-place resolution-capable transition exists. */}
       <MetaRow label="Resolution">
-        {f.status.statusCategory?.key === 'done' ? (
-          resolutionEditing ? (
-            <div>
-              <Select
-                value={f.resolution?.name ?? ''}
-                onValueChange={handleResolutionChange}
-                open
-                onOpenChange={(open) => {
-                  if (!open) setResolutionEditing(false);
-                }}
-              >
-                <SelectTrigger size="sm" className="h-6 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__unresolved__">Unresolved</SelectItem>
-                  {resolutionsQuery.data?.map((r) => (
-                    <SelectItem key={r.id} value={r.name}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {mutation.isError && mutation.variables?.fieldName === 'resolution' && (
-                <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
-              )}
-            </div>
-          ) : (
-            <button
-              data-testid="resolution-edit"
-              type="button"
-              onClick={() => setResolutionEditing(true)}
-              className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
-              title="Click to edit resolution"
+        {resolutionEditing &&
+        inPlaceResolutionTransition &&
+        resolutionAllowedValues.length > 0 ? (
+          <div>
+            <Select
+              value={f.resolution?.id ?? ''}
+              onValueChange={handleResolutionSelect}
+              open
+              onOpenChange={(open) => {
+                if (!open) setResolutionEditing(false);
+              }}
             >
-              {f.resolution?.name ?? 'Unresolved'}
-            </button>
-          )
+              <SelectTrigger size="sm" className="h-6 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {!inPlaceResolutionTransition.fields?.resolution?.required && (
+                  <SelectItem value="__unresolved__">Unresolved</SelectItem>
+                )}
+                {resolutionAllowedValues.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {resolutionTransitionMutation.isError && (
+              <p className="text-xs text-destructive mt-1">
+                Failed to set resolution — try again
+              </p>
+            )}
+          </div>
+        ) : resolutionEditing ? (
+          // Editing requested but no in-place resolution-capable transition is
+          // available (none exists, or the fetch is loading / errored / empty).
+          <div>
+            <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              {transitionsWithFieldsQuery.isError
+                ? 'Could not load transitions — resolution can only be changed via a status transition.'
+                : 'Resolution can only be changed via a status transition.'}
+            </p>
+          </div>
         ) : (
-          <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
+          <button
+            data-testid="resolution-edit"
+            type="button"
+            onClick={() => setResolutionEditing(true)}
+            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
+            title="Click to edit resolution"
+          >
+            {f.resolution?.name ?? 'Unresolved'}
+          </button>
         )}
       </MetaRow>
 

@@ -63,6 +63,7 @@ vi.mock('@/services/jira/sprints', () => ({
 
 vi.mock('@/services/jira/transitions', () => ({
   postTransition: vi.fn(),
+  fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/services/jira/versions', () => ({
@@ -358,14 +359,13 @@ describe('FieldsSection', () => {
     });
   });
 
-  describe('Resolution MetaRow', () => {
-    async function renderFieldsSectionWithMutate(issue: JiraIssueDetail) {
+  describe('Resolution MetaRow (transition-driven)', () => {
+    async function renderResolution(issue: JiraIssueDetail) {
       const { FieldsSection } = await import('./FieldsSection');
-      const mutateMock = vi.fn();
       const mutation = {
         isPending: false,
         isError: false,
-        mutate: mutateMock,
+        mutate: vi.fn(),
         variables: undefined,
         data: undefined,
       };
@@ -384,46 +384,68 @@ describe('FieldsSection', () => {
         />,
         { wrapper },
       );
-      return mutateMock;
     }
 
-    const doneIssue = () =>
-      makeIssue({
+    // An in-place (loop) transition whose `to.id` equals the issue's status id and
+    // which exposes a resolution field — i.e. resolution-capable in place.
+    const inPlaceTransition = (statusId: string) => ({
+      id: 'txn-resolve',
+      name: 'Set Resolution',
+      to: { id: statusId, name: 'Closed' },
+      fields: {
+        resolution: {
+          required: false,
+          allowedValues: [
+            { id: '1', name: 'Done' },
+            { id: '2', name: "Won't Do" },
+          ],
+        },
+      },
+    });
+
+    it('renders read-only value + explanation when no in-place resolution-capable transition exists', async () => {
+      const { fetchIssueTransitionsWithFields } = await import('@/services/jira/transitions');
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValue([]);
+      const issue = makeIssue({
         status: { id: '1', name: 'Closed', statusCategory: { key: 'done' } },
         resolution: null,
       });
+      await renderResolution(issue);
 
-    it('renders read-only value with NO edit button when status is not done', async () => {
-      await renderFieldsSectionWithMutate(makeIssue());
-      expect(screen.getByText('Resolution')).toBeTruthy();
-      expect(screen.queryByTestId('resolution-edit')).toBeNull();
+      const { fireEvent } = await import('@testing-library/react');
+      // Enter edit mode; with no capable transition it must stay read-only + note.
+      fireEvent.click(screen.getByTestId('resolution-edit'));
+      expect(await screen.findByText(/only be changed via a status transition/i)).toBeTruthy();
       expect(screen.getByTestId('resolution-value').textContent).toBe('Unresolved');
     });
 
-    it('calls mutate with { name } payload when a named resolution is chosen (done)', async () => {
-      const { fireEvent } = await import('@testing-library/react');
-      const mutateMock = await renderFieldsSectionWithMutate(doneIssue());
-      fireEvent.click(screen.getByTestId('resolution-edit'));
-      // Wait for the async resolutions query to populate the Select options.
-      await screen.findByRole('option', { name: 'Done' });
-      fireEvent.change(screen.getByTestId('select-native'), { target: { value: 'Done' } });
-      expect(mutateMock).toHaveBeenCalledWith({
-        fieldName: 'resolution',
-        value: { name: 'Done' },
-      });
-    });
+    it('shows a Select of the transition allowedValues and runs the in-place transition with fields.resolution', async () => {
+      const { fetchIssueTransitionsWithFields, postTransition } = await import(
+        '@/services/jira/transitions'
+      );
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValue([inPlaceTransition('1')]);
+      vi.mocked(postTransition).mockResolvedValue(undefined);
 
-    it('calls mutate with null payload when "Unresolved" is chosen (done)', async () => {
-      const { fireEvent } = await import('@testing-library/react');
-      const mutateMock = await renderFieldsSectionWithMutate(doneIssue());
-      fireEvent.click(screen.getByTestId('resolution-edit'));
-      await screen.findByRole('option', { name: 'Unresolved' });
-      fireEvent.change(screen.getByTestId('select-native'), {
-        target: { value: '__unresolved__' },
+      const issue = makeIssue({
+        status: { id: '1', name: 'Closed', statusCategory: { key: 'done' } },
+        resolution: null,
       });
-      expect(mutateMock).toHaveBeenCalledWith({
-        fieldName: 'resolution',
-        value: null,
+      await renderResolution(issue);
+
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.click(screen.getByTestId('resolution-edit'));
+      // Options come from the transition's allowedValues.
+      await screen.findByRole('option', { name: 'Done' });
+      fireEvent.change(screen.getByTestId('select-native'), { target: { value: '1' } });
+
+      await vi.waitFor(() => {
+        expect(vi.mocked(postTransition)).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'test-token',
+          'PROJ-1',
+          'txn-resolve',
+          { resolution: { id: '1' } },
+        );
       });
     });
   });
