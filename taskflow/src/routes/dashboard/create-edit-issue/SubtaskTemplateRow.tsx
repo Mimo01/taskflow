@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -8,6 +7,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,8 +19,8 @@ import {
 } from '@/components/ui/select';
 import type { CreatemetaField, JiraUser } from '@/services/jira';
 import type { SubtaskTemplateRow as SubtaskTemplateRowType } from '@/stores/subtask-templates.store';
-import { resolveAssignee } from '../resolveRowPlaceholders';
 import type { PlaceholderContext } from '../resolveRowPlaceholders';
+import { resolveAssignee } from '../resolveRowPlaceholders';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ interface SubtaskTemplateRowProps {
   assignees?: JiraUser[];
   placeholderCtx?: PlaceholderContext;
   rowState?: RowState;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
 }
 
 // ── Placeholder chip ─────────────────────────────────────────────────────────
@@ -53,12 +53,12 @@ function PlaceholderChip({
   value: '@inherit' | '@current' | '@unassigned';
   hint: string;
 }) {
-  const chipBase =
-    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-normal';
+  const chipBase = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-normal';
 
   if (value === '@inherit') {
     return (
       <span
+        role="img"
         className={`${chipBase} bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300`}
         aria-label={`@inherit placeholder, resolved to ${hint.replace('@inherit → ', '')}`}
       >
@@ -73,6 +73,7 @@ function PlaceholderChip({
   if (value === '@current') {
     return (
       <span
+        role="img"
         className={`${chipBase} bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300`}
         aria-label={`@current placeholder, resolved to ${hint.replace('@current → ', '')}`}
       >
@@ -87,6 +88,7 @@ function PlaceholderChip({
   // @unassigned
   return (
     <span
+      role="img"
       className={`${chipBase} bg-muted text-muted-foreground`}
       aria-label="@unassigned placeholder"
     >
@@ -116,7 +118,7 @@ function AdvancedFieldItem({
         {field.name}
       </label>
       {field.schema.allowedValues && field.schema.allowedValues.length > 0 ? (
-        <Select value={value} onValueChange={onChange}>
+        <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
           <SelectTrigger id={`adv-${fid}`} className="h-7 w-full text-xs" disabled={disabled}>
             <SelectValue placeholder={`Select ${field.name}`} />
           </SelectTrigger>
@@ -157,8 +159,7 @@ export function SubtaskTemplateRow({
 }: SubtaskTemplateRowProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const isDisabled =
-    rowState?.status === 'creating' || rowState?.status === 'created';
+  const isDisabled = rowState?.status === 'creating' || rowState?.status === 'created';
 
   const isFailed = rowState?.status === 'failed';
   const isCreating = rowState?.status === 'creating';
@@ -166,9 +167,7 @@ export function SubtaskTemplateRow({
 
   // Assignee display
   const isPlaceholder =
-    row.assignee === '@inherit' ||
-    row.assignee === '@current' ||
-    row.assignee === '@unassigned';
+    row.assignee === '@inherit' || row.assignee === '@current' || row.assignee === '@unassigned';
 
   const assigneeHint = placeholderCtx
     ? resolveAssignee(row.assignee, placeholderCtx).displayHint
@@ -190,21 +189,23 @@ export function SubtaskTemplateRow({
       >
         {/* Drag handle — settings mode only */}
         {mode === 'settings' && (
-          <div
+          <button
+            type="button"
             {...dragHandleProps}
             className="text-muted-foreground cursor-grab active:cursor-grabbing"
             aria-label="Drag to reorder"
-            role="button"
           >
             <GripVertical className="h-4 w-4" />
-          </div>
+          </button>
         )}
 
         {/* Title — required */}
         <Input
           className={[
             'flex-1 min-w-0',
-            titleInvalid ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : '',
+            titleInvalid
+              ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20'
+              : '',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -226,7 +227,7 @@ export function SubtaskTemplateRow({
           ) : isPlaceholder ? (
             <Select
               value={row.assignee}
-              onValueChange={(v) => onChange({ assignee: v })}
+              onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
               disabled={isDisabled}
             >
               <SelectTrigger className="w-32 h-7 text-xs">
@@ -347,9 +348,7 @@ export function SubtaskTemplateRow({
           </Button>
         ) : (
           <div className="flex items-center justify-center w-7 h-7 shrink-0">
-            {isCreating && (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            )}
+            {isCreating && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
             {isCreated && (
               <CheckCircle2
                 className="size-4 text-green-600 dark:text-green-400"
@@ -358,11 +357,7 @@ export function SubtaskTemplateRow({
               />
             )}
             {isFailed && (
-              <AlertCircle
-                className="size-4 text-destructive"
-                role="img"
-                aria-label="Failed"
-              />
+              <AlertCircle className="size-4 text-destructive" role="img" aria-label="Failed" />
             )}
           </div>
         )}
