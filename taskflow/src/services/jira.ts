@@ -608,11 +608,7 @@ export { fetchComments, postComment } from './jira/comments';
  * `@/services/jira/transitions` directly.
  */
 export { fetchIssueTransitionsWithFields, postTransition } from './jira/transitions';
-export type { JiraComment } from './jira/types';
-export type {
-  JiraTransitionFieldMeta,
-  JiraTransitionWithFields,
-} from './jira/types';
+export type { JiraComment, JiraTransitionFieldMeta, JiraTransitionWithFields } from './jira/types';
 
 // ─── Standup Activity ──────────────────────────────────────────────────────────
 
