@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ArrowUpRight, Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
-import { useMemo } from 'react';
+import { ArrowUpRight, Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
@@ -19,6 +19,7 @@ import { deleteAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
@@ -165,6 +166,7 @@ export function IssueDetailContent({
   const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
   const queryClient = useQueryClient();
   const jiraBaseUrlFromStore = useAuthStore((s) => s.jiraBaseUrl);
+  const [bulkCreateOpen, setBulkCreateOpen] = useState(false);
 
   async function handleDeleteAttachment(attachment: JiraAttachment) {
     const token = await readSecret('jira-pat');
@@ -328,6 +330,21 @@ export function IssueDetailContent({
             <Plus className="size-3.5" />
             Add subtask
           </button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-1 gap-1.5"
+            onClick={() => setBulkCreateOpen(true)}
+          >
+            <LayoutList className="size-3.5" />
+            Bulk Create Subtasks
+          </Button>
+          <BulkCreateSubtasksModal
+            open={bulkCreateOpen}
+            onClose={() => setBulkCreateOpen(false)}
+            parentKey={issueKey}
+            parentIssue={issue}
+          />
         </section>
       )}
 
