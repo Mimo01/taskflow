@@ -326,10 +326,19 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   5. On partial failure, the modal stays open showing per-row error messages; a "Retry failed" action re-runs only the failed items; already-created subtasks are never duplicated on retry
 
 **Plans**: 4 plans
+**Wave 1**
+
 - [ ] 80-01-PLAN.md — Foundation: persistent store + pure resolvers + Wave-0 tests + components field + progress props
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 80-02-PLAN.md — Shared SubtaskTemplateRow (core inline fields + Advanced expand + placeholder chips)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 80-03-PLAN.md — Settings Subtask Templates section + template/row CRUD + Settings registration
 - [ ] 80-04-PLAN.md — Bulk Create Subtasks modal: sequential creation, retry-no-duplicate, invalidations + entry point
+
 **Notes**: Store pattern mirrors `tempo-filters.store.ts` exactly (`createTauriStorage('subtask-templates.json')`). Sequential `for` loop (not `Promise.all`) for creation — order preserved, per-item status trackable. `BulkCreateSubtasksModal` receives `parentKey` prop from `IssueDetailContent` local state (not AppLayout). On any creation success, invalidate `['gh-all-data', boardId]`, `['jira-issue-detail', parentKey]`, and `['jira-subtask-enrichment', parentKey]`.
 **UI hint**: yes
 
