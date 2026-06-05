@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from '../../lib/apiFetch';
-import { fetchIssueTransitionsWithFields, postTransition } from './transitions';
+import {
+  fetchIssueTransitionsWithFields,
+  postTransition,
+  transitionsWithFieldsKey,
+} from './transitions';
 
 const mockedApiFetch = vi.mocked(apiFetch);
 const baseUrl = 'https://jira.example.com';
@@ -74,6 +78,26 @@ describe('transitions', () => {
       const callBody = JSON.parse(mockedApiFetch.mock.calls[0][2]?.body as string);
       expect(callBody).toEqual({ transition: { id: 'txn-1' } });
       expect('fields' in callBody).toBe(false);
+    });
+  });
+
+  describe('transitionsWithFieldsKey', () => {
+    it('includes the status id so the cache cannot be reused across statuses', () => {
+      expect(transitionsWithFieldsKey(issueKey, baseUrl, '10000')).toEqual([
+        'jira-issue-transitions-fields',
+        issueKey,
+        baseUrl,
+        '10000',
+      ]);
+    });
+
+    it('produces distinct keys for the same issue in different statuses', () => {
+      const a = transitionsWithFieldsKey(issueKey, baseUrl, '10000');
+      const b = transitionsWithFieldsKey(issueKey, baseUrl, '10001');
+      expect(a).not.toEqual(b);
+      // Both share the partial family prefix used by onSettled invalidation.
+      expect(a.slice(0, 2)).toEqual(['jira-issue-transitions-fields', issueKey]);
+      expect(b.slice(0, 2)).toEqual(['jira-issue-transitions-fields', issueKey]);
     });
   });
 

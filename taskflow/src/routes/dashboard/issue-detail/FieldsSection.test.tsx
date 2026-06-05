@@ -64,6 +64,12 @@ vi.mock('@/services/jira/sprints', () => ({
 vi.mock('@/services/jira/transitions', () => ({
   postTransition: vi.fn(),
   fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
+  transitionsWithFieldsKey: (issueKey: string, baseUrl: string, statusId: string) => [
+    'jira-issue-transitions-fields',
+    issueKey,
+    baseUrl,
+    statusId,
+  ],
 }));
 
 vi.mock('@/services/jira/versions', () => ({

@@ -11,6 +11,23 @@ import { apiFetch } from '../../lib/apiFetch';
 import type { JiraTransitionWithFields } from './types';
 
 /**
+ * React Query key for the per-issue transitions-with-fields fetch.
+ *
+ * The set of available transitions (and therefore which one is the in-place
+ * resolution loop) is a function of the issue's CURRENT status, so `statusId`
+ * is part of the key: a cached list must never gate a different status. Both
+ * StatusPopover and FieldsSection MUST use this single factory so their cache
+ * entries stay identical (shared fetch) and never silently diverge.
+ */
+export function transitionsWithFieldsKey(
+  issueKey: string,
+  baseUrl: string,
+  statusId: string,
+): readonly [string, string, string, string] {
+  return ['jira-issue-transitions-fields', issueKey, baseUrl, statusId];
+}
+
+/**
  * Transition a Jira issue to a new status.
  *
  * The optional `fields` argument is included in the POST body ONLY when supplied

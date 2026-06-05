@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import {
   fetchIssueTransitionsWithFields,
   filterTransitionsForStatus,
+  transitionsWithFieldsKey,
   useGhTransitions,
 } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -88,7 +89,10 @@ export default function StatusPopover({
   // On-demand REST transitions-with-fields (shared cache key with FieldsSection's
   // sidebar control). Only enabled when the popover is open and we have an issue key.
   const { data: transitionsWithFields } = useQuery({
-    queryKey: ['jira-issue-transitions-fields', issueKey, jiraBaseUrl],
+    // Shared factory with FieldsSection — keyed on the current status id so the
+    // cache can't be reused across statuses (CR-01 / WR-04). The query is gated
+    // on issueKey/jiraBaseUrl presence below, so the `?? ''` fallbacks never run.
+    queryKey: transitionsWithFieldsKey(issueKey ?? '', jiraBaseUrl ?? '', currentStatusId),
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !issueKey || !jiraBaseUrl) return [];

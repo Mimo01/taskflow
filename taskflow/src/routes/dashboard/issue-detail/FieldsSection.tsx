@@ -31,7 +31,11 @@ import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
 import { invalidateGhAllData, invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
-import { fetchIssueTransitionsWithFields, postTransition } from '@/services/jira/transitions';
+import {
+  fetchIssueTransitionsWithFields,
+  postTransition,
+  transitionsWithFieldsKey,
+} from '@/services/jira/transitions';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -156,7 +160,10 @@ export function FieldsSection({
   // an in-place (loop) transition that exposes `resolution`. Shared cache key with
   // StatusPopover.
   const transitionsWithFieldsQuery = useQuery({
-    queryKey: ['jira-issue-transitions-fields', issueKey, jiraBaseUrl],
+    // Keyed on the current status id: the available transitions are a function
+    // of the issue's status, so a list cached against the old status must never
+    // gate a new one (CR-01 / WR-04 — shared factory with StatusPopover).
+    queryKey: transitionsWithFieldsKey(issueKey, jiraBaseUrl, f.status.id),
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return [];
@@ -298,6 +305,11 @@ export function FieldsSection({
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
+      // Belt-and-suspenders for same-status refreshes: a status change re-keys
+      // the transitions query (via f.status.id) so a stale list can't gate the
+      // new status, but invalidating the family also covers in-place refreshes
+      // (CR-01 / WR-04). Partial key matches the whole transitions-fields family.
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-transitions-fields', issueKey] });
       // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
       // Phase 75: also invalidate GH all-data so sprint board columns refresh after a transition.
       if (boardId) invalidateGhAllData(queryClient, boardId);
@@ -341,6 +353,9 @@ export function FieldsSection({
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
+      // Refresh the transitions-with-fields family so a follow-up resolution
+      // edit re-reads gating against the latest state (CR-01 / WR-04).
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-transitions-fields', issueKey] });
       if (boardId) invalidateGhAllData(queryClient, boardId);
       else invalidateGhAllData(queryClient);
       if (boardId) invalidateGhBacklogData(queryClient, boardId);
