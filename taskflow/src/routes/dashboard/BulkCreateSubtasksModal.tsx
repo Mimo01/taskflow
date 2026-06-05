@@ -311,16 +311,18 @@ export function BulkCreateSubtasksModal({
     [templates, creatmetaFields, storyPointsFieldKey, subtaskTypes],
   );
 
-  function handleTemplateChange(templateId: string) {
-    setSelectedTemplateId(templateId);
-    applyTemplate(templateId);
+  function handleTemplateChange(templateId: string | null) {
+    const id = templateId ?? '__adhoc__';
+    setSelectedTemplateId(id);
+    applyTemplate(id);
   }
 
-  function handleTypeChange(typeId: string) {
-    setSelectedSubtaskTypeId(typeId);
+  function handleTypeChange(typeId: string | null) {
+    const id = typeId ?? '';
+    setSelectedSubtaskTypeId(id);
     if (selectedTemplateId !== '__adhoc__') {
       // Re-resolve fields with the new type
-      applyTemplate(selectedTemplateId, typeId);
+      applyTemplate(selectedTemplateId, id);
     }
   }
 
