@@ -18,6 +18,10 @@ interface BulkProgressIndicatorProps {
   failures: Array<{ key: string; error: string }>;
   isComplete: boolean;
   onDismiss: () => void;
+  /** Verb used in status text. Defaults to 'Updating'. Pass 'Creating' for bulk subtask creation. */
+  actionVerb?: string;
+  /** Noun used in status text. Defaults to 'issues'. Pass 'subtasks' for bulk subtask creation. */
+  noun?: string;
 }
 
 export function BulkProgressIndicator({
@@ -28,6 +32,8 @@ export function BulkProgressIndicator({
   failures,
   isComplete,
   onDismiss,
+  actionVerb = 'Updating',
+  noun = 'issues',
 }: BulkProgressIndicatorProps) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -41,18 +47,28 @@ export function BulkProgressIndicator({
 
   const pct = total > 0 ? (completed / total) * 100 : 0;
 
+  const nounPlural = noun;
+  const nounSingular = noun.endsWith('s') ? noun.slice(0, -1) : noun;
+  const pastTense =
+    actionVerb === 'Creating'
+      ? 'created'
+      : actionVerb === 'Updating'
+        ? 'updated'
+        : `${actionVerb.toLowerCase()}d`;
+
   let statusText: string;
   let statusClass = 'text-muted-foreground';
   if (!isComplete) {
-    statusText = `Updating ${total} issues...`;
+    statusText = `${actionVerb} ${total} ${nounPlural}...`;
   } else if (failed === 0) {
-    statusText = `${succeeded} updated successfully`;
+    const label = succeeded === 1 ? nounSingular : nounPlural;
+    statusText = `${succeeded} ${label} ${pastTense}`;
     statusClass = 'text-green-600 dark:text-green-400';
   } else if (succeeded === 0) {
-    statusText = `All ${total} updates failed`;
+    statusText = `All ${total} ${nounPlural} failed`;
     statusClass = 'text-destructive';
   } else {
-    statusText = `${succeeded} updated, ${failed} failed`;
+    statusText = `${succeeded} ${pastTense}, ${failed} failed`;
     statusClass = 'text-destructive';
   }
 

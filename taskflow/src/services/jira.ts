@@ -1241,6 +1241,7 @@ export interface JiraIssueDetail {
       timeSpentSeconds?: number;
     };
     duedate: string | null;
+    components?: Array<{ id: string; name: string }>;
     customfield_13415?: { value?: string; name?: string } | null;
     [key: string]: unknown;
   };
@@ -1373,6 +1374,7 @@ export async function fetchIssueDetail(
     'created',
     'updated',
     'duedate',
+    'components',
     customFields.epicLinkFieldKey,
     customFields.epicNameFieldKey,
     customFields.sprintFieldKey,
