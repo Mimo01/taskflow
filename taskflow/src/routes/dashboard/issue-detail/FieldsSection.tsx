@@ -31,10 +31,7 @@ import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
 import { invalidateGhAllData, invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
-import {
-  fetchIssueTransitionsWithFields,
-  postTransition,
-} from '@/services/jira/transitions';
+import { fetchIssueTransitionsWithFields, postTransition } from '@/services/jira/transitions';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -469,6 +466,8 @@ export function FieldsSection({
           onSelect={handleTransition}
           disabled={transitionMutation.isPending}
           statusCategoryKey={f.status.statusCategory?.key}
+          issueKey={issueKey}
+          jiraBaseUrl={jiraBaseUrl}
         />
         {transitionMutation.isError && (
           <span className="text-xs text-destructive">Transition failed</span>
@@ -528,9 +527,7 @@ export function FieldsSection({
       {/* Resolution -- set via a workflow transition (direct field PUT is rejected by
           this Jira). Editable only when an in-place resolution-capable transition exists. */}
       <MetaRow label="Resolution">
-        {resolutionEditing &&
-        inPlaceResolutionTransition &&
-        resolutionAllowedValues.length > 0 ? (
+        {resolutionEditing && inPlaceResolutionTransition && resolutionAllowedValues.length > 0 ? (
           <div>
             <Select
               value={f.resolution?.id ?? ''}
@@ -555,9 +552,7 @@ export function FieldsSection({
               </SelectContent>
             </Select>
             {resolutionTransitionMutation.isError && (
-              <p className="text-xs text-destructive mt-1">
-                Failed to set resolution — try again
-              </p>
+              <p className="text-xs text-destructive mt-1">Failed to set resolution — try again</p>
             )}
           </div>
         ) : resolutionEditing ? (

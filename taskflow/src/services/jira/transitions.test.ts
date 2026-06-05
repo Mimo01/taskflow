@@ -51,7 +51,10 @@ describe('transitions', () => {
       await postTransition(baseUrl, token, issueKey, 'txn-1', { resolution: { id: '1' } });
 
       const callBody = JSON.parse(mockedApiFetch.mock.calls[0][2]?.body as string);
-      expect(callBody).toEqual({ transition: { id: 'txn-1' }, fields: { resolution: { id: '1' } } });
+      expect(callBody).toEqual({
+        transition: { id: 'txn-1' },
+        fields: { resolution: { id: '1' } },
+      });
     });
 
     it('preserves a fields object containing a null resolution (clearing)', async () => {
