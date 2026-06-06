@@ -18,7 +18,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, X } from 'lucide-react';
+import { ChevronRight, CornerLeftUp, ExternalLink, X } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -101,6 +101,11 @@ export function PeekPanel({
     enabled: !!issueKey && !paletteOpen,
   });
 
+  // Parent link in the header (subtasks only) — surfaces the parent in the peek
+  // instead of the body section the full page uses. Narrowed to a const so the
+  // onClick closure stays type-safe without a non-null assertion.
+  const peekParent = issue?.fields.issuetype.subtask ? issue.fields.parent : undefined;
+
   return (
     <div
       className={`relative border-l border-border bg-card overflow-hidden flex flex-col shrink-0 shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.25)] ring-1 ring-foreground/10${isDragging ? '' : ' transition-all duration-200'}`}
@@ -119,8 +124,23 @@ export function PeekPanel({
           min-w-0 flex-1 on the left container allows the title to shrink/truncate
           without displacing the right-side controls (0-width flex pitfall guard). */}
       <div className="flex items-center justify-between h-10 px-4 border-b border-border shrink-0">
-        {/* Left: icon (after load) + key + title (after load) */}
+        {/* Left: parent breadcrumb (subtasks, after load) + icon + key + title (after load) */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
+          {peekParent && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenIssue(peekParent.key)}
+                title={peekParent.fields.summary}
+                aria-label={`Open parent issue ${peekParent.key}`}
+                className="flex items-center gap-1 shrink-0 text-xs font-mono text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+              >
+                <CornerLeftUp className="size-3.5" />
+                {peekParent.key}
+              </button>
+              <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+            </>
+          )}
           {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
           {/* Key must NOT shrink — badge stays mono and always visible */}
           <span className="text-xs font-mono text-muted-foreground shrink-0">{issueKey}</span>

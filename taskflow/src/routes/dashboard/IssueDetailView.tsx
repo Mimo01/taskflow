@@ -482,6 +482,7 @@ export function IssueDetailView({
       isPinned={isPinned}
       onTogglePin={onTogglePin}
       enrichedSubtasks={subtaskEnrichmentQuery.data as never}
+      showParentSection={layout === 'two-column'}
       showSubtasksSkeleton={showSubtasksSkeleton}
       subtaskError={subtaskEnrichmentQuery.isError ? (subtaskEnrichmentQuery.error as Error) : null}
       onSubtaskRetry={() =>
