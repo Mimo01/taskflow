@@ -61,7 +61,8 @@ export function BoardResolutionDialog({
           <DialogTitle>Set Resolution</DialogTitle>
           <DialogDescription>
             Move <span className="font-mono font-medium text-foreground">{issueKey}</span> to{' '}
-            <span className="font-medium text-foreground">{toStatusName}</span>. Choose a resolution:
+            <span className="font-medium text-foreground">{toStatusName}</span>. Choose a
+            resolution:
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-0.5">
