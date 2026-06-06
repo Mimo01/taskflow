@@ -3,8 +3,15 @@
  *
  * Spans the full board width. Shows: chevron toggle, story key, summary,
  * epic pill (when epic data is present), status badge, assignee avatar,
- * and subtask count. Clicking the row opens the detail sheet; clicking
- * the chevron toggles expand/collapse without opening the sheet.
+ * and subtask count. Clicking the chevron toggles expand/collapse without
+ * opening anything.
+ *
+ * PEEK-01/PEEK-05: when onOpenIssue is provided, the row body becomes a
+ * div[role=button] that opens the issue peek panel on click; the issue key
+ * renders as an inner <button> that navigates to the full /issue/KEY page
+ * (stopPropagation prevents the body peek from also firing). When onOpenIssue
+ * is omitted, behavior degrades to today's: the key navigates full-page and
+ * the row body has no peek handler.
  */
 import { ChevronRight, Flag } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -31,6 +38,12 @@ interface StoryHeaderRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onOpenDetail: (key: string) => void;
+  /**
+   * PEEK-01: clicking the row body opens the issue peek panel. When provided,
+   * the outer row becomes a div[role=button] so the inner key <button> is valid
+   * HTML (no nested buttons — D-10 / Pitfall 1).
+   */
+  onOpenIssue?: (key: string) => void;
   transitions?: JiraTransition[];
   onTransition?: (
     transitionId: string,
@@ -60,6 +73,7 @@ export function StoryHeaderRow({
   isExpanded,
   onToggle,
   onOpenDetail,
+  onOpenIssue,
   transitions,
   onTransition,
   transitionError,
@@ -72,23 +86,31 @@ export function StoryHeaderRow({
   isFlagged,
   onToggleFlag,
 }: StoryHeaderRowProps) {
-  const rowContent = (
-    <div
-      className={cn(
-        'flex items-center gap-2 px-3 py-2 transition-colors border-b',
-        isExpanded
-          ? isFlagged
-            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
-            : 'bg-muted/40 hover:bg-muted/60 border-border/60'
-          : isFlagged
-            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60 mb-px'
-            : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
-      )}
-    >
-      {/* Chevron — toggles collapse without opening detail sheet */}
+  // PEEK-01/PEEK-05 (D-10 / Pitfall 1): when onOpenIssue is wired, the outer row
+  // becomes div[role=button] (body → peek) so the inner key <button> is valid HTML.
+  const useKeyBodySplit = !!onOpenIssue;
+
+  const rowClassName = cn(
+    'flex items-center gap-2 px-3 py-2 transition-colors border-b',
+    useKeyBodySplit && 'cursor-pointer',
+    isExpanded
+      ? isFlagged
+        ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
+        : 'bg-muted/40 hover:bg-muted/60 border-border/60'
+      : isFlagged
+        ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60 mb-px'
+        : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
+  );
+
+  const rowInner = (
+    <>
+      {/* Chevron — toggles collapse without opening peek/detail */}
       <button
         type="button"
-        onClick={onToggle}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         aria-label={isExpanded ? 'Collapse story' : 'Expand story'}
       >
@@ -97,25 +119,26 @@ export function StoryHeaderRow({
         />
       </button>
 
-      {/* Key + summary — opens detail sheet */}
-      <button
-        type="button"
-        className="group flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
-        onClick={() => onOpenDetail(storyKey)}
-      >
+      {/* Key + summary — key navigates full-page (PEEK-05); summary bubbles to body → peek */}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
-        <span
+        <button
+          type="button"
           className={cn(
-            'font-mono text-xs text-muted-foreground shrink-0',
+            'group font-mono text-xs text-muted-foreground shrink-0 cursor-pointer',
             statusCategoryKey === 'done'
               ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
               : 'group-hover:underline',
           )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDetail(storyKey);
+          }}
         >
           {storyKey}
-        </span>
+        </button>
         <span className="text-sm font-medium truncate">{summary}</span>
-      </button>
+      </div>
 
       {/* Assignee avatar + name — only rendered when story has an assignee */}
       {assigneeDisplayName && (
@@ -157,7 +180,27 @@ export function StoryHeaderRow({
       {transitionError && (
         <span className="shrink-0 text-xs text-destructive">{transitionError}</span>
       )}
+    </>
+  );
+
+  const rowContent = useKeyBodySplit ? (
+    // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key/chevron/epic are <button>, nested button is invalid HTML (D-10 / Pitfall 1)
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenIssue?.(storyKey)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenIssue?.(storyKey);
+        }
+      }}
+      className={rowClassName}
+    >
+      {rowInner}
     </div>
+  ) : (
+    <div className={rowClassName}>{rowInner}</div>
   );
 
   if (!onTransition && !onToggleFlag) {
