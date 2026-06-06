@@ -327,15 +327,14 @@ export function IssueDetailContent({
             <Plus className="size-3.5" />
             Add subtask
           </button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-1 gap-1.5"
+          <button
+            type="button"
             onClick={() => setBulkCreateOpen(true)}
+            className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
           >
             <LayoutList className="size-3.5" />
             Bulk Create Subtasks
-          </Button>
+          </button>
           <BulkCreateSubtasksModal
             open={bulkCreateOpen}
             onClose={() => setBulkCreateOpen(false)}
