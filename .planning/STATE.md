@@ -117,4 +117,4 @@ Last session: 2026-06-05T08:37:17.891Z
 Stopped at: Phase 80 UI-SPEC approved
 Resume file: .planning/phases/80-subtask-templates-and-bulk-creation/80-UI-SPEC.md
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
-| 16 | Consistent story point badge width in Backlog regardless of digit count | 2026-06-06 | 868a490e | Done | — |
+| 16 | Consistent story point badge width in Backlog regardless of digit count | 2026-06-06 | a0aa443b | Approved | — |
