@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { ArrowUpRight } from 'lucide-react';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
+import { statusPillClass } from '@/lib/statusStyles';
+import { cn } from '@/lib/utils';
 import type { JiraIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -88,8 +92,42 @@ export function IssueDetailSidebar({
   );
   const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl, sidebarBoardId);
 
+  const parent = f.parent;
+
   return (
     <div className="space-y-4 text-sm">
+      {/* Subtask parent link — leads the Fields block so the parent reads as a field */}
+      {isSubtask && parent && (
+        <button
+          type="button"
+          aria-label={`Open parent issue ${parent.key}`}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-left transition-colors',
+            'cursor-pointer hover:bg-muted',
+          )}
+          onClick={() => onOpenIssue?.(parent.key)}
+        >
+          {parent.fields.issuetype?.name && (
+            <IssueTypeIcon typeName={parent.fields.issuetype.name} />
+          )}
+          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Parent
+          </span>
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">{parent.key}</span>
+          <span className="min-w-0 flex-1 truncate pr-0.5 text-sm font-medium text-foreground">
+            {parent.fields.summary}
+          </span>
+          {parent.fields.status?.name && (
+            <div className="flex shrink-0">
+              <span className={statusPillClass(parent.fields.status?.statusCategory?.key)}>
+                {parent.fields.status?.name}
+              </span>
+            </div>
+          )}
+          <ArrowUpRight className="size-4 text-muted-foreground shrink-0 ml-auto" />
+        </button>
+      )}
+
       <FieldsSection
         issue={issue}
         issueKey={issueKey}

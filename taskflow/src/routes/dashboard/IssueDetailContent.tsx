@@ -1,11 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ArrowUpRight, Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
+import { Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -217,42 +216,10 @@ export function IssueDetailContent({
   const descriptionTexts = useMemo(() => [description], [description]);
   const userMap = useMentionUserMap(initialUserMap, descriptionTexts, jiraBaseUrl);
 
-  const parent = issue.fields.parent;
-
   return (
     <div className="space-y-6">
-      {/* Title (with optional parent breadcrumb above for subtasks — DETAIL-01) */}
+      {/* Title (the subtask parent link now lives in the Fields/sidebar block) */}
       <div>
-        {isSubtask && parent && (
-          <button
-            type="button"
-            aria-label={`Open parent issue ${parent.key}`}
-            className={cn(
-              'flex w-full items-center gap-2 mb-2 rounded-md border bg-muted/50 px-3 py-2 text-left transition-colors',
-              'cursor-pointer hover:bg-muted',
-            )}
-            onClick={() => onOpenIssue?.(parent.key)}
-          >
-            {parent.fields.issuetype?.name && (
-              <IssueTypeIcon typeName={parent.fields.issuetype.name} />
-            )}
-            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Parent
-            </span>
-            <span className="shrink-0 font-mono text-xs text-muted-foreground">{parent.key}</span>
-            <span className="min-w-0 flex-1 truncate pr-0.5 text-sm font-medium text-foreground">
-              {parent.fields.summary}
-            </span>
-            {parent.fields.status?.name && (
-              <div className="flex shrink-0">
-                <span className={statusPillClass(parent.fields.status?.statusCategory?.key)}>
-                  {parent.fields.status?.name}
-                </span>
-              </div>
-            )}
-            <ArrowUpRight className="size-4 text-muted-foreground shrink-0 ml-auto" />
-          </button>
-        )}
         <p className="text-xs font-mono text-muted-foreground mb-1">{issue.key}</p>
         <h2 className="text-xl font-semibold leading-snug">{summary}</h2>
       </div>
