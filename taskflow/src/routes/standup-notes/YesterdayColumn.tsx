@@ -455,7 +455,7 @@ function buildGroups(
         issueType: issueMeta?.[key]?.type,
         subItems,
       }))
-      .sort((a, b) => (a.issueKey < b.issueKey ? -1 : 1));
+      .sort((a, b) => a.issueKey.localeCompare(b.issueKey));
   }
 
   return {

@@ -331,18 +331,21 @@ describe('generateMarkdown — transition collapse', () => {
 
 describe('generateMarkdown — section header label', () => {
   it('uses "Yesterday" when the date is the calendar day before today', () => {
-    // Pin today to a Tuesday so yesterday is Monday 2026-05-25
+    // Pin today to a Tuesday so yesterday is Monday 2026-05-25.
+    // Construct with LOCAL components (not a UTC instant) so the assertion holds
+    // in any runner timezone — getColumnHeading reads local calendar getters.
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-05-26T09:00:00Z'));
+    vi.setSystemTime(new Date(2026, 4, 26, 12, 0, 0));
     const md = generateMarkdown({}, '2026-05-25');
     expect(md).toMatch(/^## Yesterday \(2026-05-25\)/m);
     vi.useRealTimers();
   });
 
   it('uses the day name when the last working day was not calendar-yesterday (after weekend)', () => {
-    // Pin today to a Tuesday (2026-05-26); last working day is Friday (2026-05-22)
+    // Pin today to a Tuesday (2026-05-26); last working day is Friday (2026-05-22).
+    // Local-component construction keeps this TZ-independent (see note above).
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-05-26T09:00:00Z')); // Tuesday
+    vi.setSystemTime(new Date(2026, 4, 26, 12, 0, 0)); // Tuesday
     const md = generateMarkdown({}, '2026-05-22'); // Friday two days ago
     expect(md).toMatch(/^## Friday \(2026-05-22\)/m);
     expect(md).not.toContain('## Yesterday');
