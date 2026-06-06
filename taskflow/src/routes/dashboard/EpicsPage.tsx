@@ -61,9 +61,15 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       {/* Epic key */}
       <td className="px-3 py-3 text-xs text-muted-foreground font-mono">{epic.key}</td>
 
-      {/* Status badge */}
+      {/* Status badge — flex wrapper so the shared pill's min-w/text-center
+          take effect (statusPillClass assumes a flex-item context, as in
+          StoryHeaderRow / TaskCard / issue detail). */}
       <td className="px-3 py-3">
-        <span className={statusPillClass(epic.status.statusCategory?.key)}>{epic.status.name}</span>
+        <div className="flex">
+          <span className={statusPillClass(epic.status.statusCategory?.key)}>
+            {epic.status.name}
+          </span>
+        </div>
       </td>
 
       {/* Assignee */}
