@@ -821,7 +821,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
 
       // "Done" also appears in the description span; target the option button by role.
       fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm move' }));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
       expect(onConfirm).toHaveBeenCalledWith({ id: '10000' });
@@ -842,7 +842,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       );
 
       fireEvent.click(screen.getByRole('button', { name: 'Unresolved' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm move' }));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
       expect(onConfirm).toHaveBeenCalledWith(null);
@@ -976,7 +976,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       await fireDrop('PROJ-1');
 
       // Dialog opens — its description names the issue + target status.
-      await screen.findByText('Set Resolution');
+      await screen.findByText('Set a resolution');
       const dialog = screen.getByRole('dialog');
       expect(dialog.textContent).toContain('PROJ-1');
       // allowedValues rendered as option buttons.
@@ -1101,7 +1101,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
 
       // Drop A → dialog opens for PROJ-1 with A's allowedValues.
       await fireDrop('PROJ-1');
-      await screen.findByText('Set Resolution');
+      await screen.findByText('Set a resolution');
       const dialogA = screen.getByRole('dialog');
       expect(dialogA.textContent).toContain('PROJ-1');
       expect(screen.getByRole('button', { name: 'A-Fixed' })).toBeTruthy();

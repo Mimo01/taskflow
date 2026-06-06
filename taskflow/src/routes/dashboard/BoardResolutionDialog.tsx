@@ -8,6 +8,7 @@
  * onConfirm as `{ id }` (a real resolution) or `null` (Unresolved / clear).
  */
 
+import { CheckIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,44 +66,61 @@ export function BoardResolutionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent showCloseButton={false} className="max-h-[85vh] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set Resolution</DialogTitle>
+          <DialogTitle>Set a resolution</DialogTitle>
           <DialogDescription>
-            Move <span className="font-mono font-medium text-foreground">{issueKey}</span> to{' '}
-            <span className="font-medium text-foreground">{toStatusName}</span>. Choose a
-            resolution:
+            Moving <span className="font-mono font-medium text-foreground">{issueKey}</span> to{' '}
+            <span className="font-medium text-foreground">{toStatusName}</span> closes it. Jira
+            records <em>how</em> it was resolved as part of this move — pick a resolution to
+            continue.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-0.5">
-          {allowedValues.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => setSelectedId(r.id)}
-              className={cn(
-                'w-full text-left px-2 py-1.5 hover:bg-accent rounded',
-                selectedId === r.id && 'bg-accent font-medium',
-              )}
-            >
-              {r.name}
-            </button>
-          ))}
+        <div className="-mx-1 flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto px-1">
+          {allowedValues.map((r) => {
+            const active = selectedId === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setSelectedId(r.id)}
+                className={cn(
+                  'flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left transition-colors',
+                  active
+                    ? 'border-primary bg-primary/10 font-medium'
+                    : 'border-transparent hover:bg-accent',
+                )}
+              >
+                <span>{r.name}</span>
+                {active && <CheckIcon className="size-4 shrink-0 text-primary" />}
+              </button>
+            );
+          })}
           <button
             type="button"
+            aria-pressed={selectedId === UNRESOLVED}
             onClick={() => setSelectedId(UNRESOLVED)}
             className={cn(
-              'w-full text-left px-2 py-1.5 hover:bg-accent rounded text-muted-foreground',
-              selectedId === UNRESOLVED && 'bg-accent font-medium',
+              'flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-muted-foreground transition-colors',
+              selectedId === UNRESOLVED
+                ? 'border-primary bg-primary/10 font-medium text-foreground'
+                : 'border-transparent hover:bg-accent',
             )}
           >
-            Unresolved
+            <span>
+              Unresolved
+              <span className="ml-1.5 text-xs text-muted-foreground" aria-hidden="true">
+                (leave without a resolution)
+              </span>
+            </span>
+            {selectedId === UNRESOLVED && <CheckIcon className="size-4 shrink-0 text-primary" />}
           </button>
         </div>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button onClick={handleConfirm} disabled={isPending || selectedId === null}>
-            {isPending ? 'Setting...' : 'Confirm'}
+            {isPending ? 'Setting…' : 'Confirm move'}
           </Button>
         </DialogFooter>
       </DialogContent>
