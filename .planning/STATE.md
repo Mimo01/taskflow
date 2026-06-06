@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 80
 Plan: Not started
 Status: Executing Phase 80
-Last activity: 2026-06-06 - Quick task 260605-hx2 UAT round 2: fixed sidebar loading flash + added board drag-to-done resolution picker (with concurrency guards); pending live UAT on ESHOP-20308
+Last activity: 2026-06-06 - Quick task 260605-hx2 APPROVED & closed: resolution settable via transition from sidebar, StatusPopover, board drag & right-click; UAT passed on ESHOP-20308
 
 Progress: [██████████] 100%
 
@@ -96,7 +96,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260603-fb8 | Let users select which Jira board (fix wrong rapidViewId/board id) | 2026-06-03 | e3f3b752 | Verified | [260603-fb8-select-jira-board](./quick/260603-fb8-select-jira-board/) |
 | 260604-knq | Backlog drag-to-rank: drop DragOverlay, drag row in place (keep autoScroll synced) | 2026-06-04 | 2a2a4c30 | | [260604-knq-phase-78-backlog-drag-to-rank-keep-dnd-k](./quick/260604-knq-phase-78-backlog-drag-to-rank-keep-dnd-k/) |
 | 260605-hb4 | Notifications & dashboard issue clicks open the full page (not the peek sidebar) | 2026-06-05 | 2cc4a751 | Verified | [260605-hb4-currently-all-clicks-on-issues-except-ke](./quick/260605-hb4-currently-all-clicks-on-issues-except-ke/) |
-| 260605-hx2 | Resolution control set via workflow transition — sidebar + StatusPopover + board drag-to-done picker (reworked from rejected field-PUT) | 2026-06-06 | b3c7dd3c | Needs Review (live UAT on ESHOP-20308) | [260605-hx2-add-resolution-field-control-to-issue-de](./quick/260605-hx2-add-resolution-field-control-to-issue-de/) |
+| 260605-hx2 | Resolution control set via workflow transition — sidebar + StatusPopover + board drag & right-click picker (reworked from rejected field-PUT) | 2026-06-06 | f604bb13 | Verified (live UAT approved on ESHOP-20308) | [260605-hx2-add-resolution-field-control-to-issue-de](./quick/260605-hx2-add-resolution-field-control-to-issue-de/) |
 
 ## Deferred Items
 
