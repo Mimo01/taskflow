@@ -347,7 +347,7 @@ export default function TaskCard({
 
   const outerClassName = cn(
     'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
-    'border-l-4',
+    'border-l-[5px]',
     issueTypeStripeClass(issue.fields.issuetype),
     isFlagged &&
       'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
