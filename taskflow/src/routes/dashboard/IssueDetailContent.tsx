@@ -1,11 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ArrowUpRight, Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
+import { Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -341,8 +340,9 @@ export function IssueDetailContent({
         </section>
       )}
 
-      {/* Subtask → Parent link — same relationships region as a Story's Subtasks section.
-          Suppressed in the peek (showParentSection=false), which surfaces the parent in its header. */}
+      {/* Subtask → Parent link — same relationships region AND row style as a Story's
+          Subtasks section. Suppressed in the peek (showParentSection=false), which
+          surfaces the parent in its header instead. */}
       {isSubtask && parent && showParentSection && (
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Parent</h3>
@@ -350,26 +350,15 @@ export function IssueDetailContent({
             type="button"
             aria-label={`Open parent issue ${parent.key}`}
             onClick={() => onOpenIssue?.(parent.key)}
-            className={cn(
-              'flex w-full items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-left transition-colors',
-              'cursor-pointer hover:bg-muted',
-            )}
+            className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-accent text-sm text-left cursor-pointer"
           >
-            {parent.fields.issuetype?.name && (
-              <IssueTypeIcon typeName={parent.fields.issuetype.name} />
-            )}
-            <span className="shrink-0 font-mono text-xs text-muted-foreground">{parent.key}</span>
-            <span className="min-w-0 flex-1 truncate pr-0.5 text-sm font-medium text-foreground">
-              {parent.fields.summary}
-            </span>
+            <span className="font-mono text-xs text-muted-foreground shrink-0">{parent.key}</span>
+            <span className="flex-1 truncate">{parent.fields.summary}</span>
             {parent.fields.status?.name && (
-              <div className="flex shrink-0">
-                <span className={statusPillClass(parent.fields.status?.statusCategory?.key)}>
-                  {parent.fields.status?.name}
-                </span>
-              </div>
+              <span className={statusPillClass(parent.fields.status?.statusCategory?.key)}>
+                {parent.fields.status.name}
+              </span>
             )}
-            <ArrowUpRight className="size-4 text-muted-foreground shrink-0 ml-auto" />
           </button>
         </section>
       )}
