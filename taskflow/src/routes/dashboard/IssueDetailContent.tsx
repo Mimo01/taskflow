@@ -60,9 +60,10 @@ interface IssueDetailContentProps {
   subtaskError?: Error | null;
   /** Retry callback for subtask enrichment */
   onSubtaskRetry?: () => void;
-  /** Render the subtask→parent link section in the body (default true).
-      The peek passes false because it surfaces the parent in its header instead. */
-  showParentSection?: boolean;
+  /** Enriched parent (summary, status, assignee, issuetype) for the Parent section row.
+      The base issue.fields.parent omits assignee; this fills the gap so the row matches
+      the Subtasks section. Undefined while the parent fetch is pending. */
+  enrichedParent?: JiraIssue;
 }
 
 /** Shared subtask item shape — union of base (no assignee) and enriched (with assignee) */
@@ -161,10 +162,14 @@ export function IssueDetailContent({
   showSubtasksSkeleton,
   subtaskError,
   onSubtaskRetry,
-  showParentSection = true,
+  enrichedParent,
 }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields;
   const parent = issue.fields.parent;
+  // Parent row data: assignee only comes from the enriched fetch; summary/status
+  // fall back to the base parent payload so the row renders before enrichment lands.
+  const parentStatus = enrichedParent?.fields.status ?? parent?.fields.status;
+  const parentAssignee = enrichedParent?.fields.assignee ?? null;
   // Comments now come from the parent's independent comments query (phase 75 split);
   // `issue.fields.comment` is no longer populated by the slimmed fetchIssueDetail.
   const comments = commentsProp ?? [];
@@ -340,10 +345,9 @@ export function IssueDetailContent({
         </section>
       )}
 
-      {/* Subtask → Parent link — same relationships region AND row style as a Story's
-          Subtasks section. Suppressed in the peek (showParentSection=false), which
-          surfaces the parent in its header instead. */}
-      {isSubtask && parent && showParentSection && (
+      {/* Subtask → Parent link — same relationships region, row style AND data
+          (key, summary, assignee, status pill) as a Story's Subtasks section. */}
+      {isSubtask && parent && (
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Parent</h3>
           <button
@@ -354,9 +358,22 @@ export function IssueDetailContent({
           >
             <span className="font-mono text-xs text-muted-foreground shrink-0">{parent.key}</span>
             <span className="flex-1 truncate">{parent.fields.summary}</span>
-            {parent.fields.status?.name && (
-              <span className={statusPillClass(parent.fields.status?.statusCategory?.key)}>
-                {parent.fields.status.name}
+            {parentAssignee && (
+              <div
+                className="flex items-center gap-1.5 shrink-0"
+                title={parentAssignee.displayName}
+              >
+                <CachedAvatar
+                  url={parentAssignee.avatarUrls?.['48x48']}
+                  name={parentAssignee.displayName}
+                  size={20}
+                />
+                <span className="text-xs text-muted-foreground">{parentAssignee.displayName}</span>
+              </div>
+            )}
+            {parentStatus?.name && (
+              <span className={statusPillClass(parentStatus.statusCategory?.key)}>
+                {parentStatus.name}
               </span>
             )}
           </button>

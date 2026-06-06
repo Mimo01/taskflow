@@ -26,6 +26,7 @@ import {
   fetchEpicStories,
   fetchIssueChangelog,
   fetchIssueDetail,
+  fetchJiraIssueByKey,
   updateComment,
 } from '@/services/jira';
 import { parseDuration } from '@/services/jira/duration';
@@ -172,6 +173,21 @@ export function IssueDetailView({
     staleTime: 30_000,
     enabled:
       !!issueKey && !!jiraBaseUrl && !!jiraConnected && (issue?.fields.subtasks?.length ?? 0) > 0,
+  });
+
+  // Parent enrichment query — for subtasks, fetch the parent's full row data
+  // (summary, status, assignee, issuetype) so the Parent section can match the
+  // Subtasks section rows. The base issue.fields.parent omits assignee.
+  const parentKey = issue?.fields.issuetype.subtask ? (issue.fields.parent?.key ?? null) : null;
+  const parentQuery = useQuery<JiraIssue | null>({
+    queryKey: ['jira-parent-detail', parentKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !parentKey) return null;
+      return fetchJiraIssueByKey(jiraBaseUrl, token, parentKey);
+    },
+    staleTime: 30_000,
+    enabled: !!parentKey && !!jiraBaseUrl && !!jiraConnected,
   });
 
   // Changelog query — feeds ActivityTimeline
@@ -482,7 +498,7 @@ export function IssueDetailView({
       isPinned={isPinned}
       onTogglePin={onTogglePin}
       enrichedSubtasks={subtaskEnrichmentQuery.data as never}
-      showParentSection={layout === 'two-column'}
+      enrichedParent={parentQuery.data ?? undefined}
       showSubtasksSkeleton={showSubtasksSkeleton}
       subtaskError={subtaskEnrichmentQuery.isError ? (subtaskEnrichmentQuery.error as Error) : null}
       onSubtaskRetry={() =>
