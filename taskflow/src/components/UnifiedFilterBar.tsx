@@ -32,6 +32,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
 import type { QuickFilter } from '@/stores/filter.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -276,7 +277,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   activeAssignees.forEach((assignee) => {
     activeChips.push({
       key: `assignee-${assignee}`,
-      label: assignee,
+      label: assignee === UNASSIGNED_FILTER ? UNASSIGNED_LABEL : assignee,
       category: 'Assignee',
       onRemove: () => toggleAssignee(assignee),
     });
@@ -543,6 +544,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               options={filterOptions.assignees}
               selected={activeAssignees}
               onToggle={toggleAssignee}
+              displayMap={new Map([[UNASSIGNED_FILTER, UNASSIGNED_LABEL]])}
             />
             <FilterDropdown
               label="Status"
