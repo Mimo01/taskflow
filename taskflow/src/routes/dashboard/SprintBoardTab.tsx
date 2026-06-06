@@ -490,6 +490,7 @@ function VirtualizedSwimlanes({
             isExpanded={isExpanded}
             onToggle={() => toggleStory(story.key)}
             onOpenDetail={setSelectedIssueKey}
+            onOpenIssue={onOpenIssue}
             transitions={getTransitions(story)}
             onTransition={(tid, name, toId, catKey) =>
               onTransition(story.key, tid, name, toId, catKey)
@@ -661,6 +662,7 @@ function VirtualizedSwimlanes({
                 isExpanded={isExpanded}
                 onToggle={() => toggleStory(story.key)}
                 onOpenDetail={setSelectedIssueKey}
+                onOpenIssue={onOpenIssue}
                 transitions={getTransitions(story)}
                 onTransition={(tid, name, toId, catKey) =>
                   onTransition(story.key, tid, name, toId, catKey)
@@ -1667,6 +1669,7 @@ export default function SprintBoardTab() {
                   isExpanded={stickyHeader.isExpanded}
                   onToggle={() => toggleStory(stickyHeader.story.key)}
                   onOpenDetail={setSelectedIssueKey}
+                  onOpenIssue={onOpenIssue}
                   transitions={getTransitions(stickyHeader.story)}
                   onTransition={(tid, name, toId, catKey) =>
                     beginTransition(stickyHeader.story.key, tid, name, toId ?? '', catKey)
