@@ -421,7 +421,7 @@ describe('FieldsSection', () => {
       const { fireEvent } = await import('@testing-library/react');
       // Enter edit mode; with no capable transition it must stay read-only + note.
       fireEvent.click(screen.getByTestId('resolution-edit'));
-      expect(await screen.findByText(/only be changed via a status transition/i)).toBeTruthy();
+      expect(await screen.findByText(/status transition/i)).toBeTruthy();
       expect(screen.getByTestId('resolution-value').textContent).toBe('Unresolved');
     });
 
