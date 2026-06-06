@@ -190,6 +190,10 @@ export function StoryHeaderRow({
       tabIndex={0}
       onClick={() => onOpenIssue?.(storyKey)}
       onKeyDown={(e) => {
+        // Only act on the row itself — Enter/Space on an inner <button> (key,
+        // chevron, epic) synthesizes a click there but the keydown still bubbles
+        // here; without this guard it would ALSO fire the body peek.
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onOpenIssue?.(storyKey);

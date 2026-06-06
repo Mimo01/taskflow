@@ -377,6 +377,10 @@ export default function TaskCard({
         onOpenIssue(issue.key);
       }}
       onKeyDown={(e) => {
+        // Only act on the card wrapper itself — Enter/Space on the inner key
+        // <button> synthesizes a click there but the keydown still bubbles here;
+        // without this guard it would ALSO fire the body peek.
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           if (justDragged?.current) return;
