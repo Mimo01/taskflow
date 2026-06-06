@@ -78,6 +78,14 @@ vi.mock('@/services/jira/worklogs', () => ({
 
 vi.mock('@/services/jira/transitions', () => ({
   postTransition: vi.fn(),
+  fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
+  // Mirror the real key factory so FieldsSection's queryKey matches production.
+  transitionsWithFieldsKey: vi.fn((issueKey, baseUrl, statusId) => [
+    'jira-issue-transitions-fields',
+    issueKey,
+    baseUrl,
+    statusId,
+  ]),
 }));
 
 vi.mock('@/hooks/useBoardId', () => ({
