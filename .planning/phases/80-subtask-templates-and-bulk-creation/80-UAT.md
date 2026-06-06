@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 80-subtask-templates-and-bulk-creation
 source: [80-01-SUMMARY.md, 80-02-SUMMARY.md, 80-03-SUMMARY.md, 80-04-SUMMARY.md]
 started: 2026-06-06T22:49:57Z
@@ -72,41 +72,57 @@ blocked: 0
 ## Gaps
 
 - truth: "Settings row editor lays out inline fields cleanly within the panel width; the Title field is readable (non-zero width) and rows do not overflow horizontally."
-  status: failed
+  status: diagnosed
   reason: "User reported: row layout is broken, it overflows to the right; the (title) name is squished and with 0 width; the layout overall is broken"
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "SubtaskTemplateRow row container (SubtaskTemplateRow.tsx:182) is `flex items-center gap-2` with no flex-wrap, holding ~7 fixed-width shrink-0 controls (~712px) + gaps that exceed the available container width (modal ~812px, settings narrower). Title is the only flexible child (`flex-1 min-w-0`, line 205) so it absorbs the entire deficit and collapses to 0 while shrink-0 controls (esp. native date input) push past the right edge. Same component → breaks in both Settings editor and Bulk modal."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/create-edit-issue/SubtaskTemplateRow.tsx"
+      issue: "row container flex with too many shrink-0 fixed-width children, no wrap; Title min-w-0 collapses to 0"
+  missing:
+    - "Add `flex-wrap` to the row container (line 182) and give Title a width floor: change `flex-1 min-w-0` → `flex-1 min-w-[180px]` (line 205)"
+    - "Alternatively move secondary fields (Labels/Estimate/Story points/Due date) into Advanced expand, or switch to a responsive grid"
+  debug_session: ".planning/debug/subtask-row-layout-overflow.md"
 
 - truth: "The Bulk Create Subtasks rows in the modal lay out cleanly within the modal width — same row layout fix as the Settings editor (shared SubtaskTemplateRow component)."
-  status: failed
+  status: diagnosed
   reason: "User reported: the modal works but has similar layout problems as the settings"
   severity: major
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Same shared-component cause as the Settings gap — BulkCreateSubtasksModal renders the same SubtaskTemplateRow inside a w-[860px] px-6 popup (~812px), just under the row's fixed budget so Title squishes / row overflows. Fixing SubtaskTemplateRow fixes both consumers."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/BulkCreateSubtasksModal.tsx"
+      issue: "hosts shared SubtaskTemplateRow at w-[860px] px-6 — inherits the overflow"
+  missing:
+    - "Resolved by the SubtaskTemplateRow layout fix above (shared component); verify modal width still accommodates the wrapped/min-width layout"
+  debug_session: ".planning/debug/subtask-row-layout-overflow.md"
 
 - truth: "The 'Bulk Create Subtasks' button visually matches the single 'Add subtask' button styling (same variant/size)."
-  status: failed
+  status: diagnosed
   reason: "User reported: the button is there but it has different styling than the single subtask button, make them match"
   severity: cosmetic
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "The two controls are different element types. 'Add subtask' (IssueDetailContent.tsx:322-329) is a native <button> styled as a borderless ghost text link (text-muted-foreground, hover:bg-accent). 'Bulk Create Subtasks' (lines 330-338) is the shadcn <Button variant=\"outline\" size=\"sm\"> which renders a bordered outline button. Icon size (size-3.5) and gap (gap-1.5) already match — only the element/variant differs."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/IssueDetailContent.tsx"
+      issue: "Bulk Create uses <Button variant=outline size=sm> vs Add subtask's native ghost-text <button>"
+  missing:
+    - "Replace the Bulk Create <Button variant=outline size=sm> (lines 330-338) with a native <button type=button> using the identical className as Add subtask, keeping onClick + LayoutList icon"
+  debug_session: ".planning/debug/bulk-button-style-mismatch.md"
 
 - truth: "The subtask-type selector in the Settings row editor displays the human-readable issue-type name, not the raw type id."
-  status: failed
+  status: diagnosed
   reason: "User reported: subtask type shows id instead of the name of the type"
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "base-ui @base-ui/react/select renders the raw bound `value` in <Select.Value> when value≠label and no `items` map / function child is supplied. The subtask-type Select binds value={effectiveTypeId} (the id) while SelectItem children render {t.name}; SelectItem children only populate the popup, not the trigger, so the trigger falls back to stringifying the id. Other Selects (priority/assignee) only work because their value equals their visible label. Same defect in the bulk modal's subtask-type Select (BulkCreateSubtasksModal.tsx:539-550) and likely the template selector (:524-536)."
+  artifacts:
+    - path: "taskflow/src/routes/settings/SubtaskTemplatesSection.tsx"
+      issue: "lines 208-226: <SelectValue> has no value→name mapping (the reported bug)"
+    - path: "taskflow/src/routes/dashboard/BulkCreateSubtasksModal.tsx"
+      issue: "lines 539-550 (subtask type) + 524-536 (template) same value≠label defect"
+  missing:
+    - "Add a function child to <SelectValue>: {(v) => subtaskTypes.find(t => t.id === v)?.name ?? 'Select type'} (or pass `items` map to Select root)"
+    - "Apply the same mapping to the bulk modal's subtask-type Select (and template selector); SelectItem markup is already correct"
+  debug_session: ".planning/debug/subtask-type-shows-id.md"
