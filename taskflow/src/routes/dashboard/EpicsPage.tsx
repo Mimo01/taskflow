@@ -68,13 +68,11 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 
       {/* Assignee */}
       <td className="px-3 py-3">
-        {epic.assignee ? (
-          <CachedAvatar
-            url={epic.assignee.avatarUrls?.['48x48']}
-            name={epic.assignee.displayName}
-            size={24}
-          />
-        ) : null}
+        <CachedAvatar
+          url={epic.assignee?.avatarUrls?.['48x48'] || null}
+          name={epic.assignee?.displayName || 'Unassigned'}
+          size={24}
+        />
       </td>
     </tr>
   );
@@ -183,23 +181,13 @@ export default function EpicsPage() {
           <>
             {epics.length > 0 ? (
               <table className="w-full text-sm">
-                <thead className="border-b bg-muted/10">
-                  <tr>
-                    <th className="w-1 p-0" />
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Name
-                    </th>
-                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Key
-                    </th>
-                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="w-12 px-3 py-2 text-xs font-medium text-muted-foreground">
-                      Assignee
-                    </th>
-                  </tr>
-                </thead>
+                <colgroup>
+                  <col className="w-1" />
+                  <col />
+                  <col className="w-28" />
+                  <col className="w-32" />
+                  <col className="w-12" />
+                </colgroup>
                 <tbody>
                   {epics.map((epic) => (
                     <EpicRow key={epic.key} epic={epic} onEpicClick={onEpicClick} />
