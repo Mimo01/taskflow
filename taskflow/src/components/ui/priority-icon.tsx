@@ -16,7 +16,15 @@ interface PriorityIconProps {
 
 export function PriorityIcon({ priority, className = 'w-3.5 h-3.5 shrink-0' }: PriorityIconProps) {
   if (!priority?.iconUrl) return null;
+  // Priority is now conveyed only by this icon (the colored card border shows
+  // issue type), so the image needs a real accessible name — not alt="".
+  const label = priority.name ? `Priority: ${priority.name}` : 'Priority';
   return (
-    <img src={priority.iconUrl} alt="" title={priority.name ?? undefined} className={className} />
+    <img
+      src={priority.iconUrl}
+      alt={label}
+      title={priority.name ?? undefined}
+      className={className}
+    />
   );
 }
