@@ -905,6 +905,70 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     });
   });
 
+  // ─── Context-menu transitions also prompt for resolution (parity with drag) ──────
+  describe('context-menu transition prompts for resolution', () => {
+    it('opens the resolution dialog instead of transitioning immediately for a resolution-capable transition', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Ctx Story',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      const subtask = makeIssue(
+        'PROJ-2',
+        'Ctx Subtask',
+        true,
+        'PROJ-1',
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story, subtask]);
+
+      const {
+        peekGhTransitions,
+        filterTransitionsForStatus,
+        fetchIssueTransitionsWithFields,
+        resolveDropResolution,
+        postTransition,
+      } = await import('@/services/jira');
+      const txn = [
+        {
+          id: 'T-DONE',
+          name: 'Done',
+          to: { id: '4', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ];
+      vi.mocked(peekGhTransitions).mockReturnValue(txn as never);
+      vi.mocked(filterTransitionsForStatus).mockReturnValue(txn as never);
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValueOnce([
+        { id: 'T-DONE', name: 'Done', fields: {} },
+      ] as never);
+      vi.mocked(resolveDropResolution).mockReturnValueOnce({
+        kind: 'dialog',
+        allowedValues: [{ id: '10000', name: 'Fixed' }],
+      } as never);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      const cardText = await screen.findByText('Ctx Subtask');
+      fireEvent.contextMenu(cardText);
+      await waitFor(() => {
+        const doneItems = screen.queryAllByText('Done');
+        const menuItem = doneItems.find((el) => el.closest('[role="menuitem"]'));
+        if (menuItem) fireEvent.click(menuItem);
+      });
+
+      // The right-click transition now opens the resolution picker (parity with drag)…
+      await screen.findByText('Set a resolution');
+      expect(screen.getByRole('button', { name: 'Fixed' })).toBeTruthy();
+      // …and fires NO transition until the user confirms a resolution.
+      expect(postTransition).not.toHaveBeenCalled();
+    });
+  });
+
   // ─── WR-04: end-to-end drag-end branches (dialog / block / probe-failure / race) ─
   //
   // These drive the REAL handleDragEnd via the captured DndContext handlers

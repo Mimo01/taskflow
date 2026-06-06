@@ -1141,15 +1141,47 @@ export default function SprintBoardTab() {
     if (!transition) return;
 
     // CR-01/CR-02: capture the current drag token. If a newer drag starts before
-    // this probe resolves, dragTokenRef.current will have advanced and we bail
-    // after every await so a stale probe can never mutate state for the wrong drag.
+    // this probe resolves, dragTokenRef.current will have advanced and beginTransition
+    // bails after every await so a stale probe can never mutate state for the wrong drag.
     const token = dragTokenRef.current;
 
-    // CR-01/CR-02: never overwrite an already-open resolution dialog. If a prior
-    // drop is still awaiting the user's resolution choice, drop this one and
-    // surface a card error rather than clobbering pendingResolution (which would
-    // re-render the single dialog with new data while its internal selection
-    // belongs to the first issue). Least-surprising: the in-progress dialog wins.
+    // Route the drop through the SHARED transition flow (same path the right-click
+    // context menu uses) so a resolution-capable transition always prompts. The
+    // early-return guards above stay SYNCHRONOUS; only the probe + dialog inside
+    // beginTransition is async.
+    beginTransition(
+      issueKey,
+      transitionId,
+      transition.to.name,
+      transition.to.id,
+      transition.to.statusCategory?.key,
+      { token },
+    );
+  }
+
+  /**
+   * Shared entry point for EVERY board transition (drag-to-column AND right-click
+   * context menu). Probes the issue's REST transitions-with-fields and, if the
+   * target transition is resolution-capable, opens the resolution picker before
+   * executing — so resolution is prompted consistently no matter how the transition
+   * was triggered. Non-capable transitions execute immediately (no fields), exactly
+   * as before. `opts.token` (drag only) lets a superseded drag's in-flight probe bail.
+   */
+  function beginTransition(
+    issueKey: string,
+    transitionId: string,
+    toStatusName: string,
+    toStatusId: string,
+    toStatusCategoryKey?: string,
+    opts?: { token?: number },
+  ) {
+    const token = opts?.token;
+    // Stale only applies to drag (token provided); context-menu calls pass none.
+    const isStale = () => token !== undefined && dragTokenRef.current !== token;
+
+    // CR-01/CR-02: never overwrite an already-open resolution dialog — drop the new
+    // request and surface a card error rather than clobbering pendingResolution
+    // (whose dialog's internal selection belongs to the first issue).
     if (pendingResolution !== null) {
       setCardErrors((prev) =>
         new Map(prev).set(issueKey, 'Finish the open resolution dialog before moving another card'),
@@ -1157,81 +1189,67 @@ export default function SprintBoardTab() {
       return;
     }
 
-    // REWORK2: probe the dragged issue's REST transitions-with-fields to decide if
-    // this drop is resolution-capable. The early-return guards above stay SYNCHRONOUS
-    // (they run before this async IIFE); only the probe + dialog branch is async so a
-    // resolution prompt never moves the card before the user confirms. dnd-kit ignores
-    // the (void) return.
+    // GH metadata for the issue's current status (cache key) and hasScreen (WR-02).
+    const issue = localIssues.find((i) => i.key === issueKey);
+    const currentStatusId = issue?.fields.status?.id ?? '';
+    const ghTransition = issue
+      ? (getTransitions(issue) ?? []).find((t) => t.id === transitionId)
+      : undefined;
+    const hasScreen = ghTransition?.hasScreen ?? false;
+
     void (async () => {
       let meta: import('@/services/jira').JiraTransitionWithFields | undefined;
       try {
         const list = await queryClient.fetchQuery({
-          queryKey: transitionsWithFieldsKey(
-            issueKey,
-            jiraBaseUrl ?? '',
-            draggedIssue.fields.status?.id ?? '',
-          ),
+          queryKey: transitionsWithFieldsKey(issueKey, jiraBaseUrl ?? '', currentStatusId),
           queryFn: () =>
             fetchIssueTransitionsWithFields(jiraBaseUrl ?? '', jiraToken ?? '', issueKey),
           staleTime: Number.POSITIVE_INFINITY,
         });
-        // CR-01: a newer drag superseded this one while the probe was in flight.
-        if (dragTokenRef.current !== token) return;
+        if (isStale()) return;
         meta = list.find((t) => t.id === transitionId);
       } catch {
-        // CR-01: bail if a newer drag superseded this one during the failed probe.
-        if (dragTokenRef.current !== token) return;
-        // WR-02: probe failure. If GH metadata says the target transition has a
-        // screen, a resolution may be REQUIRED — firing a plain transition would
-        // 400 in Jira AFTER an optimistic move (jump-to-Done-then-rollback). In
-        // that case surface a retryable card error and do NOT move. Only when the
-        // metadata gives no resolution signal (hasScreen false/absent) do we keep
-        // the original plain-transition fallback.
-        if (transition.hasScreen) {
+        if (isStale()) return;
+        // WR-02: probe failure. If the target has a transition screen, a resolution
+        // may be REQUIRED — firing a plain transition would 400 after an optimistic
+        // move. Surface a retryable card error instead. Otherwise fall back to plain.
+        if (hasScreen) {
           setCardErrors((prev) =>
             new Map(prev).set(issueKey, 'Could not load resolution options — try again'),
           );
           return;
         }
-        // Probe failure with no screen: fall back to the plain transition (no
-        // resolution) exactly as the non-capable path does.
         void handleTransition(
           issueKey,
           transitionId,
-          transition.to.name,
-          transition.to.id,
-          transition.to.statusCategory?.key,
+          toStatusName,
+          toStatusId,
+          toStatusCategoryKey,
         );
         return;
       }
 
       const decision = resolveDropResolution(meta);
       if (decision.kind === 'dialog') {
-        // CR-01/CR-02: re-check the guard after the await. A concurrent drop may
-        // have opened a dialog (or a newer drag superseded this one) while the
-        // probe was in flight — never clobber an open dialog.
-        if (dragTokenRef.current !== token || pendingResolution !== null) return;
+        // Re-check after the await: never clobber a dialog opened meanwhile.
+        if (isStale() || pendingResolution !== null) return;
         // Resolution-capable: open the picker. Do NOT optimistically move the card.
         setPendingResolution({
           issueKey,
           transitionId,
-          toStatusName: transition.to.name,
-          toStatusId: transition.to.id,
-          toStatusCategoryKey: transition.to.statusCategory?.key,
+          toStatusName,
+          toStatusId,
+          toStatusCategoryKey,
           allowedValues: decision.allowedValues,
         });
         return;
       }
       if (decision.kind === 'block') {
-        // CR-01: bail if a newer drag superseded this one.
-        if (dragTokenRef.current !== token) return;
+        if (isStale()) return;
         // WR-01: clear any pending dialog for THIS issue so a stale picker can't
-        // remain open alongside the block error (keeps the state machine
-        // consistent). The block card-error still auto-clears on the next
-        // optimistic transition.
+        // remain open alongside the block error.
         setPendingResolution((prev) => (prev?.issueKey === issueKey ? null : prev));
-        // WR-05: resolution required but no allowedValues — surface a card error and
-        // fire NO request (a plain transition would be rejected by Jira).
+        // WR-05: resolution required but no allowedValues — fire NO request.
         setCardErrors((prev) =>
           new Map(prev).set(
             issueKey,
@@ -1240,17 +1258,9 @@ export default function SprintBoardTab() {
         );
         return;
       }
-      // CR-01: bail if a newer drag superseded this one before the plain transition.
-      if (dragTokenRef.current !== token) return;
-      // decision.kind === 'plain' — identical to today: immediate transition, no fields.
-      // D-09: reuse the existing handleTransition mutation — do NOT duplicate.
-      void handleTransition(
-        issueKey,
-        transitionId,
-        transition.to.name,
-        transition.to.id,
-        transition.to.statusCategory?.key,
-      );
+      if (isStale()) return;
+      // decision.kind === 'plain' — immediate transition, no fields.
+      void handleTransition(issueKey, transitionId, toStatusName, toStatusId, toStatusCategoryKey);
     })();
   }
 
@@ -1651,7 +1661,7 @@ export default function SprintBoardTab() {
                   onOpenDetail={setSelectedIssueKey}
                   transitions={getTransitions(stickyHeader.story)}
                   onTransition={(tid, name, toId, catKey) =>
-                    handleTransition(stickyHeader.story.key, tid, name, toId, catKey)
+                    beginTransition(stickyHeader.story.key, tid, name, toId ?? '', catKey)
                   }
                   transitionError={cardErrors.get(stickyHeader.story.key)}
                   assigneeAvatarUrl={stickyHeader.story.fields.assignee?.avatarUrls['48x48']}
@@ -1766,7 +1776,9 @@ export default function SprintBoardTab() {
                   stickyHeaderInnerRef={stickyHeaderInnerRef}
                   stickyOverlayRef={stickyOverlayRef}
                   getTransitions={getTransitions}
-                  onTransition={handleTransition}
+                  onTransition={(issueKey, tid, name, toId, catKey) =>
+                    beginTransition(issueKey, tid, name, toId ?? '', catKey)
+                  }
                   epicNameMap={epicNameMap}
                   epicColorMap={epicColorMap}
                   epicLinkFieldKey={epicLinkFieldKey}
