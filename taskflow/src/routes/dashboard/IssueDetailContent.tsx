@@ -1,10 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
+import { ArrowUpRight, Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,9 @@ interface IssueDetailContentProps {
   subtaskError?: Error | null;
   /** Retry callback for subtask enrichment */
   onSubtaskRetry?: () => void;
+  /** Render the subtask→parent link section in the body (default true).
+      The peek passes false because it surfaces the parent in its header instead. */
+  showParentSection?: boolean;
 }
 
 /** Shared subtask item shape — union of base (no assignee) and enriched (with assignee) */
@@ -158,8 +162,10 @@ export function IssueDetailContent({
   showSubtasksSkeleton,
   subtaskError,
   onSubtaskRetry,
+  showParentSection = true,
 }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields;
+  const parent = issue.fields.parent;
   // Comments now come from the parent's independent comments query (phase 75 split);
   // `issue.fields.comment` is no longer populated by the slimmed fetchIssueDetail.
   const comments = commentsProp ?? [];
@@ -332,6 +338,39 @@ export function IssueDetailContent({
             parentKey={issueKey}
             parentIssue={issue}
           />
+        </section>
+      )}
+
+      {/* Subtask → Parent link — same relationships region as a Story's Subtasks section.
+          Suppressed in the peek (showParentSection=false), which surfaces the parent in its header. */}
+      {isSubtask && parent && showParentSection && (
+        <section>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Parent</h3>
+          <button
+            type="button"
+            aria-label={`Open parent issue ${parent.key}`}
+            onClick={() => onOpenIssue?.(parent.key)}
+            className={cn(
+              'flex w-full items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-left transition-colors',
+              'cursor-pointer hover:bg-muted',
+            )}
+          >
+            {parent.fields.issuetype?.name && (
+              <IssueTypeIcon typeName={parent.fields.issuetype.name} />
+            )}
+            <span className="shrink-0 font-mono text-xs text-muted-foreground">{parent.key}</span>
+            <span className="min-w-0 flex-1 truncate pr-0.5 text-sm font-medium text-foreground">
+              {parent.fields.summary}
+            </span>
+            {parent.fields.status?.name && (
+              <div className="flex shrink-0">
+                <span className={statusPillClass(parent.fields.status?.statusCategory?.key)}>
+                  {parent.fields.status?.name}
+                </span>
+              </div>
+            )}
+            <ArrowUpRight className="size-4 text-muted-foreground shrink-0 ml-auto" />
+          </button>
         </section>
       )}
 
