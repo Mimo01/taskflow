@@ -25,6 +25,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
@@ -84,6 +85,23 @@ function RowCells({
 }) {
   return (
     <>
+      {/* Issue-type icon cell — first column, mirroring the PriorityIcon cell
+          pattern. The inner span carries an explicit pixel size (not a Tailwind
+          class) so the column holds width in this WebKit-rendered virtualized
+          table where position:absolute rows break CSS table column sizing.
+          Renders nothing (empty span) when the issue has no issuetype — the
+          IssueTypeIcon component has no null guard and would otherwise show the
+          default CheckSquare. */}
+      <td className="px-0 py-2 density-compact:py-1 density-comfortable:py-3">
+        <span
+          className="flex items-center justify-center"
+          style={{ width: 18, height: 18 }}
+          aria-hidden={!issue.fields.issuetype}
+        >
+          {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
+        </span>
+      </td>
+
       {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
       <td className="relative w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
         <button

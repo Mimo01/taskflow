@@ -24,6 +24,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import type { EpicColorResult } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -41,6 +42,8 @@ interface StoryHeaderRowProps {
   onOpenDetail: (key: string) => void;
   /** Story's own Jira priority — rendered as a PriorityIcon in the header. */
   priority?: { name?: string | null; iconUrl?: string | null } | null;
+  /** Story's issue-type name — rendered as an IssueTypeIcon before the key. */
+  issueTypeName?: string;
   /**
    * PEEK-01: clicking the row body opens the issue peek panel. When provided,
    * the outer row becomes a div[role=button] so the inner key <button> is valid
@@ -77,6 +80,7 @@ export function StoryHeaderRow({
   onToggle,
   onOpenDetail,
   priority,
+  issueTypeName,
   onOpenIssue,
   transitions,
   onTransition,
@@ -126,6 +130,7 @@ export function StoryHeaderRow({
       {/* Key + summary — key navigates full-page (PEEK-05); summary bubbles to body → peek */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
+        {issueTypeName && <IssueTypeIcon typeName={issueTypeName} />}
         <button
           type="button"
           className={cn(
