@@ -5,7 +5,7 @@
  * The assignee filter dropdown lists named people derived from the visible
  * issues. To let users triage unassigned work, a single reserved sentinel value
  * (`UNASSIGNED_FILTER`) represents "no assignee". It is:
- *   - matched STRICTLY against `issue.fields.assignee === null` (never substring),
+ *   - matched STRICTLY against a null assignee (`assignee == null`, never substring),
  *   - rendered with the human label `UNASSIGNED_LABEL` ("Unassigned"),
  *   - pinned to the TOP of the option list,
  *   - shown ONLY when at least one visible issue is unassigned.
@@ -40,7 +40,10 @@ export function buildAssigneeOptions(issues: JiraIssue[]): string[] {
     const assignee = issue.fields.assignee;
     if (assignee == null) {
       hasUnassigned = true;
-    } else if (assignee.displayName) {
+    } else if (assignee.displayName && assignee.displayName !== UNASSIGNED_FILTER) {
+      // Collision guard (threat T-s09-01): a real displayName equal to the
+      // reserved sentinel must never be offered as a named option, or selecting
+      // it would silently match unassigned issues instead of that person.
       named.add(assignee.displayName);
     }
   }
