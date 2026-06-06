@@ -21,6 +21,7 @@ import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
 import { isResponseLikeError } from './jira/client';
+import { fetchAllJiraStatuses } from './jira/statuses';
 import type { JiraComment } from './jira/types';
 
 export { rankIssueApi } from './jira/rank-api';
@@ -629,7 +630,17 @@ export interface JiraActivityItem {
   summary: string;
   /** Jira issue type name (e.g. "Story", "Bug", "Sub-task", "Epic") for icon display. */
   issueType?: string;
-  transitions: Array<{ fromStatus: string; toStatus: string; at: string }>;
+  transitions: Array<{
+    fromStatus: string;
+    toStatus: string;
+    at: string;
+    /** Jira statusCategory.key ('new' | 'indeterminate' | 'done') for the from-status,
+     *  resolved from the global status list by name. Undefined when unmapped or when the
+     *  status-list fetch failed (consumer falls back to the 'new' gray pill). */
+    fromCategory?: string;
+    /** statusCategory.key for the to-status; see fromCategory. */
+    toCategory?: string;
+  }>;
   comments: Array<{ body: string; at: string }>;
 }
 
@@ -709,6 +720,21 @@ export async function fetchYesterdayJiraActivity(
 
   const issues = data.issues ?? [];
 
+  // Build a name → statusCategory.key map from the global Jira status list so each
+  // transition's display names (the changelog only carries names, never ids/categories)
+  // can be enriched with a category key for pill coloring. Fetched ONCE per activity
+  // load and wrapped in try/catch: a failure must NOT abort the standup load — the
+  // categories simply stay undefined and the consumer falls back to the 'new' gray pill.
+  const statusMap = new Map<string, string>();
+  try {
+    const statuses = await fetchAllJiraStatuses(base, token);
+    for (const s of statuses) {
+      statusMap.set(s.name, s.statusCategory.key);
+    }
+  } catch {
+    // Graceful degradation: leave statusMap empty → undefined categories.
+  }
+
   // Steps 2+3 run per-issue. The comment fetch is one HTTP round-trip per issue,
   // so we fan out through the global Jira limiter (bounded concurrency) rather
   // than awaiting sequentially — a sequential loop over up to 50 issues stacked
@@ -733,6 +759,8 @@ export async function fetchYesterdayJiraActivity(
               fromStatus: statusItem.fromString ?? '',
               toStatus: statusItem.toString ?? '',
               at: h.created,
+              fromCategory: statusMap.get(statusItem.fromString ?? ''),
+              toCategory: statusMap.get(statusItem.toString ?? ''),
             };
           });
 
