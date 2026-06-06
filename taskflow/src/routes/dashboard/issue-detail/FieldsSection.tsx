@@ -587,15 +587,22 @@ export function FieldsSection({
               <p className="text-xs text-destructive mt-1">Failed to set resolution — try again</p>
             )}
           </div>
+        ) : resolutionEditing && transitionsWithFieldsQuery.isLoading ? (
+          // Fetch in flight: show a loading hint rather than the "no transition"
+          // fallback, otherwise the message flashes before the Select appears.
+          <div>
+            <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
+            <p className="text-xs text-muted-foreground mt-1">Loading resolutions…</p>
+          </div>
         ) : resolutionEditing ? (
-          // Editing requested but no in-place resolution-capable transition is
-          // available (none exists, or the fetch is loading / errored / empty).
+          // Fetch settled but no in-place resolution-capable transition exists
+          // (none on this status, or the fetch errored / returned empty).
           <div>
             <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
             <p className="text-xs text-muted-foreground mt-1">
               {transitionsWithFieldsQuery.isError
                 ? 'Could not load transitions — resolution can only be changed via a status transition.'
-                : 'Resolution can only be changed via a status transition.'}
+                : 'Resolution is set by moving this issue through a status transition.'}
             </p>
           </div>
         ) : (
