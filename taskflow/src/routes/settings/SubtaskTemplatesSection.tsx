@@ -241,7 +241,7 @@ function TemplateRowEditor({
             items={template.rows.map((r) => r.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               {template.rows.map((row) => (
                 <SortableRow
                   key={row.id}

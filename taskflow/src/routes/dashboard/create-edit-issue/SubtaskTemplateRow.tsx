@@ -137,7 +137,7 @@ function AdvancedFieldItem({
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.name}
           disabled={disabled}
-          className="h-7 text-xs"
+          className="h-8 text-sm"
         />
       )}
     </div>
@@ -180,7 +180,7 @@ export function SubtaskTemplateRow({
       {/* Row container — single line; wraps only if space runs out */}
       <div
         className={[
-          'flex flex-wrap items-center gap-2 px-2 py-2 rounded-md hover:bg-muted/50',
+          'flex flex-wrap items-center gap-x-3 gap-y-2 px-2.5 py-2.5 rounded-lg border border-transparent hover:border-border hover:bg-muted/40',
           isFailed ? 'bg-destructive/5' : '',
           isCreating ? 'opacity-70' : '',
         ]
@@ -230,7 +230,7 @@ export function SubtaskTemplateRow({
               onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
               disabled={isDisabled}
             >
-              <SelectTrigger className="w-32 h-7 text-xs">
+              <SelectTrigger className="w-32 h-8 text-sm">
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
               <SelectContent>
@@ -241,7 +241,7 @@ export function SubtaskTemplateRow({
             </Select>
           ) : (
             <Input
-              className="w-32 h-7 text-xs"
+              className="w-32 h-8 text-sm"
               value={row.assignee}
               onChange={(e) => onChange({ assignee: e.target.value })}
               placeholder="Assignee"
@@ -256,7 +256,7 @@ export function SubtaskTemplateRow({
           onValueChange={(v) => onChange({ priority: v || null })}
           disabled={isDisabled}
         >
-          <SelectTrigger className="w-28 h-7 text-xs shrink-0">
+          <SelectTrigger className="w-28 h-8 text-sm shrink-0">
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>
@@ -271,7 +271,7 @@ export function SubtaskTemplateRow({
 
         {/* Labels — compact text input (multi-value comma-separated) */}
         <Input
-          className="w-32 h-7 text-xs shrink-0"
+          className="w-32 h-8 text-sm shrink-0"
           value={row.labels.join(', ')}
           onChange={(e) =>
             onChange({
@@ -287,7 +287,7 @@ export function SubtaskTemplateRow({
 
         {/* Estimate — Due date & Story points live in Advanced (rare on subtasks) */}
         <Input
-          className="w-20 h-7 text-xs shrink-0"
+          className="w-20 h-8 text-sm shrink-0"
           value={row.timeEstimate}
           onChange={(e) => onChange({ timeEstimate: e.target.value })}
           placeholder="e.g. 2h"
@@ -357,7 +357,7 @@ export function SubtaskTemplateRow({
             </label>
             <Input
               id={`${row.id}-duedate`}
-              className="h-7 w-40 text-xs"
+              className="h-8 w-40 text-sm"
               type="date"
               value={row.duedate ?? ''}
               onChange={(e) => onChange({ duedate: e.target.value || null })}
@@ -372,7 +372,7 @@ export function SubtaskTemplateRow({
             </label>
             <Input
               id={`${row.id}-storypoints`}
-              className="h-7 w-20 text-xs"
+              className="h-8 w-20 text-sm"
               type="number"
               min={0}
               value={row.storyPoints ?? ''}
@@ -393,7 +393,7 @@ export function SubtaskTemplateRow({
             </label>
             <Input
               id={`${row.id}-components`}
-              className="h-7 text-xs"
+              className="h-8 text-sm"
               value={row.components.join(', ')}
               onChange={(e) =>
                 onChange({
