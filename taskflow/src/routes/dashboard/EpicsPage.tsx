@@ -72,8 +72,10 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
         </div>
       </td>
 
-      {/* Assignee */}
-      <td className="px-3 py-3">
+      {/* Assignee — extra right padding so the avatar isn't flush against the
+          container edge (the table has no outer horizontal padding, unlike the
+          px-6 page header). */}
+      <td className="pl-3 pr-6 py-3">
         <CachedAvatar
           url={epic.assignee?.avatarUrls?.['48x48'] || null}
           name={epic.assignee?.displayName || 'Unassigned'}
@@ -191,8 +193,8 @@ export default function EpicsPage() {
                   <col className="w-1" />
                   <col />
                   <col className="w-28" />
-                  <col className="w-32" />
-                  <col className="w-12" />
+                  <col className="w-28" />
+                  <col className="w-16" />
                 </colgroup>
                 <tbody>
                   {epics.map((epic) => (
