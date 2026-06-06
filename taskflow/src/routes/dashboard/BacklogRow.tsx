@@ -92,7 +92,7 @@ function RowCells({
           Renders nothing (empty span) when the issue has no issuetype — the
           IssueTypeIcon component has no null guard and would otherwise show the
           default CheckSquare. */}
-      <td className="px-0 py-2 density-compact:py-1 density-comfortable:py-3">
+      <td className="pl-4 pr-0 py-2 density-compact:py-1 density-comfortable:py-3">
         <span
           className="flex items-center justify-center"
           style={{ width: 18, height: 18 }}
@@ -194,7 +194,7 @@ function RowCells({
       </td>
 
       {/* Assignee cell */}
-      <td className="w-10 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
+      <td className="w-10 pl-2 pr-4 py-2 density-compact:py-1 density-comfortable:py-3">
         <CachedAvatar
           url={issue.fields.assignee?.avatarUrls['48x48'] || null}
           name={issue.fields.assignee?.displayName || 'Unassigned'}
