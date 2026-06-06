@@ -177,190 +177,204 @@ export function SubtaskTemplateRow({
 
   return (
     <div className="flex flex-col">
-      {/* Row container */}
+      {/* Row container — Title on its own line, grouped fields below */}
       <div
         className={[
-          'flex flex-wrap items-center gap-2 min-h-[44px] px-2 py-1 rounded-md hover:bg-muted/50',
+          'flex flex-col gap-2 px-2 py-2 rounded-md hover:bg-muted/50',
           isFailed ? 'bg-destructive/5' : '',
           isCreating ? 'opacity-70' : '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
-        {/* Drag handle — settings mode only */}
-        {mode === 'settings' && (
-          <button
-            type="button"
-            {...dragHandleProps}
-            className="text-muted-foreground cursor-grab active:cursor-grabbing"
-            aria-label="Drag to reorder"
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        )}
-
-        {/* Title — required */}
-        <Input
-          className={[
-            'flex-1 min-w-[180px]',
-            titleInvalid
-              ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20'
-              : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          placeholder="Subtask title"
-          value={row.title}
-          onChange={(e) => onChange({ title: e.target.value })}
-          disabled={isDisabled}
-          aria-required="true"
-          aria-invalid={titleInvalid}
-        />
-
-        {/* Assignee selector */}
-        <div className="w-32 shrink-0">
-          {isPlaceholder && mode === 'preview' && placeholderCtx ? (
-            <PlaceholderChip
-              value={row.assignee as '@inherit' | '@current' | '@unassigned'}
-              hint={assigneeHint}
-            />
-          ) : isPlaceholder ? (
-            <Select
-              value={row.assignee}
-              onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
-              disabled={isDisabled}
+        {/* Title line */}
+        <div className="flex items-center gap-2">
+          {/* Drag handle — settings mode only */}
+          {mode === 'settings' && (
+            <button
+              type="button"
+              {...dragHandleProps}
+              className="text-muted-foreground cursor-grab active:cursor-grabbing shrink-0"
+              aria-label="Drag to reorder"
             >
-              <SelectTrigger className="w-32 h-7 text-xs">
-                <SelectValue placeholder="Assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="@inherit">@inherit</SelectItem>
-                <SelectItem value="@current">@current</SelectItem>
-                <SelectItem value="@unassigned">@unassigned</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              className="w-32 h-7 text-xs"
-              value={row.assignee}
-              onChange={(e) => onChange({ assignee: e.target.value })}
-              placeholder="Assignee"
-              disabled={isDisabled}
-            />
+              <GripVertical className="h-4 w-4" />
+            </button>
           )}
+
+          {/* Title — required */}
+          <Input
+            className={[
+              'flex-1 min-w-0',
+              titleInvalid
+                ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20'
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            placeholder="Subtask title"
+            value={row.title}
+            onChange={(e) => onChange({ title: e.target.value })}
+            disabled={isDisabled}
+            aria-required="true"
+            aria-invalid={titleInvalid}
+          />
         </div>
 
-        {/* Priority select */}
-        <Select
-          value={row.priority ?? ''}
-          onValueChange={(v) => onChange({ priority: v || null })}
-          disabled={isDisabled}
-        >
-          <SelectTrigger className="w-28 h-7 text-xs shrink-0">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">None</SelectItem>
-            <SelectItem value="Blocker">Blocker</SelectItem>
-            <SelectItem value="Critical">Critical</SelectItem>
-            <SelectItem value="Major">Major</SelectItem>
-            <SelectItem value="Medium">Medium</SelectItem>
-            <SelectItem value="Minor">Minor</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Fields line — grouped with dividers, wraps on narrow widths */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pl-6">
+          {/* Assignee + Priority group */}
+          <div className="flex items-center gap-2">
+            <div className="w-32 shrink-0">
+              {isPlaceholder && mode === 'preview' && placeholderCtx ? (
+                <PlaceholderChip
+                  value={row.assignee as '@inherit' | '@current' | '@unassigned'}
+                  hint={assigneeHint}
+                />
+              ) : isPlaceholder ? (
+                <Select
+                  value={row.assignee}
+                  onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
+                  disabled={isDisabled}
+                >
+                  <SelectTrigger className="w-32 h-7 text-xs">
+                    <SelectValue placeholder="Assignee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="@inherit">@inherit</SelectItem>
+                    <SelectItem value="@current">@current</SelectItem>
+                    <SelectItem value="@unassigned">@unassigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="w-32 h-7 text-xs"
+                  value={row.assignee}
+                  onChange={(e) => onChange({ assignee: e.target.value })}
+                  placeholder="Assignee"
+                  disabled={isDisabled}
+                />
+              )}
+            </div>
 
-        {/* Labels — compact text input (multi-value comma-separated) */}
-        <Input
-          className="w-32 h-7 text-xs shrink-0"
-          value={row.labels.join(', ')}
-          onChange={(e) =>
-            onChange({
-              labels: e.target.value
-                .split(',')
-                .map((l) => l.trim())
-                .filter(Boolean),
-            })
-          }
-          placeholder="Labels"
-          disabled={isDisabled}
-        />
+            <Select
+              value={row.priority ?? ''}
+              onValueChange={(v) => onChange({ priority: v || null })}
+              disabled={isDisabled}
+            >
+              <SelectTrigger className="w-28 h-7 text-xs shrink-0">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                <SelectItem value="Blocker">Blocker</SelectItem>
+                <SelectItem value="Critical">Critical</SelectItem>
+                <SelectItem value="Major">Major</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Minor">Minor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Due date */}
-        <Input
-          className="w-32 h-7 text-xs shrink-0"
-          type="date"
-          value={row.duedate ?? ''}
-          onChange={(e) => onChange({ duedate: e.target.value || null })}
-          disabled={isDisabled}
-        />
+          <div className="h-5 w-px bg-border shrink-0" aria-hidden="true" />
 
-        {/* Estimate */}
-        <Input
-          className="w-20 h-7 text-xs shrink-0"
-          value={row.timeEstimate}
-          onChange={(e) => onChange({ timeEstimate: e.target.value })}
-          placeholder="e.g. 2h"
-          disabled={isDisabled}
-        />
+          {/* Labels — compact text input (multi-value comma-separated) */}
+          <Input
+            className="w-32 h-7 text-xs shrink-0"
+            value={row.labels.join(', ')}
+            onChange={(e) =>
+              onChange({
+                labels: e.target.value
+                  .split(',')
+                  .map((l) => l.trim())
+                  .filter(Boolean),
+              })
+            }
+            placeholder="Labels"
+            disabled={isDisabled}
+          />
 
-        {/* Story points */}
-        <Input
-          className="w-16 h-7 text-xs shrink-0"
-          type="number"
-          min={0}
-          value={row.storyPoints ?? ''}
-          onChange={(e) =>
-            onChange({
-              storyPoints: e.target.value === '' ? null : Number(e.target.value),
-            })
-          }
-          placeholder="SP"
-          disabled={isDisabled}
-        />
+          <div className="h-5 w-px bg-border shrink-0" aria-hidden="true" />
 
-        {/* Advanced toggle */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          type="button"
-          aria-expanded={advancedOpen}
-          aria-controls={`${row.id}-advanced`}
-          onClick={() => setAdvancedOpen((o) => !o)}
-        >
-          {advancedOpen ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </Button>
+          {/* Due / Estimate / Story points group */}
+          <div className="flex items-center gap-2">
+            <Input
+              className="w-32 h-7 text-xs shrink-0"
+              type="date"
+              value={row.duedate ?? ''}
+              onChange={(e) => onChange({ duedate: e.target.value || null })}
+              disabled={isDisabled}
+            />
 
-        {/* Far-right control — mode-dependent */}
-        {mode === 'settings' ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            type="button"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={onRemove}
-            aria-label="Remove row"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        ) : (
-          <div className="flex items-center justify-center w-7 h-7 shrink-0">
-            {isCreating && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
-            {isCreated && (
-              <CheckCircle2
-                className="size-4 text-green-600 dark:text-green-400"
-                role="img"
-                aria-label="Created"
-              />
-            )}
-            {isFailed && (
-              <AlertCircle className="size-4 text-destructive" role="img" aria-label="Failed" />
+            <Input
+              className="w-20 h-7 text-xs shrink-0"
+              value={row.timeEstimate}
+              onChange={(e) => onChange({ timeEstimate: e.target.value })}
+              placeholder="e.g. 2h"
+              disabled={isDisabled}
+            />
+
+            <Input
+              className="w-16 h-7 text-xs shrink-0"
+              type="number"
+              min={0}
+              value={row.storyPoints ?? ''}
+              onChange={(e) =>
+                onChange({
+                  storyPoints: e.target.value === '' ? null : Number(e.target.value),
+                })
+              }
+              placeholder="SP"
+              disabled={isDisabled}
+            />
+          </div>
+
+          {/* Controls — pushed to the far right of the field block */}
+          <div className="ml-auto flex items-center gap-1">
+            {/* Advanced toggle */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              type="button"
+              aria-expanded={advancedOpen}
+              aria-controls={`${row.id}-advanced`}
+              onClick={() => setAdvancedOpen((o) => !o)}
+            >
+              {advancedOpen ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+
+            {/* Far-right control — mode-dependent */}
+            {mode === 'settings' ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={onRemove}
+                aria-label="Remove row"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="flex items-center justify-center w-7 h-7 shrink-0">
+                {isCreating && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+                {isCreated && (
+                  <CheckCircle2
+                    className="size-4 text-green-600 dark:text-green-400"
+                    role="img"
+                    aria-label="Created"
+                  />
+                )}
+                {isFailed && (
+                  <AlertCircle className="size-4 text-destructive" role="img" aria-label="Failed" />
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Advanced expand */}
