@@ -90,34 +90,20 @@ export function StoryHeaderRow({
   // becomes div[role=button] (body → peek) so the inner key <button> is valid HTML.
   const useKeyBodySplit = !!onOpenIssue;
 
-  const rowContent = (
-    // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key/chevron are <button>, nested button is invalid HTML (D-10 / Pitfall 1)
-    <div
-      role={useKeyBodySplit ? 'button' : undefined}
-      tabIndex={useKeyBodySplit ? 0 : undefined}
-      onClick={useKeyBodySplit ? () => onOpenIssue?.(storyKey) : undefined}
-      onKeyDown={
-        useKeyBodySplit
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onOpenIssue?.(storyKey);
-              }
-            }
-          : undefined
-      }
-      className={cn(
-        'flex items-center gap-2 px-3 py-2 transition-colors border-b',
-        useKeyBodySplit && 'cursor-pointer',
-        isExpanded
-          ? isFlagged
-            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
-            : 'bg-muted/40 hover:bg-muted/60 border-border/60'
-          : isFlagged
-            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60 mb-px'
-            : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
-      )}
-    >
+  const rowClassName = cn(
+    'flex items-center gap-2 px-3 py-2 transition-colors border-b',
+    useKeyBodySplit && 'cursor-pointer',
+    isExpanded
+      ? isFlagged
+        ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
+        : 'bg-muted/40 hover:bg-muted/60 border-border/60'
+      : isFlagged
+        ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60 mb-px'
+        : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
+  );
+
+  const rowInner = (
+    <>
       {/* Chevron — toggles collapse without opening peek/detail */}
       <button
         type="button"
@@ -194,7 +180,27 @@ export function StoryHeaderRow({
       {transitionError && (
         <span className="shrink-0 text-xs text-destructive">{transitionError}</span>
       )}
+    </>
+  );
+
+  const rowContent = useKeyBodySplit ? (
+    // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key/chevron/epic are <button>, nested button is invalid HTML (D-10 / Pitfall 1)
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenIssue?.(storyKey)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenIssue?.(storyKey);
+        }
+      }}
+      className={rowClassName}
+    >
+      {rowInner}
     </div>
+  ) : (
+    <div className={rowClassName}>{rowInner}</div>
   );
 
   if (!onTransition && !onToggleFlag) {
