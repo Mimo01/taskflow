@@ -274,7 +274,8 @@ function TemplateRowEditor({
 
       {/* Add row button */}
       <Button variant="ghost" size="sm" type="button" onClick={handleAddRow} className="self-start">
-        <Plus className="h-4 w-4 mr-1" />+ Add row
+        <Plus className="h-4 w-4 mr-1" />
+        Add row
       </Button>
     </div>
   );
