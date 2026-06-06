@@ -28,6 +28,47 @@ export function transitionsWithFieldsKey(
 }
 
 /**
+ * Decision returned by {@link resolveDropResolution}: how a board drag-to-transition
+ * drop should be handled for the matched REST transition.
+ *
+ * - `dialog`  — the transition is resolution-capable (allowedValues present): prompt
+ *   the user with a resolution picker before executing (carries the options).
+ * - `block`   — resolution is REQUIRED but no allowedValues are available (WR-05):
+ *   firing the transition would be rejected by Jira, so block and surface a message.
+ * - `plain`   — no resolution field, optional-and-empty, or no matching transition:
+ *   transition immediately with no fields (exactly as today).
+ */
+export type DropResolutionDecision =
+  | { kind: 'dialog'; allowedValues: Array<{ id: string; name: string }> }
+  | { kind: 'block' }
+  | { kind: 'plain' };
+
+/**
+ * PURE decision helper for the board drag-to-transition flow.
+ *
+ * Encapsulates StatusPopover's three-branch resolution logic (handleSelect) so it
+ * can be unit-tested in isolation: reads ONLY from `meta.fields.resolution` and takes
+ * no other inputs — no React, no network, no query client.
+ *
+ *  - allowedValues length > 0           → `{ kind: 'dialog', allowedValues }`
+ *  - required === true && empty/absent  → `{ kind: 'block' }` (WR-05)
+ *  - otherwise                          → `{ kind: 'plain' }`
+ */
+export function resolveDropResolution(
+  meta: JiraTransitionWithFields | undefined,
+): DropResolutionDecision {
+  const resolution = meta?.fields?.resolution;
+  const allowedValues = resolution?.allowedValues;
+  if (allowedValues && allowedValues.length > 0) {
+    return { kind: 'dialog', allowedValues };
+  }
+  if (resolution?.required) {
+    return { kind: 'block' };
+  }
+  return { kind: 'plain' };
+}
+
+/**
  * Transition a Jira issue to a new status.
  *
  * The optional `fields` argument is included in the POST body ONLY when supplied
