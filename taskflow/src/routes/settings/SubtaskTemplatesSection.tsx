@@ -214,7 +214,9 @@ function TemplateRowEditor({
             disabled={subtaskTypes.length === 0}
           >
             <SelectTrigger className="h-7 w-40 text-xs">
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder="Select type">
+                {(v) => subtaskTypes.find((t) => t.id === v)?.name ?? 'Select type'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {subtaskTypes.map((t) => (

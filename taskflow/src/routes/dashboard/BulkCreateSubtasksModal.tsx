@@ -523,7 +523,14 @@ export function BulkCreateSubtasksModal({
             {/* Template selector */}
             <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="No template (ad-hoc)" />
+                <SelectValue placeholder="No template (ad-hoc)">
+                  {(v) =>
+                    v === '__adhoc__' || !v
+                      ? 'No template (ad-hoc)'
+                      : (templates.find((t: SubtaskTemplate) => t.id === v)?.name ??
+                        'No template (ad-hoc)')
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__adhoc__">No template (ad-hoc)</SelectItem>
@@ -538,7 +545,9 @@ export function BulkCreateSubtasksModal({
             {/* Subtask type selector */}
             <Select value={effectiveTypeId} onValueChange={handleTypeChange}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Subtask type" />
+                <SelectValue placeholder="Subtask type">
+                  {(v) => subtaskTypes.find((t) => t.id === v)?.name ?? 'Subtask type'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {subtaskTypes.map((t) => (
