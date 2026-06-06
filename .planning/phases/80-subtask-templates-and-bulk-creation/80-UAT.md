@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: partial
 phase: 80-subtask-templates-and-bulk-creation
 source: [80-01-SUMMARY.md, 80-02-SUMMARY.md, 80-03-SUMMARY.md, 80-04-SUMMARY.md]
 started: 2026-06-06T22:49:57Z
@@ -9,7 +9,13 @@ updated: 2026-06-06T22:55:00Z
 ## Current Test
 <!-- OVERWRITE each test - shows where we are -->
 
-[testing complete]
+number: 3
+name: Edit Rows — Fields, Subtask Type, Advanced Expand (re-verify)
+expected: |
+  RE-VERIFY after inline fixes (4a2cba26, 61b1f259). The row no longer overflows;
+  the Title field has a readable width floor (wraps fields to a second line if
+  needed). The subtask-type selector trigger shows the issue-type NAME, not the id.
+awaiting: user response
 
 ## Tests
 
@@ -23,9 +29,8 @@ result: pass
 
 ### 3. Edit Rows — Fields, Subtask Type, Advanced Expand
 expected: With a template's "Edit Rows" open, "+ Add row" appends a blank row (assignee defaults to @inherit). Each row has inline Title, Assignee, Priority, Labels, Due Date, Estimate, Story Points. The subtask-type selector lists only subtask issue types. Clicking "Advanced" expands a panel with Components and any project custom fields.
-result: issue
-reported: "fields are there but the row layout is broken, it overflows to the right; subtask type shows id instead of the name of the type; the name is squished and with 0 width; the layout overall is broken"
-severity: major
+result: [pending]
+note: "re-verify after fixes 4a2cba26 (layout) + 61b1f259 (type name). Prior: 'row layout broken, overflows right; subtask type shows id not name; title squished to 0 width'"
 
 ### 4. Drag to Reorder Templates and Rows
 expected: Grab a template card's drag handle and drop it elsewhere — order updates on drop (no jumpy live reordering, a fixed-height ghost follows the cursor). Same for reordering rows within a template's editor.
@@ -37,9 +42,8 @@ result: pass
 
 ### 6. Bulk Create Subtasks Entry Point
 expected: Open any parent issue's detail view. Near "Add subtask" there is a "Bulk Create Subtasks" button (list icon). Clicking it opens a modal titled "Bulk Create Subtasks" with a "Parent: {KEY}" subtitle, a template selector ("No template (ad-hoc)" + saved templates), and a subtask-type selector.
-result: issue
-reported: "the button is there but it has different styling than the single subtask button, make them match; the modal works but has similar layout problems as the settings"
-severity: major
+result: [pending]
+note: "re-verify after fixes 4a2cba26 (modal layout, shared component) + 256ac361 (button styling). Prior: 'button styling differs from single subtask button; modal has similar layout problems as settings'"
 
 ### 7. Placeholder Chip Rendering in Modal
 expected: Open a parent issue with assignee + priority set; open Bulk Create and select a template with @inherit / @current / @unassigned assignee rows. @inherit shows a blue chip "@inherit → {Parent Assignee Name}"; @current shows a violet chip "@current → {Your Display Name}"; @unassigned shows a muted "@unassigned" chip.
@@ -64,15 +68,18 @@ reason: "can't test"
 
 total: 10
 passed: 5
-issues: 2
-pending: 0
+issues: 0
+pending: 2
 skipped: 3
 blocked: 0
+
+<!-- 4 gaps diagnosed and fixed inline (commits 4a2cba26, 61b1f259, 256ac361). Tests 3 & 6 re-opened as [pending] for human re-verification. -->
+
 
 ## Gaps
 
 - truth: "Settings row editor lays out inline fields cleanly within the panel width; the Title field is readable (non-zero width) and rows do not overflow horizontally."
-  status: diagnosed
+  status: fixed
   reason: "User reported: row layout is broken, it overflows to the right; the (title) name is squished and with 0 width; the layout overall is broken"
   severity: major
   test: 3
@@ -84,9 +91,10 @@ blocked: 0
     - "Add `flex-wrap` to the row container (line 182) and give Title a width floor: change `flex-1 min-w-0` → `flex-1 min-w-[180px]` (line 205)"
     - "Alternatively move secondary fields (Labels/Estimate/Story points/Due date) into Advanced expand, or switch to a responsive grid"
   debug_session: ".planning/debug/subtask-row-layout-overflow.md"
+  fix: "4a2cba26 — flex-wrap on row container + Title min-w-[180px] (SubtaskTemplateRow.tsx)"
 
 - truth: "The Bulk Create Subtasks rows in the modal lay out cleanly within the modal width — same row layout fix as the Settings editor (shared SubtaskTemplateRow component)."
-  status: diagnosed
+  status: fixed
   reason: "User reported: the modal works but has similar layout problems as the settings"
   severity: major
   test: 6
@@ -97,9 +105,10 @@ blocked: 0
   missing:
     - "Resolved by the SubtaskTemplateRow layout fix above (shared component); verify modal width still accommodates the wrapped/min-width layout"
   debug_session: ".planning/debug/subtask-row-layout-overflow.md"
+  fix: "4a2cba26 — resolved by the shared SubtaskTemplateRow layout fix"
 
 - truth: "The 'Bulk Create Subtasks' button visually matches the single 'Add subtask' button styling (same variant/size)."
-  status: diagnosed
+  status: fixed
   reason: "User reported: the button is there but it has different styling than the single subtask button, make them match"
   severity: cosmetic
   test: 6
@@ -110,9 +119,10 @@ blocked: 0
   missing:
     - "Replace the Bulk Create <Button variant=outline size=sm> (lines 330-338) with a native <button type=button> using the identical className as Add subtask, keeping onClick + LayoutList icon"
   debug_session: ".planning/debug/bulk-button-style-mismatch.md"
+  fix: "256ac361 — Bulk Create swapped to native ghost-text button matching Add subtask (IssueDetailContent.tsx)"
 
 - truth: "The subtask-type selector in the Settings row editor displays the human-readable issue-type name, not the raw type id."
-  status: diagnosed
+  status: fixed
   reason: "User reported: subtask type shows id instead of the name of the type"
   severity: major
   test: 3
@@ -126,3 +136,4 @@ blocked: 0
     - "Add a function child to <SelectValue>: {(v) => subtaskTypes.find(t => t.id === v)?.name ?? 'Select type'} (or pass `items` map to Select root)"
     - "Apply the same mapping to the bulk modal's subtask-type Select (and template selector); SelectItem markup is already correct"
   debug_session: ".planning/debug/subtask-type-shows-id.md"
+  fix: "61b1f259 — SelectValue function child maps id→name on subtask-type (Settings + modal) and template selector"
