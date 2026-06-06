@@ -16,6 +16,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Flag } from 'lucide-react';
 import React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -103,6 +104,9 @@ function RowCells({
       {/* Summary cell -- takes remaining space, truncates on overflow */}
       <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
         <span className="inline-flex items-center gap-2 text-sm text-left">
+          <PriorityIcon
+            priority={issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined}
+          />
           {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
           <span className="truncate">{issue.fields.summary}</span>
           <OverdueBadge
