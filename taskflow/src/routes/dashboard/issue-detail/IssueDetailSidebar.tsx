@@ -20,6 +20,8 @@ interface IssueDetailSidebarProps {
   epicNameFieldKey: string;
   sprintFieldKey: string;
   onOpenIssue?: (key: string) => void;
+  /** When true, the Linked Issues section is omitted (single-column peek renders it at the bottom instead) */
+  omitLinkedIssues?: boolean;
   /** When true, the Merge Requests section is omitted (single-column peek renders it at the bottom instead) */
   omitMergeRequests?: boolean;
 }
@@ -33,6 +35,7 @@ export function IssueDetailSidebar({
   epicNameFieldKey,
   sprintFieldKey,
   onOpenIssue,
+  omitLinkedIssues,
   omitMergeRequests,
 }: IssueDetailSidebarProps) {
   const f = issue.fields;
@@ -102,7 +105,9 @@ export function IssueDetailSidebar({
         onOpenIssue={onOpenIssue}
       />
 
-      <LinkedIssuesSection issuelinks={f.issuelinks} onOpenIssue={onOpenIssue} />
+      {!omitLinkedIssues && (
+        <LinkedIssuesSection issuelinks={f.issuelinks} onOpenIssue={onOpenIssue} />
+      )}
 
       {!omitMergeRequests && (
         <MergeRequestsSection
