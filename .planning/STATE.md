@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 80
 Plan: Not started
 Status: Executing Phase 80
-Last activity: 2026-06-06 - Quick task 260606-oqf APPROVED & closed: issue peek panel now has elevation (leftward shadow + ring-1 ring-foreground/10) so it stops blending in; matches sheet/popover/dialog conventions, theme-aware light+dark
+Last activity: 2026-06-06 - Completed quick task 260606-oyy: sprint board priority shown as Jira icon (card footer + swimlane header) instead of left border; card left border now encodes issue type via issueTypeStripeClass(); new PriorityIcon component (verified, npm run check GREEN, 40/40 tests)
 
 Progress: [██████████] 100%
 
@@ -99,6 +99,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260605-hx2 | Resolution control set via workflow transition — sidebar + StatusPopover + board drag & right-click picker (reworked from rejected field-PUT) | 2026-06-06 | f604bb13 | Verified (live UAT approved on ESHOP-20308) | [260605-hx2-add-resolution-field-control-to-issue-de](./quick/260605-hx2-add-resolution-field-control-to-issue-de/) |
 | 260606-o5y | Sprint board: story swimlane rows open the issue peek preview like cards (PEEK-01 body→peek, PEEK-05 key→full-page); all 3 sites wired; WR-01 keyboard double-fire guard added to row + card | 2026-06-06 | b96862cc | Approved & closed | [260606-o5y-on-sprint-board-story-rows-open-issue-pr](./quick/260606-o5y-on-sprint-board-story-rows-open-issue-pr/) |
 | 260606-oqf | Issue peek panel: add elevation so it stops blending in — leftward shadow + ring-1 ring-foreground/10 (matches sheet/popover/dialog conventions, theme-aware light+dark) | 2026-06-06 | a33b9b5b | Approved & closed | [260606-oqf-on-issue-peek-panel-add-more-distinction](./quick/260606-oqf-on-issue-peek-panel-add-more-distinction/) |
+| 260606-oyy | Sprint board: priority now shown as Jira iconUrl icon (card footer + swimlane header) instead of left border; card left border repurposed to issue-type color via new issueTypeStripeClass(); new PriorityIcon component; a11y alt text | 2026-06-06 | 976a0e8e | Verified | [260606-oyy-on-sprint-board-i-want-to-change-how-pri](./quick/260606-oyy-on-sprint-board-i-want-to-change-how-pri/) |
 
 ## Deferred Items
 
