@@ -1356,6 +1356,14 @@ export default function SprintBoardTab() {
       // query keys were retired with the hard cutover and no longer have any
       // registered consumers.
       invalidateGhAllData(queryClient, boardId ?? undefined);
+      // A board transition also changes this issue's status (and, when a
+      // resolution was set, its resolution). The issue-detail sidebar caches that
+      // separately, so invalidate it here — otherwise opening the issue shows the
+      // stale resolution/status. Mirrors FieldsSection's transition invalidation.
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
+      // Status changed → the transitions-with-fields gating must be re-read.
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-transitions-fields', issueKey] });
     } catch {
       // Rollback to original status
       setLocalIssues((prev) =>
