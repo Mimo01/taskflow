@@ -180,7 +180,7 @@ export function SubtaskTemplateRow({
       {/* Row container */}
       <div
         className={[
-          'flex items-center gap-2 min-h-[44px] px-2 py-1 rounded-md hover:bg-muted/50',
+          'flex flex-wrap items-center gap-2 min-h-[44px] px-2 py-1 rounded-md hover:bg-muted/50',
           isFailed ? 'bg-destructive/5' : '',
           isCreating ? 'opacity-70' : '',
         ]
@@ -202,7 +202,7 @@ export function SubtaskTemplateRow({
         {/* Title — required */}
         <Input
           className={[
-            'flex-1 min-w-0',
+            'flex-1 min-w-[180px]',
             titleInvalid
               ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20'
               : '',
