@@ -492,8 +492,13 @@ export function IssueDetailView({
     />
   );
 
+  // Single-column (peek) uses tighter horizontal padding than two-column. The activity
+  // feed and its sticky composer break-out margin must track the same value to stay aligned.
+  const activityPadX = layout === 'single-column' ? 'px-4' : 'px-6';
+  const activityNegMx = layout === 'single-column' ? '-mx-4' : '-mx-6';
+
   const activitySectionNode = issue && (
-    <div className="px-6">
+    <div className={activityPadX}>
       <AioTestRunsSection
         issueKey={issueKey}
         jiraBaseUrl={jiraBaseUrl ?? ''}
@@ -582,7 +587,9 @@ export function IssueDetailView({
       )}
 
       {(timelineFilter === 'comment' || timelineFilter === 'all') && (
-        <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
+        <div
+          className={`sticky bottom-0 border-t py-3 ${activityNegMx} ${activityPadX} bg-background`}
+        >
           <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl ?? ''} />
         </div>
       )}
@@ -661,26 +668,27 @@ export function IssueDetailView({
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* Sidebar fields block */}
-      <div className="p-4 border-b">{sidebarNode}</div>
+      <div className="px-4 py-4 border-b">{sidebarNode}</div>
 
-      {/* Content block: description, subtasks, AIO, activity, composer */}
-      <div className="p-4">
+      {/* Content block: description, subtasks, then Linked Issues + Merge Requests
+          (omitted from the sidebar above). Shares px-4 with the sidebar and the
+          activity feed below so the whole panel reads as one column. */}
+      <div className="px-4 py-4 space-y-4">
         {issueDetailContentNode}
-        {/* Linked Issues + Merge Requests sit just above the activity/comments feed in
-            single-column (omitted from the sidebar above) */}
-        <div className="px-2 py-2 space-y-4">
-          {issue && (
-            <LinkedIssuesSection issuelinks={issue.fields.issuelinks} onOpenIssue={onOpenIssue} />
-          )}
-          <MergeRequestsSection
-            linkedMRs={mr.linkedMRs}
-            mrsLoading={mr.mrsLoading}
-            gitlabConnected={mr.gitlabConnected}
-            gitlabBaseUrl={mr.gitlabBaseUrl}
-          />
-        </div>
-        {activitySectionNode}
+        {issue && (
+          <LinkedIssuesSection issuelinks={issue.fields.issuelinks} onOpenIssue={onOpenIssue} />
+        )}
+        <MergeRequestsSection
+          linkedMRs={mr.linkedMRs}
+          mrsLoading={mr.mrsLoading}
+          gitlabConnected={mr.gitlabConnected}
+          gitlabBaseUrl={mr.gitlabBaseUrl}
+        />
       </div>
+
+      {/* Activity feed is a direct child (like two-column) so its own px-6 aligns with
+          the blocks above and the sticky composer's -mx-6 reaches the panel edge. */}
+      {activitySectionNode}
     </div>
   );
 }
