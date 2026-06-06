@@ -309,7 +309,10 @@ function buildGroups(
   //    Commits on a tracked issue are collapsed to a single "N commits" sub-item
   //    per (group, origin) rather than listed individually — one line per origin per group.
   //    Composite key format: "${groupKey}::${originKey}" to track per-subtask counts.
-  const commitCountByGroupOrigin = new Map<string, { groupKey: string; originKey: string; count: number }>();
+  const commitCountByGroupOrigin = new Map<
+    string,
+    { groupKey: string; originKey: string; count: number }
+  >();
   for (const commit of commitsData ?? []) {
     // Skip merge commits — they're noise in a standup recap, not real work.
     if (isMergeCommit(commit)) continue;
@@ -322,7 +325,11 @@ function buildGroups(
       if (existing) {
         existing.count += 1;
       } else {
-        commitCountByGroupOrigin.set(compositeKey, { groupKey: group.issueKey, originKey: key, count: 1 });
+        commitCountByGroupOrigin.set(compositeKey, {
+          groupKey: group.issueKey,
+          originKey: key,
+          count: 1,
+        });
       }
     } else {
       otherCommits.push(commit);
@@ -367,9 +374,10 @@ function buildGroups(
         });
       } else {
         const compositeKey = `${group.issueKey}::${originKey}`;
-        const bucket =
-          keyedCommentCounts.get(compositeKey) ??
-          { originKey, perIid: new Map<number, { count: number; title: string; projectId: number }>() };
+        const bucket = keyedCommentCounts.get(compositeKey) ?? {
+          originKey,
+          perIid: new Map<number, { count: number; title: string; projectId: number }>(),
+        };
         const entry = bucket.perIid.get(mrIid) ?? {
           count: 0,
           title: event.target_title,
@@ -423,14 +431,11 @@ function buildGroups(
       const origin = item.originKey;
       const meta = origin ? issueMeta?.[origin] : undefined;
       const belongsToSubtask =
-        origin &&
-        origin !== group.issueKey &&
-        meta?.isSubtask &&
-        meta.parentKey === group.issueKey;
-      if (belongsToSubtask) {
-        const bucket = bySubtask.get(origin!) ?? [];
+        origin && origin !== group.issueKey && meta?.isSubtask && meta.parentKey === group.issueKey;
+      if (belongsToSubtask && origin) {
+        const bucket = bySubtask.get(origin) ?? [];
         bucket.push(item);
-        bySubtask.set(origin!, bucket);
+        bySubtask.set(origin, bucket);
       } else {
         storyLevel.push(item);
       }
@@ -582,10 +587,12 @@ export default function YesterdayColumn({
                     summary={group.summary}
                     issueType={group.issueType}
                     subItems={group.subItems}
+                    subTaskGroups={group.subTaskGroups}
                     onClick={() => (onOpenIssue ?? onIssueClick)(group.issueKey)}
                     onIssueKeyClick={() => onIssueClick(group.issueKey)}
                     onIssueClick={onIssueClick}
                     onMRClick={onMRClick}
+                    onOpenIssue={onOpenIssue}
                   />
                 ))}
               </div>

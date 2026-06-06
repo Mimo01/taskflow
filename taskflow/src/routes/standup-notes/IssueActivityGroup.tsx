@@ -54,6 +54,8 @@ export interface IssueActivityGroupProps {
   /** Jira issue type name — drives the type icon (Story, Bug, Sub-task, Epic, …). */
   issueType?: string;
   subItems: SubItem[];
+  /** Sub-task sub-groups to render nested below the story's own sub-item list. */
+  subTaskGroups?: SubTaskSubGroup[];
   /** Click handler for the header body — opens the peek panel (PEEK-01). */
   onClick?: () => void;
   /** Click handler for the issue KEY element — navigates full-page (PEEK-05). */
@@ -62,6 +64,9 @@ export interface IssueActivityGroupProps {
   onMRClick?: (projectIdAndIid: string) => void;
   /** Click handler for issue sub-items (e.g. subtask worklogs) — navigates to that issue. */
   onIssueClick?: (key: string) => void;
+  /** Click handler for sub-task header body — opens the peek panel for the sub-task.
+   *  Falls back to onIssueClick when not provided. */
+  onOpenIssue?: (key: string) => void;
 }
 
 /** Map sub-item kind to Lucide icon component per UI-SPEC icon table. */
@@ -86,15 +91,70 @@ function subItemIcon(kind: SubItemKind) {
   }
 }
 
+/** Renders a list of sub-items (worklogs, commits, MR events, etc.) with click affordances.
+ *  Extracted to avoid duplicating the three-way clickable-MR / clickable-issue / plain
+ *  branches in both the story-level and sub-task-level render paths. */
+function SubItemList({
+  items,
+  onMRClick,
+  onIssueClick,
+}: {
+  items: SubItem[];
+  onMRClick?: (projectIdAndIid: string) => void;
+  onIssueClick?: (key: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      {items.map((item, i) => {
+        const SubIcon = subItemIcon(item.kind);
+        const isClickableMr = onMRClick != null && item.mrProjectId != null && item.mrIid != null;
+        const isClickableIssue = onIssueClick != null && item.issueKey != null;
+        return isClickableMr ? (
+          <button
+            // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
+            key={i}
+            type="button"
+            className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
+          >
+            <SubIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+          </button>
+        ) : isClickableIssue ? (
+          <button
+            // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
+            key={i}
+            type="button"
+            className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            onClick={() => onIssueClick?.(item.issueKey ?? '')}
+          >
+            <SubIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+          </button>
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
+          <div key={i} className="flex items-center gap-2 py-1.5 px-2">
+            <SubIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export default function IssueActivityGroup({
   issueKey,
   summary,
   issueType,
   subItems,
+  subTaskGroups,
   onClick,
   onIssueKeyClick,
   onMRClick,
   onIssueClick,
+  onOpenIssue,
 }: IssueActivityGroupProps) {
   return (
     <div>
@@ -127,50 +187,58 @@ export default function IssueActivityGroup({
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
       </div>
 
-      {/* Sub-items */}
+      {/* Story-level sub-items (flat, directly under the story header) */}
       {subItems.length > 0 && (
         <div className="pl-6 ml-2">
-          {subItems.map((item, i) => {
-            const SubIcon = subItemIcon(item.kind);
-            const isClickableMr =
-              onMRClick != null && item.mrProjectId != null && item.mrIid != null;
-            const isClickableIssue = onIssueClick != null && item.issueKey != null;
-            return isClickableMr ? (
-              <button
-                // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-                key={i}
-                type="button"
-                className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
+          <SubItemList items={subItems} onMRClick={onMRClick} onIssueClick={onIssueClick} />
+        </div>
+      )}
+
+      {/* Sub-task sub-groups: nested below story-level items, only when non-empty */}
+      {subTaskGroups && subTaskGroups.length > 0 && (
+        <div className="pl-6 ml-2">
+          {subTaskGroups.map((st) => (
+            <div key={st.issueKey}>
+              {/* Sub-task header: [icon] [key button] [summary] — body → peek, key → full-page */}
+              {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML (Pitfall 1) */}
+              <div
+                role="button"
+                tabIndex={0}
+                className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => (onOpenIssue ?? onIssueClick)?.(st.issueKey)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    (onOpenIssue ?? onIssueClick)?.(st.issueKey);
+                  }
+                }}
               >
-                <SubIcon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
-                  {item.label}
-                </span>
-              </button>
-            ) : isClickableIssue ? (
-              <button
-                // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-                key={i}
-                type="button"
-                className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                onClick={() => onIssueClick?.(item.issueKey ?? '')}
-              >
-                <SubIcon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
-                  {item.label}
-                </span>
-              </button>
-            ) : (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-              <div key={i} className="flex items-center gap-2 py-1.5 px-2">
-                <SubIcon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
-                  {item.label}
-                </span>
+                <IssueTypeIcon typeName={st.issueType ?? ''} className="size-4 shrink-0" />
+                {/* Key button: full-page navigation; stopPropagation prevents body peek handler */}
+                <button
+                  type="button"
+                  className="shrink-0 text-xs text-muted-foreground font-mono cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onIssueClick?.(st.issueKey);
+                  }}
+                >
+                  {st.issueKey}
+                </button>
+                <span className="flex-1 min-w-0 truncate text-sm">{st.summary}</span>
               </div>
-            );
-          })}
+              {/* Sub-task's own activity items, indented a further level */}
+              {st.subItems.length > 0 && (
+                <div className="pl-6 ml-2">
+                  <SubItemList
+                    items={st.subItems}
+                    onMRClick={onMRClick}
+                    onIssueClick={onIssueClick}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
