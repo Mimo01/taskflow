@@ -68,8 +68,10 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
       <div
         className={cn(
           sizeClass,
-          'rounded-full bg-muted flex items-center justify-center',
-          showUnassigned ? '' : 'text-[10px] font-medium text-foreground',
+          'rounded-full flex items-center justify-center',
+          showUnassigned
+            ? 'border border-dashed border-muted-foreground/50 bg-muted/40'
+            : 'bg-muted text-[10px] font-medium text-foreground',
           showImage ? 'hidden' : 'flex',
         )}
         role="img"
