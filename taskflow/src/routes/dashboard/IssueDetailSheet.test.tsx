@@ -33,6 +33,16 @@ vi.mock('@/services/jira', () => ({
     isError: false,
     refetch: vi.fn(),
   })),
+  // StatusPopover also reads the REST transitions-with-fields cache. Mirror the
+  // real key factory so the queryKey computed at render matches production.
+  transitionsWithFieldsKey: vi.fn((issueKey, baseUrl, statusId) => [
+    'jira-issue-transitions-fields',
+    issueKey,
+    baseUrl,
+    statusId,
+  ]),
+  fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
+  filterTransitionsForStatus: vi.fn(() => []),
 }));
 
 // Mock @tauri-apps/plugin-opener
