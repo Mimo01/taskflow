@@ -95,6 +95,16 @@ vi.mock('@/services/jira', () => ({
   invalidateGhTransitions: vi.fn(),
   peekGhTransitions: vi.fn(() => undefined),
   filterTransitionsForStatus: vi.fn(() => []),
+  // REWORK2: board drag-to-resolution probe + decision helper. Mocked so the new
+  // SprintBoardTab imports resolve; individual tests override return values as needed.
+  fetchIssueTransitionsWithFields: vi.fn().mockResolvedValue([]),
+  transitionsWithFieldsKey: vi.fn((k: string, b: string, s: string) => [
+    'jira-issue-transitions-fields',
+    k,
+    b,
+    s,
+  ]),
+  resolveDropResolution: vi.fn(() => ({ kind: 'plain' })),
 }));
 
 // Sprints still hit REST per R-02
@@ -757,6 +767,109 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       await waitFor(() => {
         expect(invalidateGhAllData).toHaveBeenCalledWith(expect.anything(), 163);
       });
+    });
+  });
+
+  // ─── REWORK2: board drag-to-resolution picker ──────────────────────────────
+
+  describe('REWORK2: BoardResolutionDialog confirm wiring', () => {
+    it('confirms with {id} after selecting a real resolution', async () => {
+      const { BoardResolutionDialog } = await import('./BoardResolutionDialog');
+      const onConfirm = vi.fn();
+      render(
+        <BoardResolutionDialog
+          open
+          onOpenChange={() => {}}
+          issueKey="PROJ-1"
+          toStatusName="Done"
+          allowedValues={[{ id: '10000', name: 'Done' }]}
+          onConfirm={onConfirm}
+        />,
+      );
+
+      // "Done" also appears in the description span; target the option button by role.
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(onConfirm).toHaveBeenCalledWith({ id: '10000' });
+    });
+
+    it('confirms with null after selecting Unresolved', async () => {
+      const { BoardResolutionDialog } = await import('./BoardResolutionDialog');
+      const onConfirm = vi.fn();
+      render(
+        <BoardResolutionDialog
+          open
+          onOpenChange={() => {}}
+          issueKey="PROJ-1"
+          toStatusName="Done"
+          allowedValues={[{ id: '10000', name: 'Done' }]}
+          onConfirm={onConfirm}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Unresolved' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(onConfirm).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe('REWORK2: handleTransition forwarding — context-menu path passes no fields', () => {
+    it('calls postTransition with exactly 4 args (no fields) for the context-menu path', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Story For 4Arg',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      const subtask = makeIssue(
+        'PROJ-2',
+        'Subtask For 4Arg',
+        true,
+        'PROJ-1',
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story, subtask]);
+
+      const { postTransition } = await import('@/services/jira');
+      vi.mocked(postTransition).mockResolvedValueOnce(undefined);
+
+      const { peekGhTransitions, filterTransitionsForStatus } = await import('@/services/jira');
+      const txn = [
+        {
+          id: 'T2',
+          name: 'Done',
+          to: { id: '4', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ];
+      vi.mocked(peekGhTransitions).mockReturnValue(txn);
+      vi.mocked(filterTransitionsForStatus).mockReturnValue(txn);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      const cardText = await screen.findByText('Subtask For 4Arg');
+      fireEvent.contextMenu(cardText);
+
+      await waitFor(() => {
+        const doneItems = screen.queryAllByText('Done');
+        const menuItem = doneItems.find((el) => el.closest('[role="menuitem"]'));
+        if (menuItem) fireEvent.click(menuItem);
+      });
+
+      await waitFor(() => {
+        expect(postTransition).toHaveBeenCalled();
+      });
+      // Context-menu callers forward NO resolution → postTransition gets exactly 4 args.
+      const calls = vi.mocked(postTransition).mock.calls;
+      const call = calls[calls.length - 1];
+      expect(call).toHaveLength(4);
     });
   });
 

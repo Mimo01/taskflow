@@ -6,8 +6,10 @@ import { apiFetch } from '../../lib/apiFetch';
 import {
   fetchIssueTransitionsWithFields,
   postTransition,
+  resolveDropResolution,
   transitionsWithFieldsKey,
 } from './transitions';
+import type { JiraTransitionFieldMeta, JiraTransitionWithFields } from './types';
 
 const mockedApiFetch = vi.mocked(apiFetch);
 const baseUrl = 'https://jira.example.com';
@@ -142,6 +144,47 @@ describe('transitions', () => {
       await expect(fetchIssueTransitionsWithFields(baseUrl, token, issueKey)).rejects.toThrow(
         'Failed to fetch transitions',
       );
+    });
+  });
+
+  describe('resolveDropResolution (REWORK2 — board drag decision helper)', () => {
+    function meta(resolution: JiraTransitionFieldMeta | undefined): JiraTransitionWithFields {
+      return {
+        id: 'txn-1',
+        name: 'Done',
+        to: { id: '6', name: 'Done', statusCategory: { key: 'done' } },
+        fields: resolution ? { resolution } : {},
+      };
+    }
+
+    it('returns dialog with allowedValues when length > 0', () => {
+      const allowedValues = [{ id: '10000', name: 'Done' }];
+      const decision = resolveDropResolution(meta({ required: false, allowedValues }));
+      expect(decision).toEqual({ kind: 'dialog', allowedValues });
+    });
+
+    it('returns block when required:true and allowedValues is empty (WR-05)', () => {
+      expect(resolveDropResolution(meta({ required: true, allowedValues: [] }))).toEqual({
+        kind: 'block',
+      });
+    });
+
+    it('returns block when required:true and allowedValues is undefined', () => {
+      expect(resolveDropResolution(meta({ required: true }))).toEqual({ kind: 'block' });
+    });
+
+    it('returns plain when there is no fields.resolution at all', () => {
+      expect(resolveDropResolution(meta(undefined))).toEqual({ kind: 'plain' });
+    });
+
+    it('returns plain when meta is undefined', () => {
+      expect(resolveDropResolution(undefined)).toEqual({ kind: 'plain' });
+    });
+
+    it('returns plain when required:false and allowedValues is empty (optional-and-empty)', () => {
+      expect(resolveDropResolution(meta({ required: false, allowedValues: [] }))).toEqual({
+        kind: 'plain',
+      });
     });
   });
 });
