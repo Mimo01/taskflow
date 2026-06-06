@@ -37,6 +37,16 @@ export interface SubItem {
   /** The originating issue key for this activity (set at attach time in buildGroups).
    *  Distinct from issueKey (click affordance) — used for the sub-task partition pass. */
   originKey?: string;
+  /** Structured transition data for 'transition' sub-items, used to render two status
+   *  pills + a muted arrow. `label` remains the plain-text markdown source (do NOT remove);
+   *  this field drives the styled render only. Categories are statusCategory.key values
+   *  (undefined → gray fallback inside statusPillClass). */
+  transition?: {
+    fromStatus: string;
+    toStatus: string;
+    fromCategory?: string;
+    toCategory?: string;
+  };
 }
 
 /** A sub-task sub-group: activity items attributable to one specific sub-task,

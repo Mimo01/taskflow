@@ -304,7 +304,19 @@ function buildGroups(
       );
       const initial = sorted[0].fromStatus;
       const final = sorted[sorted.length - 1].toStatus;
-      group.subItems.push({ kind: 'transition', label: `${initial} → ${final}`, originKey });
+      group.subItems.push({
+        kind: 'transition',
+        // label stays the plain-text markdown source (generateMarkdown reads it) — DO NOT change.
+        label: `${initial} → ${final}`,
+        originKey,
+        // Structured data for the styled pill render (categories drive pill color).
+        transition: {
+          fromStatus: initial,
+          toStatus: final,
+          fromCategory: sorted[0].fromCategory,
+          toCategory: sorted[sorted.length - 1].toCategory,
+        },
+      });
     }
     for (const c of activity.comments) {
       const snippet = c.body.length > 80 ? `${c.body.slice(0, 80)}…` : c.body;
