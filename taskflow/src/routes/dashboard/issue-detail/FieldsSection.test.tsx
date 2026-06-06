@@ -425,6 +425,27 @@ describe('FieldsSection', () => {
       expect(screen.getByTestId('resolution-value').textContent).toBe('Unresolved');
     });
 
+    it('hides the Resolution row entirely for an unresolved, non-done issue', async () => {
+      const issue = makeIssue({
+        status: { id: '1', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+        resolution: null,
+      });
+      await renderResolution(issue);
+      // No row, no edit affordance — resolution only shows where it makes sense.
+      expect(screen.queryByText('Resolution')).toBeNull();
+      expect(screen.queryByTestId('resolution-edit')).toBeNull();
+    });
+
+    it('shows the Resolution row for a resolved issue even when not done', async () => {
+      const issue = makeIssue({
+        status: { id: '1', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+        resolution: { id: '1', name: 'Done' },
+      });
+      await renderResolution(issue);
+      expect(screen.getByText('Resolution')).toBeTruthy();
+      expect(screen.getByTestId('resolution-edit').textContent).toBe('Done');
+    });
+
     it('shows a Select of the transition allowedValues and runs the in-place transition with fields.resolution', async () => {
       const { fetchIssueTransitionsWithFields, postTransition } = await import(
         '@/services/jira/transitions'
