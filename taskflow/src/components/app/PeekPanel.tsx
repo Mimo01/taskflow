@@ -23,11 +23,11 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useResizable } from '@/hooks/useResizable';
+import { IssueDetailView } from '@/routes/dashboard/IssueDetailView';
 import { fetchIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { IssueDetailView } from '@/routes/dashboard/IssueDetailView';
 
 export interface PeekPanelProps {
   issueKey: string;
@@ -121,9 +121,7 @@ export function PeekPanel({
       <div className="flex items-center justify-between h-10 px-4 border-b border-border shrink-0">
         {/* Left: icon (after load) + key + title (after load) */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {issue && (
-            <IssueTypeIcon typeName={issue.fields.issuetype.name} />
-          )}
+          {issue && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
           {/* Key must NOT shrink — badge stays mono and always visible */}
           <span className="text-xs font-mono text-muted-foreground shrink-0">{issueKey}</span>
           {issue && (
