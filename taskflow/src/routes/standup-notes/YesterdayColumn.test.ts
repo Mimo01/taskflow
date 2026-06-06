@@ -127,12 +127,105 @@ describe('generateMarkdown — parent-story rollup', () => {
 
     const md = generateMarkdown({ tempoData, mrEventsData, issueMeta }, DATE);
 
-    // One story group headed by the parent, the comment, and the subtask's
-    // worklog all together — and no separate ESHOP-2 group heading.
+    // One story group headed by the parent.
     expect(md).toContain('### ESHOP-1: Checkout revamp');
+    // Story-level MR comment stays flat under the story.
     expect(md).toContain('1 comment on ESHOP-1 Checkout revamp');
+    // Subtask worklog label remains unchanged under the sub-task sub-group.
     expect(md).toContain('1h · ESHOP-2 Wire up form');
+    // Nested sub-task line (2-space indented): the new assertion for nesting.
+    expect(md).toContain('  - ESHOP-2: Wire up form');
+    // No separate ESHOP-2 top-level group heading.
     expect(md).not.toContain('### ESHOP-2');
+  });
+
+  it('nests a commit attributed to a sub-task under that sub-task', () => {
+    // Commit message carries the sub-task key; issueMeta marks it a subtask of the story.
+    const commitsData = [
+      {
+        id: 'abc',
+        short_id: 'abc123',
+        title: 'ESHOP-3 Wire up checkout button',
+        message: 'ESHOP-3 Wire up checkout button\n',
+        author_name: 'jdoe',
+        author_email: 'jdoe@example.com',
+        authored_date: `${DATE}T09:00:00.000Z`,
+        web_url: 'https://gitlab.example.com',
+      },
+    ];
+    const issueMeta: Record<string, StandupIssueMeta> = {
+      'ESHOP-3': {
+        type: 'Sub-task',
+        isSubtask: true,
+        summary: 'Wire up checkout button',
+        parentKey: 'ESHOP-10',
+        parentSummary: 'Checkout revamp',
+        parentType: 'Story',
+      },
+      'ESHOP-10': { type: 'Story', isSubtask: false, summary: 'Checkout revamp' },
+    };
+
+    const md = generateMarkdown({ commitsData, issueMeta }, DATE);
+
+    // Parent story group heading present.
+    expect(md).toContain('### ESHOP-10: Checkout revamp');
+    // Nested sub-task header line.
+    expect(md).toContain('  - ESHOP-3: Wire up checkout button');
+    // Commit count nested under the sub-task (4-space indented).
+    expect(md).toContain('    - 1 commit');
+    // No flat "1 commit" at story level (must appear only under the sub-task).
+    const lines = md.split('\n');
+    const flatCommitLine = lines.find((l) => l === '- 1 commit');
+    expect(flatCommitLine).toBeUndefined();
+    // No separate sub-task group heading.
+    expect(md).not.toContain('### ESHOP-3');
+  });
+
+  it('nests an MR-comment attributed to a sub-task under that sub-task', () => {
+    // MR comment on an MR whose title carries the sub-task key.
+    const mrEventsData = [commentEvent(501, 2000, 'ESHOP-5 Add address form')];
+    const issueMeta: Record<string, StandupIssueMeta> = {
+      'ESHOP-5': {
+        type: 'Sub-task',
+        isSubtask: true,
+        summary: 'Add address form',
+        parentKey: 'ESHOP-20',
+        parentSummary: 'User checkout flow',
+        parentType: 'Story',
+      },
+      'ESHOP-20': { type: 'Story', isSubtask: false, summary: 'User checkout flow' },
+    };
+
+    const md = generateMarkdown({ mrEventsData, issueMeta }, DATE);
+
+    // Parent story group heading present.
+    expect(md).toContain('### ESHOP-20: User checkout flow');
+    // Nested sub-task header line (2-space indented).
+    expect(md).toContain('  - ESHOP-5: Add address form');
+    // MR comment nested under the sub-task (4-space indented).
+    expect(md).toContain('    - 1 comment on ESHOP-5 Add address form');
+    // No flat comment at story level.
+    const lines = md.split('\n');
+    const flatCommentLine = lines.find((l) => l === '- 1 comment on ESHOP-5 Add address form');
+    expect(flatCommentLine).toBeUndefined();
+    // No separate sub-task group heading.
+    expect(md).not.toContain('### ESHOP-5');
+  });
+
+  it('produces no nested sub-task block for a story with only story-level activity', () => {
+    // Story worklog with no sub-task meta — should look identical to before nesting.
+    const tempoData = [worklog('PROJ-7', 1800, 'Planning session')];
+    const issueMeta: Record<string, StandupIssueMeta> = {
+      'PROJ-7': { type: 'Story', isSubtask: false, summary: 'Planning session' },
+    };
+
+    const md = generateMarkdown({ tempoData, issueMeta }, DATE);
+
+    expect(md).toContain('### PROJ-7: Planning session');
+    expect(md).toContain('- 30m · PROJ-7 Planning session');
+    // No two-space-indented nested block should appear (regression guard).
+    const nestedLines = md.split('\n').filter((l) => l.startsWith('  - '));
+    expect(nestedLines).toHaveLength(0);
   });
 
   it('falls back to per-issue grouping when no metadata is provided', () => {
