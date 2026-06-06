@@ -583,6 +583,7 @@ function normalizeTableCellInlineFormatting(wiki: string): string {
  * - Inline images: !filename.png! → resolved via attachment map (always run; strips
  *   Jira options like `|width=N,height=N` unconditionally so jira2md never sees them)
  * - Brace-quoted bold/italic: {*}text{*} → *text* and {_}text{_} → _text_ (jira2md does not handle these)
+ * - Attachment references: [^filename] → markdown link [filename](url) resolved via attachment map
  * - Table cell inline formatting: *bold* / _italic_ normalized per cell before jira2md
  */
 export function preprocessJiraMarkup(
@@ -777,6 +778,23 @@ export function preprocessJiraMarkup(
   result = result.replace(/\[~([^\]]+)\]/g, (_match, username: string) => {
     const name = users?.[username] ?? username;
     return `<mention data-id="${username}">${name}</mention>`;
+  });
+
+  // Attachment references: [^filename] -> raw HTML anchor resolved via attachment map.
+  // jira2md does not handle this Jira syntax — it treats [^name] as a superscript autolink and
+  // emits <^name> (literal angle-bracket text). jira2md also converts any [text](url) form it
+  // sees by consuming [text] as a bracket link and emitting <text>, leaving (url) dangling —
+  // so standard markdown link syntax cannot be used here. Instead, emit a raw <a href> element
+  // which jira2md passes through unchanged, and rehype-raw + rehype-sanitize will render as a
+  // proper clickable anchor. When the filename is not in the attachment map (no map provided,
+  // or the attachment is unknown), emit a plain code span `filename` so the reference is
+  // visible but does not produce a broken link.
+  result = result.replace(/\[\^([^\]]+)\]/g, (_match, filename: string) => {
+    const url = attachments?.[filename];
+    if (url) {
+      return `<a href="${url}">${filename}</a>`;
+    }
+    return `\`${filename}\``;
   });
 
   // Panels with title: {panel:title=TITLE}...{panel}
