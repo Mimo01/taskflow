@@ -8,7 +8,7 @@
  * onConfirm as `{ id }` (a real resolution) or `null` (Unresolved / clear).
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,6 +48,15 @@ export function BoardResolutionDialog({
 }: BoardResolutionDialogProps) {
   // Locally-selected resolution id (or the UNRESOLVED sentinel). null = nothing picked yet.
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // CR-02: defense-in-depth alongside the parent's `key={issueKey}` remount —
+  // reset the selection whenever the target issue or its allowed values change so
+  // a selection made for one issue can never be applied to another if this
+  // instance is ever reused without remounting.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset is intentionally keyed to issue/allowed-values identity, not selectedId.
+  useEffect(() => {
+    setSelectedId(null);
+  }, [issueKey, allowedValues]);
 
   function handleConfirm() {
     if (selectedId === null) return;
