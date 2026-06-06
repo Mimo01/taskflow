@@ -146,7 +146,9 @@ function FilterDropdown({
                       style={{ backgroundColor: dot }}
                     />
                   )}
-                  <span className={`truncate ${isDistinct ? 'italic text-muted-foreground' : ''}`}>
+                  <span
+                    className={`truncate ${isDistinct ? 'italic text-muted-foreground pr-0.5' : ''}`}
+                  >
                     {display(option)}
                   </span>
                 </button>
