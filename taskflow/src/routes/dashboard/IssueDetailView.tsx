@@ -43,6 +43,7 @@ import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
 import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
+import { LinkedIssuesSection } from './issue-detail/LinkedIssuesSection';
 import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
 import { useLinkedMRs } from './issue-detail/useLinkedMRs';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
@@ -598,6 +599,7 @@ export function IssueDetailView({
       epicNameFieldKey={epicNameFieldKey}
       sprintFieldKey={sprintFieldKey}
       onOpenIssue={onOpenIssue}
+      omitLinkedIssues={layout === 'single-column'}
       omitMergeRequests={layout === 'single-column'}
     />
   );
@@ -665,8 +667,11 @@ export function IssueDetailView({
       <div className="p-4">
         {issueDetailContentNode}
         {activitySectionNode}
-        {/* Merge Requests rendered at the bottom in single-column (omitted from sidebar above) */}
-        <div className="px-2 pt-2">
+        {/* Linked Issues + Merge Requests rendered at the bottom in single-column (omitted from sidebar above) */}
+        <div className="px-2 pt-2 space-y-4">
+          {issue && (
+            <LinkedIssuesSection issuelinks={issue.fields.issuelinks} onOpenIssue={onOpenIssue} />
+          )}
           <MergeRequestsSection
             linkedMRs={mr.linkedMRs}
             mrsLoading={mr.mrsLoading}
