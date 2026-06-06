@@ -60,7 +60,7 @@ export function PeekPanel({
 
   return (
     <div
-      className={`relative border-l border-border bg-card overflow-hidden flex flex-col shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
+      className={`relative border-l border-border bg-card overflow-hidden flex flex-col shrink-0 shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.25)] ring-1 ring-foreground/10${isDragging ? '' : ' transition-all duration-200'}`}
       style={{ width: panelWidth }}
     >
       {/* Left-edge drag handle (direction: 'left' — dragging left increases width) */}
