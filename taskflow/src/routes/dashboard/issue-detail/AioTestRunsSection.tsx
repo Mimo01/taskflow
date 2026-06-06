@@ -243,76 +243,85 @@ function StepThumbnail({ url, fileName }: { url: string; fileName: string }) {
 // 4-column step table per UI-SPEC: Step | Expected | Actual | Status
 function StepTable({ steps }: { steps: AioTestRunStep[] }) {
   return (
-    <table className="w-full text-sm">
-      <thead className="border-b bg-muted/10">
-        <tr>
-          <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Step</th>
-          <th className="w-48 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
-            Expected
-          </th>
-          <th className="w-48 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
-            Actual
-          </th>
-          <th className="w-24 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
-            Status
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {steps.map((step) => (
-          // Plan 54-08 Gap 3: min-w-0 on each <td> wrapper (Step/Expected/Actual)
-          // releases the column's min-content floor so the WikiRenderer
-          // overflow-x-auto wrapper (added in WikiRenderer.tsx
-          // markdownComponents.table) can actually contract and scroll.
-          // Without min-w-0, the inner wiki table's min-content width forces
-          // the outer column wider than the layout allows.
-          <tr key={step.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-            <td className="px-4 py-3 min-w-0">
-              <WikiRenderer wikiText={step.step} />
-            </td>
-            <td className="px-3 py-3 min-w-0">
-              {!step.expectedResult ? '—' : <WikiRenderer wikiText={step.expectedResult} />}
-            </td>
-            <td className="px-3 py-3 min-w-0">
-              <div>
-                {step.status === 'NOT_EXECUTED' || !step.actualResult ? (
-                  '—'
-                ) : (
-                  <WikiRenderer wikiText={step.actualResult} />
-                )}
-              </div>
-              {/* Thumbnails below actual text — D-12 */}
-              {(
-                (step as AioTestRunStep & { attachments?: { url?: string; fileName?: string }[] })
-                  .attachments ?? []
-              ).length > 0 && (
-                <div className="flex flex-row gap-1 mt-1 flex-wrap">
-                  {(
-                    (
-                      step as AioTestRunStep & {
-                        attachments?: { url?: string; fileName?: string }[];
-                      }
-                    ).attachments ?? []
-                  ).map((att, idx) => (
-                    <StepThumbnail
-                      // biome-ignore lint/suspicious/noArrayIndexKey: attachment list has no stable id
-                      key={idx}
-                      url={att.url ?? ''}
-                      fileName={att.fileName ?? ''}
-                    />
-                  ))}
-                </div>
-              )}
-            </td>
-            <td className="px-3 py-3">
-              <span className={aioRunStatusPillClass(step.status ?? 'NOT_EXECUTED')}>
-                {normalizeStatusLabel(step.status)}
-              </span>
-            </td>
+    // overflow-x-auto allows the fixed-width columns (w-48+w-48+w-24 = 480px min)
+    // to scroll horizontally inside the peek panel instead of blowing out the layout.
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="border-b bg-muted/10">
+          <tr>
+            <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">
+              Step
+            </th>
+            <th className="w-48 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
+              Expected
+            </th>
+            <th className="w-48 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
+              Actual
+            </th>
+            <th className="w-24 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
+              Status
+            </th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {steps.map((step) => (
+            // Plan 54-08 Gap 3: min-w-0 on each <td> wrapper (Step/Expected/Actual)
+            // releases the column's min-content floor so the WikiRenderer
+            // overflow-x-auto wrapper (added in WikiRenderer.tsx
+            // markdownComponents.table) can actually contract and scroll.
+            // Without min-w-0, the inner wiki table's min-content width forces
+            // the outer column wider than the layout allows.
+            <tr
+              key={step.id}
+              className="border-b border-border hover:bg-muted/30 transition-colors"
+            >
+              <td className="px-4 py-3 min-w-0">
+                <WikiRenderer wikiText={step.step} />
+              </td>
+              <td className="px-3 py-3 min-w-0">
+                {!step.expectedResult ? '—' : <WikiRenderer wikiText={step.expectedResult} />}
+              </td>
+              <td className="px-3 py-3 min-w-0">
+                <div>
+                  {step.status === 'NOT_EXECUTED' || !step.actualResult ? (
+                    '—'
+                  ) : (
+                    <WikiRenderer wikiText={step.actualResult} />
+                  )}
+                </div>
+                {/* Thumbnails below actual text — D-12 */}
+                {(
+                  (step as AioTestRunStep & { attachments?: { url?: string; fileName?: string }[] })
+                    .attachments ?? []
+                ).length > 0 && (
+                  <div className="flex flex-row gap-1 mt-1 flex-wrap">
+                    {(
+                      (
+                        step as AioTestRunStep & {
+                          attachments?: { url?: string; fileName?: string }[];
+                        }
+                      ).attachments ?? []
+                    ).map((att, idx) => (
+                      <StepThumbnail
+                        // biome-ignore lint/suspicious/noArrayIndexKey: attachment list has no stable id
+                        key={idx}
+                        url={att.url ?? ''}
+                        fileName={att.fileName ?? ''}
+                      />
+                    ))}
+                  </div>
+                )}
+              </td>
+              <td className="px-3 py-3">
+                <span className={aioRunStatusPillClass(step.status ?? 'NOT_EXECUTED')}>
+                  {normalizeStatusLabel(step.status)}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -763,70 +772,74 @@ function ImpactedExecutionsList({
       <div className="px-4 py-2 border-b border-border bg-muted/10 text-xs font-semibold text-muted-foreground">
         Impacted executions (across all cycles)
       </div>
-      <table className="w-full text-sm" aria-label="Impacted executions">
-        <thead className="sr-only">
-          <tr>
-            <th>Test case</th>
-            <th>Cycle</th>
-            <th>Run</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            // Plan 54-11 cross-project routing: derive the cycle's project
-            // from the cycle key (e.g. ESHOP-CY-759 → 'ESHOP'). The parent
-            // issue's projectKey is NOT correct for cross-project cycles.
-            const cycleProjectKey = row.runRef.cycleKey.split('-')[0] || '';
-            const cycleHref = `/aio-cycle/${cycleProjectKey}/${row.runRef.cycleKey}`;
-            const runHref = `${cycleHref}/run/${row.runRef.runId}`;
-            return (
-              <tr
-                key={`${row.testCase.key}:${row.runRef.runId}`}
-                className="border-b border-border last:border-0"
-              >
-                <td className="px-4 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <FlaskConical className="size-3.5 text-muted-foreground" />
-                    <span className="font-mono text-xs">{row.testCase.key}</span>
-                    {row.testCase.title && (
-                      <span className="text-muted-foreground text-xs">— {row.testCase.title}</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                  <button
-                    type="button"
-                    onClick={() => navigateFromIssue(cycleHref)}
-                    data-testid="impacted-execution-cycle-link"
-                    className="hover:text-foreground hover:underline"
-                  >
-                    {row.runRef.cycleKey}
-                  </button>
-                </td>
-                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                  <button
-                    type="button"
-                    onClick={() => navigateFromIssue(runHref)}
-                    data-testid="impacted-execution-run-link"
-                    className="hover:text-foreground hover:underline"
-                  >
-                    {row.runRef.runId}
-                  </button>
-                </td>
-                <td className="px-3 py-2">
-                  <span
-                    data-testid="impacted-execution-status-chip"
-                    className={aioRunStatusPillClass(row.status)}
-                  >
-                    {normalizeStatusLabel(row.status)}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" aria-label="Impacted executions">
+          <thead className="sr-only">
+            <tr>
+              <th>Test case</th>
+              <th>Cycle</th>
+              <th>Run</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              // Plan 54-11 cross-project routing: derive the cycle's project
+              // from the cycle key (e.g. ESHOP-CY-759 → 'ESHOP'). The parent
+              // issue's projectKey is NOT correct for cross-project cycles.
+              const cycleProjectKey = row.runRef.cycleKey.split('-')[0] || '';
+              const cycleHref = `/aio-cycle/${cycleProjectKey}/${row.runRef.cycleKey}`;
+              const runHref = `${cycleHref}/run/${row.runRef.runId}`;
+              return (
+                <tr
+                  key={`${row.testCase.key}:${row.runRef.runId}`}
+                  className="border-b border-border last:border-0"
+                >
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <FlaskConical className="size-3.5 text-muted-foreground" />
+                      <span className="font-mono text-xs">{row.testCase.key}</span>
+                      {row.testCase.title && (
+                        <span className="text-muted-foreground text-xs truncate min-w-0">
+                          — {row.testCase.title}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => navigateFromIssue(cycleHref)}
+                      data-testid="impacted-execution-cycle-link"
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {row.runRef.cycleKey}
+                    </button>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => navigateFromIssue(runHref)}
+                      data-testid="impacted-execution-run-link"
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {row.runRef.runId}
+                    </button>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span
+                      data-testid="impacted-execution-status-chip"
+                      className={aioRunStatusPillClass(row.status)}
+                    >
+                      {normalizeStatusLabel(row.status)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
