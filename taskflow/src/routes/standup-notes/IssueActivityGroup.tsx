@@ -144,6 +144,54 @@ function SubItemList({
   );
 }
 
+/** Clickable group/sub-task header: [icon] [key] [summary].
+ *
+ *  The whole row opens the peek panel (onBodyClick); the key navigates full-page
+ *  (onKeyClick). To keep both affordances without an interactive element nested
+ *  inside another interactive element (invalid HTML + ARIA violation), the
+ *  full-row peek control is an absolutely-positioned overlay <button> that is a
+ *  SIBLING of the key <button>, not its ancestor. Icon + summary are
+ *  pointer-events-none so clicks fall through to the overlay; the key sits above
+ *  it via relative z-10. Both buttons are independently focusable. */
+function ActivityGroupHeader({
+  issueKey,
+  summary,
+  issueType,
+  onBodyClick,
+  onKeyClick,
+}: {
+  issueKey: string;
+  summary: string;
+  issueType?: string;
+  onBodyClick?: () => void;
+  onKeyClick?: () => void;
+}) {
+  return (
+    <div className="relative flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/50 focus-within:bg-muted/50">
+      <button
+        type="button"
+        aria-label={`Open ${issueKey} ${summary}`}
+        className="absolute inset-0 rounded cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={onBodyClick}
+      />
+      <IssueTypeIcon
+        typeName={issueType ?? ''}
+        className="pointer-events-none relative size-4 shrink-0"
+      />
+      <button
+        type="button"
+        className="relative z-10 shrink-0 rounded text-xs text-muted-foreground font-mono cursor-pointer hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={onKeyClick}
+      >
+        {issueKey}
+      </button>
+      <span className="pointer-events-none relative flex-1 min-w-0 truncate text-sm">
+        {summary}
+      </span>
+    </div>
+  );
+}
+
 export default function IssueActivityGroup({
   issueKey,
   summary,
@@ -158,34 +206,14 @@ export default function IssueActivityGroup({
 }: IssueActivityGroupProps) {
   return (
     <div>
-      {/* Group header: [icon] [key] [summary] — body → peek (onClick), key → full-page (onIssueKeyClick) */}
-      {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML (D-10 / Pitfall 1) */}
-      <div
-        role="button"
-        tabIndex={0}
-        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onClick?.();
-          }
-        }}
-      >
-        <IssueTypeIcon typeName={issueType ?? ''} className="size-4 shrink-0" />
-        {/* PEEK-05: key button navigates full-page; stopPropagation prevents body onOpenIssue */}
-        <button
-          type="button"
-          className="shrink-0 text-xs text-muted-foreground font-mono cursor-pointer hover:underline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onIssueKeyClick?.();
-          }}
-        >
-          {issueKey}
-        </button>
-        <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
-      </div>
+      {/* Group header: body → peek (onClick), key → full-page (onIssueKeyClick) */}
+      <ActivityGroupHeader
+        issueKey={issueKey}
+        summary={summary}
+        issueType={issueType}
+        onBodyClick={onClick}
+        onKeyClick={onIssueKeyClick}
+      />
 
       {/* Story-level sub-items (flat, directly under the story header) */}
       {subItems.length > 0 && (
@@ -199,34 +227,14 @@ export default function IssueActivityGroup({
         <div className="pl-6 ml-2">
           {subTaskGroups.map((st) => (
             <div key={st.issueKey}>
-              {/* Sub-task header: [icon] [key button] [summary] — body → peek, key → full-page */}
-              {/* biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML (Pitfall 1) */}
-              <div
-                role="button"
-                tabIndex={0}
-                className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => (onOpenIssue ?? onIssueClick)?.(st.issueKey)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    (onOpenIssue ?? onIssueClick)?.(st.issueKey);
-                  }
-                }}
-              >
-                <IssueTypeIcon typeName={st.issueType ?? ''} className="size-4 shrink-0" />
-                {/* Key button: full-page navigation; stopPropagation prevents body peek handler */}
-                <button
-                  type="button"
-                  className="shrink-0 text-xs text-muted-foreground font-mono cursor-pointer hover:underline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onIssueClick?.(st.issueKey);
-                  }}
-                >
-                  {st.issueKey}
-                </button>
-                <span className="flex-1 min-w-0 truncate text-sm">{st.summary}</span>
-              </div>
+              {/* Sub-task header: body → peek, key → full-page */}
+              <ActivityGroupHeader
+                issueKey={st.issueKey}
+                summary={st.summary}
+                issueType={st.issueType}
+                onBodyClick={() => (onOpenIssue ?? onIssueClick)?.(st.issueKey)}
+                onKeyClick={() => onIssueClick?.(st.issueKey)}
+              />
               {/* Sub-task's own activity items, indented a further level */}
               {st.subItems.length > 0 && (
                 <div className="pl-6 ml-2">
