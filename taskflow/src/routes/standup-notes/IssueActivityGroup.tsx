@@ -16,6 +16,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { statusPillClass } from '@/lib/statusStyles';
 
 export type SubItemKind =
   | 'worklog'
@@ -146,7 +147,21 @@ function SubItemList({
           // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
           <div key={i} className="flex items-center gap-2 py-1.5 px-2">
             <SubIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+            {item.kind === 'transition' && item.transition != null ? (
+              // Styled transition: two status pills + muted arrow, mirroring StatusPopover.
+              // statusPillClass owns all geometry; the flex wrapper provides the flex parent.
+              <div className="flex flex-1 min-w-0 items-center gap-2">
+                <span className={statusPillClass(item.transition.fromCategory)}>
+                  {item.transition.fromStatus}
+                </span>
+                <span className="text-muted-foreground">→</span>
+                <span className={statusPillClass(item.transition.toCategory)}>
+                  {item.transition.toStatus}
+                </span>
+              </div>
+            ) : (
+              <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
+            )}
           </div>
         );
       })}
