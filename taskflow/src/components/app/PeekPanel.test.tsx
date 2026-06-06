@@ -2,6 +2,11 @@
 // Requirements covered: PEEK-02, PEEK-03, PEEK-04, PEEK-06, PEEK-07
 // PEEK-01 (handler sets peekIssueKey in AppLayout) and PEEK-05 (TaskCard key split) are
 // covered in Plan 04 / TaskCard.test.tsx respectively.
+//
+// NOTE: The header (icon + key + title) is owned by PeekPanel, not IssueDetailView.
+// PeekPanel issues a deduped useQuery for the issue detail so it can show the title.
+// The query is mocked below to the loading state (data: undefined) so the tests exercise
+// the "key + controls only, no title" branch — which matches what PEEK-04/PEEK-06 assert.
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,6 +26,37 @@ vi.mock('@/routes/dashboard/IssueDetailView', () => ({
 vi.mock('@/hooks/useResizable', () => ({
   useResizable: () => ({ width: 480, isDragging: false, handleMouseDown: vi.fn() }),
 }));
+
+// Mock useQuery — returns the loading state (data: undefined) so the header shows
+// key + controls only (no icon or title). This matches what PEEK-04/PEEK-06 assert.
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({ data: undefined, isLoading: false })),
+}));
+
+// Mock auth + settings stores (needed for the deduped useQuery in PeekPanel)
+vi.mock('@/stores/auth.store', () => ({
+  useAuthStore: vi.fn((selector?: (s: unknown) => unknown) => {
+    const state = { jiraBaseUrl: 'https://jira.example', jiraConnected: true };
+    return selector ? selector(state) : state;
+  }),
+}));
+
+vi.mock('@/stores/settings.store', () => ({
+  useSettingsStore: vi.fn((selector?: (s: unknown) => unknown) => {
+    const state = {
+      epicLinkFieldKey: '',
+      epicNameFieldKey: '',
+      sprintFieldKey: '',
+      storyPointsFieldKey: '',
+      epicColorFieldKey: '',
+    };
+    return selector ? selector(state) : state;
+  }),
+}));
+
+// Mock stronghold + jira so imports resolve without native modules
+vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn() }));
+vi.mock('@/services/jira', () => ({ fetchIssueDetail: vi.fn() }));
 
 const defaultProps = {
   issueKey: 'PROJ-1',
@@ -51,7 +87,8 @@ describe('PeekPanel', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  // PEEK-04: re-rendering with a different issueKey updates the header key label and IssueDetailView without crash
+  // PEEK-04: re-rendering with a different issueKey updates the header key label and IssueDetailView without crash.
+  // The query is mocked to loading state (data: undefined), so only the key badge shows (no icon/title).
   it('PEEK-04: swapping issueKey prop updates content without unmount flash', () => {
     const { rerender } = render(<PeekPanel {...defaultProps} issueKey="PROJ-1" />);
     expect(screen.getByText('PROJ-1')).toBeInTheDocument();
