@@ -666,9 +666,9 @@ export function IssueDetailView({
       {/* Content block: description, subtasks, AIO, activity, composer */}
       <div className="p-4">
         {issueDetailContentNode}
-        {activitySectionNode}
-        {/* Linked Issues + Merge Requests rendered at the bottom in single-column (omitted from sidebar above) */}
-        <div className="px-2 pt-2 space-y-4">
+        {/* Linked Issues + Merge Requests sit just above the activity/comments feed in
+            single-column (omitted from the sidebar above) */}
+        <div className="px-2 py-2 space-y-4">
           {issue && (
             <LinkedIssuesSection issuelinks={issue.fields.issuelinks} onOpenIssue={onOpenIssue} />
           )}
@@ -679,6 +679,7 @@ export function IssueDetailView({
             gitlabBaseUrl={mr.gitlabBaseUrl}
           />
         </div>
+        {activitySectionNode}
       </div>
     </div>
   );
