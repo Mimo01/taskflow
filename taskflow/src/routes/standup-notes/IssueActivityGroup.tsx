@@ -34,6 +34,18 @@ export interface SubItem {
   mrIid?: number;
   /** Present on worklog sub-items for subtasks — enables click-to-issue-detail. */
   issueKey?: string;
+  /** The originating issue key for this activity (set at attach time in buildGroups).
+   *  Distinct from issueKey (click affordance) — used for the sub-task partition pass. */
+  originKey?: string;
+}
+
+/** A sub-task sub-group: activity items attributable to one specific sub-task,
+ *  displayed nested within the parent story's IssueActivityGroup. */
+export interface SubTaskSubGroup {
+  issueKey: string;
+  summary: string;
+  issueType?: string;
+  subItems: SubItem[];
 }
 
 export interface IssueActivityGroupProps {

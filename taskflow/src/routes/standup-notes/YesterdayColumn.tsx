@@ -31,7 +31,7 @@ import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
 import type { JiraActivityItem, StandupIssueMeta } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import type { TempoWorklog } from '@/services/tempo';
-import IssueActivityGroup, { type SubItem } from './IssueActivityGroup';
+import IssueActivityGroup, { type SubItem, type SubTaskSubGroup } from './IssueActivityGroup';
 import OtherCommitsGroup from './OtherCommitsGroup';
 import StandaloneMrGroup from './StandaloneMrGroup';
 import StandupSectionHeader from './StandupSectionHeader';
@@ -63,6 +63,9 @@ interface IssueGroup {
   issueType?: string;
   totalSeconds: number;
   subItems: SubItem[];
+  /** Sub-task sub-groups: activity partitioned by originating sub-task key.
+   *  Only non-empty sub-tasks appear here; sorted by issueKey ascending. */
+  subTaskGroups: SubTaskSubGroup[];
 }
 
 /** Internal shape of a standalone MR group (MR not linked to any issue). */
@@ -236,6 +239,7 @@ function buildGroups(
       issueType: resolvedType,
       totalSeconds: 0,
       subItems: [],
+      subTaskGroups: [],
     };
     issueMap.set(rollupKey, group);
     return group;
@@ -274,6 +278,8 @@ function buildGroups(
         // When the worklog issue differs from the group key (subtask rolled up
         // to parent), carry the original key so the row is clickable to the subtask.
         issueKey: issueKey !== groupKey ? issueKey : undefined,
+        // Tag the origin key for the sub-task partition pass.
+        originKey: issueKey,
       });
     }
   }
@@ -281,6 +287,7 @@ function buildGroups(
   // 2. Add Jira transitions + comments
   for (const activity of jiraData ?? []) {
     const group = ensureGroup(activity.issueKey, activity.summary, activity.issueType);
+    const originKey = activity.issueKey;
     if (activity.transitions.length > 0) {
       // Collapse all transitions to a single initial → final sub-item.
       // Sort by `at` ISO timestamp (string comparison is correct for ISO-8601) to
@@ -290,18 +297,19 @@ function buildGroups(
       );
       const initial = sorted[0].fromStatus;
       const final = sorted[sorted.length - 1].toStatus;
-      group.subItems.push({ kind: 'transition', label: `${initial} → ${final}` });
+      group.subItems.push({ kind: 'transition', label: `${initial} → ${final}`, originKey });
     }
     for (const c of activity.comments) {
       const snippet = c.body.length > 80 ? `${c.body.slice(0, 80)}…` : c.body;
-      group.subItems.push({ kind: 'jira-comment', label: `Comment: "${snippet}"` });
+      group.subItems.push({ kind: 'jira-comment', label: `Comment: "${snippet}"`, originKey });
     }
   }
 
   // 3. Route commits by Jira key from message (D-08 message-only; branch deferred D-14)
   //    Commits on a tracked issue are collapsed to a single "N commits" sub-item
-  //    per group rather than listed individually — one line per task section.
-  const commitCountByGroup = new Map<string, number>();
+  //    per (group, origin) rather than listed individually — one line per origin per group.
+  //    Composite key format: "${groupKey}::${originKey}" to track per-subtask counts.
+  const commitCountByGroupOrigin = new Map<string, { groupKey: string; originKey: string; count: number }>();
   for (const commit of commitsData ?? []) {
     // Skip merge commits — they're noise in a standup recap, not real work.
     if (isMergeCommit(commit)) continue;
@@ -309,53 +317,67 @@ function buildGroups(
       extractJiraKeyFromMessage(commit.message) ?? extractJiraKeyFromMessage(commit.title);
     if (key) {
       const group = ensureGroup(key);
-      commitCountByGroup.set(group.issueKey, (commitCountByGroup.get(group.issueKey) ?? 0) + 1);
+      const compositeKey = `${group.issueKey}::${key}`;
+      const existing = commitCountByGroupOrigin.get(compositeKey);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        commitCountByGroupOrigin.set(compositeKey, { groupKey: group.issueKey, originKey: key, count: 1 });
+      }
     } else {
       otherCommits.push(commit);
     }
   }
-  for (const [groupKey, count] of commitCountByGroup) {
+  for (const { groupKey, originKey, count } of commitCountByGroupOrigin.values()) {
     const group = issueMap.get(groupKey);
     if (!group) continue;
-    group.subItems.push({ kind: 'commit', label: `${count} commit${count === 1 ? '' : 's'}` });
+    group.subItems.push({
+      kind: 'commit',
+      label: `${count} commit${count === 1 ? '' : 's'}`,
+      originKey,
+    });
   }
 
   // 4. Route MR events by key extracted from target_title.
   //    Approvals are listed individually; comment events are collapsed into a
-  //    per-MR count (D-05) so a chatty review thread reads "N comments on <MR
-  //    name>" instead of one line per comment. Comments must group on the MR iid
-  //    (note.noteable_iid) — target_iid is the per-comment note id and would
-  //    make every comment look like a separate MR. Labels use the MR title (its
-  //    name), not the bare iid, so the recap reads naturally.
+  //    per-(group, origin, MR) count (D-05) so a chatty review thread reads
+  //    "N comments on <MR name>" instead of one line per comment. Comments must
+  //    group on the MR iid (note.noteable_iid) — target_iid is the per-comment
+  //    note id and would make every comment look like a separate MR. Labels use
+  //    the MR title (its name), not the bare iid, so the recap reads naturally.
+  //    Composite key format: "${groupKey}::${originKey}" for per-subtask attribution.
   const keyedCommentCounts = new Map<
     string,
-    Map<number, { count: number; title: string; projectId: number }>
-  >(); // rollupKey -> (mrIid -> {count, title, projectId})
+    { originKey: string; perIid: Map<number, { count: number; title: string; projectId: number }> }
+  >(); // compositeKey (groupKey::originKey) -> {originKey, perIid}
   for (const event of mrEventsData ?? []) {
     const key = extractJiraKeyFromMessage(event.target_title);
     const isApproval = event.action_name === 'approved';
     const mrIid = event.note?.noteable_iid ?? event.target_iid;
     if (key) {
       const group = ensureGroup(key, event.target_title);
+      const originKey = key; // the extracted Jira key is the origin
       if (isApproval) {
         group.subItems.push({
           kind: 'approval',
           label: `Approved ${event.target_title}`,
           mrProjectId: event.project_id,
           mrIid,
+          originKey,
         });
       } else {
-        const perIid =
-          keyedCommentCounts.get(group.issueKey) ??
-          new Map<number, { count: number; title: string; projectId: number }>();
-        const entry = perIid.get(mrIid) ?? {
+        const compositeKey = `${group.issueKey}::${originKey}`;
+        const bucket =
+          keyedCommentCounts.get(compositeKey) ??
+          { originKey, perIid: new Map<number, { count: number; title: string; projectId: number }>() };
+        const entry = bucket.perIid.get(mrIid) ?? {
           count: 0,
           title: event.target_title,
           projectId: event.project_id,
         };
         entry.count += 1;
-        perIid.set(mrIid, entry);
-        keyedCommentCounts.set(group.issueKey, perIid);
+        bucket.perIid.set(mrIid, entry);
+        keyedCommentCounts.set(compositeKey, bucket);
       }
     } else {
       // Standalone MR group keyed by MR iid — counts only (D-05)
@@ -375,9 +397,10 @@ function buildGroups(
     }
   }
 
-  // Emit one aggregated MR-comment sub-item per (group, MR): "N comments on <name>"
-  for (const [rollupKey, perIid] of keyedCommentCounts) {
-    const group = issueMap.get(rollupKey);
+  // Emit one aggregated MR-comment sub-item per (group, origin, MR): "N comments on <name>"
+  for (const [compositeKey, { originKey, perIid }] of keyedCommentCounts) {
+    const groupKey = compositeKey.split('::')[0];
+    const group = issueMap.get(groupKey);
     if (!group) continue;
     for (const [mrIid, { count, title, projectId }] of perIid) {
       group.subItems.push({
@@ -385,8 +408,42 @@ function buildGroups(
         label: `${count} comment${count === 1 ? '' : 's'} on ${title}`,
         mrProjectId: projectId,
         mrIid,
+        originKey,
       });
     }
+  }
+
+  // Partition pass: split each group's subItems into story-level vs per-subtask.
+  // An item belongs to a sub-task when: originKey is set, originKey !== group.issueKey,
+  // and issueMeta confirms it is a subtask of this group. Everything else is story-level.
+  for (const group of issueMap.values()) {
+    const storyLevel: SubItem[] = [];
+    const bySubtask = new Map<string, SubItem[]>();
+    for (const item of group.subItems) {
+      const origin = item.originKey;
+      const meta = origin ? issueMeta?.[origin] : undefined;
+      const belongsToSubtask =
+        origin &&
+        origin !== group.issueKey &&
+        meta?.isSubtask &&
+        meta.parentKey === group.issueKey;
+      if (belongsToSubtask) {
+        const bucket = bySubtask.get(origin!) ?? [];
+        bucket.push(item);
+        bySubtask.set(origin!, bucket);
+      } else {
+        storyLevel.push(item);
+      }
+    }
+    group.subItems = storyLevel;
+    group.subTaskGroups = [...bySubtask.entries()]
+      .map(([key, subItems]) => ({
+        issueKey: key,
+        summary: issueMeta?.[key]?.summary ?? key,
+        issueType: issueMeta?.[key]?.type,
+        subItems,
+      }))
+      .sort((a, b) => (a.issueKey < b.issueKey ? -1 : 1));
   }
 
   return {
