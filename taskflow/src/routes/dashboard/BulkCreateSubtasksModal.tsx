@@ -570,7 +570,7 @@ export function BulkCreateSubtasksModal({
           </div>
 
           {/* Row list */}
-          <div className="flex flex-col gap-1 px-6 py-4 flex-1 min-h-0">
+          <div className="flex flex-col gap-2 px-6 py-4 flex-1 min-h-0">
             {rows.length === 0 ? (
               /* Ad-hoc empty state */
               <p className="text-sm text-muted-foreground text-center py-6">
