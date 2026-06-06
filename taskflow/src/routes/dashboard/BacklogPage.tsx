@@ -58,6 +58,7 @@ import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
+import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import type { JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
@@ -618,10 +619,9 @@ export default function BacklogPage() {
     // D-05a: label filter dropped from the backlog surface — `GhIssue` carries
     // no `labels[]`. Pass an empty array so the shared UnifiedFilterBar's
     // Labels dropdown renders with no options on the backlog.
-    const assignees = new Set<string>();
-    for (const issue of allIssues) {
-      if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
-    }
+    // Assignee options (named people + an "Unassigned" sentinel pinned to the
+    // top when ≥1 visible issue has no assignee) come from the shared helper.
+    const assignees = buildAssigneeOptions(allIssues);
     // Statuses: all project workflow statuses (not just those on current issues)
     const statuses = new Set<string>();
     for (const s of projectStatuses ?? []) statuses.add(s.name);
@@ -631,7 +631,7 @@ export default function BacklogPage() {
     return {
       epics,
       labels: [] as string[],
-      assignees: Array.from(assignees),
+      assignees,
       statuses: Array.from(statuses).sort(),
     };
   }, [allIssues, epicLinkFieldKey, epicNameFieldKey, allEpics, projectStatuses]);
@@ -648,13 +648,7 @@ export default function BacklogPage() {
       const labelMatch =
         activeLabels.size === 0 ||
         ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
-      const assigneeMatch = (() => {
-        if (activeAssignees.size === 0) return true;
-        const name = issue.fields.assignee?.displayName ?? '';
-        return Array.from(activeAssignees).some((q) =>
-          name.toLowerCase().includes(q.toLowerCase()),
-        );
-      })();
+      const assigneeMatch = matchesAssigneeFilter(issue, activeAssignees);
       const statusMatch = (() => {
         if (activeStatuses.size === 0) return true;
         const activeLC = new Set(Array.from(activeStatuses).map((s) => s.toLowerCase()));

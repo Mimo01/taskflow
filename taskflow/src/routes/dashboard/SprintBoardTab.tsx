@@ -40,6 +40,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
@@ -1506,13 +1507,13 @@ export default function SprintBoardTab() {
       filterOptionsEpics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey);
   }
   const filterOptionsLabels = new Set<string>();
-  const filterOptionsAssignees = new Set<string>();
   for (const issue of localIssues) {
     for (const label of (issue.fields.labels as string[] | undefined) ?? [])
       filterOptionsLabels.add(label);
-    if (issue.fields.assignee?.displayName)
-      filterOptionsAssignees.add(issue.fields.assignee.displayName);
   }
+  // Assignee options (named people + an "Unassigned" sentinel pinned to the top
+  // when ≥1 visible issue has no assignee) come from the shared helper.
+  const filterOptionsAssignees = buildAssigneeOptions(localIssues);
   const filterOptionsStatuses = new Set<string>();
   for (const s of workflowStatuses ?? []) filterOptionsStatuses.add(s.name);
   for (const issue of localIssues) {
@@ -1521,7 +1522,7 @@ export default function SprintBoardTab() {
   const filterOptions = {
     epics: filterOptionsEpics,
     labels: Array.from(filterOptionsLabels),
-    assignees: Array.from(filterOptionsAssignees),
+    assignees: filterOptionsAssignees,
     statuses: Array.from(filterOptionsStatuses).sort(),
   };
 
@@ -1536,14 +1537,7 @@ export default function SprintBoardTab() {
       const labelMatch =
         activeLabels.size === 0 ||
         ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
-      const assigneeMatch =
-        activeAssignees.size === 0 ||
-        (() => {
-          const name = issue.fields.assignee?.displayName ?? '';
-          return Array.from(activeAssignees).some((q) =>
-            name.toLowerCase().includes(q.toLowerCase()),
-          );
-        })();
+      const assigneeMatch = matchesAssigneeFilter(issue, activeAssignees);
       const statusMatch =
         activeStatuses.size === 0 ||
         (() => {
