@@ -2,7 +2,7 @@
 quick_id: 260606-ubz
 description: peek open-full-page should push breadcrumb
 date: 2026-06-06
-status: complete
+status: approved & closed
 mode: quick (inline)
 ---
 
