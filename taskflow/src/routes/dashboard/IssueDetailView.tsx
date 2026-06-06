@@ -43,6 +43,8 @@ import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
 import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
+import { MergeRequestsSection } from './issue-detail/MergeRequestsSection';
+import { useLinkedMRs } from './issue-detail/useLinkedMRs';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -98,6 +100,10 @@ export function IssueDetailView({
 
   // Recent items
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
+
+  // MR data for single-column bottom slot — deduped with IssueDetailSidebar's call
+  // (same query key ['gitlab-project-mrs', ...]) so no extra network request.
+  const mr = useLinkedMRs(issueKey);
 
   // Fetch issue detail — same query key as IssueDetailPage (cache-sharing, RESEARCH Pitfall 4)
   const { data: issue, isLoading } = useQuery({
@@ -592,6 +598,7 @@ export function IssueDetailView({
       epicNameFieldKey={epicNameFieldKey}
       sprintFieldKey={sprintFieldKey}
       onOpenIssue={onOpenIssue}
+      omitMergeRequests={layout === 'single-column'}
     />
   );
 
@@ -658,6 +665,15 @@ export function IssueDetailView({
       <div className="p-4">
         {issueDetailContentNode}
         {activitySectionNode}
+        {/* Merge Requests rendered at the bottom in single-column (omitted from sidebar above) */}
+        <div className="px-2 pt-2">
+          <MergeRequestsSection
+            linkedMRs={mr.linkedMRs}
+            mrsLoading={mr.mrsLoading}
+            gitlabConnected={mr.gitlabConnected}
+            gitlabBaseUrl={mr.gitlabBaseUrl}
+          />
+        </div>
       </div>
     </div>
   );

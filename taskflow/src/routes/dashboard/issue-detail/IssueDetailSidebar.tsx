@@ -1,9 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
-import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssueDetail } from '@/services/jira';
-import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -11,6 +9,7 @@ import { FieldsSection } from './FieldsSection';
 import { LinkedIssuesSection } from './LinkedIssuesSection';
 import { MergeRequestsSection } from './MergeRequestsSection';
 import { useFieldMutation } from './useFieldMutation';
+import { useLinkedMRs } from './useLinkedMRs';
 
 interface IssueDetailSidebarProps {
   issue: JiraIssueDetail;
@@ -21,6 +20,8 @@ interface IssueDetailSidebarProps {
   epicNameFieldKey: string;
   sprintFieldKey: string;
   onOpenIssue?: (key: string) => void;
+  /** When true, the Merge Requests section is omitted (single-column peek renders it at the bottom instead) */
+  omitMergeRequests?: boolean;
 }
 
 export function IssueDetailSidebar({
@@ -32,22 +33,18 @@ export function IssueDetailSidebar({
   epicNameFieldKey,
   sprintFieldKey,
   onOpenIssue,
+  omitMergeRequests,
 }: IssueDetailSidebarProps) {
   const f = issue.fields;
   const isEpic = f.issuetype.name === 'Epic';
   const isSubtask = f.issuetype.subtask;
   const isStory = !isEpic && !isSubtask;
 
-  const {
-    jiraBaseUrl: storeJiraBaseUrl,
-    jiraConnected,
-    activeJiraProject,
-    gitlabBaseUrl,
-    gitlabConnected,
-    activeGitlabProject,
-  } = useAuthStore();
+  const { jiraBaseUrl: storeJiraBaseUrl, jiraConnected, activeJiraProject } = useAuthStore();
   const { epicColorFieldKey, flaggedFieldKey } = useSettingsStore();
   const effectiveJiraBaseUrl = jiraBaseUrl || storeJiraBaseUrl || '';
+
+  const mr = useLinkedMRs(issueKey);
 
   const epicLink = isStory ? (f[epicLinkFieldKey] as string | null) : null;
 
@@ -70,42 +67,6 @@ export function IssueDetailSidebar({
     enabled: isStory && !!epicLink && !!effectiveJiraBaseUrl && !!jiraConnected,
     staleTime: 60_000,
   });
-
-  // Fetch GitLab MRs for the active project (all states, recent 20)
-  const { data: projectMRs, isLoading: mrsLoading } = useQuery({
-    queryKey: ['gitlab-project-mrs', gitlabBaseUrl, activeGitlabProject],
-    queryFn: async () => {
-      const token = await readSecret('gitlab-pat').catch(() => null);
-      if (!token || !gitlabBaseUrl || !activeGitlabProject) return [] as GitLabMR[];
-      const base = gitlabBaseUrl.replace(/\/$/, '');
-      const url = `${base}/api/v4/projects/${activeGitlabProject}/merge_requests?per_page=20&order_by=updated_at&sort=desc`;
-      try {
-        const resp = await apiFetch(
-          'gitlab',
-          url,
-          {
-            headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-          },
-          'Load Merge Requests',
-        );
-        if (!resp.ok) return [] as GitLabMR[];
-        return (await resp.json()) as GitLabMR[];
-      } catch {
-        return [] as GitLabMR[];
-      }
-    },
-    staleTime: 60_000,
-    enabled: !!gitlabBaseUrl && !!gitlabConnected && !!activeGitlabProject,
-  });
-
-  // Filter MRs linked to the current issue key
-  const linkedMRs = !projectMRs
-    ? []
-    : projectMRs.filter((mr) => {
-        const titleKeys = extractTicketKeys(mr.title);
-        const branchKeys = extractTicketKeys(mr.source_branch);
-        return titleKeys.includes(issueKey) || branchKeys.includes(issueKey);
-      });
 
   // WR-06: resolve the active project's boardId so the field-mutation hook
   // can scope its gh-backlog invalidation to one board rather than every
@@ -143,12 +104,14 @@ export function IssueDetailSidebar({
 
       <LinkedIssuesSection issuelinks={f.issuelinks} onOpenIssue={onOpenIssue} />
 
-      <MergeRequestsSection
-        linkedMRs={linkedMRs}
-        mrsLoading={mrsLoading}
-        gitlabConnected={!!gitlabConnected}
-        gitlabBaseUrl={gitlabBaseUrl || ''}
-      />
+      {!omitMergeRequests && (
+        <MergeRequestsSection
+          linkedMRs={mr.linkedMRs}
+          mrsLoading={mr.mrsLoading}
+          gitlabConnected={mr.gitlabConnected}
+          gitlabBaseUrl={mr.gitlabBaseUrl}
+        />
+      )}
     </div>
   );
 }
