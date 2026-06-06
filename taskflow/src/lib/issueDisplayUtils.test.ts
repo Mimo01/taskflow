@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   doneSummaryClass,
   isDoneStatus,
-  issueTypeAccentClass,
+  issueTypeStripeClass,
   prioritySeverityFromIcon,
   priorityStripeClass,
 } from './issueDisplayUtils';
@@ -93,54 +93,54 @@ describe('priorityStripeClass', () => {
   });
 });
 
-describe('issueTypeAccentClass', () => {
-  const BUG = 'bg-red-500 dark:bg-red-400';
-  const STORY = 'bg-green-600 dark:bg-green-400';
-  const BLUE = 'bg-blue-500 dark:bg-blue-400';
-  const EPIC = 'bg-purple-500 dark:bg-purple-400';
+describe('issueTypeStripeClass', () => {
+  const BUG = 'border-l-red-500 dark:border-l-red-400';
+  const STORY = 'border-l-green-600 dark:border-l-green-400';
+  const BLUE = 'border-l-blue-500 dark:border-l-blue-400';
+  const EPIC = 'border-l-purple-500 dark:border-l-purple-400';
 
   it('returns red for "Bug"', () => {
-    expect(issueTypeAccentClass({ name: 'Bug' })).toBe(BUG);
+    expect(issueTypeStripeClass({ name: 'Bug' })).toBe(BUG);
   });
 
   it('returns green for "Story"', () => {
-    expect(issueTypeAccentClass({ name: 'Story' })).toBe(STORY);
+    expect(issueTypeStripeClass({ name: 'Story' })).toBe(STORY);
   });
 
   it('returns blue for "Subtask"', () => {
-    expect(issueTypeAccentClass({ name: 'Subtask' })).toBe(BLUE);
+    expect(issueTypeStripeClass({ name: 'Subtask' })).toBe(BLUE);
   });
 
   it('returns blue for "Sub-task"', () => {
-    expect(issueTypeAccentClass({ name: 'Sub-task' })).toBe(BLUE);
+    expect(issueTypeStripeClass({ name: 'Sub-task' })).toBe(BLUE);
   });
 
   it('returns purple for "Epic"', () => {
-    expect(issueTypeAccentClass({ name: 'Epic' })).toBe(EPIC);
+    expect(issueTypeStripeClass({ name: 'Epic' })).toBe(EPIC);
   });
 
   it('returns blue (default) for "Task"', () => {
-    expect(issueTypeAccentClass({ name: 'Task' })).toBe(BLUE);
+    expect(issueTypeStripeClass({ name: 'Task' })).toBe(BLUE);
   });
 
   it('returns blue (default) for an unknown type name', () => {
-    expect(issueTypeAccentClass({ name: 'Spike' })).toBe(BLUE);
+    expect(issueTypeStripeClass({ name: 'Spike' })).toBe(BLUE);
   });
 
   it('returns blue (default) for null', () => {
-    expect(issueTypeAccentClass(null)).toBe(BLUE);
+    expect(issueTypeStripeClass(null)).toBe(BLUE);
   });
 
   it('returns blue (default) for undefined', () => {
-    expect(issueTypeAccentClass(undefined)).toBe(BLUE);
+    expect(issueTypeStripeClass(undefined)).toBe(BLUE);
   });
 
   it('uses the subtask flag over the name — { name: "Bug", subtask: true } → blue', () => {
-    expect(issueTypeAccentClass({ name: 'Bug', subtask: true })).toBe(BLUE);
+    expect(issueTypeStripeClass({ name: 'Bug', subtask: true })).toBe(BLUE);
   });
 
   it('uses the subtask flag for a renamed subtask type — { name: "Custom", subtask: true } → blue', () => {
-    expect(issueTypeAccentClass({ name: 'Custom', subtask: true })).toBe(BLUE);
+    expect(issueTypeStripeClass({ name: 'Custom', subtask: true })).toBe(BLUE);
   });
 });
 
