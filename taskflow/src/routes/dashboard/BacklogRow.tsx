@@ -16,7 +16,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Flag } from 'lucide-react';
 import React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import { PriorityIcon } from '@/components/ui/priority-icon';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -26,6 +25,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { epicColorToTailwind } from '@/lib/epicColors';
@@ -101,12 +101,30 @@ function RowCells({
         </button>
       </td>
 
+      {/* Priority cell — its own column so icons align vertically, mirroring the
+          sprint-board swimlane's key → priority → title order. The inner span
+          carries an explicit pixel size (not a Tailwind class) so the column
+          holds width: in this WebKit-rendered virtualized table, position:absolute
+          rows break CSS table column sizing and class-sized content contributes 0
+          min-content — the same explicit-px technique CachedAvatar uses to keep
+          its column from collapsing. Empty span when the issue has no priority. */}
+      <td className="px-0 py-2 density-compact:py-1 density-comfortable:py-3">
+        <span
+          className="flex items-center justify-center"
+          style={{ width: 18, height: 18 }}
+          aria-hidden={!issue.fields.priority}
+        >
+          <PriorityIcon
+            priority={
+              issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
+            }
+          />
+        </span>
+      </td>
+
       {/* Summary cell -- takes remaining space, truncates on overflow */}
       <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
         <span className="inline-flex items-center gap-2 text-sm text-left">
-          <PriorityIcon
-            priority={issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined}
-          />
           {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
           <span className="truncate">{issue.fields.summary}</span>
           <OverdueBadge
