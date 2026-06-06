@@ -501,56 +501,6 @@ export function FieldsSection({
         )}
       </MetaRow>
 
-      {/* Priority -- click to edit with Select */}
-      <MetaRow label="Priority">
-        {priorityEditing ? (
-          <div>
-            <Select
-              value={f.priority?.name ?? ''}
-              onValueChange={handlePriorityChange}
-              open
-              onOpenChange={(open) => {
-                if (!open) setPriorityEditing(false);
-              }}
-            >
-              <SelectTrigger size="sm" className="h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {mutation.isError && (
-              <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
-            )}
-          </div>
-        ) : (
-          <button
-            data-testid="priority-edit"
-            type="button"
-            onClick={() => setPriorityEditing(true)}
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
-            title="Click to edit priority"
-          >
-            <div className="flex items-center gap-1.5">
-              {f.priority?.iconUrl && (
-                <img
-                  data-testid="priority-icon"
-                  src={f.priority.iconUrl}
-                  alt=""
-                  className="w-3.5 h-3.5 shrink-0"
-                />
-              )}
-              <span>{f.priority?.name ?? '—'}</span>
-            </div>
-          </button>
-        )}
-      </MetaRow>
-
       {/* Resolution -- set via a workflow transition (direct field PUT is rejected by
           this Jira). Editable only when an in-place resolution-capable transition exists.
           Hidden entirely for unresolved, non-done issues (showResolutionRow). */}
@@ -630,6 +580,56 @@ export function FieldsSection({
           )}
         </MetaRow>
       )}
+
+      {/* Priority -- click to edit with Select */}
+      <MetaRow label="Priority">
+        {priorityEditing ? (
+          <div>
+            <Select
+              value={f.priority?.name ?? ''}
+              onValueChange={handlePriorityChange}
+              open
+              onOpenChange={(open) => {
+                if (!open) setPriorityEditing(false);
+              }}
+            >
+              <SelectTrigger size="sm" className="h-6 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITY_OPTIONS.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {mutation.isError && (
+              <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
+            )}
+          </div>
+        ) : (
+          <button
+            data-testid="priority-edit"
+            type="button"
+            onClick={() => setPriorityEditing(true)}
+            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
+            title="Click to edit priority"
+          >
+            <div className="flex items-center gap-1.5">
+              {f.priority?.iconUrl && (
+                <img
+                  data-testid="priority-icon"
+                  src={f.priority.iconUrl}
+                  alt=""
+                  className="w-3.5 h-3.5 shrink-0"
+                />
+              )}
+              <span>{f.priority?.name ?? '—'}</span>
+            </div>
+          </button>
+        )}
+      </MetaRow>
 
       {/* Severity -- shown only when customfield_13415 has a value */}
       {(() => {
