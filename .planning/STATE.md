@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 80
 Plan: Not started
 Status: Executing Phase 80
-Last activity: 2026-06-06 - Quick task 260606-qfn APPROVED & closed: issue-type icon (Story/Bug/Task/Epic) added to backlog rows + sprint board story swimlane header — reused IssueTypeIcon, dedicated column before the key in both views (type → key → priority → summary, consistent per user), issueTypeName threaded to all 3 SprintBoardTab call sites, null-safe, npm run check GREEN
+Last activity: 2026-06-06 - Completed quick task 260606-qup: added horizontal edge padding to Backlog rows so the type icon and assignee avatar aren't flush against the row edges (first cell pl-4 pr-0, assignee cell pl-2 pr-4; explicit-px inner spans preserved for the virtualized table). Also fixed 8 pre-existing test failures first (stale transitionsWithFieldsKey mock in IssueDetailSheet + IssueDetailPage.progressive)
 
 Progress: [██████████] 100%
 
@@ -102,6 +102,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260606-oyy | Sprint board: priority now shown as Jira iconUrl icon (card footer + swimlane header) instead of left border; card left border repurposed to issue-type color via issueTypeStripeClass(); new PriorityIcon component; a11y alt text; issue-type stripe tuned to 3px per UAT | 2026-06-06 | a553b75b | Approved & closed | [260606-oyy-on-sprint-board-i-want-to-change-how-pri](./quick/260606-oyy-on-sprint-board-i-want-to-change-how-pri/) |
 | 260606-pxn | Backlog view: show Jira priority icon in task rows — reuses PriorityIcon in its own column (key → priority → title, like the swimlane); explicit-px wrapper so the column holds width in the WebKit virtualized table (class-sized content collapses to 0); px-0 per UAT | 2026-06-06 | f686edd7 | Approved & closed | [260606-pxn-on-backlog-view-put-the-priority-icon-in](./quick/260606-pxn-on-backlog-view-put-the-priority-icon-in/) |
 | 260606-qfn | Add issue-type icon (Story/Bug/Task/Epic) to backlog rows + sprint board story swimlane header — reuses IssueTypeIcon; dedicated column BEFORE the key in both (type → key → priority → summary, consistent per user); explicit-px wrapper on the backlog cell; issueTypeName prop threaded to all 3 SprintBoardTab call sites; null-safe issuetype?.name; npm run check GREEN | 2026-06-06 | 825ddbda | Approved & closed | [260606-qfn-add-issue-type-icon-to-backlog-issue-row](./quick/260606-qfn-add-issue-type-icon-to-backlog-issue-row/) |
+| 260606-qup | Backlog rows: add horizontal edge padding so the type icon (first cell) and assignee avatar (last cell) aren't flush against the row edges — first cell px-0 → pl-4 pr-0, assignee cell px-2 → pl-2 pr-4 in RowCells (covers both render paths); explicit-px inner spans untouched to keep virtualized columns from collapsing; matches the section header's px-4 edge convention | 2026-06-06 | 91c6d386 | | [260606-qup-on-backlog-view-issue-rows-have-no-left-](./quick/260606-qup-on-backlog-view-issue-rows-have-no-left-/) |
 
 ## Deferred Items
 
