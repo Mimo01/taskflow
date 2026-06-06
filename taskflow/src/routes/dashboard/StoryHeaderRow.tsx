@@ -15,7 +15,6 @@
  */
 import { ChevronRight, Flag } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -25,6 +24,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import type { EpicColorResult } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';

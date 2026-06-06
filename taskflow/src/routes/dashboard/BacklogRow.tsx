@@ -16,7 +16,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Flag } from 'lucide-react';
 import React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -26,6 +25,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
@@ -98,9 +98,7 @@ function RowCells({
           style={{ width: 18, height: 18 }}
           aria-hidden={!issue.fields.issuetype}
         >
-          {issue.fields.issuetype?.name && (
-            <IssueTypeIcon typeName={issue.fields.issuetype.name} />
-          )}
+          {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
         </span>
       </td>
 
