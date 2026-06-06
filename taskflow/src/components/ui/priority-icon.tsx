@@ -14,17 +14,9 @@ interface PriorityIconProps {
   className?: string;
 }
 
-export function PriorityIcon({
-  priority,
-  className = 'w-3.5 h-3.5 shrink-0',
-}: PriorityIconProps) {
+export function PriorityIcon({ priority, className = 'w-3.5 h-3.5 shrink-0' }: PriorityIconProps) {
   if (!priority?.iconUrl) return null;
   return (
-    <img
-      src={priority.iconUrl}
-      alt=""
-      title={priority.name ?? undefined}
-      className={className}
-    />
+    <img src={priority.iconUrl} alt="" title={priority.name ?? undefined} className={className} />
   );
 }
