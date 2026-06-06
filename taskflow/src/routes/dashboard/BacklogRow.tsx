@@ -183,11 +183,11 @@ function RowCells({
       {/* Story points cell */}
       <td className="w-14 px-2 py-2 density-compact:py-1 density-comfortable:py-3 text-right">
         {storyPoints !== null ? (
-          <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground">
+          <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-foreground">
             {storyPoints}
           </span>
         ) : (
-          <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground">
             ?
           </span>
         )}
