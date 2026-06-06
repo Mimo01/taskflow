@@ -144,6 +144,13 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
     for (const item of group.subItems) {
       lines.push(`- ${item.label}`);
     }
+    // Nested sub-task sub-groups: 2-space indented sub-task line, 4-space indented items.
+    for (const st of group.subTaskGroups) {
+      lines.push(`  - ${st.issueKey}: ${st.summary}`);
+      for (const item of st.subItems) {
+        lines.push(`    - ${item.label}`);
+      }
+    }
     lines.push('');
   }
 
