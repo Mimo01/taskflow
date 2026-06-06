@@ -43,6 +43,20 @@ function makeHistory(opts: {
   };
 }
 
+// Helper: build a global status-list response (GET /rest/api/2/status).
+// Mirrors JiraStatus[] from services/jira/statuses.ts.
+function makeStatusList() {
+  return [
+    { id: '1', name: 'To Do', statusCategory: { id: 2, key: 'new', name: 'To Do' } },
+    {
+      id: '2',
+      name: 'In Progress',
+      statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
+    },
+    { id: '3', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+  ];
+}
+
 // Helper: build a minimal JiraComment
 function makeComment(opts: { authorName: string; created: string; body?: string }) {
   return {
@@ -179,6 +193,13 @@ describe('fetchYesterdayJiraActivity', () => {
           },
         ],
       }),
+    } as Response);
+
+    // Global status list fetch (runs after the JQL search, before per-issue comments)
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => makeStatusList(),
     } as Response);
 
     mockFetchFn.mockResolvedValueOnce({
@@ -347,6 +368,151 @@ describe('fetchYesterdayJiraActivity', () => {
     const calledUrl = mockFetchFn.mock.calls[0][0] as string;
     expect(calledUrl).toContain('expand=changelog');
     expect(calledUrl).toContain('maxResults=50');
+  });
+
+  it('0ph: enriches transitions with statusCategory keys from the global status list', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+
+    // JQL search — one issue with a To Do → In Progress transition
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: { summary: 'My issue' },
+            changelog: {
+              histories: [
+                makeHistory({
+                  authorName: USERNAME,
+                  created: `${DATE}T09:00:00.000Z`,
+                  fromStatus: 'To Do',
+                  toStatus: 'In Progress',
+                }),
+              ],
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    // Global status list fetch (GET /rest/api/2/status)
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => makeStatusList(),
+    } as Response);
+
+    // Per-issue comment fetch
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ comments: [] }),
+    } as Response);
+
+    const result = await fetchYesterdayJiraActivity(BASE, TOKEN, PROJECT, DATE, USERNAME);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].transitions[0]).toMatchObject({
+      fromStatus: 'To Do',
+      toStatus: 'In Progress',
+      fromCategory: 'new',
+      toCategory: 'indeterminate',
+    });
+  });
+
+  it('0ph: leaves transition categories undefined when the status-list fetch fails', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: { summary: 'My issue' },
+            changelog: {
+              histories: [
+                makeHistory({
+                  authorName: USERNAME,
+                  created: `${DATE}T09:00:00.000Z`,
+                  fromStatus: 'To Do',
+                  toStatus: 'Done',
+                }),
+              ],
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    // Status list fetch throws — must NOT abort the activity load
+    mockFetchFn.mockRejectedValueOnce(new Error('status list down'));
+
+    // Per-issue comment fetch still runs
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ comments: [] }),
+    } as Response);
+
+    const result = await fetchYesterdayJiraActivity(BASE, TOKEN, PROJECT, DATE, USERNAME);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].transitions).toHaveLength(1);
+    expect(result[0].transitions[0]).toMatchObject({
+      fromStatus: 'To Do',
+      toStatus: 'Done',
+    });
+    expect(result[0].transitions[0].fromCategory).toBeUndefined();
+    expect(result[0].transitions[0].toCategory).toBeUndefined();
+  });
+
+  it('0ph: maps an unknown status name to an undefined category', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: { summary: 'My issue' },
+            changelog: {
+              histories: [
+                makeHistory({
+                  authorName: USERNAME,
+                  created: `${DATE}T09:00:00.000Z`,
+                  fromStatus: 'To Do',
+                  toStatus: 'Mystery Status',
+                }),
+              ],
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => makeStatusList(),
+    } as Response);
+
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ comments: [] }),
+    } as Response);
+
+    const result = await fetchYesterdayJiraActivity(BASE, TOKEN, PROJECT, DATE, USERNAME);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].transitions[0].fromCategory).toBe('new');
+    expect(result[0].transitions[0].toCategory).toBeUndefined();
   });
 
   it('STAND-04: JQL filters by the current user and a single day', async () => {
