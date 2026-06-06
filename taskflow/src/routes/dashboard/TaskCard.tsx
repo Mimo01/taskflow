@@ -9,7 +9,8 @@
  * - subtaskCount: when > 0, renders a Badge chip and chevron toggle button
  * - isExpanded: controls chevron direction (down vs right)
  * - onToggle: called when chevron is clicked (stopPropagation included)
- * - isSubtask: adds left indent and muted left border for visual nesting
+ * - isSubtask: retained for backward-compat typing; no longer alters the card
+ *   border (all cards share the uniform issue-type left border)
  *
  * Context menu props (r56):
  * - transitions: pre-fetched JiraTransition[] from SprintBoardTab cache
@@ -38,8 +39,9 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import { formatTimeAgo, formatTimeAgoStrict } from '@/lib/formatTimeAgo';
-import { isDoneStatus, priorityStripeClass } from '@/lib/issueDisplayUtils';
+import { isDoneStatus, issueTypeStripeClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
@@ -211,6 +213,14 @@ function CardBody({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Priority icon — actual Jira priority.iconUrl image (R2).
+              PriorityIcon guards null/empty iconUrl (renders nothing). */}
+          <PriorityIcon
+            priority={
+              issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
+            }
+          />
+
           {/* Story points badge */}
           {storyPoints != null && storyPoints > 0 && (
             <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
@@ -267,7 +277,6 @@ export default function TaskCard({
   subtaskCount,
   isExpanded,
   onToggle,
-  isSubtask,
   showStatus,
   onClick,
   onOpenIssue,
@@ -338,14 +347,8 @@ export default function TaskCard({
 
   const outerClassName = cn(
     'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
-    isSubtask
-      ? 'border-l-2 border-l-muted'
-      : [
-          'border-l-4',
-          priorityStripeClass(
-            issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined,
-          ),
-        ],
+    'border-l-4',
+    issueTypeStripeClass(issue.fields.issuetype),
     isFlagged &&
       'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
   );
