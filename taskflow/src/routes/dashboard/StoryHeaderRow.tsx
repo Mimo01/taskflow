@@ -24,6 +24,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import type { EpicColorResult } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,8 @@ interface StoryHeaderRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onOpenDetail: (key: string) => void;
+  /** Story's own Jira priority — rendered as a PriorityIcon in the header. */
+  priority?: { name?: string | null; iconUrl?: string | null } | null;
   /**
    * PEEK-01: clicking the row body opens the issue peek panel. When provided,
    * the outer row becomes a div[role=button] so the inner key <button> is valid
@@ -73,6 +76,7 @@ export function StoryHeaderRow({
   isExpanded,
   onToggle,
   onOpenDetail,
+  priority,
   onOpenIssue,
   transitions,
   onTransition,
@@ -137,6 +141,8 @@ export function StoryHeaderRow({
         >
           {storyKey}
         </button>
+        {/* Story priority icon — PriorityIcon guards null/missing priority */}
+        <PriorityIcon priority={priority} />
         <span className="text-sm font-medium truncate">{summary}</span>
       </div>
 
