@@ -18,7 +18,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, CornerLeftUp, ExternalLink, X } from 'lucide-react';
+import { ChevronRight, ExternalLink, X } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -135,7 +135,9 @@ export function PeekPanel({
                 aria-label={`Open parent issue ${peekParent.key}`}
                 className="flex items-center gap-1 shrink-0 text-xs font-mono text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
               >
-                <CornerLeftUp className="size-3.5" />
+                {peekParent.fields.issuetype?.name && (
+                  <IssueTypeIcon typeName={peekParent.fields.issuetype.name} />
+                )}
                 {peekParent.key}
               </button>
               <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
