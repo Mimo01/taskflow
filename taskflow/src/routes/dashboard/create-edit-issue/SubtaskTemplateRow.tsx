@@ -295,38 +295,14 @@ export function SubtaskTemplateRow({
 
           <div className="h-5 w-px bg-border shrink-0" aria-hidden="true" />
 
-          {/* Due / Estimate / Story points group */}
-          <div className="flex items-center gap-2">
-            <Input
-              className="w-32 h-7 text-xs shrink-0"
-              type="date"
-              value={row.duedate ?? ''}
-              onChange={(e) => onChange({ duedate: e.target.value || null })}
-              disabled={isDisabled}
-            />
-
-            <Input
-              className="w-20 h-7 text-xs shrink-0"
-              value={row.timeEstimate}
-              onChange={(e) => onChange({ timeEstimate: e.target.value })}
-              placeholder="e.g. 2h"
-              disabled={isDisabled}
-            />
-
-            <Input
-              className="w-16 h-7 text-xs shrink-0"
-              type="number"
-              min={0}
-              value={row.storyPoints ?? ''}
-              onChange={(e) =>
-                onChange({
-                  storyPoints: e.target.value === '' ? null : Number(e.target.value),
-                })
-              }
-              placeholder="SP"
-              disabled={isDisabled}
-            />
-          </div>
+          {/* Estimate — Due date & Story points live in Advanced (rare on subtasks) */}
+          <Input
+            className="w-20 h-7 text-xs shrink-0"
+            value={row.timeEstimate}
+            onChange={(e) => onChange({ timeEstimate: e.target.value })}
+            placeholder="e.g. 2h"
+            disabled={isDisabled}
+          />
 
           {/* Controls — pushed to the far right of the field block */}
           <div className="ml-auto flex items-center gap-1">
@@ -386,6 +362,42 @@ export function SubtaskTemplateRow({
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Advanced fields
           </p>
+
+          {/* Due date — uncommon on subtasks, lives here */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${row.id}-duedate`} className="text-xs text-muted-foreground">
+              Due date
+            </label>
+            <Input
+              id={`${row.id}-duedate`}
+              className="h-7 w-40 text-xs"
+              type="date"
+              value={row.duedate ?? ''}
+              onChange={(e) => onChange({ duedate: e.target.value || null })}
+              disabled={isDisabled}
+            />
+          </div>
+
+          {/* Story points — uncommon on subtasks, lives here */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${row.id}-storypoints`} className="text-xs text-muted-foreground">
+              Story points
+            </label>
+            <Input
+              id={`${row.id}-storypoints`}
+              className="h-7 w-20 text-xs"
+              type="number"
+              min={0}
+              value={row.storyPoints ?? ''}
+              onChange={(e) =>
+                onChange({
+                  storyPoints: e.target.value === '' ? null : Number(e.target.value),
+                })
+              }
+              placeholder="SP"
+              disabled={isDisabled}
+            />
+          </div>
 
           {/* Components multi-select (comma-separated IDs) */}
           <div className="flex flex-col gap-1">
