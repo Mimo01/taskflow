@@ -23,7 +23,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,6 +45,38 @@ vi.mock('react-router-dom', () => ({
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
+
+// WR-04: capture the real onDragStart/onDragEnd handlers SprintBoardTab wires
+// into DndContext so tests can drive the drag-end path directly. jsdom cannot
+// simulate dnd-kit's PointerSensor (150ms delay + 5px tolerance), so we mock the
+// DndContext component to a passthrough <div> that stashes the handlers on a
+// module-level ref while preserving every other @dnd-kit/core export. Tests then
+// invoke `dndHandlers.onDragStart`/`onDragEnd` with synthetic event payloads —
+// exercising the real handleDragStart/handleDragEnd (and thus CR-01/CR-02/WR-01/
+// WR-02 branches), not a re-implementation.
+const dndHandlers: {
+  onDragStart?: (e: unknown) => void;
+  onDragEnd?: (e: unknown) => void;
+} = {};
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@dnd-kit/core')>();
+  return {
+    ...actual,
+    DndContext: ({
+      children,
+      onDragStart,
+      onDragEnd,
+    }: {
+      children: React.ReactNode;
+      onDragStart?: (e: unknown) => void;
+      onDragEnd?: (e: unknown) => void;
+    }) => {
+      dndHandlers.onDragStart = onDragStart;
+      dndHandlers.onDragEnd = onDragEnd;
+      return <div data-testid="dnd-context">{children}</div>;
+    },
+  };
+});
 
 // Mock jira service — Phase 73 Plan 02 swap:
 //   * legacy fetchers removed
@@ -870,6 +902,228 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       const calls = vi.mocked(postTransition).mock.calls;
       const call = calls[calls.length - 1];
       expect(call).toHaveLength(4);
+    });
+  });
+
+  // ─── WR-04: end-to-end drag-end branches (dialog / block / probe-failure / race) ─
+  //
+  // These drive the REAL handleDragEnd via the captured DndContext handlers
+  // (see the @dnd-kit/core mock above). Flow: handleDragStart builds dropModel
+  // from filterTransitionsForStatus (mocked to a single 'done' transition →
+  // dropModel.done = { kind:'single' }), then handleDragEnd with over.id =
+  // 'col:done' resolves that transition and runs the async probe IIFE.
+  describe('WR-04: drag-end dialog / block / probe-failure / race branches', () => {
+    const DONE_TXN = {
+      id: 'T-DONE',
+      name: 'Finish',
+      to: { id: '4', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+      // hasScreen drives WR-02; default false (overridden per test).
+      hasScreen: false,
+    };
+
+    async function seedSingleDoneTransition(extra?: Partial<typeof DONE_TXN>) {
+      const txn = [{ ...DONE_TXN, ...extra }];
+      const { peekGhTransitions, filterTransitionsForStatus } = await import('@/services/jira');
+      vi.mocked(peekGhTransitions).mockReturnValue(txn as never);
+      vi.mocked(filterTransitionsForStatus).mockReturnValue(txn as never);
+    }
+
+    async function fireDrop(issueKey: string) {
+      // drag start populates dropModel (React state) + dragToken. handleDragEnd
+      // reads dropModel from its closure, so we must let React re-render with the
+      // new dropModel BEFORE invoking onDragEnd — otherwise the end handler closes
+      // over the stale (null) dropModel and snaps back. act() + a flushed tick
+      // between start and end mirrors the real two-event drag lifecycle.
+      await act(async () => {
+        dndHandlers.onDragStart?.({
+          active: { id: issueKey, rect: { current: { initial: { width: 200 } } } },
+        });
+      });
+      await act(async () => {
+        dndHandlers.onDragEnd?.({
+          active: { id: issueKey },
+          over: { id: 'col:done' },
+        });
+      });
+    }
+
+    it('(a) resolution-capable drop opens the dialog with correct issueKey + allowedValues and fires NO postTransition', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Cap Story',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story]);
+      await seedSingleDoneTransition();
+
+      const { resolveDropResolution, fetchIssueTransitionsWithFields, postTransition } =
+        await import('@/services/jira');
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValueOnce([
+        { id: 'T-DONE', name: 'Finish', fields: {} },
+      ] as never);
+      vi.mocked(resolveDropResolution).mockReturnValueOnce({
+        kind: 'dialog',
+        allowedValues: [{ id: '10000', name: 'Fixed' }],
+      } as never);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+      await screen.findAllByText('Cap Story');
+
+      await fireDrop('PROJ-1');
+
+      // Dialog opens — its description names the issue + target status.
+      await screen.findByText('Set Resolution');
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.textContent).toContain('PROJ-1');
+      // allowedValues rendered as option buttons.
+      expect(screen.getByRole('button', { name: 'Fixed' })).toBeTruthy();
+      // No transition fired yet — the card has NOT moved.
+      expect(postTransition).not.toHaveBeenCalled();
+    });
+
+    it('(b) required-but-empty drop surfaces a card error and fires NO postTransition', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Block Story',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story]);
+      await seedSingleDoneTransition();
+
+      const { resolveDropResolution, fetchIssueTransitionsWithFields, postTransition } =
+        await import('@/services/jira');
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValueOnce([
+        { id: 'T-DONE', name: 'Finish', fields: {} },
+      ] as never);
+      vi.mocked(resolveDropResolution).mockReturnValueOnce({ kind: 'block' } as never);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+      await screen.findAllByText('Block Story');
+
+      await fireDrop('PROJ-1');
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByText('This transition requires a resolution, but none are available')
+            .length,
+        ).toBeGreaterThan(0);
+      });
+      expect(postTransition).not.toHaveBeenCalled();
+    });
+
+    it('(c) probe rejects with hasScreen=true surfaces an error and fires NO postTransition (WR-02)', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Probe Fail Story',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story]);
+      // The reachable transition itself carries hasScreen:true (GH metadata).
+      await seedSingleDoneTransition({ hasScreen: true });
+
+      const { fetchIssueTransitionsWithFields, postTransition } = await import('@/services/jira');
+      vi.mocked(fetchIssueTransitionsWithFields).mockRejectedValueOnce(new Error('network'));
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+      await screen.findAllByText('Probe Fail Story');
+
+      await fireDrop('PROJ-1');
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByText('Could not load resolution options — try again').length,
+        ).toBeGreaterThan(0);
+      });
+      // hasScreen=true → no doomed plain transition fired.
+      expect(postTransition).not.toHaveBeenCalled();
+    });
+
+    it('(c2) probe rejects with hasScreen=false falls back to a plain transition', async () => {
+      const story = makeIssue(
+        'PROJ-1',
+        'Plain Fallback Story',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      await seedAllData([story]);
+      await seedSingleDoneTransition({ hasScreen: false });
+
+      const { fetchIssueTransitionsWithFields, postTransition } = await import('@/services/jira');
+      vi.mocked(fetchIssueTransitionsWithFields).mockRejectedValueOnce(new Error('network'));
+      vi.mocked(postTransition).mockResolvedValueOnce(undefined);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+      await screen.findAllByText('Plain Fallback Story');
+
+      await fireDrop('PROJ-1');
+
+      // No-screen probe failure keeps the original plain-transition fallback.
+      await waitFor(() => {
+        expect(postTransition).toHaveBeenCalled();
+      });
+    });
+
+    it('(d) a second drop while a dialog is pending does NOT corrupt the first pendingResolution', async () => {
+      const a = makeIssue('PROJ-1', 'Issue A', false, undefined, 'In Progress', 'indeterminate');
+      const b = makeIssue('PROJ-2', 'Issue B', false, undefined, 'In Progress', 'indeterminate');
+      await seedAllData([a, b]);
+      await seedSingleDoneTransition();
+
+      const { resolveDropResolution, fetchIssueTransitionsWithFields, postTransition } =
+        await import('@/services/jira');
+      vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValue([
+        { id: 'T-DONE', name: 'Finish', fields: {} },
+      ] as never);
+      // First drop resolves to dialog for A.
+      vi.mocked(resolveDropResolution).mockReturnValue({
+        kind: 'dialog',
+        allowedValues: [{ id: 'A1', name: 'A-Fixed' }],
+      } as never);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+      await screen.findAllByText('Issue A');
+
+      // Drop A → dialog opens for PROJ-1 with A's allowedValues.
+      await fireDrop('PROJ-1');
+      await screen.findByText('Set Resolution');
+      const dialogA = screen.getByRole('dialog');
+      expect(dialogA.textContent).toContain('PROJ-1');
+      expect(screen.getByRole('button', { name: 'A-Fixed' })).toBeTruthy();
+
+      // While A's dialog is pending, drop B. The synchronous guard must reject it:
+      // pendingResolution stays A, B gets a card error, and no second dialog opens.
+      await fireDrop('PROJ-2');
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByText('Finish the open resolution dialog before moving another card')
+            .length,
+        ).toBeGreaterThan(0);
+      });
+
+      // The dialog is STILL A's — not clobbered by B.
+      const dialogStill = screen.getByRole('dialog');
+      expect(dialogStill.textContent).toContain('PROJ-1');
+      expect(dialogStill.textContent).not.toContain('PROJ-2');
+      expect(screen.getByRole('button', { name: 'A-Fixed' })).toBeTruthy();
+      // Still no transition fired (neither A confirmed nor B moved).
+      expect(postTransition).not.toHaveBeenCalled();
     });
   });
 
