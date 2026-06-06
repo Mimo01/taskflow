@@ -599,6 +599,7 @@ export async function fetchMyTasksHierarchy(
 
 export { fetchIssueChangelog } from './jira/changelog';
 export { fetchComments, postComment } from './jira/comments';
+export type { DropResolutionDecision } from './jira/transitions';
 /**
  * Phase 72 (WR-01): postTransition was duplicated between this file and
  * `services/jira/transitions.ts`. The modular implementation is canonical
@@ -610,6 +611,7 @@ export { fetchComments, postComment } from './jira/comments';
 export {
   fetchIssueTransitionsWithFields,
   postTransition,
+  resolveDropResolution,
   transitionsWithFieldsKey,
 } from './jira/transitions';
 export type { JiraComment, JiraTransitionFieldMeta, JiraTransitionWithFields } from './jira/types';
