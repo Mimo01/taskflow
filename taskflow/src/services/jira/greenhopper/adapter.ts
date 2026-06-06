@@ -124,12 +124,11 @@ export function adaptIssue(
     subtask: parent !== undefined,
   };
 
-  // Phase 76 (VISUAL-04/05): `fields.priority` is now synthesised — SprintBoardTab's
-  // TaskCard renders a left-edge priority colour stripe via `priorityStripeClass`,
-  // so the priority resolver finally has a live consumer (the WR-01 removal was
-  // valid only while no consumer existed). `resolvePriority` warns-once on a genuine
-  // unknown priorityId and shims `{ name: 'Unknown' }`, which the stripe maps to its
-  // neutral-gray default — correct behaviour, not a spurious warn.
+  // `fields.priority` is synthesised here — SprintBoardTab's TaskCard/StoryHeaderRow
+  // render the Jira priority `iconUrl` (the left-edge stripe now shows issue type, not
+  // priority — quick-260606-oyy). `resolvePriority` warns-once on a genuine unknown
+  // priorityId and shims `{ name: 'Unknown' }` with an empty iconUrl, which PriorityIcon
+  // renders as nothing — correct behaviour, not a spurious warn.
   // resolveEpic / resolveParent remain unsynthesised (no consumer yet, per D-01).
   const priority = resolvePriority(gh.priorityId, entityMaps);
 
