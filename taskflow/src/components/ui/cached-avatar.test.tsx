@@ -136,4 +136,19 @@ describe('CachedAvatar component', () => {
     // No svg (no unassigned icon)
     expect(fallback.querySelector('svg')).toBeNull();
   });
+
+  it('Test 9 (distinct unassigned styling): unassigned fallback has border-dashed; assigned-initials fallback does not', async () => {
+    const { CachedAvatar } = await import('@/components/ui/cached-avatar');
+
+    // Unassigned case: name="Unassigned", url=null
+    const { unmount: unmountUnassigned } = render(<CachedAvatar url={null} name="Unassigned" />);
+    const unassignedFallback = screen.getByRole('img', { name: 'Unassigned' });
+    expect(unassignedFallback).toHaveClass('border-dashed');
+    unmountUnassigned();
+
+    // Assigned-initials case: name="Uma Thompson", url=null
+    render(<CachedAvatar url={null} name="Uma Thompson" />);
+    const assignedFallback = screen.getByRole('img', { name: 'Uma Thompson' });
+    expect(assignedFallback).not.toHaveClass('border-dashed');
+  });
 });
