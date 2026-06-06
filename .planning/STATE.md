@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 80
 Plan: Not started
 Status: Executing Phase 80
-Last activity: 2026-06-06 - Quick task 260606-oyy APPROVED & closed: sprint board priority shown as Jira icon (card footer + swimlane header) instead of left border; card left border now encodes issue type (3px stripe, tuned per UAT); new PriorityIcon component (verified, npm run check GREEN, 40/40 tests)
+Last activity: 2026-06-06 - Quick task 260606-pxn APPROVED & closed: Backlog view task rows now show the Jira priority icon in a dedicated column (key → priority → title, mirroring the swimlane); reused PriorityIcon; explicit-px wrapper keeps the column from collapsing in the WebKit virtualized table; npm run check GREEN
 
 Progress: [██████████] 100%
 
@@ -100,6 +100,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260606-o5y | Sprint board: story swimlane rows open the issue peek preview like cards (PEEK-01 body→peek, PEEK-05 key→full-page); all 3 sites wired; WR-01 keyboard double-fire guard added to row + card | 2026-06-06 | b96862cc | Approved & closed | [260606-o5y-on-sprint-board-story-rows-open-issue-pr](./quick/260606-o5y-on-sprint-board-story-rows-open-issue-pr/) |
 | 260606-oqf | Issue peek panel: add elevation so it stops blending in — leftward shadow + ring-1 ring-foreground/10 (matches sheet/popover/dialog conventions, theme-aware light+dark) | 2026-06-06 | a33b9b5b | Approved & closed | [260606-oqf-on-issue-peek-panel-add-more-distinction](./quick/260606-oqf-on-issue-peek-panel-add-more-distinction/) |
 | 260606-oyy | Sprint board: priority now shown as Jira iconUrl icon (card footer + swimlane header) instead of left border; card left border repurposed to issue-type color via issueTypeStripeClass(); new PriorityIcon component; a11y alt text; issue-type stripe tuned to 3px per UAT | 2026-06-06 | a553b75b | Approved & closed | [260606-oyy-on-sprint-board-i-want-to-change-how-pri](./quick/260606-oyy-on-sprint-board-i-want-to-change-how-pri/) |
+| 260606-pxn | Backlog view: show Jira priority icon in task rows — reuses PriorityIcon in its own column (key → priority → title, like the swimlane); explicit-px wrapper so the column holds width in the WebKit virtualized table (class-sized content collapses to 0); px-0 per UAT | 2026-06-06 | f686edd7 | Approved & closed | [260606-pxn-on-backlog-view-put-the-priority-icon-in](./quick/260606-pxn-on-backlog-view-put-the-priority-icon-in/) |
 
 ## Deferred Items
 
