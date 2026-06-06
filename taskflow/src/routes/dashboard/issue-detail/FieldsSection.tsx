@@ -181,6 +181,12 @@ export function FieldsSection({
   const resolutionAllowedValues =
     inPlaceResolutionTransition?.fields?.resolution?.allowedValues ?? [];
 
+  // Only surface the Resolution row where it's meaningful: when the issue actually
+  // has a resolution, or when it's in a done status-category (where you'd set one
+  // and an in-place edit transition typically exists). An unresolved, non-done
+  // issue hides the row entirely rather than showing a perpetual "Unresolved".
+  const showResolutionRow = f.resolution != null || f.status.statusCategory?.key === 'done';
+
   // Token query for sprint picker (same pattern as fix versions)
   const { data: jiraToken } = useQuery({
     queryKey: ['jira-pat'],
@@ -546,77 +552,84 @@ export function FieldsSection({
       </MetaRow>
 
       {/* Resolution -- set via a workflow transition (direct field PUT is rejected by
-          this Jira). Editable only when an in-place resolution-capable transition exists. */}
-      <MetaRow label="Resolution">
-        {resolutionEditing && inPlaceResolutionTransition && resolutionAllowedValues.length > 0 ? (
-          <div>
-            <Select
-              value={f.resolution?.id ?? ''}
-              onValueChange={handleResolutionSelect}
-              open
-              onOpenChange={(open) => {
-                if (!open) setResolutionEditing(false);
-              }}
-            >
-              <SelectTrigger size="sm" className="h-6 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {/* Clearing is always available when an in-place resolution
+          this Jira). Editable only when an in-place resolution-capable transition exists.
+          Hidden entirely for unresolved, non-done issues (showResolutionRow). */}
+      {showResolutionRow && (
+        <MetaRow label="Resolution">
+          {resolutionEditing &&
+          inPlaceResolutionTransition &&
+          resolutionAllowedValues.length > 0 ? (
+            <div>
+              <Select
+                value={f.resolution?.id ?? ''}
+                onValueChange={handleResolutionSelect}
+                open
+                onOpenChange={(open) => {
+                  if (!open) setResolutionEditing(false);
+                }}
+              >
+                <SelectTrigger size="sm" className="h-6 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Clearing is always available when an in-place resolution
                     transition exists: clearing and setting are different
                     operations, so this is independent of `required` (WR-01). */}
-                <SelectItem value="__unresolved__">Unresolved</SelectItem>
-                {/* WR-03: the current resolution may not appear in the
+                  <SelectItem value="__unresolved__">Unresolved</SelectItem>
+                  {/* WR-03: the current resolution may not appear in the
                     transition's allowedValues (disabled value, different
                     scheme). Surface it as a synthetic option so the trigger
                     never shows blank when a resolution is actually set. */}
-                {f.resolution &&
-                  !resolutionAllowedValues.some((r) => r.id === f.resolution?.id) && (
-                    <SelectItem key={f.resolution.id} value={f.resolution.id}>
-                      {f.resolution.name}
+                  {f.resolution &&
+                    !resolutionAllowedValues.some((r) => r.id === f.resolution?.id) && (
+                      <SelectItem key={f.resolution.id} value={f.resolution.id}>
+                        {f.resolution.name}
+                      </SelectItem>
+                    )}
+                  {resolutionAllowedValues.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
                     </SelectItem>
-                  )}
-                {resolutionAllowedValues.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {resolutionTransitionMutation.isError && (
-              <p className="text-xs text-destructive mt-1">Failed to set resolution — try again</p>
-            )}
-          </div>
-        ) : resolutionEditing && transitionsWithFieldsQuery.isLoading ? (
-          // Fetch in flight: show a loading hint rather than the "no transition"
-          // fallback, otherwise the message flashes before the Select appears.
-          <div>
-            <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
-            <p className="text-xs text-muted-foreground mt-1">Loading resolutions…</p>
-          </div>
-        ) : resolutionEditing ? (
-          // Fetch settled but no in-place resolution-capable transition exists
-          // (none on this status, or the fetch errored / returned empty).
-          <div>
-            <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
-            <p className="text-xs text-muted-foreground mt-1">
-              {transitionsWithFieldsQuery.isError
-                ? 'Could not load transitions — resolution can only be changed via a status transition.'
-                : 'Resolution is set by moving this issue through a status transition.'}
-            </p>
-          </div>
-        ) : (
-          <button
-            data-testid="resolution-edit"
-            type="button"
-            onClick={() => setResolutionEditing(true)}
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
-            title="Click to edit resolution"
-          >
-            {f.resolution?.name ?? 'Unresolved'}
-          </button>
-        )}
-      </MetaRow>
+                  ))}
+                </SelectContent>
+              </Select>
+              {resolutionTransitionMutation.isError && (
+                <p className="text-xs text-destructive mt-1">
+                  Failed to set resolution — try again
+                </p>
+              )}
+            </div>
+          ) : resolutionEditing && transitionsWithFieldsQuery.isLoading ? (
+            // Fetch in flight: show a loading hint rather than the "no transition"
+            // fallback, otherwise the message flashes before the Select appears.
+            <div>
+              <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
+              <p className="text-xs text-muted-foreground mt-1">Loading resolutions…</p>
+            </div>
+          ) : resolutionEditing ? (
+            // Fetch settled but no in-place resolution-capable transition exists
+            // (none on this status, or the fetch errored / returned empty).
+            <div>
+              <span data-testid="resolution-value">{f.resolution?.name ?? 'Unresolved'}</span>
+              <p className="text-xs text-muted-foreground mt-1">
+                {transitionsWithFieldsQuery.isError
+                  ? 'Could not load transitions — resolution can only be changed via a status transition.'
+                  : 'Resolution is set by moving this issue through a status transition.'}
+              </p>
+            </div>
+          ) : (
+            <button
+              data-testid="resolution-edit"
+              type="button"
+              onClick={() => setResolutionEditing(true)}
+              className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
+              title="Click to edit resolution"
+            >
+              {f.resolution?.name ?? 'Unresolved'}
+            </button>
+          )}
+        </MetaRow>
+      )}
 
       {/* Severity -- shown only when customfield_13415 has a value */}
       {(() => {
