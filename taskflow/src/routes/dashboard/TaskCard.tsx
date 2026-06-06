@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/context-menu';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { formatTimeAgo, formatTimeAgoStrict } from '@/lib/formatTimeAgo';
-import { isDoneStatus, issueTypeStripeClass } from '@/lib/issueDisplayUtils';
+import { isDoneStatus, issueTypeAccentClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
@@ -346,11 +346,22 @@ export default function TaskCard({
   };
 
   const outerClassName = cn(
-    'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
-    'border-l-4',
-    issueTypeStripeClass(issue.fields.issuetype),
+    'group relative border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
     isFlagged &&
       'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
+  );
+
+  // Issue-type accent: a rounded, inset vertical bar pinned to the card's left
+  // edge (replaces the old full-height border-l-4 stripe — softer, sits clear of
+  // the rounded corners). Color encodes issue type; purely decorative.
+  const accentBar = (
+    <span
+      aria-hidden
+      className={cn(
+        'pointer-events-none absolute left-0.5 top-1.5 bottom-1.5 w-1 rounded-full',
+        issueTypeAccentClass(issue.fields.issuetype),
+      )}
+    />
   );
 
   // dnd-kit's dragAttributes carries role/tabIndex/aria-* for accessibility.
@@ -393,6 +404,7 @@ export default function TaskCard({
       {...restDragAttributes}
       {...(isDraggable ? dragListeners : {})}
     >
+      {accentBar}
       <CardBody {...sharedBodyProps} />
     </div>
   ) : (
@@ -413,6 +425,7 @@ export default function TaskCard({
       {...(isDraggable ? dragAttributes : {})}
       {...(isDraggable ? dragListeners : {})}
     >
+      {accentBar}
       <CardBody {...sharedBodyProps} />
     </button>
   );
