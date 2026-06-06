@@ -49,6 +49,8 @@ interface FilterDropdownProps {
   /** Optional map from value → display name (e.g. epicKey → epicName). */
   displayMap?: Map<string, string>;
   colorDot?: (value: string) => string | undefined;
+  /** Optional value rendered with distinct (muted/italic + divider) styling, e.g. the "Unassigned" sentinel. */
+  distinctValue?: string;
 }
 
 function FilterDropdown({
@@ -58,6 +60,7 @@ function FilterDropdown({
   onToggle,
   displayMap,
   colorDot,
+  distinctValue,
 }: FilterDropdownProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -112,15 +115,21 @@ function FilterDropdown({
           {filtered.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground">No results</p>
           ) : (
-            filtered.map((option) => {
+            filtered.map((option, index) => {
               const isSelected = selected.has(option);
               const dot = colorDot?.(option);
+              const isDistinct = distinctValue !== undefined && option === distinctValue;
+              // Divider below the distinct option to set it apart from the named
+              // list — only when it sits above at least one more visible option.
+              const showDivider = isDistinct && index < filtered.length - 1;
               return (
                 <button
                   key={option}
                   type="button"
                   onClick={() => onToggle(option)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent transition-colors text-left"
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent transition-colors text-left ${
+                    showDivider ? 'border-b border-border/60 mb-1 pb-2' : ''
+                  }`}
                 >
                   <span
                     className={`flex items-center justify-center size-4 rounded border shrink-0 transition-colors ${
@@ -137,7 +146,9 @@ function FilterDropdown({
                       style={{ backgroundColor: dot }}
                     />
                   )}
-                  <span className="truncate">{display(option)}</span>
+                  <span className={`truncate ${isDistinct ? 'italic text-muted-foreground' : ''}`}>
+                    {display(option)}
+                  </span>
                 </button>
               );
             })
@@ -545,6 +556,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               selected={activeAssignees}
               onToggle={toggleAssignee}
               displayMap={new Map([[UNASSIGNED_FILTER, UNASSIGNED_LABEL]])}
+              distinctValue={UNASSIGNED_FILTER}
             />
             <FilterDropdown
               label="Status"
