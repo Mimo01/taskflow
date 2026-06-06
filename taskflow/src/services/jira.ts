@@ -1236,7 +1236,15 @@ export interface JiraIssueDetail {
     attachment?: JiraAttachment[];
     labels: string[];
     fixVersions: Array<{ id: string; name: string }>;
-    parent?: { id: string; key: string; fields: { summary: string } };
+    parent?: {
+      id: string;
+      key: string;
+      fields: {
+        summary: string;
+        issuetype?: { name: string; iconUrl?: string };
+        status?: { name: string; statusCategory?: { key: string } };
+      };
+    };
     created: string;
     updated: string;
     timetracking?: {
