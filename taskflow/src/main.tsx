@@ -591,7 +591,9 @@ function AppLayout() {
               onOpenIssue={(key) => setPeekIssueKey(key)}
               onNavigateFull={(key) => {
                 setPeekIssueKey(null);
-                handleIssueClick(key, true);
+                // Preserve breadcrumb trail so the full page can navigate back
+                // to the page the peek was opened from (resetTrail=false).
+                handleIssueClick(key);
               }}
               paletteOpen={paletteOpen}
             />
