@@ -2011,4 +2011,77 @@ After quote`;
       expect(container.textContent).toContain('range');
     });
   });
+
+  describe('attachment reference links (wiki-attachment-link-render)', () => {
+    it('[^filename] with known attachment renders as a clickable anchor', () => {
+      // Jira [^filename] attachment-reference syntax must not produce literal angle-bracket
+      // text (<^filename>) — jira2md does not handle this form. The preprocessor converts
+      // it to a raw <a href> element before jira2md runs.
+      const attachments = {
+        'rest-log-detail-85008276.txt':
+          'https://jira.example.com/secure/attachment/1/rest-log-detail-85008276.txt',
+      };
+      const { container } = render(
+        <WikiRenderer wikiText="[^rest-log-detail-85008276.txt]" attachments={attachments} />,
+      );
+      const anchor = container.querySelector('a');
+      expect(anchor).not.toBeNull();
+      expect(anchor?.getAttribute('href')).toBe(
+        'https://jira.example.com/secure/attachment/1/rest-log-detail-85008276.txt',
+      );
+      expect(anchor?.textContent).toBe('rest-log-detail-85008276.txt');
+      // Must NOT render as literal angle-bracket text
+      expect(container.textContent).not.toContain('<^rest-log-detail-85008276.txt>');
+    });
+
+    it('multiple [^filename] references all render as anchors', () => {
+      // The full symptom from the bug report: six consecutive [^...] references.
+      const attachments = {
+        'rest-log-detail-85008276.txt':
+          'https://jira.example.com/secure/attachment/1/rest-log-detail-85008276.txt',
+        'rest-log-detail-85053230.txt':
+          'https://jira.example.com/secure/attachment/2/rest-log-detail-85053230.txt',
+      };
+      const wikiText = ['[^rest-log-detail-85008276.txt]', '[^rest-log-detail-85053230.txt]'].join(
+        '',
+      );
+      const { container } = render(<WikiRenderer wikiText={wikiText} attachments={attachments} />);
+      const anchors = container.querySelectorAll('a');
+      // Both known attachments must be links
+      const hrefs = Array.from(anchors).map((a) => a.getAttribute('href'));
+      expect(hrefs).toContain(
+        'https://jira.example.com/secure/attachment/1/rest-log-detail-85008276.txt',
+      );
+      expect(hrefs).toContain(
+        'https://jira.example.com/secure/attachment/2/rest-log-detail-85053230.txt',
+      );
+    });
+
+    it('[^filename] with unknown attachment renders as a code span, not a broken link', () => {
+      // When no attachment map is provided or the filename is not in the map,
+      // the reference should render as a visible code span rather than a broken link.
+      const { container } = render(<WikiRenderer wikiText="[^unknown-file.txt]" />);
+      const code = container.querySelector('code');
+      expect(code).not.toBeNull();
+      expect(code?.textContent).toBe('unknown-file.txt');
+      // Must not produce a broken anchor with an empty/garbage href
+      const anchors = container.querySelectorAll('a');
+      const brokenAnchors = Array.from(anchors).filter(
+        (a) => !a.getAttribute('href') || a.getAttribute('href') === '',
+      );
+      expect(brokenAnchors).toHaveLength(0);
+    });
+
+    it('[^filename] does not produce literal angle-bracket text (regression guard)', () => {
+      // Core regression: the pre-fix output was "<^filename>" which must never appear.
+      const attachments = {
+        'file.txt': 'https://jira.example.com/secure/attachment/1/file.txt',
+      };
+      const { container } = render(
+        <WikiRenderer wikiText="See [^file.txt] for details." attachments={attachments} />,
+      );
+      expect(container.textContent).not.toMatch(/<\^file\.txt>/);
+      expect(container.textContent).toContain('file.txt');
+    });
+  });
 });
