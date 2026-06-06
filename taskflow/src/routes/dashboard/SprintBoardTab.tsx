@@ -46,6 +46,7 @@ import {
   buildEntityMaps,
   createAdapter,
   fetchEpicsBasic,
+  fetchIssueTransitionsWithFields,
   fetchProjectStatuses,
   filterTransitionsForStatus,
   invalidateGhAllData,
@@ -53,7 +54,9 @@ import {
   isIssueFlagged,
   peekGhTransitions,
   postTransition,
+  resolveDropResolution,
   setIssueFlagged,
+  transitionsWithFieldsKey,
   useGhAllData,
   useGhTransitions,
 } from '@/services/jira';
@@ -63,6 +66,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { BoardResolutionDialog } from './BoardResolutionDialog';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintBoardSkeleton } from './SprintBoardSkeleton';
 import { SprintGoalBanner } from './SprintGoalBanner';
@@ -828,6 +832,18 @@ export default function SprintBoardTab() {
   const isDraggingRef = useRef(false);
   const justDragged = useRef(false);
 
+  // REWORK2: when a drag drops into a resolution-capable transition, the card does
+  // NOT move yet — instead BoardResolutionDialog opens and we stash everything needed
+  // to execute the dragged transition (with fields.resolution) once the user confirms.
+  const [pendingResolution, setPendingResolution] = useState<{
+    issueKey: string;
+    transitionId: string;
+    toStatusName: string;
+    toStatusId: string;
+    toStatusCategoryKey?: string;
+    allowedValues: Array<{ id: string; name: string }>;
+  } | null>(null);
+
   // PointerSensor with 150ms delay + 5px tolerance — D-12: short delay so a
   // quick click still opens the peek panel; tolerance prevents accidental drag
   // on a tap. Verbatim from BacklogPage.tsx PATTERNS.md.
@@ -1115,14 +1131,86 @@ export default function SprintBoardTab() {
     const transition = allTransitions.find((t) => t.id === transitionId);
     if (!transition) return;
 
-    // D-09: reuse the existing handleTransition mutation — do NOT duplicate.
+    // REWORK2: probe the dragged issue's REST transitions-with-fields to decide if
+    // this drop is resolution-capable. The early-return guards above stay SYNCHRONOUS
+    // (they run before this async IIFE); only the probe + dialog branch is async so a
+    // resolution prompt never moves the card before the user confirms. dnd-kit ignores
+    // the (void) return.
+    void (async () => {
+      let meta: import('@/services/jira').JiraTransitionWithFields | undefined;
+      try {
+        const list = await queryClient.fetchQuery({
+          queryKey: transitionsWithFieldsKey(
+            issueKey,
+            jiraBaseUrl ?? '',
+            draggedIssue.fields.status?.id ?? '',
+          ),
+          queryFn: () =>
+            fetchIssueTransitionsWithFields(jiraBaseUrl ?? '', jiraToken ?? '', issueKey),
+          staleTime: Number.POSITIVE_INFINITY,
+        });
+        meta = list.find((t) => t.id === transitionId);
+      } catch {
+        // Probe failure must never block an otherwise-valid move: fall back to the
+        // plain transition (no resolution) exactly as the non-capable path does.
+        void handleTransition(
+          issueKey,
+          transitionId,
+          transition.to.name,
+          transition.to.id,
+          transition.to.statusCategory?.key,
+        );
+        return;
+      }
+
+      const decision = resolveDropResolution(meta);
+      if (decision.kind === 'dialog') {
+        // Resolution-capable: open the picker. Do NOT optimistically move the card.
+        setPendingResolution({
+          issueKey,
+          transitionId,
+          toStatusName: transition.to.name,
+          toStatusId: transition.to.id,
+          toStatusCategoryKey: transition.to.statusCategory?.key,
+          allowedValues: decision.allowedValues,
+        });
+        return;
+      }
+      if (decision.kind === 'block') {
+        // WR-05: resolution required but no allowedValues — surface a card error and
+        // fire NO request (a plain transition would be rejected by Jira).
+        setCardErrors((prev) =>
+          new Map(prev).set(
+            issueKey,
+            'This transition requires a resolution, but none are available',
+          ),
+        );
+        return;
+      }
+      // decision.kind === 'plain' — identical to today: immediate transition, no fields.
+      // D-09: reuse the existing handleTransition mutation — do NOT duplicate.
+      void handleTransition(
+        issueKey,
+        transitionId,
+        transition.to.name,
+        transition.to.id,
+        transition.to.statusCategory?.key,
+      );
+    })();
+  }
+
+  function handleResolutionConfirm(resolution: { id: string } | null) {
+    if (!pendingResolution) return;
+    const p = pendingResolution;
     void handleTransition(
-      issueKey,
-      transitionId,
-      transition.to.name,
-      transition.to.id,
-      transition.to.statusCategory?.key,
+      p.issueKey,
+      p.transitionId,
+      p.toStatusName,
+      p.toStatusId,
+      p.toStatusCategoryKey,
+      resolution,
     );
+    setPendingResolution(null);
   }
 
   async function handleReloadBoard() {
@@ -1151,7 +1239,13 @@ export default function SprintBoardTab() {
     toStatusName: string,
     toStatusId: string,
     toStatusCategoryKey?: string,
+    // REWORK2: optional trailing resolution. Presence-checked via `arguments.length`
+    // (NOT truthiness) so a `{ resolution: null }` clear survives and existing
+    // context-menu callers — which pass no resolution arg — are unaffected.
+    ...resolutionArg: [resolution: { id: string } | null] | []
   ) {
+    const hasResolution = resolutionArg.length > 0;
+    const resolution = hasResolution ? resolutionArg[0] : undefined;
     const originalIssue = localIssues.find((i) => i.key === issueKey);
     if (!originalIssue) return;
 
@@ -1182,7 +1276,16 @@ export default function SprintBoardTab() {
     });
 
     try {
-      await postTransition(jiraBaseUrl ?? '', jiraToken ?? '', issueKey, transitionId);
+      // REWORK2: when a resolution was supplied (presence, not truthiness), execute
+      // the transition WITH fields.resolution; otherwise call with no fields exactly
+      // as today. postTransition presence-includes `fields` so a null clear survives.
+      if (hasResolution) {
+        await postTransition(jiraBaseUrl ?? '', jiraToken ?? '', issueKey, transitionId, {
+          resolution,
+        });
+      } else {
+        await postTransition(jiraBaseUrl ?? '', jiraToken ?? '', issueKey, transitionId);
+      }
       // Phase 73 Plan 03 (GH-CUT-01): gh-all-data is the sole sprint board
       // data source; the legacy 'jira-sprint-stories' / 'jira-sprint-subtasks'
       // query keys were retired with the hard cutover and no longer have any
@@ -1649,6 +1752,22 @@ export default function SprintBoardTab() {
           </DndContext>
         </div>
       </div>
+      {/* REWORK2: board-level resolution picker for drag-to-resolution-capable drops.
+       * open iff a resolution-capable drop is pending; cancel/close clears it with NO
+       * transition (the card never moved), confirm executes the dragged transition
+       * with fields.resolution. */}
+      {pendingResolution && (
+        <BoardResolutionDialog
+          open={pendingResolution !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingResolution(null);
+          }}
+          issueKey={pendingResolution.issueKey}
+          toStatusName={pendingResolution.toStatusName}
+          allowedValues={pendingResolution.allowedValues}
+          onConfirm={handleResolutionConfirm}
+        />
+      )}
     </>
   );
 }
