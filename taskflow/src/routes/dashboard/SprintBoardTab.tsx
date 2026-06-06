@@ -493,6 +493,7 @@ function VirtualizedSwimlanes({
             priority={
               story.fields.priority as { name?: string; iconUrl?: string } | null | undefined
             }
+            issueTypeName={story.fields.issuetype?.name}
             onOpenIssue={onOpenIssue}
             transitions={getTransitions(story)}
             onTransition={(tid, name, toId, catKey) =>
@@ -668,6 +669,7 @@ function VirtualizedSwimlanes({
                 priority={
                   story.fields.priority as { name?: string; iconUrl?: string } | null | undefined
                 }
+                issueTypeName={story.fields.issuetype?.name}
                 onOpenIssue={onOpenIssue}
                 transitions={getTransitions(story)}
                 onTransition={(tid, name, toId, catKey) =>
@@ -1681,6 +1683,7 @@ export default function SprintBoardTab() {
                       | null
                       | undefined
                   }
+                  issueTypeName={stickyHeader.story.fields.issuetype?.name}
                   onOpenIssue={onOpenIssue}
                   transitions={getTransitions(stickyHeader.story)}
                   onTransition={(tid, name, toId, catKey) =>
