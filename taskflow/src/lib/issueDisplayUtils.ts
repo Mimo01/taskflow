@@ -141,7 +141,7 @@ export function priorityStripeClass(
 }
 
 /**
- * Issue-type → left-edge border color mapping (full literal Tailwind strings).
+ * Issue-type → accent-bar background color mapping (full literal Tailwind strings).
  *
  * Mirrors the color palette established in `IssueTypeIcon`
  * (src/components/ui/issue-type-icon.tsx): Bug=red, Story=green, Subtask=blue,
@@ -151,25 +151,26 @@ export function priorityStripeClass(
  * display name is not "Subtask"/"Sub-task") still get the blue subtask color —
  * the flag is authoritative over the name (RESEARCH §4, jira.ts subtask flag).
  *
- * Returns a color class only — callers add `border-l-4` (width) separately,
- * matching the priorityStripeClass contract. Full static class strings only
+ * Returns a `bg-*` color class only — the card renders this on a rounded, inset
+ * vertical accent bar (not a full-height card border), so callers size/position
+ * the bar (width, rounding, inset) separately. Full static class strings only
  * (Tailwind JIT) — never template-interpolated class names.
  */
-export function issueTypeStripeClass(
+export function issueTypeAccentClass(
   issuetype: { name?: string | null; subtask?: boolean } | null | undefined,
 ): string {
-  const BLUE = 'border-l-blue-500 dark:border-l-blue-400';
+  const BLUE = 'bg-blue-500 dark:bg-blue-400';
   if (issuetype?.subtask) return BLUE;
   switch (issuetype?.name) {
     case 'Bug':
-      return 'border-l-red-500 dark:border-l-red-400';
+      return 'bg-red-500 dark:bg-red-400';
     case 'Story':
-      return 'border-l-green-600 dark:border-l-green-400';
+      return 'bg-green-600 dark:bg-green-400';
     case 'Subtask':
     case 'Sub-task':
       return BLUE;
     case 'Epic':
-      return 'border-l-purple-500 dark:border-l-purple-400';
+      return 'bg-purple-500 dark:bg-purple-400';
     default:
       return BLUE;
   }
