@@ -78,4 +78,11 @@ describe('buildAssigneeOptions', () => {
   it('returns just the sentinel when all issues are unassigned', () => {
     expect(buildAssigneeOptions([unassigned, unassigned])).toEqual([UNASSIGNED_FILTER]);
   });
+
+  it('never offers a real displayName equal to the reserved sentinel (collision guard)', () => {
+    const impostor = {
+      fields: { assignee: { displayName: UNASSIGNED_FILTER } },
+    } as unknown as JiraIssue;
+    expect(buildAssigneeOptions([alice, impostor])).toEqual(['Alice Smith']);
+  });
 });
