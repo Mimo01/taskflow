@@ -69,6 +69,7 @@ export function useNotificationPolling() {
     jiraUserDisplayName,
     jiraUsername,
     jiraUserKey,
+    jiraUserAvatarUrl,
     gitlabUserId,
     gitlabUsername,
     setJiraUser,
@@ -99,16 +100,18 @@ export function useNotificationPolling() {
   osNotifGitlabEnabledRef.current = osNotifGitlabEnabled;
 
   // Bootstrap identity for existing sessions where identity fields were never persisted.
-  // Runs when any of displayName, username, or userKey is missing.
+  // Runs when any of displayName, username, userKey, or avatarUrl is missing — the
+  // avatarUrl check backfills sessions authenticated before that field was added.
   useEffect(() => {
-    if (!jiraBaseUrl || (jiraUsername && jiraUserDisplayName && jiraUserKey)) return;
+    if (!jiraBaseUrl || (jiraUsername && jiraUserDisplayName && jiraUserKey && jiraUserAvatarUrl))
+      return;
     (async () => {
       const pat = await readSecret('jira-pat').catch(() => null);
       if (!pat) return;
       const user = await validateJira(jiraBaseUrl, pat).catch(() => null);
       if (user) setJiraUser(user.displayName, user.name, user.key, user.avatarUrls?.['48x48']);
     })();
-  }, [jiraBaseUrl, jiraUsername, jiraUserDisplayName, jiraUserKey, setJiraUser]);
+  }, [jiraBaseUrl, jiraUsername, jiraUserDisplayName, jiraUserKey, jiraUserAvatarUrl, setJiraUser]);
 
   const pollIntervalMs = Math.max(30_000, notificationPollIntervalSecs * 1000);
   const queryClient = useQueryClient();
