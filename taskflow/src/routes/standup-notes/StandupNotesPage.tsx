@@ -24,10 +24,12 @@ import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchUserCommits, fetchUserMREvents, validateGitLab } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { fetchIssueMeta, fetchYesterdayJiraActivity } from '@/services/jira';
+import type { JiraAssignableUser } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { resolveEffectiveIdentity } from './effectiveIdentity';
 import StandupPageHeader from './StandupPageHeader';
 import TodayColumn, { generateTodayMarkdown, todayQueryKeys } from './TodayColumn';
 import YesterdayColumn, { generateMarkdown } from './YesterdayColumn';
@@ -101,6 +103,26 @@ export default function StandupNotesPage() {
   // Phase 68 rule: fine-grained selector for display name
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
 
+  // ─ Watched person (transient — reset on every mount, never persisted) ─────
+  // null = the logged-in user (default, unchanged behavior).
+  const [watchedUser, setWatchedUser] = useState<JiraAssignableUser | null>(null);
+
+  // Effective identity threaded through every page query key + props. For a
+  // watched person this forces gitlabUserId/Username/Email to null so the
+  // GitLab-ID-keyed sections disable instead of showing my own MRs (Pitfall 3).
+  const id = resolveEffectiveIdentity(
+    {
+      jiraUsername,
+      jiraUserKey,
+      jiraUserDisplayName,
+      gitlabUserId,
+      gitlabUsername,
+      gitlabName,
+      gitlabEmail,
+    },
+    watchedUser,
+  );
+
   const queryClient = useQueryClient();
 
   // TZ-safe today date (same logic as TodayColumn — Phase 62 standing rule)
@@ -161,14 +183,14 @@ export default function StandupNotesPage() {
   // ─ Tempo schedule query (runs first; drives yesterdayDate) ───────────────
   // T-62-06: jiraToken NOT in queryKey
   const { data: scheduleData } = useQuery({
-    queryKey: ['standup', 'schedule', jiraBaseUrl, jiraUserKey ?? ''],
+    queryKey: ['standup', 'schedule', jiraBaseUrl, id.jiraUserKey ?? ''],
     queryFn: () => {
       // Resolve the lookback window once — calling getScheduleLookbackRange()
       // twice builds two independent Date objects at potentially different instants.
       const { from, to } = getScheduleLookbackRange();
-      return fetchUserSchedule(jiraBaseUrl ?? '', jiraToken ?? '', from, to, jiraUserKey ?? '');
+      return fetchUserSchedule(jiraBaseUrl ?? '', jiraToken ?? '', from, to, id.jiraUserKey ?? '');
     },
-    enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!id.jiraUserKey && tempoEnabled,
     staleTime: 24 * 60 * 60 * 1000,
   });
 
@@ -188,16 +210,16 @@ export default function StandupNotesPage() {
   // T-62-06: tokens NEVER in queryKey — they are read inside queryFn only.
 
   const tempoQuery = useQuery({
-    queryKey: ['standup', 'tempo', jiraBaseUrl, yesterdayDate, jiraUsername ?? ''],
+    queryKey: ['standup', 'tempo', jiraBaseUrl, yesterdayDate, id.jiraUsername ?? ''],
     queryFn: () =>
       fetchWorklogs(
         jiraBaseUrl ?? '',
         jiraToken ?? '',
-        [jiraUsername ?? ''],
+        [id.jiraUsername ?? ''],
         yesterdayDate,
         yesterdayDate,
       ),
-    enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!jiraUsername && !!yesterdayDate,
+    enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!id.jiraUsername && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -208,7 +230,7 @@ export default function StandupNotesPage() {
       jiraBaseUrl,
       activeJiraProject,
       yesterdayDate,
-      jiraUsername ?? '',
+      id.jiraUsername ?? '',
     ],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -218,11 +240,11 @@ export default function StandupNotesPage() {
         token,
         activeJiraProject ?? '',
         yesterdayDate,
-        jiraUsername ?? '',
+        id.jiraUsername ?? '',
       );
     },
     enabled:
-      !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!jiraUsername && !!yesterdayDate,
+      !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!id.jiraUsername && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -233,9 +255,9 @@ export default function StandupNotesPage() {
       gitlabBaseUrl,
       activeGitlabProject,
       yesterdayDate,
-      gitlabUsername ?? '',
-      gitlabName ?? '',
-      gitlabEmail ?? '',
+      id.gitlabUsername ?? '',
+      id.gitlabName ?? '',
+      id.gitlabEmail ?? '',
     ],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
@@ -245,28 +267,30 @@ export default function StandupNotesPage() {
         token,
         activeGitlabProject ?? 0,
         yesterdayDate,
-        gitlabUsername ?? '',
-        gitlabName,
-        gitlabEmail,
+        id.gitlabUsername ?? '',
+        id.gitlabName,
+        id.gitlabEmail,
       );
     },
     enabled:
       !!gitlabBaseUrl &&
       !!gitlabToken &&
       !!activeGitlabProject &&
-      !!gitlabUsername &&
-      !!yesterdayDate,
+      !!yesterdayDate &&
+      (!!id.gitlabUsername || !!id.gitlabName),
     staleTime: 5 * 60 * 1000,
   });
 
   const mrEventsQuery = useQuery({
-    queryKey: ['standup', 'mr-events', gitlabBaseUrl, gitlabUserId, yesterdayDate],
+    queryKey: ['standup', 'mr-events', gitlabBaseUrl, id.gitlabUserId, yesterdayDate],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchUserMREvents(gitlabBaseUrl ?? '', token, gitlabUserId ?? 0, yesterdayDate);
+      return fetchUserMREvents(gitlabBaseUrl ?? '', token, id.gitlabUserId ?? 0, yesterdayDate);
     },
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId && !!yesterdayDate,
+    // id.gitlabUserId is null for a watched person → this disables (Pitfall 3:
+    // never fall back to the logged-in user's MR events).
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!id.gitlabUserId && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -362,12 +386,12 @@ export default function StandupNotesPage() {
           todayQueryKeys.sprint(activeJiraProject, storyPointsFieldKey),
         ),
         reviewerMrsData: queryClient.getQueryData<GitLabMR[]>(
-          todayQueryKeys.reviewerMrs(gitlabBaseUrl, gitlabUserId),
+          todayQueryKeys.reviewerMrs(gitlabBaseUrl, id.gitlabUserId),
         ),
         participatingMrsData: queryClient.getQueryData<ParticipatedMR[]>(
-          todayQueryKeys.participatingMrs(gitlabBaseUrl, gitlabUserId),
+          todayQueryKeys.participatingMrs(gitlabBaseUrl, id.gitlabUserId),
         ),
-        jiraUserDisplayName,
+        jiraUserDisplayName: id.jiraUserDisplayName,
       },
       todayStr,
     );
@@ -392,6 +416,11 @@ export default function StandupNotesPage() {
         onCopyMarkdown={handleCopyMarkdown}
         copied={copied}
         isRefreshing={isRefreshing}
+        watchedUser={watchedUser}
+        meDisplayName={jiraUserDisplayName ?? 'Me'}
+        jiraBaseUrl={jiraBaseUrl ?? ''}
+        projectKey={activeJiraProject}
+        onSelectWatched={setWatchedUser}
       />
 
       {/* Two-column body: Yesterday (left) | Today (right) */}
@@ -421,6 +450,9 @@ export default function StandupNotesPage() {
             onIssueClick={onIssueClick}
             onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
+            watchedGitlabUserId={id.gitlabUserId}
+            watchedDisplayName={id.jiraUserDisplayName}
+            isWatched={id.isWatched}
           />
         </div>
       </div>
