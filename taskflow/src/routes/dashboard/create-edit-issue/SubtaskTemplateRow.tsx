@@ -53,7 +53,8 @@ function PlaceholderChip({
   value: '@inherit' | '@current' | '@unassigned';
   hint: string;
 }) {
-  const chipBase = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-normal';
+  const chipBase =
+    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-normal max-w-full min-w-0';
 
   if (value === '@inherit') {
     return (
@@ -62,9 +63,9 @@ function PlaceholderChip({
         className={`${chipBase} bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300`}
         aria-label={`@inherit placeholder, resolved to ${hint.replace('@inherit → ', '')}`}
       >
-        @inherit
+        <span className="shrink-0">@inherit</span>
         {hint !== '@inherit' && (
-          <span className="text-muted-foreground">{hint.replace('@inherit', '')}</span>
+          <span className="truncate text-muted-foreground">{hint.replace('@inherit', '')}</span>
         )}
       </span>
     );
@@ -77,9 +78,9 @@ function PlaceholderChip({
         className={`${chipBase} bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300`}
         aria-label={`@current placeholder, resolved to ${hint.replace('@current → ', '')}`}
       >
-        @current
+        <span className="shrink-0">@current</span>
         {hint !== '@current' && (
-          <span className="text-muted-foreground">{hint.replace('@current', '')}</span>
+          <span className="truncate text-muted-foreground">{hint.replace('@current', '')}</span>
         )}
       </span>
     );
@@ -226,7 +227,7 @@ export function SubtaskTemplateRow({
           <div className="flex flex-1 min-w-[8rem] flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Assignee</span>
             {isPlaceholder && mode === 'preview' && placeholderCtx ? (
-              <div className="flex h-8 items-center">
+              <div className="flex h-8 min-w-0 items-center">
                 <PlaceholderChip
                   value={row.assignee as '@inherit' | '@current' | '@unassigned'}
                   hint={assigneeHint}
