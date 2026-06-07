@@ -204,6 +204,24 @@ export async function fetchAndCacheAvatar(originalUrl: string): Promise<string |
   return promise;
 }
 
+/** Clear all cached avatars from memory and disk */
+export async function clearAvatarCache(): Promise<void> {
+  // Revoke all blob URLs and clear the memory cache
+  for (const [, blobUrl] of memoryCache) {
+    URL.revokeObjectURL(blobUrl);
+  }
+  memoryCache = new Map<string, string>();
+  inflight = new Map<string, Promise<string | null>>();
+
+  // Delete all non-version keys from disk store
+  const keys = await diskStore.keys().catch(() => [] as string[]);
+  for (const key of keys) {
+    if (key === '__cache_version__') continue;
+    await diskStore.delete(key).catch(() => {});
+  }
+  await diskStore.save().catch(() => {});
+}
+
 /** Evict a URL from memory + disk and revoke its blob URL */
 export async function evictAvatar(originalUrl: string): Promise<void> {
   const blobUrl = memoryCache.get(originalUrl);
