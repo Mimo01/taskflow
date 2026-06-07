@@ -220,84 +220,98 @@ export function SubtaskTemplateRow({
           />
         </div>
 
-        {/* Fields line — aligned under the title */}
-        <div className="flex flex-wrap items-center gap-2 pl-6">
+        {/* Fields line — aligned under the title, each field labeled */}
+        <div className="flex flex-wrap items-end gap-2 pl-6">
           {/* Assignee selector */}
-          <div className="w-32 shrink-0">
-            {isPlaceholder && mode === 'preview' && placeholderCtx ? (
-              <PlaceholderChip
-                value={row.assignee as '@inherit' | '@current' | '@unassigned'}
-                hint={assigneeHint}
-              />
-            ) : isPlaceholder ? (
-              <Select
-                value={row.assignee}
-                onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
-                disabled={isDisabled}
-              >
-                <SelectTrigger className="w-32 h-8 text-sm">
-                  <SelectValue placeholder="Assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="@inherit">@inherit</SelectItem>
-                  <SelectItem value="@current">@current</SelectItem>
-                  <SelectItem value="@unassigned">@unassigned</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                className="w-32 h-8 text-sm"
-                value={row.assignee}
-                onChange={(e) => onChange({ assignee: e.target.value })}
-                placeholder="Assignee"
-                disabled={isDisabled}
-              />
-            )}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Assignee</span>
+            <div className="w-32 shrink-0">
+              {isPlaceholder && mode === 'preview' && placeholderCtx ? (
+                <div className="flex h-8 items-center">
+                  <PlaceholderChip
+                    value={row.assignee as '@inherit' | '@current' | '@unassigned'}
+                    hint={assigneeHint}
+                  />
+                </div>
+              ) : isPlaceholder ? (
+                <Select
+                  value={row.assignee}
+                  onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
+                  disabled={isDisabled}
+                >
+                  <SelectTrigger className="w-32 h-8 text-sm">
+                    <SelectValue placeholder="Assignee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="@inherit">@inherit</SelectItem>
+                    <SelectItem value="@current">@current</SelectItem>
+                    <SelectItem value="@unassigned">@unassigned</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="w-32 h-8 text-sm"
+                  value={row.assignee}
+                  onChange={(e) => onChange({ assignee: e.target.value })}
+                  placeholder="Assignee"
+                  disabled={isDisabled}
+                />
+              )}
+            </div>
           </div>
 
           {/* Priority select */}
-          <Select
-            value={row.priority ?? ''}
-            onValueChange={(v) => onChange({ priority: v || null })}
-            disabled={isDisabled}
-          >
-            <SelectTrigger className="w-28 h-8 text-sm shrink-0">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">None</SelectItem>
-              <SelectItem value="Blocker">Blocker</SelectItem>
-              <SelectItem value="Critical">Critical</SelectItem>
-              <SelectItem value="Major">Major</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Minor">Minor</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Priority</span>
+            <Select
+              value={row.priority ?? ''}
+              onValueChange={(v) => onChange({ priority: v || null })}
+              disabled={isDisabled}
+            >
+              <SelectTrigger className="w-28 h-8 text-sm shrink-0">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                <SelectItem value="Blocker">Blocker</SelectItem>
+                <SelectItem value="Critical">Critical</SelectItem>
+                <SelectItem value="Major">Major</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Minor">Minor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Labels — compact text input (multi-value comma-separated) */}
-          <Input
-            className="w-32 h-8 text-sm shrink-0"
-            value={row.labels.join(', ')}
-            onChange={(e) =>
-              onChange({
-                labels: e.target.value
-                  .split(',')
-                  .map((l) => l.trim())
-                  .filter(Boolean),
-              })
-            }
-            placeholder="Labels"
-            disabled={isDisabled}
-          />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Labels</span>
+            <Input
+              className="w-32 h-8 text-sm shrink-0"
+              value={row.labels.join(', ')}
+              onChange={(e) =>
+                onChange({
+                  labels: e.target.value
+                    .split(',')
+                    .map((l) => l.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="comma,separated"
+              disabled={isDisabled}
+            />
+          </div>
 
           {/* Estimate — Due date & Story points live in Advanced (rare on subtasks) */}
-          <Input
-            className="w-20 h-8 text-sm shrink-0"
-            value={row.timeEstimate}
-            onChange={(e) => onChange({ timeEstimate: e.target.value })}
-            placeholder="e.g. 2h"
-            disabled={isDisabled}
-          />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Estimate</span>
+            <Input
+              className="w-20 h-8 text-sm shrink-0"
+              value={row.timeEstimate}
+              onChange={(e) => onChange({ timeEstimate: e.target.value })}
+              placeholder="e.g. 2h"
+              disabled={isDisabled}
+            />
+          </div>
 
           {/* Controls — pushed to the far right */}
           <div className="ml-auto flex items-center gap-1">
