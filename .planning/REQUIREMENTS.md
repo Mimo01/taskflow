@@ -25,11 +25,11 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 
 ### Sprint Board Drag-to-Transition
 
-- [ ] **TRAN-01**: User can drag a card between sprint board columns to change its status
-- [ ] **TRAN-02**: When a target column maps to multiple workflow statuses, the column splits into per-transition drop zones during the drag
-- [ ] **TRAN-03**: Transitions blocked by a required screen or validators are not offered as silent drop targets (excluded or clearly indicated, no silent snap-back)
-- [ ] **TRAN-04**: A failed transition rolls back the optimistic move and surfaces an error
-- [ ] **TRAN-05**: A successful drag-transition refreshes the board (invalidates GreenHopper board data)
+- [x] **TRAN-01**: User can drag a card between sprint board columns to change its status
+- [x] **TRAN-02**: When a target column maps to multiple workflow statuses, the column splits into per-transition drop zones during the drag
+- [x] **TRAN-03**: Transitions blocked by a required screen or validators are not offered as silent drop targets (excluded or clearly indicated, no silent snap-back)
+- [x] **TRAN-04**: A failed transition rolls back the optimistic move and surfaces an error
+- [x] **TRAN-05**: A successful drag-transition refreshes the board (invalidates GreenHopper board data)
 
 ### Universal Issue Peek (slideover)
 
@@ -96,11 +96,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | RANK-03 | Phase 78 | Complete |
 | RANK-04 | Phase 78 | Complete |
 | RANK-05 | Phase 78 | Complete |
-| TRAN-01 | Phase 79 | Pending |
-| TRAN-02 | Phase 79 | Pending |
-| TRAN-03 | Phase 79 | Pending |
-| TRAN-04 | Phase 79 | Pending |
-| TRAN-05 | Phase 79 | Pending |
+| TRAN-01 | Phase 79 | Complete |
+| TRAN-02 | Phase 79 | Complete |
+| TRAN-03 | Phase 79 | Complete |
+| TRAN-04 | Phase 79 | Complete |
+| TRAN-05 | Phase 79 | Complete |
 | PEEK-01 | Phase 77 | Complete |
 | PEEK-02 | Phase 77 | Complete |
 | PEEK-03 | Phase 77 | Complete |
