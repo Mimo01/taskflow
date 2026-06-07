@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.12 Jira Experience Improvements (Shipped: 2026-06-07)
+
+**Phases completed:** 5 phases (76-80), 19 plans, 29 tasks
+**Timeline:** 6 days (2026-06-01 → 2026-06-07)
+**Codebase:** 434 files changed (+46,310/−3,051 lines), 441 commits
+**Git range:** 7f02e71c (chore: archive v1.11 phase directories) → ea0fa34a (fix(standup): widen watched-person picker popover)
+
+**Key accomplishments:**
+
+1. **Visual consistency + shared display primitives (Phase 76)** — `lib/issueDisplayUtils.ts` (`isDoneStatus`, `doneSummaryClass`, `issueTypeStripeClass`) gives the whole app one done-state treatment: done current-sprint stories render struck-through on the Backlog list, Standup Today, and Dashboard, matching the kanban board. Sprint-board cards gained a left-edge issue-type color stripe (Bug=red, Story=green, Subtask/Task=blue, Epic=purple), WCAG-tuned for both themes; priority moved to a `PriorityIcon` footer image (Jira `iconUrl`). Settings store bumped to v25 (`rankFieldKey`).
+2. **Universal non-blocking issue peek (Phase 77)** — clicking any issue body anywhere (board, backlog, standup, dashboard, search, command palette) opens a right-edge CSS-squeeze slideover that keeps the underlying view fully interactive (no Dialog, no backdrop, no focus trap); clicking the issue key still navigates full-page. Built on a shared `IssueDetailView` extraction (full queries/mutations/composer) mounted at `AppLayout`, with a resizable persisted divider, Escape/X/open-full-page dismissal, route-change close, and issue-swap without closing. Folded in DETAIL-01 (subtask parent moved to main content) and DETAIL-02 (cursor-pointer sweep).
+3. **Drag-to-rank on the Backlog (Phase 78)** — `@dnd-kit` installed (shared with Phase 79); Backlog rows are sortable with an optimistic rank mutation persisting to Jira via `PUT /rest/agile/1.0/issue/rank` using the `rankCustomFieldId` read from the cached GreenHopper response (never hardcoded). A flicker gate (`cancelQueries` + drag-gated local order) holds order through background polling; failures roll back with an inline banner; cross-section moves gate behind a confirm dialog.
+4. **Drag-to-transition on the Sprint Board (Phase 79)** — cards drag between columns to fire workflow transitions; multi-status columns split into labelled per-transition drop zones during the drag via a pure `sprintBoardDragHelpers.ts` seam (`buildDropModel`/`filterDroppableTransitions`/`resolveDropTransitionId`). `hasScreen`/`hasValidators` propagated through `__adaptToJiraTransition`; optimistic move with rollback and board refresh on settle.
+5. **Subtask templates + bulk creation (Phase 80)** — Settings-managed named templates (`subtask-templates.json` store) where each line requires a title plus createmeta-driven optional fields (assignee, priority, labels, estimate, story points, due date, components, custom fields) and parent-inheritance placeholders (`@inherit`/`@current`/`@unassigned`). From a parent issue, a Bulk Create modal applies a template or builds an ad-hoc list, previews/inline-edits/reorders rows, then creates all subtasks sequentially with per-row progress and retry-failed-only (no duplicates) on partial failure.
+
+Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevation, priority + issue-type icons across backlog/board/epics, unassigned-avatar styling, an "Unassigned" assignee filter, and a substantial Standup Notes pass (status-pill transitions, subtask sub-grouping, overridable recap day, watched-person picker, clear-app-cache setting).
+
+**Known deferred items at close:** 7 (see STATE.md Deferred Items) — Windows/WebView2 drag UAT + 3 live-Jira subtask UAT (need a Windows host / live DC; covered by unit tests), dnd-kit autoScroll disabled (upstream #1108), Phase 79 D-07 screen/validator pre-filter reversal, two non-blocking Phase 80 code-review items, and the priority-stripe-by-REST-rank backlog idea. All non-blocking; milestone audit passed 32/32 requirements.
+
+---
+
 ## v1.11 GreenHopper API Migration (Shipped: 2026-06-01)
 
 **Phases completed:** 5 phases (71-75), 22 plans
