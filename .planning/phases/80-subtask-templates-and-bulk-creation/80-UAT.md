@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 80-subtask-templates-and-bulk-creation
 source: [80-01-SUMMARY.md, 80-02-SUMMARY.md, 80-03-SUMMARY.md, 80-04-SUMMARY.md]
 started: 2026-06-06T22:49:57Z
@@ -9,13 +9,7 @@ updated: 2026-06-06T22:55:00Z
 ## Current Test
 <!-- OVERWRITE each test - shows where we are -->
 
-number: 3
-name: Edit Rows — Fields, Subtask Type, Advanced Expand (re-verify)
-expected: |
-  RE-VERIFY after inline fixes (4a2cba26, 61b1f259). The row no longer overflows;
-  the Title field has a readable width floor (wraps fields to a second line if
-  needed). The subtask-type selector trigger shows the issue-type NAME, not the id.
-awaiting: user response
+[testing complete — 3 live-Jira tests (8, 9, 10) skipped as untestable]
 
 ## Tests
 
@@ -29,8 +23,8 @@ result: pass
 
 ### 3. Edit Rows — Fields, Subtask Type, Advanced Expand
 expected: With a template's "Edit Rows" open, "+ Add row" appends a blank row (assignee defaults to @inherit). Each row has inline Title, Assignee, Priority, Labels, Due Date, Estimate, Story Points. The subtask-type selector lists only subtask issue types. Clicking "Advanced" expands a panel with Components and any project custom fields.
-result: [pending]
-note: "re-verify after fixes 4a2cba26 (layout) + 61b1f259 (type name). Prior: 'row layout broken, overflows right; subtask type shows id not name; title squished to 0 width'"
+result: pass
+note: "re-verified after layout iterations (e18f66ab→ad68c2fc): two-line row (Title / labeled fields), Due+SP demoted to Advanced, roomier h-8 fields, subtask-type name fixed (61b1f259), Add-row double-+ fixed. User: pass"
 
 ### 4. Drag to Reorder Templates and Rows
 expected: Grab a template card's drag handle and drop it elsewhere — order updates on drop (no jumpy live reordering, a fixed-height ghost follows the cursor). Same for reordering rows within a template's editor.
@@ -42,8 +36,8 @@ result: pass
 
 ### 6. Bulk Create Subtasks Entry Point
 expected: Open any parent issue's detail view. Near "Add subtask" there is a "Bulk Create Subtasks" button (list icon). Clicking it opens a modal titled "Bulk Create Subtasks" with a "Parent: {KEY}" subtitle, a template selector ("No template (ad-hoc)" + saved templates), and a subtask-type selector.
-result: [pending]
-note: "re-verify after fixes 4a2cba26 (modal layout, shared component) + 256ac361 (button styling). Prior: 'button styling differs from single subtask button; modal has similar layout problems as settings'"
+result: pass
+note: "re-verified after fixes: side-by-side outline buttons (befb5a9d), modal fields grow to fill width (953adb67), long assignee chips truncate (68963e7f), chip height matches inputs (ad27fa75), template/type selectors show names (61b1f259). User: pass"
 
 ### 7. Placeholder Chip Rendering in Modal
 expected: Open a parent issue with assignee + priority set; open Bulk Create and select a template with @inherit / @current / @unassigned assignee rows. @inherit shows a blue chip "@inherit → {Parent Assignee Name}"; @current shows a violet chip "@current → {Your Display Name}"; @unassigned shows a muted "@unassigned" chip.
@@ -67,9 +61,9 @@ reason: "can't test"
 ## Summary
 
 total: 10
-passed: 5
+passed: 7
 issues: 0
-pending: 2
+pending: 0
 skipped: 3
 blocked: 0
 
