@@ -118,13 +118,17 @@ export default function WatchedPersonPicker({
               user.avatarUrls?.['48x48'] ??
               user.avatarUrls?.['24x24'] ??
               user.avatarUrls?.['16x16'];
+            // Jira `key` (account key) is the stable identifier; fall back to
+            // `name` only when absent. Avoids collisions on non-unique usernames.
+            const userId = user.key ?? user.name;
+            const selectedId = value ? (value.key ?? value.name) : null;
             return (
               <button
-                key={user.name}
+                key={userId}
                 type="button"
                 onClick={() => handleSelect(user)}
                 className={`flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left hover:bg-accent/50 ${
-                  value?.name === user.name ? 'bg-accent/40' : ''
+                  selectedId === userId ? 'bg-accent/40' : ''
                 }`}
               >
                 <CachedAvatar

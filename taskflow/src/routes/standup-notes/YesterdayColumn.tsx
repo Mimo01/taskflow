@@ -66,6 +66,10 @@ export interface YesterdayColumnProps {
   onOpenIssue?: (key: string) => void;
   /** Navigate to the MR detail page. Receives "${projectId}/${iid}" string. */
   onMRClick: (projectIdAndIid: string) => void;
+  /** True when watching a teammate — drives the commits "name-only match" hint. */
+  isWatched?: boolean;
+  /** Effective display name — used in the watched-person commits hint. */
+  watchedDisplayName?: string | null;
 }
 
 /** Internal shape of a joined issue group (used for rendering + markdown). */
@@ -549,6 +553,8 @@ export default function YesterdayColumn({
   onIssueClick,
   onOpenIssue,
   onMRClick,
+  isWatched = false,
+  watchedDisplayName,
 }: YesterdayColumnProps) {
   // 14-day calendar option list — most-recent-first.
   // The resolved-default row always carries a tag so it reads as the default:
@@ -644,6 +650,15 @@ export default function YesterdayColumn({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Watching a teammate: commits are matched by display name only (no GitLab id),
+          so make the absence of authoritative matching explicit — it may be incomplete. */}
+      {isWatched && (
+        <p className="text-xs text-muted-foreground mb-4">
+          Commits matched by display name for {watchedDisplayName ?? 'this person'} — may be
+          incomplete.
+        </p>
+      )}
 
       {/* D-10 Summary stat line — only when at least one source has data */}
       {hasStatLine && (
