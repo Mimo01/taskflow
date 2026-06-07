@@ -223,7 +223,7 @@ export default function TokenSection() {
     },
     onSuccess: ({ url, user }) => {
       setJiraConnected(true, url);
-      setJiraUser(user.displayName, user.name, user.key);
+      setJiraUser(user.displayName, user.name, user.key, user.avatarUrls?.['48x48']);
     },
   });
 
@@ -236,7 +236,7 @@ export default function TokenSection() {
     },
     onSuccess: ({ url, user }) => {
       setJiraConnected(true, url);
-      setJiraUser(user.displayName, user.name, user.key);
+      setJiraUser(user.displayName, user.name, user.key, user.avatarUrls?.['48x48']);
     },
   });
 

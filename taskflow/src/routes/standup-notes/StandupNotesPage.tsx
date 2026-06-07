@@ -105,6 +105,7 @@ export default function StandupNotesPage() {
 
   // Phase 68 rule: fine-grained selector for display name
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
+  const jiraUserAvatarUrl = useAuthStore((s) => s.jiraUserAvatarUrl);
 
   // ─ Watched person (transient — reset on every mount, never persisted) ─────
   // null = the logged-in user (default, unchanged behavior).
@@ -442,6 +443,7 @@ export default function StandupNotesPage() {
         isRefreshing={isRefreshing}
         watchedUser={watchedUser}
         meDisplayName={jiraUserDisplayName ?? 'Me'}
+        meAvatarUrl={jiraUserAvatarUrl}
         jiraBaseUrl={jiraBaseUrl ?? ''}
         projectKey={activeJiraProject}
         onSelectWatched={setWatchedUser}
