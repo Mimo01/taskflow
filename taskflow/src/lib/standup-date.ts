@@ -73,6 +73,28 @@ export function resolveYesterdayDate(tempoSchedule?: Map<string, ScheduleDayType
 }
 
 /**
+ * Build a list of recent calendar days (most-recent-first) as YYYY-MM-DD strings.
+ *
+ * Returns `count` entries: index 0 = today − 1, index count−1 = today − count.
+ *
+ * Date math uses LOCAL calendar components — never toISOString() (which converts
+ * to UTC and shifts the date for users east of UTC or at day boundaries), matching
+ * the Phase 62 standing rule applied throughout this module.
+ *
+ * @param count  Number of past days to include (typically 14).
+ * @returns Array of YYYY-MM-DD strings, most-recent-first.
+ */
+export function buildRecentDayOptions(count: number): string[] {
+  const base = new Date();
+  const result: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - i);
+    result.push(toLocalDateString(d));
+  }
+  return result;
+}
+
+/**
  * Returns the date range needed to fetch the Tempo schedule for holiday detection.
  *
  * Covers 14 days before today so that the schedule map contains entries for

@@ -175,10 +175,14 @@ export default function StandupNotesPage() {
   });
 
   // ─ Yesterday date (Pitfall 2: memo on scheduleData) ─────────────────────
-  const yesterdayDate = useMemo(
+  // dateOverride: window-session only (React state, never persisted).
+  // Selecting a day sets the override; selecting the resolved default clears it.
+  const [dateOverride, setDateOverride] = useState<string | null>(null);
+  const resolvedYesterday = useMemo(
     () => resolveYesterdayDate(scheduleData ?? undefined),
     [scheduleData],
   );
+  const yesterdayDate = dateOverride ?? resolvedYesterday;
   const dateLabel = useMemo(() => formatDateLabel(yesterdayDate), [yesterdayDate]);
   const todayLabel = useMemo(() => formatDateLabel(todayStr), [todayStr]);
 
@@ -400,6 +404,8 @@ export default function StandupNotesPage() {
             tempoEnabled={tempoEnabled}
             yesterdayDate={yesterdayDate}
             dateLabel={dateLabel}
+            resolvedYesterday={resolvedYesterday}
+            onSelectDate={(date: string | null) => setDateOverride(date)}
             tempoQuery={tempoQuery}
             jiraActivityQuery={jiraActivityQuery}
             commitsQuery={commitsQuery}
