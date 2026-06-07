@@ -567,8 +567,9 @@ export default function YesterdayColumn({
     return dates.map((date) => {
       const dateLabel = formatDayLabel(date);
       if (date !== resolvedYesterday) return { date, label: dateLabel };
+      // Default row: date first, then the tag — consistent with regular rows.
       const tag = getColumnHeading(date) === 'Yesterday' ? 'Yesterday' : 'Last working day';
-      return { date, label: `${tag} · ${dateLabel}` };
+      return { date, label: `${dateLabel} · ${tag}` };
     });
   }, [resolvedYesterday]);
 
