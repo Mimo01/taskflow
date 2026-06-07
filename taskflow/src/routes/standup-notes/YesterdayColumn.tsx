@@ -554,14 +554,20 @@ export default function YesterdayColumn({
   // The resolved-default row is always labelled "Yesterday" regardless of which
   // day of the week it falls on (per CONTEXT: the resolved default may be Friday
   // after a weekend, yet must read 'Yesterday').
-  const dayOptions = useMemo(
-    () =>
-      buildRecentDayOptions(14).map((date) => ({
-        date,
-        label: date === resolvedYesterday ? 'Yesterday' : formatDayLabel(date),
-      })),
-    [resolvedYesterday],
-  );
+  const dayOptions = useMemo(() => {
+    const dates = buildRecentDayOptions(14);
+    // The resolved default can fall outside the 14-calendar-day window after a
+    // long weekend + holiday stretch (resolveYesterdayDate skips up to 14 working
+    // iterations). Guarantee it is present so the radio value always matches a
+    // row — otherwise no row is selected and the 'Yesterday' label disappears.
+    if (resolvedYesterday && !dates.includes(resolvedYesterday)) {
+      dates.unshift(resolvedYesterday);
+    }
+    return dates.map((date) => ({
+      date,
+      label: date === resolvedYesterday ? 'Yesterday' : formatDayLabel(date),
+    }));
+  }, [resolvedYesterday]);
 
   // Build joined groups in a stable useMemo
   const { issueGroups, standaloneMrGroups, otherCommits } = useMemo(
