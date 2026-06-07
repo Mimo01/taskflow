@@ -162,14 +162,12 @@ export default function StandupNotesPage() {
   // T-62-06: jiraToken NOT in queryKey
   const { data: scheduleData } = useQuery({
     queryKey: ['standup', 'schedule', jiraBaseUrl, jiraUserKey ?? ''],
-    queryFn: () =>
-      fetchUserSchedule(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        getScheduleLookbackRange().from,
-        getScheduleLookbackRange().to,
-        jiraUserKey ?? '',
-      ),
+    queryFn: () => {
+      // Resolve the lookback window once — calling getScheduleLookbackRange()
+      // twice builds two independent Date objects at potentially different instants.
+      const { from, to } = getScheduleLookbackRange();
+      return fetchUserSchedule(jiraBaseUrl ?? '', jiraToken ?? '', from, to, jiraUserKey ?? '');
+    },
     enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled,
     staleTime: 24 * 60 * 60 * 1000,
   });
