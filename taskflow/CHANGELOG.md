@@ -2,6 +2,42 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.12.0] — 2026-06-07
+
+### Added
+
+- **Universal issue peek** — click any issue anywhere (sprint board, backlog, standup, dashboard, search, command palette) to open a non-blocking slideover preview on the right; the view behind it stays scrollable and clickable, clicking another issue swaps the preview without closing it, and the issue **key** still opens the full page. Dismiss with Escape, the close button, or "Open full page".
+- **Drag-to-rank on the Backlog** — drag stories within a Backlog section to reorder them; the new order saves to Jira and holds through background refreshes, with rollback if the save fails.
+- **Drag-to-transition on the Sprint Board** — drag a card between columns to change its status; columns that cover several workflow statuses split into labelled drop zones during the drag so you can pick the exact transition, with optimistic move and rollback on failure.
+- **Subtask templates & bulk creation** — create named subtask templates in Settings (each line with a required title plus optional fields like assignee, priority, labels, estimate, story points, due date, and components). From a parent issue, apply a template or build a list, preview and edit each row, then create all subtasks at once with per-row progress; a partial failure can be retried without duplicating already-created subtasks. Parent-inheritance placeholders (`@inherit`, `@current`, `@unassigned`) fill in at creation time.
+- **Resolution control on issue transitions** — setting an issue to a done status now prompts for a Resolution (e.g. Done, Won't Do) as part of the workflow transition, from the issue detail sidebar, the status popover, and sprint-board drag/right-click — so issues close with the correct resolution instead of being left unresolved.
+- **Done-state visuals everywhere** — done current-sprint stories now appear struck-through on the Backlog list, the Standup Notes Today section, and the Dashboard, matching the sprint board.
+- **Issue-type color on cards** — sprint-board and backlog cards carry a left-edge color accent by issue type (Bug, Story, Task/Subtask, Epic), and priority is now shown as the Jira priority icon in the card footer and swimlane header.
+- **Choose your Jira board** — pick which board drives the app (sprint board, backlog, ranking) from the onboarding wizard and Settings; the active board name is shown in the Jira connection card.
+- **Issue-type and priority icons in lists** — backlog rows, the sprint-board story swimlane header, and the Epics page now show issue-type and priority icons in their own columns.
+- **Filter by Unassigned** — the assignee filter on the Backlog and Sprint Board now includes an "Unassigned" option.
+- **Standup Notes — watched person** — switch the standup view to a teammate via a "Showing: <name>" header picker (defaults to you); MR sections that need a matched GitLab account show a hint instead of leaking your own MRs.
+- **Standup Notes — pick the recap day** — click the "Yesterday" column heading to recap any of the last 14 days instead of just the last working day.
+- **Clear app cache** — a new "Clear all app cache" action in Settings → Advanced → Data clears the avatar and data caches.
+
+### Changed
+
+- **Subtask parent link** — on a subtask's detail page the parent is now shown in the main content area (matching how subtasks appear under a story), not tucked in the sidebar.
+- **Issue peek layout** — the peek is a single, consistently padded column with Linked Issues and Merge Requests placed just above the activity feed, and a header showing the issue-type icon, key, and title.
+- **Notifications & dashboard clicks** — clicking an issue in notifications or on the dashboard opens the full issue page directly (rather than the peek), since those surfaces are navigation entry points.
+- **Epics page** — restyled to match the Backlog (headerless table, consistent column widths, and the same Unassigned-avatar treatment).
+- **Standup Notes — status transitions** — yesterday's status changes now render as colored status pills (from → to) and collapse to a single initial → final transition per issue; sub-task activity nests under its parent story.
+
+### Fixed
+
+- Peek: "Open full page" now keeps the breadcrumb trail back to the page you opened the peek from.
+- Sprint board / issue detail: editing fields or transitioning an issue now refreshes the board cache so the board stays in sync.
+- Backlog: drag-and-drop no longer drifts by a row or snaps back during auto-scroll.
+- Wiki: `[^filename]` attachment references now render as links instead of literal text.
+- Unassigned issues now show a visually distinct dashed avatar placeholder instead of looking like an assigned user.
+- Backlog: story-point badges use a fixed width so single- and double-digit values line up.
+- Bulk Create Subtasks: long resolved assignee names are truncated and fields no longer collapse on narrow rows; the issue-type and template name show in the dropdowns instead of their internal ids.
+
 ## [1.11.0] — 2026-06-01
 
 ### Added
