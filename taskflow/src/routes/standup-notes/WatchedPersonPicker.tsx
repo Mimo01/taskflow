@@ -89,7 +89,7 @@ export default function WatchedPersonPicker({
         <span>Showing: {triggerLabel}</span>
         <ChevronDown className="size-3.5 opacity-0 transition-opacity group-hover/watched:opacity-60" />
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-1">
+      <PopoverContent className="w-80 p-1">
         <Input
           autoFocus
           value={query}
