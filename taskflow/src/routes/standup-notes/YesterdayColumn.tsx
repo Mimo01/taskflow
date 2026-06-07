@@ -21,12 +21,19 @@
  */
 
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Clock } from 'lucide-react';
+import { ChevronDown, Clock } from 'lucide-react';
 import { useMemo } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { extractJiraKeyFromMessage } from '@/lib/standup-date';
+import { buildRecentDayOptions, extractJiraKeyFromMessage } from '@/lib/standup-date';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
 import type { JiraActivityItem, StandupIssueMeta } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
@@ -42,6 +49,11 @@ export interface YesterdayColumnProps {
   tempoEnabled: boolean;
   yesterdayDate: string;
   dateLabel: string;
+  /** The schedule-resolved default day (no override). Used to label the first
+   *  dropdown row "Yesterday" and to detect when the user reverts to default. */
+  resolvedYesterday?: string;
+  /** Called with the chosen date string, or null to revert to the resolved default. */
+  onSelectDate?: (date: string | null) => void;
   tempoQuery: UseQueryResult<TempoWorklog[], Error>;
   jiraActivityQuery: UseQueryResult<JiraActivityItem[], Error>;
   commitsQuery: UseQueryResult<GitLabCommit[], Error>;
@@ -103,6 +115,38 @@ function getColumnHeading(dateStr: string): string {
   if (dateStr === calYesterdayLocal) return 'Yesterday';
   const [y, m, d] = dateStr.split('-').map(Number);
   return DAY_NAMES[new Date(y, m - 1, d).getDay()];
+}
+
+/**
+ * Format a day-option row label: "Weekday, D Month YYYY".
+ *
+ * Mirrors StandupNotesPage.formatDateLabel — uses local array lookups, never
+ * toLocaleDateString(), per Phase 62 standing rule.
+ */
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+function formatDayLabel(dateStr: string): string {
+  const [yearStr, monthStr, dayStr] = dateStr.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10) - 1; // 0-indexed
+  const day = parseInt(dayStr, 10);
+  const d = new Date(year, month, day);
+  const dayName = DAY_NAMES[d.getDay()];
+  const monthName = MONTH_NAMES[month];
+  return `${dayName}, ${day} ${monthName} ${year}`;
 }
 
 // ─── Markdown export ──────────────────────────────────────────────────────────
@@ -495,6 +539,8 @@ export default function YesterdayColumn({
   tempoEnabled,
   yesterdayDate,
   dateLabel,
+  resolvedYesterday = yesterdayDate,
+  onSelectDate = () => {},
   tempoQuery,
   jiraActivityQuery,
   commitsQuery,
@@ -504,6 +550,19 @@ export default function YesterdayColumn({
   onOpenIssue,
   onMRClick,
 }: YesterdayColumnProps) {
+  // 14-day calendar option list — most-recent-first.
+  // The resolved-default row is always labelled "Yesterday" regardless of which
+  // day of the week it falls on (per CONTEXT: the resolved default may be Friday
+  // after a weekend, yet must read 'Yesterday').
+  const dayOptions = useMemo(
+    () =>
+      buildRecentDayOptions(14).map((date) => ({
+        date,
+        label: date === resolvedYesterday ? 'Yesterday' : formatDayLabel(date),
+      })),
+    [resolvedYesterday],
+  );
+
   // Build joined groups in a stable useMemo
   const { issueGroups, standaloneMrGroups, otherCommits } = useMemo(
     () =>
@@ -552,9 +611,26 @@ export default function YesterdayColumn({
 
   return (
     <div>
-      {/* Column heading */}
+      {/* Column heading — wraps h2 in a dropdown trigger; p date label stays outside */}
       <div className="mb-2 flex items-baseline gap-2">
-        <h2 className="text-2xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="group/yhead flex items-baseline gap-1 cursor-pointer text-left">
+            <h2 className="text-2xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
+            <ChevronDown className="size-4 self-center opacity-0 transition-opacity group-hover/yhead:opacity-60" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
+            <DropdownMenuRadioGroup
+              value={yesterdayDate}
+              onValueChange={(v) => onSelectDate(v === resolvedYesterday ? null : v)}
+            >
+              {dayOptions.map((opt) => (
+                <DropdownMenuRadioItem key={opt.date} value={opt.date}>
+                  {opt.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <p className="text-xs text-muted-foreground">{dateLabel}</p>
       </div>
 

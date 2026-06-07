@@ -21,6 +21,8 @@ function emptyQuery<T>(): UseQueryResult<T, Error> {
 const BASE_PROPS = {
   yesterdayDate: '2026-05-22',
   dateLabel: 'Thursday, May 22',
+  resolvedYesterday: '2026-05-22',
+  onSelectDate: vi.fn(),
   tempoQuery: emptyQuery<TempoWorklog[]>(),
   jiraActivityQuery: emptyQuery<JiraActivityItem[]>(),
   commitsQuery: emptyQuery<GitLabCommit[]>(),
