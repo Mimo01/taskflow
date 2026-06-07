@@ -319,22 +319,28 @@ export function IssueDetailContent({
           )}
           {/* Subtask list — use enriched data when available, fall back to base subtasks */}
           {subtaskListContent({ enrichedSubtasks, subtasks, onOpenIssue })}
-          <button
-            type="button"
-            onClick={() => onAddSubtask?.(issueKey)}
-            className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
-          >
-            <Plus className="size-3.5" />
-            Add subtask
-          </button>
-          <button
-            type="button"
-            onClick={() => setBulkCreateOpen(true)}
-            className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
-          >
-            <LayoutList className="size-3.5" />
-            Bulk Create Subtasks
-          </button>
+          <div className="mt-1 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              className="gap-1.5"
+              onClick={() => onAddSubtask?.(issueKey)}
+            >
+              <Plus className="size-3.5" />
+              Add subtask
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              className="gap-1.5"
+              onClick={() => setBulkCreateOpen(true)}
+            >
+              <LayoutList className="size-3.5" />
+              Bulk Create Subtasks
+            </Button>
+          </div>
           <BulkCreateSubtasksModal
             open={bulkCreateOpen}
             onClose={() => setBulkCreateOpen(false)}
