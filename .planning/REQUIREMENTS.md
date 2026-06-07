@@ -12,8 +12,8 @@ Requirements for the v1.12 milestone. Each maps to a roadmap phase.
 - [x] **VISUAL-01**: Done current-sprint stories appear struck-through on the Backlog active-sprint list (matching the kanban board)
 - [x] **VISUAL-02**: Done current-sprint items appear struck-through in the Standup Notes Today section
 - [x] **VISUAL-03**: Any per-story/issue list the Dashboard renders for the current sprint shows done items struck-through (treated as satisfied where the card is aggregate-only with no per-story rows)
-- [x] **VISUAL-04**: Sprint board cards show a left-edge color stripe driven by issue priority
-- [x] **VISUAL-05**: The card color stripe is legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
+- [x] **VISUAL-04**: Sprint board cards show a left-edge color stripe encoding issue TYPE (Bug=red, Story=green, Subtask/Task=blue, Epic=purple, via `issueTypeStripeClass`); issue PRIORITY is surfaced via a PriorityIcon footer image (Jira `iconUrl`) — not via the stripe. (Original intent of at-a-glance priority visibility is preserved via this approved UX change: priority shown by icon rather than stripe color.)
+- [x] **VISUAL-05**: The issue-type stripe is legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
 
 ### Backlog Drag-to-Rank
 
