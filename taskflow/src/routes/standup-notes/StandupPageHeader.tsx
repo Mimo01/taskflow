@@ -1,6 +1,8 @@
 import { Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { JiraAssignableUser } from '@/services/jira/types';
+import WatchedPersonPicker from './WatchedPersonPicker';
 
 interface StandupPageHeaderProps {
   /** Formatted date the standup is given on (today), e.g. "Monday, 26 May 2026" */
@@ -15,6 +17,15 @@ interface StandupPageHeaderProps {
   copied: boolean;
   /** True while a data refresh is in flight — spins the icon and disables the button */
   isRefreshing: boolean;
+  /** Currently watched teammate, or null when showing the logged-in user. */
+  watchedUser: JiraAssignableUser | null;
+  /** Logged-in user's display name (default picker label + "Me" row). */
+  meDisplayName: string;
+  jiraBaseUrl: string;
+  /** Active Jira project key for the assignable-user search. */
+  projectKey: string | null;
+  /** null = revert to me; a user = watch that person. */
+  onSelectWatched: (user: JiraAssignableUser | null) => void;
 }
 
 /**
@@ -37,6 +48,11 @@ export default function StandupPageHeader({
   onCopyMarkdown,
   copied,
   isRefreshing,
+  watchedUser,
+  meDisplayName,
+  jiraBaseUrl,
+  projectKey,
+  onSelectWatched,
 }: StandupPageHeaderProps) {
   return (
     <header className="px-6 py-4 border-b border-border flex items-center justify-between">
@@ -49,8 +65,15 @@ export default function StandupPageHeader({
         </p>
       </div>
 
-      {/* Right: sync status + Refresh + Copy markdown */}
+      {/* Right: watched-person picker + sync status + Refresh + Copy markdown */}
       <div className="flex items-center gap-2">
+        <WatchedPersonPicker
+          value={watchedUser}
+          meDisplayName={meDisplayName}
+          jiraBaseUrl={jiraBaseUrl}
+          projectKey={projectKey}
+          onSelect={onSelectWatched}
+        />
         {syncedMinutesAgo !== null && (
           <span className="text-xs text-muted-foreground">• synced {syncedMinutesAgo}m ago</span>
         )}
