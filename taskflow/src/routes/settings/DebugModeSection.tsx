@@ -5,6 +5,7 @@
  * Rendered inside Settings → Advanced.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { clearAvatarCache } from '../../services/avatarCache';
 import { readSecret, removeSecret } from '../../services/stronghold';
 import { useAuthStore } from '../../stores/auth.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
@@ -37,6 +39,7 @@ const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
 
 export default function DebugModeSection() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   const setDevToolsEnabled = useSettingsStore((s) => s.setDevToolsEnabled);
   const requestLogging = useSettingsStore((s) => s.requestLogging);
@@ -61,12 +64,20 @@ export default function DebugModeSection() {
   const activeGitlabProject = useAuthStore((s) => s.activeGitlabProject);
   const setWizardState = useOnboardingStore((s) => s.set);
   const [cleared, setCleared] = useState(false);
+  const [cacheCleared, setCacheCleared] = useState(false);
   const [resetDone, setResetDone] = useState<null | 'preferences' | 'all'>(null);
 
   function handleClear() {
     clearAll();
     setCleared(true);
     setTimeout(() => setCleared(false), 3000);
+  }
+
+  async function handleClearCache() {
+    await clearAvatarCache();
+    queryClient.clear();
+    setCacheCleared(true);
+    setTimeout(() => setCacheCleared(false), 3000);
   }
 
   async function handleResetWizard() {
@@ -272,6 +283,47 @@ export default function DebugModeSection() {
                   <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
                   <DialogClose render={<Button variant="destructive" onClick={handleClear} />}>
                     Clear all
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {/* Clear all app cache */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Clear all app cache</p>
+            <p className="text-xs text-muted-foreground">
+              {cacheCleared
+                ? 'Done — data will re-fetch as you navigate.'
+                : 'Clears cached avatars and all in-memory query data. Your settings and connections are not affected.'}
+            </p>
+          </div>
+          {cacheCleared ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Check className="h-3.5 w-3.5" />
+              Cleared
+            </div>
+          ) : (
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" size="sm" className="shrink-0" />}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Clear
+              </DialogTrigger>
+              <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                  <DialogTitle>Clear all app cache?</DialogTitle>
+                  <DialogDescription>
+                    This removes cached avatar images and all in-memory query results. Your
+                    preferences, sidebar, connections, and stored tokens are NOT affected. Data
+                    re-fetches automatically as you use the app.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+                  <DialogClose render={<Button variant="destructive" onClick={handleClearCache} />}>
+                    Clear cache
                   </DialogClose>
                 </DialogFooter>
               </DialogContent>
