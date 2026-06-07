@@ -579,17 +579,66 @@
 
 ---
 
+## Milestone: v1.12 — Jira Experience Improvements
+
+**Shipped:** 2026-06-07
+**Phases:** 5 (76-80) | **Plans:** 19
+
+### What Was Built
+
+- Shared display primitives (`lib/issueDisplayUtils.ts`: `isDoneStatus`/`doneSummaryClass`/`issueTypeStripeClass`) giving the whole app one done-state strike treatment (Backlog, Standup Today, Dashboard) plus a WCAG-tuned issue-type card stripe on the sprint board; priority moved to a `PriorityIcon` footer image. Settings store → v25.
+- Universal non-blocking issue peek: a CSS-squeeze slideover (no Dialog/backdrop/focus-trap) mounted at `AppLayout`, powered by a shared `IssueDetailView` extraction; body-click opens peek, key-click navigates full-page, issue-swap without closing, resizable persisted divider. Settings store → v26. Folded in DETAIL-01/02.
+- Drag-to-rank on the Backlog: `@dnd-kit` sortable rows, optimistic `PUT /rest/agile/1.0/issue/rank` with `rankCustomFieldId` from cache, flicker gate through background polling, inline rollback.
+- Drag-to-transition on the Sprint Board: cards drag between columns; multi-status columns split into per-transition drop zones via a pure `sprintBoardDragHelpers.ts` seam; optimistic move + rollback + board refresh.
+- Subtask templates + bulk creation: Settings-managed createmeta-driven templates (`subtask-templates.json`), bulk modal with preview/inline-edit/reorder, sequential creation with per-row progress and retry-failed-only.
+
+### What Worked
+
+- **Shared-primitive-first sequencing** — Phase 76 shipped `issueDisplayUtils` and the settings-store bumps before any consumer phase, so 77-80 (and a swarm of quick tasks) consumed stable utilities without rework. Phase 80 depended only on 76, not the drag phases, which kept it parallelizable.
+- **One `@dnd-kit` install for two drag features** — installing in Phase 78 and reusing the `justDragged` disambiguation + Pointer-Events approach in Phase 79 avoided a second integration; route-isolated DndContexts meant the backlog and board never conflicted.
+- **Pure-seam extraction for drag logic** — `sprintBoardDragHelpers.ts` (14 tests, no React/dnd-kit imports) made the hardest part of Phase 79 (which transitions are droppable, how columns split) unit-testable in isolation before any UI wiring.
+- **CSS-squeeze peek over a modal** — choosing a flex-row squeeze layout instead of a Dialog/Sheet sidestepped the `aria-hidden`/focus-trap/backdrop problems that would have violated the non-blocking requirement; the shared `IssueDetailView` meant peek and full-page never drifted.
+- **Quick-task layer carried most of the polish** — ~30 quick tasks (not plans) handled the iterative UX refinement (peek header/elevation, icons, Standup overhaul), keeping the phase plans focused on the load-bearing capabilities.
+
+### What Was Inefficient
+
+- **Priority-stripe → issue-type-stripe churn** — Phase 76 shipped a priority-driven stripe (VISUAL-04/05), then quick task `260606-oyy` reversed it to an issue-type stripe + priority icon, leaving the requirement text, roadmap, and a dead `priorityStripeClass`/`rank.ts` orphaned until a dedicated cleanup task (`260607-ixt`) reconciled them at milestone-audit time. The design wasn't settled before implementation.
+- **Peek redesigned repeatedly post-ship** — the peek header, parent-link placement, and Linked-Issues/MR ordering each took several inline UAT iterations across multiple quick tasks (`spj`, `ugr`, `ubz`, `oqf`) rather than landing in the Phase 77 spec.
+- **Drag UAT can't fully close on macOS** — the Windows/WebView2 `mouseup`-loss scenario stayed deferred for both drag phases for lack of a Windows host; mitigations are in place but the real-platform check is outstanding.
+
+### Patterns Established
+
+- **Shared display utilities as a phase-zero deliverable** — when multiple surfaces need the same visual treatment, ship the pure utility + store migration first, then wire consumers.
+- **Pure drag-logic seam, separate from the dnd-kit wiring** — model "what can be dropped where" as a pure tested function; keep `DndContext`/sensors/overlay in the component.
+- **`div[role=button]` body + inner key `<button>` with `stopPropagation`** — the canonical key-vs-body click split, now applied across 6 list surfaces; avoids nested-interactive ARIA violations (use a sibling overlay button when the inner control is also a button).
+- **Route-isolated DndContexts** — separate lazy routes never co-mount their drag contexts, so two drag features coexist without a shared coordinator.
+
+### Key Lessons
+
+1. **Settle visual-design decisions before the implementing phase** — the priority-vs-type stripe reversal created dead code and stale requirement text across three documents; a UI spike or sketch before Phase 76 would have avoided the churn and the audit-time cleanup.
+2. **Fold expected UX iteration into the phase, or budget it as quick tasks deliberately** — the peek shipped functionally correct but needed ~5 follow-up tasks to feel right; either plan the iterations or accept the quick-task layer as the intended polish mechanism (it worked, but inflated the post-phase task count).
+3. **Platform-specific UAT needs the platform** — drag-and-drop in a Tauri WebView2 has Windows-only failure modes (`mouseup` loss) that simply cannot be verified from macOS; acquire a Windows host before committing to drag-heavy milestones, or accept the deferral explicitly up front.
+4. **Reconcile requirement text when a quick task reverses a shipped decision** — a mid-milestone reversal should update REQUIREMENTS.md/ROADMAP.md in the same task, not leave it for the milestone audit to catch.
+
+### Cost Observations
+
+- Sessions: 19 plans across 5 phases + ~30 quick tasks over 6 days, 441 commits
+- Milestone audit: closed `passed` (32/32) after a same-day re-audit; first pass flagged 2 warnings (dead exports, spec drift) cleared by cleanup commits before re-audit
+- Notable: quick tasks outnumbered plans (~30 vs 19) — this milestone's value was as much in the iterative polish layer as in the planned phases; the Standup Notes page alone absorbed ~8 quick tasks despite not being a v1.12 phase
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 |
-|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 |
+|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)

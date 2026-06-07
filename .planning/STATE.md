@@ -2,9 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
-status: executing
-last_updated: "2026-06-07T12:57:08.389Z"
-last_activity: "2026-06-07 - Quick task 260607-ixt Verified & closed: v1.12 tech-debt cleanup — VISUAL-04/05 requirement text reconciled to the shipped issue-type-stripe + PriorityIcon design (REQUIREMENTS.md + ROADMAP.md Phase 76; 76-VERIFICATION.md history left intact); dead client-side LexoRank calc deleted (rank.ts + rank.test.ts, 12 tests; rank-api.ts/server-side ranking untouched); dead priority-stripe machinery removed from issueDisplayUtils.ts (priorityStripeClass, prioritySeverityFromIcon, PRIORITY_STRIPE/ICON_SEVERITY_STRIPE/DEFAULT_STRIPE + ~25 tests; issueTypeStripeClass retained). --full pipeline; plan PASSED first check; review clean; verified 6/6; npm run check GREEN (463 files). | 2026-06-07 - Quick task 260607-0ph APPROVED & closed: Standup Notes "Yesterday" transitions now render as app-standard status pills (from → to via statusPillClass + muted arrow) instead of plain text; categories enriched via fetchAllJiraStatuses with gray fallback, markdown export byte-identical. npm run check GREEN; standup suite 65/65. | 2026-06-07 - Quick task 260606-w2l APPROVED & closed: Standup "Worked On" column sub-task sub-grouping — activity attributable to a sub-task now nests under a clickable sub-task sub-header within its parent story (story-level activity stays flat above); buildGroups origin-key tagging + per-(group,origin) count aggregation + partition pass → sorted subTaskGroups, IssueActivityGroup nested rendering, markdown mirrors nesting; Today column already nested (no change). --full pipeline; verified 7/7; 65 standup tests + npm run check GREEN. | 2026-06-06 - Quick task 260606-ugr APPROVED & closed: subtask parent-issue link redesigned. Final design — full page renders a "Parent" section in the body relationships region matching the Subtasks section's row style + data (key + summary + assignee + status pill, assignee enriched via fetchJiraIssueByKey/parentQuery); peek shows that section PLUS a header breadcrumb (parent type icon + key + chevron). Widened consumed JiraIssueDetail parent at jira.ts:1239. --full pipeline + several inline UAT iterations; npm run check GREEN throughout. | 2026-06-06 - Completed quick task 260606-ubz: peek "Open full page" now preserves the breadcrumb trail back to the source page (dropped resetTrail=true in main.tsx onNavigateFull). | 2026-06-06 - Quick task 260606-spj APPROVED & closed: issue peek redesign — header now shows issue-type icon + key + truncated title (controls stay visible during load, title via a deduped same-key useQuery so no extra fetch); Linked Issues + Merge Requests moved out of the top sidebar to sit just above the activity/comments feed in the peek (new useLinkedMRs hook + omitLinkedIssues/omitMergeRequests props; final order Fields → content → Linked Issues → Merge Requests → activity). Two-column full page unchanged. --full pipeline; verified 6/6; 21/21 tests; npm run check GREEN."
+status: Awaiting next milestone
+stopped_at: Phase 80 UI-SPEC approved
+last_updated: "2026-06-07T15:36:41.329Z"
+last_activity: 2026-06-07 — Milestone v1.12 completed and archived
 progress:
   total_phases: 5
   completed_phases: 5
@@ -24,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 
 ## Current Position
 
-Phase: 80
-Plan: Not started
-Status: Executing Phase 80
-Last activity: 2026-06-07 - Quick task 260607-nm9 APPROVED & closed: Added a "Clear all app cache" option to Settings → Advanced → Data — confirm-dialog-gated row (mirrors "Clear notification cache": inline green "Cleared" feedback, no toast) that clears the two real transient caches — the avatar cache via a new non-throwing clearAvatarCache() export (revokes all blob URLs, resets the memory map + inflight, deletes all non-version keys from the avatar-cache.json LazyStore; CACHE_VERSION unchanged) and the react-query cache via queryClient.clear(). Zustand preference/connection/token stores intentionally OUT of scope (already covered by the existing Reset section). TDD (4 new clearAvatarCache tests; 20/20 avatarCache, 15/15 Settings); npm run check GREEN. APPROVED via live UAT. | 2026-06-07 - Quick task 260607-mhc APPROVED & closed: Standup notes page can switch the watched person via a subtle "Showing: <name> ▼" header picker (default = me, unchanged). New pure resolveEffectiveIdentity maps a watched JiraAssignableUser into an effective identity and forces gitlabUserId/gitlabUsername/gitlabEmail to null (load-bearing no-fallback guard, unit-tested) — so commit matching runs best-effort by display name (empty if unmatched, OK) and the GitLab-ID-keyed MR sections auto-disable with a "GitLab account not matched" hint instead of leaking my MRs. Effective identity lifted into StandupNotesPage transient state (resets to me each load, not persisted) and threaded into the existing react-query keys + new TodayColumn props; picker reuses the MentionPopover debounce → server-side fetchAssignableUsers pattern. --full pipeline; plan PASSED first check; verified 5/5 (human_needed); post-review follow-up (93d54f5c) cleared all 4 warnings + 3 info items (memoized identity, Yesterday-column name-match hint, NaN guard, picker key on account key, clipboard success gating). npm run check GREEN (466 files), standup vitest 70/70. | 2026-06-07 - Quick task 260607-jwb APPROVED & closed: Standup "Yesterday" recap day now overridable — click the left-column heading to pick any of the last 14 calendar days from a base-ui radio dropdown; new TZ-safe buildRecentDayOptions, dateOverride state (yesterdayDate = dateOverride ?? resolvedYesterday) re-keys the 4 data queries while the schedule query stays independent; subtle caret-on-hover affordance (caret trails after the date so it never shifts the label), onSelectDate(null) reverts; NOT persisted (window-session only). Day-row labels lead with the date and the default row is always tagged ("… · Yesterday" when truly yesterday, else "… · Last working day"). --full pipeline; plan PASSED first check; code review WR-01/WR-02 fixed inline; verified 7/7; several inline UAT label/layout iterations; npm run check GREEN, standup suites 45/45. | 2026-06-07 - Quick task 260607-ixt Verified & closed: v1.12 tech-debt cleanup — VISUAL-04/05 requirement text reconciled to the shipped issue-type-stripe + PriorityIcon design (REQUIREMENTS.md + ROADMAP.md Phase 76; 76-VERIFICATION.md history left intact); dead client-side LexoRank calc deleted (rank.ts + rank.test.ts, 12 tests; rank-api.ts/server-side ranking untouched); dead priority-stripe machinery removed from issueDisplayUtils.ts (priorityStripeClass, prioritySeverityFromIcon, PRIORITY_STRIPE/ICON_SEVERITY_STRIPE/DEFAULT_STRIPE + ~25 tests; issueTypeStripeClass retained). --full pipeline; plan PASSED first check; review clean; verified 6/6; npm run check GREEN (463 files). | 2026-06-07 - Quick task 260607-0ph APPROVED & closed: Standup Notes "Yesterday" transitions now render as app-standard status pills (from → to via statusPillClass + muted arrow) instead of plain text; categories enriched via fetchAllJiraStatuses with gray fallback, markdown export byte-identical. npm run check GREEN; standup suite 65/65. | 2026-06-07 - Quick task 260606-w2l APPROVED & closed: Standup "Worked On" column sub-task sub-grouping — activity attributable to a sub-task now nests under a clickable sub-task sub-header within its parent story (story-level activity stays flat above); buildGroups origin-key tagging + per-(group,origin) count aggregation + partition pass → sorted subTaskGroups, IssueActivityGroup nested rendering, markdown mirrors nesting; Today column already nested (no change). --full pipeline; verified 7/7; 65 standup tests + npm run check GREEN. | 2026-06-06 - Quick task 260606-ugr APPROVED & closed: subtask parent-issue link redesigned. Final design — full page renders a "Parent" section in the body relationships region matching the Subtasks section's row style + data (key + summary + assignee + status pill, assignee enriched via fetchJiraIssueByKey/parentQuery); peek shows that section PLUS a header breadcrumb (parent type icon + key + chevron). Widened consumed JiraIssueDetail parent at jira.ts:1239. --full pipeline + several inline UAT iterations; npm run check GREEN throughout. | 2026-06-06 - Completed quick task 260606-ubz: peek "Open full page" now preserves the breadcrumb trail back to the source page (dropped resetTrail=true in main.tsx onNavigateFull). | 2026-06-06 - Quick task 260606-spj APPROVED & closed: issue peek redesign — header now shows issue-type icon + key + truncated title (controls stay visible during load, title via a deduped same-key useQuery so no extra fetch); Linked Issues + Merge Requests moved out of the top sidebar to sit just above the activity/comments feed in the peek (new useLinkedMRs hook + omitLinkedIssues/omitMergeRequests props; final order Fields → content → Linked Issues → Merge Requests → activity). Two-column full page unchanged. --full pipeline; verified 6/6; 21/21 tests; npm run check GREEN.
-
-Progress: [██████████] 100%
+Phase: Milestone v1.12 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-07 — Milestone v1.12 completed and archived
 
 ## Performance Metrics
 
@@ -117,6 +116,20 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 
 ## Deferred Items
 
+Items acknowledged and deferred at milestone close on 2026-06-07 (v1.12):
+
+| Category | Item | Status |
+|----------|------|--------|
+| uat | Phase 78/79 Windows/WebView2 `mouseup`-loss UAT (UAT-1) | deferred — needs a Windows host; mitigations in place (autoScroll=false, touch-action:none, portaled DragOverlay) |
+| uat | Phase 80 live-Jira UAT (ordered creation, partial-failure/retry, skipped-fields badge) | deferred — untestable without a live DC; covered by unit tests |
+| tech_debt | Phase 78 dnd-kit `autoScroll` disabled | accepted — upstream #1108 rect-desync; no auto-scroll while dragging the backlog |
+| tech_debt | Phase 79 D-07 reversed — screen/validator transitions not pre-filtered from drop targets | accepted — app has no transition-screen flow; rollback-on-rejection covers no silent snap-back (79-CONTEXT.md) |
+| code_review | Phase 80 WR-02 React key collision in failure list | non-blocking |
+| code_review | Phase 80 WR-03 silent `@current` degradation when auth display name unavailable | non-blocking |
+| todo | priority-stripe-rest-rank (priority stripe colored by Jira priority-scheme rank via REST /priority) | deferred — backlog idea, not in v1.12 |
+
+### Carried from v1.10
+
 | Category | Item | Status |
 |----------|------|--------|
 | code_review | WR-05 (70-REVIEW) | non-blocking — unguarded `as number\|null` SP cast in Today*Section.tsx |
@@ -129,3 +142,7 @@ Stopped at: Phase 80 UI-SPEC approved
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
 | 16 | Consistent story point badge width in Backlog regardless of digit count | 2026-06-06 | a0aa443b | Approved | — |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

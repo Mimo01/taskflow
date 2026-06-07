@@ -4,11 +4,13 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: v1.12 Jira Experience Improvements
+## Latest Milestone: v1.12 Jira Experience Improvements (shipped 2026-06-07)
 
-**Goal:** Make day-to-day Jira work in Taskflow faster and more direct — consistent done-state visuals, drag-driven ranking and transitions, a non-blocking universal issue peek, tighter issue-detail interactions, and templated bulk subtask creation.
+**Goal:** Make day-to-day Jira work in Taskflow faster and more direct — consistent done-state visuals, drag-driven ranking and transitions, a non-blocking universal issue peek, tighter issue-detail interactions, and templated bulk subtask creation. **All 32 requirements delivered; milestone audit passed.**
 
-**Target features:**
+**Next milestone:** TBD — run `/gsd:new-milestone` to define v1.13 (questioning → research → requirements → roadmap).
+
+**Delivered features:**
 - Done-state strikethrough for done current-sprint stories on the Backlog active-sprint list, Dashboard sprint card, and Standup Today (matching the kanban board's existing treatment)
 - Drag-to-rank stories on the Backlog active-sprint list (drag changes Jira rank; list ordered by rank)
 - Drag-to-transition on the sprint board; columns spanning multiple workflow statuses split into per-transition drop boxes during drag
@@ -21,7 +23,7 @@ Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development 
 
 **Out of scope for v1.12:** Sprint-board swimlane group-by switcher (epic/assignee); priority of subtasks treated as anti-pattern stays optional; batch-create REST endpoint (bulk creation loops `createIssue` in order).
 
-**Latest milestone shipped:** v1.11 GreenHopper API Migration — 5 phases (71-75), 22 plans, 284 commits, shipped 2026-06-01.
+**Previous milestone shipped:** v1.11 GreenHopper API Migration — 5 phases (71-75), 22 plans, 284 commits, shipped 2026-06-01.
 
 ## Core Value
 
@@ -135,17 +137,19 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Backlog reads from a single `data.json` call; legacy REST fetchers hard-deleted with static-grep guard — v1.11 Phase 74
 - ✓ Progressive issue detail rendering: header visible at TTFMP 1180ms, per-section skeletons, per-section inline error/retry isolation; TTI 1682ms — v1.11 Phase 75
 
+- ✓ Done-state strikethrough for done current-sprint stories on Backlog sprint list, Dashboard sprint card, and Standup Today — v1.12 Phase 76
+- ✓ Sprint-board card left-edge stripe encodes issue TYPE (Bug/Story/Subtask/Epic), WCAG-tuned both themes; priority shown via PriorityIcon footer image — v1.12 Phase 76
+- ✓ Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance — v1.12 Phase 77
+- ✓ Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas — v1.12 Phase 77
+- ✓ Drag-to-rank stories within Backlog sections (intra-section reorder → Jira rank PUT, optimistic with rollback + flicker gate; cross-section drag descoped — sprint moves stay on the right-click menu) — v1.12 Phase 78
+- ✓ Drag-to-transition on the sprint board; multi-status columns split into per-transition drop boxes during the drag — v1.12 Phase 79
+- ✓ Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent with per-row progress + retry) — v1.12 Phase 80
+
 ### Active
 
-<!-- v1.12 Jira Experience Improvements — see REQUIREMENTS.md for REQ-IDs -->
+<!-- Next milestone (v1.13) requirements TBD — run /gsd:new-milestone -->
 
-- [ ] Done-state strikethrough for done current-sprint stories on Backlog sprint list, Dashboard sprint card, and Standup Today
-- [x] Drag-to-rank stories within Backlog sections (intra-section reorder → Jira rank PUT, optimistic with rollback + flicker gate; cross-section drag descoped — sprint moves stay on the right-click menu) — validated Phase 78
-- [ ] Drag-to-transition on the sprint board; multi-status columns split into per-transition drop boxes
-- [x] Universal non-blocking issue slideover (peek) for any issue type, with issue-key → full page and explicit open-full-page affordance — validated Phase 77
-- [x] Issue-detail: subtask parent moved to main content; cursor-pointer on clickable areas — validated Phase 77
-- [ ] Card colors: left-edge stripe by priority / issue type
-- [x] Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent) — validated Phase 80 (automated 5/5; 4 live-app UAT items tracked in 80-HUMAN-UAT.md)
+(None — v1.12 shipped. Define the next milestone with `/gsd:new-milestone`.)
 
 ### Out of Scope
 
@@ -172,6 +176,8 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 
 **v1.11 shipped 2026-06-01** — 5 phases (71-75), 22 plans, 284 commits, 308 files changed (+48,340/−16,981 lines) over 4 days. Eliminated Jira API n+1 bottlenecks: sprint board and backlog now each load via a single GreenHopper API call; workflow transitions cached per-project; issue detail panel renders progressively with TTFMP 1180ms. 17/17 requirements satisfied. 10 non-blocking tech-debt items acknowledged. Milestone closed `tech_debt` — run `release.sh` to cut the v1.11.x release.
 
+**v1.12 shipped 2026-06-07** — 5 phases (76-80), 19 plans, 441 commits, 434 files changed (+46,310/−3,051 lines) over 6 days. Made day-to-day Jira work faster and more direct: app-wide done-state visuals + issue-type card stripes via shared `issueDisplayUtils`, a universal non-blocking issue peek slideover, drag-to-rank on the Backlog and drag-to-transition on the Sprint Board (both on `@dnd-kit`), and Settings-managed subtask templates with bulk creation. Plus a ~30-task quick-task polish layer (peek refinements, priority/issue-type icons, Standup Notes overhaul). 32/32 requirements satisfied; milestone audit passed. 7 non-blocking deferred items (Windows/live-DC UAT, accepted drag tech debt). Run `release.sh` to cut the v1.12.x release.
+
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
@@ -186,7 +192,8 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 - **Shipped v1.9:** 2026-05-23 — 6 phases (59-64), 20 plans, 258 commits, 230 files changed (+26,283/−3,085 lines)
 - **Shipped v1.10:** 2026-05-25 — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, 432 files changed (+30,286/−1,489 lines)
 - **Shipped v1.11:** 2026-06-01 — 5 phases (71-75), 22 plans, 284 commits, 308 files changed (+48,340/−16,981 lines)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
+- **Shipped v1.12:** 2026-06-07 — 5 phases (76-80), 19 plans, 441 commits, 434 files changed (+46,310/−3,051 lines)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core + /sortable + /modifiers + /utilities (reinstalled v1.12 for drag-to-rank/transition), @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
@@ -194,7 +201,7 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Test suite:** ~1358 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
 - **Codebase:** ~80,895 lines TypeScript / 136 test files
-- **Settings store:** persist version 23 (v22 dropped `role`; v23 appended the standup-notes sidebar item for upgrading users)
+- **Settings store:** persist version 26 (v25 added `rankFieldKey` for backlog drag-rank; v26 added `peekPanelWidth` for the peek slideover)
 - **Known caveats:** Phase 69 missing VERIFICATION.md (UAT 12/12 — run `/gsd:verify-work 69`); phases 53, 57, 58 missing VERIFICATION.md (all UAT-verified); Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
 
 ## Constraints
@@ -325,6 +332,15 @@ This document evolves at phase transitions and milestone boundaries.
 | GreenHopper `details.json` migration descoped from v1.11 (Phase 75 rescoped) | Issue detail stay on REST v2; progressive rendering delivers the UX win without the API migration complexity | ✓ Good — PERF-DETAIL-01/02/03 delivered equal perceived-performance gain at lower risk |
 | `FieldsSection.transitionMutation.onSettled` calls `invalidateGhAllData` (v1.11 Phase 73/75) | Status change from issue detail must refresh the sprint board; the cache invalidation was missing at Phase 73 merge time | ✓ Good — wired in `2ac516c7`; sprint board stays live after issue-detail status change |
 | `jira-board-quickfilters` system removed post-Phase 73 verification (v1.11 quick task `e1c098f0`) | GH `allData.json` doesn't return quickfilter data; the Jira-loaded quickfilters were replaced by app's own saved filters | ✓ Good — app's saved filter system is the correct replacement; no functionality lost |
+| Peek as a CSS-squeeze panel, not a Dialog/Sheet (v1.12 Phase 77) | A modal Dialog traps focus + adds a backdrop that swallows clicks; PEEK-03 requires the underlying view stay interactive. A flex-row squeeze layout (no `position:fixed`, no `aria-hidden` on root) keeps the board/backlog live | ✓ Good — non-blocking peek with issue-swap; one shared `IssueDetailView` powers both peek and full page |
+| Universal key-vs-body click split (v1.12 Phase 77, D-10) | Body click → peek, issue-key click → full page must hold on every list surface without nested-button HTML | ✓ Good — `div[role=button]` body + inner key `<button>` with `stopPropagation`; applied across 6 surfaces |
+| `@dnd-kit` (Pointer Events) re-adopted for drag features (v1.12 Phase 78/79) | `pragmatic-drag-and-drop` uses HTML5 DnD which needs `dragDropEnabled=false`, breaking attachment drag-drop upload; `@dnd-kit` Pointer Events coexist | ✓ Good — one install powers backlog rank + board transition; was uninstalled in v1.10, reinstalled here |
+| Drag flicker gate: `cancelQueries` + drag-gated local order as rendered source of truth (v1.12 Phase 78) | Background poll refetch mid-drag snaps the optimistic order back; risk is `refetchOnWindowFocus` after staleTime, not the 60s interval | ✓ Good — RANK-05 holds; no snap-back |
+| `rankCustomFieldId` read from cached GreenHopper response, never hardcoded (v1.12 Phase 78) | The rank field id varies per Jira instance; hardcoding breaks portability | ✓ Good — unit-tested against fixture; `PUT /rest/agile/1.0/issue/rank` with integer id |
+| dnd-kit `autoScroll` disabled on the backlog (v1.12 Phase 78, tech debt) | Upstream issue #1108 rect-desync against the autoscrolling virtualized container caused drop misplacement | ⚠️ Revisit — no auto-scroll while dragging; revisit when #1108 resolves |
+| D-07 reversed: screen/validator transitions NOT pre-filtered from drop targets (v1.12 Phase 79) | The app has no transition-screen flow anywhere; rollback-on-rejection already covers "no silent snap-back" | ✓ Good — user-accepted during UAT; recorded in 79-CONTEXT.md |
+| Bulk subtask creation loops `createIssue` sequentially, not `Promise.all` (v1.12 Phase 80) | Jira DC has no batch-create endpoint; sequential preserves listed order and makes per-row status trackable | ✓ Good — per-row progress + retry-failed-only (no duplicates) on partial failure |
+| Subtask templates persist via `createTauriStorage('subtask-templates.json')` (v1.12 Phase 80) | Same Zustand + Tauri Store pattern as `tempo-filters.store.ts`; no new persistence concept | ✓ Good — consistent store pattern; survives restarts |
 
 ---
-*Last updated: 2026-06-05 after completing Phase 80 (Subtask Templates and Bulk Creation)*
+*Last updated: 2026-06-07 after v1.12 milestone (Jira Experience Improvements)*
