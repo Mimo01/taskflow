@@ -198,25 +198,25 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 ### Phase 76: Visual Polish and Shared Primitives
 
-**Goal**: Done-state items are visually consistent app-wide and sprint board cards show priority color stripes; shared display utilities and rank service are in place for downstream phases.
+**Goal**: Done-state items are visually consistent app-wide and sprint board cards show issue-type color stripes (Bug=red, Story=green, Subtask/Task=blue, Epic=purple); issue priority is surfaced via a PriorityIcon footer image (Jira iconUrl); shared display utilities are in place for downstream phases.
 **Depends on**: Phase 75
 **Requirements**: VISUAL-01, VISUAL-02, VISUAL-03, VISUAL-04, VISUAL-05
 **Success Criteria** (what must be TRUE):
 
   1. Done stories on the Backlog active-sprint list appear struck-through and dimmed, matching the kanban board's existing treatment
   2. Done items in the Standup Notes Today section appear struck-through
-  3. Sprint board cards display a left-edge color stripe driven by issue priority, legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
-  4. `lib/issueDisplayUtils.ts` exports `isDoneStatus`, `doneSummaryClass`, and `priorityStripeClass`; `services/jira/rank.ts` exports `rankIssue`; settings store bumped to persist v24 with `rankFieldKey`**Plans**: 4 plans
+  3. Sprint board cards display a left-edge color stripe encoding issue TYPE (via `issueTypeStripeClass`), legible in both light and dark themes (WCAG ≥ 3:1 against the card surface); issue priority is shown via the PriorityIcon footer image — not the stripe color
+  4. `lib/issueDisplayUtils.ts` exports `isDoneStatus`, `doneSummaryClass`, and `issueTypeStripeClass`; settings store bumped to persist v24 with `rankFieldKey`**Plans**: 4 plans
 
 **Wave 1**
 
-- [x] 76-01-PLAN.md — issueDisplayUtils.ts (isDoneStatus/doneSummaryClass/priorityStripeClass) + tests
-- [x] 76-02-PLAN.md — services/jira/rank.ts LexoRank midpoint (rankIssue) + 9 edge-case tests
+- [x] 76-01-PLAN.md — issueDisplayUtils.ts (isDoneStatus/doneSummaryClass/issueTypeStripeClass) + tests
+- [x] 76-02-PLAN.md — services/jira/rank.ts LexoRank midpoint (rankIssue) + 9 edge-case tests (superseded; rank.ts deleted as dead code post-76-04)
 - [x] 76-03-PLAN.md — settings store v25 + rankFieldKey discovery in BacklogPage
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [x] 76-04-PLAN.md — wire strike + priority stripe into TaskCard/BacklogRow/Today/Dashboard (+ human verify)
+- [x] 76-04-PLAN.md — wire strike + type stripe into TaskCard/BacklogRow/Today/Dashboard (+ human verify; type-stripe design approved over original priority-stripe plan)
 
 **UI hint**: yes
 
