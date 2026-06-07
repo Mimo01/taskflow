@@ -21,6 +21,8 @@ interface StandupPageHeaderProps {
   watchedUser: JiraAssignableUser | null;
   /** Logged-in user's display name (default picker label + "Me" row). */
   meDisplayName: string;
+  /** Logged-in user's Jira avatar URL — passed through to WatchedPersonPicker "Me" row. */
+  meAvatarUrl: string | null;
   jiraBaseUrl: string;
   /** Active Jira project key for the assignable-user search. */
   projectKey: string | null;
@@ -50,6 +52,7 @@ export default function StandupPageHeader({
   isRefreshing,
   watchedUser,
   meDisplayName,
+  meAvatarUrl,
   jiraBaseUrl,
   projectKey,
   onSelectWatched,
@@ -70,6 +73,7 @@ export default function StandupPageHeader({
         <WatchedPersonPicker
           value={watchedUser}
           meDisplayName={meDisplayName}
+          meAvatarUrl={meAvatarUrl}
           jiraBaseUrl={jiraBaseUrl}
           projectKey={projectKey}
           onSelect={onSelectWatched}

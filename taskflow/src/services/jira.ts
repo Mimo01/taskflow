@@ -37,6 +37,8 @@ export interface JiraUser {
   emailAddress: string;
   name: string;
   key?: string;
+  /** Jira avatar image URLs from GET /rest/api/2/myself. */
+  avatarUrls?: { '48x48'?: string };
 }
 
 export interface JiraProject {
@@ -80,6 +82,7 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
       emailAddress: data.emailAddress,
       name: data.name ?? data.emailAddress,
       key: data.key,
+      avatarUrls: data.avatarUrls,
     };
   }
 

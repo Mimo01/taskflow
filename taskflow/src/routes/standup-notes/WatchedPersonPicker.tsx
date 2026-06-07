@@ -28,6 +28,8 @@ interface WatchedPersonPickerProps {
   value: JiraAssignableUser | null;
   /** Logged-in user's display name — shown for the "Me" row + default trigger label. */
   meDisplayName: string;
+  /** Logged-in user's Jira avatar URL — rendered in the "Me" row. Null shows initials fallback. */
+  meAvatarUrl: string | null;
   jiraBaseUrl: string;
   /** Active Jira project key (string key, not numeric id). */
   projectKey: string | null;
@@ -38,6 +40,7 @@ interface WatchedPersonPickerProps {
 export default function WatchedPersonPicker({
   value,
   meDisplayName,
+  meAvatarUrl,
   jiraBaseUrl,
   projectKey,
   onSelect,
@@ -103,7 +106,7 @@ export default function WatchedPersonPicker({
               value === null ? 'bg-accent/40' : ''
             }`}
           >
-            <CachedAvatar url={null} name={meDisplayName} size={20} className="shrink-0" />
+            <CachedAvatar url={meAvatarUrl} name={meDisplayName} size={20} className="shrink-0" />
             <span className="truncate">Me ({meDisplayName})</span>
           </button>
 

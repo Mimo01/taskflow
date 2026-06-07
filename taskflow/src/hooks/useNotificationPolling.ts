@@ -106,7 +106,7 @@ export function useNotificationPolling() {
       const pat = await readSecret('jira-pat').catch(() => null);
       if (!pat) return;
       const user = await validateJira(jiraBaseUrl, pat).catch(() => null);
-      if (user) setJiraUser(user.displayName, user.name, user.key);
+      if (user) setJiraUser(user.displayName, user.name, user.key, user.avatarUrls?.['48x48']);
     })();
   }, [jiraBaseUrl, jiraUsername, jiraUserDisplayName, jiraUserKey, setJiraUser]);
 

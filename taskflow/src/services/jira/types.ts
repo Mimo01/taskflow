@@ -12,6 +12,8 @@ export interface JiraUser {
   displayName: string;
   emailAddress: string;
   name: string;
+  /** Jira avatar image URLs from GET /rest/api/2/myself. */
+  avatarUrls?: { '48x48'?: string };
 }
 
 export interface JiraProject {

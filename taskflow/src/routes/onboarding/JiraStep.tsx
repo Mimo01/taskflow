@@ -92,7 +92,7 @@ export default function JiraStep() {
       setJiraBoardId(selectedProject, chosenBoardId, boardName);
     }
     const user = mutation.data?.user;
-    if (user) setJiraUser(user.displayName, user.name);
+    if (user) setJiraUser(user.displayName, user.name, undefined, user.avatarUrls?.['48x48']);
     goNext();
   };
 

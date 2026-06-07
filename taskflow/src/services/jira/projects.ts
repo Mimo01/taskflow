@@ -40,6 +40,7 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
       displayName: data.displayName,
       emailAddress: data.emailAddress,
       name: data.name ?? data.emailAddress,
+      avatarUrls: data.avatarUrls,
     };
   }
 
