@@ -220,55 +220,53 @@ export function SubtaskTemplateRow({
           />
         </div>
 
-        {/* Fields line — aligned under the title, each field labeled */}
-        <div className="flex flex-wrap items-end gap-2 pl-6">
+        {/* Fields line — aligned under the title; fields grow to fill the row */}
+        <div className="flex flex-wrap items-end gap-3 pl-6">
           {/* Assignee selector */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-1 min-w-[8rem] flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Assignee</span>
-            <div className="w-32 shrink-0">
-              {isPlaceholder && mode === 'preview' && placeholderCtx ? (
-                <div className="flex h-8 items-center">
-                  <PlaceholderChip
-                    value={row.assignee as '@inherit' | '@current' | '@unassigned'}
-                    hint={assigneeHint}
-                  />
-                </div>
-              ) : isPlaceholder ? (
-                <Select
-                  value={row.assignee}
-                  onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
-                  disabled={isDisabled}
-                >
-                  <SelectTrigger className="w-32 h-8 text-sm">
-                    <SelectValue placeholder="Assignee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="@inherit">@inherit</SelectItem>
-                    <SelectItem value="@current">@current</SelectItem>
-                    <SelectItem value="@unassigned">@unassigned</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  className="w-32 h-8 text-sm"
-                  value={row.assignee}
-                  onChange={(e) => onChange({ assignee: e.target.value })}
-                  placeholder="Assignee"
-                  disabled={isDisabled}
+            {isPlaceholder && mode === 'preview' && placeholderCtx ? (
+              <div className="flex h-8 items-center">
+                <PlaceholderChip
+                  value={row.assignee as '@inherit' | '@current' | '@unassigned'}
+                  hint={assigneeHint}
                 />
-              )}
-            </div>
+              </div>
+            ) : isPlaceholder ? (
+              <Select
+                value={row.assignee}
+                onValueChange={(v) => onChange({ assignee: v ?? '@unassigned' })}
+                disabled={isDisabled}
+              >
+                <SelectTrigger className="w-full h-8 text-sm">
+                  <SelectValue placeholder="Assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="@inherit">@inherit</SelectItem>
+                  <SelectItem value="@current">@current</SelectItem>
+                  <SelectItem value="@unassigned">@unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                className="w-full h-8 text-sm"
+                value={row.assignee}
+                onChange={(e) => onChange({ assignee: e.target.value })}
+                placeholder="Assignee"
+                disabled={isDisabled}
+              />
+            )}
           </div>
 
           {/* Priority select */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-1 min-w-[8rem] flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Priority</span>
             <Select
               value={row.priority ?? ''}
               onValueChange={(v) => onChange({ priority: v || null })}
               disabled={isDisabled}
             >
-              <SelectTrigger className="w-28 h-8 text-sm shrink-0">
+              <SelectTrigger className="w-full h-8 text-sm">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -282,11 +280,11 @@ export function SubtaskTemplateRow({
             </Select>
           </div>
 
-          {/* Labels — compact text input (multi-value comma-separated) */}
-          <div className="flex flex-col gap-1">
+          {/* Labels — multi-value comma-separated */}
+          <div className="flex flex-1 min-w-[8rem] flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Labels</span>
             <Input
-              className="w-32 h-8 text-sm shrink-0"
+              className="w-full h-8 text-sm"
               value={row.labels.join(', ')}
               onChange={(e) =>
                 onChange({
@@ -301,11 +299,11 @@ export function SubtaskTemplateRow({
             />
           </div>
 
-          {/* Estimate — Due date & Story points live in Advanced (rare on subtasks) */}
-          <div className="flex flex-col gap-1">
+          {/* Estimate — compact; Due date & Story points live in Advanced */}
+          <div className="flex w-24 shrink-0 flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Estimate</span>
             <Input
-              className="w-20 h-8 text-sm shrink-0"
+              className="w-full h-8 text-sm"
               value={row.timeEstimate}
               onChange={(e) => onChange({ timeEstimate: e.target.value })}
               placeholder="e.g. 2h"
@@ -313,8 +311,8 @@ export function SubtaskTemplateRow({
             />
           </div>
 
-          {/* Controls — pushed to the far right */}
-          <div className="ml-auto flex items-center gap-1">
+          {/* Controls — aligned with the field inputs */}
+          <div className="flex items-center gap-1 self-end">
             {/* Advanced toggle */}
             <Button
               variant="ghost"
