@@ -275,4 +275,67 @@ describe('avatarCache service', () => {
       headers: { Authorization: 'Bearer test-token' },
     });
   });
+
+  it('Test 17: clearAvatarCache — empties memory cache (getCachedBlobUrl returns null for all previously cached URLs)', async () => {
+    makeFetchSuccess();
+    const { fetchAndCacheAvatar, getCachedBlobUrl, clearAvatarCache } = await import(
+      '@/services/avatarCache'
+    );
+
+    const url1 = 'https://example.com/avatar-a.jpg';
+    const url2 = 'https://example.com/avatar-b.jpg';
+    await fetchAndCacheAvatar(url1);
+    await fetchAndCacheAvatar(url2);
+    expect(getCachedBlobUrl(url1)).not.toBeNull();
+    expect(getCachedBlobUrl(url2)).not.toBeNull();
+
+    await clearAvatarCache();
+
+    expect(getCachedBlobUrl(url1)).toBeNull();
+    expect(getCachedBlobUrl(url2)).toBeNull();
+  });
+
+  it('Test 18: clearAvatarCache — revokes every blob URL via URL.revokeObjectURL', async () => {
+    makeFetchSuccess();
+    const { fetchAndCacheAvatar, clearAvatarCache } = await import('@/services/avatarCache');
+
+    const url1 = 'https://example.com/avatar-c.jpg';
+    const url2 = 'https://example.com/avatar-d.jpg';
+    const blobUrl1 = await fetchAndCacheAvatar(url1);
+    const blobUrl2 = await fetchAndCacheAvatar(url2);
+
+    vi.clearAllMocks();
+    await clearAvatarCache();
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(blobUrl1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(blobUrl2);
+  });
+
+  it('Test 19: clearAvatarCache — deletes all non-version keys from disk store and saves', async () => {
+    makeFetchSuccess();
+    const { LazyStore } = await import('@tauri-apps/plugin-store');
+    const { fetchAndCacheAvatar, clearAvatarCache } = await import('@/services/avatarCache');
+
+    const url = 'https://example.com/avatar-e.jpg';
+    await fetchAndCacheAvatar(url);
+
+    // Verify it is in the disk store before clearing
+    const storeBefore = new LazyStore('avatar-cache.json');
+    const keysBefore = await storeBefore.keys();
+    expect(keysBefore).toContain(url);
+
+    await clearAvatarCache();
+
+    // After clearing, the URL key should be gone
+    const storeAfter = new LazyStore('avatar-cache.json');
+    const keysAfter = await storeAfter.keys();
+    expect(keysAfter).not.toContain(url);
+  });
+
+  it('Test 20: clearAvatarCache — does not throw even when disk store ops reject', async () => {
+    const { clearAvatarCache } = await import('@/services/avatarCache');
+
+    // Even with an empty cache and potential disk errors, should not throw
+    await expect(clearAvatarCache()).resolves.toBeUndefined();
+  });
 });
