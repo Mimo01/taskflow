@@ -62,6 +62,9 @@ function formatDateLabel(dateStr: string): string {
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10) - 1; // 0-indexed
   const day = parseInt(dayStr, 10);
+  // Guard malformed/empty input (e.g. yesterdayDate before schedule resolves) so
+  // we render the raw string instead of "undefined, NaN undefined NaN".
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return dateStr;
   const d = new Date(year, month, day);
   const dayName = DAY_NAMES[d.getDay()];
   const monthName = MONTH_NAMES[month];
@@ -110,8 +113,21 @@ export default function StandupNotesPage() {
   // Effective identity threaded through every page query key + props. For a
   // watched person this forces gitlabUserId/Username/Email to null so the
   // GitLab-ID-keyed sections disable instead of showing my own MRs (Pitfall 3).
-  const id = resolveEffectiveIdentity(
-    {
+  const id = useMemo(
+    () =>
+      resolveEffectiveIdentity(
+        {
+          jiraUsername,
+          jiraUserKey,
+          jiraUserDisplayName,
+          gitlabUserId,
+          gitlabUsername,
+          gitlabName,
+          gitlabEmail,
+        },
+        watchedUser,
+      ),
+    [
       jiraUsername,
       jiraUserKey,
       jiraUserDisplayName,
@@ -119,8 +135,8 @@ export default function StandupNotesPage() {
       gitlabUsername,
       gitlabName,
       gitlabEmail,
-    },
-    watchedUser,
+      watchedUser,
+    ],
   );
 
   const queryClient = useQueryClient();
@@ -185,8 +201,7 @@ export default function StandupNotesPage() {
   const { data: scheduleData } = useQuery({
     queryKey: ['standup', 'schedule', jiraBaseUrl, id.jiraUserKey ?? ''],
     queryFn: () => {
-      // Resolve the lookback window once — calling getScheduleLookbackRange()
-      // twice builds two independent Date objects at potentially different instants.
+      // Resolve the lookback window once and reuse from/to.
       const { from, to } = getScheduleLookbackRange();
       return fetchUserSchedule(jiraBaseUrl ?? '', jiraToken ?? '', from, to, id.jiraUserKey ?? '');
     },
@@ -272,6 +287,9 @@ export default function StandupNotesPage() {
         id.gitlabEmail,
       );
     },
+    // For a watched person id.gitlabUsername/Email are null but id.gitlabName is
+    // their Jira display name — so commits run via best-effort name-only matching
+    // (NOT a fallback to my GitLab id; the YesterdayColumn surfaces a hint for this).
     enabled:
       !!gitlabBaseUrl &&
       !!gitlabToken &&
@@ -396,15 +414,21 @@ export default function StandupNotesPage() {
       todayStr,
     );
 
-    navigator.clipboard.writeText(`${yesterdayText}\n\n${todayText}`).catch(() => {
-      // Silent fallback — clipboard unavailable (unlikely in Tauri webview).
-    });
-    setCopied(true);
-    if (copiedTimer.current) clearTimeout(copiedTimer.current);
-    copiedTimer.current = setTimeout(() => {
-      setCopied(false);
-      copiedTimer.current = null;
-    }, 2000);
+    // Only flash "Copied!" once the write actually resolves — a rejected clipboard
+    // (unavailable in the webview) must not show a false success.
+    navigator.clipboard
+      .writeText(`${yesterdayText}\n\n${todayText}`)
+      .then(() => {
+        setCopied(true);
+        if (copiedTimer.current) clearTimeout(copiedTimer.current);
+        copiedTimer.current = setTimeout(() => {
+          setCopied(false);
+          copiedTimer.current = null;
+        }, 2000);
+      })
+      .catch(() => {
+        // Clipboard unavailable — leave the button in its idle state.
+      });
   }
 
   return (
@@ -441,6 +465,8 @@ export default function StandupNotesPage() {
             onIssueClick={onIssueClick}
             onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
+            isWatched={id.isWatched}
+            watchedDisplayName={id.jiraUserDisplayName}
           />
         </div>
 
