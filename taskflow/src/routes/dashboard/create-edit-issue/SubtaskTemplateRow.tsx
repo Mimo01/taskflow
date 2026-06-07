@@ -54,7 +54,7 @@ function PlaceholderChip({
   hint: string;
 }) {
   const chipBase =
-    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-normal max-w-full min-w-0';
+    'inline-flex h-8 items-center gap-1 rounded-lg border border-transparent px-2.5 text-sm font-normal max-w-full min-w-0';
 
   if (value === '@inherit') {
     return (
