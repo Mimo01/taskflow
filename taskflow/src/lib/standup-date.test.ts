@@ -7,6 +7,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildRecentDayOptions,
   extractJiraKeyFromBranch,
   extractJiraKeyFromMessage,
   getScheduleLookbackRange,
@@ -112,6 +113,44 @@ describe('getScheduleLookbackRange', () => {
     const { from, to } = getScheduleLookbackRange();
     expect(to).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(from).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+// ─── buildRecentDayOptions ────────────────────────────────────────────────────
+
+describe('buildRecentDayOptions', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns exactly count entries', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 7, 10, 0, 0)); // June 7 2026, local
+    const result = buildRecentDayOptions(14);
+    expect(result).toHaveLength(14);
+  });
+
+  it('entries are most-recent-first: index 0 = yesterday, last = today-14', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 7, 10, 0, 0)); // June 7 2026, local
+    const result = buildRecentDayOptions(14);
+    expect(result[0]).toBe('2026-06-06');
+    expect(result[13]).toBe('2026-05-24');
+  });
+
+  it('TZ-safe: Jan 1 2026 local → index 0 is 2025-12-31, last is 2025-12-18', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, 8, 0, 0)); // Jan 1 2026, local 08:00
+    const result = buildRecentDayOptions(14);
+    expect(result[0]).toBe('2025-12-31');
+    expect(result[13]).toBe('2025-12-18');
+  });
+
+  it('TZ-safe: late-evening local time (23:30) still uses previous local calendar day', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 7, 23, 30, 0)); // June 7 2026, local 23:30
+    const result = buildRecentDayOptions(14);
+    expect(result[0]).toBe('2026-06-06');
   });
 });
 
