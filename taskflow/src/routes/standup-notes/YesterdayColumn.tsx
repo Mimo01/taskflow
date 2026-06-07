@@ -551,9 +551,10 @@ export default function YesterdayColumn({
   onMRClick,
 }: YesterdayColumnProps) {
   // 14-day calendar option list — most-recent-first.
-  // The resolved-default row is always labelled "Yesterday" regardless of which
-  // day of the week it falls on (per CONTEXT: the resolved default may be Friday
-  // after a weekend, yet must read 'Yesterday').
+  // The resolved-default row is tagged "Yesterday" but still shows its actual
+  // date ("Yesterday · Friday, 5 June 2026") so that when the default isn't
+  // calendar-yesterday (e.g. Friday after a weekend) the row still tells you
+  // which day it is, not just the bare word "Yesterday".
   const dayOptions = useMemo(() => {
     const dates = buildRecentDayOptions(14);
     // The resolved default can fall outside the 14-calendar-day window after a
@@ -565,7 +566,8 @@ export default function YesterdayColumn({
     }
     return dates.map((date) => ({
       date,
-      label: date === resolvedYesterday ? 'Yesterday' : formatDayLabel(date),
+      label:
+        date === resolvedYesterday ? `Yesterday · ${formatDayLabel(date)}` : formatDayLabel(date),
     }));
   }, [resolvedYesterday]);
 
@@ -617,11 +619,13 @@ export default function YesterdayColumn({
 
   return (
     <div>
-      {/* Column heading — wraps h2 in a dropdown trigger; p date label stays outside */}
-      <div className="mb-2 flex items-baseline gap-2">
+      {/* Column heading — h2 + date label live INSIDE the trigger so the caret
+          trails after the date (in empty space) and never shifts the date right. */}
+      <div className="mb-2">
         <DropdownMenu>
-          <DropdownMenuTrigger className="group/yhead flex items-baseline gap-1 cursor-pointer text-left">
+          <DropdownMenuTrigger className="group/yhead flex items-baseline gap-2 cursor-pointer text-left">
             <h2 className="text-2xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
+            <p className="text-xs text-muted-foreground">{dateLabel}</p>
             <ChevronDown className="size-4 self-center opacity-0 transition-opacity group-hover/yhead:opacity-60" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
@@ -637,7 +641,6 @@ export default function YesterdayColumn({
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-        <p className="text-xs text-muted-foreground">{dateLabel}</p>
       </div>
 
       {/* D-10 Summary stat line — only when at least one source has data */}
