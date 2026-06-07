@@ -155,16 +155,31 @@ interface TodayColumnProps {
   onIssueClick: (key: string) => void;
   onOpenIssue?: (key: string) => void;
   onMRClick: (projectIdAndIid: string) => void;
+  /**
+   * Effective GitLab user id from resolveEffectiveIdentity — null for a watched
+   * person, which disables both MR queries (no fallback to my own MRs; Pitfall 3).
+   */
+  watchedGitlabUserId: number | null;
+  /** Effective Jira display name — drives client-side sprint filtering + the hint. */
+  watchedDisplayName: string | null;
+  /** True when a teammate is being watched (drives the "not matched" hint). */
+  isWatched: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: TodayColumnProps) {
+export default function TodayColumn({
+  onIssueClick,
+  onOpenIssue,
+  onMRClick,
+  watchedGitlabUserId,
+  watchedDisplayName,
+  isWatched,
+}: TodayColumnProps) {
   // ─── Auth store ─────────────────────────────────────────────────────────────
-  const { jiraBaseUrl, gitlabBaseUrl, activeJiraProject, gitlabUserId } = useAuthStore();
-
-  // jiraUserDisplayName is separate — fine-grained selector (Phase 68 rule)
-  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
+  // gitlabUserId is NOT sourced here anymore — the effective id (watchedGitlabUserId)
+  // is threaded in as a prop so a watched person resolves to null (Pitfall 4).
+  const { jiraBaseUrl, gitlabBaseUrl, activeJiraProject } = useAuthStore();
 
   // ─── Settings store — one selector per field (IN-01: Phase 68 rule) ─────────
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
@@ -211,26 +226,28 @@ export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: To
 
   // ─── Query 2: Reviewer MRs awaiting my review ────────────────────────────────
   const reviewerMrsQuery = useQuery({
-    queryKey: ['standup', 'reviewer-mrs', gitlabBaseUrl, gitlabUserId],
+    queryKey: ['standup', 'reviewer-mrs', gitlabBaseUrl, watchedGitlabUserId],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchReviewerMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? 0);
+      return fetchReviewerMRs(gitlabBaseUrl ?? '', token, watchedGitlabUserId ?? 0);
     },
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
+    // watchedGitlabUserId is null for a watched person → disabled (Pitfall 3).
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!watchedGitlabUserId,
     staleTime: 5 * 60 * 1000,
   });
 
   // ─── Query 3: MRs I've participated in (commented on) — role-independent ──────
   // T-62-06: token is read inside queryFn, NOT placed in queryKey.
   const participatingMrsQuery = useQuery({
-    queryKey: ['standup', 'participating-mrs', gitlabBaseUrl, gitlabUserId],
+    queryKey: ['standup', 'participating-mrs', gitlabBaseUrl, watchedGitlabUserId],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchParticipatedMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? 0, 30);
+      return fetchParticipatedMRs(gitlabBaseUrl ?? '', token, watchedGitlabUserId ?? 0, 30);
     },
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
+    // watchedGitlabUserId is null for a watched person → disabled (Pitfall 3).
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!watchedGitlabUserId,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -238,8 +255,8 @@ export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: To
 
   // Split sprint issues into In Progress / Up Next using the verified helper
   const { inProgress, upNext } = useMemo(
-    () => filterSprintItems(sprintQuery.data ?? [], jiraUserDisplayName ?? ''),
-    [sprintQuery.data, jiraUserDisplayName],
+    () => filterSprintItems(sprintQuery.data ?? [], watchedDisplayName ?? ''),
+    [sprintQuery.data, watchedDisplayName],
   );
 
   // Match MRs to displayed sprint stories (both reviewer + participating)
@@ -281,6 +298,11 @@ export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: To
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
+  // ─── "not matched" hint ───────────────────────────────────────────────────────
+  // A watched person carries no GitLab id, so the MR queries are disabled. Make the
+  // absence explicit so the empty MR sections don't read as "my MRs are empty".
+  const showNotMatchedHint = isWatched && !watchedGitlabUserId && !!gitlabBaseUrl;
+
   return (
     <div className="flex flex-col h-full px-6 py-4">
       {/* Column heading */}
@@ -288,6 +310,13 @@ export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: To
         <h2 className="text-2xl font-semibold">Today</h2>
         <p className="text-xs text-muted-foreground">{formatTodayDate()}</p>
       </div>
+
+      {/* Watched person without a matched GitLab account — MR sections are hidden. */}
+      {showNotMatchedHint && (
+        <p className="text-xs text-muted-foreground mb-4">
+          GitLab account not matched for {watchedDisplayName ?? 'this person'} — MRs hidden.
+        </p>
+      )}
 
       {/* Summary stat line — mirrors the Yesterday column so both stay vertically aligned */}
       {hasAnyData && (
@@ -329,8 +358,10 @@ export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: To
             onMRClick={onMRClick}
           />
 
-          {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
-          {!!gitlabBaseUrl && (
+          {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not
+              connected (D-02, D-10) or when a watched person has no matched GitLab id
+              (the queries are disabled — never show my own MRs; Pitfall 3). */}
+          {!!gitlabBaseUrl && !showNotMatchedHint && (
             <TodayMrsSection
               items={unmatchedReviewerMrs}
               isLoading={reviewerMrsQuery.isLoading}
@@ -341,8 +372,9 @@ export default function TodayColumn({ onIssueClick, onOpenIssue, onMRClick }: To
             />
           )}
 
-          {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden when GitLab not connected */}
-          {!!gitlabBaseUrl && (
+          {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden
+              when GitLab not connected or when watching an unmatched person (Pitfall 3). */}
+          {!!gitlabBaseUrl && !showNotMatchedHint && (
             <TodayParticipatingSection
               items={unmatchedParticipatingMrs}
               isLoading={participatingMrsQuery.isLoading}
