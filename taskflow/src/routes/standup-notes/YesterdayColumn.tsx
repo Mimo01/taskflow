@@ -551,11 +551,11 @@ export default function YesterdayColumn({
   onMRClick,
 }: YesterdayColumnProps) {
   // 14-day calendar option list — most-recent-first.
-  // The "Yesterday" tag only applies when the resolved default genuinely IS
-  // calendar-yesterday (getColumnHeading returns 'Yesterday' only then). When
-  // the last working day is e.g. Friday-after-a-weekend, "Yesterday" doesn't
-  // apply, so that row shows just its date like any other — it's still the
-  // current default, indicated by the radio checkmark.
+  // The resolved-default row always carries a tag so it reads as the default:
+  // "Yesterday · …" when it genuinely is calendar-yesterday, otherwise
+  // "Last working day · …" (e.g. Friday viewed on Monday — "Yesterday" wouldn't
+  // be accurate but the row should still announce it's the default). Regular
+  // rows show just their date.
   const dayOptions = useMemo(() => {
     const dates = buildRecentDayOptions(14);
     // The resolved default can fall outside the 14-calendar-day window after a
@@ -566,12 +566,9 @@ export default function YesterdayColumn({
     }
     return dates.map((date) => {
       const dateLabel = formatDayLabel(date);
-      const isDefaultYesterday =
-        date === resolvedYesterday && getColumnHeading(date) === 'Yesterday';
-      return {
-        date,
-        label: isDefaultYesterday ? `Yesterday · ${dateLabel}` : dateLabel,
-      };
+      if (date !== resolvedYesterday) return { date, label: dateLabel };
+      const tag = getColumnHeading(date) === 'Yesterday' ? 'Yesterday' : 'Last working day';
+      return { date, label: `${tag} · ${dateLabel}` };
     });
   }, [resolvedYesterday]);
 
