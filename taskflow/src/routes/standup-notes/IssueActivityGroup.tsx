@@ -14,6 +14,7 @@ import {
   GitMerge,
   MessageCircle,
   MessageSquare,
+  PlusCircle,
 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -25,7 +26,8 @@ export type SubItemKind =
   | 'mr-comment'
   | 'approval'
   | 'jira-comment'
-  | 'mr-open';
+  | 'mr-open'
+  | 'issue-created';
 
 export interface SubItem {
   kind: SubItemKind;
@@ -99,6 +101,8 @@ function subItemIcon(kind: SubItemKind) {
       return MessageCircle;
     case 'mr-open':
       return GitMerge;
+    case 'issue-created':
+      return PlusCircle;
     default:
       return GitBranch;
   }
