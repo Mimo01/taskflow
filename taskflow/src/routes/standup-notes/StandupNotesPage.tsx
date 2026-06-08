@@ -23,7 +23,11 @@ import {
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchUserCommits, fetchUserMREvents, validateGitLab } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { fetchIssueMeta, fetchYesterdayCreatedIssues, fetchYesterdayJiraActivity } from '@/services/jira';
+import {
+  fetchIssueMeta,
+  fetchYesterdayCreatedIssues,
+  fetchYesterdayJiraActivity,
+} from '@/services/jira';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
@@ -356,7 +360,13 @@ export default function StandupNotesPage() {
       if (k) keys.add(k);
     }
     return [...keys].sort();
-  }, [tempoQuery.data, jiraActivityQuery.data, jiraCreatedQuery.data, commitsQuery.data, mrEventsQuery.data]);
+  }, [
+    tempoQuery.data,
+    jiraActivityQuery.data,
+    jiraCreatedQuery.data,
+    commitsQuery.data,
+    mrEventsQuery.data,
+  ]);
 
   const issueMetaQuery = useQuery({
     queryKey: ['standup', 'issue-meta', jiraBaseUrl, referencedKeys],
