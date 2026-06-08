@@ -634,9 +634,11 @@ export default function YesterdayColumn({
     !jiraActivityQuery.data?.length &&
     !commitsQuery.data?.length &&
     !mrEventsQuery.data?.length &&
+    !jiraCreatedQuery.data?.length &&
     !jiraActivityQuery.isLoading &&
     !commitsQuery.isLoading &&
-    !mrEventsQuery.isLoading;
+    !mrEventsQuery.isLoading &&
+    !jiraCreatedQuery.isLoading;
 
   return (
     <div>
@@ -689,6 +691,7 @@ export default function YesterdayColumn({
         !jiraActivityQuery.isLoading &&
         !commitsQuery.isLoading &&
         !mrEventsQuery.isLoading &&
+        !jiraCreatedQuery.isLoading &&
         !tempoQuery.isError &&
         !jiraActivityQuery.isError &&
         !commitsQuery.isError &&

@@ -831,8 +831,9 @@ export async function fetchYesterdayCreatedIssues(
   const next = new Date(y, m - 1, d + 1);
   const nextDay = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
 
+  const escapedUser = jiraUsername.replace(/"/g, '\\"');
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND reporter = "${jiraUsername}" AND created >= "${date}" AND created < "${nextDay}" ORDER BY created ASC`,
+    `project = ${projectKey} AND reporter = "${escapedUser}" AND created >= "${date}" AND created < "${nextDay}" ORDER BY created ASC`,
   );
   const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=50&fields=summary,issuetype`;
 

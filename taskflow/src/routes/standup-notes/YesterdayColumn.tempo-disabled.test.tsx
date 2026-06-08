@@ -2,7 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
-import type { JiraActivityItem } from '@/services/jira';
+import type { JiraActivityItem, JiraCreatedIssue } from '@/services/jira';
 import type { TempoWorklog } from '@/services/tempo';
 import YesterdayColumn from './YesterdayColumn';
 
@@ -25,6 +25,7 @@ const BASE_PROPS = {
   onSelectDate: vi.fn(),
   tempoQuery: emptyQuery<TempoWorklog[]>(),
   jiraActivityQuery: emptyQuery<JiraActivityItem[]>(),
+  jiraCreatedQuery: emptyQuery<JiraCreatedIssue[]>(),
   commitsQuery: emptyQuery<GitLabCommit[]>(),
   mrEventsQuery: emptyQuery<GitLabUserMREvent[]>(),
   issueMeta: {},
