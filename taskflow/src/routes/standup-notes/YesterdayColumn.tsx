@@ -35,7 +35,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildRecentDayOptions, extractJiraKeyFromMessage } from '@/lib/standup-date';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
-import type { JiraActivityItem, StandupIssueMeta } from '@/services/jira';
+import type { JiraActivityItem, JiraCreatedIssue, StandupIssueMeta } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import type { TempoWorklog } from '@/services/tempo';
 import IssueActivityGroup, { type SubItem, type SubTaskSubGroup } from './IssueActivityGroup';
@@ -58,6 +58,7 @@ export interface YesterdayColumnProps {
   jiraActivityQuery: UseQueryResult<JiraActivityItem[], Error>;
   commitsQuery: UseQueryResult<GitLabCommit[], Error>;
   mrEventsQuery: UseQueryResult<GitLabUserMREvent[], Error>;
+  jiraCreatedQuery: UseQueryResult<JiraCreatedIssue[], Error>;
   /** Resolved issue key → metadata map for icons + parent-story rollup grouping. */
   issueMeta: Record<string, StandupIssueMeta>;
   /** Navigate to the issue detail page (threads the breadcrumb trail). */
@@ -160,6 +161,7 @@ export interface MarkdownSources {
   jiraData?: JiraActivityItem[];
   commitsData?: GitLabCommit[];
   mrEventsData?: GitLabUserMREvent[];
+  createdData?: JiraCreatedIssue[];
   issueMeta?: Record<string, StandupIssueMeta>;
 }
 
@@ -182,6 +184,7 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
     sources.jiraData,
     sources.commitsData,
     sources.mrEventsData,
+    sources.createdData,
     sources.issueMeta,
   );
 
@@ -259,6 +262,7 @@ function buildGroups(
   jiraData?: JiraActivityItem[],
   commitsData?: GitLabCommit[],
   mrEventsData?: GitLabUserMREvent[],
+  createdData?: JiraCreatedIssue[],
   issueMeta?: Record<string, StandupIssueMeta>,
 ): {
   issueGroups: IssueGroup[];
@@ -306,6 +310,13 @@ function buildGroups(
     };
     issueMap.set(rollupKey, group);
     return group;
+  }
+
+  // 0. Seed created issues first (pass 0) so the "Created" sub-item always
+  //    appears as the first entry in each group's insertion order.
+  for (const created of createdData ?? []) {
+    const group = ensureGroup(created.issueKey, created.summary, created.issueType);
+    group.subItems.push({ kind: 'issue-created', label: 'Created', originKey: created.issueKey });
   }
 
   // 1. Seed from Tempo worklogs. One sub-item per raw worklog entry — duration +
@@ -542,6 +553,7 @@ export default function YesterdayColumn({
   jiraActivityQuery,
   commitsQuery,
   mrEventsQuery,
+  jiraCreatedQuery,
   issueMeta,
   onIssueClick,
   onOpenIssue,
@@ -580,9 +592,17 @@ export default function YesterdayColumn({
         jiraActivityQuery.data,
         commitsQuery.data,
         mrEventsQuery.data,
+        jiraCreatedQuery.data,
         issueMeta,
       ),
-    [tempoQuery.data, jiraActivityQuery.data, commitsQuery.data, mrEventsQuery.data, issueMeta],
+    [
+      tempoQuery.data,
+      jiraActivityQuery.data,
+      commitsQuery.data,
+      mrEventsQuery.data,
+      jiraCreatedQuery.data,
+      issueMeta,
+    ],
   );
 
   // Stat line figures (D-10)
@@ -802,6 +822,19 @@ export default function YesterdayColumn({
           />
         </div>
       ) : mrEventsQuery.isLoading && !mrEventsQuery.data ? (
+        <LoadingSkeletons />
+      ) : null}
+
+      {/* ── Created issues section ─────────────────────────────────────── */}
+      {jiraCreatedQuery.isError ? (
+        <div className="mb-3">
+          <ErrorState
+            error={jiraCreatedQuery.error}
+            onRetry={() => void jiraCreatedQuery.refetch()}
+            viewName="Created issues"
+          />
+        </div>
+      ) : jiraCreatedQuery.isLoading && !jiraCreatedQuery.data ? (
         <LoadingSkeletons />
       ) : null}
     </div>
