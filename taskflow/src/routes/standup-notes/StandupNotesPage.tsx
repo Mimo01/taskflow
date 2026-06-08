@@ -21,7 +21,12 @@ import {
   resolveYesterdayDate,
 } from '@/lib/standup-date';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
-import { fetchUserCommits, fetchUserMREvents, validateGitLab } from '@/services/gitlab';
+import {
+  fetchGitLabUsers,
+  fetchUserCommits,
+  fetchUserMREvents,
+  validateGitLab,
+} from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import {
   fetchIssueMeta,
@@ -179,6 +184,64 @@ export default function StandupNotesPage() {
     }
   }, [gitlabBaseUrl]);
 
+  // When watching another person, resolve their full GitLab identity via a user
+  // search so commit and MR matching uses all three vectors (id, username, email)
+  // instead of just a display-name equality guess.
+  // Pitfall 3 guard is preserved: if the lookup returns no results, resolvedId
+  // still has null GitLab fields — we never fall back to the logged-in user's identity.
+  const watchedGitlabUserQuery = useQuery({
+    queryKey: [
+      'standup',
+      'gitlab-user-search',
+      gitlabBaseUrl,
+      id.jiraUserDisplayName ?? '',
+    ],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token) throw new Error('No GitLab token');
+      return fetchGitLabUsers(gitlabBaseUrl ?? '', token, id.jiraUserDisplayName ?? '');
+    },
+    enabled: id.isWatched && !!id.jiraUserDisplayName && !!gitlabBaseUrl && !!gitlabToken,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  // All GitLab accounts to use for commit matching.
+  // Prefers exact display-name matches (catches multiple accounts belonging to the same
+  // person). Falls back to all search results when no exact match exists — any GitLab
+  // result is more precise than matching by Jira display name alone. Returns null only
+  // when the search returns nothing at all.
+  const resolvedGitlabUsers = useMemo(() => {
+    if (!id.isWatched) return null;
+    const results = watchedGitlabUserQuery.data;
+    if (!results || results.length === 0) return null;
+    const displayName = (id.jiraUserDisplayName ?? '').toLowerCase();
+    const exact = results.filter((u) => u.name.toLowerCase() === displayName);
+    return exact.length > 0 ? exact : results;
+  }, [id.isWatched, id.jiraUserDisplayName, watchedGitlabUserQuery.data]);
+
+  // Best-match single account — used for mrEventsQuery (needs a numeric user id)
+  // and as the resolved identity for the "not matched" hint.
+  const resolvedId = useMemo(() => {
+    if (!id.isWatched) return id;
+    const results = watchedGitlabUserQuery.data;
+    if (!results || results.length === 0) return id;
+    const displayName = (id.jiraUserDisplayName ?? '').toLowerCase();
+    const match = results.find((u) => u.name.toLowerCase() === displayName) ?? results[0];
+    return {
+      ...id,
+      gitlabUserId: match.id,
+      gitlabUsername: match.username,
+      gitlabName: match.name,
+      gitlabEmail: match.email,
+    };
+  }, [id, watchedGitlabUserQuery.data]);
+
+  // Stable key for the commits query that changes whenever the set of resolved accounts changes.
+  const resolvedAccountsKey = useMemo(
+    () => resolvedGitlabUsers?.map((u) => u.username).sort().join(',') ?? '',
+    [resolvedGitlabUsers],
+  );
+
   // Backfill gitlabName/gitlabEmail for users who connected before these were
   // persisted. Commit author matching needs the display name and email (git
   // author_name/author_email), which the login username does not provide. Self-heal
@@ -300,45 +363,61 @@ export default function StandupNotesPage() {
       gitlabBaseUrl,
       activeGitlabProject,
       yesterdayDate,
-      id.gitlabUsername ?? '',
-      id.gitlabName ?? '',
-      id.gitlabEmail ?? '',
+      // For a watched person this covers all resolved accounts; for self it's the single identity.
+      resolvedAccountsKey || resolvedId.gitlabUsername || resolvedId.gitlabName || '',
     ],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
+      // When all accounts are resolved, pass arrays so every account is matched.
+      // For the self-user case (not watched) resolvedGitlabUsers is null — use single values.
+      const usernames = resolvedGitlabUsers
+        ? resolvedGitlabUsers.map((u) => u.username)
+        : [resolvedId.gitlabUsername ?? ''];
+      // Always include the Jira display name alongside GitLab profile names — someone's
+      // git config may match their Jira name but not their GitLab profile name exactly.
+      const names = resolvedGitlabUsers
+        ? [...resolvedGitlabUsers.map((u) => u.name), id.jiraUserDisplayName].filter(
+            (n): n is string => !!n,
+          )
+        : [resolvedId.gitlabName ?? ''];
+      const emails = resolvedGitlabUsers
+        ? resolvedGitlabUsers.map((u) => u.email)
+        : [resolvedId.gitlabEmail];
       return fetchUserCommits(
         gitlabBaseUrl ?? '',
         token,
         activeGitlabProject ?? 0,
         yesterdayDate,
-        id.gitlabUsername ?? '',
-        id.gitlabName,
-        id.gitlabEmail,
+        usernames,
+        names,
+        emails,
       );
     },
-    // For a watched person id.gitlabUsername/Email are null but id.gitlabName is
-    // their Jira display name — so commits run via best-effort name-only matching
-    // (NOT a fallback to my GitLab id; the YesterdayColumn surfaces a hint for this).
     enabled:
       !!gitlabBaseUrl &&
       !!gitlabToken &&
       !!activeGitlabProject &&
       !!yesterdayDate &&
-      (!!id.gitlabUsername || !!id.gitlabName),
+      (!!resolvedId.gitlabUsername || !!resolvedId.gitlabName),
     staleTime: 5 * 60 * 1000,
   });
 
   const mrEventsQuery = useQuery({
-    queryKey: ['standup', 'mr-events', gitlabBaseUrl, id.gitlabUserId, yesterdayDate],
+    queryKey: ['standup', 'mr-events', gitlabBaseUrl, resolvedId.gitlabUserId, yesterdayDate],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchUserMREvents(gitlabBaseUrl ?? '', token, id.gitlabUserId ?? 0, yesterdayDate);
+      return fetchUserMREvents(
+        gitlabBaseUrl ?? '',
+        token,
+        resolvedId.gitlabUserId ?? 0,
+        yesterdayDate,
+      );
     },
-    // id.gitlabUserId is null for a watched person → this disables (Pitfall 3:
-    // never fall back to the logged-in user's MR events).
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!id.gitlabUserId && !!yesterdayDate,
+    // resolvedId.gitlabUserId is null until the GitLab user lookup resolves — this
+    // disables until we have a real id (Pitfall 3: never fall back to logged-in user).
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!resolvedId.gitlabUserId && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -509,6 +588,7 @@ export default function StandupNotesPage() {
             onMRClick={onMRClick}
             isWatched={id.isWatched}
             watchedDisplayName={id.jiraUserDisplayName}
+            watchedGitlabResolved={id.isWatched && resolvedId.gitlabUserId !== null}
           />
         </div>
 
@@ -518,7 +598,7 @@ export default function StandupNotesPage() {
             onIssueClick={onIssueClick}
             onOpenIssue={onOpenIssue}
             onMRClick={onMRClick}
-            watchedGitlabUserId={id.gitlabUserId}
+            watchedGitlabUserId={resolvedId.gitlabUserId}
             watchedDisplayName={id.jiraUserDisplayName}
             isWatched={id.isWatched}
           />
