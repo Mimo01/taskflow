@@ -803,6 +803,61 @@ export async function fetchYesterdayJiraActivity(
   return perIssue.filter((r) => r.transitions.length > 0 || r.comments.length > 0);
 }
 
+/** A Jira issue created by the active user on the standup date. */
+export interface JiraCreatedIssue {
+  issueKey: string;
+  summary: string;
+  issueType?: string;
+}
+
+/**
+ * Fetch issues created by `jiraUsername` in `projectKey` on `date`.
+ *
+ * Uses `reporter =` JQL (the standard Jira DC field for issue creator).
+ * nextDay is computed TZ-safe from local date components — never
+ * toLocaleDateString() (Phase 62 standing rule).
+ */
+export async function fetchYesterdayCreatedIssues(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  date: string,
+  jiraUsername: string,
+): Promise<JiraCreatedIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  const [y, m, d] = date.split('-').map(Number);
+  const next = new Date(y, m - 1, d + 1);
+  const nextDay = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND reporter = "${jiraUsername}" AND created >= "${date}" AND created < "${nextDay}" ORDER BY created ASC`,
+  );
+  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=50&fields=summary,issuetype`;
+
+  const response = await apiFetch('jira', url, { headers }, 'Load Standup Created Issues');
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch created issues', response.status, 'jira');
+    }
+    throw new Error(`Jira created issues fetch failed: ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    issues?: Array<{
+      key: string;
+      fields: { summary: string; issuetype?: { name: string } };
+    }>;
+  };
+
+  return (data.issues ?? []).map((issue) => ({
+    issueKey: issue.key,
+    summary: issue.fields.summary,
+    issueType: issue.fields.issuetype?.name,
+  }));
+}
+
 /** Per-issue metadata the Standup recap needs for icons + parent-story grouping. */
 export interface StandupIssueMeta {
   /** Issue type name (e.g. "Story", "Bug", "Sub-task"). */
