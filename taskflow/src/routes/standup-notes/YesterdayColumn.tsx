@@ -71,6 +71,8 @@ export interface YesterdayColumnProps {
   isWatched?: boolean;
   /** Effective display name — used in the watched-person commits hint. */
   watchedDisplayName?: string | null;
+  /** True when the watched person's GitLab account was resolved via user search — suppresses the display-name-only warning. */
+  watchedGitlabResolved?: boolean;
 }
 
 /** Internal shape of a joined issue group (used for rendering + markdown). */
@@ -560,6 +562,7 @@ export default function YesterdayColumn({
   onMRClick,
   isWatched = false,
   watchedDisplayName,
+  watchedGitlabResolved = false,
 }: YesterdayColumnProps) {
   // 14-day calendar option list — most-recent-first.
   // The resolved-default row always carries a tag so it reads as the default:
@@ -666,9 +669,9 @@ export default function YesterdayColumn({
         </DropdownMenu>
       </div>
 
-      {/* Watching a teammate: commits are matched by display name only (no GitLab id),
-          so make the absence of authoritative matching explicit — it may be incomplete. */}
-      {isWatched && (
+      {/* Watching a teammate: show a warning when commits are matched by display name only
+          (GitLab account not resolved). Suppressed once the user-search lookup succeeds. */}
+      {isWatched && !watchedGitlabResolved && (
         <p className="text-xs text-muted-foreground mb-4">
           Commits matched by display name for {watchedDisplayName ?? 'this person'} — may be
           incomplete.

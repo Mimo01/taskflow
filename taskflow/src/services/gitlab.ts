@@ -82,6 +82,44 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
 }
 
 /**
+ * Search GitLab users by name/username — used to resolve a watched person's
+ * full GitLab identity (id, username, email) from their Jira display name.
+ * Returns up to 100 candidates (GitLab's max per_page); callers are responsible
+ * for filtering to exact-name matches so common names don't pull in unrelated people.
+ */
+export async function fetchGitLabUsers(
+  baseUrl: string,
+  token: string,
+  search: string,
+): Promise<GitLabUser[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/users?search=${encodeURIComponent(search)}&per_page=100`;
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      { headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' } },
+      'Search GitLab Users',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to search users', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to search users: status ${response.status}`);
+  }
+  const data = (await response.json()) as Array<{
+    id: number;
+    name: string;
+    username: string;
+    email?: string | null;
+  }>;
+  return data.map((u) => ({ id: u.id, name: u.name, username: u.username, email: u.email ?? null }));
+}
+
+/**
  * List all GitLab groups visible to the authenticated user.
  *
  * @param baseUrl - GitLab base URL
@@ -1200,9 +1238,9 @@ export async function fetchUserCommits(
   token: string,
   projectId: number,
   date: string,
-  authorUsername: string,
-  authorName?: string | null,
-  authorEmail?: string | null,
+  authorUsername: string | readonly string[],
+  authorName?: string | readonly (string | null | undefined)[] | null,
+  authorEmail?: string | readonly (string | null | undefined)[] | null,
 ): Promise<GitLabCommit[]> {
   const base = baseUrl.replace(/\/$/, '');
   // Cover the user's LOCAL day: parse local midnight boundaries, then convert to
@@ -1255,35 +1293,75 @@ export async function fetchUserCommits(
   // not the login username. Match against BOTH the display name and the login,
   // case-insensitively: author_name equals either identity, or author_email
   // contains either. Empty/absent identities are skipped so they never match all.
-  const identities = [authorName, authorUsername]
+  // Accepts arrays to cover users with multiple GitLab accounts across companies.
+  const usernames = Array.isArray(authorUsername) ? authorUsername : [authorUsername];
+  const names = Array.isArray(authorName) ? authorName : [authorName];
+  const emails = Array.isArray(authorEmail) ? authorEmail : [authorEmail];
+
+  const identities = [...names, ...usernames]
     .filter((v): v is string => !!v && v.trim().length > 0)
     .map((v) => v.toLowerCase());
 
-  // Email-name match: compare the user's GitLab email "name" against each commit's.
-  const userEmailName = authorEmail ? emailLocalName(authorEmail) : '';
+  // Email-name match across all accounts: compare local-part of each email against commits.
+  const userEmailNames = emails
+    .filter((e): e is string => !!e)
+    .map(emailLocalName)
+    .filter((n) => n.length > 0);
+
+  // Extract significant name words: split on all punctuation/brackets/spaces,
+  // strip trailing digits from each token (e.g. "slavka1" → "slavka"), keep only
+  // all-letter tokens of length ≥ 4. This discards dept suffixes like "osk"/"ext"
+  // that appear in Jira/LDAP display names but never in git author names.
+  const significantWordSets = names
+    .filter((n): n is string => !!n && n.trim().length > 0)
+    .map((n) =>
+      n
+        .toLowerCase()
+        .split(/[\s,._\-()\[\]{}+]+/)
+        .map((w) => w.replace(/\d+$/, ''))
+        .filter((w) => /^[a-z]+$/.test(w) && w.length >= 4),
+    )
+    .filter((words) => words.length >= 2);
 
   return unique.filter((c) => {
     const name = c.author_name.toLowerCase();
     const email = c.author_email.toLowerCase();
     if (identities.some((id) => name === id || email.includes(id))) return true;
-    if (userEmailName) {
+    if (userEmailNames.length > 0) {
       const commitEmailName = emailLocalName(email);
-      if (commitEmailName && commitEmailName === userEmailName) return true;
+      if (commitEmailName && userEmailNames.includes(commitEmailName)) return true;
     }
+    // Word-based fallback: at least 2 significant name words match between the identity
+    // and the commit author name. Handles surname-first display names ("Dobrotova Slavka
+    // OSK (ext.)") matching git names in firstname-surname order ("Slavka Dobrotova"),
+    // different capitalisation, and department suffixes being absent from git names.
+    const authorWords = name
+      .split(/[\s,._\-()\[\]{}+]+/)
+      .map((w) => w.replace(/\d+$/, ''));
+    if (
+      significantWordSets.some(
+        (words) => words.filter((w) => authorWords.includes(w)).length >= 2,
+      )
+    )
+      return true;
     return false;
   });
 }
 
 /**
- * Normalize an email to a comparable "name" for commit-author matching: the local
- * part before "@", lowercased, with any trailing digits stripped. Domain is ignored
- * and numbered aliases collapse, so "john.doe@example.com", "john.doe@company.com",
- * and "john.doe1@example.com" all yield "john.doe". Returns '' when no usable local
- * part remains (e.g. all-digit locals), so empty names never match each other.
+ * Normalize an email to a comparable "name" for commit-author matching. Strips
+ * trailing digits from each dot-separated segment so numbered aliases collapse:
+ * "john.doe@example.com", "john1.doe@example.com", "john.doe1@company.com" all
+ * yield "john.doe". All-digit segments (e.g. the "2" in "john.2.doe") are dropped.
+ * Domain is ignored. Returns '' when no usable segments remain.
  */
 function emailLocalName(email: string): string {
   const local = email.toLowerCase().split('@')[0] ?? '';
-  return local.replace(/\d+$/, '');
+  return local
+    .split('.')
+    .map((seg) => seg.replace(/\d+$/, ''))
+    .filter((seg) => seg.length > 0)
+    .join('.');
 }
 
 /**
