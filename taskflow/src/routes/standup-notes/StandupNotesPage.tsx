@@ -23,7 +23,7 @@ import {
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchUserCommits, fetchUserMREvents, validateGitLab } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { fetchIssueMeta, fetchYesterdayJiraActivity } from '@/services/jira';
+import { fetchIssueMeta, fetchYesterdayCreatedIssues, fetchYesterdayJiraActivity } from '@/services/jira';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
@@ -264,6 +264,31 @@ export default function StandupNotesPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const jiraCreatedQuery = useQuery({
+    queryKey: [
+      'standup',
+      'jira-created',
+      jiraBaseUrl,
+      activeJiraProject,
+      yesterdayDate,
+      id.jiraUsername ?? '',
+    ],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No Jira token');
+      return fetchYesterdayCreatedIssues(
+        jiraBaseUrl ?? '',
+        token,
+        activeJiraProject ?? '',
+        yesterdayDate,
+        id.jiraUsername ?? '',
+      );
+    },
+    enabled:
+      !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!id.jiraUsername && !!yesterdayDate,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const commitsQuery = useQuery({
     queryKey: [
       'standup',
@@ -321,6 +346,7 @@ export default function StandupNotesPage() {
     const keys = new Set<string>();
     for (const w of tempoQuery.data ?? []) keys.add(w.issue.key);
     for (const a of jiraActivityQuery.data ?? []) keys.add(a.issueKey);
+    for (const c of jiraCreatedQuery.data ?? []) keys.add(c.issueKey);
     for (const c of commitsQuery.data ?? []) {
       const k = extractJiraKeyFromMessage(c.message) ?? extractJiraKeyFromMessage(c.title);
       if (k) keys.add(k);
@@ -330,7 +356,7 @@ export default function StandupNotesPage() {
       if (k) keys.add(k);
     }
     return [...keys].sort();
-  }, [tempoQuery.data, jiraActivityQuery.data, commitsQuery.data, mrEventsQuery.data]);
+  }, [tempoQuery.data, jiraActivityQuery.data, jiraCreatedQuery.data, commitsQuery.data, mrEventsQuery.data]);
 
   const issueMetaQuery = useQuery({
     queryKey: ['standup', 'issue-meta', jiraBaseUrl, referencedKeys],
@@ -361,17 +387,19 @@ export default function StandupNotesPage() {
   const sprintFetching = useIsFetching({ queryKey: ['jira-issues', 'sprint-board-today-full'] });
   const isRefreshing = standupFetching + sprintFetching > 0;
 
-  // ─ "synced Xm ago" — earliest dataUpdatedAt across all four loaded queries ─
+  // ─ "synced Xm ago" — earliest dataUpdatedAt across all five loaded queries ─
   const syncedMinutesAgo = useMemo(() => {
     return computeSyncedMinutesAgo([
       tempoQuery.dataUpdatedAt ? new Date(tempoQuery.dataUpdatedAt) : undefined,
       jiraActivityQuery.dataUpdatedAt ? new Date(jiraActivityQuery.dataUpdatedAt) : undefined,
+      jiraCreatedQuery.dataUpdatedAt ? new Date(jiraCreatedQuery.dataUpdatedAt) : undefined,
       commitsQuery.dataUpdatedAt ? new Date(commitsQuery.dataUpdatedAt) : undefined,
       mrEventsQuery.dataUpdatedAt ? new Date(mrEventsQuery.dataUpdatedAt) : undefined,
     ]);
   }, [
     tempoQuery.dataUpdatedAt,
     jiraActivityQuery.dataUpdatedAt,
+    jiraCreatedQuery.dataUpdatedAt,
     commitsQuery.dataUpdatedAt,
     mrEventsQuery.dataUpdatedAt,
   ]);
@@ -393,6 +421,7 @@ export default function StandupNotesPage() {
         jiraData: jiraActivityQuery.data,
         commitsData: commitsQuery.data,
         mrEventsData: mrEventsQuery.data,
+        createdData: jiraCreatedQuery.data,
         issueMeta: issueMetaQuery.data,
       },
       yesterdayDate,
@@ -463,6 +492,7 @@ export default function StandupNotesPage() {
             jiraActivityQuery={jiraActivityQuery}
             commitsQuery={commitsQuery}
             mrEventsQuery={mrEventsQuery}
+            jiraCreatedQuery={jiraCreatedQuery}
             issueMeta={issueMetaQuery.data ?? {}}
             onIssueClick={onIssueClick}
             onOpenIssue={onOpenIssue}
