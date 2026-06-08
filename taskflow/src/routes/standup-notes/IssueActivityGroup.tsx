@@ -139,25 +139,25 @@ function SubItemList({
             // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
             key={i}
             type="button"
-            className="w-full text-left flex items-start gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             onClick={() => onIssueClick?.(item.issueKey ?? '')}
           >
-            <SubIcon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+            <SubIcon className="size-4 shrink-0 text-muted-foreground" />
             {item.kind === 'worklog' ? (
-              <div className="flex-1 min-w-0 flex flex-col">
-                <span className="text-sm text-foreground">{item.label}</span>
-                <p className="text-xs text-muted-foreground truncate">
-                  {item.description ?? '(no description)'}
-                </p>
-              </div>
+              <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                {item.label}
+                {item.description && (
+                  <span className="text-muted-foreground"> · {item.description}</span>
+                )}
+              </span>
             ) : (
               <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
             )}
           </button>
         ) : (
           // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-          <div key={i} className="flex items-start gap-2 py-1.5 px-2">
-            <SubIcon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+          <div key={i} className="flex items-center gap-2 py-1.5 px-2">
+            <SubIcon className="size-4 shrink-0 text-muted-foreground" />
             {item.kind === 'transition' && item.transition != null ? (
               // Styled transition: two status pills + muted arrow, mirroring StatusPopover.
               // statusPillClass owns all geometry; the flex wrapper provides the flex parent.
@@ -171,12 +171,12 @@ function SubItemList({
                 </span>
               </div>
             ) : item.kind === 'worklog' ? (
-              <div className="flex-1 min-w-0 flex flex-col">
-                <span className="text-sm text-foreground">{item.label}</span>
-                <p className="text-xs text-muted-foreground truncate">
-                  {item.description ?? '(no description)'}
-                </p>
-              </div>
+              <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                {item.label}
+                {item.description && (
+                  <span className="text-muted-foreground"> · {item.description}</span>
+                )}
+              </span>
             ) : (
               <span className="flex-1 min-w-0 truncate text-sm text-foreground">{item.label}</span>
             )}
