@@ -190,13 +190,21 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
   for (const group of issueGroups) {
     lines.push(`### ${group.issueKey}: ${group.summary}`);
     for (const item of group.subItems) {
-      lines.push(`- ${item.label}`);
+      const text =
+        item.kind === 'worklog' && item.description
+          ? `${item.label} · ${item.description}`
+          : item.label;
+      lines.push(`- ${text}`);
     }
     // Nested sub-task sub-groups: 2-space indented sub-task line, 4-space indented items.
     for (const st of group.subTaskGroups) {
       lines.push(`  - ${st.issueKey}: ${st.summary}`);
       for (const item of st.subItems) {
-        lines.push(`    - ${item.label}`);
+        const text =
+          item.kind === 'worklog' && item.description
+            ? `${item.label} · ${item.description}`
+            : item.label;
+        lines.push(`    - ${text}`);
       }
     }
     lines.push('');
@@ -300,43 +308,28 @@ function buildGroups(
     return group;
   }
 
-  // 1. Seed from Tempo worklogs. Time rolls into the group total AND surfaces as
-  //    a per-logged-issue sub-item, so a sub-task you logged on stays visible
-  //    (with its own hours) under its parent story rather than vanishing into a
-  //    single aggregate. Multiple entries on the same issue are summed.
-  const worklogByGroup = new Map<string, Map<string, { seconds: number; summary: string }>>();
+  // 1. Seed from Tempo worklogs. One sub-item per raw worklog entry — duration +
+  //    description, no aggregation. The group total (stat line) still sums all seconds.
   for (const worklog of tempoData ?? []) {
     const group = ensureGroup(
       worklog.issue.key,
       worklog.issue.summary,
       worklog.issue.issueType?.name,
     );
-    group.totalSeconds += worklog.timeSpentSeconds;
+    group.totalSeconds += worklog.timeSpentSeconds; // stat line unchanged
 
-    const perIssue =
-      worklogByGroup.get(group.issueKey) ?? new Map<string, { seconds: number; summary: string }>();
-    const entry = perIssue.get(worklog.issue.key) ?? {
-      seconds: 0,
-      summary: worklog.issue.summary ?? worklog.issue.key,
-    };
-    entry.seconds += worklog.timeSpentSeconds;
-    perIssue.set(worklog.issue.key, entry);
-    worklogByGroup.set(group.issueKey, perIssue);
-  }
-  for (const [groupKey, perIssue] of worklogByGroup) {
-    const group = issueMap.get(groupKey);
-    if (!group) continue;
-    for (const [issueKey, { seconds, summary }] of perIssue) {
-      group.subItems.push({
-        kind: 'worklog',
-        label: `${formatDuration(seconds)} · ${issueKey} ${summary}`,
-        // When the worklog issue differs from the group key (subtask rolled up
-        // to parent), carry the original key so the row is clickable to the subtask.
-        issueKey: issueKey !== groupKey ? issueKey : undefined,
-        // Tag the origin key for the sub-task partition pass.
-        originKey: issueKey,
-      });
-    }
+    const rollupKey = group.issueKey;
+    const originKey = worklog.issue.key;
+    group.subItems.push({
+      kind: 'worklog',
+      label: formatDuration(worklog.timeSpentSeconds),
+      description: worklog.comment || undefined,
+      // When the worklog issue differs from the group key (subtask rolled up
+      // to parent), carry the original key so the row is clickable to the subtask.
+      issueKey: originKey !== rollupKey ? originKey : undefined,
+      // Tag the origin key for the sub-task partition pass.
+      originKey,
+    });
   }
 
   // 2. Add Jira transitions + comments
