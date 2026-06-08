@@ -2,6 +2,19 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.12.1] — 2026-06-08
+
+### Added
+
+- **Standup Notes — created issues in Yesterday** — the Yesterday column now includes a "Created" section showing Jira issues you created that day, so work you kicked off is captured alongside activity and worklogs.
+- **Standup Notes — worklog descriptions** — worklog entries now show a second line with the log description (when present), replacing the previous single-line summary.
+
+### Fixed
+
+- **Standup Notes — worklog display** — worklog rows now collapse to a single flat line per entry with a muted description, instead of accumulating into an unlabelled group.
+- **Standup Notes — JQL escaping and loading guards** — project keys with special characters are now correctly escaped in JQL queries; loading guards prevent stale renders while data is in-flight.
+- **Standup Notes — watched-person GitLab identity** — switching to a watched person now correctly resolves their GitLab user for commit matching, so MRs and commits attributed to teammates show up reliably.
+
 ## [1.12.0] — 2026-06-07
 
 ### Added
