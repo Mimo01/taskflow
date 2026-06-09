@@ -613,6 +613,16 @@ export function preprocessJiraMarkup(
   result = result.replace(/\{\*\}(.*?)\{\*\}/gs, '<strong>$1</strong>');
   result = result.replace(/\{_\}(.*?)\{_\}/gs, '<em>$1</em>');
 
+  // Triple-brace teletype: Jira {{{TEXT}}} (triple curly brace) is a teletype / monospace
+  // macro that jira2md does not handle. jira2md's {{...}} double-brace → backtick code
+  // regex partially matches {{{TEXT}}} — it consumes the inner {{TEXT}} and leaves a
+  // stray leading `{` and trailing `}` as literal characters in the output.
+  // Fix: consume the full triple-brace span HERE (before jira2md) and emit raw <tt>TEXT</tt>.
+  // The `s` flag allows content to span newlines (consistent with {*} and {_} replacements).
+  // <tt> is in defaultSchema.tagNames and passes through rehype-sanitize untouched.
+  // MUST run before the {{[link]}} guard below so {{{[URL]}}} is consumed as a single unit.
+  result = result.replace(/\{\{\{(.*?)\}\}\}/gs, '<tt>$1</tt>');
+
   // Monospace-wrapped links: Jira allows {{[URL]}} and {{[display|URL]}} — the outer
   // {{...}} is Jira monospace syntax (equivalent to backtick code). jira2md converts
   // {{...}} to a backtick-delimited inline code span; inside code spans, markdown link
