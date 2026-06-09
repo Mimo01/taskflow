@@ -1166,75 +1166,77 @@ export default function AioCycleDetailPage() {
                     No defects match the selected filters.
                   </p>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead className="border-b bg-muted/10">
-                      <tr>
-                        <SortableHeader
-                          sortKey="key"
-                          label="Key"
-                          className="w-36"
-                          activeSortKey={defectSortKey}
-                          activeSortDir={defectSortDir}
-                          onSort={handleSortHeader}
-                        />
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                          Title
-                        </th>
-                        <SortableHeader
-                          sortKey="status"
-                          label="Status"
-                          className="w-32"
-                          activeSortKey={defectSortKey}
-                          activeSortDir={defectSortDir}
-                          onSort={handleSortHeader}
-                        />
-                        <SortableHeader
-                          sortKey="assignee"
-                          label="Assignee"
-                          className="w-32"
-                          activeSortKey={defectSortKey}
-                          activeSortDir={defectSortDir}
-                          onSort={handleSortHeader}
-                        />
-                        <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                          Reporter
-                        </th>
-                        <SortableHeader
-                          sortKey="priority"
-                          label="Priority"
-                          className="w-24"
-                          activeSortKey={defectSortKey}
-                          activeSortDir={defectSortDir}
-                          onSort={handleSortHeader}
-                        />
-                        <SortableHeader
-                          sortKey="severity"
-                          label="Severity"
-                          className="w-24"
-                          activeSortKey={defectSortKey}
-                          activeSortDir={defectSortDir}
-                          onSort={handleSortHeader}
-                        />
-                        <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                          Triggered By
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedDefects.map(
-                        ({ defectKey, triggeredBy, issue, isLoading: defectLoading }) => (
-                          <DefectRow
-                            key={defectKey}
-                            defectIdOrKey={defectKey}
-                            issue={issue}
-                            isLoading={defectLoading}
-                            triggeredBy={triggeredBy}
-                            onOpen={onOpenIssue ?? (() => {})}
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[860px] text-sm">
+                      <thead className="border-b bg-muted/10">
+                        <tr>
+                          <SortableHeader
+                            sortKey="key"
+                            label="Key"
+                            className="w-36"
+                            activeSortKey={defectSortKey}
+                            activeSortDir={defectSortDir}
+                            onSort={handleSortHeader}
                           />
-                        ),
-                      )}
-                    </tbody>
-                  </table>
+                          <th className="min-w-[200px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                            Title
+                          </th>
+                          <SortableHeader
+                            sortKey="status"
+                            label="Status"
+                            className="w-32"
+                            activeSortKey={defectSortKey}
+                            activeSortDir={defectSortDir}
+                            onSort={handleSortHeader}
+                          />
+                          <SortableHeader
+                            sortKey="assignee"
+                            label="Assignee"
+                            className="w-32"
+                            activeSortKey={defectSortKey}
+                            activeSortDir={defectSortDir}
+                            onSort={handleSortHeader}
+                          />
+                          <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                            Reporter
+                          </th>
+                          <SortableHeader
+                            sortKey="priority"
+                            label="Priority"
+                            className="w-24"
+                            activeSortKey={defectSortKey}
+                            activeSortDir={defectSortDir}
+                            onSort={handleSortHeader}
+                          />
+                          <SortableHeader
+                            sortKey="severity"
+                            label="Severity"
+                            className="w-24"
+                            activeSortKey={defectSortKey}
+                            activeSortDir={defectSortDir}
+                            onSort={handleSortHeader}
+                          />
+                          <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                            Triggered By
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedDefects.map(
+                          ({ defectKey, triggeredBy, issue, isLoading: defectLoading }) => (
+                            <DefectRow
+                              key={defectKey}
+                              defectIdOrKey={defectKey}
+                              issue={issue}
+                              isLoading={defectLoading}
+                              triggeredBy={triggeredBy}
+                              onOpen={onOpenIssue ?? (() => {})}
+                            />
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </>
             )}
