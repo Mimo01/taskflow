@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: Milestone v1.12 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-09 - Completed quick task 260609-hvu: wizard expandable error log panel (JiraStep + GitLabStep)
+Last activity: 2026-06-09 - Approved & closed quick task 260609-hvu: wizard expandable error log panel (JiraStep + GitLabStep)
 
 ## Performance Metrics
 
@@ -121,7 +121,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260609-fiq | When the app is in fullscreen mode, pressing esc shouldnt exit the fullscreen | 2026-06-09 | d2007c4c | Approved & closed | [260609-fiq-when-the-app-is-in-fullscreen-mode-press](./quick/260609-fiq-when-the-app-is-in-fullscreen-mode-press/) |
 | 260609-fs9 | In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days | 2026-06-09 | a9673c73 | Approved & closed | [260609-fs9-in-comments-or-other-places-when-showing](./quick/260609-fs9-in-comments-or-other-places-when-showing/) |
 | 260609-g7c | wiki renderer should render {{{TEST}}} in tt tags | 2026-06-09 | 62e5728b | Approved & closed | [260609-g7c-wiki-renderer-should-render-test-in-tt-t](./quick/260609-g7c-wiki-renderer-should-render-test-in-tt-t/) |
-| 260609-hvu | In wizard process, if there is an error it prints error message. But I want to be able to see advanced error with full log of what has happened | 2026-06-09 | 895e5743 | Needs Review | [260609-hvu-in-wizard-process-if-there-is-an-error-i](./quick/260609-hvu-in-wizard-process-if-there-is-an-error-i/) |
+| 260609-hvu | In wizard process, if there is an error it prints error message. But I want to be able to see advanced error with full log of what has happened | 2026-06-09 | 73de6187 | Approved & closed | [260609-hvu-in-wizard-process-if-there-is-an-error-i](./quick/260609-hvu-in-wizard-process-if-there-is-an-error-i/) |
 
 ## Deferred Items
 
