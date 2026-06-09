@@ -2,6 +2,26 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.12.2] — 2026-06-09
+
+### Added
+
+- **Setup wizard — expandable error log** — when the Jira or GitLab connection step encounters an error, an expandable panel shows the full event log so you can diagnose what went wrong without guessing.
+- **Setup wizard — save progress per step** — onboarding state is now saved at the end of each completed step, so restarting the wizard mid-flow resumes from where you left off.
+- **Command palette — always open full page** — selecting an issue from the command palette now navigates directly to the full issue page, bypassing the peek preview.
+- **Fullscreen ESC guard** — pressing Escape while the app is in fullscreen mode no longer exits fullscreen; the key is consumed so native fullscreen stays intact.
+- **Drag cancel with Escape** — pressing Escape during a drag on the backlog or sprint board cancels the drag and snaps the card back to its original position.
+- **Relative time — years + days** — time-ago labels (comments, issue detail, etc.) now show "1 year 3 days ago" for events over a year old, replacing the previous months-based fallback.
+- **Wiki renderer — triple-brace teletype** — `{{{...}}}` triple-brace macros now render as inline code/teletype, consistent with the `{{...}}` variant.
+- **AIO cycle defects — click to peek** — clicking a defect key on the AIO cycle defects page now opens the side peek preview; clicking the row title still opens the full page.
+
+### Fixed
+
+- **Setup wizard — Jira infinite render loop** — fixed a loop in JiraStep that triggered repeated board-sync calls, causing the wizard to stall.
+- **AIO cycle defects — breadcrumb navigation** — clicking a defect key now correctly pushes the issue route to the breadcrumb trail.
+- **AIO cycle defects — horizontal overflow** — the defects table no longer overflows on narrow windows; the table is now horizontally scrollable with minimum column widths.
+- **Wiki renderer — Jira teletype inner-brace format** — fixed `{{{TEXT}}}`-style macros (with extra inner braces) not rendering as teletype.
+
 ## [1.12.1] — 2026-06-08
 
 ### Added
