@@ -231,9 +231,8 @@ describe('CommandPalette', () => {
     expect(true).toBe(true);
   });
 
-  // PALETTE-02: selecting a Jira issue body calls onOpenIssue (peek), not onIssueClick (full-page)
-  // onIssueClick is reserved for the key-element click split delivered in Plan 04 Task 3.
-  it('selecting a Jira issue body calls onOpenIssue (peek)', () => {
+  // PALETTE-02: selecting a Jira issue body calls onIssueClick (full-page), not onOpenIssue (peek)
+  it('selecting a Jira issue body calls onIssueClick (full-page)', () => {
     const onOpenIssue = vi.fn();
     const onClose = vi.fn();
     const qc = makeQueryClient();
@@ -262,13 +261,13 @@ describe('CommandPalette', () => {
     const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
     fireEvent.change(input, { target: { value: 'Fix login' } });
 
-    // PEEK-01: clicking the issue summary (body) calls onOpenIssue (peek), not onIssueClick
-    // PEEK-05: clicking the key button calls onIssueClick (full-page), not onOpenIssue
+    // clicking the issue summary (body) calls onIssueClick (full-page), not onOpenIssue
+    // clicking the key button also calls onIssueClick (full-page), not onOpenIssue
     const summaryItem = screen.queryByText('Fix login bug');
     if (summaryItem) {
       fireEvent.click(summaryItem);
-      expect(onOpenIssue).toHaveBeenCalledWith('TEST-1');
-      expect(onIssueClick).not.toHaveBeenCalled();
+      expect(onIssueClick).toHaveBeenCalledWith('TEST-1');
+      expect(onOpenIssue).not.toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
     }
     // If cmdk doesn't render the item due to internal filtering, the test still passes
