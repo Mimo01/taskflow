@@ -54,7 +54,6 @@ export default function CommandPalette({
   open,
   onClose,
   onIssueClick,
-  onOpenIssue,
   onNavigate,
   onOpenNotifications,
   onOpenCreate,
