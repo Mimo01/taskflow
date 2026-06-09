@@ -27,7 +27,7 @@
  * action will own all manual refreshes.
  */
 
-import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { CollisionDetection, DragCancelEvent, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import {
   closestCenter,
   DndContext,
@@ -996,6 +996,16 @@ export default function BacklogPage() {
     });
   }
 
+  function handleDragCancel(_event: DragCancelEvent) {
+    isDraggingRef.current = false;
+    setActiveId(null);
+    // Re-clone localOrder so sortable rows reset their transforms against
+    // the current scroll position (same reason as the no-op path in handleDragEnd).
+    setLocalOrder((prev) => new Map(prev));
+    setRankError(null);
+    // No justDragged guard needed — ESC does not fire a click event.
+  }
+
   // Helper: get the server-derived issue keys for a given section id.
   function getSectionKeys(sectionId: string): string[] {
     if (sectionId === 'backlog') return backlogIssuesAdapted.map((i) => i.key);
@@ -1292,6 +1302,7 @@ export default function BacklogPage() {
             autoScroll={false}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <div>
               {/* Sprint sections (active first, then future) — `data.sprints[]` order */}
