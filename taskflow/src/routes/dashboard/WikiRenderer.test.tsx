@@ -127,6 +127,13 @@ describe('WikiRenderer', () => {
       expect(tt?.textContent).toBe('hello world');
     });
 
+    it('renders {{{}TEST{}}} (real Jira format with inner braces) as a <tt> element with textContent "TEST"', () => {
+      const { container } = render(<WikiRenderer wikiText="{{{}TEST{}}}" />);
+      const tt = container.querySelector('tt');
+      expect(tt).not.toBeNull();
+      expect(tt?.textContent).toBe('TEST');
+    });
+
     it('{{someCode}} double-brace monospace still renders as <code> (existing behaviour unchanged)', () => {
       const { container } = render(<WikiRenderer wikiText="{{someCode}}" />);
       const code = container.querySelector('code');

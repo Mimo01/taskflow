@@ -621,7 +621,7 @@ export function preprocessJiraMarkup(
   // The `s` flag allows content to span newlines (consistent with {*} and {_} replacements).
   // <tt> is in defaultSchema.tagNames and passes through rehype-sanitize untouched.
   // MUST run before the {{[link]}} guard below so {{{[URL]}}} is consumed as a single unit.
-  result = result.replace(/\{\{\{(.*?)\}\}\}/gs, '<tt>$1</tt>');
+  result = result.replace(/\{\{\{\}?(.*?)\{?\}\}\}/gs, '<tt>$1</tt>');
 
   // Monospace-wrapped links: Jira allows {{[URL]}} and {{[display|URL]}} — the outer
   // {{...}} is Jira monospace syntax (equivalent to backtick code). jira2md converts
