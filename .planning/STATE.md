@@ -120,7 +120,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260609-fbi | On sprint board or backlog view, when dragging an issue and pressing esc, it should cancel the drag action | 2026-06-09 | 488bd808 | Approved & closed | [260609-fbi-on-sprint-board-or-backlog-view-when-dra](./quick/260609-fbi-on-sprint-board-or-backlog-view-when-dra/) |
 | 260609-fiq | When the app is in fullscreen mode, pressing esc shouldnt exit the fullscreen | 2026-06-09 | d2007c4c | Approved & closed | [260609-fiq-when-the-app-is-in-fullscreen-mode-press](./quick/260609-fiq-when-the-app-is-in-fullscreen-mode-press/) |
 | 260609-fs9 | In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days | 2026-06-09 | a9673c73 | Approved & closed | [260609-fs9-in-comments-or-other-places-when-showing](./quick/260609-fs9-in-comments-or-other-places-when-showing/) |
-| 260609-g7c | wiki renderer should render {{{TEST}}} in tt tags | 2026-06-09 | 62e5728b | Needs Review | [260609-g7c-wiki-renderer-should-render-test-in-tt-t](./quick/260609-g7c-wiki-renderer-should-render-test-in-tt-t/) |
+| 260609-g7c | wiki renderer should render {{{TEST}}} in tt tags | 2026-06-09 | 62e5728b | Approved & closed | [260609-g7c-wiki-renderer-should-render-test-in-tt-t](./quick/260609-g7c-wiki-renderer-should-render-test-in-tt-t/) |
 
 ## Deferred Items
 
