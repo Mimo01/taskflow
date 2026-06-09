@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: Milestone v1.12 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-09 - Completed quick task 260609-fiq: When the app is in fullscreen mode, pressing esc shouldnt exit the fullscreen
+Last activity: 2026-06-09 - Completed quick task 260609-fs9: In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days
 
 ## Performance Metrics
 
@@ -119,6 +119,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260609-cmd | When searching for issues, always open them in full page, never just side preview | 2026-06-09 | c616c55a | Approved & closed | [260609-cmd-when-searching-for-issues-always-open-th](./quick/260609-cmd-when-searching-for-issues-always-open-th/) |
 | 260609-fbi | On sprint board or backlog view, when dragging an issue and pressing esc, it should cancel the drag action | 2026-06-09 | 488bd808 | Approved & closed | [260609-fbi-on-sprint-board-or-backlog-view-when-dra](./quick/260609-fbi-on-sprint-board-or-backlog-view-when-dra/) |
 | 260609-fiq | When the app is in fullscreen mode, pressing esc shouldnt exit the fullscreen | 2026-06-09 | d2007c4c | Approved & closed | [260609-fiq-when-the-app-is-in-fullscreen-mode-press](./quick/260609-fiq-when-the-app-is-in-fullscreen-mode-press/) |
+| 260609-fs9 | In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days | 2026-06-09 | a9673c73 | | [260609-fs9-in-comments-or-other-places-when-showing](./quick/260609-fs9-in-comments-or-other-places-when-showing/) |
 
 ## Deferred Items
 
