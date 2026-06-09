@@ -117,7 +117,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260608-dhp | On standup notes page, I want to add new watched thing to 'yesterday' column - created issues | 2026-06-08 | 86353a84 | Approved & closed | [260608-dhp-on-standup-notes-page-i-want-to-add-new-](./quick/260608-dhp-on-standup-notes-page-i-want-to-add-new-/) |
 | 260609-bzk | On aio cycle defects subpage, there are defects listed. Make clicking on them open the side preview as the rest of the app does (clicking on key opens full page) | 2026-06-09 | 45904afb | Approved & closed | [260609-bzk-on-aio-cycle-defects-subpage-there-are-d](./quick/260609-bzk-on-aio-cycle-defects-subpage-there-are-d/) |
 | 260609-cmd | When searching for issues, always open them in full page, never just side preview | 2026-06-09 | c616c55a | Approved & closed | [260609-cmd-when-searching-for-issues-always-open-th](./quick/260609-cmd-when-searching-for-issues-always-open-th/) |
-| 260609-fbi | On sprint board or backlog view, when dragging an issue and pressing esc, it should cancel the drag action | 2026-06-09 | 488bd808 | | [260609-fbi-on-sprint-board-or-backlog-view-when-dra](./quick/260609-fbi-on-sprint-board-or-backlog-view-when-dra/) |
+| 260609-fbi | On sprint board or backlog view, when dragging an issue and pressing esc, it should cancel the drag action | 2026-06-09 | 488bd808 | Approved & closed | [260609-fbi-on-sprint-board-or-backlog-view-when-dra](./quick/260609-fbi-on-sprint-board-or-backlog-view-when-dra/) |
 
 ## Deferred Items
 
