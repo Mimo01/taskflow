@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -728,16 +728,13 @@ export default function AioCycleDetailPage() {
     setDefectAssigneeFilter(new Set());
   };
 
+  const { onOpenIssue } = useOutletContext<{ onOpenIssue: (issueKey: string) => void }>();
+
   const cycleName = cycleQuery.data?.name ?? cycleKey ?? '';
 
   const openRun = (run: AioTestRun) => {
     useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname });
     navigate(`/aio-cycle/${projectKey}/${cycleKey}/run/${run.id}`);
-  };
-
-  const openDefect = (resolvedKey: string) => {
-    useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname });
-    navigate(`/issue/${resolvedKey}`);
   };
 
   // Determine whether progress bar should be visible
@@ -1230,7 +1227,7 @@ export default function AioCycleDetailPage() {
                             issue={issue}
                             isLoading={defectLoading}
                             triggeredBy={triggeredBy}
-                            onOpen={openDefect}
+                            onOpen={onOpenIssue}
                           />
                         ),
                       )}
