@@ -4,6 +4,7 @@
  * On mount, marks onboarding as complete in the settings store (persisted).
  * 'Go to Dashboard' navigates to /dashboard.
  */
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -12,8 +13,11 @@ export default function DoneStep() {
   const navigate = useNavigate();
   const { setOnboardingComplete } = useSettingsStore();
 
-  const handleGoToDashboard = () => {
+  useEffect(() => {
     setOnboardingComplete(true);
+  }, [setOnboardingComplete]);
+
+  const handleGoToDashboard = () => {
     navigate('/dashboard');
   };
 
