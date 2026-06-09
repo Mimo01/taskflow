@@ -1229,7 +1229,7 @@ export default function AioCycleDetailPage() {
                             issue={issue}
                             isLoading={defectLoading}
                             triggeredBy={triggeredBy}
-                            onOpen={onOpenIssue}
+                            onOpen={onOpenIssue ?? (() => {})}
                           />
                         ),
                       )}
