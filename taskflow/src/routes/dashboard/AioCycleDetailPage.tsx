@@ -245,11 +245,13 @@ function DefectRow({
             role: 'button' as const,
             tabIndex: 0,
             'aria-label': `Open defect ${resolvedKey}`,
-            onClick: () => onOpen(resolvedKey ?? ''),
+            onClick: () => {
+              if (resolvedKey) onOpen(resolvedKey);
+            },
             onKeyDown: (e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onOpen(resolvedKey ?? '');
+                if (resolvedKey) onOpen(resolvedKey);
               }
             },
           }
@@ -728,7 +730,7 @@ export default function AioCycleDetailPage() {
     setDefectAssigneeFilter(new Set());
   };
 
-  const { onOpenIssue } = useOutletContext<{ onOpenIssue: (issueKey: string) => void }>();
+  const { onOpenIssue } = useOutletContext<{ onOpenIssue?: (issueKey: string) => void }>() ?? {};
 
   const cycleName = cycleQuery.data?.name ?? cycleKey ?? '';
 
