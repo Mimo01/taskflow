@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: Milestone v1.12 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-09 - Completed quick task 260609-bzk: On aio cycle defects subpage, there are defects listed. Make clicking on them open the side preview as the rest of the app does (clicking on key opens full page)
+Last activity: 2026-06-09 - Completed quick task 260609-cmd: When searching for issues, always open them in full page, never just side preview
 
 ## Performance Metrics
 
@@ -116,6 +116,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260608-cwq | Standup notes: each worklog on a subtask/story now appears as its own row (flat, no aggregation). Each row shows duration + description on a single line (`duration · description` in muted text); worklogs with no description show duration only. Total-hours stat header unchanged; subtask click-through preserved. | 2026-06-08 | 47531165 | Approved & closed | [260608-cwq-on-standup-notes-page-all-worklogs-on-su](./quick/260608-cwq-on-standup-notes-page-all-worklogs-on-su/) |
 | 260608-dhp | On standup notes page, I want to add new watched thing to 'yesterday' column - created issues | 2026-06-08 | 86353a84 | Approved & closed | [260608-dhp-on-standup-notes-page-i-want-to-add-new-](./quick/260608-dhp-on-standup-notes-page-i-want-to-add-new-/) |
 | 260609-bzk | On aio cycle defects subpage, there are defects listed. Make clicking on them open the side preview as the rest of the app does (clicking on key opens full page) | 2026-06-09 | 45904afb | Approved & closed | [260609-bzk-on-aio-cycle-defects-subpage-there-are-d](./quick/260609-bzk-on-aio-cycle-defects-subpage-there-are-d/) |
+| 260609-cmd | When searching for issues, always open them in full page, never just side preview | 2026-06-09 | c616c55a | | [260609-cmd-when-searching-for-issues-always-open-th](./quick/260609-cmd-when-searching-for-issues-always-open-th/) |
 
 ## Deferred Items
 
