@@ -61,7 +61,13 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
       },
       'Validate Connection',
     );
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message.toLowerCase() : '';
+    if (msg.includes('certificate') || msg.includes('ssl') || msg.includes('tls') || msg.includes('cert')) {
+      throw new Error(
+        `SSL certificate error connecting to ${baseUrl} — the server's CA certificate may not be trusted on this machine. Install the server CA certificate in System Keychain and relaunch the app.`,
+      );
+    }
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
 
