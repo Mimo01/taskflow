@@ -12,8 +12,8 @@
  * Ref: PLAN 02 key_links → from JiraStep.tsx to stronghold.ts via storeSecret('jira-pat', token)
  */
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import BoardPicker from '@/components/jira/BoardPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,11 +57,30 @@ export default function JiraStep() {
     set({ jiraBoards: boards });
   }, [boards, set]);
 
+  const [showDetails, setShowDetails] = useState(false);
+  const errorLogRef = useRef<string>('');
+
   const mutation = useMutation({
     mutationFn: async () => {
-      const user = await validateJira(jiraUrl, jiraToken);
-      const projectList = await listJiraProjects(jiraUrl, jiraToken);
-      return { user, projectList };
+      const log: string[] = [];
+      try {
+        log.push(`[${new Date().toISOString()}] Starting Jira connection`);
+        log.push(`  URL: ${jiraUrl}`);
+        log.push('[step 1] Validating credentials...');
+        const user = await validateJira(jiraUrl, jiraToken);
+        log.push(`  OK — authenticated as ${user.displayName} (${user.name})`);
+        log.push('[step 2] Loading projects...');
+        const projectList = await listJiraProjects(jiraUrl, jiraToken);
+        log.push(`  OK — found ${projectList.length} project(s)`);
+        return { user, projectList };
+      } catch (err) {
+        log.push(`  FAILED: ${err instanceof Error ? err.message : String(err)}`);
+        if (err instanceof Error && err.stack) {
+          log.push(err.stack);
+        }
+        errorLogRef.current = log.join('\n');
+        throw err;
+      }
     },
     onSuccess: async ({ projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
@@ -72,6 +91,8 @@ export default function JiraStep() {
 
   const handleValidate = () => {
     if (!jiraUrl || !jiraToken) return;
+    setShowDetails(false);
+    errorLogRef.current = '';
     mutation.mutate();
   };
 
@@ -134,9 +155,33 @@ export default function JiraStep() {
 
         {/* Error message — exact string from jira.ts, locked per CONTEXT.md */}
         {mutation.isError && mutation.error && (
-          <p className="text-sm text-destructive" role="alert">
-            {mutation.error.message}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-destructive" role="alert">
+              {mutation.error.message}
+            </p>
+            <button
+              type="button"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-fit transition-colors"
+              onClick={() => setShowDetails((v) => !v)}
+            >
+              {showDetails ? (
+                <>
+                  <ChevronUp className="h-3 w-3" />
+                  Hide details
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3" />
+                  Show details
+                </>
+              )}
+            </button>
+            {showDetails && (
+              <pre className="text-xs font-mono bg-muted/50 rounded-md p-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-all border border-border">
+                {errorLogRef.current || mutation.error.message}
+              </pre>
+            )}
+          </div>
         )}
 
         {/* Inline project dropdown after successful validation */}
