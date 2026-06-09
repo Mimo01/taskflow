@@ -224,12 +224,14 @@ function DefectRow({
   isLoading,
   triggeredBy,
   onOpen,
+  onKeyClick,
 }: {
   defectIdOrKey: string;
   issue: JiraIssue | null;
   isLoading: boolean;
   triggeredBy: string;
   onOpen: (resolvedKey: string) => void;
+  onKeyClick?: () => void;
 }) {
   const displayKey = issue?.key ?? defectIdOrKey;
   const linkTarget = `/issue/${issue?.key ?? defectIdOrKey}`;
@@ -262,7 +264,14 @@ function DefectRow({
           {issue?.fields.issuetype?.name !== undefined && (
             <IssueTypeIcon typeName={issue.fields.issuetype.name} />
           )}
-          <NavLink to={linkTarget} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+          <NavLink
+            to={linkTarget}
+            className="hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              onKeyClick?.();
+            }}
+          >
             {displayKey}
           </NavLink>
         </div>
@@ -1231,6 +1240,11 @@ export default function AioCycleDetailPage() {
                               isLoading={defectLoading}
                               triggeredBy={triggeredBy}
                               onOpen={onOpenIssue ?? (() => {})}
+                              onKeyClick={() =>
+                                useBreadcrumbStore
+                                  .getState()
+                                  .push({ label: cycleName, path: location.pathname })
+                              }
                             />
                           ),
                         )}
