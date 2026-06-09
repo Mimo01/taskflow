@@ -132,6 +132,7 @@ function AppLayout() {
     undefined,
   );
   const wasStoryCreate = useRef(false);
+  const isFullscreenRef = useRef(false);
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -515,6 +516,36 @@ function AppLayout() {
       .setFocus()
       .catch(() => {});
   }, []);
+
+  // FULLSCREEN-ESC-01: Prevent ESC from exiting macOS native fullscreen when no overlay is open.
+  // Uses a capture-phase listener so preventDefault() fires before WKWebView's default handler.
+  // isFullscreenRef is updated on mount and on every resize (macOS fires resize on fullscreen toggle).
+  useEffect(() => {
+    const win = getCurrentWindow();
+
+    const syncFullscreen = async () => {
+      win.isFullscreen().then((v) => { isFullscreenRef.current = v; }).catch(() => {});
+    };
+
+    syncFullscreen();
+
+    const unlistenPromise = win.listen('tauri://resize', syncFullscreen);
+
+    const handleEscCapture = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (!isFullscreenRef.current) return;
+      // Any open overlay should handle ESC itself (bubble phase) — don't block it.
+      if (paletteOpen || shortcutsOpen || aboutOpen || peekIssueKey !== null) return;
+      e.preventDefault();
+    };
+
+    document.addEventListener('keydown', handleEscCapture, { capture: true });
+
+    return () => {
+      document.removeEventListener('keydown', handleEscCapture, { capture: true });
+      unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+    };
+  }, [paletteOpen, shortcutsOpen, aboutOpen, peekIssueKey]);
 
   // Notification polling — runs inside QueryClientProvider context
   useNotificationPolling();
