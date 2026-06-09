@@ -3,9 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: Awaiting next milestone
-stopped_at: Phase 80 UI-SPEC approved
-last_updated: "2026-06-07T15:36:41.329Z"
-last_activity: 2026-06-07 — Milestone v1.12 completed and archived
+last_updated: "2026-06-09T09:51:24.159Z"
+last_activity: "2026-06-09 - Completed quick task 260609-fs9: In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -144,7 +143,7 @@ Items acknowledged and deferred at milestone close on 2026-06-07 (v1.12):
 
 ## Session Continuity
 
-Last session: 2026-06-07T12:57:08.385Z
+Last session: 2026-06-09T09:51:24.155Z
 Stopped at: Phase 80 UI-SPEC approved
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
