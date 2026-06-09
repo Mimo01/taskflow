@@ -21,6 +21,7 @@ const SECOND = 1;
 const MINUTE = 60;
 const HOUR = 3_600;
 const DAY = 86_400;
+const YEAR_SECS = 365 * DAY;
 
 /**
  * Compact time-ago badge text for unix-millisecond `enteredStatus`.
@@ -55,5 +56,13 @@ export function formatTimeAgo(enteredStatusMs: number): string {
   if (diffSecs < MINUTE) return rtf.format(-diffSecs * SECOND, 'second');
   if (diffSecs < HOUR) return rtf.format(-Math.floor(diffSecs / MINUTE), 'minute');
   if (diffSecs < DAY) return rtf.format(-Math.floor(diffSecs / HOUR), 'hour');
+  if (diffSecs >= YEAR_SECS) {
+    const years = Math.floor(diffSecs / YEAR_SECS);
+    const remainingDays = Math.floor((diffSecs % YEAR_SECS) / DAY);
+    const yearLabel = years === 1 ? '1 year' : `${years} years`;
+    return remainingDays === 0
+      ? `${yearLabel} ago`
+      : `${yearLabel} ${remainingDays} day${remainingDays === 1 ? '' : 's'} ago`;
+  }
   return rtf.format(-Math.floor(diffSecs / DAY), 'day');
 }
