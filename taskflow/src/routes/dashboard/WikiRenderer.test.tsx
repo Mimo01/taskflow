@@ -111,6 +111,28 @@ describe('WikiRenderer', () => {
       render(<WikiRenderer wikiText="plain text" />);
       expect(screen.getByText('plain text')).toBeTruthy();
     });
+
+    // WIKI-TT-01: triple-brace teletype macro {{{TEXT}}} → <tt>TEXT</tt>
+    it('renders {{{TEST}}} as a <tt> element with textContent "TEST"', () => {
+      const { container } = render(<WikiRenderer wikiText="{{{TEST}}}" />);
+      const tt = container.querySelector('tt');
+      expect(tt).not.toBeNull();
+      expect(tt?.textContent).toBe('TEST');
+    });
+
+    it('renders {{{hello world}}} as a <tt> element with textContent "hello world" (spaces inside triple-brace work)', () => {
+      const { container } = render(<WikiRenderer wikiText="{{{hello world}}}" />);
+      const tt = container.querySelector('tt');
+      expect(tt).not.toBeNull();
+      expect(tt?.textContent).toBe('hello world');
+    });
+
+    it('{{someCode}} double-brace monospace still renders as <code> (existing behaviour unchanged)', () => {
+      const { container } = render(<WikiRenderer wikiText="{{someCode}}" />);
+      const code = container.querySelector('code');
+      expect(code).not.toBeNull();
+      expect(code?.textContent).toBe('someCode');
+    });
   });
 
   it('wraps output in an article element with prose class', () => {
