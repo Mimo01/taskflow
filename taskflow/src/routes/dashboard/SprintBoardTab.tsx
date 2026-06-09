@@ -15,6 +15,7 @@ import {
   type CollisionDetection,
   closestCenter,
   DndContext,
+  type DragCancelEvent,
   type DragEndEvent,
   DragOverlay,
   type DragStartEvent,
@@ -1170,6 +1171,14 @@ export default function SprintBoardTab() {
     );
   }
 
+  function handleDragCancel(_event: DragCancelEvent) {
+    isDraggingRef.current = false;
+    setActiveId(null);
+    setActiveWidth(null);
+    setDropModel(null);
+    // No justDragged guard needed — ESC does not fire a click event.
+  }
+
   /**
    * Shared entry point for EVERY board transition (drag-to-column AND right-click
    * context menu). Probes the issue's REST transitions-with-fields and, if the
@@ -1724,6 +1733,7 @@ export default function SprintBoardTab() {
             autoScroll={false}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             {/* Scrollable content area */}
             <div ref={scrollContainerRef} className="h-full overflow-auto">
