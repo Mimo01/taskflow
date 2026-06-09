@@ -166,13 +166,13 @@ export default function CommandPalette({
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
   function handleIssueSelect(issueKey: string) {
-    // Recent-item tracking is owned by IssueDetailView's effect once the peek loads.
+    // Recent-item tracking is owned by IssueDetailView's effect once the full-page view loads.
     // Pushing here would race with the authoritative push (which has the real title from the API).
-    onOpenIssue(issueKey);
+    onIssueClick?.(issueKey);
     onClose();
   }
 
-  /** PEEK-05: clicking the issue key element navigates full-page and closes the palette. */
+  /** clicking the issue key element also navigates full-page and closes the palette. */
   function handleIssueKeyClick(e: React.MouseEvent, issueKey: string) {
     e.stopPropagation();
     // Recent-item tracking is owned by handleIssueClick in main.tsx (authoritative push with
