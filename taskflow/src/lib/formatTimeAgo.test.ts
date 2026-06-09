@@ -88,4 +88,32 @@ describe('formatTimeAgo', () => {
     expect(() => formatTimeAgo(0)).not.toThrow();
     expect(() => formatTimeAgo(NOW - 1)).not.toThrow();
   });
+
+  it('returns year label without day suffix for exactly 1 year', () => {
+    const oneYearMs = 365 * 86_400_000;
+    const out = formatTimeAgo(NOW - oneYearMs);
+    expect(out.toLowerCase()).toContain('year');
+    expect(out.toLowerCase()).not.toContain('day');
+  });
+
+  it('returns year + remaining days for 1 year + 32 days', () => {
+    const ms = (365 + 32) * 86_400_000;
+    const out = formatTimeAgo(NOW - ms);
+    expect(out.toLowerCase()).toContain('year');
+    expect(out).toContain('32 day');
+  });
+
+  it('returns plural years label without day suffix for exactly 2 years', () => {
+    const twoYearsMs = 2 * 365 * 86_400_000;
+    const out = formatTimeAgo(NOW - twoYearsMs);
+    expect(out.toLowerCase()).toContain('2 year');
+    expect(out.toLowerCase()).not.toContain('day');
+  });
+
+  it('returns plural years + 1 day for 2 years + 1 day', () => {
+    const ms = (2 * 365 + 1) * 86_400_000;
+    const out = formatTimeAgo(NOW - ms);
+    expect(out.toLowerCase()).toContain('2 year');
+    expect(out).toContain('1 day');
+  });
 });
