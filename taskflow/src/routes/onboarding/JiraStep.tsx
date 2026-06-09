@@ -13,7 +13,7 @@
  */
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BoardPicker from '@/components/jira/BoardPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,8 +39,10 @@ export default function JiraStep() {
 
   // Fetch the scrum boards for the chosen project (FB8-4). Persist them in the
   // onboarding store so back-nav preserves the list and the chosen board id.
+  // Stable fallback — prevents useEffect re-firing every render when the query is disabled
+  const emptyBoards = useMemo(() => [], []);
   const {
-    data: boards = [],
+    data: boards = emptyBoards,
     isLoading: boardsLoading,
     refetch: refetchBoards,
   } = useQuery({
