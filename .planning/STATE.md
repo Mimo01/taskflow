@@ -3,8 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Jira Experience Improvements
 status: Awaiting next milestone
-last_updated: "2026-06-09T09:51:24.159Z"
-last_activity: "2026-06-09 - Completed quick task 260609-fs9: In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days"
+stopped_at: Phase 80 UI-SPEC approved
+last_updated: "2026-06-09T11:52:00.000Z"
+last_activity: 2026-06-09 - Completed quick task 260609-g7c: wiki renderer should render {{{TEST}}} in tt tags
 progress:
   total_phases: 5
   completed_phases: 5
@@ -27,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: Milestone v1.12 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-09 - Completed quick task 260609-fs9: In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days
+Last activity: 2026-06-09 - Completed quick task 260609-g7c: wiki renderer should render {{{TEST}}} in tt tags
 
 ## Performance Metrics
 
@@ -119,6 +120,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260609-fbi | On sprint board or backlog view, when dragging an issue and pressing esc, it should cancel the drag action | 2026-06-09 | 488bd808 | Approved & closed | [260609-fbi-on-sprint-board-or-backlog-view-when-dra](./quick/260609-fbi-on-sprint-board-or-backlog-view-when-dra/) |
 | 260609-fiq | When the app is in fullscreen mode, pressing esc shouldnt exit the fullscreen | 2026-06-09 | d2007c4c | Approved & closed | [260609-fiq-when-the-app-is-in-fullscreen-mode-press](./quick/260609-fiq-when-the-app-is-in-fullscreen-mode-press/) |
 | 260609-fs9 | In comments (or other places?) when showing X days ago and is is more than one year ago, make it say years + days | 2026-06-09 | a9673c73 | Approved & closed | [260609-fs9-in-comments-or-other-places-when-showing](./quick/260609-fs9-in-comments-or-other-places-when-showing/) |
+| 260609-g7c | wiki renderer should render {{{TEST}}} in tt tags | 2026-06-09 | 62e5728b | Needs Review | [260609-g7c-wiki-renderer-should-render-test-in-tt-t](./quick/260609-g7c-wiki-renderer-should-render-test-in-tt-t/) |
 
 ## Deferred Items
 
@@ -143,7 +145,7 @@ Items acknowledged and deferred at milestone close on 2026-06-07 (v1.12):
 
 ## Session Continuity
 
-Last session: 2026-06-09T09:51:24.155Z
+Last session: 2026-06-09T11:52:00.000Z
 Stopped at: Phase 80 UI-SPEC approved
 Resume file: None
 | 5 | Store full untruncated response bodies in devtools logs | 2026-06-03 | 99036280 | — |
