@@ -15,6 +15,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { SKIP, visit } from 'unist-util-visit';
 import { tryInternalPath } from '@/lib/internalLinks';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
@@ -41,9 +42,15 @@ import { ImageLightbox } from './ImageLightbox';
  */
 const wikiSanitizeSchema = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'mention', 'br', 'span'],
+  // 260610-fnk: `issuekeylink` is a synthetic element emitted by rehypeIssueKeys
+  // (before sanitize) to mark a bare active-project issue key. It is allowlisted
+  // here so sanitize preserves it; the components map renders it as IssueKeyLink.
+  // Its only attribute is `dataKey` (the issue key), a plain string we re-escape
+  // through React — no raw HTML, no arbitrary href (T-fnk-01).
+  tagNames: [...(defaultSchema.tagNames ?? []), 'mention', 'br', 'span', 'issuekeylink'],
   attributes: {
     ...defaultSchema.attributes,
+    issuekeylink: ['dataKey'],
     // hast property names are camelCased — `data-callout` ↔ `dataCallout`,
     // `data-title` ↔ `dataTitle`, `data-id` ↔ `dataId`. The whitelist must
     // match what hast-util-from-html produces from the raw HTML emitted by
@@ -969,6 +976,90 @@ function isKnownPrefix(key: string, activeJiraProject: string | null): boolean {
   return key.split('-')[0] === activeJiraProject;
 }
 
+/** Canonical Jira issue-key pattern, mirrored from internalLinks.ts `tryInternalPath`. */
+const ISSUE_KEY_GLOBAL_RE = /\b[A-Z][A-Z0-9_]+-\d+\b/g;
+const ISSUE_KEY_EXACT_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
+
+// Minimal hast shapes — `unist-util-visit` over a rehype tree. We only touch the
+// fields we need; the full hast types live in @types/hast (not depended on here).
+type HastText = { type: 'text'; value: string };
+type HastElement = {
+  type: 'element';
+  tagName: string;
+  properties?: Record<string, unknown>;
+  children: Array<HastText | HastElement>;
+};
+
+/**
+ * Quick task 260610-fnk (D-02/D-04/D-05): rehype plugin that linkifies bare
+ * active-project issue keys in prose text nodes.
+ *
+ * react-markdown 10 dropped the `text` component override, so transforming bare
+ * prose keys must happen in the rehype tree. This plugin walks every text node and:
+ *  - SKIPs any text inside an `<a>`, `<code>`, or `<pre>` ancestor — so anchor
+ *    labels are never re-linkified (D-05) and code spans/blocks stay literal (D-04).
+ *  - Splits the remaining text on the canonical key pattern and replaces each
+ *    exact-match part that passes `isKnownPrefix` with an `<issuekeylink data-key>`
+ *    element (rendered as IssueKeyLink by the components map). Non-matching parts
+ *    stay as plain text nodes (D-02).
+ *
+ * Runs BEFORE rehype-sanitize so the synthetic `issuekeylink` elements (allowlisted
+ * in wikiSanitizeSchema) survive sanitisation. Emits no raw HTML and no href — the
+ * key is a plain string re-escaped by React (T-fnk-01).
+ */
+function rehypeIssueKeys(activeJiraProject: string | null) {
+  // unified plugins are "attachers" — a function that returns a transformer.
+  // We close over `activeJiraProject` and return the attacher so it can be passed
+  // directly into `rehypePlugins`.
+  return function attacher() {
+    return (tree: HastElement) => {
+      if (!activeJiraProject) return;
+      visit(
+        tree,
+        'text',
+        (textNode: HastText, index: number | undefined, parent: HastElement | undefined) => {
+          if (!parent || index === undefined) return;
+          const tag = parent.tagName;
+          // Skip text directly inside link/code containers — D-04/D-05 guard.
+          if (tag === 'a' || tag === 'code' || tag === 'pre') return SKIP;
+
+          const value = textNode.value;
+          // Walk matches with matchAll so we keep both the keys and the gaps between
+          // them; `split` would drop the matched delimiters.
+          const segments: Array<HastText | HastElement> = [];
+          let lastEnd = 0;
+          for (const m of value.matchAll(ISSUE_KEY_GLOBAL_RE)) {
+            const key = m[0];
+            const start = m.index ?? 0;
+            if (start > lastEnd) {
+              segments.push({ type: 'text', value: value.slice(lastEnd, start) });
+            }
+            if (ISSUE_KEY_EXACT_RE.test(key) && isKnownPrefix(key, activeJiraProject)) {
+              segments.push({
+                type: 'element',
+                tagName: 'issuekeylink',
+                properties: { dataKey: key },
+                children: [],
+              });
+            } else {
+              segments.push({ type: 'text', value: key });
+            }
+            lastEnd = start + key.length;
+          }
+          // No keys matched (or none replaced) — leave the text node untouched.
+          if (segments.length === 0) return;
+          if (lastEnd < value.length) {
+            segments.push({ type: 'text', value: value.slice(lastEnd) });
+          }
+          parent.children.splice(index, 1, ...segments);
+          // Resume visiting AFTER the inserted segments (none contain further text keys).
+          return index + segments.length;
+        },
+      );
+    };
+  };
+}
+
 /**
  * Quick task 260610-fnk (D-01/D-03): renders a bare in-app issue-key link.
  *
@@ -1079,30 +1170,16 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   const markdown = preprocessed ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)) : '';
 
   const markdownComponents: Record<string, unknown> = {
-    // Quick task 260610-fnk (D-02/D-04/D-05): linkify bare prose issue keys.
-    // react-markdown invokes the `text` component ONLY for markdown-AST text nodes
-    // (bare prose) — never for strings we render ourselves inside <a>/<IssueKeyLink>,
-    // which are plain React JSX and bypass the AST→React transform entirely. So this
-    // override never fires for an anchor's label (D-05) and never for code spans/blocks,
-    // which are routed through react-markdown's code/pre path (D-04). Each AST text node
-    // is split on the canonical key pattern; exact-match parts that pass isKnownPrefix
-    // become <IssueKeyLink>, everything else stays plain text. The split output is
-    // deterministic so positional key={i} is stable.
-    text: ({ children }: { children?: React.ReactNode }) => {
-      if (typeof children !== 'string') return <>{children}</>;
-      const parts = children.split(/(\b[A-Z][A-Z0-9_]+-\d+\b)/g);
-      return (
-        <>
-          {parts.map((part, i) =>
-            /^[A-Z][A-Z0-9_]+-\d+$/.test(part) && isKnownPrefix(part, activeJiraProject) ? (
-              // biome-ignore lint/suspicious/noArrayIndexKey: split output is deterministic for a given text node, so the positional index is a stable key
-              <IssueKeyLink key={i} issueKey={part} />
-            ) : (
-              part
-            ),
-          )}
-        </>
-      );
+    // Quick task 260610-fnk (D-02): the `rehypeIssueKeys` plugin replaces bare
+    // active-project keys in prose text nodes with <issuekeylink data-key="KEY"/>
+    // hast elements (skipping any text under <a>/<code>/<pre> — D-04/D-05). This
+    // component renders each such element as an IssueKeyLink. Using a rehype plugin
+    // rather than a `text` component is required: react-markdown 10 dropped support
+    // for overriding the `text` node via the components map.
+    issuekeylink: ({ node }: { node?: { properties?: Record<string, unknown> } }) => {
+      const key = node?.properties?.dataKey as string | undefined;
+      if (!key) return null;
+      return <IssueKeyLink issueKey={key} />;
     },
     img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
       if (!src) return null;
@@ -1279,7 +1356,14 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         // T-54-07-01 mitigation: rehypeRaw passes raw HTML through to the
         // rehype tree; rehypeSanitize then strips dangerous tags before render.
         // Order matters: sanitize MUST run AFTER raw so it sees the parsed HTML.
-        rehypePlugins={[rehypeRaw, [rehypeSanitize, wikiSanitizeSchema]]}
+        rehypePlugins={[
+          rehypeRaw,
+          // 260610-fnk: linkify bare active-project keys AFTER raw HTML is parsed
+          // (so text nodes are present) and BEFORE sanitize (so the emitted
+          // <issuekeylink> elements are kept by the allowlist).
+          rehypeIssueKeys(activeJiraProject),
+          [rehypeSanitize, wikiSanitizeSchema],
+        ]}
         components={markdownComponents}
       >
         {markdown}
