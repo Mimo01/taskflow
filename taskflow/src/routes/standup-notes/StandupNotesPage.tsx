@@ -190,12 +190,7 @@ export default function StandupNotesPage() {
   // Pitfall 3 guard is preserved: if the lookup returns no results, resolvedId
   // still has null GitLab fields — we never fall back to the logged-in user's identity.
   const watchedGitlabUserQuery = useQuery({
-    queryKey: [
-      'standup',
-      'gitlab-user-search',
-      gitlabBaseUrl,
-      id.jiraUserDisplayName ?? '',
-    ],
+    queryKey: ['standup', 'gitlab-user-search', gitlabBaseUrl, id.jiraUserDisplayName ?? ''],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
@@ -238,7 +233,11 @@ export default function StandupNotesPage() {
 
   // Stable key for the commits query that changes whenever the set of resolved accounts changes.
   const resolvedAccountsKey = useMemo(
-    () => resolvedGitlabUsers?.map((u) => u.username).sort().join(',') ?? '',
+    () =>
+      resolvedGitlabUsers
+        ?.map((u) => u.username)
+        .sort()
+        .join(',') ?? '',
     [resolvedGitlabUsers],
   );
 

@@ -524,7 +524,12 @@ function AppLayout() {
     const win = getCurrentWindow();
 
     const syncFullscreen = async () => {
-      win.isFullscreen().then((v) => { isFullscreenRef.current = v; }).catch(() => {});
+      win
+        .isFullscreen()
+        .then((v) => {
+          isFullscreenRef.current = v;
+        })
+        .catch(() => {});
     };
 
     syncFullscreen();

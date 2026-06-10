@@ -63,7 +63,12 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message.toLowerCase() : '';
-    if (msg.includes('certificate') || msg.includes('ssl') || msg.includes('tls') || msg.includes('cert')) {
+    if (
+      msg.includes('certificate') ||
+      msg.includes('ssl') ||
+      msg.includes('tls') ||
+      msg.includes('cert')
+    ) {
       throw new Error(
         `SSL certificate error connecting to ${baseUrl} — the server's CA certificate may not be trusted on this machine. Install the server CA certificate in System Keychain and relaunch the app.`,
       );
@@ -122,7 +127,12 @@ export async function fetchGitLabUsers(
     username: string;
     email?: string | null;
   }>;
-  return data.map((u) => ({ id: u.id, name: u.name, username: u.username, email: u.email ?? null }));
+  return data.map((u) => ({
+    id: u.id,
+    name: u.name,
+    username: u.username,
+    email: u.email ?? null,
+  }));
 }
 
 /**
@@ -1323,7 +1333,7 @@ export async function fetchUserCommits(
     .map((n) =>
       n
         .toLowerCase()
-        .split(/[\s,._\-()\[\]{}+]+/)
+        .split(/[\s,._\-()[\]{}+]+/)
         .map((w) => w.replace(/\d+$/, ''))
         .filter((w) => /^[a-z]+$/.test(w) && w.length >= 4),
     )
@@ -1341,13 +1351,9 @@ export async function fetchUserCommits(
     // and the commit author name. Handles surname-first display names ("Dobrotova Slavka
     // OSK (ext.)") matching git names in firstname-surname order ("Slavka Dobrotova"),
     // different capitalisation, and department suffixes being absent from git names.
-    const authorWords = name
-      .split(/[\s,._\-()\[\]{}+]+/)
-      .map((w) => w.replace(/\d+$/, ''));
+    const authorWords = name.split(/[\s,._\-()[\]{}+]+/).map((w) => w.replace(/\d+$/, ''));
     if (
-      significantWordSets.some(
-        (words) => words.filter((w) => authorWords.includes(w)).length >= 2,
-      )
+      significantWordSets.some((words) => words.filter((w) => authorWords.includes(w)).length >= 2)
     )
       return true;
     return false;
