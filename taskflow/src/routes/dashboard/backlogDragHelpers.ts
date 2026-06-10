@@ -322,6 +322,38 @@ export function resolveIntraRankFromDrop(
   return { newOrder, previousOrder, position };
 }
 
+/** Which edge of its OWN section a row should be reranked to. */
+export type SendToEdge = 'top' | 'bottom';
+
+/**
+ * Resolve the rank-persist decision for a "Send to top" / "Send to bottom"
+ * context-menu action — moving a row to the first / last position of its OWN
+ * section.
+ *
+ * This reuses the EXACT neighbour/position math the drag path uses
+ * (`resolveIntraRankFromDrop`) by synthesising the drop's `overKey`:
+ *   - edge 'top'    → overKey = currentKeys[0]    (land at the section top).
+ *   - edge 'bottom' → overKey = currentKeys[last] (land at the section bottom).
+ *
+ * So the persisted Jira rank matches the optimistic order exactly, identical to
+ * drag-to-reorder — no hand-rolled rank logic.
+ *
+ * Returns null (no PUT) when:
+ *   - the active key is missing from the section,
+ *   - the section has fewer than 2 rows (no edge to move to), or
+ *   - the row is already at the chosen edge (the synthesised overKey === activeKey).
+ */
+export function resolveSendToEdge(
+  currentKeys: readonly string[],
+  activeKey: string,
+  edge: SendToEdge,
+): IntraSectionRank | null {
+  if (currentKeys.length < 2 || !currentKeys.includes(activeKey)) return null;
+  const overKey = edge === 'top' ? currentKeys[0] : currentKeys[currentKeys.length - 1];
+  if (overKey === activeKey) return null; // already at that edge → no-op
+  return resolveIntraRankFromDrop(currentKeys, activeKey, overKey);
+}
+
 export function resolveCrossSectionDrop(args: {
   activeKey: string;
   activeData: SortableData | undefined;
