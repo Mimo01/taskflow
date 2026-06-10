@@ -25,6 +25,7 @@ import {
   resolveCrossSectionDrop,
   resolveIntraRankFromDrop,
   resolveIntraSectionRank,
+  resolveSendToEdge,
   resolveSourceContainer,
   resolveTargetContainer,
   sortByKeyOrder,
@@ -296,6 +297,50 @@ describe('resolveIntraRankFromDrop — canonical dnd-kit "reorder only on drop" 
   it('returns null when a key is missing from the section (e.g. dropped on the section droppable, not a row)', () => {
     expect(resolveIntraRankFromDrop(KEYS, 'A', 'sprint-1')).toBeNull();
     expect(resolveIntraRankFromDrop(KEYS, 'X', 'B')).toBeNull();
+  });
+});
+
+describe('resolveSendToEdge — send-to-top / send-to-bottom (context menu reorder)', () => {
+  const KEYS = ['A', 'B', 'C', 'D'];
+
+  it('top — moves the active key to the FIRST position and ranks before its new neighbour below', () => {
+    const rank = resolveSendToEdge(KEYS, 'C', 'top');
+    expect(rank).not.toBeNull();
+    expect(rank?.newOrder).toEqual(['C', 'A', 'B', 'D']);
+    expect(rank?.previousOrder).toEqual(KEYS);
+    expect(rank?.position).toEqual({ rankBeforeIssue: 'A' });
+  });
+
+  it('bottom — moves the active key to the LAST position and ranks after its new neighbour above', () => {
+    const rank = resolveSendToEdge(KEYS, 'B', 'bottom');
+    expect(rank).not.toBeNull();
+    expect(rank?.newOrder).toEqual(['A', 'C', 'D', 'B']);
+    expect(rank?.previousOrder).toEqual(KEYS);
+    expect(rank?.position).toEqual({ rankAfterIssue: 'D' });
+  });
+
+  it('already-at-top is a no-op (returns null → no PUT)', () => {
+    expect(resolveSendToEdge(KEYS, 'A', 'top')).toBeNull();
+  });
+
+  it('already-at-bottom is a no-op (returns null → no PUT)', () => {
+    expect(resolveSendToEdge(KEYS, 'D', 'bottom')).toBeNull();
+  });
+
+  it('returns null when the active key is missing from the section', () => {
+    expect(resolveSendToEdge(KEYS, 'X', 'top')).toBeNull();
+  });
+
+  it('returns null for a single-element section (no edge to move to)', () => {
+    expect(resolveSendToEdge(['A'], 'A', 'top')).toBeNull();
+    expect(resolveSendToEdge(['A'], 'A', 'bottom')).toBeNull();
+  });
+
+  it('previousOrder equals the input keys on a real move (rollback base parity with drag)', () => {
+    const rank = resolveSendToEdge(KEYS, 'C', 'top');
+    expect(rank?.previousOrder).toEqual(KEYS);
+    // independent copy, not the same reference (defensive against mutation)
+    expect(rank?.previousOrder).not.toBe(KEYS);
   });
 });
 
