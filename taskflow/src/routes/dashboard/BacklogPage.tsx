@@ -89,6 +89,7 @@ import { BacklogSkeleton } from './BacklogSkeleton';
 import type { SortableData } from './backlogDragHelpers';
 import {
   resolveIntraRankFromDrop,
+  resolveSendToEdge,
   resolveSourceContainer,
   resolveTargetContainer,
   sortByKeyOrder,
@@ -115,6 +116,8 @@ function VirtualizedBacklogTable({
   onMoveToBacklog,
   flaggedFieldKey,
   onToggleFlag,
+  onSendToTop,
+  onSendToBottom,
   justDragged,
 }: {
   filteredIssues: JiraIssue[];
@@ -135,6 +138,8 @@ function VirtualizedBacklogTable({
   onMoveToBacklog?: (issueKey: string) => void;
   flaggedFieldKey: string;
   onToggleFlag?: (issueKey: string) => void;
+  onSendToTop?: (issueKey: string) => void;
+  onSendToBottom?: (issueKey: string) => void;
   justDragged?: React.MutableRefObject<boolean>;
 }) {
   const rowVirtualizer = useVirtualizer({
@@ -184,6 +189,8 @@ function VirtualizedBacklogTable({
         onMoveToBacklog={onMoveToBacklog}
         isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
         onToggleFlag={onToggleFlag ? () => onToggleFlag(issue.key) : undefined}
+        onSendToTop={onSendToTop}
+        onSendToBottom={onSendToBottom}
         justDragged={justDragged}
       />
     );
@@ -1001,6 +1008,29 @@ export default function BacklogPage() {
     });
   }
 
+  // Context-menu "Send to top" / "Send to bottom": rerank a row to the first /
+  // last position of its OWN section, reusing the SAME persistence + optimistic
+  // path as drag-to-reorder. Never changes sprint membership (no
+  // addIssuesToSprint / moveIssuesToBacklog) — only the rank within the row's
+  // current section.
+  function handleSendToEdge(issueKey: string, edge: 'top' | 'bottom') {
+    const sectionId = findSectionOfKey(issueKey);
+    if (!sectionId) return;
+    // Use the same base order drag uses: a prior committed override if present,
+    // else the server order — so optimistic + persisted rank agree.
+    const currentKeys = localOrder.get(sectionId) ?? getSectionKeys(sectionId);
+    const rank = resolveSendToEdge(currentKeys, issueKey, edge);
+    if (!rank) return; // already at the edge / missing / single-row → no PUT
+    rankMutation.mutate({
+      issueKey,
+      sectionId,
+      newOrder: rank.newOrder,
+      previousOrder: rank.previousOrder,
+      rankCustomFieldId: backlog?.rankCustomFieldId ?? 0,
+      position: rank.position,
+    });
+  }
+
   function handleDragCancel(_event: DragCancelEvent) {
     isDraggingRef.current = false;
     setActiveId(null);
@@ -1128,6 +1158,8 @@ export default function BacklogPage() {
                   onMoveToBacklog={moveToBacklog}
                   flaggedFieldKey={flaggedFieldKey}
                   onToggleFlag={handleToggleFlag}
+                  onSendToTop={(k) => handleSendToEdge(k, 'top')}
+                  onSendToBottom={(k) => handleSendToEdge(k, 'bottom')}
                   justDragged={justDragged}
                 />
               </SortableContext>
