@@ -1066,14 +1066,44 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
-  const { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath } =
-    useAuthStore();
+  const {
+    jiraBaseUrl,
+    gitlabBaseUrl,
+    activeGitlabProject,
+    activeGitlabProjectPath,
+    activeJiraProject,
+  } = useAuthStore();
   const linkCtx = { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath };
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
   const markdown = preprocessed ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)) : '';
 
   const markdownComponents: Record<string, unknown> = {
+    // Quick task 260610-fnk (D-02/D-04/D-05): linkify bare prose issue keys.
+    // react-markdown invokes the `text` component ONLY for markdown-AST text nodes
+    // (bare prose) — never for strings we render ourselves inside <a>/<IssueKeyLink>,
+    // which are plain React JSX and bypass the AST→React transform entirely. So this
+    // override never fires for an anchor's label (D-05) and never for code spans/blocks,
+    // which are routed through react-markdown's code/pre path (D-04). Each AST text node
+    // is split on the canonical key pattern; exact-match parts that pass isKnownPrefix
+    // become <IssueKeyLink>, everything else stays plain text. The split output is
+    // deterministic so positional key={i} is stable.
+    text: ({ children }: { children?: React.ReactNode }) => {
+      if (typeof children !== 'string') return <>{children}</>;
+      const parts = children.split(/(\b[A-Z][A-Z0-9_]+-\d+\b)/g);
+      return (
+        <>
+          {parts.map((part, i) =>
+            /^[A-Z][A-Z0-9_]+-\d+$/.test(part) && isKnownPrefix(part, activeJiraProject) ? (
+              // biome-ignore lint/suspicious/noArrayIndexKey: split output is deterministic for a given text node, so the positional index is a stable key
+              <IssueKeyLink key={i} issueKey={part} />
+            ) : (
+              part
+            ),
+          )}
+        </>
+      );
+    },
     img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
       if (!src) return null;
       return (
@@ -1189,6 +1219,18 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           </a>
         );
       }
+      // Quick task 260610-fnk (D-05): when the href resolves to an internal
+      // /issue/KEY path, this `a` override OWNS the key — it renders a single
+      // <IssueKeyLink> (the sole anchor, with status/strikethrough) instead of an
+      // <a> wrapper. The key string inside IssueKeyLink is React JSX, not a markdown
+      // text node, so the `text` override above cannot re-wrap it. This makes a full
+      // browse/KEY URL render EXACTLY ONE anchor — nested <a><a> is structurally
+      // impossible. `internalPath` is computed once here and reused in handleClick.
+      const internalPath = tryInternalPath(href, linkCtx);
+      const issueRouteMatch = internalPath?.match(/^\/issue\/([A-Z][A-Z0-9_]+-\d+)$/);
+      if (issueRouteMatch) {
+        return <IssueKeyLink issueKey={issueRouteMatch[1]} />;
+      }
       // Image attachment link → inline text anchor that opens ImageLightbox on
       // click. AuthImage inside the lightbox translates AIO bridge URLs to the
       // direct download endpoint, so both same-instance bridge URLs and direct
@@ -1212,7 +1254,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       }
       const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
-        const internalPath = tryInternalPath(href, linkCtx);
+        // Reuse the `internalPath` computed at render time — single source of truth.
         if (internalPath !== null) {
           breadcrumbPush(deriveSourceCrumb(location.pathname));
           navigate(internalPath);
