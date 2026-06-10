@@ -25,6 +25,7 @@ import {
   useGhTransitions,
 } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { BoardResolutionDialog } from './BoardResolutionDialog';
 
 interface StatusPopoverProps {
   /** Numeric Jira project id (Phase 72 — drives GH transitions cache key). */
@@ -48,7 +49,7 @@ interface StatusPopoverProps {
   /**
    * Issue key + base URL — when provided, the popover fetches this issue's REST
    * transitions WITH field metadata so it can detect resolution-capable transitions
-   * and present a resolution picker step. The GH cache carries no field metadata, so
+   * and present a resolution picker dialog. The GH cache carries no field metadata, so
    * this is the only source of `fields.resolution.allowedValues`. Optional: board/drag
    * callers that don't pass these keep the plain transition behavior.
    */
@@ -68,8 +69,10 @@ export default function StatusPopover({
   jiraBaseUrl,
 }: StatusPopoverProps) {
   const [open, setOpen] = useState(false);
-  // When set, the popover is showing the resolution-picker step for a chosen
-  // resolution-capable transition instead of the transition list.
+  // When set, the popover closes and the resolution dialog opens. This avoids
+  // the Positioner/Popup stretching to full viewport width (inline w-full buttons
+  // resolve against the body as the containing block when the Positioner has no
+  // explicit width set by floating-ui).
   const [pendingResolutionTransition, setPendingResolutionTransition] = useState<{
     id: string;
     toName: string;
@@ -111,19 +114,20 @@ export default function StatusPopover({
     if (disabled) return;
     setOpen(newOpen);
     if (!newOpen) {
-      setPendingResolutionTransition(null);
       setResolutionUnavailable(false);
     }
   }
 
   function handleSelect(transitionId: string, toStatusName: string) {
-    // If the matching REST transition is resolution-capable, branch into a
-    // resolution-picker step instead of closing immediately. If the REST fetch is
-    // still loading / errored / empty, fall back to the plain transition.
+    // If the matching REST transition is resolution-capable, close the popover
+    // and open the BoardResolutionDialog instead. Using a proper Dialog avoids
+    // the inline Positioner/Popup stretching to full viewport width. If the REST
+    // fetch is still loading / errored / empty, fall back to the plain transition.
     const meta = transitionsWithFields?.find((t) => t.id === transitionId);
     const allowedValues = meta?.fields?.resolution?.allowedValues;
     if (allowedValues && allowedValues.length > 0) {
       setResolutionUnavailable(false);
+      setOpen(false);
       setPendingResolutionTransition({ id: transitionId, toName: toStatusName, allowedValues });
       return;
     }
@@ -138,81 +142,80 @@ export default function StatusPopover({
     setOpen(false);
   }
 
-  function handleResolutionPick(resolutionId: string) {
+  function handleResolutionConfirm(resolution: { id: string } | null) {
     if (!pendingResolutionTransition) return;
-    onSelect(pendingResolutionTransition.id, pendingResolutionTransition.toName, {
-      resolution: { id: resolutionId },
-    });
+    onSelect(pendingResolutionTransition.id, pendingResolutionTransition.toName, { resolution });
     setPendingResolutionTransition(null);
-    setOpen(false);
   }
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger
-        disabled={disabled}
-        aria-label={currentStatus}
-        className={cn(
-          statusPillClass(statusCategoryKey),
-          'cursor-pointer hover:opacity-80 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60',
-        )}
-      >
-        {currentStatus}
-      </PopoverTrigger>
-      <PopoverContent className="p-1 min-w-[160px]">
-        {pendingResolutionTransition ? (
-          <>
-            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              Select resolution
+    <>
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger
+          disabled={disabled}
+          aria-label={currentStatus}
+          className={cn(
+            statusPillClass(statusCategoryKey),
+            'cursor-pointer hover:opacity-80 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60',
+          )}
+        >
+          {currentStatus}
+        </PopoverTrigger>
+        <PopoverContent className="p-1 min-w-[160px]">
+          {resolutionUnavailable && (
+            <div className="px-3 py-2 text-sm text-destructive">
+              This transition requires a resolution, but none are available. Resolve the workflow
+              configuration in Jira.
             </div>
-            {pendingResolutionTransition.allowedValues.map((r) => (
+          )}
+          {!hasContext && (
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              Missing project context — reload the board.
+            </div>
+          )}
+          {hasContext && isLoading && (
+            <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+          )}
+          {hasContext && isError && (
+            <div className="px-3 py-2 text-sm text-destructive">Unable to load transitions</div>
+          )}
+          {!isLoading &&
+            !isError &&
+            transitions?.map((transition) => (
               <button
-                key={r.id}
+                key={transition.id}
                 type="button"
-                onClick={() => handleResolutionPick(r.id)}
-                className="w-full text-left px-2 py-1.5 hover:bg-accent rounded"
+                onClick={() => handleSelect(transition.id, transition.to.name)}
+                className="w-full text-left px-2 py-1.5 hover:bg-accent rounded flex items-center gap-2"
               >
-                {r.name}
+                <span className="text-muted-foreground">→</span>
+                <span className={statusPillClass(transition.to.statusCategory?.key)}>
+                  {transition.name}
+                </span>
               </button>
             ))}
-          </>
-        ) : (
-          <>
-            {resolutionUnavailable && (
-              <div className="px-3 py-2 text-sm text-destructive">
-                This transition requires a resolution, but none are available. Resolve the workflow
-                configuration in Jira.
-              </div>
-            )}
-            {!hasContext && (
-              <div className="px-3 py-2 text-sm text-muted-foreground">
-                Missing project context — reload the board.
-              </div>
-            )}
-            {hasContext && isLoading && (
-              <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
-            )}
-            {hasContext && isError && (
-              <div className="px-3 py-2 text-sm text-destructive">Unable to load transitions</div>
-            )}
-            {!isLoading &&
-              !isError &&
-              transitions?.map((transition) => (
-                <button
-                  key={transition.id}
-                  type="button"
-                  onClick={() => handleSelect(transition.id, transition.to.name)}
-                  className="w-full text-left px-2 py-1.5 hover:bg-accent rounded flex items-center gap-2"
-                >
-                  <span className="text-muted-foreground">→</span>
-                  <span className={statusPillClass(transition.to.statusCategory?.key)}>
-                    {transition.name}
-                  </span>
-                </button>
-              ))}
-          </>
-        )}
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+
+      {/* Resolution dialog — rendered outside the Popover tree so it uses a
+          properly centered Dialog (sm:max-w-md) instead of the Positioner popup
+          which stretches to full viewport width on issue-detail. Mirrors the
+          board's BoardResolutionDialog UX exactly. Only active when issueKey is
+          provided (issue-detail path); board/drag callers never set
+          pendingResolutionTransition because they don't pass issueKey. */}
+      {issueKey && (
+        <BoardResolutionDialog
+          key={issueKey}
+          open={pendingResolutionTransition !== null}
+          onOpenChange={(dialogOpen) => {
+            if (!dialogOpen) setPendingResolutionTransition(null);
+          }}
+          issueKey={issueKey}
+          toStatusName={pendingResolutionTransition?.toName ?? ''}
+          allowedValues={pendingResolutionTransition?.allowedValues ?? []}
+          onConfirm={handleResolutionConfirm}
+        />
+      )}
+    </>
   );
 }
