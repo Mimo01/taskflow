@@ -13,7 +13,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Flag } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpToLine, Flag } from 'lucide-react';
 import React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
@@ -56,6 +56,10 @@ export interface BacklogRowProps {
   isFlagged?: boolean;
   /** Called when user selects Flag/Unflag from the context menu */
   onToggleFlag?: (issueKey: string) => void;
+  /** Send the row to the FIRST position of its own section (rank only). */
+  onSendToTop?: (issueKey: string) => void;
+  /** Send the row to the LAST position of its own section (rank only). */
+  onSendToBottom?: (issueKey: string) => void;
   /** Set true while the row is in the DragOverlay ghost — suppresses sortable hook */
   isOverlay?: boolean;
   /** Passed from parent when justDragged guard is active */
@@ -225,6 +229,8 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onMoveToBacklog,
       isFlagged,
       onToggleFlag,
+      onSendToTop,
+      onSendToBottom,
       isOverlay,
       justDragged,
     },
@@ -291,7 +297,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       isFlagged,
     };
 
-    if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag) {
+    if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag && !onSendToTop && !onSendToBottom) {
       return (
         <tr
           ref={setNodeRef}
@@ -363,6 +369,27 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
                   <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
                   {isFlagged ? 'Unflag' : 'Flag'}
                 </ContextMenuItem>
+              </ContextMenuGroup>
+            </>
+          )}
+          {(onSendToTop || onSendToBottom) && (
+            <>
+              {(onMoveToSprint || onMoveToBacklog || onToggleFlag) && <ContextMenuSeparator />}
+              <ContextMenuGroup>
+                <ContextMenuLabel>Reorder</ContextMenuLabel>
+                <ContextMenuSeparator />
+                {onSendToTop && (
+                  <ContextMenuItem onClick={() => onSendToTop(issue.key)}>
+                    <ArrowUpToLine className="size-3.5" />
+                    Send to top
+                  </ContextMenuItem>
+                )}
+                {onSendToBottom && (
+                  <ContextMenuItem onClick={() => onSendToBottom(issue.key)}>
+                    <ArrowDownToLine className="size-3.5" />
+                    Send to bottom
+                  </ContextMenuItem>
+                )}
               </ContextMenuGroup>
             </>
           )}
