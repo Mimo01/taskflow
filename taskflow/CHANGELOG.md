@@ -2,6 +2,22 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.12.3] — 2026-06-10
+
+### Added
+
+- **Wiki renderer — clickable issue keys in prose** — issue keys (e.g. `ABC-123`) written in issue descriptions, comments, and wiki text now render as links that open the issue, matching how keys already behave elsewhere in the app.
+- **Backlog — send a story to the top or bottom of its section** — the story right-click menu now has "Send to top" and "Send to bottom" actions that re-rank a story to the edge of its Backlog section in a single click.
+
+### Changed
+
+- **Backlog — tidier story context menu** — the story right-click menu is reordered and the redundant sprint/backlog divider removed.
+
+### Fixed
+
+- **Issue transitions — resolution picker dialog** — the Resolution prompt shown when moving an issue to a done status now appears as a properly centered dialog instead of being mispositioned.
+- **GitLab — clearer TLS certificate errors** — GitLab connection failures caused by TLS/SSL certificate problems now surface an actionable message instead of a generic failure.
+
 ## [1.12.2] — 2026-06-09
 
 ### Added
