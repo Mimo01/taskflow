@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
@@ -15,9 +16,13 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { tryInternalPath } from '@/lib/internalLinks';
+import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
+import { fetchIssueDetail } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { AuthImage } from './AuthImage';
 import { ImageLightbox } from './ImageLightbox';
 
@@ -947,6 +952,89 @@ function deriveSourceCrumb(pathname: string): { path: string; label: string } {
     '/merge-requests': 'Merge Requests',
   };
   return { path: pathname, label: staticLabels[pathname] ?? 'Home' };
+}
+
+/**
+ * Quick task 260610-fnk (D-02): decide whether a canonical issue key should be
+ * linkified. "Known" is currently defined as "the active Jira project only" —
+ * there is no persisted app-wide project list, so the only safe prefix to trust
+ * is `auth.store.activeJiraProject`. Isolating the decision here means the rule
+ * can be widened later (e.g. to a cached `['jira-projects']` query) without
+ * touching any call site. Returns false when `activeJiraProject` is falsy.
+ *
+ * Module-private — not exported.
+ */
+function isKnownPrefix(key: string, activeJiraProject: string | null): boolean {
+  if (!activeJiraProject) return false;
+  return key.split('-')[0] === activeJiraProject;
+}
+
+/**
+ * Quick task 260610-fnk (D-01/D-03): renders a bare in-app issue-key link.
+ *
+ * - The anchor renders immediately with the key as its text, independent of
+ *   query state (non-blocking — strikethrough may appear a beat later).
+ * - Status is resolved via the SAME query key/queryFn/staleTime/enabled as
+ *   PeekPanel / IssueDetailView (`['jira-issue-detail', issueKey, jiraBaseUrl]`),
+ *   so TanStack dedupes against the app-wide cache and cached keys cost zero
+ *   network. We deliberately do NOT use findJiraIssueInCache — that returns
+ *   summary-shaped/partial data with no reliable status (RESEARCH §On-Demand Status).
+ * - `doneSummaryClass` applies `line-through` only once statusCategory.key === 'done'.
+ * - Clicking mirrors the existing `a` override: preventDefault → breadcrumbPush →
+ *   navigate(`/issue/${issueKey}`).
+ *
+ * Module-level so the override maps can render it as JSX (its label is then React
+ * JSX, never a markdown-AST text node — the basis of the D-05 no-nesting guard).
+ */
+function IssueKeyLink({ issueKey }: { issueKey: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
+  const { jiraBaseUrl, jiraConnected } = useAuthStore();
+  const {
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    sprintFieldKey,
+    storyPointsFieldKey,
+    epicColorFieldKey,
+  } = useSettingsStore();
+
+  // Deduped status read — query key/queryFn/staleTime/enabled copied verbatim from
+  // PeekPanel.tsx:77-92 so this shares the app-wide issue-detail cache exactly.
+  const { data } = useQuery({
+    queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) throw new Error('No credentials');
+      return fetchIssueDetail(jiraBaseUrl, token, issueKey ?? '', {
+        epicLinkFieldKey,
+        epicNameFieldKey,
+        sprintFieldKey,
+        storyPointsFieldKey,
+        epicColorFieldKey,
+      });
+    },
+    staleTime: 30_000,
+    enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
+  });
+
+  const doneClass = doneSummaryClass(data?.fields?.status?.statusCategory);
+
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    breadcrumbPush(deriveSourceCrumb(location.pathname));
+    navigate(`/issue/${issueKey}`);
+  };
+
+  return (
+    <a
+      href={`#issue-${issueKey}`}
+      className={cn('text-primary hover:underline', doneClass)}
+      onClick={handleClick}
+    >
+      {issueKey}
+    </a>
+  );
 }
 
 const calloutStyles: Record<string, string> = {
