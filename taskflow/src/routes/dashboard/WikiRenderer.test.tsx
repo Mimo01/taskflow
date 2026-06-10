@@ -22,11 +22,18 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 }));
 
 // Auth store state shared across tests — each test suite resets it.
+// jiraBaseUrl is concrete so the issue-key tests can build a matching browse URL
+// that tryInternalPath resolves to /issue/PROD-123 (260610-fnk Test E). The
+// pre-seeded query key in renderWiki MUST use this same value as its 3rd segment.
 const authStoreState = {
-  jiraBaseUrl: null as string | null,
+  jiraBaseUrl: 'https://jira.example.com' as string | null,
   gitlabBaseUrl: null as string | null,
   activeGitlabProject: null as number | null,
   activeGitlabProjectPath: null as string | null,
+  // 260610-fnk: activeJiraProject gates isKnownPrefix; jiraConnected gates the
+  // issue-detail query `enabled` flag.
+  activeJiraProject: 'PROD' as string | null,
+  jiraConnected: true,
 };
 
 vi.mock('@/stores/auth.store', () => ({
@@ -70,6 +77,33 @@ vi.mock('@/stores/breadcrumb.store', () => ({
 }));
 
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// 260610-fnk: fetchIssueDetail is mocked so IssueKeyLink's query never hits a real
+// network path. Tests that need a resolved status pre-seed the cache via qc.setQueryData
+// instead of relying on the queryFn.
+vi.mock('@/services/jira', () => ({
+  fetchIssueDetail: vi.fn().mockResolvedValue({
+    fields: { status: { statusCategory: { key: 'indeterminate' } } },
+  }),
+}));
+
+/**
+ * 260610-fnk: render helper that wraps WikiRenderer in a fresh QueryClient +
+ * MemoryRouter. Required for any content that mounts IssueKeyLink (which calls
+ * useQuery). Retries are disabled so the failing queryFn does not churn, and a
+ * returned `qc` lets a test pre-seed the issue-detail cache for synchronous
+ * strikethrough resolution.
+ */
+function renderWiki(node: React.ReactElement) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const utils = render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>{node}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return { qc, ...utils };
+}
 
 describe('WikiRenderer', () => {
   describe('ISSUE-02: wiki markup rendering', () => {
@@ -1291,11 +1325,10 @@ After quote`;
 
     it('Jira browse URL matching jiraBaseUrl navigates in-app, does NOT call openUrl', () => {
       authStoreState.jiraBaseUrl = 'https://jira.example.com';
-      render(
-        <MemoryRouter>
-          <WikiRenderer wikiText="[PROJ-123|https://jira.example.com/browse/PROJ-123]" />
-        </MemoryRouter>,
-      );
+      // 260610-fnk: the `a` override now resolves browse/KEY URLs to an IssueKeyLink
+      // (which calls useQuery), so this render needs a QueryClient. Navigation to
+      // /issue/PROJ-123 is preserved by IssueKeyLink's own click handler.
+      renderWiki(<WikiRenderer wikiText="[PROJ-123|https://jira.example.com/browse/PROJ-123]" />);
       const link = screen.getByRole('link', { name: /PROJ-123/ });
       fireEvent.click(link);
       expect(navigateMock).toHaveBeenCalledWith('/issue/PROJ-123');
@@ -1376,6 +1409,89 @@ After quote`;
     });
   });
 
+  // --- Issue-key linkification (260610-fnk) ---
+  // Bare active-project issue keys in prose become in-app links; done issues get
+  // strikethrough; code-block / non-active-prefix keys stay literal; a full browse
+  // URL renders exactly one anchor with no nested <a>.
+  describe('issue-key linkification (260610-fnk)', () => {
+    beforeEach(() => {
+      vi.mocked(openUrl).mockClear();
+      navigateMock.mockClear();
+      pushMock.mockClear();
+      breadcrumbState.trail.length = 0;
+      // Active project = PROD, connected, concrete base URL (Test E builds a browse URL).
+      authStoreState.jiraBaseUrl = 'https://jira.example.com';
+      authStoreState.activeJiraProject = 'PROD';
+      authStoreState.jiraConnected = true;
+      authStoreState.gitlabBaseUrl = null;
+      authStoreState.activeGitlabProject = null;
+      authStoreState.activeGitlabProjectPath = null;
+    });
+
+    // Test A — active-prefix prose key linkifies and navigates in-app.
+    it('renders a bare PROD-123 prose key as an in-app link and navigates on click', () => {
+      renderWiki(<WikiRenderer wikiText="See PROD-123 for details" />);
+      const link = screen.getByText('PROD-123');
+      expect(link.closest('a')).not.toBeNull();
+      fireEvent.click(link);
+      expect(navigateMock).toHaveBeenCalledWith('/issue/PROD-123');
+    });
+
+    // Test B — done strikethrough only when statusCategory.key === 'done'.
+    it('applies line-through when the issue resolves to done, not for indeterminate', () => {
+      const done = renderWiki(<WikiRenderer wikiText="PROD-123" />);
+      done.qc.setQueryData(['jira-issue-detail', 'PROD-123', 'https://jira.example.com'], {
+        fields: { status: { statusCategory: { key: 'done' } } },
+      });
+      // Re-render against the seeded cache.
+      done.rerender(
+        <QueryClientProvider client={done.qc}>
+          <MemoryRouter>
+            <WikiRenderer wikiText="PROD-123" />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      expect(done.getByText('PROD-123').closest('a')).toHaveClass('line-through');
+
+      const open = renderWiki(<WikiRenderer wikiText="PROD-124" />);
+      open.qc.setQueryData(['jira-issue-detail', 'PROD-124', 'https://jira.example.com'], {
+        fields: { status: { statusCategory: { key: 'indeterminate' } } },
+      });
+      open.rerender(
+        <QueryClientProvider client={open.qc}>
+          <MemoryRouter>
+            <WikiRenderer wikiText="PROD-124" />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      expect(open.getByText('PROD-124').closest('a')).not.toHaveClass('line-through');
+    });
+
+    // Test C — keys inside an inline code span stay literal (no anchor). Jira {{...}}
+    // monospace renders as <code>; rehypeIssueKeys skips text under <code>/<pre> (D-04).
+    it('does NOT linkify a key inside an inline code span', () => {
+      const { container } = renderWiki(<WikiRenderer wikiText="see {{PROD-9}} here" />);
+      const code = container.querySelector('code');
+      expect(code?.textContent).toContain('PROD-9');
+      // The code-span key produced no anchor.
+      expect(container.querySelector('a')).toBeNull();
+    });
+
+    // Test D — non-active-prefix key stays plain text.
+    it('leaves a non-active-prefix key (OTHER-1) as plain text', () => {
+      renderWiki(<WikiRenderer wikiText="OTHER-1 is elsewhere" />);
+      expect(screen.queryByText('OTHER-1')?.closest('a')).toBeFalsy();
+    });
+
+    // Test E (D-05) — a full browse URL renders EXACTLY ONE anchor, no nested <a>.
+    it('renders a browse/PROD-123 URL as exactly one anchor with no nested <a>', () => {
+      renderWiki(<WikiRenderer wikiText="[PROD-123|https://jira.example.com/browse/PROD-123]" />);
+      const keyAnchors = screen.getAllByRole('link').filter((a) => a.textContent === 'PROD-123');
+      expect(keyAnchors).toHaveLength(1);
+      expect(keyAnchors[0].querySelector('a')).toBeNull();
+    });
+  });
+
   describe('breadcrumb trail (260518-qw8)', () => {
     beforeEach(() => {
       vi.mocked(openUrl).mockClear();
@@ -1391,7 +1507,9 @@ After quote`;
     it('Jira browse URL click pushes source page onto breadcrumb trail before navigating', () => {
       authStoreState.jiraBaseUrl = 'https://jira.example.com';
       locationPathname = '/mr/99/42';
-      render(<WikiRenderer wikiText="[PROJ-123|https://jira.example.com/browse/PROJ-123]" />);
+      // 260610-fnk: browse/KEY URLs now render IssueKeyLink (useQuery) — needs a
+      // QueryClient. IssueKeyLink preserves the breadcrumbPush → navigate sequence.
+      renderWiki(<WikiRenderer wikiText="[PROJ-123|https://jira.example.com/browse/PROJ-123]" />);
       const link = screen.getByRole('link', { name: /PROJ-123/ });
       fireEvent.click(link);
       expect(pushMock).toHaveBeenCalledWith({ path: '/mr/99/42', label: '!42' });
