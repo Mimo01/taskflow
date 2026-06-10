@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
@@ -14,10 +15,15 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { SKIP, visit } from 'unist-util-visit';
 import { tryInternalPath } from '@/lib/internalLinks';
+import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
+import { fetchIssueDetail } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { AuthImage } from './AuthImage';
 import { ImageLightbox } from './ImageLightbox';
 
@@ -36,9 +42,15 @@ import { ImageLightbox } from './ImageLightbox';
  */
 const wikiSanitizeSchema = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'mention', 'br', 'span'],
+  // 260610-fnk: `issuekeylink` is a synthetic element emitted by rehypeIssueKeys
+  // (before sanitize) to mark a bare active-project issue key. It is allowlisted
+  // here so sanitize preserves it; the components map renders it as IssueKeyLink.
+  // Its only attribute is `dataKey` (the issue key), a plain string we re-escape
+  // through React — no raw HTML, no arbitrary href (T-fnk-01).
+  tagNames: [...(defaultSchema.tagNames ?? []), 'mention', 'br', 'span', 'issuekeylink'],
   attributes: {
     ...defaultSchema.attributes,
+    issuekeylink: ['dataKey'],
     // hast property names are camelCased — `data-callout` ↔ `dataCallout`,
     // `data-title` ↔ `dataTitle`, `data-id` ↔ `dataId`. The whitelist must
     // match what hast-util-from-html produces from the raw HTML emitted by
@@ -949,6 +961,173 @@ function deriveSourceCrumb(pathname: string): { path: string; label: string } {
   return { path: pathname, label: staticLabels[pathname] ?? 'Home' };
 }
 
+/**
+ * Quick task 260610-fnk (D-02): decide whether a canonical issue key should be
+ * linkified. "Known" is currently defined as "the active Jira project only" —
+ * there is no persisted app-wide project list, so the only safe prefix to trust
+ * is `auth.store.activeJiraProject`. Isolating the decision here means the rule
+ * can be widened later (e.g. to a cached `['jira-projects']` query) without
+ * touching any call site. Returns false when `activeJiraProject` is falsy.
+ *
+ * Module-private — not exported.
+ */
+function isKnownPrefix(key: string, activeJiraProject: string | null): boolean {
+  if (!activeJiraProject) return false;
+  return key.split('-')[0] === activeJiraProject;
+}
+
+/** Canonical Jira issue-key pattern, mirrored from internalLinks.ts `tryInternalPath`. */
+const ISSUE_KEY_GLOBAL_RE = /\b[A-Z][A-Z0-9_]+-\d+\b/g;
+const ISSUE_KEY_EXACT_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
+
+// Minimal hast shapes — `unist-util-visit` over a rehype tree. We only touch the
+// fields we need; the full hast types live in @types/hast (not depended on here).
+type HastText = { type: 'text'; value: string };
+type HastElement = {
+  type: 'element';
+  tagName: string;
+  properties?: Record<string, unknown>;
+  children: Array<HastText | HastElement>;
+};
+
+/**
+ * Quick task 260610-fnk (D-02/D-04/D-05): rehype plugin that linkifies bare
+ * active-project issue keys in prose text nodes.
+ *
+ * react-markdown 10 dropped the `text` component override, so transforming bare
+ * prose keys must happen in the rehype tree. This plugin walks every text node and:
+ *  - SKIPs any text inside an `<a>`, `<code>`, or `<pre>` ancestor — so anchor
+ *    labels are never re-linkified (D-05) and code spans/blocks stay literal (D-04).
+ *  - Splits the remaining text on the canonical key pattern and replaces each
+ *    exact-match part that passes `isKnownPrefix` with an `<issuekeylink data-key>`
+ *    element (rendered as IssueKeyLink by the components map). Non-matching parts
+ *    stay as plain text nodes (D-02).
+ *
+ * Runs BEFORE rehype-sanitize so the synthetic `issuekeylink` elements (allowlisted
+ * in wikiSanitizeSchema) survive sanitisation. Emits no raw HTML and no href — the
+ * key is a plain string re-escaped by React (T-fnk-01).
+ */
+function rehypeIssueKeys(activeJiraProject: string | null) {
+  // unified plugins are "attachers" — a function that returns a transformer.
+  // We close over `activeJiraProject` and return the attacher so it can be passed
+  // directly into `rehypePlugins`.
+  return function attacher() {
+    return (tree: HastElement) => {
+      if (!activeJiraProject) return;
+      visit(
+        tree,
+        'text',
+        (textNode: HastText, index: number | undefined, parent: HastElement | undefined) => {
+          if (!parent || index === undefined) return;
+          const tag = parent.tagName;
+          // Skip text directly inside link/code containers — D-04/D-05 guard.
+          if (tag === 'a' || tag === 'code' || tag === 'pre') return SKIP;
+
+          const value = textNode.value;
+          // Walk matches with matchAll so we keep both the keys and the gaps between
+          // them; `split` would drop the matched delimiters.
+          const segments: Array<HastText | HastElement> = [];
+          let lastEnd = 0;
+          for (const m of value.matchAll(ISSUE_KEY_GLOBAL_RE)) {
+            const key = m[0];
+            const start = m.index ?? 0;
+            if (start > lastEnd) {
+              segments.push({ type: 'text', value: value.slice(lastEnd, start) });
+            }
+            if (ISSUE_KEY_EXACT_RE.test(key) && isKnownPrefix(key, activeJiraProject)) {
+              segments.push({
+                type: 'element',
+                tagName: 'issuekeylink',
+                properties: { dataKey: key },
+                children: [],
+              });
+            } else {
+              segments.push({ type: 'text', value: key });
+            }
+            lastEnd = start + key.length;
+          }
+          // No keys matched (or none replaced) — leave the text node untouched.
+          if (segments.length === 0) return;
+          if (lastEnd < value.length) {
+            segments.push({ type: 'text', value: value.slice(lastEnd) });
+          }
+          parent.children.splice(index, 1, ...segments);
+          // Resume visiting AFTER the inserted segments (none contain further text keys).
+          return index + segments.length;
+        },
+      );
+    };
+  };
+}
+
+/**
+ * Quick task 260610-fnk (D-01/D-03): renders a bare in-app issue-key link.
+ *
+ * - The anchor renders immediately with the key as its text, independent of
+ *   query state (non-blocking — strikethrough may appear a beat later).
+ * - Status is resolved via the SAME query key/queryFn/staleTime/enabled as
+ *   PeekPanel / IssueDetailView (`['jira-issue-detail', issueKey, jiraBaseUrl]`),
+ *   so TanStack dedupes against the app-wide cache and cached keys cost zero
+ *   network. We deliberately do NOT use findJiraIssueInCache — that returns
+ *   summary-shaped/partial data with no reliable status (RESEARCH §On-Demand Status).
+ * - `doneSummaryClass` applies `line-through` only once statusCategory.key === 'done'.
+ * - Clicking mirrors the existing `a` override: preventDefault → breadcrumbPush →
+ *   navigate(`/issue/${issueKey}`).
+ *
+ * Module-level so the override maps can render it as JSX (its label is then React
+ * JSX, never a markdown-AST text node — the basis of the D-05 no-nesting guard).
+ */
+function IssueKeyLink({ issueKey }: { issueKey: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
+  const { jiraBaseUrl, jiraConnected } = useAuthStore();
+  const {
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    sprintFieldKey,
+    storyPointsFieldKey,
+    epicColorFieldKey,
+  } = useSettingsStore();
+
+  // Deduped status read — query key/queryFn/staleTime/enabled copied verbatim from
+  // PeekPanel.tsx:77-92 so this shares the app-wide issue-detail cache exactly.
+  const { data } = useQuery({
+    queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) throw new Error('No credentials');
+      return fetchIssueDetail(jiraBaseUrl, token, issueKey ?? '', {
+        epicLinkFieldKey,
+        epicNameFieldKey,
+        sprintFieldKey,
+        storyPointsFieldKey,
+        epicColorFieldKey,
+      });
+    },
+    staleTime: 30_000,
+    enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
+  });
+
+  const doneClass = doneSummaryClass(data?.fields?.status?.statusCategory);
+
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    breadcrumbPush(deriveSourceCrumb(location.pathname));
+    navigate(`/issue/${issueKey}`);
+  };
+
+  return (
+    <a
+      href={`#issue-${issueKey}`}
+      className={cn('text-primary hover:underline', doneClass)}
+      onClick={handleClick}
+    >
+      {issueKey}
+    </a>
+  );
+}
+
 const calloutStyles: Record<string, string> = {
   info: 'border-l-4 border-blue-500 bg-blue-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   warning:
@@ -978,14 +1157,30 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
-  const { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath } =
-    useAuthStore();
+  const {
+    jiraBaseUrl,
+    gitlabBaseUrl,
+    activeGitlabProject,
+    activeGitlabProjectPath,
+    activeJiraProject,
+  } = useAuthStore();
   const linkCtx = { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath };
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
   const markdown = preprocessed ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)) : '';
 
   const markdownComponents: Record<string, unknown> = {
+    // Quick task 260610-fnk (D-02): the `rehypeIssueKeys` plugin replaces bare
+    // active-project keys in prose text nodes with <issuekeylink data-key="KEY"/>
+    // hast elements (skipping any text under <a>/<code>/<pre> — D-04/D-05). This
+    // component renders each such element as an IssueKeyLink. Using a rehype plugin
+    // rather than a `text` component is required: react-markdown 10 dropped support
+    // for overriding the `text` node via the components map.
+    issuekeylink: ({ node }: { node?: { properties?: Record<string, unknown> } }) => {
+      const key = node?.properties?.dataKey as string | undefined;
+      if (!key) return null;
+      return <IssueKeyLink issueKey={key} />;
+    },
     img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
       if (!src) return null;
       return (
@@ -1101,6 +1296,18 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           </a>
         );
       }
+      // Quick task 260610-fnk (D-05): when the href resolves to an internal
+      // /issue/KEY path, this `a` override OWNS the key — it renders a single
+      // <IssueKeyLink> (the sole anchor, with status/strikethrough) instead of an
+      // <a> wrapper. The key string inside IssueKeyLink is React JSX, not a markdown
+      // text node, so the `text` override above cannot re-wrap it. This makes a full
+      // browse/KEY URL render EXACTLY ONE anchor — nested <a><a> is structurally
+      // impossible. `internalPath` is computed once here and reused in handleClick.
+      const internalPath = tryInternalPath(href, linkCtx);
+      const issueRouteMatch = internalPath?.match(/^\/issue\/([A-Z][A-Z0-9_]+-\d+)$/);
+      if (issueRouteMatch) {
+        return <IssueKeyLink issueKey={issueRouteMatch[1]} />;
+      }
       // Image attachment link → inline text anchor that opens ImageLightbox on
       // click. AuthImage inside the lightbox translates AIO bridge URLs to the
       // direct download endpoint, so both same-instance bridge URLs and direct
@@ -1124,7 +1331,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       }
       const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
-        const internalPath = tryInternalPath(href, linkCtx);
+        // Reuse the `internalPath` computed at render time — single source of truth.
         if (internalPath !== null) {
           breadcrumbPush(deriveSourceCrumb(location.pathname));
           navigate(internalPath);
@@ -1149,7 +1356,14 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         // T-54-07-01 mitigation: rehypeRaw passes raw HTML through to the
         // rehype tree; rehypeSanitize then strips dangerous tags before render.
         // Order matters: sanitize MUST run AFTER raw so it sees the parsed HTML.
-        rehypePlugins={[rehypeRaw, [rehypeSanitize, wikiSanitizeSchema]]}
+        rehypePlugins={[
+          rehypeRaw,
+          // 260610-fnk: linkify bare active-project keys AFTER raw HTML is parsed
+          // (so text nodes are present) and BEFORE sanitize (so the emitted
+          // <issuekeylink> elements are kept by the allowlist).
+          rehypeIssueKeys(activeJiraProject),
+          [rehypeSanitize, wikiSanitizeSchema],
+        ]}
         components={markdownComponents}
       >
         {markdown}
