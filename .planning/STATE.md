@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: Milestone v1.12 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-09 - Approved & closed quick task 260609-iff: In wizard, save data on every step finish, not everything at the end
+Last activity: 2026-06-10 - Completed quick task 260610-ew2: Backlog right-click "Send to top/bottom" reorders a story within its own section
 
 ## Performance Metrics
 
@@ -123,6 +123,7 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 | 260609-g7c | wiki renderer should render {{{TEST}}} in tt tags | 2026-06-09 | 62e5728b | Approved & closed | [260609-g7c-wiki-renderer-should-render-test-in-tt-t](./quick/260609-g7c-wiki-renderer-should-render-test-in-tt-t/) |
 | 260609-hvu | In wizard process, if there is an error it prints error message. But I want to be able to see advanced error with full log of what has happened | 2026-06-09 | 73de6187 | Approved & closed | [260609-hvu-in-wizard-process-if-there-is-an-error-i](./quick/260609-hvu-in-wizard-process-if-there-is-an-error-i/) |
 | 260609-iff | In wizard, save data on every step finish, not everything at the end | 2026-06-09 | 6e3a7db5 | Approved & closed | [260609-iff-in-wizard-save-data-on-every-step-finish](./quick/260609-iff-in-wizard-save-data-on-every-step-finish/) |
+| 260610-ew2 | Backlog right-click menu: "Send to top"/"Send to bottom" reorder a story to the first/last position within its OWN section (its sprint, or the backlog) — never changes sprint membership. New pure `resolveSendToEdge(currentKeys, activeKey, edge)` in `backlogDragHelpers.ts` delegates to the existing `resolveIntraRankFromDrop` (overKey = first/last section key) so persisted rank matches drag semantics; null-return no-op guards for already-at-edge / missing key / single-row sections. `handleSendToEdge` in `BacklogPage.tsx` resolves the row's section via `findSectionOfKey`, takes the localOrder-aware base order (mirrors drag), and routes through the shared `rankMutation` with the identical mutate shape (optimistic localOrder override + rollback + invalidate; no `addIssuesToSprint`/`moveIssuesToBacklog` on this path). `onSendToTop`/`onSendToBottom` threaded BacklogPage → VirtualizedBacklogTable → BacklogRow; two flat ContextMenuItems in a new "Reorder" group, render guard extended so the menu shows when only these handlers exist. --full pipeline (discuss+research+check+review+verify); plan PASSED first check; verified 6/6 must-haves; code review 0 blockers (2 advisory warnings: WR-01 under an active filter top/bottom targets the unfiltered section edge — same as drag; WR-02 silent no-op at edge); helper vitest 46/46; npm run check (biome + tsc) GREEN. | 2026-06-10 | 43476ea6 | Verified | [260610-ew2-send-to-sprint-edge](./quick/260610-ew2-send-to-sprint-edge/) |
 
 ## Deferred Items
 
