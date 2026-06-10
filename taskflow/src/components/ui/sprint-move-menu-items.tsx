@@ -15,8 +15,6 @@ export interface SprintMoveMenuItemsProps {
   onSelectBacklog?: () => void;
   /** Menu item component — must accept onClick and children */
   Item: ComponentType<{ onClick: () => void; children: ReactNode }>;
-  /** Separator component */
-  Separator: ComponentType;
   /** Label component for empty state — must accept className and children */
   Label: ComponentType<{ className?: string; children: ReactNode }>;
 }
@@ -28,7 +26,6 @@ export function SprintMoveMenuItems({
   onSelectSprint,
   onSelectBacklog,
   Item,
-  Separator,
   Label,
 }: SprintMoveMenuItemsProps) {
   const targetSprints = sprints.filter((s) => currentSprintId == null || s.id !== currentSprintId);
@@ -49,12 +46,7 @@ export function SprintMoveMenuItems({
       ) : (
         <Label className="italic text-muted-foreground">No other sprints available</Label>
       )}
-      {showBacklog && onSelectBacklog && (
-        <>
-          <Separator />
-          <Item onClick={onSelectBacklog}>Backlog</Item>
-        </>
-      )}
+      {showBacklog && onSelectBacklog && <Item onClick={onSelectBacklog}>Backlog</Item>}
     </>
   );
 }

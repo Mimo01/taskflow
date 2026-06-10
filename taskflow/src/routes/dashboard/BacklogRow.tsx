@@ -341,27 +341,27 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           }
         />
         <ContextMenuContent>
-          {(onMoveToSprint || onMoveToBacklog) && (
+          {(onSendToTop || onSendToBottom) && (
             <ContextMenuGroup>
-              <ContextMenuLabel>Move to...</ContextMenuLabel>
+              <ContextMenuLabel>Reorder</ContextMenuLabel>
               <ContextMenuSeparator />
-              <SprintMoveMenuItems
-                sprints={sprints ?? []}
-                currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
-                showBacklog={!!onMoveToBacklog}
-                onSelectSprint={(sprintId, sprintName) =>
-                  onMoveToSprint?.(issue.key, sprintId, sprintName)
-                }
-                onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
-                Item={ContextMenuItem}
-                Separator={ContextMenuSeparator}
-                Label={ContextMenuLabel}
-              />
+              {onSendToTop && (
+                <ContextMenuItem onClick={() => onSendToTop(issue.key)}>
+                  <ArrowUpToLine className="size-3.5" />
+                  Send to top
+                </ContextMenuItem>
+              )}
+              {onSendToBottom && (
+                <ContextMenuItem onClick={() => onSendToBottom(issue.key)}>
+                  <ArrowDownToLine className="size-3.5" />
+                  Send to bottom
+                </ContextMenuItem>
+              )}
             </ContextMenuGroup>
           )}
           {onToggleFlag && (
             <>
-              {(onMoveToSprint || onMoveToBacklog) && <ContextMenuSeparator />}
+              {(onSendToTop || onSendToBottom) && <ContextMenuSeparator />}
               <ContextMenuGroup>
                 <ContextMenuLabel>Flag</ContextMenuLabel>
                 <ContextMenuSeparator />
@@ -372,24 +372,23 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
               </ContextMenuGroup>
             </>
           )}
-          {(onSendToTop || onSendToBottom) && (
+          {(onMoveToSprint || onMoveToBacklog) && (
             <>
-              {(onMoveToSprint || onMoveToBacklog || onToggleFlag) && <ContextMenuSeparator />}
+              {(onSendToTop || onSendToBottom || onToggleFlag) && <ContextMenuSeparator />}
               <ContextMenuGroup>
-                <ContextMenuLabel>Reorder</ContextMenuLabel>
+                <ContextMenuLabel>Move to...</ContextMenuLabel>
                 <ContextMenuSeparator />
-                {onSendToTop && (
-                  <ContextMenuItem onClick={() => onSendToTop(issue.key)}>
-                    <ArrowUpToLine className="size-3.5" />
-                    Send to top
-                  </ContextMenuItem>
-                )}
-                {onSendToBottom && (
-                  <ContextMenuItem onClick={() => onSendToBottom(issue.key)}>
-                    <ArrowDownToLine className="size-3.5" />
-                    Send to bottom
-                  </ContextMenuItem>
-                )}
+                <SprintMoveMenuItems
+                  sprints={sprints ?? []}
+                  currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
+                  showBacklog={!!onMoveToBacklog}
+                  onSelectSprint={(sprintId, sprintName) =>
+                    onMoveToSprint?.(issue.key, sprintId, sprintName)
+                  }
+                  onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
+                  Item={ContextMenuItem}
+                  Label={ContextMenuLabel}
+                />
               </ContextMenuGroup>
             </>
           )}

@@ -863,7 +863,6 @@ export function FieldsSection({
                         setPendingSprintMove({ sprintId: null, sprintName: 'Backlog' });
                       }}
                       Item={DropdownMenuItem}
-                      Separator={DropdownMenuSeparator}
                       Label={DropdownMenuLabel}
                     />
                   </>
