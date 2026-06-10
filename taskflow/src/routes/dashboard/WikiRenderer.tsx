@@ -1028,6 +1028,7 @@ function rehypeIssueKeys(activeJiraProject: string | null) {
           // them; `split` would drop the matched delimiters.
           const segments: Array<HastText | HastElement> = [];
           let lastEnd = 0;
+          let replaced = false;
           for (const m of value.matchAll(ISSUE_KEY_GLOBAL_RE)) {
             const key = m[0];
             const start = m.index ?? 0;
@@ -1041,19 +1042,24 @@ function rehypeIssueKeys(activeJiraProject: string | null) {
                 properties: { dataKey: key },
                 children: [],
               });
+              replaced = true;
             } else {
               segments.push({ type: 'text', value: key });
             }
             lastEnd = start + key.length;
           }
-          // No keys matched (or none replaced) — leave the text node untouched.
-          if (segments.length === 0) return;
+          // Nothing was linkified (no keys, or only foreign-project keys) — leave the
+          // original text node untouched rather than splicing it into equivalent
+          // fragments. Preserves the documented fast path (WR-02).
+          if (!replaced) return;
           if (lastEnd < value.length) {
             segments.push({ type: 'text', value: value.slice(lastEnd) });
           }
           parent.children.splice(index, 1, ...segments);
-          // Resume visiting AFTER the inserted segments (none contain further text keys).
-          return index + segments.length;
+          // Resume visiting AFTER the inserted segments (none contain further text
+          // keys). SKIP makes the resume index robust to the inserted nodes rather
+          // than relying on them being keyless (WR-03).
+          return [SKIP, index + segments.length];
         },
       );
     };
@@ -1107,6 +1113,10 @@ function IssueKeyLink({ issueKey }: { issueKey: string }) {
     },
     staleTime: 30_000,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
+    // A missing PAT / transient miss is the unknown-status case (D-03: link, no
+    // strike), not an error worth retrying. Without this, the default retry:3
+    // churns the network + logs for every unresolved key in a description (WR-01).
+    retry: false,
   });
 
   const doneClass = doneSummaryClass(data?.fields?.status?.statusCategory);
