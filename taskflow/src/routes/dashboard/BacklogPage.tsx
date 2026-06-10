@@ -27,7 +27,12 @@
  * action will own all manual refreshes.
  */
 
-import type { CollisionDetection, DragCancelEvent, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type {
+  CollisionDetection,
+  DragCancelEvent,
+  DragEndEvent,
+  DragStartEvent,
+} from '@dnd-kit/core';
 import {
   closestCenter,
   DndContext,
