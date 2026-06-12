@@ -632,6 +632,9 @@ function AppLayout() {
                 handleIssueClick(key);
               }}
               paletteOpen={paletteOpen}
+              onEdit={handleOpenEdit}
+              onClone={handleOpenClone}
+              onAddSubtask={handleOpenAddSubtask}
             />
           )}
         </div>

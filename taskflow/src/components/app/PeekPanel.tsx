@@ -23,6 +23,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useResizable } from '@/hooks/useResizable';
+import type { EditInitialValues } from '@/routes/dashboard/CreateEditIssueModal';
 import { IssueDetailView } from '@/routes/dashboard/IssueDetailView';
 import { fetchIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -37,6 +38,9 @@ export interface PeekPanelProps {
   onOpenIssue: (key: string) => void;
   onNavigateFull: (key: string) => void;
   paletteOpen: boolean;
+  onEdit?: (vals: EditInitialValues) => void;
+  onClone?: (vals: EditInitialValues) => void;
+  onAddSubtask?: (parentKey: string) => void;
 }
 
 export function PeekPanel({
@@ -47,6 +51,9 @@ export function PeekPanel({
   onOpenIssue,
   onNavigateFull,
   paletteOpen,
+  onEdit,
+  onClone,
+  onAddSubtask,
 }: PeekPanelProps) {
   const {
     width: panelWidth,
@@ -172,7 +179,14 @@ export function PeekPanel({
       {/* Body: full IssueDetailView in single-column mode (D-05/D-06) */}
       {/* onOpenIssue is setPeekIssueKey from main.tsx — clicks inside peek swap, not navigate (D-13) */}
       <div className="flex-1 overflow-hidden">
-        <IssueDetailView issueKey={issueKey} layout="single-column" onOpenIssue={onOpenIssue} />
+        <IssueDetailView
+          issueKey={issueKey}
+          layout="single-column"
+          onOpenIssue={onOpenIssue}
+          onEdit={onEdit}
+          onClone={onClone}
+          onAddSubtask={onAddSubtask}
+        />
       </div>
     </div>
   );
