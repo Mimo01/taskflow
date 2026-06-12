@@ -4,7 +4,10 @@
 // ordering, retry-no-duplicate, @unassigned omission, and invalidation contract.
 
 import { describe, expect, it, vi } from 'vitest';
-import { createAllRows } from './BulkCreateSubtasksModal';
+import type { JiraIssueDetail } from '@/services/jira';
+import type { BulkCreateRow } from './BulkCreateSubtasksModal';
+import { buildSubtaskRowPayload, createAllRows } from './BulkCreateSubtasksModal';
+import type { PlaceholderContext } from './resolveRowPlaceholders';
 
 // ---------------------------------------------------------------------------
 // Types (mirrored from BulkCreateSubtasksModal implementation)
@@ -184,6 +187,101 @@ describe('BulkCreateSubtasksModal — creation loop contract (SUBTPL-06/07)', ()
       // Should have been called with 'creating' then 'created'
       expect(stateSnapshots).toContainEqual(['creating']);
       expect(stateSnapshots).toContainEqual(['created']);
+    });
+  });
+
+  describe('parent required-field inheritance (bulk-subtask-account-required)', () => {
+    const ctx: PlaceholderContext = {
+      jiraUsername: 'mimo',
+      jiraUserDisplayName: 'Milan',
+      parentIssue: {
+        key: 'ESHOP-20523',
+        fields: { assignee: null, priority: null, labels: [] },
+      } as unknown as JiraIssueDetail,
+    };
+
+    const baseRow: BulkCreateRow = {
+      id: 'r1',
+      title: 'Testing',
+      assignee: '@unassigned',
+      priority: null,
+      labels: [],
+      duedate: null,
+      timeEstimate: '1h',
+      storyPoints: null,
+      components: [],
+      customFieldValues: {},
+    };
+
+    it('injects a required parent custom field the row did not set (object value → scalar id)', () => {
+      const { options } = buildSubtaskRowPayload(baseRow, ctx, {
+        parentKey: 'ESHOP-20523',
+        storyPointsFieldKey: null,
+        creatmetaFields: [],
+        // Tempo Account on the parent — object with an integer id
+        parentInheritMap: { customfield_10409: { id: 42, key: 'ACME', name: 'Acme Co' } },
+      });
+
+      // The exact field that produced the 400 must now be present, as the scalar id
+      expect(options.customfield_10409).toBe('42');
+    });
+
+    it('unwraps an array-valued parent field to its first element scalar', () => {
+      const { options } = buildSubtaskRowPayload(baseRow, ctx, {
+        parentKey: 'ESHOP-20523',
+        storyPointsFieldKey: null,
+        creatmetaFields: [],
+        parentInheritMap: { customfield_10409: [{ id: 7 }] },
+      });
+      expect(options.customfield_10409).toBe('7');
+    });
+
+    it('passes through a scalar parent value unchanged', () => {
+      const { options } = buildSubtaskRowPayload(baseRow, ctx, {
+        parentKey: 'ESHOP-20523',
+        storyPointsFieldKey: null,
+        creatmetaFields: [],
+        parentInheritMap: { customfield_10500: 'plain-value' },
+      });
+      expect(options.customfield_10500).toBe('plain-value');
+    });
+
+    it('does NOT override a value the row explicitly set', () => {
+      const row: BulkCreateRow = {
+        ...baseRow,
+        customFieldValues: { customfield_10409: 'user-entered' },
+      };
+      const { options } = buildSubtaskRowPayload(row, ctx, {
+        parentKey: 'ESHOP-20523',
+        storyPointsFieldKey: null,
+        creatmetaFields: [], // no field meta → row value sent raw
+        parentInheritMap: { customfield_10409: { id: 42 } },
+      });
+      // Row value wins; parent inheritance is skipped for set fields
+      expect(options.customfield_10409).toBe('user-entered');
+    });
+
+    it('skips null/empty parent values without emitting the key', () => {
+      const { options } = buildSubtaskRowPayload(baseRow, ctx, {
+        parentKey: 'ESHOP-20523',
+        storyPointsFieldKey: null,
+        creatmetaFields: [],
+        parentInheritMap: { customfield_10409: null, customfield_10410: [] },
+      });
+      expect('customfield_10409' in options).toBe(false);
+      expect('customfield_10410' in options).toBe(false);
+    });
+
+    it('always includes parent key and inherited field together (the regression payload)', () => {
+      const { options } = buildSubtaskRowPayload(baseRow, ctx, {
+        parentKey: 'ESHOP-20523',
+        storyPointsFieldKey: null,
+        creatmetaFields: [],
+        parentInheritMap: { customfield_10409: { id: 42 } },
+      });
+      expect((options.parent as { key: string }).key).toBe('ESHOP-20523');
+      expect(options.timetracking).toEqual({ originalEstimate: '1h' });
+      expect(options.customfield_10409).toBe('42');
     });
   });
 

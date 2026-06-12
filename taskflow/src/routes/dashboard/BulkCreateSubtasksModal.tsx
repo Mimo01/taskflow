@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LayoutList, Plus, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -45,8 +45,23 @@ import { useSubtaskTemplatesStore } from '@/stores/subtask-templates.store';
 import { BulkProgressIndicator } from './BulkProgressIndicator';
 import type { RowState, RowStatus } from './create-edit-issue/SubtaskTemplateRow';
 import { SubtaskTemplateRow } from './create-edit-issue/SubtaskTemplateRow';
+import type { PlaceholderContext } from './resolveRowPlaceholders';
 import { resolveRowForCreate } from './resolveRowPlaceholders';
 import { resolveTemplateFields } from './resolveTemplateFields';
+
+// Core field IDs to exclude from required-custom-field inheritance (mirrors
+// create-edit-issue/useCreateEditQueries.ts — these are handled explicitly).
+const CORE_FIELD_IDS = new Set([
+  'summary',
+  'description',
+  'assignee',
+  'priority',
+  'issuetype',
+  'project',
+  'reporter',
+  'parent',
+  'timetracking',
+]);
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,6 +128,65 @@ export async function createAllRows({
   }
 
   return states;
+}
+
+/**
+ * Build the Jira create payload for a single bulk-subtask row. Exported as a pure
+ * function so BulkCreateSubtasksModal.test.ts can assert the field contract —
+ * notably that required custom fields are inherited from the parent (e.g. Tempo
+ * "Account" / customfield_10409) when the row didn't set them. Mirrors the
+ * single-create inheritance in create-edit-issue/useIssueMutations.ts.
+ */
+export function buildSubtaskRowPayload(
+  row: BulkCreateRow,
+  ctx: PlaceholderContext,
+  config: {
+    parentKey: string;
+    storyPointsFieldKey: string | null;
+    creatmetaFields?: CreatemetaField[];
+    parentInheritMap: Record<string, unknown>;
+  },
+): { title: string; options: Record<string, unknown> } {
+  const { parentKey, storyPointsFieldKey, creatmetaFields, parentInheritMap } = config;
+  const { title, options: resolvedOptions } = resolveRowForCreate(row, ctx);
+
+  const options: Record<string, unknown> = {
+    ...resolvedOptions,
+    parent: { key: parentKey },
+  };
+
+  if (row.timeEstimate.trim()) {
+    options.timetracking = { originalEstimate: row.timeEstimate.trim() };
+  }
+  if (row.storyPoints != null && storyPointsFieldKey) {
+    options[storyPointsFieldKey] = row.storyPoints;
+  }
+  if (row.components.length > 0) {
+    options.components = row.components.map((id) => ({ id }));
+  }
+  for (const [fieldId, rawValue] of Object.entries(row.customFieldValues)) {
+    if (!rawValue.trim()) continue;
+    const fieldMeta = creatmetaFields?.find((f) => f.fieldId === fieldId);
+    options[fieldId] = fieldMeta ? wrapCustomFieldValue(fieldMeta, rawValue) : rawValue;
+  }
+
+  // Inherit required custom fields from the parent (e.g. Tempo Account) using the
+  // raw Jira value, but only when the row didn't explicitly set them. Object values
+  // collapse to their primary scalar id — Tempo Accounts expect just the id string.
+  for (const [fieldId, raw] of Object.entries(parentInheritMap)) {
+    if (raw == null || (row.customFieldValues[fieldId] ?? '').trim()) continue;
+    const item = Array.isArray(raw) ? (raw as unknown[])[0] : raw;
+    if (item == null) continue;
+    if (typeof item === 'object') {
+      const obj = item as Record<string, unknown>;
+      const scalar = obj.id ?? obj.key ?? obj.name;
+      if (scalar != null) options[fieldId] = String(scalar);
+    } else {
+      options[fieldId] = item;
+    }
+  }
+
+  return { title, options };
 }
 
 // ── Sortable row wrapper ──────────────────────────────────────────────────────
@@ -247,6 +321,54 @@ export function BulkCreateSubtasksModal({
     enabled: open && !!projectKey && !!jiraBaseUrl && !!effectiveTypeId,
     staleTime,
   });
+
+  // Required custom fields for this subtask type that must be inherited from the
+  // parent (e.g. Tempo "Account" / customfield_10409). Mirrors the single-create
+  // path in create-edit-issue/ — without this, required parent fields are never
+  // sent and Jira rejects the create with "<field> is required" (400).
+  const customRequiredFields = useMemo(
+    () =>
+      (creatmetaFields ?? []).filter((f) => {
+        if (!f.required) return false;
+        if (CORE_FIELD_IDS.has(f.fieldId)) return false;
+        if (storyPointsFieldKey && f.fieldId === storyPointsFieldKey) return false;
+        return true;
+      }),
+    [creatmetaFields, storyPointsFieldKey],
+  );
+
+  // Parent issue's raw field values (?fields=*navigable) — the source for inherited
+  // required custom fields. Only fetched when there is at least one required field.
+  const { data: parentFields } = useQuery<Record<string, unknown>>({
+    queryKey: ['parent-fields', parentKey],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !parentKey) return {};
+      const base = jiraBaseUrl.replace(/\/$/, '');
+      const resp = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/issue/${parentKey}?fields=*navigable`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Load Parent Fields',
+      );
+      if (!resp.ok) return {};
+      const data = (await resp.json()) as { fields?: Record<string, unknown> };
+      return data.fields ?? {};
+    },
+    enabled: open && !!jiraBaseUrl && !!parentKey && customRequiredFields.length > 0,
+    staleTime,
+  });
+
+  // Raw parent values for required custom fields — sent directly to Jira, bypassing
+  // wrapCustomFieldValue so original types (e.g. integer account IDs) are preserved.
+  const parentInheritMap = useMemo(() => {
+    if (!parentFields || customRequiredFields.length === 0) return {} as Record<string, unknown>;
+    const map: Record<string, unknown> = {};
+    for (const f of customRequiredFields) {
+      if (parentFields[f.fieldId] != null) map[f.fieldId] = parentFields[f.fieldId];
+    }
+    return map;
+  }, [parentFields, customRequiredFields]);
 
   // Assignable users for the project
   const { data: allAssignees = [] } = useQuery<JiraUser[]>({
@@ -402,34 +524,15 @@ export function BulkCreateSubtasksModal({
     setJiraToken(token);
 
     // Snapshot rows at click time (Pitfall 6 — disable edits during creation)
-    const snapshotRows = rows.map((row) => {
-      const ctx = { jiraUsername, jiraUserDisplayName, parentIssue };
-      const { title, options: resolvedOptions } = resolveRowForCreate(row, ctx);
-
-      // Build full payload
-      const options: Record<string, unknown> = {
-        ...resolvedOptions,
-        parent: { key: parentKey },
-      };
-
-      // Additional fields from row
-      if (row.timeEstimate.trim()) {
-        options.timetracking = { originalEstimate: row.timeEstimate.trim() };
-      }
-      if (row.storyPoints != null && storyPointsFieldKey) {
-        options[storyPointsFieldKey] = row.storyPoints;
-      }
-      if (row.components.length > 0) {
-        options.components = row.components.map((id) => ({ id }));
-      }
-      for (const [fieldId, rawValue] of Object.entries(row.customFieldValues)) {
-        if (!rawValue.trim()) continue;
-        const fieldMeta = creatmetaFields?.find((f) => f.fieldId === fieldId);
-        options[fieldId] = fieldMeta ? wrapCustomFieldValue(fieldMeta, rawValue) : rawValue;
-      }
-
-      return { title, options };
-    });
+    const ctx = { jiraUsername, jiraUserDisplayName, parentIssue };
+    const snapshotRows = rows.map((row) =>
+      buildSubtaskRowPayload(row, ctx, {
+        parentKey,
+        storyPointsFieldKey,
+        creatmetaFields,
+        parentInheritMap,
+      }),
+    );
 
     setCreating(true);
     setShowProgress(true);
