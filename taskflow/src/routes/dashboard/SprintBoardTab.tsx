@@ -1384,6 +1384,15 @@ export default function SprintBoardTab() {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
       // Status changed → the transitions-with-fields gating must be re-read.
       queryClient.invalidateQueries({ queryKey: ['jira-issue-transitions-fields', issueKey] });
+      // A parent story renders its subtask rows (incl. status pills) from a separate
+      // enrichment query. Invalidate the family by prefix so the parent's subtask list
+      // refreshes after a board transition — mirrors FieldsSection's invalidation.
+      queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] });
+      // Same for an epic's child stories list.
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
+      // jira-parent-detail is used by subtask peek panels to show the parent's status.
+      // Invalidate for this issue so sibling subtask views see fresh parent status.
+      queryClient.invalidateQueries({ queryKey: ['jira-parent-detail', issueKey] });
     } catch {
       // Rollback to original status
       setLocalIssues((prev) =>

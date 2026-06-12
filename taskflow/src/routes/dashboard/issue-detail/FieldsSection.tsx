@@ -327,6 +327,13 @@ export function FieldsSection({
       // child story doesn't know its epic key, so invalidate the family by prefix to keep the
       // epic's stories section fresh immediately after a transition.
       queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
+      // IssueDetailView caches the parent of a subtask under a SEPARATE key
+      // ['jira-parent-detail', parentKey, jiraBaseUrl] — different from
+      // ['jira-issue-detail', ...]. When THIS issue is the parent of some other
+      // subtask, that subtask's peek panel "Parent" row reads from jira-parent-detail
+      // keyed by issueKey. Invalidate it here so the parent-status pill refreshes
+      // immediately after a transition (mirrors the jira-issue-detail invalidation above).
+      queryClient.invalidateQueries({ queryKey: ['jira-parent-detail', issueKey] });
       // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
       // Phase 75: also invalidate GH all-data so sprint board columns refresh after a transition.
       if (boardId) invalidateGhAllData(queryClient, boardId);
