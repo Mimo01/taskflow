@@ -7,7 +7,7 @@
  */
 
 import { Dialog } from '@base-ui/react/dialog';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
@@ -45,7 +45,7 @@ import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import {
   fetchMilestoneMRs,
   fetchProjectMilestonesInRange,
-  searchProjectMRsByKey,
+  fetchRecentProjectMRs,
   updateMilestone,
 } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -352,46 +352,41 @@ export default function ReleaseDetailPage() {
   }));
   const unmatchedMRs = releaseUnmatched;
 
-  // GGX-WARN-01: For each task that has NO MR in the matched milestone ("Missing MR"
-  // case), search the whole project for an MR carrying that ticket key (any milestone,
-  // any state). If one exists on a different/absent milestone, it's a "Wrong milestone"
-  // warning rather than a genuinely-missing MR. Keyed on [project, key] (NOT milestone
-  // title) so results survive milestone renames and are shared across releases.
+  // GGX-WARN-01: Find tasks that have NO MR in the matched milestone ("Missing MR" case)
+  // but DO have an MR elsewhere — i.e. on a different/absent milestone ("Wrong milestone").
+  // Optimization: instead of one slow GitLab `search` request per missing task, fetch the
+  // project's latest 100 MRs ONCE (fast list endpoint) and match every task locally. Only
+  // runs when a milestone matched and there is at least one missing row. Trade-off: an MR
+  // older than the latest 100 won't be found and the task stays "Missing MR".
   const missingRows = matchedRows.filter((r) => r.mr === null);
-  const wrongMilestoneQueries = useQueries({
-    queries: missingRows.map((r) => ({
-      queryKey: ['gitlab-mr-by-key', activeGitlabProject, r.issue.key],
-      queryFn: () =>
-        searchProjectMRsByKey(
-          gitlabBaseUrl ?? '',
-          gitlabToken ?? '',
-          activeGitlabProject ?? 0,
-          r.issue.key,
-        ),
-      enabled:
-        !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && gitlabMatch.type !== 'none',
-      staleTime: 5 * 60_000,
-    })),
+  const { data: recentProjectMRs } = useQuery({
+    queryKey: ['gitlab-recent-project-mrs', activeGitlabProject],
+    queryFn: () =>
+      fetchRecentProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0, 100),
+    enabled:
+      !!gitlabBaseUrl &&
+      !!activeGitlabProject &&
+      !!gitlabToken &&
+      gitlabMatch.type !== 'none' &&
+      missingRows.length > 0,
+    staleTime: 5 * 60_000,
   });
 
-  // Build issueKey -> offending MR. For each missing row, confirm each returned MR truly
-  // carries the key (title-or-branch via linkMRToTask), then pick the FIRST whose
+  // Build issueKey -> offending MR. For each missing row, scan the fetched MRs: confirm the
+  // MR truly carries the key (title-or-branch via linkMRToTask), then pick the FIRST whose
   // milestone differs from (or is absent vs.) the release's matched milestone. A null
   // milestone is a warn case per the locked trigger; compare by id.
   const wrongMilestoneByKey = new Map<string, GitLabMR>();
-  if (matchedMilestone) {
-    missingRows.forEach((r, idx) => {
-      const result = wrongMilestoneQueries[idx];
-      const mrs = result?.data;
-      if (!mrs) return;
+  if (matchedMilestone && recentProjectMRs) {
+    for (const r of missingRows) {
       const keySet = new Set([r.issue.key]);
-      const offending = mrs.find(
+      const offending = recentProjectMRs.find(
         (mr) =>
           linkMRToTask(mr, keySet) !== null &&
           (mr.milestone == null || mr.milestone.id !== matchedMilestone.id),
       );
       if (offending) wrongMilestoneByKey.set(r.issue.key, offending);
-    });
+    }
   }
 
   // Seed a release-attributed cache entry so the Releases list can render a
@@ -918,12 +913,30 @@ export default function ReleaseDetailPage() {
                                 const offendingMilestone =
                                   offending.milestone?.title ?? 'no milestone';
                                 return (
-                                  <span
-                                    className="inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400"
-                                    title={`MR !${offending.iid} is on milestone ${offendingMilestone}, not this release`}
-                                  >
-                                    <AlertTriangle className="size-3.5" />
-                                    Wrong milestone
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openUrl(offending.web_url);
+                                      }}
+                                      className={`inline-flex items-center gap-1 text-xs hover:underline ${
+                                        offending.state === 'merged'
+                                          ? 'text-green-600 dark:text-green-400'
+                                          : offending.state === 'opened'
+                                            ? 'text-blue-600 dark:text-blue-400'
+                                            : 'text-gray-500'
+                                      }`}
+                                    >
+                                      <GitMerge className="size-3.5" />!{offending.iid}
+                                    </button>
+                                    <span
+                                      className="inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400"
+                                      title={`MR !${offending.iid} is on milestone ${offendingMilestone}, not this release`}
+                                    >
+                                      <AlertTriangle className="size-3.5" />
+                                      Wrong milestone
+                                    </span>
                                   </span>
                                 );
                               })()
