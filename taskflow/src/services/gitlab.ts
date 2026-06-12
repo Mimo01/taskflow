@@ -1146,6 +1146,73 @@ export async function fetchMilestoneMRs(
 }
 
 /**
+ * Search a single project's merge requests by Jira ticket key, across ALL states.
+ *
+ * GGX-WARN-01: Used by the release detail page to find an MR that carries a task's
+ * ticket key but is NOT in the release's matched milestone (a "wrong milestone"
+ * warning). Unlike the global `searchGitLabMRs` (open-only, cross-project, capped at
+ * 20, error-swallowing), this is project-scoped, includes opened/merged/closed, and
+ * paginates the full result set so merged/closed MRs on the wrong milestone are found.
+ *
+ * Searches the MR title via `search=<key>&in=title`. GitLab's MR search does not index
+ * branch names, so a key that only appears in `source_branch` will not be returned here;
+ * callers should re-run `linkMRToTask` on the results to confirm the key truly matches.
+ *
+ * Label-color enrichment is intentionally skipped — this consumer renders only the
+ * milestone/iid/web_url, never MR labels, so the extra labels call is avoided.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param key       - Jira ticket key (URL-encoded before sending)
+ * @returns Array of MRs across all pages and states whose title matches the key
+ */
+export async function searchProjectMRsByKey(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  key: string,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allMRs: GitLabMR[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests?search=${encodeURIComponent(key)}&in=title&state=all&per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Search Project MRs',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to search project MRs', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to search project MRs: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabMR[];
+    allMRs.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  return allMRs;
+}
+
+/**
  * Search GitLab merge requests by text query.
  *
  * @param baseUrl - GitLab base URL
