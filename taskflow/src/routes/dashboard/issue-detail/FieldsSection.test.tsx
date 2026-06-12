@@ -83,6 +83,18 @@ vi.mock('@/services/jira/resolutions', () => ({
   ]),
 }));
 
+vi.mock('@/services/jira', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/jira')>();
+  return {
+    ...actual,
+    fetchIssuePriorityOptions: vi.fn().mockResolvedValue([]),
+    fetchPriorities: vi.fn().mockResolvedValue([]),
+    invalidateGhAllData: vi.fn(),
+    invalidateGhBacklogData: vi.fn(),
+    isIssueFlagged: actual.isIssueFlagged,
+  };
+});
+
 // Replace the base-ui Select primitive with a deterministic <select>+<option>
 // stand-in. Reason: base-ui Select renders its options into a positioned portal
 // driven by floating-ui, which does not lay out reliably in jsdom — clicking an
@@ -168,6 +180,7 @@ vi.mock('./useFieldMutation', () => ({
 }));
 
 import type { JiraIssueDetail } from '@/services/jira';
+import { fetchIssuePriorityOptions } from '@/services/jira';
 import { extractSeverity } from './FieldsSection';
 
 // --- Pure helper tests ---
@@ -276,6 +289,62 @@ describe('FieldsSection', () => {
       await renderFieldsSection(issue);
       expect(screen.queryByTestId('priority-icon')).toBeNull();
       expect(screen.getByText('Low')).toBeTruthy();
+    });
+
+    it('shows priority icon in each Select option when editing state is open', async () => {
+      const { fireEvent, waitFor } = await import('@testing-library/react');
+      const priorities = [
+        { id: '1', name: 'Critical', iconUrl: 'http://example.com/critical.svg', self: '' },
+        { id: '2', name: 'High', iconUrl: 'http://example.com/high.svg', self: '' },
+        { id: '3', name: 'Low', iconUrl: '', self: '' },
+      ];
+      vi.mocked(fetchIssuePriorityOptions).mockResolvedValue(priorities);
+      const issue = makeIssue({
+        priority: { name: 'High', iconUrl: 'http://example.com/high.svg' },
+      });
+      await renderFieldsSection(issue);
+      const editBtn = screen.getByTestId('priority-edit');
+      fireEvent.click(editBtn);
+      // Wait for the query to populate the SelectContent options.
+      // The select mock renders SelectContent as a <select> with <option> children.
+      // jsdom strips img children from <option> elements (HTML doesn't allow them),
+      // so we verify: (a) all option values are present, (b) the PriorityIcon img
+      // for options with iconUrl is rendered in the surrounding markup (not inside
+      // the <option> but in the SelectItem children the production code renders).
+      await waitFor(() => {
+        const select = document.querySelector('[data-testid="select-native"]') as HTMLSelectElement;
+        expect(select).toBeTruthy();
+        const optionValues = Array.from(select.options).map((o) => o.value);
+        expect(optionValues).toContain('Critical');
+        expect(optionValues).toContain('High');
+        expect(optionValues).toContain('Low');
+      });
+      // Verify that PriorityIcon imgs are rendered in the document for options that
+      // have an iconUrl. These come from the <span className="flex items-center gap-1.5">
+      // wrapper inside each SelectItem — rendered by the production code.
+      const criticalImg = document.querySelector('img[src="http://example.com/critical.svg"]');
+      expect(criticalImg).toBeTruthy();
+      const highImg = document.querySelector('img[src="http://example.com/high.svg"]');
+      expect(highImg).toBeTruthy();
+      // Low has no iconUrl — PriorityIcon returns null, no img for it.
+    });
+
+    it('shows icon in the trigger when priority editing is open', async () => {
+      const { fireEvent } = await import('@testing-library/react');
+      vi.mocked(fetchIssuePriorityOptions).mockResolvedValue([
+        { id: '2', name: 'High', iconUrl: 'http://example.com/high.svg', self: '' },
+      ]);
+      const issue = makeIssue({
+        priority: { name: 'High', iconUrl: 'http://example.com/high.svg' },
+      });
+      await renderFieldsSection(issue);
+      const editBtn = screen.getByTestId('priority-edit');
+      fireEvent.click(editBtn);
+      // The trigger renders the selected priority's icon immediately — it derives
+      // from f.priority directly (the fallback path) before the query resolves,
+      // so the img is available synchronously.
+      const triggerImgs = document.querySelectorAll('img[src="http://example.com/high.svg"]');
+      expect(triggerImgs.length).toBeGreaterThan(0);
     });
   });
 

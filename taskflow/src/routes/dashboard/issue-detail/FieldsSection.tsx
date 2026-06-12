@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import {
   Select,
   SelectContent,
@@ -634,12 +635,25 @@ export function FieldsSection({
               }}
             >
               <SelectTrigger size="sm" className="h-6 text-xs">
-                <SelectValue />
+                {(() => {
+                  const selected =
+                    (prioritiesQuery.data ?? []).find((p) => p.name === f.priority?.name) ??
+                    f.priority;
+                  return (
+                    <span className="flex items-center gap-1.5">
+                      <PriorityIcon priority={selected} />
+                      <span>{selected?.name ?? f.priority?.name}</span>
+                    </span>
+                  );
+                })()}
               </SelectTrigger>
               <SelectContent>
                 {(prioritiesQuery.data ?? []).map((p) => (
                   <SelectItem key={p.id} value={p.name}>
-                    {p.name}
+                    <span className="flex items-center gap-1.5">
+                      <PriorityIcon priority={p} />
+                      <span>{p.name}</span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
