@@ -1,4 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog';
+import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { fetchIssuePriorityOptions, fetchPriorities, type JiraPriority } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { DescriptionEditor } from '../DescriptionEditor';
@@ -32,8 +35,6 @@ export interface CreateEditIssueModalProps {
   defaultIssueType?: 'Story' | 'Subtask' | 'Bug';
   defaultParentKey?: string;
 }
-
-const PRIORITY_OPTIONS = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,37 @@ export function CreateEditIssueModal({
     storyPointsFieldKey,
     parentKey: defaultParentKey,
   });
+
+  // Priorities must be scoped to the priority scheme that actually applies here, not
+  // the instance-wide list (which has many priorities this project never uses). In
+  // create mode the scoped set is the createmeta priority field's allowedValues; in
+  // edit mode it's the issue's editmeta allowedValues. Both fall back to the global
+  // list. Never hardcode standard-Jira names like "Highest" which may not exist.
+  const createmetaPriorities = useMemo<JiraPriority[]>(() => {
+    const field = creatmetaFields?.find((f) => f.fieldId === 'priority');
+    return (field?.schema.allowedValues ?? []) as unknown as JiraPriority[];
+  }, [creatmetaFields]);
+
+  const prioritiesQuery = useQuery<JiraPriority[]>({
+    queryKey: ['jira-priorities', initialValues?.issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) return [];
+      if (mode === 'edit' && initialValues?.issueKey) {
+        const scoped = await fetchIssuePriorityOptions(jiraBaseUrl, token, initialValues.issueKey);
+        if (scoped.length > 0) return scoped;
+      }
+      return fetchPriorities(jiraBaseUrl, token);
+    },
+    // Skip the network query when createmeta already gives us the scoped create-mode set.
+    enabled: open && !!jiraBaseUrl && (mode === 'edit' || createmetaPriorities.length === 0),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const priorityOptions =
+    mode === 'create' && createmetaPriorities.length > 0
+      ? createmetaPriorities
+      : (prioritiesQuery.data ?? []);
 
   // Raw parent values for required custom fields — sent directly to Jira, bypassing
   // wrapCustomFieldValue so the original types (e.g. integer account IDs) are preserved.
@@ -436,9 +468,9 @@ export function CreateEditIssueModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">None</SelectItem>
-                  {PRIORITY_OPTIONS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
+                  {priorityOptions.map((p) => (
+                    <SelectItem key={p.id} value={p.name}>
+                      {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

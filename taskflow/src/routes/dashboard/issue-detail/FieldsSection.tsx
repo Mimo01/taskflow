@@ -27,8 +27,14 @@ import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
-import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
-import { invalidateGhAllData, invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
+import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
+import {
+  fetchIssuePriorityOptions,
+  fetchPriorities,
+  invalidateGhAllData,
+  invalidateGhBacklogData,
+  isIssueFlagged,
+} from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
 import {
@@ -45,8 +51,6 @@ import { OverdueBadge } from './OverdueBadge';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
 import { extractSprintId, extractSprintName } from './utils';
 import { WatcherToggle } from './WatcherToggle';
-
-const PRIORITY_OPTIONS = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
 
 /**
  * Extract the severity display string from customfield_13415.
@@ -107,6 +111,24 @@ export function FieldsSection({
 
   // Priority edit state
   const [priorityEditing, setPriorityEditing] = useState(false);
+
+  // Fetch the priorities VALID FOR THIS ISSUE when the picker opens. The per-issue
+  // editmeta allowedValues is scoped to the project/issue-type priority scheme, so it
+  // excludes the many instance-wide priorities that don't apply here. Falls back to the
+  // global list if editmeta omits priority (not on the edit screen). Never hardcode
+  // standard-Jira names like "Highest".
+  const prioritiesQuery = useQuery<JiraPriority[]>({
+    queryKey: ['jira-priorities', issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) return [];
+      const scoped = await fetchIssuePriorityOptions(jiraBaseUrl, token, issueKey);
+      if (scoped.length > 0) return scoped;
+      return fetchPriorities(jiraBaseUrl, token);
+    },
+    enabled: priorityEditing,
+    staleTime: 10 * 60 * 1000,
+  });
 
   // Resolution edit state (editable only for done-category issues)
   const [resolutionEditing, setResolutionEditing] = useState(false);
@@ -615,9 +637,9 @@ export function FieldsSection({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PRIORITY_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
+                {(prioritiesQuery.data ?? []).map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
