@@ -10,3 +10,18 @@
  */
 export const POLL_INTERVAL_MS = 60_000; // 1 minute
 export const STALE_TIME_MS = 30_000; // 30 seconds
+
+/**
+ * Query key for the release "wrong-milestone MR" summary signal.
+ *
+ * The ReleaseDetailPage seeds this entry (value: string[] of issue keys whose MR
+ * is on the wrong/absent milestone); the Releases list reads it to render a
+ * cache-only badge. Both sides MUST build the key through this helper so they can
+ * never drift. The GitLab base URL is included so the same numeric project id on
+ * two different GitLab instances cannot collide.
+ */
+export const wrongMilestoneMRKey = (
+  gitlabBaseUrl: string | null | undefined,
+  projectId: number | null | undefined,
+  versionId: string,
+) => ['gitlab-wrong-milestone', gitlabBaseUrl ?? '', projectId ?? 0, versionId] as const;
