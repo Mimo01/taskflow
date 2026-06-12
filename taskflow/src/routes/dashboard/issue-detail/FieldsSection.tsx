@@ -322,6 +322,11 @@ export function FieldsSection({
       // enrichment family by prefix — keeps the parent's subtasks section fresh immediately
       // after a transition. Mirrors the same invalidation in useFieldMutation.ts.
       queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] });
+      // Same story for an epic's child stories: they render (incl. status) from a query
+      // keyed by the PARENT epic key (['jira-epic-stories', epicKey, ...]). A transition on a
+      // child story doesn't know its epic key, so invalidate the family by prefix to keep the
+      // epic's stories section fresh immediately after a transition.
+      queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] });
       // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
       // Phase 75: also invalidate GH all-data so sprint board columns refresh after a transition.
       if (boardId) invalidateGhAllData(queryClient, boardId);
