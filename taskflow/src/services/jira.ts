@@ -1405,7 +1405,11 @@ export async function discoverCustomFields(
 }
 
 /**
- * Enrich subtasks with assignee data via a JQL search query.
+ * Enrich subtasks with fresh assignee and status data via a JQL search query.
+ * Fetches both assignee and status so the enrichment is authoritative for
+ * status — the caller's input subtasks array may carry stale status from a
+ * cached parent issue-detail response (see debug session
+ * issue-status-cache-stale-drawer).
  * Non-critical: returns the original subtasks unenriched on failure.
  */
 export async function fetchEnrichedSubtasks(
@@ -1423,7 +1427,7 @@ export async function fetchEnrichedSubtasks(
   const base = baseUrl.replace(/\/$/, '');
   const subtaskKeys = subtasks.map((s) => s.key).join(',');
   const enrichJql = encodeURIComponent(`key in (${subtaskKeys})`);
-  const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee&maxResults=${subtasks.length}`;
+  const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee,status&maxResults=${subtasks.length}`;
   const enrichRes = await apiFetch(
     'jira',
     enrichUrl,
@@ -1434,13 +1438,28 @@ export async function fetchEnrichedSubtasks(
   );
   if (!enrichRes.ok) return subtasks;
   const enrichData = (await enrichRes.json()) as {
-    issues: Array<{ key: string; fields: { assignee: JiraIssueDetail['fields']['assignee'] } }>;
+    issues: Array<{
+      key: string;
+      fields: {
+        assignee: JiraIssueDetail['fields']['assignee'];
+        status: { name: string; statusCategory: unknown };
+      };
+    }>;
   };
-  const assigneeMap = new Map(enrichData.issues.map((i) => [i.key, i.fields.assignee]));
-  return subtasks.map((sub) => ({
-    ...sub,
-    fields: { ...sub.fields, assignee: assigneeMap.get(sub.key) ?? sub.fields.assignee },
-  }));
+  const enrichMap = new Map(enrichData.issues.map((i) => [i.key, i.fields]));
+  return subtasks.map((sub) => {
+    const fresh = enrichMap.get(sub.key);
+    return {
+      ...sub,
+      fields: {
+        ...sub.fields,
+        assignee: fresh?.assignee ?? sub.fields.assignee,
+        // Use fresh status from server so status pills reflect the latest
+        // transition even when the parent's issue-detail cache is stale.
+        status: fresh?.status ?? sub.fields.status,
+      },
+    };
+  });
 }
 
 export async function fetchIssueDetail(
