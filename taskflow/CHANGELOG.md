@@ -2,6 +2,20 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.12.4] — 2026-06-12
+
+### Added
+
+- **Releases — wrong-milestone MR warning** — on the release detail page, a task whose linked merge request targets a different (or missing) release milestone now shows a "Wrong milestone" warning, with the MR clickable so you can jump straight to it.
+- **Issue detail — priority dropdown icons** — the Priority selector on the issue detail page now shows a colored priority icon next to each option and in the trigger, matching how priorities look elsewhere in the app.
+
+### Fixed
+
+- **Bulk subtasks — inherit required custom fields from the parent** — bulk subtask creation now inherits required custom fields (e.g. the Tempo "Account" field) from the parent issue, fixing a 400 "Account is required" error that only affected the bulk path while single-create worked.
+- **Priority pickers — scheme-scoped values** — priority pickers now offer only the priorities allowed by the issue project's priority scheme, instead of the full global list.
+- **Issue detail — subtask status changes propagate without reload** — transitioning a subtask from the drawer/peek preview now updates the issue detail view immediately, without needing a manual refresh.
+- **Peek panel — drawer actions wired up** — the edit, clone, and add-subtask actions now work from the issue peek/drawer preview.
+
 ## [1.12.3] — 2026-06-10
 
 ### Added

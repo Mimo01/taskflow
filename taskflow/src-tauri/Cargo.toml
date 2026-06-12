@@ -1,6 +1,6 @@
 [package]
 name = "taskflow"
-version = "1.12.3"
+version = "1.12.4"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
