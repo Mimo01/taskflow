@@ -1859,6 +1859,75 @@ export async function fetchCreatemeta(
 }
 
 /**
+ * Priority descriptor returned by GET /rest/api/2/priority.
+ * The instance's configured scheme determines which priorities are present.
+ * Never hardcode standard-Jira names like "Highest" — always use fetched names.
+ */
+export interface JiraPriority {
+  id: string;
+  name: string;
+  iconUrl: string;
+  self: string;
+}
+
+/**
+ * Fetch all priorities configured on this Jira instance from GET /rest/api/2/priority.
+ *
+ * Priority names are scheme-configurable — never hardcode "Highest", "High", etc.
+ * Returns empty array on any non-ok response (graceful degradation).
+ *
+ * @param baseUrl - Jira base URL
+ * @param token   - Personal Access Token
+ * @returns Array of JiraPriority descriptors ordered as the instance returns them
+ */
+export async function fetchPriorities(baseUrl: string, token: string): Promise<JiraPriority[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/priority`;
+  const resp = await apiFetch(
+    'jira',
+    url,
+    { headers: { Authorization: `Bearer ${token}` } },
+    'Load Priorities',
+  );
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/**
+ * Fetch the priorities that are actually valid for a SPECIFIC issue, scoped to its
+ * project/issue-type priority scheme, from GET /rest/api/2/issue/{key}/editmeta.
+ *
+ * The global GET /rest/api/2/priority returns every priority defined on the instance —
+ * far more than any single project's scheme uses. The editmeta `fields.priority.allowedValues`
+ * is the authoritative per-issue set (same mechanism we use for resolution allowedValues).
+ *
+ * Returns an empty array when priority is not on the edit screen or on any non-ok
+ * response — callers should fall back to fetchPriorities for graceful degradation.
+ *
+ * @param baseUrl  - Jira base URL
+ * @param token    - Personal Access Token
+ * @param issueKey - Issue key (e.g. "ESHOP-20523")
+ * @returns Array of JiraPriority descriptors valid for this issue
+ */
+export async function fetchIssuePriorityOptions(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraPriority[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/editmeta`;
+  const resp = await apiFetch(
+    'jira',
+    url,
+    { headers: { Authorization: `Bearer ${token}` } },
+    'Load Priorities',
+  );
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  const allowed = data?.fields?.priority?.allowedValues;
+  return Array.isArray(allowed) ? allowed : [];
+}
+
+/**
  * Fetch available issue link types from GET /rest/api/2/issueLinkType.
  *
  * Link type names are admin-configurable — never hardcode "Blocks", "Relates To", etc.
