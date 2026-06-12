@@ -234,6 +234,20 @@ export default function ReleasesTab() {
     return { undatedVersions: undated, unreleasedVersions: unreleased, releasedVersions: released };
   })();
 
+  // GGX-WARN-01: Cache-only summary signal. The detail page seeds
+  // ['gitlab-wrong-milestone', project, versionId] -> string[] of issue keys whose MR
+  // is on the wrong milestone. The list ONLY reads this cache (no fetch, no fan-out):
+  // a release shows the warning badge once its detail view has been visited and found
+  // ≥1 wrong-milestone MR. Absent cache => no badge (graceful degradation).
+  const hasWrongMilestoneMR = (versionId: string): boolean => {
+    const keys = queryClient.getQueryData<string[]>([
+      'gitlab-wrong-milestone',
+      activeGitlabProject,
+      versionId,
+    ]);
+    return Array.isArray(keys) && keys.length > 0;
+  };
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never';
@@ -397,6 +411,15 @@ export default function ReleasesTab() {
                     <Badge tone="orange" className="shrink-0">
                       ⚠ No date set
                     </Badge>
+                  )}
+                  {/* Cache-only wrong-milestone summary — appears after the release's
+                      detail view has been visited and found ≥1 MR on the wrong milestone. */}
+                  {hasWrongMilestoneMR(version.id) && (
+                    <span title="At least one task has a merge request on the wrong milestone">
+                      <Badge tone="orange" className="shrink-0">
+                        ⚠ MR milestone
+                      </Badge>
+                    </span>
                   )}
                   {version.releaseDate && (
                     <span className="text-xs text-muted-foreground shrink-0">
