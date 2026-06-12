@@ -39,6 +39,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
+import { wrongMilestoneMRKey } from '@/lib/query-constants';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import {
@@ -400,10 +401,17 @@ export default function ReleaseDetailPage() {
   useEffect(() => {
     if (!versionId || gitlabMatch.type === 'none') return;
     queryClient.setQueryData(
-      ['gitlab-wrong-milestone', activeGitlabProject, versionId],
+      wrongMilestoneMRKey(gitlabBaseUrl, activeGitlabProject, versionId),
       wrongMilestoneKeys ? wrongMilestoneKeys.split(',') : [],
     );
-  }, [versionId, activeGitlabProject, gitlabMatch.type, wrongMilestoneKeys, queryClient]);
+  }, [
+    versionId,
+    gitlabBaseUrl,
+    activeGitlabProject,
+    gitlabMatch.type,
+    wrongMilestoneKeys,
+    queryClient,
+  ]);
 
   // Aggregate unique labels across all milestone MRs with counts
   const labelMap = new Map<
