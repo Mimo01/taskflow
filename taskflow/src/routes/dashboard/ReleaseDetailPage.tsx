@@ -39,7 +39,6 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
-import { wrongMilestoneMRKey } from '@/lib/query-constants';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import {
@@ -388,25 +387,6 @@ export default function ReleaseDetailPage() {
       if (offending) wrongMilestoneByKey.set(r.issue.key, offending);
     }
   }
-
-  // Seed a release-attributed cache entry so the Releases list can render a
-  // cache-only summary badge for this release WITHOUT fanning out GitLab calls on
-  // list render. The list path only reads this entry; it never triggers the search.
-  const wrongMilestoneKeys = Array.from(wrongMilestoneByKey.keys()).sort().join(',');
-  useEffect(() => {
-    if (!versionId || gitlabMatch.type === 'none') return;
-    queryClient.setQueryData(
-      wrongMilestoneMRKey(gitlabBaseUrl, activeGitlabProject, versionId),
-      wrongMilestoneKeys ? wrongMilestoneKeys.split(',') : [],
-    );
-  }, [
-    versionId,
-    gitlabBaseUrl,
-    activeGitlabProject,
-    gitlabMatch.type,
-    wrongMilestoneKeys,
-    queryClient,
-  ]);
 
   // Aggregate unique labels across all milestone MRs with counts
   const labelMap = new Map<

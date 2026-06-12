@@ -21,7 +21,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { wrongMilestoneMRKey } from '@/lib/query-constants';
 import type { GitLabMilestone } from '@/services/gitlab';
 import { fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
@@ -37,40 +36,6 @@ interface VersionIssueCounts {
   issuesFixed: number;
   issuesAffected: number;
   issuesTotal: number;
-}
-
-/**
- * Cache-only wrong-milestone summary badge for a release row.
- *
- * Subscribes (reactively, via a fetch-disabled useQuery) to the cache entry the
- * ReleaseDetailPage seeds — so the badge appears/updates the moment a release's
- * detail view populates it, with NO GitLab fetch or fan-out on the list path.
- * `enabled: false` means the queryFn never runs; the observer still re-renders
- * when `setQueryData` writes the entry. Absent cache => no badge (graceful
- * degradation: the badge surfaces once the release detail page has been visited).
- */
-function WrongMilestoneBadge({
-  gitlabBaseUrl,
-  projectId,
-  versionId,
-}: {
-  gitlabBaseUrl: string | null | undefined;
-  projectId: number | null | undefined;
-  versionId: string;
-}) {
-  const { data } = useQuery<string[]>({
-    queryKey: wrongMilestoneMRKey(gitlabBaseUrl, projectId, versionId),
-    queryFn: () => [],
-    enabled: false,
-  });
-  if (!Array.isArray(data) || data.length === 0) return null;
-  return (
-    <span title="At least one task has a merge request on the wrong milestone">
-      <Badge tone="orange" className="shrink-0">
-        ⚠ MR milestone
-      </Badge>
-    </span>
-  );
 }
 
 async function fetchVersionIssueCounts(
@@ -433,13 +398,6 @@ export default function ReleasesTab() {
                       ⚠ No date set
                     </Badge>
                   )}
-                  {/* Cache-only wrong-milestone summary — appears after the release's
-                      detail view has been visited and found ≥1 MR on the wrong milestone. */}
-                  <WrongMilestoneBadge
-                    gitlabBaseUrl={gitlabBaseUrl}
-                    projectId={activeGitlabProject}
-                    versionId={version.id}
-                  />
                   {version.releaseDate && (
                     <span className="text-xs text-muted-foreground shrink-0">
                       {version.releaseDate}
