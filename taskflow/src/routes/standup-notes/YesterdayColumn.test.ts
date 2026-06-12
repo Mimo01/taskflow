@@ -131,8 +131,9 @@ describe('generateMarkdown — parent-story rollup', () => {
     expect(md).toContain('### ESHOP-1: Checkout revamp');
     // Story-level MR comment stays flat under the story.
     expect(md).toContain('1 comment on ESHOP-1 Checkout revamp');
-    // Subtask worklog label remains unchanged under the sub-task sub-group.
-    expect(md).toContain('1h · ESHOP-2 Wire up form');
+    // Worklog row under the sub-task is the bare duration (key/summary live on
+    // the nested sub-task header line below); indented 4 spaces under it.
+    expect(md).toContain('    - 1h');
     // Nested sub-task line (2-space indented): the new assertion for nesting.
     expect(md).toContain('  - ESHOP-2: Wire up form');
     // No separate ESHOP-2 top-level group heading.
@@ -222,7 +223,7 @@ describe('generateMarkdown — parent-story rollup', () => {
     const md = generateMarkdown({ tempoData, issueMeta }, DATE);
 
     expect(md).toContain('### PROJ-7: Planning session');
-    expect(md).toContain('- 30m · PROJ-7 Planning session');
+    expect(md).toContain('- 30m');
     // No two-space-indented nested block should appear (regression guard).
     const nestedLines = md.split('\n').filter((l) => l.startsWith('  - '));
     expect(nestedLines).toHaveLength(0);
@@ -238,7 +239,7 @@ describe('generateMarkdown — parent-story rollup', () => {
     // subtask group both appear.
     expect(md).toContain('### ESHOP-1: ESHOP-1 Checkout revamp');
     expect(md).toContain('### ESHOP-2: Wire up form');
-    expect(md).toContain('1h · ESHOP-2 Wire up form');
+    expect(md).toContain('- 1h');
   });
 });
 

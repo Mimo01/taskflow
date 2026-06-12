@@ -189,11 +189,14 @@ describe('StatusPopover', () => {
 
       fireEvent.click(screen.getByText('Resolve'));
 
-      // Resolution step appears instead of closing immediately.
+      // Resolution dialog appears instead of closing immediately.
       const doneBtn = await screen.findByText('Done');
       expect(onSelect).not.toHaveBeenCalled();
 
+      // Selecting an option only sets local state; the dialog requires an
+      // explicit "Confirm move" to forward the chosen resolution.
       fireEvent.click(doneBtn);
+      fireEvent.click(screen.getByText('Confirm move'));
       expect(onSelect).toHaveBeenCalledWith('21', 'Resolved', { resolution: { id: '1' } });
     });
 

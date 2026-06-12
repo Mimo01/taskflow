@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/stores/settings.store', () => ({
@@ -704,14 +704,17 @@ describe('AioCycleDetailPage', () => {
     });
 
     // Test B: resolved + click — row navigates when clicked anywhere
-    it('AIOC-03-B: clicking resolved defect row navigates to /issue/{resolvedKey}', async () => {
+    it('AIOC-03-B: clicking resolved defect row opens the peek preview via onOpenIssue', async () => {
       const user = userEvent.setup();
+      const onOpenIssue = vi.fn();
       await setupDefaultMocks();
       render(
         <QueryClientProvider client={makeClient()}>
           <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
             <Routes>
-              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              <Route element={<Outlet context={{ onOpenIssue }} />}>
+                <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              </Route>
               <Route
                 path="/issue/:issueKey"
                 element={<div data-testid="issue-detail-route">Issue Detail</div>}
@@ -731,26 +734,27 @@ describe('AioCycleDetailPage', () => {
       expect(row.getAttribute('role')).toBe('button');
       expect(row.className).toContain('cursor-pointer');
 
-      // Click the Title cell (not the NavLink) — simulates clicking the row body
+      // Click the Title cell (not the NavLink) — simulates clicking the row body.
+      // The row now opens the side peek preview instead of navigating.
       const titleCell = screen.getByText('Login broken');
       await user.click(titleCell);
 
-      // Should have navigated to issue detail route
-      await waitFor(() => expect(screen.getByTestId('issue-detail-route')).toBeDefined());
+      expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1234');
+      // Row click does NOT navigate to the full issue route.
+      expect(screen.queryByTestId('issue-detail-route')).toBeNull();
     });
 
-    // Test C: resolved + keyboard — Enter and Space trigger navigation
-    it('AIOC-03-C: Enter key on resolved defect row navigates to /issue/{resolvedKey}', async () => {
+    // Test C: resolved + keyboard — Enter and Space open the peek preview
+    it('AIOC-03-C: Enter key on resolved defect row opens the peek preview via onOpenIssue', async () => {
+      const onOpenIssue = vi.fn();
       await setupDefaultMocks();
       render(
         <QueryClientProvider client={makeClient()}>
           <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
             <Routes>
-              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
-              <Route
-                path="/issue/:issueKey"
-                element={<div data-testid="issue-detail-route-enter">Issue Detail</div>}
-              />
+              <Route element={<Outlet context={{ onOpenIssue }} />}>
+                <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              </Route>
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>,
@@ -763,20 +767,19 @@ describe('AioCycleDetailPage', () => {
       const row = screen.getByTestId('defect-row-186227');
       row.focus();
       fireEvent.keyDown(row, { key: 'Enter' });
-      await waitFor(() => expect(screen.getByTestId('issue-detail-route-enter')).toBeDefined());
+      await waitFor(() => expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1234'));
     });
 
-    it('AIOC-03-C: Space key on resolved defect row navigates to /issue/{resolvedKey}', async () => {
+    it('AIOC-03-C: Space key on resolved defect row opens the peek preview via onOpenIssue', async () => {
+      const onOpenIssue = vi.fn();
       await setupDefaultMocks();
       render(
         <QueryClientProvider client={makeClient()}>
           <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
             <Routes>
-              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
-              <Route
-                path="/issue/:issueKey"
-                element={<div data-testid="issue-detail-route-space">Issue Detail</div>}
-              />
+              <Route element={<Outlet context={{ onOpenIssue }} />}>
+                <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              </Route>
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>,
@@ -789,11 +792,11 @@ describe('AioCycleDetailPage', () => {
       const row = screen.getByTestId('defect-row-186227');
       row.focus();
       fireEvent.keyDown(row, { key: ' ' });
-      await waitFor(() => expect(screen.getByTestId('issue-detail-route-space')).toBeDefined());
+      await waitFor(() => expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1234'));
     });
 
-    // Test D: breadcrumb push before navigation
-    it('AIOC-03-D: clicking resolved defect row pushes breadcrumb before navigation', async () => {
+    // Test D: clicking the defect key NavLink pushes a breadcrumb before navigation
+    it('AIOC-03-D: clicking the defect key pushes breadcrumb before navigation', async () => {
       const user = userEvent.setup();
       await setupDefaultMocks();
       render(
@@ -815,8 +818,9 @@ describe('AioCycleDetailPage', () => {
 
       mockBreadcrumbPush.mockReset();
 
-      const row = screen.getByTestId('defect-row-186227');
-      await user.click(row);
+      // Navigation + breadcrumb push now live on the defect key NavLink, not the
+      // row body (which opens the peek preview instead).
+      await user.click(screen.getByText('PROJ-1234'));
 
       expect(mockBreadcrumbPush).toHaveBeenCalledWith({
         label: 'Sprint 2',

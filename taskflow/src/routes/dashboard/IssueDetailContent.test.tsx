@@ -56,7 +56,7 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 // --- Imports ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { IssueDetailContent } from './IssueDetailContent';
@@ -113,9 +113,10 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('IssueDetailContent', () => {
-  // DETAIL-01: for a subtask fixture with fields.parent, an ArrowUpRight breadcrumb with the
-  //            parent key renders ABOVE the h2 title
-  it('DETAIL-01: for a subtask fixture with fields.parent, an ArrowUpRight breadcrumb with the parent key renders ABOVE the h2 title', () => {
+  // DETAIL-01: for a subtask fixture with fields.parent, a clickable parent card with the
+  //            parent key + summary renders in the relationships region (replaced the old
+  //            breadcrumb-above-title; see quick-260606-ugr redesign).
+  it('DETAIL-01: for a subtask fixture with fields.parent, a clickable parent card with the parent key renders', () => {
     const onOpenIssue = vi.fn();
     const issue = makeSubtaskIssue();
 
@@ -132,21 +133,19 @@ describe('IssueDetailContent', () => {
       { wrapper },
     );
 
-    // Parent key appears in the breadcrumb
-    const parentKeyEl = screen.getByText('PROJ-0');
-    expect(parentKeyEl).toBeTruthy();
+    // Parent key + summary render inside the clickable parent card.
+    expect(screen.getByText('PROJ-0')).toBeTruthy();
+    expect(screen.getByText('Parent story')).toBeTruthy();
 
-    // The breadcrumb must appear BEFORE the h2 title in DOM order
-    const h2 = screen.getByRole('heading', { level: 2 });
-    const position = parentKeyEl.compareDocumentPosition(h2);
-    // DOCUMENT_POSITION_FOLLOWING = 4 — h2 comes after breadcrumb
-    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The card is a button wired to open the parent issue.
+    const parentBtn = screen.getByLabelText('Open parent issue PROJ-0');
+    fireEvent.click(parentBtn);
+    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-0');
   });
 
-  // DETAIL-01: parent MetaRow no longer renders in the sidebar path
-  // Note: FieldsSection is tested separately; this test asserts IssueDetailContent
-  // itself does not render a "Parent" label row (it now shows the breadcrumb above the title).
-  it('DETAIL-01: parent MetaRow no longer renders in the sidebar path', () => {
+  // DETAIL-01: parent now renders as a labelled "Parent" section in the relationships region
+  // (the redesign added a prominent parent card; it is no longer a breadcrumb above the title).
+  it('DETAIL-01: parent section renders for a subtask', () => {
     const issue = makeSubtaskIssue();
 
     render(
@@ -161,11 +160,9 @@ describe('IssueDetailContent', () => {
       { wrapper },
     );
 
-    // No element with the exact text "Parent" as a label row
+    // The "Parent" section heading now renders by design.
     const parentLabel = screen.queryByText('Parent', { exact: true });
-    // If there is one, it must not be a MetaRow label (those are plain text nodes)
-    // The breadcrumb renders "PROJ-0" and "— Parent story", not "Parent"
-    expect(parentLabel).toBeNull();
+    expect(parentLabel).not.toBeNull();
   });
 
   // DETAIL-02: subtask row buttons carry the cursor-pointer class
