@@ -316,6 +316,12 @@ export function FieldsSection({
       // new status, but invalidating the family also covers in-place refreshes
       // (CR-01 / WR-04). Partial key matches the whole transitions-fields family.
       queryClient.invalidateQueries({ queryKey: ['jira-issue-transitions-fields', issueKey] });
+      // A parent story renders its subtask rows (incl. status pills) from a separate
+      // enrichment query keyed by the PARENT key (['jira-subtask-enrichment', parentKey, ...]).
+      // A status transition on a subtask doesn't know its parent key, so invalidate the
+      // enrichment family by prefix — keeps the parent's subtasks section fresh immediately
+      // after a transition. Mirrors the same invalidation in useFieldMutation.ts.
+      queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] });
       // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
       // Phase 75: also invalidate GH all-data so sprint board columns refresh after a transition.
       if (boardId) invalidateGhAllData(queryClient, boardId);
