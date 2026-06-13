@@ -36,7 +36,7 @@ Declared values (multiples of 4 — standard 8-point scale):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon gaps, chart legend glyph-to-label gap |
+| xs | 4px | Icon gaps, chart legend glyph-to-label gap, description top margin |
 | sm | 8px | Compact element spacing, chart tooltip padding |
 | md | 16px | Default element spacing, card body padding |
 | lg | 24px | Section padding, ChartWrapper card padding |
@@ -56,12 +56,14 @@ Exceptions: none beyond the explicit-height rule above.
 
 ## Typography
 
-Inherited from the global design system (Geist Variable). Phase 81 adds no new type styles. ChartWrapper uses these values for card chrome:
+Inherited from the global design system (Geist Variable). Phase 81 adds no new type styles. ChartWrapper uses these values for card chrome.
+
+**Declared weights: 2 — 400 (regular) and 600 (semibold). No intermediate weight (500/medium) is used in this phase.**
 
 | Role | Size | Weight | Line Height | Usage in this phase |
 |------|------|--------|-------------|---------------------|
 | Body | 14px | 400 (regular) | 1.5 | Chart `description` text, legend labels, tooltip values |
-| Label | 12px | 500 (medium) | 1.4 | Axis tick labels, tooltip key labels, legend keys |
+| Label | 12px | 400 (regular) | 1.4 | Axis tick labels, tooltip key labels, legend keys |
 | Heading | 16px | 600 (semibold) | 1.2 | ChartWrapper card `title` |
 | Display | — | — | — | Not used in this phase |
 
@@ -111,7 +113,7 @@ The canonical wrapper all chart consumers (Phases 83–85) must use. This is the
 **Card chrome:**
 - Renders as a card (`bg-card`, `rounded-[var(--radius)]`, `border border-border`, `p-6`)
 - `title` (string, required): `text-base font-semibold text-foreground`
-- `description` (string, optional): `text-sm text-muted-foreground mt-0.5`
+- `description` (string, optional): `text-sm text-muted-foreground mt-1` (4px top margin — `xs` spacing token)
 - Title + description stack vertically above the chart area with `mb-4` gap to the chart
 
 **Chart area:**
