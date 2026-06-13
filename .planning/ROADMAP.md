@@ -381,7 +381,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 1**
 
-- [ ] 81-01-PLAN.md — Wave 0 foundation: install recharts + react-is, generate shadcn chart.tsx, add jsdom ResizeObserver mock
+- [x] 81-01-PLAN.md — Wave 0 foundation: install recharts + react-is, generate shadcn chart.tsx, add jsdom ResizeObserver mock
 
 **Wave 2** *(blocked on Wave 1 — imports chart.tsx, needs ResizeObserver mock)*
 
@@ -472,7 +472,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Charting Foundation | 0/3 | Planned | - |
+| 81. Charting Foundation | 1/3 | In Progress|  |
 | 82. My Tasks Page | 0/TBD | Not started | - |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
