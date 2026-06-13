@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import DashboardInProgressCard from './DashboardInProgressCard';
 import DashboardReleaseCard from './DashboardReleaseCard';
 import DashboardSprintCard from './DashboardSprintCard';
+import { SmokeTestChart } from './SmokeTestChart';
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -98,6 +99,10 @@ export default function Dashboard() {
         </h1>
         <p className="relative text-sm text-muted-foreground mt-2">{today}</p>
       </section>
+
+      <div className="relative px-6 pb-2">
+        <SmokeTestChart />
+      </div>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
         <DashboardSprintCard
