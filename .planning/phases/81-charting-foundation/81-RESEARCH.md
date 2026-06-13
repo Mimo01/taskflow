@@ -591,7 +591,7 @@ This belongs in `setup.ts` (not per-test) so all future chart tests inherit it a
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`ChartWrapper` location: `src/components/` vs `src/components/ui/`**
    - What we know: `src/components/ui/` holds atomic design-system primitives (shadcn components). `ChartWrapper` is a composed higher-order component that imports from `ui/`.
