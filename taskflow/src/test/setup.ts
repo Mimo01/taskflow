@@ -44,3 +44,10 @@ vi.mock('@tauri-apps/plugin-store', () => {
   }
   return { LazyStore };
 });
+
+// ResizeObserver mock — required for Recharts responsive prop in jsdom
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
