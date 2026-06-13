@@ -2,12 +2,12 @@ import { type ComponentType, lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import { ChunkErrorBoundary } from '../components/ChunkErrorBoundary';
 import { RouteSpinner } from '../components/ui/route-spinner';
-import Dashboard from './dashboard/index';
 import ReleasesTab from './dashboard/ReleasesTab';
 import DevTools from './dev-tools/index';
 import Onboarding from './onboarding/index';
 import Settings from './settings/index';
 
+const Dashboard = lazy(() => import('./dashboard/index'));
 const SprintBoardTab = lazy(() => import('./dashboard/SprintBoardTab'));
 const BacklogPage = lazy(() => import('./dashboard/BacklogPage'));
 const IssueDetailPage = lazy(() => import('./dashboard/IssueDetailPage'));
@@ -33,7 +33,7 @@ function withLazy(Component: ComponentType) {
 
 export const routes: RouteObject[] = [
   { path: '/', element: <Onboarding /> },
-  { path: '/dashboard', element: <Dashboard /> },
+  { path: '/dashboard', element: withLazy(Dashboard) },
   { path: '/settings', element: <Settings /> },
   { path: '/sprint-board', element: withLazy(SprintBoardTab) },
   { path: '/backlog', element: withLazy(BacklogPage) },
