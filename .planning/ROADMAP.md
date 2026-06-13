@@ -389,7 +389,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 3** *(blocked on Wave 2 — renders through ChartWrapper)*
 
-- [ ] 81-03-PLAN.md — SmokeTestChart scaffold + Dashboard React.lazy() conversion + bundle analysis + real-Tauri-build human UAT
+- [x] 81-03-PLAN.md — SmokeTestChart scaffold + Dashboard React.lazy() conversion + bundle analysis + real-Tauri-build human UAT
 
 **UI hint**: yes
 
@@ -472,7 +472,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Charting Foundation | 2/3 | In Progress|  |
+| 81. Charting Foundation | 3/3 | Complete   | 2026-06-13 |
 | 82. My Tasks Page | 0/TBD | Not started | - |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
