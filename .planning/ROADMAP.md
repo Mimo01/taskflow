@@ -385,7 +385,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 
 **Wave 2** *(blocked on Wave 1 — imports chart.tsx, needs ResizeObserver mock)*
 
-- [ ] 81-02-PLAN.md — ChartWrapper status-prop card ('use no memo', explicit-height, Skeleton/ErrorState/EmptyState) + Vitest render tests
+- [x] 81-02-PLAN.md — ChartWrapper status-prop card ('use no memo', explicit-height, Skeleton/ErrorState/EmptyState) + Vitest render tests
 
 **Wave 3** *(blocked on Wave 2 — renders through ChartWrapper)*
 
@@ -472,7 +472,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Charting Foundation | 1/3 | In Progress|  |
+| 81. Charting Foundation | 2/3 | In Progress|  |
 | 82. My Tasks Page | 0/TBD | Not started | - |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
