@@ -77,13 +77,32 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(filled by roadmap)_ | | |
+| CHART-01 | Phase 81 | Pending |
+| CHART-02 | Phase 81 | Pending |
+| CHART-03 | Phase 81 | Pending |
+| MYTASK-01 | Phase 82 | Pending |
+| MYTASK-02 | Phase 82 | Pending |
+| MYTASK-03 | Phase 82 | Pending |
+| MYTASK-04 | Phase 82 | Pending |
+| MYTASK-05 | Phase 82 | Pending |
+| MYTASK-06 | Phase 82 | Pending |
+| MYTASK-07 | Phase 82 | Pending |
+| MYTASK-08 | Phase 82 | Pending |
+| DASH-01 | Phase 83 | Pending |
+| DASH-02 | Phase 83 | Pending |
+| DASH-03 | Phase 83 | Pending |
+| DASH-07 | Phase 83 + Phase 84 | Pending |
+| DASH-04 | Phase 84 | Pending |
+| DASH-05 | Phase 84 | Pending |
+| DASH-06 | Phase 84 | Pending |
+| INSIGHT-01 | Phase 85 | Pending (Conditional) |
+| INSIGHT-02 | Phase 85 | Pending (Conditional) |
 
 **Coverage:**
 - v1.13 requirements: 20 total (18 committed + 2 conditional)
-- Mapped to phases: TBD
-- Unmapped: TBD ⚠️
+- Mapped to phases: 20/20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-14*
-*Last updated: 2026-06-14 after initial definition*
+*Last updated: 2026-06-14 — traceability table populated by roadmap creation*
