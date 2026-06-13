@@ -4,11 +4,20 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Latest Milestone: v1.12 Jira Experience Improvements (shipped 2026-06-07)
+## Current Milestone: v1.13 Personal Workspace
+
+**Goal:** Give each person a focused home in Taskflow — a real "My Tasks" command center and a redesigned, graph-driven Dashboard that surface what matters at a glance.
+
+**Target features:**
+- **My Tasks page** — summary/filter strip; three groupings behind a toggle (My Day smart-sort / By Status / By Sprint & Parent); rich rows (type, priority, status, due date, SP, MR health, time bar); inline quick actions (peek, transition, log work, context menu); scope toggle (current sprint vs all assigned).
+- **Dashboard redesign** — keep the gradient hero greeting + date, remove the 3 cards. New: personal stat tiles, sprint health + points-by-status chart, a trend graph (weekly logged hours and/or burndown), activity & releases, MR review queue, plus a personal velocity trend (points over last N sprints).
+- **Charting foundation** — choose & integrate the app's first charting library (research pass first: Recharts / visx / Tremor / nivo vs Tauri + React 18 + React Compiler + Tailwind v4).
+
+**Key context:** Dashboard and My Tasks are mostly independent by design — Dashboard is metrics/graphs/activity; My Tasks is task management. Both build heavily on existing primitives (issue peek, StatusPopover, PriorityIcon, MR linking, Tempo worklogs, `timeInColumn`, subtask grouping). Charts are a brand-new dependency — first time the app introduces one.
+
+## Latest Shipped Milestone: v1.12 Jira Experience Improvements (shipped 2026-06-07)
 
 **Goal:** Make day-to-day Jira work in Taskflow faster and more direct — consistent done-state visuals, drag-driven ranking and transitions, a non-blocking universal issue peek, tighter issue-detail interactions, and templated bulk subtask creation. **All 32 requirements delivered; milestone audit passed.**
-
-**Next milestone:** TBD — run `/gsd:new-milestone` to define v1.13 (questioning → research → requirements → roadmap).
 
 **Delivered features:**
 - Done-state strikethrough for done current-sprint stories on the Backlog active-sprint list, Dashboard sprint card, and Standup Today (matching the kanban board's existing treatment)
@@ -147,9 +156,11 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- Next milestone (v1.13) requirements TBD — run /gsd:new-milestone -->
+<!-- v1.13 Personal Workspace — requirements defined in REQUIREMENTS.md, mapped by ROADMAP.md -->
 
-(None — v1.12 shipped. Define the next milestone with `/gsd:new-milestone`.)
+- [ ] My Tasks page: personal command center (summary strip, grouping toggle, rich rows, inline actions, scope toggle)
+- [ ] Dashboard redesign: graph-driven overview (stat tiles, sprint health chart, trend graph, activity & releases, MR review queue, velocity trend)
+- [ ] Charting foundation: select and integrate a charting library
 
 ### Out of Scope
 
@@ -343,4 +354,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Subtask templates persist via `createTauriStorage('subtask-templates.json')` (v1.12 Phase 80) | Same Zustand + Tauri Store pattern as `tempo-filters.store.ts`; no new persistence concept | ✓ Good — consistent store pattern; survives restarts |
 
 ---
-*Last updated: 2026-06-07 after v1.12 milestone (Jira Experience Improvements)*
+*Last updated: 2026-06-14 — started milestone v1.13 (Personal Workspace)*
