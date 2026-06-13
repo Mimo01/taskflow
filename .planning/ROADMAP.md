@@ -377,7 +377,20 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   2. The smoke-test chart renders at its expected dimensions in a real macOS Tauri build — no 0×0 collapse, no invisible SVG — because `ChartWrapper` enforces an explicit-height outer `<div>` and uses the `responsive` prop on chart components (never `ResponsiveContainer`)
   3. Chart components default to `isAnimationActive={false}` and are placed in the Dashboard lazy-loaded route chunk (confirmed via bundle analysis — not in `vendor/main`)
   4. `ChartWrapper` carries the `'use no memo'` React Compiler escape hatch and passes `var(--chart-N)` CSS-var strings to chart children; the component is importable and renders without error in the Vitest environment
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 1**
+
+- [ ] 81-01-PLAN.md — Wave 0 foundation: install recharts + react-is, generate shadcn chart.tsx, add jsdom ResizeObserver mock
+
+**Wave 2** *(blocked on Wave 1 — imports chart.tsx, needs ResizeObserver mock)*
+
+- [ ] 81-02-PLAN.md — ChartWrapper status-prop card ('use no memo', explicit-height, Skeleton/ErrorState/EmptyState) + Vitest render tests
+
+**Wave 3** *(blocked on Wave 2 — renders through ChartWrapper)*
+
+- [ ] 81-03-PLAN.md — SmokeTestChart scaffold + Dashboard React.lazy() conversion + bundle analysis + real-Tauri-build human UAT
+
 **UI hint**: yes
 
 ### Phase 82: My Tasks Page
@@ -459,7 +472,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Charting Foundation | 0/TBD | Not started | - |
+| 81. Charting Foundation | 0/3 | Planned | - |
 | 82. My Tasks Page | 0/TBD | Not started | - |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
