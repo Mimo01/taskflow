@@ -1,4 +1,4 @@
-'use no memo'
+'use no memo';
 
 import { BarChart2 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -29,10 +29,7 @@ export function ChartWrapper({
 }: ChartWrapperProps) {
   const renderChart = () => {
     if (isLoading) return <Skeleton className="w-full h-full rounded-md" />;
-    if (error)
-      return (
-        <ErrorState error={error} onRetry={onRetry ?? (() => {})} viewName={title} />
-      );
+    if (error) return <ErrorState error={error} onRetry={onRetry ?? (() => {})} viewName={title} />;
     if (isEmpty)
       return (
         <EmptyState
@@ -47,9 +44,7 @@ export function ChartWrapper({
   return (
     <div className="bg-card rounded-[var(--radius)] border border-border p-6">
       <p className="text-base font-semibold text-foreground">{title}</p>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-1 mb-4">{description}</p>
-      )}
+      {description && <p className="text-sm text-muted-foreground mt-1 mb-4">{description}</p>}
       <div style={{ height }} className="w-full">
         {renderChart()}
       </div>
