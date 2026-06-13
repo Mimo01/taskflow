@@ -1,491 +1,286 @@
 # Feature Research
 
-**Domain:** Desktop Jira client — v1.12 Jira Experience Improvements
-**Researched:** 2026-06-02
-**Confidence:** HIGH (codebase read directly; Jira API and UX patterns verified via official docs and community sources)
+**Domain:** Personal Workspace — My Tasks command center + graph-driven Dashboard (v1.13)
+**Researched:** 2026-06-14
+**Confidence:** HIGH (grounded in Linear My Issues, Jira Your Work/All Work, GitHub assigned-to-me, Asana My Tasks, GreenHopper API investigation, shadcn/Recharts docs)
 
 ---
 
-## Scope
+## Part 1: My Tasks / My Work View
 
-Seven discrete features are in scope. Each section below is self-contained: behavior description, table-stakes vs differentiator vs anti-feature classification, implementation surface, and dependencies on existing code.
+Reference products: Linear My Issues (Focus grouping), Jira "Your Work" / "All Work" tab grouping, GitHub Issues "assigned to me", Asana My Tasks auto-sections.
+
+### Table Stakes (Users Expect These)
+
+| Feature | Why Expected | Complexity | Data Dependency | Notes |
+|---------|--------------|------------|-----------------|-------|
+| Flat list of all issues assigned to me (current sprint) | Every personal task tool has this; missing = broken | LOW | `assignee = currentUser()` filter on GH allData — already fetched | Filter client-side from cached allData; no new fetch for sprint scope |
+| Scope toggle: current sprint vs all assigned | Devs need "now" (sprint) vs "everything I own" | LOW | Sprint scope: free from GH allData. "All assigned" needs a new JQL query: `assignee = currentUser() AND statusCategory != Done` | All assigned is a NEW REST v2 JQL fetch; lazy-load on toggle; beware fetch-once page-cap pitfall |
+| Status shown per row | Users track work by status constantly | LOW | Status name + category in GH allData | Reuse StatusPopover for inline transition |
+| Priority icon per row | Devs triage by priority daily | LOW | Priority field in GH allData | Reuse PriorityIcon |
+| Issue type icon per row | Subtask vs story vs bug look identical without it | LOW | issuetype in GH allData | Reuse IssueTypeIcon |
+| Issue key + summary per row | The row must be identifiable at a glance | LOW | Already in GH allData | Key → full page; body → peek (v1.12 established pattern) |
+| Peek on row click | Users drill in without losing list context | LOW | Universal peek already built (v1.12 Phase 77) | Apply existing peek pattern; no new code |
+| Inline status transition | Completing tasks without leaving the list is expected | MEDIUM | Already built: StatusPopover + optimistic update | Wire StatusPopover directly in the row |
+| Sprint + parent story context per row | "What story is this subtask under?" reduces cognitive load | LOW | Sprint name + parent key/summary in GH allData | Subtask-under-parent grouping already built (v1.1, Standup Today) |
+| Empty state when nothing assigned | Confused users abandon the view | LOW | n/a | Reuse existing illustrated empty-state pattern |
+| Loading + error states | Non-negotiable for any data view | LOW | n/a | Existing skeleton + StaleDataBanner patterns |
+
+### Differentiators (Competitive Advantage)
+
+| Feature | Value Proposition | Complexity | Data Dependency | Notes |
+|---------|-------------------|------------|-----------------|-------|
+| "My Day" smart-sort grouping (Focus-style) | Linear's most-praised UX — surfaces what to work on NOW without manual triage. Sections in order: Overdue → In Progress → Blocked (flag set) → Due Today → Current Sprint (other statuses) → Other Assigned → Done | MEDIUM | Overdue: `duedate < today` on the duedate field. Blocked: `customfield_10021` (already integrated, v1.12). In Progress / Done: status category. ALL available in GH allData. | No new API calls; pure client-side sort/group logic on existing cached data |
+| By-Status grouping mode | Familiar Jira-style; devs want all "In Review" items together | LOW | Status category in GH allData | Simple client-side groupBy(statusCategory); behind the same grouping toggle |
+| By-Sprint-and-Parent grouping mode | Shows work in context of its story — mirrors Standup Today's layout (already built) | LOW | Sprint + parent in GH allData | Reuse subtask-under-parent collapsible grouping from v1.1/Standup |
+| MR health badge per row | Devs live in MRs; "approved / changes-requested / pipeline failing" inline saves a GitLab context switch | MEDIUM | MR linking via ticket key parsing already built; MR state already fetched | Board card MR badges already exist — reuse the same badge component |
+| Due date per row (with overdue highlight) | Makes the "Overdue" My-Day section meaningful; devs self-manage deadlines | LOW | `duedate` field in GH allData | Red/muted highlight for `duedate < today`; no new data |
+| Story points per row | PMs review estimates; devs compare effort | LOW | SP field discovered via `discoverStoryPointsField()`, present in GH allData | Already shown on board cards; copy the pattern |
+| timeInColumn aging badge per row | Surfaces stale WIP immediately — "In Review 4d" is actionable without opening a chart | LOW | `timeInColumn` computed in GH allData (v1.11 Phase 73) | Already rendered on sprint board cards — paste the same badge |
+| Flags/blocked indicator per row | Blocked issues must be obvious; `customfield_10021` flag already integrated (v1.12) | LOW | Already fetched and integrated | Add a blocked pill/icon; no new data |
+| Summary filter strip (status category chips + type chips) | Narrows a long list without JQL knowledge | MEDIUM | Client-side; all fields already in memory | 3–4 chip groups max; do NOT build a full JQL filter bar |
+| "Log Work" quick action on row | Logging time inline without opening issue detail saves clicks for Tempo users | MEDIUM | LogWorkPopover already built (v1.5); Tempo service built (v1.9) | Surface from a row context menu (right-click or "..." overflow); no new API |
+| Time tracking mini-bar per row | Shows logged/remaining at a glance | MEDIUM | `timeoriginalestimate`, `timespent`, `timeestimate` in GH allData | Reuse sidebar progress bar pattern from issue detail; optional if row gets too dense |
+
+### Anti-Features (Explicitly Avoid)
+
+| Anti-Feature | Why Requested | Why Problematic | Alternative |
+|--------------|---------------|-----------------|-------------|
+| Full JQL filter bar | Power users want it | Months of work; explicitly out of scope in PROJECT.md | Chip filters (status/type/priority) cover 95% of daily needs |
+| Cross-project My Tasks | "Show all my work across projects" | Core constraint: one Jira project at a time; multi-project multiplies data model complexity | Scope toggle (current sprint / all in project) is the correct boundary |
+| Manual drag-to-reorder (à la Asana My Tasks) | Feels powerful | Jira rank applies globally to the backlog, not to personal lists; drag-to-rank on a personal view would silently reorder for everyone | Sort modes (My Day / by status / by sprint) replace personal reordering |
+| Due-date inline edit from the list | Devs want to set deadlines quickly | `duedate` PUT requires the field to be on the edit screen for the project; inconsistent across Jira DC instances; field edit belongs in issue detail | Keep the row read/transition-focused; open issue detail for field edits |
+| Separate "inbox / triage" section | Some Jira workflows have triage statuses | This team uses a 3-bucket workflow (Future/Active/Done); no triage status exists | "Overdue + no sprint" in My Day smart-sort acts as a de-facto triage bucket |
 
 ---
 
-## Feature 1: Done-State Strikethrough Consistency
+## Part 2: Dashboard — Personal Stat Tiles and Charts
 
-### How It Works
+Reference products: Jira dashboard gadgets, Linear Insights, Azure DevOps dashboards, Tempo reports, sprint velocity research, dashboard design best-practice literature.
 
-Jira's board already strikes through the issue key (mono text) for done cards in `TaskCard.tsx` (line 114–116 — `line-through` on `statusCategory.key === 'done'`). The summary text itself is NOT struck through on the board — only the key. The three surfaces that currently lack any done-state visual treatment are:
+### Table Stakes (Users Expect These)
 
-- **BacklogRow** — the active-sprint section in `BacklogPage`. Status category is available on the `JiraIssue` object (`fields.status.statusCategory.key`). Currently no line-through applied.
-- **DashboardSprintCard** — renders a progress bar and text caption; no per-issue rows are displayed, so strikethrough on individual issues is not applicable here. The card shows aggregate "done pts / total pts" — done items are already expressed numerically. What IS missing: when the sprint card lists stories (it currently does not list them individually), there is no strikethrough. Given that `DashboardSprintCard` only shows aggregate stats and does not render per-issue rows, the strikethrough for this surface means: if a story list is added to the sprint card (which is a separate design decision), done rows should have struck-through summaries.
-- **Standup Today** — `TodayInProgressSection` and `TodayUpNextSection` show issue rows. These are pre-filtered to non-done statuses (In Progress / Up Next), so done stories would not normally appear there. HOWEVER `TodayParticipatingSection` and `TodayMrsSection` may surface done items. The correct interpretation for Standup Today strikethrough is: any issue row rendered with `statusCategory.key === 'done'` should display a struck-through summary.
+| Feature | Why Expected | Complexity | Data Dependency | Notes |
+|---------|--------------|------------|-----------------|-------|
+| Personal stat tiles: Open / In Progress / Done counts (sprint, me) | Instant at-a-glance health — the first thing any developer checks | LOW | GH allData filtered by `assignee = me` client-side | 3 tiles max above the fold; no new fetch |
+| Sprint points-by-status stacked bar or donut chart | Single most-requested agile chart; already computed in v1.1 | MEDIUM | Status-bucket point totals already computed from GH allData | CHARTING LIBRARY REQUIRED. Reuse existing data; render as stacked bar. |
+| MR review queue section | Devs need to see which MRs await their review; old Dashboard had MR Attention | MEDIUM | GitLab MR data already fetched; filter: `reviewer = me AND state = open AND not approved` | Reuse MR health badges; list with status chip + age. No new data. |
+| Next release countdown | Already on the old Dashboard; removing it would be a regression | LOW | Fix versions already fetched (Releases view) | RETAIN from current Dashboard — it is one of the 3 cards being replaced, but keep the content |
+| Weekly hours logged tile (current week total) | Tempo users want to know if they're on track | LOW | Tempo worklogs already fetched for Worklogs page; sum `timespent` for `assignee = me`, current week | New derived computation but uses existing Tempo service; no new endpoint |
+| Sprint name / sprint goal display | Orients user to which sprint they're in | LOW | Sprint name + goal already in GH allData | Already on Sprint Board banner (v1.5); copy the pattern |
 
-### Concrete User Expectation
+### Differentiators (Competitive Advantage)
 
-Users who see the board's strikethrough treatment for done cards expect the same visual cue wherever issues are listed. On the backlog active-sprint section this is particularly important: when a story is done before sprint close, it should look visually "finished" in the list just like on the board. Done = struck-through summary text (not just the key). The key-only strikethrough on the board is a slightly under-done implementation; the standard Jira treatment strikes through the summary.
+| Feature | Value Proposition | Complexity | Data Dependency | Notes |
+|---------|-------------------|------------|-----------------|-------|
+| Weekly hours logged bar chart by day (Mon–Fri) | Shows distribution across the week — catches "I logged nothing Monday/Tuesday" before the week ends | MEDIUM | Tempo worklogs already fetched; group `timespent` by date for current week | CHARTING LIBRARY REQUIRED. Simplest useful chart: 5 daily bars, 1 series. Highly feasible. |
+| Aging WIP count tile (my in-progress issues > N days) | "3 items stuck In Review for 5+ days" is immediately actionable without opening a chart | LOW | `timeInColumn` per issue already in GH allData (v1.11) | Filter `assignee = me AND statusCategory = active AND timeInColumn > threshold`. No new data. |
+| MR pipeline status in review queue | "Approved but pipeline failing" vs "approved and green" changes priority | LOW | GitLab pipeline status (`pipeline.status`) already in MR data | Add a pipeline status dot next to each MR; no new API |
+| Sprint burndown chart for current sprint (CONDITIONAL) | Shows whether the team will finish on time; the most classic agile chart | HIGH | CRITICAL DATA GAP: GreenHopper `/rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart?rapidViewId=&sprintId=` returns `{ changes: { "<unix_ms>": [{ key, statC: { newValue }, added }] } }` — a timestamp-keyed changelog of SP changes and scope additions/removals throughout the sprint. CONFIRMED to work on Jira Data Center. NEW FETCH REQUIRED. | This is NOT the same as "historical analytics" — it is a live call for the current sprint. But it is a new GH endpoint not yet called in the app. Flag as NEEDS PROBE in the burndown phase. Reconstruct: sum committed SP at sprint start, walk the change log to get remaining SP per day, draw ideal vs actual lines. HIGH complexity. |
+| Personal velocity trend (points completed per sprint, last N sprints) (CONDITIONAL) | Shows personal throughput trend — is the dev completing more or fewer points per sprint over time? | HIGH | CRITICAL DATA GAP: GreenHopper `/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=&sprintId=` returns completed/incomplete/punted issues with SP. Requires iterating N closed sprints and calling this endpoint per sprint, filtering by `assignee = me`. N API calls. NEW FETCH REQUIRED per sprint. | CLOSEST to the PROJECT.md "out of scope" historical analytics warning. Flag for product owner decision. Consider: only show if ≥ 3 closed sprints; cache aggressively; limit to last 5 sprints. |
+| Activity feed (recent changelog on my issues) | Shows what changed on personal work while away | MEDIUM | Jira issue changelog already fetched in the unified activity timeline (v1.5); filter to `assignee = me` issues | Show last ~15 events grouped by day; chronological. Low priority. |
 
-### Table Stakes vs Differentiator
+### Anti-Features (Explicitly Avoid)
 
-**Table stakes.** Users have already seen the board apply this treatment. Missing it on backlog and standup creates visual inconsistency that feels like a bug.
-
-### Complexity
-
-LOW. The `statusCategory.key` is already available on `JiraIssue` in all three surfaces. It is a CSS class addition (`line-through text-muted-foreground`) conditional on `status.statusCategory?.key === 'done'`. No new API calls required.
-
-### Surfaces and Components
-
-| Surface | Component | Current state | Change needed |
-|---------|-----------|---------------|---------------|
-| Sprint board card | `TaskCard.tsx` | Key struck through (done) | Extend to summary text |
-| Backlog active-sprint row | `BacklogRow.tsx` | No strikethrough | Add `line-through` to summary `<span>` |
-| Dashboard sprint card | `DashboardSprintCard.tsx` | Aggregate only — no per-row | N/A unless issue rows added |
-| Standup Today | `TodayInProgressSection`, `TodayUpNextSection`, `TodayParticipatingSection` | No strikethrough | Add `line-through` on done rows |
-
-### Dependencies
-
-- Existing: `JiraIssue.fields.status.statusCategory.key` already present on all surfaces.
-- No new data fetching.
+| Anti-Feature | Why Requested | Why Problematic | Alternative |
+|--------------|---------------|-----------------|-------------|
+| Configurable widget grid (drag-to-resize layout) | Users always ask for "customize it" | Widget grid was built in v1.5 and EXPLICITLY REMOVED in v1.9 Phase 59 because nobody knew what to put where; re-adding react-grid-layout reintroduces a removed dependency | Fixed curated layout; allow section collapse/expand if more control is needed |
+| Team velocity (aggregate across all assignees) | PMs want it | This is a PERSONAL workspace — v1.13 is explicitly personal. Team analytics belongs in a future PM-facing sprint report surface | Show personal velocity only; label clearly as "my completed points per sprint" |
+| Points-committed vs completed bar with insufficient history | Looks like a good metric | With fewer than 3 closed sprints it is noise, not signal; misleading for new projects or after team changes | Only render velocity chart if ≥ 3 closed sprints with data; otherwise show "Not enough sprint history yet" |
+| Cumulative Flow Diagram (CFD) | Analytics evangelists request it | Requires daily status-bucket snapshots for ALL sprint issues across the FULL sprint timeline; impossible to reconstruct from Jira changelog without a persistent snapshot store; LinearB/Swarmia exist for this | Explicitly out of scope (PROJECT.md: "Historical analytics / burndown charts — no daily-use value; complex data pipeline") |
+| "Time to First Commit" / cycle-time metrics | Developer productivity measurement culture | Requires parsing commit timestamps from GitLab and correlating to Jira assignment dates — multi-source join with no clean API surface; not actionable daily | Out of scope; GitLab Insights covers this |
+| Per-epic breakdown donut on Dashboard | Interesting for 1 day | Nobody acts on it after the initial novelty; it consumes chart real estate for decoration | If needed, build it on the Backlog or a dedicated Sprint Report page |
+| "Total team logged hours this week" tile | PMs want team visibility | This is the PERSONAL workspace; team time tracking belongs in Worklogs page (already built with full hierarchy) | Direct user to the Worklogs page for team view |
 
 ---
 
-## Feature 2: Drag-to-Rank on Backlog Active-Sprint List
-
-### How It Works
-
-Jira's rank is a LexoRank custom field stored on each issue. Jira Software exposes a dedicated REST endpoint to update rank:
+## Feature Dependencies
 
 ```
-PUT /rest/agile/1.0/issue/rank
-Body: { "issues": ["PROJ-1"], "rankBeforeIssue": "PROJ-2", "rankCustomFieldId": 10020 }
+My Tasks Page
+    ├──reuses──> StatusPopover (transition) — already built
+    ├──reuses──> PriorityIcon / IssueTypeIcon — already built
+    ├──reuses──> MR health badge component — already on board cards
+    ├──reuses──> Universal peek slideover — already built (v1.12 Phase 77)
+    ├──reuses──> timeInColumn badge — already in GH allData (v1.11)
+    ├──reuses──> Subtask-under-parent grouping — already built (v1.1, Standup Today)
+    ├──reuses──> LogWorkPopover — already built (v1.5)
+    └──NEW──> "All assigned" JQL fetch — new REST v2 query, lazy on scope toggle
+
+Dashboard
+    ├──reuses──> GH allData (sprint issues + SP totals) — already fetched
+    ├──reuses──> Tempo worklogs service — already built (v1.9)
+    ├──reuses──> GitLab MR data — already fetched
+    ├──reuses──> Fix versions / releases data — already fetched
+    ├──reuses──> timeInColumn per issue — already in GH allData
+    ├──NEW──> Charting library (Recharts via shadcn/ui chart component) — FIRST TIME in app
+    ├──NEW──> Weekly hours aggregation: group Tempo worklogs by date for current week
+    ├──CONDITIONAL──> Sprint burndown → GH scopechangeburndownchart endpoint — new fetch, probe required
+    └──CONDITIONAL──> Personal velocity → GH sprintreport per closed sprint — N new fetches, product owner decision required
+
+Charting library
+    └──required-by──> Sprint points-by-status chart (stacked bar)
+    └──required-by──> Weekly hours logged bar chart
+    └──required-by──> Sprint burndown (if built)
+    └──required-by──> Personal velocity trend (if built)
 ```
 
-The `rankCustomFieldId` is already available in `GhBacklogResponse.rankCustomFieldId` (confirmed in real fixture: `"rankCustomFieldId": 10105`).
+### Dependency Notes
 
-The GreenHopper `data.json` response already returns issues ordered by rank. When a user drags a row up or down in the backlog, the app must:
+- **Charting library must be selected and installed before any chart component.** This is the single new hard dependency for v1.13. Decision below.
 
-1. Re-order the in-memory list optimistically.
-2. Call `PUT /rest/agile/1.0/issue/rank` with the dragged issue key and either `rankBeforeIssue` (the issue now above it) or `rankAfterIssue` (the issue now below it).
-3. On error, roll back the optimistic reorder and show an inline error.
+- **Burndown is CONDITIONAL on a GH endpoint probe.** The `scopechangeburndownchart` endpoint is confirmed to exist on Jira Data Center (the target environment) and is accessible with the existing Bearer PAT pattern. It has never been called in this app. A probe must verify the response shape against the real instance before committing to implementation. The PROJECT.md "out of scope" note targets aggregate historical analytics (LinearB-style), NOT a live current-sprint burndown — these are different.
 
-Importantly, rank applies per-sprint section: dragging within the active sprint section changes rank within that sprint. Dragging between sections (sprint to backlog) is move-to-sprint/move-to-backlog, not a rank change.
+- **Personal velocity is CONDITIONAL and closer to "out of scope".** It requires one `sprintreport` API call per closed sprint. With 10+ sprints in history that is 10+ sequential fetches on Dashboard load. This needs caching (TanStack Query gcTime: Infinity), a sprint-list fetch to enumerate closed sprint IDs, and product owner sign-off that the API cost is acceptable.
 
-### Visual Feedback Users Expect
-
-- Drag handle visible on row hover (grip icon, left edge).
-- Row "lifts" visually during drag (slight shadow, opacity change, scale).
-- A drop indicator line shows the target position as the row is dragged over.
-- Rows shift smoothly to fill the gap (animation).
-- Optimistic reorder is instant; a rollback snaps back with a subtle error notification if the API call fails.
-- No drag handle on the backlog section (unassigned issues) — Jira's rank only applies within sprint context; ranking unassigned backlog items is an edge case users do not expect.
-
-### Table Stakes vs Differentiator
-
-**Differentiator** for this desktop client (Jira's own UI has drag-to-rank on the backlog, but it requires the browser and its full app). For a power-user desktop client, drag-to-rank on the sprint list is expected by developers who are used to Jira's backlog. Absence would be noticed but it is not a "broken" feeling — the right-click context menu provides move-to-sprint as the workaround. Classify as **differentiator / P1** because the feature is explicitly scoped to v1.12.
-
-### Anti-Feature
-
-Drag-to-rank in the **backlog section** (unassigned issues): Users do not intuitively understand how ranking unassigned issues maps to board order. More importantly, there is no sprint context — the rank endpoint would need a `rankBeforeIssue` from a different sprint section, which makes ordering semantics confusing. Anti-feature: do not implement rank changes for the backlog section in v1.12.
-
-### Complexity
-
-MEDIUM-HIGH.
-
-- `@dnd-kit/core` and `@dnd-kit/sortable` must be reinstalled (they were removed in Phase 67 — a guard test in `package-deps.guard.test.ts` explicitly asserts their absence). The guard test must be updated or removed.
-- The existing `VirtualizedBacklogTable` uses `@tanstack/react-virtual` — integrating drag-to-rank with a virtualized list requires careful coordination. Virtualized rows are not all in the DOM, so standard sortable-over-container patterns need `DragOverlay` (portal-rendered clone) rather than in-place element transformation.
-- New service function: `rankIssue(baseUrl, token, issueKey, rankBeforeIssue | rankAfterIssue, rankCustomFieldId)` calling `PUT /rest/agile/1.0/issue/rank`.
-- Optimistic update + rollback pattern (same as status transitions in `StatusPopover`).
-
-### Dependencies
-
-- `GhBacklogResponse.rankCustomFieldId` (already typed and available).
-- `useGhBacklogData` provides the ordered issue list.
-- Reinstall `@dnd-kit/core`, `@dnd-kit/sortable` — remove/update the guard test.
-- Must NOT break the existing `useVirtualizer` scroll behaviour.
+- **"All assigned" scope has a fetch-once page-cap risk.** The new JQL query for all assigned issues must paginate server-side (not fetch one capped page and filter client-side). Apply the established pattern from other paginated fetchers. See MEMORY: `project_fetch_once_pagecap_pitfall.md`.
 
 ---
 
-## Feature 3: Drag-to-Transition with Multi-Status Column Split
+## MVP Definition
 
-### How It Works
+### Launch With (v1.13)
 
-The sprint board has exactly three category columns (ACTIVE/FUTURE/DONE mapped to `new`/`indeterminate`/`done`). Each category maps to multiple workflow statuses (e.g., "In Progress" category might contain "In Development", "In Review", "QA"). Currently, right-click context menu is the only way to pick a specific target status.
+**My Tasks Page:**
+- [x] Flat list, current sprint scope, assignee = me (from existing GH allData)
+- [x] Three grouping modes behind a toggle: My Day (smart-sort) / By Status / By Sprint & Parent
+- [x] Row fields: type icon, priority, key + summary, status, due date (overdue highlight), SP, timeInColumn badge, MR health badge, blocked indicator
+- [x] Inline status transition via StatusPopover
+- [x] Row body → peek; issue key → full page (existing pattern)
+- [x] Summary filter strip: status category chips + issue type chips
+- [x] Scope toggle: current sprint / all assigned (lazy fetch for "all" with pagination)
 
-The drag-to-transition pattern works as follows:
+**Dashboard:**
+- [x] Personal stat tiles: Open / In Progress / Done (sprint, me)
+- [x] Sprint points-by-status stacked bar chart (Recharts via shadcn chart)
+- [x] MR review queue (open MRs awaiting my review, reuse existing MR logic)
+- [x] Next release countdown (retained from current Dashboard)
+- [x] Weekly hours logged tile: total for current week (Tempo sum)
+- [x] Weekly hours logged bar chart: Mon–Fri bars (Recharts)
+- [x] Aging WIP count tile (me, in-progress > N days, from timeInColumn)
+- [x] Sprint goal / sprint name header
 
-1. While a card is being dragged, the three columns remain in place.
-2. When the dragged card enters a column that maps to more than one workflow status, that column **splits into per-status drop boxes** — horizontal or vertical sub-sections labelled with the exact status names (e.g., "In Development" | "In Review" | "QA" within the "In Progress" column).
-3. Each sub-box is a distinct drop zone with a dashed border to signal it is a drop target.
-4. The user drops onto the desired sub-zone to trigger that specific transition.
-5. If the column maps to only one status (e.g., "Done" = only "Done"), no split occurs — the full column is the drop zone.
-6. On drop, the app calls `POST /rest/api/2/issue/{key}/transitions` (already implemented via `postTransition`) with the transition ID corresponding to the target status.
+### Add After Validation (v1.13.x or v1.14)
 
-The transition IDs per column are already available via the cached `transitions.json` per `projectId × issueTypeId`. The split sub-boxes derive from `filterTransitionsForStatus(transitions, currentStatusId)` already used by the context menu.
+- [ ] Sprint burndown chart — CONDITIONAL on GH `scopechangeburndownchart` probe success; flag in the relevant phase plan
+- [ ] Personal velocity trend (last N closed sprints) — CONDITIONAL on GH `sprintreport` feasibility and product owner sign-off
+- [ ] "Log Work" quick action from My Tasks row — feasible; validate demand after ship
+- [ ] Activity feed on Dashboard — useful but lower priority than the charts
 
-### Visual Feedback
+### Future Consideration (v2+)
 
-- During drag-over a multi-status column: column visually splits with labelled sub-zones.
-- Sub-zones highlight (bg change + dashed border glow) when the card is hovered over them.
-- Column transitions back to normal after drop or drag-exit.
-- The existing `DragOverlay` pattern (card ghost follows cursor) applies.
-- Invalid drop (dragging back to the card's current status): no-op or subtle "not allowed" cursor.
-
-### Table Stakes vs Differentiator
-
-**Table stakes** for a kanban board drag interaction. Users who drag on any kanban expect drag-to-move to work. The twist (multi-status split) is standard behaviour for boards with multi-status columns — Syncfusion Kanban implements exactly this. Without it, dropping a card into a multi-status column would be ambiguous. The right-click menu provides a workaround but drag is the primary expected interaction.
-
-### Anti-Feature
-
-Do not implement drag-to-reorder cards WITHIN a column (rank reordering on the board). The board's column order is status-based, not rank-based. Intra-column rank reordering is a complex separate feature with unclear value on the board (the backlog handles rank). Anti-feature: in-column drag reorder on the board.
-
-### Complexity
-
-HIGH.
-
-- `@dnd-kit/core` required (same dependency as Feature 2 — install once for both).
-- The current `SprintBoardTab` is highly complex (virtualized swimlanes, sticky headers, collapsed story state, query client). Adding drag state on top requires careful isolation.
-- The split-column UI needs to appear only during an active drag and only over the correct column, requiring global drag context state.
-- Board columns are rendered in a flex/grid layout with virtualized rows inside — the DragOverlay approach is mandatory (card is portalled to body during drag).
-- Transition target discovery: need to know which transitions are available from the card's current status into the target category column's statuses. This is already handled by the cached transitions + `filterTransitionsForStatus`.
-- The `DragOverlay` card must mirror the TaskCard appearance (with content, not a placeholder).
-
-### Dependencies
-
-- Existing: `postTransition`, `filterTransitionsForStatus`, cached `transitions.json`.
-- `invalidateGhAllData` for board refresh after transition (same as context menu path — already wired at `FieldsSection.transitionMutation.onSettled`).
-- `@dnd-kit/core` (same install as Feature 2).
-- Must co-exist with existing right-click context menu transitions (both paths remain valid).
+- [ ] Cross-project My Tasks — blocked by one-project-at-a-time core constraint
+- [ ] Team velocity / team analytics — PM-oriented, needs a separate sprint report surface
+- [ ] Cumulative Flow Diagram — explicitly out of scope (PROJECT.md)
 
 ---
 
-## Feature 4: Universal Issue Peek Slideover
+## Feature Prioritization Matrix
 
-### How It Works
+### My Tasks
 
-A non-blocking right-edge panel that opens when any issue is clicked anywhere in the app (board card, backlog row, standup row, search result, linked issue reference) — EXCEPT when the issue key link itself is clicked, which navigates to the full-page `/issue/:key` route.
+| Feature | User Value | Impl Cost | Priority |
+|---------|------------|-----------|----------|
+| My Day smart-sort grouping | HIGH | MEDIUM (client-side logic on existing data) | P1 |
+| Inline status transition | HIGH | LOW (StatusPopover reuse) | P1 |
+| By-Status and By-Sprint grouping modes | HIGH | LOW (client-side groupBy) | P1 |
+| MR health badge per row | HIGH | LOW (badge component reuse) | P1 |
+| Scope toggle + all-assigned fetch (paginated) | MEDIUM | MEDIUM (new JQL fetch + pagination guard) | P1 |
+| timeInColumn aging badge | MEDIUM | LOW (already in allData) | P1 |
+| Due date display + overdue highlight | HIGH | LOW | P1 |
+| Blocked/flag indicator | MEDIUM | LOW (customfield_10021 already fetched) | P1 |
+| Summary filter chips | MEDIUM | MEDIUM | P2 |
+| Time tracking mini-bar | LOW | MEDIUM | P2 |
+| Log Work quick action | MEDIUM | MEDIUM | P2 |
 
-**Behavioural spec:**
+### Dashboard
 
-- Slides in from the right, covering roughly 40–45% of viewport width.
-- The underlying view remains **fully interactive** — the user can click, scroll, use keyboard shortcuts on the board/backlog while the peek is open.
-- Clicking a different issue in the underlying view **swaps** the peeked issue (no close animation between issues — direct swap).
-- An explicit "Open full page" affordance (icon button, top-right of the panel) navigates to `/issue/:key` and closes the panel.
-- The issue key in the peek header is a link that also navigates to full page.
-- Clicking anywhere on the dark/empty area behind the panel (NOT the underlying view, just the panel's overlay area) closes the peek.
-- ESC closes the peek.
-- The underlying view scrolls independently from the peek panel.
-- The peek displays the same content as `IssueDetailContent` + `IssueDetailSidebar` (re-using existing progressive-loading issue detail components).
-- The peek is app-wide (lifted to AppLayout or a global store), not route-local.
-
-**Linear's model (confirmed):** Linear opens a right-side panel when clicking issues in list views, keeps the list interactive, swaps content on subsequent clicks, and provides an explicit "open full view" button. This is the industry standard for high-density list + detail workflows.
-
-### Click Model Clarification
-
-"Click-anywhere opens peek, except the issue key which opens full page" means:
-- Clicking the issue card/row body → opens peek
-- Clicking the issue key text/badge (the `PROJ-123` monospace identifier) → navigates to full page
-- Clicking "Open full page" button in the peek → navigates to full page
-
-This is the inverse of the current model (where all issue clicks navigate to full page). The issue key as a "escape hatch to full page" is a standard Linear/Notion/Linear-family pattern.
-
-### Table Stakes vs Differentiator
-
-**Differentiator.** The current app navigates to full page for every issue click. A peek panel is not expected by users of the current app (it has no precedent), but it is a major workflow acceleration for users who spend time scanning boards and backlogs. Linear's adoption of this pattern has made it table stakes in modern project management tools. For this team's workflow (reviewing the board, quickly checking an issue without losing board context) this is high value.
-
-### Anti-Feature
-
-Do not block the underlying view while the peek is open. If the panel covers the board or backlog with a full-screen overlay that requires dismissal, it degrades to a worse version of the existing full-page navigation. Anti-feature: blocking backdrop/overlay.
-
-Do not re-fetch issue data on every open. The peek should share the TanStack Query cache with the issue detail page — same query key `['jira-issue-detail', key]`.
-
-### Complexity
-
-HIGH.
-
-- The existing `IssueDetailSheet.tsx` (75vw slide-out panel) is close in concept but was replaced by the full-page route. It needs to be re-purposed or a new component built on the same `shadcn Sheet` primitive.
-- Global state for "currently peeked issue key" — Zustand store or a context at AppLayout level. The store must support `peek(key)`, `swap(key)`, and `close()`.
-- The peek must not interfere with route transitions (navigating to a route should close the peek or allow it to persist during navigation — decision needed; Linear closes the peek on navigation).
-- The current `onIssueClick` prop threading pattern (noted in PROJECT.md as the deliberate no-context pattern) feeds into all issue-clickable surfaces. This prop must be changed to open the peek instead of navigating directly. The issue key click (the `PROJ-123` badge) must route to full page instead.
-- Progressive loading in the peek panel: use the same per-section skeleton approach from `IssueDetailPage.tsx` Phase 75 implementation.
-- Accessibility: focus trap within the panel OR allow focus to stay in the underlying view (Linear allows the latter — peek is inspective, not a modal workflow). Recommend: focus on peek header on open, allow tab to exit into underlying view.
-
-### Dependencies
-
-- Existing: `IssueDetailContent`, `IssueDetailSidebar`, Phase 75 progressive loading skeleton pattern.
-- `onIssueClick` prop threading across `SprintBoardTab`, `BacklogPage`, `StandupNotesPage`, `DashboardInProgressCard`, search results, notifications.
-- `shadcn Sheet` component (already installed, used by `IssueDetailSheet`).
-- New Zustand peek store or AppLayout-level state.
+| Feature | User Value | Impl Cost | Priority |
+|---------|------------|-----------|----------|
+| Personal stat tiles (3 counts) | HIGH | LOW | P1 |
+| Points-by-status stacked bar (Recharts) | HIGH | MEDIUM (charting library + data wire-up) | P1 |
+| MR review queue | HIGH | LOW (reuse existing MR list logic) | P1 |
+| Next release countdown (retained) | HIGH | LOW | P1 |
+| Weekly hours logged tile | HIGH | LOW (Tempo sum) | P1 |
+| Weekly hours logged bar by day | HIGH | MEDIUM (group + chart) | P1 |
+| Aging WIP tile | MEDIUM | LOW (timeInColumn already available) | P1 |
+| Sprint goal / name header | LOW | LOW | P1 |
+| Sprint burndown chart | MEDIUM | HIGH (new GH endpoint + conditional) | P2 |
+| Personal velocity trend | MEDIUM | HIGH (multi-sprint fetch + conditional) | P2 |
+| Activity feed | LOW | MEDIUM | P3 |
 
 ---
 
-## Feature 5: Issue-Detail Parent Placement and Cursor Fixes
+## Charting Library Decision
 
-### How It Works
+**Recommendation: Recharts via the shadcn/ui `chart` component**
 
-**Parent field placement:** A subtask's `fields.parent` (key + summary) is currently rendered inside `FieldsSection` within `IssueDetailSidebar` — the right-side column. The desired change moves the parent breadcrumb into the **main content area**, above the description, similar to how story headers appear above their subtask groups on the sprint board.
-
-Concrete placement: immediately below the issue header (key + type + summary) and above the description block, as a "breadcrumb-style" parent link: `[ParentKey] — Parent Summary`. Clicking navigates to the parent issue (via peek or full page, consistent with overall click model).
-
-This mirrors the visual hierarchy: subtask belongs to story belongs to sprint — the parent is part of the issue's identity, not a metadata sidebar field.
-
-**Cursor fixes:** Several clickable elements in the issue detail currently lack `cursor-pointer`. Based on the code, the `MetaRow` parent button already has `cursor-pointer` (FieldsSection line 643), but investigation during v1.12 may surface additional areas. Any interactive element (button, link, clickable badge) must use `cursor-pointer`. Read-only labels use `cursor-default`.
-
-### Table Stakes vs Differentiator
-
-**Table stakes.** Placement of the parent in the sidebar is a UX regression — it buries the most important navigational context (where this subtask lives) in metadata. Moving it to main content is a correctness fix. Similarly, missing `cursor-pointer` on clickable elements is a basic usability expectation.
-
-### Complexity
-
-LOW-MEDIUM.
-
-- Remove the parent `MetaRow` from `FieldsSection` (sidebar).
-- Add parent display to `IssueDetailContent` (main content) — this component renders the header section.
-- The `IssueDetailContent` already receives the `issue` object which includes `fields.parent`.
-- `cursor-pointer` audit: scan all clickable elements in `issue-detail/` for missing cursor class. Pure CSS fix per element.
-
-### Dependencies
-
-- `IssueDetailContent.tsx` (main content component).
-- `FieldsSection.tsx` (remove parent MetaRow).
-- Peek panel (Feature 4) — the parent link should open the peek, not navigate to full page, when the peek feature is active.
+Rationale:
+- The app already uses shadcn/ui for all UI primitives. The shadcn `chart` component wraps Recharts v3, wires CSS variable theming (`--chart-1` through `--chart-5`) into the existing Tailwind v4 + shadcn CSS token system out of the box — zero manual theme plumbing.
+- Recharts v3 is fully React 18 + React Compiler compatible; works in Tauri WebView (no SSR concerns).
+- shadcn's chart does NOT wrap Recharts in an abstraction — it exposes Recharts components directly, so the Recharts upgrade path remains open and the existing team knowledge of Recharts applies.
+- Chart types needed in v1.13: stacked bar (points-by-status), simple bar (weekly hours), line (burndown ideal/actual — conditional), bar (velocity — conditional). All are first-class Recharts chart types with shadcn examples.
+- Bundle concern: Recharts v3 is ~370KB but tree-shaking is effective per chart type; for a Tauri desktop app where there is no network cost (local bundle), this is acceptable.
+- visx would be smaller (~15KB modular) but requires D3-level composition for every chart — the chart types here are simple enough that Recharts' declarative API is strictly better DX.
+- nivo has better visual defaults but ~500KB+ full install, documented module compatibility issues, and no shadcn integration path.
 
 ---
 
-## Feature 6: Card Color Stripes by Priority / Issue Type
+## Data Dependencies Summary
 
-### How It Works
-
-A 3–4px vertical stripe on the **left edge** of each `TaskCard` on the sprint board, driven by either priority or issue type. This matches Jira's native card color feature.
-
-**Standard priority color mapping** (Jira default, HIGH confidence — used universally):
-
-| Priority | Color | Hex |
-|----------|-------|-----|
-| Highest / Critical | Red | `#FF0000` or `#D04437` |
-| High | Orange-red | `#FF7452` or `#F15C00` |
-| Medium | Yellow/Amber | `#FFAB00` |
-| Low | Blue | `#2684FF` or `#0065FF` |
-| Lowest | Gray-blue | `#8993A4` |
-
-**Standard issue type color mapping** (common convention):
-
-| Issue Type | Color |
-|------------|-------|
-| Bug | Red |
-| Story | Green |
-| Task | Blue |
-| Epic | Purple |
-| Sub-task | Teal/Cyan |
-| Spike / Research | Orange |
-
-**Implementation:** The stripe is a `border-l-4` with a Tailwind color class OR an inline `style={{ borderLeftColor: hex }}`. Using inline style is more flexible (allows runtime-resolved hex from Jira's own priority/type color data if available via API).
-
-**Accessibility:** Color-only distinction is insufficient for accessibility. The color stripe is a supplementary visual aid — issue type name and priority name are already rendered as text on cards. The stripe adds at-a-glance density, not primary information. No ARIA changes required. Users with color blindness retain full information from the text labels.
-
-### Table Stakes vs Differentiator
-
-**Differentiator.** Cards already show issue type name (text) and priority is inferred from context. The color stripe adds visual density for experienced users who can scan colors at a glance. It is not table stakes (the app works without it) but it is a genuine quality-of-life improvement that Jira's own board offers.
-
-### Anti-Feature
-
-Do not make color stripes configurable per-user in v1.12. Configurable card colors (JQL-based rules, per-board toggle) is Jira admin-level configuration. The correct scope for v1.12 is: fixed static mapping of priority → color, with a fallback to issue type if priority is not set. Settings-level configuration is out of scope.
-
-Do not apply color stripes to backlog rows — the list format makes stripes less valuable and they would visually conflict with the focused/flagged row highlight styles.
-
-### Complexity
-
-LOW-MEDIUM.
-
-- `TaskCard.tsx` already has a conditional `border-l-2 border-l-muted` for subtasks (line 97). The priority/type stripe replaces or co-exists with this.
-- Priority field: `issue.fields.priority?.name` (standard Jira field, already returned).
-- Issue type: `issue.fields.issuetype?.name` (already used for the top-right label).
-- A pure lookup function `priorityToColor(priorityName)` returning a Tailwind class or hex string.
-- Must not conflict with the flagged card background (`bg-yellow-100` treatment).
-
-### Dependencies
-
-- `TaskCard.tsx` — add `borderLeftColor` stripe.
-- The priority field is available on `JiraIssue.fields.priority` — verify it is included in the GreenHopper `allData.json` adapter output. If not, the adapter may need to pass it through from the raw GH issue.
+| Feature | Data Source | Already Fetched? | New Fetch Required? |
+|---------|-------------|------------------|---------------------|
+| My Tasks list (current sprint, me) | GH allData.json | YES | No — filter client-side |
+| My Tasks list (all assigned) | Jira REST v2 JQL search | NO | YES — lazy, on scope toggle, PAGINATED |
+| Status / priority / type / SP / due date / timeInColumn / flag | GH allData.json | YES | No |
+| Parent key + sprint name per row | GH allData.json | YES | No |
+| MR health badges per row | GitLab MR API | YES | No |
+| Sprint points by status (chart) | GH allData.json | YES | No — derived client-side |
+| Weekly hours logged (tile + bar chart) | Tempo worklogs API | YES (Worklogs page query) | No — reuse with `assignee = me, date = this week` scope |
+| Next release countdown | Jira fix versions API | YES | No |
+| Aging WIP (timeInColumn filter) | GH allData.json | YES | No |
+| Sprint burndown (CONDITIONAL) | GH `scopechangeburndownchart` | NO | YES — new fetcher; probe first |
+| Personal velocity per sprint (CONDITIONAL) | GH `sprintreport` × N closed sprints | NO | YES — N fetches; aggressive caching required |
 
 ---
 
-## Feature 7: Subtask Templates and Bulk Creation
+## Historical Data Flag
 
-### How It Works
+**Sprint burndown** is the key "is this truly in scope?" question.
 
-This is the most complex feature. It has two surfaces:
+The GreenHopper `scopechangeburndownchart` endpoint returns a live changelog for the CURRENT active sprint — it is not an offline historical store. The response maps Unix timestamps to scope events (`added: true/false`, `statC.newValue` for SP changes). To render the chart:
+1. Fetch at page load (one API call per active sprint).
+2. Reconstruct the remaining-SP series: start from committed points at sprint start, apply each change log entry in timestamp order.
+3. Draw ideal line: linear from committed SP to 0 over sprint calendar days.
+4. Draw actual line: the reconstructed remaining-SP per day.
 
-**A. Template management (Settings)**
+This is materially different from "historical analytics across many sprints" (which the PROJECT.md explicitly rules out). A live burndown for the current active sprint is daily-use value. Mark this as P2/CONDITIONAL but not out-of-scope on principle — it needs a PROBE phase to validate the endpoint and response shape against the real DC instance.
 
-A new Settings section (e.g., Settings → Templates) where users can create, edit, and delete named subtask templates. Each template has:
-- Template name (required, e.g., "Standard Story", "Bug Fix Workflow")
-- An ordered list of subtask definitions. Each definition has:
-  - Summary / title (required, supports `{parent.summary}` and `{parent.key}` placeholder tokens)
-  - Optional fields driven by `createmeta` (the same API already used by `CreateEditIssueModal`): description, assignee, priority, labels, original estimate, story points, due date, components, custom fields
-  - An "inherit from parent" flag per field (so due date can inherit from the parent issue)
-
-Templates are stored in a `LazyStore` JSON file (e.g., `subtask-templates.json`) — same persistence pattern as pinned tabs and Tempo saved filters.
-
-**B. Bulk creation flow (from a parent issue)**
-
-From a story or task issue detail page, a "Create subtasks from template" button/action opens a creation panel. The flow:
-
-1. User picks a saved template OR builds an ad-hoc list.
-2. The selected template populates a preview list of subtasks with their field values resolved (placeholders substituted, inherited fields shown).
-3. User can inline-edit any field in the preview list (adjust summary, assignee, priority per subtask).
-4. User can reorder, add, or remove subtask definitions from the preview before creating.
-5. "Create all" button fires sequential `createIssue` calls (one per subtask in order — the existing `CreateEditIssueModal` mutation path). No bulk endpoint needed — Jira Data Center lacks a true bulk-create for subtasks; the loop pattern is correct.
-6. A progress indicator shows "Creating 3 of 5 subtasks…" during the loop.
-7. On completion (all succeed, or partial failure), the subtask list on the issue refreshes and a summary is shown.
-
-**The sequential loop approach** is correct per PROJECT.md: "batch-create REST endpoint (bulk creation loops `createIssue` in order)". Each subtask inherits `parent: { key: parentIssueKey }` in the create payload.
-
-### User Expectations from Market Research
-
-- Subtask templates are a massive pain point in native Jira — no native support exists.
-- Users expect: name templates, have multiple fields, preview before creating, create all at once.
-- Key behaviours from third-party tools that set user expectations:
-  - Template preview with the ability to make one-time edits before creating (Elements Copy & Sync, Easy Issue Templates).
-  - Parent field inheritance (priority, due date, assignee can default to parent's values).
-  - Placeholders for parent key/summary in subtask titles.
-  - Maximum approximately 10–25 subtasks in a template (practical limit for this team; 25 is Elements' cap).
-  - Progress feedback during sequential creation.
-
-### Table Stakes vs Differentiator
-
-The Settings management UI is a **differentiator** (no native Jira equivalent). The bulk creation flow from a parent issue is a **differentiator** that becomes near-table-stakes for the team once templates exist.
-
-The one-at-a-time subtask creation via `CreateEditIssueModal` is table stakes and already exists. Templates are the differentiator layer on top.
-
-### Anti-Feature
-
-Do not implement subtask templates as a copy-from-existing-issue pattern (cloning). Cloning requires selecting a source issue and produces an exact duplicate including status/assignee noise. The template-based approach (named, reusable, field-controlled) is strictly superior for this use case.
-
-Do not allow templates to set the **parent** field — the parent is always the issue the user is creating from. Allowing a template to override the parent leads to subtasks orphaned under the wrong story.
-
-Do not implement synchronization of fields after creation (Elements Copy & Sync's sync feature). One-shot create is the correct scope for v1.12.
-
-### Complexity
-
-HIGH.
-
-- New Settings page section (Settings → Templates): requires a new route segment and settings sidebar entry.
-- Template schema definition and `LazyStore` persistence.
-- `createmeta` integration for optional fields — already done in `CreateEditIssueModal` / `CustomFieldsSection`. The template editor reuses the same discovered field set.
-- Placeholder token resolution (`{parent.summary}`, `{parent.key}`) — simple string replace at preview time.
-- Inline-editable preview list: a mini-form per subtask row, ideally collapsible.
-- Sequential `createIssue` loop with progress state.
-- Cache invalidation after all creates: `invalidateGhAllData` to refresh the board, `invalidateGhBacklogData` for the backlog, and re-fetch the parent issue's subtask list.
-
-### Dependencies
-
-- `CreateEditIssueModal` / `createIssue` service function (already built).
-- `createmeta` API integration (already built in `CustomFieldsSection`).
-- `LazyStore` persistence pattern (already used for pinned tabs, Tempo filters).
-- Settings sidebar — adding a new "Templates" section.
-- Issue detail `SubtasksSection` for the "Create from template" entry point.
-- Parent issue detail must provide the parent key/summary/fields for placeholder resolution and field inheritance.
-
----
-
-## Feature Dependencies Map
-
-```
-Feature 1: Done strikethrough
-    requires: existing JiraIssue.fields.status.statusCategory (already present)
-    no new dependencies
-
-Feature 2: Drag-to-rank (Backlog)
-    requires: @dnd-kit/core + @dnd-kit/sortable (reinstall — removed in Phase 67)
-    requires: GhBacklogResponse.rankCustomFieldId (already in adapter)
-    requires: new rankIssue() service function
-    conflicts: package-deps.guard.test.ts (must update to allow @dnd-kit)
-    must-not-break: useVirtualizer scroll in BacklogPage
-
-Feature 3: Drag-to-transition (Board)
-    requires: @dnd-kit/core (same install as Feature 2)
-    requires: existing postTransition, filterTransitionsForStatus, cached transitions
-    enhances: existing right-click context menu (both remain valid)
-
-Feature 4: Universal peek slideover
-    requires: shadcn Sheet (already installed)
-    requires: existing IssueDetailContent + IssueDetailSidebar
-    requires: new Zustand peek store
-    changes: onIssueClick behaviour app-wide (board, backlog, standup, search, notifications)
-    depends-on-decision-before-Feature-5: parent link in peek should open peek or full page
-
-Feature 5: Issue-detail parent placement + cursor fixes
-    requires: IssueDetailContent (move parent there from FieldsSection sidebar)
-    enhances: Feature 4 (parent link in peek uses same click model)
-
-Feature 6: Card color stripes
-    requires: TaskCard.tsx (minor addition)
-    requires: priority field present in GH allData adapter output (verify)
-    no new APIs
-
-Feature 7: Subtask templates + bulk creation
-    requires: createIssue service function (exists)
-    requires: createmeta API (exists in CreateEditIssueModal)
-    requires: LazyStore persistence (exists)
-    requires: new Settings Templates section
-    requires: SubtasksSection entry point on issue detail
-```
-
----
-
-## Feature Categorization Table
-
-| Feature | Category | User Value | Impl Cost | Priority |
-|---------|----------|------------|-----------|----------|
-| 1. Done strikethrough consistency | Table stakes | MEDIUM | LOW | P1 |
-| 2. Drag-to-rank (backlog) | Differentiator | HIGH | HIGH | P1 |
-| 3. Drag-to-transition with split zones | Table stakes | HIGH | HIGH | P1 |
-| 4. Universal peek slideover | Differentiator | HIGH | HIGH | P1 |
-| 5. Parent in main content + cursor | Table stakes | MEDIUM | LOW | P1 |
-| 6. Card color stripes | Differentiator | MEDIUM | LOW | P2 |
-| 7. Subtask templates + bulk create | Differentiator | HIGH | HIGH | P1 |
-
----
-
-## Anti-Features Summary
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Rank in backlog section (unassigned) | Semantically ambiguous; users don't understand unassigned rank order | Rank only within sprint sections |
-| In-column card reorder on board | Board order is status-based, not rank-based; confusion with drag-to-transition | Drag-to-transition only |
-| Blocking peek overlay | Degrades to worse full-page nav | Non-blocking: underlying view stays interactive |
-| Configurable card colors (Settings) | Admin-level concern; adds UX complexity for minimal gain | Static priority/type mapping |
-| Subtask template clone-from-existing | Noisy, requires source issue selection, produces stale data | Named templates with clean field control |
-| Subtask template parent override | Creates orphaned subtasks | Parent always = current issue |
-| Field sync after subtask create | Out of scope; one-shot create is correct v1.12 scope | Defer sync to future |
-
----
-
-## Implementation Phase Ordering Recommendation
-
-Based on dependencies and risk:
-
-1. **Done strikethrough + parent placement + cursor fixes** — low complexity, high consistency value, no dependencies. Suitable for Phase 1 of v1.12.
-2. **Card color stripes** — low complexity, no new deps, isolated to TaskCard. Can combine with Phase 1.
-3. **Reinstall @dnd-kit, drag-to-rank (backlog)** — reinstalling @dnd-kit is a one-time cost that unblocks both drag features. Do this before drag-to-transition because the board is more complex. New service function (`rankIssue`). Update package-deps guard test.
-4. **Drag-to-transition (board)** — builds on @dnd-kit already installed. Board complexity is higher than backlog but uses existing transition infrastructure.
-5. **Universal peek slideover** — new Zustand store, wires into all `onIssueClick` surfaces. Biggest surface area change but isolated to navigation layer.
-6. **Subtask templates** — most complex, most independent. Can run in parallel with peek or after.
+**Personal velocity** DOES require iterating closed sprints. Each `sprintreport` call covers one closed sprint. With 10 historical sprints that is 10 API calls on Dashboard load. This is closer to the "complex data pipeline" the PROJECT.md warns about. Gate behind product owner sign-off and a minimum of 3 closed sprints before rendering.
 
 ---
 
 ## Sources
 
-- Jira Software REST API rank endpoint: [JIRA Agile REST API 7.3.1](https://docs.atlassian.com/jira-software/REST/7.3.1/)
-- Jira card color configuration: [Customizing cards | Jira DC 11.3](https://confluence.atlassian.com/jirasoftwareserver/customizing-cards-938845307.html)
-- Jira priority card colors: [Assign card colour by priority | JSWSERVER-308](https://jira.atlassian.com/browse/JSWSERVER-308)
-- Multi-status split drop zones: [Syncfusion Kanban drag-and-drop docs](https://www.syncfusion.com/jquery/php-ui-controls/kanban-board/drag-and-drop)
-- Linear peek/slideover: [Linear Concepts docs](https://linear.app/docs/conceptual-model)
-- Bulk subtask template UX patterns: [Smart Checklist: Multiple Subtasks in Jira](https://titanapps.io/blog/jira-multiple-subtasks), [Elements Copy & Sync subtask templates](https://elements-apps.com/subtask-templates-elements-copy-sync/)
-- Codebase: `TaskCard.tsx`, `BacklogRow.tsx`, `FieldsSection.tsx`, `SprintBoardTab.tsx`, `IssueDetailSidebar.tsx`, `DashboardSprintCard.tsx`, `TodayInProgressSection.tsx`, GreenHopper types fixture
+- Linear My Issues docs: https://linear.app/docs/my-issues
+- Linear Display Options: https://linear.app/docs/display-options
+- Linear conceptual model / cycles: https://linear.app/docs/conceptual-model
+- Linear My Issues practical guide (Descript): https://linear.app/now/descript-internal-guide-for-using-linear
+- Jira "Group Your Work" All Work tab (2024): https://community.atlassian.com/forums/Jira-articles/Group-your-work-items-in-the-All-work-tab/ba-p/2992173
+- GitHub new PR dashboard (public preview, March 2026): https://github.blog/changelog/2026-03-26-new-pull-requests-dashboard-is-in-public-preview/
+- GitHub assigned-to-me issues: https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/viewing-all-of-your-issues-and-pull-requests
+- Sprint burndown report overview: https://support.atlassian.com/jira-software-cloud/docs/what-is-the-sprint-burndown-report/
+- GreenHopper burndown API (community, DC confirmed): https://community.atlassian.com/forums/Jira-questions/How-do-I-fetch-Sprint-Burndown-data-via-API-calls-or-otherwise/qaq-p/2623047
+- GreenHopper sprintreport endpoint: https://community.developer.atlassian.com/t/agile-api-equivalent-for-a-greenhopper-sprintreport-url/3997
+- Sprint velocity anti-patterns: https://www.parabol.co/blog/sprint-velocity/
+- WIP Aging chart concepts: https://getnave.com/aging-chart-for-jira
+- Dashboard design best practices: https://www.domo.com/learn/article/dashboard-design-examples-best-practices
+- Azure DevOps actionable dashboards: https://learn.microsoft.com/en-us/azure/devops/report/dashboards/dashboard-focus
+- shadcn/ui chart component (Recharts v3): https://ui.shadcn.com/docs/components/radix/chart
+- shadcn Tailwind v4 upgrade: https://ui.shadcn.com/docs/tailwind-v4
+- Recharts vs visx vs nivo 2026: https://www.pkgpulse.com/guides/recharts-vs-chartjs-vs-nivo-vs-visx-react-charting-2026
+- Best React chart libraries 2026: https://blog.logrocket.com/best-react-chart-libraries-2026/
 
 ---
-
-*Feature research for: Taskflow v1.12 Jira Experience Improvements*
-*Researched: 2026-06-02*
+*Feature research for: Taskflow v1.13 Personal Workspace (My Tasks + Dashboard)*
+*Researched: 2026-06-14*

@@ -1,361 +1,391 @@
 # Pitfalls Research
 
-**Domain:** Drag-and-drop rank/transition + non-blocking peek slideover + bulk subtask creation in Tauri 2 / React 18 / TanStack Query
-**Researched:** 2026-06-02
-**Confidence:** HIGH (codebase-verified + official docs) / MEDIUM (Tauri webview quirks — platform-specific reports vary)
+**Domain:** Charting library integration + My Tasks page + graph-driven Dashboard in Tauri 2 / React 19 / React Compiler / Tailwind v4 / TanStack Query
+**Researched:** 2026-06-14
+**Confidence:** HIGH (codebase-verified against taskflow/src) / MEDIUM (chart library specifics — verified via Context7 + official docs) / LOW where noted
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Optimistic reorder flicker — TanStack Query cache as DnD source of truth
+### Pitfall 1: Chart renders at 0 × 0 — ResponsiveContainer / ResizeObserver inside flex/overflow-hidden container
 
 **What goes wrong:**
-When `onDragEnd` fires, the optimistic reorder is written to the TanStack Query cache via `setQueryData`. React re-renders from the cache, which momentarily returns to the pre-drag server order because a background refetch (triggered by invalidation or staleness) overwrites the cache before the mutation call completes. The card visibly snaps back to its old position for a frame, then re-settles — a jarring "flicker on drop" users immediately notice.
-
-The existing backlog optimistic pattern (Phase 74) avoids this for sprint-move operations by snapshotting the `['gh-backlog', boardId]` cache and patching it in place (`queryClient.setQueryData`). The rank-reorder case is more sensitive because the mutation is asynchronous and the data.json poll interval (if active) can fire during the mutation window.
+A chart wrapped in `ResponsiveContainer` (Recharts) or equivalent "fill available space" sizing measures its parent via a `ResizeObserver`. If the parent has no intrinsic size at the time the observer fires — which happens inside `flex-1`, `overflow-hidden`, `position: absolute`, or `@tanstack/react-virtual` rows — the observed width is 0 and the SVG renders at 0 × 0. On WebKit (macOS/Linux Tauri webview) the timing is different from Chrome: the observer can fire before the flex layout has resolved, so the chart collapses even when the parent visually has width. This is the exact same failure class as the virtualized table 0-width column bug (memory: project_virtualized_table_zero_width_col).
 
 **Why it happens:**
-`data.json` polling is route-aware and paused on inactive routes (`useIsActiveRoute`), but when BacklogPage is the active route the poll fires every 60s. If the poll completes between the `setQueryData` optimistic write and the `PUT /rest/agile/1.0/issue/rank` mutation response, the poll response replaces the optimistic order with the server's pre-mutation order.
+`ResponsiveContainer` observes the immediate parent DOM node. If that parent is a flex child with `min-width: 0` but no `width` set, WebKit reports `clientWidth = 0` on first observation. The SVG is created at that size. A second observation fires once layout settles, but Recharts only re-renders if the observed size changes — and 0→0 is no change, so the chart stays invisible.
+
+The Dashboard widget containers are likely `flex-1 overflow-hidden` (the existing "Panels receive props from thin index.tsx" pattern). If a chart is dropped directly into such a container without an explicit height, the same collapse occurs.
 
 **How to avoid:**
-1. Maintain a **local `items` state** (array of issue IDs in display order) that is the single source of truth for rendered order during an active drag. Only sync this local state from the query cache when `isDragging === false` (gate the `useEffect` with an `isDraggingRef`).
-2. In `onDragEnd`: update local state immediately (instant visual confirmation), then fire the mutation. In mutation `onMutate`, also call `queryClient.cancelQueries({ queryKey: ['gh-backlog', boardId] })` to prevent the in-flight poll from overwriting.
-3. In mutation `onError`: snapshot was taken in `onMutate`; restore the local state and the query cache from the snapshot.
-4. In mutation `onSettled`: call `invalidateGhBacklogData(queryClient, boardId)` to sync fresh server rank order.
+1. Wrap every chart in an explicit-size container: `<div className="w-full" style={{ height: 260 }}>`. Never rely on `height="100%"` or `ResponsiveContainer height="100%"` inside a flex parent without a fixed-height ancestor.
+2. For Dashboard widget boxes where the height is dynamic, set `min-height` (e.g., `min-h-[220px]`) on the widget wrapper so the ResizeObserver always sees a non-zero box.
+3. Prefer chart libraries that accept explicit `width` + `height` props without `ResponsiveContainer` (Recharts supports this — pass numeric `width` and `height` instead of `"100%"`). Measure width via a `useLayoutEffect` + `ref.current.offsetWidth` (same pattern used in `IssueDetailView.tsx`'s `measuredInitialWidth`). This removes the ResizeObserver from the critical render path.
+4. Do not place chart components inside `@tanstack/react-virtual` rows. Charts inside virtualized rows are unmounted when scrolled out of view; re-mounting fires a fresh ResizeObserver observation at 0 before the DOM layout settles.
 
 **Warning signs:**
-- Card returns to old position for one frame after drop
-- Optimistic order matches server but still flickers on high-latency connections
-- Duplicate rows briefly visible on rapid back-to-back reorders
+- Chart area renders but SVG is invisible or the container collapses
+- `getBoundingClientRect()` on the chart parent returns `{ width: 0, height: 0 }` in DevTools
+- Only reproducible in macOS/Linux Tauri build, not in `npm run dev` in Chrome
 
 **Phase to address:**
-Drag-to-rank (Backlog) phase — the local-state/isDragging pattern must be in the initial implementation, not retrofitted.
+Charting foundation phase (first chart integrated). The explicit-size wrapper must be a named requirement before any chart component is written.
 
 ---
 
-### Pitfall 2: GreenHopper rank API requires `rankCustomFieldId` — wrong field ID silently places issue at the end
+### Pitfall 2: React Compiler incompatibility with chart libraries that rely on refs / imperative animation
 
 **What goes wrong:**
-The `PUT /rest/agile/1.0/issue/rank` endpoint accepts an optional `rankCustomFieldId`. If omitted, Jira uses the board's default rank field. If the wrong field ID is passed (e.g., derived from a guess rather than the backlog response), the issue is silently placed at the last position instead of the requested position. There is no error — the server returns 200 and the list appears reordered, but the rank field updated is wrong and on next page load the issue is back at the end.
+`babel-plugin-react-compiler` auto-memoizes at the IR level and prohibits all manual `useMemo`, `useCallback`, and `React.memo`. Chart libraries that internally use `useRef` + imperative animation loops (e.g., D3-backed libraries like `nivo` or `visx` which call `selection.transition().duration()`) may conflict. The compiler infers that a `ref` value never changes and elides re-renders that the library expects. The chart renders once and never updates when data changes.
 
-The `GhBacklogResponse` carries `rankCustomFieldId: number` at the top level (confirmed in `types.ts` line 207 and `data.real.json` fixture). This is the authoritative source.
+Less critically: any consumer component that passes a callback prop (e.g., `onMouseEnter` for tooltip) must not wrap it in `useCallback` — the compiler handles that. But if a library's internal implementation relies on `useCallback` stability for its own memoization, the compiler may produce behavior the library does not expect.
 
 **Why it happens:**
-Developers hardcode `customfield_10119` (a common default) rather than reading `data.rankCustomFieldId` from the cached `['gh-backlog', boardId]` response. The rank succeeds silently against the wrong field. The bug only manifests on the next page load.
+React Compiler treats `useRef` reads as stable. Libraries that use refs as mutable containers for animation state may see the compiler "see through" their imperative model. Framer Motion is explicitly banned (STACK.md: "Framer Motion conflicts with React Compiler auto-memo"). Libraries using similar animation patterns carry the same risk.
 
 **How to avoid:**
-Read `rankCustomFieldId` directly from the cached `GhBacklogResponse`: `queryClient.getQueryData<GhBacklogResponse>(['gh-backlog', boardId])?.rankCustomFieldId`. Pass this value to the rank mutation. If the value is missing (cache miss or undefined), refuse the mutation and log a warn rather than proceeding with a hardcoded fallback. Write a unit test that asserts the mutation passes the field ID from the fixture, not a hardcoded constant.
+1. Choose a library that is pure React-rendered SVG (Recharts, Tremor) rather than D3-imperative (visx, nivo raw). Pure React SVG = compiler sees props→render = safe.
+2. For whichever library is chosen, run the full React Compiler diagnostic: `REACT_COMPILER_MODULE_NAMES=<lib-package-name> npx react-compiler-healthcheck` in CI.
+3. Avoid libraries that use `useLayoutEffect` with DOM mutation (not just DOM read) for their core rendering — these are the most likely to conflict.
+4. If a specific chart type from the chosen library misbehaves, `"use no memo"` directive can opt that one component out of compilation as a last resort (but never as a default).
 
 **Warning signs:**
-- Rank API returns 200 but issue reappears at original position on next `data.json` fetch
-- No error in the console or network panel
-- Bug is reproducible only after a page reload or data invalidation
+- Chart renders correctly on first mount but does not update when the data prop changes
+- Console warning: `[ReactCompilerRuntime] React Compiler: ...` about unexpected mutation
+- Removing `babel-plugin-react-compiler` from vite.config fixes the chart update issue
 
 **Phase to address:**
-Drag-to-rank (Backlog) phase — add the field ID assertion to the unit test for the rank mutation before the mutation code is written.
+Charting foundation phase. Run the compiler healthcheck before committing to the library. This is a gate — do not proceed to dashboard charts without passing it.
 
 ---
 
-### Pitfall 3: Mixing vertical-rank drag with horizontal-transition drag on the same board in one DnD context
+### Pitfall 3: Theme / color tokens not followed on dark mode switch — chart colors hardcoded
 
 **What goes wrong:**
-The sprint board requires **two drag semantics**: rank reorder within a column (vertical, same status) and status transition by dropping onto a different column (horizontal). Using a single `DndContext` with `SortableContext` for both means the sorting strategy (`verticalListSortingStrategy`) assumes items remain in one axis. When a card crosses a column boundary, the `SortableContext` of the source column loses track of the active item and the UI shows a ghost in the wrong column or no ghost at all.
+Chart libraries expose colors as prop arrays (e.g., `colors={['#6366f1', '#10b981']}` or `fill="var(--color-primary)"`). A chart implemented with hardcoded hex values renders correct colors in light mode and switches to an incorrect palette in dark mode — the chart does not listen to the Tailwind v4 CSS token layer. Dark mode in Taskflow is implemented via `dark:` variants and CSS custom properties in the Tailwind v4 config; there is no `document.documentElement.classList.contains('dark')` API that chart libraries can consume directly.
 
 **Why it happens:**
-`@dnd-kit/sortable`'s `verticalListSortingStrategy` and `rectSortingStrategy` are both column-local. They do not know about sibling columns. Multi-column kanban boards need a custom `collisionDetection` strategy that distinguishes "drop on same column" (rank reorder) from "drop on different column" (transition).
+Chart libraries cannot read Tailwind CSS custom properties from computed style on their own. The consumer is responsible for passing semantic color values that adapt to the current theme. If the consumer hardcodes hex or uses a library's built-in theme that does not match Taskflow's design tokens, charts look inconsistent or invisible (e.g., white text on white background in light mode, dark line on dark background).
 
 **How to avoid:**
-Use `closestCenter` collision for within-column rank reorder, and use a **custom droppable zone** (not a SortableContext item) for the column headers or column drop areas for cross-column transition. The drag architecture should be:
-- Each column is a `Droppable` target identified by its status ID.
-- Cards within a column are `Sortable` items for rank reorder.
-- On `onDragEnd`: if `active.data.current.sortable.containerId === over.id`, it is a rank reorder. If they differ, it is a status transition.
-- For the split per-transition drop zone feature: render each valid transition target as a separate named droppable (not the column header), visible only during drag.
-
-On the backlog (ranked list), there is no horizontal dimension — use only `verticalListSortingStrategy` without column droppables.
+1. Define a shared `useChartColors()` hook that reads the current theme from the Zustand `useSettingsStore` (`theme: 'light' | 'dark' | 'system'`) and returns a typed object of semantic chart colors (e.g., `{ primary, success, warning, danger, muted, background, grid }`). The hook resolves `'system'` to `window.matchMedia('(prefers-color-scheme: dark)').matches`.
+2. Pass only values from `useChartColors()` to chart components — never hardcode hex.
+3. For SVG text (axis labels, tick values) use `fill: currentColor` and inherit from the parent `<div className="text-foreground">` — this picks up the Tailwind `--color-foreground` token automatically.
+4. For grid lines use `stroke="var(--color-border)"` — the Tailwind v4 token name; this renders correctly in both themes without JavaScript.
 
 **Warning signs:**
-- Drag ghost appears at wrong position when crossing column boundary
-- `onDragEnd` fires with `over === null` when dropping on a column (not a card)
-- Rank reorder fires when dropping cross-column, instead of transition
+- Chart renders correctly in light mode but axis labels are invisible in dark mode
+- Bar/line color does not match the surrounding UI accent color
+- Chart background is white when dark mode is active (chart ignores CSS background token)
 
 **Phase to address:**
-Drag-to-transition (Sprint Board) phase — the droppable/sortable split is architecture, not a detail. Must be designed before the first drag is implemented on the board.
+Charting foundation phase. The `useChartColors()` hook must exist before any chart that uses colors is implemented.
 
 ---
 
-### Pitfall 4: Per-transition split drop zones derive stale transition data — the `peekGhTransitions` miss case
+### Pitfall 4: SVG performance degradation with many data points — no data decimation
 
 **What goes wrong:**
-The per-transition drop zones on the sprint board must show only valid target transitions for the dragged card's current status. These are derived via `peekGhTransitions(queryClient, projectId, issueTypeId)` — a synchronous cache read that returns `undefined` when the envelope is not loaded. If the board renders before the `['gh-transitions-envelope', projectId]` query settles, `peekGhTransitions` returns `undefined` and the drop zones are not rendered. The user drags a card and sees empty drop zones or no drop zones.
-
-Additionally, the transition list is filtered through `filterTransitionsForStatus(transitions, currentStatusId)` but the card's `currentStatusId` comes from the adapted issue in the TanStack Query cache. If the cache is stale (e.g., the status was changed from the issue detail panel and the sprint board has not yet re-fetched), the filter produces the wrong valid-transition set.
+A trend chart ("weekly logged hours over last N weeks" or "burndown over sprint days") renders one SVG `<circle>` or `<path>` point per data value. If the chart is animated and the dataset grows (e.g., burndown at 1-hour granularity over a 2-week sprint = 160 data points), each re-render triggers a full SVG reconciliation. In Tauri's WebKit webview, CSS transitions on many SVG elements are significantly slower than in Chrome — this manifests as janky animation on initial mount and on data refresh.
 
 **Why it happens:**
-`peekGhTransitions` is intentionally synchronous (no `await`, no hook call inside a map) so it can be called during render for every card simultaneously. The tradeoff is that it returns `undefined` on cache miss. Phase 73 already wired `invalidateGhAllData` from `FieldsSection.transitionMutation.onSettled` to keep the board live after issue-detail status changes — but the transitions envelope is separate from allData.
+SVG elements are DOM nodes. React reconciles them on every render. A chart with 200 circles + a smooth animation on mount performs 200 DOM insertions with transition applied to each. WebKit's compositing layer does not accelerate SVG transforms as aggressively as Chrome's Skia backend.
 
 **How to avoid:**
-1. Ensure `useGhTransitions(projectId, issueTypeId)` is called at the board level (not per-card) during board mount, pre-warming the envelope cache before any drag starts. The board already renders cards with their project ID — a single `useGhTransitions` call at the parent is sufficient.
-2. During drag: read drop zone targets from the pre-warmed cache via `peekGhTransitions`. If still `undefined`, show a "Loading transitions…" placeholder drop zone rather than nothing.
-3. After a successful status transition on the board, call `invalidateGhTransitions(queryClient, projectId)` in addition to `invalidateGhAllData`. Stale transitions become visible only if a transition's `fromStatusId` list changes — rare, but possible after workflow edits.
+1. Disable chart entry animations in Tauri builds. Use `isAnimationActive={false}` (Recharts prop) unconditionally. The animation is a cosmetic nicety that causes jank in the webview — the data is always available immediately from the cache.
+2. Apply data decimation for high-frequency data: for a 14-day burndown with hourly data, sample to one point per day. The `reduceDataPoints(data, maxPoints: number)` utility (Largest-Triangle-Three-Buckets algorithm) is worth implementing once and using for all trend charts.
+3. Prefer `<Line>` with `dot={false}` over `<Scatter>` — rendering a path without per-point circles is dramatically faster.
+4. Keep total SVG element count per chart below 150. If a dataset would exceed this, apply decimation before passing to the chart component.
 
 **Warning signs:**
-- Drop zones do not appear during first drag after board load
-- After inline issue-detail status change, drag shows wrong available transitions
-- Cards with different issue types show the same transition options (type indexing broken)
+- Chart entry animation stutters on macOS Tauri but not in browser dev server
+- Profiler shows >16ms render for the chart component on mount
+- CPU usage spikes to 100% briefly when navigating to the Dashboard page
 
 **Phase to address:**
-Drag-to-transition (Sprint Board) phase — transition pre-warming must be a named step in the implementation plan.
+Dashboard redesign phase (when trend/burndown charts are implemented). Animations disabled by default from the first chart — retrofitting this after user complaints is harder.
 
 ---
 
-### Pitfall 5: Transitions with `hasScreen: true` or `hasValidators: true` silently block the drag-drop
+### Pitfall 5: Bundle bloat from importing full chart library — no tree-shaking
 
 **What goes wrong:**
-The GreenHopper `GhTransition` type carries `hasScreen: boolean` and `hasValidators: boolean`. Dragging a card into a drop zone and triggering `POST /rest/api/2/issue/{key}/transitions` on a transition that has a required screen returns HTTP 400 with a workflow validation error body. The optimistic update has already moved the card visually. The rollback restores the card — but with no user-facing explanation, the card appears to "refuse to drop" with no feedback.
-
-A validator might also block the transition (e.g., "all subtasks must be done before moving story to Done") returning HTTP 400 or HTTP 500 with a workflow error. The current `postTransition` call (used by `StatusPopover`) handles rollback but surfaces a generic "Failed" label, which is acceptable for a deliberate click but disorienting when caused by a drag.
+Chart libraries are large. Recharts is ~350 KB pre-gzip; nivo is modular but its peer dependency D3 adds another ~200 KB. A naive import (`import { LineChart, BarChart, ... } from 'recharts'`) pulls in the entire library even if only two chart types are used, because chart libraries often have imperfect tree-shaking (shared internal `Recharts` class for all chart types). For Taskflow (portable desktop app with bundle-size sensitivity), adding ~300 KB to the main bundle is unacceptable.
 
 **Why it happens:**
-The transition list shown during drag does not filter out `hasScreen` or `hasValidator` transitions — they appear as valid drop targets. The user drops and the POST fails. Screen-required transitions need a modal form; validator-blocked transitions need an explanation.
+Chart libraries commonly put multiple chart type classes in a single module. Even if only `LineChart` is imported, the bundler cannot statically analyze that `BarChart` is unused when they share an internal `RechartsChart` base class.
 
 **How to avoid:**
-1. Read `hasScreen` and `hasValidators` from the `GhTransition` shape (available in `transitions.ts`'s `__adaptToJiraTransition` — but these fields are not currently propagated through to the `JiraTransition` shape). Add `hasScreen?: boolean` and `hasValidators?: boolean` to `JiraTransition` during this phase so the board can read them.
-2. Filter `hasScreen: true` transitions out of the drag drop zone targets. Transitions requiring a screen can still be triggered via the `StatusPopover` click flow (which can open the screen form).
-3. For `hasValidators: true`: show the drop zone but, on API failure with a workflow error body, display an inline toast: "Transition blocked: [validator message from response body]". Do not silently roll back.
+1. Import charts only via the route chunk — the Dashboard route is already lazy-loaded (`v1.7` route-level code splitting). Any chart component that lives inside `src/routes/dashboard/` is already in the Dashboard chunk and not in the main bundle. Verify this with `rollup-plugin-visualizer` (already installed per PROJECT.md) after adding the library.
+2. Never import a chart component from a shared `components/ui/` file that is imported by the main bundle.
+3. Choose Recharts over nivo for this reason: Recharts ships as a single package with good-enough tree-shaking for 2 chart types; nivo requires installing `@nivo/line`, `@nivo/bar` etc. separately but pulls D3 as a peer dep which is large. Recharts gzip size for 2 chart types is ~70–90 KB — acceptable for the Dashboard-only chunk.
+4. Run `npm run build && npx rollup-plugin-visualizer --open` after installing to verify the chart library is not in the vendor/main chunk.
 
 **Warning signs:**
-- Card snaps back after drop with no error message
-- Network panel shows 400 with `{"errorMessages":["Workflow..."]}` body
-- Specific transitions only fail for certain issue types or when issue has open subtasks
+- `rollup-plugin-visualizer` shows chart library in `vendor` or `main` chunk (not dashboard chunk)
+- Initial app load time increases
+- The `src/components/ui/` directory has a chart component import
 
 **Phase to address:**
-Drag-to-transition (Sprint Board) phase — `hasScreen`/`hasValidators` filtering must be in the initial drop zone rendering logic.
+Charting foundation phase. Verify chunk placement before implementing the first chart, not after the Dashboard is complete.
 
 ---
 
-### Pitfall 6: Drag vs click disambiguation — peek opens on card click, drag must not trigger peek
+### Pitfall 6: Fetch-once page-cap for "My Tasks = all my assigned issues" — the known recurring bug
 
 **What goes wrong:**
-The universal peek opens on any click that is not on the issue key. Adding drag handles to cards means pointer-down on the card body could be either the start of a drag or the start of a click. If there is no disambiguation, dropping a card (even a 5px drag) fires both `onDragEnd` and the click handler, opening the peek for the dropped card immediately after a transition drop. Conversely, if click is suppressed too aggressively, the user cannot open the peek by clicking a card that happens to have a drag handle.
+The recurring "fetch-once page-cap" pattern (memory: project_fetch_once_pagecap_pitfall): a single JQL search with `maxResults=50` (or whatever default) is fired, the first page is returned, and client-side filtering is applied to produce "my tasks". Users with more than 50 assigned issues see a truncated list silently. There is no indication that the list is incomplete.
+
+"My Tasks" is a prime candidate to repeat this mistake because the temptation is to reuse the existing `fetchSprintIssues(projectKey, assignedToMe=true)` (which already paginates correctly via `fetchAllSearchPages`), but scope the results to just the current sprint. A developer might instead write a simpler, non-paginated call with `sprint in openSprints() AND assignee = currentUser()` and `maxResults=50` and call it done.
 
 **Why it happens:**
-dnd-kit's `PointerSensor` stops propagation of click events once activation constraints are satisfied. With no activation constraint, any `pointerdown` immediately starts the drag and the subsequent `pointerup` does not fire a click. With a distance constraint (e.g., 8px), a click that does not move 8px fires a click normally — but with a zero-movement quick-drag, neither drag nor click fires (known edge case in dnd-kit issue #495: distance-constrained sensor can emit `onDragStart` without `onDragEnd`).
+`fetchAllSearchPages` exists in `jira.ts` and loops until `startAt >= total` with `PAGE_SIZE = 200`. But new code for "all assigned issues" across sprints (the scope toggle: "current sprint vs all assigned") may not use this helper. The `all assigned` scope requires a JQL like `project = X AND assignee = currentUser() AND statusCategory != Done` with no sprint filter — and that query can return hundreds of issues for an active developer.
 
 **How to avoid:**
-Use the **delay + tolerance** sensor configuration, not a distance constraint:
-```typescript
-useSensor(PointerSensor, {
-  activationConstraint: { delay: 150, tolerance: 5 },
-})
-```
-150ms hold before drag activates; a quick release (< 150ms) fires the click handler normally. 5px tolerance means a tiny hand-shake during the hold does not abort the drag. This mirrors the approach used by Jira's own board (empirically observed: ~120-150ms delay).
-
-Additionally, on `onDragEnd` set a ref `justDragged = true` and clear it after `requestAnimationFrame`. In the click handler: `if (justDragged) return;` to suppress peek on card that was just dropped.
+1. All new JQL searches for My Tasks must go through `fetchAllSearchPages` — no single-page `maxResults` call.
+2. The "all assigned" scope must use a proper server-side JQL: `project = ${projectKey} AND assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC`. Do not fetch a capped page of "all sprint issues" and filter client-side for the current user.
+3. For the scope toggle (current sprint / all assigned): implement as two separate named query functions (`fetchMyCurrentSprintIssues` / `fetchAllMyOpenIssues`), each calling `fetchAllSearchPages`, so there is no temptation to "just filter the sprint result client-side".
+4. Add a pagination assertion test: given a mock `total: 250, issues: [50 items]`, the fetch function must loop and return all 250 items.
 
 **Warning signs:**
-- Peek opens on every successful drag-drop
-- A fast click does not open peek because it is captured as an aborted drag
-- dnd-kit drag overlay never disappears (stuck `onDragStart` without `onDragEnd` — distance-constraint edge case)
+- My Tasks page shows exactly 50 issues regardless of how many are assigned
+- Issues assigned before the current sprint do not appear in "all assigned" scope
+- `total` in the network response is larger than the `issues` array length on first page
 
 **Phase to address:**
-Both drag phases (backlog rank and board transition) — and the peek slideover phase. All three must agree on the disambiguation contract before any of them ship.
+My Tasks page phase. The `fetchAllMyOpenIssues` function must be written with `fetchAllSearchPages` from the first commit — not retrofitted.
 
 ---
 
-### Pitfall 7: Drag inside `@tanstack/react-virtual` — the `rectSortingStrategy` does not work with virtual rows
+### Pitfall 7: N+1 fetches for per-task MR health / time tracking / flags in My Tasks rows
 
 **What goes wrong:**
-`BacklogPage` uses `@tanstack/react-virtual` with `useVirtualizer`. The current code has `useVirtual = false` (the comment explains that `position: absolute` on `<tr>` elements is undefined behavior). If virtualization is re-enabled for the rank-drag feature (to handle very long backlog lists), using `rectSortingStrategy` (the default) fails because it needs all items to be mounted to calculate sort positions. Items outside the viewport are unmounted by the virtualizer.
+My Tasks rows display rich data: MR health badge (linked MR from GitLab), time tracking bar (Tempo worklogs), and flag status. A naive implementation fetches this per-row data individually: one `useQuery` per issue for its MR, one for its worklogs, one for its flags. With 30 issues in My Tasks, this is 90 concurrent queries on page load. The GitLab API and Tempo API have rate limits; Jira's network overhead is non-trivial on a slow on-premise instance.
 
-Additionally, the currently-dragged item may scroll out of the virtual window during a long drag. When it does, the item is unmounted. The `DragOverlay` shows a ghost, but when the drag ends and the overlay animates back, there is no mounted element to animate to — causing an abrupt disappear.
+This mirrors the AIO defect N+1 problem solved in v1.8 Phase 58 (`per-defect-key useQuery dedup eliminating N+1 Jira fetches`).
 
 **Why it happens:**
-Virtualization intentionally unmounts off-screen rows. `rectSortingStrategy` calls `getBoundingClientRect()` on every item in the list to compute positions. Items outside the viewport have no DOM node to measure.
+Row components that own their own data fetching are architecturally clean but produce N requests. The existing sprint board has the same architecture — but the sprint board only shows current-sprint issues (bounded to ~20-40) and MR linking is done via cached GitLab MR list, not per-issue fetch.
 
 **How to avoid:**
-1. Do not re-enable `useVirtual` in `VirtualizedBacklogTable` as part of the rank-drag feature. The current `useVirtual = false` setting is intentional (see the comment in the source). The active sprint backlog section is bounded in practice (one sprint = 20-50 items) — non-virtual DOM rendering is fine.
-2. If the backlog section (unsprinted issues) grows large enough to require virtualization, use `verticalListSortingStrategy` (supports virtualized lists), ensure the active drag item is always included in the rendered set regardless of scroll position (add its ID to the overscan window), and use a `DragOverlay` to render the drag ghost independently of the source item's DOM presence.
+1. **MR health**: reuse the existing `useGitLabMRs` query (already a list-level query) and derive per-issue MR health client-side by matching on `PROJ-XXX` in MR titles — no per-row fetch. This is how the sprint board already works.
+2. **Time tracking**: Tempo worklogs per-issue should be pre-loaded at the page level for all issue keys in My Tasks, not per-row. Use a single `fetchWorklogs` call with the full list of issue keys. The existing `WorklogsPage` fetch already does this for a date range.
+3. **Flags**: flag status is available in the Jira issue `fields` from the main My Tasks JQL search (the `flagged` field on `GhIssue` is returned by allData, and REST v2 returns `customfield_10021` for flag). No extra fetch needed if the field is included in the JQL `fields=` parameter.
+4. Add TanStack Query `enabled: false` for any per-row data that is not yet needed (outside viewport). The virtualizer can signal which rows are visible; only enable queries for visible rows.
 
 **Warning signs:**
-- Drag ghost disappears mid-drag when scrolling a long list
-- `rectSortingStrategy` console warning: "Could not find draggable node"
-- Sort order jumps when passing the virtual window boundary
+- DevTools network tab shows 30+ simultaneous API calls on My Tasks page load
+- Tempo API returns 429 Too Many Requests
+- My Tasks page load time is proportional to the number of assigned issues
 
 **Phase to address:**
-Drag-to-rank (Backlog) phase — explicitly document the `useVirtual = false` decision in the implementation plan.
+My Tasks page phase. Define the data loading architecture (page-level vs row-level queries) before implementing the row component.
 
 ---
 
-### Pitfall 8: Tauri webview `mouseup` event loss on Windows — drag state gets stuck
+### Pitfall 8: Subtasks vs stories double-counting in stat tiles and sprint health chart
 
 **What goes wrong:**
-On Windows, the Tauri webview (WebView2/Edge) has a known bug where clicking on a drag-region within the webview causes the `mouseup` event to be swallowed by the native window manager (Tauri issue #10767). If the drag handle area overlaps with any native drag region, a `pointerdown` is received but no `pointerup` arrives in the webview. dnd-kit's `PointerSensor` never fires `onDragEnd`. The drag overlay remains on screen and follows the pointer indefinitely until the user clicks again.
+The Dashboard stat tiles ("stories completed this sprint", "story points done") and the sprint health chart (points by status) must count either stories or subtasks — not both. Jira DC GreenHopper `allData.json` returns all issue types in `issuesData.issues`. If the stat code iterates all issues and sums `estimateStatistic.statFieldValue.value`, subtask story points are added on top of their parent story's story points, inflating the count. A story with 5 SP and 3 subtasks of 1 SP each would count as 8 SP instead of 5.
 
-This is separate from the HTML5 drag API bug (Tauri issue #6695) — dnd-kit uses pointer events, not the HTML5 drag API, but the `mouseup` loss still affects it on Windows when native drag regions overlap.
+This is a known pattern: v1.1 specifically notes "Workload correctly counts story points per assignee (subtasks excluded)" and Phase 59/v1.9 removed the Workload page that had this logic. The new Dashboard charts must re-implement it correctly.
 
 **Why it happens:**
-Taskflow uses `data-tauri-drag-region` on the header titlebar. Card drag handles near the top of the viewport (within the header) may overlap the drag region. Even without overlap, WebView2 on some Windows versions intercepts pointer events differently than macOS WebKit.
+The GH `allData.json` issue list does not distinguish stories from subtasks at the top level — both have an `estimateStatistic`. Code that sums SP without checking `parentId` (null for stories, present for subtasks) double-counts. The adapter in `adapter.ts` produces `JiraIssue` with `fields.issuetype.subtask: boolean` — using this boolean to exclude is the correct filter.
 
 **How to avoid:**
-1. Explicitly exclude card drag handles from `data-tauri-drag-region` overlap. Cards are in the main scrollable content area, well below the header — this should not be an issue structurally, but verify by inspecting z-index and the element tree.
-2. Use dnd-kit's `PointerSensor` (not the HTML5 drag API). Do not use `draggable` HTML attributes — those trigger HTML5 drag which is known-broken in Tauri webviews (issue #6695).
-3. Add a global `pointermove` listener during drag that calls `sensor.cancel()` on `pointercancel` — dnd-kit already handles this internally, but verify it fires on Windows.
-4. Test on Windows before shipping the drag feature. macOS drag works first; Windows needs explicit validation.
+1. All SP aggregation for Dashboard metrics must filter to `!issue.fields.issuetype.subtask` (or `!issue.parentId` in GH types) before summing.
+2. For "stories completed this sprint": count only issues where `issuetype.subtask === false && done === true`.
+3. For the points-by-status chart (e.g., "In Progress: 13 SP, Done: 21 SP"): group by `statusId` from the entity map, exclude subtasks from SP sum, but do include subtask count separately if a "subtask count" metric is desired.
+4. Write a unit test with a fixture that includes a parent story with SP=5 and two subtasks with SP=2 each; assert the total is 5, not 9.
 
 **Warning signs:**
-- Drag overlay stays visible after mouse button released (Windows only)
-- Board/backlog becomes unresponsive after a drag (stuck drag state)
-- Issue only reproducible on Tauri builds, not in browser dev server
+- Sprint health chart shows more story points than the sprint velocity report in Jira itself
+- "Points done" stat tile is 40% higher than expected
+- Adding subtasks to a story increases the dashboard SP count without any story changes
 
 **Phase to address:**
-Both drag phases — add "test on Windows" as an explicit UAT step. Use `touch-action: none` on all draggable elements (required for PointerSensor on all platforms).
+Dashboard redesign phase (stat tiles + sprint health chart). The anti-double-count filter must be in the aggregation function, tested before the chart is wired up.
 
 ---
 
-### Pitfall 9: Non-blocking peek — shadcn Sheet focus trap blocks the underlying view
+### Pitfall 9: Timezone bug in "this week" / day bucketing for trend charts and logged-hours
 
 **What goes wrong:**
-The existing `IssueDetailSheet` uses shadcn's `Sheet` component (`sheet.tsx`), which is built on Radix UI `Dialog`. Radix `Dialog` applies `aria-hidden="true"` to the rest of the document and traps focus inside the sheet via `focus-trap`. This makes the underlying backlog/board completely inaccessible via keyboard and effectively modal — the opposite of the desired non-blocking behavior. The user cannot J/K navigate the underlying list, click another card to swap the peeked issue, or interact with any UI outside the sheet while it is open.
+A "weekly logged hours" trend chart groups Tempo worklog entries by calendar week. If bucketing uses `new Date(worklog.started).toISOString().slice(0, 10)` to get the date key, the conversion to UTC shifts the calendar day for users east of UTC (e.g., UTC+2: a worklog logged at 23:00 local time becomes 21:00 UTC the previous day, landing in the wrong week bucket). A developer in Bratislava logging work on Monday evening would see it attributed to Sunday's bucket.
+
+This is the exact pattern Taskflow already documents and solves: `standup-date.ts` explicitly says "NEVER use toISOString() ... use local calendar components", and Phase 62/v1.9's `WorklogsPage` uses `.slice(0, 10)` on the API timestamp string (which is already a local-date string from Tempo: `2026-06-14T09:00:00`).
 
 **Why it happens:**
-Radix Dialog's accessibility model is designed for modals. Using it for a non-blocking panel is the wrong primitive. The existing `IssueDetailSheet` (used for epics and the old sheet) inherits this behavior.
+New charting code written without awareness of the standing rule (documented in `standup-date.ts` but not enforced at the linter level). The instinct is to normalize to UTC for comparison, but Tempo returns worklog `started` as a local-timezone ISO string. Calling `toISOString()` on `new Date(tempo_started)` converts to UTC and shifts the date.
 
 **How to avoid:**
-Do not use shadcn `Sheet` / Radix `Dialog` for the universal peek. Instead, build the peek as a **positioned panel** (`position: fixed; right: 0; top: 0; height: 100vh`) with no focus trap and no `aria-hidden` on the document. Use Radix `FocusScope` with `trapped={false}` if keyboard navigation within the panel is still desired, or simply rely on natural tab order. The panel should have `role="complementary"` or `role="region"` with an `aria-label="Issue preview"`. Escape key closes it via a `useEffect` on `keydown`.
-
-Do not render a backdrop/overlay — the underlying view must remain fully pointer-interactive. Use `z-index` only to float the panel above content, not to block it.
+1. For any date bucketing in chart aggregation functions, always use `tempo_started_string.slice(0, 10)` (Tempo timestamps are `YYYY-MM-DDTHH:mm:ss` in the user's local time — slicing is safe). Do not construct a `new Date()` from the string and then re-serialize.
+2. For "this week" bucketing: compute the week start using local year/month/day components via `toLocalDateString()` from `standup-date.ts`. Do not use `startOfWeek(new Date(...), { weekStartsOn: 1 })` from a date library if it internally uses UTC normalization.
+3. Import `toLocalDateString` from `standup-date.ts` (or a shared `lib/date-utils.ts`) into any new chart aggregation function. Make the dependency explicit.
+4. Add a unit test: a worklog with `started: "2026-06-14T23:00:00"` must bucket to week of `2026-06-14`, not `2026-06-13`.
 
 **Warning signs:**
-- Clicking the backlog rows behind the open panel does nothing (pointer events blocked)
-- Tab key cycles only within the panel, can never reach the list
-- Screen reader announces "application" role instead of navigating normally
+- A worklog logged "today" appears in "yesterday's" week bucket for team members in UTC+1 or later
+- The "hours this week" stat shows fewer hours on Monday than expected (Monday evening hours shifted to last week)
+- Tests pass (jsdom defaults to UTC) but the Tauri build shows wrong buckets
 
 **Phase to address:**
-Universal peek slideover phase — the component must be designed as a positioned panel, not a dialog. This is the single most important architectural decision for the peek.
+Dashboard redesign phase (trend/logged-hours chart). The rule must be in the aggregation function's code comments, and the unit test must exist before the function is considered done.
 
 ---
 
-### Pitfall 10: Stale query data when swapping the peeked issue by clicking a different card
+### Pitfall 10: Velocity trend promises historical sprint data Jira DC cannot cheaply provide
 
 **What goes wrong:**
-The peek shows issue A (loaded into `['jira-issue-detail', 'A']` query). The user clicks card B in the underlying view. The `issueKey` prop changes to B. The `useQuery` for B fires with `staleTime: Infinity` (the session-persistent cache configured in v1.7). If B was previously opened, TanStack Query immediately returns the cached stale data while refetching in the background. The peek shows B's old description/status/comments for a moment before the fresh data arrives. If the user closes the peek before the background fetch completes, the stale data remains in the cache and the next open of B shows old data again.
+A "personal velocity trend — points over last N sprints" chart requires knowing: (a) which sprints have completed, (b) which issues were completed in each, and (c) their SP values. The GreenHopper API's `allData.json` returns **current-sprint** issues only. There is no confirmed endpoint in Taskflow's existing service layer that returns closed-sprint issues with SP. The Jira DC REST API has `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed` to list closed sprints, and `GET /rest/agile/1.0/sprint/{sprintId}/issue` to get issues per sprint — but `fetchAllSearchPages` on `sprint = SPRINT_ID AND assignee = currentUser()` for N past sprints is N serial requests (one per sprint), each potentially returning 50-200 issues.
 
-This is particularly visible when the user transitions B's status via the board and then opens the peek — the peek shows the pre-transition status until the refetch completes.
+PROJECT.md explicitly lists "Historical analytics / burndown charts — no daily-use value; complex data pipeline; LinearB/Swarmia exist for this" as Out of Scope. A "velocity trend" is in scope, but must be honest about what data it can show.
 
 **Why it happens:**
-`gcTime: Infinity` and `staleTime: Infinity` (v1.7 decisions) trade network requests for instant navigation. The tradeoff is acceptable for read-only views but creates visible stale data for frequently-mutated fields (status, assignee, comments).
+The feature is listed as "personal velocity trend (points over last N sprints)" in the Dashboard goal. Without verifying what data is available cheaply, an implementation may hit endpoints that require N=5 closed-sprint queries on Dashboard load — a 5-second waterfall on page mount. Alternatively, it may discover that closed-sprint issues do not carry SP in the GH response and need a second REST v2 enrichment.
 
 **How to avoid:**
-For the issue detail queries used inside the peek, use `staleTime: 0` and `refetchOnMount: 'always'`. This ensures a fresh fetch every time the `issueKey` changes. The `gcTime: Infinity` can remain to keep the data in cache between views, but the stale threshold is zero so the background refetch always fires. The peek's loading state should show a skeleton for the fields that are likely to change (status, assignee) while revalidating, rather than showing old data without indication.
-
-Alternatively, on mutation `onSettled` for any status/field mutation, call `queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey] })` — this already happens in some mutation paths (Phase 74) but must be verified for all mutation entry points that affect peek-visible fields.
+1. Before implementing velocity charts, probe the actual Jira DC endpoints in the dev environment: `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed&maxResults=5` — verify it returns sprint objects with `startDate`/`endDate`; then `GET /rest/agile/1.0/sprint/{sprintId}/issue?maxResults=50&fields=customfield_10016,issuetype,status` — verify SP field is present.
+2. Limit to last 5 completed sprints maximum. Five serial requests at ~400ms each = 2 seconds max. Pre-fetch in the background (not in the Dashboard component's critical path) using TanStack Query `staleTime: 5min` so repeat Dashboard visits are instant.
+3. If closed-sprint SP data is unavailable or unreliable (e.g., issues moved between sprints lose their sprint association), scope down to "completed stories count per sprint" instead of SP — this data is still valuable and always available.
+4. Make the velocity widget an independently-loading section (same pattern as Standup Notes: each section loads and degrades independently). If the closed-sprint fetch fails or times out, show "Velocity data unavailable" rather than blocking the entire Dashboard.
 
 **Warning signs:**
-- Peek shows old status immediately after a board transition for the same issue
-- Comment thread appears stale (new comment not visible) on second peek open
-- `isFetching` is `true` but the peek shows outdated data without a loading indicator
+- Dashboard page takes >3s to load because velocity fetch is awaited before render
+- Closed-sprint issues return empty SP fields (SP is only set on open-sprint issues in some DC configs)
+- The velocity endpoint requires a `boardId` that is not available in the existing auth store
 
 **Phase to address:**
-Universal peek slideover phase — set `staleTime: 0` on the issue-detail query used within the peek. Add a test fixture that verifies the peek query refetches on `issueKey` change.
+Dashboard redesign phase. The probe of closed-sprint endpoints must happen at phase kickoff (before any velocity chart code is written). Descope to "count of completed stories" if the probe fails.
 
 ---
 
-### Pitfall 11: Issue-key click vs row-click disambiguation for the peek
+### Pitfall 11: Stale-while-revalidate flicker on My Tasks — visible re-layout when data arrives
 
 **What goes wrong:**
-The product spec requires: click anywhere on a row/card opens the peek, EXCEPT clicking the issue key (e.g., "PROJ-123" link) which navigates to the full-page detail. This requires two separate click targets on the same card. If the row has a global `onClick` handler and the issue key has its own `onClick` with `stopPropagation`, keyboard activation (`Enter` on the row) and assistive technology may bypass the key-specific handler and always trigger the row handler.
-
-Additionally, if the issue key is wrapped in a React Router `<Link>`, the link's default navigation fires before the custom peek handler, causing both the peek to open and the route to change simultaneously.
+My Tasks has three groupings behind a toggle (My Day / By Status / By Sprint & Parent). With `gcTime: Infinity` and `staleTime` tuned for session persistence (v1.7 pattern), navigating back to My Tasks shows cached data instantly, then re-fetches in the background. When the new data arrives, the list may regroup (e.g., a status changed since last visit), causing a visible re-layout — rows jump position mid-view. This is more jarring on My Tasks than on a sprint board because the user may have scrolled to a specific row.
 
 **Why it happens:**
-Global row click handlers and nested interactive elements (links, buttons) have conflicting event bubbling. `stopPropagation` on the key link prevents the peek handler from firing, but pressing Enter on the row (not the link) still fires the row's click handler. Using `<Link>` for the issue key triggers navigation AND bubbles to the row handler if `stopPropagation` is missed.
+`staleTime: Infinity` means the background refetch fires and updates the cache, which triggers a re-render of the grouped list. Unlike a sprint board (cards in columns, easier to scan post-reflow), My Tasks is a flat-ish sorted list where row position changes feel disorienting.
 
 **How to avoid:**
-Structure the card as: row has `onClick` (opens peek) and `role="button"` for keyboard. Issue key is a `<button type="button">` (not `<a>` or `<Link>`) with `onClick={(e) => { e.stopPropagation(); navigate('/issues/' + key); }}`. The key button also handles `onKeyDown` Enter separately. Using a button (not a link) prevents the navigation-before-peek race.
-
-`cursor-pointer` must be on both the row and the key button explicitly — this matches the "fix `cursor-pointer` on clickable areas" requirement already in the v1.12 scope.
+1. Use `staleTime: 2 * 60 * 1000` (2 minutes) for the My Tasks query rather than `Infinity`. 2 minutes is recent enough to feel live without constant background churn.
+2. On background revalidation, sort-stabilize the list: only re-sort visible rows when the user has not scrolled or has scrolled back to top. Use a ref to track scroll position; if the user is mid-list, defer the sort-resort until they scroll back to top or explicitly refresh.
+3. Show a "Refreshed" badge (similar to `StaleDataBanner` pattern in existing views) rather than silently re-sorting under the user's cursor.
+4. For the "My Day" smart-sort grouping (the most complex sort), ensure the sort key is deterministic: if two issues have the same priority, use `key` (alphabetic) as a tiebreaker. Non-deterministic sort causes different order each refresh even if no data changed.
 
 **Warning signs:**
-- Clicking issue key both opens peek and navigates to full page
-- Keyboard Enter on the issue key label opens peek instead of navigating
-- Screen reader announces row as a link that triggers peek (incorrect semantic)
+- Rows visibly shuffle positions on returning to My Tasks
+- An issue the user was looking at disappears from view after a background refresh
+- "My Day" sort order differs between page loads with identical data
 
 **Phase to address:**
-Universal peek slideover phase — define the exact click/keyboard event contract in the design before implementing.
+My Tasks page phase. The sort-stabilization strategy must be defined before the grouping/sorting logic is implemented.
 
 ---
 
-### Pitfall 12: Bulk subtask creation — partial failure leaves orphaned subtasks with no recovery path
+### Pitfall 12: Cross-sprint scope correctness — "all assigned" includes wrong-sprint issues
 
 **What goes wrong:**
-Bulk creation loops `createIssue` N times in order (confirmed in `PROJECT.md`). If subtask 3 of 5 fails (API error, rate limit, required field missing), subtasks 1 and 2 are already created in Jira. There is no "delete created subtasks" rollback. The user sees a partial failure state with no clear indication of which subtasks were created and which were not. If they dismiss the dialog and retry the entire batch, they get duplicate subtasks 1 and 2.
+The My Tasks scope toggle includes "current sprint vs all assigned". The "all assigned" JQL (`assignee = currentUser() AND statusCategory != Done`) correctly returns all open assigned issues. But My Tasks rows display "Sprint & Parent" grouping. When an issue is assigned to the current user but belongs to a different (future) sprint, it appears in My Tasks under its sprint name — which may confuse users expecting to see only their work.
+
+A subtler bug: `sprint in openSprints()` in Jira DC returns only the **active** sprint, not future sprints. An issue added to a future sprint is not in `openSprints()`. If the "current sprint" scope uses `sprint in openSprints()` but "all assigned" uses a different JQL, the two scopes will have different data shapes (one has a sprint field, one may not).
 
 **Why it happens:**
-Sequential `createIssue` calls have no batch atomicity. Each call commits to Jira immediately. A mid-batch failure leaves the project in an inconsistent state.
+`sprint in openSprints()` is Jira DC's way of querying the active sprint. Future-sprint issues have a sprint ID but it is not "open". The JQL `assignee = currentUser() AND statusCategory != Done` returns future-sprint issues too, but they have `sprint.state = "future"`. The grouping logic that reads `sprint.name` to bucket issues will create separate buckets for future sprints, which may not be intended.
 
 **How to avoid:**
-1. Track creation progress with a per-subtask status array: `[{ title, status: 'pending' | 'creating' | 'created' | 'failed', issueKey?: string, error?: string }]`. Show this state in the preview/progress UI during creation.
-2. On partial failure: show the status array with clear per-row indicators (checkmark / spinner / X). Do not retry the entire batch. Provide a "Retry failed" action that only re-attempts the failed items by index, skipping already-created ones.
-3. Deduplicate by title+parent: before retrying, check if a subtask with the same summary and parent key already exists. The `['jira-issue-detail', parentKey]` query's subtasks array is the cheapest check.
-4. Never reset the status array on dialog close if any subtasks were created — persist it so the user can see what was created even after closing.
+1. For the "all assigned" scope, explicitly decide: include future-sprint issues or not. The recommendation is to exclude them (add `AND sprint in openSprints() OR sprint is EMPTY` to the JQL) to avoid showing issues the user will not work on imminently.
+2. For the "By Sprint & Parent" grouping, handle missing/null sprint gracefully: issues with no sprint should bucket into "No Sprint / Backlog" rather than crashing.
+3. Document the scope definition in a code comment: "all assigned = `project = X AND assignee = currentUser() AND statusCategory != Done AND (sprint in openSprints() OR sprint is EMPTY)`". This makes the intent explicit and prevents future modifications from drifting.
 
 **Warning signs:**
-- User retries bulk create and ends up with duplicate subtasks
-- Progress modal closes on partial failure with no indication of what succeeded
-- Created subtasks not visible in the parent's subtask list (cache not invalidated after partial success)
+- "By Sprint & Parent" grouping shows 3-4 sprint buckets when user expects 1
+- Issues in future sprints appear in "current sprint" scope after a sprint advances
+- `sprint is EMPTY` issues throw when the grouping code accesses `issue.sprint.name`
 
 **Phase to address:**
-Bulk subtask creation phase — the per-subtask status array must be in the initial state design, not added when the first partial failure is reported.
+My Tasks page phase. The JQL scope definition for each toggle state must be written and reviewed before the fetch function is implemented.
 
 ---
 
-### Pitfall 13: `createmeta` required field validation — fields that are required on the instance but absent from the template
+### Pitfall 13: Polling cost — multiple Dashboard widgets all refetching on short intervals
 
 **What goes wrong:**
-The subtask template stores fields the user configured: title, description, assignee, priority, etc. When `createIssue` is called, Jira validates against the project's `createmeta` for the subtask issue type. If the project has a required custom field (e.g., a mandatory team-specific `Epic Link` or a required label field) that is not in the template and has no default value, the create call returns HTTP 400 with `{"errors":{"customfield_XXXXX":"Field is required"}}`. The batch fails for every subtask in the template.
+The Dashboard redesign has stat tiles, a sprint health chart, a trend graph, MR review queue, and activity/releases — potentially 5-7 independent `useQuery` hooks. If each uses the default polling interval (60s for dashboard-level queries per v1.7), or worse, its own polling interval, the Dashboard route fires 5-7 Jira/GitLab/Tempo requests every 60 seconds. On a slow on-premise Jira, each request takes 400-1200ms; 7 concurrent requests per minute is heavy.
+
+The existing v1.9 minimal Dashboard (gradient hero + 3 cards) was deliberately minimal to avoid this. The new Dashboard is heavier.
 
 **Why it happens:**
-`createmeta` returns the required fields at template-build time. But the project's scheme can be modified after the template is saved (a new required field added by a Jira admin). The saved template does not know about the new required field.
-
-Additionally, the existing `CreateEditIssueModal` already uses `discoverCustomFields()` + `createmeta` to discover required fields dynamically — but the subtask template creation UI may not call createmeta fresh each time the user opens the "create" dialog.
+Each `useQuery` with `refetchInterval` runs its own timer. Multiple widgets that each own their fetch queries fire independently. The v1.7 "single poll coordinator (TanStack Query)" pattern works when queries share the same key, but different widget queries have different keys.
 
 **How to avoid:**
-1. Call `createmeta` fresh when the user opens the subtask creation wizard (not from a cached snapshot). Use the same `discoverCustomFields` pattern from `CreateEditIssueModal`.
-2. On 400 error in `createIssue`: parse the `errors` object to extract the missing field names. Display them in the per-subtask status row: "Failed: 'Epic Link' is required". Surface a "Fill required fields" inline editor for the failed subtask's row before retry.
-3. Add a "validate all" dry-run step before committing any creates: call `createmeta` and diff the template's fields against the required field list. Warn about missing required fields before starting creation.
+1. Consolidate Dashboard data: the sprint health chart and stat tiles both read from the same `['gh-all-data', boardId]` GreenHopper query. One `useQuery` at the Dashboard level fetches `allData.json` once; widgets derive their views from the same result. No per-widget fetch for sprint data.
+2. MR review queue reads from the existing GitLab MRs query (already session-cached). No new polling.
+3. Activity/releases reads from fix versions (existing `fetchFixVersions` query, `staleTime: 5min`).
+4. Tempo logged hours reads from the Tempo worklogs query, already used in `WorklogsPage`.
+5. Use `useIsActiveRoute` (existing hook, v1.7) to pause all Dashboard polling when the user is on a different route.
+6. Net result: Dashboard should add at most 1-2 new queries beyond what is already cached.
 
 **Warning signs:**
-- All subtasks fail with 400, same error
-- Error message references a `customfield_` ID rather than a human-readable name
-- Template was built on a different project's issue type configuration
+- Network waterfall on Dashboard shows 6+ parallel API calls every 60 seconds
+- CPU usage elevated (polling timers firing) when user is not on the Dashboard tab
+- On-premise Jira Tempo API returns 429 (rate limit) after a few minutes on the Dashboard
 
 **Phase to address:**
-Bulk subtask creation phase — the createmeta fresh-fetch must be in the wizard open flow. The required-field diff check is the recommended pre-create validation step.
+Dashboard redesign phase. Define the query consolidation plan (which widgets share which queries) before implementing any widget.
 
 ---
 
-### Pitfall 14: Card color left-edge stripe fails WCAG contrast in dark mode
+### Pitfall 14: React Compiler + dense Dashboard page — unexpected re-render storms on metrics updates
 
 **What goes wrong:**
-Priority colors (e.g., Highest = red, High = orange, Medium = yellow, Low = blue, Lowest = gray) as defined by Jira's default priority scheme are designed for light backgrounds. The hex values `#FF0000` (Highest), `#FF7722` (High), `#FFAA33` (Medium) fail the WCAG 3:1 minimum contrast ratio for UI components against the app's dark mode surface color (`hsl(240 3.7% 15.9%)` from shadcn dark). Yellow/orange priority colors are particularly problematic: they appear washed out or invisible as thin left-edge stripes in dark mode.
+A Dashboard with 5-7 widgets, each receiving data props from a parent query, can trigger a re-render storm: when one query invalidates (e.g., sprint data refreshes), all widgets that receive derived data from that query re-render simultaneously. React Compiler auto-memoizes at the IR level, but if the dashboard parent component re-derives all widget props in a single render pass (e.g., filtering + grouping + sorting inside the component body), the compiler's memo boundaries may not prevent expensive re-computation in children.
+
+The Compiler handles pure value derivation well, but if a widget component performs a non-trivial transform (e.g., chart data aggregation with subtask exclusion, SP summing, date bucketing), and that transform receives a new object reference each time the parent re-renders (even if the values are identical), the compiler cannot optimize across the parent-child boundary.
 
 **Why it happens:**
-The existing `epicColorToTailwind` mapping in `lib/epicColors.ts` maps Jira color names to Tailwind classes optimized for the `bg-` use case (background chips). A 3px left-edge stripe at the same color value does not have enough surface area for the contrast to be perceptually adequate. Also, the Jira priority icon URLs (returned by `fields.priority.iconUrl`) link to SVGs hosted on the Jira instance — these cannot be CSS-colored and may not be legible at small sizes.
+React Compiler's memoization is intra-component. If the parent passes `sprintIssues.filter(...).map(...)` as a prop on every render, the child receives a new array reference every time — and without `React.memo` (which the compiler replaces with its own mechanism), the child re-renders regardless of structural equality. The compiler's generated memo only memoizes values that are provably stable at the IR level.
 
 **How to avoid:**
-1. Define a separate `priorityToStripeColor` map that uses **slightly adjusted HSL values** tuned for dark mode: increase saturation and luminosity for dark mode, decrease for light mode. Use a CSS custom property per priority so the dark-mode override can be applied via Tailwind's `dark:` variant.
-2. Supplement the color stripe with a **priority icon** (Lucide icon or the Jira priority icon) displayed inside the card, not just the edge stripe. Color alone cannot be the only indicator (WCAG 1.4.1).
-3. Use the 4 most distinct hues: red (Highest/High), amber (Medium), blue (Low/Lowest), with icon+label as fallback when colors are insufficient. Avoid yellow and cyan in the stripe — they fail contrast against both light and dark backgrounds.
-4. Test with `prefers-color-scheme: dark` in DevTools and validate each priority stripe with a contrast checker.
+1. Move data derivation (aggregation, SP summing, date bucketing) into each widget component's own scope, not the Dashboard parent. The compiler can then memo the derivation independently.
+2. Alternatively, move derivation to the query selector: `useQuery({ ..., select: (data) => aggregateForStatTiles(data) })`. The `select` function result is memoized by TanStack Query structurally (using `shallowEqual`), so the widget only re-renders when the selected shape changes.
+3. For the chart data derivation specifically (the most expensive): use TanStack Query `select` to pre-aggregate before the chart component receives it.
+4. Test Dashboard render count: with React DevTools Profiler, verify that refreshing the sprint data query triggers at most one re-render per widget, not cascading re-renders.
 
 **Warning signs:**
-- Left-edge stripe is invisible in dark mode (yellow/orange on dark surface)
-- Contrast checker reports < 3:1 for any stripe color against the card background
-- Users cannot distinguish priorities by color alone without labels
+- React Profiler shows 8-10 component re-renders on a single query cache update
+- Dashboard becomes sluggish when sprint data is first loaded
+- Profiler "flame chart" shows the Dashboard parent re-rendering children serially
 
 **Phase to address:**
-Card colors phase — define the dark-mode-aware color map before implementing the stripe component.
+Dashboard redesign phase. Use `select` on data-heavy queries from the first Dashboard widget. Verify with Profiler before marking the phase complete.
+
+---
+
+### Pitfall 15: Chart accessibility — SVG has no keyboard navigation or screen reader data
+
+**What goes wrong:**
+Charts rendered as pure SVG are invisible to screen readers (an `<svg>` with no `role` or `<title>` reads as nothing, or as a meaningless stream of text). A bar chart showing "sprint points by status" has no accessible alternative for users with visual impairments. While Taskflow's team is small, this becomes a problem if the chart is the only representation of the data — a user who cannot distinguish bar heights by color has no fallback.
+
+**Why it happens:**
+Chart libraries produce SVG without ARIA by default. Developers add chart visuals but skip the accessibility layer because the visual looks complete.
+
+**How to avoid:**
+1. Every chart must have a `<title>` element inside the `<svg>`: `<title>Sprint points by status: To Do 8 SP, In Progress 13 SP, Done 21 SP</title>`. Recharts supports `customized` prop for injecting SVG children.
+2. Supplement every chart with a data table (visually hidden with `sr-only` or collapsible) that presents the same data in tabular form. This is the WCAG 1.1.1 non-text content requirement.
+3. Add `role="img"` and `aria-label` on the `<svg>` element.
+4. Color-blind users: ensure chart palettes use both color AND shape/pattern differentiation (e.g., dashed vs solid lines, filled vs unfilled bars). Never use red/green as the only differentiator for "done vs blocked".
+
+**Warning signs:**
+- VoiceOver (macOS) reads the Dashboard chart area as "group" with no label
+- Color is the only visual differentiator between chart series
+- No tabular fallback for chart data
+
+**Phase to address:**
+Charting foundation phase. The `<title>` + `aria-label` pattern must be in the base chart wrapper. Tabular fallback can be deferred to a polish pass, but must be noted as a known gap.
 
 ---
 
@@ -363,13 +393,15 @@ Card colors phase — define the dark-mode-aware color map before implementing t
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Use shadcn Sheet for peek | Reuses existing component | Focus trap blocks underlying view — must be replaced entirely | Never — wrong primitive for non-blocking panel |
-| Hardcode `rankCustomFieldId` as a constant | Avoids cache read | Silent rank-to-wrong-field on instances with non-default field IDs | Never |
-| Skip `cancelQueries` in rank mutation `onMutate` | Simpler code | Poll overwrites optimistic order, causing flicker | Never for the active-route backlog |
-| Single `onClick` on card row without drag/click disambiguation | Simpler event model | Peek opens on every drag drop | Never with drag enabled |
-| Retry entire bulk-create batch on partial failure | Simpler retry logic | Duplicate subtasks in Jira | Never |
-| Cache createmeta at template-save time | Fewer API calls | Required fields added after save cause silent batch 400s | Only acceptable with an explicit "re-validate" affordance |
-| Skip `hasScreen` filtering on drag drop zones | All transitions shown | Cards snap back silently when screen-required transition is dragged | Never — filter at drop zone render time |
+| Hardcode hex colors in chart props | Simplest first pass | Charts ignore dark/light token switch; must be audited every theme change | Never — use `useChartColors()` hook from day one |
+| Use `ResponsiveContainer height="100%"` in a flex parent | Feels natural, matches docs | Renders at 0×0 in WebKit; silent invisible chart | Never — always set explicit pixel height on wrapper |
+| Skip `isAnimationActive={false}` | Charts look polished | Animation jank in WebKit webview; CPU spike on Dashboard mount | Never in Tauri build — animations never add value here |
+| Import all chart types at route root | Simple import | Chart library in main bundle not Dashboard chunk; ~300 KB bundle regression | Never — chart imports must stay inside lazy-loaded route files |
+| Single `useQuery` for all My Tasks data then filter client-side | Less code | Fetch-once page-cap; silently truncated results for users with >200 issues | Never — all My Tasks queries must use `fetchAllSearchPages` |
+| Sum SP across all issue types for stat tiles | One line of code | Subtask + story double-counting inflates velocity metric by 20-40% | Never — always filter `!issuetype.subtask` before summing |
+| Use `toISOString().slice(0, 10)` for date bucketing | Familiar JS pattern | Off-by-one date error for users in UTC+ timezones | Never — use local calendar components (`standup-date.ts` pattern) |
+| Implement velocity trend without probing closed-sprint endpoints | Looks complete | Endpoint may not exist or may be slow; Dashboard blocks on a 5-request waterfall | Never — probe endpoint before implementing the chart |
+| One polling interval per widget | Simple per-widget architecture | 6+ Jira requests per minute on Dashboard; rate limits | Never — consolidate to shared parent queries |
 
 ---
 
@@ -377,14 +409,15 @@ Card colors phase — define the dark-mode-aware color map before implementing t
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| GreenHopper rank API | Omit `rankCustomFieldId` | Read `data.rankCustomFieldId` from `GhBacklogResponse` cache; pass explicitly |
-| GreenHopper rank API | Use `rankBeforeIssue` / `rankAfterIssue` with a key that is not in the index | Validate the target issue key is present in the current backlog data before calling rank |
-| GreenHopper transitions | Not filtering `hasScreen: true` transitions from drop zones | Propagate `hasScreen` through to `JiraTransition`; filter at drop zone render |
-| GreenHopper transitions | Calling `peekGhTransitions` before envelope loads | Pre-warm envelope with `useGhTransitions` at board mount; show placeholder if still `undefined` |
-| Jira createIssue (subtasks) | Assuming template fields cover all required fields | Fresh `createmeta` call on wizard open; diff required fields before batch create |
-| Jira createIssue (subtasks) | No per-subtask status tracking | Track status array `pending/creating/created/failed` per item; never retry already-created |
-| dnd-kit PointerSensor in Tauri | Using HTML5 `draggable` attribute | Never use HTML5 drag API in Tauri; use dnd-kit PointerSensor with `touch-action: none` |
-| dnd-kit + TanStack Query | Relying on query cache as DnD state | Maintain separate `localItems` state; only sync from cache when `isDragging === false` |
+| Jira DC JQL / My Tasks | Using `sprint in openSprints()` + `maxResults=50` once, filtering client-side | Separate `fetchAllMyOpenIssues` + `fetchAllSearchPages`; proper `statusCategory != Done` JQL |
+| Jira DC JQL / subtask scope | Including subtasks in SP sum for Dashboard metrics | Filter `fields.issuetype.subtask === false` before any SP aggregation |
+| Jira DC JQL / sprint scope | `sprint in openSprints()` returns only active sprint; future sprints excluded | Explicitly decide scope: add `OR sprint is EMPTY` or exclude future sprints from "all assigned" |
+| GreenHopper allData.json / velocity | Assuming it contains past-sprint history | `allData.json` is current sprint only; closed-sprint data requires `GET /rest/agile/1.0/sprint/{id}/issue` — probe before implementing |
+| Tempo worklogs / date bucketing | `new Date(tempo.started).toISOString().slice(0, 10)` | `tempo.started.slice(0, 10)` — Tempo timestamps are local-time ISO strings; skip the Date constructor |
+| Chart library / WebKit | `ResponsiveContainer` with `height="100%"` in flex parent | Explicit `<div style={{ height: 260 }}>` wrapper; measure width with `useLayoutEffect` + `offsetWidth` |
+| Chart library / React Compiler | Libraries using D3 imperative animation (`selection.transition()`) | Use pure React SVG chart library (Recharts); run compiler healthcheck before committing to the library |
+| Chart library / dark mode | Hardcoded hex color props | `useChartColors()` hook reading theme from settings store; SVG text uses `fill: currentColor` |
+| GitLab / MR health in My Tasks rows | Per-row `useQuery` for MR data | Derive MR health client-side from existing page-level `useGitLabMRs` cache (same as sprint board) |
 
 ---
 
@@ -392,10 +425,13 @@ Card colors phase — define the dark-mode-aware color map before implementing t
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `rectSortingStrategy` with virtualized rows | "Could not find draggable node" errors; sort jumps at scroll boundary | Use `verticalListSortingStrategy`; do not re-enable `useVirtual` for the sprint list | Any backlog with virtualization enabled |
-| Calling `peekGhTransitions` every render per card | Recomputes `statusMap` on every call (O(n) statuses each time) | Memoize the `statusMap` at the board level; pass as prop to card renderers | Boards with > 10 cards (immediate) |
-| Bulk subtask create N sequential awaits | UI blocked during creation; no progress | Use `Promise.allSettled` with a concurrency limit of 2-3; update per-subtask status on each resolution | Batch size > 5 |
-| Fresh `createmeta` call per subtask in batch | N × createmeta fetches for N subtasks | Call `createmeta` once at wizard open; cache for session | Batch size > 1 |
+| Chart entry animations in WebKit | Jank on Dashboard mount; CPU spike | `isAnimationActive={false}` unconditionally in Tauri builds | Every chart render on WebKit |
+| SVG with 150+ elements (no decimation) | >16ms render in Profiler; visible stutter | Decimate to ≤100 points; use `dot={false}` on line charts | Any trend chart with hourly Tempo data |
+| 5-7 independent polling `useQuery` on Dashboard | 5+ Jira requests per 60s | Share `allData.json` query; use `select` for derived views | Dashboard with any background data refresh |
+| `fetchAllMyOpenIssues` without `fetchAllSearchPages` | 50-issue cap; silent truncation | Always use `fetchAllSearchPages` (PAGE_SIZE=200) | Users with >50 assigned open issues |
+| Per-row MR/Tempo queries in My Tasks (N+1) | 30+ simultaneous API calls on load | Page-level data fetch + client-side derivation per row | My Tasks with ≥10 rows |
+| Chart library not in Dashboard lazy chunk | +300 KB main bundle size | Verify with `rollup-plugin-visualizer` after install | First time chart library is imported outside a lazy route |
+| Dashboard data derivation in parent component body | Compiler cannot memo across parent-child boundary; re-render storm | Move aggregation into `select` on TanStack Query; or into child component scope | Any Dashboard query cache update |
 
 ---
 
@@ -403,29 +439,32 @@ Card colors phase — define the dark-mode-aware color map before implementing t
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Peek opens on drag drop | Unexpected panel opens after every rank reorder | Set `justDragged` ref; suppress peek click handler for one animation frame after drag end |
-| No visual feedback during drag for per-transition drop zones | User doesn't know where they can drop | Render highlighted drop zone targets (visible only during drag) showing transition names |
-| Bulk create progress dialog closes on any error | User loses track of which subtasks were created | Never auto-close on partial failure; show per-subtask status array; require explicit dismiss |
-| Card color stripe too thin to distinguish in dark mode | Users cannot identify priority at a glance | Use 4px stripe + icon; test all color values against dark background in DevTools |
-| Peek panel covers ≥ 50% of board in mobile-like window sizes | Underlying view is effectively hidden | Set max-width to 480px; below 768px breakpoint, increase width to 100% and add a close affordance |
+| My Tasks list re-sorts under scrolled cursor on background refresh | User loses context mid-list; disorienting | Defer re-sort until user returns to top; show "Refreshed" badge |
+| Stat tile shows inflated SP (subtask double-count) | User sees wrong sprint velocity; distrust of data | Filter `!issuetype.subtask` before summing; add unit test with double-count fixture |
+| Velocity chart shows "no data" because endpoint probe was skipped | Feature looks broken on first launch | Probe closed-sprint endpoint at phase kickoff; degrade to "N/A" with explanation |
+| Empty chart containers on first load (height=0 before resize) | Chart area appears broken; no loading state | Use skeleton placeholder at explicit height while query is loading |
+| Chart tooltip shows raw SP values without units | "13" means 13 SP but users see a bare number | Tooltips always include unit label: "13 SP", "2h 30m" |
+| "All assigned" scope shows future-sprint issues | User confused by issues they won't work on soon | Scope JQL to `sprint in openSprints() OR sprint is EMPTY` |
+| MR health badge missing on most My Tasks rows | Users assume MRs exist and are failing | Only render MR badge when a linked MR is confirmed; show nothing (not a broken icon) when no MR |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Drag-to-rank**: `cancelQueries` is called in mutation `onMutate` — verify the poll cannot overwrite the optimistic order
-- [ ] **Drag-to-rank**: `rankCustomFieldId` is read from the cache, not hardcoded — verified by unit test asserting the exact field ID from the fixture
-- [ ] **Drag-to-transition**: `hasScreen: true` transitions are absent from drop zone targets — test with a fixture that includes a screened transition
-- [ ] **Drag-to-transition**: `peekGhTransitions` returns valid data at board mount (envelope pre-warmed) — verified by loading the board and immediately dragging a card
-- [ ] **Peek slideover**: no `aria-hidden` on document root when peek is open — inspect DOM with DevTools
-- [ ] **Peek slideover**: clicking a backlog row behind the open peek opens the new issue in the peek (row is pointer-interactive) — verified by test
-- [ ] **Peek slideover**: issue-key click navigates to full page without opening peek — both actions tested separately
-- [ ] **Peek slideover**: `staleTime: 0` on the issue-detail query within the peek — verified by network tab showing fresh fetch on each `issueKey` change
-- [ ] **Bulk create**: per-subtask status array is shown in progress UI — manual test with a forced failure on subtask 2 of 4
-- [ ] **Bulk create**: retry sends only failed subtasks, not already-created ones — test with partial failure fixture
-- [ ] **Card colors**: all priority stripe colors pass 3:1 contrast check in dark mode — verified with DevTools contrast checker
-- [ ] **Card colors**: priority indicator includes icon + color (not color alone) — checked against WCAG 1.4.1
-- [ ] **Tauri Windows**: drag does not get stuck after drop — manual test on Windows build
+- [ ] **Charting foundation:** `rollup-plugin-visualizer` confirms chart library is in the Dashboard chunk, not vendor/main
+- [ ] **Charting foundation:** React Compiler healthcheck passes for the chosen library — no warning in CI
+- [ ] **Charting foundation:** `useChartColors()` hook exists and is used for all chart color props; no hardcoded hex
+- [ ] **Charting foundation:** All chart wrappers have explicit pixel height; `height="100%"` is not used
+- [ ] **Charting foundation:** `isAnimationActive={false}` is set on all chart components
+- [ ] **My Tasks / pagination:** `fetchAllMyOpenIssues` uses `fetchAllSearchPages`; test with `total: 250, firstPageSize: 50` fixture asserts 250 results
+- [ ] **My Tasks / N+1:** DevTools network tab on page load shows ≤3 API requests, not one per row
+- [ ] **My Tasks / scope:** "All assigned" JQL does not include future-sprint issues (or explicitly includes them by product decision — documented in code)
+- [ ] **Dashboard / subtask counting:** SP aggregation unit test: story(5 SP) + 2 subtasks(2 SP each) = 5 SP total, not 9
+- [ ] **Dashboard / date bucketing:** Unit test: Tempo worklog `started: "2026-06-14T23:00:00"` buckets to `2026-06-14`, not `2026-06-13`
+- [ ] **Dashboard / velocity:** Closed-sprint endpoint probed in dev environment before chart is implemented; probe results documented
+- [ ] **Dashboard / polling:** `useIsActiveRoute` hook applied to Dashboard; network tab shows zero requests when user is on Backlog or Sprint Board route
+- [ ] **Dashboard / accessibility:** Every chart SVG has `role="img"`, `aria-label`, and a `<title>` element with text summary of the data
+- [ ] **WebKit sizing:** Chart renders correctly in macOS Tauri build (not just in browser dev server) — manual smoke test on real Tauri window
 
 ---
 
@@ -433,12 +472,15 @@ Card colors phase — define the dark-mode-aware color map before implementing t
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Peek built on shadcn Sheet (focus trap) | HIGH | Full component rewrite as positioned panel; cannot be patched |
-| Rank mutation uses wrong `rankCustomFieldId` | LOW | One-line fix in mutation call; add unit test |
-| Flicker on drop (cache/local-state mismatch) | MEDIUM | Add `isDraggingRef` gate to cache sync `useEffect`; 30-minute fix |
-| Duplicate subtasks from full batch retry | MEDIUM | Add title+parent deduplication check before retry; user must manually delete duplicates in Jira |
-| `hasScreen` transitions in drop zones cause silent snap-back | LOW | Filter `hasScreen: true` transitions at drop zone render; propagate field through `JiraTransition` type |
-| Card color fails WCAG in dark mode | LOW | Update color map with dark-mode-adjusted values; `dark:` variant CSS property override |
+| Chart library fails React Compiler healthcheck | HIGH — library swap required | Switch to Recharts (pure React SVG); rewrite chart components; 1-2 days |
+| Chart renders at 0×0 on WebKit | MEDIUM | Add explicit-height wrapper div; replace `ResponsiveContainer height="100%"` with `useLayoutEffect` width measurement; ~2 hours per chart |
+| Hardcoded hex colors (theme not followed) | MEDIUM | Introduce `useChartColors()` hook; replace all hardcoded props; ~4 hours |
+| Subtask SP double-counting in stat tiles | LOW | Add `.filter(i => !i.issuetype.subtask)` in aggregation; 30-minute fix; but requires re-testing all SP metrics |
+| My Tasks page-cap (50-issue truncation) | MEDIUM | Swap fetch function to use `fetchAllSearchPages`; existing helper is tested; ~1 hour code + UX notice of "Showing all N issues" |
+| Timezone date bucket bug | MEDIUM | Replace `toISOString().slice(0, 10)` with `slice(0, 10)` on the raw Tempo string; test all chart aggregations; ~2 hours |
+| Velocity chart built before endpoint probe — endpoint unavailable | HIGH | Descope velocity chart to "stories completed count" per sprint; or remove widget from v1.13; cannot be fixed without data |
+| 6+ polling queries per Dashboard | MEDIUM | Consolidate to shared `allData.json` parent query + widget `select` derivation; 3-4 hour refactor |
+| Chart library in main bundle (not Dashboard chunk) | LOW | Move import to inside lazy-loaded route file; ~30-minute fix + verify with visualizer |
 
 ---
 
@@ -446,35 +488,40 @@ Card colors phase — define the dark-mode-aware color map before implementing t
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Optimistic reorder flicker | Drag-to-rank (Backlog) | Drop a card on slow connection (throttled DevTools); no flicker observed |
-| Wrong `rankCustomFieldId` | Drag-to-rank (Backlog) | Unit test: mutation receives `rankCustomFieldId` matching `data.real.json` fixture |
-| Mixed vertical/horizontal DnD context | Drag-to-transition (Sprint Board) | Drop zone architecture review before first card is draggable on the board |
-| Stale `peekGhTransitions` on first drag | Drag-to-transition (Sprint Board) | Pre-warming step in board mount; drag a card immediately after load |
-| `hasScreen` transition in drop zone | Drag-to-transition (Sprint Board) | Fixture with `hasScreen: true` transition absent from drop zone targets |
-| Drag vs click — peek fires on drop | Both drag phases + peek phase | Drop a card; peek must not open. Click a card; peek must open |
-| `@tanstack/react-virtual` + drag | Drag-to-rank (Backlog) | `useVirtual = false` documented; no regression on virtualization flag |
-| Tauri Windows mouse event loss | Both drag phases | Manual test on Windows Tauri build before phase is marked done |
-| Focus trap blocks underlying view | Peek slideover phase | Inspect DOM: no `aria-hidden` on document; click behind open peek navigates correctly |
-| Stale query on issue key swap | Peek slideover phase | Network tab: fresh fetch fired each time `issueKey` changes in the peek |
-| Partial bulk create failure | Bulk subtask creation phase | Force failure on subtask 2 of 4; verify subtasks 1 created, 3-4 show "failed", retry sends only 3-4 |
-| Missing required fields in template | Bulk subtask creation phase | Add a required custom field to the test Jira project; verify pre-create validation surfaces it |
-| Card color WCAG fail in dark mode | Card colors phase | DevTools contrast check on each priority stripe in dark mode; all pass 3:1 |
+| Chart 0×0 sizing on WebKit | Charting foundation | Manual smoke test in macOS Tauri build; DevTools confirms chart SVG has non-zero width/height |
+| React Compiler incompatibility | Charting foundation | `npx react-compiler-healthcheck` passes with the chosen library; data prop change triggers chart re-render |
+| Dark/light theme not followed | Charting foundation | Toggle theme in settings; chart colors update immediately without page reload |
+| SVG animation jank on WebKit | Charting foundation | `isAnimationActive={false}` present in code review; no animation visible on Dashboard mount |
+| Bundle bloat | Charting foundation | `rollup-plugin-visualizer` output reviewed; chart library absent from main/vendor chunks |
+| Fetch-once page-cap on My Tasks | My Tasks phase | Unit test with `total: 250` mock; manual test with developer with >50 issues assigned |
+| N+1 fetches per My Tasks row | My Tasks phase | Network tab shows ≤3 requests on page load with 30+ issues |
+| Subtask SP double-counting | Dashboard redesign phase | Unit test with parent+subtasks fixture; stat tile SP matches Jira sprint report |
+| Timezone date bucket bug | Dashboard redesign phase | Unit test with UTC+2 locale and late-evening `started` timestamp; bucket lands on correct local date |
+| Velocity chart without data proof | Dashboard redesign phase | Probe results documented; chart only implemented if endpoint returns usable data; else descoped |
+| Stale-while-revalidate re-sort flicker | My Tasks phase | Navigate away and back; confirm list row order is stable; scroll position preserved |
+| Cross-sprint scope bugs | My Tasks phase | "All assigned" scope: future-sprint issues confirmed absent (or present per decision, documented) |
+| Dashboard polling overload | Dashboard redesign phase | Network tab shows ≤2 requests per 60s on Dashboard; `useIsActiveRoute` verified in profiler |
+| React Compiler re-render storm | Dashboard redesign phase | React DevTools Profiler: ≤1 re-render per widget on sprint data cache update |
+| Accessibility gaps | Charting foundation | VoiceOver reads chart `<title>` content; no "group" with no label announced |
 
 ---
 
 ## Sources
 
-- Codebase: `taskflow/src/services/jira/greenhopper/transitions.ts` (Phase 72 cache layer, `peekGhTransitions`, `filterTransitionsForStatus`, `GhTransition.hasScreen/hasValidators`), `types.ts` (`GhBacklogResponse.rankCustomFieldId`), `BacklogPage.tsx` (Phase 74 optimistic sprint-move pattern, `useVirtual = false` comment), `SprintBoardTab.tsx` (Phase 73 column architecture, `peekGhTransitions` usage), `IssueDetailSheet.tsx` (existing Sheet primitive)
-- dnd-kit drag vs click: [dnd-kit Discussion #476](https://github.com/clauderic/dnd-kit/discussions/476), [dnd-kit Issue #591](https://github.com/clauderic/dnd-kit/issues/591)
-- dnd-kit + TanStack Query flicker: [dnd-kit Discussion #1522](https://github.com/clauderic/dnd-kit/discussions/1522)
-- dnd-kit + @tanstack/react-virtual: [dnd-kit Issue #1720](https://github.com/clauderic/dnd-kit/issues/1720), [Issue #1674](https://github.com/clauderic/dnd-kit/issues/1674), [Discussion #411](https://github.com/clauderic/dnd-kit/discussions/411)
-- Tauri webview drag bugs: [Tauri Issue #6695 (webkit drag)](https://github.com/tauri-apps/tauri/issues/6695), [Tauri Issue #10767 (mouseup loss on Windows)](https://github.com/tauri-apps/tauri/issues/10767)
-- TanStack Query optimistic updates: [TanStack Query v4 Optimistic Updates](https://tanstack.com/query/v4/docs/react/guides/optimistic-updates)
-- GreenHopper rank API: [Jira Agile REST API — rank endpoint](https://docs.atlassian.com/jira-software/REST/7.3.1/), [RankService 11.2.1](https://docs.atlassian.com/jira-software/11.2.1/com/atlassian/greenhopper/api/rank/RankService.html), [LexoRank management (DC)](https://confluence.atlassian.com/adminjiraserver/managing-lexorank-938847803.html)
-- Jira transitions + screens: [Jira workflow transitions blog](https://www.herocoders.com/blog/understanding-jira-workflow-transitions)
-- Focus trap / scroll bleed: [react-focus-lock npm](https://www.npmjs.com/package/react-focus-lock), [react-remove-scroll npm](https://www.npmjs.com/package/react-remove-scroll)
-- WCAG card colors: [WCAG 2.2 contrast guide](https://www.allaccessible.org/blog/color-contrast-accessibility-wcag-guide-2025), [InclusiveColors tool](https://www.inclusivecolors.com/)
+- Taskflow codebase: `src/services/jira.ts` — `fetchAllSearchPages` (line 267), `PAGE_SIZE = 200` (line 262), `fetchSprintIssuesForCurrentUser` (line 500), `fetchMySprintIssuesWithTeam` (line 471)
+- Taskflow codebase: `src/lib/standup-date.ts` — `toLocalDateString()` standing rule; `toISOString()` UTC shift warning (documented in file header)
+- Taskflow codebase: `src/routes/dashboard/IssueDetailView.tsx` — `useLayoutEffect` + `offsetWidth` width measurement pattern (line 334)
+- Taskflow codebase: `src/routes/dashboard/SprintBoardTab.tsx` — `ResizeObserver` guard pattern (line 313)
+- Taskflow PROJECT.md: "Historical analytics / burndown charts — no daily-use value" (Out of Scope); v1.7 bundle analysis tooling; v1.9 date bucketing `.slice(0, 10)` decision
+- Memory: `project_fetch_once_pagecap_pitfall` — recurring bug class; assignee-missing-users prior case
+- Memory: `project_virtualized_table_zero_width_col` — WebKit 0-width column in `position: absolute` rows; explicit-px sizing fix
+- Memory: `project_reactive_cache_read_badge` — `getQueryData()` non-reactive in render
+- React Compiler documentation: `babel-plugin-react-compiler` incompatibility with imperative animation (Framer Motion explicitly noted in STACK.md)
+- Recharts: `isAnimationActive`, `ResponsiveContainer` props — verified via Context7 `/recharts/recharts`
+- Tailwind v4 dark mode: CSS custom property token system; no `tailwind.config.js` — v4 CSS pipeline only (PROJECT.md)
+- Jira DC REST API v2: `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed` (sprint history); `GET /rest/agile/1.0/sprint/{id}/issue` (per-sprint issue list)
+- TanStack Query: `select` option for structural memoization of derived data
 
 ---
-*Pitfalls research for: Drag-and-drop rank + transition + non-blocking peek + bulk subtask creation in Tauri 2 / React 18 / TanStack Query / dnd-kit*
-*Researched: 2026-06-02*
+*Pitfalls research for: v1.13 Personal Workspace — charting foundation, My Tasks page, Dashboard redesign in Tauri 2 / React 19 / React Compiler / Tailwind v4 / TanStack Query*
+*Researched: 2026-06-14*
