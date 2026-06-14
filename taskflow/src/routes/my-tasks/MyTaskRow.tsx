@@ -355,19 +355,6 @@ export function MyTaskRow({
           {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
         </span>
 
-        {/* Priority icon */}
-        <span
-          className="flex items-center justify-center shrink-0"
-          style={{ width: 14, height: 14 }}
-          aria-hidden={!issue.fields.priority}
-        >
-          <PriorityIcon
-            priority={
-              issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
-            }
-          />
-        </span>
-
         {/* Issue key */}
         <button
           type="button"
@@ -382,6 +369,19 @@ export function MyTaskRow({
         >
           {issue.key}
         </button>
+
+        {/* Priority icon */}
+        <span
+          className="flex items-center justify-center shrink-0"
+          style={{ width: 14, height: 14 }}
+          aria-hidden={!issue.fields.priority}
+        >
+          <PriorityIcon
+            priority={
+              issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
+            }
+          />
+        </span>
 
         {/* Summary */}
         <span
