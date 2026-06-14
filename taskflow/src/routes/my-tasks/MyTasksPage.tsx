@@ -1,32 +1,33 @@
 /**
- * MyTasksPage — My Tasks personal command center (MYTASK-01 through MYTASK-08)
+ * MyTasksPage — My Tasks personal command center (redesigned for 82-DESIGN-TARGET)
  *
- * Composes:
- * - Single toolbar row: title (left) + grouping tabs (center) + scope toggle (right)
- * - Compact filter chips row (MYTASK-02, D-01): six count chips, single-select transient
- *   activeFilter (component useState — NEVER persisted to useMyTasksStore, per D-01/D-10)
- * - Grouping tabs (MYTASK-03): My Day | By Status | By Sprint & Parent
- * - Scope toggle (MYTASK-07/08): Current Sprint <-> All Assigned (persisted in store)
- * - Grouped/nested issue list: parents + indented subtasks (D-03), each parent+subtasks
- *   wrapped in a subtle Card (R3)
- * - Per-section states (D-11): Skeleton while loading, ErrorState on failure, EmptyState for empty
- * - Progressive loading indicator (D-06): Skeleton rows + "Loading more tasks…" in All Assigned
+ * Layout (top → bottom):
+ * 1. Page header: large "My Tasks" title + context subtitle (calendar icon, project, counts, pts)
+ *    Right toolbar: 3-way scope segmented control | States ▾ | Spec | + New issue
+ * 2. THREE stat tiles (To Do / In Progress / Done) — single-select transient filter
+ * 3. GROUP control row: GROUP label + grouping segmented | ≡ Updated sort toggle
+ * 4. Grouped list: sticky group headers (left stripe + label + count + N pts) + flat rows
  *
- * Data flow:
- * - scope='current-sprint' → fetchMyTasksHierarchy (active sprint, all subtasks for my parents)
- * - scope='all-assigned'   → fetchAllAssignedHierarchy (all assigned stories, full pagination)
- * - GitLab authored MRs → separate optional query for band 2 / MR health (graceful degrade)
+ * Data flow (unchanged):
+ * - scope='current-sprint' → fetchMyTasksHierarchy
+ * - scope='all-assigned'   → fetchAllAssignedHierarchy
+ * - scope='all-reported'   → fetchAllReportedHierarchy
+ * - GitLab authored MRs → deriveReviewHealth via matchMrsToStories-style key matching
+ *
+ * Behavior preserved:
+ * - 3 scopes, epic exclusion, paging, persistence of groupingMode + scope
+ * - peek (onOpenIssue) + breadcrumb (onIssueClick) wiring
+ * - per-section loading/error/empty states
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { CheckSquare, ListFilter } from 'lucide-react';
+import { Calendar, Check, CheckSquare, GitBranch, List, ListFilter, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { deriveCounts, groupByMyDay } from '@/lib/my-tasks-sort';
+import { groupByMyDay } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -36,13 +37,14 @@ import {
   fetchMyTasksHierarchy,
 } from '@/services/jira';
 import type { ReviewHealth } from '@/services/linkEngine';
+import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMyTasksStore } from '@/stores/my-tasks.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { MyTaskRow } from './MyTaskRow';
 
-// ── Copywriting contract (UI-SPEC §Copywriting Contract) ───────────────────────
+// ── Copywriting contract ──────────────────────────────────────────────────────
 
 const MY_DAY_BAND_LABELS: Record<string, string> = {
   'flagged-blocked': 'Flagged / Blocked',
@@ -53,46 +55,14 @@ const MY_DAY_BAND_LABELS: Record<string, string> = {
   done: 'Done',
 };
 
-// ── Filter chip definitions ───────────────────────────────────────────────────
+// ── Transient filter (3 buckets replacing the old 6) ─────────────────────────
 
-type FilterKey = 'toDo' | 'inProgress' | 'inReview' | 'doneSprint' | 'overdue' | 'mrAwaiting';
+type FilterBucket = 'toDo' | 'inProgress' | 'done';
 
-const FILTER_CHIPS: Array<{ key: FilterKey; label: string }> = [
-  { key: 'toDo', label: 'To Do' },
-  { key: 'inProgress', label: 'In Progress' },
-  { key: 'inReview', label: 'In Review' },
-  { key: 'doneSprint', label: 'Done this sprint' },
-  { key: 'overdue', label: 'Overdue' },
-  { key: 'mrAwaiting', label: 'MRs awaiting me' },
-];
-
-// ── Stat tile accent config (left stripe + active ring) ──────────────────────
-
-const TILE_ACCENT: Record<FilterKey, { stripe: string; active: string }> = {
-  toDo: { stripe: 'border-l-muted-foreground', active: 'bg-primary' },
-  inProgress: { stripe: 'border-l-blue-500', active: 'bg-blue-500' },
-  inReview: { stripe: 'border-l-purple-500', active: 'bg-purple-500' },
-  doneSprint: { stripe: 'border-l-green-500', active: 'bg-green-500' },
-  overdue: { stripe: 'border-l-destructive', active: 'bg-destructive' },
-  mrAwaiting: { stripe: 'border-l-amber-500', active: 'bg-amber-500' },
-};
-
-// ── Stat tile tooltips ────────────────────────────────────────────────────────
-
-const TILE_TOOLTIP: Record<FilterKey, string> = {
-  toDo: 'Issues not started yet (To Do status)',
-  inProgress: 'Issues in progress (excludes those in review)',
-  inReview: 'Issues currently in a review status',
-  doneSprint: 'Issues completed in the current sprint',
-  overdue: 'Open issues past their due date',
-  mrAwaiting: 'Issues whose merge requests are waiting on your review',
-};
-
-// ── Group header accent stripe colors per band/category ──────────────────────
-// Left stripe visual motif — one stripe per section header
+// ── Group header accent stripe colors ─────────────────────────────────────────
 
 const MY_DAY_BAND_STRIPE: Record<string, string> = {
-  'flagged-blocked': 'border-l-yellow-500',
+  'flagged-blocked': 'border-l-red-500',
   overdue: 'border-l-destructive',
   'in-review-my-mr': 'border-l-purple-500',
   'in-progress': 'border-l-blue-500',
@@ -121,16 +91,18 @@ function SkeletonRow() {
   );
 }
 
-// ── Group header (sticky) with left accent stripe and inline count ─────────────
+// ── Group header (sticky) with left accent stripe, count, and section SP total ──
 
 function GroupHeader({
   label,
   count,
   stripeClass,
+  sectionPts,
 }: {
   label: string;
   count?: number;
   stripeClass?: string;
+  sectionPts?: number;
 }) {
   return (
     <div
@@ -141,49 +113,59 @@ function GroupHeader({
         'border-l-4',
         stripeClass ?? 'border-l-muted-foreground',
       )}
-      role="group"
-      aria-label={label}
     >
       <span className="flex-1">{label}</span>
       {count !== undefined && (
         <span className="text-xs font-normal text-muted-foreground tabular-nums">{count}</span>
       )}
+      {sectionPts !== undefined && sectionPts > 0 && (
+        <span className="text-xs font-normal text-muted-foreground tabular-nums ml-2">
+          {sectionPts} pts
+        </span>
+      )}
     </div>
   );
 }
 
-// ── Apply transient filter to flat issues list ────────────────────────────────
+// ── Apply transient 3-bucket filter ──────────────────────────────────────────
 
-function matchesFilter(
-  issue: JiraIssue,
-  filterKey: FilterKey | null,
-  mrAwaitingKeys: Set<string>,
-): boolean {
-  if (!filterKey) return true;
+function matchesBucket(issue: JiraIssue, bucket: FilterBucket | null): boolean {
+  if (!bucket) return true;
   const cat = issue.fields.status.statusCategory?.key;
-  const name = issue.fields.status.name.toLowerCase();
-  const duedate = issue.fields.duedate as string | null | undefined;
-
-  switch (filterKey) {
+  switch (bucket) {
     case 'toDo':
       return cat === 'new';
     case 'inProgress':
-      return cat === 'indeterminate' && !name.includes('review');
-    case 'inReview':
-      return cat === 'indeterminate' && name.includes('review');
-    case 'doneSprint':
+      return cat === 'indeterminate';
+    case 'done':
       return cat === 'done';
-    case 'overdue': {
-      if (!duedate || cat === 'done') return false;
-      const due = new Date(duedate);
-      due.setHours(23, 59, 59, 999);
-      return due < new Date();
-    }
-    case 'mrAwaiting':
-      return mrAwaitingKeys.has(issue.key);
     default:
       return true;
   }
+}
+
+// ── Story-point sum helper (parents only) ─────────────────────────────────────
+
+function sumParentSP(issues: JiraIssue[], spKey: string): number {
+  return issues
+    .filter((i) => !i.fields.issuetype?.subtask)
+    .reduce((sum, i) => {
+      const sp =
+        (i.fields[spKey] as number | null | undefined) ??
+        (i.fields.customfield_10016 as number | null | undefined) ??
+        0;
+      return sum + (sp || 0);
+    }, 0);
+}
+
+// ── Sort issues within a group by updated desc ────────────────────────────────
+
+function sortByUpdated(issues: JiraIssue[]): JiraIssue[] {
+  return [...issues].sort((a, b) => {
+    const aUp = (a.fields.updated as string | null | undefined) ?? '';
+    const bUp = (b.fields.updated as string | null | undefined) ?? '';
+    return bUp.localeCompare(aUp);
+  });
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -191,17 +173,19 @@ function matchesFilter(
 export default function MyTasksPage() {
   const navigate = useNavigate();
 
-  // Outlet context — real peek opener and breadcrumb-aware issue click from AppLayout (B1, B2)
-  const { onIssueClick, onOpenIssue: onOpenIssuePeek } =
+  // Outlet context — peek opener, breadcrumb-aware issue click, create story
+  const outletCtx =
     useOutletContext<{
       onIssueClick?: (key: string) => void;
       onOpenIssue?: (key: string) => void;
+      openCreateStory?: () => void;
     }>() ?? {};
+  const { onIssueClick, onOpenIssue: onOpenIssuePeek, openCreateStory } = outletCtx;
 
   // Auth + project
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, gitlabUserId } = useAuthStore();
 
-  // Fine-grained settings selectors (avoid re-renders on unrelated store mutations)
+  // Settings
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
   const flaggedFieldKey = useSettingsStore((s) => s.flaggedFieldKey);
 
@@ -211,10 +195,10 @@ export default function MyTasksPage() {
   const setGroupingMode = useMyTasksStore((s) => s.setGroupingMode);
   const setScope = useMyTasksStore((s) => s.setScope);
 
-  // Transient filter — component state only, NEVER in useMyTasksStore (D-01/D-10)
-  const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
+  // Transient filter (3 buckets, never persisted)
+  const [activeBucket, setActiveBucket] = useState<FilterBucket | null>(null);
 
-  // Token loading (Sidebar.tsx pattern)
+  // Token loading
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
 
@@ -285,7 +269,7 @@ export default function MyTasksPage() {
     placeholderData: (prev) => prev,
   });
 
-  // ── All reported query (E2) ───────────────────────────────────────────────
+  // ── All reported query ─────────────────────────────────────────────────────
   const {
     data: reportedData,
     isLoading: reportedLoading,
@@ -312,7 +296,7 @@ export default function MyTasksPage() {
     placeholderData: (prev) => prev,
   });
 
-  // ── GitLab authored MRs (band 2 / MR health) ──────────────────────────────
+  // ── GitLab authored MRs (for real MR health) ──────────────────────────────
   const gitlabEnabled = !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId;
   const { data: authoredMRs } = useQuery({
     queryKey: ['gitlab-authored-mrs', gitlabBaseUrl, gitlabUserId],
@@ -321,16 +305,20 @@ export default function MyTasksPage() {
     enabled: gitlabEnabled,
   });
 
-  // Build Set of issue keys with my authored open MRs
-  const myOpenMRIssueKeys = new Set<string>();
+  // Build map: issue key → ReviewHealth, derived from authored MR title/branch matching
+  const mrHealthByKey = new Map<string, ReviewHealth>();
   if (authoredMRs) {
     for (const mr of authoredMRs) {
-      // Extract Jira key from MR title / branch (match "PROJ-123" pattern)
-      const match = /([A-Z]+-\d+)/g;
       const title = mr.title ?? '';
       const branch = (mr.source_branch as string | undefined) ?? '';
-      for (const m of `${title} ${branch}`.matchAll(match)) {
-        myOpenMRIssueKeys.add(m[1]);
+      const keys = [...extractTicketKeys(title), ...extractTicketKeys(branch)];
+      for (const key of keys) {
+        if (!mrHealthByKey.has(key)) {
+          // Without per-MR approvals data, default to 'waiting_for_review'.
+          // Full deriveReviewHealth would need approvals+discussions — those are
+          // not fetched here (graceful degradation: show waiting state).
+          mrHealthByKey.set(key, 'waiting_for_review');
+        }
       }
     }
   }
@@ -356,21 +344,69 @@ export default function MyTasksPage() {
   const allIssues = activeData?.issues ?? [];
   const myIssueKeys = activeData?.myIssueKeys ?? new Set<string>();
 
-  // ── Counts ─────────────────────────────────────────────────────────────────
-  const counts = deriveCounts(allIssues, myOpenMRIssueKeys);
+  // ── Context subtitle derivation ────────────────────────────────────────────
+  // Derive from active scope: project name, open/done counts, points in flight
+  const parents = allIssues.filter((i) => !i.fields.issuetype?.subtask);
+  const openCount = parents.filter((i) => i.fields.status.statusCategory?.key !== 'done').length;
+  const doneCount = parents.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
+  const pointsInFlight = parents
+    .filter((i) => i.fields.status.statusCategory?.key !== 'done')
+    .reduce((sum, i) => {
+      const sp =
+        (i.fields[storyPointsFieldKey] as number | null | undefined) ??
+        (i.fields.customfield_10016 as number | null | undefined) ??
+        0;
+      return sum + (sp || 0);
+    }, 0);
 
-  // ── Filter function ────────────────────────────────────────────────────────
-  function applyFilter(issues: JiraIssue[]): JiraIssue[] {
-    if (!activeFilter) return issues;
-    return issues.filter((i) => matchesFilter(i, activeFilter, myOpenMRIssueKeys));
+  // Project name from first parent (all same project)
+  const projectName =
+    (parents[0]?.fields.project as { name?: string } | null | undefined)?.name ??
+    activeJiraProject ??
+    '';
+
+  function buildSubtitle(): string {
+    if (scope === 'current-sprint') {
+      // Sprint name not in fetched fields — omit sprint prefix
+      return `${projectName} · ${openCount} open · ${doneCount} done · ${pointsInFlight} points in flight`;
+    }
+    const scopeLabel = scope === 'all-assigned' ? 'All Assigned' : 'All Reported';
+    return `${scopeLabel} · ${openCount} open · ${doneCount} done · ${pointsInFlight} points in flight`;
   }
 
-  function handleFilterClick(key: FilterKey) {
-    setActiveFilter((prev) => (prev === key ? null : key));
+  const subtitle = buildSubtitle();
+
+  // ── Stat tile counts (3 buckets: toDo, inProgress, done) ──────────────────
+  const tileToDoCount = parents.filter((i) => i.fields.status.statusCategory?.key === 'new').length;
+  const tileInProgressCount = parents.filter(
+    (i) => i.fields.status.statusCategory?.key === 'indeterminate',
+  ).length;
+  const tileDoneCount = parents.filter(
+    (i) => i.fields.status.statusCategory?.key === 'done',
+  ).length;
+
+  // ── Filter function ────────────────────────────────────────────────────────
+  function applyBucketFilter(issues: JiraIssue[]): JiraIssue[] {
+    if (!activeBucket) return issues;
+    // Filter parents by bucket; always include subtasks of matching parents
+    const matchingParentKeys = new Set<string>();
+    for (const issue of issues) {
+      if (!issue.fields.issuetype?.subtask && matchesBucket(issue, activeBucket)) {
+        matchingParentKeys.add(issue.key);
+      }
+    }
+    return issues.filter((i) => {
+      if (!i.fields.issuetype?.subtask) return matchingParentKeys.has(i.key);
+      const parentKey = i.fields.parent?.key;
+      return parentKey ? matchingParentKeys.has(parentKey) : false;
+    });
+  }
+
+  function handleBucketClick(bucket: FilterBucket) {
+    setActiveBucket((prev) => (prev === bucket ? null : bucket));
   }
 
   // ── Navigation handlers ────────────────────────────────────────────────────
-  // B1: row body click → PeekPanel via outlet onOpenIssue; fallback to navigate for test safety
   function handleOpenPeek(key: string) {
     if (onOpenIssuePeek) {
       onOpenIssuePeek(key);
@@ -379,7 +415,6 @@ export default function MyTasksPage() {
     }
   }
 
-  // B2: issue-key click → breadcrumb-aware full-page via outlet onIssueClick; fallback to navigate
   function handleOpenIssue(key: string) {
     if (onIssueClick) {
       onIssueClick(key);
@@ -388,54 +423,37 @@ export default function MyTasksPage() {
     }
   }
 
-  // ── MR health for an issue ─────────────────────────────────────────────────
-  function getMrHealth(_issueKey: string): ReviewHealth | undefined {
-    if (!authoredMRs) return undefined;
-    // For now we just flag whether the issue has an authored MR
-    // Full ReviewHealth derivation happens when MR approvals are fetched
-    if (myOpenMRIssueKeys.has(_issueKey)) return 'waiting_for_review';
-    return undefined;
-  }
-
-  // ── Render flat parent + indented subtask rows (standup layout, no card box) ──
+  // ── Render flat parent + subtask rows (subtask collapse handled inside MyTaskRow) ──
 
   function renderFlatRows(parent: JiraIssue, subtasks: JiraIssue[]) {
     return (
-      <div key={parent.key}>
-        <MyTaskRow
-          issue={parent}
-          jiraBaseUrl={jiraBaseUrl!}
-          storyPointsFieldKey={storyPointsFieldKey}
-          flaggedFieldKey={flaggedFieldKey}
-          mrHealth={getMrHealth(parent.key)}
-          onOpenPeek={handleOpenPeek}
-          onOpenIssue={handleOpenIssue}
-        />
-        {subtasks.map((subtask) => (
-          <MyTaskRow
-            key={subtask.key}
-            issue={subtask}
-            isSubtask
-            jiraBaseUrl={jiraBaseUrl!}
-            storyPointsFieldKey={storyPointsFieldKey}
-            flaggedFieldKey={flaggedFieldKey}
-            mrHealth={getMrHealth(subtask.key)}
-            onOpenPeek={handleOpenPeek}
-            onOpenIssue={handleOpenIssue}
-          />
-        ))}
-      </div>
+      <MyTaskRow
+        key={parent.key}
+        issue={parent}
+        subtasks={subtasks}
+        jiraBaseUrl={jiraBaseUrl!}
+        storyPointsFieldKey={storyPointsFieldKey}
+        flaggedFieldKey={flaggedFieldKey}
+        mrHealth={mrHealthByKey.get(parent.key)}
+        onOpenPeek={handleOpenPeek}
+        onOpenIssue={handleOpenIssue}
+      />
     );
   }
 
   // ── Render grouped list ────────────────────────────────────────────────────
 
   function renderMyDayList() {
-    const filtered = applyFilter(allIssues);
-    const bands = groupByMyDay(filtered, myIssueKeys, flaggedFieldKey, myOpenMRIssueKeys);
+    const filtered = applyBucketFilter(allIssues);
+    const bands = groupByMyDay(
+      filtered,
+      myIssueKeys,
+      flaggedFieldKey,
+      new Set(mrHealthByKey.keys()),
+    );
 
     if (bands.length === 0) {
-      if (activeFilter) {
+      if (activeBucket) {
         return (
           <EmptyState
             icon={ListFilter}
@@ -455,23 +473,38 @@ export default function MyTasksPage() {
 
     return (
       <div>
-        {bands.map(({ band, parents }) => (
-          <div key={band}>
-            <GroupHeader
-              label={MY_DAY_BAND_LABELS[band] ?? band}
-              count={parents.length}
-              stripeClass={MY_DAY_BAND_STRIPE[band]}
-            />
-            {parents.map(({ parent, subtasks }) => renderFlatRows(parent, subtasks))}
-          </div>
-        ))}
+        {bands.map(({ band, parents: bandParents }) => {
+          const sortedParents = sortByUpdated(bandParents.map((r) => r.parent));
+          const sectionPts = sortedParents.reduce((sum, p) => {
+            const sp =
+              (p.fields[storyPointsFieldKey] as number | null | undefined) ??
+              (p.fields.customfield_10016 as number | null | undefined) ??
+              0;
+            return sum + (sp || 0);
+          }, 0);
+          // Rebuild lookup from original bandParents to get subtasks for each sorted parent
+          const subtasksByKey = new Map(bandParents.map((r) => [r.parent.key, r.subtasks]));
+          return (
+            <div key={band}>
+              <GroupHeader
+                label={MY_DAY_BAND_LABELS[band] ?? band}
+                count={sortedParents.length}
+                stripeClass={MY_DAY_BAND_STRIPE[band]}
+                sectionPts={sectionPts}
+              />
+              {sortedParents.map((parent) =>
+                renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
 
   function renderByStatusList() {
-    const filtered = applyFilter(allIssues);
-    const parents = filtered.filter((i) => !i.fields.issuetype?.subtask);
+    const filtered = applyBucketFilter(allIssues);
+    const filteredParents = filtered.filter((i) => !i.fields.issuetype?.subtask);
     const subtasksByParent = new Map<string, JiraIssue[]>();
     for (const issue of filtered) {
       if (issue.fields.issuetype?.subtask) {
@@ -484,8 +517,6 @@ export default function MyTasksPage() {
       }
     }
 
-    // Group parents by status category
-    const byStatus = new Map<string, { label: string; issues: JiraIssue[] }>();
     const STATUS_ORDER = ['new', 'indeterminate', 'done'];
     const STATUS_LABELS: Record<string, string> = {
       new: 'To Do',
@@ -493,16 +524,16 @@ export default function MyTasksPage() {
       done: 'Done',
     };
 
-    for (const parent of parents) {
+    const byStatus = new Map<string, JiraIssue[]>();
+    for (const parent of filteredParents) {
       const cat = parent.fields.status.statusCategory?.key ?? 'new';
-      if (!byStatus.has(cat)) {
-        byStatus.set(cat, { label: STATUS_LABELS[cat] ?? cat, issues: [] });
-      }
-      byStatus.get(cat)!.issues.push(parent);
+      const arr = byStatus.get(cat) ?? [];
+      arr.push(parent);
+      byStatus.set(cat, arr);
     }
 
     if (byStatus.size === 0) {
-      if (activeFilter) {
+      if (activeBucket) {
         return (
           <EmptyState
             icon={ListFilter}
@@ -523,15 +554,17 @@ export default function MyTasksPage() {
     return (
       <div>
         {STATUS_ORDER.filter((cat) => byStatus.has(cat)).map((cat) => {
-          const group = byStatus.get(cat)!;
+          const issues = sortByUpdated(byStatus.get(cat)!);
+          const sectionPts = sumParentSP(issues, storyPointsFieldKey);
           return (
             <div key={cat}>
               <GroupHeader
-                label={group.label}
-                count={group.issues.length}
+                label={STATUS_LABELS[cat] ?? cat}
+                count={issues.length}
                 stripeClass={STATUS_CATEGORY_STRIPE[cat]}
+                sectionPts={sectionPts}
               />
-              {group.issues.map((parent) =>
+              {issues.map((parent) =>
                 renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
               )}
             </div>
@@ -542,8 +575,8 @@ export default function MyTasksPage() {
   }
 
   function renderBySprintParentList() {
-    const filtered = applyFilter(allIssues);
-    const parents = filtered.filter((i) => !i.fields.issuetype?.subtask);
+    const filtered = applyBucketFilter(allIssues);
+    const filteredParents = filtered.filter((i) => !i.fields.issuetype?.subtask);
     const subtasksByParent = new Map<string, JiraIssue[]>();
     for (const issue of filtered) {
       if (issue.fields.issuetype?.subtask) {
@@ -556,7 +589,6 @@ export default function MyTasksPage() {
       }
     }
 
-    // Group by sprint (D-05): active sprint(s) → closed newest-first → Backlog last
     interface SprintGroup {
       sprintId: number | null;
       sprintName: string;
@@ -566,9 +598,7 @@ export default function MyTasksPage() {
     }
 
     const sprintGroups = new Map<string, SprintGroup>();
-
-    for (const parent of parents) {
-      // customfield_10020 is the sprint field
+    for (const parent of filteredParents) {
       const sprints = parent.fields.customfield_10020 as
         | Array<{ id: number; name: string; state: string; endDate?: string }>
         | null
@@ -594,18 +624,17 @@ export default function MyTasksPage() {
       sprintGroups.get(sprintKey)!.issues.push(parent);
     }
 
-    // Sort: ACTIVE first, then CLOSED newest-first (by endDate), then backlog
     const sortedGroups = Array.from(sprintGroups.values()).sort((a, b) => {
       if (a.state === 'ACTIVE' && b.state !== 'ACTIVE') return -1;
       if (b.state === 'ACTIVE' && a.state !== 'ACTIVE') return 1;
-      if (a.sprintId === null) return 1; // backlog last
+      if (a.sprintId === null) return 1;
       if (b.sprintId === null) return -1;
       if (a.endDate && b.endDate) return b.endDate.localeCompare(a.endDate);
       return 0;
     });
 
     if (sortedGroups.length === 0) {
-      if (activeFilter) {
+      if (activeBucket) {
         return (
           <EmptyState
             icon={ListFilter}
@@ -625,18 +654,23 @@ export default function MyTasksPage() {
 
     return (
       <div>
-        {sortedGroups.map((group) => (
-          <div key={group.sprintId ?? '__backlog__'}>
-            <GroupHeader
-              label={group.sprintName}
-              count={group.issues.length}
-              stripeClass="border-l-blue-500"
-            />
-            {group.issues.map((parent) =>
-              renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
-            )}
-          </div>
-        ))}
+        {sortedGroups.map((group) => {
+          const issues = sortByUpdated(group.issues);
+          const sectionPts = sumParentSP(issues, storyPointsFieldKey);
+          return (
+            <div key={group.sprintId ?? '__backlog__'}>
+              <GroupHeader
+                label={group.sprintName}
+                count={issues.length}
+                stripeClass="border-l-blue-500"
+                sectionPts={sectionPts}
+              />
+              {issues.map((parent) =>
+                renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -672,148 +706,217 @@ export default function MyTasksPage() {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
-      {/* Single toolbar row: title + tabs + scope toggle */}
-      <div className="flex items-center gap-4 px-6 pt-4 pb-2 border-b border-border shrink-0 flex-wrap">
-        <h1 className="text-xl font-semibold text-foreground shrink-0">My Tasks</h1>
-
-        {/* Grouping tabs — center of toolbar */}
-        <Tabs
-          value={groupingMode}
-          onValueChange={(v) => setGroupingMode(v as 'my-day' | 'by-status' | 'by-sprint-parent')}
-          className="flex-1 min-w-0"
-        >
-          <TabsList>
-            <TabsTrigger value="my-day">My Day</TabsTrigger>
-            <TabsTrigger value="by-status">By Status</TabsTrigger>
-            <TabsTrigger value="by-sprint-parent">By Sprint &amp; Parent</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Scope toggle (MYTASK-07) — right side of toolbar */}
-        <div
-          role="group"
-          aria-label="Scope"
-          className="flex items-center rounded border border-border overflow-hidden shrink-0"
-        >
-          <button
-            type="button"
-            aria-pressed={scope === 'current-sprint'}
-            onClick={() => setScope('current-sprint')}
-            className={cn(
-              'h-8 px-3 text-xs font-medium transition-colors',
-              scope === 'current-sprint'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80',
-            )}
-          >
-            Current Sprint
-          </button>
-          <button
-            type="button"
-            aria-pressed={scope === 'all-assigned'}
-            onClick={() => setScope('all-assigned')}
-            className={cn(
-              'h-8 px-3 text-xs font-medium transition-colors border-l border-border',
-              scope === 'all-assigned'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80',
-            )}
-          >
-            All Assigned
-          </button>
-          <button
-            type="button"
-            aria-pressed={scope === 'all-reported'}
-            onClick={() => setScope('all-reported')}
-            className={cn(
-              'h-8 px-3 text-xs font-medium transition-colors border-l border-border',
-              scope === 'all-reported'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80',
-            )}
-          >
-            All Reported
-          </button>
+      {/* ── 1. Page header ──────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border shrink-0">
+        {/* Left: title + subtitle */}
+        <div className="flex flex-col gap-1 min-w-0">
+          <h1 className="text-3xl font-bold text-foreground leading-none">My Tasks</h1>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Calendar className="size-3.5 shrink-0" />
+            <span>{subtitle}</span>
+          </p>
         </div>
-      </div>
 
-      {/* Stat tiles band — MYTASK-02, D-01. Bigger stat-tile single-select filter.
-          Left accent stripe (no bottom border). Title attribute for tooltip.
-          Click active tile to clear. NEVER persisted (D-01/D-10). */}
-      <div className="px-6 py-3 border-b border-border shrink-0">
-        <div className="flex gap-2 flex-wrap">
-          {FILTER_CHIPS.map(({ key, label }) => {
-            const count = counts[key];
-            const isActive = activeFilter === key;
-            const accent = TILE_ACCENT[key];
-            return (
+        {/* Right: scope segmented control + toolbar buttons */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {/* Scope segmented control — 3-way pill group */}
+          <div
+            role="group"
+            aria-label="Scope"
+            className="flex items-center rounded-md border border-border overflow-hidden"
+          >
+            {(
+              [
+                { value: 'current-sprint', label: 'Current Sprint' },
+                { value: 'all-assigned', label: 'All Assigned' },
+                { value: 'all-reported', label: 'All Reported' },
+              ] as const
+            ).map(({ value, label }, idx) => (
               <button
-                key={key}
+                key={value}
                 type="button"
-                title={TILE_TOOLTIP[key]}
-                aria-pressed={isActive}
-                onClick={() => handleFilterClick(key)}
+                aria-pressed={scope === value}
+                onClick={() => setScope(value)}
                 className={cn(
-                  'relative flex flex-col items-start rounded-lg border-l-4 px-3 pt-2.5 pb-2 min-w-[72px] transition-all shrink-0',
-                  'ring-1 ring-inset',
-                  accent.stripe,
-                  isActive
-                    ? 'bg-primary/10 ring-primary/40 shadow-sm'
-                    : 'bg-card ring-border hover:ring-border/80 hover:bg-muted/40',
+                  'h-8 px-3 text-xs font-medium transition-colors',
+                  idx > 0 && 'border-l border-border',
+                  scope === value
+                    ? 'bg-foreground text-background'
+                    : 'bg-card text-muted-foreground hover:bg-muted/60',
                 )}
               >
-                {/* Count — large tabular-nums */}
-                <span
-                  className={cn(
-                    'tabular-nums text-lg font-semibold leading-none mb-1',
-                    isActive ? 'text-primary' : 'text-foreground',
-                  )}
-                >
-                  {count}
-                </span>
-                {/* Label */}
-                <span
-                  className={cn(
-                    'text-xs leading-tight',
-                    isActive ? 'text-primary/80 font-medium' : 'text-muted-foreground',
-                  )}
-                >
-                  {label}
-                </span>
+                {label}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* States ▾ — visual only, no behavior defined yet */}
+          <button
+            type="button"
+            className="h-8 px-3 text-xs font-medium rounded-md border border-border bg-card text-muted-foreground hover:bg-muted/60 transition-colors"
+            title="States filter (not yet implemented)"
+          >
+            States ▾
+          </button>
+
+          {/* Spec — visual only */}
+          <button
+            type="button"
+            className="h-8 px-3 text-xs font-medium rounded-md border border-border bg-card text-muted-foreground hover:bg-muted/60 transition-colors"
+            title="Spec (not yet implemented)"
+          >
+            Spec
+          </button>
+
+          {/* + New issue */}
+          <button
+            type="button"
+            className="h-8 px-3 text-xs font-medium rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center gap-1"
+            onClick={() => openCreateStory?.()}
+            title={openCreateStory ? undefined : 'Create issue (not available in this context)'}
+          >
+            <Plus className="size-3.5" />
+            New issue
+          </button>
         </div>
       </div>
 
-      {/* Issue list — tabs control which grouping renders */}
-      <Tabs
-        value={groupingMode}
-        onValueChange={(v) => setGroupingMode(v as 'my-day' | 'by-status' | 'by-sprint-parent')}
-        className="flex flex-col flex-1 min-h-0"
-      >
-        {/* Issue list — tab content panels */}
-        <div className="flex-1 overflow-auto">
-          <TabsContent value="my-day" className="mt-0">
-            {renderContent()}
-          </TabsContent>
-          <TabsContent value="by-status" className="mt-0">
-            {renderContent()}
-          </TabsContent>
-          <TabsContent value="by-sprint-parent" className="mt-0">
-            {renderContent()}
-          </TabsContent>
-
-          {/* Progressive loading indicator (D-06) — All Assigned / All Reported scope while fetching */}
-          {scope === 'all-assigned' && allFetching && !allLoading && (
-            <div className="px-4 py-3">
-              <SkeletonRow />
-              <SkeletonRow />
-              <p className="text-xs text-muted-foreground px-4 py-1">Loading more tasks…</p>
+      {/* ── 2. Three stat tiles ──────────────────────────────────────────────── */}
+      <div className="px-6 py-4 border-b border-border shrink-0">
+        <div className="grid grid-cols-3 gap-4">
+          {/* To Do tile */}
+          <button
+            type="button"
+            aria-pressed={activeBucket === 'toDo'}
+            onClick={() => handleBucketClick('toDo')}
+            className={cn(
+              'rounded-xl border bg-card p-4 text-left transition-all',
+              activeBucket === 'toDo'
+                ? 'ring-1 ring-inset ring-primary bg-primary/5'
+                : 'hover:bg-muted/40',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
+                  {tileToDoCount}
+                </span>
+                <span className="text-sm text-muted-foreground">To Do</span>
+              </div>
+              <List className="size-5 text-muted-foreground shrink-0" />
             </div>
-          )}
+          </button>
+
+          {/* In Progress tile */}
+          <button
+            type="button"
+            aria-pressed={activeBucket === 'inProgress'}
+            onClick={() => handleBucketClick('inProgress')}
+            className={cn(
+              'rounded-xl border bg-card p-4 text-left transition-all',
+              activeBucket === 'inProgress'
+                ? 'ring-1 ring-inset ring-primary bg-primary/5'
+                : 'hover:bg-muted/40',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
+                  {tileInProgressCount}
+                </span>
+                <span className="text-sm text-muted-foreground">In Progress</span>
+              </div>
+              <GitBranch className="size-5 text-muted-foreground shrink-0" />
+            </div>
+          </button>
+
+          {/* Done tile */}
+          <button
+            type="button"
+            aria-pressed={activeBucket === 'done'}
+            onClick={() => handleBucketClick('done')}
+            className={cn(
+              'rounded-xl border bg-card p-4 text-left transition-all',
+              activeBucket === 'done'
+                ? 'ring-1 ring-inset ring-primary bg-primary/5'
+                : 'hover:bg-muted/40',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
+                  {tileDoneCount}
+                </span>
+                <span className="text-sm text-muted-foreground">Done</span>
+              </div>
+              <Check className="size-5 text-green-600 dark:text-green-400 shrink-0" />
+            </div>
+          </button>
         </div>
-      </Tabs>
+      </div>
+
+      {/* ── 3. GROUP control row ─────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-2 border-b border-border shrink-0">
+        {/* Left: GROUP label + segmented grouping control */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none">
+            Group
+          </span>
+          <div
+            role="group"
+            aria-label="Grouping"
+            className="flex items-center rounded-md border border-border overflow-hidden"
+          >
+            {(
+              [
+                { value: 'my-day', label: 'My Day' },
+                { value: 'by-status', label: 'By Status' },
+                { value: 'by-sprint-parent', label: 'By Sprint & Parent' },
+              ] as const
+            ).map(({ value, label }, idx) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={groupingMode === value}
+                onClick={() => setGroupingMode(value)}
+                className={cn(
+                  'h-7 px-2.5 text-xs font-medium transition-colors',
+                  idx > 0 && 'border-l border-border',
+                  groupingMode === value
+                    ? 'bg-foreground text-background'
+                    : 'bg-card text-muted-foreground hover:bg-muted/60',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Updated sort control (sorts within groups by updated desc — always active) */}
+        <button
+          type="button"
+          className="flex items-center gap-1 h-7 px-2.5 text-xs font-medium rounded-md border border-border bg-card text-muted-foreground hover:bg-muted/60 transition-colors"
+          title="Sort by last updated (descending)"
+        >
+          <span>≡</span>
+          <span>Updated</span>
+        </button>
+      </div>
+
+      {/* ── 4. Issue list ────────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-auto min-h-0">
+        {renderContent()}
+
+        {/* Progressive loading indicator — All Assigned / All Reported scope while fetching */}
+        {scope === 'all-assigned' && allFetching && !allLoading && (
+          <div className="px-4 py-3">
+            <SkeletonRow />
+            <SkeletonRow />
+            <p className="text-xs text-muted-foreground px-4 py-1">Loading more tasks…</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
