@@ -160,10 +160,9 @@ describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
     expect(screen.getByText("You're all caught up")).toBeDefined();
   });
 
-  it('renders States and Spec toolbar buttons', () => {
+  it('renders the Updated sort toggle button', () => {
     renderPage();
-    expect(screen.getByTitle('States filter (not yet implemented)')).toBeDefined();
-    expect(screen.getByTitle('Spec (not yet implemented)')).toBeDefined();
+    expect(screen.getByTitle('Sorting by last updated — click for default order')).toBeDefined();
   });
 
   it('renders the + New issue button', () => {
