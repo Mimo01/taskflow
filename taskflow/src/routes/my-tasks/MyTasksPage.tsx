@@ -496,7 +496,7 @@ export default function MyTasksPage() {
     }
 
     return (
-      <div className="px-4 py-3 space-y-5">
+      <div className="px-4 py-3 space-y-4">
         {bands.map(({ band, parents: bandParents }) => {
           const sortedParents = bandParents.map((r) => r.parent);
           const sectionPts = sortedParents.reduce((sum, p) => {
@@ -516,7 +516,7 @@ export default function MyTasksPage() {
                 dotClass={MY_DAY_BAND_DOT[band]}
                 sectionPts={sectionPts}
               />
-              <div className="space-y-3">
+              <div className="space-y-0.5">
                 {sortedParents.map((parent) =>
                   renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
                 )}

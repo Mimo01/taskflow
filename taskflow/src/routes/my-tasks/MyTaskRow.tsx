@@ -52,7 +52,7 @@ const MR_HEALTH_LABEL: Record<ReviewHealth, string> = {
 // Color varies per chip type; layout is always this base class.
 
 const CHIP_BASE =
-  'inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[11px] shrink-0';
+  'inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-xs shrink-0';
 
 // ── Stacked time bar ──────────────────────────────────────────────────────────
 
@@ -91,7 +91,7 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
         className="h-1.5 w-full rounded-full"
         indicatorClassName={indicatorColor}
       />
-      <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {caption}
       </span>
     </div>
@@ -225,7 +225,7 @@ export function MyTaskRow({
   // Identical layout for parent and subtask — columns align perfectly.
 
   const rightCluster = (
-    <div className="flex items-center gap-3 shrink-0">
+    <div className="flex items-center gap-2 shrink-0">
       {/* Status pill — stopPropagation keeps the click from opening the peek panel */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
