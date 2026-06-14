@@ -424,7 +424,7 @@ Wave 1 (blocked on Wave 0):
 
 Wave 2 (blocked on Wave 1):
 
-- [ ] 82-05-PLAN.md — route/sidebar/icon wiring + human UAT (MYTASK-01)
+- [x] 82-05-PLAN.md — route/sidebar/icon wiring + human UAT (MYTASK-01)
 
 **UI hint**: yes
 
@@ -498,7 +498,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
-| 82. My Tasks Page | 4/5 | In Progress|  |
+| 82. My Tasks Page | 5/5 | Complete   | 2026-06-14 |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
