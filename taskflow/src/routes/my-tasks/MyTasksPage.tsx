@@ -558,7 +558,7 @@ export default function MyTasksPage() {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* ── 1. Hero header ──────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-6 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
+      <div className="flex flex-wrap items-start justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
         {/* Left: title + actionable subtitle */}
         <div className="flex flex-col gap-1 min-w-0">
           <h1 className="text-3xl font-bold text-foreground tracking-tight leading-none">
@@ -604,7 +604,7 @@ export default function MyTasksPage() {
         </div>
 
         {/* Right: donut + scope segmented control + New issue */}
-        <div className="flex items-center gap-5 shrink-0">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
           {/* Sprint-progress donut */}
           <div className="flex items-center gap-3">
             <svg
@@ -687,7 +687,7 @@ export default function MyTasksPage() {
 
       {/* ── 2. Enriched stat tiles ───────────────────────────────────────────── */}
       <div className="px-6 py-4 border-b border-border/50 shrink-0">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* To Do tile */}
           <button
             type="button"
