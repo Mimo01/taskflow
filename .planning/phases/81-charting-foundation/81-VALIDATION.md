@@ -1,10 +1,11 @@
 ---
 phase: 81
 slug: charting-foundation
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-14
+audited: 2026-06-14
 ---
 
 # Phase 81 — Validation Strategy
@@ -36,26 +37,31 @@ created: 2026-06-14
 
 ## Per-Task Verification Map
 
-> Filled per-plan by the planner. Each chart-render assertion depends on the Wave 0 ResizeObserver mock.
+> Reconstructed from executed artifacts (81-01/02/03 SUMMARY) during the 2026-06-14 audit. Each chart-render assertion depends on the Wave 0 ResizeObserver mock.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 81-XX-XX | XX | 0 | CHART-02 | — | N/A | unit | `npx vitest run` (ResizeObserver mock) | ❌ W0 | ⬜ pending |
-| 81-XX-XX | XX | 1 | CHART-01 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` | ❌ W0 | ⬜ pending |
-| 81-XX-XX | XX | 1 | CHART-03 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` | ❌ W0 | ⬜ pending |
-| 81-XX-XX | XX | 2 | CHART-01 | — | N/A | build | `ANALYZE=true npm run build` (recharts NOT in vendor/main) | ✅ | ⬜ pending |
+| 81-01-2 | 01 | 0 | CHART-02 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` (ResizeObserver mock exercised by recharts integration test) | ✅ `src/test/setup.ts` | ✅ green |
+| 81-02-1 | 02 | 1 | CHART-03 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` (loading/success/error/empty states) | ✅ `chart-wrapper.tsx` | ✅ green |
+| 81-02-2 | 02 | 1 | CHART-03 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` (4 state tests, MemoryRouter error wrap) | ✅ `chart-wrapper.test.tsx` | ✅ green |
+| 81-02-2 | 02 | 1 | CHART-02 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` (recharts integration — `.recharts-surface` mounts under jsdom, WR-04) | ✅ `chart-wrapper.test.tsx` | ✅ green |
+| 81-03-1 | 03 | 2 | CHART-01 | — | N/A | unit | `npx vitest run src/components/chart-wrapper.test.tsx` (recharts mounts; `var(--chart-N)` theme tokens used in `SmokeTestChart`) | ✅ `SmokeTestChart.tsx` | ✅ green |
+| 81-03-2 | 03 | 2 | CHART-01 | — | N/A | build | `ANALYZE=true npm run build` — recharts confirmed in `dashboard-*.js` lazy chunk only, absent from `index-*.js` main bundle | ✅ `routes.tsx` | ✅ green |
+| 81-03-3 | 03 | 3 | CHART-02 | — | N/A | manual | Human UAT in real macOS Tauri WebKit — see Manual-Only below | ✅ | ✅ approved |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+*Full chart-wrapper suite: 5/5 green (verified 2026-06-14). Full project suite: 1917 passed.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/test/setup.ts` — add no-op `ResizeObserver` mock (jsdom lacks it; Recharts `responsive` prop attaches one). Blocks ALL chart-render tests.
-- [ ] Test helper — wrap `ChartWrapper` error-state branch in `MemoryRouter` (`ErrorState` uses `useNavigate()`).
-- [ ] `recharts` + `react-is` installed (CHART-01 prerequisite for any render test).
+- [x] `src/test/setup.ts` — no-op `ResizeObserver` mock added (typed `ResizeObserverCallback`, stores callback, fires `contentRect` on `observe`; WR-05). Exercised by the recharts integration test.
+- [x] Test helper — `ChartWrapper` error-state branch wrapped in `MemoryRouter` (`ErrorState` uses `useNavigate()`).
+- [x] `recharts@^3.8.0` + `react-is@^19.2.7` installed (CHART-01 prerequisite). shadcn `chart` primitive generated at `src/components/ui/chart.tsx`.
 
-*If none: "Existing infrastructure covers all phase requirements."*
+*All Wave 0 infrastructure complete — chart-render tests run green.*
 
 ---
 
@@ -72,11 +78,31 @@ created: 2026-06-14
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (ResizeObserver mock, deps install)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (ResizeObserver mock, deps install)
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s (chart-wrapper suite ~0.5s)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (audit 2026-06-14)
+
+---
+
+## Validation Audit 2026-06-14
+
+State A audit — VALIDATION.md was a stale pre-execution draft (placeholder `81-XX-XX` task IDs, all pending). Reconstructed Per-Task Map from executed 81-01/02/03 SUMMARY artifacts and verified live test state.
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+**Findings:**
+- CHART-03 (ChartWrapper 4 states): COVERED — `chart-wrapper.test.tsx` 5/5 green.
+- CHART-02 (jsdom render): COVERED — recharts integration test mounts `.recharts-surface` (WR-04, guards ResizeObserver-mock integration).
+- CHART-02 (real WebKit 0×0 + theme colors): MANUAL-ONLY (legitimate — jsdom cannot reproduce WebKit layout timing); Human UAT APPROVED per 81-03 SUMMARY.
+- CHART-01 (code-split): COVERED — `ANALYZE=true npm run build` confirms recharts in `dashboard-*.js` lazy chunk only.
+
+No MISSING automated gaps. Every automatable behavior has a green automated check; remaining manual-only items are inherently un-automatable WebKit render behaviors. Phase is Nyquist-compliant.
