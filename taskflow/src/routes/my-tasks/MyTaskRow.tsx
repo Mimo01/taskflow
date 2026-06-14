@@ -1,19 +1,21 @@
 /**
- * MyTaskRow — A single issue row in the My Tasks page (redesigned for 82-DESIGN-TARGET).
+ * MyTaskRow — A single issue row in the My Tasks page.
  *
- * Row anatomy (parent):
- *   LEFT region (flex-1 min-w-0): indent/chevron, icons, key, summary, chips
- *   RIGHT cluster (shrink-0): status pill | SP slot | time bar | avatar
+ * Row anatomy:
+ *   LEFT region (flex-1 min-w-0): indent spacer (subtask only), type icon,
+ *     priority icon (parent only), key, summary, chips (parent only)
+ *   RIGHT cluster (shrink-0, identical layout for parent & subtask):
+ *     status pill | SP slot (w-12) | time bar (w-36) | avatar
  *
- * Parent and subtask rows share an IDENTICAL fixed-width right cluster so all
- * right-edge columns line up vertically. Subtasks reserve the SP slot as an
- * empty placeholder (same width, invisible).
+ * Parent and subtask rows share an identical fixed-width right cluster so all
+ * right-edge columns align vertically. Subtasks reserve the SP slot as an
+ * invisible placeholder of the same width.
  *
  * WebKit/Tauri pitfalls mitigated:
- * - All icon columns have explicit style={{ width, height }}
- * - Time bar column uses w-36 (144px) fixed, never collapses
- * - SP slot uses explicit w-12 so WebKit never collapses it
- * - statusPill wrapped in flex div (statusPill needs flex parent for geometry)
+ * - All icon columns have explicit style={{ width, height }} (not Tailwind class)
+ * - Time bar column: w-36 (144px) fixed via inline style, never collapses
+ * - SP slot: explicit w-12 via inline style, WebKit never collapses it
+ * - statusPill wrapped in a flex div (pill needs flex parent for geometry)
  */
 
 import { Flag, Folder } from 'lucide-react';
@@ -45,6 +47,13 @@ const MR_HEALTH_LABEL: Record<ReviewHealth, string> = {
   waiting_for_review: 'Awaiting review',
 };
 
+// ── Shared chip geometry ──────────────────────────────────────────────────────
+// One size/shape for ALL metadata chips — Flagged, label, MR health.
+// Color varies per chip type; layout is always this base class.
+
+const CHIP_BASE =
+  'inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[11px] shrink-0';
+
 // ── Stacked time bar ──────────────────────────────────────────────────────────
 
 interface StackedTimeBarProps {
@@ -56,8 +65,8 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
   const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
   const hasSpent = spentSeconds > 0;
 
+  // Equal-width spacer so all rows align even when there's no time data
   if (!hasEst && !hasSpent) {
-    // Equal-width spacer so all rows align
     return <div className="shrink-0" style={{ width: 144 }} aria-hidden />;
   }
 
@@ -65,24 +74,22 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
   const fillPct = hasEst ? Math.min(100, Math.round((spentSeconds / est) * 100)) : 0;
   const indicatorColor = hasEst
     ? spentSeconds >= est
-      ? 'bg-red-500'
+      ? 'bg-red-500 rounded-full'
       : fillPct >= 75
-        ? 'bg-amber-500'
-        : 'bg-green-500'
+        ? 'bg-amber-500 rounded-full'
+        : 'bg-green-500 rounded-full'
     : undefined;
 
   const caption = hasEst
     ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
-    : hasSpent
-      ? formatDuration(spentSeconds)
-      : '0m / —';
+    : formatDuration(spentSeconds);
 
   return (
     <div className="shrink-0 flex flex-col gap-0.5" style={{ width: 144 }}>
       <Progress
         value={hasEst ? fillPct : 0}
         className="h-1.5 w-full rounded-full"
-        indicatorClassName={indicatorColor ? `${indicatorColor} rounded-full` : undefined}
+        indicatorClassName={indicatorColor}
       />
       <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
         {caption}
@@ -91,7 +98,7 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
   );
 }
 
-// ── Label chips (folder icon + text, max 2 + overflow badge) ─────────────────
+// ── Label chips ───────────────────────────────────────────────────────────────
 
 function LabelChips({ labels }: { labels: string[] }) {
   if (!labels.length) return null;
@@ -102,14 +109,14 @@ function LabelChips({ labels }: { labels: string[] }) {
       {visible.map((label) => (
         <span
           key={label}
-          className="inline-flex items-center gap-0.5 rounded-md border border-border/60 px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0 max-w-[120px]"
+          className={cn(CHIP_BASE, 'bg-muted text-muted-foreground border-border/60 max-w-[120px]')}
         >
           <Folder className="size-3 shrink-0" />
           <span className="truncate">{label}</span>
         </span>
       ))}
       {overflow > 0 && (
-        <span className="inline-flex items-center rounded-md border border-border/60 px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0">
+        <span className={cn(CHIP_BASE, 'bg-muted text-muted-foreground border-border/60')}>
           +{overflow}
         </span>
       )}
@@ -121,7 +128,7 @@ function LabelChips({ labels }: { labels: string[] }) {
 
 export interface MyTaskRowProps {
   issue: JiraIssue;
-  /** When true, renders a lean subtask row indented with IssueTypeIcon */
+  /** When true, renders a lean subtask row indented beneath its parent */
   isSubtask?: boolean;
   jiraBaseUrl: string;
   storyPointsFieldKey: string;
@@ -168,7 +175,7 @@ export function MyTaskRow({
   accumulatedSpentSeconds,
   accumulatedEstimateSeconds,
 }: MyTaskRowProps) {
-  // logWorkOpen is shared for both parent and subtask branches (only one branch renders at a time)
+  // logWorkOpen is shared for both parent and subtask branches (only one renders at a time)
   const [logWorkOpen, setLogWorkOpen] = useState(false);
 
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
@@ -187,6 +194,7 @@ export function MyTaskRow({
       }
     | null
     | undefined;
+
   // For parent rows, use accumulated values when provided (story + all subtasks).
   // For subtask rows (isSubtask=true), always use the issue's own values.
   const totalSeconds =
@@ -213,7 +221,96 @@ export function MyTaskRow({
     }
   }
 
-  // ── Subtask row (lean, indented with IssueTypeIcon) ───────────────────────
+  // ── Shared right cluster ──────────────────────────────────────────────────
+  // Identical layout for parent and subtask — columns align perfectly.
+
+  const rightCluster = (
+    <div className="flex items-center gap-3 shrink-0">
+      {/* Status pill — stopPropagation keeps the click from opening the peek panel */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
+      <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
+        <StatusPopover
+          projectId={projectId}
+          issueTypeId={issueTypeId}
+          currentStatusId={issue.fields.status.id}
+          currentStatus={issue.fields.status.name}
+          statusCategoryKey={statusCategoryKey}
+          onSelect={(transitionId, toStatusName, opts) =>
+            onStatusSelect?.(transitionId, toStatusName, opts)
+          }
+        />
+      </div>
+
+      {/* SP slot — fixed w-12 so WebKit never collapses it.
+          Subtask: invisible placeholder preserves column alignment. */}
+      <span className="flex shrink-0 items-center justify-center" style={{ width: 48 }}>
+        {isSubtask ? (
+          // Invisible placeholder — same dimensions as the filled chip
+          <span
+            className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium opacity-0 select-none"
+            aria-hidden
+          >
+            0
+          </span>
+        ) : storyPoints !== null ? (
+          <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium tabular-nums text-foreground">
+            {storyPoints}
+          </span>
+        ) : (
+          <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground/50">
+            ?
+          </span>
+        )}
+      </span>
+
+      {/* Stacked time bar — fixed 144px width; consistent track + caption */}
+      <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
+
+      {/* Assignee avatar */}
+      <CachedAvatar
+        url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+        name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+        size={24}
+        className="ring-1 ring-border shrink-0"
+      />
+    </div>
+  );
+
+  // ── Context menu items (shared, targeting the current issue) ──────────────
+
+  const contextMenuItems = (
+    <ContextMenuContent>
+      <ContextMenuItem
+        onClick={(e) => {
+          e.stopPropagation();
+          setLogWorkOpen(true);
+        }}
+      >
+        Log Work
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={(e) => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(issue.key).catch(() => {});
+        }}
+      >
+        Copy issue key
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={(e) => {
+          e.stopPropagation();
+          navigator.clipboard
+            .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
+            .catch(() => {});
+        }}
+      >
+        Copy link
+      </ContextMenuItem>
+    </ContextMenuContent>
+  );
+
+  // ── Subtask row ───────────────────────────────────────────────────────────
 
   if (isSubtask) {
     const subtaskRow = (
@@ -221,20 +318,20 @@ export function MyTaskRow({
       <div
         role="button"
         tabIndex={0}
-        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors"
+        className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => onOpenPeek(issue.key)}
         onKeyDown={handleKeyDown}
         data-testid={`my-task-row-${issue.key}`}
       >
-        {/* LEFT region: indent spacer + issue type icon + key + summary */}
+        {/* LEFT region */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* Indent spacer (subtasks indented relative to their parent) */}
+          {/* Indent spacer — aligns subtask type icon under parent priority icon */}
           <span className="shrink-0" style={{ width: 36 }} aria-hidden />
 
-          {/* Issue type icon (sub-task type) */}
+          {/* Issue type icon */}
           <span
             className="flex items-center justify-center shrink-0"
-            style={{ width: 18, height: 18 }}
+            style={{ width: 16, height: 16 }}
             aria-hidden={!issue.fields.issuetype}
           >
             {issue.fields.issuetype?.name && (
@@ -257,10 +354,10 @@ export function MyTaskRow({
             {issue.key}
           </button>
 
-          {/* Summary */}
+          {/* Summary — slightly de-emphasised relative to parent */}
           <span
             className={cn(
-              'flex-1 min-w-0 truncate text-sm font-medium text-foreground',
+              'flex-1 min-w-0 truncate text-sm font-normal text-foreground/90',
               doneSummaryClass(issue.fields.status.statusCategory),
             )}
           >
@@ -268,81 +365,14 @@ export function MyTaskRow({
           </span>
         </div>
 
-        {/* RIGHT cluster: identical fixed-width slots as parent row */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Status pill slot */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
-          <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
-            <StatusPopover
-              projectId={projectId}
-              issueTypeId={issueTypeId}
-              currentStatusId={issue.fields.status.id}
-              currentStatus={issue.fields.status.name}
-              statusCategoryKey={statusCategoryKey}
-              onSelect={(transitionId, toStatusName, opts) =>
-                onStatusSelect?.(transitionId, toStatusName, opts)
-              }
-            />
-          </div>
-
-          {/* SP placeholder slot — same width as parent SP slot, invisible */}
-          <span
-            className="flex shrink-0 items-center justify-center opacity-0 select-none"
-            style={{ width: 48 }}
-            aria-hidden
-          >
-            <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium">
-              0
-            </span>
-          </span>
-
-          {/* Stacked time bar */}
-          <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
-
-          {/* Assignee avatar */}
-          <CachedAvatar
-            url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
-            name={issue.fields.assignee?.displayName ?? 'Unassigned'}
-            size={24}
-            className="ring-1 ring-border"
-          />
-        </div>
+        {rightCluster}
       </div>
     );
 
     return (
       <ContextMenu>
         <ContextMenuTrigger render={subtaskRow} />
-        <ContextMenuContent>
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              setLogWorkOpen(true);
-            }}
-          >
-            Log Work
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(issue.key).catch(() => {});
-            }}
-          >
-            Copy issue key
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard
-                .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
-                .catch(() => {});
-            }}
-          >
-            Copy link
-          </ContextMenuItem>
-        </ContextMenuContent>
-
+        {contextMenuItems}
         {logWorkOpen && (
           <LogWorkPopover
             issueKey={issue.key}
@@ -362,7 +392,7 @@ export function MyTaskRow({
       role="button"
       tabIndex={0}
       className={cn(
-        'flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors',
+        'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isFlagged &&
           'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
       )}
@@ -370,21 +400,21 @@ export function MyTaskRow({
       onKeyDown={handleKeyDown}
       data-testid={`my-task-row-${issue.key}`}
     >
-      {/* LEFT region: icons + key + summary + chips */}
+      {/* LEFT region */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {/* Issue type icon */}
         <span
           className="flex items-center justify-center shrink-0"
-          style={{ width: 18, height: 18 }}
+          style={{ width: 16, height: 16 }}
           aria-hidden={!issue.fields.issuetype}
         >
           {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
         </span>
 
-        {/* 3. Priority icon */}
+        {/* Priority icon */}
         <span
           className="flex items-center justify-center shrink-0"
-          style={{ width: 18, height: 18 }}
+          style={{ width: 14, height: 14 }}
           aria-hidden={!issue.fields.priority}
         >
           <PriorityIcon
@@ -394,7 +424,7 @@ export function MyTaskRow({
           />
         </span>
 
-        {/* 4. Issue key */}
+        {/* Issue key */}
         <button
           type="button"
           className={cn(
@@ -409,37 +439,36 @@ export function MyTaskRow({
           {issue.key}
         </button>
 
-        {/* 5. Summary */}
+        {/* Summary */}
         <span
           className={cn(
             'flex-1 min-w-0 truncate text-sm font-medium text-foreground',
             doneSummaryClass(issue.fields.status.statusCategory),
           )}
         >
-          {isFlagged && (
-            <Flag className="inline size-3.5 text-yellow-700 dark:text-yellow-300 mr-1 shrink-0" />
-          )}
           {issue.fields.summary}
         </span>
 
-        {/* 6. Metadata chips */}
+        {/* Metadata chips — subdued so the summary reads first */}
 
-        {/* Flagged chip */}
         {isFlagged && (
-          <span className="inline-flex items-center gap-0.5 rounded-md border border-red-500/30 px-1.5 py-0.5 text-xs bg-red-500/10 text-red-700 dark:text-red-400 shrink-0">
-            <Flag className="size-3" />
+          <span
+            className={cn(
+              CHIP_BASE,
+              'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30',
+            )}
+          >
+            <Flag className="size-3 shrink-0" />
             Flagged
           </span>
         )}
 
-        {/* Label chips */}
         <LabelChips labels={labels} />
 
-        {/* MR health chip */}
         {mrHealth && (
           <span
             className={cn(
-              'inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs shrink-0',
+              CHIP_BASE,
               mrHealth === 'approved' &&
                 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400',
               mrHealth === 'changes_requested' &&
@@ -453,49 +482,7 @@ export function MyTaskRow({
         )}
       </div>
 
-      {/* RIGHT cluster: fixed-width slots — identical layout for parent and subtask */}
-      <div className="flex items-center gap-3 shrink-0">
-        {/* 7. Status pill slot */}
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
-        <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
-          <StatusPopover
-            projectId={projectId}
-            issueTypeId={issueTypeId}
-            currentStatusId={issue.fields.status.id}
-            currentStatus={issue.fields.status.name}
-            statusCategoryKey={statusCategoryKey}
-            onSelect={(transitionId, toStatusName, opts) =>
-              onStatusSelect?.(transitionId, toStatusName, opts)
-            }
-          />
-        </div>
-
-        {/* 8. Story points slot — fixed w-12 so WebKit never collapses it */}
-        {/* Matches BacklogRow style: bordered muted chip, number only, ? when none */}
-        <span className="flex shrink-0 items-center justify-center" style={{ width: 48 }}>
-          {storyPoints !== null ? (
-            <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium tabular-nums text-foreground">
-              {storyPoints}
-            </span>
-          ) : (
-            <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground/50">
-              ?
-            </span>
-          )}
-        </span>
-
-        {/* 9. Stacked time bar */}
-        <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
-
-        {/* 10. Assignee avatar */}
-        <CachedAvatar
-          url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
-          name={issue.fields.assignee?.displayName ?? 'Unassigned'}
-          size={24}
-          className="ring-1 ring-border"
-        />
-      </div>
+      {rightCluster}
     </div>
   );
 
@@ -503,35 +490,7 @@ export function MyTaskRow({
     <>
       <ContextMenu>
         <ContextMenuTrigger render={rowContent} />
-        <ContextMenuContent>
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              setLogWorkOpen(true);
-            }}
-          >
-            Log Work
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(issue.key).catch(() => {});
-            }}
-          >
-            Copy issue key
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard
-                .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
-                .catch(() => {});
-            }}
-          >
-            Copy link
-          </ContextMenuItem>
-        </ContextMenuContent>
-
+        {contextMenuItems}
         {logWorkOpen && (
           <LogWorkPopover
             issueKey={issue.key}
@@ -541,7 +500,7 @@ export function MyTaskRow({
         )}
       </ContextMenu>
 
-      {/* Subtasks — always rendered, flat rows indented beneath parent */}
+      {/* Subtasks — flat rows indented beneath parent */}
       {subtasks.map((subtask) => (
         <MyTaskRow
           key={subtask.key}
