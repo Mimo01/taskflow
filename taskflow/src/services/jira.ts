@@ -657,12 +657,75 @@ export async function fetchAllAssignedHierarchy(
   ].join(',');
 
   // assignee = currentUser() scopes to the authenticated user only (T-82-04).
+  // Sprint clause excludes past/closed sprints — only open, future, or backlog (E1).
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY rank ASC`,
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
   );
 
   // fetchAllSearchPagesClient is the exported fetchAllSearchPages from jira/client.ts.
   // It loops until startAt >= total — no maxResults cap is passed here (D-06).
+  const issues = await fetchAllSearchPagesClient(
+    `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`,
+    headers,
+  );
+
+  const myIssueKeys = new Set(issues.map((i) => i.key));
+  return { issues, myIssueKeys };
+}
+
+/**
+ * Fetch ALL issues reported by the current user in the given project (All-Reported scope).
+ *
+ * Returns every non-subtask issue reported by the authenticated user, fully paginated
+ * via `fetchAllSearchPages` from jira/client — no page cap, no hand-rolled loop.
+ *
+ * Sprint scoping mirrors fetchAllAssignedHierarchy (E1/E2): restricts to open sprints,
+ * future sprints, or backlog — closed/past sprints are excluded.
+ *
+ * @param baseUrl             - Jira base URL (trailing slash stripped internally)
+ * @param token               - Bearer PAT for Authorization header
+ * @param projectKey          - Jira project key (e.g. "PROJ")
+ * @param flaggedFieldKey     - Custom field key for the Flagged field (default: customfield_10021)
+ * @param storyPointsFieldKey - Custom field key for story points (default: customfield_10016)
+ * @returns { issues, myIssueKeys } — all issues + a Set of issue keys for identity checks
+ */
+export async function fetchAllReportedHierarchy(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  flaggedFieldKey = 'customfield_10021',
+  storyPointsFieldKey = 'customfield_10016',
+): Promise<{ issues: JiraIssue[]; myIssueKeys: Set<string> }> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  // Deduplicate story-point field IDs.
+  const spFields = [
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
+
+  // customfield_10020 = sprint field (required for By Sprint & Parent ordering D-05).
+  const fields = [
+    'summary',
+    'status',
+    'assignee',
+    'issuetype',
+    'project',
+    spFields,
+    'customfield_10020',
+    'parent',
+    'subtasks',
+    'timetracking',
+    'duedate',
+    flaggedFieldKey,
+  ].join(',');
+
+  // reporter = currentUser() scopes to issues the authenticated user created (E2).
+  // Sprint clause excludes past/closed sprints — only open, future, or backlog (E1/E2).
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND reporter = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
+  );
+
   const issues = await fetchAllSearchPagesClient(
     `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`,
     headers,

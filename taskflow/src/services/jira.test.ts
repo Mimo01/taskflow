@@ -9,6 +9,8 @@ import {
   bulkUpdateIssue,
   createIssue,
   createIssueLink,
+  fetchAllAssignedHierarchy,
+  fetchAllReportedHierarchy,
   fetchCreatemeta,
   fetchEpicStories,
   fetchEpicsWithEnrichment,
@@ -1682,6 +1684,116 @@ describe('jira service', () => {
       const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
       expect(url).toContain('statusCategory');
       expect(url).toContain('Done');
+    });
+  });
+
+  // ── fetchAllAssignedHierarchy (E1 sprint scoping) ─────────────────────────
+  describe('fetchAllAssignedHierarchy', () => {
+    it('E1: JQL includes sprint scoping to exclude closed sprints', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetchAllAssignedHierarchy(BASE, TOKEN, 'PROJ');
+
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const decodedUrl = decodeURIComponent(url);
+      expect(decodedUrl).toContain('assignee = currentUser()');
+      expect(decodedUrl).toContain('sprint in openSprints()');
+      expect(decodedUrl).toContain('sprint in futureSprints()');
+      expect(decodedUrl).toContain('sprint is EMPTY');
+    });
+
+    it('E1: returns all issues via full pagination (no page cap)', async () => {
+      // Page 1: 200 issues, total=250 — must continue to page 2
+      const page1 = Array.from({ length: 200 }, (_, i) => ({
+        key: `PROJ-${i + 1}`,
+        fields: { summary: `Issue ${i + 1}` },
+      }));
+      const page2 = Array.from({ length: 50 }, (_, i) => ({
+        key: `PROJ-${200 + i + 1}`,
+        fields: { summary: `Issue ${200 + i + 1}` },
+      }));
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: page1, total: 250, startAt: 0, maxResults: 200 }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: page2, total: 250, startAt: 200, maxResults: 200 }),
+        } as Response);
+
+      const result = await fetchAllAssignedHierarchy(BASE, TOKEN, 'PROJ');
+      expect(result.issues).toHaveLength(250);
+      expect(result.myIssueKeys.size).toBe(250);
+    });
+  });
+
+  // ── fetchAllReportedHierarchy (E2) ────────────────────────────────────────
+  describe('fetchAllReportedHierarchy', () => {
+    it('E2: JQL uses reporter = currentUser() (not assignee)', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetchAllReportedHierarchy(BASE, TOKEN, 'PROJ');
+
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const decodedUrl = decodeURIComponent(url);
+      expect(decodedUrl).toContain('reporter = currentUser()');
+      expect(decodedUrl).not.toContain('assignee = currentUser()');
+    });
+
+    it('E2: JQL includes same sprint scoping as fetchAllAssignedHierarchy (E1)', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetchAllReportedHierarchy(BASE, TOKEN, 'PROJ');
+
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const decodedUrl = decodeURIComponent(url);
+      expect(decodedUrl).toContain('sprint in openSprints()');
+      expect(decodedUrl).toContain('sprint in futureSprints()');
+      expect(decodedUrl).toContain('sprint is EMPTY');
+    });
+
+    it('E2: returns all issues via full pagination (no page cap) — criterion-6 mirror', async () => {
+      // Page 1: 50 issues, total=250 — must continue fetching (under-full first page)
+      const page1 = Array.from({ length: 50 }, (_, i) => ({
+        key: `PROJ-${i + 1}`,
+        fields: { summary: `Issue ${i + 1}` },
+      }));
+      const page2 = Array.from({ length: 200 }, (_, i) => ({
+        key: `PROJ-${50 + i + 1}`,
+        fields: { summary: `Issue ${50 + i + 1}` },
+      }));
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: page1, total: 250, startAt: 0, maxResults: 200 }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: page2, total: 250, startAt: 200, maxResults: 200 }),
+        } as Response);
+
+      const result = await fetchAllReportedHierarchy(BASE, TOKEN, 'PROJ');
+      expect(result.issues).toHaveLength(250);
+      expect(result.myIssueKeys.size).toBe(250);
     });
   });
 });
