@@ -472,7 +472,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 81. Charting Foundation | 3/3 | Complete   | 2026-06-13 |
+| 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 0/TBD | Not started | - |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
