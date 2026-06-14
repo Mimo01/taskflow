@@ -21,15 +21,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  ArrowDownUp,
-  CheckCircle2,
-  CheckSquare,
-  Circle,
-  CircleDot,
-  ListFilter,
-  Plus,
-} from 'lucide-react';
+import { CheckCircle2, CheckSquare, Circle, CircleDot, ListFilter, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -76,12 +68,6 @@ const MY_DAY_BAND_STRIPE: Record<string, string> = {
   'in-review-my-mr': 'border-l-purple-500',
   'in-progress': 'border-l-blue-500',
   'to-do': 'border-l-muted-foreground',
-  done: 'border-l-green-500',
-};
-
-const STATUS_CATEGORY_STRIPE: Record<string, string> = {
-  new: 'border-l-muted-foreground',
-  indeterminate: 'border-l-blue-500',
   done: 'border-l-green-500',
 };
 
@@ -153,34 +139,6 @@ function matchesBucket(issue: JiraIssue, bucket: FilterBucket | null): boolean {
   }
 }
 
-// ── Story-point sum helper (parents only) ─────────────────────────────────────
-
-function sumParentSP(issues: JiraIssue[], spKey: string): number {
-  return issues
-    .filter((i) => !i.fields.issuetype?.subtask)
-    .reduce((sum, i) => {
-      const sp =
-        (i.fields[spKey] as number | null | undefined) ??
-        (i.fields.customfield_10016 as number | null | undefined) ??
-        0;
-      return sum + (sp || 0);
-    }, 0);
-}
-
-// ── Sort issues within a group by updated desc ────────────────────────────────
-
-function sortByUpdated(issues: JiraIssue[]): JiraIssue[] {
-  return [...issues].sort((a, b) => {
-    const aUp = (a.fields.updated as string | null | undefined) ?? '';
-    const bUp = (b.fields.updated as string | null | undefined) ?? '';
-    return bUp.localeCompare(aUp);
-  });
-}
-
-function maybeSort(issues: JiraIssue[], mode: 'updated' | 'default'): JiraIssue[] {
-  return mode === 'updated' ? sortByUpdated(issues) : issues;
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function MyTasksPage() {
@@ -202,17 +160,12 @@ export default function MyTasksPage() {
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
   const flaggedFieldKey = useSettingsStore((s) => s.flaggedFieldKey);
 
-  // Persisted grouping mode + scope
-  const groupingMode = useMyTasksStore((s) => s.groupingMode);
+  // Persisted scope (groupingMode kept in store but no longer drives the page — always My Day)
   const scope = useMyTasksStore((s) => s.scope);
-  const setGroupingMode = useMyTasksStore((s) => s.setGroupingMode);
   const setScope = useMyTasksStore((s) => s.setScope);
 
   // Transient filter (3 buckets, never persisted)
   const [activeBucket, setActiveBucket] = useState<FilterBucket | null>(null);
-
-  // Sort toggle: 'updated' sorts within groups by updated desc; 'default' keeps Jira order
-  const [sortMode, setSortMode] = useState<'updated' | 'default'>('updated');
 
   // Token loading
   const [jiraToken, setJiraToken] = useState<string | null>(null);
@@ -446,9 +399,35 @@ export default function MyTasksPage() {
     }
   }
 
+  // ── Accumulated time helper ────────────────────────────────────────────────
+
+  function accumulateTime(parent: JiraIssue, subtasks: JiraIssue[]) {
+    function getTracking(issue: JiraIssue) {
+      const t = issue.fields.timetracking as
+        | { timeSpentSeconds?: number; originalEstimateSeconds?: number }
+        | null
+        | undefined;
+      return {
+        spent: t?.timeSpentSeconds ?? 0,
+        estimate: t?.originalEstimateSeconds ?? 0,
+      };
+    }
+    const parentT = getTracking(parent);
+    const subtaskSpent = subtasks.reduce((sum, s) => sum + getTracking(s).spent, 0);
+    const subtaskEst = subtasks.reduce((sum, s) => sum + getTracking(s).estimate, 0);
+    return {
+      accumulatedSpentSeconds: parentT.spent + subtaskSpent,
+      accumulatedEstimateSeconds: parentT.estimate + subtaskEst,
+    };
+  }
+
   // ── Render flat parent + subtask rows (subtask collapse handled inside MyTaskRow) ──
 
   function renderFlatRows(parent: JiraIssue, subtasks: JiraIssue[]) {
+    const { accumulatedSpentSeconds, accumulatedEstimateSeconds } = accumulateTime(
+      parent,
+      subtasks,
+    );
     return (
       <MyTaskRow
         key={parent.key}
@@ -460,6 +439,8 @@ export default function MyTasksPage() {
         mrHealth={mrHealthByKey.get(parent.key)}
         onOpenPeek={handleOpenPeek}
         onOpenIssue={handleOpenIssue}
+        accumulatedSpentSeconds={accumulatedSpentSeconds}
+        accumulatedEstimateSeconds={accumulatedEstimateSeconds}
       />
     );
   }
@@ -497,10 +478,7 @@ export default function MyTasksPage() {
     return (
       <div>
         {bands.map(({ band, parents: bandParents }) => {
-          const sortedParents = maybeSort(
-            bandParents.map((r) => r.parent),
-            sortMode,
-          );
+          const sortedParents = bandParents.map((r) => r.parent);
           const sectionPts = sortedParents.reduce((sum, p) => {
             const sp =
               (p.fields[storyPointsFieldKey] as number | null | undefined) ??
@@ -520,179 +498,6 @@ export default function MyTasksPage() {
               />
               {sortedParents.map((parent) =>
                 renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  function renderByStatusList() {
-    const filtered = applyBucketFilter(allIssues);
-    const filteredParents = filtered.filter((i) => !i.fields.issuetype?.subtask);
-    const subtasksByParent = new Map<string, JiraIssue[]>();
-    for (const issue of filtered) {
-      if (issue.fields.issuetype?.subtask) {
-        const parentKey = issue.fields.parent?.key;
-        if (parentKey) {
-          const arr = subtasksByParent.get(parentKey) ?? [];
-          arr.push(issue);
-          subtasksByParent.set(parentKey, arr);
-        }
-      }
-    }
-
-    const STATUS_ORDER = ['new', 'indeterminate', 'done'];
-    const STATUS_LABELS: Record<string, string> = {
-      new: 'To Do',
-      indeterminate: 'In Progress',
-      done: 'Done',
-    };
-
-    const byStatus = new Map<string, JiraIssue[]>();
-    for (const parent of filteredParents) {
-      const cat = parent.fields.status.statusCategory?.key ?? 'new';
-      const arr = byStatus.get(cat) ?? [];
-      arr.push(parent);
-      byStatus.set(cat, arr);
-    }
-
-    if (byStatus.size === 0) {
-      if (activeBucket) {
-        return (
-          <EmptyState
-            icon={ListFilter}
-            title="No matches"
-            subtitle="No tasks match the active filter. Click the filter again to clear it."
-          />
-        );
-      }
-      return (
-        <EmptyState
-          icon={CheckSquare}
-          title="No assigned issues"
-          subtitle="You have no issues assigned across all sprints and the backlog."
-        />
-      );
-    }
-
-    return (
-      <div>
-        {STATUS_ORDER.filter((cat) => byStatus.has(cat)).map((cat) => {
-          const issues = maybeSort(byStatus.get(cat)!, sortMode);
-          const sectionPts = sumParentSP(issues, storyPointsFieldKey);
-          return (
-            <div key={cat}>
-              <GroupHeader
-                label={STATUS_LABELS[cat] ?? cat}
-                count={issues.length}
-                stripeClass={STATUS_CATEGORY_STRIPE[cat]}
-                sectionPts={sectionPts}
-              />
-              {issues.map((parent) =>
-                renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  function renderBySprintParentList() {
-    const filtered = applyBucketFilter(allIssues);
-    const filteredParents = filtered.filter((i) => !i.fields.issuetype?.subtask);
-    const subtasksByParent = new Map<string, JiraIssue[]>();
-    for (const issue of filtered) {
-      if (issue.fields.issuetype?.subtask) {
-        const parentKey = issue.fields.parent?.key;
-        if (parentKey) {
-          const arr = subtasksByParent.get(parentKey) ?? [];
-          arr.push(issue);
-          subtasksByParent.set(parentKey, arr);
-        }
-      }
-    }
-
-    interface SprintGroup {
-      sprintId: number | null;
-      sprintName: string;
-      state: string;
-      endDate: string | null;
-      issues: JiraIssue[];
-    }
-
-    const sprintGroups = new Map<string, SprintGroup>();
-    for (const parent of filteredParents) {
-      const sprints = parent.fields.customfield_10020 as
-        | Array<{ id: number; name: string; state: string; endDate?: string }>
-        | null
-        | undefined;
-      const activeSprint = Array.isArray(sprints)
-        ? (sprints.find((s) => s.state === 'ACTIVE') ?? sprints[0])
-        : null;
-
-      const sprintKey = activeSprint ? String(activeSprint.id) : '__backlog__';
-      const sprintName = activeSprint?.name ?? 'Backlog';
-      const sprintState = activeSprint?.state ?? 'BACKLOG';
-      const endDate = activeSprint?.endDate ?? null;
-
-      if (!sprintGroups.has(sprintKey)) {
-        sprintGroups.set(sprintKey, {
-          sprintId: activeSprint?.id ?? null,
-          sprintName,
-          state: sprintState,
-          endDate,
-          issues: [],
-        });
-      }
-      sprintGroups.get(sprintKey)!.issues.push(parent);
-    }
-
-    const sortedGroups = Array.from(sprintGroups.values()).sort((a, b) => {
-      if (a.state === 'ACTIVE' && b.state !== 'ACTIVE') return -1;
-      if (b.state === 'ACTIVE' && a.state !== 'ACTIVE') return 1;
-      if (a.sprintId === null) return 1;
-      if (b.sprintId === null) return -1;
-      if (a.endDate && b.endDate) return b.endDate.localeCompare(a.endDate);
-      return 0;
-    });
-
-    if (sortedGroups.length === 0) {
-      if (activeBucket) {
-        return (
-          <EmptyState
-            icon={ListFilter}
-            title="No matches"
-            subtitle="No tasks match the active filter. Click the filter again to clear it."
-          />
-        );
-      }
-      return (
-        <EmptyState
-          icon={CheckSquare}
-          title="No assigned issues"
-          subtitle="You have no issues assigned across all sprints and the backlog."
-        />
-      );
-    }
-
-    return (
-      <div>
-        {sortedGroups.map((group) => {
-          const issues = maybeSort(group.issues, sortMode);
-          const sectionPts = sumParentSP(issues, storyPointsFieldKey);
-          return (
-            <div key={group.sprintId ?? '__backlog__'}>
-              <GroupHeader
-                label={group.sprintName}
-                count={issues.length}
-                stripeClass="border-l-blue-500"
-                sectionPts={sectionPts}
-              />
-              {issues.map((parent) =>
-                renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
               )}
             </div>
           );
@@ -723,9 +528,7 @@ export default function MyTasksPage() {
       );
     }
 
-    if (groupingMode === 'my-day') return renderMyDayList();
-    if (groupingMode === 'by-status') return renderByStatusList();
-    return renderBySprintParentList();
+    return renderMyDayList();
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -896,67 +699,7 @@ export default function MyTasksPage() {
         </div>
       </div>
 
-      {/* ── 3. GROUP control row ─────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-2 border-b border-border shrink-0">
-        {/* Left: GROUP label + segmented grouping control */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none">
-            Group
-          </span>
-          <div
-            role="group"
-            aria-label="Grouping"
-            className="flex items-center rounded-md border border-border overflow-hidden"
-          >
-            {(
-              [
-                { value: 'my-day', label: 'My Day' },
-                { value: 'by-status', label: 'By Status' },
-                { value: 'by-sprint-parent', label: 'By Sprint & Parent' },
-              ] as const
-            ).map(({ value, label }, idx) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={groupingMode === value}
-                onClick={() => setGroupingMode(value)}
-                className={cn(
-                  'h-7 px-2.5 text-xs font-medium transition-colors',
-                  idx > 0 && 'border-l border-border',
-                  groupingMode === value
-                    ? 'bg-foreground text-background'
-                    : 'bg-card text-muted-foreground hover:bg-muted/60',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Updated sort toggle — switches between updated-desc and default (Jira rank) */}
-        <button
-          type="button"
-          aria-pressed={sortMode === 'updated'}
-          onClick={() => setSortMode((m) => (m === 'updated' ? 'default' : 'updated'))}
-          className={cn(
-            'flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium rounded-md border transition-colors',
-            sortMode === 'updated'
-              ? 'border-primary bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground hover:bg-muted/60',
-          )}
-          title={
-            sortMode === 'updated'
-              ? 'Sorting by last updated — click for default order'
-              : 'Sort by last updated'
-          }
-        >
-          <ArrowDownUp className="size-3.5 shrink-0" />
-          <span>Updated</span>
-        </button>
-      </div>
-
-      {/* ── 4. Issue list ────────────────────────────────────────────────────── */}
+      {/* ── 3. Issue list ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto min-h-0">
         {renderContent()}
 

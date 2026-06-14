@@ -1,8 +1,9 @@
 /**
- * MyTasksPage smoke test — MYTASK-01 (updated for 82-DESIGN-TARGET redesign)
+ * MyTasksPage smoke test — MYTASK-01 (updated for 82-DESIGN-TARGET round 7)
  *
  * Verifies the page mounts and renders without throwing.
- * Checks the new structure: 3-way scope control, 3 stat tiles, GROUP control row.
+ * Checks the new structure: 3-way scope control, 3 stat tiles.
+ * The GROUP control row and Updated sort toggle are removed (round 7); always My Day grouping.
  *
  * Pattern: DashboardInProgressCard.test.tsx (mock useQuery at the top,
  * provide QueryClientProvider + MemoryRouter in render helper).
@@ -140,13 +141,6 @@ describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
     expect(done.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the grouping segmented control options in the GROUP row', () => {
-    renderPage();
-    expect(screen.getByText('My Day')).toBeDefined();
-    expect(screen.getByText('By Status')).toBeDefined();
-    expect(screen.getByText('By Sprint & Parent')).toBeDefined();
-  });
-
   it('renders all three scope toggle options in the right toolbar', () => {
     renderPage();
     expect(screen.getByText('Current Sprint')).toBeDefined();
@@ -158,11 +152,6 @@ describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
     renderPage();
     // My Day with no issues should show the "all caught up" empty state
     expect(screen.getByText("You're all caught up")).toBeDefined();
-  });
-
-  it('renders the Updated sort toggle button', () => {
-    renderPage();
-    expect(screen.getByTitle('Sorting by last updated — click for default order')).toBeDefined();
   });
 
   it('renders the + New issue button', () => {
