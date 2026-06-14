@@ -49,18 +49,6 @@ vi.mock('@/stores/settings.store', () => ({
   }),
 }));
 
-vi.mock('@/stores/my-tasks.store', () => ({
-  useMyTasksStore: vi.fn((selector?: (s: Record<string, unknown>) => unknown) => {
-    const state = {
-      groupingMode: 'my-day',
-      scope: 'current-sprint',
-      setGroupingMode: vi.fn(),
-      setScope: vi.fn(),
-    };
-    return selector ? selector(state) : state;
-  }),
-}));
-
 vi.mock('@/services/jira', () => ({
   fetchMyTasksHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
   fetchAllAssignedHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
