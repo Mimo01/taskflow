@@ -14,15 +14,17 @@ const FIXED_TODAY = new Date('2026-06-14T12:00:00Z');
 const EMPTY_MR_KEYS = new Set<string>();
 
 // Helper: builds a minimal JiraIssue stub for testing
-function makeIssue(overrides: {
-  key?: string;
-  statusCategoryKey?: string;
-  statusName?: string;
-  duedate?: string | null;
-  flaggedValue?: unknown;
-  isSubtask?: boolean;
-  parentKey?: string;
-} = {}): JiraIssue {
+function makeIssue(
+  overrides: {
+    key?: string;
+    statusCategoryKey?: string;
+    statusName?: string;
+    duedate?: string | null;
+    flaggedValue?: unknown;
+    isSubtask?: boolean;
+    parentKey?: string;
+  } = {},
+): JiraIssue {
   return {
     key: overrides.key ?? 'PROJ-1',
     fields: {
@@ -145,7 +147,9 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
       isSubtask: true,
       parentKey: 'PROJ-1',
     });
-    expect(subtreeBand(parent, [overdueSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(1);
+    expect(
+      subtreeBand(parent, [overdueSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
+    ).toBe(1);
   });
 
   it('parent Done (band 5) + In Progress subtask (band 3) → returns 3 (in-progress)', () => {
@@ -157,7 +161,9 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
       isSubtask: true,
       parentKey: 'PROJ-1',
     });
-    expect(subtreeBand(parent, [inProgressSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(3);
+    expect(
+      subtreeBand(parent, [inProgressSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
+    ).toBe(3);
   });
 
   it('flagged parent → returns 0 (flagged-blocked) regardless of subtask bands', () => {
@@ -174,7 +180,9 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
       isSubtask: true,
       parentKey: 'PROJ-1',
     });
-    expect(subtreeBand(flaggedParent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(0);
+    expect(
+      subtreeBand(flaggedParent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
+    ).toBe(0);
   });
 
   it('no subtasks → returns parent band', () => {
@@ -183,14 +191,20 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
   });
 
   it('all subtasks done, parent in-progress → returns 3', () => {
-    const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'indeterminate', statusName: 'In Progress' });
+    const parent = makeIssue({
+      key: 'PROJ-1',
+      statusCategoryKey: 'indeterminate',
+      statusName: 'In Progress',
+    });
     const doneSubtask = makeIssue({
       key: 'PROJ-2',
       statusCategoryKey: 'done',
       statusName: 'Done',
       isSubtask: true,
     });
-    expect(subtreeBand(parent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(3);
+    expect(subtreeBand(parent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      3,
+    );
   });
 });
 
@@ -201,7 +215,13 @@ describe('groupByMyDay', () => {
     const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new', statusName: 'To Do' });
     const myIssueKeys = new Set(['PROJ-1']);
 
-    const groups = groupByMyDay([parent], myIssueKeys, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY);
+    const groups = groupByMyDay(
+      [parent],
+      myIssueKeys,
+      FLAGGED_FIELD_KEY,
+      EMPTY_MR_KEYS,
+      FIXED_TODAY,
+    );
     expect(groups).toHaveLength(1);
     expect(groups[0].band).toBe('to-do');
     expect(groups[0].parents).toHaveLength(1);
@@ -255,7 +275,13 @@ describe('groupByMyDay', () => {
     const parent = makeIssue({ key: 'PROJ-99', statusCategoryKey: 'new' });
     const myIssueKeys = new Set<string>(); // empty — I own nothing
 
-    const groups = groupByMyDay([parent], myIssueKeys, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY);
+    const groups = groupByMyDay(
+      [parent],
+      myIssueKeys,
+      FLAGGED_FIELD_KEY,
+      EMPTY_MR_KEYS,
+      FIXED_TODAY,
+    );
     expect(groups).toHaveLength(0);
   });
 
@@ -285,7 +311,13 @@ describe('groupByMyDay', () => {
     const p2 = makeIssue({ key: 'PROJ-2', statusCategoryKey: 'new', statusName: 'To Do' });
     const myIssueKeys = new Set(['PROJ-1', 'PROJ-2']);
 
-    const groups = groupByMyDay([p1, p2], myIssueKeys, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY);
+    const groups = groupByMyDay(
+      [p1, p2],
+      myIssueKeys,
+      FLAGGED_FIELD_KEY,
+      EMPTY_MR_KEYS,
+      FIXED_TODAY,
+    );
     expect(groups).toHaveLength(1);
     expect(groups[0].band).toBe('to-do');
     expect(groups[0].parents).toHaveLength(2);
@@ -328,9 +360,7 @@ describe('deriveCounts', () => {
   });
 
   it('counts done issues', () => {
-    const issues = [
-      makeIssue({ key: 'PROJ-1', statusCategoryKey: 'done', statusName: 'Done' }),
-    ];
+    const issues = [makeIssue({ key: 'PROJ-1', statusCategoryKey: 'done', statusName: 'Done' })];
     const counts = deriveCounts(issues, new Set(), FIXED_TODAY);
     expect(counts.doneSprint).toBe(1);
   });
@@ -356,6 +386,13 @@ describe('deriveCounts', () => {
 
   it('returns all-zero counts for empty issues array', () => {
     const counts = deriveCounts([], new Set(), FIXED_TODAY);
-    expect(counts).toEqual({ toDo: 0, inProgress: 0, inReview: 0, doneSprint: 0, overdue: 0, mrAwaiting: 0 });
+    expect(counts).toEqual({
+      toDo: 0,
+      inProgress: 0,
+      inReview: 0,
+      doneSprint: 0,
+      overdue: 0,
+      mrAwaiting: 0,
+    });
   });
 });
