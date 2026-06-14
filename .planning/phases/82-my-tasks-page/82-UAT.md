@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 82-my-tasks-page
 source: [82-01-SUMMARY.md, 82-02-SUMMARY.md, 82-03-SUMMARY.md, 82-04-SUMMARY.md, 82-05-SUMMARY.md]
 started: 2026-06-14T21:08:54Z
@@ -85,9 +85,16 @@ blocked: 0
   reason: "User reported: the hero is correct but the style of 'My tasks' and the text below doesn't match the one on standup notes. The 3 cards are a little too large and I dont like todo and in progress icons, choose other"
   severity: cosmetic
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
+  status_resolution: fixed
+  root_cause: "MyTasksPage hero used text-3xl font-bold tracking-tight leading-none (vs StandupPageHeader's font-semibold) and text-sm subtitle (vs text-xs); stat tiles oversized (p-4, text-3xl, h-8 icon box); To Do=Clock, In Progress=RefreshCw icons disliked"
+  artifacts:
+    - path: "taskflow/src/routes/my-tasks/MyTasksPage.tsx"
+      issue: "header typography + tile sizing + tile icons"
+  missing:
+    - "Title -> font-semibold, subtitle -> text-xs (match StandupPageHeader)"
+    - "Tiles: p-3, rounded-lg, text-2xl number, h-7 rounded-md icon box"
+    - "To Do icon -> ListTodo, In Progress icon -> Timer"
+  fix_commit: dece06fd
   debug_session: ""
 
 - truth: "Labels metadata chip on a row uses an icon appropriate for labels/tags"
@@ -95,9 +102,14 @@ blocked: 0
   reason: "User reported: the labels use a folder icon (wants a more appropriate icon, e.g. a tag icon)"
   severity: cosmetic
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
+  status_resolution: fixed
+  root_cause: "LabelChips in MyTaskRow.tsx rendered a Folder lucide icon for label chips"
+  artifacts:
+    - path: "taskflow/src/routes/my-tasks/MyTaskRow.tsx"
+      issue: "Folder icon used for labels"
+  missing:
+    - "Swap Folder -> Tag icon"
+  fix_commit: 91c5cbed
   debug_session: ""
 
 - truth: "Scope selection persists across app reloads via my-tasks.json"
@@ -105,7 +117,15 @@ blocked: 0
   reason: "User reported: i dont like that, remove it. it shouldnt be persisted — scope should NOT persist (reset to default on reload)"
   severity: minor
   test: 12
-  root_cause: ""
-  artifacts: []
-  missing: []
+  status_resolution: fixed
+  root_cause: "scope was read from the persisted useMyTasksStore (my-tasks.json). groupingMode was already dead (page always uses My Day), so the store was effectively scope-only."
+  artifacts:
+    - path: "taskflow/src/routes/my-tasks/MyTasksPage.tsx"
+      issue: "scope sourced from persisted store"
+    - path: "taskflow/src/stores/my-tasks.store.ts"
+      issue: "orphaned store (deleted)"
+  missing:
+    - "Convert scope to local useState (transient, defaults current-sprint)"
+    - "Delete orphaned my-tasks.store.ts + test, drop page-test mock"
+  fix_commit: efd8595e
   debug_session: ""
