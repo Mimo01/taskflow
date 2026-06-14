@@ -7,7 +7,7 @@ import { getErrorSource, isAuthError } from '@/lib/api-error';
 
 interface ErrorStateProps {
   error: Error | unknown;
-  onRetry: () => void;
+  onRetry?: () => void;
   viewName: string;
 }
 
@@ -43,11 +43,13 @@ export function ErrorState({ error, onRetry, viewName }: ErrorStateProps) {
       <AlertCircle />
       <AlertTitle>Couldn't load {viewName}</AlertTitle>
       <AlertDescription />
-      <AlertAction>
-        <Button variant="secondary" size="sm" onClick={onRetry}>
-          Retry
-        </Button>
-      </AlertAction>
+      {onRetry && (
+        <AlertAction>
+          <Button variant="secondary" size="sm" onClick={onRetry}>
+            Retry
+          </Button>
+        </AlertAction>
+      )}
     </Alert>
   );
 }
