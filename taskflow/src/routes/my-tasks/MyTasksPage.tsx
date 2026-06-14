@@ -21,7 +21,15 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Check, CheckSquare, GitBranch, List, ListFilter, Plus } from 'lucide-react';
+import {
+  ArrowDownUp,
+  CheckCircle2,
+  CheckSquare,
+  Circle,
+  CircleDot,
+  ListFilter,
+  Plus,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -35,6 +43,7 @@ import {
   fetchAllAssignedHierarchy,
   fetchAllReportedHierarchy,
   fetchMyTasksHierarchy,
+  isIssueFlagged,
 } from '@/services/jira';
 import type { ReviewHealth } from '@/services/linkEngine';
 import { extractTicketKeys } from '@/services/linkEngine';
@@ -168,6 +177,10 @@ function sortByUpdated(issues: JiraIssue[]): JiraIssue[] {
   });
 }
 
+function maybeSort(issues: JiraIssue[], mode: 'updated' | 'default'): JiraIssue[] {
+  return mode === 'updated' ? sortByUpdated(issues) : issues;
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function MyTasksPage() {
@@ -197,6 +210,9 @@ export default function MyTasksPage() {
 
   // Transient filter (3 buckets, never persisted)
   const [activeBucket, setActiveBucket] = useState<FilterBucket | null>(null);
+
+  // Sort toggle: 'updated' sorts within groups by updated desc; 'default' keeps Jira order
+  const [sortMode, setSortMode] = useState<'updated' | 'default'>('updated');
 
   // Token loading
   const [jiraToken, setJiraToken] = useState<string | null>(null);
@@ -344,8 +360,7 @@ export default function MyTasksPage() {
   const allIssues = activeData?.issues ?? [];
   const myIssueKeys = activeData?.myIssueKeys ?? new Set<string>();
 
-  // ── Context subtitle derivation ────────────────────────────────────────────
-  // Derive from active scope: project name, open/done counts, points in flight
+  // ── Status line derivation ─────────────────────────────────────────────────
   const parents = allIssues.filter((i) => !i.fields.issuetype?.subtask);
   const openCount = parents.filter((i) => i.fields.status.statusCategory?.key !== 'done').length;
   const doneCount = parents.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
@@ -359,22 +374,30 @@ export default function MyTasksPage() {
       return sum + (sp || 0);
     }, 0);
 
-  // Project name from first parent (all same project)
-  const projectName =
-    (parents[0]?.fields.project as { name?: string } | null | undefined)?.name ??
-    activeJiraProject ??
-    '';
+  // Actionable highlights
+  const today = new Date().toISOString().slice(0, 10);
+  const overdueCount = parents.filter((i) => {
+    if (i.fields.status.statusCategory?.key === 'done') return false;
+    const due = (i.fields.duedate as string | null | undefined) ?? '';
+    return due !== '' && due < today;
+  }).length;
 
-  function buildSubtitle(): string {
-    if (scope === 'current-sprint') {
-      // Sprint name not in fetched fields — omit sprint prefix
-      return `${projectName} · ${openCount} open · ${doneCount} done · ${pointsInFlight} points in flight`;
-    }
-    const scopeLabel = scope === 'all-assigned' ? 'All Assigned' : 'All Reported';
-    return `${scopeLabel} · ${openCount} open · ${doneCount} done · ${pointsInFlight} points in flight`;
-  }
+  const flaggedCount = parents.filter((i) => {
+    if (i.fields.status.statusCategory?.key === 'done') return false;
+    return isIssueFlagged(i, flaggedFieldKey);
+  }).length;
 
-  const subtitle = buildSubtitle();
+  const inReviewCount = parents.filter((i) => {
+    const cat = i.fields.status.statusCategory?.key;
+    if (cat !== 'indeterminate') return false;
+    const statusName = (i.fields.status.name as string | undefined) ?? '';
+    return statusName.toLowerCase().includes('review');
+  }).length;
+
+  const mrsAwaitingCount =
+    mrHealthByKey.size > 0
+      ? Array.from(mrHealthByKey.values()).filter((h) => h === 'waiting_for_review').length
+      : 0;
 
   // ── Stat tile counts (3 buckets: toDo, inProgress, done) ──────────────────
   const tileToDoCount = parents.filter((i) => i.fields.status.statusCategory?.key === 'new').length;
@@ -474,7 +497,10 @@ export default function MyTasksPage() {
     return (
       <div>
         {bands.map(({ band, parents: bandParents }) => {
-          const sortedParents = sortByUpdated(bandParents.map((r) => r.parent));
+          const sortedParents = maybeSort(
+            bandParents.map((r) => r.parent),
+            sortMode,
+          );
           const sectionPts = sortedParents.reduce((sum, p) => {
             const sp =
               (p.fields[storyPointsFieldKey] as number | null | undefined) ??
@@ -554,7 +580,7 @@ export default function MyTasksPage() {
     return (
       <div>
         {STATUS_ORDER.filter((cat) => byStatus.has(cat)).map((cat) => {
-          const issues = sortByUpdated(byStatus.get(cat)!);
+          const issues = maybeSort(byStatus.get(cat)!, sortMode);
           const sectionPts = sumParentSP(issues, storyPointsFieldKey);
           return (
             <div key={cat}>
@@ -655,7 +681,7 @@ export default function MyTasksPage() {
     return (
       <div>
         {sortedGroups.map((group) => {
-          const issues = sortByUpdated(group.issues);
+          const issues = maybeSort(group.issues, sortMode);
           const sectionPts = sumParentSP(issues, storyPointsFieldKey);
           return (
             <div key={group.sprintId ?? '__backlog__'}>
@@ -708,12 +734,45 @@ export default function MyTasksPage() {
     <div className="flex flex-col h-full overflow-auto">
       {/* ── 1. Page header ──────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border shrink-0">
-        {/* Left: title + subtitle */}
+        {/* Left: title + actionable status line */}
         <div className="flex flex-col gap-1 min-w-0">
           <h1 className="text-3xl font-bold text-foreground leading-none">My Tasks</h1>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Calendar className="size-3.5 shrink-0" />
-            <span>{subtitle}</span>
+          <p className="flex items-center gap-0 text-sm text-muted-foreground flex-wrap">
+            <span>
+              {openCount} open · {doneCount} done · {pointsInFlight} pts in flight
+            </span>
+            {overdueCount > 0 && (
+              <>
+                <span className="mx-1">·</span>
+                <span className="text-red-600 dark:text-red-400 font-medium">
+                  {overdueCount} overdue
+                </span>
+              </>
+            )}
+            {flaggedCount > 0 && (
+              <>
+                <span className="mx-1">·</span>
+                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                  {flaggedCount} flagged
+                </span>
+              </>
+            )}
+            {inReviewCount > 0 && (
+              <>
+                <span className="mx-1">·</span>
+                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  {inReviewCount} in review
+                </span>
+              </>
+            )}
+            {mrsAwaitingCount > 0 && (
+              <>
+                <span className="mx-1">·</span>
+                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  {mrsAwaitingCount} MRs awaiting you
+                </span>
+              </>
+            )}
           </p>
         </div>
 
@@ -750,24 +809,6 @@ export default function MyTasksPage() {
             ))}
           </div>
 
-          {/* States ▾ — visual only, no behavior defined yet */}
-          <button
-            type="button"
-            className="h-8 px-3 text-xs font-medium rounded-md border border-border bg-card text-muted-foreground hover:bg-muted/60 transition-colors"
-            title="States filter (not yet implemented)"
-          >
-            States ▾
-          </button>
-
-          {/* Spec — visual only */}
-          <button
-            type="button"
-            className="h-8 px-3 text-xs font-medium rounded-md border border-border bg-card text-muted-foreground hover:bg-muted/60 transition-colors"
-            title="Spec (not yet implemented)"
-          >
-            Spec
-          </button>
-
           {/* + New issue */}
           <button
             type="button"
@@ -803,7 +844,7 @@ export default function MyTasksPage() {
                 </span>
                 <span className="text-sm text-muted-foreground">To Do</span>
               </div>
-              <List className="size-5 text-muted-foreground shrink-0" />
+              <Circle className="size-5 text-slate-400 dark:text-slate-500 shrink-0" />
             </div>
           </button>
 
@@ -826,7 +867,7 @@ export default function MyTasksPage() {
                 </span>
                 <span className="text-sm text-muted-foreground">In Progress</span>
               </div>
-              <GitBranch className="size-5 text-muted-foreground shrink-0" />
+              <CircleDot className="size-5 text-blue-500 shrink-0" />
             </div>
           </button>
 
@@ -849,7 +890,7 @@ export default function MyTasksPage() {
                 </span>
                 <span className="text-sm text-muted-foreground">Done</span>
               </div>
-              <Check className="size-5 text-green-600 dark:text-green-400 shrink-0" />
+              <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 shrink-0" />
             </div>
           </button>
         </div>
@@ -893,13 +934,24 @@ export default function MyTasksPage() {
           </div>
         </div>
 
-        {/* Right: Updated sort control (sorts within groups by updated desc — always active) */}
+        {/* Right: Updated sort toggle — switches between updated-desc and default (Jira rank) */}
         <button
           type="button"
-          className="flex items-center gap-1 h-7 px-2.5 text-xs font-medium rounded-md border border-border bg-card text-muted-foreground hover:bg-muted/60 transition-colors"
-          title="Sort by last updated (descending)"
+          aria-pressed={sortMode === 'updated'}
+          onClick={() => setSortMode((m) => (m === 'updated' ? 'default' : 'updated'))}
+          className={cn(
+            'flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium rounded-md border transition-colors',
+            sortMode === 'updated'
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border bg-card text-muted-foreground hover:bg-muted/60',
+          )}
+          title={
+            sortMode === 'updated'
+              ? 'Sorting by last updated — click for default order'
+              : 'Sort by last updated'
+          }
         >
-          <span>≡</span>
+          <ArrowDownUp className="size-3.5 shrink-0" />
           <span>Updated</span>
         </button>
       </div>
