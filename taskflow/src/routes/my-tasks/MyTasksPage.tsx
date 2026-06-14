@@ -21,7 +21,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, CheckSquare, Clock, ListFilter, RefreshCw } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Circle, ListFilter, LoaderCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -839,7 +839,7 @@ export default function MyTasksPage() {
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <Clock
+            <Circle
               className="pointer-events-none absolute -top-4 -right-3 size-20 text-slate-500/10 dark:text-slate-400/10"
               aria-hidden
             />
@@ -874,7 +874,7 @@ export default function MyTasksPage() {
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <RefreshCw
+            <LoaderCircle
               className="pointer-events-none absolute -top-4 -right-3 size-20 text-blue-500/10 dark:text-blue-400/15"
               aria-hidden
             />
@@ -909,7 +909,7 @@ export default function MyTasksPage() {
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <Check
+            <CheckCircle2
               className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
               aria-hidden
             />
