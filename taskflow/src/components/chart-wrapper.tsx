@@ -28,8 +28,12 @@ export function ChartWrapper({
   children,
 }: ChartWrapperProps) {
   const renderChart = () => {
+    // State precedence: error > loading > empty > success. Errors are surfaced
+    // ahead of loading so a background retry after a failed fetch (TanStack
+    // Query's isError + isFetching) shows the error rather than hiding it behind
+    // a skeleton. Callers should pass mutually-exclusive flags where possible.
+    if (error) return <ErrorState error={error} onRetry={onRetry} viewName={title} />;
     if (isLoading) return <Skeleton className="w-full h-full rounded-md" />;
-    if (error) return <ErrorState error={error} onRetry={onRetry ?? (() => {})} viewName={title} />;
     if (isEmpty)
       return (
         <EmptyState
