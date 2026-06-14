@@ -19,14 +19,14 @@ The app's first charting dependency — an enabling capability for the Dashboard
 
 A personal command center — independent from the Dashboard.
 
-- [ ] **MYTASK-01**: User can open a dedicated "My Tasks" page from the sidebar
-- [ ] **MYTASK-02**: User sees a summary/filter strip with counts (To Do / In Progress / In Review / Done this sprint, Overdue, MRs awaiting me) that double as filters
-- [ ] **MYTASK-03**: User can switch between three groupings — My Day (smart sort), By Status, By Sprint & Parent
-- [ ] **MYTASK-04**: My Day smart sort surfaces what needs attention first (flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do)
-- [ ] **MYTASK-05**: Each task row shows type, key, priority, summary, status pill, due date (overdue highlighted), story points, MR health badge, and time logged/remaining
-- [ ] **MYTASK-06**: User can act on a task inline — peek (body click) / open full page (key), transition status, log work, and right-click context menu
-- [ ] **MYTASK-07**: User can toggle scope between current sprint and all issues assigned to me (across sprints + backlog), with all-assigned fetched via proper server-side pagination (no fetch-once page cap)
-- [ ] **MYTASK-08**: User's grouping and scope preferences persist across sessions
+- [x] **MYTASK-01**: User can open a dedicated "My Tasks" page from the sidebar
+- [x] **MYTASK-02**: User sees a summary/filter strip with counts (To Do / In Progress / In Review / Done this sprint, Overdue, MRs awaiting me) that double as filters
+- [x] **MYTASK-03**: User can switch between three groupings — My Day (smart sort), By Status, By Sprint & Parent
+- [x] **MYTASK-04**: My Day smart sort surfaces what needs attention first (flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do)
+- [x] **MYTASK-05**: Each task row shows type, key, priority, summary, status pill, due date (overdue highlighted), story points, MR health badge, and time logged/remaining
+- [x] **MYTASK-06**: User can act on a task inline — peek (body click) / open full page (key), transition status, log work, and right-click context menu
+- [x] **MYTASK-07**: User can toggle scope between current sprint and all issues assigned to me (across sprints + backlog), with all-assigned fetched via proper server-side pagination (no fetch-once page cap)
+- [x] **MYTASK-08**: User's grouping and scope preferences persist across sessions
 
 ### Dashboard Redesign
 
@@ -80,14 +80,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CHART-01 | Phase 81 | Complete |
 | CHART-02 | Phase 81 | Complete |
 | CHART-03 | Phase 81 | Complete |
-| MYTASK-01 | Phase 82 | Pending |
-| MYTASK-02 | Phase 82 | Pending |
-| MYTASK-03 | Phase 82 | Pending |
-| MYTASK-04 | Phase 82 | Pending |
-| MYTASK-05 | Phase 82 | Pending |
-| MYTASK-06 | Phase 82 | Pending |
-| MYTASK-07 | Phase 82 | Pending |
-| MYTASK-08 | Phase 82 | Pending |
+| MYTASK-01 | Phase 82 | Complete |
+| MYTASK-02 | Phase 82 | Complete |
+| MYTASK-03 | Phase 82 | Complete |
+| MYTASK-04 | Phase 82 | Complete |
+| MYTASK-05 | Phase 82 | Complete |
+| MYTASK-06 | Phase 82 | Complete |
+| MYTASK-07 | Phase 82 | Complete |
+| MYTASK-08 | Phase 82 | Complete |
 | DASH-01 | Phase 83 | Pending |
 | DASH-02 | Phase 83 | Pending |
 | DASH-03 | Phase 83 | Pending |
@@ -99,6 +99,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | INSIGHT-02 | Phase 85 | Pending (Conditional) |
 
 **Coverage:**
+
 - v1.13 requirements: 20 total (18 committed + 2 conditional)
 - Mapped to phases: 20/20
 - Unmapped: 0

@@ -209,7 +209,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 **Milestone Goal:** Give each person a focused home in Taskflow — a real "My Tasks" command center and a redesigned, graph-driven Dashboard that surface what matters at a glance. Introduces the app's first charting library.
 
 - [ ] **Phase 81: Charting Foundation** — Install Recharts v3 + shadcn chart primitive; build and verify ChartWrapper in a real Tauri WebKit build
-- [ ] **Phase 82: My Tasks Page** — Personal command center with grouping modes, scope toggle, inline actions, and persisted preferences
+- [x] **Phase 82: My Tasks Page** — Personal command center with grouping modes, scope toggle, inline actions, and persisted preferences (completed 2026-06-14)
 - [ ] **Phase 83: Dashboard Stat Tiles and Sprint Health Chart** — Replace 3-card grid with stat tiles and a points-by-status chart; zero new API calls
 - [ ] **Phase 84: Dashboard Trend Chart, MR Review Queue, and Activity Strip** — Weekly logged-hours chart, MR review queue, and activity strip; all sections degrade independently
 - [ ] **Phase 85: Sprint Insights (Conditional)** — Probe-gated velocity and burndown charts; built only if live DC endpoint probes succeed
@@ -498,7 +498,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
-| 82. My Tasks Page | 5/5 | Complete   | 2026-06-14 |
+| 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
