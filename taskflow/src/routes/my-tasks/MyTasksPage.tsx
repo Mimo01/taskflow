@@ -21,7 +21,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, CheckSquare, Circle, CircleDot, ListFilter, Plus } from 'lucide-react';
+import { Check, CheckSquare, Clock, ListFilter, Plus, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -362,6 +362,30 @@ export default function MyTasksPage() {
     (i) => i.fields.status.statusCategory?.key === 'done',
   ).length;
 
+  // ── Sprint donut (points done / points total) ──────────────────────────────
+  const ptsDone = parents.reduce((sum, i) => {
+    if (i.fields.status.statusCategory?.key !== 'done') return sum;
+    const sp =
+      (i.fields[storyPointsFieldKey] as number | null | undefined) ??
+      (i.fields.customfield_10016 as number | null | undefined) ??
+      0;
+    return sum + (sp || 0);
+  }, 0);
+  const ptsTotal = parents.reduce((sum, i) => {
+    const sp =
+      (i.fields[storyPointsFieldKey] as number | null | undefined) ??
+      (i.fields.customfield_10016 as number | null | undefined) ??
+      0;
+    return sum + (sp || 0);
+  }, 0);
+  const DONUT_R = 25;
+  const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_R; // ≈ 157
+  const donutOffset =
+    ptsTotal > 0 ? DONUT_CIRCUMFERENCE * (1 - ptsDone / ptsTotal) : DONUT_CIRCUMFERENCE;
+
+  // ── Stat tile proportion (share of total for mini bar) ────────────────────
+  const tileTotalCount = tileToDoCount + tileInProgressCount + tileDoneCount;
+
   // ── Filter function ────────────────────────────────────────────────────────
   function applyBucketFilter(issues: JiraIssue[]): JiraIssue[] {
     if (!activeBucket) return issues;
@@ -536,12 +560,14 @@ export default function MyTasksPage() {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
-      {/* ── 1. Page header ──────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border/50 shrink-0">
-        {/* Left: title + actionable status line */}
+      {/* ── 1. Hero header ──────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-6 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
+        {/* Left: title + actionable subtitle */}
         <div className="flex flex-col gap-1 min-w-0">
-          <h1 className="text-3xl font-bold text-foreground leading-none">My Tasks</h1>
-          <p className="flex items-center gap-0 text-sm text-muted-foreground flex-wrap tabular-nums">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight leading-none">
+            My Tasks
+          </h1>
+          <p className="flex items-center gap-0 text-sm text-muted-foreground flex-wrap tabular-nums mt-1">
             <span>
               {openCount} open · {doneCount} done · {pointsInFlight} pts in flight
             </span>
@@ -580,43 +606,79 @@ export default function MyTasksPage() {
           </p>
         </div>
 
-        {/* Right: scope segmented control + toolbar buttons */}
-        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-          {/* Scope segmented control — 3-way pill group */}
-          <div
-            role="group"
-            aria-label="Scope"
-            className="flex items-center rounded-md border border-border overflow-hidden"
-          >
+        {/* Right: donut + scope segmented control + New issue */}
+        <div className="flex items-center gap-5 shrink-0">
+          {/* Sprint-progress donut */}
+          <div className="flex items-center gap-3">
+            <svg
+              width="56"
+              height="56"
+              viewBox="0 0 60 60"
+              aria-hidden="true"
+              style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
+            >
+              {/* Track */}
+              <circle
+                cx="30"
+                cy="30"
+                r={DONUT_R}
+                fill="none"
+                className="stroke-muted"
+                strokeWidth="8"
+              />
+              {/* Fill */}
+              <circle
+                cx="30"
+                cy="30"
+                r={DONUT_R}
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={DONUT_CIRCUMFERENCE}
+                strokeDashoffset={donutOffset}
+              />
+            </svg>
+            <div className="leading-tight">
+              <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
+                {ptsDone}
+                <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
+            </div>
+          </div>
+
+          {/* Scope segmented control */}
+          <fieldset className="inline-flex rounded-lg bg-muted p-0.5 border-0 m-0">
+            <legend className="sr-only">Scope</legend>
             {(
               [
                 { value: 'current-sprint', label: 'Current Sprint' },
                 { value: 'all-assigned', label: 'All Assigned' },
                 { value: 'all-reported', label: 'All Reported' },
               ] as const
-            ).map(({ value, label }, idx) => (
+            ).map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
                 aria-pressed={scope === value}
                 onClick={() => setScope(value)}
                 className={cn(
-                  'h-8 px-3 text-xs font-medium transition-colors',
-                  idx > 0 && 'border-l border-border',
+                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                   scope === value
-                    ? 'bg-foreground text-background'
-                    : 'bg-card text-muted-foreground hover:bg-muted/60',
+                    ? 'bg-foreground text-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {label}
               </button>
             ))}
-          </div>
+          </fieldset>
 
           {/* + New issue */}
           <button
             type="button"
-            className="h-8 px-3 text-xs font-medium rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center gap-1"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors"
             onClick={() => openCreateStory?.()}
             title={openCreateStory ? undefined : 'Create issue (not available in this context)'}
           >
@@ -626,7 +688,7 @@ export default function MyTasksPage() {
         </div>
       </div>
 
-      {/* ── 2. Three stat tiles ──────────────────────────────────────────────── */}
+      {/* ── 2. Enriched stat tiles ───────────────────────────────────────────── */}
       <div className="px-6 py-4 border-b border-border/50 shrink-0">
         <div className="grid grid-cols-3 gap-3">
           {/* To Do tile */}
@@ -635,20 +697,31 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'toDo'}
             onClick={() => handleBucketClick('toDo')}
             className={cn(
-              'rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors',
+              'rounded-xl border p-4 text-left transition-colors',
               activeBucket === 'toDo'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
-                : 'hover:bg-muted/30',
+                : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <div>
-                <span className="block text-2xl font-semibold tabular-nums text-foreground leading-none">
-                  {tileToDoCount}
-                </span>
-                <span className="mt-1 block text-sm text-muted-foreground">To Do</span>
-              </div>
-              <Circle className="size-5 text-muted-foreground/50 shrink-0" />
+              <span className="text-3xl font-semibold tabular-nums text-foreground leading-none">
+                {tileToDoCount}
+              </span>
+              <span className="h-8 w-8 grid place-items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                <Clock className="size-4" />
+              </span>
+            </div>
+            <div className="mt-2 text-sm text-muted-foreground">To Do</div>
+            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
+                style={{
+                  width:
+                    tileTotalCount > 0
+                      ? `${Math.round((tileToDoCount / tileTotalCount) * 100)}%`
+                      : '0%',
+                }}
+              />
             </div>
           </button>
 
@@ -658,20 +731,31 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'inProgress'}
             onClick={() => handleBucketClick('inProgress')}
             className={cn(
-              'rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors',
+              'rounded-xl border p-4 text-left transition-colors',
               activeBucket === 'inProgress'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
-                : 'hover:bg-muted/30',
+                : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <div>
-                <span className="block text-2xl font-semibold tabular-nums text-foreground leading-none">
-                  {tileInProgressCount}
-                </span>
-                <span className="mt-1 block text-sm text-muted-foreground">In Progress</span>
-              </div>
-              <CircleDot className="size-5 text-blue-500/60 shrink-0" />
+              <span className="text-3xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
+                {tileInProgressCount}
+              </span>
+              <span className="h-8 w-8 grid place-items-center rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
+                <RefreshCw className="size-4" />
+              </span>
+            </div>
+            <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
+            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all"
+                style={{
+                  width:
+                    tileTotalCount > 0
+                      ? `${Math.round((tileInProgressCount / tileTotalCount) * 100)}%`
+                      : '0%',
+                }}
+              />
             </div>
           </button>
 
@@ -681,20 +765,31 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'done'}
             onClick={() => handleBucketClick('done')}
             className={cn(
-              'rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors',
+              'rounded-xl border p-4 text-left transition-colors',
               activeBucket === 'done'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
-                : 'hover:bg-muted/30',
+                : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <div>
-                <span className="block text-2xl font-semibold tabular-nums text-foreground leading-none">
-                  {tileDoneCount}
-                </span>
-                <span className="mt-1 block text-sm text-muted-foreground">Done</span>
-              </div>
-              <CheckCircle2 className="size-5 text-green-600/60 dark:text-green-400/60 shrink-0" />
+              <span className="text-3xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
+                {tileDoneCount}
+              </span>
+              <span className="h-8 w-8 grid place-items-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Check className="size-4" />
+              </span>
+            </div>
+            <div className="mt-2 text-sm text-muted-foreground">Done</div>
+            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all"
+                style={{
+                  width:
+                    tileTotalCount > 0
+                      ? `${Math.round((tileDoneCount / tileTotalCount) * 100)}%`
+                      : '0%',
+                }}
+              />
             </div>
           </button>
         </div>
