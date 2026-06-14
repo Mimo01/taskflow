@@ -24,7 +24,7 @@ export function SmokeTestChart() {
       height={240}
     >
       <ChartContainer config={chartConfig} className="h-full w-full">
-        <BarChart responsive height={240} data={data}>
+        <BarChart data={data}>
           <XAxis dataKey="name" />
           <YAxis />
           <ChartTooltip content={<ChartTooltipContent />} />
