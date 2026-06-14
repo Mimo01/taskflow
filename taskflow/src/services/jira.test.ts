@@ -1705,8 +1705,11 @@ describe('jira service', () => {
       expect(decodedUrl).toContain('sprint in openSprints()');
       expect(decodedUrl).toContain('sprint in futureSprints()');
       expect(decodedUrl).toContain('sprint is EMPTY');
-      // Backlog (no-sprint) issues are only included when NOT done — done backlog items are excluded.
-      expect(decodedUrl).toContain('sprint is EMPTY AND statusCategory != Done');
+      // Done stories show only from the current (open) sprint; future-sprint and backlog
+      // issues are included only when NOT done.
+      expect(decodedUrl).toContain(
+        '(sprint in futureSprints() OR sprint is EMPTY) AND statusCategory != Done',
+      );
     });
 
     it('E1: returns all issues via full pagination (no page cap)', async () => {
@@ -1769,8 +1772,11 @@ describe('jira service', () => {
       expect(decodedUrl).toContain('sprint in openSprints()');
       expect(decodedUrl).toContain('sprint in futureSprints()');
       expect(decodedUrl).toContain('sprint is EMPTY');
-      // Backlog (no-sprint) issues are only included when NOT done — done backlog items are excluded.
-      expect(decodedUrl).toContain('sprint is EMPTY AND statusCategory != Done');
+      // Done stories show only from the current (open) sprint; future-sprint and backlog
+      // issues are included only when NOT done.
+      expect(decodedUrl).toContain(
+        '(sprint in futureSprints() OR sprint is EMPTY) AND statusCategory != Done',
+      );
     });
 
     it('E2: returns all issues via full pagination (no page cap) — criterion-6 mirror', async () => {
