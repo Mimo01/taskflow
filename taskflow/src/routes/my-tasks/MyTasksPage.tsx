@@ -556,7 +556,7 @@ export default function MyTasksPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full overflow-auto">
+    <div className="@container flex flex-col h-full overflow-auto">
       {/* ── 1. Hero header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
         {/* Left: title + actionable subtitle */}
@@ -605,8 +605,9 @@ export default function MyTasksPage() {
 
         {/* Right: donut + scope segmented control + New issue */}
         <div className="flex items-center gap-4 shrink-0">
-          {/* Sprint-progress donut (hidden on small screens to keep the header one line) */}
-          <div className="hidden lg:flex items-center gap-3">
+          {/* Sprint-progress donut — hidden when the CONTAINER (not viewport) is narrow,
+              so it also disappears when a drawer shrinks the content area. */}
+          <div className="hidden @[1000px]:flex items-center gap-3">
             <svg
               width="56"
               height="56"
