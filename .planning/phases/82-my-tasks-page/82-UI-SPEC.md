@@ -1,10 +1,11 @@
 ---
 phase: 82
 slug: my-tasks-page
-status: draft
+status: approved
 shadcn_initialized: true
 preset: manual (components.json present — Manual framework, no CLI preset string)
 created: 2026-06-14
+reviewed_at: 2026-06-14T00:00:00Z
 ---
 
 # Phase 82 — UI Design Contract
@@ -128,6 +129,8 @@ Source: `taskflow/src/components/ui/` (confirmed), CONTEXT.md canonical refs
 ---
 
 ## Interaction Contract
+
+**Primary visual anchor:** the summary/filter strip is the first element the eye lands on below the page title — it carries the live attention counts and is the page's primary navigation surface. Visual weight then descends to the grouping tabs/scope toggle row, then to the task rows. Within a row, the summary text is the focal element; metadata (key, points, due, badges) is secondary.
 
 ### Row Anatomy (MYTASK-05)
 Each `MyTaskRow` renders left-to-right:
