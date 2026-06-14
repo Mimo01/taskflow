@@ -19,7 +19,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { CheckSquare, ListFilter } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +28,11 @@ import { deriveCounts, groupByMyDay } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { fetchAllAssignedHierarchy, fetchMyTasksHierarchy } from '@/services/jira';
+import {
+  fetchAllAssignedHierarchy,
+  fetchAllReportedHierarchy,
+  fetchMyTasksHierarchy,
+} from '@/services/jira';
 import type { ReviewHealth } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -128,6 +132,13 @@ function matchesFilter(
 export default function MyTasksPage() {
   const navigate = useNavigate();
 
+  // Outlet context — real peek opener and breadcrumb-aware issue click from AppLayout (B1, B2)
+  const { onIssueClick, onOpenIssue: onOpenIssuePeek } =
+    useOutletContext<{
+      onIssueClick?: (key: string) => void;
+      onOpenIssue?: (key: string) => void;
+    }>() ?? {};
+
   // Auth + project
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, gitlabUserId } = useAuthStore();
 
@@ -215,6 +226,33 @@ export default function MyTasksPage() {
     placeholderData: (prev) => prev,
   });
 
+  // ── All reported query (E2) ───────────────────────────────────────────────
+  const {
+    data: reportedData,
+    isLoading: reportedLoading,
+    isError: reportedError,
+    refetch: reportedRefetch,
+  } = useQuery({
+    queryKey: [
+      'jira-issues',
+      'my-tasks-reported',
+      activeJiraProject,
+      storyPointsFieldKey,
+      flaggedFieldKey,
+    ],
+    queryFn: () =>
+      fetchAllReportedHierarchy(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        flaggedFieldKey,
+        storyPointsFieldKey,
+      ),
+    staleTime: 30_000,
+    enabled: enabled && scope === 'all-reported',
+    placeholderData: (prev) => prev,
+  });
+
   // ── GitLab authored MRs (band 2 / MR health) ──────────────────────────────
   const gitlabEnabled = !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId;
   const { data: authoredMRs } = useQuery({
@@ -239,10 +277,22 @@ export default function MyTasksPage() {
   }
 
   // ── Active scope data ──────────────────────────────────────────────────────
-  const activeData = scope === 'current-sprint' ? sprintData : allData;
-  const isLoading = scope === 'current-sprint' ? sprintLoading : allLoading;
-  const isError = scope === 'current-sprint' ? sprintError : allError;
-  const refetch = scope === 'current-sprint' ? sprintRefetch : allRefetch;
+  const activeData =
+    scope === 'current-sprint' ? sprintData : scope === 'all-assigned' ? allData : reportedData;
+  const isLoading =
+    scope === 'current-sprint'
+      ? sprintLoading
+      : scope === 'all-assigned'
+        ? allLoading
+        : reportedLoading;
+  const isError =
+    scope === 'current-sprint' ? sprintError : scope === 'all-assigned' ? allError : reportedError;
+  const refetch =
+    scope === 'current-sprint'
+      ? sprintRefetch
+      : scope === 'all-assigned'
+        ? allRefetch
+        : reportedRefetch;
 
   const allIssues = activeData?.issues ?? [];
   const myIssueKeys = activeData?.myIssueKeys ?? new Set<string>();
@@ -261,14 +311,22 @@ export default function MyTasksPage() {
   }
 
   // ── Navigation handlers ────────────────────────────────────────────────────
-  function handleOpenPeek(_key: string) {
-    // PeekPanel is provided by the app shell (AppLayout); in this phase
-    // we navigate to full detail as the peek integration is wired in plan 82-05
-    navigate(`/issue/${_key}`);
+  // B1: row body click → PeekPanel via outlet onOpenIssue; fallback to navigate for test safety
+  function handleOpenPeek(key: string) {
+    if (onOpenIssuePeek) {
+      onOpenIssuePeek(key);
+    } else {
+      navigate(`/issue/${key}`);
+    }
   }
 
+  // B2: issue-key click → breadcrumb-aware full-page via outlet onIssueClick; fallback to navigate
   function handleOpenIssue(key: string) {
-    navigate(`/issue/${key}`);
+    if (onIssueClick) {
+      onIssueClick(key);
+    } else {
+      navigate(`/issue/${key}`);
+    }
   }
 
   // ── MR health for an issue ─────────────────────────────────────────────────
@@ -659,6 +717,19 @@ export default function MyTasksPage() {
             >
               All Assigned
             </button>
+            <button
+              type="button"
+              aria-pressed={scope === 'all-reported'}
+              onClick={() => setScope('all-reported')}
+              className={cn(
+                'h-9 px-3 text-xs font-medium transition-colors border-l border-border',
+                scope === 'all-reported'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              )}
+            >
+              All Reported
+            </button>
           </div>
         </div>
 
@@ -674,7 +745,7 @@ export default function MyTasksPage() {
             {renderContent()}
           </TabsContent>
 
-          {/* Progressive loading indicator (D-06) — All Assigned scope while fetching */}
+          {/* Progressive loading indicator (D-06) — All Assigned / All Reported scope while fetching */}
           {scope === 'all-assigned' && allFetching && !allLoading && (
             <div className="px-4 py-3">
               <SkeletonRow />

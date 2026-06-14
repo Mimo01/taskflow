@@ -312,6 +312,7 @@ function AppLayout() {
     if (pathname.startsWith('/releases')) return 'Releases';
     if (pathname.startsWith('/worklogs')) return 'Worklogs';
     if (pathname.startsWith('/standup-notes')) return 'Standup Notes';
+    if (pathname.startsWith('/my-tasks')) return 'My Tasks';
     if (pathname.startsWith('/issue/')) return 'Issue';
     if (pathname.startsWith('/merge-requests')) return 'Merge Requests';
     if (pathname.startsWith('/mr/')) return 'MR Detail';
