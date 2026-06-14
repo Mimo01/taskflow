@@ -1,8 +1,8 @@
 ---
 phase: 81-charting-foundation
 verified: 2026-06-14T12:00:00Z
-status: human_needed
-score: 3/4 must-haves verified
+status: verified
+score: 4/4 must-haves verified
 overrides_applied: 0
 human_verification:
   - test: "Navigate to /dashboard in real macOS Tauri WebKit build; toggle light/dark theme"
@@ -116,5 +116,14 @@ The only human verification item was the real Tauri WebKit render (SC2), which t
 
 ---
 
+## Acknowledged Gaps
+
+UAT (2026-06-14) re-confirmed SC2 human render and surfaced one cosmetic, accepted item:
+
+- **Tooltip hovers the whole category band, not just the hovered bar** (severity: cosmetic). recharts default `<Tooltip>` cursor behavior. Found on `SmokeTestChart.tsx`, an explicit throwaway scaffold slated for removal in Phase 83. User accepted without fix — correct tooltip targeting is deferred to Phase 83's real data-driven charts. See `81-UAT.md` Gaps.
+
+---
+
 _Verified: 2026-06-14T12:00:00Z_
 _Verifier: Claude (gsd-verifier)_
+_UAT human sign-off: 2026-06-14 (2/2 passed; 1 cosmetic gap accepted)_
