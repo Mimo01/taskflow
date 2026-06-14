@@ -66,15 +66,26 @@ const FILTER_CHIPS: Array<{ key: FilterKey; label: string }> = [
   { key: 'mrAwaiting', label: 'MRs awaiting me' },
 ];
 
-// ── Filter chip accent colors (for active state indicator dot) ───────────────
+// ── Stat tile accent config (left stripe + active ring) ──────────────────────
 
-const CHIP_ACCENT: Record<FilterKey, string> = {
-  toDo: 'bg-muted-foreground',
-  inProgress: 'bg-blue-500',
-  inReview: 'bg-purple-500',
-  doneSprint: 'bg-green-500',
-  overdue: 'bg-destructive',
-  mrAwaiting: 'bg-amber-500',
+const TILE_ACCENT: Record<FilterKey, { stripe: string; active: string }> = {
+  toDo: { stripe: 'border-l-muted-foreground', active: 'bg-primary' },
+  inProgress: { stripe: 'border-l-blue-500', active: 'bg-blue-500' },
+  inReview: { stripe: 'border-l-purple-500', active: 'bg-purple-500' },
+  doneSprint: { stripe: 'border-l-green-500', active: 'bg-green-500' },
+  overdue: { stripe: 'border-l-destructive', active: 'bg-destructive' },
+  mrAwaiting: { stripe: 'border-l-amber-500', active: 'bg-amber-500' },
+};
+
+// ── Stat tile tooltips ────────────────────────────────────────────────────────
+
+const TILE_TOOLTIP: Record<FilterKey, string> = {
+  toDo: 'Issues not started yet (To Do status)',
+  inProgress: 'Issues in progress (excludes those in review)',
+  inReview: 'Issues currently in a review status',
+  doneSprint: 'Issues completed in the current sprint',
+  overdue: 'Open issues past their due date',
+  mrAwaiting: 'Issues whose merge requests are waiting on your review',
 };
 
 // ── Group header accent stripe colors per band/category ──────────────────────
@@ -137,16 +148,6 @@ function GroupHeader({
       {count !== undefined && (
         <span className="text-xs font-normal text-muted-foreground tabular-nums">{count}</span>
       )}
-    </div>
-  );
-}
-
-// ── Story card wrapper — groups parent row + subtask rows visually ────────────
-
-function StoryCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mx-3 my-1.5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-      {children}
     </div>
   );
 }
@@ -396,11 +397,11 @@ export default function MyTasksPage() {
     return undefined;
   }
 
-  // ── Render a story card (parent + subtasks) ────────────────────────────────
+  // ── Render flat parent + indented subtask rows (standup layout, no card box) ──
 
-  function renderStoryCard(parent: JiraIssue, subtasks: JiraIssue[]) {
+  function renderFlatRows(parent: JiraIssue, subtasks: JiraIssue[]) {
     return (
-      <StoryCard key={parent.key}>
+      <div key={parent.key}>
         <MyTaskRow
           issue={parent}
           jiraBaseUrl={jiraBaseUrl!}
@@ -423,7 +424,7 @@ export default function MyTasksPage() {
             onOpenIssue={handleOpenIssue}
           />
         ))}
-      </StoryCard>
+      </div>
     );
   }
 
@@ -461,7 +462,7 @@ export default function MyTasksPage() {
               count={parents.length}
               stripeClass={MY_DAY_BAND_STRIPE[band]}
             />
-            {parents.map(({ parent, subtasks }) => renderStoryCard(parent, subtasks))}
+            {parents.map(({ parent, subtasks }) => renderFlatRows(parent, subtasks))}
           </div>
         ))}
       </div>
@@ -531,7 +532,7 @@ export default function MyTasksPage() {
                 stripeClass={STATUS_CATEGORY_STRIPE[cat]}
               />
               {group.issues.map((parent) =>
-                renderStoryCard(parent, subtasksByParent.get(parent.key) ?? []),
+                renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
               )}
             </div>
           );
@@ -632,7 +633,7 @@ export default function MyTasksPage() {
               stripeClass="border-l-blue-500"
             />
             {group.issues.map((parent) =>
-              renderStoryCard(parent, subtasksByParent.get(parent.key) ?? []),
+              renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
             )}
           </div>
         ))}
@@ -736,37 +737,53 @@ export default function MyTasksPage() {
         </div>
       </div>
 
-      {/* Compact filter chips — MYTASK-02, D-01.
-          Single-select transient filter (click active chip to clear). NEVER persisted (D-01/D-10). */}
-      <div className="flex items-center gap-1.5 px-6 py-2 border-b border-border shrink-0 flex-wrap">
-        {FILTER_CHIPS.map(({ key, label }) => {
-          const count = counts[key];
-          const isActive = activeFilter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={isActive}
-              onClick={() => handleFilterClick(key)}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors shrink-0',
-                isActive
-                  ? 'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground',
-              )}
-            >
-              {/* Accent dot */}
-              <span
+      {/* Stat tiles band — MYTASK-02, D-01. Bigger stat-tile single-select filter.
+          Left accent stripe (no bottom border). Title attribute for tooltip.
+          Click active tile to clear. NEVER persisted (D-01/D-10). */}
+      <div className="px-6 py-3 border-b border-border shrink-0">
+        <div className="flex gap-2 flex-wrap">
+          {FILTER_CHIPS.map(({ key, label }) => {
+            const count = counts[key];
+            const isActive = activeFilter === key;
+            const accent = TILE_ACCENT[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                title={TILE_TOOLTIP[key]}
+                aria-pressed={isActive}
+                onClick={() => handleFilterClick(key)}
                 className={cn(
-                  'size-1.5 rounded-full shrink-0',
-                  isActive ? CHIP_ACCENT[key] : 'bg-muted-foreground/40',
+                  'relative flex flex-col items-start rounded-lg border-l-4 px-3 pt-2.5 pb-2 min-w-[72px] transition-all shrink-0',
+                  'ring-1 ring-inset',
+                  accent.stripe,
+                  isActive
+                    ? 'bg-primary/10 ring-primary/40 shadow-sm'
+                    : 'bg-card ring-border hover:ring-border/80 hover:bg-muted/40',
                 )}
-              />
-              <span className="tabular-nums font-semibold">{count}</span>
-              <span>{label}</span>
-            </button>
-          );
-        })}
+              >
+                {/* Count — large tabular-nums */}
+                <span
+                  className={cn(
+                    'tabular-nums text-lg font-semibold leading-none mb-1',
+                    isActive ? 'text-primary' : 'text-foreground',
+                  )}
+                >
+                  {count}
+                </span>
+                {/* Label */}
+                <span
+                  className={cn(
+                    'text-xs leading-tight',
+                    isActive ? 'text-primary/80 font-medium' : 'text-muted-foreground',
+                  )}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Issue list — tabs control which grouping renders */}
