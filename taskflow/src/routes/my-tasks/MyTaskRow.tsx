@@ -232,26 +232,28 @@ export function MyTaskRow({
         </span>
       )}
 
-      {/* 8. Assignee avatar — explicit size={24} prevents WebKit 0-width column collapse (E3) */}
-      <CachedAvatar
-        url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
-        name={issue.fields.assignee?.displayName ?? 'Unassigned'}
-        size={24}
-      />
-
-      {/* 9. MR health badge — only when mrHealth is provided */}
+      {/* 8. MR health badge — only when mrHealth is provided */}
       {mrHealth && (
         <Badge tone={MR_HEALTH_TONE[mrHealth]} className="shrink-0">
           {MR_HEALTH_LABEL[mrHealth]}
         </Badge>
       )}
 
-      {/* 10. Time logged/remaining bar — only when time data available */}
+      {/* 9. Time logged/remaining bar — only when time data available */}
       {timeProgressValue !== null && (
         <div className="w-16 shrink-0">
           <Progress value={timeProgressValue} />
         </div>
       )}
+
+      {/* 10. Assignee avatar — far-right trailing slot for both parent and subtask rows.
+           Explicit size={24} prevents WebKit 0-width column collapse (E3).
+           Unassigned renders a dashed-border icon (graceful fallback via CachedAvatar). */}
+      <CachedAvatar
+        url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+        name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+        size={24}
+      />
     </div>
   );
 
