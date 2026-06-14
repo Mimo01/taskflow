@@ -131,6 +131,48 @@ describe('client service', () => {
       );
     });
 
+    it('returns all 250 results when total=250 and first page returns 50', async () => {
+      // Criterion 6: proves pagination continues past an under-full first page.
+      // Page 1 (startAt=0): server returns only 50 issues (< PAGE_SIZE=200) but total=250.
+      // Page 2 (startAt=200): server returns the remaining 50 issues (250-200=50 window).
+      // The loop must fetch page 2 because startAt(200) < total(250).
+      const page1Issues = Array.from({ length: 50 }, (_, i) => ({
+        key: `PROJ-${i + 1}`,
+        fields: { summary: `Issue ${i + 1}` },
+      }));
+      const page2Issues = Array.from({ length: 200 }, (_, i) => ({
+        key: `PROJ-${50 + i + 1}`,
+        fields: { summary: `Issue ${50 + i + 1}` },
+      }));
+
+      vi.mocked(apiFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issues: page1Issues,
+            total: 250,
+            startAt: 0,
+            maxResults: PAGE_SIZE,
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issues: page2Issues,
+            total: 250,
+            startAt: PAGE_SIZE,
+            maxResults: PAGE_SIZE,
+          }),
+        } as Response);
+
+      const result = await fetchAllSearchPages(SEARCH_URL, HEADERS);
+      expect(result).toHaveLength(250);
+      expect(result[0].key).toBe('PROJ-1');
+      expect(result[249].key).toBe('PROJ-250');
+    });
+
     it('returns partial results when subsequent page fails', async () => {
       vi.mocked(apiFetch)
         .mockResolvedValueOnce({
