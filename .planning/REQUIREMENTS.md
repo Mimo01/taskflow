@@ -12,7 +12,7 @@ Requirements for this milestone. Each maps to a roadmap phase.
 The app's first charting dependency — an enabling capability for the Dashboard.
 
 - [x] **CHART-01**: Charts render via an integrated charting library (Recharts v3 + shadcn `chart` primitive) and follow the app's dark/light theme tokens (`--chart-1..5`)
-- [ ] **CHART-02**: Charts render correctly in the Tauri webview (WebKit + WebView2) — explicit-height wrapper, responsive width with no 0×0 collapse, animations disabled
+- [x] **CHART-02**: Charts render correctly in the Tauri webview (WebKit + WebView2) — explicit-height wrapper, responsive width with no 0×0 collapse, animations disabled
 - [x] **CHART-03**: A reusable chart-card wrapper provides consistent sizing, theming, and loading/empty/error states, and is lazy-loaded to protect bundle size
 
 ### My Tasks Page
@@ -78,7 +78,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CHART-01 | Phase 81 | Complete |
-| CHART-02 | Phase 81 | Pending |
+| CHART-02 | Phase 81 | Complete |
 | CHART-03 | Phase 81 | Complete |
 | MYTASK-01 | Phase 82 | Pending |
 | MYTASK-02 | Phase 82 | Pending |

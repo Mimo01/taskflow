@@ -2,9 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: verifying
-last_updated: "2026-06-14T11:55:30.105Z"
-last_activity: 2026-06-14
+status: completed
+stopped_at: Phase 81 UI-SPEC approved
+last_updated: "2026-06-14T11:59:33.585Z"
+last_activity: 2026-06-14 -- Phase 81 marked complete
 progress:
   total_phases: 10
   completed_phases: 1
@@ -24,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 81 (charting-foundation) — EXECUTING
+Phase: 81 — COMPLETE
 Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-06-14
+Status: Phase 81 complete
+Last activity: 2026-06-14 -- Phase 81 marked complete
 
 Progress: [██████████] 100%
 
