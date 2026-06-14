@@ -25,6 +25,7 @@
 import { Flag } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -220,23 +221,32 @@ export function MyTaskRow({
         </span>
       )}
 
-      {/* 7. Story points badge */}
-      <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium shrink-0">
-        {storyPoints !== null ? (
-          <span className="text-foreground">{storyPoints}</span>
-        ) : (
-          <span className="text-muted-foreground">?</span>
-        )}
-      </span>
+      {/* 7. Story points badge — hidden for subtasks (B3: subtasks do not carry story points) */}
+      {!isSubtask && (
+        <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium shrink-0">
+          {storyPoints !== null ? (
+            <span className="text-foreground">{storyPoints}</span>
+          ) : (
+            <span className="text-muted-foreground">?</span>
+          )}
+        </span>
+      )}
 
-      {/* 8. MR health badge — only when mrHealth is provided */}
+      {/* 8. Assignee avatar — explicit size={24} prevents WebKit 0-width column collapse (E3) */}
+      <CachedAvatar
+        url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+        name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+        size={24}
+      />
+
+      {/* 9. MR health badge — only when mrHealth is provided */}
       {mrHealth && (
         <Badge tone={MR_HEALTH_TONE[mrHealth]} className="shrink-0">
           {MR_HEALTH_LABEL[mrHealth]}
         </Badge>
       )}
 
-      {/* 9. Time logged/remaining bar — only when time data available */}
+      {/* 10. Time logged/remaining bar — only when time data available */}
       {timeProgressValue !== null && (
         <div className="w-16 shrink-0">
           <Progress value={timeProgressValue} />
