@@ -662,7 +662,7 @@ export async function fetchAllAssignedHierarchy(
   // assignee = currentUser() scopes to the authenticated user only (T-82-04).
   // Sprint clause excludes past/closed sprints — only open, future, or backlog (E1).
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND assignee = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND assignee = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR (sprint is EMPTY AND statusCategory != Done)) ORDER BY rank ASC`,
   );
 
   // fetchAllSearchPagesClient is the exported fetchAllSearchPages from jira/client.ts.
@@ -728,7 +728,7 @@ export async function fetchAllReportedHierarchy(
   // reporter = currentUser() scopes to issues the authenticated user created (E2).
   // Sprint clause excludes past/closed sprints — only open, future, or backlog (E1/E2).
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND reporter = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND reporter = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR (sprint is EMPTY AND statusCategory != Done)) ORDER BY rank ASC`,
   );
 
   const issues = await fetchAllSearchPagesClient(
