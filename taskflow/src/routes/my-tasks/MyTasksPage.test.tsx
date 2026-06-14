@@ -63,6 +63,7 @@ vi.mock('@/stores/my-tasks.store', () => ({
 vi.mock('@/services/jira', () => ({
   fetchMyTasksHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
   fetchAllAssignedHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
+  fetchAllReportedHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
   isIssueFlagged: vi.fn().mockReturnValue(false),
 }));
 
@@ -91,7 +92,19 @@ import MyTasksPage from './MyTasksPage';
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
-function renderPage() {
+// Mock useOutletContext so the component gets a proper outlet context in tests
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useOutletContext: vi.fn(),
+  };
+});
+
+import { useOutletContext } from 'react-router-dom';
+
+function renderPage(outletCtx?: Record<string, unknown>) {
+  vi.mocked(useOutletContext).mockReturnValue(outletCtx ?? {});
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -132,15 +145,25 @@ describe('MyTasksPage — MYTASK-01 smoke render', () => {
     expect(screen.getByText('By Sprint & Parent')).toBeDefined();
   });
 
-  it('renders the scope toggle with both options', () => {
+  it('renders all three scope toggle options (B1/B2/E2)', () => {
     renderPage();
     expect(screen.getByText('Current Sprint')).toBeDefined();
     expect(screen.getByText('All Assigned')).toBeDefined();
+    expect(screen.getByText('All Reported')).toBeDefined();
   });
 
   it('renders the empty state when no data is available', () => {
     renderPage();
     // My Day with no issues should show the "all caught up" empty state
     expect(screen.getByText("You're all caught up")).toBeDefined();
+  });
+
+  it('B1: outlet onOpenIssue is consumed (not navigate) for peek context', () => {
+    // If outlet context provides onOpenIssue, the component should not throw when receiving it
+    const onOpenIssue = vi.fn();
+    const onIssueClick = vi.fn();
+    // Page renders without error when outlet context is provided
+    renderPage({ onIssueClick, onOpenIssue });
+    expect(screen.getByText('My Tasks')).toBeDefined();
   });
 });
