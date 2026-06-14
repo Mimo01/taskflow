@@ -362,29 +362,17 @@ export default function MyTasksPage() {
     (i) => i.fields.status.statusCategory?.key === 'done',
   ).length;
 
-  // ── Sprint donut (points done / points total) ──────────────────────────────
-  const ptsDone = parents.reduce((sum, i) => {
-    if (i.fields.status.statusCategory?.key !== 'done') return sum;
-    const sp =
-      (i.fields[storyPointsFieldKey] as number | null | undefined) ??
-      (i.fields.customfield_10016 as number | null | undefined) ??
-      0;
-    return sum + (sp || 0);
-  }, 0);
-  const ptsTotal = parents.reduce((sum, i) => {
-    const sp =
-      (i.fields[storyPointsFieldKey] as number | null | undefined) ??
-      (i.fields.customfield_10016 as number | null | undefined) ??
-      0;
-    return sum + (sp || 0);
-  }, 0);
+  // ── Sprint donut: To Do / In Progress / Done breakdown (by issue count) ─────
+  const tileTotalCount = tileToDoCount + tileInProgressCount + tileDoneCount;
   const DONUT_R = 25;
   const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_R; // ≈ 157
-  const donutOffset =
-    ptsTotal > 0 ? DONUT_CIRCUMFERENCE * (1 - ptsDone / ptsTotal) : DONUT_CIRCUMFERENCE;
+  const donutSegLen = (count: number) =>
+    tileTotalCount > 0 ? (count / tileTotalCount) * DONUT_CIRCUMFERENCE : 0;
+  const donutToDoLen = donutSegLen(tileToDoCount);
+  const donutInProgLen = donutSegLen(tileInProgressCount);
+  const donutDoneLen = donutSegLen(tileDoneCount);
 
-  // ── Stat tile proportion (share of total for mini bar) ────────────────────
-  const tileTotalCount = tileToDoCount + tileInProgressCount + tileDoneCount;
+  // tileTotalCount (computed above with the donut) drives both the donut breakdown and the mini bars.
 
   // ── Filter function ────────────────────────────────────────────────────────
   function applyBucketFilter(issues: JiraIssue[]): JiraIssue[] {
@@ -626,7 +614,29 @@ export default function MyTasksPage() {
                 className="stroke-muted"
                 strokeWidth="8"
               />
-              {/* Fill */}
+              {/* To Do segment (slate) */}
+              <circle
+                cx="30"
+                cy="30"
+                r={DONUT_R}
+                fill="none"
+                stroke="#94a3b8"
+                strokeWidth="8"
+                strokeDasharray={`${donutToDoLen} ${DONUT_CIRCUMFERENCE - donutToDoLen}`}
+                strokeDashoffset={0}
+              />
+              {/* In Progress segment (blue) */}
+              <circle
+                cx="30"
+                cy="30"
+                r={DONUT_R}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="8"
+                strokeDasharray={`${donutInProgLen} ${DONUT_CIRCUMFERENCE - donutInProgLen}`}
+                strokeDashoffset={-donutToDoLen}
+              />
+              {/* Done segment (emerald) */}
               <circle
                 cx="30"
                 cy="30"
@@ -634,17 +644,15 @@ export default function MyTasksPage() {
                 fill="none"
                 stroke="#10b981"
                 strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={DONUT_CIRCUMFERENCE}
-                strokeDashoffset={donutOffset}
+                strokeDasharray={`${donutDoneLen} ${DONUT_CIRCUMFERENCE - donutDoneLen}`}
+                strokeDashoffset={-(donutToDoLen + donutInProgLen)}
               />
             </svg>
             <div className="leading-tight">
               <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
-                {ptsDone}
-                <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
+                {tileTotalCount}
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
+              <div className="text-xs text-muted-foreground mt-0.5">tasks</div>
             </div>
           </div>
 
