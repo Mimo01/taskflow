@@ -46,11 +46,16 @@ vi.mock('@tauri-apps/plugin-store', () => {
 });
 
 // ResizeObserver mock — required for Recharts ResponsiveContainer in jsdom.
-// Stores the callback so a future test can trigger a synthetic resize; matches
-// the real `new ResizeObserver(callback)` constructor signature.
+// jsdom never lays out elements, so a real observer would report 0x0 and
+// Recharts would refuse to render its SVG surface. This mock matches the real
+// `new ResizeObserver(callback)` signature, stores the callback, and on
+// observe() synchronously delivers a non-zero contentRect so charts mount.
 global.ResizeObserver = class ResizeObserver {
   constructor(private cb: ResizeObserverCallback) {}
-  observe() {}
+  observe(target: Element) {
+    const contentRect = { width: 600, height: 400 } as DOMRectReadOnly;
+    this.cb([{ target, contentRect } as ResizeObserverEntry], this);
+  }
   unobserve() {}
   disconnect() {}
 } as unknown as typeof ResizeObserver;
