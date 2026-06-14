@@ -516,7 +516,7 @@ export default function MyTasksPage() {
                 dotClass={MY_DAY_BAND_DOT[band]}
                 sectionPts={sectionPts}
               />
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {sortedParents.map((parent) =>
                   renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
                 )}

@@ -16,7 +16,7 @@
  * - statusPill wrapped in flex div (statusPill needs flex parent for geometry)
  */
 
-import { ChevronDown, ChevronRight, Flag, Folder } from 'lucide-react';
+import { Flag, Folder } from 'lucide-react';
 import { useState } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
@@ -170,8 +170,6 @@ export function MyTaskRow({
 }: MyTaskRowProps) {
   // logWorkOpen is shared for both parent and subtask branches (only one branch renders at a time)
   const [logWorkOpen, setLogWorkOpen] = useState(false);
-  // Local collapse state: true = subtasks hidden
-  const [collapsed, setCollapsed] = useState(false);
 
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
   const statusCategoryKey = issue.fields.status.statusCategory?.key;
@@ -358,8 +356,6 @@ export function MyTaskRow({
 
   // ── Parent row ────────────────────────────────────────────────────────────
 
-  const hasSubtasks = subtasks.length > 0;
-
   const rowContent = (
     // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML
     <div
@@ -376,27 +372,8 @@ export function MyTaskRow({
     >
       {/* LEFT region: chevron + icons + key + summary + chips */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        {/* 1. Expand/collapse chevron — only when subtasks exist */}
-        <span
-          className="flex items-center justify-center shrink-0"
-          style={{ width: 16, height: 16 }}
-          aria-hidden
-        >
-          {hasSubtasks && (
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground cursor-pointer p-0 border-0 bg-transparent"
-              tabIndex={-1}
-              onClick={(e) => {
-                e.stopPropagation();
-                setCollapsed((c) => !c);
-              }}
-              aria-label={collapsed ? 'Expand subtasks' : 'Collapse subtasks'}
-            >
-              {collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
-            </button>
-          )}
-        </span>
+        {/* 1. Fixed-width spacer (chevron removed — subtasks always visible) */}
+        <span className="shrink-0" style={{ width: 16 }} aria-hidden />
 
         {/* 2. Issue type icon */}
         <span
@@ -526,7 +503,7 @@ export function MyTaskRow({
   );
 
   return (
-    <div className="rounded-lg border border-border bg-card hover:shadow-sm transition-shadow">
+    <>
       <ContextMenu>
         <ContextMenuTrigger render={rowContent} />
         <ContextMenuContent>
@@ -567,25 +544,21 @@ export function MyTaskRow({
         )}
       </ContextMenu>
 
-      {/* Subtasks — hairline separator + nested rows, collapsed when chevron toggled */}
-      {!collapsed && subtasks.length > 0 && (
-        <div className="border-t border-border/40">
-          {subtasks.map((subtask) => (
-            <MyTaskRow
-              key={subtask.key}
-              issue={subtask}
-              isSubtask
-              jiraBaseUrl={jiraBaseUrl}
-              storyPointsFieldKey={storyPointsFieldKey}
-              flaggedFieldKey={flaggedFieldKey}
-              onOpenPeek={onOpenPeek}
-              onOpenIssue={onOpenIssue}
-              onStatusSelect={onStatusSelect}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      {/* Subtasks — always rendered, flat rows indented beneath parent */}
+      {subtasks.map((subtask) => (
+        <MyTaskRow
+          key={subtask.key}
+          issue={subtask}
+          isSubtask
+          jiraBaseUrl={jiraBaseUrl}
+          storyPointsFieldKey={storyPointsFieldKey}
+          flaggedFieldKey={flaggedFieldKey}
+          onOpenPeek={onOpenPeek}
+          onOpenIssue={onOpenIssue}
+          onStatusSelect={onStatusSelect}
+        />
+      ))}
+    </>
   );
 }
 
