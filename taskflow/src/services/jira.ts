@@ -501,7 +501,7 @@ export async function fetchMyTasksHierarchy(
 
   // Step 1: my stories + my subtasks in parallel — both fully paginated
   const myStoriesJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY rank ASC`,
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND assignee = currentUser() ORDER BY rank ASC`,
   );
   // Note: sprint in openSprints() does not work for subtasks on Jira DC — use statusCategory filter instead.
   // Sprint membership is validated downstream by checking parent key against sprintKeySet.
@@ -558,7 +558,7 @@ export async function fetchMyTasksHierarchy(
   if (extraParentKeys.length > 0) {
     try {
       const extraJql = encodeURIComponent(
-        `key in (${extraParentKeys.join(',')}) AND sprint in openSprints()`,
+        `key in (${extraParentKeys.join(',')}) AND sprint in openSprints() AND issuetype != Epic`,
       );
       extraParents = await fetchAllSearchPages(
         `${base}/rest/api/2/search?jql=${extraJql}&fields=${fields}`,
@@ -659,7 +659,7 @@ export async function fetchAllAssignedHierarchy(
   // assignee = currentUser() scopes to the authenticated user only (T-82-04).
   // Sprint clause excludes past/closed sprints — only open, future, or backlog (E1).
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND assignee = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
   );
 
   // fetchAllSearchPagesClient is the exported fetchAllSearchPages from jira/client.ts.
@@ -723,7 +723,7 @@ export async function fetchAllReportedHierarchy(
   // reporter = currentUser() scopes to issues the authenticated user created (E2).
   // Sprint clause excludes past/closed sprints — only open, future, or backlog (E1/E2).
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND reporter = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND issuetype != Epic AND reporter = currentUser() AND (sprint in openSprints() OR sprint in futureSprints() OR sprint is EMPTY) ORDER BY rank ASC`,
   );
 
   const issues = await fetchAllSearchPagesClient(

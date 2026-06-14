@@ -17,6 +17,7 @@ import {
   fetchFixVersions,
   fetchIssueLinkTypes,
   fetchJiraIssueByKey,
+  fetchMyTasksHierarchy,
   fetchSprintIssues,
   type JiraIssue,
   listJiraProjects,
@@ -1794,6 +1795,57 @@ describe('jira service', () => {
       const result = await fetchAllReportedHierarchy(BASE, TOKEN, 'PROJ');
       expect(result.issues).toHaveLength(250);
       expect(result.myIssueKeys.size).toBe(250);
+    });
+  });
+
+  // ── C1: Epic exclusion from all My Tasks parent queries ───────────────────
+  describe('C1: epic exclusion from My Tasks parent queries', () => {
+    it('fetchMyTasksHierarchy: my-stories JQL contains issuetype != Epic', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+      // subtasks parallel fetch
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetchMyTasksHierarchy(BASE, TOKEN, 'PROJ');
+
+      const firstCallUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const decodedUrl = decodeURIComponent(firstCallUrl);
+      expect(decodedUrl).toContain('issuetype != Epic');
+    });
+
+    it('fetchAllAssignedHierarchy: JQL contains issuetype != Epic', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetchAllAssignedHierarchy(BASE, TOKEN, 'PROJ');
+
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const decodedUrl = decodeURIComponent(url);
+      expect(decodedUrl).toContain('issuetype != Epic');
+    });
+
+    it('fetchAllReportedHierarchy: JQL contains issuetype != Epic', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+      } as Response);
+
+      await fetchAllReportedHierarchy(BASE, TOKEN, 'PROJ');
+
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const decodedUrl = decodeURIComponent(url);
+      expect(decodedUrl).toContain('issuetype != Epic');
     });
   });
 });
