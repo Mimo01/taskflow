@@ -261,7 +261,7 @@ export function MyTaskRow({
         url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
         name={issue.fields.assignee?.displayName ?? 'Unassigned'}
         size={24}
-        className="ring-1 ring-border shrink-0"
+        className="shrink-0"
       />
     </div>
   );
