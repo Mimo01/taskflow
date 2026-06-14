@@ -45,12 +45,6 @@ const MR_HEALTH_LABEL: Record<ReviewHealth, string> = {
   waiting_for_review: 'Awaiting review',
 };
 
-const MR_HEALTH_CLASS: Record<ReviewHealth, string> = {
-  approved: 'bg-green-500/15 text-green-700 dark:text-green-400',
-  changes_requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-  waiting_for_review: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
-};
-
 // ── Stacked time bar ──────────────────────────────────────────────────────────
 
 interface StackedTimeBarProps {
@@ -87,10 +81,10 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
     <div className="shrink-0 flex flex-col gap-0.5" style={{ width: 144 }}>
       <Progress
         value={hasEst ? fillPct : 0}
-        className="h-1.5 w-full"
-        indicatorClassName={indicatorColor}
+        className="h-1.5 w-full rounded-full"
+        indicatorClassName={indicatorColor ? `${indicatorColor} rounded-full` : undefined}
       />
-      <span className="text-xs text-muted-foreground tabular-nums font-mono whitespace-nowrap">
+      <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
         {caption}
       </span>
     </div>
@@ -108,14 +102,14 @@ function LabelChips({ labels }: { labels: string[] }) {
       {visible.map((label) => (
         <span
           key={label}
-          className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0 max-w-[120px]"
+          className="inline-flex items-center gap-0.5 rounded-md border border-border/60 px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0 max-w-[120px]"
         >
           <Folder className="size-3 shrink-0" />
           <span className="truncate">{label}</span>
         </span>
       ))}
       {overflow > 0 && (
-        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0">
+        <span className="inline-flex items-center rounded-md border border-border/60 px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0">
           +{overflow}
         </span>
       )}
@@ -229,7 +223,7 @@ export function MyTaskRow({
       <div
         role="button"
         tabIndex={0}
-        className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
         onClick={() => onOpenPeek(issue.key)}
         onKeyDown={handleKeyDown}
         data-testid={`my-task-row-${issue.key}`}
@@ -268,7 +262,7 @@ export function MyTaskRow({
           {/* Summary */}
           <span
             className={cn(
-              'flex-1 min-w-0 truncate text-sm',
+              'flex-1 min-w-0 truncate text-sm font-medium text-foreground',
               doneSummaryClass(issue.fields.status.statusCategory),
             )}
           >
@@ -313,6 +307,7 @@ export function MyTaskRow({
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
             name={issue.fields.assignee?.displayName ?? 'Unassigned'}
             size={24}
+            className="ring-1 ring-border"
           />
         </div>
       </div>
@@ -371,7 +366,7 @@ export function MyTaskRow({
       role="button"
       tabIndex={0}
       className={cn(
-        'flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors',
+        'flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors',
         isFlagged &&
           'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
       )}
@@ -443,7 +438,7 @@ export function MyTaskRow({
         {/* 5. Summary */}
         <span
           className={cn(
-            'flex-1 min-w-0 truncate text-sm',
+            'flex-1 min-w-0 truncate text-sm font-medium text-foreground',
             doneSummaryClass(issue.fields.status.statusCategory),
           )}
         >
@@ -457,7 +452,7 @@ export function MyTaskRow({
 
         {/* Flagged chip */}
         {isFlagged && (
-          <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs bg-red-500/15 text-red-700 dark:text-red-400 shrink-0">
+          <span className="inline-flex items-center gap-0.5 rounded-md border border-red-500/30 px-1.5 py-0.5 text-xs bg-red-500/10 text-red-700 dark:text-red-400 shrink-0">
             <Flag className="size-3" />
             Flagged
           </span>
@@ -470,8 +465,13 @@ export function MyTaskRow({
         {mrHealth && (
           <span
             className={cn(
-              'inline-flex items-center rounded px-1.5 py-0.5 text-xs shrink-0',
-              MR_HEALTH_CLASS[mrHealth],
+              'inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs shrink-0',
+              mrHealth === 'approved' &&
+                'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400',
+              mrHealth === 'changes_requested' &&
+                'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+              mrHealth === 'waiting_for_review' &&
+                'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400',
             )}
           >
             {MR_HEALTH_LABEL[mrHealth]}
@@ -501,11 +501,11 @@ export function MyTaskRow({
         {/* Matches BacklogRow style: bordered muted chip, number only, ? when none */}
         <span className="flex shrink-0 items-center justify-center" style={{ width: 48 }}>
           {storyPoints !== null ? (
-            <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-foreground">
+            <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium tabular-nums text-foreground">
               {storyPoints}
             </span>
           ) : (
-            <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground">
+            <span className="inline-flex w-7 items-center justify-center rounded-md border border-border/60 bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground/50">
               ?
             </span>
           )}
@@ -519,13 +519,14 @@ export function MyTaskRow({
           url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
           name={issue.fields.assignee?.displayName ?? 'Unassigned'}
           size={24}
+          className="ring-1 ring-border"
         />
       </div>
     </div>
   );
 
   return (
-    <div className="border-b border-border/60">
+    <div className="border-b border-border/40">
       <ContextMenu>
         <ContextMenuTrigger render={rowContent} />
         <ContextMenuContent>
