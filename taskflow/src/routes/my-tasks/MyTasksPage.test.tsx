@@ -1,8 +1,8 @@
 /**
- * MyTasksPage smoke test — MYTASK-01
+ * MyTasksPage smoke test — MYTASK-01 (updated for 82-DESIGN-TARGET redesign)
  *
  * Verifies the page mounts and renders without throwing.
- * Mocks all external dependencies (services, stores, stronghold).
+ * Checks the new structure: 3-way scope control, 3 stat tiles, GROUP control row.
  *
  * Pattern: DashboardInProgressCard.test.tsx (mock useQuery at the top,
  * provide QueryClientProvider + MemoryRouter in render helper).
@@ -119,7 +119,7 @@ function renderPage(outletCtx?: Record<string, unknown>) {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('MyTasksPage — MYTASK-01 smoke render', () => {
+describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -129,23 +129,25 @@ describe('MyTasksPage — MYTASK-01 smoke render', () => {
     expect(screen.getByText('My Tasks')).toBeDefined();
   });
 
-  it('renders the summary filter strip pills', () => {
+  it('renders the three stat tiles (To Do / In Progress / Done)', () => {
     renderPage();
-    expect(screen.getByText('To Do')).toBeDefined();
-    expect(screen.getByText('In Progress')).toBeDefined();
-    expect(screen.getByText('Done this sprint')).toBeDefined();
-    expect(screen.getByText('Overdue')).toBeDefined();
-    expect(screen.getByText('MRs awaiting me')).toBeDefined();
+    // The new design has 3 tiles (replacing the old 6 filter chips)
+    const toDo = screen.getAllByText('To Do');
+    expect(toDo.length).toBeGreaterThanOrEqual(1);
+    const inProgress = screen.getAllByText('In Progress');
+    expect(inProgress.length).toBeGreaterThanOrEqual(1);
+    const done = screen.getAllByText('Done');
+    expect(done.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the grouping tabs', () => {
+  it('renders the grouping segmented control options in the GROUP row', () => {
     renderPage();
     expect(screen.getByText('My Day')).toBeDefined();
     expect(screen.getByText('By Status')).toBeDefined();
     expect(screen.getByText('By Sprint & Parent')).toBeDefined();
   });
 
-  it('renders all three scope toggle options (B1/B2/E2)', () => {
+  it('renders all three scope toggle options in the right toolbar', () => {
     renderPage();
     expect(screen.getByText('Current Sprint')).toBeDefined();
     expect(screen.getByText('All Assigned')).toBeDefined();
@@ -158,11 +160,21 @@ describe('MyTasksPage — MYTASK-01 smoke render', () => {
     expect(screen.getByText("You're all caught up")).toBeDefined();
   });
 
+  it('renders States and Spec toolbar buttons', () => {
+    renderPage();
+    expect(screen.getByTitle('States filter (not yet implemented)')).toBeDefined();
+    expect(screen.getByTitle('Spec (not yet implemented)')).toBeDefined();
+  });
+
+  it('renders the + New issue button', () => {
+    renderPage();
+    expect(screen.getByText('New issue')).toBeDefined();
+  });
+
   it('B1: outlet onOpenIssue is consumed (not navigate) for peek context', () => {
     // If outlet context provides onOpenIssue, the component should not throw when receiving it
     const onOpenIssue = vi.fn();
     const onIssueClick = vi.fn();
-    // Page renders without error when outlet context is provided
     renderPage({ onIssueClick, onOpenIssue });
     expect(screen.getByText('My Tasks')).toBeDefined();
   });
