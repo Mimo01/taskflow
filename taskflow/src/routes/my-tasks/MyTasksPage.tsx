@@ -362,15 +362,28 @@ export default function MyTasksPage() {
     (i) => i.fields.status.statusCategory?.key === 'done',
   ).length;
 
-  // ── Sprint donut: To Do / In Progress / Done breakdown (by issue count) ─────
+  // tileTotalCount drives the stat-tile mini bars (by issue count).
   const tileTotalCount = tileToDoCount + tileInProgressCount + tileDoneCount;
+  // ── Sprint donut: To Do / In Progress / Done breakdown (by story points) ────
+  const sumBucketSP = (categoryKey: string) =>
+    parents.reduce((sum, i) => {
+      if (i.fields.status.statusCategory?.key !== categoryKey) return sum;
+      const sp =
+        (i.fields[storyPointsFieldKey] as number | null | undefined) ??
+        (i.fields.customfield_10016 as number | null | undefined) ??
+        0;
+      return sum + (sp || 0);
+    }, 0);
+  const spToDo = sumBucketSP('new');
+  const spInProgress = sumBucketSP('indeterminate');
+  const spDone = sumBucketSP('done');
+  const spTotal = spToDo + spInProgress + spDone;
   const DONUT_R = 25;
   const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_R; // ≈ 157
-  const donutSegLen = (count: number) =>
-    tileTotalCount > 0 ? (count / tileTotalCount) * DONUT_CIRCUMFERENCE : 0;
-  const donutToDoLen = donutSegLen(tileToDoCount);
-  const donutInProgLen = donutSegLen(tileInProgressCount);
-  const donutDoneLen = donutSegLen(tileDoneCount);
+  const donutSegLen = (pts: number) => (spTotal > 0 ? (pts / spTotal) * DONUT_CIRCUMFERENCE : 0);
+  const donutToDoLen = donutSegLen(spToDo);
+  const donutInProgLen = donutSegLen(spInProgress);
+  const donutDoneLen = donutSegLen(spDone);
 
   // tileTotalCount (computed above with the donut) drives both the donut breakdown and the mini bars.
 
@@ -650,9 +663,9 @@ export default function MyTasksPage() {
             </svg>
             <div className="leading-tight">
               <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
-                {tileTotalCount}
+                {spTotal}
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5">tasks</div>
+              <div className="text-xs text-muted-foreground mt-0.5">pts</div>
             </div>
           </div>
 
