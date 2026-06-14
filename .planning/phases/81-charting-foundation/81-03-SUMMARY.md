@@ -25,16 +25,16 @@ decisions:
   - "card.tsx carried a Biome formatting deviation from Plan 01 (shadcn generation style); npm run fix corrected it and was committed alongside Task 1 files"
   - "Bundle analysis used direct string search in dist/ JS files (not visualizer HTML) — RechartsWrapper and recharts-specific exports confirmed absent from index-*.js"
 metrics:
-  duration: "~4 minutes (Tasks 1-2 autonomous)"
+  duration: "~4 minutes (Tasks 1-2 autonomous) + human UAT"
   completed: "2026-06-14"
-  tasks_completed: 2
-  tasks_pending: 1
+  tasks_completed: 3
+  tasks_pending: 0
   files_changed: 3
 ---
 
 # Phase 81 Plan 03: Smoke-Test Chart + Lazy Dashboard Route Summary
 
-SCAFFOLD smoke-test chart (`SmokeTestChart.tsx`) mounted on `/dashboard` via `ChartWrapper` + `ChartContainer` + `BarChart` with `responsive` prop, explicit 240px height, `var(--chart-1)` CSS-var colors, and `isAnimationActive={false}` on the Bar series. Dashboard route converted to `React.lazy()` + `withLazy(Dashboard)` — production build confirms recharts lands exclusively in the `dashboard-*.js` lazy chunk (354 KB), absent from the main `index-*.js` bundle. Human UAT pending (Task 3 checkpoint: WebKit render in real Tauri build).
+SCAFFOLD smoke-test chart (`SmokeTestChart.tsx`) mounted on `/dashboard` via `ChartWrapper` + `ChartContainer` + `BarChart` with `responsive` prop, explicit 240px height, `var(--chart-1)` CSS-var colors, and `isAnimationActive={false}` on the Bar series. Dashboard route converted to `React.lazy()` + `withLazy(Dashboard)` — production build confirms recharts lands exclusively in the `dashboard-*.js` lazy chunk (354 KB), absent from the main `index-*.js` bundle. Human UAT PASSED (Task 3): smoke chart renders at expected ~240px dimensions in real macOS Tauri WebKit, correct blue-spectrum `--chart-N` token colors visible and correct in both light and dark themes — no 0x0 collapse. CHART-01, CHART-02, CHART-03 fully satisfied.
 
 ## Tasks Completed
 
@@ -42,7 +42,7 @@ SCAFFOLD smoke-test chart (`SmokeTestChart.tsx`) mounted on `/dashboard` via `Ch
 |------|-------------|--------|--------|
 | 1 | Create SCAFFOLD SmokeTestChart + mount on /dashboard | c4de0c56 | Done |
 | 2 | Convert Dashboard route to React.lazy() + bundle analysis | f5b333df | Done |
-| 3 | Human UAT — smoke chart renders in real Tauri WebKit build | — | Awaiting checkpoint |
+| 3 | Human UAT — smoke chart renders in real Tauri WebKit build | — | APPROVED |
 
 ## Bundle Analysis Result (Task 2 — CHART-01/CHART-03)
 
@@ -114,6 +114,18 @@ npm run test (full suite)                                         1917 passed, 0
 
 None — throwaway scaffold chart + lazy route conversion. No new network endpoints, auth paths, or trust boundaries. Consistent with plan threat model (T-81-03-D: ChunkErrorBoundary already covers chunk-load failure).
 
+## Human UAT Outcome (Task 3 — CHART-02)
+
+**Status:** APPROVED
+
+The user navigated to /dashboard in a real macOS Tauri WebKit build and confirmed:
+- "Chart smoke test" card is visible at ~240px height — no 0x0 collapse, no blank/invisible SVG
+- Bar chart fills the card width with correct proportions
+- Blue-spectrum `--chart-N` token colors are correct in both **light** and **dark** themes
+- Theme toggle (light ↔ dark) preserves chart bar and axis label visibility
+
+CHART-02 is fully satisfied. Phase 81 charting foundation is complete.
+
 ## Self-Check
 
 - [x] `taskflow/src/routes/dashboard/SmokeTestChart.tsx` exists: FOUND
@@ -122,5 +134,6 @@ None — throwaway scaffold chart + lazy route conversion. No new network endpoi
 - [x] Commit c4de0c56 exists (feat Task 1): FOUND
 - [x] Commit f5b333df exists (feat Task 2): FOUND
 - [x] recharts absent from index-*.js main bundle: CONFIRMED
+- [x] Task 3 Human UAT: APPROVED
 
 ## Self-Check: PASSED
