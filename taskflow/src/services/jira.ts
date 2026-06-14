@@ -20,7 +20,7 @@
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
-import { isResponseLikeError } from './jira/client';
+import { fetchAllSearchPages as fetchAllSearchPagesClient, isResponseLikeError } from './jira/client';
 import { fetchAllJiraStatuses } from './jira/statuses';
 import type { JiraComment } from './jira/types';
 
@@ -485,6 +485,7 @@ export async function fetchMyTasksHierarchy(
   token: string,
   projectKey: string,
   storyPointsFieldKey = 'customfield_10016',
+  flaggedFieldKey = 'customfield_10021',
 ): Promise<{ issues: JiraIssue[]; myIssueKeys: Set<string> }> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -492,8 +493,8 @@ export async function fetchMyTasksHierarchy(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,project,${spFields},parent,subtasks,timetracking,duedate`;
-  const subtaskFields = 'summary,status,assignee,issuetype,project,parent,timetracking';
+  const fields = `summary,status,assignee,issuetype,project,${spFields},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
+  const subtaskFields = `summary,status,assignee,issuetype,project,parent,timetracking,duedate,${flaggedFieldKey}`;
 
   // Step 1: my stories + my subtasks in parallel — both fully paginated
   const myStoriesJql = encodeURIComponent(
@@ -599,6 +600,73 @@ export async function fetchMyTasksHierarchy(
   }
 
   return { issues: [...allParents, ...allSubtasks], myIssueKeys };
+}
+
+/**
+ * Fetch ALL issues assigned to the current user in the given project (All-Assigned scope).
+ *
+ * Returns every non-subtask issue assigned to the authenticated user, fully paginated
+ * via `fetchAllSearchPages` from jira/client — no page cap, no hand-rolled loop.
+ *
+ * The JQL hard-codes `assignee = currentUser()` so the scope can only ever return the
+ * authenticated user's own issues (T-82-04 threat mitigation).
+ *
+ * The fields list includes `customfield_10020` (sprint field) for By Sprint & Parent
+ * ordering (D-05), story-point fields, duedate, and the flagged field so My Day band
+ * classification can detect flagged items.
+ *
+ * @param baseUrl             - Jira base URL (trailing slash stripped internally)
+ * @param token               - Bearer PAT for Authorization header
+ * @param projectKey          - Jira project key (e.g. "PROJ")
+ * @param flaggedFieldKey     - Custom field key for the Flagged field (default: customfield_10021)
+ * @param storyPointsFieldKey - Custom field key for story points (default: customfield_10016)
+ * @returns { issues, myIssueKeys } — all issues + a Set of issue keys for identity checks
+ */
+export async function fetchAllAssignedHierarchy(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  flaggedFieldKey = 'customfield_10021',
+  storyPointsFieldKey = 'customfield_10016',
+): Promise<{ issues: JiraIssue[]; myIssueKeys: Set<string> }> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  // Deduplicate story-point field IDs (customfield_10016 is the default but may equal storyPointsFieldKey).
+  const spFields = [
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
+
+  // customfield_10020 = sprint field (required for By Sprint & Parent ordering D-05).
+  const fields = [
+    'summary',
+    'status',
+    'assignee',
+    'issuetype',
+    'project',
+    spFields,
+    'customfield_10020',
+    'parent',
+    'subtasks',
+    'timetracking',
+    'duedate',
+    flaggedFieldKey,
+  ].join(',');
+
+  // assignee = currentUser() scopes to the authenticated user only (T-82-04).
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY rank ASC`,
+  );
+
+  // fetchAllSearchPagesClient is the exported fetchAllSearchPages from jira/client.ts.
+  // It loops until startAt >= total — no maxResults cap is passed here (D-06).
+  const issues = await fetchAllSearchPagesClient(
+    `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`,
+    headers,
+  );
+
+  const myIssueKeys = new Set(issues.map((i) => i.key));
+  return { issues, myIssueKeys };
 }
 
 export { fetchIssueChangelog } from './jira/changelog';
