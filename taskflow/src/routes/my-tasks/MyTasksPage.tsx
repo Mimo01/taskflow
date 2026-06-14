@@ -64,11 +64,22 @@ const FILTER_PILLS: Array<{ key: FilterKey; label: string }> = [
   { key: 'mrAwaiting', label: 'MRs awaiting me' },
 ];
 
+// ── Stat tile accent config ───────────────────────────────────────────────────
+
+const TILE_ACCENT: Record<FilterKey, { bar: string; active: string }> = {
+  toDo: { bar: 'bg-muted-foreground/30', active: 'bg-primary' },
+  inProgress: { bar: 'bg-blue-500/40', active: 'bg-blue-500' },
+  inReview: { bar: 'bg-purple-500/40', active: 'bg-purple-500' },
+  doneSprint: { bar: 'bg-green-500/40', active: 'bg-green-500' },
+  overdue: { bar: 'bg-destructive/40', active: 'bg-destructive' },
+  mrAwaiting: { bar: 'bg-amber-500/40', active: 'bg-amber-500' },
+};
+
 // ── Skeleton row ──────────────────────────────────────────────────────────────
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
+    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
       <Skeleton className="size-4 rounded" />
       <Skeleton className="h-3 w-16 rounded" />
       <Skeleton className="size-4 rounded" />
@@ -79,16 +90,16 @@ function SkeletonRow() {
   );
 }
 
-// ── Group header ──────────────────────────────────────────────────────────────
+// ── Group header (sticky) ─────────────────────────────────────────────────────
 
 function GroupHeader({ label }: { label: string }) {
   return (
     <div
-      className="px-4 py-2 bg-muted text-sm font-semibold text-foreground"
+      className="sticky top-0 z-10 flex items-center gap-3 px-4 py-1.5 bg-muted/95 backdrop-blur-sm border-b border-border text-sm font-semibold text-foreground select-none"
       role="group"
       aria-label={label}
     >
-      {label}
+      <span className="flex-1">{label}</span>
     </div>
   );
 }
@@ -641,34 +652,109 @@ export default function MyTasksPage() {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
-      {/* Page header */}
-      <div className="px-6 pt-6 pb-4 border-b border-border">
+      {/* Page header — title row with scope toggle (MYTASK-07) */}
+      <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border shrink-0">
         <h1 className="text-xl font-semibold text-foreground">My Tasks</h1>
+
+        {/* Scope toggle (MYTASK-07) */}
+        <div
+          role="group"
+          aria-label="Scope"
+          className="flex items-center rounded border border-border overflow-hidden shrink-0"
+        >
+          <button
+            type="button"
+            aria-pressed={scope === 'current-sprint'}
+            onClick={() => setScope('current-sprint')}
+            className={cn(
+              'h-8 px-3 text-xs font-medium transition-colors',
+              scope === 'current-sprint'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            Current Sprint
+          </button>
+          <button
+            type="button"
+            aria-pressed={scope === 'all-assigned'}
+            onClick={() => setScope('all-assigned')}
+            className={cn(
+              'h-8 px-3 text-xs font-medium transition-colors border-l border-border',
+              scope === 'all-assigned'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            All Assigned
+          </button>
+          <button
+            type="button"
+            aria-pressed={scope === 'all-reported'}
+            onClick={() => setScope('all-reported')}
+            className={cn(
+              'h-8 px-3 text-xs font-medium transition-colors border-l border-border',
+              scope === 'all-reported'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            All Reported
+          </button>
+        </div>
       </div>
 
-      {/* Summary / filter strip (MYTASK-02, D-01) */}
-      <div className="flex items-center gap-2 px-6 py-3 border-b border-border flex-wrap">
-        {FILTER_PILLS.map(({ key, label }) => {
-          const count = counts[key];
-          const isActive = activeFilter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={isActive}
-              onClick={() => handleFilterClick(key)}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
-              <span className="tabular-nums">{count}</span>
-              <span>{label}</span>
-            </button>
-          );
-        })}
+      {/* Stat tiles band — MYTASK-02, D-01. Replaces text count-pills with a compact tile band.
+          Single-select transient filter (click active tile to clear). NEVER persisted (D-01/D-10). */}
+      <div className="px-6 py-3 border-b border-border shrink-0">
+        <div className="flex gap-2 flex-wrap">
+          {FILTER_PILLS.map(({ key, label }) => {
+            const count = counts[key];
+            const isActive = activeFilter === key;
+            const accent = TILE_ACCENT[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => handleFilterClick(key)}
+                className={cn(
+                  'relative flex flex-col items-start rounded-lg px-3 pt-2.5 pb-2 min-w-[72px] transition-all shrink-0',
+                  'ring-1 ring-inset',
+                  isActive
+                    ? 'bg-primary/10 ring-primary/40 shadow-sm'
+                    : 'bg-card ring-border hover:ring-border/80 hover:bg-muted/40',
+                )}
+              >
+                {/* Count — large tabular-nums */}
+                <span
+                  className={cn(
+                    'tabular-nums text-lg font-semibold leading-none mb-1',
+                    isActive ? 'text-primary' : 'text-foreground',
+                  )}
+                >
+                  {count}
+                </span>
+                {/* Label */}
+                <span
+                  className={cn(
+                    'text-xs leading-tight',
+                    isActive ? 'text-primary/80 font-medium' : 'text-muted-foreground',
+                  )}
+                >
+                  {label}
+                </span>
+                {/* Bottom accent bar */}
+                <span
+                  className={cn(
+                    'absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg transition-colors',
+                    isActive ? accent.active : accent.bar,
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Single Tabs root wraps both the tab strip header and the content panels */}
@@ -677,60 +763,13 @@ export default function MyTasksPage() {
         onValueChange={(v) => setGroupingMode(v as 'my-day' | 'by-status' | 'by-sprint-parent')}
         className="flex flex-col flex-1 min-h-0"
       >
-        {/* Grouping tabs + scope toggle row */}
-        <div className="flex items-center justify-between px-6 py-2 border-b border-border shrink-0">
+        {/* Grouping tabs row */}
+        <div className="flex items-center px-6 py-1.5 border-b border-border shrink-0">
           <TabsList>
             <TabsTrigger value="my-day">My Day</TabsTrigger>
             <TabsTrigger value="by-status">By Status</TabsTrigger>
             <TabsTrigger value="by-sprint-parent">By Sprint &amp; Parent</TabsTrigger>
           </TabsList>
-
-          {/* Scope toggle (MYTASK-07) */}
-          <div
-            role="group"
-            aria-label="Scope"
-            className="flex items-center rounded border border-border overflow-hidden ml-4 shrink-0"
-          >
-            <button
-              type="button"
-              aria-pressed={scope === 'current-sprint'}
-              onClick={() => setScope('current-sprint')}
-              className={cn(
-                'h-9 px-3 text-xs font-medium transition-colors',
-                scope === 'current-sprint'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
-              Current Sprint
-            </button>
-            <button
-              type="button"
-              aria-pressed={scope === 'all-assigned'}
-              onClick={() => setScope('all-assigned')}
-              className={cn(
-                'h-9 px-3 text-xs font-medium transition-colors border-l border-border',
-                scope === 'all-assigned'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
-              All Assigned
-            </button>
-            <button
-              type="button"
-              aria-pressed={scope === 'all-reported'}
-              onClick={() => setScope('all-reported')}
-              className={cn(
-                'h-9 px-3 text-xs font-medium transition-colors border-l border-border',
-                scope === 'all-reported'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
-              All Reported
-            </button>
-          </div>
         </div>
 
         {/* Issue list — tab content panels */}

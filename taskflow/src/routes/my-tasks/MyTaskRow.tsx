@@ -132,7 +132,7 @@ export function MyTaskRow({
   }
 
   const rowBase = cn(
-    'flex items-center gap-2 px-4 py-2 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors',
+    'flex items-center gap-2 px-4 py-2.5 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors',
     isSubtask && 'pl-8',
     isFlagged &&
       'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
