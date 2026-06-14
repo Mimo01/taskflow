@@ -122,14 +122,14 @@ describe('classifyBand', () => {
     expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
   });
 
-  it('done takes priority over flagged (done wins)', () => {
-    // If somehow a done issue is also flagged, it should return done (5) — done check is first
+  it('flagged takes priority over done (flagged always wins per D-04 must_haves)', () => {
+    // A flagged parent sorts into band 0 regardless of status — plan must_haves truth
     const issue = makeIssue({
       statusCategoryKey: 'done',
       statusName: 'Done',
       flaggedValue: [{ value: 'Impediment' }],
     });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(0);
   });
 });
 
