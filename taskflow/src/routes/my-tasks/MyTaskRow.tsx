@@ -18,7 +18,7 @@
  * - statusPill wrapped in a flex div (pill needs flex parent for geometry)
  */
 
-import { Flag, Folder } from 'lucide-react';
+import { Flag, Tag } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
@@ -103,7 +103,7 @@ function LabelChips({ labels }: { labels: string[] }) {
           key={label}
           className={cn(CHIP_BASE, 'bg-muted text-muted-foreground border-border/60 max-w-[120px]')}
         >
-          <Folder className="size-3 shrink-0" />
+          <Tag className="size-3 shrink-0" />
           <span className="truncate">{label}</span>
         </span>
       ))}
