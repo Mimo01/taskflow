@@ -2,11 +2,13 @@
  * MyTasksPage — My Tasks personal command center (MYTASK-01 through MYTASK-08)
  *
  * Composes:
- * - Summary/filter strip (MYTASK-02, D-01): six count pills, single-select transient
+ * - Single toolbar row: title (left) + grouping tabs (center) + scope toggle (right)
+ * - Compact filter chips row (MYTASK-02, D-01): six count chips, single-select transient
  *   activeFilter (component useState — NEVER persisted to useMyTasksStore, per D-01/D-10)
  * - Grouping tabs (MYTASK-03): My Day | By Status | By Sprint & Parent
  * - Scope toggle (MYTASK-07/08): Current Sprint <-> All Assigned (persisted in store)
- * - Grouped/nested issue list: parents + indented subtasks (D-03)
+ * - Grouped/nested issue list: parents + indented subtasks (D-03), each parent+subtasks
+ *   wrapped in a subtle Card (R3)
  * - Per-section states (D-11): Skeleton while loading, ErrorState on failure, EmptyState for empty
  * - Progressive loading indicator (D-06): Skeleton rows + "Loading more tasks…" in All Assigned
  *
@@ -51,11 +53,11 @@ const MY_DAY_BAND_LABELS: Record<string, string> = {
   done: 'Done',
 };
 
-// ── Filter pill definitions ───────────────────────────────────────────────────
+// ── Filter chip definitions ───────────────────────────────────────────────────
 
 type FilterKey = 'toDo' | 'inProgress' | 'inReview' | 'doneSprint' | 'overdue' | 'mrAwaiting';
 
-const FILTER_PILLS: Array<{ key: FilterKey; label: string }> = [
+const FILTER_CHIPS: Array<{ key: FilterKey; label: string }> = [
   { key: 'toDo', label: 'To Do' },
   { key: 'inProgress', label: 'In Progress' },
   { key: 'inReview', label: 'In Review' },
@@ -64,15 +66,33 @@ const FILTER_PILLS: Array<{ key: FilterKey; label: string }> = [
   { key: 'mrAwaiting', label: 'MRs awaiting me' },
 ];
 
-// ── Stat tile accent config ───────────────────────────────────────────────────
+// ── Filter chip accent colors (for active state indicator dot) ───────────────
 
-const TILE_ACCENT: Record<FilterKey, { bar: string; active: string }> = {
-  toDo: { bar: 'bg-muted-foreground/30', active: 'bg-primary' },
-  inProgress: { bar: 'bg-blue-500/40', active: 'bg-blue-500' },
-  inReview: { bar: 'bg-purple-500/40', active: 'bg-purple-500' },
-  doneSprint: { bar: 'bg-green-500/40', active: 'bg-green-500' },
-  overdue: { bar: 'bg-destructive/40', active: 'bg-destructive' },
-  mrAwaiting: { bar: 'bg-amber-500/40', active: 'bg-amber-500' },
+const CHIP_ACCENT: Record<FilterKey, string> = {
+  toDo: 'bg-muted-foreground',
+  inProgress: 'bg-blue-500',
+  inReview: 'bg-purple-500',
+  doneSprint: 'bg-green-500',
+  overdue: 'bg-destructive',
+  mrAwaiting: 'bg-amber-500',
+};
+
+// ── Group header accent stripe colors per band/category ──────────────────────
+// Left stripe visual motif — one stripe per section header
+
+const MY_DAY_BAND_STRIPE: Record<string, string> = {
+  'flagged-blocked': 'border-l-yellow-500',
+  overdue: 'border-l-destructive',
+  'in-review-my-mr': 'border-l-purple-500',
+  'in-progress': 'border-l-blue-500',
+  'to-do': 'border-l-muted-foreground',
+  done: 'border-l-green-500',
+};
+
+const STATUS_CATEGORY_STRIPE: Record<string, string> = {
+  new: 'border-l-muted-foreground',
+  indeterminate: 'border-l-blue-500',
+  done: 'border-l-green-500',
 };
 
 // ── Skeleton row ──────────────────────────────────────────────────────────────
@@ -90,16 +110,43 @@ function SkeletonRow() {
   );
 }
 
-// ── Group header (sticky) ─────────────────────────────────────────────────────
+// ── Group header (sticky) with left accent stripe and inline count ─────────────
 
-function GroupHeader({ label }: { label: string }) {
+function GroupHeader({
+  label,
+  count,
+  stripeClass,
+}: {
+  label: string;
+  count?: number;
+  stripeClass?: string;
+}) {
   return (
     <div
-      className="sticky top-0 z-10 flex items-center gap-3 px-4 py-1.5 bg-muted/95 backdrop-blur-sm border-b border-border text-sm font-semibold text-foreground select-none"
+      className={cn(
+        'sticky top-0 z-10 flex items-center gap-3 px-4 py-1.5',
+        'bg-muted/95 backdrop-blur-sm border-b border-border',
+        'text-sm font-semibold text-foreground select-none',
+        'border-l-4',
+        stripeClass ?? 'border-l-muted-foreground',
+      )}
       role="group"
       aria-label={label}
     >
       <span className="flex-1">{label}</span>
+      {count !== undefined && (
+        <span className="text-xs font-normal text-muted-foreground tabular-nums">{count}</span>
+      )}
+    </div>
+  );
+}
+
+// ── Story card wrapper — groups parent row + subtask rows visually ────────────
+
+function StoryCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-3 my-1.5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+      {children}
     </div>
   );
 }
@@ -349,6 +396,37 @@ export default function MyTasksPage() {
     return undefined;
   }
 
+  // ── Render a story card (parent + subtasks) ────────────────────────────────
+
+  function renderStoryCard(parent: JiraIssue, subtasks: JiraIssue[]) {
+    return (
+      <StoryCard key={parent.key}>
+        <MyTaskRow
+          issue={parent}
+          jiraBaseUrl={jiraBaseUrl!}
+          storyPointsFieldKey={storyPointsFieldKey}
+          flaggedFieldKey={flaggedFieldKey}
+          mrHealth={getMrHealth(parent.key)}
+          onOpenPeek={handleOpenPeek}
+          onOpenIssue={handleOpenIssue}
+        />
+        {subtasks.map((subtask) => (
+          <MyTaskRow
+            key={subtask.key}
+            issue={subtask}
+            isSubtask
+            jiraBaseUrl={jiraBaseUrl!}
+            storyPointsFieldKey={storyPointsFieldKey}
+            flaggedFieldKey={flaggedFieldKey}
+            mrHealth={getMrHealth(subtask.key)}
+            onOpenPeek={handleOpenPeek}
+            onOpenIssue={handleOpenIssue}
+          />
+        ))}
+      </StoryCard>
+    );
+  }
+
   // ── Render grouped list ────────────────────────────────────────────────────
 
   function renderMyDayList() {
@@ -378,33 +456,12 @@ export default function MyTasksPage() {
       <div>
         {bands.map(({ band, parents }) => (
           <div key={band}>
-            <GroupHeader label={MY_DAY_BAND_LABELS[band] ?? band} />
-            {parents.map(({ parent, subtasks }) => (
-              <div key={parent.key}>
-                <MyTaskRow
-                  issue={parent}
-                  jiraBaseUrl={jiraBaseUrl!}
-                  storyPointsFieldKey={storyPointsFieldKey}
-                  flaggedFieldKey={flaggedFieldKey}
-                  mrHealth={getMrHealth(parent.key)}
-                  onOpenPeek={handleOpenPeek}
-                  onOpenIssue={handleOpenIssue}
-                />
-                {subtasks.map((subtask) => (
-                  <MyTaskRow
-                    key={subtask.key}
-                    issue={subtask}
-                    isSubtask
-                    jiraBaseUrl={jiraBaseUrl!}
-                    storyPointsFieldKey={storyPointsFieldKey}
-                    flaggedFieldKey={flaggedFieldKey}
-                    mrHealth={getMrHealth(subtask.key)}
-                    onOpenPeek={handleOpenPeek}
-                    onOpenIssue={handleOpenIssue}
-                  />
-                ))}
-              </div>
-            ))}
+            <GroupHeader
+              label={MY_DAY_BAND_LABELS[band] ?? band}
+              count={parents.length}
+              stripeClass={MY_DAY_BAND_STRIPE[band]}
+            />
+            {parents.map(({ parent, subtasks }) => renderStoryCard(parent, subtasks))}
           </div>
         ))}
       </div>
@@ -468,33 +525,14 @@ export default function MyTasksPage() {
           const group = byStatus.get(cat)!;
           return (
             <div key={cat}>
-              <GroupHeader label={group.label} />
-              {group.issues.map((parent) => (
-                <div key={parent.key}>
-                  <MyTaskRow
-                    issue={parent}
-                    jiraBaseUrl={jiraBaseUrl!}
-                    storyPointsFieldKey={storyPointsFieldKey}
-                    flaggedFieldKey={flaggedFieldKey}
-                    mrHealth={getMrHealth(parent.key)}
-                    onOpenPeek={handleOpenPeek}
-                    onOpenIssue={handleOpenIssue}
-                  />
-                  {(subtasksByParent.get(parent.key) ?? []).map((subtask) => (
-                    <MyTaskRow
-                      key={subtask.key}
-                      issue={subtask}
-                      isSubtask
-                      jiraBaseUrl={jiraBaseUrl!}
-                      storyPointsFieldKey={storyPointsFieldKey}
-                      flaggedFieldKey={flaggedFieldKey}
-                      mrHealth={getMrHealth(subtask.key)}
-                      onOpenPeek={handleOpenPeek}
-                      onOpenIssue={handleOpenIssue}
-                    />
-                  ))}
-                </div>
-              ))}
+              <GroupHeader
+                label={group.label}
+                count={group.issues.length}
+                stripeClass={STATUS_CATEGORY_STRIPE[cat]}
+              />
+              {group.issues.map((parent) =>
+                renderStoryCard(parent, subtasksByParent.get(parent.key) ?? []),
+              )}
             </div>
           );
         })}
@@ -588,33 +626,14 @@ export default function MyTasksPage() {
       <div>
         {sortedGroups.map((group) => (
           <div key={group.sprintId ?? '__backlog__'}>
-            <GroupHeader label={group.sprintName} />
-            {group.issues.map((parent) => (
-              <div key={parent.key}>
-                <MyTaskRow
-                  issue={parent}
-                  jiraBaseUrl={jiraBaseUrl!}
-                  storyPointsFieldKey={storyPointsFieldKey}
-                  flaggedFieldKey={flaggedFieldKey}
-                  mrHealth={getMrHealth(parent.key)}
-                  onOpenPeek={handleOpenPeek}
-                  onOpenIssue={handleOpenIssue}
-                />
-                {(subtasksByParent.get(parent.key) ?? []).map((subtask) => (
-                  <MyTaskRow
-                    key={subtask.key}
-                    issue={subtask}
-                    isSubtask
-                    jiraBaseUrl={jiraBaseUrl!}
-                    storyPointsFieldKey={storyPointsFieldKey}
-                    flaggedFieldKey={flaggedFieldKey}
-                    mrHealth={getMrHealth(subtask.key)}
-                    onOpenPeek={handleOpenPeek}
-                    onOpenIssue={handleOpenIssue}
-                  />
-                ))}
-              </div>
-            ))}
+            <GroupHeader
+              label={group.sprintName}
+              count={group.issues.length}
+              stripeClass="border-l-blue-500"
+            />
+            {group.issues.map((parent) =>
+              renderStoryCard(parent, subtasksByParent.get(parent.key) ?? []),
+            )}
           </div>
         ))}
       </div>
@@ -652,11 +671,24 @@ export default function MyTasksPage() {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
-      {/* Page header — title row with scope toggle (MYTASK-07) */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border shrink-0">
-        <h1 className="text-xl font-semibold text-foreground">My Tasks</h1>
+      {/* Single toolbar row: title + tabs + scope toggle */}
+      <div className="flex items-center gap-4 px-6 pt-4 pb-2 border-b border-border shrink-0 flex-wrap">
+        <h1 className="text-xl font-semibold text-foreground shrink-0">My Tasks</h1>
 
-        {/* Scope toggle (MYTASK-07) */}
+        {/* Grouping tabs — center of toolbar */}
+        <Tabs
+          value={groupingMode}
+          onValueChange={(v) => setGroupingMode(v as 'my-day' | 'by-status' | 'by-sprint-parent')}
+          className="flex-1 min-w-0"
+        >
+          <TabsList>
+            <TabsTrigger value="my-day">My Day</TabsTrigger>
+            <TabsTrigger value="by-status">By Status</TabsTrigger>
+            <TabsTrigger value="by-sprint-parent">By Sprint &amp; Parent</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Scope toggle (MYTASK-07) — right side of toolbar */}
         <div
           role="group"
           aria-label="Scope"
@@ -704,74 +736,45 @@ export default function MyTasksPage() {
         </div>
       </div>
 
-      {/* Stat tiles band — MYTASK-02, D-01. Replaces text count-pills with a compact tile band.
-          Single-select transient filter (click active tile to clear). NEVER persisted (D-01/D-10). */}
-      <div className="px-6 py-3 border-b border-border shrink-0">
-        <div className="flex gap-2 flex-wrap">
-          {FILTER_PILLS.map(({ key, label }) => {
-            const count = counts[key];
-            const isActive = activeFilter === key;
-            const accent = TILE_ACCENT[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => handleFilterClick(key)}
+      {/* Compact filter chips — MYTASK-02, D-01.
+          Single-select transient filter (click active chip to clear). NEVER persisted (D-01/D-10). */}
+      <div className="flex items-center gap-1.5 px-6 py-2 border-b border-border shrink-0 flex-wrap">
+        {FILTER_CHIPS.map(({ key, label }) => {
+          const count = counts[key];
+          const isActive = activeFilter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => handleFilterClick(key)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors shrink-0',
+                isActive
+                  ? 'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground',
+              )}
+            >
+              {/* Accent dot */}
+              <span
                 className={cn(
-                  'relative flex flex-col items-start rounded-lg px-3 pt-2.5 pb-2 min-w-[72px] transition-all shrink-0',
-                  'ring-1 ring-inset',
-                  isActive
-                    ? 'bg-primary/10 ring-primary/40 shadow-sm'
-                    : 'bg-card ring-border hover:ring-border/80 hover:bg-muted/40',
+                  'size-1.5 rounded-full shrink-0',
+                  isActive ? CHIP_ACCENT[key] : 'bg-muted-foreground/40',
                 )}
-              >
-                {/* Count — large tabular-nums */}
-                <span
-                  className={cn(
-                    'tabular-nums text-lg font-semibold leading-none mb-1',
-                    isActive ? 'text-primary' : 'text-foreground',
-                  )}
-                >
-                  {count}
-                </span>
-                {/* Label */}
-                <span
-                  className={cn(
-                    'text-xs leading-tight',
-                    isActive ? 'text-primary/80 font-medium' : 'text-muted-foreground',
-                  )}
-                >
-                  {label}
-                </span>
-                {/* Bottom accent bar */}
-                <span
-                  className={cn(
-                    'absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg transition-colors',
-                    isActive ? accent.active : accent.bar,
-                  )}
-                />
-              </button>
-            );
-          })}
-        </div>
+              />
+              <span className="tabular-nums font-semibold">{count}</span>
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Single Tabs root wraps both the tab strip header and the content panels */}
+      {/* Issue list — tabs control which grouping renders */}
       <Tabs
         value={groupingMode}
         onValueChange={(v) => setGroupingMode(v as 'my-day' | 'by-status' | 'by-sprint-parent')}
         className="flex flex-col flex-1 min-h-0"
       >
-        {/* Grouping tabs row */}
-        <div className="flex items-center px-6 py-1.5 border-b border-border shrink-0">
-          <TabsList>
-            <TabsTrigger value="my-day">My Day</TabsTrigger>
-            <TabsTrigger value="by-status">By Status</TabsTrigger>
-            <TabsTrigger value="by-sprint-parent">By Sprint &amp; Parent</TabsTrigger>
-          </TabsList>
-        </div>
-
         {/* Issue list — tab content panels */}
         <div className="flex-1 overflow-auto">
           <TabsContent value="my-day" className="mt-0">
