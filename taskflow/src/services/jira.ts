@@ -496,8 +496,8 @@ export async function fetchMyTasksHierarchy(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,project,${spFields},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
-  const subtaskFields = `summary,status,assignee,issuetype,project,parent,timetracking,duedate,${flaggedFieldKey}`;
+  const fields = `summary,status,assignee,issuetype,project,labels,updated,${spFields},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
+  const subtaskFields = `summary,status,assignee,issuetype,project,labels,updated,parent,timetracking,duedate,${flaggedFieldKey}`;
 
   // Step 1: my stories + my subtasks in parallel — both fully paginated
   const myStoriesJql = encodeURIComponent(
@@ -647,6 +647,8 @@ export async function fetchAllAssignedHierarchy(
     'assignee',
     'issuetype',
     'project',
+    'labels',
+    'updated',
     spFields,
     'customfield_10020',
     'parent',
@@ -711,6 +713,8 @@ export async function fetchAllReportedHierarchy(
     'assignee',
     'issuetype',
     'project',
+    'labels',
+    'updated',
     spFields,
     'customfield_10020',
     'parent',
