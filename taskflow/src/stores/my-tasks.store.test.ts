@@ -50,6 +50,13 @@ describe('my-tasks.store', () => {
     expect(useMyTasksStore.getState().scope).toBe('all-assigned');
   });
 
+  it('setScope updates scope to all-reported (E2)', () => {
+    act(() => {
+      useMyTasksStore.getState().setScope('all-reported');
+    });
+    expect(useMyTasksStore.getState().scope).toBe('all-reported');
+  });
+
   it('setState mutation persists — re-reading getState() returns the mutated value', () => {
     act(() => {
       useMyTasksStore.setState({ groupingMode: 'by-status', scope: 'all-assigned' });

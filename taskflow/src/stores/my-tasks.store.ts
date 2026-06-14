@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
 
 type GroupingMode = 'my-day' | 'by-status' | 'by-sprint-parent';
-type Scope = 'current-sprint' | 'all-assigned';
+type Scope = 'current-sprint' | 'all-assigned' | 'all-reported';
 
 interface MyTasksState {
   groupingMode: GroupingMode;
