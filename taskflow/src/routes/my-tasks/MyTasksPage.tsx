@@ -21,7 +21,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, CheckSquare, Clock, ListFilter, Plus, RefreshCw } from 'lucide-react';
+import { Check, CheckSquare, Clock, ListFilter, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -140,14 +140,13 @@ function matchesBucket(issue: JiraIssue, bucket: FilterBucket | null): boolean {
 export default function MyTasksPage() {
   const navigate = useNavigate();
 
-  // Outlet context — peek opener, breadcrumb-aware issue click, create story
+  // Outlet context — peek opener, breadcrumb-aware issue click
   const outletCtx =
     useOutletContext<{
       onIssueClick?: (key: string) => void;
       onOpenIssue?: (key: string) => void;
-      openCreateStory?: () => void;
     }>() ?? {};
-  const { onIssueClick, onOpenIssue: onOpenIssuePeek, openCreateStory } = outletCtx;
+  const { onIssueClick, onOpenIssue: onOpenIssuePeek } = outletCtx;
 
   // Auth + project
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, gitlabUserId } = useAuthStore();
@@ -672,17 +671,6 @@ export default function MyTasksPage() {
               </button>
             ))}
           </fieldset>
-
-          {/* + New issue */}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors"
-            onClick={() => openCreateStory?.()}
-            title={openCreateStory ? undefined : 'Create issue (not available in this context)'}
-          >
-            <Plus className="size-3.5" />
-            New issue
-          </button>
         </div>
       </div>
 
