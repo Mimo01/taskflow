@@ -75,7 +75,7 @@ const MY_DAY_BAND_STRIPE: Record<string, string> = {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40">
       <Skeleton className="size-4 rounded" />
       <Skeleton className="h-3 w-16 rounded" />
       <Skeleton className="size-4 rounded" />
@@ -102,19 +102,20 @@ function GroupHeader({
   return (
     <div
       className={cn(
-        'sticky top-0 z-10 flex items-center gap-3 px-4 py-1.5',
-        'bg-muted/95 backdrop-blur-sm border-b border-border',
-        'text-sm font-semibold text-foreground select-none',
-        'border-l-4',
+        'sticky top-0 z-10 flex items-center gap-2 px-4 py-1.5',
+        'bg-background/95 backdrop-blur border-b border-border/50',
+        'select-none border-l-4',
         stripeClass ?? 'border-l-muted-foreground',
       )}
     >
-      <span className="flex-1">{label}</span>
+      <span className="flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
       {count !== undefined && (
-        <span className="text-xs font-normal text-muted-foreground tabular-nums">{count}</span>
+        <span className="text-xs font-normal text-muted-foreground/70 tabular-nums">{count}</span>
       )}
       {sectionPts !== undefined && sectionPts > 0 && (
-        <span className="text-xs font-normal text-muted-foreground tabular-nums ml-2">
+        <span className="text-xs font-normal text-muted-foreground/70 tabular-nums">
           {sectionPts} pts
         </span>
       )}
@@ -536,11 +537,11 @@ export default function MyTasksPage() {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* ── 1. Page header ──────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border shrink-0">
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border/50 shrink-0">
         {/* Left: title + actionable status line */}
         <div className="flex flex-col gap-1 min-w-0">
           <h1 className="text-3xl font-bold text-foreground leading-none">My Tasks</h1>
-          <p className="flex items-center gap-0 text-sm text-muted-foreground flex-wrap">
+          <p className="flex items-center gap-0 text-sm text-muted-foreground flex-wrap tabular-nums">
             <span>
               {openCount} open · {doneCount} done · {pointsInFlight} pts in flight
             </span>
@@ -626,28 +627,28 @@ export default function MyTasksPage() {
       </div>
 
       {/* ── 2. Three stat tiles ──────────────────────────────────────────────── */}
-      <div className="px-6 py-4 border-b border-border shrink-0">
-        <div className="grid grid-cols-3 gap-4">
+      <div className="px-6 py-4 border-b border-border/50 shrink-0">
+        <div className="grid grid-cols-3 gap-3">
           {/* To Do tile */}
           <button
             type="button"
             aria-pressed={activeBucket === 'toDo'}
             onClick={() => handleBucketClick('toDo')}
             className={cn(
-              'rounded-xl border bg-card p-4 text-left transition-all',
+              'rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors',
               activeBucket === 'toDo'
-                ? 'ring-1 ring-inset ring-primary bg-primary/5'
-                : 'hover:bg-muted/40',
+                ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
+                : 'hover:bg-muted/30',
             )}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold tabular-nums text-foreground">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <span className="block text-2xl font-semibold tabular-nums text-foreground leading-none">
                   {tileToDoCount}
                 </span>
-                <span className="text-sm text-muted-foreground">To Do</span>
+                <span className="mt-1 block text-sm text-muted-foreground">To Do</span>
               </div>
-              <Circle className="size-5 text-slate-400 dark:text-slate-500 shrink-0" />
+              <Circle className="size-5 text-muted-foreground/50 shrink-0" />
             </div>
           </button>
 
@@ -657,20 +658,20 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'inProgress'}
             onClick={() => handleBucketClick('inProgress')}
             className={cn(
-              'rounded-xl border bg-card p-4 text-left transition-all',
+              'rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors',
               activeBucket === 'inProgress'
-                ? 'ring-1 ring-inset ring-primary bg-primary/5'
-                : 'hover:bg-muted/40',
+                ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
+                : 'hover:bg-muted/30',
             )}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold tabular-nums text-foreground">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <span className="block text-2xl font-semibold tabular-nums text-foreground leading-none">
                   {tileInProgressCount}
                 </span>
-                <span className="text-sm text-muted-foreground">In Progress</span>
+                <span className="mt-1 block text-sm text-muted-foreground">In Progress</span>
               </div>
-              <CircleDot className="size-5 text-blue-500 shrink-0" />
+              <CircleDot className="size-5 text-blue-500/60 shrink-0" />
             </div>
           </button>
 
@@ -680,20 +681,20 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'done'}
             onClick={() => handleBucketClick('done')}
             className={cn(
-              'rounded-xl border bg-card p-4 text-left transition-all',
+              'rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors',
               activeBucket === 'done'
-                ? 'ring-1 ring-inset ring-primary bg-primary/5'
-                : 'hover:bg-muted/40',
+                ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
+                : 'hover:bg-muted/30',
             )}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold tabular-nums text-foreground">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <span className="block text-2xl font-semibold tabular-nums text-foreground leading-none">
                   {tileDoneCount}
                 </span>
-                <span className="text-sm text-muted-foreground">Done</span>
+                <span className="mt-1 block text-sm text-muted-foreground">Done</span>
               </div>
-              <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 shrink-0" />
+              <CheckCircle2 className="size-5 text-green-600/60 dark:text-green-400/60 shrink-0" />
             </div>
           </button>
         </div>
