@@ -45,9 +45,12 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
-// ResizeObserver mock — required for Recharts responsive prop in jsdom
+// ResizeObserver mock — required for Recharts ResponsiveContainer in jsdom.
+// Stores the callback so a future test can trigger a synthetic resize; matches
+// the real `new ResizeObserver(callback)` constructor signature.
 global.ResizeObserver = class ResizeObserver {
+  constructor(private cb: ResizeObserverCallback) {}
   observe() {}
   unobserve() {}
   disconnect() {}
-};
+} as unknown as typeof ResizeObserver;
