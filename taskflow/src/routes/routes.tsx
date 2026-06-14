@@ -20,6 +20,7 @@ const AioCycleDetailPage = lazy(() => import('./dashboard/AioCycleDetailPage'));
 const AioTestRunDetailPage = lazy(() => import('./dashboard/AioTestRunDetailPage'));
 const WorklogsPage = lazy(() => import('./worklogs/WorklogsPage'));
 const StandupNotesPage = lazy(() => import('./standup-notes/StandupNotesPage'));
+const MyTasksPage = lazy(() => import('./my-tasks/MyTasksPage'));
 
 function withLazy(Component: ComponentType) {
   return (
@@ -41,6 +42,7 @@ export const routes: RouteObject[] = [
   { path: '/releases', element: <ReleasesTab /> },
   { path: '/worklogs', element: withLazy(WorklogsPage) },
   { path: '/standup-notes', element: withLazy(StandupNotesPage) },
+  { path: '/my-tasks', element: withLazy(MyTasksPage) },
   { path: '/release/:versionId', element: withLazy(ReleaseDetailPage) },
   { path: '/dev-tools', element: <DevTools /> },
   { path: '/issue/:key', element: withLazy(IssueDetailPage) },
