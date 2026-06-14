@@ -15,13 +15,13 @@
  * - GitLab authored MRs → deriveReviewHealth via matchMrsToStories-style key matching
  *
  * Behavior preserved:
- * - 3 scopes, epic exclusion, paging, persistence of groupingMode + scope
+ * - 3 scopes (transient, not persisted), epic exclusion, paging
  * - peek (onOpenIssue) + breadcrumb (onIssueClick) wiring
  * - per-section loading/error/empty states
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, CheckSquare, Clock, ListFilter, RefreshCw } from 'lucide-react';
+import { Check, CheckSquare, ListFilter, ListTodo, Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -41,7 +41,6 @@ import type { ReviewHealth } from '@/services/linkEngine';
 import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
-import { useMyTasksStore } from '@/stores/my-tasks.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { MyTaskRow } from './MyTaskRow';
 
@@ -59,6 +58,10 @@ const MY_DAY_BAND_LABELS: Record<string, string> = {
 // ── Transient filter (3 buckets replacing the old 6) ─────────────────────────
 
 type FilterBucket = 'toDo' | 'inProgress' | 'done';
+
+// ── Scope (transient — never persisted; resets to current-sprint on reload) ──
+
+type Scope = 'current-sprint' | 'all-assigned' | 'all-reported';
 
 // ── Group header band dot colors (subtle identity dot, replaces heavy left stripe) ──
 
@@ -155,9 +158,9 @@ export default function MyTasksPage() {
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
   const flaggedFieldKey = useSettingsStore((s) => s.flaggedFieldKey);
 
-  // Persisted scope (groupingMode kept in store but no longer drives the page — always My Day)
-  const scope = useMyTasksStore((s) => s.scope);
-  const setScope = useMyTasksStore((s) => s.setScope);
+  // Scope is transient component state — intentionally NOT persisted, so it always
+  // resets to the current sprint on reload (page always uses My Day grouping).
+  const [scope, setScope] = useState<Scope>('current-sprint');
 
   // Transient filter (3 buckets, never persisted)
   const [activeBucket, setActiveBucket] = useState<FilterBucket | null>(null);
@@ -560,10 +563,8 @@ export default function MyTasksPage() {
       <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
         {/* Left: title + actionable subtitle */}
         <div className="flex flex-col gap-1 min-w-0">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight leading-none">
-            My Tasks
-          </h1>
-          <p className="text-sm text-muted-foreground tabular-nums mt-1 truncate">
+          <h1 className="text-3xl font-semibold text-foreground">My Tasks</h1>
+          <p className="text-xs text-muted-foreground tabular-nums mt-1 truncate">
             <span>
               {openCount} open · {doneCount} done · {pointsInFlight} pts in flight
             </span>
@@ -683,18 +684,18 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'toDo'}
             onClick={() => handleBucketClick('toDo')}
             className={cn(
-              'rounded-xl border p-4 text-left transition-colors',
+              'rounded-lg border p-3 text-left transition-colors',
               activeBucket === 'toDo'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-3xl font-semibold tabular-nums text-foreground leading-none">
+              <span className="text-2xl font-semibold tabular-nums text-foreground leading-none">
                 {tileToDoCount}
               </span>
-              <span className="h-8 w-8 grid place-items-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
-                <Clock className="size-4" />
+              <span className="h-7 w-7 grid place-items-center rounded-mdbg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                <ListTodo className="size-4" />
               </span>
             </div>
             <div className="mt-2 text-sm text-muted-foreground">To Do</div>
@@ -717,18 +718,18 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'inProgress'}
             onClick={() => handleBucketClick('inProgress')}
             className={cn(
-              'rounded-xl border p-4 text-left transition-colors',
+              'rounded-lg border p-3 text-left transition-colors',
               activeBucket === 'inProgress'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-3xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
+              <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
                 {tileInProgressCount}
               </span>
-              <span className="h-8 w-8 grid place-items-center rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
-                <RefreshCw className="size-4" />
+              <span className="h-7 w-7 grid place-items-center rounded-mdbg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
+                <Timer className="size-4" />
               </span>
             </div>
             <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
@@ -751,17 +752,17 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'done'}
             onClick={() => handleBucketClick('done')}
             className={cn(
-              'rounded-xl border p-4 text-left transition-colors',
+              'rounded-lg border p-3 text-left transition-colors',
               activeBucket === 'done'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-3xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
+              <span className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
                 {tileDoneCount}
               </span>
-              <span className="h-8 w-8 grid place-items-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <span className="h-7 w-7 grid place-items-center rounded-mdbg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 shrink-0">
                 <Check className="size-4" />
               </span>
             </div>
