@@ -318,7 +318,7 @@ export function MyTaskRow({
       <div
         role="button"
         tabIndex={0}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => onOpenPeek(issue.key)}
         onKeyDown={handleKeyDown}
         data-testid={`my-task-row-${issue.key}`}
@@ -392,7 +392,7 @@ export function MyTaskRow({
       role="button"
       tabIndex={0}
       className={cn(
-        'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         isFlagged &&
           'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
       )}
