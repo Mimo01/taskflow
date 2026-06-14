@@ -606,7 +606,7 @@ export default function MyTasksPage() {
         {/* Right: donut + scope segmented control + New issue */}
         <div className="flex items-center gap-4 shrink-0">
           {/* Sprint-progress donut (hidden on small screens to keep the header one line) */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <svg
               width="56"
               height="56"
