@@ -42,6 +42,7 @@ import { isOverdue, OverdueBadge } from '@/routes/dashboard/issue-detail/Overdue
 import StatusPopover from '@/routes/dashboard/StatusPopover';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
+import { formatDuration } from '@/services/jira/duration';
 import type { ReviewHealth } from '@/services/linkEngine';
 
 // MR health badge tone mapping
@@ -239,11 +240,21 @@ export function MyTaskRow({
         </Badge>
       )}
 
-      {/* 9. Time logged/remaining bar — only when time data available */}
-      {timeProgressValue !== null && (
-        <div className="w-16 shrink-0">
-          <Progress value={timeProgressValue} />
-        </div>
+      {/* 9. Time display — subtask rows show compact "spent / estimate" text (R2);
+           parent rows keep the progress bar. Both only rendered when time data available. */}
+      {isSubtask ? (
+        spentSeconds > 0 || (totalSeconds && totalSeconds > 0) ? (
+          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+            {formatDuration(spentSeconds)}
+            {totalSeconds && totalSeconds > 0 ? ` / ${formatDuration(totalSeconds)}` : ''}
+          </span>
+        ) : null
+      ) : (
+        timeProgressValue !== null && (
+          <div className="w-16 shrink-0">
+            <Progress value={timeProgressValue} />
+          </div>
+        )
       )}
 
       {/* 10. Assignee avatar — far-right trailing slot for both parent and subtask rows.
