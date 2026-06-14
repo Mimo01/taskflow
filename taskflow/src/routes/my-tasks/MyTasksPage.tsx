@@ -21,7 +21,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, CheckSquare, Circle, ListFilter, LoaderCircle } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Circle, CircleDot, ListFilter } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -874,7 +874,7 @@ export default function MyTasksPage() {
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <LoaderCircle
+            <CircleDot
               className="pointer-events-none absolute -top-4 -right-3 size-20 text-blue-500/10 dark:text-blue-400/15"
               aria-hidden
             />
