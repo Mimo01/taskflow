@@ -632,6 +632,7 @@ export async function fetchAllAssignedHierarchy(
   projectKey: string,
   flaggedFieldKey = 'customfield_10021',
   storyPointsFieldKey = 'customfield_10016',
+  sprintFieldKey = 'customfield_10020',
 ): Promise<{ issues: JiraIssue[]; myIssueKeys: Set<string> }> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -641,7 +642,9 @@ export async function fetchAllAssignedHierarchy(
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
 
-  // customfield_10020 = sprint field (required for By Sprint & Parent ordering D-05).
+  // Sprint field is instance-discovered (gh-sprint); customfield_10020 is the fallback.
+  // Request both so grouping works regardless of the configured key (D-05).
+  const sprintFields = [...new Set([sprintFieldKey, 'customfield_10020'])].join(',');
   const fields = [
     'summary',
     'status',
@@ -652,7 +655,7 @@ export async function fetchAllAssignedHierarchy(
     'labels',
     'updated',
     spFields,
-    'customfield_10020',
+    sprintFields,
     'parent',
     'subtasks',
     'timetracking',
@@ -699,6 +702,7 @@ export async function fetchAllReportedHierarchy(
   projectKey: string,
   flaggedFieldKey = 'customfield_10021',
   storyPointsFieldKey = 'customfield_10016',
+  sprintFieldKey = 'customfield_10020',
 ): Promise<{ issues: JiraIssue[]; myIssueKeys: Set<string> }> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -708,7 +712,9 @@ export async function fetchAllReportedHierarchy(
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
 
-  // customfield_10020 = sprint field (required for By Sprint & Parent ordering D-05).
+  // Sprint field is instance-discovered (gh-sprint); customfield_10020 is the fallback.
+  // Request both so grouping works regardless of the configured key (D-05).
+  const sprintFields = [...new Set([sprintFieldKey, 'customfield_10020'])].join(',');
   const fields = [
     'summary',
     'status',
@@ -719,7 +725,7 @@ export async function fetchAllReportedHierarchy(
     'labels',
     'updated',
     spFields,
-    'customfield_10020',
+    sprintFields,
     'parent',
     'subtasks',
     'timetracking',
