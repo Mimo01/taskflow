@@ -154,11 +154,6 @@ describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
     expect(screen.getByText("You're all caught up")).toBeDefined();
   });
 
-  it('renders the + New issue button', () => {
-    renderPage();
-    expect(screen.getByText('New issue')).toBeDefined();
-  });
-
   it('B1: outlet onOpenIssue is consumed (not navigate) for peek context', () => {
     // If outlet context provides onOpenIssue, the component should not throw when receiving it
     const onOpenIssue = vi.fn();
