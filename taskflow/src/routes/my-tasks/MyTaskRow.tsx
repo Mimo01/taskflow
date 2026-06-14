@@ -19,20 +19,12 @@
  */
 
 import { Flag, Folder } from 'lucide-react';
-import { useState } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Progress } from '@/components/ui/progress';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
-import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
 import StatusPopover from '@/routes/dashboard/StatusPopover';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
@@ -175,9 +167,6 @@ export function MyTaskRow({
   accumulatedSpentSeconds,
   accumulatedEstimateSeconds,
 }: MyTaskRowProps) {
-  // logWorkOpen is shared for both parent and subtask branches (only one renders at a time)
-  const [logWorkOpen, setLogWorkOpen] = useState(false);
-
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
   const statusCategoryKey = issue.fields.status.statusCategory?.key;
 
@@ -277,39 +266,6 @@ export function MyTaskRow({
     </div>
   );
 
-  // ── Context menu items (shared, targeting the current issue) ──────────────
-
-  const contextMenuItems = (
-    <ContextMenuContent>
-      <ContextMenuItem
-        onClick={(e) => {
-          e.stopPropagation();
-          setLogWorkOpen(true);
-        }}
-      >
-        Log Work
-      </ContextMenuItem>
-      <ContextMenuItem
-        onClick={(e) => {
-          e.stopPropagation();
-          navigator.clipboard.writeText(issue.key).catch(() => {});
-        }}
-      >
-        Copy issue key
-      </ContextMenuItem>
-      <ContextMenuItem
-        onClick={(e) => {
-          e.stopPropagation();
-          navigator.clipboard
-            .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
-            .catch(() => {});
-        }}
-      >
-        Copy link
-      </ContextMenuItem>
-    </ContextMenuContent>
-  );
-
   // ── Subtask row ───────────────────────────────────────────────────────────
 
   if (isSubtask) {
@@ -369,19 +325,7 @@ export function MyTaskRow({
       </div>
     );
 
-    return (
-      <ContextMenu>
-        <ContextMenuTrigger render={subtaskRow} />
-        {contextMenuItems}
-        {logWorkOpen && (
-          <LogWorkPopover
-            issueKey={issue.key}
-            jiraBaseUrl={jiraBaseUrl}
-            onSuccess={() => setLogWorkOpen(false)}
-          />
-        )}
-      </ContextMenu>
-    );
+    return subtaskRow;
   }
 
   // ── Parent row ────────────────────────────────────────────────────────────
@@ -488,17 +432,7 @@ export function MyTaskRow({
 
   return (
     <>
-      <ContextMenu>
-        <ContextMenuTrigger render={rowContent} />
-        {contextMenuItems}
-        {logWorkOpen && (
-          <LogWorkPopover
-            issueKey={issue.key}
-            jiraBaseUrl={jiraBaseUrl}
-            onSuccess={() => setLogWorkOpen(false)}
-          />
-        )}
-      </ContextMenu>
+      {rowContent}
 
       {/* Subtasks — flat rows indented beneath parent */}
       {subtasks.map((subtask) => (

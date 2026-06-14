@@ -558,13 +558,13 @@ export default function MyTasksPage() {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* ── 1. Hero header ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-start justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
+      <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
         {/* Left: title + actionable subtitle */}
         <div className="flex flex-col gap-1 min-w-0">
           <h1 className="text-3xl font-bold text-foreground tracking-tight leading-none">
             My Tasks
           </h1>
-          <p className="flex items-center gap-0 text-sm text-muted-foreground flex-wrap tabular-nums mt-1">
+          <p className="text-sm text-muted-foreground tabular-nums mt-1 truncate">
             <span>
               {openCount} open · {doneCount} done · {pointsInFlight} pts in flight
             </span>
@@ -604,9 +604,9 @@ export default function MyTasksPage() {
         </div>
 
         {/* Right: donut + scope segmented control + New issue */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
-          {/* Sprint-progress donut */}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 shrink-0">
+          {/* Sprint-progress donut (hidden on small screens to keep the header one line) */}
+          <div className="hidden md:flex items-center gap-3">
             <svg
               width="56"
               height="56"
