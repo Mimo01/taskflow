@@ -526,7 +526,7 @@ export function MyTaskRow({
   );
 
   return (
-    <div className="border-b border-border/40">
+    <div className="rounded-lg border border-border bg-card hover:shadow-sm transition-shadow">
       <ContextMenu>
         <ContextMenuTrigger render={rowContent} />
         <ContextMenuContent>
@@ -567,21 +567,24 @@ export function MyTaskRow({
         )}
       </ContextMenu>
 
-      {/* Subtasks — collapsed when the chevron is toggled */}
-      {!collapsed &&
-        subtasks.map((subtask) => (
-          <MyTaskRow
-            key={subtask.key}
-            issue={subtask}
-            isSubtask
-            jiraBaseUrl={jiraBaseUrl}
-            storyPointsFieldKey={storyPointsFieldKey}
-            flaggedFieldKey={flaggedFieldKey}
-            onOpenPeek={onOpenPeek}
-            onOpenIssue={onOpenIssue}
-            onStatusSelect={onStatusSelect}
-          />
-        ))}
+      {/* Subtasks — hairline separator + nested rows, collapsed when chevron toggled */}
+      {!collapsed && subtasks.length > 0 && (
+        <div className="border-t border-border/40">
+          {subtasks.map((subtask) => (
+            <MyTaskRow
+              key={subtask.key}
+              issue={subtask}
+              isSubtask
+              jiraBaseUrl={jiraBaseUrl}
+              storyPointsFieldKey={storyPointsFieldKey}
+              flaggedFieldKey={flaggedFieldKey}
+              onOpenPeek={onOpenPeek}
+              onOpenIssue={onOpenIssue}
+              onStatusSelect={onStatusSelect}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
