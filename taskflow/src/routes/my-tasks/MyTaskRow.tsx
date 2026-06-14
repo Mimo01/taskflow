@@ -451,6 +451,8 @@ export function MyTaskRow({
 
         {/* Metadata chips — subdued so the summary reads first */}
 
+        <LabelChips labels={labels} />
+
         {isFlagged && (
           <span
             className={cn(
@@ -462,8 +464,6 @@ export function MyTaskRow({
             Flagged
           </span>
         )}
-
-        <LabelChips labels={labels} />
 
         {mrHealth && (
           <span
