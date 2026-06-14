@@ -36,12 +36,12 @@ import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Progress } from '@/components/ui/progress';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
-import { isIssueFlagged } from '@/services/jira';
-import type { JiraIssue } from '@/services/jira';
-import type { ReviewHealth } from '@/services/linkEngine';
 import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
-import { OverdueBadge, isOverdue } from '@/routes/dashboard/issue-detail/OverdueBadge';
+import { isOverdue, OverdueBadge } from '@/routes/dashboard/issue-detail/OverdueBadge';
 import StatusPopover from '@/routes/dashboard/StatusPopover';
+import type { JiraIssue } from '@/services/jira';
+import { isIssueFlagged } from '@/services/jira';
+import type { ReviewHealth } from '@/services/linkEngine';
 
 // MR health badge tone mapping
 const MR_HEALTH_TONE: Record<ReviewHealth, 'green' | 'orange' | 'blue'> = {
@@ -121,8 +121,7 @@ export function MyTaskRow({
     (issue.fields.project as { id?: string } | null | undefined)?.id ?? '0',
     10,
   );
-  const issueTypeId =
-    (issue.fields.issuetype as { id?: string } | null | undefined)?.id ?? '';
+  const issueTypeId = (issue.fields.issuetype as { id?: string } | null | undefined)?.id ?? '';
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -153,9 +152,7 @@ export function MyTaskRow({
         style={{ width: 18, height: 18 }}
         aria-hidden={!issue.fields.issuetype}
       >
-        {issue.fields.issuetype?.name && (
-          <IssueTypeIcon typeName={issue.fields.issuetype.name} />
-        )}
+        {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
       </span>
 
       {/* 2. Issue key — sibling <button> with stopPropagation (overlay-button pattern) */}
@@ -180,20 +177,14 @@ export function MyTaskRow({
         aria-hidden={!issue.fields.priority}
       >
         <PriorityIcon
-          priority={
-            issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
-          }
+          priority={issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined}
         />
       </span>
 
       {/* 4. Summary — truncates, flag icon + OverdueBadge */}
       <span className="flex items-center gap-1.5 min-w-0 flex-1 text-sm">
-        {isFlagged && (
-          <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
-        )}
-        <span
-          className={cn('truncate', doneSummaryClass(issue.fields.status.statusCategory))}
-        >
+        {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
+        <span className={cn('truncate', doneSummaryClass(issue.fields.status.statusCategory))}>
           {issue.fields.summary}
         </span>
         <OverdueBadge duedate={duedate} statusCategoryKey={statusCategoryKey} />
@@ -203,10 +194,7 @@ export function MyTaskRow({
           StatusPopover renders its own PopoverTrigger with statusPillClass; the flex div
           prevents the pill from collapsing on a bare inline span. */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper, inner StatusPopover handles its own keyboard events */}
-      <div
-        className="flex shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
         <StatusPopover
           projectId={projectId}
           issueTypeId={issueTypeId}

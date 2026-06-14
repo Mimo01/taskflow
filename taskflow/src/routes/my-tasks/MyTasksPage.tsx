@@ -24,12 +24,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { groupByMyDay, deriveCounts } from '@/lib/my-tasks-sort';
+import { deriveCounts, groupByMyDay } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
-import type { JiraIssue } from '@/services/jira';
-import { isIssueFlagged, fetchMyTasksHierarchy, fetchAllAssignedHierarchy } from '@/services/jira';
-import type { ReviewHealth } from '@/services/linkEngine';
 import { fetchAuthoredMRs } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
+import { fetchAllAssignedHierarchy, fetchMyTasksHierarchy } from '@/services/jira';
+import type { ReviewHealth } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMyTasksStore } from '@/stores/my-tasks.store';
@@ -95,7 +95,6 @@ function matchesFilter(
   issue: JiraIssue,
   filterKey: FilterKey | null,
   mrAwaitingKeys: Set<string>,
-  flaggedFieldKey: string,
 ): boolean {
   if (!filterKey) return true;
   const cat = issue.fields.status.statusCategory?.key;
@@ -196,7 +195,13 @@ export default function MyTasksPage() {
     isError: allError,
     refetch: allRefetch,
   } = useQuery({
-    queryKey: ['jira-issues', 'my-tasks-all', activeJiraProject, storyPointsFieldKey, flaggedFieldKey],
+    queryKey: [
+      'jira-issues',
+      'my-tasks-all',
+      activeJiraProject,
+      storyPointsFieldKey,
+      flaggedFieldKey,
+    ],
     queryFn: () =>
       fetchAllAssignedHierarchy(
         jiraBaseUrl!,
@@ -248,7 +253,7 @@ export default function MyTasksPage() {
   // ── Filter function ────────────────────────────────────────────────────────
   function applyFilter(issues: JiraIssue[]): JiraIssue[] {
     if (!activeFilter) return issues;
-    return issues.filter((i) => matchesFilter(i, activeFilter, myOpenMRIssueKeys, flaggedFieldKey));
+    return issues.filter((i) => matchesFilter(i, activeFilter, myOpenMRIssueKeys));
   }
 
   function handleFilterClick(key: FilterKey) {
@@ -279,12 +284,7 @@ export default function MyTasksPage() {
 
   function renderMyDayList() {
     const filtered = applyFilter(allIssues);
-    const bands = groupByMyDay(
-      filtered,
-      myIssueKeys,
-      flaggedFieldKey,
-      myOpenMRIssueKeys,
-    );
+    const bands = groupByMyDay(filtered, myIssueKeys, flaggedFieldKey, myOpenMRIssueKeys);
 
     if (bands.length === 0) {
       if (activeFilter) {
@@ -628,7 +628,11 @@ export default function MyTasksPage() {
           </TabsList>
 
           {/* Scope toggle (MYTASK-07) */}
-          <div role="group" aria-label="Scope" className="flex items-center rounded border border-border overflow-hidden ml-4 shrink-0">
+          <div
+            role="group"
+            aria-label="Scope"
+            className="flex items-center rounded border border-border overflow-hidden ml-4 shrink-0"
+          >
             <button
               type="button"
               aria-pressed={scope === 'current-sprint'}
