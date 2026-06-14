@@ -74,6 +74,71 @@ const MY_DAY_BAND_DOT: Record<string, string> = {
   done: 'bg-green-500',
 };
 
+// ── Sprint grouping (All Assigned / All Reported scopes) ─────────────────────
+
+type SprintState = 'active' | 'future' | 'closed';
+interface SprintMeta {
+  id: number;
+  name: string;
+  state: SprintState;
+}
+
+const SPRINT_STATE_DOT: Record<SprintState, string> = {
+  active: 'bg-blue-500',
+  future: 'bg-muted-foreground/60',
+  closed: 'bg-green-500',
+};
+
+const normalizeSprintState = (raw: string | undefined): SprintState => {
+  const s = (raw ?? '').toLowerCase();
+  return s === 'active' || s === 'future' ? s : 'closed';
+};
+
+/**
+ * Extract the most-relevant sprint from a Jira sprint custom field
+ * (customfield_10020), which may be an array of objects, an array of Java
+ * toString strings, a single object, or null.
+ *
+ * When an issue belongs to multiple sprints (carry-over), we group it under the
+ * active one if present, else the future one, else the most recent closed sprint
+ * (highest id). Returns null → the issue groups under "Backlog".
+ */
+function extractSprintMeta(raw: unknown): SprintMeta | null {
+  const arr = Array.isArray(raw) ? raw : raw != null ? [raw] : [];
+  const parsed: SprintMeta[] = [];
+
+  for (const item of arr) {
+    if (item && typeof item === 'object') {
+      const o = item as Record<string, unknown>;
+      const id = typeof o.id === 'number' ? o.id : Number(o.id);
+      if (!Number.isFinite(id)) continue;
+      parsed.push({
+        id,
+        name: typeof o.name === 'string' ? o.name : `Sprint ${id}`,
+        state: normalizeSprintState(typeof o.state === 'string' ? o.state : undefined),
+      });
+    } else if (typeof item === 'string') {
+      const id = Number(item.match(/id=(\d+)/)?.[1]);
+      if (!Number.isFinite(id)) continue;
+      parsed.push({
+        id,
+        name: item.match(/name=([^,\]]+)/)?.[1] ?? `Sprint ${id}`,
+        state: normalizeSprintState(item.match(/state=([^,\]]+)/)?.[1]),
+      });
+    }
+  }
+
+  if (parsed.length === 0) return null;
+  return (
+    parsed.find((s) => s.state === 'active') ??
+    parsed.find((s) => s.state === 'future') ??
+    parsed.reduce((a, b) => (b.id > a.id ? b : a))
+  );
+}
+
+const sprintGroupRank = (meta: SprintMeta | null): number =>
+  meta == null ? 3 : meta.state === 'active' ? 0 : meta.state === 'future' ? 1 : 2;
+
 // ── Skeleton row ──────────────────────────────────────────────────────────────
 
 function SkeletonRow() {
@@ -523,6 +588,94 @@ export default function MyTasksPage() {
     );
   }
 
+  // ── Render sprint-grouped list (All Assigned / All Reported) ───────────────
+
+  function renderBySprintList() {
+    const filtered = applyBucketFilter(allIssues);
+    const parentsOnly = filtered.filter((i) => !i.fields.issuetype?.subtask);
+
+    // Attach any subtasks to their parent (these scopes are parent-only by design,
+    // but be defensive in case nesting is ever returned).
+    const subtasksByParent = new Map<string, JiraIssue[]>();
+    for (const i of filtered) {
+      if (i.fields.issuetype?.subtask) {
+        const pk = i.fields.parent?.key;
+        if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), i]);
+      }
+    }
+
+    if (parentsOnly.length === 0) {
+      if (activeBucket) {
+        return (
+          <EmptyState
+            icon={ListFilter}
+            title="No matches"
+            subtitle="No tasks match the active filter. Click the filter again to clear it."
+          />
+        );
+      }
+      const reported = scope === 'all-reported';
+      return (
+        <EmptyState
+          icon={CheckSquare}
+          title={reported ? 'No reported issues' : 'No assigned issues'}
+          subtitle={
+            reported
+              ? 'You have no issues reported across all sprints and the backlog.'
+              : 'You have no issues assigned across all sprints and the backlog.'
+          }
+        />
+      );
+    }
+
+    // Group parents by sprint (or Backlog), preserving JQL rank order within a group.
+    const groups = new Map<string, { meta: SprintMeta | null; parents: JiraIssue[] }>();
+    for (const p of parentsOnly) {
+      const meta = extractSprintMeta(p.fields.customfield_10020);
+      const key = meta ? String(meta.id) : 'backlog';
+      const group = groups.get(key) ?? { meta, parents: [] };
+      group.parents.push(p);
+      groups.set(key, group);
+    }
+
+    // Order: active → future → closed (newest id first) → Backlog last.
+    const ordered = Array.from(groups.values()).sort((a, b) => {
+      const ra = sprintGroupRank(a.meta);
+      const rb = sprintGroupRank(b.meta);
+      if (ra !== rb) return ra - rb;
+      return (b.meta?.id ?? 0) - (a.meta?.id ?? 0);
+    });
+
+    return (
+      <div className="px-4 py-3 space-y-4">
+        {ordered.map(({ meta, parents: groupParents }) => {
+          const sectionPts = groupParents.reduce((sum, p) => {
+            const sp =
+              (p.fields[storyPointsFieldKey] as number | null | undefined) ??
+              (p.fields.customfield_10016 as number | null | undefined) ??
+              0;
+            return sum + (sp || 0);
+          }, 0);
+          return (
+            <div key={meta?.id ?? 'backlog'}>
+              <GroupHeader
+                label={meta ? meta.name : 'Backlog'}
+                count={groupParents.length}
+                dotClass={meta ? SPRINT_STATE_DOT[meta.state] : 'bg-muted-foreground/40'}
+                sectionPts={sectionPts}
+              />
+              <div className="space-y-0.5">
+                {groupParents.map((parent) =>
+                  renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   function renderContent() {
     if (isLoading) {
       return (
@@ -545,7 +698,7 @@ export default function MyTasksPage() {
       );
     }
 
-    return renderMyDayList();
+    return scope === 'current-sprint' ? renderMyDayList() : renderBySprintList();
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
