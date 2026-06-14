@@ -221,15 +221,15 @@ export function MyTaskRow({
       <div
         role="button"
         tabIndex={0}
-        className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
+        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors"
         onClick={() => onOpenPeek(issue.key)}
         onKeyDown={handleKeyDown}
         data-testid={`my-task-row-${issue.key}`}
       >
         {/* LEFT region: indent spacer + issue type icon + key + summary */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* Indent spacer (replaces chevron + type + priority slots of parent) */}
-          <span className="shrink-0" style={{ width: 52 }} aria-hidden />
+          {/* Indent spacer (subtasks indented relative to their parent) */}
+          <span className="shrink-0" style={{ width: 36 }} aria-hidden />
 
           {/* Issue type icon (sub-task type) */}
           <span
@@ -362,7 +362,7 @@ export function MyTaskRow({
       role="button"
       tabIndex={0}
       className={cn(
-        'flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors',
+        'flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors',
         isFlagged &&
           'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
       )}
@@ -370,12 +370,9 @@ export function MyTaskRow({
       onKeyDown={handleKeyDown}
       data-testid={`my-task-row-${issue.key}`}
     >
-      {/* LEFT region: chevron + icons + key + summary + chips */}
+      {/* LEFT region: icons + key + summary + chips */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        {/* 1. Fixed-width spacer (chevron removed — subtasks always visible) */}
-        <span className="shrink-0" style={{ width: 16 }} aria-hidden />
-
-        {/* 2. Issue type icon */}
+        {/* Issue type icon */}
         <span
           className="flex items-center justify-center shrink-0"
           style={{ width: 18, height: 18 }}
