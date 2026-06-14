@@ -146,6 +146,16 @@ export interface MyTaskRowProps {
   ) => void;
   /** Subtask rows to render beneath this parent (only for parent rows) */
   subtasks?: JiraIssue[];
+  /**
+   * Accumulated time-spent across this story + all its subtasks.
+   * When provided, the parent row's time bar uses this instead of the issue's own value.
+   */
+  accumulatedSpentSeconds?: number;
+  /**
+   * Accumulated original estimate across this story + all its subtasks.
+   * When provided, the parent row's time bar uses this instead of the issue's own value.
+   */
+  accumulatedEstimateSeconds?: number;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -161,7 +171,10 @@ export function MyTaskRow({
   onOpenIssue,
   onStatusSelect,
   subtasks = [],
+  accumulatedSpentSeconds,
+  accumulatedEstimateSeconds,
 }: MyTaskRowProps) {
+  // logWorkOpen is shared for both parent and subtask branches (only one branch renders at a time)
   const [logWorkOpen, setLogWorkOpen] = useState(false);
   // Local collapse state: true = subtasks hidden
   const [collapsed, setCollapsed] = useState(false);
@@ -182,8 +195,16 @@ export function MyTaskRow({
       }
     | null
     | undefined;
-  const totalSeconds = timeTracking?.originalEstimateSeconds;
-  const spentSeconds = timeTracking?.timeSpentSeconds ?? 0;
+  // For parent rows, use accumulated values when provided (story + all subtasks).
+  // For subtask rows (isSubtask=true), always use the issue's own values.
+  const totalSeconds =
+    !isSubtask && accumulatedEstimateSeconds !== undefined
+      ? accumulatedEstimateSeconds
+      : timeTracking?.originalEstimateSeconds;
+  const spentSeconds =
+    !isSubtask && accumulatedSpentSeconds !== undefined
+      ? accumulatedSpentSeconds
+      : (timeTracking?.timeSpentSeconds ?? 0);
 
   const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
 
@@ -275,11 +296,13 @@ export function MyTaskRow({
 
           {/* SP placeholder slot — same width as parent SP slot, invisible */}
           <span
-            className="shrink-0 tabular-nums whitespace-nowrap opacity-0 select-none"
+            className="flex shrink-0 items-center justify-center opacity-0 select-none"
             style={{ width: 48 }}
             aria-hidden
           >
-            — pts
+            <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium">
+              0
+            </span>
           </span>
 
           {/* Stacked time bar */}
@@ -302,6 +325,14 @@ export function MyTaskRow({
           <ContextMenuItem
             onClick={(e) => {
               e.stopPropagation();
+              setLogWorkOpen(true);
+            }}
+          >
+            Log Work
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
               navigator.clipboard.writeText(issue.key).catch(() => {});
             }}
           >
@@ -318,6 +349,14 @@ export function MyTaskRow({
             Copy link
           </ContextMenuItem>
         </ContextMenuContent>
+
+        {logWorkOpen && (
+          <LogWorkPopover
+            issueKey={issue.key}
+            jiraBaseUrl={jiraBaseUrl}
+            onSuccess={() => setLogWorkOpen(false)}
+          />
+        )}
       </ContextMenu>
     );
   }
@@ -416,13 +455,6 @@ export function MyTaskRow({
 
         {/* 6. Metadata chips */}
 
-        {/* N sub */}
-        {(issue.fields.subtasks as unknown[] | null | undefined)?.length ? (
-          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0 tabular-nums">
-            {(issue.fields.subtasks as unknown[]).length} sub
-          </span>
-        ) : null}
-
         {/* Flagged chip */}
         {isFlagged && (
           <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs bg-red-500/15 text-red-700 dark:text-red-400 shrink-0">
@@ -466,22 +498,18 @@ export function MyTaskRow({
         </div>
 
         {/* 8. Story points slot — fixed w-12 so WebKit never collapses it */}
-        {storyPoints !== null ? (
-          <span
-            className="text-xs text-muted-foreground shrink-0 tabular-nums whitespace-nowrap text-right"
-            style={{ width: 48 }}
-          >
-            {storyPoints} pts
-          </span>
-        ) : (
-          <span
-            className="text-xs text-muted-foreground shrink-0 tabular-nums whitespace-nowrap opacity-0 select-none"
-            style={{ width: 48 }}
-            aria-hidden
-          >
-            — pts
-          </span>
-        )}
+        {/* Matches BacklogRow style: bordered muted chip, number only, ? when none */}
+        <span className="flex shrink-0 items-center justify-center" style={{ width: 48 }}>
+          {storyPoints !== null ? (
+            <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-foreground">
+              {storyPoints}
+            </span>
+          ) : (
+            <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground">
+              ?
+            </span>
+          )}
+        </span>
 
         {/* 9. Stacked time bar */}
         <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
@@ -497,7 +525,7 @@ export function MyTaskRow({
   );
 
   return (
-    <div>
+    <div className="border-b border-border/60">
       <ContextMenu>
         <ContextMenuTrigger render={rowContent} />
         <ContextMenuContent>
