@@ -60,15 +60,15 @@ const MY_DAY_BAND_LABELS: Record<string, string> = {
 
 type FilterBucket = 'toDo' | 'inProgress' | 'done';
 
-// ── Group header accent stripe colors ─────────────────────────────────────────
+// ── Group header band dot colors (subtle identity dot, replaces heavy left stripe) ──
 
-const MY_DAY_BAND_STRIPE: Record<string, string> = {
-  'flagged-blocked': 'border-l-red-500',
-  overdue: 'border-l-destructive',
-  'in-review-my-mr': 'border-l-purple-500',
-  'in-progress': 'border-l-blue-500',
-  'to-do': 'border-l-muted-foreground',
-  done: 'border-l-green-500',
+const MY_DAY_BAND_DOT: Record<string, string> = {
+  'flagged-blocked': 'bg-red-500',
+  overdue: 'bg-destructive',
+  'in-review-my-mr': 'bg-purple-500',
+  'in-progress': 'bg-blue-500',
+  'to-do': 'bg-muted-foreground/60',
+  done: 'bg-green-500',
 };
 
 // ── Skeleton row ──────────────────────────────────────────────────────────────
@@ -86,36 +86,31 @@ function SkeletonRow() {
   );
 }
 
-// ── Group header (sticky) with left accent stripe, count, and section SP total ──
+// ── Group header — standup-style: dot + label + count + hr + pts ──────────────
 
 function GroupHeader({
   label,
   count,
-  stripeClass,
+  dotClass,
   sectionPts,
 }: {
   label: string;
   count?: number;
-  stripeClass?: string;
+  dotClass?: string;
   sectionPts?: number;
 }) {
   return (
-    <div
-      className={cn(
-        'sticky top-0 z-10 flex items-center gap-2 px-4 py-1.5',
-        'bg-background/95 backdrop-blur border-b border-border/50',
-        'select-none border-l-4',
-        stripeClass ?? 'border-l-muted-foreground',
-      )}
-    >
-      <span className="flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
+    <div className="flex items-center gap-3 px-2 mb-2 select-none">
+      {dotClass && <span className={cn('h-2 w-2 rounded-full shrink-0', dotClass)} aria-hidden />}
+      <h3 className="text-sm font-semibold text-muted-foreground/60 shrink-0">{label}</h3>
       {count !== undefined && (
-        <span className="text-xs font-normal text-muted-foreground/70 tabular-nums">{count}</span>
+        <span className="text-sm font-normal text-muted-foreground/60 shrink-0 tabular-nums">
+          {count}
+        </span>
       )}
+      <hr className="flex-1 border-t border-border" />
       {sectionPts !== undefined && sectionPts > 0 && (
-        <span className="text-xs font-normal text-muted-foreground/70 tabular-nums">
+        <span className="text-sm text-muted-foreground/60 tabular-nums shrink-0">
           {sectionPts} pts
         </span>
       )}
@@ -362,30 +357,29 @@ export default function MyTasksPage() {
     (i) => i.fields.status.statusCategory?.key === 'done',
   ).length;
 
-  // tileTotalCount drives the stat-tile mini bars (by issue count).
-  const tileTotalCount = tileToDoCount + tileInProgressCount + tileDoneCount;
-  // ── Sprint donut: To Do / In Progress / Done breakdown (by story points) ────
-  const sumBucketSP = (categoryKey: string) =>
-    parents.reduce((sum, i) => {
-      if (i.fields.status.statusCategory?.key !== categoryKey) return sum;
-      const sp =
-        (i.fields[storyPointsFieldKey] as number | null | undefined) ??
-        (i.fields.customfield_10016 as number | null | undefined) ??
-        0;
-      return sum + (sp || 0);
-    }, 0);
-  const spToDo = sumBucketSP('new');
-  const spInProgress = sumBucketSP('indeterminate');
-  const spDone = sumBucketSP('done');
-  const spTotal = spToDo + spInProgress + spDone;
+  // ── Sprint donut (points done / points total) ──────────────────────────────
+  const ptsDone = parents.reduce((sum, i) => {
+    if (i.fields.status.statusCategory?.key !== 'done') return sum;
+    const sp =
+      (i.fields[storyPointsFieldKey] as number | null | undefined) ??
+      (i.fields.customfield_10016 as number | null | undefined) ??
+      0;
+    return sum + (sp || 0);
+  }, 0);
+  const ptsTotal = parents.reduce((sum, i) => {
+    const sp =
+      (i.fields[storyPointsFieldKey] as number | null | undefined) ??
+      (i.fields.customfield_10016 as number | null | undefined) ??
+      0;
+    return sum + (sp || 0);
+  }, 0);
   const DONUT_R = 25;
   const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_R; // ≈ 157
-  const donutSegLen = (pts: number) => (spTotal > 0 ? (pts / spTotal) * DONUT_CIRCUMFERENCE : 0);
-  const donutToDoLen = donutSegLen(spToDo);
-  const donutInProgLen = donutSegLen(spInProgress);
-  const donutDoneLen = donutSegLen(spDone);
+  const donutOffset =
+    ptsTotal > 0 ? DONUT_CIRCUMFERENCE * (1 - ptsDone / ptsTotal) : DONUT_CIRCUMFERENCE;
 
-  // tileTotalCount (computed above with the donut) drives both the donut breakdown and the mini bars.
+  // ── Stat tile proportion (share of total for mini bar) ────────────────────
+  const tileTotalCount = tileToDoCount + tileInProgressCount + tileDoneCount;
 
   // ── Filter function ────────────────────────────────────────────────────────
   function applyBucketFilter(issues: JiraIssue[]): JiraIssue[] {
@@ -502,7 +496,7 @@ export default function MyTasksPage() {
     }
 
     return (
-      <div>
+      <div className="px-4 py-3 space-y-5">
         {bands.map(({ band, parents: bandParents }) => {
           const sortedParents = bandParents.map((r) => r.parent);
           const sectionPts = sortedParents.reduce((sum, p) => {
@@ -519,12 +513,14 @@ export default function MyTasksPage() {
               <GroupHeader
                 label={MY_DAY_BAND_LABELS[band] ?? band}
                 count={sortedParents.length}
-                stripeClass={MY_DAY_BAND_STRIPE[band]}
+                dotClass={MY_DAY_BAND_DOT[band]}
                 sectionPts={sectionPts}
               />
-              {sortedParents.map((parent) =>
-                renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
-              )}
+              <div className="space-y-2">
+                {sortedParents.map((parent) =>
+                  renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
+                )}
+              </div>
             </div>
           );
         })}
@@ -627,29 +623,7 @@ export default function MyTasksPage() {
                 className="stroke-muted"
                 strokeWidth="8"
               />
-              {/* To Do segment (slate) */}
-              <circle
-                cx="30"
-                cy="30"
-                r={DONUT_R}
-                fill="none"
-                stroke="#94a3b8"
-                strokeWidth="8"
-                strokeDasharray={`${donutToDoLen} ${DONUT_CIRCUMFERENCE - donutToDoLen}`}
-                strokeDashoffset={0}
-              />
-              {/* In Progress segment (blue) */}
-              <circle
-                cx="30"
-                cy="30"
-                r={DONUT_R}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="8"
-                strokeDasharray={`${donutInProgLen} ${DONUT_CIRCUMFERENCE - donutInProgLen}`}
-                strokeDashoffset={-donutToDoLen}
-              />
-              {/* Done segment (emerald) */}
+              {/* Fill */}
               <circle
                 cx="30"
                 cy="30"
@@ -657,15 +631,17 @@ export default function MyTasksPage() {
                 fill="none"
                 stroke="#10b981"
                 strokeWidth="8"
-                strokeDasharray={`${donutDoneLen} ${DONUT_CIRCUMFERENCE - donutDoneLen}`}
-                strokeDashoffset={-(donutToDoLen + donutInProgLen)}
+                strokeLinecap="round"
+                strokeDasharray={DONUT_CIRCUMFERENCE}
+                strokeDashoffset={donutOffset}
               />
             </svg>
             <div className="leading-tight">
               <div className="text-lg font-semibold tabular-nums text-foreground leading-none">
-                {spTotal}
+                {ptsDone}
+                <span className="text-muted-foreground font-normal">/{ptsTotal}</span>
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5">pts</div>
+              <div className="text-xs text-muted-foreground mt-0.5">pts done</div>
             </div>
           </div>
 
