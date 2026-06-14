@@ -132,9 +132,9 @@ export function MyTaskRow({
     }
   }
 
+  // Subtask indent matches standup flat-row layout: pl-6 ml-2 on the wrapper
   const rowBase = cn(
-    'flex items-center gap-2 px-4 py-2.5 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors',
-    isSubtask && 'pl-8',
+    'flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors',
     isFlagged &&
       'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
   );
@@ -240,21 +240,38 @@ export function MyTaskRow({
         </Badge>
       )}
 
-      {/* 9. Time display — subtask rows show compact "spent / estimate" text (R2);
-           parent rows keep the progress bar. Both only rendered when time data available. */}
-      {isSubtask ? (
-        spentSeconds > 0 || (totalSeconds && totalSeconds > 0) ? (
-          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-            {formatDuration(spentSeconds)}
-            {totalSeconds && totalSeconds > 0 ? ` / ${formatDuration(totalSeconds)}` : ''}
+      {/* 9. Time bar — standup-style color-coded bar + caption on BOTH parent and subtask rows.
+           No-estimate rows: neutral muted bar (value=0) + spent caption only, so all rows
+           align. Zero-spent + zero-estimate: empty equal-width spacer. */}
+      {totalSeconds && totalSeconds > 0 ? (
+        // Has estimate: color-coded bar + "spent / estimate" caption
+        <div className="shrink-0 flex items-center gap-2">
+          <Progress
+            value={timeProgressValue ?? 0}
+            className="w-20"
+            indicatorClassName={
+              spentSeconds >= totalSeconds
+                ? 'bg-red-500'
+                : (timeProgressValue ?? 0) >= 75
+                  ? 'bg-amber-500'
+                  : 'bg-green-500'
+            }
+          />
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+            {formatDuration(spentSeconds)} / {formatDuration(totalSeconds)}
           </span>
-        ) : null
+        </div>
+      ) : spentSeconds > 0 ? (
+        // No estimate but has spent: muted track (value=0) + spent caption
+        <div className="shrink-0 flex items-center gap-2">
+          <Progress value={0} className="w-20" />
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+            {formatDuration(spentSeconds)}
+          </span>
+        </div>
       ) : (
-        timeProgressValue !== null && (
-          <div className="w-16 shrink-0">
-            <Progress value={timeProgressValue} />
-          </div>
-        )
+        // Neither: equal-width spacer so columns align
+        <div className="shrink-0 flex items-center gap-2" style={{ width: 96 }} aria-hidden />
       )}
 
       {/* 10. Assignee avatar — far-right trailing slot for both parent and subtask rows.
@@ -269,49 +286,52 @@ export function MyTaskRow({
   );
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger render={rowContent} />
-      <ContextMenuContent>
-        {/* Log Work — opens LogWorkPopover (D-07) */}
-        <ContextMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            setLogWorkOpen(true);
-          }}
-        >
-          Log Work
-        </ContextMenuItem>
-        {/* Copy issue key (D-07) */}
-        <ContextMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            navigator.clipboard.writeText(issue.key).catch(() => {});
-          }}
-        >
-          Copy issue key
-        </ContextMenuItem>
-        {/* Copy link (D-07) */}
-        <ContextMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            navigator.clipboard
-              .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
-              .catch(() => {});
-          }}
-        >
-          Copy link
-        </ContextMenuItem>
-      </ContextMenuContent>
+    // Subtask indent wrapper — pl-6 ml-2 matches standup flat-row layout (D-03)
+    <div className={isSubtask ? 'pl-6 ml-2' : undefined}>
+      <ContextMenu>
+        <ContextMenuTrigger render={rowContent} />
+        <ContextMenuContent>
+          {/* Log Work — opens LogWorkPopover (D-07) */}
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setLogWorkOpen(true);
+            }}
+          >
+            Log Work
+          </ContextMenuItem>
+          {/* Copy issue key (D-07) */}
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(issue.key).catch(() => {});
+            }}
+          >
+            Copy issue key
+          </ContextMenuItem>
+          {/* Copy link (D-07) */}
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard
+                .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
+                .catch(() => {});
+            }}
+          >
+            Copy link
+          </ContextMenuItem>
+        </ContextMenuContent>
 
-      {/* LogWorkPopover rendered outside the context menu to avoid nesting issues */}
-      {logWorkOpen && (
-        <LogWorkPopover
-          issueKey={issue.key}
-          jiraBaseUrl={jiraBaseUrl}
-          onSuccess={() => setLogWorkOpen(false)}
-        />
-      )}
-    </ContextMenu>
+        {/* LogWorkPopover rendered outside the context menu to avoid nesting issues */}
+        {logWorkOpen && (
+          <LogWorkPopover
+            issueKey={issue.key}
+            jiraBaseUrl={jiraBaseUrl}
+            onSuccess={() => setLogWorkOpen(false)}
+          />
+        )}
+      </ContextMenu>
+    </div>
   );
 }
 
