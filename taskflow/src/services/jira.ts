@@ -20,7 +20,10 @@
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
-import { fetchAllSearchPages as fetchAllSearchPagesClient, isResponseLikeError } from './jira/client';
+import {
+  fetchAllSearchPages as fetchAllSearchPagesClient,
+  isResponseLikeError,
+} from './jira/client';
 import { fetchAllJiraStatuses } from './jira/statuses';
 import type { JiraComment } from './jira/types';
 
