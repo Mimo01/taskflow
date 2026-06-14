@@ -1,30 +1,32 @@
 /**
- * MyTaskRow — A single issue row in the My Tasks page.
+ * MyTaskRow — A single issue row in the My Tasks page (redesigned for 82-DESIGN-TARGET).
  *
- * Full row anatomy per MYTASK-05 (UI-SPEC §Row Anatomy):
- *   1. Type icon (18×18px explicit style — WebKit 0-width column fix)
- *   2. Issue key (font-mono, inner <button> with stopPropagation → full-page detail)
- *   3. Priority icon (18×18px explicit style)
- *   4. Summary (text-sm truncate, Flag icon when flagged, OverdueBadge when overdue)
- *   5. Status pill (statusPillClass() wrapped in flex div, click → StatusPopover)
- *   6. Due date (text-xs, text-destructive when overdue)
- *   7. Story points badge (inline-flex w-7, ? when null)
- *   8. MR health badge (Badge, when mrHealth provided)
- *   9. Time logged/remaining bar (Progress, when time data available)
+ * Row anatomy (parent):
+ *   1. Expand/collapse chevron (only when subtasks exist)
+ *   2. Issue type icon
+ *   3. Priority icon
+ *   4. Issue key (monospace, muted) → onIssueClick (breadcrumb-aware full-page)
+ *   5. Summary (flex-1, truncate)
+ *   6. Metadata chips: N sub | Flagged | label chips (≤2 + +N) | MR health
+ *   7. Status pill (statusPillClass, flex-parent wrapper)
+ *   8. Story points "N pts" (hidden on subtasks)
+ *   9. Time bar STACKED (bar top, caption below, fixed w-36)
+ *  10. Assignee avatar (far-right, size=24)
  *
- * Inline interactions per MYTASK-06 (D-07, D-08):
- *   - Row body click → onOpenPeek (PeekPanel)
- *   - Issue-key button → onOpenIssue (full-page detail), sibling with stopPropagation
- *   - Status pill click → StatusPopover (inline transition)
- *   - Right-click context menu → "Log Work", "Copy issue key", "Copy link" (D-07 only)
+ * Subtask rows are lean: ↳ indent, key, summary, status pill, stacked time bar, avatar.
+ * No sub-badge / priority / SP / label chips on subtasks.
  *
- * Subtask indent: pl-8 when isSubtask=true (D-03)
- * Flagged row: bg-yellow-100 dark:bg-yellow-900/30 (BacklogRow pattern)
+ * Row body click → onOpenPeek (PeekPanel)
+ * Issue-key click → onOpenIssue (full-page detail, stopPropagation)
+ *
+ * WebKit/Tauri pitfalls mitigated:
+ * - All icon columns have explicit style={{ width, height }}
+ * - Time bar column uses w-36 (144px) fixed, never collapses
+ * - statusPill wrapped in flex div
  */
 
-import { Flag } from 'lucide-react';
+import { ChevronDown, ChevronRight, Flag, Folder } from 'lucide-react';
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
@@ -38,38 +40,112 @@ import { Progress } from '@/components/ui/progress';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { cn } from '@/lib/utils';
 import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
-import { isOverdue, OverdueBadge } from '@/routes/dashboard/issue-detail/OverdueBadge';
 import StatusPopover from '@/routes/dashboard/StatusPopover';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import type { ReviewHealth } from '@/services/linkEngine';
 
-// MR health badge tone mapping
-const MR_HEALTH_TONE: Record<ReviewHealth, 'green' | 'orange' | 'blue'> = {
-  approved: 'green',
-  changes_requested: 'orange',
-  waiting_for_review: 'blue',
-};
+// ── MR health chip config ─────────────────────────────────────────────────────
 
 const MR_HEALTH_LABEL: Record<ReviewHealth, string> = {
   approved: 'Approved',
-  changes_requested: 'Changes',
-  waiting_for_review: 'In Review',
+  changes_requested: 'Changes requested',
+  waiting_for_review: 'Awaiting review',
 };
+
+const MR_HEALTH_CLASS: Record<ReviewHealth, string> = {
+  approved: 'bg-green-500/15 text-green-700 dark:text-green-400',
+  changes_requested: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  waiting_for_review: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+};
+
+// ── Stacked time bar ──────────────────────────────────────────────────────────
+
+interface StackedTimeBarProps {
+  spentSeconds: number;
+  totalSeconds: number | undefined;
+}
+
+function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
+  const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
+  const hasSpent = spentSeconds > 0;
+
+  if (!hasEst && !hasSpent) {
+    // Equal-width spacer so all rows align
+    return <div className="shrink-0" style={{ width: 144 }} aria-hidden />;
+  }
+
+  const est = hasEst ? (totalSeconds as number) : 0;
+  const fillPct = hasEst ? Math.min(100, Math.round((spentSeconds / est) * 100)) : 0;
+  const indicatorColor = hasEst
+    ? spentSeconds >= est
+      ? 'bg-red-500'
+      : fillPct >= 75
+        ? 'bg-amber-500'
+        : 'bg-green-500'
+    : undefined;
+
+  const caption = hasEst
+    ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
+    : hasSpent
+      ? formatDuration(spentSeconds)
+      : '0m / —';
+
+  return (
+    <div className="shrink-0 flex flex-col gap-0.5" style={{ width: 144 }}>
+      <Progress
+        value={hasEst ? fillPct : 0}
+        className="h-1.5 w-full"
+        indicatorClassName={indicatorColor}
+      />
+      <span className="text-xs text-muted-foreground tabular-nums font-mono whitespace-nowrap">
+        {caption}
+      </span>
+    </div>
+  );
+}
+
+// ── Label chips (folder icon + text, max 2 + overflow badge) ─────────────────
+
+function LabelChips({ labels }: { labels: string[] }) {
+  if (!labels.length) return null;
+  const visible = labels.slice(0, 2);
+  const overflow = labels.length - visible.length;
+  return (
+    <>
+      {visible.map((label) => (
+        <span
+          key={label}
+          className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0 max-w-[120px]"
+        >
+          <Folder className="size-3 shrink-0" />
+          <span className="truncate">{label}</span>
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0">
+          +{overflow}
+        </span>
+      )}
+    </>
+  );
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface MyTaskRowProps {
   issue: JiraIssue;
-  /** When true, applies pl-8 subtask indent (D-03) */
+  /** When true, renders a lean subtask row with ↳ indent */
   isSubtask?: boolean;
   jiraBaseUrl: string;
   storyPointsFieldKey: string;
   flaggedFieldKey: string;
-  /** MR health badge — shown only when provided */
+  /** Derived MR review health for this issue */
   mrHealth?: ReviewHealth;
-  /** Called when the row body is clicked → opens PeekPanel (D-08) */
+  /** Called when the row body is clicked → opens PeekPanel */
   onOpenPeek: (key: string) => void;
-  /** Called when the issue key is clicked → full-page detail (D-08) */
+  /** Called when the issue key is clicked → full-page detail */
   onOpenIssue: (key: string) => void;
   /** Called when a status transition is selected from StatusPopover */
   onStatusSelect?: (
@@ -77,11 +153,15 @@ export interface MyTaskRowProps {
     toStatusName: string,
     opts?: { resolution: { id: string } | null },
   ) => void;
+  /** Subtask rows to render beneath this parent (only for parent rows) */
+  subtasks?: JiraIssue[];
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function MyTaskRow({
   issue,
-  isSubtask,
+  isSubtask = false,
   jiraBaseUrl,
   storyPointsFieldKey,
   flaggedFieldKey,
@@ -89,20 +169,20 @@ export function MyTaskRow({
   onOpenPeek,
   onOpenIssue,
   onStatusSelect,
+  subtasks = [],
 }: MyTaskRowProps) {
   const [logWorkOpen, setLogWorkOpen] = useState(false);
+  // Local collapse state: true = subtasks hidden
+  const [collapsed, setCollapsed] = useState(false);
 
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
-  const duedate = (issue.fields.duedate as string | null | undefined) ?? null;
   const statusCategoryKey = issue.fields.status.statusCategory?.key;
-  const isOverdueIssue = isOverdue(duedate, statusCategoryKey);
 
   const storyPoints =
     (issue.fields[storyPointsFieldKey] as number | null | undefined) ??
     (issue.fields.customfield_10016 as number | null | undefined) ??
     null;
 
-  // Time tracking — Progress shown when originalEstimateSeconds > 0
   const timeTracking = issue.fields.timetracking as
     | {
         timeSpentSeconds?: number;
@@ -113,42 +193,159 @@ export function MyTaskRow({
     | undefined;
   const totalSeconds = timeTracking?.originalEstimateSeconds;
   const spentSeconds = timeTracking?.timeSpentSeconds ?? 0;
-  const timeProgressValue =
-    totalSeconds && totalSeconds > 0
-      ? Math.min(100, Math.round((spentSeconds / totalSeconds) * 100))
-      : null;
 
-  // StatusPopover props
+  const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
+
   const projectId = parseInt(
     (issue.fields.project as { id?: string } | null | undefined)?.id ?? '0',
     10,
   );
   const issueTypeId = (issue.fields.issuetype as { id?: string } | null | undefined)?.id ?? '';
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onOpenPeek(issue.key);
     }
   }
 
-  // Subtask indent matches standup flat-row layout: pl-6 ml-2 on the wrapper
-  const rowBase = cn(
-    'flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors',
-    isFlagged &&
-      'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
-  );
+  // ── Subtask row (lean) ────────────────────────────────────────────────────
+
+  if (isSubtask) {
+    const subtaskRow = (
+      // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => onOpenPeek(issue.key)}
+        onKeyDown={handleKeyDown}
+        data-testid={`my-task-row-${issue.key}`}
+      >
+        {/* ↳ indent glyph */}
+        <span className="text-muted-foreground shrink-0 font-mono text-xs pl-4 select-none">↳</span>
+
+        {/* Issue key */}
+        <button
+          type="button"
+          className={cn(
+            'font-mono text-xs text-muted-foreground cursor-pointer hover:underline shrink-0',
+            doneSummaryClass(issue.fields.status.statusCategory),
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenIssue(issue.key);
+          }}
+        >
+          {issue.key}
+        </button>
+
+        {/* Summary */}
+        <span
+          className={cn(
+            'flex-1 min-w-0 truncate text-sm',
+            doneSummaryClass(issue.fields.status.statusCategory),
+          )}
+        >
+          {issue.fields.summary}
+        </span>
+
+        {/* Status pill */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
+        <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
+          <StatusPopover
+            projectId={projectId}
+            issueTypeId={issueTypeId}
+            currentStatusId={issue.fields.status.id}
+            currentStatus={issue.fields.status.name}
+            statusCategoryKey={statusCategoryKey}
+            onSelect={(transitionId, toStatusName, opts) =>
+              onStatusSelect?.(transitionId, toStatusName, opts)
+            }
+          />
+        </div>
+
+        {/* Stacked time bar */}
+        <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
+
+        {/* Assignee avatar */}
+        <CachedAvatar
+          url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+          name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+          size={24}
+        />
+      </div>
+    );
+
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger render={subtaskRow} />
+        <ContextMenuContent>
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(issue.key).catch(() => {});
+            }}
+          >
+            Copy issue key
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard
+                .writeText(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`)
+                .catch(() => {});
+            }}
+          >
+            Copy link
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  // ── Parent row ────────────────────────────────────────────────────────────
+
+  const hasSubtasks = subtasks.length > 0;
 
   const rowContent = (
+    // biome-ignore lint/a11y/useSemanticElements: div[role=button] required — inner key is a <button>, nested buttons are invalid HTML
     <div
       role="button"
       tabIndex={0}
-      className={rowBase}
+      className={cn(
+        'flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors',
+        isFlagged &&
+          'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
+      )}
       onClick={() => onOpenPeek(issue.key)}
       onKeyDown={handleKeyDown}
       data-testid={`my-task-row-${issue.key}`}
     >
-      {/* 1. Type icon — 18×18 explicit px (WebKit column fix) */}
+      {/* 1. Expand/collapse chevron — only when subtasks exist */}
+      <span
+        className="flex items-center justify-center shrink-0"
+        style={{ width: 16, height: 16 }}
+        aria-hidden
+      >
+        {hasSubtasks && (
+          <button
+            type="button"
+            className="text-muted-foreground hover:text-foreground cursor-pointer p-0 border-0 bg-transparent"
+            tabIndex={-1}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollapsed((c) => !c);
+            }}
+            aria-label={collapsed ? 'Expand subtasks' : 'Collapse subtasks'}
+          >
+            {collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
+          </button>
+        )}
+      </span>
+
+      {/* 2. Issue type icon */}
       <span
         className="flex items-center justify-center shrink-0"
         style={{ width: 18, height: 18 }}
@@ -157,7 +354,18 @@ export function MyTaskRow({
         {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
       </span>
 
-      {/* 2. Issue key — sibling <button> with stopPropagation (overlay-button pattern) */}
+      {/* 3. Priority icon */}
+      <span
+        className="flex items-center justify-center shrink-0"
+        style={{ width: 18, height: 18 }}
+        aria-hidden={!issue.fields.priority}
+      >
+        <PriorityIcon
+          priority={issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined}
+        />
+      </span>
+
+      {/* 4. Issue key */}
       <button
         type="button"
         className={cn(
@@ -172,30 +380,54 @@ export function MyTaskRow({
         {issue.key}
       </button>
 
-      {/* 3. Priority icon — 18×18 explicit px */}
+      {/* 5. Summary */}
       <span
-        className="flex items-center justify-center shrink-0"
-        style={{ width: 18, height: 18 }}
-        aria-hidden={!issue.fields.priority}
+        className={cn(
+          'flex-1 min-w-0 truncate text-sm',
+          doneSummaryClass(issue.fields.status.statusCategory),
+        )}
       >
-        <PriorityIcon
-          priority={issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined}
-        />
+        {isFlagged && (
+          <Flag className="inline size-3.5 text-yellow-700 dark:text-yellow-300 mr-1 shrink-0" />
+        )}
+        {issue.fields.summary}
       </span>
 
-      {/* 4. Summary — truncates, flag icon + OverdueBadge */}
-      <span className="flex items-center gap-1.5 min-w-0 flex-1 text-sm">
-        {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
-        <span className={cn('truncate', doneSummaryClass(issue.fields.status.statusCategory))}>
-          {issue.fields.summary}
+      {/* 6. Metadata chips */}
+
+      {/* N sub */}
+      {(issue.fields.subtasks as unknown[] | null | undefined)?.length ? (
+        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground shrink-0 tabular-nums">
+          {(issue.fields.subtasks as unknown[]).length} sub
         </span>
-        <OverdueBadge duedate={duedate} statusCategoryKey={statusCategoryKey} />
-      </span>
+      ) : null}
 
-      {/* 5. Status pill — wrapped in flex div (memory project_statuspill_needs_flex_parent).
-          StatusPopover renders its own PopoverTrigger with statusPillClass; the flex div
-          prevents the pill from collapsing on a bare inline span. */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper, inner StatusPopover handles its own keyboard events */}
+      {/* Flagged chip */}
+      {isFlagged && (
+        <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs bg-red-500/15 text-red-700 dark:text-red-400 shrink-0">
+          <Flag className="size-3" />
+          Flagged
+        </span>
+      )}
+
+      {/* Label chips */}
+      <LabelChips labels={labels} />
+
+      {/* MR health chip */}
+      {mrHealth && (
+        <span
+          className={cn(
+            'inline-flex items-center rounded px-1.5 py-0.5 text-xs shrink-0',
+            MR_HEALTH_CLASS[mrHealth],
+          )}
+        >
+          {MR_HEALTH_LABEL[mrHealth]}
+        </span>
+      )}
+
+      {/* 7. Status pill */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
       <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
         <StatusPopover
           projectId={projectId}
@@ -209,74 +441,24 @@ export function MyTaskRow({
         />
       </div>
 
-      {/* 6. Due date — text-destructive when overdue */}
-      {duedate && (
-        <span
-          className={cn(
-            'text-xs shrink-0',
-            isOverdueIssue ? 'text-destructive' : 'text-muted-foreground',
-          )}
-          aria-label={isOverdueIssue ? `Due ${duedate}, overdue` : `Due ${duedate}`}
-        >
-          {duedate}
+      {/* 8. Story points */}
+      {storyPoints !== null ? (
+        <span className="text-xs text-muted-foreground shrink-0 tabular-nums whitespace-nowrap">
+          {storyPoints} pts
         </span>
-      )}
-
-      {/* 7. Story points badge — hidden for subtasks (B3: subtasks do not carry story points) */}
-      {!isSubtask && (
-        <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium shrink-0">
-          {storyPoints !== null ? (
-            <span className="text-foreground">{storyPoints}</span>
-          ) : (
-            <span className="text-muted-foreground">?</span>
-          )}
-        </span>
-      )}
-
-      {/* 8. MR health badge — only when mrHealth is provided */}
-      {mrHealth && (
-        <Badge tone={MR_HEALTH_TONE[mrHealth]} className="shrink-0">
-          {MR_HEALTH_LABEL[mrHealth]}
-        </Badge>
-      )}
-
-      {/* 9. Time bar — standup-style color-coded bar + caption on BOTH parent and subtask rows.
-           No-estimate rows: neutral muted bar (value=0) + spent caption only, so all rows
-           align. Zero-spent + zero-estimate: empty equal-width spacer. */}
-      {totalSeconds && totalSeconds > 0 ? (
-        // Has estimate: color-coded bar + "spent / estimate" caption
-        <div className="shrink-0 flex items-center gap-2">
-          <Progress
-            value={timeProgressValue ?? 0}
-            className="w-20"
-            indicatorClassName={
-              spentSeconds >= totalSeconds
-                ? 'bg-red-500'
-                : (timeProgressValue ?? 0) >= 75
-                  ? 'bg-amber-500'
-                  : 'bg-green-500'
-            }
-          />
-          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-            {formatDuration(spentSeconds)} / {formatDuration(totalSeconds)}
-          </span>
-        </div>
-      ) : spentSeconds > 0 ? (
-        // No estimate but has spent: muted track (value=0) + spent caption
-        <div className="shrink-0 flex items-center gap-2">
-          <Progress value={0} className="w-20" />
-          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-            {formatDuration(spentSeconds)}
-          </span>
-        </div>
       ) : (
-        // Neither: equal-width spacer so columns align
-        <div className="shrink-0 flex items-center gap-2" style={{ width: 96 }} aria-hidden />
+        <span
+          className="text-xs text-muted-foreground shrink-0 tabular-nums whitespace-nowrap opacity-0 select-none"
+          aria-hidden
+        >
+          — pts
+        </span>
       )}
 
-      {/* 10. Assignee avatar — far-right trailing slot for both parent and subtask rows.
-           Explicit size={24} prevents WebKit 0-width column collapse (E3).
-           Unassigned renders a dashed-border icon (graceful fallback via CachedAvatar). */}
+      {/* 9. Stacked time bar */}
+      <StackedTimeBar spentSeconds={spentSeconds} totalSeconds={totalSeconds} />
+
+      {/* 10. Assignee avatar */}
       <CachedAvatar
         url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
         name={issue.fields.assignee?.displayName ?? 'Unassigned'}
@@ -286,12 +468,10 @@ export function MyTaskRow({
   );
 
   return (
-    // Subtask indent wrapper — pl-6 ml-2 matches standup flat-row layout (D-03)
-    <div className={isSubtask ? 'pl-6 ml-2' : undefined}>
+    <div>
       <ContextMenu>
         <ContextMenuTrigger render={rowContent} />
         <ContextMenuContent>
-          {/* Log Work — opens LogWorkPopover (D-07) */}
           <ContextMenuItem
             onClick={(e) => {
               e.stopPropagation();
@@ -300,7 +480,6 @@ export function MyTaskRow({
           >
             Log Work
           </ContextMenuItem>
-          {/* Copy issue key (D-07) */}
           <ContextMenuItem
             onClick={(e) => {
               e.stopPropagation();
@@ -309,7 +488,6 @@ export function MyTaskRow({
           >
             Copy issue key
           </ContextMenuItem>
-          {/* Copy link (D-07) */}
           <ContextMenuItem
             onClick={(e) => {
               e.stopPropagation();
@@ -322,7 +500,6 @@ export function MyTaskRow({
           </ContextMenuItem>
         </ContextMenuContent>
 
-        {/* LogWorkPopover rendered outside the context menu to avoid nesting issues */}
         {logWorkOpen && (
           <LogWorkPopover
             issueKey={issue.key}
@@ -331,6 +508,22 @@ export function MyTaskRow({
           />
         )}
       </ContextMenu>
+
+      {/* Subtasks — collapsed when the chevron is toggled */}
+      {!collapsed &&
+        subtasks.map((subtask) => (
+          <MyTaskRow
+            key={subtask.key}
+            issue={subtask}
+            isSubtask
+            jiraBaseUrl={jiraBaseUrl}
+            storyPointsFieldKey={storyPointsFieldKey}
+            flaggedFieldKey={flaggedFieldKey}
+            onOpenPeek={onOpenPeek}
+            onOpenIssue={onOpenIssue}
+            onStatusSelect={onStatusSelect}
+          />
+        ))}
     </div>
   );
 }
