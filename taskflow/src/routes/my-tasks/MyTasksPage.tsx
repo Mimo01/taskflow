@@ -338,13 +338,6 @@ export default function MyTasksPage() {
     return isIssueFlagged(i, flaggedFieldKey);
   }).length;
 
-  const inReviewCount = parents.filter((i) => {
-    const cat = i.fields.status.statusCategory?.key;
-    if (cat !== 'indeterminate') return false;
-    const statusName = (i.fields.status.name as string | undefined) ?? '';
-    return statusName.toLowerCase().includes('review');
-  }).length;
-
   const mrsAwaitingCount =
     mrHealthByKey.size > 0
       ? Array.from(mrHealthByKey.values()).filter((h) => h === 'waiting_for_review').length
@@ -587,14 +580,6 @@ export default function MyTasksPage() {
                 <span className="mx-1">·</span>
                 <span className="text-amber-600 dark:text-amber-400 font-medium">
                   {flaggedCount} flagged
-                </span>
-              </>
-            )}
-            {inReviewCount > 0 && (
-              <>
-                <span className="mx-1">·</span>
-                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                  {inReviewCount} in review
                 </span>
               </>
             )}
