@@ -420,7 +420,7 @@ Wave 0 (parallel — pure logic, store, service; no file overlap):
 
 Wave 1 (blocked on Wave 0):
 
-- [ ] 82-04-PLAN.md — MyTaskRow + MyTasksPage (strip, tabs, scope toggle, grouped list) + smoke test (MYTASK-02..07)
+- [x] 82-04-PLAN.md — MyTaskRow + MyTasksPage (strip, tabs, scope toggle, grouped list) + smoke test (MYTASK-02..07)
 
 Wave 2 (blocked on Wave 1):
 
@@ -498,7 +498,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
-| 82. My Tasks Page | 3/5 | In Progress|  |
+| 82. My Tasks Page | 4/5 | In Progress|  |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
