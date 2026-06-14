@@ -406,7 +406,19 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   5. Clicking a task row body opens the peek slideover (reusing the v1.12 PeekPanel); clicking the issue key navigates to the full-page detail; clicking the status pill opens StatusPopover for inline transition; right-clicking the row opens a context menu with Log Work and other actions
   6. A scope toggle switches between "Current Sprint" and "All Assigned"; all-assigned scope fetches via `fetchAllSearchPages` (server-side pagination — never a single page-capped call), enforced by a unit test asserting 250 results returned when total=250 and first page returns 50
   7. The user's chosen grouping mode and scope persist across app restarts via `stores/my-tasks.store.ts` (Zustand + Tauri Store `my-tasks.json`)
-**Plans**: TBD
+**Plans**: 5 plans
+
+Wave 0 (parallel — pure logic, store, service; no file overlap):
+- [ ] 82-01-PLAN.md — my-tasks-sort.ts pure smart-sort + count derivation (MYTASK-04, MYTASK-02)
+- [ ] 82-02-PLAN.md — my-tasks.store.ts persisted grouping/scope store (MYTASK-08)
+- [ ] 82-03-PLAN.md — fetchAllAssignedHierarchy + flagged-field extension + criterion-6 test (MYTASK-07)
+
+Wave 1 (blocked on Wave 0):
+- [ ] 82-04-PLAN.md — MyTaskRow + MyTasksPage (strip, tabs, scope toggle, grouped list) + smoke test (MYTASK-02..07)
+
+Wave 2 (blocked on Wave 1):
+- [ ] 82-05-PLAN.md — route/sidebar/icon wiring + human UAT (MYTASK-01)
+
 **UI hint**: yes
 
 ### Phase 83: Dashboard Stat Tiles and Sprint Health Chart
