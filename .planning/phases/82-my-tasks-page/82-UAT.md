@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 82-my-tasks-page
 source: [82-01-SUMMARY.md, 82-02-SUMMARY.md, 82-03-SUMMARY.md, 82-04-SUMMARY.md, 82-05-SUMMARY.md]
 started: 2026-06-14T21:08:54Z
@@ -129,3 +129,16 @@ blocked: 0
     - "Delete orphaned my-tasks.store.ts + test, drop page-test mock"
   fix_commit: efd8595e
   debug_session: ""
+
+## Post-UAT Refinements
+
+Additional UI/behavior changes requested live during this verify session, all
+applied and user-approved 2026-06-15:
+
+- Header subtitle: color-code all metrics (open/done/pts in flight) — 484f7312
+- Header subtitle: drop redundant "in review" metric (it's part of In Progress) — 48d499b0
+- All Assigned / All Reported: group by sprint instead of My Day bands — 19007d7e
+- Fix sprint grouping landing everything in Backlog (used discovered
+  settings.sprintFieldKey instead of hard-coded customfield_10020) — 7987bdba
+- Stat tiles: watermark icon backgrounds, top-right, final icon set
+  (To Do=Hourglass, In Progress=Zap, Done=BadgeCheck) — 73e059f1
