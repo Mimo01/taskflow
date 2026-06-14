@@ -11,6 +11,7 @@ import {
   BarChart2,
   BookOpen,
   Bug,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -46,6 +47,7 @@ import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 /** Map icon names to actual Lucide components */
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   LayoutDashboard,
+  CheckSquare,
   ClipboardList,
   KanbanSquare,
   List,

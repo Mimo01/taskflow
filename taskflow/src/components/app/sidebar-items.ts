@@ -42,6 +42,13 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     alwaysVisible: true,
   },
   {
+    id: 'my-tasks',
+    label: 'My Tasks',
+    path: '/my-tasks',
+    iconName: 'CheckSquare',
+    section: 'main',
+  },
+  {
     id: 'standup-notes',
     label: 'Standup Notes',
     path: '/standup-notes',
