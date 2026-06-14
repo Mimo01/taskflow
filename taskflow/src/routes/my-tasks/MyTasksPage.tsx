@@ -21,7 +21,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, CheckSquare, ListFilter, ListTodo, Timer } from 'lucide-react';
+import { CheckCircle2, CheckSquare, Circle, CircleDotDashed, ListFilter } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -833,31 +833,32 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'toDo'}
             onClick={() => handleBucketClick('toDo')}
             className={cn(
-              'rounded-lg border p-3 text-left transition-colors',
+              'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
               activeBucket === 'toDo'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <div className="flex items-center justify-between gap-2">
+            <Circle
+              className="pointer-events-none absolute -bottom-4 -right-3 size-20 text-slate-500/10 dark:text-slate-400/10"
+              aria-hidden
+            />
+            <div className="relative">
               <span className="text-2xl font-semibold tabular-nums text-foreground leading-none">
                 {tileToDoCount}
               </span>
-              <span className="h-7 w-7 grid place-items-center rounded-mdbg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
-                <ListTodo className="size-4" />
-              </span>
-            </div>
-            <div className="mt-2 text-sm text-muted-foreground">To Do</div>
-            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
-                style={{
-                  width:
-                    tileTotalCount > 0
-                      ? `${Math.round((tileToDoCount / tileTotalCount) * 100)}%`
-                      : '0%',
-                }}
-              />
+              <div className="mt-2 text-sm text-muted-foreground">To Do</div>
+              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
+                  style={{
+                    width:
+                      tileTotalCount > 0
+                        ? `${Math.round((tileToDoCount / tileTotalCount) * 100)}%`
+                        : '0%',
+                  }}
+                />
+              </div>
             </div>
           </button>
 
@@ -867,31 +868,32 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'inProgress'}
             onClick={() => handleBucketClick('inProgress')}
             className={cn(
-              'rounded-lg border p-3 text-left transition-colors',
+              'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
               activeBucket === 'inProgress'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <div className="flex items-center justify-between gap-2">
+            <CircleDotDashed
+              className="pointer-events-none absolute -bottom-4 -right-3 size-20 text-blue-500/10 dark:text-blue-400/15"
+              aria-hidden
+            />
+            <div className="relative">
               <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 leading-none">
                 {tileInProgressCount}
               </span>
-              <span className="h-7 w-7 grid place-items-center rounded-mdbg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
-                <Timer className="size-4" />
-              </span>
-            </div>
-            <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
-            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-blue-500 transition-all"
-                style={{
-                  width:
-                    tileTotalCount > 0
-                      ? `${Math.round((tileInProgressCount / tileTotalCount) * 100)}%`
-                      : '0%',
-                }}
-              />
+              <div className="mt-2 text-sm text-muted-foreground">In Progress</div>
+              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all"
+                  style={{
+                    width:
+                      tileTotalCount > 0
+                        ? `${Math.round((tileInProgressCount / tileTotalCount) * 100)}%`
+                        : '0%',
+                  }}
+                />
+              </div>
             </div>
           </button>
 
@@ -901,31 +903,32 @@ export default function MyTasksPage() {
             aria-pressed={activeBucket === 'done'}
             onClick={() => handleBucketClick('done')}
             className={cn(
-              'rounded-lg border p-3 text-left transition-colors',
+              'relative overflow-hidden rounded-lg border p-3 text-left transition-colors',
               activeBucket === 'done'
                 ? 'ring-1 ring-inset ring-primary/60 bg-primary/5 border-primary/30'
                 : 'border-border/60 bg-card hover:bg-muted/30',
             )}
           >
-            <div className="flex items-center justify-between gap-2">
+            <CheckCircle2
+              className="pointer-events-none absolute -bottom-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
+              aria-hidden
+            />
+            <div className="relative">
               <span className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none">
                 {tileDoneCount}
               </span>
-              <span className="h-7 w-7 grid place-items-center rounded-mdbg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <Check className="size-4" />
-              </span>
-            </div>
-            <div className="mt-2 text-sm text-muted-foreground">Done</div>
-            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-emerald-500 transition-all"
-                style={{
-                  width:
-                    tileTotalCount > 0
-                      ? `${Math.round((tileDoneCount / tileTotalCount) * 100)}%`
-                      : '0%',
-                }}
-              />
+              <div className="mt-2 text-sm text-muted-foreground">Done</div>
+              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all"
+                  style={{
+                    width:
+                      tileTotalCount > 0
+                        ? `${Math.round((tileDoneCount / tileTotalCount) * 100)}%`
+                        : '0%',
+                  }}
+                />
+              </div>
             </div>
           </button>
         </div>
