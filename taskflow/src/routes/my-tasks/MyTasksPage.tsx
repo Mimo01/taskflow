@@ -222,6 +222,7 @@ export default function MyTasksPage() {
   // Settings
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
   const flaggedFieldKey = useSettingsStore((s) => s.flaggedFieldKey);
+  const sprintFieldKey = useSettingsStore((s) => s.sprintFieldKey);
 
   // Scope is transient component state — intentionally NOT persisted, so it always
   // resets to the current sprint on reload (page always uses My Day grouping).
@@ -287,6 +288,7 @@ export default function MyTasksPage() {
       activeJiraProject,
       storyPointsFieldKey,
       flaggedFieldKey,
+      sprintFieldKey,
     ],
     queryFn: () =>
       fetchAllAssignedHierarchy(
@@ -295,6 +297,7 @@ export default function MyTasksPage() {
         activeJiraProject!,
         flaggedFieldKey,
         storyPointsFieldKey,
+        sprintFieldKey,
       ),
     staleTime: 30_000,
     enabled: enabled && scope === 'all-assigned',
@@ -314,6 +317,7 @@ export default function MyTasksPage() {
       activeJiraProject,
       storyPointsFieldKey,
       flaggedFieldKey,
+      sprintFieldKey,
     ],
     queryFn: () =>
       fetchAllReportedHierarchy(
@@ -322,6 +326,7 @@ export default function MyTasksPage() {
         activeJiraProject!,
         flaggedFieldKey,
         storyPointsFieldKey,
+        sprintFieldKey,
       ),
     staleTime: 30_000,
     enabled: enabled && scope === 'all-reported',
@@ -631,7 +636,7 @@ export default function MyTasksPage() {
     // Group parents by sprint (or Backlog), preserving JQL rank order within a group.
     const groups = new Map<string, { meta: SprintMeta | null; parents: JiraIssue[] }>();
     for (const p of parentsOnly) {
-      const meta = extractSprintMeta(p.fields.customfield_10020);
+      const meta = extractSprintMeta(p.fields[sprintFieldKey] ?? p.fields.customfield_10020);
       const key = meta ? String(meta.id) : 'backlog';
       const group = groups.get(key) ?? { meta, parents: [] };
       group.parents.push(p);
