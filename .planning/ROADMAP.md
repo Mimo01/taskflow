@@ -373,10 +373,12 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 **Depends on**: Phase 80
 **Requirements**: CHART-01, CHART-02, CHART-03
 **Success Criteria** (what must be TRUE):
+
   1. `recharts` and `react-is` are installed; `src/components/ui/chart.tsx` is present (shadcn copy-paste); a smoke-test chart on `/dashboard` renders with correct dark and light theme colors sourced from `--chart-1..5` CSS tokens
   2. The smoke-test chart renders at its expected dimensions in a real macOS Tauri build — no 0×0 collapse, no invisible SVG — because `ChartWrapper` enforces an explicit-height outer `<div>` and uses the `responsive` prop on chart components (never `ResponsiveContainer`)
   3. Chart components default to `isAnimationActive={false}` and are placed in the Dashboard lazy-loaded route chunk (confirmed via bundle analysis — not in `vendor/main`)
   4. `ChartWrapper` carries the `'use no memo'` React Compiler escape hatch and passes `var(--chart-N)` CSS-var strings to chart children; the component is importable and renders without error in the Vitest environment
+
 **Plans**: 3 plans
 
 **Wave 1**
@@ -399,6 +401,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 **Depends on**: Phase 81 (shares sidebar and layout patterns; Phase 81 can run concurrently in practice since My Tasks has no chart dependency)
 **Requirements**: MYTASK-01, MYTASK-02, MYTASK-03, MYTASK-04, MYTASK-05, MYTASK-06, MYTASK-07, MYTASK-08
 **Success Criteria** (what must be TRUE):
+
   1. A "My Tasks" sidebar entry navigates to `/my-tasks`; the page loads the user's current-sprint issues by default using the existing `fetchMyTasksHierarchy`
   2. A summary/filter strip at the top shows counts for To Do / In Progress / In Review / Done this sprint, Overdue, and MRs awaiting me; clicking a count filters the list to matching rows
   3. User can switch between three grouping modes — My Day (smart sort: flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do → done), By Status, and By Sprint & Parent — and each mode renders the correct grouping of their issues
@@ -406,17 +409,21 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   5. Clicking a task row body opens the peek slideover (reusing the v1.12 PeekPanel); clicking the issue key navigates to the full-page detail; clicking the status pill opens StatusPopover for inline transition; right-clicking the row opens a context menu with Log Work and other actions
   6. A scope toggle switches between "Current Sprint" and "All Assigned"; all-assigned scope fetches via `fetchAllSearchPages` (server-side pagination — never a single page-capped call), enforced by a unit test asserting 250 results returned when total=250 and first page returns 50
   7. The user's chosen grouping mode and scope persist across app restarts via `stores/my-tasks.store.ts` (Zustand + Tauri Store `my-tasks.json`)
+
 **Plans**: 5 plans
 
 Wave 0 (parallel — pure logic, store, service; no file overlap):
-- [ ] 82-01-PLAN.md — my-tasks-sort.ts pure smart-sort + count derivation (MYTASK-04, MYTASK-02)
-- [ ] 82-02-PLAN.md — my-tasks.store.ts persisted grouping/scope store (MYTASK-08)
-- [ ] 82-03-PLAN.md — fetchAllAssignedHierarchy + flagged-field extension + criterion-6 test (MYTASK-07)
+
+- [x] 82-01-PLAN.md — my-tasks-sort.ts pure smart-sort + count derivation (MYTASK-04, MYTASK-02)
+- [x] 82-02-PLAN.md — my-tasks.store.ts persisted grouping/scope store (MYTASK-08)
+- [x] 82-03-PLAN.md — fetchAllAssignedHierarchy + flagged-field extension + criterion-6 test (MYTASK-07)
 
 Wave 1 (blocked on Wave 0):
+
 - [ ] 82-04-PLAN.md — MyTaskRow + MyTasksPage (strip, tabs, scope toggle, grouped list) + smoke test (MYTASK-02..07)
 
 Wave 2 (blocked on Wave 1):
+
 - [ ] 82-05-PLAN.md — route/sidebar/icon wiring + human UAT (MYTASK-01)
 
 **UI hint**: yes
@@ -427,10 +434,12 @@ Wave 2 (blocked on Wave 1):
 **Depends on**: Phase 81
 **Requirements**: DASH-01, DASH-02, DASH-03, DASH-07
 **Success Criteria** (what must be TRUE):
+
   1. The Dashboard no longer shows the previous 3 cards (`DashboardSprintCard`, `DashboardInProgressCard`, next-release card as a standalone card); the gradient hero greeting + en-GB date and the next-release countdown are retained
   2. Personal stat tiles display Open tasks, In Progress tasks, Overdue tasks, and SP Done this sprint — all figures exclude subtasks from SP sums (unit-tested with a parent(5 SP) + 2 subtasks(2 SP each) fixture asserting total = 5, not 9)
   3. A sprint health section shows sprint days remaining and a points-by-status chart (donut or stacked bar via `ChartWrapper`) with status colors sourced from semantic CSS-var aliases (not hardcoded hex), drawn from the same warm `['jira-issues','sprint-board',...]` cache — no new network request fires when the Dashboard loads
   4. Every Dashboard section has its own loading skeleton and error state; a slow or failed section does not blank adjacent sections (DASH-07 independence applies from this phase forward)
+
 **Plans**: TBD
 **UI hint**: yes
 
@@ -440,10 +449,12 @@ Wave 2 (blocked on Wave 1):
 **Depends on**: Phase 83
 **Requirements**: DASH-04, DASH-05, DASH-06, DASH-07
 **Success Criteria** (what must be TRUE):
+
   1. A weekly logged-hours bar chart (Mon–Fri, current week) renders when `tempoEnabled` is true; date buckets use `tempo.started.slice(0, 10)` — never `new Date(...).toISOString()` — verified by a unit test with `started: "2026-06-14T23:00:00"` asserting bucket `2026-06-14` (timezone-safe bucketing); a graceful "Tempo not connected" empty state renders when `tempoEnabled` is false
   2. An activity strip shows recent Jira mentions and changelog activity; it reuses the same TanStack Query key as Standup Notes' Yesterday fetch so any warm Standup cache is shared — no duplicate network request when both pages have been visited in the same session
   3. An MR review queue section lists open MRs awaiting my review and my open MRs' health badges, derived client-side from the existing `gitlab-mrs` cache with no new polling interval or fetch
   4. All three new sections plus the stat tiles and sprint chart from Phase 83 each degrade to an independent loading skeleton and inline error state; the Dashboard never goes fully blank due to one section failing (DASH-07 fully satisfied across all sections)
+
 **Plans**: TBD
 **UI hint**: yes
 
@@ -453,11 +464,13 @@ Wave 2 (blocked on Wave 1):
 **Depends on**: Phase 84
 **Requirements**: INSIGHT-01, INSIGHT-02
 **Success Criteria** (what must be TRUE):
+
   1. Phase begins with documented probe results: (a) `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed&maxResults=5` confirms sprint objects with `startDate`/`endDate`; (b) `GET /rest/agile/1.0/sprint/{sprintId}/issue?fields={storyPointsFieldKey},status` confirms the dynamically-discovered SP field is populated on closed-sprint issues; (c) product owner approves the N sequential sprint fetch cost with `p-limit(3)` concurrency cap; probe results are written to the phase context file before any implementation begins
   2. If INSIGHT-01 probe succeeds: a personal velocity chart renders showing committed vs completed story points across the last N closed sprints (minimum 3 required — chart is hidden with an explanatory message if fewer than 3 are available); data is fetched via `fetchClosedSprints` + `fetchSprintIssuesBySprintId` in `services/jira.ts` barrel with `staleTime: Infinity` (closed sprint data does not change); the chart section has its own independent loading/error state and does not block or delay any other Dashboard section
   3. If INSIGHT-01 probe fails (SP field absent, API unavailable, or product owner declines cost): the velocity chart section is cleanly omitted from the Dashboard; no error state is surfaced to the user; a code comment documents the probe outcome
   4. If INSIGHT-02 burndown probe succeeds (`GET /rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart` or equivalent returns current-sprint burndown data for this DC instance): a sprint burndown chart renders for the active sprint using that data; the chart section degrades independently if the endpoint becomes unavailable mid-session
   5. If INSIGHT-02 burndown probe fails: the burndown chart is cleanly omitted; the decision is documented in the phase context file
+
 **Plans**: TBD
 
 ## Progress
@@ -485,7 +498,7 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
-| 82. My Tasks Page | 0/TBD | Not started | - |
+| 82. My Tasks Page | 3/5 | In Progress|  |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
