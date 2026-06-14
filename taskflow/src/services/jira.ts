@@ -584,8 +584,9 @@ export async function fetchMyTasksHierarchy(
     const chunkResults = await Promise.all(
       chunks.map(async (chunk) => {
         // Parents are already sprint-scoped; sprint in openSprints() is not supported for subtasks on Jira DC.
+        // Include Done subtasks too — they must show under their parent story (UAT: done subtasks were missing).
         const jql = encodeURIComponent(
-          `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')}) AND statusCategory != Done`,
+          `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})`,
         );
         try {
           return await fetchAllSearchPages(
