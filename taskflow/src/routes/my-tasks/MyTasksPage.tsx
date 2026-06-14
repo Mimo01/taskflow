@@ -565,8 +565,14 @@ export default function MyTasksPage() {
         <div className="flex flex-col gap-1 min-w-0">
           <h1 className="text-3xl font-semibold text-foreground">My Tasks</h1>
           <p className="text-xs text-muted-foreground tabular-nums mt-1 truncate">
-            <span>
-              {openCount} open · {doneCount} done · {pointsInFlight} pts in flight
+            <span className="text-slate-600 dark:text-slate-300 font-medium">{openCount} open</span>
+            <span className="mx-1">·</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              {doneCount} done
+            </span>
+            <span className="mx-1">·</span>
+            <span className="text-blue-600 dark:text-blue-400 font-medium">
+              {pointsInFlight} pts in flight
             </span>
             {overdueCount > 0 && (
               <>
