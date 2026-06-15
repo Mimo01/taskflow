@@ -360,9 +360,9 @@ export interface BurndownPoint {
  * points. Only `[startTime, endTime]` changes are plotted, so the x-axis is the sprint, not
  * the issues' whole lifetimes. With no `endTime`, the upper bound is open (active sprint).
  *
- * To make the chart read as a classic burndown, each point also carries an `ideal`
- * guideline: a straight line from the peak remaining (committed scope) down to 0 at
- * `endTime`. The actual line above/below the ideal shows whether the sprint is behind/ahead.
+ * The dashed ideal guideline is built SEPARATELY by `buildIdealGuideline` (its own dense
+ * daily series, flat across weekends) — this function only produces the actual `remaining`
+ * series. `endTime` here is used solely to bound the plotted window (above).
  *
  * V5 Input Validation (T-85-01):
  *   - `changes ?? {}` guards null/undefined input
@@ -373,8 +373,8 @@ export interface BurndownPoint {
  *
  * @param changes    Record keyed by epoch-ms string; each value is an array of change entries
  * @param startTime  Sprint start time as epoch ms — the first anchor point
- * @param endTime    Sprint end time as epoch ms — sets where the ideal guideline reaches 0.
- *                   Omit (or pass a value ≤ startTime) to skip the guideline entirely.
+ * @param endTime    Sprint end time as epoch ms — upper bound of the plotted window.
+ *                   Omit (or pass a value ≤ startTime) for an open-ended (active) window.
  */
 export function parseBurndownChanges(
   changes: Record<
@@ -440,17 +440,68 @@ export function parseBurndownChanges(
     points.push({ t: ts, remaining: Math.max(0, running) });
   }
 
-  // Ideal guideline: linear from peak remaining (committed scope) at startTime to 0 at endTime.
-  // Skipped when no usable window is given — keeps the dashed reference line off the chart
-  // rather than rendering a misleading flat zero.
-  const span = (endTime ?? 0) - startTime;
-  if (span > 0) {
-    const peak = points.reduce((max, p) => Math.max(max, p.remaining), 0);
-    for (const p of points) {
-      const frac = (p.t - startTime) / span; // 0 at start → 1 at end
-      p.ideal = Math.max(0, peak * (1 - Math.min(1, Math.max(0, frac))));
-    }
+  return points;
+}
+
+/**
+ * Build the dashed ideal-burndown guideline as its OWN dense daily series (UAT-4d).
+ *
+ * The ideal line burns the committed scope (`peak`, seconds) down to 0, but only on WORKING
+ * days (Mon–Fri) — it stays FLAT across weekends, since no work is expected then. A naive
+ * straight calendar-time line slopes through Sat/Sun; even per-point working-day math on the
+ * sparse actual series would slope across the Fri→Mon gap. So this returns an explicit anchor
+ * at every calendar-day boundary in `[startTime, endTime]`, giving the chart a genuinely flat
+ * weekend step. Rendered via its own `<Line data={…}>` (NOT mixed into the remaining series,
+ * whose area would fragment on the extra points).
+ *
+ * Weekend detection uses LOCAL day-of-week (what the user sees on the axis). Returns `[]` when
+ * there is no usable window or no committed scope — the chart then omits the dashed line.
+ *
+ * @param peak       Committed scope at sprint start, in SECONDS (max remaining of the actual series)
+ * @param startTime  Sprint start (epoch ms) — ideal = peak here
+ * @param endTime    Sprint end (epoch ms) — ideal reaches 0 here
+ */
+export function buildIdealGuideline(
+  peak: number,
+  startTime: number,
+  endTime?: number,
+): BurndownPoint[] {
+  if (!(peak > 0) || endTime == null || endTime <= startTime) return [];
+
+  const DAY = 86_400_000;
+  const isWorkingDay = (t: number): boolean => {
+    const dow = new Date(t).getDay(); // 0 = Sun, 6 = Sat (local)
+    return dow !== 0 && dow !== 6;
+  };
+  const startOfDay = (t: number): number => {
+    const d = new Date(t);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+
+  // Total working days spanned by the sprint window — the divisor for the burn step.
+  let totalWorking = 0;
+  for (let t = startOfDay(startTime); t < endTime; t += DAY) {
+    if (isWorkingDay(t)) totalWorking++;
+  }
+  if (totalWorking === 0) totalWorking = 1; // degenerate all-weekend window — avoid /0
+
+  const points: BurndownPoint[] = [{ t: startTime, remaining: 0, ideal: peak }];
+
+  // Emit one anchor per day boundary. A day's burn is credited only if the day that just
+  // ENDED was a working day → consecutive weekend anchors share the prior ideal (flat step).
+  let workingElapsed = 0;
+  const lastDay = startOfDay(endTime);
+  for (let t = startOfDay(startTime) + DAY; t <= lastDay; t += DAY) {
+    if (isWorkingDay(t - DAY)) workingElapsed++;
+    points.push({
+      t,
+      remaining: 0,
+      ideal: Math.max(0, peak * (1 - workingElapsed / totalWorking)),
+    });
   }
 
+  // Final anchor exactly at sprint end → 0.
+  points.push({ t: endTime, remaining: 0, ideal: 0 });
   return points;
 }
