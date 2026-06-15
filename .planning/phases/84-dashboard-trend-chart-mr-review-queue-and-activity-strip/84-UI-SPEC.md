@@ -34,7 +34,7 @@ Declared values (must be multiples of 4). Matches Phase 83 dashboard layout:
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline label padding |
-| sm | 8px | Row item gaps, badge padding |
+| sm | 8px | Row item gaps, badge padding, standard list-row vertical padding |
 | md | 16px | Card internal padding, section gap between chart and label |
 | lg | 24px | Card padding (`p-6` = 24px, matching `ChartWrapper`) |
 | xl | 32px | Layout gaps between major dashboard sections |
@@ -46,6 +46,7 @@ Exceptions:
 - Stat tile minimum height: 80px (`min-h-[80px]`) — inherited from `StatTile.tsx`.
 - Card minimum height for MR queue and activity strip: 160px (`min-h-[160px]`) — matches `MrHealthPanel` existing pattern.
 - Touch targets for the "+N more" overflow button: minimum 32px height.
+- ActivityStrip item rows use `py-1` (4px) — compact "strip" density, intentionally tighter than the standard sm (8px) row padding to reinforce the scannable, capped-list character of the feed.
 
 Source: `index.tsx`, `StatTile.tsx`, `MrHealthPanel.tsx`, `ChartWrapper.tsx`
 
@@ -135,7 +136,7 @@ Card-layout list of two labelled groups. No `ChartWrapper` — plain card.
 | Group 1 label | `"Awaiting my review"` — MRs where I am reviewer, not author |
 | Group 2 label | `"My open MRs"` |
 | Group label style | `text-xs font-medium text-muted-foreground uppercase tracking-wide` |
-| MR row | `div` with `flex items-center gap-2 py-1.5` |
+| MR row | `div` with `flex items-center gap-2 py-2` |
 | Row: title | `text-sm truncate flex-1` — clicking opens `web_url` via `open()` external browser |
 | Row: health badge | Colored dot + label: `needs_review` / `approved` / `changes_requested` |
 | Row: project | `text-xs text-muted-foreground` (project path, truncated) |
@@ -145,6 +146,8 @@ Card-layout list of two labelled groups. No `ChartWrapper` — plain card.
 | Loading | `Skeleton` rows (3×) mimicking the row height |
 | Section wrapper | `role="region"` `aria-label="MR review queue"` |
 | Data source | `['gitlab-mrs', gitlabBaseUrl, gitlabUserId]` warm cache — no new fetch |
+
+MR row uses `py-2` (8px) — the standard sm row padding. This is the consistent choice for interactive list rows that carry a title, project metadata, and a health badge. ActivityStrip rows use `py-1` (4px) intentionally because the strip is a purely read-only, tightly-capped feed; MR rows are wider-content, clickable items that benefit from the extra breathing room.
 
 ### ActivityStrip
 
