@@ -1,10 +1,11 @@
 ---
 phase: 85
 slug: sprint-insights-conditional-probe-gated
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-15
+audited: 2026-06-15
 ---
 
 # Phase 85 — Validation Strategy
@@ -40,13 +41,14 @@ created: 2026-06-15
 
 | Behavior | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |----------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| Tail-first ordering — last 6 closed sprints selected, never first page (Probe A ascending landmine) | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "tail"` | ❌ W0 | ⬜ pending |
-| `!subtask` SP-sum filter — parent(5)+2 subtasks(2ea)=5, not 9 | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "subtask exclusion"` | ❌ W0 | ⬜ pending |
-| Personal displayName filter — other users' SP excluded | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "personal velocity"` | ❌ W0 | ⬜ pending |
-| `<3 qualifying sprints` guard — chart hidden + explanatory message | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "qualifying sprints"` | ❌ W0 | ⬜ pending |
-| "committed" = sum all my issues; "completed" = sum my DONE issues | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "committed vs completed"` | ❌ W0 | ⬜ pending |
-| `parseBurndownChanges` — ascending-timestamp series; malformed `.changes` defended (`?? {}`, `Math.max(0, …)`) | 0/1 | INSIGHT-02 | V5 Input Validation | Type-safe parse of external GreenHopper data; null/negative clamps | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "parseBurndownChanges"` | ❌ W0 | ⬜ pending |
-| Burndown Y-axis formatter emits hours (`h` suffix), never SP (Probe C `timeestimate` unit) | 0/1 | INSIGHT-02 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "burndown hours"` | ❌ W0 | ⬜ pending |
+| Tail-first ordering — last 6 closed sprints selected, never first page (Probe A ascending landmine) | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "tail-first ordering"` | ✅ | ✅ green |
+| `!subtask` SP-sum filter — parent(5)+2 subtasks(2ea)=5, not 9 | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "subtask exclusion"` | ✅ | ✅ green |
+| Personal displayName filter — other users' SP excluded | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "excludes other users"` | ✅ | ✅ green |
+| `<3 qualifying sprints` guard — chart hidden + explanatory message | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "qualifying sprints filter"` | ✅ | ✅ green |
+| "committed" = sum all my issues; "completed" = sum my DONE issues | 0/1 | INSIGHT-01 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "committed vs completed"` | ✅ | ✅ green |
+| `parseBurndownChanges` — ascending-timestamp series; live `timeC` shape + malformed `.changes` defended (`?? {}`, clamp ≥0, non-finite keys filtered) | 0/1 | INSIGHT-02 | V5 Input Validation | Type-safe parse of external GreenHopper data; null/negative clamps | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "parseBurndownChanges"` | ✅ | ✅ green |
+| Burndown Y-axis formatter emits hours (`h` suffix), never SP (Probe C `timeestimate` unit) | 0/1 | INSIGHT-02 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "burndown hours suffix"` | ✅ | ✅ green |
+| Ideal guideline anchors at peak scope → 0 at endTime, held FLAT across weekends (UAT-4d) | 0/1 | INSIGHT-02 | — | N/A | unit | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts -t "buildIdealGuideline"` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -54,10 +56,11 @@ created: 2026-06-15
 
 ## Wave 0 Requirements
 
-- [ ] `src/routes/dashboard/dashboardMetrics.ts` — add pure functions `computePersonalVelocitySeries(sprints, issueMap, displayName, spKey)` and `parseBurndownChanges(changes, sprintStartTs)` (no DOM; node/jsdom-testable)
-- [ ] `src/routes/dashboard/dashboardMetrics.test.ts` — add `describe('computePersonalVelocitySeries')` covering Tests 1–4 (tail ordering, subtask exclusion, personal filter, qualifying-sprints guard)
-- [ ] `src/routes/dashboard/dashboardMetrics.test.ts` — add `describe('parseBurndownChanges')` (Test 5: ascending series + sprint-start anchor + non-negative remaining)
-- [ ] Hours-axis tick formatter — unit-test the formatter function (reuse `formatHoursMinutes` from `WeeklyTrendChart.tsx`) asserting `h` suffix, not `SP`
+- [x] `src/routes/dashboard/dashboardMetrics.ts` — pure functions `computePersonalVelocitySeries(sprints, issueMap, displayName, spKey)`, `parseBurndownChanges(changes, startTs, endTs?)` and `buildIdealGuideline(peak, startTs, endTs?)` (no DOM; jsdom-testable)
+- [x] `src/routes/dashboard/dashboardMetrics.test.ts` — `describe('computePersonalVelocitySeries')` covers Tests 1–5 (tail ordering, subtask exclusion, personal filter, qualifying-sprints guard, committed-vs-completed)
+- [x] `src/routes/dashboard/dashboardMetrics.test.ts` — `describe('parseBurndownChanges')` covers ascending series + sprint-start anchor + non-negative clamp + live `timeC` shape + pre-start fold-in + null input
+- [x] Hours-axis tick formatter — `describe('formatHoursMinutes — burndown hours suffix')` asserts `h`/`m` suffix, never `SP`
+- [x] `describe('buildIdealGuideline')` — peak→0 anchor, weekend-flat ideal, empty-window guard (added during UAT-4d)
 
 *No new test files or framework install needed — the existing `dashboardMetrics.test.ts` harness + `makeIssue` factory cover all phase requirements.*
 
@@ -75,11 +78,33 @@ created: 2026-06-15
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-06-15 — all 8 contract behaviors COVERED & green (51/51 in `dashboardMetrics.test.ts`)
+
+---
+
+## Validation Audit 2026-06-15
+
+State A audit reconciling the pre-execution draft against the implemented test suite. No gaps — every contract behavior already has a passing automated test; the auditor agent was not needed.
+
+| Metric | Count |
+|--------|-------|
+| Behaviors in contract | 8 |
+| COVERED (green) | 8 |
+| PARTIAL | 0 |
+| MISSING | 0 |
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+Notes:
+- Draft `-t` filters were corrected to match actual test names.
+- `buildIdealGuideline` behavior (weekend-flat ideal) was added to the contract — it landed during UAT-4d and carries 3 dedicated tests.
+- Suite: `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts` → 51 passed (Phase 85 owns 16 of these across velocity, burndown, ideal, and hours-formatter blocks).
+- Manual-only items unchanged — they require live Tauri WebKit + induced endpoint failure and remain covered by Phase 85 Human UAT (closed 2026-06-15, UAT-5 accepted-skipped).
