@@ -23,7 +23,7 @@
  */
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Timer } from 'lucide-react';
-import { Bar, Cell, ComposedChart, LabelList, XAxis, YAxis } from 'recharts';
+import { Bar, Cell, ComposedChart, LabelList, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
@@ -283,6 +283,9 @@ export default function HoursCommitsChart({
   const totalCommits = dayBuckets.reduce((sum, b) => sum + b.commits, 0);
   const maxHours = Math.max(...dayBuckets.map((b) => b.hours), 0);
   const maxCommits = Math.max(...dayBuckets.map((b) => b.commits), 0);
+  // Diverging chart data: commits plotted as negative so they extend DOWN from the
+  // zero baseline while hours extend UP (single chart, stackOffset="sign").
+  const chartData = dayBuckets.map((b) => ({ ...b, commitsDown: -b.commits }));
 
   // Today's weekday label (for TodayAwareTick)
   const todayLabel = new Date(`${todayDate}T12:00:00`).toLocaleDateString('en-US', {
@@ -367,120 +370,99 @@ export default function HoursCommitsChart({
         {!showSkeleton && !worklogsError && (
           /* WebKit 0×0 guard: explicit-height outer div required (Phase 81 D-03 / same class as
              virtualized-table-zero-width-col memory). */
-          <div className="w-full">
-            <div style={{ height: 240 }} className="w-full">
-              <ChartContainer
-                config={chartConfig}
-                className="h-full w-full"
-                aria-label="Hours per day bar chart"
+          <div style={{ height: 300 }} className="w-full">
+            <ChartContainer
+              config={chartConfig}
+              className="h-full w-full"
+              aria-label="Hours and commits per day diverging bar chart"
+            >
+              {/* Single diverging chart: hours bars go UP, commits bars go DOWN from one shared
+                  center baseline. stackId ties +hours and −commits to the same column and
+                  stackOffset="sign" splits them across the zero line (D-10/D-14). */}
+              <ComposedChart
+                data={chartData}
+                responsive
+                stackOffset="sign"
+                margin={{ top: 24, right: 8, left: 0, bottom: 4 }}
               >
-                {/* responsive prop replaces ResponsiveContainer (D-14 / Phase 81 charting contract).
-                    Single hours series — commits are rendered below the graph (not a 2nd axis). */}
-                <ComposedChart
-                  data={dayBuckets}
-                  responsive
-                  margin={{ top: 24, right: 8, left: 0, bottom: 0 }}
+                {/* Declutter: no gridlines/axis lines — day label per column (rendered at bottom) */}
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={<TodayAwareTick todayLabel={todayLabel} />}
+                />
+                {/* Y axis: max hours at top (e.g. 8h), 0 at center, max commits at bottom */}
+                <YAxis
+                  width={36}
+                  tickLine={false}
+                  axisLine={false}
+                  ticks={[maxHours > 0 ? maxHours : 0, 0, maxCommits > 0 ? -maxCommits : 0]}
+                  domain={[-(maxCommits > 0 ? maxCommits : 1), maxHours > 0 ? maxHours : 1]}
+                  tickFormatter={(v) => {
+                    const n = Math.round(Number(v));
+                    return n >= 0 ? `${n}h` : `${Math.abs(n)}`;
+                  }}
+                />
+                {/* Center baseline at zero */}
+                <ReferenceLine y={0} stroke="var(--border)" />
+                {/* Hours — blue, extends UP */}
+                <Bar
+                  dataKey="hours"
+                  stackId="a"
+                  fill={HOURS_COLOR}
+                  maxBarSize={20}
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={false}
                 >
-                  {/* Declutter (D-10): no gridlines, no axis lines — just the day label per column */}
-                  <XAxis
-                    dataKey="label"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={<TodayAwareTick todayLabel={todayLabel} />}
-                  />
-                  {/* Y axis shows only 0 and the max (e.g. 0h / 8h) — no intermediate ticks */}
-                  <YAxis
-                    yAxisId="hours"
-                    orientation="left"
-                    width={36}
-                    tickLine={false}
-                    axisLine={false}
-                    ticks={maxHours > 0 ? [0, maxHours] : [0]}
-                    domain={[0, maxHours > 0 ? maxHours : 1]}
-                    tickFormatter={(v) => `${Math.round(Number(v))}h`}
-                  />
-                  {/* Hours bar — blue, left axis */}
-                  <Bar
-                    yAxisId="hours"
+                  {chartData.map((b) => (
+                    <Cell
+                      key={b.day}
+                      fill={HOURS_COLOR}
+                      stroke={b.isToday ? 'var(--foreground)' : undefined}
+                      strokeWidth={b.isToday ? 2 : 0}
+                    />
+                  ))}
+                  {/* Actual hours value above each bar; '0h' for zero days (D-12) */}
+                  <LabelList
                     dataKey="hours"
-                    fill={HOURS_COLOR}
-                    radius={[4, 4, 0, 0]}
-                    isAnimationActive={false}
-                  >
-                    {dayBuckets.map((b) => (
-                      <Cell
-                        key={b.day}
-                        fill={HOURS_COLOR}
-                        stroke={b.isToday ? 'var(--foreground)' : undefined}
-                        strokeWidth={b.isToday ? 2 : 0}
-                      />
-                    ))}
-                    {/* Actual hours value above each bar; '0h' for zero days (D-12) */}
-                    <LabelList
-                      dataKey="hours"
-                      position="top"
-                      fontSize={12}
-                      fill="var(--muted-foreground)"
-                      formatter={(v: unknown) => {
-                        const n = typeof v === 'number' ? v : Number(v);
-                        return Number.isFinite(n) && n > 0 ? formatHoursMinutes(n) : '0h';
-                      }}
-                    />
-                  </Bar>
-                </ComposedChart>
-              </ChartContainer>
-            </div>
-            {/* Commits per day — separate single-series green bar chart below the hours graph
-                (not a dual-axis 2-bar chart). YAxis kept (tickless) at width 36 so its plot
-                area aligns horizontally with the hours chart above. */}
-            <div style={{ height: 96 }} className="w-full">
-              <ChartContainer
-                config={chartConfig}
-                className="h-full w-full"
-                aria-label="Commits per day bar chart"
-              >
-                <ComposedChart
-                  data={dayBuckets}
-                  responsive
-                  margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
-                >
-                  <XAxis dataKey="label" hide />
-                  <YAxis
-                    yAxisId="commits"
-                    width={36}
-                    tick={false}
-                    tickLine={false}
-                    axisLine={false}
-                    domain={[0, maxCommits > 0 ? maxCommits : 1]}
+                    position="top"
+                    fontSize={12}
+                    fill="var(--muted-foreground)"
+                    formatter={(v: unknown) => {
+                      const n = typeof v === 'number' ? v : Number(v);
+                      return Number.isFinite(n) && n > 0 ? formatHoursMinutes(n) : '0h';
+                    }}
                   />
-                  <Bar
-                    yAxisId="commits"
-                    dataKey="commits"
-                    fill={COMMITS_COLOR}
-                    radius={[4, 4, 0, 0]}
-                    isAnimationActive={false}
-                    minPointSize={1}
-                  >
-                    {dayBuckets.map((b) => (
-                      <Cell
-                        key={b.day}
-                        fill={COMMITS_COLOR}
-                        stroke={b.isToday ? 'var(--foreground)' : undefined}
-                        strokeWidth={b.isToday ? 2 : 0}
-                      />
-                    ))}
-                    {/* Actual commit count above each bar; '0' for zero days (D-12) */}
-                    <LabelList
-                      dataKey="commits"
-                      position="top"
-                      fontSize={12}
-                      fill="var(--muted-foreground)"
-                      formatter={(v: unknown) => String(Number.isFinite(Number(v)) ? Number(v) : 0)}
+                </Bar>
+                {/* Commits — green, extends DOWN (plotted as negative) */}
+                <Bar
+                  dataKey="commitsDown"
+                  stackId="a"
+                  fill={COMMITS_COLOR}
+                  maxBarSize={20}
+                  radius={[0, 0, 4, 4]}
+                  isAnimationActive={false}
+                >
+                  {chartData.map((b) => (
+                    <Cell
+                      key={b.day}
+                      fill={COMMITS_COLOR}
+                      stroke={b.isToday ? 'var(--foreground)' : undefined}
+                      strokeWidth={b.isToday ? 2 : 0}
                     />
-                  </Bar>
-                </ComposedChart>
-              </ChartContainer>
-            </div>
+                  ))}
+                  {/* Absolute commit count below each bar; '0' for zero days (D-12) */}
+                  <LabelList
+                    dataKey="commitsDown"
+                    position="bottom"
+                    fontSize={12}
+                    fill="var(--muted-foreground)"
+                    formatter={(v: unknown) => String(Math.abs(Number(v)) || 0)}
+                  />
+                </Bar>
+              </ComposedChart>
+            </ChartContainer>
           </div>
         )}
       </CardContent>
