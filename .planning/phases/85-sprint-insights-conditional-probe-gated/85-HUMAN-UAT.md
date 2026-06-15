@@ -1,10 +1,10 @@
 ---
-status: partial
+status: passed
 phase: 85-sprint-insights-conditional-probe-gated
 source: [85-VERIFICATION.md]
 started: 2026-06-15
 updated: 2026-06-15
-runtime_verified: "UAT-1..4 confirmed live (board 6708 / sprint 19562); burndown fixed via 4 gap-closure commits. UAT-5 outstanding."
+runtime_verified: "UAT-1..4 confirmed live (board 6708 / sprint 19562); burndown fixed via 4 gap-closure commits. UAT-5 (forced-failure error/retry) accepted as skipped at user close."
 ---
 
 ## Current Test

@@ -1,8 +1,9 @@
 ---
 phase: 85-sprint-insights-conditional-probe-gated
 verified: 2026-06-15T19:15:00Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified
+human_uat: "Closed 2026-06-15 via /gsd-verify-work 85. UAT-1..4 verified live (board 6708 / sprint 19562). UAT-4 surfaced 4 live-data burndown defects beyond the MEDIUM-confidence flag — all fixed inline & user-verified (commits 8917b763, a54ed5e4, d03c5928, 3c36b03d). UAT-5 (forced-failure error/retry) accepted as skipped by user. Follow-up: /gsd-secure-phase 85 not yet run."
 re_verification:
   previous_status: gaps_found
   previous_score: 3/5
@@ -34,7 +35,7 @@ human_verification:
 **Phase Goal:** Before writing any chart code, run live probes of the closed-sprint REST endpoint and the GreenHopper burndown endpoint on the real Jira DC instance; build each chart only if its probe confirms the data is obtainable at acceptable cost; cleanly omit any chart whose probe fails without affecting the rest of the Dashboard.
 
 **Verified:** 2026-06-15T19:15:00Z
-**Status:** human_needed
+**Status:** passed (human UAT closed 2026-06-15)
 **Re-verification:** Yes — after gap closure in commit f8a3faba (two blockers addressed)
 
 ## Goal Achievement
