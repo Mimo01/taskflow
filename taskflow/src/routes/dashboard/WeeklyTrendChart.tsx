@@ -22,7 +22,7 @@ import { ChartContainer } from '@/components/ui/chart';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchWorklogs } from '@/services/tempo/worklogs';
-import { DAILY_TARGET_HOURS, buildWeekBuckets } from './dashboardMetrics';
+import { buildWeekBuckets, DAILY_TARGET_HOURS } from './dashboardMetrics';
 
 // Props only — no readSecret, no useAuthStore inside the component.
 // Auth values loaded once in index.tsx and passed down as props (D-16 pattern).
@@ -78,8 +78,7 @@ export default function WeeklyTrendChart({
     refetch,
   } = useQuery({
     queryKey: ['dashboard', 'tempo-week', jiraBaseUrl, weekStartDate, jiraUsername],
-    queryFn: () =>
-      fetchWorklogs(jiraBaseUrl, jiraToken, [jiraUsername], weekStartDate, todayDate),
+    queryFn: () => fetchWorklogs(jiraBaseUrl, jiraToken, [jiraUsername], weekStartDate, todayDate),
     staleTime: 30_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUsername && tempoEnabled,
   });
