@@ -125,10 +125,7 @@ export default function UpcomingReleasesTimeline({
 
         {/* Horizontal timeline — up to 3 dots on a track, left-aligned (D-08: only what exists) */}
         {!showSkeleton && !error && upcomingVersions.length > 0 && (
-          <div className="relative flex justify-between pt-1">
-            {/* Timeline track line behind the dots */}
-            <div className="absolute top-[7px] left-0 right-0 h-px bg-border" />
-
+          <div className="flex">
             {upcomingVersions.map((v, idx) => {
               const issueList = releaseIssueResults[idx]?.data ?? [];
               const totalCount = issueList.length;
@@ -140,33 +137,50 @@ export default function UpcomingReleasesTimeline({
                 totalCount > 0 ? Math.min(100, Math.round((doneCount / totalCount) * 100)) : 0;
 
               const timing = getReleaseTimingLabel(v.releaseDate, v.released);
-              const { text: timingText, className: timingClass } = formatTimingLabel(timing);
+              const { text: timingText } = formatTimingLabel(timing);
+
+              // Orange is the only accent, reserved for the closest release (idx 0):
+              // its dot is solid, the connector to the next dot is orange, and its date is orange.
+              // All other dots are hollow and everything else is grayscale.
+              const isFirst = idx === 0;
+              const isLast = idx === upcomingVersions.length - 1;
 
               return (
                 <div
                   key={v.id ?? v.name}
-                  className="relative flex flex-col items-center gap-1.5 text-center"
+                  className="relative flex flex-1 flex-col items-start gap-1.5 pr-4 text-left"
                   data-testid="release-dot"
                 >
-                  {/* Dot on the timeline — green when ready (≥80%), amber while in progress */}
+                  {/* Timeline connector to the next dot — orange only between dot 1 and dot 2 */}
+                  {!isLast && (
+                    <div
+                      className={`absolute top-[5px] left-1.5 right-0 h-0.5 ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
+                    />
+                  )}
+
+                  {/* Dot — first is solid orange, the rest are hollow */}
                   <div
-                    className={`size-3.5 rounded-full ring-2 ring-card relative z-10 ${donePct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
+                    className={`relative z-10 size-3 rounded-full ${isFirst ? 'bg-orange-500' : 'border-2 border-muted-foreground/40 bg-card'}`}
                   />
 
                   {/* Release name */}
-                  <span className="text-sm font-semibold text-foreground truncate max-w-[160px]">
+                  <span className="max-w-full truncate text-sm font-semibold text-foreground">
                     {v.name}
                   </span>
 
-                  {/* Relative due label */}
+                  {/* Relative due label — orange only for the closest release */}
                   {timingText && (
-                    <span className={`text-xs font-normal ${timingClass}`}>{timingText}</span>
+                    <span
+                      className={`text-xs font-normal ${isFirst ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}
+                    >
+                      {timingText}
+                    </span>
                   )}
 
-                  {/* Readiness bar — thin */}
-                  <div className="mt-0.5 h-1 w-24 bg-muted rounded-full overflow-hidden">
+                  {/* Readiness bar — grayscale */}
+                  <div className="mt-0.5 h-1 w-24 max-w-full bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${donePct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
+                      className="h-full rounded-full bg-muted-foreground/50"
                       style={{ width: `${donePct}%` }}
                     />
                   </div>

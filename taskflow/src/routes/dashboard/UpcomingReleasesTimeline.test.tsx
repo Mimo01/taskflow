@@ -291,7 +291,7 @@ describe('UpcomingReleasesTimeline — D-08 "Tomorrow" label', () => {
     expect(screen.getByText('in 7 days')).toBeTruthy();
   });
 
-  it('renders "overdue" with amber styling for a past-due version', async () => {
+  it('renders "overdue" in orange for the closest (first) version', async () => {
     const { useQuery, useQueries } = await import('@tanstack/react-query');
 
     const versions = [makeFixVersion('v-overdue', '2026-06-10', false)];
@@ -306,8 +306,9 @@ describe('UpcomingReleasesTimeline — D-08 "Tomorrow" label', () => {
 
     const overdueEl = screen.getByText('overdue');
     expect(overdueEl).toBeTruthy();
+    // Orange is the only release accent, reserved for the closest (first) release.
     const cls = overdueEl.className;
-    expect(cls.includes('text-amber-600') || cls.includes('text-amber-400')).toBe(true);
+    expect(cls.includes('text-orange-600') || cls.includes('text-orange-400')).toBe(true);
   });
 });
 

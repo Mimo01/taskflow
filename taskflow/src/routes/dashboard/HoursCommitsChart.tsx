@@ -23,7 +23,7 @@
  */
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Timer } from 'lucide-react';
-import { Bar, Cell, ComposedChart, LabelList, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { Bar, ComposedChart, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
@@ -146,55 +146,15 @@ export function buildRolling7Buckets(
 // Chart config — two series (hours: blue, commits: green)
 // ---------------------------------------------------------------------------
 
-// Semantic series colors (theme-stable hex — the --chart-* tokens are all blue, which
-// made hours and commits indistinguishable). Blue = hours logged, green = commits.
-const HOURS_COLOR = '#3b82f6'; // blue-500 (matches My Issues "In Progress")
-const COMMITS_COLOR = '#22c55e'; // green-500 (matches My Issues "Done" / release ready)
+// Semantic series colors — bound to the app's Tailwind palette so they are pixel-identical
+// to the bg-blue-500 / bg-green-500 used everywhere else (statusStyles, My Issues card).
+const HOURS_COLOR = 'var(--color-blue-500)'; // blue = hours logged
+const COMMITS_COLOR = 'var(--color-green-500)'; // green = commits
 
 const chartConfig = {
   hours: { label: 'Hours logged', color: HOURS_COLOR },
   commits: { label: 'Commits', color: COMMITS_COLOR },
 } satisfies ChartConfig;
-
-// ---------------------------------------------------------------------------
-// TodayAwareTick — custom X-axis tick rendering today as a pill
-//
-// ASSUMPTION A2: foreignObject works in Tauri WebKit.
-// If not, the documented fallback is SVG <text> + <rect> (see below).
-// Verified at Plan 04 UAT.
-// ---------------------------------------------------------------------------
-
-interface CustomTickProps {
-  x?: number;
-  y?: number;
-  payload?: { value: string };
-  todayLabel: string;
-}
-
-function TodayAwareTick({ x = 0, y = 0, payload, todayLabel }: CustomTickProps) {
-  if (payload?.value === todayLabel) {
-    // foreignObject pill approach (Assumption A2 — Tauri WebKit foreignObject)
-    // Fallback: replace with SVG <text>+<rect> if WebKit rejects foreignObject at Plan 04 UAT
-    return (
-      <foreignObject x={x - 20} y={y} width={40} height={22}>
-        <div
-          // @ts-expect-error — xmlns is valid on foreignObject children
-          xmlns="http://www.w3.org/1999/xhtml"
-          className="flex justify-center"
-        >
-          <span className="text-xs font-normal bg-foreground text-background rounded-full px-2 py-0.5 whitespace-nowrap">
-            {payload.value}
-          </span>
-        </div>
-      </foreignObject>
-    );
-  }
-  return (
-    <text x={x} y={y + 12} textAnchor="middle" fontSize={12} fill="var(--muted-foreground)">
-      {payload?.value}
-    </text>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -287,11 +247,6 @@ export default function HoursCommitsChart({
   // zero baseline while hours extend UP (single chart, stackOffset="sign").
   const chartData = dayBuckets.map((b) => ({ ...b, commitsDown: -b.commits }));
 
-  // Today's weekday label (for TodayAwareTick)
-  const todayLabel = new Date(`${todayDate}T12:00:00`).toLocaleDateString('en-US', {
-    weekday: 'short',
-  });
-
   // Loading/skeleton state (200ms-gated to prevent flicker on warm-cache reads)
   const showSkeleton = useDelayedLoading(worklogsLoading);
 
@@ -366,106 +321,97 @@ export default function HoursCommitsChart({
             />
           </div>
         )}
-        {/* Chart — tempoEnabled=true and not loading/error. All-zero week still renders here (D-12). */}
+        {/* Chart — tempoEnabled=true and not loading/error. All-zero week still renders here (D-12).
+            Value labels live in fixed HTML rows (one cell per day) above/below the chart so every
+            day — including zero days — always shows its number, directly under/over its column.
+            All days render identically (no special "today" styling). */}
         {!showSkeleton && !worklogsError && (
-          /* WebKit 0×0 guard: explicit-height outer div required (Phase 81 D-03 / same class as
-             virtualized-table-zero-width-col memory). */
-          <div style={{ height: 300 }} className="w-full">
-            <ChartContainer
-              config={chartConfig}
-              className="h-full w-full"
-              aria-label="Hours and commits per day diverging bar chart"
-            >
-              {/* Single diverging chart: hours bars go UP, commits bars go DOWN from one shared
-                  center baseline. stackId ties +hours and −commits to the same column and
-                  stackOffset="sign" splits them across the zero line (D-10/D-14). */}
-              <ComposedChart
-                data={chartData}
-                responsive
-                stackOffset="sign"
-                margin={{ top: 24, right: 8, left: 8, bottom: 24 }}
+          /* WebKit 0×0 guard: explicit-height outer div required (Phase 81 D-03). */
+          <div style={{ height: 300 }} className="flex w-full flex-col">
+            {/* Hours value per day (blue) — aligned above each column */}
+            <div className="flex px-2">
+              {dayBuckets.map((b) => (
+                <div
+                  key={b.day}
+                  className="flex-1 text-center text-xs font-medium tabular-nums"
+                  style={{ color: HOURS_COLOR }}
+                >
+                  {b.hours > 0 ? formatHoursMinutes(b.hours) : '0h'}
+                </div>
+              ))}
+            </div>
+
+            {/* Diverging bar chart: hours up (blue), commits down (green), shared zero baseline */}
+            <div className="min-h-0 flex-1">
+              <ChartContainer
+                config={chartConfig}
+                className="h-full w-full"
+                aria-label="Hours and commits per day diverging bar chart"
               >
-                {/* Declutter: no gridlines/axis lines — day label per column (rendered at bottom) */}
-                <XAxis
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={<TodayAwareTick todayLabel={todayLabel} />}
-                />
-                {/* No left axis labels — domain only (extra headroom so bar value labels fit) */}
-                <YAxis
-                  hide
-                  domain={[
-                    -(maxCommits > 0 ? maxCommits : 1) * 1.3,
-                    (maxHours > 0 ? maxHours : 1) * 1.3,
-                  ]}
-                />
-                {/* Only two horizontal guide lines: 0 (center) and max hours (e.g. 8h), no labels */}
-                <ReferenceLine y={0} stroke="var(--border)" />
-                <ReferenceLine
-                  y={maxHours > 0 ? maxHours : 1}
-                  stroke="var(--border)"
-                  strokeDasharray="3 3"
-                />
-                {/* Hours — blue, extends UP */}
-                <Bar
-                  dataKey="hours"
-                  stackId="a"
-                  fill={HOURS_COLOR}
-                  maxBarSize={40}
-                  minPointSize={3}
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={false}
+                <ComposedChart
+                  data={chartData}
+                  responsive
+                  stackOffset="sign"
+                  margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
                 >
-                  {chartData.map((b) => (
-                    <Cell
-                      key={b.day}
-                      fill={HOURS_COLOR}
-                      stroke={b.isToday ? 'var(--foreground)' : undefined}
-                      strokeWidth={b.isToday ? 2 : 0}
-                    />
-                  ))}
-                  {/* Actual hours value above each bar; '0h' for zero days (D-12) */}
-                  <LabelList
+                  <XAxis dataKey="label" hide />
+                  <YAxis
+                    hide
+                    domain={[
+                      -(maxCommits > 0 ? maxCommits : 1) * 1.15,
+                      (maxHours > 0 ? maxHours : 1) * 1.15,
+                    ]}
+                  />
+                  {/* Only two horizontal guide lines: 0 (center) and max hours, no labels */}
+                  <ReferenceLine y={0} stroke="var(--border)" />
+                  <ReferenceLine
+                    y={maxHours > 0 ? maxHours : 1}
+                    stroke="var(--border)"
+                    strokeDasharray="3 3"
+                  />
+                  <Bar
                     dataKey="hours"
-                    position="top"
-                    fontSize={12}
-                    fill="var(--muted-foreground)"
-                    formatter={(v: unknown) => {
-                      const n = typeof v === 'number' ? v : Number(v);
-                      return Number.isFinite(n) && n > 0 ? formatHoursMinutes(n) : '0h';
-                    }}
+                    stackId="a"
+                    fill={HOURS_COLOR}
+                    maxBarSize={40}
+                    minPointSize={3}
+                    radius={[4, 4, 0, 0]}
+                    isAnimationActive={false}
                   />
-                </Bar>
-                {/* Commits — green, extends DOWN (plotted as negative) */}
-                <Bar
-                  dataKey="commitsDown"
-                  stackId="a"
-                  fill={COMMITS_COLOR}
-                  maxBarSize={40}
-                  minPointSize={3}
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={false}
-                >
-                  {chartData.map((b) => (
-                    <Cell
-                      key={b.day}
-                      fill={COMMITS_COLOR}
-                      stroke={b.isToday ? 'var(--foreground)' : undefined}
-                      strokeWidth={b.isToday ? 2 : 0}
-                    />
-                  ))}
-                  {/* Absolute commit count below each bar; '0' for zero days (D-12) */}
-                  <LabelList
+                  <Bar
                     dataKey="commitsDown"
-                    position="bottom"
-                    fontSize={12}
-                    fill="var(--muted-foreground)"
-                    formatter={(v: unknown) => String(Math.abs(Number(v)) || 0)}
+                    stackId="a"
+                    fill={COMMITS_COLOR}
+                    maxBarSize={40}
+                    minPointSize={3}
+                    radius={[4, 4, 0, 0]}
+                    isAnimationActive={false}
                   />
-                </Bar>
-              </ComposedChart>
-            </ChartContainer>
+                </ComposedChart>
+              </ChartContainer>
+            </div>
+
+            {/* Commit count per day (green) — directly under each column's bar */}
+            <div className="flex px-2">
+              {dayBuckets.map((b) => (
+                <div
+                  key={b.day}
+                  className="flex-1 text-center text-xs font-medium tabular-nums"
+                  style={{ color: COMMITS_COLOR }}
+                >
+                  {b.commits}
+                </div>
+              ))}
+            </div>
+
+            {/* Day labels */}
+            <div className="mt-1 flex px-2">
+              {dayBuckets.map((b) => (
+                <div key={b.day} className="flex-1 text-center text-xs text-muted-foreground">
+                  {b.label}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
