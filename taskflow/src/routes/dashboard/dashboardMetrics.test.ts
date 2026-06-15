@@ -487,7 +487,11 @@ describe('computePersonalVelocitySeries', () => {
       { id: 2, name: 'Sprint 2', state: 'closed' as const },
       { id: 3, name: 'Sprint 3', state: 'closed' as const },
     ];
-    const issueMap = new Map([[1, [withSP]], [2, [withSP]], [3, [noSP]]]);
+    const issueMap = new Map([
+      [1, [withSP]],
+      [2, [withSP]],
+      [3, [noSP]],
+    ]);
     const series = computePersonalVelocitySeries(sprints, issueMap, ME, SP_KEY);
     const qualifying = series.filter((p) => p.committed > 0 || p.completed > 0);
     expect(qualifying.length).toBe(2); // below 3-sprint threshold → D-06 hide
@@ -496,7 +500,12 @@ describe('computePersonalVelocitySeries', () => {
   it('committed vs completed: committed counts all my issues, completed only done', () => {
     // Alice done(3) + Alice indeterminate(5) → committed=8, completed=3
     const done = makeIssue({ subtask: false, sp: 3, statusCategory: 'done', assignee: ME });
-    const inprog = makeIssue({ subtask: false, sp: 5, statusCategory: 'indeterminate', assignee: ME });
+    const inprog = makeIssue({
+      subtask: false,
+      sp: 5,
+      statusCategory: 'indeterminate',
+      assignee: ME,
+    });
     const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
     const issueMap = new Map([[1, [done, inprog]]]);
     const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
