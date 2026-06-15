@@ -22,6 +22,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Activity, GitCommitHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -219,78 +220,78 @@ export default function ActivityStrip({
     !commitsQuery.isError;
 
   return (
-    <section
-      aria-label="Recent activity"
-      className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3"
-    >
-      <h2 className="text-base font-semibold text-foreground">Recent activity</h2>
+    <Card aria-label="Recent activity">
+      <CardHeader>
+        <CardTitle>Recent activity</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {/* Loading skeleton */}
+        {showSkeleton && (
+          <div aria-busy="true" className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-4/5" />
+            <Skeleton className="h-5 w-3/4" />
+          </div>
+        )}
 
-      {/* Loading skeleton */}
-      {showSkeleton && (
-        <div aria-busy="true" className="flex flex-col gap-2">
-          <Skeleton className="h-5 w-full" />
-          <Skeleton className="h-5 w-4/5" />
-          <Skeleton className="h-5 w-3/4" />
-        </div>
-      )}
+        {/* Both sources failed — show a single error state */}
+        {!showSkeleton && bothError && (
+          <ErrorState
+            error={jiraActivityQuery.error}
+            viewName="recent activity"
+            onRetry={() => {
+              void jiraActivityQuery.refetch();
+              void commitsQuery.refetch();
+            }}
+          />
+        )}
 
-      {/* Both sources failed — show a single error state */}
-      {!showSkeleton && bothError && (
-        <ErrorState
-          error={jiraActivityQuery.error}
-          viewName="recent activity"
-          onRetry={() => {
-            void jiraActivityQuery.refetch();
-            void commitsQuery.refetch();
-          }}
-        />
-      )}
+        {/* Empty state — neither source has data and neither errored */}
+        {isEmpty && (
+          <EmptyState
+            icon={Activity}
+            title="No recent activity"
+            subtitle="Jira and GitLab activity from the last 24 hours will appear here."
+          />
+        )}
 
-      {/* Empty state — neither source has data and neither errored */}
-      {isEmpty && (
-        <EmptyState
-          icon={Activity}
-          title="No recent activity"
-          subtitle="Jira and GitLab activity from the last 24 hours will appear here."
-        />
-      )}
+        {/* Feed — render when not loading and at least one entry exists */}
+        {!showSkeleton && entries.length > 0 && (
+          <div className="flex flex-col">
+            {entries.map((entry, i) => (
+              <ActivityRow key={entryKey(entry, i)} entry={entry} />
+            ))}
 
-      {/* Feed — render when not loading and at least one entry exists */}
-      {!showSkeleton && entries.length > 0 && (
-        <div className="flex flex-col">
-          {entries.map((entry, i) => (
-            <ActivityRow key={entryKey(entry, i)} entry={entry} />
-          ))}
+            {overflow > 0 && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground mt-1 min-h-[32px] text-left"
+              >
+                +{overflow} more
+              </button>
+            )}
+          </div>
+        )}
 
-          {overflow > 0 && (
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:text-foreground mt-1 min-h-[32px] text-left"
-            >
-              +{overflow} more
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Per-source independent errors (DASH-07, D-17).
+        {/* Per-source independent errors (DASH-07, D-17).
           Only shown when the other source succeeded, so the strip is never fully blank
           from a single source failing. Mirrors YesterdayColumn lines 796-820 pattern. */}
-      {!showSkeleton && !bothError && jiraActivityQuery.isError && (
-        <ErrorState
-          error={jiraActivityQuery.error}
-          viewName="Jira activity"
-          onRetry={() => void jiraActivityQuery.refetch()}
-        />
-      )}
-      {!showSkeleton && !bothError && commitsQuery.isError && (
-        <ErrorState
-          error={commitsQuery.error}
-          viewName="GitLab commits"
-          onRetry={() => void commitsQuery.refetch()}
-        />
-      )}
-    </section>
+        {!showSkeleton && !bothError && jiraActivityQuery.isError && (
+          <ErrorState
+            error={jiraActivityQuery.error}
+            viewName="Jira activity"
+            onRetry={() => void jiraActivityQuery.refetch()}
+          />
+        )}
+        {!showSkeleton && !bothError && commitsQuery.isError && (
+          <ErrorState
+            error={commitsQuery.error}
+            viewName="GitLab commits"
+            onRetry={() => void commitsQuery.refetch()}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

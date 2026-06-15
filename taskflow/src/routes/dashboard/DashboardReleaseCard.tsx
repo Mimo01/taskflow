@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { JiraFixVersion } from '@/services/jira';
@@ -72,56 +73,59 @@ export default function DashboardReleaseCard({
   const donePct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px]">
+    <Card className="min-h-[160px]">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Calendar className="size-4 text-blue-500" aria-hidden />
-        <span className="text-xs text-muted-foreground uppercase tracking-wide">Next Release</span>
-      </div>
-
-      {/* Skeleton */}
-      {showSkeleton && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-4 rounded bg-muted animate-pulse" />
-          ))}
-        </div>
-      )}
-
-      {/* Content */}
-      {!showSkeleton && soonest && (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">{soonest.name}</span>
-          <div className="flex items-center gap-2">
-            {timing === 'due-today' && <Badge tone="blue">Today</Badge>}
-            {timing === 'overdue' && (
-              <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                {Math.round(
-                  (new Date(new Date().toISOString().slice(0, 10)).getTime() -
-                    new Date(soonest.releaseDate ?? '').getTime()) /
-                    86_400_000,
-                )}{' '}
-                days overdue
-              </span>
-            )}
-            {timing && typeof timing === 'object' && 'daysUntil' in timing && (
-              <span className="text-sm text-muted-foreground">{timing.daysUntil} days away</span>
-            )}
-            {soonest.releaseDate && (
-              <span className="text-xs text-muted-foreground">{soonest.releaseDate}</span>
-            )}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <Calendar className="size-4 text-blue-500" aria-hidden />
+          Next Release
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {/* Skeleton */}
+        {showSkeleton && (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-4 rounded bg-muted animate-pulse" />
+            ))}
           </div>
-          <Progress value={donePct} />
-          <p className="text-xs text-muted-foreground">
-            {donePct}% complete · {doneCount} / {totalCount} issues
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Empty state */}
-      {!showSkeleton && !soonest && (
-        <p className="text-sm text-muted-foreground">No upcoming releases</p>
-      )}
-    </div>
+        {/* Content */}
+        {!showSkeleton && soonest && (
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">{soonest.name}</span>
+            <div className="flex items-center gap-2">
+              {timing === 'due-today' && <Badge tone="blue">Today</Badge>}
+              {timing === 'overdue' && (
+                <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {Math.round(
+                    (new Date(new Date().toISOString().slice(0, 10)).getTime() -
+                      new Date(soonest.releaseDate ?? '').getTime()) /
+                      86_400_000,
+                  )}{' '}
+                  days overdue
+                </span>
+              )}
+              {timing && typeof timing === 'object' && 'daysUntil' in timing && (
+                <span className="text-sm text-muted-foreground">{timing.daysUntil} days away</span>
+              )}
+              {soonest.releaseDate && (
+                <span className="text-xs text-muted-foreground">{soonest.releaseDate}</span>
+              )}
+            </div>
+            <Progress value={donePct} />
+            <p className="text-xs text-muted-foreground">
+              {donePct}% complete · {doneCount} / {totalCount} issues
+            </p>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!showSkeleton && !soonest && (
+          <p className="text-sm text-muted-foreground">No upcoming releases</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
