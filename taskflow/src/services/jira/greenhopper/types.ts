@@ -309,22 +309,33 @@ export interface GhDetailsResponse {
 /**
  * A single change entry within the `GreenHopperBurndown.changes` record.
  *
- * Shape: MEDIUM confidence (RESEARCH A2 — Probe C confirmed top-level keys; entry-level
- * field names are inferred from standard GreenHopper API patterns). All fields are optional
- * so the consumer (`parseBurndownChanges` in dashboardMetrics.ts) can stay null-safe
- * regardless of exact field names. `parseBurndownChanges` is the sole consumer and MUST
- * use `?? 0` fallbacks and `Math.max(0, ...)` clamping to guard against unexpected shapes.
+ * Shape: CONFIRMED via live curl (board 6708, sprint 19562, 2026-06-15 — UAT-4 gap closure).
+ * For a `timeestimate` statistic the deltas live under `timeC: { oldEstimate, newEstimate,
+ * timeSpent }` (SECONDS), NOT the originally-assumed `statC: { newValue, oldValue }`. `statC`
+ * is retained (optional) so a story-point-statistic board still parses via the fallback path.
+ * All fields are optional so `parseBurndownChanges` (dashboardMetrics.ts, the sole consumer)
+ * stays null-safe; it MUST use `?? 0` fallbacks and `Math.max(0, ...)` clamping.
  *
- * If the live DC returns different field names (e.g. `statField` instead of `statC`),
- * update this interface AND the parser in dashboardMetrics.ts — not just one or the other.
+ * If the live DC returns yet other field names, update this interface AND the parser in
+ * dashboardMetrics.ts together — not just one or the other.
  */
 export interface BurndownChangeEntry {
   /** Issue key this change applies to (e.g. "PROJ-123") */
   key?: string;
   /**
-   * Statistic change: new and old values of the tracked metric.
-   * For `statisticField: 'timeestimate'`, values are in SECONDS (Jira DC native unit).
-   * 28800 ≈ 8 hours (seconds magnitude, not hours magnitude — confirmed Probe C RESEARCH A4).
+   * Time-estimate change (live shape for a `timeestimate` statistic). Values in SECONDS
+   * (Jira DC native unit; 28800 = 8h). `parseBurndownChanges` burns down on
+   * `newEstimate - oldEstimate`. `timeSpent` is informational (logged work in the transition).
+   */
+  timeC?: {
+    oldEstimate?: number;
+    newEstimate?: number;
+    timeSpent?: number;
+  };
+  /**
+   * Statistic change for a non-time statistic (e.g. story points): new/old values of the
+   * tracked metric. Fallback path when `timeC` is absent. Kept for board configs whose
+   * `statisticField` is not `timeestimate`.
    */
   statC?: {
     newValue?: number;
@@ -365,10 +376,12 @@ export interface GreenHopperBurndown {
    */
   changes: Record<string, BurndownChangeEntry[]>;
   /**
-   * Statistic field identifier (e.g. "timeestimate" on this DC).
-   * Drives the Y-axis unit: "timeestimate" → hours remaining (not story points).
+   * Statistic field descriptor. Live DC returns an OBJECT (confirmed 2026-06-15), e.g.
+   * `{ fieldId: 'timeestimate', name: 'Remaining Time Estimate', renderer: 'duration' }` —
+   * NOT a bare string. `fieldId: 'timeestimate'` → Y-axis is hours remaining (not story points).
+   * Loosely typed; the chart hardcodes the seconds→hours conversion and does not read this.
    */
-  statisticField: string;
+  statisticField?: { fieldId?: string; name?: string; renderer?: string } | string;
   /**
    * Ideal burndown guideline data. Shape is loosely typed — the chart component
    * (BurndownChart.tsx) owns parsing and rendering of this guideline series.

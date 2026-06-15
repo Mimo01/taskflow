@@ -344,8 +344,11 @@ export interface BurndownPoint {
  *
  * Remaining-work model (INSIGHT-02): the scopechangeburndownchart records every delta
  * to the tracked statistic (`timeestimate`, seconds) — scope additions raise remaining,
- * completed work lowers it. The running cumulative of `newValue - oldValue` therefore
- * reconstructs the TRUE remaining-work line across the sprint, including scope changes.
+ * completed work lowers it. For a timeestimate statistic the per-issue delta lives in
+ * `timeC: { oldEstimate, newEstimate }` (CONFIRMED live 2026-06-15); the running cumulative
+ * of `newEstimate - oldEstimate` reconstructs the TRUE remaining-work line across the sprint,
+ * including scope changes. `statC: { newValue, oldValue }` is the fallback for boards whose
+ * statistic is not time (e.g. story points).
  * The series legitimately rises when scope is added and falls as work burns down; for a
  * normal sprint the committed scope is added at activation, so remaining jumps to the
  * committed total near the start and then descends. This is correct scope-change-burndown
@@ -358,9 +361,9 @@ export interface BurndownPoint {
  * V5 Input Validation (T-85-01):
  *   - `changes ?? {}` guards null/undefined input
  *   - non-finite epoch keys are dropped, then numeric-ascending sort (string sort misorders epochs)
- *   - `?? 0` on newValue/oldValue guards malformed numeric fields
+ *   - `?? 0` on the estimate/value fields guards malformed numeric fields
  *   - `Math.max(0, running)` clamps negative remaining (Tampering mitigation T-85-01)
- *   - Entries without `statC` are skipped (shape assumption A2 is defensive)
+ *   - Entries without `timeC` or `statC` are skipped (shape is defensive/all-optional)
  *
  * @param changes    Record keyed by epoch-ms string; each value is an array of change entries
  * @param startTime  Sprint start time as epoch ms — the first anchor point
@@ -370,7 +373,12 @@ export interface BurndownPoint {
 export function parseBurndownChanges(
   changes: Record<
     string,
-    Array<{ key: string; statC?: { newValue: number; oldValue: number }; added?: boolean }>
+    Array<{
+      key?: string;
+      timeC?: { oldEstimate?: number; newEstimate?: number; timeSpent?: number };
+      statC?: { newValue?: number; oldValue?: number };
+      added?: boolean;
+    }>
   >,
   startTime: number,
   endTime?: number,
@@ -392,11 +400,15 @@ export function parseBurndownChanges(
   for (const ts of timestamps) {
     const entries = safe[String(ts)] ?? [];
     for (const entry of entries) {
-      if (entry.statC) {
-        // Delta: newValue - oldValue captures the net change to remaining time (seconds)
+      if (entry.timeC) {
+        // Live shape (timeestimate statistic): newEstimate - oldEstimate is the net change
+        // to remaining time (seconds). Scope added → rises; work logged/estimate cut → falls.
+        running += (entry.timeC.newEstimate ?? 0) - (entry.timeC.oldEstimate ?? 0);
+      } else if (entry.statC) {
+        // Fallback for a non-time statistic (e.g. story points): newValue - oldValue.
         running += (entry.statC.newValue ?? 0) - (entry.statC.oldValue ?? 0);
       }
-      // Entries without statC are skipped — defensive against partial shape (A2)
+      // Entries with neither timeC nor statC are skipped — defensive against partial shape
     }
     // T-85-01: clamp remaining non-negative
     points.push({ t: ts, remaining: Math.max(0, running) });
