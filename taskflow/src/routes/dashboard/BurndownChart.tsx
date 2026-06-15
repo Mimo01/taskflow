@@ -65,21 +65,32 @@ export default function BurndownChart({
 
   const showSkeleton = useDelayedLoading(isLoading);
 
+  // Anchor at activatedTime (when "Start Sprint" was clicked = the real sprint start), NOT
+  // startTime (the configured/planning start, often hours earlier). On this DC the gap is a
+  // morning of sprint-planning scope adds (~93 changes on day 1) — anchoring at activatedTime
+  // folds those into the committed-scope baseline so the curve starts at sprint start with the
+  // committed total, instead of ramping up through "planning day" (UAT-4c). Falls back to
+  // startTime if activatedTime is absent.
+  const sprintStart = burndownRaw
+    ? (burndownRaw.activatedTime ?? burndownRaw.startTime)
+    : undefined;
+
   // V5 defensive parsing: default .changes to {} before parse (T-85-04-01).
   // parseBurndownChanges (from 85-01) applies ?? 0 and Math.max(0,…) per-entry.
   // Cast via unknown: BurndownChangeEntry uses all-optional fields (A2 MEDIUM-confidence
   // shape) while parseBurndownChanges expects a slightly stricter inline type; both are
   // defensive and the runtime values are compatible.
   // Pass endTime so parseBurndownChanges can derive the ideal-burndown guideline
-  // (linear from peak committed scope at startTime → 0 at endTime). The `ideal` field
+  // (linear from peak committed scope at sprintStart → 0 at endTime). The `ideal` field
   // feeds the dashed reference <Line> below, making the chart read as a true burndown.
-  const burndownPoints = burndownRaw
-    ? parseBurndownChanges(
-        (burndownRaw.changes ?? {}) as unknown as Parameters<typeof parseBurndownChanges>[0],
-        burndownRaw.startTime,
-        burndownRaw.endTime,
-      )
-    : [];
+  const burndownPoints =
+    burndownRaw && sprintStart !== undefined
+      ? parseBurndownChanges(
+          (burndownRaw.changes ?? {}) as unknown as Parameters<typeof parseBurndownChanges>[0],
+          sprintStart,
+          burndownRaw.endTime,
+        )
+      : [];
 
   const hasBurndownData = burndownPoints.length > 0;
 
@@ -102,8 +113,21 @@ export default function BurndownChart({
             aria-label="Sprint burndown area chart — hours remaining over sprint timeline"
           >
             <AreaChart data={burndownPoints} responsive>
+              {/* Time-proportional X-axis (UAT-4c). type=number + scale=time plot each point
+                  at its true timestamp — a categorical axis spaced all the day-1 planning
+                  changes evenly, swallowing half the chart. Domain spans the full sprint
+                  window [sprintStart, endTime] so the remaining days stay visible; both the
+                  remaining area and the ideal line stop at the last change (~now), leaving the
+                  not-yet-reached days as empty space on the right (conventional burndown). */}
               <XAxis
                 dataKey="t"
+                type="number"
+                scale="time"
+                domain={
+                  sprintStart !== undefined && burndownRaw?.endTime
+                    ? [sprintStart, burndownRaw.endTime]
+                    : ['dataMin', 'dataMax']
+                }
                 tickFormatter={(v: number) =>
                   new Date(v).toLocaleDateString('en-GB', {
                     month: 'short',
@@ -111,7 +135,7 @@ export default function BurndownChart({
                   })
                 }
                 tick={{ fontSize: 11 }}
-                interval={2}
+                interval="preserveStartEnd"
               />
               {/* Y-axis: BurndownPoint.remaining is SECONDS (Probe C / 85-01 unit comment).
                   Divide by 3600 to display hours. h suffix mandatory — never SP/points. */}
