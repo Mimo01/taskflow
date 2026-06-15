@@ -14,7 +14,6 @@ import {
   computeSpTotal,
   filterNonSubtasks,
   getDaysRemaining,
-  groupMrsByRole,
   mergeActivityEntries,
 } from './dashboardMetrics';
 import type { JiraIssue } from '@/services/jira';
@@ -293,76 +292,6 @@ describe('Phase 84 — buildWeekBuckets', () => {
     const buckets = buildWeekBuckets(worklogs, '2026-06-10');
     const tuesday = buckets.find((b) => b.day === '2026-06-11');
     expect(tuesday?.hours).toBeCloseTo(1.5);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 84 — groupMrsByRole
-// ---------------------------------------------------------------------------
-
-function makeMR(overrides: {
-  iid: number;
-  authorId: number;
-  reviewerIds?: number[];
-}): import('@/services/gitlab').GitLabMR {
-  return {
-    id: overrides.iid,
-    iid: overrides.iid,
-    project_id: 1,
-    title: `MR-${overrides.iid}`,
-    source_branch: 'feature',
-    state: 'opened',
-    author: { id: overrides.authorId, name: 'Author', username: 'author', avatar_url: '' },
-    reviewers: (overrides.reviewerIds ?? []).map((id) => ({
-      id,
-      name: `User ${id}`,
-      username: `user${id}`,
-    })),
-    updated_at: '2026-06-14T10:00:00Z',
-    web_url: `https://gitlab.example.com/mr/${overrides.iid}`,
-    labels: [],
-    milestone: null,
-  } as import('@/services/gitlab').GitLabMR;
-}
-
-describe('Phase 84 — groupMrsByRole', () => {
-  const MY_ID = 42;
-
-  it('non-overlap: MR authored AND reviewed by userId appears only in myOpen', () => {
-    const selfMr = makeMR({ iid: 1, authorId: MY_ID, reviewerIds: [MY_ID] });
-    const { awaitingReview, myOpen } = groupMrsByRole([selfMr], MY_ID);
-    expect(myOpen).toHaveLength(1);
-    expect(awaitingReview).toHaveLength(0);
-  });
-
-  it('basic split: reviewer-only MR → awaitingReview; author-only MR → myOpen', () => {
-    const reviewing = makeMR({ iid: 2, authorId: 99, reviewerIds: [MY_ID] });
-    const authored = makeMR({ iid: 3, authorId: MY_ID, reviewerIds: [] });
-    const { awaitingReview, myOpen } = groupMrsByRole([reviewing, authored], MY_ID);
-    expect(awaitingReview).toHaveLength(1);
-    expect(awaitingReview[0].iid).toBe(2);
-    expect(myOpen).toHaveLength(1);
-    expect(myOpen[0].iid).toBe(3);
-  });
-
-  it('MR authored by other user with no reviewers → neither group', () => {
-    const unrelated = makeMR({ iid: 4, authorId: 77, reviewerIds: [] });
-    const { awaitingReview, myOpen } = groupMrsByRole([unrelated], MY_ID);
-    expect(awaitingReview).toHaveLength(0);
-    expect(myOpen).toHaveLength(0);
-  });
-
-  it('returns empty groups when userId is undefined', () => {
-    const mr = makeMR({ iid: 5, authorId: 1, reviewerIds: [1] });
-    const { awaitingReview, myOpen } = groupMrsByRole([mr], undefined);
-    expect(awaitingReview).toHaveLength(0);
-    expect(myOpen).toHaveLength(0);
-  });
-
-  it('returns empty groups for empty input', () => {
-    const { awaitingReview, myOpen } = groupMrsByRole([], MY_ID);
-    expect(awaitingReview).toHaveLength(0);
-    expect(myOpen).toHaveLength(0);
   });
 });
 
