@@ -2479,6 +2479,100 @@ export async function fetchEpicStories(
   ).catch(() => [] as JiraIssue[]);
 }
 
+/**
+ * Fetch the most-recent N closed sprints for a board.
+ *
+ * ⚠ ORDERING LANDMINE (Probe A, 2026-06-15): the `state=closed` endpoint returns sprints
+ * ASCENDING (oldest first). The first page (`startAt=0`) silently returns 2019 sprints (ids
+ * 44/102/106/107/227) while the active sprint is 19562 (current). A naive `maxResults=6`
+ * fetch would chart 2019 data. This function paginates the full closed-sprint list and slices
+ * the LAST N (most-recent) — never the first page.
+ *
+ * There is no `orderBy` parameter on this endpoint. Always paginate to the tail.
+ *
+ * @param baseUrl - Jira base URL
+ * @param token   - Personal Access Token
+ * @param boardId - Numeric board ID (caller supplies — never hardcode 6708 or any literal; Spoofing mitigation)
+ * @param n       - Number of most-recent closed sprints to return (default: 6)
+ * @returns Array of the most-recent N closed sprints (ascending within the slice), or [] on error.
+ */
+export async function fetchClosedSprints(
+  baseUrl: string,
+  token: string,
+  boardId: number,
+  n = 6,
+): Promise<JiraActiveSprint[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const PAGE = 50;
+  const allSprints: JiraActiveSprint[] = [];
+  let startAt = 0;
+
+  for (;;) {
+    const res = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board/${boardId}/sprint?state=closed&maxResults=${PAGE}&startAt=${startAt}`,
+      { headers },
+      'Load Closed Sprints',
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    const values: JiraActiveSprint[] = data?.values ?? [];
+    allSprints.push(...values);
+    // Terminate when Jira signals last page or the page is short (non-full page = last page)
+    if (data?.isLast || values.length < PAGE) break;
+    startAt += PAGE;
+  }
+
+  // Slice the LAST N — the ascending list means the tail contains the most-recent sprints.
+  // Do NOT use slice(0, n): that returns the oldest sprints from 2019, not the current ones.
+  return allSprints.slice(-n);
+}
+
+/**
+ * Fetch all issues for a single closed sprint.
+ *
+ * Used by the velocity backfill fan-out (INSIGHT-01 / Phase 85 D-05). Returns a flat array
+ * of JiraIssue for a single sprint; SP summing, subtask exclusion, and personal filtering are
+ * pure functions in `dashboardMetrics.ts` — this function is fetch-only.
+ *
+ * SP field: sourced from the caller-supplied `spKey` (from `discoverCustomFields`) via the
+ * standard dedup pattern — never hardcoded to `customfield_10106`. The `10016`/`10028`
+ * literals are the pre-existing fallback set already used by `fetchSprintIssues` (Tampering
+ * mitigation: `spKey` is the app-resolved SP field for THIS Jira DC instance).
+ *
+ * Note: `maxResults=200` caps a single closed sprint's issues. Closed sprints rarely exceed
+ * this; if a future instance does, add a pagination loop mirroring `fetchClosedSprints`.
+ *
+ * @param baseUrl  - Jira base URL
+ * @param token    - Personal Access Token
+ * @param sprintId - Sprint ID (caller supplies — never hardcode literals; Spoofing mitigation)
+ * @param spKey    - Story-points custom field key (e.g. "customfield_10106" on this DC; varies by instance)
+ * @returns Array of JiraIssue for the sprint, or [] on error. (V5: external input, null-safe)
+ */
+export async function fetchSprintIssuesBySprintId(
+  baseUrl: string,
+  token: string,
+  sprintId: number,
+  spKey: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  // Dedup SP fields: include common fallback IDs + the discovered spKey for this instance.
+  // Matches the pattern in fetchSprintIssues — never hardcode customfield_10106 as the sole field.
+  const spFields = [...new Set(['customfield_10016', 'customfield_10028', spKey])].join(',');
+  const res = await apiFetch(
+    'jira',
+    `${base}/rest/agile/1.0/sprint/${sprintId}/issue?fields=assignee,issuetype,status,${spFields}&maxResults=200`,
+    { headers },
+    'Load Sprint Issues',
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  // Treat response as external untrusted input (V5) — cast via unknown-safe intermediate.
+  return (data?.issues ?? []) as JiraIssue[];
+}
+
 export type {
   EntityMaps,
   GhAllDataResponse,
