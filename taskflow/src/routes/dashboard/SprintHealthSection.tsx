@@ -110,8 +110,9 @@ export default function SprintHealthSection({
       aria-label="Sprint health"
       className="rounded-lg border border-border bg-card p-6 flex flex-col gap-4"
     >
-      {/* Empty state: no active sprint (shown when not loading and no cached sprint) */}
-      {!showSkeleton && !activeSprint && (
+      {/* Empty state: no active sprint. Gate on raw isLoading (not the 200ms-delayed
+          showSkeleton) so a cold load never flashes this before data resolves (WR-01). */}
+      {!isLoading && !activeSprint && (
         <EmptyState
           icon={Activity}
           title="No active sprint"
