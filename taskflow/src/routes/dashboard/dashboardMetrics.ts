@@ -1,13 +1,16 @@
 /**
- * dashboardMetrics.ts — Phase 83 DASH-02/03/04/05/07/08/09
+ * dashboardMetrics.ts — Phase 83 DASH-02/03/04/05/07/08/09 + Phase 84 DASH-04/05/06
  *
- * Pure derivation functions for Dashboard stat tiles and sprint health chart.
+ * Pure derivation functions for Dashboard stat tiles, sprint health chart,
+ * weekly trend chart, MR review queue grouping, and activity strip.
  * NO React, NO hooks. Importable in unit tests without any DOM environment.
  *
  * Single source of truth for every stat tile and the donut.
  * Downstream UI imports these functions and never re-derives inline.
  */
-import type { JiraIssue } from '@/services/jira';
+import type { GitLabCommit, GitLabMR } from '@/services/gitlab';
+import type { JiraActivityItem, JiraIssue } from '@/services/jira';
+import type { TempoWorklog } from '@/services/tempo/types';
 
 /**
  * A single segment in the sprint-health donut chart.
@@ -119,4 +122,142 @@ export function getDaysRemaining(endDateIso: string | undefined): number | null 
   const ms = new Date(endDateIso).getTime() - Date.now();
   if (Number.isNaN(ms)) return null;
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+// ---------------------------------------------------------------------------
+// Phase 84 — DASH-04/06: Trend chart bucketing + MR role grouping
+// ---------------------------------------------------------------------------
+
+/**
+ * A single Mon–Fri bucket for the weekly trend chart.
+ * Implements DASH-04 criterion 1 (timezone-safe bucketing).
+ */
+export interface WeekBucket {
+  /** Calendar date as YYYY-MM-DD (no timezone shift). */
+  day: string;
+  /** Short weekday label for chart axis. */
+  label: string;
+  /** Hours logged in this bucket (summed from matching worklogs). */
+  hours: number;
+}
+
+/**
+ * Daily logged-hours target (8h). Exported for chart reference-line use.
+ */
+export const DAILY_TARGET_HOURS = 8;
+
+/**
+ * Add N calendar days to a YYYY-MM-DD string.
+ * Uses Date.UTC for arithmetic only — input and output are calendar dates with no timezone shift.
+ * Never calls toLocaleDateString or toISOString on a locally-constructed Date.
+ */
+function addDays(dateStr: string, n: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  // Date.UTC treats its arguments as calendar components in UTC — safe for date arithmetic.
+  const utcMs = Date.UTC(y, m - 1, d + n);
+  return new Date(utcMs).toISOString().slice(0, 10);
+}
+
+const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
+
+/**
+ * Build 5 Mon–Fri buckets for the week starting at `weekStart` (Monday).
+ * Zero-fills all buckets; then sums worklog hours into the bucket whose
+ * `day` equals `worklog.dateStarted` via direct string equality.
+ *
+ * Implements DASH-04 criterion 1: bucketing uses the pre-normalized
+ * `dateStarted` field (already YYYY-MM-DD from fetchWorklogs) — never
+ * re-derives from a raw ISO timestamp to avoid UTC-shift bugs.
+ *
+ * @param worklogs  Array of TempoWorklog — `dateStarted` already YYYY-MM-DD
+ * @param weekStart Monday of the target week as YYYY-MM-DD
+ */
+export function buildWeekBuckets(worklogs: TempoWorklog[], weekStart: string): WeekBucket[] {
+  // Build zero-filled buckets for Mon–Fri.
+  const buckets: WeekBucket[] = WEEK_LABELS.map((label, i) => ({
+    day: addDays(weekStart, i),
+    label,
+    hours: 0,
+  }));
+
+  // Match each worklog to its bucket by direct string equality on the pre-normalized date field.
+  for (const wl of worklogs) {
+    const bucket = buckets.find((b) => b.day === wl.dateStarted);
+    if (bucket) {
+      bucket.hours += wl.timeSpentSeconds / 3600;
+    }
+  }
+
+  return buckets;
+}
+
+/**
+ * Group a list of open MRs into two non-overlapping role-based groups.
+ *
+ * Implements DASH-06 criterion 3:
+ *   - awaitingReview: MRs where `userId` is a reviewer AND is NOT the author.
+ *     Pitfall 3 (RESEARCH): self-authored MRs must be excluded to prevent overlap.
+ *   - myOpen: MRs where `userId` is the author.
+ *
+ * An MR where the user is both author and reviewer appears ONLY in myOpen.
+ *
+ * @param mrs    Array of open GitLabMR objects
+ * @param userId The current user's GitLab numeric user ID (undefined → both groups empty)
+ */
+export function groupMrsByRole(
+  mrs: GitLabMR[],
+  userId: number | undefined,
+): { awaitingReview: GitLabMR[]; myOpen: GitLabMR[] } {
+  const awaitingReview = mrs.filter(
+    // Pitfall 3: exclude self-authored from awaitingReview to prevent overlap with myOpen.
+    (mr) => mr.reviewers.some((r) => r.id === userId) && mr.author.id !== userId,
+  );
+  const myOpen = mrs.filter((mr) => mr.author.id === userId);
+  return { awaitingReview, myOpen };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 84 — DASH-05: Activity strip interleaving
+// ---------------------------------------------------------------------------
+
+/**
+ * A discriminated-union entry in the merged activity timeline.
+ * Implements DASH-05 criterion 2.
+ */
+export type ActivityEntry =
+  | { type: 'jira'; at: string; item: JiraActivityItem }
+  | { type: 'commit'; at: string; item: GitLabCommit };
+
+/**
+ * Merge Jira activity items and GitLab commits into a single newest-first
+ * timeline, capped at `cap` entries.
+ *
+ * Each Jira item's `transitions` array is flatMapped into individual entries
+ * (one per transition). Commits map 1-to-1 using `authored_date`.
+ *
+ * Sort uses ISO 8601 string comparison (`b.at.localeCompare(a.at)`) — no
+ * Date construction needed because ISO strings sort correctly lexicographically.
+ *
+ * Implements DASH-05 (criterion 2 interleave) per D-10.
+ *
+ * @param jiraItems  Array of JiraActivityItem from fetchYesterdayJiraActivity
+ * @param commits    Array of GitLabCommit from fetchUserCommits
+ * @param cap        Maximum number of entries to return
+ */
+export function mergeActivityEntries(
+  jiraItems: JiraActivityItem[],
+  commits: GitLabCommit[],
+  cap: number,
+): ActivityEntry[] {
+  const jiraEntries: ActivityEntry[] = jiraItems.flatMap((item) =>
+    item.transitions.map((t) => ({ type: 'jira' as const, at: t.at, item })),
+  );
+
+  const commitEntries: ActivityEntry[] = commits.map((c) => ({
+    type: 'commit' as const,
+    at: c.authored_date,
+    item: c,
+  }));
+
+  return [...jiraEntries, ...commitEntries].sort((a, b) => b.at.localeCompare(a.at)).slice(0, cap);
 }
