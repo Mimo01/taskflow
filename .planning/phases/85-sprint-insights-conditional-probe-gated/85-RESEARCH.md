@@ -676,22 +676,25 @@ return (
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact `.changes` entry-level field names**
    - What we know: Probe C confirmed top-level keys and `.changes` has 496 entries. The entry values are arrays.
    - What's unclear: The field names within each entry (is it `statC`, `statField`, `change`?).
    - Recommendation: Re-run `probe.sh` and print one `.changes` entry to get the exact shape. This is a 5-minute clarification that prevents a guess-and-fix cycle.
+   - **RESOLVED:** Deferred to execution as a deliberate safety valve — 85-02 Task 2 mandates one read-only live read (`probe.sh` re-run / direct curl) to confirm the entry shape before finalizing `BurndownChangeEntry`, and keeps `parseBurndownChanges` defensive (all-optional fields, `?? 0`) regardless of the exact field names.
 
 2. **Burndown time unit (seconds vs milliseconds vs hours)**
    - What we know: `statisticField: timeestimate` — this is Jira's `timeestimate` REST field, which is stored in SECONDS.
    - What's unclear: Whether GreenHopper normalizes it to hours in the changes values.
    - Recommendation: Check the magnitude of values in one `.changes` entry. If `newValue` is e.g. 28800 for 8 hours, it's in seconds. If it's 8, it's in hours.
+   - **RESOLVED:** Treated as SECONDS (Jira `timeestimate` native unit, A4). `BurndownPoint.remaining` carries seconds with an inline unit comment (85-01 Task 2); BOTH the 85-04 tooltip AND the Y-axis tickFormatter convert via `/3600` before rendering hours. The 85-02 live read also confirms magnitude (28800 ⇒ seconds) as a backstop.
 
 3. **`useQueries` vs manual `Promise.all` for per-sprint fan-out**
    - What we know: `useQueries` gives per-sprint cache entries. `Promise.all` inside a single `useQuery` gives one cache entry for the entire batch.
    - What's unclear: Whether the planner prefers cache granularity (useQueries) or simplicity (useQuery + Promise.all + velocityLimit).
    - Recommendation: `useQueries` is architecturally cleaner (each sprint independently stale-free); use it.
+   - **RESOLVED:** `useQueries` adopted in all plan actions (85-03) — per-sprint cache entries with `staleTime: Infinity`, fanned out under the dedicated `pLimit(3)`.
 
 ---
 
