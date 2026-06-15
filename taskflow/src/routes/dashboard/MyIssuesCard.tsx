@@ -81,7 +81,7 @@ export default function MyIssuesCard({
     >
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
       <ListChecks
-        className="pointer-events-none absolute -top-4 -right-3 size-24 text-green-500/10 dark:text-green-400/15"
+        className="pointer-events-none absolute -top-4 -right-3 size-22 text-green-500/10 dark:text-green-400/15"
         aria-hidden
       />
       <CardHeader>

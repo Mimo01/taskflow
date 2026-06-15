@@ -32,6 +32,6 @@ export function clickableCard(onActivate?: () => void): {
       tabIndex: 0,
     },
     className:
-      'cursor-pointer transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+      'cursor-pointer transition-colors hover:bg-muted/30 hover:ring-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   };
 }

@@ -101,7 +101,7 @@ export default function UpcomingReleasesTimeline({
     >
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
       <Rocket
-        className="pointer-events-none absolute -top-4 -right-3 size-24 text-amber-500/10 dark:text-amber-400/15"
+        className="pointer-events-none absolute -top-4 -right-3 size-22 text-amber-500/10 dark:text-amber-400/15"
         aria-hidden
       />
       <CardHeader>
@@ -153,6 +153,7 @@ export default function UpcomingReleasesTimeline({
               // its dot is solid, the connector to the next dot is orange, and its date is orange.
               // All other dots are hollow and everything else is grayscale.
               const isFirst = idx === 0;
+              const isLast = idx === upcomingVersions.length - 1;
 
               return (
                 <div
@@ -160,10 +161,10 @@ export default function UpcomingReleasesTimeline({
                   className="relative flex flex-1 flex-col items-start gap-1.5 pr-4 text-left"
                   data-testid="release-dot"
                 >
-                  {/* Timeline connector — orange only on the closest release (dot 1 → dot 2);
-                      a trailing gray segment also extends past the last dot */}
+                  {/* Timeline connector — orange only on the closest release (dot 1 → dot 2).
+                      The trailing segment past the last dot is a short stub, not a full span. */}
                   <div
-                    className={`absolute top-[5px] left-1.5 right-0 h-0.5 ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
+                    className={`absolute top-[5px] left-1.5 h-0.5 ${isLast ? 'w-6' : 'right-0'} ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
                   />
 
                   {/* Dot — first is solid orange, the rest are hollow */}

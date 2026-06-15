@@ -23,7 +23,7 @@
  */
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Timer } from 'lucide-react';
-import { Bar, ComposedChart, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { Bar, ComposedChart, LabelList, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
@@ -343,26 +343,17 @@ export default function HoursCommitsChart({
           </div>
         )}
         {/* Chart — tempoEnabled=true and not loading/error. All-zero week still renders here (D-12).
-            Value labels live in fixed HTML rows (one cell per day) above/below the chart so every
-            day — including zero days — always shows its number, directly under/over its column.
-            All days render identically (no special "today" styling). */}
+            Value labels sit at each bar's tip (above hours, below commits) so they track the
+            individual bar heights. Day labels are in their own row below. */}
         {!showSkeleton && !worklogsError && (
           /* WebKit 0×0 guard: explicit-height outer div required (Phase 81 D-03). */
-          <div style={{ height: 300 }} className="flex w-full flex-col">
-            {/* Hours value per day — aligned above each column (grey) */}
-            <div className="flex px-2">
-              {dayBuckets.map((b) => (
-                <div
-                  key={b.day}
-                  className="flex-1 text-center text-xs font-medium tabular-nums text-muted-foreground"
-                >
-                  {b.hours > 0 ? formatHoursMinutes(b.hours) : '0h'}
-                </div>
-              ))}
-            </div>
-
-            {/* Diverging bar chart: hours up (blue), commits down (green), shared zero baseline */}
-            <div className="min-h-0 flex-1">
+          <div
+            style={{ height: 300 }}
+            className={`flex w-full flex-col ${onActivate ? 'cursor-pointer' : ''}`}
+          >
+            {/* Diverging bar chart: hours up (blue), commits down (green), shared zero baseline.
+                Labels at each bar tip (grey), tracking per-bar heights. */}
+            <div className={`min-h-0 flex-1 ${onActivate ? 'cursor-pointer' : ''}`}>
               <ChartContainer
                 config={chartConfig}
                 className="h-full w-full"
@@ -372,12 +363,12 @@ export default function HoursCommitsChart({
                   data={chartData}
                   responsive
                   stackOffset="sign"
-                  margin={{ top: 2, right: 8, left: 8, bottom: 2 }}
+                  margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                 >
                   <XAxis dataKey="label" hide />
-                  {/* Normalized domain (±1): each side fills its half so hours and commits
-                      reach similar heights; small headroom keeps bars near their value rows (#4) */}
-                  <YAxis hide domain={[-1.05, 1.05]} />
+                  {/* Normalized domain: each side fills its half; headroom leaves room for the
+                      per-bar value labels at the tips */}
+                  <YAxis hide domain={[-1.25, 1.25]} />
                   {/* Two horizontal guide lines: 0 (center) and the max line (top), no labels */}
                   <ReferenceLine y={0} stroke="var(--border)" />
                   <ReferenceLine y={1} stroke="var(--border)" strokeDasharray="3 3" />
@@ -386,10 +377,22 @@ export default function HoursCommitsChart({
                     stackId="a"
                     fill={HOURS_COLOR}
                     maxBarSize={40}
-                    minPointSize={3}
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
-                  />
+                  >
+                    {/* Real hours value above each hours bar tip (grey); '0h' for zero days */}
+                    <LabelList
+                      dataKey="hours"
+                      position="top"
+                      offset={6}
+                      fontSize={12}
+                      fill="var(--muted-foreground)"
+                      formatter={(v: unknown) => {
+                        const n = typeof v === 'number' ? v : Number(v);
+                        return Number.isFinite(n) && n > 0 ? formatHoursMinutes(n) : '0h';
+                      }}
+                    />
+                  </Bar>
                   <Bar
                     dataKey="commitsNorm"
                     stackId="a"
@@ -397,21 +400,19 @@ export default function HoursCommitsChart({
                     maxBarSize={40}
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
-                  />
+                  >
+                    {/* Real commit count below each commits bar tip (grey); '0' for zero days */}
+                    <LabelList
+                      dataKey="commits"
+                      position="bottom"
+                      offset={6}
+                      fontSize={12}
+                      fill="var(--muted-foreground)"
+                      formatter={(v: unknown) => String(Number.isFinite(Number(v)) ? Number(v) : 0)}
+                    />
+                  </Bar>
                 </ComposedChart>
               </ChartContainer>
-            </div>
-
-            {/* Commit count per day — directly under each column's bar (grey) */}
-            <div className="flex px-2">
-              {dayBuckets.map((b) => (
-                <div
-                  key={b.day}
-                  className="flex-1 text-center text-xs font-medium tabular-nums text-muted-foreground"
-                >
-                  {b.commits}
-                </div>
-              ))}
             </div>
 
             {/* Day labels + date (with month) on a second line */}
