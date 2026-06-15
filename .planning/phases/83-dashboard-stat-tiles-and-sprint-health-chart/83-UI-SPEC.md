@@ -117,7 +117,13 @@ Grid: four tiles in a row — `grid grid-cols-2 sm:grid-cols-4 gap-4` — under 
 ### `SprintHealthSection`
 
 ```
-Props: sprintIssues, activeSprint, storyPointsFieldKey
+Props (logical data dependencies): sprintIssues, activeSprint, storyPointsFieldKey
+  ⚠ Implementation note: these are the *data* the section consumes, not the literal
+  prop signature. Per plan 83-02, SprintHealthSection owns its own cache reads —
+  actual props are { jiraBaseUrl, jiraToken, activeJiraProject, storyPointsFieldKey, boardId },
+  and it reads the warm ['jira-issues','sprint-board',…] + ['jira-active-sprint',…]
+  caches internally via fetch-disabled useQuery (criterion 3). All auth/store reads
+  stay in index.tsx and pass down as props.
 Layout: Card surface (bg-card rounded-lg border border-border p-6) containing:
   Row 1: Sprint name (text-sm font-medium) + days-remaining badge (text-xs muted)
   Row 2: Progress bar (Progress primitive, value=donePct) + caption (text-xs muted)
