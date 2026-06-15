@@ -8,15 +8,17 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { fetchSprintIssues } from '@/services/jira';
+import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import ActivityStrip from './ActivityStrip';
+import BurndownChart from './BurndownChart';
 import DashboardReleaseCard from './DashboardReleaseCard';
 import { computePersonalTileCounts, computeSpDone } from './dashboardMetrics';
 import SprintHealthSection from './SprintHealthSection';
 import StatTile from './StatTile';
+import VelocityChart from './VelocityChart';
 import WeeklyTrendChart from './WeeklyTrendChart';
 
 function getTimeGreeting(): string {
@@ -132,6 +134,23 @@ export default function Dashboard() {
     new Date().toLocaleDateString('en-CA'),
   );
   const spDone = computeSpDone(sprintIssues, storyPointsFieldKey);
+
+  // Active sprint — cache-deduped with SprintHealthSection and the Sidebar prefetch.
+  // Reuses the EXACT same queryKey ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId]
+  // so TanStack Query returns the cached result with zero extra network calls (D-09).
+  const { data: activeSprintForBurndown } = useQuery({
+    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
+    queryFn: () =>
+      fetchActiveSprint(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        boardId ?? undefined,
+      ),
+    staleTime: 5 * 60_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null,
+  });
+  const activeSprintId = activeSprintForBurndown?.id ?? null;
 
   // onIssueClick retained for potential future drill-down actions
   void onIssueClick;
@@ -256,6 +275,30 @@ export default function Dashboard() {
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
             activeJiraProject={activeJiraProject ?? ''}
+          />
+        </div>
+      </div>
+
+      {/* Sprint Insights — INSIGHT-01 / INSIGHT-02
+          boardId from useBoardId (never hardcoded); activeSprintId from cache-deduped
+          fetchActiveSprint query (shares key with SprintHealthSection → zero extra network).
+          Each card owns its loading/error/empty state — one card's failure never affects
+          the other or any other Dashboard section (D-09 / T-85-04-03). */}
+      <div className="relative px-6 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <VelocityChart
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            jiraUserDisplayName={jiraUserDisplayName ?? ''}
+            boardId={boardId}
+            storyPointsFieldKey={storyPointsFieldKey}
+            activeJiraProject={activeJiraProject ?? ''}
+          />
+          <BurndownChart
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            boardId={boardId}
+            activeSprintId={activeSprintId}
           />
         </div>
       </div>
