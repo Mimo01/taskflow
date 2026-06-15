@@ -607,6 +607,39 @@ describe('parseBurndownChanges', () => {
     const points = parseBurndownChanges(changes, 500);
     expect(points.map((p) => p.remaining)).toEqual([0, 13]);
   });
+
+  // UAT-4b regression (2026-06-15): .changes carries each issue's full estimate history
+  // (a year+ of pre-sprint edits). Those must fold into the baseline at startTime — NOT
+  // appear as a long pre-sprint tail on the x-axis. Only [startTime, endTime] is plotted.
+  it('folds pre-start history into the baseline and plots only the sprint window', () => {
+    const changes = {
+      // A year before the sprint: issue accrues a 28800s (8h) estimate. Baseline, not a point.
+      '1000': [{ key: 'OLD-1', timeC: { oldEstimate: 0, newEstimate: 28800 } }],
+      '2000': [{ key: 'OLD-1', timeC: { oldEstimate: 28800, newEstimate: 14400 } }],
+      // In-window: more scope added, then burned down.
+      '6000': [{ key: 'NEW-1', timeC: { oldEstimate: 0, newEstimate: 7200 } }],
+      '7000': [{ key: 'NEW-1', timeC: { oldEstimate: 7200, newEstimate: 0 } }],
+      // After sprint end — excluded from the window.
+      '9000': [{ key: 'NEW-1', timeC: { oldEstimate: 0, newEstimate: 99999 } }],
+    };
+    const points = parseBurndownChanges(changes, 5000, 8000);
+    // No point before startTime; pre-start deltas (14400 net) fold into the start anchor.
+    expect(points.map((p) => p.t)).toEqual([5000, 6000, 7000]);
+    expect(points[0].remaining).toBe(14400); // baseline = committed scope at sprint start
+    expect(points.map((p) => p.remaining)).toEqual([14400, 21600, 14400]);
+    // Post-endTime change (9000) is not plotted.
+    expect(points.some((p) => p.t === 9000)).toBe(false);
+  });
+
+  it('merges a change landing exactly on startTime into the anchor (no duplicate point)', () => {
+    const changes = {
+      '1000': [{ key: 'A', timeC: { oldEstimate: 0, newEstimate: 3600 } }], // pre-start baseline
+      '5000': [{ key: 'B', timeC: { oldEstimate: 0, newEstimate: 3600 } }], // exactly at startTime
+    };
+    const points = parseBurndownChanges(changes, 5000);
+    expect(points.map((p) => p.t)).toEqual([5000]);
+    expect(points[0].remaining).toBe(7200); // baseline 3600 + the startTime change 3600
+  });
 });
 
 // ---------------------------------------------------------------------------
