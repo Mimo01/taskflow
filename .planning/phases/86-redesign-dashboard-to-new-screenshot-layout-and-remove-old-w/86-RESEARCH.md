@@ -669,7 +669,7 @@ Each of the 3 new components must own its own `isLoading`/`error`/`isEmpty` stat
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED — monitored at Plan 04 UAT)
 
 1. **`fetchUserCommits` per-day call count:** For the 7-day chart, one call per day × 7 = 7 GitLab API calls. All 7 are parallel via `useQueries`. Is this acceptable for the GitLab instance? The standup page already makes this call daily; 7 in parallel is new but bounded. If this causes rate-limit issues, the mitigation is to add a single-range `since`/`until` spanning 7 days to the `fetchUserCommits` signature (but that would require a new function signature → check with user before implementing).
    - What we know: `fetchUserCommits` paginates internally per-day
