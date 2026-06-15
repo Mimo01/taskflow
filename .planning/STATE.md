@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: executing
-last_updated: "2026-06-15T19:50:00.000Z"
-last_activity: 2026-06-15 -- Phase 85 PASSED — live-Jira UAT closed; burndown fixed via 4 inline gap closures (timeC shape, sprint windowing, activatedTime anchor + time-axis, weekend-flat ideal); UAT-5 accepted skipped
+status: "Phase 86 added (end of v1.13) — dashboard redesign to new screenshot layout; reuse existing data, remove old widgets, no dead code. Next: /gsd-plan-phase 86"
+last_updated: "2026-06-15T20:25:18.499Z"
+last_activity: "2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)"
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 5
   total_plans: 19
   completed_plans: 19
-  percent: 50
+  percent: 45
 ---
 
 # Project State
@@ -24,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 85 (sprint-insights-conditional-probe-gated) — COMPLETE (verified 5/5, human UAT passed)
-Plan: 4 of 4 complete
-Status: Phase 85 closed — live-Jira UAT done (UAT-1..4 pass, UAT-5 skipped); 4 burndown gap-fixes committed. Follow-up: /gsd-secure-phase 85 not yet run.
+Phase: 86 (redesign-dashboard) — not planned yet
+Plan: none yet
+Status: Phase 86 added (end of v1.13) — dashboard redesign to new screenshot layout; reuse existing data, remove old widgets, no dead code. Next: /gsd-plan-phase 86
 Last activity: 2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)
 
 Progress: [██████████] 100%
@@ -52,6 +52,10 @@ Progress: [██████████] 100%
 | Phase 81 P03 | 35min+UAT | 3 tasks | 3 files |
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 86 added: Redesign dashboard to new screenshot layout and remove old widgets
 
 ### Decisions
 
@@ -95,6 +99,6 @@ Items carried forward from v1.12 close (2026-06-07):
 
 ## Session Continuity
 
-Last session: 2026-06-15T15:02:07.902Z
-Stopped at: Phase 85 UI-SPEC approved
-Resume file: .planning/phases/85-sprint-insights-conditional-probe-gated/85-UI-SPEC.md
+Last session: 2026-06-15T20:25:18.493Z
+Stopped at: Phase 86 context gathered
+Resume file: .planning/phases/86-redesign-dashboard-to-new-screenshot-layout-and-remove-old-w/86-CONTEXT.md
