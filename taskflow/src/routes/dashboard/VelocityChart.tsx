@@ -83,6 +83,12 @@ export default function VelocityChart({
     })),
   });
 
+  // Surface per-sprint fan-out failures, not just the sprint-list error. Without this a
+  // failed sprint fetch returns [] (fetchSprintIssuesBySprintId swallows non-OK → empty),
+  // which is indistinguishable from an empty sprint and silently drops below the 3-sprint
+  // threshold — the user would see "Not enough data" instead of an error/retry (CR-02).
+  const fanoutError = sprintIssueQueries.find((q) => q.error)?.error ?? null;
+
   // Build issuesBySprint Map from fan-out results.
   const issuesBySprint = new Map(
     (closedSprints ?? []).map((sprint, i) => [sprint.id, sprintIssueQueries[i]?.data ?? []]),
@@ -108,17 +114,23 @@ export default function VelocityChart({
 
   return (
     <div role="region" aria-label="Personal velocity chart">
-      {/* D-10, criterion 3: error={sprintsError} routes to ChartWrapper's ErrorState with retry.
+      {/* D-10, criterion 3: error routes to ChartWrapper's ErrorState with retry. We pass
+          the sprint-list error OR the first per-sprint fan-out error (CR-02) so a failed
+          sprint fetch surfaces as an error/retry, not a misleading "Not enough data".
           The section degrades independently — Dashboard never blanks on a failed fetch.
+          Retry refetches the sprint list AND all per-sprint queries.
           ChartWrapper precedence: error > isLoading > isEmpty > children. */}
       <ChartWrapper
         title="Personal Velocity"
         description="Committed vs completed story points · last 6 closed sprints"
         height={240}
         isLoading={showSkeleton}
-        error={sprintsError}
+        error={sprintsError ?? fanoutError}
         isEmpty={false}
-        onRetry={refetchSprints}
+        onRetry={() => {
+          void refetchSprints();
+          for (const q of sprintIssueQueries) void q.refetch();
+        }}
       >
         {/* Explicit-height guard div — WebKit 0×0 fix (Phase 81 D-03). */}
         <div style={{ height: 240 }} className="w-full">
