@@ -7,6 +7,7 @@
 
 export * from './adapter';
 export * from './allData';
+export * from './burndown';
 export * from './data';
 export * from './entityMaps';
 export * from './transitions';
