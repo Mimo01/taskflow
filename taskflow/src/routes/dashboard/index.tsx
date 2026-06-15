@@ -19,6 +19,20 @@ function getTimeGreeting(): string {
   return 'Good evening,';
 }
 
+// Ambient hero background curves — orange top-right, cyan bottom-left.
+// Restored verbatim from the pre-polish dashboard hero (260521-wbm AMBIENT_CURVES spec).
+const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'cyan'; w: number; o: number }> =
+  [
+    { d: 'M -50 220 Q 400 90 1250 -20', color: 'orange', w: 1, o: 0.35 },
+    { d: 'M -50 320 Q 500 160 1250 80', color: 'orange', w: 0.8, o: 0.25 },
+    { d: 'M -50 420 Q 600 240 1250 180', color: 'orange', w: 0.6, o: 0.18 },
+    { d: 'M -50 760 Q 500 540 1250 380', color: 'cyan', w: 1, o: 0.32 },
+    { d: 'M -50 860 Q 600 640 1250 480', color: 'cyan', w: 0.8, o: 0.24 },
+    { d: 'M -50 960 Q 700 740 1250 580', color: 'cyan', w: 0.6, o: 0.18 },
+    { d: 'M -50 540 Q 550 380 1250 240', color: 'orange', w: 0.5, o: 0.14 },
+    { d: 'M -50 660 Q 600 460 1250 320', color: 'cyan', w: 0.5, o: 0.14 },
+  ];
+
 export default function Dashboard() {
   const {
     jiraBaseUrl,
@@ -122,24 +136,43 @@ export default function Dashboard() {
   void onIssueClick;
 
   return (
-    <div className="flex flex-col h-full overflow-auto bg-background">
-      {/* Header — text-4xl greeting title + date subtitle with optional sprint-day clause (D-13) */}
-      <div className="flex items-end justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
-        <div className="flex flex-col gap-1 min-w-0">
-          <h1 className="text-4xl font-semibold text-foreground">
-            {timeGreeting} {firstName ?? 'there'}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {new Date().toLocaleDateString('en-GB', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-            {sprintClause}
-          </p>
-        </div>
-      </div>
+    <div className="relative flex flex-col h-full overflow-auto bg-background">
+      {/* Hero — restored ambient orange/cyan curve background + centered greeting.
+          Only change vs the original pre-polish hero is the D-13 sprint-day clause on the subline. */}
+      <section className="relative px-8 py-16 text-center overflow-hidden shrink-0">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1200 900"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {AMBIENT_CURVES.map((c, i) => (
+            <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: static constant array, no reorder
+              key={i}
+              d={c.d}
+              fill="none"
+              stroke={c.color === 'orange' ? '#f97316' : '#06b6d4'}
+              strokeWidth={c.w}
+              strokeLinecap="round"
+              opacity={c.o}
+            />
+          ))}
+        </svg>
+        <h1 className="relative text-6xl font-semibold tracking-tight text-foreground">
+          {timeGreeting} {firstName ?? 'there'}
+        </h1>
+        <p className="relative text-sm text-muted-foreground mt-2">
+          {new Date().toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+          {sprintClause}
+        </p>
+      </section>
 
       {/* Unified content shell — 3-region layout (D-01) */}
       <div className="flex flex-col gap-4 px-6 py-4">
