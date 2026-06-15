@@ -12,10 +12,13 @@ import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import ActivityStrip from './ActivityStrip';
 import DashboardReleaseCard from './DashboardReleaseCard';
 import { computePersonalTileCounts, computeSpDone } from './dashboardMetrics';
+import MrReviewQueue from './MrReviewQueue';
 import SprintHealthSection from './SprintHealthSection';
 import StatTile from './StatTile';
+import WeeklyTrendChart from './WeeklyTrendChart';
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -37,9 +40,21 @@ const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'blue'; w: nu
   ];
 
 export default function Dashboard() {
-  const { jiraBaseUrl, activeJiraProject, jiraUserDisplayName } = useAuthStore();
-  const { storyPointsFieldKey } = useSettingsStore();
+  const {
+    jiraBaseUrl,
+    activeJiraProject,
+    jiraUserDisplayName,
+    jiraUsername,
+    gitlabBaseUrl,
+    gitlabUsername,
+    gitlabName,
+    gitlabEmail,
+    activeGitlabProject,
+  } = useAuthStore();
+  const { storyPointsFieldKey, tempoEnabled } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true);
   const { onIssueClick } = useOutletContext<{
     onIssueClick: (key: string, resetTrail?: boolean) => void;
     onOpenIssue: (key: string) => void;
@@ -53,6 +68,19 @@ export default function Dashboard() {
         .catch(() => setJiraToken(null));
     }
   }, [jiraBaseUrl]);
+
+  // gitlab-pat load — same pattern as jira-pat above; token held in state, never in queryKey (T-84-02)
+  useEffect(() => {
+    if (gitlabBaseUrl) {
+      setGitlabTokenLoading(true);
+      readSecret('gitlab-pat')
+        .then((t) => setGitlabToken(t))
+        .catch(() => setGitlabToken(null))
+        .finally(() => setGitlabTokenLoading(false));
+    } else {
+      setGitlabTokenLoading(false);
+    }
+  }, [gitlabBaseUrl]);
 
   // Resolve the per-project chosen board id (falls back to first board) so the
   // sprint health section's active-sprint query honors the user's board choice.
@@ -193,24 +221,55 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Sprint health section — DASH-03 */}
+      {/* Sprint health + Weekly trend chart side-by-side — DASH-03 / DASH-04 */}
       <div className="relative px-6 pb-6">
-        <SprintHealthSection
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-          storyPointsFieldKey={storyPointsFieldKey}
-          boardId={boardId}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SprintHealthSection
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            activeJiraProject={activeJiraProject ?? ''}
+            storyPointsFieldKey={storyPointsFieldKey}
+            boardId={boardId}
+          />
+          <WeeklyTrendChart
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            jiraUsername={jiraUsername ?? ''}
+            tempoEnabled={tempoEnabled}
+          />
+        </div>
+      </div>
+
+      {/* MR review queue — full width — DASH-06 */}
+      <div className="relative px-6 pb-6">
+        <MrReviewQueue
+          gitlabBaseUrl={gitlabBaseUrl ?? ''}
+          gitlabToken={gitlabToken ?? ''}
+          tokenLoading={gitlabTokenLoading}
         />
       </div>
 
-      {/* Release countdown — retained from DASH-01 */}
+      {/* Activity & Releases — two-column grid (D-16: DashboardReleaseCard relocated here) — DASH-05 */}
       <div className="relative px-6 pb-6">
-        <DashboardReleaseCard
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ActivityStrip
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            activeJiraProject={activeJiraProject ?? ''}
+            jiraUsername={jiraUsername ?? null}
+            gitlabBaseUrl={gitlabBaseUrl ?? ''}
+            gitlabToken={gitlabToken ?? ''}
+            activeGitlabProject={activeGitlabProject ?? 0}
+            gitlabUsername={gitlabUsername ?? null}
+            gitlabName={gitlabName ?? null}
+            gitlabEmail={gitlabEmail ?? null}
+          />
+          <DashboardReleaseCard
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            activeJiraProject={activeJiraProject ?? ''}
+          />
+        </div>
       </div>
     </div>
   );
