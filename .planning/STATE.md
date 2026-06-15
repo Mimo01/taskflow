@@ -2,13 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: planning
-last_updated: "2026-06-15T14:55:46.688Z"
-last_activity: 2026-06-15
+status: executing
+stopped_at: Phase 85 UI-SPEC approved
+last_updated: "2026-06-15T16:31:05.510Z"
+last_activity: 2026-06-15 -- Phase 85 planning complete
 progress:
   total_phases: 10
   completed_phases: 4
-  total_plans: 15
+  total_plans: 19
   completed_plans: 15
   percent: 40
 ---
@@ -26,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 85
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-15
+Status: Ready to execute
+Last activity: 2026-06-15 -- Phase 85 planning complete
 
 Progress: [██████████] 100%
 
@@ -89,6 +90,6 @@ Items carried forward from v1.12 close (2026-06-07):
 
 ## Session Continuity
 
-Last session: 2026-06-15T14:55:46.680Z
-Stopped at: Phase 85 context gathered (probes passed — both charts build)
-Resume file: .planning/phases/85-sprint-insights-conditional-probe-gated/85-CONTEXT.md
+Last session: 2026-06-15T15:02:07.902Z
+Stopped at: Phase 85 UI-SPEC approved
+Resume file: .planning/phases/85-sprint-insights-conditional-probe-gated/85-UI-SPEC.md
