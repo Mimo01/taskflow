@@ -274,12 +274,12 @@ describe('HoursCommitsChart — D-12: all-zero connected week renders chart not 
   });
 });
 
-describe('HoursCommitsChart — render: chart has both Bar series', () => {
+describe('HoursCommitsChart — render: hours bar chart + commits below', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders both hours and commits data series in the chart', async () => {
+  it('renders the chart container (hours series; commits shown below)', async () => {
     const HoursCommitsChart = await importComponent();
 
     const today = getTodayDate();
