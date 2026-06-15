@@ -33,21 +33,5 @@ export function setJiraConcurrencyLimit(n: number) {
   }
 }
 
-/**
- * Dedicated concurrency limiter for the velocity backfill fan-out (Phase 85 D-05 / criterion 1c).
- *
- * This is a SEPARATE pLimit(3) instance — intentionally tighter than the global pLimit(6)
- * so the per-sprint issue fan-out never monopolizes the Jira DC connection. It is NOT
- * affected by setJiraConcurrencyLimit, which only mutates the global `getJiraLimit()` instance.
- *
- * Usage: `getVelocityLimit()(() => fetchSprintIssuesBySprintId(...))`
- */
-const velocityLimit = pLimit(3);
-
-/**
- * Get the dedicated p-limit instance for velocity backfill fan-out.
- * Always returns the same pLimit(3) singleton — distinct from getJiraLimit()'s pLimit(6).
- */
-export function getVelocityLimit() {
-  return velocityLimit;
-}
+// getVelocityLimit removed in Phase 86 (D-01 clean slate).
+// VelocityChart.tsx (its sole consumer) was deleted; no other consumers existed.

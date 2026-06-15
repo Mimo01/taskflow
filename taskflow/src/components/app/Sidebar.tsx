@@ -142,8 +142,8 @@ export default function Sidebar() {
           return getGhAllData(queryClient, jiraBaseUrl, jiraToken, boardId);
         })
         .catch(() => {});
-      // Phase 83 D-10 Option B: warm active-sprint for /dashboard so SprintHealthSection
-      // reads endDate with enabled:false (zero new API calls on Dashboard load).
+      // Phase 83 D-10 / Phase 86 D-13: warm active-sprint for /dashboard so the hero
+      // sprint-day subline and HoursCommitsChart read it with zero extra network calls.
       resolveBoardId
         .then((boardId) => {
           queryClient.prefetchQuery({
