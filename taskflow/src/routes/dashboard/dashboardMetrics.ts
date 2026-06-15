@@ -1,5 +1,5 @@
 /**
- * dashboardMetrics.ts — Phase 83 DASH-02/03/04/05/07/08/09 + Phase 84 DASH-04/05/06
+ * dashboardMetrics.ts — Phase 83 DASH-02/03/04/05/07/08/09 + Phase 84 DASH-04/05/06 + Phase 85 INSIGHT-01/02
  *
  * Pure derivation functions for Dashboard stat tiles, sprint health chart,
  * weekly trend chart, MR review queue grouping, and activity strip.
@@ -9,7 +9,7 @@
  * Downstream UI imports these functions and never re-derives inline.
  */
 import type { GitLabCommit } from '@/services/gitlab';
-import type { JiraActivityItem, JiraIssue } from '@/services/jira';
+import type { JiraActiveSprint, JiraActivityItem, JiraIssue } from '@/services/jira';
 import type { TempoWorklog } from '@/services/tempo/types';
 
 /**
@@ -240,4 +240,142 @@ export function mergeActivityEntries(
   }));
 
   return [...jiraEntries, ...commitEntries].sort((a, b) => b.at.localeCompare(a.at)).slice(0, cap);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 85 — INSIGHT-01/02: Personal velocity series + burndown parser +
+// hours formatter (single source of truth for burndown axis/tooltip)
+// ---------------------------------------------------------------------------
+
+/**
+ * Formats decimal hours as a human-readable h+m string.
+ * 1.5 → "1h 30m", 8 → "8h", 0.25 → "15m". Minutes rounded to the nearest minute.
+ *
+ * Single source of truth for the Phase 85 burndown hours axis/tooltip formatter.
+ * Reused by WeeklyTrendChart (extracted from its local copy) and BurndownChart (85-04).
+ * Unit is HOURS — never SP (Probe C: statisticField=timeestimate).
+ */
+export function formatHoursMinutes(hours: number): string {
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+/**
+ * A single data point in the personal velocity series.
+ * Implements INSIGHT-01.
+ */
+export interface VelocityPoint {
+  sprintName: string;
+  /** Sum of SP for all my non-subtask issues in the closed sprint (final-assigned scope). */
+  committed: number;
+  /** Sum of SP for my DONE non-subtask issues in the closed sprint. */
+  completed: number;
+}
+
+/**
+ * Derives a personal velocity series from a list of closed sprints and their issues.
+ *
+ * Implements INSIGHT-01:
+ *   - Personal filter: only issues where assignee.displayName === displayName (D-01)
+ *   - Subtask exclusion: !issuetype.subtask (D-04)
+ *   - committed = sum of SP for all my non-subtask issues (D-03)
+ *   - completed = sum of SP for my DONE non-subtask issues (D-03)
+ *   - Does NOT slice or reorder sprints — tail selection is the 85-02 fetcher's job (Probe A landmine)
+ *   - Returns one VelocityPoint per input sprint; callers filter `committed > 0 || completed > 0`
+ *     to determine qualifying sprints (drives the D-06 <3 guard)
+ *
+ * @param sprints         Closed sprint list (in order received — DO NOT reorder here)
+ * @param issuesBySprint  Map from sprint.id to the issues in that sprint
+ * @param displayName     Current user's Jira displayName (D-01 — no accountId plumbing)
+ * @param spKey           Story points custom field key (e.g. 'customfield_10016')
+ */
+export function computePersonalVelocitySeries(
+  sprints: JiraActiveSprint[],
+  issuesBySprint: Map<number, JiraIssue[]>,
+  displayName: string,
+  spKey: string,
+): VelocityPoint[] {
+  return sprints.map((sprint) => {
+    const issues = issuesBySprint.get(sprint.id) ?? [];
+    const myNonSubtasks = issues.filter(
+      (i) => !i.fields.issuetype.subtask && i.fields.assignee?.displayName === displayName,
+    );
+
+    // "Committed" here = my final-assigned sprint scope, NOT start-of-sprint commitment — mid-sprint scope additions and assignee changes are not captured. Acceptable approximation for a personal trend (probe confirmed 2026-06-15).
+    const committed = myNonSubtasks.reduce(
+      (sum, i) => sum + ((i.fields[spKey] as number | null | undefined) ?? 0),
+      0,
+    );
+
+    const completed = myNonSubtasks
+      .filter((i) => i.fields.status.statusCategory?.key === 'done')
+      .reduce((sum, i) => sum + ((i.fields[spKey] as number | null | undefined) ?? 0), 0);
+
+    return { sprintName: sprint.name, committed, completed };
+  });
+}
+
+/**
+ * A single data point in the burndown series.
+ * `t` is epoch ms; `remaining` is seconds remaining (Jira timeestimate unit — divide by 3600 for hours).
+ * Implements INSIGHT-02.
+ */
+export interface BurndownPoint {
+  /** Epoch milliseconds (for XAxis domain / tick formatting). */
+  t: number;
+  /** Seconds remaining at this point (Jira timeestimate native unit). Divide by 3600 for hours in tooltip/axis. */
+  remaining: number;
+}
+
+/**
+ * Converts the GreenHopper scopechangeburndownchart `.changes` record into a sorted
+ * BurndownPoint series, anchored at `startTime`.
+ *
+ * Implements INSIGHT-02 with V5 Input Validation (T-85-01):
+ *   - `changes ?? {}` guards null/undefined input
+ *   - numeric-ascending sort on epoch keys (string sort would misorder epochs)
+ *   - `?? 0` on newValue/oldValue guards malformed numeric fields
+ *   - `Math.max(0, running)` clamps negative remaining (Tampering mitigation T-85-01)
+ *   - Entries without `statC` are skipped (shape assumption A2 is defensive)
+ *
+ * @param changes    Record keyed by epoch-ms string; each value is an array of change entries
+ * @param startTime  Sprint start time as epoch ms — used as the first anchor point
+ */
+export function parseBurndownChanges(
+  changes: Record<
+    string,
+    Array<{ key: string; statC?: { newValue: number; oldValue: number }; added?: boolean }>
+  >,
+  startTime: number,
+): BurndownPoint[] {
+  // V5: guard null/undefined .changes from malformed GreenHopper response (T-85-01)
+  const safe = changes ?? {};
+
+  // Numeric ascending sort — string sort would misorder epoch keys (e.g. '1000' < '200' lexically is wrong)
+  const timestamps = Object.keys(safe)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  // Seed with sprint-start anchor at remaining=0
+  const points: BurndownPoint[] = [{ t: startTime, remaining: 0 }];
+  let running = 0;
+
+  for (const ts of timestamps) {
+    const entries = safe[String(ts)] ?? [];
+    for (const entry of entries) {
+      if (entry.statC) {
+        // Delta: newValue - oldValue captures the net change to remaining time (seconds)
+        running += (entry.statC.newValue ?? 0) - (entry.statC.oldValue ?? 0);
+      }
+      // Entries without statC are skipped — defensive against partial shape (A2)
+    }
+    // T-85-01: clamp remaining non-negative
+    points.push({ t: ts, remaining: Math.max(0, running) });
+  }
+
+  return points;
 }
