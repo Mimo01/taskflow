@@ -211,7 +211,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 - [ ] **Phase 81: Charting Foundation** — Install Recharts v3 + shadcn chart primitive; build and verify ChartWrapper in a real Tauri WebKit build
 - [x] **Phase 82: My Tasks Page** — Personal command center with grouping modes, scope toggle, inline actions, and persisted preferences (completed 2026-06-14)
 - [x] **Phase 83: Dashboard Stat Tiles and Sprint Health Chart** — Replace 3-card grid with stat tiles and a points-by-status chart; zero new API calls (completed 2026-06-15)
-- [ ] **Phase 84: Dashboard Trend Chart, MR Review Queue, and Activity Strip** — Weekly logged-hours chart, MR review queue, and activity strip; all sections degrade independently
+- [x] **Phase 84: Dashboard Trend Chart, MR Review Queue, and Activity Strip** — Weekly logged-hours chart, MR review queue, and activity strip; all sections degrade independently (completed 2026-06-15)
 - [ ] **Phase 85: Sprint Insights (Conditional)** — Probe-gated velocity and burndown charts; built only if live DC endpoint probes succeed
 
 ## Phase Details
@@ -527,5 +527,5 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 3/3 | Complete    | 2026-06-15 |
-| 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 4/4 | Complete   | 2026-06-15 |
+| 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 4/4 | Complete    | 2026-06-15 |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
