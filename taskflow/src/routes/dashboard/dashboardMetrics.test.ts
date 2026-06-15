@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildIdealGuideline,
   buildWeekBuckets,
   computeDonutData,
   computePersonalTileCounts,
@@ -544,27 +545,12 @@ describe('parseBurndownChanges', () => {
     expect(points.every((p) => p.remaining >= 0)).toBe(true);
   });
 
-  it('derives a linear ideal guideline from peak scope → 0 at endTime when a window is given', () => {
+  it('no longer carries the ideal on the actual series (moved to buildIdealGuideline)', () => {
     const changes = {
-      '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
-      '2000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
+      '1000': [{ key: 'PROJ-1', timeC: { oldEstimate: 0, newEstimate: 28800 } }],
     };
-    // startTime 500, endTime 2500 → span 2000. peak remaining = 28800.
     const points = parseBurndownChanges(changes, 500, 2500);
-    // ideal(t) = peak * (1 - (t - start)/span): t=500 → 28800, t=1000 → 21600, t=2000 → 7200.
-    expect(points.map((p) => p.ideal)).toEqual([28800, 21600, 7200]);
-  });
-
-  it('omits the ideal guideline when no usable window is supplied', () => {
-    const changes = {
-      '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
-    };
-    // No endTime → ideal undefined (chart hides the dashed reference line).
-    const points = parseBurndownChanges(changes, 500);
     expect(points.every((p) => p.ideal === undefined)).toBe(true);
-    // endTime ≤ startTime is treated as no window.
-    const degenerate = parseBurndownChanges(changes, 500, 400);
-    expect(degenerate.every((p) => p.ideal === undefined)).toBe(true);
   });
 
   it('does not throw on null/undefined input — returns the anchor only', () => {
@@ -639,6 +625,54 @@ describe('parseBurndownChanges', () => {
     const points = parseBurndownChanges(changes, 5000);
     expect(points.map((p) => p.t)).toEqual([5000]);
     expect(points[0].remaining).toBe(7200); // baseline 3600 + the startTime change 3600
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 85 — buildIdealGuideline (UAT-4d: dashed ideal, flat across weekends)
+// ---------------------------------------------------------------------------
+
+describe('buildIdealGuideline', () => {
+  // Use a known Mon–Fri week. 2026-06-15 is a Monday (local).
+  const MON = new Date(2026, 5, 15, 9, 0, 0).getTime(); // Mon 09:00
+  const DAY = 86_400_000;
+
+  it('anchors at peak on the start and reaches 0 at endTime', () => {
+    const FRI = new Date(2026, 5, 19, 17, 0, 0).getTime(); // Fri 17:00, same week
+    const series = buildIdealGuideline(28800, MON, FRI);
+    expect(series[0]).toMatchObject({ t: MON, ideal: 28800 });
+    expect(series[series.length - 1]).toMatchObject({ t: FRI, ideal: 0 });
+    // Monotonically non-increasing ideal across the whole series.
+    for (let i = 1; i < series.length; i++) {
+      // biome-ignore lint/style/noNonNullAssertion: every point in the series carries ideal
+      expect(series[i].ideal! <= series[i - 1].ideal! + 1e-9).toBe(true);
+    }
+  });
+
+  it('stays FLAT across the weekend — Sat and Sun share the same ideal', () => {
+    // Two-week window Mon 15th → Fri 26th. Working days = 10 (two Mon–Fri runs).
+    const FRI_W2 = new Date(2026, 5, 26, 17, 0, 0).getTime();
+    const series = buildIdealGuideline(28800, MON, FRI_W2);
+    const anchor = (y: number, m: number, d: number) =>
+      series.find((p) => {
+        const dt = new Date(p.t);
+        return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d;
+      })?.ideal;
+    const fri = anchor(2026, 5, 19); // Fri 19th anchor (4 working days elapsed → 17280)
+    const sat = anchor(2026, 5, 20); // Sat 20th
+    const sun = anchor(2026, 5, 21); // Sun 21st
+    const tue = anchor(2026, 5, 23); // Tue 23rd — work resumed
+    // Friday's working-day burn lands at the Sat anchor: 28800*(1-5/10)=14400, then HELD flat.
+    expect(sat).toBeCloseTo(14400, 5);
+    expect(sun).toBe(sat); // flat across the weekend — the whole point
+    expect(fri).toBeGreaterThan(sat ?? 0); // a working-day step happened before the weekend
+    expect(tue).toBeLessThan(sat ?? 0); // and burns down again after it
+  });
+
+  it('returns [] when there is no usable window or no committed scope', () => {
+    expect(buildIdealGuideline(28800, MON)).toEqual([]); // no endTime
+    expect(buildIdealGuideline(28800, MON, MON - DAY)).toEqual([]); // endTime ≤ start
+    expect(buildIdealGuideline(0, MON, MON + DAY)).toEqual([]); // no scope
   });
 });
 

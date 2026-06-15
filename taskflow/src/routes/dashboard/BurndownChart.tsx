@@ -24,7 +24,7 @@ import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchBurndown } from '@/services/jira';
-import { formatHoursMinutes, parseBurndownChanges } from './dashboardMetrics';
+import { buildIdealGuideline, formatHoursMinutes, parseBurndownChanges } from './dashboardMetrics';
 
 // Props only — no readSecret, no useAuthStore inside the component.
 // Auth values loaded once in index.tsx and passed down as props (D-16 pattern).
@@ -93,6 +93,14 @@ export default function BurndownChart({
       : [];
 
   const hasBurndownData = burndownPoints.length > 0;
+
+  // Dashed ideal guideline as its own dense daily series (flat across weekends, UAT-4d).
+  // peak = committed scope = the highest remaining of the actual series (the sprint-start baseline).
+  const peakRemaining = burndownPoints.reduce((max, p) => Math.max(max, p.remaining), 0);
+  const idealPoints =
+    burndownRaw && sprintStart !== undefined
+      ? buildIdealGuideline(peakRemaining, sprintStart, burndownRaw.endTime)
+      : [];
 
   return (
     <div role="region" aria-label="Sprint burndown chart">
@@ -170,11 +178,13 @@ export default function BurndownChart({
                 isAnimationActive={false}
               />
               {/* Ideal burndown guideline — dashed --muted-foreground (not a chart token,
-                  keeps accent reserved for data series). dataKey="ideal" is the linear
-                  reference line parseBurndownChanges derives from peak scope → 0 at endTime.
-                  Renders only when the sprint window (endTime) is available. */}
+                  keeps accent reserved for data series). Its OWN dense daily series
+                  (buildIdealGuideline) so it can step FLAT across weekends; type="linear"
+                  keeps the flat weekend segments flat (monotone would smooth them into a
+                  curve). Renders only when the sprint window (endTime + scope) is available. */}
               <Line
-                type="monotone"
+                data={idealPoints}
+                type="linear"
                 dataKey="ideal"
                 name="Ideal"
                 stroke="var(--muted-foreground)"
