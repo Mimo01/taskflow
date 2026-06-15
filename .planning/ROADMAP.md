@@ -448,7 +448,7 @@ Wave 2 (blocked on Wave 1):
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 83-02-PLAN.md — StatTile.tsx (static tile) + SprintHealthSection.tsx (days/progress/donut via ChartWrapper) + render tests
+- [x] 83-02-PLAN.md — StatTile.tsx (static tile) + SprintHealthSection.tsx (days/progress/donut via ChartWrapper) + render tests
 
 **Wave 3** *(blocked on Wave 1 + 2)*
 
@@ -512,6 +512,6 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
-| 83. Dashboard Stat Tiles and Sprint Health Chart | 1/3 | In Progress|  |
+| 83. Dashboard Stat Tiles and Sprint Health Chart | 2/3 | In Progress|  |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
