@@ -11,8 +11,8 @@
  * Auth values are loaded once in index.tsx and passed down as props.
  */
 import { useQuery } from '@tanstack/react-query';
-import { CheckSquare } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ListChecks } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -70,15 +70,14 @@ export default function MyIssuesCard({
   return (
     <Card role="region" aria-label="My issues this sprint" className="relative overflow-hidden">
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
-      <CheckSquare
+      <ListChecks
         className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
         aria-hidden
       />
       <CardHeader>
-        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <CardTitle className="text-sm font-bold text-muted-foreground/70 uppercase tracking-wide">
           MY ISSUES
         </CardTitle>
-        <CardDescription>this sprint</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {/* Loading skeleton — 200ms-gated via useDelayedLoading */}
@@ -98,7 +97,7 @@ export default function MyIssuesCard({
         {/* Empty state — 0 issues is valid (D-05); never an error */}
         {!showSkeleton && !error && total === 0 && (
           <EmptyState
-            icon={CheckSquare}
+            icon={ListChecks}
             title="No issues assigned"
             subtitle="You have no issues assigned in the current sprint."
           />

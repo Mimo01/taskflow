@@ -11,8 +11,8 @@
  * Auth values are loaded once in index.tsx and passed down as props.
  */
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { Calendar } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Rocket } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,15 +90,14 @@ export default function UpcomingReleasesTimeline({
   return (
     <Card role="region" aria-label="Upcoming releases" className="relative overflow-hidden">
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
-      <Calendar
+      <Rocket
         className="pointer-events-none absolute -top-4 -right-3 size-20 text-amber-500/10 dark:text-amber-400/15"
         aria-hidden
       />
       <CardHeader>
-        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <CardTitle className="text-sm font-bold text-muted-foreground/70 uppercase tracking-wide">
           UPCOMING RELEASES
         </CardTitle>
-        <CardDescription>next 3 with due dates</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {/* Skeleton */}
@@ -118,18 +117,15 @@ export default function UpcomingReleasesTimeline({
         {/* Empty state — 0 upcoming releases with due dates (D-06/D-08) */}
         {!showSkeleton && !error && upcomingVersions.length === 0 && (
           <EmptyState
-            icon={Calendar}
+            icon={Rocket}
             title="No upcoming releases"
             subtitle="No unreleased versions with a due date were found."
           />
         )}
 
-        {/* Timeline — up to 3 dots (D-08: render only what exists, no placeholder dots) */}
+        {/* Left-aligned vertical list — up to 3 releases (D-08: render only what exists) */}
         {!showSkeleton && !error && upcomingVersions.length > 0 && (
-          <div className="relative flex justify-between">
-            {/* Track line behind dots — absolutely positioned at dot vertical midpoint */}
-            <div className="absolute top-[5px] left-0 right-0 h-px bg-border" />
-
+          <div className="flex flex-col gap-3">
             {upcomingVersions.map((v, idx) => {
               const issueList = releaseIssueResults[idx]?.data ?? [];
               const totalCount = issueList.length;
@@ -146,36 +142,38 @@ export default function UpcomingReleasesTimeline({
               return (
                 <div
                   key={v.id ?? v.name}
-                  className="relative flex flex-col items-center gap-1.5"
+                  className="flex items-center gap-3"
                   data-testid="release-dot"
                 >
-                  {/* Dot — emerald when release is ready (≥80%), amber while still in progress */}
+                  {/* Status dot — emerald when ready (≥80%), amber while in progress */}
                   <div
-                    className={`size-3 rounded-full ring-2 ring-card relative z-10 ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                    className={`size-3 shrink-0 rounded-full ring-2 ring-card ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                   />
 
-                  {/* Release name */}
-                  <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
-                    {v.name}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    {/* Name + relative due on one line */}
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-medium text-foreground truncate">{v.name}</span>
+                      {timingText && (
+                        <span className={`shrink-0 text-xs font-normal ${timingClass}`}>
+                          {timingText}
+                        </span>
+                      )}
+                    </div>
 
-                  {/* Relative due label */}
-                  {timingText && (
-                    <span className={`text-xs font-normal ${timingClass}`}>{timingText}</span>
-                  )}
-
-                  {/* Readiness bar — 96px wide track with fill */}
-                  <div className="mt-0.5 h-1.5 w-24 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                      style={{ width: `${donePct}%` }}
-                    />
+                    {/* Readiness bar (fills available width) + percentage */}
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                          style={{ width: `${donePct}%` }}
+                        />
+                      </div>
+                      <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                        {donePct}% ready
+                      </span>
+                    </div>
                   </div>
-
-                  {/* Readiness percentage */}
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                    {donePct}% ready
-                  </span>
                 </div>
               );
             })}
