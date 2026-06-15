@@ -103,7 +103,10 @@ export default function Dashboard() {
   const tileCounts = computePersonalTileCounts(
     sprintIssues,
     jiraUserDisplayName ?? '',
-    new Date().toISOString().slice(0, 10),
+    // Local calendar date (YYYY-MM-DD), NOT toISOString() — Jira `duedate` is a
+    // local-floating date, so comparing against a UTC date miscounts "due today"
+    // as overdue for users west of UTC in the evening (WR-02). en-CA yields ISO-style.
+    new Date().toLocaleDateString('en-CA'),
   );
   const spDone = computeSpDone(sprintIssues, storyPointsFieldKey);
 
