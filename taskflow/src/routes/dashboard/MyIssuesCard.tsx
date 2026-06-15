@@ -116,7 +116,7 @@ export default function MyIssuesCard({
             <div
               role="img"
               aria-label={`Sprint progress: ${toDo} to do, ${inProgress} in progress, ${done} done`}
-              className="h-2 rounded-full overflow-hidden bg-muted flex"
+              className="h-3 rounded-full overflow-hidden bg-muted flex"
             >
               <div
                 className="bg-slate-400 dark:bg-slate-500"
@@ -133,9 +133,9 @@ export default function MyIssuesCard({
                 { label: 'In Progress', count: inProgress, cls: 'bg-blue-500' },
                 { label: 'Done', count: done, cls: 'bg-emerald-500' },
               ].map(({ label, count, cls }) => (
-                <div key={label} className="flex items-center gap-1">
-                  <span className={`size-2 rounded-sm ${cls}`} />
-                  <span className="text-xs font-normal text-muted-foreground">
+                <div key={label} className="flex items-center gap-1.5">
+                  <span className={`size-2.5 rounded-[2px] ${cls}`} />
+                  <span className="text-sm font-semibold text-muted-foreground">
                     {label} {count}
                   </span>
                 </div>

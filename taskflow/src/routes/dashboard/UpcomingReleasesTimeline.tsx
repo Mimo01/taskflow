@@ -123,9 +123,12 @@ export default function UpcomingReleasesTimeline({
           />
         )}
 
-        {/* Left-aligned vertical list — up to 3 releases (D-08: render only what exists) */}
+        {/* Horizontal timeline — up to 3 dots on a track, left-aligned (D-08: only what exists) */}
         {!showSkeleton && !error && upcomingVersions.length > 0 && (
-          <div className="flex flex-col gap-3">
+          <div className="relative flex justify-start gap-12">
+            {/* Track line behind dots */}
+            <div className="absolute top-[5px] left-0 right-0 h-px bg-border" />
+
             {upcomingVersions.map((v, idx) => {
               const issueList = releaseIssueResults[idx]?.data ?? [];
               const totalCount = issueList.length;
@@ -142,38 +145,36 @@ export default function UpcomingReleasesTimeline({
               return (
                 <div
                   key={v.id ?? v.name}
-                  className="flex items-center gap-3"
+                  className="relative flex flex-col items-center gap-1.5"
                   data-testid="release-dot"
                 >
-                  {/* Status dot — emerald when ready (≥80%), amber while in progress */}
+                  {/* Dot — emerald when ready (≥80%), amber while in progress */}
                   <div
-                    className={`size-3 shrink-0 rounded-full ring-2 ring-card ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                    className={`size-3 rounded-full ring-2 ring-card relative z-10 ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                   />
 
-                  <div className="min-w-0 flex-1">
-                    {/* Name + relative due on one line */}
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-medium text-foreground truncate">{v.name}</span>
-                      {timingText && (
-                        <span className={`shrink-0 text-xs font-normal ${timingClass}`}>
-                          {timingText}
-                        </span>
-                      )}
-                    </div>
+                  {/* Release name — wider cap so it is not cropped early */}
+                  <span className="text-sm font-medium text-foreground truncate max-w-[160px]">
+                    {v.name}
+                  </span>
 
-                    {/* Readiness bar (fills available width) + percentage */}
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                          style={{ width: `${donePct}%` }}
-                        />
-                      </div>
-                      <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-                        {donePct}% ready
-                      </span>
-                    </div>
+                  {/* Relative due label */}
+                  {timingText && (
+                    <span className={`text-xs font-normal ${timingClass}`}>{timingText}</span>
+                  )}
+
+                  {/* Readiness bar */}
+                  <div className="mt-0.5 h-1.5 w-24 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                      style={{ width: `${donePct}%` }}
+                    />
                   </div>
+
+                  {/* Readiness percentage */}
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                    {donePct}% ready
+                  </span>
                 </div>
               );
             })}
