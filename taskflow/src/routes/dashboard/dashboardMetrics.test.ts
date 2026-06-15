@@ -10,11 +10,14 @@ import {
   buildWeekBuckets,
   computeDonutData,
   computePersonalTileCounts,
+  computePersonalVelocitySeries,
   computeSpDone,
   computeSpTotal,
   filterNonSubtasks,
+  formatHoursMinutes,
   getDaysRemaining,
   mergeActivityEntries,
+  parseBurndownChanges,
 } from './dashboardMetrics';
 import type { JiraIssue } from '@/services/jira';
 
@@ -421,5 +424,122 @@ describe('computeDonutData', () => {
 
   it('returns empty array when sprint has no story points', () => {
     expect(computeDonutData([], SP_KEY)).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 85 — computePersonalVelocitySeries (INSIGHT-01)
+// ---------------------------------------------------------------------------
+
+describe('computePersonalVelocitySeries', () => {
+  const ME = 'Alice';
+
+  it('selects last N sprints from ascending list (tail-first ordering)', () => {
+    // Build 10 sprints ascending (ids 1–10). The fetcher (85-02) slices(-6) to get the tail.
+    // This test encodes the Probe A guard: the chart must show sprints 5–10, not 1–6.
+    const tenSprints = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `Sprint ${i + 1}`,
+      state: 'closed' as const,
+    }));
+    // Simulate the 85-02 fetcher's tail selection (the fn itself must NOT reorder)
+    const tail = tenSprints.slice(-6);
+    const series = computePersonalVelocitySeries(tail, new Map(), ME, SP_KEY);
+    expect(series.map((p) => p.sprintName)).toEqual([
+      'Sprint 5',
+      'Sprint 6',
+      'Sprint 7',
+      'Sprint 8',
+      'Sprint 9',
+      'Sprint 10',
+    ]);
+  });
+
+  it('excludes subtask SP from committed and completed velocity sums (subtask exclusion)', () => {
+    // parent(5,done,Alice) + 2 subtasks(2,done,Alice) → committed=5, completed=5 (not 9)
+    const parent = makeIssue({ subtask: false, sp: 5, statusCategory: 'done', assignee: ME });
+    const sub1 = makeIssue({ subtask: true, sp: 2, statusCategory: 'done', assignee: ME });
+    const sub2 = makeIssue({ subtask: true, sp: 2, statusCategory: 'done', assignee: ME });
+    const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
+    const issueMap = new Map([[1, [parent, sub1, sub2]]]);
+    const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
+    expect(series[0].committed).toBe(5); // not 9
+    expect(series[0].completed).toBe(5); // not 9
+  });
+
+  it('excludes other users from personal velocity sums', () => {
+    // Alice(8,done) + Bob(10,done) → committed=8, completed=8 (Bob excluded)
+    const mine = makeIssue({ subtask: false, sp: 8, statusCategory: 'done', assignee: ME });
+    const other = makeIssue({ subtask: false, sp: 10, statusCategory: 'done', assignee: 'Bob' });
+    const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
+    const issueMap = new Map([[1, [mine, other]]]);
+    const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
+    expect(series[0].committed).toBe(8); // Bob's 10 SP excluded
+    expect(series[0].completed).toBe(8);
+  });
+
+  it('qualifying sprints filter: a sprint with 0 committed+completed is not qualifying', () => {
+    // 3 sprints: 2 with SP, 1 with sp:0 → only 2 qualifying → below 3-sprint D-06 threshold
+    const withSP = makeIssue({ subtask: false, sp: 3, statusCategory: 'done', assignee: ME });
+    const noSP = makeIssue({ subtask: false, sp: 0, statusCategory: 'done', assignee: ME });
+    const sprints = [
+      { id: 1, name: 'Sprint 1', state: 'closed' as const },
+      { id: 2, name: 'Sprint 2', state: 'closed' as const },
+      { id: 3, name: 'Sprint 3', state: 'closed' as const },
+    ];
+    const issueMap = new Map([[1, [withSP]], [2, [withSP]], [3, [noSP]]]);
+    const series = computePersonalVelocitySeries(sprints, issueMap, ME, SP_KEY);
+    const qualifying = series.filter((p) => p.committed > 0 || p.completed > 0);
+    expect(qualifying.length).toBe(2); // below 3-sprint threshold → D-06 hide
+  });
+
+  it('committed vs completed: committed counts all my issues, completed only done', () => {
+    // Alice done(3) + Alice indeterminate(5) → committed=8, completed=3
+    const done = makeIssue({ subtask: false, sp: 3, statusCategory: 'done', assignee: ME });
+    const inprog = makeIssue({ subtask: false, sp: 5, statusCategory: 'indeterminate', assignee: ME });
+    const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
+    const issueMap = new Map([[1, [done, inprog]]]);
+    const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
+    expect(series[0].committed).toBe(8); // all my issues
+    expect(series[0].completed).toBe(3); // only done
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 85 — parseBurndownChanges (INSIGHT-02)
+// ---------------------------------------------------------------------------
+
+describe('parseBurndownChanges', () => {
+  it('parseBurndownChanges returns ascending-time points anchored at startTime, clamped non-negative', () => {
+    const changes = {
+      '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
+      '2000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
+    };
+    const points = parseBurndownChanges(changes, 500);
+
+    // Anchor at startTime
+    expect(points[0].t).toBe(500);
+    // Ascending timestamps including anchor
+    expect(points.map((p) => p.t)).toEqual([500, 1000, 2000]);
+    // All remaining values are non-negative (clamp guard)
+    expect(points.every((p) => p.remaining >= 0)).toBe(true);
+
+    // Null/undefined input must not throw — returns the anchor only
+    const fallback = parseBurndownChanges(undefined as never, 500);
+    expect(fallback).toEqual([{ t: 500, remaining: 0 }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 85 — formatHoursMinutes burndown hours formatter (Probe C: timeestimate unit)
+// ---------------------------------------------------------------------------
+
+describe('formatHoursMinutes — burndown hours suffix', () => {
+  it('burndown hours formatter emits an h/m suffix, never SP', () => {
+    expect(formatHoursMinutes(1.5)).toBe('1h 30m');
+    expect(formatHoursMinutes(8)).toBe('8h');
+    expect(formatHoursMinutes(0.25)).toBe('15m');
+    // Must never contain 'SP' — burndown unit is hours (Probe C: statisticField=timeestimate)
+    expect(formatHoursMinutes(8)).not.toMatch(/SP/);
   });
 });
