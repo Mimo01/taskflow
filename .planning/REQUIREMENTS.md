@@ -35,9 +35,9 @@ A graph-driven personal overview. Keeps the hero, replaces the cards.
 - [x] **DASH-01**: Dashboard keeps the gradient hero greeting + en-GB date and removes the previous 3 cards
 - [x] **DASH-02**: User sees personal stat tiles — open tasks, in progress, overdue, MRs awaiting my review, hours logged this week vs schedule
 - [x] **DASH-03**: User sees a sprint-health section with progress, days remaining, and a points-by-status chart (donut / stacked bar)
-- [ ] **DASH-04**: User sees a weekly-logged-hours trend chart (hours per day this week vs schedule)
-- [ ] **DASH-05**: User sees an activity & releases section — recent notifications/mentions + next-release countdown with progress
-- [ ] **DASH-06**: User sees an MR review queue — MRs awaiting my review and my open MRs' health
+- [x] **DASH-04**: User sees a weekly-logged-hours trend chart (hours per day this week vs schedule)
+- [x] **DASH-05**: User sees an activity & releases section — recent notifications/mentions + next-release countdown with progress
+- [~] **DASH-06**: ~~User sees an MR review queue — MRs awaiting my review and my open MRs' health~~ — **DESCOPED** (Phase 84 UAT, 2026-06-15): user rejected the MR review queue component; removed by product decision, not delivered
 - [x] **DASH-07**: Each dashboard section degrades independently (own loading/empty/error state) and reuses warm caches to avoid redundant fetching
 
 ### Sprint Insights (Conditional — probe-gated)
@@ -92,9 +92,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-02 | Phase 83 | Complete |
 | DASH-03 | Phase 83 | Complete |
 | DASH-07 | Phase 83 + Phase 84 | Complete |
-| DASH-04 | Phase 84 | Pending |
-| DASH-05 | Phase 84 | Pending |
-| DASH-06 | Phase 84 | Pending |
+| DASH-04 | Phase 84 | Complete |
+| DASH-05 | Phase 84 | Complete |
+| DASH-06 | Phase 84 | Descoped (UAT 2026-06-15) |
 | INSIGHT-01 | Phase 85 | Pending (Conditional) |
 | INSIGHT-02 | Phase 85 | Pending (Conditional) |
 
