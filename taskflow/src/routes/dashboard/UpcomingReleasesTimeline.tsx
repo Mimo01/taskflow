@@ -143,7 +143,6 @@ export default function UpcomingReleasesTimeline({
               // its dot is solid, the connector to the next dot is orange, and its date is orange.
               // All other dots are hollow and everything else is grayscale.
               const isFirst = idx === 0;
-              const isLast = idx === upcomingVersions.length - 1;
 
               return (
                 <div
@@ -151,12 +150,11 @@ export default function UpcomingReleasesTimeline({
                   className="relative flex flex-1 flex-col items-start gap-1.5 pr-4 text-left"
                   data-testid="release-dot"
                 >
-                  {/* Timeline connector to the next dot — orange only between dot 1 and dot 2 */}
-                  {!isLast && (
-                    <div
-                      className={`absolute top-[5px] left-1.5 right-0 h-0.5 ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
-                    />
-                  )}
+                  {/* Timeline connector — orange only on the closest release (dot 1 → dot 2);
+                      a trailing gray segment also extends past the last dot */}
+                  <div
+                    className={`absolute top-[5px] left-1.5 right-0 h-0.5 ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
+                  />
 
                   {/* Dot — first is solid orange, the rest are hollow */}
                   <div
@@ -177,10 +175,10 @@ export default function UpcomingReleasesTimeline({
                     </span>
                   )}
 
-                  {/* Readiness bar — grayscale */}
+                  {/* Readiness bar — grayscale; the current (closest) release is darker */}
                   <div className="mt-0.5 h-1 w-24 max-w-full bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-muted-foreground/50"
+                      className={`h-full rounded-full ${isFirst ? 'bg-muted-foreground' : 'bg-muted-foreground/40'}`}
                       style={{ width: `${donePct}%` }}
                     />
                   </div>
