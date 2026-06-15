@@ -1,10 +1,11 @@
 ---
 phase: 84
 slug: dashboard-trend-chart-mr-review-queue-and-activity-strip
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-06-15
+reviewed_at: 2026-06-15
 ---
 
 # Phase 84 — UI Design Contract
