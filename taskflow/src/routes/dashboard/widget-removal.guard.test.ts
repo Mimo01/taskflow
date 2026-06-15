@@ -14,6 +14,36 @@ import { describe, expect, it } from 'vitest';
 
 const DASHBOARD_DIR = path.resolve(__dirname);
 
+/**
+ * Phase 83: assertions for the three dashboard cards deleted in plan 83-03.
+ * These existsSync assertions are RED until 83-03 performs the deletions — expected and by design.
+ * GREEN after 83-03.
+ */
+describe('dashboard subtree — Phase 83 widget removal guard', () => {
+  it('SmokeTestChart.tsx does not exist', () => {
+    expect(fs.existsSync(path.join(DASHBOARD_DIR, 'SmokeTestChart.tsx'))).toBe(false);
+  });
+
+  it('DashboardSprintCard.tsx does not exist', () => {
+    expect(fs.existsSync(path.join(DASHBOARD_DIR, 'DashboardSprintCard.tsx'))).toBe(false);
+  });
+
+  it('DashboardInProgressCard.tsx does not exist', () => {
+    expect(fs.existsSync(path.join(DASHBOARD_DIR, 'DashboardInProgressCard.tsx'))).toBe(false);
+  });
+
+  it('index.tsx does not import SmokeTestChart, DashboardSprintCard, or DashboardInProgressCard', () => {
+    const indexSrc = fs.readFileSync(path.join(DASHBOARD_DIR, 'index.tsx'), 'utf8');
+    const nonCommentLines = indexSrc
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
+      .join('\n');
+    expect(nonCommentLines).not.toMatch(/SmokeTestChart/);
+    expect(nonCommentLines).not.toMatch(/DashboardSprintCard/);
+    expect(nonCommentLines).not.toMatch(/DashboardInProgressCard/);
+  });
+});
+
 describe('dashboard subtree — widget file absence guard (Phase 59)', () => {
   it('widgets/ directory does not exist', () => {
     const widgetsDir = path.join(DASHBOARD_DIR, 'widgets');

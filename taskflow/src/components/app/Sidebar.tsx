@@ -142,17 +142,19 @@ export default function Sidebar() {
           return getGhAllData(queryClient, jiraBaseUrl, jiraToken, boardId);
         })
         .catch(() => {});
+      // Phase 83 D-10 Option B: warm active-sprint for /dashboard so SprintHealthSection
+      // reads endDate with enabled:false (zero new API calls on Dashboard load).
+      resolveBoardId
+        .then((boardId) => {
+          queryClient.prefetchQuery({
+            queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
+            queryFn: () =>
+              fetchActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject, boardId ?? undefined),
+            staleTime: 5 * 60 * 1000,
+          });
+        })
+        .catch(() => {});
       if (path === '/sprint-board') {
-        resolveBoardId
-          .then((boardId) => {
-            queryClient.prefetchQuery({
-              queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
-              queryFn: () =>
-                fetchActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject, boardId ?? undefined),
-              staleTime: 5 * 60 * 1000,
-            });
-          })
-          .catch(() => {});
         queryClient.prefetchQuery({
           queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
           queryFn: () =>
