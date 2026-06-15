@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: "Phase 86 PLANNED — 4 plans / 3 waves (cards ‖ chart → index rewrite+deletes → UAT). Research+pattern-map+validation done; plan-checker PASS. Next: /gsd-execute-phase 86"
-last_updated: "2026-06-15T22:50:00.000Z"
-last_activity: "2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)"
+status: executing
+last_updated: "2026-06-15T21:08:18.543Z"
+last_activity: 2026-06-15 -- Phase 86 execution started
 progress:
-  total_phases: 11
-  completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
-  percent: 45
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 85 — sprint-insights-conditional-probe-gated
+**Current focus:** Phase 86 — redesign-dashboard-to-new-screenshot-layout-and-remove-old-w
 
 ## Current Position
 
-Phase: 86 (redesign-dashboard) — PLANNED (4 plans, 3 waves)
-Plan: 86-01 (My Issues + Releases cards), 86-02 (hours/commits chart), 86-03 (index rewrite + delete 12 widget files + slim metrics + guard), 86-04 (WebKit UAT)
-Status: Phase 86 planned — research + pattern-map + Nyquist validation done; plan-checker PASS (2 trivial warnings resolved). Next: /gsd-execute-phase 86
-Last activity: 2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)
+Phase: 86 (redesign-dashboard-to-new-screenshot-layout-and-remove-old-w) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 86
+Last activity: 2026-06-15 -- Phase 86 execution started
 
 Progress: [██████████] 100%
 
