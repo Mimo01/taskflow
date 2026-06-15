@@ -150,7 +150,7 @@ export default function UpcomingReleasesTimeline({
                     <div
                       className={`size-3 shrink-0 rounded-full ring-2 ring-card ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                     />
-                    <span className="text-sm font-medium text-foreground truncate max-w-[180px]">
+                    <span className="text-sm font-semibold text-foreground truncate max-w-[180px]">
                       {v.name}
                     </span>
                   </div>
@@ -160,8 +160,8 @@ export default function UpcomingReleasesTimeline({
                     <span className={`text-xs font-normal ${timingClass}`}>{timingText}</span>
                   )}
 
-                  {/* Readiness bar */}
-                  <div className="mt-0.5 h-1.5 w-28 bg-muted rounded-full overflow-hidden">
+                  {/* Readiness bar — thin */}
+                  <div className="mt-0.5 h-1 w-28 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                       style={{ width: `${donePct}%` }}

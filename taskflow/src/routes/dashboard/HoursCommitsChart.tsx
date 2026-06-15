@@ -383,7 +383,7 @@ export default function HoursCommitsChart({
                 data={chartData}
                 responsive
                 stackOffset="sign"
-                margin={{ top: 24, right: 8, left: 0, bottom: 4 }}
+                margin={{ top: 24, right: 8, left: 8, bottom: 24 }}
               >
                 {/* Declutter: no gridlines/axis lines — day label per column (rendered at bottom) */}
                 <XAxis
@@ -392,26 +392,27 @@ export default function HoursCommitsChart({
                   axisLine={false}
                   tick={<TodayAwareTick todayLabel={todayLabel} />}
                 />
-                {/* Y axis: max hours at top (e.g. 8h), 0 at center, max commits at bottom */}
+                {/* No left axis labels — domain only (extra headroom so bar value labels fit) */}
                 <YAxis
-                  width={36}
-                  tickLine={false}
-                  axisLine={false}
-                  ticks={[maxHours > 0 ? maxHours : 0, 0, maxCommits > 0 ? -maxCommits : 0]}
-                  domain={[-(maxCommits > 0 ? maxCommits : 1), maxHours > 0 ? maxHours : 1]}
-                  tickFormatter={(v) => {
-                    const n = Math.round(Number(v));
-                    return n >= 0 ? `${n}h` : `${Math.abs(n)}`;
-                  }}
+                  hide
+                  domain={[
+                    -(maxCommits > 0 ? maxCommits : 1) * 1.3,
+                    (maxHours > 0 ? maxHours : 1) * 1.3,
+                  ]}
                 />
-                {/* Center baseline at zero */}
+                {/* Only two horizontal guide lines: 0 (center) and max hours (e.g. 8h), no labels */}
                 <ReferenceLine y={0} stroke="var(--border)" />
+                <ReferenceLine
+                  y={maxHours > 0 ? maxHours : 1}
+                  stroke="var(--border)"
+                  strokeDasharray="3 3"
+                />
                 {/* Hours — blue, extends UP */}
                 <Bar
                   dataKey="hours"
                   stackId="a"
                   fill={HOURS_COLOR}
-                  maxBarSize={20}
+                  maxBarSize={32}
                   radius={[4, 4, 0, 0]}
                   isAnimationActive={false}
                 >
@@ -440,8 +441,8 @@ export default function HoursCommitsChart({
                   dataKey="commitsDown"
                   stackId="a"
                   fill={COMMITS_COLOR}
-                  maxBarSize={20}
-                  radius={[0, 0, 4, 4]}
+                  maxBarSize={32}
+                  radius={[4, 4, 0, 0]}
                   isAnimationActive={false}
                 >
                   {chartData.map((b) => (
