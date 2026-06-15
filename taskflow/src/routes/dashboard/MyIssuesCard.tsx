@@ -71,7 +71,7 @@ export default function MyIssuesCard({
     <Card role="region" aria-label="My issues this sprint" className="relative overflow-hidden">
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
       <ListChecks
-        className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
+        className="pointer-events-none absolute -top-4 -right-3 size-20 text-green-500/10 dark:text-green-400/15"
         aria-hidden
       />
       <CardHeader>
@@ -123,7 +123,7 @@ export default function MyIssuesCard({
                 style={{ width: `${(toDo / total) * 100}%` }}
               />
               <div className="bg-blue-500" style={{ width: `${(inProgress / total) * 100}%` }} />
-              <div className="bg-emerald-500" style={{ width: `${(done / total) * 100}%` }} />
+              <div className="bg-green-500" style={{ width: `${(done / total) * 100}%` }} />
             </div>
 
             {/* Legend */}
@@ -131,7 +131,7 @@ export default function MyIssuesCard({
               {[
                 { label: 'To Do', count: toDo, cls: 'bg-slate-400 dark:bg-slate-500' },
                 { label: 'In Progress', count: inProgress, cls: 'bg-blue-500' },
-                { label: 'Done', count: done, cls: 'bg-emerald-500' },
+                { label: 'Done', count: done, cls: 'bg-green-500' },
               ].map(({ label, count, cls }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className={`size-2.5 rounded-[2px] ${cls}`} />

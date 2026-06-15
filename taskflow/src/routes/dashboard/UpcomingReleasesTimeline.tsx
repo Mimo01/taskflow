@@ -125,7 +125,10 @@ export default function UpcomingReleasesTimeline({
 
         {/* Horizontal timeline — up to 3 dots on a track, left-aligned (D-08: only what exists) */}
         {!showSkeleton && !error && upcomingVersions.length > 0 && (
-          <div className="relative flex justify-start gap-8 pt-1">
+          <div className="relative flex justify-between pt-1">
+            {/* Timeline track line behind the dots */}
+            <div className="absolute top-[7px] left-0 right-0 h-px bg-border" />
+
             {upcomingVersions.map((v, idx) => {
               const issueList = releaseIssueResults[idx]?.data ?? [];
               const totalCount = issueList.length;
@@ -142,18 +145,18 @@ export default function UpcomingReleasesTimeline({
               return (
                 <div
                   key={v.id ?? v.name}
-                  className="flex flex-col items-start gap-1.5"
+                  className="relative flex flex-col items-center gap-1.5 text-center"
                   data-testid="release-dot"
                 >
-                  {/* Dot + name on one line */}
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`size-3 shrink-0 rounded-full ring-2 ring-card ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                    />
-                    <span className="text-sm font-semibold text-foreground truncate max-w-[180px]">
-                      {v.name}
-                    </span>
-                  </div>
+                  {/* Dot on the timeline — green when ready (≥80%), amber while in progress */}
+                  <div
+                    className={`size-3.5 rounded-full ring-2 ring-card relative z-10 ${donePct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
+                  />
+
+                  {/* Release name */}
+                  <span className="text-sm font-semibold text-foreground truncate max-w-[160px]">
+                    {v.name}
+                  </span>
 
                   {/* Relative due label */}
                   {timingText && (
@@ -161,9 +164,9 @@ export default function UpcomingReleasesTimeline({
                   )}
 
                   {/* Readiness bar — thin */}
-                  <div className="mt-0.5 h-1 w-28 bg-muted rounded-full overflow-hidden">
+                  <div className="mt-0.5 h-1 w-24 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                      className={`h-full rounded-full ${donePct >= 80 ? 'bg-green-500' : 'bg-amber-500'}`}
                       style={{ width: `${donePct}%` }}
                     />
                   </div>

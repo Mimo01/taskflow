@@ -148,8 +148,8 @@ export function buildRolling7Buckets(
 
 // Semantic series colors (theme-stable hex — the --chart-* tokens are all blue, which
 // made hours and commits indistinguishable). Blue = hours logged, green = commits.
-const HOURS_COLOR = '#2f80ff'; // vivid blue
-const COMMITS_COLOR = '#22c55e'; // vivid green (green-500)
+const HOURS_COLOR = '#3b82f6'; // blue-500 (matches My Issues "In Progress")
+const COMMITS_COLOR = '#22c55e'; // green-500 (matches My Issues "Done" / release ready)
 
 const chartConfig = {
   hours: { label: 'Hours logged', color: HOURS_COLOR },
@@ -412,7 +412,8 @@ export default function HoursCommitsChart({
                   dataKey="hours"
                   stackId="a"
                   fill={HOURS_COLOR}
-                  maxBarSize={32}
+                  maxBarSize={40}
+                  minPointSize={3}
                   radius={[4, 4, 0, 0]}
                   isAnimationActive={false}
                 >
@@ -441,7 +442,8 @@ export default function HoursCommitsChart({
                   dataKey="commitsDown"
                   stackId="a"
                   fill={COMMITS_COLOR}
-                  maxBarSize={32}
+                  maxBarSize={40}
+                  minPointSize={3}
                   radius={[4, 4, 0, 0]}
                   isAnimationActive={false}
                 >
