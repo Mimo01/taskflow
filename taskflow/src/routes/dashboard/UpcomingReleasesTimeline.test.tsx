@@ -251,9 +251,7 @@ describe('UpcomingReleasesTimeline — D-08 "Tomorrow" label', () => {
     vi.mocked(useQuery).mockReturnValue(
       mockQuery({ data: versions, isLoading: false, error: null, refetch: vi.fn() }),
     );
-    vi.mocked(useQueries).mockReturnValue(
-      mockQueriesResult([{ data: [], isLoading: false }]),
-    );
+    vi.mocked(useQueries).mockReturnValue(mockQueriesResult([{ data: [], isLoading: false }]));
 
     const { default: UpcomingReleasesTimeline } = await import('./UpcomingReleasesTimeline');
     renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} />);
@@ -269,9 +267,7 @@ describe('UpcomingReleasesTimeline — D-08 "Tomorrow" label', () => {
     vi.mocked(useQuery).mockReturnValue(
       mockQuery({ data: versions, isLoading: false, error: null, refetch: vi.fn() }),
     );
-    vi.mocked(useQueries).mockReturnValue(
-      mockQueriesResult([{ data: [], isLoading: false }]),
-    );
+    vi.mocked(useQueries).mockReturnValue(mockQueriesResult([{ data: [], isLoading: false }]));
 
     const { default: UpcomingReleasesTimeline } = await import('./UpcomingReleasesTimeline');
     renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} />);
@@ -287,9 +283,7 @@ describe('UpcomingReleasesTimeline — D-08 "Tomorrow" label', () => {
     vi.mocked(useQuery).mockReturnValue(
       mockQuery({ data: versions, isLoading: false, error: null, refetch: vi.fn() }),
     );
-    vi.mocked(useQueries).mockReturnValue(
-      mockQueriesResult([{ data: [], isLoading: false }]),
-    );
+    vi.mocked(useQueries).mockReturnValue(mockQueriesResult([{ data: [], isLoading: false }]));
 
     const { default: UpcomingReleasesTimeline } = await import('./UpcomingReleasesTimeline');
     renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} />);
@@ -305,9 +299,7 @@ describe('UpcomingReleasesTimeline — D-08 "Tomorrow" label', () => {
     vi.mocked(useQuery).mockReturnValue(
       mockQuery({ data: versions, isLoading: false, error: null, refetch: vi.fn() }),
     );
-    vi.mocked(useQueries).mockReturnValue(
-      mockQueriesResult([{ data: [], isLoading: false }]),
-    );
+    vi.mocked(useQueries).mockReturnValue(mockQueriesResult([{ data: [], isLoading: false }]));
 
     const { default: UpcomingReleasesTimeline } = await import('./UpcomingReleasesTimeline');
     renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} />);
@@ -380,9 +372,7 @@ describe('UpcomingReleasesTimeline — donePct readiness', () => {
       })),
     ];
 
-    vi.mocked(useQueries).mockReturnValue(
-      mockQueriesResult([{ data: issues, isLoading: false }]),
-    );
+    vi.mocked(useQueries).mockReturnValue(mockQueriesResult([{ data: issues, isLoading: false }]));
 
     const { default: UpcomingReleasesTimeline } = await import('./UpcomingReleasesTimeline');
     renderWithQuery(<UpcomingReleasesTimeline {...defaultProps} />);

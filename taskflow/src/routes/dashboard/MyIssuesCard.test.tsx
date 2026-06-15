@@ -115,15 +115,11 @@ describe('MyIssuesCard — D-03 sum invariant', () => {
       (i) => i.fields.assignee?.displayName === 'Alice',
     );
 
-    const toDo = myNonSubtasks.filter(
-      (i) => i.fields.status.statusCategory?.key === 'new',
-    ).length;
+    const toDo = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'new').length;
     const inProgress = myNonSubtasks.filter(
       (i) => i.fields.status.statusCategory?.key === 'indeterminate',
     ).length;
-    const done = myNonSubtasks.filter(
-      (i) => i.fields.status.statusCategory?.key === 'done',
-    ).length;
+    const done = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
 
     // D-03 invariant: segments sum to total
     expect(toDo + inProgress + done).toBe(myNonSubtasks.length);
@@ -144,15 +140,11 @@ describe('MyIssuesCard — D-03 sum invariant', () => {
       (i) => i.fields.assignee?.displayName === 'Alice',
     );
 
-    const toDo = myNonSubtasks.filter(
-      (i) => i.fields.status.statusCategory?.key === 'new',
-    ).length;
+    const toDo = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'new').length;
     const inProgress = myNonSubtasks.filter(
       (i) => i.fields.status.statusCategory?.key === 'indeterminate',
     ).length;
-    const done = myNonSubtasks.filter(
-      (i) => i.fields.status.statusCategory?.key === 'done',
-    ).length;
+    const done = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
 
     expect(toDo + inProgress + done).toBe(myNonSubtasks.length);
   });
@@ -166,9 +158,7 @@ describe('MyIssuesCard — D-05 empty state', () => {
   it('D-05: renders "No issues assigned" empty state when no issues match my displayName', async () => {
     const MyIssuesCard = await importComponent();
     // Issue assigned to a DIFFERENT user — myNonSubtasks will be empty
-    const issues = [
-      makeIssue({ subtask: false, assignee: 'Other User', statusCategory: 'done' }),
-    ];
+    const issues = [makeIssue({ subtask: false, assignee: 'Other User', statusCategory: 'done' })];
 
     renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: issues });
 
@@ -177,9 +167,7 @@ describe('MyIssuesCard — D-05 empty state', () => {
 
   it('D-05: empty state is NEVER an error when 0 issues assigned (not an ErrorState)', async () => {
     const MyIssuesCard = await importComponent();
-    const issues = [
-      makeIssue({ subtask: false, assignee: 'Other User', statusCategory: 'done' }),
-    ];
+    const issues = [makeIssue({ subtask: false, assignee: 'Other User', statusCategory: 'done' })];
 
     renderWithQuery(<MyIssuesCard {...defaultProps} />, { sprintIssues: issues });
 
