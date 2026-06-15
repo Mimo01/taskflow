@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
 status: executing
-last_updated: "2026-06-15T16:32:36.530Z"
-last_activity: 2026-06-15 -- Phase 85 execution started
+last_updated: "2026-06-15T17:11:13.936Z"
+last_activity: 2026-06-15 -- Phase 85 executed (4/4 plans), verified 5/5; human_needed — live-Jira UAT pending (85-HUMAN-UAT.md)
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 19
-  completed_plans: 15
-  percent: 40
+  completed_plans: 19
+  percent: 49
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 85 (sprint-insights-conditional-probe-gated) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 85
-Last activity: 2026-06-15 -- Phase 85 execution started
+Phase: 85 (sprint-insights-conditional-probe-gated) — VERIFIED 5/5, human_needed
+Plan: 4 of 4 complete
+Status: Phase 85 verified (5/5); awaiting live-Jira human UAT (85-HUMAN-UAT.md)
+Last activity: 2026-06-15 -- Phase 85 executed (4/4 plans), 2 blockers fixed, re-verified 5/5; human UAT pending
 
 Progress: [██████████] 100%
 
