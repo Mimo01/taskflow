@@ -7,7 +7,7 @@
 
 export * from './adapter';
 export * from './allData';
-export * from './burndown';
+// burndown.ts removed in Phase 86 (D-01 clean slate — BurndownChart deleted, no consumers remain)
 export * from './data';
 export * from './entityMaps';
 export * from './transitions';

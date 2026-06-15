@@ -1,26 +1,16 @@
 'use no memo';
 
 import { useQuery } from '@tanstack/react-query';
-import { Activity, CheckCircle2, Clock, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { ErrorState } from '@/components/ui/error-state';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useBoardId } from '@/hooks/useBoardId';
-import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import ActivityStrip from './ActivityStrip';
-import BurndownChart from './BurndownChart';
-import DashboardReleaseCard from './DashboardReleaseCard';
-import { computePersonalTileCounts, computeSpDone } from './dashboardMetrics';
-import SprintHealthSection from './SprintHealthSection';
-import StatTile from './StatTile';
-import VelocityChart from './VelocityChart';
-import WeeklyTrendChart from './WeeklyTrendChart';
+import HoursCommitsChart from './HoursCommitsChart';
+import MyIssuesCard from './MyIssuesCard';
+import UpcomingReleasesTimeline from './UpcomingReleasesTimeline';
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -35,7 +25,6 @@ export default function Dashboard() {
     activeJiraProject,
     jiraUserDisplayName,
     jiraUsername,
-    jiraUserKey,
     gitlabBaseUrl,
     gitlabUsername,
     gitlabName,
@@ -69,14 +58,38 @@ export default function Dashboard() {
   }, [gitlabBaseUrl]);
 
   // Resolve the per-project chosen board id (falls back to first board) so the
-  // sprint health section's active-sprint query honors the user's board choice.
+  // active-sprint query honors the user's board choice.
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
 
-  const today = new Date().toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+  // Sprint-board query — ONE shared cache key (dedupes against MyIssuesCard via same key)
+  useQuery({
+    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
+    queryFn: () =>
+      fetchSprintIssues(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        false,
+        storyPointsFieldKey,
+      ),
+    staleTime: 30_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
+  });
+
+  // Active sprint — cache-deduped with the Sidebar prefetch.
+  // Reuses the EXACT same queryKey ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId]
+  // so TanStack Query returns the cached result with zero extra network calls (D-09).
+  const { data: activeSprint } = useQuery({
+    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
+    queryFn: () =>
+      fetchActiveSprint(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        boardId ?? undefined,
+      ),
+    staleTime: 5 * 60_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null,
   });
 
   // Jira displayName varies by instance format, e.g.:
@@ -91,182 +104,74 @@ export default function Dashboard() {
   const firstName = tokens.find((t) => t !== t.toUpperCase()) ?? tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
 
-  // Stat tiles — ONE shared sprint-board query (dedupes against SprintHealthSection via same cache key)
-  const {
-    data: sprintIssuesRaw,
-    isLoading: tileLoading,
-    error: tileError,
-    refetch: refetchTiles,
-  } = useQuery({
-    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
-    queryFn: () =>
-      fetchSprintIssues(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        false,
-        storyPointsFieldKey,
-      ),
-    staleTime: 30_000,
-    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
-  });
-
-  const showTileSkeleton = useDelayedLoading(tileLoading);
-
-  const sprintIssues = Array.isArray(sprintIssuesRaw) ? sprintIssuesRaw : [];
-  const tileCounts = computePersonalTileCounts(
-    sprintIssues,
-    jiraUserDisplayName ?? '',
-    // Local calendar date (YYYY-MM-DD), NOT toISOString() — Jira `duedate` is a
-    // local-floating date, so comparing against a UTC date miscounts "due today"
-    // as overdue for users west of UTC in the evening (WR-02). en-CA yields ISO-style.
-    new Date().toLocaleDateString('en-CA'),
-  );
-  const spDone = computeSpDone(sprintIssues, storyPointsFieldKey);
-
-  // Active sprint — cache-deduped with SprintHealthSection and the Sidebar prefetch.
-  // Reuses the EXACT same queryKey ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId]
-  // so TanStack Query returns the cached result with zero extra network calls (D-09).
-  const { data: activeSprintForBurndown } = useQuery({
-    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
-    queryFn: () =>
-      fetchActiveSprint(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        boardId ?? undefined,
-      ),
-    staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null,
-  });
-  const activeSprintId = activeSprintForBurndown?.id ?? null;
+  // D-13: Sprint-position subline. Both dates: local calendar. Hide clause when sprint null.
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local calendar
+  const sprintClause = (() => {
+    if (!activeSprint?.startDate || !activeSprint?.endDate) return '';
+    const [sy, sm, sd] = activeSprint.startDate.slice(0, 10).split('-').map(Number);
+    const [ey, em, ed] = activeSprint.endDate.slice(0, 10).split('-').map(Number);
+    const [ty, tm, td] = today.split('-').map(Number);
+    const elapsed =
+      Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(sy, sm - 1, sd)) / 86_400_000) + 1;
+    const total =
+      Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86_400_000) + 1;
+    return ` · Sprint day ${elapsed} of ${total}`;
+  })();
 
   // onIssueClick retained for potential future drill-down actions
   void onIssueClick;
 
   return (
     <div className="flex flex-col h-full overflow-auto bg-background">
-      {/* Header — mirrors MyTasksPage: bold greeting title + date subtitle, no ambient SVG */}
+      {/* Header — text-4xl greeting title + date subtitle with optional sprint-day clause (D-13) */}
       <div className="flex items-end justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
         <div className="flex flex-col gap-1 min-w-0">
-          <h1 className="text-3xl font-semibold text-foreground">
+          <h1 className="text-4xl font-semibold text-foreground">
             {timeGreeting} {firstName ?? 'there'}
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">{today}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {new Date().toLocaleDateString('en-GB', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+            {sprintClause}
+          </p>
         </div>
       </div>
 
-      {/* Unified content shell — single gutter + gap for every section row */}
+      {/* Unified content shell — 3-region layout (D-01) */}
       <div className="flex flex-col gap-4 px-6 py-4">
-        {/* Stat tiles row — DASH-02 (4-tile grid replacing 3-card grid) */}
-        {showTileSkeleton && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[0, 1, 2, 3].map((i) => (
-              // Mirror StatTile's Card shell exactly so the skeleton→loaded swap
-              // doesn't shift geometry; aria-busy announces the loading region.
-              <Card key={i} size="sm" aria-busy className="min-h-[80px] gap-2">
-                <CardContent className="flex flex-col gap-3">
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-9 w-1/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-        {!showTileSkeleton && tileError && (
-          <ErrorState error={tileError} onRetry={refetchTiles} viewName="stat tiles" />
-        )}
-        {!showTileSkeleton && !tileError && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatTile
-              label="Open"
-              value={tileCounts.open}
-              icon={Activity}
-              iconClass="text-sky-500"
-            />
-            <StatTile
-              label="In Progress"
-              value={tileCounts.inProgress}
-              icon={Zap}
-              iconClass="text-amber-500"
-            />
-            <StatTile
-              label="Overdue"
-              value={tileCounts.overdue}
-              icon={Clock}
-              iconClass="text-destructive"
-              valueClass={tileCounts.overdue > 0 ? 'text-destructive' : undefined}
-            />
-            <StatTile
-              label="SP Done"
-              value={spDone}
-              icon={CheckCircle2}
-              iconClass="text-green-500"
-            />
-          </div>
-        )}
-
-        {/* Sprint health + Weekly trend chart side-by-side — DASH-03 / DASH-04 */}
+        {/* Top row: MY ISSUES (left) + UPCOMING RELEASES (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SprintHealthSection
+          <MyIssuesCard
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
             activeJiraProject={activeJiraProject ?? ''}
             storyPointsFieldKey={storyPointsFieldKey}
-            boardId={boardId}
-          />
-          <WeeklyTrendChart
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
-            jiraUsername={jiraUsername ?? ''}
-            tempoEnabled={tempoEnabled}
-          />
-        </div>
-
-        {/* Activity & Releases — two-column grid (D-16: DashboardReleaseCard relocated here) — DASH-05 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ActivityStrip
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
-            jiraUserKey={jiraUserKey ?? null}
-            activeJiraProject={activeJiraProject ?? ''}
-            jiraUsername={jiraUsername ?? null}
-            tempoEnabled={tempoEnabled}
-            gitlabBaseUrl={gitlabBaseUrl ?? ''}
-            gitlabToken={gitlabToken ?? ''}
-            activeGitlabProject={activeGitlabProject ?? 0}
-            gitlabUsername={gitlabUsername ?? null}
-            gitlabName={gitlabName ?? null}
-            gitlabEmail={gitlabEmail ?? null}
-          />
-          <DashboardReleaseCard
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
-            activeJiraProject={activeJiraProject ?? ''}
-          />
-        </div>
-
-        {/* Sprint Insights — INSIGHT-01 / INSIGHT-02
-            boardId from useBoardId (never hardcoded); activeSprintId from cache-deduped
-            fetchActiveSprint query (shares key with SprintHealthSection → zero extra network).
-            Each card owns its loading/error/empty state — one card's failure never affects
-            the other or any other Dashboard section (D-09 / T-85-04-03). */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <VelocityChart
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
             jiraUserDisplayName={jiraUserDisplayName ?? ''}
-            boardId={boardId}
-            storyPointsFieldKey={storyPointsFieldKey}
-            activeJiraProject={activeJiraProject ?? ''}
           />
-          <BurndownChart
+          <UpcomingReleasesTimeline
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
-            boardId={boardId}
-            activeSprintId={activeSprintId}
+            activeJiraProject={activeJiraProject ?? ''}
           />
         </div>
+
+        {/* Bottom row: PAST 7 DAYS chart — full-width (D-09/D-10/D-14) */}
+        <HoursCommitsChart
+          jiraBaseUrl={jiraBaseUrl ?? ''}
+          jiraToken={jiraToken ?? ''}
+          jiraUsername={jiraUsername ?? ''}
+          tempoEnabled={tempoEnabled}
+          gitlabBaseUrl={gitlabBaseUrl ?? ''}
+          gitlabToken={gitlabToken ?? ''}
+          activeGitlabProject={activeGitlabProject ?? 0}
+          gitlabUsername={gitlabUsername ?? null}
+          gitlabName={gitlabName ?? null}
+          gitlabEmail={gitlabEmail ?? null}
+        />
       </div>
     </div>
   );

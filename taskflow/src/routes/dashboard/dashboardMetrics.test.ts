@@ -1,38 +1,27 @@
 /**
- * dashboardMetrics.test.ts — Phase 83 DASH-02/03
+ * dashboardMetrics.test.ts — Phase 86 survivors only
  *
- * Unit tests for pure derivation functions in dashboardMetrics.ts.
- * MANDATED test (criterion-2 gate): parent(5 SP) + 2 subtasks(2 SP each) ⇒ 5, not 9.
+ * Tests for the two surviving exports: filterNonSubtasks and formatHoursMinutes.
+ * All other tests (computeSpDone, computeSpTotal, computePersonalTileCounts,
+ * getDaysRemaining, buildWeekBuckets, mergeActivityEntries, computeDonutData,
+ * computePersonalVelocitySeries, parseBurndownChanges, buildIdealGuideline) removed
+ * in Phase 86 alongside their source functions (D-01 clean slate).
  */
 import { describe, expect, it } from 'vitest';
 
-import {
-  buildIdealGuideline,
-  buildWeekBuckets,
-  computeDonutData,
-  computePersonalTileCounts,
-  computePersonalVelocitySeries,
-  computeSpDone,
-  computeSpTotal,
-  filterNonSubtasks,
-  formatHoursMinutes,
-  getDaysRemaining,
-  mergeActivityEntries,
-  parseBurndownChanges,
-} from './dashboardMetrics';
+import { filterNonSubtasks, formatHoursMinutes } from './dashboardMetrics';
 import type { JiraIssue } from '@/services/jira';
 
 const SP_KEY = 'customfield_10016';
 
 /**
- * Minimal JiraIssue factory — adapted from my-tasks-sort.test.ts pattern.
+ * Minimal JiraIssue factory.
  */
 function makeIssue(overrides: {
   subtask: boolean;
-  sp: number;
-  statusCategory: 'new' | 'indeterminate' | 'done';
+  sp?: number;
+  statusCategory?: 'new' | 'indeterminate' | 'done';
   assignee?: string | null;
-  duedate?: string | null;
 }): JiraIssue {
   return {
     id: '1',
@@ -42,7 +31,7 @@ function makeIssue(overrides: {
       status: {
         id: '1',
         name: 'Status',
-        statusCategory: { key: overrides.statusCategory },
+        statusCategory: { key: overrides.statusCategory ?? 'new' },
       },
       assignee:
         overrides.assignee === undefined
@@ -60,58 +49,11 @@ function makeIssue(overrides: {
         name: overrides.subtask ? 'Sub-task' : 'Story',
         subtask: overrides.subtask,
       },
-      duedate: overrides.duedate ?? null,
-      [SP_KEY]: overrides.sp,
+      duedate: null,
+      [SP_KEY]: overrides.sp ?? 0,
     },
   } as unknown as JiraIssue;
 }
-
-// ---------------------------------------------------------------------------
-// MANDATED criterion-2 gate — FIRST test in file
-// ---------------------------------------------------------------------------
-
-describe('computeSpDone — subtask exclusion (DASH-02, criterion 2)', () => {
-  it('excludes subtask SPs: parent(5) + sub(2) + sub(2) = 5, not 9', () => {
-    const parent = makeIssue({ subtask: false, sp: 5, statusCategory: 'done' });
-    const sub1 = makeIssue({ subtask: true, sp: 2, statusCategory: 'done' });
-    const sub2 = makeIssue({ subtask: true, sp: 2, statusCategory: 'done' });
-    expect(computeSpDone([parent, sub1, sub2], SP_KEY)).toBe(5);
-  });
-
-  it('returns 0 when no done non-subtask issues', () => {
-    const sub = makeIssue({ subtask: true, sp: 10, statusCategory: 'done' });
-    expect(computeSpDone([sub], SP_KEY)).toBe(0);
-  });
-
-  it('sums only done non-subtask SPs', () => {
-    const done = makeIssue({ subtask: false, sp: 3, statusCategory: 'done' });
-    const inprog = makeIssue({ subtask: false, sp: 5, statusCategory: 'indeterminate' });
-    expect(computeSpDone([done, inprog], SP_KEY)).toBe(3);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// computeSpTotal
-// ---------------------------------------------------------------------------
-
-describe('computeSpTotal', () => {
-  it('total SP excludes subtasks', () => {
-    const parent = makeIssue({ subtask: false, sp: 5, statusCategory: 'new' });
-    const sub = makeIssue({ subtask: true, sp: 2, statusCategory: 'new' });
-    expect(computeSpTotal([parent, sub], SP_KEY)).toBe(5);
-  });
-
-  it('sums all non-subtask SPs regardless of status', () => {
-    const a = makeIssue({ subtask: false, sp: 3, statusCategory: 'done' });
-    const b = makeIssue({ subtask: false, sp: 4, statusCategory: 'indeterminate' });
-    const c = makeIssue({ subtask: false, sp: 2, statusCategory: 'new' });
-    expect(computeSpTotal([a, b, c], SP_KEY)).toBe(9);
-  });
-
-  it('returns 0 for empty array', () => {
-    expect(computeSpTotal([], SP_KEY)).toBe(0);
-  });
-});
 
 // ---------------------------------------------------------------------------
 // filterNonSubtasks
@@ -119,573 +61,56 @@ describe('computeSpTotal', () => {
 
 describe('filterNonSubtasks', () => {
   it('drops every issue where issuetype.subtask is true', () => {
-    const parent = makeIssue({ subtask: false, sp: 5, statusCategory: 'new' });
-    const sub = makeIssue({ subtask: true, sp: 2, statusCategory: 'new' });
+    const parent = makeIssue({ subtask: false, sp: 5 });
+    const sub = makeIssue({ subtask: true, sp: 2 });
     expect(filterNonSubtasks([parent, sub])).toHaveLength(1);
     expect(filterNonSubtasks([parent, sub])[0]).toBe(parent);
   });
-});
 
-// ---------------------------------------------------------------------------
-// computePersonalTileCounts
-// ---------------------------------------------------------------------------
-
-describe('computePersonalTileCounts', () => {
-  const TODAY = '2026-06-15';
-  const ME = 'Alice';
-  const OTHER = 'Bob';
-
-  it('counts open: my non-done non-subtask issues', () => {
-    const myOpen = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: ME });
-    const myDone = makeIssue({ subtask: false, sp: 0, statusCategory: 'done', assignee: ME });
-    const otherOpen = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: OTHER });
-    const { open } = computePersonalTileCounts([myOpen, myDone, otherOpen], ME, TODAY);
-    expect(open).toBe(1);
+  it('returns all issues when none are subtasks', () => {
+    const a = makeIssue({ subtask: false });
+    const b = makeIssue({ subtask: false });
+    expect(filterNonSubtasks([a, b])).toHaveLength(2);
   });
 
-  it('counts inProgress: my non-subtask issues with statusCategory indeterminate', () => {
-    const myInprog = makeIssue({
-      subtask: false,
-      sp: 0,
-      statusCategory: 'indeterminate',
-      assignee: ME,
-    });
-    const myNew = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: ME });
-    const { inProgress } = computePersonalTileCounts([myInprog, myNew], ME, TODAY);
-    expect(inProgress).toBe(1);
+  it('returns empty array for empty input', () => {
+    expect(filterNonSubtasks([])).toHaveLength(0);
   });
 
-  it('counts overdue: my non-done non-subtask issues with duedate before today', () => {
-    const overdue = makeIssue({
-      subtask: false,
-      sp: 0,
-      statusCategory: 'new',
-      assignee: ME,
-      duedate: '2026-06-14',
-    });
-    const notOverdue = makeIssue({
-      subtask: false,
-      sp: 0,
-      statusCategory: 'new',
-      assignee: ME,
-      duedate: '2026-06-16',
-    });
-    const doneWithPastDue = makeIssue({
-      subtask: false,
-      sp: 0,
-      statusCategory: 'done',
-      assignee: ME,
-      duedate: '2026-06-01',
-    });
-    const { overdue: overdueCount } = computePersonalTileCounts(
-      [overdue, notOverdue, doneWithPastDue],
-      ME,
-      TODAY,
-    );
-    expect(overdueCount).toBe(1);
-  });
-
-  it('excludes issues assigned to other users', () => {
-    const other = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: OTHER });
-    const counts = computePersonalTileCounts([other], ME, TODAY);
-    expect(counts.open).toBe(0);
-    expect(counts.inProgress).toBe(0);
-    expect(counts.overdue).toBe(0);
-  });
-
-  it('excludes subtasks even if assigned to me', () => {
-    const mySub = makeIssue({ subtask: true, sp: 0, statusCategory: 'new', assignee: ME });
-    const counts = computePersonalTileCounts([mySub], ME, TODAY);
-    expect(counts.open).toBe(0);
-  });
-
-  it('returns all zeros for empty issue array', () => {
-    expect(computePersonalTileCounts([], ME, TODAY)).toEqual({
-      open: 0,
-      inProgress: 0,
-      overdue: 0,
-    });
+  it('filters out all subtasks when all are subtasks', () => {
+    const sub1 = makeIssue({ subtask: true });
+    const sub2 = makeIssue({ subtask: true });
+    expect(filterNonSubtasks([sub1, sub2])).toHaveLength(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// getDaysRemaining
+// formatHoursMinutes — burndown hours formatter (Probe C: timeestimate unit)
 // ---------------------------------------------------------------------------
 
-describe('getDaysRemaining', () => {
-  it('returns null when endDate is undefined', () => {
-    expect(getDaysRemaining(undefined)).toBeNull();
-  });
-
-  it('returns null for an invalid date string (NaN)', () => {
-    expect(getDaysRemaining('not-a-date')).toBeNull();
-  });
-
-  it('returns 0 when sprint ends today or earlier (ms <= 0)', () => {
-    // A date in the past — should be clamped to 0
-    expect(getDaysRemaining('2020-01-01')).toBe(0);
-  });
-
-  it('returns a positive integer for a future end date', () => {
-    // ~3.5 days from now — Math.ceil gives 4
-    const future = new Date(Date.now() + 3.5 * 24 * 60 * 60 * 1000).toISOString();
-    const result = getDaysRemaining(future);
-    expect(result).not.toBeNull();
-    expect(result).toBeGreaterThan(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 84 — buildWeekBuckets
-// ---------------------------------------------------------------------------
-
-describe('Phase 84 — buildWeekBuckets', () => {
-  // Criterion 1 mandated unit test — timezone-safe bucketing.
-  // fetchWorklogs already normalizes dateStarted to YYYY-MM-DD; this tests the post-normalization path.
-  // The pre-normalized raw value would have been '2026-06-14T23:00:00' — which a naive
-  // new Date(...).toISOString().slice(0,10) in UTC+1 or later would shift to 2026-06-15.
-  it('timezone-safe: dateStarted "2026-06-14" (pre-normalized from "2026-06-14T23:00:00") buckets correctly', () => {
-    // weekStart '2026-06-10' = Monday; 2026-06-14 = Friday (index 4, +4 days from Mon).
-    // A naive new Date('2026-06-14T23:00:00').toISOString().slice(0,10) in UTC+1 or later
-    // would shift to 2026-06-15, causing the Friday bucket to be missed.
-    // fetchWorklogs pre-normalizes dateStarted to YYYY-MM-DD; this tests the post-normalization path.
-    const worklogs = [
-      { dateStarted: '2026-06-14', timeSpentSeconds: 3600 },
-    ] as import('@/services/tempo/types').TempoWorklog[];
-    const buckets = buildWeekBuckets(worklogs, '2026-06-10'); // Mon 2026-06-10 → Fri 2026-06-14
-    const friday = buckets.find((b) => b.day === '2026-06-14');
-    expect(friday?.hours).toBe(1); // criterion 1: must be 1, not 0 due to timezone shift
-  });
-
-  it('future days this week render as 0-hour buckets (empty array → 5 zero-filled buckets)', () => {
-    const buckets = buildWeekBuckets([], '2026-06-10');
-    expect(buckets).toHaveLength(5);
-    expect(buckets.every((b) => b.hours === 0)).toBe(true);
-  });
-
-  it('returns labels Mon–Fri in order', () => {
-    const buckets = buildWeekBuckets([], '2026-06-10');
-    expect(buckets.map((b) => b.label)).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
-  });
-
-  it('same-day accumulation: two 3600s worklogs on Mon → hours === 2', () => {
-    // weekStart 2026-06-10 = Monday; both worklogs on Mon
-    const worklogs = [
-      { dateStarted: '2026-06-10', timeSpentSeconds: 3600 },
-      { dateStarted: '2026-06-10', timeSpentSeconds: 3600 },
-    ] as import('@/services/tempo/types').TempoWorklog[];
-    const buckets = buildWeekBuckets(worklogs, '2026-06-10');
-    const monday = buckets.find((b) => b.day === '2026-06-10');
-    expect(monday?.hours).toBe(2);
-  });
-
-  it('ignores worklogs outside Mon–Fri window', () => {
-    // 2026-06-08 is Sunday — before the week starting 2026-06-10
-    const worklogs = [
-      { dateStarted: '2026-06-08', timeSpentSeconds: 7200 },
-    ] as import('@/services/tempo/types').TempoWorklog[];
-    const buckets = buildWeekBuckets(worklogs, '2026-06-10');
-    expect(buckets.every((b) => b.hours === 0)).toBe(true);
-  });
-
-  it('fractional hours: 5400s = 1.5h', () => {
-    // weekStart 2026-06-10 = Mon; Tue = 2026-06-11
-    const worklogs = [
-      { dateStarted: '2026-06-11', timeSpentSeconds: 5400 }, // Tuesday
-    ] as import('@/services/tempo/types').TempoWorklog[];
-    const buckets = buildWeekBuckets(worklogs, '2026-06-10');
-    const tuesday = buckets.find((b) => b.day === '2026-06-11');
-    expect(tuesday?.hours).toBeCloseTo(1.5);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 84 — mergeActivityEntries
-// ---------------------------------------------------------------------------
-
-function makeJiraItem(overrides: {
-  issueKey: string;
-  transitionAts: string[];
-}): import('@/services/jira').JiraActivityItem {
-  return {
-    issueKey: overrides.issueKey,
-    summary: `Issue ${overrides.issueKey}`,
-    transitions: overrides.transitionAts.map((at) => ({
-      fromStatus: 'To Do',
-      toStatus: 'In Progress',
-      at,
-    })),
-    comments: [],
-  } as import('@/services/jira').JiraActivityItem;
-}
-
-function makeCommit(overrides: {
-  id: string;
-  authoredDate: string;
-}): import('@/services/gitlab').GitLabCommit {
-  return {
-    id: overrides.id,
-    short_id: overrides.id.slice(0, 8),
-    title: `Commit ${overrides.id}`,
-    message: `Commit ${overrides.id}`,
-    author_name: 'Developer',
-    author_email: 'dev@example.com',
-    authored_date: overrides.authoredDate,
-    web_url: `https://gitlab.example.com/commit/${overrides.id}`,
-  } as import('@/services/gitlab').GitLabCommit;
-}
-
-describe('Phase 84 — mergeActivityEntries', () => {
-  it('newest-first ordering: commit at 12:00 comes before jira at 10:00', () => {
-    const jiraItem = makeJiraItem({ issueKey: 'PROJ-1', transitionAts: ['2026-06-14T10:00:00'] });
-    const commit = makeCommit({ id: 'abc123', authoredDate: '2026-06-14T12:00:00' });
-    const entries = mergeActivityEntries([jiraItem], [commit], 5);
-    expect(entries).toHaveLength(2);
-    expect(entries[0].type).toBe('commit');
-    expect(entries[0].at).toBe('2026-06-14T12:00:00');
-    expect(entries[1].type).toBe('jira');
-    expect(entries[1].at).toBe('2026-06-14T10:00:00');
-  });
-
-  it('multi-transition flatMap: one Jira item with 2 transitions → 2 entries', () => {
-    const jiraItem = makeJiraItem({
-      issueKey: 'PROJ-2',
-      transitionAts: ['2026-06-14T09:00:00', '2026-06-14T11:00:00'],
-    });
-    const entries = mergeActivityEntries([jiraItem], [], 10);
-    expect(entries).toHaveLength(2);
-    expect(entries.every((e) => e.type === 'jira')).toBe(true);
-    // Newest first
-    expect(entries[0].at).toBe('2026-06-14T11:00:00');
-    expect(entries[1].at).toBe('2026-06-14T09:00:00');
-  });
-
-  it('cap is respected: 10 inputs with cap 5 → length 5', () => {
-    const items = Array.from({ length: 5 }, (_, i) =>
-      makeJiraItem({ issueKey: `PROJ-${i}`, transitionAts: [`2026-06-14T0${i}:00:00`] }),
-    );
-    const commits = Array.from({ length: 5 }, (_, i) =>
-      makeCommit({ id: `commit${i}`, authoredDate: `2026-06-14T1${i}:00:00` }),
-    );
-    const entries = mergeActivityEntries(items, commits, 5);
-    expect(entries).toHaveLength(5);
-  });
-
-  it('mergeActivityEntries([], [], 5) → []', () => {
-    expect(mergeActivityEntries([], [], 5)).toHaveLength(0);
-  });
-
-  it('entries with no transitions contribute nothing', () => {
-    const jiraItem = makeJiraItem({ issueKey: 'PROJ-3', transitionAts: [] });
-    const commit = makeCommit({ id: 'xyz', authoredDate: '2026-06-14T08:00:00' });
-    const entries = mergeActivityEntries([jiraItem], [commit], 10);
-    expect(entries).toHaveLength(1);
-    expect(entries[0].type).toBe('commit');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// computeDonutData
-// ---------------------------------------------------------------------------
-
-describe('computeDonutData', () => {
-  it('returns 3 segments when all statusCategories have SP', () => {
-    const todo = makeIssue({ subtask: false, sp: 2, statusCategory: 'new' });
-    const inprog = makeIssue({ subtask: false, sp: 3, statusCategory: 'indeterminate' });
-    const done = makeIssue({ subtask: false, sp: 5, statusCategory: 'done' });
-    const segments = computeDonutData([todo, inprog, done], SP_KEY);
-    expect(segments).toHaveLength(3);
-    const names = segments.map((s) => s.name);
-    expect(names).toContain('todo');
-    expect(names).toContain('inProgress');
-    expect(names).toContain('done');
-  });
-
-  it('excludes zero-SP categories from output', () => {
-    const done = makeIssue({ subtask: false, sp: 5, statusCategory: 'done' });
-    // No 'new' or 'indeterminate' SP issues
-    const segments = computeDonutData([done], SP_KEY);
-    expect(segments).toHaveLength(1);
-    expect(segments[0].name).toBe('done');
-  });
-
-  it('excludes subtask SPs from donut totals', () => {
-    const parent = makeIssue({ subtask: false, sp: 4, statusCategory: 'done' });
-    const sub = makeIssue({ subtask: true, sp: 10, statusCategory: 'done' });
-    const segments = computeDonutData([parent, sub], SP_KEY);
-    const doneSeg = segments.find((s) => s.name === 'done');
-    expect(doneSeg?.value).toBe(4); // not 14
-  });
-
-  it('uses CSS-var fills — no hardcoded hex', () => {
-    const issue = makeIssue({ subtask: false, sp: 1, statusCategory: 'new' });
-    const segments = computeDonutData([issue], SP_KEY);
-    expect(segments[0].fill).toMatch(/^var\(--chart-\d+\)$/);
-  });
-
-  it('returns empty array when sprint has no story points', () => {
-    expect(computeDonutData([], SP_KEY)).toHaveLength(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 85 — computePersonalVelocitySeries (INSIGHT-01)
-// ---------------------------------------------------------------------------
-
-describe('computePersonalVelocitySeries', () => {
-  const ME = 'Alice';
-
-  it('selects last N sprints from ascending list (tail-first ordering)', () => {
-    // Build 10 sprints ascending (ids 1–10). The fetcher (85-02) slices(-6) to get the tail.
-    // This test encodes the Probe A guard: the chart must show sprints 5–10, not 1–6.
-    const tenSprints = Array.from({ length: 10 }, (_, i) => ({
-      id: i + 1,
-      name: `Sprint ${i + 1}`,
-      state: 'closed' as const,
-    }));
-    // Simulate the 85-02 fetcher's tail selection (the fn itself must NOT reorder)
-    const tail = tenSprints.slice(-6);
-    const series = computePersonalVelocitySeries(tail, new Map(), ME, SP_KEY);
-    expect(series.map((p) => p.sprintName)).toEqual([
-      'Sprint 5',
-      'Sprint 6',
-      'Sprint 7',
-      'Sprint 8',
-      'Sprint 9',
-      'Sprint 10',
-    ]);
-  });
-
-  it('excludes subtask SP from committed and completed velocity sums (subtask exclusion)', () => {
-    // parent(5,done,Alice) + 2 subtasks(2,done,Alice) → committed=5, completed=5 (not 9)
-    const parent = makeIssue({ subtask: false, sp: 5, statusCategory: 'done', assignee: ME });
-    const sub1 = makeIssue({ subtask: true, sp: 2, statusCategory: 'done', assignee: ME });
-    const sub2 = makeIssue({ subtask: true, sp: 2, statusCategory: 'done', assignee: ME });
-    const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
-    const issueMap = new Map([[1, [parent, sub1, sub2]]]);
-    const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
-    expect(series[0].committed).toBe(5); // not 9
-    expect(series[0].completed).toBe(5); // not 9
-  });
-
-  it('excludes other users from personal velocity sums', () => {
-    // Alice(8,done) + Bob(10,done) → committed=8, completed=8 (Bob excluded)
-    const mine = makeIssue({ subtask: false, sp: 8, statusCategory: 'done', assignee: ME });
-    const other = makeIssue({ subtask: false, sp: 10, statusCategory: 'done', assignee: 'Bob' });
-    const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
-    const issueMap = new Map([[1, [mine, other]]]);
-    const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
-    expect(series[0].committed).toBe(8); // Bob's 10 SP excluded
-    expect(series[0].completed).toBe(8);
-  });
-
-  it('qualifying sprints filter: a sprint with 0 committed+completed is not qualifying', () => {
-    // 3 sprints: 2 with SP, 1 with sp:0 → only 2 qualifying → below 3-sprint D-06 threshold
-    const withSP = makeIssue({ subtask: false, sp: 3, statusCategory: 'done', assignee: ME });
-    const noSP = makeIssue({ subtask: false, sp: 0, statusCategory: 'done', assignee: ME });
-    const sprints = [
-      { id: 1, name: 'Sprint 1', state: 'closed' as const },
-      { id: 2, name: 'Sprint 2', state: 'closed' as const },
-      { id: 3, name: 'Sprint 3', state: 'closed' as const },
-    ];
-    const issueMap = new Map([
-      [1, [withSP]],
-      [2, [withSP]],
-      [3, [noSP]],
-    ]);
-    const series = computePersonalVelocitySeries(sprints, issueMap, ME, SP_KEY);
-    const qualifying = series.filter((p) => p.committed > 0 || p.completed > 0);
-    expect(qualifying.length).toBe(2); // below 3-sprint threshold → D-06 hide
-  });
-
-  it('committed vs completed: committed counts all my issues, completed only done', () => {
-    // Alice done(3) + Alice indeterminate(5) → committed=8, completed=3
-    const done = makeIssue({ subtask: false, sp: 3, statusCategory: 'done', assignee: ME });
-    const inprog = makeIssue({
-      subtask: false,
-      sp: 5,
-      statusCategory: 'indeterminate',
-      assignee: ME,
-    });
-    const sprint = { id: 1, name: 'Sprint 1', state: 'closed' as const };
-    const issueMap = new Map([[1, [done, inprog]]]);
-    const series = computePersonalVelocitySeries([sprint], issueMap, ME, SP_KEY);
-    expect(series[0].committed).toBe(8); // all my issues
-    expect(series[0].completed).toBe(3); // only done
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 85 — parseBurndownChanges (INSIGHT-02)
-// ---------------------------------------------------------------------------
-
-describe('parseBurndownChanges', () => {
-  it('reconstructs remaining-work from cumulative scope-change deltas (concrete values)', () => {
-    const changes = {
-      // Issue added mid-sprint with an 8h (28800s) estimate → remaining rises to 28800.
-      '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
-      // Same issue completed (estimate → 0) → remaining falls back to 0.
-      '2000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
-    };
-    const points = parseBurndownChanges(changes, 500);
-
-    // Ascending timestamps including the startTime anchor.
-    expect(points.map((p) => p.t)).toEqual([500, 1000, 2000]);
-    // Pin the actual reconstructed remaining curve: 0 → 28800 → 0 (cumulative delta model).
-    expect(points.map((p) => p.remaining)).toEqual([0, 28800, 0]);
-  });
-
-  it('clamps negative running totals to zero (T-85-01)', () => {
-    const changes = {
-      // A spurious over-decrement (more removed than ever added) must not go negative.
-      '1000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
-    };
-    const points = parseBurndownChanges(changes, 500);
-    expect(points.map((p) => p.remaining)).toEqual([0, 0]);
-    expect(points.every((p) => p.remaining >= 0)).toBe(true);
-  });
-
-  it('no longer carries the ideal on the actual series (moved to buildIdealGuideline)', () => {
-    const changes = {
-      '1000': [{ key: 'PROJ-1', timeC: { oldEstimate: 0, newEstimate: 28800 } }],
-    };
-    const points = parseBurndownChanges(changes, 500, 2500);
-    expect(points.every((p) => p.ideal === undefined)).toBe(true);
-  });
-
-  it('does not throw on null/undefined input — returns the anchor only', () => {
-    const fallback = parseBurndownChanges(undefined as never, 500);
-    expect(fallback).toEqual([{ t: 500, remaining: 0 }]);
-  });
-
-  // UAT-4 regression (2026-06-15): live Jira DC carries timeestimate deltas under
-  // `timeC: { oldEstimate, newEstimate }`, NOT `statC`. The original parser read only
-  // statC → every delta was 0 → flat-zero "blank" burndown. Guard the live shape.
-  it('burns down from the live timeC shape (oldEstimate/newEstimate, seconds)', () => {
-    const changes = {
-      // Scope added: remaining estimate rises 0 → 28800 (8h).
-      '1000': [{ key: 'ESHOP-1', timeC: { oldEstimate: 0, newEstimate: 28800, timeSpent: 0 } }],
-      // Work logged, estimate cut to 0 → remaining falls back to 0.
-      '2000': [{ key: 'ESHOP-1', timeC: { oldEstimate: 28800, newEstimate: 0, timeSpent: 28800 } }],
-    };
-    const points = parseBurndownChanges(changes, 500);
-    expect(points.map((p) => p.t)).toEqual([500, 1000, 2000]);
-    // Non-flat curve — the bug produced [0, 0, 0]; the fix yields the true rise/fall.
-    expect(points.map((p) => p.remaining)).toEqual([0, 28800, 0]);
-  });
-
-  it('ignores informational timeSpent and tolerates a zero-estimate worklog (live sample row)', () => {
-    // The exact ESHOP-13731 row from the live probe: a pure worklog on a no-estimate issue
-    // contributes 0 to remaining (newEstimate - oldEstimate = 0), never the timeSpent value.
-    const changes = {
-      '1738108800000': [
-        { key: 'ESHOP-13731', timeC: { oldEstimate: 0, newEstimate: 0, timeSpent: 1800 } },
-      ],
-    };
-    const points = parseBurndownChanges(changes, 1738108800000 - 1000);
-    expect(points.map((p) => p.remaining)).toEqual([0, 0]);
-  });
-
-  it('still parses the statC fallback for non-time statistics (story points)', () => {
-    const changes = {
-      '1000': [{ key: 'PROJ-1', statC: { newValue: 13, oldValue: 0 }, added: true }],
-    };
-    const points = parseBurndownChanges(changes, 500);
-    expect(points.map((p) => p.remaining)).toEqual([0, 13]);
-  });
-
-  // UAT-4b regression (2026-06-15): .changes carries each issue's full estimate history
-  // (a year+ of pre-sprint edits). Those must fold into the baseline at startTime — NOT
-  // appear as a long pre-sprint tail on the x-axis. Only [startTime, endTime] is plotted.
-  it('folds pre-start history into the baseline and plots only the sprint window', () => {
-    const changes = {
-      // A year before the sprint: issue accrues a 28800s (8h) estimate. Baseline, not a point.
-      '1000': [{ key: 'OLD-1', timeC: { oldEstimate: 0, newEstimate: 28800 } }],
-      '2000': [{ key: 'OLD-1', timeC: { oldEstimate: 28800, newEstimate: 14400 } }],
-      // In-window: more scope added, then burned down.
-      '6000': [{ key: 'NEW-1', timeC: { oldEstimate: 0, newEstimate: 7200 } }],
-      '7000': [{ key: 'NEW-1', timeC: { oldEstimate: 7200, newEstimate: 0 } }],
-      // After sprint end — excluded from the window.
-      '9000': [{ key: 'NEW-1', timeC: { oldEstimate: 0, newEstimate: 99999 } }],
-    };
-    const points = parseBurndownChanges(changes, 5000, 8000);
-    // No point before startTime; pre-start deltas (14400 net) fold into the start anchor.
-    expect(points.map((p) => p.t)).toEqual([5000, 6000, 7000]);
-    expect(points[0].remaining).toBe(14400); // baseline = committed scope at sprint start
-    expect(points.map((p) => p.remaining)).toEqual([14400, 21600, 14400]);
-    // Post-endTime change (9000) is not plotted.
-    expect(points.some((p) => p.t === 9000)).toBe(false);
-  });
-
-  it('merges a change landing exactly on startTime into the anchor (no duplicate point)', () => {
-    const changes = {
-      '1000': [{ key: 'A', timeC: { oldEstimate: 0, newEstimate: 3600 } }], // pre-start baseline
-      '5000': [{ key: 'B', timeC: { oldEstimate: 0, newEstimate: 3600 } }], // exactly at startTime
-    };
-    const points = parseBurndownChanges(changes, 5000);
-    expect(points.map((p) => p.t)).toEqual([5000]);
-    expect(points[0].remaining).toBe(7200); // baseline 3600 + the startTime change 3600
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 85 — buildIdealGuideline (UAT-4d: dashed ideal, flat across weekends)
-// ---------------------------------------------------------------------------
-
-describe('buildIdealGuideline', () => {
-  // Use a known Mon–Fri week. 2026-06-15 is a Monday (local).
-  const MON = new Date(2026, 5, 15, 9, 0, 0).getTime(); // Mon 09:00
-  const DAY = 86_400_000;
-
-  it('anchors at peak on the start and reaches 0 at endTime', () => {
-    const FRI = new Date(2026, 5, 19, 17, 0, 0).getTime(); // Fri 17:00, same week
-    const series = buildIdealGuideline(28800, MON, FRI);
-    expect(series[0]).toMatchObject({ t: MON, ideal: 28800 });
-    expect(series[series.length - 1]).toMatchObject({ t: FRI, ideal: 0 });
-    // Monotonically non-increasing ideal across the whole series.
-    for (let i = 1; i < series.length; i++) {
-      // biome-ignore lint/style/noNonNullAssertion: every point in the series carries ideal
-      expect(series[i].ideal! <= series[i - 1].ideal! + 1e-9).toBe(true);
-    }
-  });
-
-  it('stays FLAT across the weekend — Sat and Sun share the same ideal', () => {
-    // Two-week window Mon 15th → Fri 26th. Working days = 10 (two Mon–Fri runs).
-    const FRI_W2 = new Date(2026, 5, 26, 17, 0, 0).getTime();
-    const series = buildIdealGuideline(28800, MON, FRI_W2);
-    const anchor = (y: number, m: number, d: number) =>
-      series.find((p) => {
-        const dt = new Date(p.t);
-        return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d;
-      })?.ideal;
-    const fri = anchor(2026, 5, 19); // Fri 19th anchor (4 working days elapsed → 17280)
-    const sat = anchor(2026, 5, 20); // Sat 20th
-    const sun = anchor(2026, 5, 21); // Sun 21st
-    const tue = anchor(2026, 5, 23); // Tue 23rd — work resumed
-    // Friday's working-day burn lands at the Sat anchor: 28800*(1-5/10)=14400, then HELD flat.
-    expect(sat).toBeCloseTo(14400, 5);
-    expect(sun).toBe(sat); // flat across the weekend — the whole point
-    expect(fri).toBeGreaterThan(sat ?? 0); // a working-day step happened before the weekend
-    expect(tue).toBeLessThan(sat ?? 0); // and burns down again after it
-  });
-
-  it('returns [] when there is no usable window or no committed scope', () => {
-    expect(buildIdealGuideline(28800, MON)).toEqual([]); // no endTime
-    expect(buildIdealGuideline(28800, MON, MON - DAY)).toEqual([]); // endTime ≤ start
-    expect(buildIdealGuideline(0, MON, MON + DAY)).toEqual([]); // no scope
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Phase 85 — formatHoursMinutes burndown hours formatter (Probe C: timeestimate unit)
-// ---------------------------------------------------------------------------
-
-describe('formatHoursMinutes — burndown hours suffix', () => {
-  it('burndown hours formatter emits an h/m suffix, never SP', () => {
+describe('formatHoursMinutes', () => {
+  it('formats 1.5h as "1h 30m"', () => {
     expect(formatHoursMinutes(1.5)).toBe('1h 30m');
+  });
+
+  it('formats 8h as "8h" (no minutes when 0)', () => {
     expect(formatHoursMinutes(8)).toBe('8h');
+  });
+
+  it('formats 0.25h as "15m"', () => {
     expect(formatHoursMinutes(0.25)).toBe('15m');
-    // Must never contain 'SP' — burndown unit is hours (Probe C: statisticField=timeestimate)
+  });
+
+  it('burndown hours formatter emits an h/m suffix, never SP', () => {
     expect(formatHoursMinutes(8)).not.toMatch(/SP/);
+  });
+
+  it('formats 0h as "0m"', () => {
+    expect(formatHoursMinutes(0)).toBe('0m');
+  });
+
+  it('rounds to the nearest minute', () => {
+    // 1.5083... hours = 1h 30.5m → rounds to 1h 31m
+    expect(formatHoursMinutes(1 + 30.5 / 60)).toBe('1h 31m');
   });
 });
