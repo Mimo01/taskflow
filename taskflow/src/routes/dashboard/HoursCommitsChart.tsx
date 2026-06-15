@@ -282,6 +282,7 @@ export default function HoursCommitsChart({
   const totalHours = dayBuckets.reduce((sum, b) => sum + b.hours, 0);
   const totalCommits = dayBuckets.reduce((sum, b) => sum + b.commits, 0);
   const maxHours = Math.max(...dayBuckets.map((b) => b.hours), 0);
+  const maxCommits = Math.max(...dayBuckets.map((b) => b.commits), 0);
 
   // Today's weekday label (for TodayAwareTick)
   const todayLabel = new Date(`${todayDate}T12:00:00`).toLocaleDateString('en-US', {
@@ -328,7 +329,7 @@ export default function HoursCommitsChart({
           <div className="flex items-center gap-4 text-sm tabular-nums text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span
-                className="size-2.5 rounded-sm"
+                className="size-2.5 rounded-[2px]"
                 style={{ backgroundColor: HOURS_COLOR }}
                 aria-hidden
               />
@@ -336,7 +337,7 @@ export default function HoursCommitsChart({
             </span>
             <span className="flex items-center gap-1.5">
               <span
-                className="size-2.5 rounded-sm"
+                className="size-2.5 rounded-[2px]"
                 style={{ backgroundColor: COMMITS_COLOR }}
                 aria-hidden
               />
@@ -429,20 +430,56 @@ export default function HoursCommitsChart({
                 </ComposedChart>
               </ChartContainer>
             </div>
-            {/* Commits per day — below the graph, one value per column (aligned to the 7 bars) */}
-            <div
-              className="mt-2 flex items-center border-t border-border/40 pt-2 pr-2"
-              style={{ paddingLeft: 36 }}
-            >
-              {dayBuckets.map((b) => (
-                <div
-                  key={b.day}
-                  className="flex-1 text-center text-xs font-medium tabular-nums"
-                  style={{ color: COMMITS_COLOR }}
+            {/* Commits per day — separate single-series green bar chart below the hours graph
+                (not a dual-axis 2-bar chart). YAxis kept (tickless) at width 36 so its plot
+                area aligns horizontally with the hours chart above. */}
+            <div style={{ height: 96 }} className="w-full">
+              <ChartContainer
+                config={chartConfig}
+                className="h-full w-full"
+                aria-label="Commits per day bar chart"
+              >
+                <ComposedChart
+                  data={dayBuckets}
+                  responsive
+                  margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
                 >
-                  {b.commits}
-                </div>
-              ))}
+                  <XAxis dataKey="label" hide />
+                  <YAxis
+                    yAxisId="commits"
+                    width={36}
+                    tick={false}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={[0, maxCommits > 0 ? maxCommits : 1]}
+                  />
+                  <Bar
+                    yAxisId="commits"
+                    dataKey="commits"
+                    fill={COMMITS_COLOR}
+                    radius={[4, 4, 0, 0]}
+                    isAnimationActive={false}
+                    minPointSize={1}
+                  >
+                    {dayBuckets.map((b) => (
+                      <Cell
+                        key={b.day}
+                        fill={COMMITS_COLOR}
+                        stroke={b.isToday ? 'var(--foreground)' : undefined}
+                        strokeWidth={b.isToday ? 2 : 0}
+                      />
+                    ))}
+                    {/* Actual commit count above each bar; '0' for zero days (D-12) */}
+                    <LabelList
+                      dataKey="commits"
+                      position="top"
+                      fontSize={12}
+                      fill="var(--muted-foreground)"
+                      formatter={(v: unknown) => String(Number.isFinite(Number(v)) ? Number(v) : 0)}
+                    />
+                  </Bar>
+                </ComposedChart>
+              </ChartContainer>
             </div>
           </div>
         )}
