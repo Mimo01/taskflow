@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: executing
-stopped_at: Phase 83 UI-SPEC approved
+status: ready
+stopped_at: Phase 83 complete
 last_updated: "2026-06-15T11:25:20.024Z"
 last_activity: 2026-06-15
 progress:
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 83 — dashboard-stat-tiles-and-sprint-health-chart
+**Current focus:** Phase 84 — dashboard-trend-chart, mr-review-queue, and activity-strip
 
 ## Current Position
 
 Phase: 84
 Plan: Not started
-Status: Executing Phase 83
+Status: Phase 83 complete — ready to plan Phase 84
 Last activity: 2026-06-15
 
 Progress: [██████████] 100%
