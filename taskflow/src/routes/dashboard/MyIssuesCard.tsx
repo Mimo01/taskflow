@@ -59,15 +59,11 @@ export default function MyIssuesCard({
     (i) => i.fields.assignee?.displayName === jiraUserDisplayName,
   );
 
-  const toDo = myNonSubtasks.filter(
-    (i) => i.fields.status.statusCategory?.key === 'new',
-  ).length;
+  const toDo = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'new').length;
   const inProgress = myNonSubtasks.filter(
     (i) => i.fields.status.statusCategory?.key === 'indeterminate',
   ).length;
-  const done = myNonSubtasks.filter(
-    (i) => i.fields.status.statusCategory?.key === 'done',
-  ).length;
+  const done = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
   const total = myNonSubtasks.length;
   // D-03 invariant: toDo + inProgress + done === total (unknown keys fall through — T-86-03)
 
@@ -119,7 +115,10 @@ export default function MyIssuesCard({
               aria-label={`Sprint progress: ${toDo} to do, ${inProgress} in progress, ${done} done`}
               className="h-2 rounded-full overflow-hidden bg-muted flex"
             >
-              <div className="bg-muted-foreground/40" style={{ width: `${(toDo / total) * 100}%` }} />
+              <div
+                className="bg-muted-foreground/40"
+                style={{ width: `${(toDo / total) * 100}%` }}
+              />
               <div className="bg-chart-1" style={{ width: `${(inProgress / total) * 100}%` }} />
               <div className="bg-chart-2" style={{ width: `${(done / total) * 100}%` }} />
             </div>
