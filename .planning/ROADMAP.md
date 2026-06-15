@@ -472,7 +472,7 @@ Wave 2 (blocked on Wave 1):
 
 **Wave 1**
 
-- [ ] 84-01-PLAN.md — dashboardMetrics.ts pure seams (buildWeekBuckets timezone-safe, mergeActivityEntries, groupMrsByRole) + mandated tests
+- [x] 84-01-PLAN.md — dashboardMetrics.ts pure seams (buildWeekBuckets timezone-safe, mergeActivityEntries, groupMrsByRole) + mandated tests
 
 **Wave 2** *(parallel — no file overlap; both depend on 84-01)*
 
@@ -527,5 +527,5 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 3/3 | Complete    | 2026-06-15 |
-| 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/4 | Planned | - |
+| 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 1/4 | In Progress|  |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
