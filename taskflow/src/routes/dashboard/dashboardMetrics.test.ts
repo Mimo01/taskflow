@@ -7,12 +7,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildWeekBuckets,
   computeDonutData,
   computePersonalTileCounts,
   computeSpDone,
   computeSpTotal,
   filterNonSubtasks,
   getDaysRemaining,
+  groupMrsByRole,
+  mergeActivityEntries,
 } from './dashboardMetrics';
 import type { JiraIssue } from '@/services/jira';
 
@@ -226,6 +229,225 @@ describe('getDaysRemaining', () => {
     const result = getDaysRemaining(future);
     expect(result).not.toBeNull();
     expect(result).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 84 — buildWeekBuckets
+// ---------------------------------------------------------------------------
+
+describe('Phase 84 — buildWeekBuckets', () => {
+  // Criterion 1 mandated unit test — timezone-safe bucketing.
+  // fetchWorklogs already normalizes dateStarted to YYYY-MM-DD; this tests the post-normalization path.
+  // The pre-normalized raw value would have been '2026-06-14T23:00:00' — which a naive
+  // new Date(...).toISOString().slice(0,10) in UTC+1 or later would shift to 2026-06-15.
+  it('timezone-safe: dateStarted "2026-06-14" (pre-normalized from "2026-06-14T23:00:00") buckets correctly', () => {
+    // weekStart '2026-06-10' = Monday; 2026-06-14 = Friday (index 4, +4 days from Mon).
+    // A naive new Date('2026-06-14T23:00:00').toISOString().slice(0,10) in UTC+1 or later
+    // would shift to 2026-06-15, causing the Friday bucket to be missed.
+    // fetchWorklogs pre-normalizes dateStarted to YYYY-MM-DD; this tests the post-normalization path.
+    const worklogs = [
+      { dateStarted: '2026-06-14', timeSpentSeconds: 3600 },
+    ] as import('@/services/tempo/types').TempoWorklog[];
+    const buckets = buildWeekBuckets(worklogs, '2026-06-10'); // Mon 2026-06-10 → Fri 2026-06-14
+    const friday = buckets.find((b) => b.day === '2026-06-14');
+    expect(friday?.hours).toBe(1); // criterion 1: must be 1, not 0 due to timezone shift
+  });
+
+  it('future days this week render as 0-hour buckets (empty array → 5 zero-filled buckets)', () => {
+    const buckets = buildWeekBuckets([], '2026-06-10');
+    expect(buckets).toHaveLength(5);
+    expect(buckets.every((b) => b.hours === 0)).toBe(true);
+  });
+
+  it('returns labels Mon–Fri in order', () => {
+    const buckets = buildWeekBuckets([], '2026-06-10');
+    expect(buckets.map((b) => b.label)).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  });
+
+  it('same-day accumulation: two 3600s worklogs on Mon → hours === 2', () => {
+    // weekStart 2026-06-10 = Monday; both worklogs on Mon
+    const worklogs = [
+      { dateStarted: '2026-06-10', timeSpentSeconds: 3600 },
+      { dateStarted: '2026-06-10', timeSpentSeconds: 3600 },
+    ] as import('@/services/tempo/types').TempoWorklog[];
+    const buckets = buildWeekBuckets(worklogs, '2026-06-10');
+    const monday = buckets.find((b) => b.day === '2026-06-10');
+    expect(monday?.hours).toBe(2);
+  });
+
+  it('ignores worklogs outside Mon–Fri window', () => {
+    // 2026-06-08 is Sunday — before the week starting 2026-06-10
+    const worklogs = [
+      { dateStarted: '2026-06-08', timeSpentSeconds: 7200 },
+    ] as import('@/services/tempo/types').TempoWorklog[];
+    const buckets = buildWeekBuckets(worklogs, '2026-06-10');
+    expect(buckets.every((b) => b.hours === 0)).toBe(true);
+  });
+
+  it('fractional hours: 5400s = 1.5h', () => {
+    // weekStart 2026-06-10 = Mon; Tue = 2026-06-11
+    const worklogs = [
+      { dateStarted: '2026-06-11', timeSpentSeconds: 5400 }, // Tuesday
+    ] as import('@/services/tempo/types').TempoWorklog[];
+    const buckets = buildWeekBuckets(worklogs, '2026-06-10');
+    const tuesday = buckets.find((b) => b.day === '2026-06-11');
+    expect(tuesday?.hours).toBeCloseTo(1.5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 84 — groupMrsByRole
+// ---------------------------------------------------------------------------
+
+function makeMR(overrides: {
+  iid: number;
+  authorId: number;
+  reviewerIds?: number[];
+}): import('@/services/gitlab').GitLabMR {
+  return {
+    id: overrides.iid,
+    iid: overrides.iid,
+    project_id: 1,
+    title: `MR-${overrides.iid}`,
+    source_branch: 'feature',
+    state: 'opened',
+    author: { id: overrides.authorId, name: 'Author', username: 'author', avatar_url: '' },
+    reviewers: (overrides.reviewerIds ?? []).map((id) => ({
+      id,
+      name: `User ${id}`,
+      username: `user${id}`,
+    })),
+    updated_at: '2026-06-14T10:00:00Z',
+    web_url: `https://gitlab.example.com/mr/${overrides.iid}`,
+    labels: [],
+    milestone: null,
+  } as import('@/services/gitlab').GitLabMR;
+}
+
+describe('Phase 84 — groupMrsByRole', () => {
+  const MY_ID = 42;
+
+  it('non-overlap: MR authored AND reviewed by userId appears only in myOpen', () => {
+    const selfMr = makeMR({ iid: 1, authorId: MY_ID, reviewerIds: [MY_ID] });
+    const { awaitingReview, myOpen } = groupMrsByRole([selfMr], MY_ID);
+    expect(myOpen).toHaveLength(1);
+    expect(awaitingReview).toHaveLength(0);
+  });
+
+  it('basic split: reviewer-only MR → awaitingReview; author-only MR → myOpen', () => {
+    const reviewing = makeMR({ iid: 2, authorId: 99, reviewerIds: [MY_ID] });
+    const authored = makeMR({ iid: 3, authorId: MY_ID, reviewerIds: [] });
+    const { awaitingReview, myOpen } = groupMrsByRole([reviewing, authored], MY_ID);
+    expect(awaitingReview).toHaveLength(1);
+    expect(awaitingReview[0].iid).toBe(2);
+    expect(myOpen).toHaveLength(1);
+    expect(myOpen[0].iid).toBe(3);
+  });
+
+  it('MR authored by other user with no reviewers → neither group', () => {
+    const unrelated = makeMR({ iid: 4, authorId: 77, reviewerIds: [] });
+    const { awaitingReview, myOpen } = groupMrsByRole([unrelated], MY_ID);
+    expect(awaitingReview).toHaveLength(0);
+    expect(myOpen).toHaveLength(0);
+  });
+
+  it('returns empty groups when userId is undefined', () => {
+    const mr = makeMR({ iid: 5, authorId: 1, reviewerIds: [1] });
+    const { awaitingReview, myOpen } = groupMrsByRole([mr], undefined);
+    expect(awaitingReview).toHaveLength(0);
+    expect(myOpen).toHaveLength(0);
+  });
+
+  it('returns empty groups for empty input', () => {
+    const { awaitingReview, myOpen } = groupMrsByRole([], MY_ID);
+    expect(awaitingReview).toHaveLength(0);
+    expect(myOpen).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 84 — mergeActivityEntries
+// ---------------------------------------------------------------------------
+
+function makeJiraItem(overrides: {
+  issueKey: string;
+  transitionAts: string[];
+}): import('@/services/jira').JiraActivityItem {
+  return {
+    issueKey: overrides.issueKey,
+    summary: `Issue ${overrides.issueKey}`,
+    transitions: overrides.transitionAts.map((at) => ({
+      fromStatus: 'To Do',
+      toStatus: 'In Progress',
+      at,
+    })),
+    comments: [],
+  } as import('@/services/jira').JiraActivityItem;
+}
+
+function makeCommit(overrides: {
+  id: string;
+  authoredDate: string;
+}): import('@/services/gitlab').GitLabCommit {
+  return {
+    id: overrides.id,
+    short_id: overrides.id.slice(0, 8),
+    title: `Commit ${overrides.id}`,
+    message: `Commit ${overrides.id}`,
+    author_name: 'Developer',
+    author_email: 'dev@example.com',
+    authored_date: overrides.authoredDate,
+    web_url: `https://gitlab.example.com/commit/${overrides.id}`,
+  } as import('@/services/gitlab').GitLabCommit;
+}
+
+describe('Phase 84 — mergeActivityEntries', () => {
+  it('newest-first ordering: commit at 12:00 comes before jira at 10:00', () => {
+    const jiraItem = makeJiraItem({ issueKey: 'PROJ-1', transitionAts: ['2026-06-14T10:00:00'] });
+    const commit = makeCommit({ id: 'abc123', authoredDate: '2026-06-14T12:00:00' });
+    const entries = mergeActivityEntries([jiraItem], [commit], 5);
+    expect(entries).toHaveLength(2);
+    expect(entries[0].type).toBe('commit');
+    expect(entries[0].at).toBe('2026-06-14T12:00:00');
+    expect(entries[1].type).toBe('jira');
+    expect(entries[1].at).toBe('2026-06-14T10:00:00');
+  });
+
+  it('multi-transition flatMap: one Jira item with 2 transitions → 2 entries', () => {
+    const jiraItem = makeJiraItem({
+      issueKey: 'PROJ-2',
+      transitionAts: ['2026-06-14T09:00:00', '2026-06-14T11:00:00'],
+    });
+    const entries = mergeActivityEntries([jiraItem], [], 10);
+    expect(entries).toHaveLength(2);
+    expect(entries.every((e) => e.type === 'jira')).toBe(true);
+    // Newest first
+    expect(entries[0].at).toBe('2026-06-14T11:00:00');
+    expect(entries[1].at).toBe('2026-06-14T09:00:00');
+  });
+
+  it('cap is respected: 10 inputs with cap 5 → length 5', () => {
+    const items = Array.from({ length: 5 }, (_, i) =>
+      makeJiraItem({ issueKey: `PROJ-${i}`, transitionAts: [`2026-06-14T0${i}:00:00`] }),
+    );
+    const commits = Array.from({ length: 5 }, (_, i) =>
+      makeCommit({ id: `commit${i}`, authoredDate: `2026-06-14T1${i}:00:00` }),
+    );
+    const entries = mergeActivityEntries(items, commits, 5);
+    expect(entries).toHaveLength(5);
+  });
+
+  it('mergeActivityEntries([], [], 5) → []', () => {
+    expect(mergeActivityEntries([], [], 5)).toHaveLength(0);
+  });
+
+  it('entries with no transitions contribute nothing', () => {
+    const jiraItem = makeJiraItem({ issueKey: 'PROJ-3', transitionAts: [] });
+    const commit = makeCommit({ id: 'xyz', authoredDate: '2026-06-14T08:00:00' });
+    const entries = mergeActivityEntries([jiraItem], [commit], 10);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe('commit');
   });
 });
 
