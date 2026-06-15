@@ -1,21 +1,27 @@
 /**
- * Dashboard index tests — DASH-01, DASH-05
+ * Dashboard index tests — DASH-01, DASH-02, DASH-03, DASH-05, DASH-07
  *
  * Tests: hero greeting (displayName + fallback), today's date in en-GB format,
- * absence of widget controls (DASH-05), and presence of all three card stubs.
+ * absence of widget controls (DASH-05), stat tiles grid (DASH-02),
+ * SprintHealthSection and DashboardReleaseCard presence (DASH-03/01).
  */
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock child card components for isolation
-vi.mock('./DashboardSprintCard', () => ({
-  default: vi.fn(() => <div data-testid="sprint-card-stub" />),
+// Mock child components for isolation
+vi.mock('./StatTile', () => ({
+  default: vi.fn(({ label, value }: { label: string; value: number }) => (
+    <div data-testid={`stat-tile-${label.replace(/\s+/g, '-').toLowerCase()}`}>
+      {label}: {value}
+    </div>
+  )),
 }));
 
-vi.mock('./DashboardInProgressCard', () => ({
-  default: vi.fn(() => <div data-testid="in-progress-card-stub" />),
+vi.mock('./SprintHealthSection', () => ({
+  default: vi.fn(() => <div data-testid="sprint-health-section-stub" />),
 }));
 
 vi.mock('./DashboardReleaseCard', () => ({
@@ -44,13 +50,17 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
-// Mock useBoardId — Dashboard resolves a board id for the (mocked) sprint card;
-// stub it so these greeting/layout tests need no QueryClientProvider.
+// Mock useBoardId — stub so tests need no real board resolution
 vi.mock('@/hooks/useBoardId', () => ({
   useBoardId: () => ({ boardId: null, isLoading: false }),
 }));
 
-// Mock react-router-dom — useOutletContext returns null by default in MemoryRouter; mock prevents TypeError
+// Mock useDelayedLoading — always return false (no loading) for deterministic tests
+vi.mock('@/hooks/useDelayedLoading', () => ({
+  useDelayedLoading: vi.fn(() => false),
+}));
+
+// Mock react-router-dom — useOutletContext returns stub context
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -59,16 +69,25 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import { useOutletContext } from 'react-router-dom';
+// Mock fetchSprintIssues to return empty array (no network calls in tests)
+vi.mock('@/services/jira', () => ({
+  fetchSprintIssues: vi.fn().mockResolvedValue([]),
+  fetchActiveSprint: vi.fn().mockResolvedValue(null),
+}));
+
 import { useAuthStore } from '@/stores/auth.store';
-import DashboardInProgressCard from './DashboardInProgressCard';
 import Dashboard from './index';
 
 function renderDashboard() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter>
-      <Dashboard />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -157,11 +176,12 @@ describe('Dashboard', () => {
     expect(screen.queryByRole('button', { name: /add widget/i })).toBeNull();
   });
 
-  it('Test 8 (three card components rendered): renders all three dashboard cards', () => {
+  it('Test 8 (DASH-02 — stat tiles rendered): renders 4 stat tiles (Open, In Progress, Overdue, SP Done)', () => {
     renderDashboard();
-    expect(screen.getByTestId('sprint-card-stub')).toBeTruthy();
-    expect(screen.getByTestId('in-progress-card-stub')).toBeTruthy();
-    expect(screen.getByTestId('release-card-stub')).toBeTruthy();
+    expect(screen.getByTestId('stat-tile-open')).toBeTruthy();
+    expect(screen.getByTestId('stat-tile-in-progress')).toBeTruthy();
+    expect(screen.getByTestId('stat-tile-overdue')).toBeTruthy();
+    expect(screen.getByTestId('stat-tile-sp-done')).toBeTruthy();
   });
 
   it('Test 9 (SURNAME Firstname OrgCode (status) format): extracts mixed-case first name from all-caps surname format', () => {
@@ -189,26 +209,15 @@ describe('Dashboard', () => {
     expect(screen.queryByText(/\[Disabled\]/)).toBeNull();
   });
 
-  it('Test 11 (HB4 — In-Progress card opens full page with fresh breadcrumb trail): forwards no peek handler and wraps onIssueClick with resetTrail=true', () => {
-    // The breadcrumb-reset wrapping lives at this call site, not in the card —
-    // dropping the ", true" must fail a test. Capture the props the (mocked)
-    // card receives and exercise its onIssueClick.
-    const outletOnIssueClick = vi.fn();
-    vi.mocked(useOutletContext).mockReturnValue({ onIssueClick: outletOnIssueClick });
+  it('Test 11 (DASH-03/01 — SprintHealthSection and DashboardReleaseCard rendered): both new sections present', () => {
     renderDashboard();
+    expect(screen.getByTestId('sprint-health-section-stub')).toBeTruthy();
+    expect(screen.getByTestId('release-card-stub')).toBeTruthy();
+  });
 
-    const cardCalls = vi.mocked(DashboardInProgressCard).mock.calls;
-    expect(cardCalls.length).toBeGreaterThan(0);
-    const cardProps = cardCalls[cardCalls.length - 1][0] as {
-      onIssueClick: (key: string, resetTrail?: boolean) => void;
-      onOpenIssue?: unknown;
-    };
-
-    // No peek handler is forwarded — dashboard-home clicks are full-page only.
-    expect(cardProps.onOpenIssue).toBeUndefined();
-
-    // Invoking the card's onIssueClick navigates full-page AND resets the trail.
-    cardProps.onIssueClick('PROJ-101');
-    expect(outletOnIssueClick).toHaveBeenCalledWith('PROJ-101', true);
+  it('Test 12 (DASH-01 — deleted cards absent): no sprint-card-stub, in-progress-card-stub in DOM', () => {
+    renderDashboard();
+    expect(screen.queryByTestId('sprint-card-stub')).toBeNull();
+    expect(screen.queryByTestId('in-progress-card-stub')).toBeNull();
   });
 });

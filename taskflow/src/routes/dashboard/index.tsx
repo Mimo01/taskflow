@@ -1,13 +1,21 @@
+'use no memo';
+
+import { useQuery } from '@tanstack/react-query';
+import { Activity, CheckCircle2, Clock, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBoardId } from '@/hooks/useBoardId';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import DashboardInProgressCard from './DashboardInProgressCard';
 import DashboardReleaseCard from './DashboardReleaseCard';
-import DashboardSprintCard from './DashboardSprintCard';
-import { SmokeTestChart } from './SmokeTestChart';
+import { computePersonalTileCounts, computeSpDone } from './dashboardMetrics';
+import SprintHealthSection from './SprintHealthSection';
+import StatTile from './StatTile';
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -47,7 +55,7 @@ export default function Dashboard() {
   }, [jiraBaseUrl]);
 
   // Resolve the per-project chosen board id (falls back to first board) so the
-  // sprint card's active-sprint query honors the user's board choice.
+  // sprint health section's active-sprint query honors the user's board choice.
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
 
   const today = new Date().toLocaleDateString('en-GB', {
@@ -68,6 +76,39 @@ export default function Dashboard() {
   );
   const firstName = tokens.find((t) => t !== t.toUpperCase()) ?? tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
+
+  // Stat tiles — ONE shared sprint-board query (dedupes against SprintHealthSection via same cache key)
+  const {
+    data: sprintIssuesRaw,
+    isLoading: tileLoading,
+    error: tileError,
+    refetch: refetchTiles,
+  } = useQuery({
+    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
+    queryFn: () =>
+      fetchSprintIssues(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        false,
+        storyPointsFieldKey,
+      ),
+    staleTime: 30_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
+  });
+
+  const showTileSkeleton = useDelayedLoading(tileLoading);
+
+  const sprintIssues = Array.isArray(sprintIssuesRaw) ? sprintIssuesRaw : [];
+  const tileCounts = computePersonalTileCounts(
+    sprintIssues,
+    jiraUserDisplayName ?? '',
+    new Date().toISOString().slice(0, 10),
+  );
+  const spDone = computeSpDone(sprintIssues, storyPointsFieldKey);
+
+  // onIssueClick retained for potential future drill-down actions
+  void onIssueClick;
 
   return (
     <div className="relative flex flex-col min-h-full bg-background">
@@ -100,28 +141,68 @@ export default function Dashboard() {
         <p className="relative text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
-      <div className="relative px-6 pb-2">
-        <SmokeTestChart />
+      {/* Stat tiles row — DASH-02 (4-tile grid replacing 3-card grid) */}
+      <div className="relative px-6 pb-6">
+        {showTileSkeleton && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-card p-4 min-h-[80px] flex flex-col gap-3"
+              >
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-7 w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
+        {!showTileSkeleton && tileError && (
+          <ErrorState error={tileError} onRetry={refetchTiles} viewName="stat tiles" />
+        )}
+        {!showTileSkeleton && !tileError && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <StatTile
+              label="Open"
+              value={tileCounts.open}
+              icon={Activity}
+              iconClass="text-sky-500"
+            />
+            <StatTile
+              label="In Progress"
+              value={tileCounts.inProgress}
+              icon={Zap}
+              iconClass="text-amber-500"
+            />
+            <StatTile
+              label="Overdue"
+              value={tileCounts.overdue}
+              icon={Clock}
+              iconClass="text-destructive"
+              valueClass={tileCounts.overdue > 0 ? 'text-destructive' : undefined}
+            />
+            <StatTile
+              label="SP Done"
+              value={spDone}
+              icon={CheckCircle2}
+              iconClass="text-green-500"
+            />
+          </div>
+        )}
       </div>
 
-      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-        <DashboardSprintCard
+      {/* Sprint health section — DASH-03 */}
+      <div className="relative px-6 pb-6">
+        <SprintHealthSection
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
           activeJiraProject={activeJiraProject ?? ''}
-          boardId={boardId}
           storyPointsFieldKey={storyPointsFieldKey}
+          boardId={boardId}
         />
-        <div className="order-last sm:col-span-2 lg:col-span-1 lg:order-none">
-          <DashboardInProgressCard
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
-            activeJiraProject={activeJiraProject ?? ''}
-            jiraUserDisplayName={jiraUserDisplayName ?? ''}
-            storyPointsFieldKey={storyPointsFieldKey}
-            onIssueClick={(key) => onIssueClick(key, true)}
-          />
-        </div>
+      </div>
+
+      {/* Release countdown — retained from DASH-01 */}
+      <div className="relative px-6 pb-6">
         <DashboardReleaseCard
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
