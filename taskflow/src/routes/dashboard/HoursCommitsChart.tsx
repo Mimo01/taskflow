@@ -159,6 +159,34 @@ const chartConfig = {
   commits: { label: 'Commits', color: COMMITS_COLOR },
 } satisfies ChartConfig;
 
+// Commit count label — placed just below each (downward) commits bar's bottom edge.
+// Recharts' position="bottom" mis-positions for negative stacked bars, so we compute
+// the text position from the rendered rectangle (y + height = bottom tip).
+function CommitCountLabel(props: {
+  x?: number | string;
+  y?: number | string;
+  width?: number | string;
+  height?: number | string;
+  value?: number | string;
+}) {
+  const x = Number(props.x) || 0;
+  const y = Number(props.y) || 0;
+  const width = Number(props.width) || 0;
+  const height = Number(props.height) || 0;
+  const n = Number(props.value);
+  return (
+    <text
+      x={x + width / 2}
+      y={y + height + 14}
+      textAnchor="middle"
+      fontSize={12}
+      fill="var(--muted-foreground)"
+    >
+      {Number.isFinite(n) ? n : 0}
+    </text>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -306,17 +334,17 @@ export default function HoursCommitsChart({
           </CardTitle>
           {/* Legend — single line, square swatches, uncolored text */}
           <div className="flex items-center gap-4 text-sm tabular-nums text-muted-foreground">
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <span
-                className="size-2.5 rounded-[2px]"
+                className="size-2.5 shrink-0 rounded-[2px]"
                 style={{ backgroundColor: HOURS_COLOR }}
                 aria-hidden
               />
               {formatHoursMinutes(totalHours)} logged
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <span
-                className="size-2.5 rounded-[2px]"
+                className="size-2.5 shrink-0 rounded-[2px]"
                 style={{ backgroundColor: COMMITS_COLOR }}
                 aria-hidden
               />
@@ -401,15 +429,8 @@ export default function HoursCommitsChart({
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
                   >
-                    {/* Real commit count below each commits bar tip (grey); '0' for zero days */}
-                    <LabelList
-                      dataKey="commits"
-                      position="bottom"
-                      offset={6}
-                      fontSize={12}
-                      fill="var(--muted-foreground)"
-                      formatter={(v: unknown) => String(Number.isFinite(Number(v)) ? Number(v) : 0)}
-                    />
+                    {/* Real commit count below each commits bar's bottom edge (grey) */}
+                    <LabelList dataKey="commits" content={<CommitCountLabel />} />
                   </Bar>
                 </ComposedChart>
               </ChartContainer>
