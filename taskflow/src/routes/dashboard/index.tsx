@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useBoardId } from '@/hooks/useBoardId';
 import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -32,6 +32,64 @@ const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'cyan'; w: nu
     { d: 'M -50 540 Q 550 380 1250 240', color: 'orange', w: 0.5, o: 0.14 },
     { d: 'M -50 660 Q 600 460 1250 320', color: 'cyan', w: 0.5, o: 0.14 },
   ];
+
+// ── Sprint working-day helpers (D-13) ───────────────────────────────────────
+// Weekends (Sat/Sun) never count as sprint days. Holidays are not yet wired in —
+// they would come from the Tempo work schedule; add YYYY-MM-DD dates here (or swap
+// for a fetched set) to exclude them too.
+const SPRINT_HOLIDAYS = new Set<string>();
+
+/** Day-of-week for a YYYY-MM-DD string via UTC (no local-timezone shift). */
+function dayOfWeek(dateStr: string): number {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 Sun … 6 Sat
+}
+
+function isWeekendDay(dateStr: string): boolean {
+  const dow = dayOfWeek(dateStr);
+  return dow === 0 || dow === 6;
+}
+
+function isNonWorkingDay(dateStr: string): boolean {
+  return isWeekendDay(dateStr) || SPRINT_HOLIDAYS.has(dateStr);
+}
+
+function addCalendarDays(dateStr: string, n: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** Count working days (Mon–Fri, minus holidays) in [start, end] inclusive. */
+function countWorkingDays(startStr: string, endStr: string): number {
+  if (startStr > endStr) return 0;
+  let count = 0;
+  let cur = startStr;
+  for (let i = 0; i < 400 && cur <= endStr; i++) {
+    if (!isNonWorkingDay(cur)) count++;
+    cur = addCalendarDays(cur, 1);
+  }
+  return count;
+}
+
+/** First working day strictly after `dateStr`. */
+function nextWorkingDay(dateStr: string): string {
+  let cur = addCalendarDays(dateStr, 1);
+  for (let i = 0; i < 14 && isNonWorkingDay(cur); i++) {
+    cur = addCalendarDays(cur, 1);
+  }
+  return cur;
+}
+
+/** "Monday, 17 Jun" for a YYYY-MM-DD string (UTC-stable). */
+function formatResumeLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+}
 
 export default function Dashboard() {
   const {
@@ -117,18 +175,27 @@ export default function Dashboard() {
   );
   const firstName = tokens.find((t) => t !== t.toUpperCase()) ?? tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
+  const navigate = useNavigate();
 
-  // D-13: Sprint-position subline. Both dates: local calendar. Hide clause when sprint null.
+  // D-13: Sprint-position subline. Working days only — weekends (and holidays, when
+  // wired) never count. On a non-working day, show when the sprint resumes instead.
   const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local calendar
   const sprintClause = (() => {
     if (!activeSprint?.startDate || !activeSprint?.endDate) return '';
-    const [sy, sm, sd] = activeSprint.startDate.slice(0, 10).split('-').map(Number);
-    const [ey, em, ed] = activeSprint.endDate.slice(0, 10).split('-').map(Number);
-    const [ty, tm, td] = today.split('-').map(Number);
-    const elapsed =
-      Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(sy, sm - 1, sd)) / 86_400_000) + 1;
-    const total =
-      Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86_400_000) + 1;
+    const start = activeSprint.startDate.slice(0, 10);
+    const end = activeSprint.endDate.slice(0, 10);
+    // Outside the sprint window → no clause
+    if (today < start || today > end) return '';
+
+    if (isNonWorkingDay(today)) {
+      const label = isWeekendDay(today) ? 'Weekend' : 'Holiday';
+      const resume = nextWorkingDay(today);
+      const resumeLabel = resume <= end ? formatResumeLabel(resume) : 'Monday';
+      return ` · ${label} · sprint resumes ${resumeLabel}`;
+    }
+
+    const elapsed = countWorkingDays(start, today);
+    const total = countWorkingDays(start, end);
     return ` · Sprint day ${elapsed} of ${total}`;
   })();
 
@@ -184,11 +251,13 @@ export default function Dashboard() {
             activeJiraProject={activeJiraProject ?? ''}
             storyPointsFieldKey={storyPointsFieldKey}
             jiraUserDisplayName={jiraUserDisplayName ?? ''}
+            onActivate={() => navigate('/my-tasks')}
           />
           <UpcomingReleasesTimeline
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
             activeJiraProject={activeJiraProject ?? ''}
+            onActivate={() => navigate('/releases')}
           />
         </div>
 
@@ -204,6 +273,7 @@ export default function Dashboard() {
           gitlabUsername={gitlabUsername ?? null}
           gitlabName={gitlabName ?? null}
           gitlabEmail={gitlabEmail ?? null}
+          onActivate={() => navigate(tempoEnabled ? '/worklogs' : '/sprint-board')}
         />
       </div>
     </div>

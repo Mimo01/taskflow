@@ -156,11 +156,12 @@ describe('Dashboard — Phase 86 3-region layout', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    // 2026-05-21 is day 4 of a sprint starting 2026-05-18 (elapsed = (21-18)+1 = 4)
-    // total = (31-18)+1 = 14
+    // Working days only (weekends excluded). 2026-05-21 (Thu) is the 4th working day
+    // from Mon 2026-05-18 (Mon–Thu). The 14-calendar-day sprint (Mon 18 → Sun 31) has
+    // 10 weekdays total → "Sprint day 4 of 10".
     const subline = screen.getByText(/Sprint day/);
     expect(subline).toBeTruthy();
-    expect(subline.textContent).toMatch(/Sprint day 4 of 14/);
+    expect(subline.textContent).toMatch(/Sprint day 4 of 10/);
   });
 
   it('Test 4 (D-13 — no sprint-day clause when activeSprint=null): subline shows date only, no "Sprint day"', () => {
