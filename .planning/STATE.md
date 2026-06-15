@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: 85 (sprint-insights-conditional-probe-gated) — COMPLETE (verified 5/5, human UAT passed)
 Plan: 4 of 4 complete
 Status: Phase 85 closed — live-Jira UAT done (UAT-1..4 pass, UAT-5 skipped); 4 burndown gap-fixes committed. Follow-up: /gsd-secure-phase 85 not yet run.
-Last activity: 2026-06-15 -- Phase 85 human UAT closed; burndown data-shape bugs fixed inline (commits 8917b763, a54ed5e4, d03c5928, 3c36b03d)
+Last activity: 2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)
 
 Progress: [██████████] 100%
 
@@ -71,6 +71,12 @@ Key decisions for v1.13 (from research):
 - Phase 85: closed-sprint SP field availability on the specific DC instance is unconfirmed — probe required before any chart code
 - Phase 85: product owner must approve N-sequential-sprint fetch cost and burndown via unofficial `scopechangeburndownchart` endpoint
 - Apple Developer ID + Windows code signing still deferred (carried from v1.7)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260615-smu | Polish and modernize the dashboard | 2026-06-15 | 6e9e1ff7 | Verified | [260615-smu-modernize-dashboard](./quick/260615-smu-modernize-dashboard/) |
 
 ## Deferred Items
 
