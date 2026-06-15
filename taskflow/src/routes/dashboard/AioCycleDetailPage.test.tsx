@@ -307,6 +307,78 @@ describe('AioCycleDetailPage', () => {
         expect(screen.getByText(/Not Run: 1/)).toBeDefined();
       });
     });
+
+    it('shows skeleton (not "No runs recorded") when jiraProjectIdQuery is still in-flight on fresh-cache navigation', async () => {
+      // Regression: direct pinned-tab navigation with fresh cache leaves jiraProjectIdQuery
+      // unresolved when cycleQuery resolves. With the old isLoading check, a disabled
+      // summaryQuery returned isLoading=false (TQ v5), so showProgressSkeleton=false and
+      // "No runs recorded" was rendered instead of a skeleton. The fix uses isPending.
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      // jiraProjectIdQuery never resolves — keeps aioGate=false, summaryQuery disabled
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockReturnValue(
+        new Promise(() => {}),
+      );
+      // These would fire once aioGate opens, but since it stays closed they never run
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+
+      renderPage();
+
+      // Wait for cycleQuery to resolve (cycle name renders in header)
+      await waitFor(() => {
+        expect(screen.getByText('Sprint 2')).toBeDefined();
+      });
+
+      // Progress bar section: should NOT show "No runs recorded" while gate is closed
+      expect(screen.queryByText('No runs recorded')).toBeNull();
+    });
+
+    it('initializes the AIO status map itself on direct pinned-tab navigation (all-Not-Run regression)', async () => {
+      // Regression: on fresh-cache pinned-tab navigation the AioProjectOverviewPage never
+      // mounts, so it never calls initializeAioStatusMap(). The detail page used to rely on
+      // that side effect — leaving runtimeAioStatusMap empty, so normalizeStatusById resolved
+      // every testRunDistribution ID to 'notRun' and the bar showed all test cases as Not Run.
+      // The fix makes the detail page populate the map itself via its own query.
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      const { initializeAioStatusMap } = await import('@/lib/aioUtils');
+      const { fetchAioProjectConfig } = await import('@/services/aio/cycles');
+
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      // No runs (empty) so the summary distribution is the sole counts source — isolates the map.
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      // 53=PASSED, 54=FAILED, 51=NOT_RUN → expect 1 Pass / 1 Fail / 1 Not Run once map is populated.
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          ID: 10134,
+          jiraProjectID: 10134,
+          detail: null,
+          summary: { totalTests: 3, testRunDistribution: { '53': 1, '54': 1, '51': 1 } },
+        },
+      ]);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+
+      // Simulate the fresh-cache pinned path: empty the runtime map that beforeEach populated
+      // (overview page never ran). One failing init clears it; the good mock remains for the
+      // component's own status-map query to repopulate.
+      vi.mocked(fetchAioProjectConfig).mockRejectedValueOnce(new Error('overview never mounted'));
+      await initializeAioStatusMap('https://jira.example.com', 'fake-token', 10134);
+
+      renderPage();
+
+      // Without the component-side init the bar would read "Not Run: 3 (100%)". With the fix the
+      // component populates the map and the distribution resolves to its true buckets.
+      await waitFor(() => {
+        expect(screen.getByText(/Pass: 1/)).toBeDefined();
+        expect(screen.getByText(/Fail: 1/)).toBeDefined();
+        expect(screen.getByText(/Not Run: 1/)).toBeDefined();
+      });
+    });
   });
 
   describe('filter chips', () => {

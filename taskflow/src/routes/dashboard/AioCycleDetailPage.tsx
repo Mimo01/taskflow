@@ -23,7 +23,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { normalizeStatus, normalizeStatusById, normalizeStatusLabel } from '@/lib/aioUtils';
+import {
+  initializeAioStatusMap,
+  normalizeStatus,
+  normalizeStatusById,
+  normalizeStatusLabel,
+} from '@/lib/aioUtils';
 import {
   aioCycleStatusPillClass,
   aioRunStatusPillClass,
@@ -404,6 +409,23 @@ export default function AioCycleDetailPage() {
   // aioGate requires the numeric jiraProjectId to be resolved
   const aioGate = credGate && !!jiraProjectId;
 
+  // Populate the module-level runtime AIO status map (used by normalizeStatusById).
+  // AioProjectOverviewPage also does this, but direct pinned-tab navigation with a
+  // fresh cache never mounts the overview — without this, every status ID falls back
+  // to 'notRun' and the progress bar shows all test cases as Not Run. Modelled as a
+  // query (not a fire-and-forget effect) so completion re-renders and summaryCounts
+  // recomputes with the populated map. /config response is React-Query cached.
+  const aioStatusMapQuery = useQuery({
+    queryKey: ['aio', jiraBaseUrl, 'status-map-init', projectKey],
+    queryFn: async () => {
+      await initializeAioStatusMap(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0);
+      return true;
+    },
+    enabled: aioGate,
+    staleTime: 60 * 60 * 1000,
+  });
+  const aioStatusMapReady = aioStatusMapQuery.data === true;
+
   // CYCLE_NUMERIC_ID_DECISION: USE-DETAIL-ID — AioCycle.ID populated by normalizeCycle from /detail response
   const cycleNumericId = cycleQuery.data?.ID ?? null;
 
@@ -753,7 +775,23 @@ export default function AioCycleDetailPage() {
   const hasSummaryData = !!summaryQuery.data && summaryTotal > 0;
   const hasRunsData = !!runs;
   const showProgressBar = hasSummaryData || hasRunsData;
-  const showProgressSkeleton = summaryQuery.isLoading && !hasSummaryData && !hasRunsData;
+  // Use isPending (not isLoading) so skeleton shows even when summaryQuery is disabled
+  // (e.g. jiraProjectIdQuery hasn't resolved yet on fresh-cache pinned-tab navigation).
+  // TanStack Query v5: isLoading = isPending && isFetching; a disabled query has
+  // fetchStatus='idle' so isLoading=false even though no data has arrived yet.
+  // Also show skeleton if summaryQuery errored but runsQuery is still in-flight.
+  //
+  // When summaryQuery drives the counts, its testRunDistribution can only be
+  // interpreted once the AIO status map is populated — otherwise normalizeStatusById
+  // resolves every ID to 'notRun' (the all-Not-Run bug on fresh-cache pinned-tab nav).
+  // Hold the skeleton until the map is ready. The runs fallback uses normalizeStatus on
+  // raw status strings and does not need the map, so it is unaffected.
+  const waitingForStatusMap = hasSummaryData && !aioStatusMapReady;
+  const showProgressSkeleton =
+    waitingForStatusMap ||
+    ((summaryQuery.isPending || (summaryQuery.isError && runsQuery.isPending)) &&
+      !hasSummaryData &&
+      !hasRunsData);
 
   return (
     <div className="flex flex-col h-full">
