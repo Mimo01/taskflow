@@ -29,8 +29,8 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchUserCommits } from '@/services/gitlab';
 import { fetchYesterdayJiraActivity } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-import { mergeActivityEntries } from './dashboardMetrics';
 import type { ActivityEntry } from './dashboardMetrics';
+import { mergeActivityEntries } from './dashboardMetrics';
 
 /** Maximum number of entries to display before showing "+N more". */
 const CAP = 6;
@@ -103,7 +103,8 @@ export default function ActivityStrip({
       );
     },
     // D-09: no enabled:false — cold Dashboard load fires the same fetch Standup would.
-    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!jiraUsername && !!yesterdayDate,
+    enabled:
+      !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!jiraUsername && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -163,15 +164,16 @@ export default function ActivityStrip({
   // Compute total unfiltered count for the "+N more" overflow indicator.
   const totalCount = useMemo(
     () =>
-      mergeActivityEntries(jiraActivityQuery.data ?? [], commitsQuery.data ?? [], Number.MAX_SAFE_INTEGER)
-        .length,
+      mergeActivityEntries(
+        jiraActivityQuery.data ?? [],
+        commitsQuery.data ?? [],
+        Number.MAX_SAFE_INTEGER,
+      ).length,
     [jiraActivityQuery.data, commitsQuery.data],
   );
   const overflow = Math.max(0, totalCount - CAP);
 
-  const showSkeleton = useDelayedLoading(
-    jiraActivityQuery.isLoading || commitsQuery.isLoading,
-  );
+  const showSkeleton = useDelayedLoading(jiraActivityQuery.isLoading || commitsQuery.isLoading);
 
   const bothError = jiraActivityQuery.isError && commitsQuery.isError;
   const isEmpty =
@@ -183,8 +185,7 @@ export default function ActivityStrip({
     !commitsQuery.isError;
 
   return (
-    <div
-      role="region"
+    <section
       aria-label="Recent activity"
       className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3"
     >
@@ -255,7 +256,7 @@ export default function ActivityStrip({
           onRetry={() => void commitsQuery.refetch()}
         />
       )}
-    </div>
+    </section>
   );
 }
 
