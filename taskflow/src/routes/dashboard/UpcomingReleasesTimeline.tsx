@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { clickableCard } from '@/lib/clickable-card';
 import type { JiraFixVersion } from '@/services/jira';
 import { fetchFixVersions, fetchReleaseIssues } from '@/services/jira';
 
@@ -24,6 +25,8 @@ interface UpcomingReleasesTimelineProps {
   jiraBaseUrl: string;
   jiraToken: string;
   activeJiraProject: string;
+  /** Optional: makes the whole card clickable (navigates to Releases). */
+  onActivate?: () => void;
 }
 
 type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
@@ -55,7 +58,9 @@ export default function UpcomingReleasesTimeline({
   jiraBaseUrl,
   jiraToken,
   activeJiraProject,
+  onActivate,
 }: UpcomingReleasesTimelineProps) {
+  const click = clickableCard(onActivate);
   // Cache key MUST MATCH ReleasesTab.tsx / DashboardReleaseCard.tsx exactly
   const {
     data: fixVersions,
@@ -88,10 +93,15 @@ export default function UpcomingReleasesTimeline({
   });
 
   return (
-    <Card role="region" aria-label="Upcoming releases" className="relative overflow-hidden">
+    <Card
+      role="region"
+      aria-label="Upcoming releases"
+      className={`relative overflow-hidden ${click.className}`}
+      {...click.props}
+    >
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
       <Rocket
-        className="pointer-events-none absolute -top-4 -right-3 size-20 text-amber-500/10 dark:text-amber-400/15"
+        className="pointer-events-none absolute -top-4 -right-3 size-24 text-amber-500/10 dark:text-amber-400/15"
         aria-hidden
       />
       <CardHeader>

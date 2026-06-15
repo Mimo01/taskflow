@@ -31,6 +31,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { clickableCard } from '@/lib/clickable-card';
 import { fetchUserCommits } from '@/services/gitlab';
 import type { TempoWorklog } from '@/services/tempo/types';
 import { fetchWorklogs } from '@/services/tempo/worklogs';
@@ -51,6 +52,8 @@ interface HoursCommitsChartProps {
   gitlabUsername: string | null;
   gitlabName: string | null;
   gitlabEmail: string | null;
+  /** Optional: makes the whole card clickable (navigates to Worklogs / Sprint Board). */
+  onActivate?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +174,9 @@ export default function HoursCommitsChart({
   gitlabUsername,
   gitlabName,
   gitlabEmail,
+  onActivate,
 }: HoursCommitsChartProps) {
+  const click = clickableCard(onActivate);
   // Rolling-7 date anchor — auto-rotates at midnight via queryKey (D-09)
   const todayDate = getTodayDate();
   const fromDate = addDays(todayDate, -6); // 6 days ago
@@ -263,7 +268,12 @@ export default function HoursCommitsChart({
   // ---------------------------------------------------------------------------
   if (!tempoEnabled) {
     return (
-      <Card role="region" aria-label="Past 7 days hours and commits">
+      <Card
+        role="region"
+        aria-label="Past 7 days hours and commits"
+        className={click.className}
+        {...click.props}
+      >
         <CardHeader>
           <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             PAST 7 DAYS · HOURS &amp; COMMITS PER DAY
@@ -283,7 +293,12 @@ export default function HoursCommitsChart({
   }
 
   return (
-    <Card role="region" aria-label="Past 7 days hours and commits">
+    <Card
+      role="region"
+      aria-label="Past 7 days hours and commits"
+      className={click.className}
+      {...click.props}
+    >
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-bold text-muted-foreground/70 uppercase tracking-wide">
@@ -334,13 +349,12 @@ export default function HoursCommitsChart({
         {!showSkeleton && !worklogsError && (
           /* WebKit 0×0 guard: explicit-height outer div required (Phase 81 D-03). */
           <div style={{ height: 300 }} className="flex w-full flex-col">
-            {/* Hours value per day (blue) — aligned above each column */}
+            {/* Hours value per day — aligned above each column (grey) */}
             <div className="flex px-2">
               {dayBuckets.map((b) => (
                 <div
                   key={b.day}
-                  className="flex-1 text-center text-xs font-medium tabular-nums"
-                  style={{ color: HOURS_COLOR }}
+                  className="flex-1 text-center text-xs font-medium tabular-nums text-muted-foreground"
                 >
                   {b.hours > 0 ? formatHoursMinutes(b.hours) : '0h'}
                 </div>
@@ -381,7 +395,6 @@ export default function HoursCommitsChart({
                     stackId="a"
                     fill={COMMITS_COLOR}
                     maxBarSize={40}
-                    minPointSize={3}
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
                   />
@@ -389,26 +402,28 @@ export default function HoursCommitsChart({
               </ChartContainer>
             </div>
 
-            {/* Commit count per day (green) — directly under each column's bar */}
+            {/* Commit count per day — directly under each column's bar (grey) */}
             <div className="flex px-2">
               {dayBuckets.map((b) => (
                 <div
                   key={b.day}
-                  className="flex-1 text-center text-xs font-medium tabular-nums"
-                  style={{ color: COMMITS_COLOR }}
+                  className="flex-1 text-center text-xs font-medium tabular-nums text-muted-foreground"
                 >
                   {b.commits}
                 </div>
               ))}
             </div>
 
-            {/* Day labels + date on a second line */}
+            {/* Day labels + date (with month) on a second line */}
             <div className="mt-1 flex px-2">
               {dayBuckets.map((b) => (
                 <div key={b.day} className="flex-1 text-center">
-                  <div className="text-xs text-muted-foreground">{b.label}</div>
-                  <div className="text-[10px] tabular-nums text-muted-foreground/60">
-                    {Number(b.day.slice(8, 10))}
+                  <div className="text-sm text-muted-foreground">{b.label}</div>
+                  <div className="text-xs tabular-nums text-muted-foreground/60">
+                    {new Date(`${b.day}T12:00:00`).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
                   </div>
                 </div>
               ))}

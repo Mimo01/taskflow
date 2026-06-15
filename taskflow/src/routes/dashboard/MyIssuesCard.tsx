@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { clickableCard } from '@/lib/clickable-card';
 import { fetchSprintIssues } from '@/services/jira';
 import { filterNonSubtasks } from './dashboardMetrics';
 
@@ -26,6 +27,8 @@ interface MyIssuesCardProps {
   activeJiraProject: string;
   storyPointsFieldKey: string;
   jiraUserDisplayName: string;
+  /** Optional: makes the whole card clickable (navigates to My Tasks). */
+  onActivate?: () => void;
 }
 
 export default function MyIssuesCard({
@@ -34,7 +37,9 @@ export default function MyIssuesCard({
   activeJiraProject,
   storyPointsFieldKey,
   jiraUserDisplayName,
+  onActivate,
 }: MyIssuesCardProps) {
+  const click = clickableCard(onActivate);
   // CACHE KEY MUST MATCH SprintHealthSection / SprintBoardTab exactly
   const {
     data: sprintIssuesRaw,
@@ -68,10 +73,15 @@ export default function MyIssuesCard({
   // D-03 invariant: toDo + inProgress + done === total (unknown keys fall through — T-86-03)
 
   return (
-    <Card role="region" aria-label="My issues this sprint" className="relative overflow-hidden">
+    <Card
+      role="region"
+      aria-label="My issues this sprint"
+      className={`relative overflow-hidden ${click.className}`}
+      {...click.props}
+    >
       {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
       <ListChecks
-        className="pointer-events-none absolute -top-4 -right-3 size-20 text-green-500/10 dark:text-green-400/15"
+        className="pointer-events-none absolute -top-4 -right-3 size-24 text-green-500/10 dark:text-green-400/15"
         aria-hidden
       />
       <CardHeader>
