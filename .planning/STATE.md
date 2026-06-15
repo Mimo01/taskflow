@@ -3,9 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
 status: executing
-stopped_at: Phase 85 UI-SPEC approved
-last_updated: "2026-06-15T16:31:05.510Z"
-last_activity: 2026-06-15 -- Phase 85 planning complete
+last_updated: "2026-06-15T16:32:36.530Z"
+last_activity: 2026-06-15 -- Phase 85 execution started
 progress:
   total_phases: 10
   completed_phases: 4
@@ -21,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 85 — sprint insights (conditional — probe gated)
+**Current focus:** Phase 85 — sprint-insights-conditional-probe-gated
 
 ## Current Position
 
-Phase: 85
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-06-15 -- Phase 85 planning complete
+Phase: 85 (sprint-insights-conditional-probe-gated) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 85
+Last activity: 2026-06-15 -- Phase 85 execution started
 
 Progress: [██████████] 100%
 

@@ -528,4 +528,4 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 3/3 | Complete    | 2026-06-15 |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 4/4 | Complete    | 2026-06-15 |
-| 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
+| 85. Sprint Insights (Conditional) | 2/4 | In Progress|  |
