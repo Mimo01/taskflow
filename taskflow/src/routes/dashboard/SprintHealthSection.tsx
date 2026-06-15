@@ -70,9 +70,12 @@ export default function SprintHealthSection({
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });
 
-  // Active-sprint reactive read — enabled:false (Option B: Sidebar prefetchForPath warms this cache
-  // for /dashboard in Phase 83 Plan 01; SprintHealthSection reads with zero new API calls).
-  // Per project memory reactive-cache-read: never use queryClient.getQueryData in render.
+  // Active-sprint read — same cache key + staleTime as the Sidebar prefetch (Phase 83 D-10
+  // Option B). Enabling the query (rather than enabled:false) lets it self-fetch ONCE on a cold
+  // load instead of falsely rendering "No active sprint" when the prefetch never ran or resolved
+  // a different boardId. When the Sidebar already warmed this key, React Query dedups against the
+  // fresh cache entry and fires ZERO new network calls (DASH-03 preserved). Guarded on a resolved
+  // boardId so we never fetch with a null/placeholder key.
   const { data: activeSprint, isLoading: sprintLoading } = useQuery({
     queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl, boardId],
     queryFn: () =>
@@ -83,7 +86,7 @@ export default function SprintHealthSection({
         boardId ?? undefined,
       ),
     staleTime: 5 * 60_000,
-    enabled: false,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null,
   });
 
   const isLoading = issuesLoading || sprintLoading;
