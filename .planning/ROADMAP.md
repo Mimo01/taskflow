@@ -468,7 +468,21 @@ Wave 2 (blocked on Wave 1):
   3. An MR review queue section lists open MRs awaiting my review and my open MRs' health badges, derived client-side from the existing `gitlab-mrs` cache with no new polling interval or fetch
   4. All three new sections plus the stat tiles and sprint chart from Phase 83 each degrade to an independent loading skeleton and inline error state; the Dashboard never goes fully blank due to one section failing (DASH-07 fully satisfied across all sections)
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+**Wave 1**
+
+- [ ] 84-01-PLAN.md — dashboardMetrics.ts pure seams (buildWeekBuckets timezone-safe, mergeActivityEntries, groupMrsByRole) + mandated tests
+
+**Wave 2** *(parallel — no file overlap; both depend on 84-01)*
+
+- [ ] 84-02-PLAN.md — WeeklyTrendChart (Tempo bar chart + 8h ReferenceLine) + MrReviewQueue (two-group queue from warm cache) + tests
+- [ ] 84-03-PLAN.md — ActivityStrip (byte-identical Standup query keys, merged capped feed) + key-equality/interleave/degradation tests
+
+**Wave 3** *(blocked on 84-02 + 84-03)*
+
+- [ ] 84-04-PLAN.md — index.tsx wiring (3 section mounts + gitlab token load + DashboardReleaseCard relocation into Activity & Releases) + human Tauri UAT
+
 **UI hint**: yes
 
 ### Phase 85: Sprint Insights (Conditional — Probe-Gated)
@@ -513,5 +527,5 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
 | 83. Dashboard Stat Tiles and Sprint Health Chart | 3/3 | Complete    | 2026-06-15 |
-| 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
+| 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/4 | Planned | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
