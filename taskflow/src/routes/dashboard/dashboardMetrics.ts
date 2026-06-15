@@ -354,6 +354,12 @@ export interface BurndownPoint {
  * committed total near the start and then descends. This is correct scope-change-burndown
  * behaviour — do NOT "fix" it to a monotone decrease (that would discard scope creep).
  *
+ * Sprint windowing (UAT-4b): `.changes` holds each in-sprint issue's ENTIRE estimate
+ * history (often a year+ of pre-sprint edits). Changes BEFORE `startTime` are folded into
+ * the baseline — the committed remaining anchored at `startTime` — but emit no visible
+ * points. Only `[startTime, endTime]` changes are plotted, so the x-axis is the sprint, not
+ * the issues' whole lifetimes. With no `endTime`, the upper bound is open (active sprint).
+ *
  * To make the chart read as a classic burndown, each point also carries an `ideal`
  * guideline: a straight line from the peak remaining (committed scope) down to 0 at
  * `endTime`. The actual line above/below the ideal shows whether the sprint is behind/ahead.
@@ -393,24 +399,44 @@ export function parseBurndownChanges(
     .filter((n) => Number.isFinite(n))
     .sort((a, b) => a - b);
 
-  // Seed with sprint-start anchor at remaining=0 (nothing tracked before the first change).
-  const points: BurndownPoint[] = [{ t: startTime, remaining: 0 }];
+  // Sprint window upper bound. GreenHopper `.changes` carries each in-sprint issue's ENTIRE
+  // time-estimate history — often a year+ of pre-sprint edits. Bounding to [startTime, endTime]
+  // keeps the chart to the sprint, not the issues' whole lifetimes (UAT-4b 2026-06-15).
+  const windowEnd = endTime && endTime > startTime ? endTime : Number.POSITIVE_INFINITY;
+
+  // Helper: net delta a change entry applies to remaining (seconds for timeC; raw for statC).
+  const delta = (entry: {
+    timeC?: { oldEstimate?: number; newEstimate?: number };
+    statC?: { newValue?: number; oldValue?: number };
+  }): number => {
+    if (entry.timeC) return (entry.timeC.newEstimate ?? 0) - (entry.timeC.oldEstimate ?? 0);
+    if (entry.statC) return (entry.statC.newValue ?? 0) - (entry.statC.oldValue ?? 0);
+    return 0; // neither shape present — skipped (defensive)
+  };
+
+  // Fold all PRE-sprint-start changes into the baseline: the committed remaining at sprint
+  // start. These telescope per issue (Σ newEstimate-oldEstimate = estimate at that point), so
+  // the running total at startTime is the total scope on board when the sprint began. We do
+  // NOT emit points for them — they establish the anchor height, not visible history.
   let running = 0;
+  for (const ts of timestamps) {
+    if (ts >= startTime) break; // ascending — remaining are in-window
+    for (const entry of safe[String(ts)] ?? []) running += delta(entry);
+  }
+
+  // Anchor at sprint start with the baseline scope (was hardcoded 0 — that flattened the curve
+  // and discarded committed scope). T-85-01: clamp remaining non-negative.
+  const points: BurndownPoint[] = [{ t: startTime, remaining: Math.max(0, running) }];
 
   for (const ts of timestamps) {
-    const entries = safe[String(ts)] ?? [];
-    for (const entry of entries) {
-      if (entry.timeC) {
-        // Live shape (timeestimate statistic): newEstimate - oldEstimate is the net change
-        // to remaining time (seconds). Scope added → rises; work logged/estimate cut → falls.
-        running += (entry.timeC.newEstimate ?? 0) - (entry.timeC.oldEstimate ?? 0);
-      } else if (entry.statC) {
-        // Fallback for a non-time statistic (e.g. story points): newValue - oldValue.
-        running += (entry.statC.newValue ?? 0) - (entry.statC.oldValue ?? 0);
-      }
-      // Entries with neither timeC nor statC are skipped — defensive against partial shape
+    if (ts < startTime) continue; // already folded into baseline
+    if (ts > windowEnd) break; // past sprint end — outside the window
+    for (const entry of safe[String(ts)] ?? []) running += delta(entry);
+    // Skip a change landing exactly on startTime collapsing into a duplicate anchor point.
+    if (ts === startTime) {
+      points[0].remaining = Math.max(0, running);
+      continue;
     }
-    // T-85-01: clamp remaining non-negative
     points.push({ t: ts, remaining: Math.max(0, running) });
   }
 
