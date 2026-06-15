@@ -1,7 +1,7 @@
 ---
 phase: 86
 slug: redesign-dashboard-to-new-screenshot-layout-and-remove-old-w
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-06-15
@@ -48,6 +48,8 @@ Dashboard shell layout (from current `index.tsx` — keep unchanged):
 - Content column gap: `gap-4` (16px)
 
 Exceptions:
+- `pt-5 pb-5` (20px) — existing dashboard shell vertical padding from `index.tsx`; inherited, not a new design decision. Keep unchanged.
+- Recharts chart margin `right: 40` — Recharts implementation numeric for right Y-axis label clearance; not a CSS spacing token.
 - Hero header bottom border: `border-b border-border/50` (structural, not spacing exception)
 - Card `--card-spacing` token: 16px (default size), 12px (size="sm") — do not override
 
@@ -57,20 +59,23 @@ Source: `taskflow/src/routes/dashboard/index.tsx`, `taskflow/src/components/ui/c
 
 ## Typography
 
+Exactly 4 sizes, exactly 2 weights.
+
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
-| Display | 30px (`text-3xl`) | 600 (`font-semibold`) | 1.2 | Hero greeting "Good evening, Milan" |
-| Heading | 16px (`text-base`) | 500 (`font-medium`) | 1.4 | Card section labels (e.g. "MY ISSUES"), ChartWrapper title |
-| Body | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 | Release name, "of N done" annotation, legend labels |
-| Label | 12px (`text-xs`) | 400 (`font-normal`) | 1.3 | Date subline, card subtitle, muted annotations, chart axis ticks, "% ready" |
+| Display | 36px (`text-4xl`) | 600 (`font-semibold`) | 1.2 | Big number done count ("8" in "8 of 13 done"); hero greeting ("Good evening, Milan") |
+| Heading | 16px (`text-base`) | 600 (`font-semibold`) | 1.4 | ChartWrapper title, card section labels ("MY ISSUES", "UPCOMING RELEASES", "PAST 7 DAYS…") |
+| Body | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 | Release name, "of N done" annotation, legend labels, header-right total values |
+| Label | 12px (`text-xs`) | 400 (`font-normal`) | 1.3 | Date subline, card subtitle, muted annotations, chart axis ticks, chart bar labels, "% ready", today pill |
 
 Additional specific rules:
-- Section label style (card headers): `text-xs font-medium text-muted-foreground uppercase tracking-wide` — matches existing `DashboardReleaseCard` CardTitle pattern. Apply to "MY ISSUES" and "UPCOMING RELEASES" labels.
-- Big number (My Issues done count): `text-4xl font-bold text-foreground` — the "8" in "8 of 13 done". Size = 36px, weight = 700.
+- Section label style (card headers): `text-xs font-normal text-muted-foreground uppercase tracking-wide` — the `uppercase tracking-wide` treatment distinguishes section labels without needing a separate weight. Applies to "MY ISSUES", "UPCOMING RELEASES", and "PAST 7 DAYS · HOURS & COMMITS PER DAY" labels.
+- Big number (My Issues done count): `text-4xl font-semibold text-foreground` — the "8" in "8 of 13 done". Size = 36px (Display role), weight = 600. The size alone carries visual emphasis.
 - "of N done" annotation: `text-sm font-normal text-muted-foreground` inline after big number.
-- Chart bar labels: `fontSize={11}`, `fill="var(--muted-foreground)"` — consistent with `WeeklyTrendChart` `LabelList` pattern.
-- Header-right totals (hours/commits): `text-sm font-semibold` for values, `text-xs text-muted-foreground` for unit labels.
-- Today pill (X-axis): `text-xs font-medium bg-foreground text-background rounded-full px-2 py-0.5`.
+- Hero greeting: `text-4xl font-semibold text-foreground` — same Display role as the big number. Both are 36px / semibold.
+- Chart bar labels: `fontSize={12}`, `fill="var(--muted-foreground)"` — Label role (12px). Maps onto `text-xs` / Label. Consistent with `WeeklyTrendChart` `LabelList` pattern; 1px difference from 11px is imperceptible in rendered bars.
+- Header-right totals (hours/commits): `text-sm font-normal` for values in their respective `color: var(--chart-1)` / `var(--chart-2)` — Body role; color carries the distinction, not weight.
+- Today pill (X-axis): `text-xs font-normal bg-foreground text-background rounded-full px-2 py-0.5` — Label role.
 
 Source: `taskflow/src/routes/dashboard/index.tsx` (hero), `taskflow/src/routes/dashboard/DashboardReleaseCard.tsx` (card header), `taskflow/src/routes/dashboard/WeeklyTrendChart.tsx` (chart labels)
 
@@ -106,7 +111,7 @@ Layout: Full-width header row with bottom border. Vertically stacks greeting + s
 
 **Greeting line:**
 - Text: `"{getTimeGreeting()} {firstName ?? 'there'}"` — keep existing `getTimeGreeting()` + first-name parser from `index.tsx`
-- Typography: `text-3xl font-semibold text-foreground`
+- Typography: `text-4xl font-semibold text-foreground` (Display role — 36px / 600)
 - Time buckets: morning (00:00–11:59), afternoon (12:00–17:59), evening (18:00–23:59)
 
 **Subline (date + sprint position):**
@@ -117,7 +122,7 @@ Layout: Full-width header row with bottom border. Vertically stacks greeting + s
   - `total = differenceInCalendarDays(sprint.endDate, sprint.startDate) + 1`
   - Both dates via local calendar (`toLocaleDateString('en-CA')`) NOT `toISOString()`
 - **Sprint clause hidden** when `activeSprint === null` (date line still shown without the bullet+sprint segment)
-- Typography: `text-xs text-muted-foreground mt-1`
+- Typography: `text-xs text-muted-foreground mt-1` (Label role)
 
 Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from current index.tsx)
 
@@ -132,13 +137,13 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
 **Card shell:** `<Card>` (rounded-xl ring-1 ring-foreground/10 bg-card)
 
 **Card header:**
-- Label: "MY ISSUES" — `text-xs font-medium text-muted-foreground uppercase tracking-wide`
+- Label: "MY ISSUES" — `text-xs font-normal text-muted-foreground uppercase tracking-wide` (Label role)
 - Icon: lucide `CheckSquare` (size-4) in `text-chart-1` (blue) — consistent with card header pattern
 
 **Big number row:**
 - Layout: flex row, baseline aligned
-- Done count: `text-4xl font-bold text-foreground` — e.g. "8"
-- Annotation: `text-sm text-muted-foreground` — " of 13 done" (space before "of")
+- Done count: `text-4xl font-semibold text-foreground` (Display role — 36px / 600) — e.g. "8"
+- Annotation: `text-sm font-normal text-muted-foreground` (Body role) — " of 13 done" (space before "of")
 
 **Segmented horizontal bar:**
 - Full-width, height 8px (`h-2`), rounded-full outer track (`bg-muted rounded-full overflow-hidden`)
@@ -152,9 +157,9 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
 **Legend row:**
 - Layout: flex row, gap-4, items-center
 - Per item: color swatch (8px square, rounded-sm) + label text
-  - "To Do {n}" — swatch `bg-muted-foreground/40`, label `text-xs text-muted-foreground`
-  - "In Progress {n}" — swatch `bg-chart-1`, label `text-xs text-muted-foreground`
-  - "Done {n}" — swatch `bg-chart-2`, label `text-xs text-muted-foreground`
+  - "To Do {n}" — swatch `bg-muted-foreground/40`, label `text-xs font-normal text-muted-foreground` (Label role)
+  - "In Progress {n}" — swatch `bg-chart-1`, label `text-xs font-normal text-muted-foreground` (Label role)
+  - "Done {n}" — swatch `bg-chart-2`, label `text-xs font-normal text-muted-foreground` (Label role)
 
 **Data invariant (also tested):** `toDo + inProgress + done === total` — assert in unit test.
 
@@ -171,7 +176,7 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
 **Card shell:** `<Card>` (same chrome as MY ISSUES)
 
 **Card header:**
-- Label: "UPCOMING RELEASES" — same `text-xs font-medium text-muted-foreground uppercase tracking-wide`
+- Label: "UPCOMING RELEASES" — `text-xs font-normal text-muted-foreground uppercase tracking-wide` (Label role)
 - Icon: lucide `Calendar` (size-4, `text-chart-1` blue) — matches existing DashboardReleaseCard
 
 **Timeline container:**
@@ -185,14 +190,14 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
   - donePct >= 80%: `bg-chart-2` (green)
   - 100% ready: `bg-chart-2` (green) with checkmark indicator (optional — executor discretion)
 - Below dot (vertically stacked, centered on dot):
-  - Release name: `text-xs font-medium text-foreground truncate max-w-[96px]`
-  - Relative due: `text-xs text-muted-foreground` — from `getReleaseTimingLabel()`:
+  - Release name: `text-xs font-normal text-foreground truncate max-w-[96px]` (Label role)
+  - Relative due: `text-xs font-normal text-muted-foreground` (Label role) — from `getReleaseTimingLabel()`:
     - "Today" (due-today)
     - "Tomorrow" (daysUntil === 1)
     - "in {n} days" (daysUntil > 1)
     - "overdue" in `text-amber-600 dark:text-amber-400` (overdue)
   - Readiness bar: height 4px (`h-1`), width 80px, `bg-muted rounded-full` track, `bg-chart-2 rounded-full` fill at `{donePct}%` width
-  - "% ready" label: `text-xs text-muted-foreground` — "{donePct}% ready"
+  - "% ready" label: `text-xs font-normal text-muted-foreground` (Label role) — "{donePct}% ready"
 - Above dot (if overdue): a lucide `AlertCircle` size-3 in `text-amber-500` (optional — executor discretion)
 
 **Data: `getReleaseTimingLabel` relative-due label rules:**
@@ -220,12 +225,12 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
 <Card>
   <CardHeader>
     <div class="flex items-center justify-between">
-      <CardTitle class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <CardTitle class="text-xs font-normal text-muted-foreground uppercase tracking-wide">
         PAST 7 DAYS · HOURS & COMMITS PER DAY
       </CardTitle>
       <div class="flex items-center gap-4">  {/* header-right totals */}
-        <span class="text-sm font-semibold" style="color: var(--chart-1)">{totalHours} h logged</span>
-        <span class="text-sm font-semibold" style="color: var(--chart-2)">{totalCommits} commits</span>
+        <span class="text-sm font-normal" style="color: var(--chart-1)">{totalHours} h logged</span>
+        <span class="text-sm font-normal" style="color: var(--chart-2)">{totalCommits} commits</span>
       </div>
     </div>
   </CardHeader>
@@ -241,10 +246,11 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
 - `<ComposedChart data={dayBuckets} responsive margin={{ top: 24, right: 40, left: 0, bottom: 0 }}>`
   - Note: `responsive` prop on Recharts v3 chart primitives, NOT `<ResponsiveContainer>` (D-14)
   - `isAnimationActive={false}` on all Bar elements (D-14)
+  - `right: 40` margin is a Recharts implementation value for right Y-axis label clearance; not a CSS spacing token
 
 **Axes:**
 - `<XAxis dataKey="label">` — 7 weekday abbreviations ("Tue", "Wed", … "Mon")
-  - Today tick: render as a pill — use a custom `tick` renderer or wrap with a `<foreignObject>`; background `bg-foreground`, text `text-background`, `rounded-full px-2 py-0.5 text-xs font-medium`
+  - Today tick: render as a pill — use a custom `tick` renderer or wrap with a `<foreignObject>`; background `bg-foreground`, text `text-background`, `rounded-full px-2 py-0.5 text-xs font-normal` (Label role)
 - `<YAxis yAxisId="hours" orientation="left" tickFormatter={(v) => \`${v}h\`}>` — hours scale, `text-chart-1`
 - `<YAxis yAxisId="commits" orientation="right">` — commits scale, `text-chart-2`
 
@@ -253,10 +259,10 @@ Shell: `px-6 pt-5 pb-5 border-b border-border/50 shrink-0` (unchanged from curre
 
 **Bars (grouped, side-by-side):**
 - Hours bar: `<Bar yAxisId="hours" dataKey="hours" fill="var(--chart-1)" radius={[4,4,0,0]} isAnimationActive={false}>`
-  - `<LabelList position="top" formatter={(v) => v > 0 ? \`${formatHoursMinutes(v)}\` : '0h'} fontSize={10} fill="var(--muted-foreground)">`
+  - `<LabelList position="top" formatter={(v) => v > 0 ? \`${formatHoursMinutes(v)}\` : '0h'} fontSize={12} fill="var(--muted-foreground)">` (Label role — 12px)
   - 0-value days: flat bar (height approaches 0), label "0h" still shown
 - Commits bar: `<Bar yAxisId="commits" dataKey="commits" fill="var(--chart-2)" radius={[4,4,0,0]} isAnimationActive={false}>`
-  - `<LabelList position="bottom" formatter={(v) => String(v)} fontSize={10} fill="var(--muted-foreground)">`
+  - `<LabelList position="bottom" formatter={(v) => String(v)} fontSize={12} fill="var(--muted-foreground)">` (Label role — 12px)
   - 0-value days: flat bar, label "0" still shown
   - Note: commits labels positioned "bottom" (below bar) to avoid collision with hours labels above
 
