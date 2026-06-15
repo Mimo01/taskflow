@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Activity, CheckCircle2, Clock, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBoardId } from '@/hooks/useBoardId';
@@ -161,13 +162,14 @@ export default function Dashboard() {
         {showTileSkeleton && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="rounded-xl ring-1 ring-foreground/10 bg-card p-3 min-h-[80px] flex flex-col gap-3"
-              >
-                <Skeleton className="h-3 w-1/2" />
-                <Skeleton className="h-7 w-1/3" />
-              </div>
+              // Mirror StatTile's Card shell exactly so the skeleton→loaded swap
+              // doesn't shift geometry; aria-busy announces the loading region.
+              <Card key={i} size="sm" aria-busy className="min-h-[80px] gap-2">
+                <CardContent className="flex flex-col gap-3">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-9 w-1/3" />
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

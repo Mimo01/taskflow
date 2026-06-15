@@ -220,9 +220,11 @@ export default function ActivityStrip({
     !commitsQuery.isError;
 
   return (
-    <Card aria-label="Recent activity">
+    <Card role="region" aria-label="Recent activity">
       <CardHeader>
-        <CardTitle>Recent activity</CardTitle>
+        <CardTitle role="heading" aria-level={2}>
+          Recent activity
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {/* Loading skeleton */}
