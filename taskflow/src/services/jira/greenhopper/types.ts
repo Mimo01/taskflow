@@ -307,6 +307,82 @@ export interface GhDetailsResponse {
 }
 
 /**
+ * A single change entry within the `GreenHopperBurndown.changes` record.
+ *
+ * Shape: MEDIUM confidence (RESEARCH A2 — Probe C confirmed top-level keys; entry-level
+ * field names are inferred from standard GreenHopper API patterns). All fields are optional
+ * so the consumer (`parseBurndownChanges` in dashboardMetrics.ts) can stay null-safe
+ * regardless of exact field names. `parseBurndownChanges` is the sole consumer and MUST
+ * use `?? 0` fallbacks and `Math.max(0, ...)` clamping to guard against unexpected shapes.
+ *
+ * If the live DC returns different field names (e.g. `statField` instead of `statC`),
+ * update this interface AND the parser in dashboardMetrics.ts — not just one or the other.
+ */
+export interface BurndownChangeEntry {
+  /** Issue key this change applies to (e.g. "PROJ-123") */
+  key?: string;
+  /**
+   * Statistic change: new and old values of the tracked metric.
+   * For `statisticField: 'timeestimate'`, values are in SECONDS (Jira DC native unit).
+   * 28800 ≈ 8 hours (seconds magnitude, not hours magnitude — confirmed Probe C RESEARCH A4).
+   */
+  statC?: {
+    newValue?: number;
+    oldValue?: number;
+  };
+  /** True when the issue was added to the sprint (scope creep); false/absent when removed or updated. */
+  added?: boolean;
+}
+
+/**
+ * Response shape for GET /rest/greenhopper/1.0/rapid/charts/scopechangeburndownchart.
+ *
+ * Top-level keys confirmed by Probe C (2026-06-15):
+ * activatedTime, changes, endTime, issueToParentKeys, issueToSummary, now,
+ * openCloseChanges, startTime, statisticField, workRateData.
+ *
+ * `statisticField` = `"timeestimate"` on this DC instance — the burndown unit is
+ * HOURS REMAINING (time estimate), NOT story points. Y-axis must be labeled in hours.
+ *
+ * `changes` has ~496 entries at probe time. Keys are epoch-ms strings; values are
+ * arrays of BurndownChangeEntry deltas for all issues that changed at that timestamp.
+ */
+export interface GreenHopperBurndown {
+  /** Sprint activation time (epoch ms) */
+  activatedTime: number;
+  /** Sprint end time (epoch ms) */
+  endTime: number;
+  /** Sprint start time (epoch ms) — used as the anchor point for parseBurndownChanges */
+  startTime: number;
+  /** Server clock time at response generation (epoch ms) */
+  now: number;
+  /**
+   * Burndown change timeline. Keys are epoch-ms strings (serialized numbers).
+   * Each value is an array of BurndownChangeEntry deltas at that point in time.
+   *
+   * All-optional BurndownChangeEntry: the entry-level field names are MEDIUM-confidence
+   * (RESEARCH A2). 85-01's parseBurndownChanges must remain null-safe (?? 0, Math.max(0, ...)).
+   */
+  changes: Record<string, BurndownChangeEntry[]>;
+  /**
+   * Statistic field identifier (e.g. "timeestimate" on this DC).
+   * Drives the Y-axis unit: "timeestimate" → hours remaining (not story points).
+   */
+  statisticField: string;
+  /**
+   * Ideal burndown guideline data. Shape is loosely typed — the chart component
+   * (BurndownChart.tsx) owns parsing and rendering of this guideline series.
+   */
+  workRateData?: { rates?: unknown[] } | unknown;
+  /** Parent-key map for issues in the burndown (key → parent key). */
+  issueToParentKeys?: Record<string, string>;
+  /** Summary map for issues in the burndown (key → summary string). */
+  issueToSummary?: Record<string, string>;
+  /** Open/close change data (auxiliary, not used for the primary burndown line). */
+  openCloseChanges?: unknown;
+}
+
+/**
  * Aggregated entity maps built from GhAllDataResponse.entityData per D-09.
  * Consumed by resolvers (Phase 71-04) and adapter (Phase 71-05).
  * See RESEARCH §Entity Map Shape.
