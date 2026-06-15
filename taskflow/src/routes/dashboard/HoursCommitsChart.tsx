@@ -243,9 +243,15 @@ export default function HoursCommitsChart({
   const totalCommits = dayBuckets.reduce((sum, b) => sum + b.commits, 0);
   const maxHours = Math.max(...dayBuckets.map((b) => b.hours), 0);
   const maxCommits = Math.max(...dayBuckets.map((b) => b.commits), 0);
-  // Diverging chart data: commits plotted as negative so they extend DOWN from the
-  // zero baseline while hours extend UP (single chart, stackOffset="sign").
-  const chartData = dayBuckets.map((b) => ({ ...b, commitsDown: -b.commits }));
+  // Diverging chart data. Each side is normalized to its OWN max so hours (up) and
+  // commits (down) reach similar visual heights — the shared numeric scale would
+  // otherwise make commits dwarf hours. Real values are shown in the HTML label rows;
+  // the bars only encode relative height. 0-edge case: max=0 → all bars flat (0).
+  const chartData = dayBuckets.map((b) => ({
+    ...b,
+    hoursNorm: maxHours > 0 ? b.hours / maxHours : 0,
+    commitsNorm: maxCommits > 0 ? -(b.commits / maxCommits) : 0,
+  }));
 
   // Loading/skeleton state (200ms-gated to prevent flicker on warm-cache reads)
   const showSkeleton = useDelayedLoading(worklogsLoading);
@@ -352,25 +358,17 @@ export default function HoursCommitsChart({
                   data={chartData}
                   responsive
                   stackOffset="sign"
-                  margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
+                  margin={{ top: 2, right: 8, left: 8, bottom: 2 }}
                 >
                   <XAxis dataKey="label" hide />
-                  <YAxis
-                    hide
-                    domain={[
-                      -(maxCommits > 0 ? maxCommits : 1) * 1.15,
-                      (maxHours > 0 ? maxHours : 1) * 1.15,
-                    ]}
-                  />
-                  {/* Only two horizontal guide lines: 0 (center) and max hours, no labels */}
+                  {/* Normalized domain (±1): each side fills its half so hours and commits
+                      reach similar heights; small headroom keeps bars near their value rows (#4) */}
+                  <YAxis hide domain={[-1.05, 1.05]} />
+                  {/* Two horizontal guide lines: 0 (center) and the max line (top), no labels */}
                   <ReferenceLine y={0} stroke="var(--border)" />
-                  <ReferenceLine
-                    y={maxHours > 0 ? maxHours : 1}
-                    stroke="var(--border)"
-                    strokeDasharray="3 3"
-                  />
+                  <ReferenceLine y={1} stroke="var(--border)" strokeDasharray="3 3" />
                   <Bar
-                    dataKey="hours"
+                    dataKey="hoursNorm"
                     stackId="a"
                     fill={HOURS_COLOR}
                     maxBarSize={40}
@@ -379,7 +377,7 @@ export default function HoursCommitsChart({
                     isAnimationActive={false}
                   />
                   <Bar
-                    dataKey="commitsDown"
+                    dataKey="commitsNorm"
                     stackId="a"
                     fill={COMMITS_COLOR}
                     maxBarSize={40}
@@ -404,11 +402,14 @@ export default function HoursCommitsChart({
               ))}
             </div>
 
-            {/* Day labels */}
+            {/* Day labels + date on a second line */}
             <div className="mt-1 flex px-2">
               {dayBuckets.map((b) => (
-                <div key={b.day} className="flex-1 text-center text-xs text-muted-foreground">
-                  {b.label}
+                <div key={b.day} className="flex-1 text-center">
+                  <div className="text-xs text-muted-foreground">{b.label}</div>
+                  <div className="text-[10px] tabular-nums text-muted-foreground/60">
+                    {Number(b.day.slice(8, 10))}
+                  </div>
                 </div>
               ))}
             </div>
