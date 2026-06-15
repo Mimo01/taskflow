@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: "Phase 86 added (end of v1.13) — dashboard redesign to new screenshot layout; reuse existing data, remove old widgets, no dead code. Next: /gsd-plan-phase 86"
-last_updated: "2026-06-15T20:25:18.499Z"
+status: "Phase 86 PLANNED — 4 plans / 3 waves (cards ‖ chart → index rewrite+deletes → UAT). Research+pattern-map+validation done; plan-checker PASS. Next: /gsd-execute-phase 86"
+last_updated: "2026-06-15T22:50:00.000Z"
 last_activity: "2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)"
 progress:
   total_phases: 11
@@ -24,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 86 (redesign-dashboard) — not planned yet
-Plan: none yet
-Status: Phase 86 added (end of v1.13) — dashboard redesign to new screenshot layout; reuse existing data, remove old widgets, no dead code. Next: /gsd-plan-phase 86
+Phase: 86 (redesign-dashboard) — PLANNED (4 plans, 3 waves)
+Plan: 86-01 (My Issues + Releases cards), 86-02 (hours/commits chart), 86-03 (index rewrite + delete 12 widget files + slim metrics + guard), 86-04 (WebKit UAT)
+Status: Phase 86 planned — research + pattern-map + Nyquist validation done; plan-checker PASS (2 trivial warnings resolved). Next: /gsd-execute-phase 86
 Last activity: 2026-06-15 -- Completed quick task 260615-smu: Polish and modernize the dashboard (Verified)
 
 Progress: [██████████] 100%
@@ -99,6 +99,6 @@ Items carried forward from v1.12 close (2026-06-07):
 
 ## Session Continuity
 
-Last session: 2026-06-15T20:25:18.493Z
-Stopped at: Phase 86 context gathered
-Resume file: .planning/phases/86-redesign-dashboard-to-new-screenshot-layout-and-remove-old-w/86-CONTEXT.md
+Last session: 2026-06-15T20:37:42.899Z
+Stopped at: Phase 86 UI-SPEC approved
+Resume file: .planning/phases/86-redesign-dashboard-to-new-screenshot-layout-and-remove-old-w/86-UI-SPEC.md
