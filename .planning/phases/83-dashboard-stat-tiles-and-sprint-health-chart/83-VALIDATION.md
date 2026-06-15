@@ -1,10 +1,11 @@
 ---
 phase: 83
 slug: dashboard-stat-tiles-and-sprint-health-chart
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-15
+audited: 2026-06-15
 ---
 
 # Phase 83 — Validation Strategy
@@ -38,32 +39,31 @@ Setup file: `taskflow/src/test/setup.ts`.
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| W0-stub | 00 | 0 | DASH-02/03 | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| SP-done excl. subtasks | — | — | DASH-02 (crit 2) | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| SP-total excl. subtasks | — | — | DASH-02 (crit 2) | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| Open tile count | — | — | DASH-02 | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| In Progress tile count | — | — | DASH-02 | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| Overdue tile count | — | — | DASH-02 | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| getDaysRemaining | — | — | DASH-03 | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| Donut data (zero-SP excl.) | — | — | DASH-03 | — | N/A | unit | `npm run test -- dashboardMetrics` | ❌ W0 | ⬜ pending |
-| SprintHealthSection render | — | — | DASH-03 | — | N/A | component | `npm run test -- SprintHealthSection` | ❌ W0 | ⬜ pending |
-| Section independent degradation | — | — | DASH-07 | — | N/A | component | `npm run test -- StatTiles` | ❌ W0 | ⬜ pending |
-| Widget removal guard | — | — | DASH-01 | — | N/A | unit | `npm run test -- widget-removal` | ⚠ extend | ⬜ pending |
+| Behavior | Requirement | Test Type | Test File | Automated Command | Status |
+|----------|-------------|-----------|-----------|-------------------|--------|
+| SP-done excludes subtasks (parent 5 + 2×2 ⇒ 5) | DASH-02 (crit 2) | unit | `dashboardMetrics.test.ts` | `npm run test -- dashboardMetrics` | ✅ green |
+| SP-total excludes subtasks | DASH-02 (crit 2) | unit | `dashboardMetrics.test.ts` | `npm run test -- dashboardMetrics` | ✅ green |
+| Open / In Progress / Overdue tile counts | DASH-02 | unit | `dashboardMetrics.test.ts` | `npm run test -- dashboardMetrics` | ✅ green |
+| `getDaysRemaining` | DASH-03 | unit | `dashboardMetrics.test.ts` | `npm run test -- dashboardMetrics` | ✅ green |
+| Donut data (zero-SP excluded, CSS-var fills) | DASH-03 | unit | `dashboardMetrics.test.ts` | `npm run test -- dashboardMetrics` | ✅ green |
+| StatTile static display (`role="region"`, no click) | DASH-02 | component | `StatTile.test.tsx` | `npm run test -- StatTile` | ✅ green |
+| SprintHealthSection render (warm-cache key, donut) | DASH-03 | component | `SprintHealthSection.test.tsx` | `npm run test -- SprintHealthSection` | ✅ green |
+| Dashboard composition (hero, tiles, sections) | DASH-01/02/03 | component | `index.test.tsx` | `npm run test -- "dashboard/index"` | ✅ green |
+| Section independent degradation (skeleton/error) | DASH-07 | component | `index.test.tsx`, `SprintHealthSection.test.tsx` | `npm run test -- "dashboard/index"` | ✅ green |
+| Widget removal guard (3 old cards not imported) | DASH-01 | unit | `widget-removal.guard.test.ts` | `npm run test -- widget-removal` | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
-*Task IDs finalized by the planner; this map binds requirements → behaviors → automated commands.*
+*Audited 2026-06-15: 65/65 tests passing across 5 files (dashboardMetrics 22, StatTile 11, SprintHealthSection 10, dashboard/index 12, widget-removal 10).*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/routes/dashboard/dashboardMetrics.ts` — pure derivation functions (no React deps): `computeSpDone`, `computeSpTotal`, tile counts, `getDaysRemaining`, donut-data builder
-- [ ] `src/routes/dashboard/dashboardMetrics.test.ts` — subtask-exclusion (parent 5 + 2×2 subtasks ⇒ 5, not 9), tile counts, donut data, getDaysRemaining
-- [ ] `src/routes/dashboard/widget-removal.guard.test.ts` — extend to assert `SmokeTestChart`, `DashboardSprintCard`, `DashboardInProgressCard` (as standalone cards) are not imported in `index.tsx`
-- [ ] Vitest 4.x already installed — no framework install required
+- [x] `src/routes/dashboard/dashboardMetrics.ts` — pure derivation functions (no React deps): `computeSpDone`, `computeSpTotal`, tile counts, `getDaysRemaining`, donut-data builder
+- [x] `src/routes/dashboard/dashboardMetrics.test.ts` — subtask-exclusion (parent 5 + 2×2 subtasks ⇒ 5, not 9), tile counts, donut data, getDaysRemaining
+- [x] `src/routes/dashboard/widget-removal.guard.test.ts` — asserts `SmokeTestChart`, `DashboardSprintCard`, `DashboardInProgressCard` are not imported in `index.tsx`
+- [x] Vitest 4.x already installed — no framework install required
 
 ---
 
@@ -78,11 +78,26 @@ Setup file: `taskflow/src/test/setup.ts`.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (audited 2026-06-15)
+
+---
+
+## Validation Audit 2026-06-15
+
+| Metric | Count |
+|--------|-------|
+| Requirements audited | 4 (DASH-01/02/03/07) |
+| Gaps found | 0 |
+| Resolved | 0 (already covered) |
+| Escalated | 0 |
+| Automated tests | 65 across 5 files (all green) |
+| Manual-only | 2 (zero-new-API-calls determinism; OKLCH theme colors) |
+
+State A audit: VALIDATION.md was a stale planning-time draft. All Phase 83 tests were authored during execution and verified green in 83-VERIFICATION.md. No gaps to fill; no auditor spawn or test generation needed. Updated statuses to reflect the live green state.
