@@ -452,7 +452,7 @@ Wave 2 (blocked on Wave 1):
 
 **Wave 3** *(blocked on Wave 1 + 2)*
 
-- [ ] 83-03-PLAN.md — index.tsx rewrite (hero+tiles+sprint-health+countdown) + delete SmokeTestChart/SprintCard/InProgressCard + human Tauri UAT
+- [x] 83-03-PLAN.md — index.tsx rewrite (hero+tiles+sprint-health+countdown) + delete SmokeTestChart/SprintCard/InProgressCard + human Tauri UAT
 
 **UI hint**: yes
 
@@ -512,6 +512,6 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
-| 83. Dashboard Stat Tiles and Sprint Health Chart | 2/3 | In Progress|  |
+| 83. Dashboard Stat Tiles and Sprint Health Chart | 3/3 | Complete   | 2026-06-15 |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
