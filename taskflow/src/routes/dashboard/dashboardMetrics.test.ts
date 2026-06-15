@@ -43,7 +43,12 @@ function makeIssue(overrides: {
           ? null
           : overrides.assignee === null
             ? null
-            : { displayName: overrides.assignee, accountId: 'acc-1', emailAddress: '', avatarUrl: '' },
+            : {
+                displayName: overrides.assignee,
+                accountId: 'acc-1',
+                emailAddress: '',
+                avatarUrl: '',
+              },
       issuetype: {
         id: '10001',
         name: overrides.subtask ? 'Sub-task' : 'Story',
@@ -133,17 +138,44 @@ describe('computePersonalTileCounts', () => {
   });
 
   it('counts inProgress: my non-subtask issues with statusCategory indeterminate', () => {
-    const myInprog = makeIssue({ subtask: false, sp: 0, statusCategory: 'indeterminate', assignee: ME });
+    const myInprog = makeIssue({
+      subtask: false,
+      sp: 0,
+      statusCategory: 'indeterminate',
+      assignee: ME,
+    });
     const myNew = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: ME });
     const { inProgress } = computePersonalTileCounts([myInprog, myNew], ME, TODAY);
     expect(inProgress).toBe(1);
   });
 
   it('counts overdue: my non-done non-subtask issues with duedate before today', () => {
-    const overdue = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: ME, duedate: '2026-06-14' });
-    const notOverdue = makeIssue({ subtask: false, sp: 0, statusCategory: 'new', assignee: ME, duedate: '2026-06-16' });
-    const doneWithPastDue = makeIssue({ subtask: false, sp: 0, statusCategory: 'done', assignee: ME, duedate: '2026-06-01' });
-    const { overdue: overdueCount } = computePersonalTileCounts([overdue, notOverdue, doneWithPastDue], ME, TODAY);
+    const overdue = makeIssue({
+      subtask: false,
+      sp: 0,
+      statusCategory: 'new',
+      assignee: ME,
+      duedate: '2026-06-14',
+    });
+    const notOverdue = makeIssue({
+      subtask: false,
+      sp: 0,
+      statusCategory: 'new',
+      assignee: ME,
+      duedate: '2026-06-16',
+    });
+    const doneWithPastDue = makeIssue({
+      subtask: false,
+      sp: 0,
+      statusCategory: 'done',
+      assignee: ME,
+      duedate: '2026-06-01',
+    });
+    const { overdue: overdueCount } = computePersonalTileCounts(
+      [overdue, notOverdue, doneWithPastDue],
+      ME,
+      TODAY,
+    );
     expect(overdueCount).toBe(1);
   });
 
@@ -162,7 +194,11 @@ describe('computePersonalTileCounts', () => {
   });
 
   it('returns all zeros for empty issue array', () => {
-    expect(computePersonalTileCounts([], ME, TODAY)).toEqual({ open: 0, inProgress: 0, overdue: 0 });
+    expect(computePersonalTileCounts([], ME, TODAY)).toEqual({
+      open: 0,
+      inProgress: 0,
+      overdue: 0,
+    });
   });
 });
 

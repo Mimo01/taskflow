@@ -64,14 +64,10 @@ export function computePersonalTileCounts(
   today: string,
 ): { open: number; inProgress: number; overdue: number } {
   const myNonSubtasks = issues.filter(
-    (i) =>
-      !i.fields.issuetype.subtask &&
-      i.fields.assignee?.displayName === displayName,
+    (i) => !i.fields.issuetype.subtask && i.fields.assignee?.displayName === displayName,
   );
 
-  const open = myNonSubtasks.filter(
-    (i) => i.fields.status.statusCategory?.key !== 'done',
-  ).length;
+  const open = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key !== 'done').length;
 
   const inProgress = myNonSubtasks.filter(
     (i) => i.fields.status.statusCategory?.key === 'indeterminate',
@@ -79,11 +75,7 @@ export function computePersonalTileCounts(
 
   const overdue = myNonSubtasks.filter((i) => {
     const duedate = i.fields.duedate as string | null | undefined;
-    return (
-      !!duedate &&
-      duedate < today &&
-      i.fields.status.statusCategory?.key !== 'done'
-    );
+    return !!duedate && duedate < today && i.fields.status.statusCategory?.key !== 'done';
   }).length;
 
   return { open, inProgress, overdue };
