@@ -66,7 +66,7 @@ export function aioRunStatusBadgeClass(status: string): string {
  * Matches the sprint board reference style.
  */
 export const STATUS_PILL_LAYOUT_CLASS =
-  'shrink-0 min-w-[5.5rem] text-center rounded px-1.5 py-0.5 text-xs font-medium';
+  'shrink-0 min-w-[5.5rem] whitespace-nowrap text-center rounded px-1.5 py-0.5 text-xs font-medium';
 
 /**
  * Full className for a Jira status pill (layout + color).
