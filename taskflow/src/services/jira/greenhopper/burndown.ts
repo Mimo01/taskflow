@@ -67,9 +67,7 @@ export async function fetchBurndown(
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Invalid token or token has expired', response.status, 'jira');
     }
-    throw new Error(
-      `GreenHopper burndown request failed with status ${response.status}`,
-    );
+    throw new Error(`GreenHopper burndown request failed with status ${response.status}`);
   }
 
   return (await response.json()) as GreenHopperBurndown;
