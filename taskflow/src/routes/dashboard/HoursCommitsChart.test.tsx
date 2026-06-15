@@ -163,7 +163,10 @@ describe('buildRolling7Buckets — D-11: worklog + commits bucketing', () => {
     const buildRolling7Buckets = await importBuildRolling7Buckets();
     const today = getTodayDate();
     const yesterday = addDays(today, -1);
-    const commitsByDay = new Map([[yesterday, 5], [today, 3]]);
+    const commitsByDay = new Map([
+      [yesterday, 5],
+      [today, 3],
+    ]);
     const buckets = buildRolling7Buckets([], commitsByDay, today);
     expect(buckets.find((b) => b.day === yesterday)?.commits).toBe(5);
     expect(buckets.find((b) => b.day === today)?.commits).toBe(3);
@@ -231,10 +234,7 @@ describe('HoursCommitsChart — D-12: all-zero connected week renders chart not 
     });
 
     // Seed tempo query cache with empty array — warm cache so we skip loading state
-    queryClient.setQueryData(
-      ['dashboard', 'tempo-7day', BASE_URL, today, USERNAME],
-      [],
-    );
+    queryClient.setQueryData(['dashboard', 'tempo-7day', BASE_URL, today, USERNAME], []);
 
     render(
       <MemoryRouter>
@@ -258,10 +258,7 @@ describe('HoursCommitsChart — D-12: all-zero connected week renders chart not 
       defaultOptions: { queries: { retry: false } },
     });
 
-    queryClient.setQueryData(
-      ['dashboard', 'tempo-7day', BASE_URL, today, USERNAME],
-      [],
-    );
+    queryClient.setQueryData(['dashboard', 'tempo-7day', BASE_URL, today, USERNAME], []);
 
     render(
       <MemoryRouter>
@@ -290,10 +287,7 @@ describe('HoursCommitsChart — render: chart has both Bar series', () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    queryClient.setQueryData(
-      ['dashboard', 'tempo-7day', BASE_URL, today, USERNAME],
-      [],
-    );
+    queryClient.setQueryData(['dashboard', 'tempo-7day', BASE_URL, today, USERNAME], []);
 
     render(
       <MemoryRouter>
