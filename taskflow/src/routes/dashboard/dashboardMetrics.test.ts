@@ -571,6 +571,42 @@ describe('parseBurndownChanges', () => {
     const fallback = parseBurndownChanges(undefined as never, 500);
     expect(fallback).toEqual([{ t: 500, remaining: 0 }]);
   });
+
+  // UAT-4 regression (2026-06-15): live Jira DC carries timeestimate deltas under
+  // `timeC: { oldEstimate, newEstimate }`, NOT `statC`. The original parser read only
+  // statC → every delta was 0 → flat-zero "blank" burndown. Guard the live shape.
+  it('burns down from the live timeC shape (oldEstimate/newEstimate, seconds)', () => {
+    const changes = {
+      // Scope added: remaining estimate rises 0 → 28800 (8h).
+      '1000': [{ key: 'ESHOP-1', timeC: { oldEstimate: 0, newEstimate: 28800, timeSpent: 0 } }],
+      // Work logged, estimate cut to 0 → remaining falls back to 0.
+      '2000': [{ key: 'ESHOP-1', timeC: { oldEstimate: 28800, newEstimate: 0, timeSpent: 28800 } }],
+    };
+    const points = parseBurndownChanges(changes, 500);
+    expect(points.map((p) => p.t)).toEqual([500, 1000, 2000]);
+    // Non-flat curve — the bug produced [0, 0, 0]; the fix yields the true rise/fall.
+    expect(points.map((p) => p.remaining)).toEqual([0, 28800, 0]);
+  });
+
+  it('ignores informational timeSpent and tolerates a zero-estimate worklog (live sample row)', () => {
+    // The exact ESHOP-13731 row from the live probe: a pure worklog on a no-estimate issue
+    // contributes 0 to remaining (newEstimate - oldEstimate = 0), never the timeSpent value.
+    const changes = {
+      '1738108800000': [
+        { key: 'ESHOP-13731', timeC: { oldEstimate: 0, newEstimate: 0, timeSpent: 1800 } },
+      ],
+    };
+    const points = parseBurndownChanges(changes, 1738108800000 - 1000);
+    expect(points.map((p) => p.remaining)).toEqual([0, 0]);
+  });
+
+  it('still parses the statC fallback for non-time statistics (story points)', () => {
+    const changes = {
+      '1000': [{ key: 'PROJ-1', statC: { newValue: 13, oldValue: 0 }, added: true }],
+    };
+    const points = parseBurndownChanges(changes, 500);
+    expect(points.map((p) => p.remaining)).toEqual([0, 13]);
+  });
 });
 
 // ---------------------------------------------------------------------------
