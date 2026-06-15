@@ -69,6 +69,19 @@ const COLOR_UNDER = '#f59e0b'; // amber-500 — day under target
 /** Weekly goal = five working days at the daily target. */
 const WEEKLY_GOAL_HOURS = DAILY_TARGET_HOURS * 5;
 
+/**
+ * Formats decimal hours as a human-readable h+m string.
+ * 1.5 → "1h 30m", 8 → "8h", 0.25 → "15m". Minutes rounded to the nearest minute.
+ */
+function formatHoursMinutes(hours: number): string {
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 export default function WeeklyTrendChart({
   jiraBaseUrl,
   jiraToken,
@@ -100,7 +113,7 @@ export default function WeeklyTrendChart({
 
   // Weekly total for the header progress label (e.g. "38.5h / 40h").
   const weekTotal = buckets.reduce((sum, b) => sum + b.hours, 0);
-  const totalLabel = `${weekTotal.toFixed(1).replace(/\.0$/, '')}h / ${WEEKLY_GOAL_HOURS}h`;
+  const totalLabel = `${formatHoursMinutes(weekTotal)} / ${formatHoursMinutes(WEEKLY_GOAL_HOURS)}`;
 
   // D-06: Tempo-off is a graceful empty state (not an error).
   // Render the card shell with the Tempo-not-connected EmptyState when tempoEnabled=false,
@@ -181,7 +194,7 @@ export default function WeeklyTrendChart({
                   fill="var(--muted-foreground)"
                   formatter={(value: unknown) => {
                     const n = typeof value === 'number' ? value : Number(value);
-                    return Number.isFinite(n) && n > 0 ? n.toFixed(1).replace(/\.0$/, '') : '';
+                    return Number.isFinite(n) && n > 0 ? formatHoursMinutes(n) : '';
                   }}
                 />
               </Bar>

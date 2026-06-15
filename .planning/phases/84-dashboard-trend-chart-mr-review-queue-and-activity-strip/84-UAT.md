@@ -17,6 +17,7 @@ expected: Dashboard "Weekly Trend" section shows a Mon–Fri Tempo-hours bar cha
 result: issue
 reported: "hours are shown in format of decimals, not h+m"
 severity: minor
+resolution: "Fixed inline — added formatHoursMinutes() helper; bar labels and weekly total now render h+m (e.g. 1h 30m, 8h). WeeklyTrendChart.tsx. Commit pending below."
 
 ### 2. Tempo-not-connected state
 expected: When Tempo is not connected, the Weekly Trend section shows a calm "Tempo not connected" empty state (not an error/crash). When connected with no logged hours, it shows all-zero bars rather than empty.
@@ -52,11 +53,15 @@ blocked: 0
 ## Gaps
 
 - truth: "Weekly Trend chart bar value labels display hours in human-readable h+m format"
-  status: failed
+  status: resolved
   reason: "User reported: hours are shown in format of decimals, not h+m"
   severity: minor
   test: 1
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "LabelList formatter and weekly-total label used n.toFixed(1) (decimal hours) instead of an h+m format."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/WeeklyTrendChart.tsx"
+      issue: "Decimal hour labels on bars and weekly total"
+  missing:
+    - "formatHoursMinutes() helper converting decimal hours to h+m"
   debug_session: ""
+  resolution: "Fixed inline during UAT — formatHoursMinutes() applied to bar LabelList and weekly total. Tests green, npm run check 0 errors."
