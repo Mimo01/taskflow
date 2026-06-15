@@ -440,7 +440,17 @@ Wave 2 (blocked on Wave 1):
   3. A sprint health section shows sprint days remaining and a points-by-status chart (donut or stacked bar via `ChartWrapper`) with status colors sourced from semantic CSS-var aliases (not hardcoded hex), drawn from the same warm `['jira-issues','sprint-board',...]` cache — no new network request fires when the Dashboard loads
   4. Every Dashboard section has its own loading skeleton and error state; a slow or failed section does not blank adjacent sections (DASH-07 independence applies from this phase forward)
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 1**
+- [ ] 83-01-PLAN.md — dashboardMetrics.ts pure derivation + tests (5-not-9 subtask exclusion) + Sidebar active-sprint prefetch for /dashboard + widget-removal guard extension
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 83-02-PLAN.md — StatTile.tsx (static tile) + SprintHealthSection.tsx (days/progress/donut via ChartWrapper) + render tests
+
+**Wave 3** *(blocked on Wave 1 + 2)*
+- [ ] 83-03-PLAN.md — index.tsx rewrite (hero+tiles+sprint-health+countdown) + delete SmokeTestChart/SprintCard/InProgressCard + human Tauri UAT
+
 **UI hint**: yes
 
 ### Phase 84: Dashboard Trend Chart, MR Review Queue, and Activity Strip
@@ -499,6 +509,6 @@ All v1.0-v1.12 phases shipped. See per-milestone archives in `.planning/mileston
 |-------|----------------|--------|-----------|
 | 81. Charting Foundation | 3/3 | Complete   | 2026-06-14 |
 | 82. My Tasks Page | 5/5 | Complete    | 2026-06-14 |
-| 83. Dashboard Stat Tiles and Sprint Health Chart | 0/TBD | Not started | - |
+| 83. Dashboard Stat Tiles and Sprint Health Chart | 0/3 | Not started | - |
 | 84. Dashboard Trend Chart, MR Review Queue, and Activity Strip | 0/TBD | Not started | - |
 | 85. Sprint Insights (Conditional) | 0/TBD | Not started | - |
