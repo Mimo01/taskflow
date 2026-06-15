@@ -1,10 +1,11 @@
 ---
 phase: 84
 slug: dashboard-trend-chart-mr-review-queue-and-activity-strip
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-15
+validated: 2026-06-15
 ---
 
 # Phase 84 — Validation Strategy
@@ -36,22 +37,22 @@ created: 2026-06-15
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| trend-bucketing | TBD | TBD | DASH-04 | — | N/A | unit | `npx vitest run` (timezone-safe bucketing: `started:"2026-06-14T23:00:00"` ⇒ `2026-06-14`) | ❌ W0 | ⬜ pending |
-| activity-shared-key | TBD | TBD | DASH-05 | — | N/A | unit/integration | `npx vitest run` (strip query keys === Standup keys, byte-identical) | ❌ W0 | ⬜ pending |
-| mr-queue-grouping | TBD | TBD | DASH-06 | — | N/A | unit | `npx vitest run` (reviewer vs author grouping from `{filtered,merged}` cache) | ❌ W0 | ⬜ pending |
-| independent-degrade | TBD | TBD | DASH-07 | — | N/A | manual + component | one section error does not blank the others | n/a | ⬜ pending |
+| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Test File | Automated Command | Status |
+|---------|------|------|-------------|------------|-----------------|-----------|-----------|-------------------|--------|
+| trend-bucketing | 84-02 | W0 | DASH-04 | — | N/A | unit | `dashboardMetrics.test.ts` (6 `buildWeekBuckets` tests incl. mandated `'2026-06-14T23:00:00'` ⇒ Friday bucket) | `npx vitest run src/routes/dashboard/dashboardMetrics.test.ts` | ✅ green |
+| activity-shared-key | 84-03 | W1 | DASH-05 | — | N/A | unit/integration | `ActivityStrip.test.tsx` (criterion-2 seeded cache reuse: renders w/o queryFn) + `dashboardMetrics.test.ts` (`mergeActivityEntries` order/cap) | `npx vitest run src/routes/dashboard/ActivityStrip.test.tsx src/routes/dashboard/dashboardMetrics.test.ts` | ✅ green |
+| mr-queue-grouping | 84-02 | — | DASH-06 | — | N/A | — | *DESCOPED — UAT 2026-06-15, component removed* | n/a | ⛔ descoped |
+| independent-degrade | 84-03 | W1 | DASH-07 | — | N/A | component | `ActivityStrip.test.tsx` (jira error + commits succeed → rows still render) + `WeeklyTrendChart.test.tsx` (Tempo-not-connected empty state, not error) | `npx vitest run src/routes/dashboard/ActivityStrip.test.tsx src/routes/dashboard/WeeklyTrendChart.test.tsx` | ✅ green |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky · Task IDs finalized by planner.*
+*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky · ⛔ descoped. 42/42 tests pass (validated 2026-06-15). Full cross-section runtime degradation, zero-duplicate-network, and config-gated empty states remain Manual-Only (below).*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] Timezone-safe weekly-bucketing helper extracted as a pure, importable function (so the criterion-1 unit test can call it directly against raw `started` input) — DASH-04
-- [ ] Shared-query-key constants/helpers extracted so the activity strip and Standup Notes provably use byte-identical keys (testable equality) — DASH-05
-- [ ] MR-grouping (reviewer vs author) extracted as a pure function over the `{ filtered, merged }` cache payload — DASH-06
+- [x] Timezone-safe weekly-bucketing helper extracted as a pure, importable function (`buildWeekBuckets` in `dashboardMetrics.ts`) — DASH-04
+- [x] Shared-query-key reuse proven via `ActivityStrip.test.tsx` criterion-2 seeded-cache test; byte-identical keys verified in 84-VERIFICATION.md — DASH-05
+- [x] MR-grouping — N/A, DASH-06 descoped (component + tests deleted during UAT 2026-06-15)
 
 *If existing test infrastructure (vitest) is already configured, no framework install is needed — only the pure-function seams above.*
 
@@ -69,11 +70,25 @@ created: 2026-06-15
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s (3 files run in ~0.9s)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-06-15
+
+---
+
+## Validation Audit 2026-06-15
+
+Retroactive Nyquist audit of the completed phase (State A — existing VALIDATION.md was a pre-execution draft with `TBD` task IDs). Cross-referenced the 3 in-scope requirements against shipped test files; all run green; no auditor spawn needed (no MISSING gaps).
+
+| Metric | Count |
+|--------|-------|
+| In-scope requirements | 3 (DASH-04, DASH-05, DASH-07) |
+| COVERED | 3 |
+| MISSING / Escalated | 0 |
+| Descoped | 1 (DASH-06) |
+| Tests passing | 42/42 |
