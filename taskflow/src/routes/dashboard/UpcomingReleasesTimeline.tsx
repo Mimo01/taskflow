@@ -164,7 +164,7 @@ export default function UpcomingReleasesTimeline({
                   {/* Timeline connector — orange only on the closest release (dot 1 → dot 2).
                       The trailing segment past the last dot is a short stub, not a full span. */}
                   <div
-                    className={`absolute top-[5px] left-1.5 h-0.5 ${isLast ? 'w-6' : 'right-0'} ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
+                    className={`absolute top-[5px] left-1.5 h-0.5 ${isLast ? 'w-10' : 'right-0'} ${isFirst ? 'bg-orange-500' : 'bg-border'}`}
                   />
 
                   {/* Dot — first is solid orange, the rest are hollow */}
