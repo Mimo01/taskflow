@@ -8,7 +8,7 @@
  * Single source of truth for every stat tile and the donut.
  * Downstream UI imports these functions and never re-derives inline.
  */
-import type { GitLabCommit, GitLabMR } from '@/services/gitlab';
+import type { GitLabCommit } from '@/services/gitlab';
 import type { JiraActivityItem, JiraIssue } from '@/services/jira';
 import type { TempoWorklog } from '@/services/tempo/types';
 
@@ -149,7 +149,12 @@ export const DAILY_TARGET_HOURS = 8;
 /**
  * Add N calendar days to a YYYY-MM-DD string.
  * Uses Date.UTC for arithmetic only — input and output are calendar dates with no timezone shift.
- * Never calls toLocaleDateString or toISOString on a locally-constructed Date.
+ *
+ * The toISOString() below is the ONE sanctioned use in this module: it reads back a Date that
+ * was *UTC-constructed* via Date.UTC, so the UTC write and UTC read cancel exactly — there is no
+ * local-timezone component to shift (DST-immune). This is NOT the banned pattern, which is calling
+ * toISOString() on a *locally*-constructed Date (new Date(y,m,d) / new Date()). Do not "simplify"
+ * Date.UTC → new Date here: that would reintroduce the off-by-one this construction avoids.
  */
 function addDays(dateStr: string, n: number): string {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -189,31 +194,6 @@ export function buildWeekBuckets(worklogs: TempoWorklog[], weekStart: string): W
   }
 
   return buckets;
-}
-
-/**
- * Group a list of open MRs into two non-overlapping role-based groups.
- *
- * Implements DASH-06 criterion 3:
- *   - awaitingReview: MRs where `userId` is a reviewer AND is NOT the author.
- *     Pitfall 3 (RESEARCH): self-authored MRs must be excluded to prevent overlap.
- *   - myOpen: MRs where `userId` is the author.
- *
- * An MR where the user is both author and reviewer appears ONLY in myOpen.
- *
- * @param mrs    Array of open GitLabMR objects
- * @param userId The current user's GitLab numeric user ID (undefined → both groups empty)
- */
-export function groupMrsByRole(
-  mrs: GitLabMR[],
-  userId: number | undefined,
-): { awaitingReview: GitLabMR[]; myOpen: GitLabMR[] } {
-  const awaitingReview = mrs.filter(
-    // Pitfall 3: exclude self-authored from awaitingReview to prevent overlap with myOpen.
-    (mr) => mr.reviewers.some((r) => r.id === userId) && mr.author.id !== userId,
-  );
-  const myOpen = mrs.filter((mr) => mr.author.id === userId);
-  return { awaitingReview, myOpen };
 }
 
 // ---------------------------------------------------------------------------

@@ -56,14 +56,16 @@ export interface ActivityStripProps {
 
 /**
  * Format an ISO 8601 timestamp as a relative label.
- * Returns "Xh ago" for times within 24h, otherwise "Yesterday".
+ * Within 24h → "Just now" / "Xh ago". Older than that, the entry is from the last
+ * working day (which on a Monday is Friday, ~72h ago), so a literal "Yesterday" would
+ * be wrong — fall back to the short weekday name instead (e.g. "Fri").
  */
 function formatRelative(at: string): string {
-  const diffMs = Date.now() - new Date(at).getTime();
-  const diffH = Math.floor(diffMs / (1000 * 60 * 60));
+  const then = new Date(at);
+  const diffH = Math.floor((Date.now() - then.getTime()) / (1000 * 60 * 60));
   if (diffH < 1) return 'Just now';
   if (diffH < 24) return `${diffH}h ago`;
-  return 'Yesterday';
+  return then.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
 export default function ActivityStrip({
