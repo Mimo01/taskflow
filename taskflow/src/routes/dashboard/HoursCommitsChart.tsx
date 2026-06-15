@@ -146,9 +146,14 @@ export function buildRolling7Buckets(
 // Chart config — two series (hours: blue, commits: green)
 // ---------------------------------------------------------------------------
 
+// Semantic series colors (theme-stable hex — the --chart-* tokens are all blue, which
+// made hours and commits indistinguishable). Blue = hours logged, green = commits.
+const HOURS_COLOR = '#3b82f6'; // blue-500
+const COMMITS_COLOR = '#10b981'; // emerald-500
+
 const chartConfig = {
-  hours: { label: 'Hours logged', color: 'var(--chart-1)' },
-  commits: { label: 'Commits', color: 'var(--chart-2)' },
+  hours: { label: 'Hours logged', color: HOURS_COLOR },
+  commits: { label: 'Commits', color: COMMITS_COLOR },
 } satisfies ChartConfig;
 
 // ---------------------------------------------------------------------------
@@ -295,7 +300,7 @@ export default function HoursCommitsChart({
     return (
       <Card role="region" aria-label="Past 7 days hours and commits">
         <CardHeader>
-          <CardTitle className="text-xs font-normal text-muted-foreground uppercase tracking-wide">
+          <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             PAST 7 DAYS · HOURS &amp; COMMITS PER DAY
           </CardTitle>
         </CardHeader>
@@ -315,16 +320,27 @@ export default function HoursCommitsChart({
   return (
     <Card role="region" aria-label="Past 7 days hours and commits">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs font-normal text-muted-foreground uppercase tracking-wide">
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             PAST 7 DAYS · HOURS &amp; COMMITS PER DAY
           </CardTitle>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-normal" style={{ color: 'var(--chart-1)' }}>
-              {formatHoursMinutes(totalHours)} h logged
+          {/* Legend — hours on top, commits below, each with a color swatch */}
+          <div className="flex flex-col items-end gap-1">
+            <span className="flex items-center gap-1.5 text-sm font-medium tabular-nums">
+              <span
+                className="size-2.5 rounded-sm"
+                style={{ backgroundColor: HOURS_COLOR }}
+                aria-hidden
+              />
+              <span style={{ color: HOURS_COLOR }}>{formatHoursMinutes(totalHours)} h logged</span>
             </span>
-            <span className="text-sm font-normal" style={{ color: 'var(--chart-2)' }}>
-              {totalCommits} commits
+            <span className="flex items-center gap-1.5 text-sm font-medium tabular-nums">
+              <span
+                className="size-2.5 rounded-sm"
+                style={{ backgroundColor: COMMITS_COLOR }}
+                aria-hidden
+              />
+              <span style={{ color: COMMITS_COLOR }}>{totalCommits} commits</span>
             </span>
           </div>
         </div>
@@ -379,14 +395,14 @@ export default function HoursCommitsChart({
                 <Bar
                   yAxisId="hours"
                   dataKey="hours"
-                  fill="var(--chart-1)"
+                  fill={HOURS_COLOR}
                   radius={[4, 4, 0, 0]}
                   isAnimationActive={false}
                 >
                   {dayBuckets.map((b) => (
                     <Cell
                       key={b.day}
-                      fill="var(--chart-1)"
+                      fill={HOURS_COLOR}
                       stroke={b.isToday ? 'var(--foreground)' : undefined}
                       strokeWidth={b.isToday ? 2 : 0}
                     />
@@ -408,7 +424,7 @@ export default function HoursCommitsChart({
                 <Bar
                   yAxisId="commits"
                   dataKey="commits"
-                  fill="var(--chart-2)"
+                  fill={COMMITS_COLOR}
                   radius={[4, 4, 0, 0]}
                   isAnimationActive={false}
                   minPointSize={1}
@@ -416,7 +432,7 @@ export default function HoursCommitsChart({
                   {dayBuckets.map((b) => (
                     <Cell
                       key={b.day}
-                      fill="var(--chart-2)"
+                      fill={COMMITS_COLOR}
                       stroke={b.isToday ? 'var(--foreground)' : undefined}
                       strokeWidth={b.isToday ? 2 : 0}
                     />

@@ -200,10 +200,10 @@ describe('Dashboard — Phase 86 3-region layout', () => {
     expect(screen.getByText(/there/)).toBeTruthy();
   });
 
-  it('Test 7 (hero heading is text-4xl): h1 has text-4xl class', () => {
+  it('Test 7 (hero heading is text-6xl, centered): h1 has text-6xl class', () => {
     renderDashboard();
     const h1 = screen.getByRole('heading', { level: 1 });
-    expect(h1.className).toContain('text-4xl');
+    expect(h1.className).toContain('text-6xl');
   });
 
   it('Test 8 (D-05 — no widget controls): no drag/picker/resize markers', () => {

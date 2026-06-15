@@ -68,10 +68,14 @@ export default function MyIssuesCard({
   // D-03 invariant: toDo + inProgress + done === total (unknown keys fall through — T-86-03)
 
   return (
-    <Card role="region" aria-label="My issues this sprint">
+    <Card role="region" aria-label="My issues this sprint" className="relative overflow-hidden">
+      {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
+      <CheckSquare
+        className="pointer-events-none absolute -top-4 -right-3 size-20 text-emerald-500/10 dark:text-emerald-400/15"
+        aria-hidden
+      />
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xs font-normal text-muted-foreground uppercase tracking-wide">
-          <CheckSquare className="size-4 text-chart-1" aria-hidden />
+        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           MY ISSUES
         </CardTitle>
         <CardDescription>this sprint</CardDescription>
@@ -116,19 +120,19 @@ export default function MyIssuesCard({
               className="h-2 rounded-full overflow-hidden bg-muted flex"
             >
               <div
-                className="bg-muted-foreground/40"
+                className="bg-slate-400 dark:bg-slate-500"
                 style={{ width: `${(toDo / total) * 100}%` }}
               />
-              <div className="bg-chart-1" style={{ width: `${(inProgress / total) * 100}%` }} />
-              <div className="bg-chart-2" style={{ width: `${(done / total) * 100}%` }} />
+              <div className="bg-blue-500" style={{ width: `${(inProgress / total) * 100}%` }} />
+              <div className="bg-emerald-500" style={{ width: `${(done / total) * 100}%` }} />
             </div>
 
             {/* Legend */}
             <div className="flex items-center gap-4">
               {[
-                { label: 'To Do', count: toDo, cls: 'bg-muted-foreground/40' },
-                { label: 'In Progress', count: inProgress, cls: 'bg-chart-1' },
-                { label: 'Done', count: done, cls: 'bg-chart-2' },
+                { label: 'To Do', count: toDo, cls: 'bg-slate-400 dark:bg-slate-500' },
+                { label: 'In Progress', count: inProgress, cls: 'bg-blue-500' },
+                { label: 'Done', count: done, cls: 'bg-emerald-500' },
               ].map(({ label, count, cls }) => (
                 <div key={label} className="flex items-center gap-1">
                   <span className={`size-2 rounded-sm ${cls}`} />

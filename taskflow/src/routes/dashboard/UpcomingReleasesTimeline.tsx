@@ -88,10 +88,14 @@ export default function UpcomingReleasesTimeline({
   });
 
   return (
-    <Card role="region" aria-label="Upcoming releases">
+    <Card role="region" aria-label="Upcoming releases" className="relative overflow-hidden">
+      {/* Big ambient icon, top-right (matches My Tasks stat-tile pattern) */}
+      <Calendar
+        className="pointer-events-none absolute -top-4 -right-3 size-20 text-amber-500/10 dark:text-amber-400/15"
+        aria-hidden
+      />
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xs font-normal text-muted-foreground uppercase tracking-wide">
-          <Calendar className="size-4 text-chart-1" aria-hidden />
+        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           UPCOMING RELEASES
         </CardTitle>
         <CardDescription>next 3 with due dates</CardDescription>
@@ -142,32 +146,34 @@ export default function UpcomingReleasesTimeline({
               return (
                 <div
                   key={v.id ?? v.name}
-                  className="relative flex flex-col items-center gap-1"
+                  className="relative flex flex-col items-center gap-1.5"
                   data-testid="release-dot"
                 >
-                  {/* Dot */}
+                  {/* Dot — emerald when release is ready (≥80%), amber while still in progress */}
                   <div
-                    className={`size-2.5 rounded-full ring-2 ring-card relative z-10 ${donePct >= 80 ? 'bg-chart-2' : 'bg-muted-foreground'}`}
+                    className={`size-3 rounded-full ring-2 ring-card relative z-10 ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                   />
 
                   {/* Release name */}
-                  <span className="text-xs text-foreground truncate max-w-[96px]">{v.name}</span>
+                  <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+                    {v.name}
+                  </span>
 
                   {/* Relative due label */}
                   {timingText && (
                     <span className={`text-xs font-normal ${timingClass}`}>{timingText}</span>
                   )}
 
-                  {/* Readiness bar — 80px wide track with fill */}
-                  <div className="h-1 w-20 bg-muted rounded-full overflow-hidden">
+                  {/* Readiness bar — 96px wide track with fill */}
+                  <div className="mt-0.5 h-1.5 w-24 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-chart-2 rounded-full"
+                      className={`h-full rounded-full ${donePct >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                       style={{ width: `${donePct}%` }}
                     />
                   </div>
 
                   {/* Readiness percentage */}
-                  <span className="text-xs font-normal text-muted-foreground">
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
                     {donePct}% ready
                   </span>
                 </div>
