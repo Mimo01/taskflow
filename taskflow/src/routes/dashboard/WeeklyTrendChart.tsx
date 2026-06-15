@@ -15,7 +15,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { Timer } from 'lucide-react';
-import { Bar, BarChart, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, Cell, LabelList, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { ChartWrapper } from '@/components/chart-wrapper';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
@@ -60,6 +60,15 @@ const chartConfig = {
   hours: { label: 'Hours logged', color: 'var(--chart-1)' },
 } satisfies ChartConfig;
 
+// Per-bar semantic colors (theme-stable hex, same convention as index.tsx ambient curves).
+// Green when the day met the 8h target, amber when under. Recharts fills take a color
+// string, not a Tailwind class, so concrete values are used here intentionally.
+const COLOR_MET = '#22c55e'; // green-500 — day met the 8h target
+const COLOR_UNDER = '#f59e0b'; // amber-500 — day under target
+
+/** Weekly goal = five working days at the daily target. */
+const WEEKLY_GOAL_HOURS = DAILY_TARGET_HOURS * 5;
+
 export default function WeeklyTrendChart({
   jiraBaseUrl,
   jiraToken,
@@ -89,6 +98,10 @@ export default function WeeklyTrendChart({
   // An empty array yields all-zero buckets — this is valid data, not an empty state (Pitfall 6).
   const buckets = buildWeekBuckets(worklogs ?? [], weekStartDate);
 
+  // Weekly total for the header progress label (e.g. "38.5h / 40h").
+  const weekTotal = buckets.reduce((sum, b) => sum + b.hours, 0);
+  const totalLabel = `${weekTotal.toFixed(1).replace(/\.0$/, '')}h / ${WEEKLY_GOAL_HOURS}h`;
+
   // D-06: Tempo-off is a graceful empty state (not an error).
   // Render the card shell with the Tempo-not-connected EmptyState when tempoEnabled=false,
   // bypassing ChartWrapper's generic "No data yet" message.
@@ -114,7 +127,7 @@ export default function WeeklyTrendChart({
     <div role="region" aria-label="Weekly hours logged">
       <ChartWrapper
         title="Hours logged this week"
-        description="Mon – Fri · 8 h/day target"
+        description={`${totalLabel} · Mon – Fri · 8 h/day target`}
         height={240}
         isLoading={showSkeleton}
         // tempoEnabled=true with empty worklogs → render all-zero bars (Pitfall 6).
@@ -131,17 +144,47 @@ export default function WeeklyTrendChart({
             className="h-full w-full"
             aria-label="Weekly logged hours bar chart"
           >
-            <BarChart data={buckets} responsive>
+            <BarChart data={buckets} responsive margin={{ top: 20 }}>
               <XAxis dataKey="label" />
               <YAxis domain={[0, 12]} tickFormatter={(v) => `${v}h`} />
-              {/* isAnimationActive={false} required — Phase 81 D-06 (animation causes test flakiness
-                  and WebKit rendering issues in Tauri). */}
-              <Bar dataKey="hours" fill="var(--chart-1)" isAnimationActive={false} />
+              {/* Softened, dashed target line so the colored bars read as the focal point. */}
               <ReferenceLine
                 y={DAILY_TARGET_HOURS}
-                stroke="var(--chart-2)"
-                label={{ value: 'Target', position: 'right', fontSize: 11 }}
+                stroke="var(--muted-foreground)"
+                strokeDasharray="4 4"
+                label={{
+                  value: 'Target',
+                  position: 'right',
+                  fontSize: 11,
+                  fill: 'var(--muted-foreground)',
+                }}
               />
+              {/* isAnimationActive={false} required — Phase 81 D-06 (animation causes test flakiness
+                  and WebKit rendering issues in Tauri). Per-bar Cell colors encode target met (green)
+                  vs under (amber); today's bar gets a contrasting outline. */}
+              <Bar dataKey="hours" isAnimationActive={false} radius={[4, 4, 0, 0]}>
+                {buckets.map((b) => {
+                  const isToday = b.day === todayDate;
+                  return (
+                    <Cell
+                      key={b.day}
+                      fill={b.hours >= DAILY_TARGET_HOURS ? COLOR_MET : COLOR_UNDER}
+                      stroke={isToday ? 'var(--foreground)' : undefined}
+                      strokeWidth={isToday ? 2 : 0}
+                    />
+                  );
+                })}
+                <LabelList
+                  dataKey="hours"
+                  position="top"
+                  fontSize={11}
+                  fill="var(--muted-foreground)"
+                  formatter={(value: unknown) => {
+                    const n = typeof value === 'number' ? value : Number(value);
+                    return Number.isFinite(n) && n > 0 ? n.toFixed(1).replace(/\.0$/, '') : '';
+                  }}
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         </div>

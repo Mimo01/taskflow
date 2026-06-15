@@ -26,9 +26,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { getScheduleLookbackRange, resolveYesterdayDate } from '@/lib/standup-date';
 import { fetchUserCommits } from '@/services/gitlab';
 import { fetchYesterdayJiraActivity } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { fetchUserSchedule } from '@/services/tempo';
 import type { ActivityEntry } from './dashboardMetrics';
 import { mergeActivityEntries } from './dashboardMetrics';
 
@@ -38,8 +40,12 @@ const CAP = 6;
 export interface ActivityStripProps {
   jiraBaseUrl: string;
   jiraToken: string;
+  /** Jira user key — drives the shared Tempo schedule query (same key as Standup). */
+  jiraUserKey: string | null;
   activeJiraProject: string;
   jiraUsername: string | null;
+  /** Whether Tempo is connected — gates the schedule query for holiday-aware date resolution. */
+  tempoEnabled: boolean;
   gitlabBaseUrl: string;
   gitlabToken: string;
   activeGitlabProject: number;
@@ -63,8 +69,10 @@ function formatRelative(at: string): string {
 export default function ActivityStrip({
   jiraBaseUrl,
   jiraToken,
+  jiraUserKey,
   activeJiraProject,
   jiraUsername,
+  tempoEnabled,
   gitlabBaseUrl,
   gitlabToken,
   activeGitlabProject,
@@ -72,10 +80,34 @@ export default function ActivityStrip({
   gitlabName,
   gitlabEmail,
 }: ActivityStripProps) {
-  // yesterdayDate: YYYY-MM-DD in local timezone (en-CA → ISO-format local date).
-  // NEVER toISOString() — that shifts to UTC and produces the wrong date for
-  // users east of UTC after midnight (Pitfall 2 — 84-PATTERNS).
-  const yesterdayDate = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA');
+  // ---------------------------------------------------------------------------
+  // Tempo schedule query — drives the schedule-aware "yesterday" date.
+  // Key MUST be byte-identical to StandupNotesPage's schedule query
+  // (['standup','schedule', jiraBaseUrl, jiraUserKey]) so the warm Standup cache
+  // is reused and yesterdayDate resolves to the SAME last-working-day Standup uses.
+  //
+  // Bug fix (Phase 84 UAT): the strip previously hardcoded calendar-yesterday, so on
+  // Mondays it queried Sunday (empty) and its jira/commits keys diverged from Standup's
+  // Friday keys — breaking both the data AND the zero-duplicate cache reuse (DASH-05 #2).
+  // Tokens NEVER enter the key (T-62-06).
+  // ---------------------------------------------------------------------------
+  const scheduleQuery = useQuery({
+    queryKey: ['standup', 'schedule', jiraBaseUrl, jiraUserKey ?? ''],
+    queryFn: () => {
+      const { from, to } = getScheduleLookbackRange();
+      return fetchUserSchedule(jiraBaseUrl ?? '', jiraToken ?? '', from, to, jiraUserKey ?? '');
+    },
+    enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  // resolveYesterdayDate: most recent working day (skips weekends + Tempo holidays).
+  // Identical derivation to StandupNotesPage (Pitfall 2: memo on schedule data).
+  // NEVER toISOString() — resolveYesterdayDate uses local calendar components internally.
+  const yesterdayDate = useMemo(
+    () => resolveYesterdayDate(scheduleQuery.data ?? undefined),
+    [scheduleQuery.data],
+  );
 
   // ---------------------------------------------------------------------------
   // Jira activity query

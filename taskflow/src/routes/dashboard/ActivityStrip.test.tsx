@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveYesterdayDate } from '@/lib/standup-date';
 import type { GitLabCommit } from '@/services/gitlab';
 import type { JiraActivityItem } from '@/services/jira';
 
@@ -40,8 +41,12 @@ vi.mock('@/services/gitlab', () => ({
 // Constants — mirror the component under test
 // ---------------------------------------------------------------------------
 
-/** Same computation as ActivityStrip.tsx */
-const yesterdayDate = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA');
+/**
+ * Same derivation as ActivityStrip.tsx: the most recent working day.
+ * With tempoEnabled=false in defaultProps the component's schedule query is disabled,
+ * so it resolves the date with no schedule — identical to resolveYesterdayDate() here.
+ */
+const yesterdayDate = resolveYesterdayDate();
 
 const JIRA_BASE_URL = 'https://jira.example.com';
 const JIRA_PROJECT = 'PROJ';
@@ -122,8 +127,12 @@ function makeCommit(overrides: {
 const defaultProps = {
   jiraBaseUrl: JIRA_BASE_URL,
   jiraToken: 'jira-token',
+  jiraUserKey: 'jdoe-key',
   activeJiraProject: JIRA_PROJECT,
   jiraUsername: JIRA_USERNAME,
+  // tempoEnabled=false → schedule query disabled → date resolved with no schedule
+  // (weekend-skip only), matching resolveYesterdayDate() used for the seeded keys above.
+  tempoEnabled: false,
   gitlabBaseUrl: GL_BASE_URL,
   gitlabToken: 'gl-token',
   activeGitlabProject: GL_PROJECT_ID,
