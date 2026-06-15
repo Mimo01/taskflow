@@ -136,7 +136,7 @@ describe('Dashboard — Phase 86 3-region layout', () => {
       name: 'Sprint 42',
       state: 'active',
       startDate: '2026-05-18T00:00:00.000Z', // Mon — 3 days before 2026-05-21
-      endDate: '2026-05-31T00:00:00.000Z',   // Sun — 13 days after start (14-day sprint)
+      endDate: '2026-05-31T00:00:00.000Z', // Sun — 13 days after start (14-day sprint)
     });
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
