@@ -28,18 +28,6 @@ function getTimeGreeting(): string {
   return 'Good evening,';
 }
 
-const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'blue'; w: number; o: number }> =
-  [
-    { d: 'M -50 220 Q 400 90 1250 -20', color: 'orange', w: 1, o: 0.35 },
-    { d: 'M -50 320 Q 500 160 1250 80', color: 'orange', w: 0.8, o: 0.25 },
-    { d: 'M -50 420 Q 600 240 1250 180', color: 'orange', w: 0.6, o: 0.18 },
-    { d: 'M -50 760 Q 500 540 1250 380', color: 'blue', w: 1, o: 0.32 },
-    { d: 'M -50 860 Q 600 640 1250 480', color: 'blue', w: 0.8, o: 0.24 },
-    { d: 'M -50 960 Q 700 740 1250 580', color: 'blue', w: 0.6, o: 0.18 },
-    { d: 'M -50 540 Q 550 380 1250 240', color: 'orange', w: 0.5, o: 0.14 },
-    { d: 'M -50 660 Q 600 460 1250 320', color: 'blue', w: 0.5, o: 0.14 },
-  ];
-
 export default function Dashboard() {
   const {
     jiraBaseUrl,
@@ -156,44 +144,26 @@ export default function Dashboard() {
   void onIssueClick;
 
   return (
-    <div className="relative flex flex-col min-h-full bg-background">
-      <section className="relative px-8 py-20 text-center overflow-hidden">
-        {/* Ambient background curves — orange top-right, blue bottom-left */}
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 1200 900"
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {AMBIENT_CURVES.map((c, i) => (
-            <path
-              // biome-ignore lint/suspicious/noArrayIndexKey: static constant array, no reorder
-              key={i}
-              d={c.d}
-              fill="none"
-              stroke={c.color === 'orange' ? '#f97316' : '#06b6d4'}
-              strokeWidth={c.w}
-              strokeLinecap="round"
-              opacity={c.o}
-            />
-          ))}
-        </svg>
+    <div className="flex flex-col h-full overflow-auto bg-background">
+      {/* Header — mirrors MyTasksPage: bold greeting title + date subtitle, no ambient SVG */}
+      <div className="flex items-end justify-between gap-4 px-6 pt-5 pb-5 border-b border-border/50 shrink-0">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h1 className="text-3xl font-semibold text-foreground">
+            {timeGreeting} {firstName ?? 'there'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">{today}</p>
+        </div>
+      </div>
 
-        <h1 className="relative text-6xl font-semibold tracking-tight">
-          {timeGreeting} {firstName ?? 'there'}
-        </h1>
-        <p className="relative text-sm text-muted-foreground mt-2">{today}</p>
-      </section>
-
-      {/* Stat tiles row — DASH-02 (4-tile grid replacing 3-card grid) */}
-      <div className="relative px-6 pb-6">
+      {/* Unified content shell — single gutter + gap for every section row */}
+      <div className="flex flex-col gap-4 px-6 py-4">
+        {/* Stat tiles row — DASH-02 (4-tile grid replacing 3-card grid) */}
         {showTileSkeleton && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="rounded-lg border border-border bg-card p-4 min-h-[80px] flex flex-col gap-3"
+                className="rounded-xl ring-1 ring-foreground/10 bg-card p-3 min-h-[80px] flex flex-col gap-3"
               >
                 <Skeleton className="h-3 w-1/2" />
                 <Skeleton className="h-7 w-1/3" />
@@ -233,10 +203,8 @@ export default function Dashboard() {
             />
           </div>
         )}
-      </div>
 
-      {/* Sprint health + Weekly trend chart side-by-side — DASH-03 / DASH-04 */}
-      <div className="relative px-6 pb-6">
+        {/* Sprint health + Weekly trend chart side-by-side — DASH-03 / DASH-04 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <SprintHealthSection
             jiraBaseUrl={jiraBaseUrl ?? ''}
@@ -252,10 +220,8 @@ export default function Dashboard() {
             tempoEnabled={tempoEnabled}
           />
         </div>
-      </div>
 
-      {/* Activity & Releases — two-column grid (D-16: DashboardReleaseCard relocated here) — DASH-05 */}
-      <div className="relative px-6 pb-6">
+        {/* Activity & Releases — two-column grid (D-16: DashboardReleaseCard relocated here) — DASH-05 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ActivityStrip
             jiraBaseUrl={jiraBaseUrl ?? ''}
@@ -277,14 +243,12 @@ export default function Dashboard() {
             activeJiraProject={activeJiraProject ?? ''}
           />
         </div>
-      </div>
 
-      {/* Sprint Insights — INSIGHT-01 / INSIGHT-02
-          boardId from useBoardId (never hardcoded); activeSprintId from cache-deduped
-          fetchActiveSprint query (shares key with SprintHealthSection → zero extra network).
-          Each card owns its loading/error/empty state — one card's failure never affects
-          the other or any other Dashboard section (D-09 / T-85-04-03). */}
-      <div className="relative px-6 pb-6">
+        {/* Sprint Insights — INSIGHT-01 / INSIGHT-02
+            boardId from useBoardId (never hardcoded); activeSprintId from cache-deduped
+            fetchActiveSprint query (shares key with SprintHealthSection → zero extra network).
+            Each card owns its loading/error/empty state — one card's failure never affects
+            the other or any other Dashboard section (D-09 / T-85-04-03). */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <VelocityChart
             jiraBaseUrl={jiraBaseUrl ?? ''}

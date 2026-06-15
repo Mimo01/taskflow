@@ -160,11 +160,12 @@ describe('Dashboard', () => {
     expect(screen.getByText(/Alice/)).toBeTruthy();
   });
 
-  it('Test 6 (decorative SVG present): hero section contains an aria-hidden SVG', () => {
+  it('Test 6 (modern header, no ambient SVG): bold title rendered, ambient hero SVG removed', () => {
     renderDashboard();
-    const svg = document.querySelector('section svg');
-    expect(svg).not.toBeNull();
-    expect(svg?.getAttribute('aria-hidden')).toBe('true');
+    // Header now uses the MyTasksPage bold-title pattern (text-3xl), not the old text-6xl hero.
+    expect(screen.getByRole('heading', { level: 1 }).className).toContain('text-3xl');
+    // The decorative ambient-curve <section> SVG is intentionally gone after this visual pass.
+    expect(document.querySelector('section svg')).toBeNull();
   });
 
   it('Test 7 (DASH-05 — no drag/picker/resize markers): dashboard has no widget controls', () => {

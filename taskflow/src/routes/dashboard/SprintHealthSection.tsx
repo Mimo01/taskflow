@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Activity } from 'lucide-react';
 import { Pie, PieChart } from 'recharts';
 import { ChartWrapper } from '@/components/chart-wrapper';
+import { Card, CardContent } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -105,83 +106,84 @@ export default function SprintHealthSection({
   const donePct = totalSP > 0 ? Math.round((donePoints / totalSP) * 100) : 0;
 
   return (
-    <div
-      role="region"
-      aria-label="Sprint health"
-      className="rounded-lg border border-border bg-card p-6 flex flex-col gap-4"
-    >
-      {/* Empty state: no active sprint. Gate on raw isLoading (not the 200ms-delayed
+    <Card role="region" aria-label="Sprint health" className="gap-4">
+      <CardContent className="flex flex-col gap-4">
+        {/* Empty state: no active sprint. Gate on raw isLoading (not the 200ms-delayed
           showSkeleton) so a cold load never flashes this before data resolves (WR-01). */}
-      {!isLoading && !activeSprint && (
-        <EmptyState
-          icon={Activity}
-          title="No active sprint"
-          subtitle="Start a sprint in Jira to see health metrics here."
-        />
-      )}
+        {!isLoading && !activeSprint && (
+          <EmptyState
+            icon={Activity}
+            title="No active sprint"
+            subtitle="Start a sprint in Jira to see health metrics here."
+          />
+        )}
 
-      {/* Data: active sprint body */}
-      {!showSkeleton && activeSprint && (
-        <>
-          {/* Days remaining */}
-          <div>
-            {daysLeft === 0 && (
-              <span className="text-xs text-muted-foreground">Sprint ends today</span>
-            )}
-            {daysLeft !== null && daysLeft > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining
-              </span>
-            )}
-          </div>
+        {/* Data: active sprint body */}
+        {!showSkeleton && activeSprint && (
+          <>
+            {/* Days remaining */}
+            <div>
+              {daysLeft === 0 && (
+                <span className="text-xs text-muted-foreground">Sprint ends today</span>
+              )}
+              {daysLeft !== null && daysLeft > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining
+                </span>
+              )}
+            </div>
 
-          {/* Progress bar + caption */}
-          <div className="flex flex-col gap-1">
-            <Progress value={donePct} />
-            <p className="text-xs text-muted-foreground">
-              {donePct}% complete
-              {totalSP > 0 && ` · ${donePoints} / ${totalSP} pts`}
-            </p>
-          </div>
-        </>
-      )}
+            {/* Progress bar + caption */}
+            <div className="flex flex-col gap-1">
+              <Progress value={donePct} />
+              <p className="text-xs text-muted-foreground">
+                {donePct}% complete
+                {totalSP > 0 && ` · ${donePoints} / ${totalSP} pts`}
+              </p>
+            </div>
+          </>
+        )}
 
-      {/* Donut chart — always shown (ChartWrapper handles loading/error/empty states independently) */}
-      <ChartWrapper
-        title="Sprint Health"
-        description="Story points by status category"
-        height={200}
-        isLoading={showSkeleton}
-        error={error}
-        isEmpty={totalSP === 0}
-        onRetry={refetch}
-      >
-        <div className="relative h-full">
-          <ChartContainer
-            config={donutConfig}
-            className="h-full w-full"
-            aria-label={`Points by status: To Do ${donutData.find((d) => d.name === 'todo')?.value ?? 0}, In Progress ${donutData.find((d) => d.name === 'inProgress')?.value ?? 0}, Done ${donutData.find((d) => d.name === 'done')?.value ?? 0}`}
-          >
-            <PieChart responsive>
-              <Pie
-                data={donutData}
-                dataKey="value"
-                nameKey="name"
-                innerRadius="60%"
-                outerRadius="80%"
-                isAnimationActive={false}
-              />
-            </PieChart>
-          </ChartContainer>
-          {/* Donut center label — absolute overlay (RESEARCH.md Pattern 4) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p className="text-2xl font-semibold" data-testid="donut-center-value">
-              {totalSP}
-            </p>
-            <p className="text-xs text-muted-foreground">pts</p>
+        {/* Donut chart — always shown (ChartWrapper handles loading/error/empty states independently).
+          bare: this ChartWrapper lives INSIDE the Card, so it renders without its own
+          container chrome to avoid a double border/ring/padding. */}
+        <ChartWrapper
+          title="Sprint Health"
+          description="Story points by status category"
+          height={200}
+          isLoading={showSkeleton}
+          error={error}
+          isEmpty={totalSP === 0}
+          onRetry={refetch}
+          bare
+        >
+          <div className="relative h-full">
+            <ChartContainer
+              config={donutConfig}
+              className="h-full w-full"
+              aria-label={`Points by status: To Do ${donutData.find((d) => d.name === 'todo')?.value ?? 0}, In Progress ${donutData.find((d) => d.name === 'inProgress')?.value ?? 0}, Done ${donutData.find((d) => d.name === 'done')?.value ?? 0}`}
+            >
+              <PieChart responsive>
+                <Pie
+                  data={donutData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius="60%"
+                  outerRadius="80%"
+                  isAnimationActive={false}
+                />
+              </PieChart>
+            </ChartContainer>
+            {/* Donut center label — absolute overlay (RESEARCH.md Pattern 4) */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <p className="text-2xl font-semibold" data-testid="donut-center-value">
+                {totalSP}
+              </p>
+              <p className="text-xs text-muted-foreground">pts</p>
+            </div>
           </div>
-        </div>
-      </ChartWrapper>
-    </div>
+        </ChartWrapper>
+      </CardContent>
+    </Card>
   );
 }
