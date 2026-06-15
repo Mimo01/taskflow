@@ -519,21 +519,55 @@ describe('computePersonalVelocitySeries', () => {
 // ---------------------------------------------------------------------------
 
 describe('parseBurndownChanges', () => {
-  it('parseBurndownChanges returns ascending-time points anchored at startTime, clamped non-negative', () => {
+  it('reconstructs remaining-work from cumulative scope-change deltas (concrete values)', () => {
     const changes = {
+      // Issue added mid-sprint with an 8h (28800s) estimate → remaining rises to 28800.
       '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
+      // Same issue completed (estimate → 0) → remaining falls back to 0.
       '2000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
     };
     const points = parseBurndownChanges(changes, 500);
 
-    // Anchor at startTime
-    expect(points[0].t).toBe(500);
-    // Ascending timestamps including anchor
+    // Ascending timestamps including the startTime anchor.
     expect(points.map((p) => p.t)).toEqual([500, 1000, 2000]);
-    // All remaining values are non-negative (clamp guard)
-    expect(points.every((p) => p.remaining >= 0)).toBe(true);
+    // Pin the actual reconstructed remaining curve: 0 → 28800 → 0 (cumulative delta model).
+    expect(points.map((p) => p.remaining)).toEqual([0, 28800, 0]);
+  });
 
-    // Null/undefined input must not throw — returns the anchor only
+  it('clamps negative running totals to zero (T-85-01)', () => {
+    const changes = {
+      // A spurious over-decrement (more removed than ever added) must not go negative.
+      '1000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
+    };
+    const points = parseBurndownChanges(changes, 500);
+    expect(points.map((p) => p.remaining)).toEqual([0, 0]);
+    expect(points.every((p) => p.remaining >= 0)).toBe(true);
+  });
+
+  it('derives a linear ideal guideline from peak scope → 0 at endTime when a window is given', () => {
+    const changes = {
+      '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
+      '2000': [{ key: 'PROJ-1', statC: { newValue: 0, oldValue: 28800 } }],
+    };
+    // startTime 500, endTime 2500 → span 2000. peak remaining = 28800.
+    const points = parseBurndownChanges(changes, 500, 2500);
+    // ideal(t) = peak * (1 - (t - start)/span): t=500 → 28800, t=1000 → 21600, t=2000 → 7200.
+    expect(points.map((p) => p.ideal)).toEqual([28800, 21600, 7200]);
+  });
+
+  it('omits the ideal guideline when no usable window is supplied', () => {
+    const changes = {
+      '1000': [{ key: 'PROJ-1', statC: { newValue: 28800, oldValue: 0 }, added: true }],
+    };
+    // No endTime → ideal undefined (chart hides the dashed reference line).
+    const points = parseBurndownChanges(changes, 500);
+    expect(points.every((p) => p.ideal === undefined)).toBe(true);
+    // endTime ≤ startTime is treated as no window.
+    const degenerate = parseBurndownChanges(changes, 500, 400);
+    expect(degenerate.every((p) => p.ideal === undefined)).toBe(true);
+  });
+
+  it('does not throw on null/undefined input — returns the anchor only', () => {
     const fallback = parseBurndownChanges(undefined as never, 500);
     expect(fallback).toEqual([{ t: 500, remaining: 0 }]);
   });

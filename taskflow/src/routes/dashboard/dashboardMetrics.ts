@@ -329,21 +329,43 @@ export interface BurndownPoint {
   t: number;
   /** Seconds remaining at this point (Jira timeestimate native unit). Divide by 3600 for hours in tooltip/axis. */
   remaining: number;
+  /**
+   * Ideal-burndown guideline at this point (seconds). A straight reference line
+   * from the peak committed scope down to 0 at `endTime`. Lets the chart read as a
+   * true burndown (actual remaining vs. ideal pace) rather than a bare scope curve.
+   * `undefined` when no usable sprint window (`endTime`) is supplied.
+   */
+  ideal?: number;
 }
 
 /**
  * Converts the GreenHopper scopechangeburndownchart `.changes` record into a sorted
  * BurndownPoint series, anchored at `startTime`.
  *
- * Implements INSIGHT-02 with V5 Input Validation (T-85-01):
+ * Remaining-work model (INSIGHT-02): the scopechangeburndownchart records every delta
+ * to the tracked statistic (`timeestimate`, seconds) — scope additions raise remaining,
+ * completed work lowers it. The running cumulative of `newValue - oldValue` therefore
+ * reconstructs the TRUE remaining-work line across the sprint, including scope changes.
+ * The series legitimately rises when scope is added and falls as work burns down; for a
+ * normal sprint the committed scope is added at activation, so remaining jumps to the
+ * committed total near the start and then descends. This is correct scope-change-burndown
+ * behaviour — do NOT "fix" it to a monotone decrease (that would discard scope creep).
+ *
+ * To make the chart read as a classic burndown, each point also carries an `ideal`
+ * guideline: a straight line from the peak remaining (committed scope) down to 0 at
+ * `endTime`. The actual line above/below the ideal shows whether the sprint is behind/ahead.
+ *
+ * V5 Input Validation (T-85-01):
  *   - `changes ?? {}` guards null/undefined input
- *   - numeric-ascending sort on epoch keys (string sort would misorder epochs)
+ *   - non-finite epoch keys are dropped, then numeric-ascending sort (string sort misorders epochs)
  *   - `?? 0` on newValue/oldValue guards malformed numeric fields
  *   - `Math.max(0, running)` clamps negative remaining (Tampering mitigation T-85-01)
  *   - Entries without `statC` are skipped (shape assumption A2 is defensive)
  *
  * @param changes    Record keyed by epoch-ms string; each value is an array of change entries
- * @param startTime  Sprint start time as epoch ms — used as the first anchor point
+ * @param startTime  Sprint start time as epoch ms — the first anchor point
+ * @param endTime    Sprint end time as epoch ms — sets where the ideal guideline reaches 0.
+ *                   Omit (or pass a value ≤ startTime) to skip the guideline entirely.
  */
 export function parseBurndownChanges(
   changes: Record<
@@ -351,16 +373,19 @@ export function parseBurndownChanges(
     Array<{ key: string; statC?: { newValue: number; oldValue: number }; added?: boolean }>
   >,
   startTime: number,
+  endTime?: number,
 ): BurndownPoint[] {
   // V5: guard null/undefined .changes from malformed GreenHopper response (T-85-01)
   const safe = changes ?? {};
 
-  // Numeric ascending sort — string sort would misorder epoch keys (e.g. '1000' < '200' lexically is wrong)
+  // Drop non-finite keys (defensive), then numeric ascending sort — string sort would
+  // misorder epoch keys (e.g. '1000' < '200' lexically is wrong).
   const timestamps = Object.keys(safe)
     .map(Number)
+    .filter((n) => Number.isFinite(n))
     .sort((a, b) => a - b);
 
-  // Seed with sprint-start anchor at remaining=0
+  // Seed with sprint-start anchor at remaining=0 (nothing tracked before the first change).
   const points: BurndownPoint[] = [{ t: startTime, remaining: 0 }];
   let running = 0;
 
@@ -375,6 +400,18 @@ export function parseBurndownChanges(
     }
     // T-85-01: clamp remaining non-negative
     points.push({ t: ts, remaining: Math.max(0, running) });
+  }
+
+  // Ideal guideline: linear from peak remaining (committed scope) at startTime to 0 at endTime.
+  // Skipped when no usable window is given — keeps the dashed reference line off the chart
+  // rather than rendering a misleading flat zero.
+  const span = (endTime ?? 0) - startTime;
+  if (span > 0) {
+    const peak = points.reduce((max, p) => Math.max(max, p.remaining), 0);
+    for (const p of points) {
+      const frac = (p.t - startTime) / span; // 0 at start → 1 at end
+      p.ideal = Math.max(0, peak * (1 - Math.min(1, Math.max(0, frac))));
+    }
   }
 
   return points;

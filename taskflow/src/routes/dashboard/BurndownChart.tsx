@@ -37,6 +37,7 @@ interface BurndownChartProps {
 
 const chartConfig = {
   remaining: { label: 'Remaining', color: 'var(--chart-3)' },
+  ideal: { label: 'Ideal', color: 'var(--muted-foreground)' },
 } satisfies ChartConfig;
 
 export default function BurndownChart({
@@ -69,10 +70,14 @@ export default function BurndownChart({
   // Cast via unknown: BurndownChangeEntry uses all-optional fields (A2 MEDIUM-confidence
   // shape) while parseBurndownChanges expects a slightly stricter inline type; both are
   // defensive and the runtime values are compatible.
+  // Pass endTime so parseBurndownChanges can derive the ideal-burndown guideline
+  // (linear from peak committed scope at startTime → 0 at endTime). The `ideal` field
+  // feeds the dashed reference <Line> below, making the chart read as a true burndown.
   const burndownPoints = burndownRaw
     ? parseBurndownChanges(
         (burndownRaw.changes ?? {}) as unknown as Parameters<typeof parseBurndownChanges>[0],
         burndownRaw.startTime,
+        burndownRaw.endTime,
       )
     : [];
 
@@ -141,8 +146,9 @@ export default function BurndownChart({
                 isAnimationActive={false}
               />
               {/* Ideal burndown guideline — dashed --muted-foreground (not a chart token,
-                  keeps accent reserved for data series). dataKey="ideal" from workRateData
-                  derivation in parseBurndownChanges. */}
+                  keeps accent reserved for data series). dataKey="ideal" is the linear
+                  reference line parseBurndownChanges derives from peak scope → 0 at endTime.
+                  Renders only when the sprint window (endTime) is available. */}
               <Line
                 type="monotone"
                 dataKey="ideal"
