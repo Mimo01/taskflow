@@ -212,7 +212,7 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
 - [x] **Phase 82: My Tasks Page** — Personal command center with grouping modes, scope toggle, inline actions, and persisted preferences (completed 2026-06-14)
 - [x] **Phase 83: Dashboard Stat Tiles and Sprint Health Chart** — Replace 3-card grid with stat tiles and a points-by-status chart; zero new API calls (completed 2026-06-15)
 - [x] **Phase 84: Dashboard Trend Chart, MR Review Queue, and Activity Strip** — Weekly logged-hours chart, MR review queue, and activity strip; all sections degrade independently (completed 2026-06-15)
-- [ ] **Phase 85: Sprint Insights (Conditional)** — Probe-gated velocity and burndown charts; built only if live DC endpoint probes succeed
+- [x] **Phase 85: Sprint Insights (Conditional)** — Probe-gated velocity and burndown charts; built only if live DC endpoint probes succeed (completed 2026-06-15)
 
 ## Phase Details
 

@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 85-sprint-insights-conditional-probe-gated
 source: [85-01-SUMMARY.md, 85-02-SUMMARY.md, 85-03-SUMMARY.md, 85-04-SUMMARY.md, 85-HUMAN-UAT.md]
 started: 2026-06-15

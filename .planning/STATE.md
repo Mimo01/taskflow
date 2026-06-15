@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
 status: executing
-last_updated: "2026-06-15T17:11:13.936Z"
-last_activity: 2026-06-15 -- Phase 85 executed (4/4 plans), verified 5/5; human_needed — live-Jira UAT pending (85-HUMAN-UAT.md)
+last_updated: "2026-06-15T19:50:00.000Z"
+last_activity: 2026-06-15 -- Phase 85 PASSED — live-Jira UAT closed; burndown fixed via 4 inline gap closures (timeC shape, sprint windowing, activatedTime anchor + time-axis, weekend-flat ideal); UAT-5 accepted skipped
 progress:
   total_phases: 10
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 19
   completed_plans: 19
-  percent: 49
+  percent: 50
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 85 (sprint-insights-conditional-probe-gated) — VERIFIED 5/5, human_needed
+Phase: 85 (sprint-insights-conditional-probe-gated) — COMPLETE (verified 5/5, human UAT passed)
 Plan: 4 of 4 complete
-Status: Phase 85 verified (5/5); awaiting live-Jira human UAT (85-HUMAN-UAT.md)
-Last activity: 2026-06-15 -- Phase 85 executed (4/4 plans), 2 blockers fixed, re-verified 5/5; human UAT pending
+Status: Phase 85 closed — live-Jira UAT done (UAT-1..4 pass, UAT-5 skipped); 4 burndown gap-fixes committed. Follow-up: /gsd-secure-phase 85 not yet run.
+Last activity: 2026-06-15 -- Phase 85 human UAT closed; burndown data-shape bugs fixed inline (commits 8917b763, a54ed5e4, d03c5928, 3c36b03d)
 
 Progress: [██████████] 100%
 
