@@ -1,10 +1,11 @@
 ---
 phase: 86
 slug: redesign-dashboard-to-new-screenshot-layout-and-remove-old-w
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-15
+validated: 2026-06-16
 ---
 
 # Phase 86 — Validation Strategy
@@ -40,15 +41,15 @@ created: 2026-06-15
 
 | Behavior | Decision | Test Type | Automated Command | File | Status |
 |----------|----------|-----------|-------------------|------|--------|
-| `toDo + inProgress + done === total` (statusCategory bucketing sums to total) | D-03 | unit | `npm run test -- dashboardMetrics` | `dashboardMetrics.test.ts` (add cases) | ⬜ pending |
-| Personal `!subtask` filter buckets only my active-sprint issues | D-02/D-04 | unit/render | `npm run test -- MyIssuesCard` | `MyIssuesCard.test.tsx` (new) | ⬜ pending |
-| 0 issues → empty state (not error) | D-05 | render | `npm run test -- MyIssuesCard` | `MyIssuesCard.test.tsx` (new) | ⬜ pending |
-| <3 releases → render only existing dots; no due date excluded | D-06/D-08 | render | `npm run test -- UpcomingReleasesTimeline` | `UpcomingReleasesTimeline.test.tsx` (new) | ⬜ pending |
-| `donePct` readiness + "Tomorrow" (daysUntil===1) label | D-07/D-08 | unit/render | `npm run test -- UpcomingReleasesTimeline` | `UpcomingReleasesTimeline.test.tsx` (new) | ⬜ pending |
-| All-zero week → flat bars with "0h"/"0" labels, NOT empty state | D-12 | unit/render | `npm run test -- HoursCommitsChart` | `HoursCommitsChart.test.tsx` (new) | ⬜ pending |
-| Rolling-7-day local-date bucketing (no UTC shift) | D-09/D-11 | unit | `npm run test -- HoursCommitsChart` | `HoursCommitsChart.test.tsx` (new) | ⬜ pending |
-| No active sprint → no sprint clause in hero subline | D-13 | render | `npm run test -- dashboard/index` | `index.test.tsx` (rewrite) | ⬜ pending |
-| Deleted widgets do not exist on disk + index.tsx imports none of them | REMOVE / D-01 | fs/source | `npm run test -- widget-removal.guard` | `widget-removal.guard.test.ts` (extend) | ⬜ pending |
+| `toDo + inProgress + done === total` (statusCategory bucketing sums to total) | D-03 | unit | `npm run test -- MyIssuesCard` | `MyIssuesCard.test.tsx` (D-03 sum invariant suite) | ✅ green |
+| Personal `!subtask` filter buckets only my active-sprint issues | D-02/D-04 | unit/render | `npm run test -- MyIssuesCard` | `MyIssuesCard.test.tsx` | ✅ green |
+| 0 issues → empty state (not error) | D-05 | render | `npm run test -- MyIssuesCard` | `MyIssuesCard.test.tsx` (D-05 empty state suite) | ✅ green |
+| <3 releases → render only existing dots; no due date excluded | D-06/D-08 | render | `npm run test -- UpcomingReleasesTimeline` | `UpcomingReleasesTimeline.test.tsx` (fewer-than-3 + empty state) | ✅ green |
+| `donePct` readiness + "Tomorrow" (daysUntil===1) label | D-07/D-08 | unit/render | `npm run test -- UpcomingReleasesTimeline` | `UpcomingReleasesTimeline.test.tsx` ("Tomorrow" suite) | ✅ green |
+| All-zero week → flat bars with "0h"/"0" labels, NOT empty state | D-12 | unit/render | `npm run test -- HoursCommitsChart` | `HoursCommitsChart.test.tsx` (all-zero + Tempo-off) | ✅ green |
+| Rolling-7-day local-date bucketing (no UTC shift) | D-09/D-11 | unit | `npm run test -- HoursCommitsChart` | `HoursCommitsChart.test.tsx` (`buildRolling7Buckets` suite) | ✅ green |
+| No active sprint → no sprint clause in hero subline | D-13 | render | `npm run test -- dashboard/index` | `index.test.tsx` (Test 3/4 sprint-day) | ✅ green |
+| Deleted widgets do not exist on disk + index.tsx imports none of them | REMOVE / D-01 | fs/source | `npm run test -- widget-removal.guard` | `widget-removal.guard.test.ts` (Phase 86 block) | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -56,11 +57,11 @@ created: 2026-06-15
 
 ## Wave 0 Requirements
 
-- [ ] `src/routes/dashboard/MyIssuesCard.test.tsx` — covers D-02/D-03/D-04/D-05
-- [ ] `src/routes/dashboard/UpcomingReleasesTimeline.test.tsx` — covers D-06/D-07/D-08
-- [ ] `src/routes/dashboard/HoursCommitsChart.test.tsx` — covers D-09/D-10/D-11/D-12
-- [ ] `src/routes/dashboard/dashboardMetrics.test.ts` — extend for D-03 sum-to-total invariant; prune cases for removed helpers
-- [ ] Extend `src/routes/dashboard/widget-removal.guard.test.ts` — file-absence assertions per deleted file + one import-absence assertion on `index.tsx`
+- [x] `src/routes/dashboard/MyIssuesCard.test.tsx` — covers D-02/D-03/D-04/D-05
+- [x] `src/routes/dashboard/UpcomingReleasesTimeline.test.tsx` — covers D-06/D-07/D-08
+- [x] `src/routes/dashboard/HoursCommitsChart.test.tsx` — covers D-09/D-10/D-11/D-12
+- [x] `src/routes/dashboard/dashboardMetrics.test.ts` — slimmed to survivor helpers (filterNonSubtasks + formatHoursMinutes); D-03 sum invariant lives in MyIssuesCard.test.tsx
+- [x] Extend `src/routes/dashboard/widget-removal.guard.test.ts` — file-absence assertions per deleted file + one import-absence assertion on `index.tsx`
 
 *Vitest infrastructure already exists — no framework install needed. New test files are scaffolded as part of the relevant plan waves.*
 
@@ -77,11 +78,22 @@ created: 2026-06-15
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-06-16 — all 9 behaviors COVERED (79 tests green across 6 files); 2 manual-only items human-verified in UAT (Plan 86-04).
+
+---
+
+## Validation Audit 2026-06-16
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+All Per-Task Map behaviors were already covered by tests authored during execution (Wave 0). Audit reconciled the stale pre-execution frontmatter (`draft`/`nyquist_compliant: false`) and ⬜ pending statuses against the implemented suite. Verified green: `MyIssuesCard.test.tsx`, `UpcomingReleasesTimeline.test.tsx`, `HoursCommitsChart.test.tsx`, `dashboardMetrics.test.ts`, `index.test.tsx`, `widget-removal.guard.test.ts` — 79 tests passing. No new test files generated.
