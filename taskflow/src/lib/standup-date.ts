@@ -95,6 +95,19 @@ export function buildRecentDayOptions(count: number): string[] {
 }
 
 /**
+ * Returns today's calendar date as a YYYY-MM-DD string.
+ *
+ * Uses LOCAL calendar components via toLocalDateString(new Date()) — never
+ * toISOString() (which converts to UTC and shifts the date for users east of UTC
+ * or at day boundaries), matching the standing rule documented in the file header.
+ *
+ * @returns Today's date as a YYYY-MM-DD string.
+ */
+export function getTodayDate(): string {
+  return toLocalDateString(new Date());
+}
+
+/**
  * Returns the date range needed to fetch the Tempo schedule for holiday detection.
  *
  * Covers 14 days before today so that the schedule map contains entries for
