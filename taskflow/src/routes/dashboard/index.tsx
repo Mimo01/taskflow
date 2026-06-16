@@ -33,6 +33,10 @@ const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'cyan'; w: nu
     { d: 'M -50 660 Q 600 460 1250 320', color: 'cyan', w: 0.5, o: 0.14 },
   ];
 
+// Back-crumb target passed via router state when a dashboard card navigates away,
+// so the destination page shows a "← Dashboard" link (main.tsx renders it).
+const DASHBOARD_BACK = { path: '/dashboard', label: 'Dashboard' };
+
 // ── Sprint working-day helpers (D-13) ───────────────────────────────────────
 // Weekends (Sat/Sun) never count as sprint days. Holidays are not yet wired in —
 // they would come from the Tempo work schedule; add YYYY-MM-DD dates here (or swap
@@ -252,13 +256,13 @@ export default function Dashboard() {
             activeJiraProject={activeJiraProject ?? ''}
             storyPointsFieldKey={storyPointsFieldKey}
             jiraUserDisplayName={jiraUserDisplayName ?? ''}
-            onActivate={() => navigate('/my-tasks')}
+            onActivate={() => navigate('/my-tasks', { state: { backTo: DASHBOARD_BACK } })}
           />
           <UpcomingReleasesTimeline
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
             activeJiraProject={activeJiraProject ?? ''}
-            onActivate={() => navigate('/releases')}
+            onActivate={() => navigate('/releases', { state: { backTo: DASHBOARD_BACK } })}
           />
         </div>
 
@@ -274,7 +278,11 @@ export default function Dashboard() {
           gitlabUsername={gitlabUsername ?? null}
           gitlabName={gitlabName ?? null}
           gitlabEmail={gitlabEmail ?? null}
-          onActivate={() => navigate(tempoEnabled ? '/worklogs' : '/sprint-board')}
+          onActivate={() =>
+            navigate(tempoEnabled ? '/worklogs' : '/sprint-board', {
+              state: { backTo: DASHBOARD_BACK },
+            })
+          }
         />
       </div>
     </div>

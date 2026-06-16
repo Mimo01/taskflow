@@ -9,6 +9,7 @@ import {
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { ArrowLeft } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -604,6 +605,23 @@ function AppLayout() {
             onUpdate={handleBannerUpdate}
           />
         )}
+        {(() => {
+          // Back-crumb for pages reached from a navigation that set `state.backTo`
+          // (e.g. the dashboard cards). Top-level pages don't otherwise show a trail.
+          const backTo = (location.state as { backTo?: { path: string; label: string } } | null)
+            ?.backTo;
+          if (!backTo) return null;
+          return (
+            <button
+              type="button"
+              onClick={() => navigate(backTo.path)}
+              className="flex items-center gap-1.5 px-6 py-2 border-b border-border/50 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <ArrowLeft className="size-4" />
+              <span>{backTo.label}</span>
+            </button>
+          );
+        })()}
         <div className="flex flex-row flex-1 overflow-hidden min-h-0">
           <main className="flex-1 overflow-auto min-w-0">
             <Outlet
