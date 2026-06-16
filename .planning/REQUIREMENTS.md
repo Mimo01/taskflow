@@ -24,9 +24,9 @@ A personal command center — independent from the Dashboard.
 - [x] **MYTASK-03**: User can switch between three groupings — My Day (smart sort), By Status, By Sprint & Parent
 - [x] **MYTASK-04**: My Day smart sort surfaces what needs attention first (flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do)
 - [x] **MYTASK-05**: Each task row shows type, key, priority, summary, status pill, due date (overdue highlighted), story points, MR health badge, and time logged/remaining
-- [x] **MYTASK-06**: User can act on a task inline — peek (body click) / open full page (key), transition status, log work, and right-click context menu
+- [x] **MYTASK-06**: User can act on a task inline — peek (body click) / open full page (key), transition status, log work, and right-click context menu _(Phase 82 UAT: right-click context menu removed by product decision; inline actions retained)_
 - [x] **MYTASK-07**: User can toggle scope between current sprint and all issues assigned to me (across sprints + backlog), with all-assigned fetched via proper server-side pagination (no fetch-once page cap)
-- [x] **MYTASK-08**: User's grouping and scope preferences persist across sessions
+- [x] **MYTASK-08**: User's grouping and scope preferences persist across sessions _(Phase 82 UAT: grouping switcher removed by product decision; always My Day grouping; scope preference still persists)_
 
 ### Dashboard Redesign
 
@@ -44,8 +44,8 @@ A graph-driven personal overview. Keeps the hero, replaces the cards.
 
 Built only if a live Jira Data Center probe confirms the data is obtainable at acceptable cost.
 
-- [ ] **INSIGHT-01**: User sees a personal velocity trend (committed vs completed points across the last N closed sprints) — gated on a closed-sprint REST endpoint probe, concurrency-capped, shown only with ≥3 closed sprints; cleanly omitted if the probe fails
-- [ ] **INSIGHT-02**: User sees a sprint burndown chart — attempted via a GreenHopper burndown endpoint probe; cleanly omitted if the endpoint/data is not viable (consciously revisits the prior "burndown out of scope" decision)
+- [~] **INSIGHT-01**: ~~User sees a personal velocity trend (committed vs completed points across the last N closed sprints) — gated on a closed-sprint REST endpoint probe, concurrency-capped, shown only with ≥3 closed sprints; cleanly omitted if the probe fails~~ — **RETIRED** (Phase 86 D-01 clean slate, 2026-06-16): built and verified in Phase 85, then deleted by the Phase 86 dashboard redesign; not shipped in the live app.
+- [~] **INSIGHT-02**: ~~User sees a sprint burndown chart — attempted via a GreenHopper burndown endpoint probe; cleanly omitted if the endpoint/data is not viable (consciously revisits the prior "burndown out of scope" decision)~~ — **RETIRED** (Phase 86 D-01 clean slate, 2026-06-16): built and verified in Phase 85, then deleted by the Phase 86 dashboard redesign; not shipped in the live app.
 
 ## Future Requirements
 
@@ -95,8 +95,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-04 | Phase 84 | Complete |
 | DASH-05 | Phase 84 | Complete |
 | DASH-06 | Phase 84 | Descoped (UAT 2026-06-15) |
-| INSIGHT-01 | Phase 85 | Pending (Conditional) |
-| INSIGHT-02 | Phase 85 | Pending (Conditional) |
+| INSIGHT-01 | Phase 85 | Retired (Phase 86 D-01) |
+| INSIGHT-02 | Phase 85 | Retired (Phase 86 D-01) |
 
 **Coverage:**
 
@@ -106,4 +106,4 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-14*
-*Last updated: 2026-06-14 — traceability table populated by roadmap creation*
+*Last updated: 2026-06-16 — v1.13 audit reconciliation: INSIGHT-01/02 retired (Phase 86 D-01 clean slate); MYTASK-06/08 UAT-reduction notes added; coverage totals unchanged (17 satisfied, 1 descoped DASH-06, 2 retired INSIGHT-01/02)*
