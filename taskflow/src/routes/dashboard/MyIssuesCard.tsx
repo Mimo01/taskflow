@@ -69,8 +69,9 @@ export default function MyIssuesCard({
     (i) => i.fields.status.statusCategory?.key === 'indeterminate',
   ).length;
   const done = myNonSubtasks.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
-  const total = myNonSubtasks.length;
-  // D-03 invariant: toDo + inProgress + done === total (unknown keys fall through — T-86-03)
+  // D-03 invariant by construction: derive total from the three segments so the bar always
+  // sums to full and the "{done} of {total}" headline can't drift on an unknown status key (WR-03).
+  const total = toDo + inProgress + done;
 
   return (
     <Card
