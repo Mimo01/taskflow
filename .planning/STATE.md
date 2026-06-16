@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: 86
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-06-16
+Last activity: 2026-06-16 - Completed quick task 260616-igl: allow selecting today in standup day selector
 
 Progress: [██████████] 100%
 
@@ -82,6 +82,7 @@ Key decisions for v1.13 (from research):
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 260615-smu | Polish and modernize the dashboard | 2026-06-15 | 6e9e1ff7 | Verified | [260615-smu-modernize-dashboard](./quick/260615-smu-modernize-dashboard/) |
+| 260616-igl | On standup notes page, in the 'yesterday' day selector I also want to be able to select today | 2026-06-16 | 2ff57d85 | Verified | [260616-igl-on-standup-notes-page-in-the-yesterday-d](./quick/260616-igl-on-standup-notes-page-in-the-yesterday-d/) |
 
 ## Deferred Items
 
