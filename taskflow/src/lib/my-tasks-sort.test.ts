@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  MY_DAY_BANDS,
-  classifyBand,
-  groupByMyDay,
-  subtreeBand,
-} from './my-tasks-sort';
+import { MY_DAY_BANDS, classifyBand, groupByMyDay, subtreeBand } from './my-tasks-sort';
 import type { JiraIssue } from '@/services/jira';
 
 const FLAGGED_FIELD_KEY = 'customfield_10021';
@@ -322,4 +317,3 @@ describe('groupByMyDay', () => {
     expect(groups[0].parents).toHaveLength(2);
   });
 });
-
