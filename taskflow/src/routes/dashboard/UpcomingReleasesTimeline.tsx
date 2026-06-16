@@ -31,10 +31,11 @@ interface UpcomingReleasesTimelineProps {
 
 type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
 
-// Lift VERBATIM from DashboardReleaseCard.tsx (T-60-10 timezone-safe)
 function getReleaseTimingLabel(releaseDate: string | undefined, released: boolean): TimingLabel {
   if (released || !releaseDate) return null;
-  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" — timezone-safe
+  // Local calendar date (en-CA → YYYY-MM-DD). NEVER toISOString() — that yields the UTC
+  // date, which flips "due today" to "overdue" in UTC-minus zones after ~late evening (WR-02).
+  const today = new Date().toLocaleDateString('en-CA');
   if (releaseDate < today) return 'overdue';
   if (releaseDate === today) return 'due-today';
   const msPerDay = 86_400_000;

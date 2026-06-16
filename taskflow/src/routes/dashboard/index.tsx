@@ -190,8 +190,7 @@ export default function Dashboard() {
     if (isNonWorkingDay(today)) {
       const label = isWeekendDay(today) ? 'Weekend' : 'Holiday';
       const resume = nextWorkingDay(today);
-      const resumeLabel = resume <= end ? formatResumeLabel(resume) : 'Monday';
-      return ` · ${label} · sprint resumes ${resumeLabel}`;
+      return ` · ${label} · sprint resumes ${formatResumeLabel(resume)}`;
     }
 
     // Start day counts as day 0 → both elapsed and total drop the inclusive start day.
