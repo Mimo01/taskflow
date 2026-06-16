@@ -22,7 +22,7 @@
 
 import type { UseQueryResult } from '@tanstack/react-query';
 import { ChevronDown, Clock } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -114,18 +114,52 @@ function isMergeCommit(commit: GitLabCommit): boolean {
 /**
  * Returns "Today" if dateStr is today, "Yesterday" if it is the calendar day
  * before today, otherwise the day name.
+ *
+ * `todayStr` is the current local date (YYYY-MM-DD). It is a parameter rather
+ * than read from `new Date()` internally so the result stays reactive: callers
+ * pass the value from useTodayDate(), which re-renders at midnight. Defaults to
+ * getTodayDate() for non-reactive callers.
  */
-function getColumnHeading(dateStr: string): string {
-  if (dateStr === getTodayDate()) return 'Today';
-  const today = new Date();
-  const calYesterday = new Date(today);
-  calYesterday.setDate(today.getDate() - 1);
-  // Use local calendar components — never toISOString() which converts to UTC
-  // and shifts the date for users east of UTC (same rule as standup-date.ts).
+function getColumnHeading(dateStr: string, todayStr: string = getTodayDate()): string {
+  if (dateStr === todayStr) return 'Today';
+  // Derive calendar-yesterday from todayStr (not new Date()) so the comparison
+  // tracks the same day boundary the caller is rendering against. Local calendar
+  // components only — never toISOString() (same rule as standup-date.ts).
+  const [ty, tm, td] = todayStr.split('-').map(Number);
+  const calYesterday = new Date(ty, tm - 1, td - 1);
   const calYesterdayLocal = `${calYesterday.getFullYear()}-${String(calYesterday.getMonth() + 1).padStart(2, '0')}-${String(calYesterday.getDate()).padStart(2, '0')}`;
   if (dateStr === calYesterdayLocal) return 'Yesterday';
   const [y, m, d] = dateStr.split('-').map(Number);
   return DAY_NAMES[new Date(y, m - 1, d).getDay()];
+}
+
+/**
+ * Current local date (YYYY-MM-DD) that re-renders the consumer when the calendar
+ * day rolls over at local midnight.
+ *
+ * The day-option list and column heading derive from "today"; without this a tab
+ * left open across midnight would keep a stale "· Today" row and heading, and the
+ * radio value could stop matching any row (WR-01). A single timeout scheduled to
+ * the next local midnight (not a polling interval) keeps it correct with no churn.
+ */
+function useTodayDate(): string {
+  const [today, setToday] = useState(getTodayDate);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const scheduleNextTick = () => {
+      const now = new Date();
+      // Next local midnight + a small cushion so the timer never fires a hair
+      // early and reads the prior day.
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+      timer = setTimeout(() => {
+        setToday(getTodayDate());
+        scheduleNextTick();
+      }, nextMidnight.getTime() - now.getTime());
+    };
+    scheduleNextTick();
+    return () => clearTimeout(timer);
+  }, []);
+  return today;
 }
 
 /**
@@ -568,6 +602,10 @@ export default function YesterdayColumn({
   watchedDisplayName,
   watchedGitlabResolved = false,
 }: YesterdayColumnProps) {
+  // Reactive local "today" — re-renders this column at midnight so the day-option
+  // list and heading never go stale on a long-lived tab (WR-01).
+  const today = useTodayDate();
+
   // 14-day calendar option list — most-recent-first.
   // The resolved-default row always carries a tag so it reads as the default:
   // "Yesterday · …" when it genuinely is calendar-yesterday, otherwise
@@ -585,7 +623,6 @@ export default function YesterdayColumn({
     // Prepend today as the first (top) row so the user can recap the current
     // day. buildRecentDayOptions starts at yesterday, so today is never present;
     // the includes() guard is defensive against future changes.
-    const today = getTodayDate();
     if (!dates.includes(today)) dates.unshift(today);
     return dates.map((date) => {
       const dateLabel = formatDayLabel(date);
@@ -593,10 +630,10 @@ export default function YesterdayColumn({
       if (date === today) return { date, label: `${dateLabel} · Today` };
       if (date !== resolvedYesterday) return { date, label: dateLabel };
       // Default row: date first, then the tag — consistent with regular rows.
-      const tag = getColumnHeading(date) === 'Yesterday' ? 'Yesterday' : 'Last working day';
+      const tag = getColumnHeading(date, today) === 'Yesterday' ? 'Yesterday' : 'Last working day';
       return { date, label: `${dateLabel} · ${tag}` };
     });
-  }, [resolvedYesterday]);
+  }, [resolvedYesterday, today]);
 
   // Build joined groups in a stable useMemo
   const { issueGroups, standaloneMrGroups, otherCommits } = useMemo(
@@ -661,7 +698,7 @@ export default function YesterdayColumn({
       <div className="mb-2">
         <DropdownMenu>
           <DropdownMenuTrigger className="group/yhead flex items-baseline gap-2 cursor-pointer text-left">
-            <h2 className="text-2xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
+            <h2 className="text-2xl font-semibold">{getColumnHeading(yesterdayDate, today)}</h2>
             <p className="text-xs text-muted-foreground">{dateLabel}</p>
             <ChevronDown className="size-4 self-center opacity-0 transition-opacity group-hover/yhead:opacity-60" />
           </DropdownMenuTrigger>
