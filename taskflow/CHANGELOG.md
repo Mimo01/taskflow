@@ -2,6 +2,21 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.13.0] — 2026-06-16
+
+### Added
+
+- **My Tasks — a dedicated personal task page** — A new "My Tasks" entry in the sidebar gives you a focused home for your own work. It opens in a smart "My Day" order (flagged and blocked first, then overdue, then issues in review with your merge request, then in-progress, then to-do), with a count strip that doubles as quick filters. Each row shows type, key, priority, status, due date (overdue highlighted), story points, merge-request health, and time logged. You can peek or open an issue, change its status, and log work right from the row. A scope toggle switches between your current sprint and everything assigned to — or reported by — you across sprints and the backlog (fetched with full server-side paging, so nothing is silently cut off).
+
+### Changed
+
+- **Dashboard redesign** — The dashboard is rebuilt around three focused regions: a personalized hero greeting that now shows the current sprint day, a top row pairing a "My Issues" sprint-progress card with an "Upcoming Releases" readiness timeline, and a full-width "Past 7 Days" chart that overlays your logged hours against your commit activity. Each section loads and degrades on its own and reuses already-fetched data, so the dashboard stays fast and adds no new API calls.
+- **Standup recap — choose today** — The standup notes day selector now lets you pick today, not just earlier working days, and resolves the selected day correctly around midnight.
+
+### Fixed
+
+- **AIO test status on deep links** — Test cases no longer show "Not Run" when you open a cycle through a pinned tab or a deep link; the execution-status map now initializes on the cycle detail page itself, not only from the overview page.
+
 ## [1.12.4] — 2026-06-12
 
 ### Added
