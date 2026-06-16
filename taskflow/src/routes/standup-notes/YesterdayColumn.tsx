@@ -33,7 +33,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { buildRecentDayOptions, extractJiraKeyFromMessage } from '@/lib/standup-date';
+import { buildRecentDayOptions, extractJiraKeyFromMessage, getTodayDate } from '@/lib/standup-date';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
 import type { JiraActivityItem, JiraCreatedIssue, StandupIssueMeta } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
@@ -111,8 +111,12 @@ function isMergeCommit(commit: GitLabCommit): boolean {
   return /^Merge\b/.test(commit.title);
 }
 
-/** Returns "Yesterday" if dateStr is the calendar day before today, otherwise the day name. */
+/**
+ * Returns "Today" if dateStr is today, "Yesterday" if it is the calendar day
+ * before today, otherwise the day name.
+ */
 function getColumnHeading(dateStr: string): string {
+  if (dateStr === getTodayDate()) return 'Today';
   const today = new Date();
   const calYesterday = new Date(today);
   calYesterday.setDate(today.getDate() - 1);
@@ -578,8 +582,15 @@ export default function YesterdayColumn({
     if (resolvedYesterday && !dates.includes(resolvedYesterday)) {
       dates.unshift(resolvedYesterday);
     }
+    // Prepend today as the first (top) row so the user can recap the current
+    // day. buildRecentDayOptions starts at yesterday, so today is never present;
+    // the includes() guard is defensive against future changes.
+    const today = getTodayDate();
+    if (!dates.includes(today)) dates.unshift(today);
     return dates.map((date) => {
       const dateLabel = formatDayLabel(date);
+      // Today row: date first, then the tag — consistent with regular rows.
+      if (date === today) return { date, label: `${dateLabel} · Today` };
       if (date !== resolvedYesterday) return { date, label: dateLabel };
       // Default row: date first, then the tag — consistent with regular rows.
       const tag = getColumnHeading(date) === 'Yesterday' ? 'Yesterday' : 'Last working day';
