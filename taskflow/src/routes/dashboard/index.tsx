@@ -194,7 +194,8 @@ export default function Dashboard() {
       return ` · ${label} · sprint resumes ${resumeLabel}`;
     }
 
-    const elapsed = countWorkingDays(start, today);
+    // Start day counts as day 0 → subtract the (inclusive) start day from elapsed.
+    const elapsed = countWorkingDays(start, today) - 1;
     const total = countWorkingDays(start, end);
     return ` · Sprint day ${elapsed} of ${total}`;
   })();

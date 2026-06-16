@@ -27,7 +27,7 @@ import {
   Bar,
   ComposedChart,
   ReferenceLine,
-  useXAxisScale,
+  usePlotArea,
   useYAxisScale,
   XAxis,
   YAxis,
@@ -179,15 +179,17 @@ interface LabelDatum {
   commitsNorm: number;
 }
 function ValueLabels({ data }: { data: LabelDatum[] }) {
-  // v3 category scale already returns the band CENTER — do not add bandwidth/2.
-  const xScale = useXAxisScale() as unknown as ((v: string | number) => number) | undefined;
+  // Center each label on its column. The category band scale's bandwidth isn't reliably
+  // exposed, so derive the column center from the plot area + index instead.
+  const plot = usePlotArea();
   const yScale = useYAxisScale() as unknown as ((v: number) => number) | undefined;
-  if (!xScale || !yScale) return null;
+  if (!plot || !yScale) return null;
+  const colW = plot.width / data.length;
   const y0 = yScale(0);
   return (
     <g>
-      {data.map((b) => {
-        const cx = xScale(b.label);
+      {data.map((b, i) => {
+        const cx = plot.x + (i + 0.5) * colW;
         const yTop = (b.hours > 0 ? yScale(b.hoursNorm) : y0) - 6;
         const yBot = (b.commits > 0 ? yScale(b.commitsNorm) : y0) + 14;
         return (
