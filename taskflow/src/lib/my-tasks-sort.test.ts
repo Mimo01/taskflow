@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   MY_DAY_BANDS,
   classifyBand,
-  deriveCounts,
   groupByMyDay,
   subtreeBand,
 } from './my-tasks-sort';
@@ -324,75 +323,3 @@ describe('groupByMyDay', () => {
   });
 });
 
-// --- deriveCounts ---
-
-describe('deriveCounts', () => {
-  it('counts to-do issues correctly', () => {
-    const issues = [
-      makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new' }),
-      makeIssue({ key: 'PROJ-2', statusCategoryKey: 'new' }),
-    ];
-    const counts = deriveCounts(issues, new Set(), FIXED_TODAY);
-    expect(counts.toDo).toBe(2);
-    expect(counts.inProgress).toBe(0);
-    expect(counts.inReview).toBe(0);
-    expect(counts.doneSprint).toBe(0);
-    expect(counts.overdue).toBe(0);
-    expect(counts.mrAwaiting).toBe(0);
-  });
-
-  it('counts inProgress (indeterminate, not review)', () => {
-    const issues = [
-      makeIssue({ key: 'PROJ-1', statusCategoryKey: 'indeterminate', statusName: 'In Progress' }),
-    ];
-    const counts = deriveCounts(issues, new Set(), FIXED_TODAY);
-    expect(counts.inProgress).toBe(1);
-    expect(counts.inReview).toBe(0);
-  });
-
-  it('counts inReview (indeterminate, name includes "review")', () => {
-    const issues = [
-      makeIssue({ key: 'PROJ-1', statusCategoryKey: 'indeterminate', statusName: 'In Review' }),
-    ];
-    const counts = deriveCounts(issues, new Set(), FIXED_TODAY);
-    expect(counts.inReview).toBe(1);
-    expect(counts.inProgress).toBe(0);
-  });
-
-  it('counts done issues', () => {
-    const issues = [makeIssue({ key: 'PROJ-1', statusCategoryKey: 'done', statusName: 'Done' })];
-    const counts = deriveCounts(issues, new Set(), FIXED_TODAY);
-    expect(counts.doneSprint).toBe(1);
-  });
-
-  it('counts overdue non-done issues', () => {
-    const issues = [
-      makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new', duedate: '2026-06-13' }),
-      makeIssue({ key: 'PROJ-2', statusCategoryKey: 'done', duedate: '2026-06-13' }), // done — not overdue
-    ];
-    const counts = deriveCounts(issues, new Set(), FIXED_TODAY);
-    expect(counts.overdue).toBe(1);
-  });
-
-  it('counts mrAwaiting from mrAwaitingMeKeys Set', () => {
-    const issues = [
-      makeIssue({ key: 'PROJ-1', statusCategoryKey: 'indeterminate', statusName: 'In Review' }),
-      makeIssue({ key: 'PROJ-2', statusCategoryKey: 'new' }),
-    ];
-    const mrKeys = new Set(['PROJ-1']);
-    const counts = deriveCounts(issues, mrKeys, FIXED_TODAY);
-    expect(counts.mrAwaiting).toBe(1);
-  });
-
-  it('returns all-zero counts for empty issues array', () => {
-    const counts = deriveCounts([], new Set(), FIXED_TODAY);
-    expect(counts).toEqual({
-      toDo: 0,
-      inProgress: 0,
-      inReview: 0,
-      doneSprint: 0,
-      overdue: 0,
-      mrAwaiting: 0,
-    });
-  });
-});

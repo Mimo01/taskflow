@@ -2483,7 +2483,6 @@ export async function fetchEpicStories(
 // VelocityChart.tsx (their sole consumer) was deleted; no other consumers existed.
 
 export type {
-  BurndownChangeEntry,
   EntityMaps,
   GhAllDataResponse,
   GhBacklogResponse,
@@ -2496,7 +2495,6 @@ export type {
   GhTransition,
   GhTransitionsResponse,
   GhTypeEntity,
-  GreenHopperBurndown,
 } from './jira/greenhopper';
 // GreenHopper (Phase 71 + Phase 72 + Phase 85) — re-exported here per D-05 (legacy dual-file convention; consumers import from 'services/jira').
 export {
