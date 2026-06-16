@@ -178,18 +178,16 @@ interface LabelDatum {
   hoursNorm: number;
   commitsNorm: number;
 }
-type BandScale = ((v: string | number) => number) & { bandwidth?: () => number };
-
 function ValueLabels({ data }: { data: LabelDatum[] }) {
-  const xScale = useXAxisScale() as unknown as BandScale | undefined;
+  // v3 category scale already returns the band CENTER — do not add bandwidth/2.
+  const xScale = useXAxisScale() as unknown as ((v: string | number) => number) | undefined;
   const yScale = useYAxisScale() as unknown as ((v: number) => number) | undefined;
   if (!xScale || !yScale) return null;
-  const bw = typeof xScale.bandwidth === 'function' ? xScale.bandwidth() : 0;
   const y0 = yScale(0);
   return (
     <g>
       {data.map((b) => {
-        const cx = xScale(b.label) + bw / 2;
+        const cx = xScale(b.label);
         const yTop = (b.hours > 0 ? yScale(b.hoursNorm) : y0) - 6;
         const yBot = (b.commits > 0 ? yScale(b.commitsNorm) : y0) + 14;
         return (
