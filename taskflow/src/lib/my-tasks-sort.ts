@@ -159,4 +159,3 @@ export function groupByMyDay(
 
   return result;
 }
-
