@@ -93,3 +93,14 @@ None — pure client-side date computation; no new trust boundary or dependency 
 - taskflow/src/routes/standup-notes/YesterdayColumn.tsx — FOUND (modified)
 - Commit 9dc0e4e1 — FOUND
 - Commit 2ff57d85 — FOUND
+
+## Post-Review Follow-up (WR-01)
+
+Code review (260616-igl-REVIEW.md) flagged WR-01: `dayOptions` and the column
+heading derive from "today" but were not reactive, so a tab left open across
+midnight kept a stale "· Today" row/heading and the radio value could stop
+matching a row. Fixed in commit **e9ccf9b2**: added `useTodayDate()` (single
+timeout to next local midnight, no polling) and threaded the reactive value
+through `getColumnHeading(dateStr, todayStr)` and the `dayOptions` memo deps.
+`tsc --noEmit` and `biome check` both clean. WR-02 (today === resolvedYesterday
+edge) left as accepted — unreachable in normal operation.
