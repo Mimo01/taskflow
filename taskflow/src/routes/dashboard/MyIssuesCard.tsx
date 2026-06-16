@@ -6,8 +6,9 @@
  * Displays personal sprint progress: done/total issue counts segmented by
  * statusCategory, rendered as a horizontal 3-segment bar with legend.
  *
- * Cache key MUST MATCH SprintHealthSection / SprintBoardTab exactly — shared cache entry.
- * Props only — no readSecret, no useAuthStore (D-16).
+ * Cache key is shared with the warm-up query in dashboard/index.tsx (the producer) — both must
+ * use the identical ['jira-issues','sprint-board', activeJiraProject, storyPointsFieldKey] key
+ * to deduplicate the fetch. Props only — no readSecret, no useAuthStore (D-16).
  * Auth values are loaded once in index.tsx and passed down as props.
  */
 import { useQuery } from '@tanstack/react-query';
@@ -40,7 +41,7 @@ export default function MyIssuesCard({
   onActivate,
 }: MyIssuesCardProps) {
   const click = clickableCard(onActivate);
-  // CACHE KEY MUST MATCH SprintHealthSection / SprintBoardTab exactly
+  // CACHE KEY MUST MATCH dashboard/index.tsx warm-up query exactly — shared cache entry
   const {
     data: sprintIssuesRaw,
     isLoading,
