@@ -235,6 +235,11 @@ function appendStandupNotesItemIfMissing(items: SidebarItem[]): SidebarItem[] {
   return [...items, { id: 'standup-notes', visible: true }];
 }
 
+export function appendMyTasksItemIfMissing(items: SidebarItem[]): SidebarItem[] {
+  if (items.some((i) => i.id === 'my-tasks')) return items;
+  return [...items, { id: 'my-tasks', visible: true }];
+}
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
@@ -348,7 +353,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 26,
+      version: 27,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -454,6 +459,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 26) {
           if (s.peekPanelWidth === undefined) s.peekPanelWidth = null;
+        }
+        if (version < 27) {
+          if (Array.isArray(s.sidebarItems)) {
+            s.sidebarItems = appendMyTasksItemIfMissing(s.sidebarItems as SidebarItem[]);
+          }
         }
         return persisted as SettingsState;
       },

@@ -15,7 +15,7 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
-import { useSettingsStore } from './settings.store';
+import { appendMyTasksItemIfMissing, useSettingsStore } from './settings.store';
 import { useAuthStore } from './auth.store';
 
 describe('settings.store — keyboardOverrides (Phase 19)', () => {
@@ -479,14 +479,14 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     });
   });
 
-  it('persist version is 26 (v26 migration smoke — peekPanelWidth added in Phase 77 Plan 01)', () => {
+  it('persist version is 27 (v27 migration smoke — my-tasks sidebar item added in Phase quick-260616-ktv)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     const match = src.match(/version:\s*(\d+),/);
     expect(match).not.toBeNull();
     const version = Number(match?.[1]);
-    expect(version).toBe(26);
+    expect(version).toBe(27);
   });
 
   it('rankFieldKey defaults to null', () => {
@@ -496,5 +496,37 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
   it("setRankFieldKey('customfield_10105') sets state to 'customfield_10105' (D-11 composed-key contract)", () => {
     act(() => useSettingsStore.getState().setRankFieldKey('customfield_10105'));
     expect(useSettingsStore.getState().rankFieldKey).toBe('customfield_10105');
+  });
+});
+
+describe('settings.store — my-tasks migration (quick 260616-ktv)', () => {
+  it('appendMyTasksItemIfMissing([]) returns array containing { id: my-tasks, visible: true }', () => {
+    const result = appendMyTasksItemIfMissing([]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ id: 'my-tasks', visible: true });
+  });
+
+  it('appends { id: my-tasks, visible: true } to an existing array without my-tasks, preserving order', () => {
+    const input = [
+      { id: 'dashboard', visible: true },
+      { id: 'backlog', visible: false },
+    ];
+    const result = appendMyTasksItemIfMissing(input);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({ id: 'dashboard', visible: true });
+    expect(result[1]).toEqual({ id: 'backlog', visible: false });
+    expect(result[2]).toEqual({ id: 'my-tasks', visible: true });
+  });
+
+  it('returns array unchanged when my-tasks already present (no duplicate, visible flag preserved)', () => {
+    const input = [
+      { id: 'dashboard', visible: true },
+      { id: 'my-tasks', visible: false },
+    ];
+    const result = appendMyTasksItemIfMissing(input);
+    expect(result).toHaveLength(2);
+    expect(result).toBe(input); // same reference — no new array created
+    const myTasksItem = result.find((i) => i.id === 'my-tasks');
+    expect(myTasksItem?.visible).toBe(false);
   });
 });
