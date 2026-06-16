@@ -12,7 +12,9 @@
  *
  * Queries:
  *   - Tempo: useQuery key ['dashboard','tempo-7day',jiraBaseUrl,todayDate,jiraUsername]
- *   - Commits: useQueries × 7, key ['standup','commits',...,day,...] (same as ActivityStrip)
+ *   - Commits: useQueries × 7, key ['standup','commits',...,day,...] (cold cache — fetches its
+ *     own queries; incidentally shares the same key structure with StandupNotesPage but there
+ *     is no warm-cache guarantee here)
  *
  * Tokens NEVER enter queryKey (T-86-05 / T-62-06).
  *
@@ -249,7 +251,7 @@ export default function HoursCommitsChart({
 
   // ---------------------------------------------------------------------------
   // GitLab commits — 7 parallel useQueries, one per day
-  // Cache key MUST match ActivityStrip/StandupNotesPage VERBATIM for warm-cache sharing.
+  // Key structure matches StandupNotesPage incidentally — no warm-cache guarantee (ActivityStrip deleted Phase 86).
   // Token NEVER in queryKey (T-86-05).
   // ---------------------------------------------------------------------------
   const rolling7 = getRolling7Days(todayDate);
