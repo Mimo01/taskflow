@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.13 Personal Workspace (Shipped: 2026-06-16)
+
+**Phases completed:** 6 phases (81-86), 23 plans
+**Timeline:** 9 days (2026-06-07 → 2026-06-16)
+**Codebase:** 370 files changed (+41,255/−21,884 lines), 411 commits
+**Git range:** 33274681 (chore: bump version to 1.12.0) → 85139076 (docs(quick-260616-mmw): v1.13 tech-debt cleanup plan/summary + milestone audit)
+
+**Key accomplishments:**
+
+1. **Charting foundation (Phase 81)** — the app's first charting dependency: Recharts v3 (`recharts@^3.8.0` + `react-is`) wired through the shadcn `chart` primitive (`components/ui/chart.tsx`), theme-token aware (`--chart-1..5`, dark/light). A reusable chart-card wrapper enforces explicit-height + responsive-width to defeat Tauri WebKit/WebView2 0×0 collapse (same failure class as the virtualized-table-zero-width-col fix), animations disabled, lazy-loaded to protect bundle size. Human-UAT confirmed in real Tauri WebKit (CHART-02).
+2. **My Tasks page (Phase 82)** — a dedicated `/my-tasks` lazy route + sidebar entry (`CheckSquare`). My Day smart sort surfaces flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do; a count/filter strip doubles as filters; each row shows type/key/priority/summary/status pill/due date/SP/MR health/time logged. Inline actions (peek, open, transition, log work), a sprint↔all-assigned scope toggle backed by proper server-side pagination (`fetchAllSearchPages` — no page-cap pitfall), and persisted scope preference. (UAT product calls: right-click context menu and grouping switcher removed; always My Day.)
+3. **Dashboard stat tiles + sprint health (Phase 83)** — kept the gradient hero greeting + en-GB date; added the 4-tile stat grid (Open / In Progress / Overdue→red when >0 / SP Done this sprint) and a sprint-health section, all from warm caches (zero new API calls). Legacy widgets (`SmokeTestChart`, `DashboardSprintCard`, `DashboardInProgressCard`) deleted; widget-removal guard turned GREEN.
+4. **Dashboard trend chart + activity (Phase 84)** — a weekly-logged-hours trend chart (hours/day vs schedule) and an activity & releases section (recent notifications/mentions + next-release countdown), each section degrading independently with its own loading/empty/error state and warm-cache reuse (DASH-07). The MR review queue (DASH-06) was descoped at UAT by product decision.
+5. **Sprint insights — probe-gated (Phase 85)** — a mandatory live Jira DC probe gated the work; a personal velocity trend (committed vs completed across last N closed sprints, `p-limit(3)` concurrency cap, ≥3-sprint threshold) and a GreenHopper-endpoint burndown chart were built and verified, cleanly omitted when probe/data unviable. (Both later retired by the Phase 86 redesign — see below.)
+6. **Dashboard redesign to screenshot (Phase 86)** — a clean-slate rewrite of `dashboard/index.tsx` into exactly the 3 approved regions: hero greeting with a `· Sprint day X of N` subline (hidden when no active sprint), a top row of `MyIssuesCard` (segmented sprint-progress + issue counts) + `UpcomingReleasesTimeline` (up-to-3-dot readiness), and a full-width `HoursCommitsChart` dual-axis rolling-7 PAST 7 DAYS chart. All 12 prior widget files (StatTile, SprintHealthSection, WeeklyTrendChart, ActivityStrip, DashboardReleaseCard, VelocityChart, BurndownChart + tests) deleted, 4 orphaned service helpers removed, removal guard extended, `npm run check` GREEN. Human-UAT confirmed dual-axis fidelity in Tauri WebKit (D-10, D-14).
+
+Plus a v1.13 tech-debt cleanup pass (quick-260616-mmw): deleted orphaned `ChartWrapper`/burndown types/`deriveCounts`, corrected stale cache-sharing comments, and reconciled REQUIREMENTS traceability (INSIGHT-01/02 retired, MYTASK-06/08 UAT reductions noted). A v27 settings-store migration (`appendMyTasksItemIfMissing`) injects the My Tasks sidebar entry for existing installs (closed audit blocker MYTASK-01).
+
+**Known deferred items at close:** 81 surfaced by the open-artifact audit (see STATE.md Deferred Items) — all cross-project historical noise: 72 stale quick-task dirs (dates to 260521), 7 pre-v1.13 debug sessions, 1 deferred priority-stripe-by-REST-rank TODO, and 1 false-positive Phase 85 UAT gap (actually passed). None block v1.13; milestone audit verified 6/6 phases, 0 integration blockers, all flows complete (17/18 committed requirements satisfied, DASH-06 descoped, INSIGHT-01/02 retired by design).
+
+---
+
 ## v1.12 Jira Experience Improvements (Shipped: 2026-06-07)
 
 **Phases completed:** 5 phases (76-80), 19 plans, 29 tasks

@@ -2,37 +2,20 @@
 
 ## What This Is
 
-Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
+Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a graph-driven personal dashboard, a dedicated My Tasks command center, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: v1.13 Personal Workspace
+## Latest Shipped Milestone: v1.13 Personal Workspace (shipped 2026-06-16)
 
-**Goal:** Give each person a focused home in Taskflow — a real "My Tasks" command center and a redesigned, graph-driven Dashboard that surface what matters at a glance.
-
-**Target features:**
-- **My Tasks page** — summary/filter strip; three groupings behind a toggle (My Day smart-sort / By Status / By Sprint & Parent); rich rows (type, priority, status, due date, SP, MR health, time bar); inline quick actions (peek, transition, log work, context menu); scope toggle (current sprint vs all assigned).
-- **Dashboard redesign** — keep the gradient hero greeting + date, remove the 3 cards. New: personal stat tiles, sprint health + points-by-status chart, a trend graph (weekly logged hours and/or burndown), activity & releases, MR review queue, plus a personal velocity trend (points over last N sprints).
-- **Charting foundation** — choose & integrate the app's first charting library (research pass first: Recharts / visx / Tremor / nivo vs Tauri + React 18 + React Compiler + Tailwind v4).
-
-**Key context:** Dashboard and My Tasks are mostly independent by design — Dashboard is metrics/graphs/activity; My Tasks is task management. Both build heavily on existing primitives (issue peek, StatusPopover, PriorityIcon, MR linking, Tempo worklogs, `timeInColumn`, subtask grouping). Charts are a brand-new dependency — first time the app introduces one.
-
-## Latest Shipped Milestone: v1.12 Jira Experience Improvements (shipped 2026-06-07)
-
-**Goal:** Make day-to-day Jira work in Taskflow faster and more direct — consistent done-state visuals, drag-driven ranking and transitions, a non-blocking universal issue peek, tighter issue-detail interactions, and templated bulk subtask creation. **All 32 requirements delivered; milestone audit passed.**
+**Goal:** Give each person a focused home in Taskflow — a real "My Tasks" command center, the app's first charting capability, and a redesigned graph-driven Dashboard that surfaces what matters at a glance. **17/18 committed requirements delivered (DASH-06 descoped, INSIGHT-01/02 retired by design); milestone audit `tech_debt` with 0 blockers.**
 
 **Delivered features:**
-- Done-state strikethrough for done current-sprint stories on the Backlog active-sprint list, Dashboard sprint card, and Standup Today (matching the kanban board's existing treatment)
-- Drag-to-rank stories on the Backlog active-sprint list (drag changes Jira rank; list ordered by rank)
-- Drag-to-transition on the sprint board; columns spanning multiple workflow statuses split into per-transition drop boxes during drag
-- Universal issue slideover (peek): works for any issue type app-wide, non-blocking (underlying view stays interactive), swap the peeked issue by clicking issues in the underlying view, click-anywhere opens the peek except the issue key (which opens full page), explicit "open full page" affordance
-- Issue-detail refinements: move a subtask's parent from the sidebar into main content (like subtasks-under-story); fix `cursor-pointer` on clickable areas
-- Card colors: left-edge color stripe on board cards driven by priority / issue type
-- Subtask templates & bulk creation: Settings-managed named templates (title required + createmeta-driven rich optional fields: description, assignee, priority, labels, original estimate, story points, due date, components, custom fields, with parent-inheritance placeholders); from a parent issue, pick/build a list, preview & inline-edit, create all subtasks at once in order
+- **Charting foundation** — the app's first charting dependency: Recharts v3 wired through the shadcn `chart` primitive, theme-token aware (`--chart-1..5`), Tauri WebKit/WebView2-safe (explicit-height + responsive wrapper, animations off), lazy-loaded chart card.
+- **My Tasks page** — a dedicated `/my-tasks` sidebar route: My Day smart sort (flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do), a count/filter strip, rich rows (type, key, priority, status pill, due date, SP, MR health, time logged), inline actions (peek, open, transition, log work), and a sprint↔all-assigned scope toggle with proper server-side pagination. A v27 store migration injects the sidebar entry for existing installs.
+- **Dashboard redesign** — a clean-slate rewrite to the 3 approved screenshot regions: gradient hero with a `· Sprint day X of N` subline, a top row of MY ISSUES (segmented sprint-progress + counts) + UPCOMING RELEASES (up-to-3-dot readiness), and a full-width PAST 7 DAYS dual-axis hours/commits chart — all from existing data sources, with every prior widget deleted and zero dead code.
 
-**Dropped after audit:** Flags/impediments and swimlanes (already fully built — fixed parent-story grouping + complete `customfield_10021` flag integration); rapid sequential subtask entry (superseded by subtask templates).
+**Descoped/retired during the milestone:** DASH-06 MR review queue (rejected at Phase 84 UAT); INSIGHT-01/02 velocity + burndown insights (built & verified in Phase 85, then deleted by the Phase 86 clean-slate redesign); the three-way grouping toggle and right-click context menu on My Tasks (Phase 82 UAT — always My Day grouping, inline actions retained).
 
-**Out of scope for v1.12:** Sprint-board swimlane group-by switcher (epic/assignee); priority of subtasks treated as anti-pattern stays optional; batch-create REST endpoint (bulk creation loops `createIssue` in order).
-
-**Previous milestone shipped:** v1.11 GreenHopper API Migration — 5 phases (71-75), 22 plans, 284 commits, shipped 2026-06-01.
+**Previous milestone shipped:** v1.12 Jira Experience Improvements — 5 phases (76-80), 19 plans, 441 commits, shipped 2026-06-07 (app-wide done-state visuals, universal issue peek, drag-to-rank + drag-to-transition, subtask templates + bulk creation).
 
 ## Core Value
 
@@ -154,17 +137,22 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Drag-to-transition on the sprint board; multi-status columns split into per-transition drop boxes during the drag — v1.12 Phase 79
 - ✓ Subtask templates & bulk creation (Settings-managed, createmeta-driven rich fields, create-all-at-once from parent with per-row progress + retry) — v1.12 Phase 80
 
+- ✓ Charting foundation: Recharts v3 + shadcn `chart` primitive, theme-token aware, Tauri WebKit/WebView2-safe (explicit-height + responsive wrapper, animations off), lazy-loaded — v1.13 Phase 81
+- ✓ My Tasks page: dedicated `/my-tasks` route with My Day smart sort, count/filter strip, rich rows, inline actions (peek/open/transition/log work), and sprint↔all-assigned scope toggle (server-side pagination) — v1.13 Phase 82
+- ✓ My Tasks sidebar entry injected for existing installs via v27 settings-store migration (`appendMyTasksItemIfMissing`) — v1.13 Phase 82
+- ✓ Dashboard redesign: 3-region screenshot layout (hero + sprint-day subline, MyIssuesCard + UpcomingReleasesTimeline top row, full-width dual-axis PAST 7 DAYS hours/commits chart) — all from warm caches, every prior widget removed, zero dead code — v1.13 Phases 83-86
+- ✓ Dashboard sections degrade independently with own loading/empty/error state and warm-cache reuse — v1.13 Phases 83-84
+
 ### Active
 
-<!-- v1.13 Personal Workspace — requirements defined in REQUIREMENTS.md, mapped by ROADMAP.md -->
+<!-- Milestone v1.13 shipped 2026-06-16. No active milestone — next milestone TBD via /gsd:new-milestone. -->
 
-- [ ] My Tasks page: personal command center (summary strip, grouping toggle, rich rows, inline actions, scope toggle)
-- [ ] Dashboard redesign: graph-driven overview (stat tiles, sprint health chart, trend graph, activity & releases, MR review queue, velocity trend)
-- [ ] Charting foundation: select and integrate a charting library
+_None — v1.13 Personal Workspace shipped. Define the next milestone with `/gsd:new-milestone`._
 
 ### Out of Scope
 
-- Historical analytics / burndown charts — no daily-use value; complex data pipeline; LinearB/Swarmia exist for this
+- Historical analytics / velocity & burndown charts — attempted as probe-gated insights in v1.13 Phase 85 (built and verified), then retired in the Phase 86 dashboard redesign as not earning their daily-use place; LinearB/Swarmia exist for this
+- Customizable widget/grid dashboard — removed in v1.9 (react-grid-layout, 11 widget types); v1.13 ships a curated static redesign, not a return to widgets (revisit only if static proves insufficient — DASH-F1)
 - OAuth / SSO login — team uses PATs; OAuth adds server-side requirements conflicting with no-server architecture
 - Multi-project aggregation — exponentially increases data model complexity; one project sufficient
 - Create Jira task from GitLab MR — workflow confusion; task creation always explicit
@@ -189,6 +177,8 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 
 **v1.12 shipped 2026-06-07** — 5 phases (76-80), 19 plans, 441 commits, 434 files changed (+46,310/−3,051 lines) over 6 days. Made day-to-day Jira work faster and more direct: app-wide done-state visuals + issue-type card stripes via shared `issueDisplayUtils`, a universal non-blocking issue peek slideover, drag-to-rank on the Backlog and drag-to-transition on the Sprint Board (both on `@dnd-kit`), and Settings-managed subtask templates with bulk creation. Plus a ~30-task quick-task polish layer (peek refinements, priority/issue-type icons, Standup Notes overhaul). 32/32 requirements satisfied; milestone audit passed. 7 non-blocking deferred items (Windows/live-DC UAT, accepted drag tech debt). Run `release.sh` to cut the v1.12.x release.
 
+**v1.13 shipped 2026-06-16** — 6 phases (81-86), 23 plans, 411 commits, 370 files changed (+41,255/−21,884 lines) over 9 days. Gave Taskflow its first charting capability (Recharts v3 via the shadcn `chart` primitive, Tauri-webview-safe), a dedicated My Tasks command center (`/my-tasks`, My Day smart sort, scope toggle with server-side pagination), and a graph-driven Dashboard redesign to a curated 3-region screenshot layout (hero + sprint-day subline, MyIssuesCard + UpcomingReleasesTimeline, full-width dual-axis hours/commits chart) — every prior dashboard widget deleted, zero dead code, `npm run check` GREEN. A v27 settings-store migration injects the My Tasks sidebar entry for existing installs. 17/18 committed requirements satisfied (DASH-06 MR review queue descoped at UAT; INSIGHT-01/02 velocity+burndown built in Phase 85 then retired by the Phase 86 redesign). Milestone audit `tech_debt` with 0 blockers; 81 cross-project historical-noise items acknowledged as deferred (see STATE.md). Run `release.sh` to cut the v1.13.x release.
+
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
@@ -204,7 +194,8 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 - **Shipped v1.10:** 2026-05-25 — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, 432 files changed (+30,286/−1,489 lines)
 - **Shipped v1.11:** 2026-06-01 — 5 phases (71-75), 22 plans, 284 commits, 308 files changed (+48,340/−16,981 lines)
 - **Shipped v1.12:** 2026-06-07 — 5 phases (76-80), 19 plans, 441 commits, 434 files changed (+46,310/−3,051 lines)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core + /sortable + /modifiers + /utilities (reinstalled v1.12 for drag-to-rank/transition), @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
+- **Shipped v1.13:** 2026-06-16 — 6 phases (81-86), 23 plans, 411 commits, 370 files changed (+41,255/−21,884 lines)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, recharts@^3.8 + react-is (charting, added v1.13 via shadcn `chart` primitive), @dnd-kit/core + /sortable + /modifiers + /utilities (reinstalled v1.12 for drag-to-rank/transition), @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
@@ -212,7 +203,7 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Test suite:** ~1358 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
 - **Codebase:** ~80,895 lines TypeScript / 136 test files
-- **Settings store:** persist version 26 (v25 added `rankFieldKey` for backlog drag-rank; v26 added `peekPanelWidth` for the peek slideover)
+- **Settings store:** persist version 27 (v25 added `rankFieldKey` for backlog drag-rank; v26 added `peekPanelWidth` for the peek slideover; v27 added `appendMyTasksItemIfMissing` to inject the My Tasks sidebar entry for existing installs)
 - **Known caveats:** Phase 69 missing VERIFICATION.md (UAT 12/12 — run `/gsd:verify-work 69`); phases 53, 57, 58 missing VERIFICATION.md (all UAT-verified); Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
 
 ## Constraints
@@ -352,6 +343,12 @@ This document evolves at phase transitions and milestone boundaries.
 | D-07 reversed: screen/validator transitions NOT pre-filtered from drop targets (v1.12 Phase 79) | The app has no transition-screen flow anywhere; rollback-on-rejection already covers "no silent snap-back" | ✓ Good — user-accepted during UAT; recorded in 79-CONTEXT.md |
 | Bulk subtask creation loops `createIssue` sequentially, not `Promise.all` (v1.12 Phase 80) | Jira DC has no batch-create endpoint; sequential preserves listed order and makes per-row status trackable | ✓ Good — per-row progress + retry-failed-only (no duplicates) on partial failure |
 | Subtask templates persist via `createTauriStorage('subtask-templates.json')` (v1.12 Phase 80) | Same Zustand + Tauri Store pattern as `tempo-filters.store.ts`; no new persistence concept | ✓ Good — consistent store pattern; survives restarts |
+| Recharts v3 via shadcn `chart` primitive, `responsive` prop over `ResponsiveContainer` (v1.13 Phase 81) | All four researchers converged on Recharts; `ResponsiveContainer` conflicts with React Compiler (#4590/#5173); the `responsive` prop avoids it | ✓ Good — charts render across both Tauri webviews |
+| Chart wrapper uses `'use no memo'` + explicit-height outer div (v1.13 Phase 81) | WebKit collapses charts to 0×0 without an explicit-height ancestor — same failure class as the virtualized-table-zero-width-col fix | ✓ Good — no 0×0 collapse; animations disabled for webview stability |
+| My Tasks "all assigned" scope uses `fetchAllSearchPages`, two named functions (v1.13 Phase 82) | Server-side pagination avoids the fetch-once page-cap pitfall; named functions remove the client-side-filter temptation | ✓ Good — full result set; no silent truncation |
+| `appendMyTasksItemIfMissing` v27 store migration (v1.13 Phase 82) | Existing installs persist their sidebar list; a new nav item is invisible without an explicit migration injecting it — same pattern as worklogs (v21) / standup (v23) | ✓ Good — closed audit blocker MYTASK-01; sidebar entry appears for all users |
+| Phase 86 D-01 clean slate — delete the entire Phase 83-85 widget surface (v1.13 Phase 86) | The screenshot redesign superseded the incremental stat-tile/insights work; keeping dead widgets would violate the zero-dead-code goal | ✓ Good — 12 widget files + 4 orphaned helpers removed; velocity/burndown insights retired with them |
+| Dashboard charts source from existing data only — no new API surface (v1.13 Phase 86) | Reuse warm caches (sprint data, Tempo worklogs, releases, commits); a redesign shouldn't add fetch cost | ✓ Good — dual-axis chart + cards built entirely on existing queries |
 
 ---
-*Last updated: 2026-06-14 — started milestone v1.13 (Personal Workspace)*
+*Last updated: 2026-06-16 — after v1.13 Personal Workspace milestone*
