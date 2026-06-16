@@ -23,7 +23,7 @@
  */
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Timer } from 'lucide-react';
-import { Bar, ComposedChart, LabelList, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { Bar, ComposedChart, Customized, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer } from '@/components/ui/chart';
@@ -159,32 +159,13 @@ const chartConfig = {
   commits: { label: 'Commits', color: COMMITS_COLOR },
 } satisfies ChartConfig;
 
-// Commit count label — placed just below each (downward) commits bar's bottom edge.
-// Recharts' position="bottom" mis-positions for negative stacked bars, so we compute
-// the text position from the rendered rectangle (y + height = bottom tip).
-function CommitCountLabel(props: {
-  x?: number | string;
-  y?: number | string;
-  width?: number | string;
-  height?: number | string;
-  value?: number | string;
-}) {
-  const x = Number(props.x) || 0;
-  const y = Number(props.y) || 0;
-  const width = Number(props.width) || 0;
-  const height = Number(props.height) || 0;
-  const n = Number(props.value);
-  return (
-    <text
-      x={x + width / 2}
-      y={y + height + 14}
-      textAnchor="middle"
-      fontSize={12}
-      fill="var(--muted-foreground)"
-    >
-      {Number.isFinite(n) ? n : 0}
-    </text>
-  );
+// Value-label layer. Rendered via <Customized> so it has access to the live x/y
+// scales — this lets us label EVERY day (including 0-value days that draw no bar):
+// hours above the bar tip, commits below it. Positions track per-bar heights.
+type Scale = ((v: string | number) => number) & { bandwidth?: () => number };
+interface ChartScales {
+  xAxisMap?: Record<string, { scale: Scale }>;
+  yAxisMap?: Record<string, { scale: Scale }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -375,13 +356,12 @@ export default function HoursCommitsChart({
             individual bar heights. Day labels are in their own row below. */}
         {!showSkeleton && !worklogsError && (
           /* WebKit 0×0 guard: explicit-height outer div required (Phase 81 D-03). */
-          <div
-            style={{ height: 300 }}
-            className={`flex w-full flex-col ${onActivate ? 'cursor-pointer' : ''}`}
-          >
+          <div style={{ height: 300 }} className="flex w-full flex-col">
             {/* Diverging bar chart: hours up (blue), commits down (green), shared zero baseline.
-                Labels at each bar tip (grey), tracking per-bar heights. */}
-            <div className={`min-h-0 flex-1 ${onActivate ? 'cursor-pointer' : ''}`}>
+                cursor override forces the pointer over Recharts' SVG too (#5). */}
+            <div
+              className={`min-h-0 flex-1 ${onActivate ? 'cursor-pointer [&_*]:!cursor-pointer' : ''}`}
+            >
               <ChartContainer
                 config={chartConfig}
                 className="h-full w-full"
@@ -400,6 +380,7 @@ export default function HoursCommitsChart({
                   {/* Two horizontal guide lines: 0 (center) and the max line (top), no labels */}
                   <ReferenceLine y={0} stroke="var(--border)" />
                   <ReferenceLine y={1} stroke="var(--border)" strokeDasharray="3 3" />
+                  {/* 0-value days draw no bar (no minPointSize) */}
                   <Bar
                     dataKey="hoursNorm"
                     stackId="a"
@@ -407,20 +388,7 @@ export default function HoursCommitsChart({
                     maxBarSize={40}
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
-                  >
-                    {/* Real hours value above each hours bar tip (grey); '0h' for zero days */}
-                    <LabelList
-                      dataKey="hours"
-                      position="top"
-                      offset={6}
-                      fontSize={12}
-                      fill="var(--muted-foreground)"
-                      formatter={(v: unknown) => {
-                        const n = typeof v === 'number' ? v : Number(v);
-                        return Number.isFinite(n) && n > 0 ? formatHoursMinutes(n) : '0h';
-                      }}
-                    />
-                  </Bar>
+                  />
                   <Bar
                     dataKey="commitsNorm"
                     stackId="a"
@@ -428,10 +396,49 @@ export default function HoursCommitsChart({
                     maxBarSize={40}
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
-                  >
-                    {/* Real commit count below each commits bar's bottom edge (grey) */}
-                    <LabelList dataKey="commits" content={<CommitCountLabel />} />
-                  </Bar>
+                  />
+                  {/* Value labels for ALL days (incl. 0): hours above the bar tip, commits below.
+                      Positioned from the live scales so 0-days are labelled at the baseline. */}
+                  <Customized
+                    component={(cp: ChartScales) => {
+                      const xScale = Object.values(cp.xAxisMap ?? {})[0]?.scale;
+                      const yScale = Object.values(cp.yAxisMap ?? {})[0]?.scale;
+                      if (!xScale || !yScale) return <g />;
+                      const bw = typeof xScale.bandwidth === 'function' ? xScale.bandwidth() : 0;
+                      const baseY = yScale(0);
+                      return (
+                        <g>
+                          {chartData.map((b) => {
+                            const cx = xScale(b.label) + bw / 2;
+                            const yTop = (b.hours > 0 ? yScale(b.hoursNorm) : baseY) - 6;
+                            const yBot = (b.commits > 0 ? yScale(b.commitsNorm) : baseY) + 14;
+                            return (
+                              <g key={b.day}>
+                                <text
+                                  x={cx}
+                                  y={yTop}
+                                  textAnchor="middle"
+                                  fontSize={12}
+                                  fill="var(--muted-foreground)"
+                                >
+                                  {b.hours > 0 ? formatHoursMinutes(b.hours) : '0h'}
+                                </text>
+                                <text
+                                  x={cx}
+                                  y={yBot}
+                                  textAnchor="middle"
+                                  fontSize={12}
+                                  fill="var(--muted-foreground)"
+                                >
+                                  {b.commits}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      );
+                    }}
+                  />
                 </ComposedChart>
               </ChartContainer>
             </div>
