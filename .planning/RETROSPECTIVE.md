@@ -628,19 +628,66 @@
 
 ---
 
+## Milestone: v1.13 — Personal Workspace
+
+**Shipped:** 2026-06-16
+**Phases:** 6 (81-86) | **Plans:** 23
+
+### What Was Built
+
+- Charting foundation (Phase 81): the app's first charting dependency — Recharts v3 + `react-is` wired through the shadcn `chart` primitive (`components/ui/chart.tsx`), theme-token aware, with a reusable lazy chart-card wrapper that enforces explicit-height + responsive width to defeat Tauri WebKit/WebView2 0×0 collapse (animations off). Human-UAT confirmed.
+- My Tasks page (Phase 82): a dedicated `/my-tasks` lazy route + sidebar entry, My Day smart sort, a count/filter strip, rich rows, inline actions, and a sprint↔all-assigned scope toggle backed by `fetchAllSearchPages` server-side pagination. A v27 settings-store migration (`appendMyTasksItemIfMissing`) injects the sidebar entry for existing installs.
+- Dashboard build-up then redesign (Phases 83-85 → 86): stat tiles + sprint health (83), trend chart + activity strip (84), probe-gated velocity + burndown insights (85) — then a Phase 86 clean-slate rewrite to the 3 approved screenshot regions (hero + sprint-day subline, MyIssuesCard + UpcomingReleasesTimeline, full-width dual-axis hours/commits chart), deleting all 12 prior widget files and 4 orphaned helpers, zero dead code.
+
+### What Worked
+
+- **Charting-foundation-first, with a mandatory webview UAT gate** — Phase 81 shipped the charting dependency, theme integration, and the WebKit-safe wrapper (explicit-height + `'use no memo'`) before any consumer, and gated on a real Tauri smoke-chart UAT. Every downstream chart inherited a known-good wrapper, so the 0×0-collapse failure class (anticipated from the virtualized-table memory) never recurred.
+- **Probe-gated insights kept speculative work cheap** — Phase 85's mandatory live Jira DC probe (no chart code before documented probe results) meant the velocity/burndown work was bounded and verifiable; when the Phase 86 redesign superseded it, only one phase's worth of code was discarded.
+- **My Tasks built on existing primitives** — the page reused issue peek, StatusPopover, PriorityIcon, MR-health, and Tempo time data, so the load-bearing new work was the smart-sort ordering and the paginated all-assigned scope, not new infrastructure.
+- **Pagination discipline held** — the all-assigned scope used `fetchAllSearchPages` with two named functions, directly applying the fetch-once page-cap memory; no client-side-filter shortcut crept in.
+
+### What Was Inefficient
+
+- **Built three dashboard iterations to ship one** — Phases 83 (stat tiles + sprint health), 84 (trend + activity), and 85 (insights) were largely deleted by the Phase 86 clean-slate redesign to an approved screenshot. ~11 plans of dashboard work collapsed into the final 4-plan redesign. The screenshot target arrived after the incremental build, not before it.
+- **DASH-06 MR review queue built then rejected at UAT** — the review queue was implemented in Phase 84 and removed by product decision during UAT, a full round-trip of build-then-discard.
+- **Requirement reconciliation deferred to a cleanup task again** — INSIGHT-01/02 stayed listed as "Pending (Conditional)" and orphaned `ChartWrapper`/burndown types lingered until quick-260616-mmw reconciled them at audit time — the same lag pattern flagged in the v1.12 retrospective.
+- **MYTASK-01 sidebar-migration gap caught by audit, not by the phase** — Phase 82 added the nav item but not the store migration to inject it for existing installs; the milestone audit surfaced it as a blocker, fixed in quick-260616-ktv.
+
+### Patterns Established
+
+- **Charting wrapper as a phase-zero deliverable** — when introducing a webview-fragile rendering dependency, ship the safe wrapper (explicit-height, responsive, `'use no memo'`, animations off) + a real-platform UAT before any consumer.
+- **Probe-before-code for cost-uncertain integrations** — gate speculative data work (closed-sprint velocity, GreenHopper burndown) on a documented live probe; build nothing until the data is confirmed obtainable at acceptable cost.
+- **New sidebar nav item ⇒ settings-store migration** — a persisted sidebar list means any new nav entry needs an `append…IfMissing` migration (now v21 worklogs / v23 standup / v27 my-tasks) or it stays invisible to existing users.
+
+### Key Lessons
+
+1. **Get the visual target before the incremental build, not after** — three phases of dashboard work (83-85) were largely discarded once the screenshot redesign (86) defined the real target. A sketch/spike of the final layout before Phase 83 would have saved ~11 plans of build-then-delete. This is the v1.12 "settle design first" lesson at milestone scale.
+2. **A persisted-store feature isn't done until its migration ships** — a new sidebar entry, store field, or default is invisible/broken for existing installs without an explicit version migration; treat the migration as part of the phase's definition of done, not an audit-time fix.
+3. **Reconcile requirement/traceability text in the same task that changes scope** — INSIGHT-01/02 retirement and the descope of DASH-06 should have updated REQUIREMENTS.md as they happened, not at audit time (carried verbatim from the v1.12 retrospective — still unaddressed).
+4. **Probe-gating works — extend it** — the Phase 85 probe-first discipline made discarding the insights cheap and clean; apply the same "prove it's viable before building" gate to any future cost-uncertain or platform-uncertain capability.
+
+### Cost Observations
+
+- Sessions: 23 plans across 6 phases + a tech-debt cleanup quick-task wave over 9 days, 411 commits
+- Milestone audit: closed `tech_debt` (0 blockers); 17/18 committed requirements satisfied, DASH-06 descoped, INSIGHT-01/02 retired; 81 cross-project historical-noise items acknowledged as deferred
+- Notable: high deletion ratio (+41,255/−21,884) reflects the build-then-redesign dashboard churn — roughly a third of the milestone's line changes were removals, much of it self-inflicted by superseding Phases 83-85 with Phase 86
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 |
-|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 | v1.13 |
+|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|-------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 | 9 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ | ~80,895+ |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) | 0 (0%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
 \*\*\* 17 base v1.9 + 2 TEMPO-08/TEMPO-EDIT-01 pulled forward from v2 (Phase 64)
 \*\*\*\* 27/27 in-scope satisfied; STAND-08 + STAND-09 descoped by user during Phase 70 redesign
+\*\*\*\*\* 17/18 committed satisfied; DASH-06 (MR review queue) descoped at Phase 84 UAT; INSIGHT-01/02 conditional insights built in Phase 85 then retired by the Phase 86 redesign

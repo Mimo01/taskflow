@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.13
 milestone_name: Personal Workspace
-status: milestone_complete
-last_updated: 2026-06-16T06:58:23.214Z
-last_activity: 2026-06-15 -- Phase 86 execution started
+status: Awaiting next milestone
+last_updated: "2026-06-16T14:52:47.383Z"
+last_activity: 2026-06-16 — Milestone v1.13 completed and archived
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 23
-  percent: 0
-stopped_at: Milestone complete (Phase 86 was final phase)
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +20,14 @@ stopped_at: Milestone complete (Phase 86 was final phase)
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Milestone complete
+**Current focus:** v1.13 shipped — planning next milestone (`/gsd:new-milestone`); cut the v1.13.x release with `release.sh`
 
 ## Current Position
 
-Phase: 86
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-16 - Completed quick task 260616-mmw: cleared v1.13 tech debt (orphaned ChartWrapper/burndown types, deriveCounts, stale cache comments, REQUIREMENTS reconciliation)
-
-Progress: [██████████] 100%
+Phase: Milestone v1.13 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-16 — Milestone v1.13 completed and archived
 
 ## Performance Metrics
 
@@ -88,7 +85,24 @@ Key decisions for v1.13 (from research):
 
 ## Deferred Items
 
-Items carried forward from v1.12 close (2026-06-07):
+Items acknowledged and deferred at v1.13 close (2026-06-16). Open-artifact audit
+surfaced 81 items — all cross-project historical noise, no v1.13 blockers
+(milestone audit: 6/6 phases verified, 0 integration blockers, all flows complete).
+
+| Category | Item | Status |
+|----------|------|--------|
+| quick_tasks | 72 stale quick-task dirs (no completion file; dates back to 260521) | deferred — cleanup via /gsd-cleanup |
+| debug | backlog-drag-autoscroll-desync | investigating (pre-v1.13) |
+| debug | backlog-drag-autoscroll-residual | diagnosed (pre-v1.13) |
+| debug | bulk-button-style-mismatch | diagnosed (pre-v1.13) |
+| debug | phase73-no-transitions | diagnosed (pre-v1.13) |
+| debug | subtask-row-layout-overflow | diagnosed (pre-v1.13) |
+| debug | subtask-type-shows-id | diagnosed (pre-v1.13) |
+| debug | knowledge-base | archived |
+| todo | priority-stripe-rest-rank (color stripe by Jira REST priority rank) | deferred since P78 (rank.ts known-broken) |
+| uat | Phase 85 HUMAN-UAT | passed (0 open scenarios — audit false positive) |
+
+Carried forward from v1.12 close (still open):
 
 | Category | Item | Status |
 |----------|------|--------|
@@ -106,3 +120,7 @@ Items carried forward from v1.12 close (2026-06-07):
 Last session: 2026-06-15T20:37:42.899Z
 Stopped at: Phase 86 UI-SPEC approved
 Resume file: .planning/phases/86-redesign-dashboard-to-new-screenshot-layout-and-remove-old-w/86-UI-SPEC.md
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
