@@ -154,15 +154,18 @@ export default function CommandPalette({
     placeholderData: keepPreviousData,
   });
 
-  // Build issues list from sprint-board cache + debounced text search results (deduped, capped at 10)
+  // Search mode: show text results only. No-query mode: show sprint board cache.
   const issuesMap = new Map<string, JiraIssue>();
-  for (const issue of cachedSprintBoard?.issues ?? []) {
-    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
+  if (debouncedQuery.length >= 2) {
+    for (const issue of textSearchResults ?? []) {
+      issuesMap.set(issue.key, issue);
+    }
+  } else {
+    for (const issue of cachedSprintBoard?.issues ?? []) {
+      issuesMap.set(issue.key, issue);
+    }
   }
-  for (const issue of textSearchResults ?? []) {
-    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
-  }
-  const allIssues = Array.from(issuesMap.values()).slice(0, 10);
+  const allIssues = Array.from(issuesMap.values());
 
   // ─── Closed Jira search ────────────────────────────────────────────────────
 
