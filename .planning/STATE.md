@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-17 - Completed quick task 260617-cul: In my tasks page, the status badges are clickable and display transitions. I want to remove that, it should just open the issue preview like the entire row does
+Last activity: 2026-06-17 - Completed quick task 260617-dd2: I want to be able to open search with cmd + f, currently it is cmd + k
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Key decisions for v1.13 (from research):
 | 260616-ktv | Add appendMyTasksItemIfMissing migration (v27) — fix My Tasks sidebar entry invisible for existing users (closes v1.13 audit blocker MYTASK-01) | 2026-06-16 | 5c2ac903 | — | [260616-ktv-my-tasks-sidebar-migration](./quick/260616-ktv-my-tasks-sidebar-migration/) |
 | 260616-mmw | Address v1.13 tech debt: orphaned ChartWrapper/burndown types, stale cache comments, traceability reconciliation | 2026-06-16 | 02312626 | — | [260616-mmw-address-v1-13-tech-debt-orphaned-chartwr](./quick/260616-mmw-address-v1-13-tech-debt-orphaned-chartwr/) |
 | 260617-cul | In my tasks page, the status badges are clickable and display transitions. I want to remove that, it should just open the issue preview like the entire row does | 2026-06-17 | 84c1a4ac | — | [260617-cul-in-my-tasks-page-the-status-badges-are-c](./quick/260617-cul-in-my-tasks-page-the-status-badges-are-c/) |
+| 260617-dd2 | I want to be able to open search with cmd + f, currently it is cmd + k | 2026-06-17 | 73495d87 | Needs Review | [260617-dd2-i-want-to-be-able-to-open-search-with-cm](./quick/260617-dd2-i-want-to-be-able-to-open-search-with-cm/) |
 
 ## Deferred Items
 
