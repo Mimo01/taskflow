@@ -175,7 +175,7 @@ pub fn run() {
             // --- Help menu ---
             let command_palette_item = MenuItemBuilder::new("Command Palette")
                 .id("menu-command-palette")
-                .accelerator("CmdOrCtrl+K")
+                .accelerator("CmdOrCtrl+F")
                 .build(handle)?;
             let shortcuts_item = MenuItemBuilder::new("Keyboard Shortcuts")
                 .id("menu-keyboard-shortcuts")
