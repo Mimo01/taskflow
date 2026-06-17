@@ -2,6 +2,25 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.13.1] — 2026-06-17
+
+### Added
+
+- **Search — debounced auto text search in the Issues group** — the Issues section of the command palette now automatically searches as you type (with a short debounce), and while a query is active it shows only matching results rather than mixing in the recent-items list. The previous 10-item cap on text search results has also been removed.
+- **New keyboard shortcuts — navigate directly to 7 pages** — Go menu and global accelerators now cover: AIO Projects (Cmd+Shift+A), Backlog (Cmd+Shift+B), My Tasks (Cmd+Shift+M), Releases (Cmd+Shift+R), Sprint Board (Cmd+Shift+S), Standup (Cmd+Shift+N), and Dashboard (Cmd+Shift+D).
+
+### Changed
+
+- **Command palette shortcut moved to Cmd+F** — the command palette/search is now opened with Cmd+F instead of Cmd+K, and a capture-phase handler suppresses the native WKWebView find-in-page panel so the shortcut never leaks to the OS.
+- **My Tasks — static status pill** — the status badge in My Tasks rows is now a plain display pill; status changes happen through the existing action menu, removing an accidental clickable area on the row.
+
+### Fixed
+
+- **Issue edit — no more 400 errors when saving unchanged custom fields** — the edit form now only submits custom fields the user actually changed; pre-filled fields (such as Sprint or Tempo Account) that were not touched are omitted from the PUT body, fixing a 400 "Number value expected" / "Account is required" error that appeared immediately after opening an issue for edit.
+- **Issue detail — attachments now load on Jira Data Center** — the issue detail fetch now explicitly requests the `attachment` field alongside `*navigable`; attachment was silently absent on Jira DC because it is not a navigable field, causing the attachments panel to always appear empty.
+- **AIO cycles — breadcrumb back-navigation** — clicking a cycle from the AIO project overview now pushes a breadcrumb so the back button returns to the overview page instead of leaving the AIO section entirely.
+- **AIO issue detail — test runs always start collapsed** — test run groups on the issue detail panel now initialize collapsed on every open, preventing leftover expanded state from a previous issue.
+
 ## [1.13.0] — 2026-06-16
 
 ### Added
