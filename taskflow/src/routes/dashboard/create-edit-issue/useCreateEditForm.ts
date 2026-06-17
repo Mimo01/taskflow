@@ -12,6 +12,10 @@ export interface EditInitialValues {
   storyPoints: number | null;
   epicLinkKey: string | null;
   linkRows?: IssueLinkRowValue[];
+  /** Raw Jira field values for custom fields, keyed by fieldId. Used in edit mode to
+   *  pre-fill required custom fields (e.g. Account). The value shape mirrors what Jira
+   *  returns in issue.fields — objects, arrays, primitives. */
+  customFields?: Record<string, unknown>;
 }
 
 const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
@@ -63,11 +67,47 @@ export type FormAction =
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Extract a display label from a raw Jira custom field value.
+ *  Handles objects (account, user, priority…), arrays (multi-value),
+ *  and plain primitives (strings, numbers). */
+function extractCustomFieldLabel(raw: unknown): string {
+  if (raw == null) return '';
+  const item = Array.isArray(raw) ? (raw as unknown[])[0] : raw;
+  if (item == null) return '';
+  if (typeof item === 'object') {
+    const o = item as Record<string, unknown>;
+    return String(o.displayName ?? o.name ?? o.value ?? o.key ?? o.id ?? '');
+  }
+  return String(item);
+}
+
+/** Extract the canonical ID/value to submit to Jira for a custom field. */
+function extractCustomFieldId(raw: unknown): string {
+  if (raw == null) return '';
+  const item = Array.isArray(raw) ? (raw as unknown[])[0] : raw;
+  if (item == null) return '';
+  if (typeof item === 'object') {
+    const o = item as Record<string, unknown>;
+    return String(o.id ?? o.name ?? o.key ?? o.value ?? '');
+  }
+  return String(item);
+}
+
 function buildInitialState(
   defaultIssueType?: IssueType,
   defaultParentKey?: string | null,
   initialValues?: EditInitialValues,
 ): FormState {
+  const customFieldValues: Record<string, string> = {};
+  const customFieldInputValues: Record<string, string> = {};
+
+  for (const [fieldId, raw] of Object.entries(initialValues?.customFields ?? {})) {
+    const id = extractCustomFieldId(raw);
+    const label = extractCustomFieldLabel(raw);
+    if (id) customFieldValues[fieldId] = id;
+    if (label) customFieldInputValues[fieldId] = label;
+  }
+
   return {
     selectedIssueType: defaultIssueType ?? 'Story',
     summary: initialValues?.summary ?? '',
@@ -82,8 +122,8 @@ function buildInitialState(
     epicOpen: false,
     epicFilter: '',
     parentKey: defaultParentKey ?? null,
-    customFieldValues: {},
-    customFieldInputValues: {},
+    customFieldValues,
+    customFieldInputValues,
     customFieldAutoResults: {},
     customFieldShowResults: {},
     apiError: null,

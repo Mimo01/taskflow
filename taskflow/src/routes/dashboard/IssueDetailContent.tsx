@@ -416,7 +416,13 @@ export function IssueDetailContent({
         <Button
           variant="outline"
           size="sm"
-          onClick={() =>
+          onClick={() => {
+            // Collect raw values for all customfield_* keys so the edit modal can
+            // pre-fill required custom fields (e.g. Account) from the current issue.
+            const customFields: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(issue.fields as Record<string, unknown>)) {
+              if (k.startsWith('customfield_') && v != null) customFields[k] = v;
+            }
             onEdit?.({
               issueKey,
               summary: issue.fields.summary,
@@ -425,8 +431,9 @@ export function IssueDetailContent({
               priority: issue.fields.priority?.name ?? null,
               storyPoints: (issue.fields[storyPointsFieldKey] as number) ?? null,
               epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
-            })
-          }
+              customFields,
+            });
+          }}
           className="gap-1.5 text-xs"
         >
           <Pencil className="size-3.5" />
