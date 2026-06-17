@@ -24,8 +24,8 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Progress } from '@/components/ui/progress';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import StatusPopover from '@/routes/dashboard/StatusPopover';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
@@ -131,12 +131,6 @@ export interface MyTaskRowProps {
   onOpenPeek: (key: string) => void;
   /** Called when the issue key is clicked → full-page detail */
   onOpenIssue: (key: string) => void;
-  /** Called when a status transition is selected from StatusPopover */
-  onStatusSelect?: (
-    transitionId: string,
-    toStatusName: string,
-    opts?: { resolution: { id: string } | null },
-  ) => void;
   /** Subtask rows to render beneath this parent (only for parent rows) */
   subtasks?: JiraIssue[];
   /**
@@ -162,7 +156,6 @@ export function MyTaskRow({
   mrHealth,
   onOpenPeek,
   onOpenIssue,
-  onStatusSelect,
   subtasks = [],
   accumulatedSpentSeconds,
   accumulatedEstimateSeconds,
@@ -197,11 +190,11 @@ export function MyTaskRow({
 
   const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
 
-  const projectId = parseInt(
+  const _projectId = parseInt(
     (issue.fields.project as { id?: string } | null | undefined)?.id ?? '0',
     10,
   );
-  const issueTypeId = (issue.fields.issuetype as { id?: string } | null | undefined)?.id ?? '';
+  const _issueTypeId = (issue.fields.issuetype as { id?: string } | null | undefined)?.id ?? '';
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -215,20 +208,9 @@ export function MyTaskRow({
 
   const rightCluster = (
     <div className="flex items-center gap-2 shrink-0">
-      {/* Status pill — stopPropagation keeps the click from opening the peek panel */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper; StatusPopover handles its own keyboard events */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper, not interactive itself */}
-      <div className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
-        <StatusPopover
-          projectId={projectId}
-          issueTypeId={issueTypeId}
-          currentStatusId={issue.fields.status.id}
-          currentStatus={issue.fields.status.name}
-          statusCategoryKey={statusCategoryKey}
-          onSelect={(transitionId, toStatusName, opts) =>
-            onStatusSelect?.(transitionId, toStatusName, opts)
-          }
-        />
+      {/* Status pill — static, non-interactive; clicks bubble to row's onOpenPeek */}
+      <div className="flex shrink-0">
+        <span className={statusPillClass(statusCategoryKey)}>{issue.fields.status.name}</span>
       </div>
 
       {/* SP slot — fixed w-12 so WebKit never collapses it.
@@ -445,7 +427,6 @@ export function MyTaskRow({
           flaggedFieldKey={flaggedFieldKey}
           onOpenPeek={onOpenPeek}
           onOpenIssue={onOpenIssue}
-          onStatusSelect={onStatusSelect}
         />
       ))}
     </>
