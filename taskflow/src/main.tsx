@@ -260,6 +260,13 @@ function AppLayout() {
   useHotkeys('mod+shift+n', () => setNotifPopoverOpen((prev) => !prev));
   useHotkeys('mod+comma', () => navigate('/settings'));
   useHotkeys('mod+shift+d', () => navigate('/dev-tools'));
+  useHotkeys('mod+shift+h', () => navigate('/dashboard'));
+  useHotkeys('mod+shift+t', () => navigate('/my-tasks'));
+  useHotkeys('mod+shift+u', () => navigate('/standup-notes'));
+  useHotkeys('mod+shift+e', () => navigate('/epics'));
+  useHotkeys('mod+shift+m', () => navigate('/merge-requests'));
+  useHotkeys('mod+shift+r', () => navigate('/releases'));
+  useHotkeys('mod+shift+w', () => navigate('/worklogs'));
 
   // SIDEBAR: Cmd+B toggles sidebar collapsed/expanded
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
@@ -279,6 +286,13 @@ function AppLayout() {
       listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
       listen('menu-nav-settings', () => navigate('/settings')),
       listen('menu-dev-tools', () => navigate('/dev-tools')),
+      listen('menu-nav-dashboard', () => navigate('/dashboard')),
+      listen('menu-nav-my-tasks', () => navigate('/my-tasks')),
+      listen('menu-nav-standup', () => navigate('/standup-notes')),
+      listen('menu-nav-epics', () => navigate('/epics')),
+      listen('menu-nav-merge-requests', () => navigate('/merge-requests')),
+      listen('menu-nav-releases', () => navigate('/releases')),
+      listen('menu-nav-worklogs', () => navigate('/worklogs')),
       listen('menu-about', () => setAboutOpen(true)),
     ];
     return () => {
