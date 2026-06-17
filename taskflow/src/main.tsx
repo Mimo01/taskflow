@@ -242,8 +242,8 @@ function AppLayout() {
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
   useHotkeys('mod+slash', () => setShortcutsOpen(true));
 
-  // PALETTE-01: Cmd+K opens command palette
-  useHotkeys('mod+k', (e) => {
+  // PALETTE-01: Cmd+F opens command palette
+  useHotkeys('mod+f', (e) => {
     e.preventDefault();
     setPaletteOpen(true);
   });

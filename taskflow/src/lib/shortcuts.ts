@@ -62,10 +62,10 @@ export const SHORTCUTS: ShortcutEntry[] = [
   },
   {
     id: 'open-palette',
-    defaultKey: '⌘K',
+    defaultKey: '⌘F',
     description: 'Open command palette',
     category: 'General',
-    displayKeys: ['⌘', 'K'],
+    displayKeys: ['⌘', 'F'],
   },
   {
     id: 'nav-sprint',
