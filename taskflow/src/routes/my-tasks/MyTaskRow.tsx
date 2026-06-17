@@ -190,12 +190,6 @@ export function MyTaskRow({
 
   const labels = (issue.fields.labels as string[] | null | undefined) ?? [];
 
-  const _projectId = parseInt(
-    (issue.fields.project as { id?: string } | null | undefined)?.id ?? '0',
-    10,
-  );
-  const _issueTypeId = (issue.fields.issuetype as { id?: string } | null | undefined)?.id ?? '';
-
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
