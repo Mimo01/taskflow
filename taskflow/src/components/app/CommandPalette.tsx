@@ -67,6 +67,18 @@ export default function CommandPalette({
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
 
   const trimmed = query.trim();
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Debounce: fire text search 300ms after user stops typing (>=2 chars)
+  useEffect(() => {
+    if (trimmed.length < 2) {
+      setDebouncedQuery('');
+      return;
+    }
+    const timer = setTimeout(() => setDebouncedQuery(trimmed), 300);
+    return () => clearTimeout(timer);
+  }, [trimmed]);
+
   const resolvedKeyLookup = /^[A-Za-z]+-\d+$/i.test(trimmed)
     ? trimmed
     : /^\d+$/.test(trimmed) && activeJiraProject
@@ -83,6 +95,7 @@ export default function CommandPalette({
   useEffect(() => {
     if (!open) {
       setQuery('');
+      setDebouncedQuery('');
       setLiveSearchTriggered(false);
       setClosedSearchTriggered(false);
     }
@@ -97,12 +110,15 @@ export default function CommandPalette({
     storyPointsFieldKey,
   ]);
 
-  // Build issues list from sprint-board cache
+  // Build issues list from sprint-board cache + debounced text search results (deduped, capped at 10)
   const issuesMap = new Map<string, JiraIssue>();
   for (const issue of cachedSprintBoard?.issues ?? []) {
     if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
   }
-  const allIssues = Array.from(issuesMap.values());
+  for (const issue of textSearchResults ?? []) {
+    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
+  }
+  const allIssues = Array.from(issuesMap.values()).slice(0, 10);
 
   // Flatten MRs: merge assigned + reviewRequested from all gitlab-mrs cache entries, deduplicate by iid
   const gitlabCacheEntries = queryClient.getQueriesData<{
@@ -131,6 +147,19 @@ export default function CommandPalette({
       return searchJira(jiraBaseUrl ?? '', token, activeJiraProject ?? '', query);
     },
     enabled: query.length >= 2 && liveSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
+
+  // ─── Auto text search (debounced) ─────────────────────────────────────────
+
+  const { data: textSearchResults } = useQuery({
+    queryKey: ['search', 'text', debouncedQuery, activeJiraProject],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat');
+      return searchJira(jiraBaseUrl ?? '', token, activeJiraProject ?? '', debouncedQuery);
+    },
+    enabled: debouncedQuery.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
