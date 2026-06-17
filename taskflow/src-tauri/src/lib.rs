@@ -148,13 +148,51 @@ pub fn run() {
                 .id("menu-nav-settings")
                 .accelerator("CmdOrCtrl+,")
                 .build(handle)?;
+            let nav_dashboard_item = MenuItemBuilder::new("Dashboard")
+                .id("menu-nav-dashboard")
+                .accelerator("CmdOrCtrl+Shift+H")
+                .build(handle)?;
+            let nav_my_tasks_item = MenuItemBuilder::new("My Tasks")
+                .id("menu-nav-my-tasks")
+                .accelerator("CmdOrCtrl+Shift+T")
+                .build(handle)?;
+            let nav_standup_item = MenuItemBuilder::new("Standup Notes")
+                .id("menu-nav-standup")
+                .accelerator("CmdOrCtrl+Shift+U")
+                .build(handle)?;
+            let nav_epics_item = MenuItemBuilder::new("Epics")
+                .id("menu-nav-epics")
+                .accelerator("CmdOrCtrl+Shift+E")
+                .build(handle)?;
+            let nav_merge_requests_item = MenuItemBuilder::new("Merge Requests")
+                .id("menu-nav-merge-requests")
+                .accelerator("CmdOrCtrl+Shift+M")
+                .build(handle)?;
+            let nav_releases_item = MenuItemBuilder::new("Releases")
+                .id("menu-nav-releases")
+                .accelerator("CmdOrCtrl+Shift+R")
+                .build(handle)?;
+            let nav_worklogs_item = MenuItemBuilder::new("Worklogs")
+                .id("menu-nav-worklogs")
+                .accelerator("CmdOrCtrl+Shift+W")
+                .build(handle)?;
             let go_menu = Submenu::with_items(
                 handle,
                 "Go",
                 true,
                 &[
+                    &nav_dashboard_item,
+                    &nav_my_tasks_item,
+                    &nav_standup_item,
+                    &PredefinedMenuItem::separator(handle)?,
                     &nav_sprint_item,
                     &nav_backlog_item,
+                    &nav_epics_item,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &nav_merge_requests_item,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &nav_releases_item,
+                    &nav_worklogs_item,
                     &nav_notifications_item,
                     &PredefinedMenuItem::separator(handle)?,
                     &nav_settings_item,
@@ -229,7 +267,14 @@ pub fn run() {
                 | "menu-nav-notifications"
                 | "menu-nav-settings"
                 | "menu-dev-tools"
-                | "menu-about" => {
+                | "menu-about"
+                | "menu-nav-dashboard"
+                | "menu-nav-my-tasks"
+                | "menu-nav-standup"
+                | "menu-nav-epics"
+                | "menu-nav-merge-requests"
+                | "menu-nav-releases"
+                | "menu-nav-worklogs" => {
                     let _ = app.emit(id, ());
                 }
                 _ => {}
