@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-17 - Completed quick task 260617-dta: The app has a lot of new pages that do not have a shortcut to open them. Add commands to quickly open all
+Last activity: 2026-06-17 - Completed quick task 260617-e3z: in the app search, I should also be able to search issues by text
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Key decisions for v1.13 (from research):
 | 260617-cul | In my tasks page, the status badges are clickable and display transitions. I want to remove that, it should just open the issue preview like the entire row does | 2026-06-17 | 84c1a4ac | — | [260617-cul-in-my-tasks-page-the-status-badges-are-c](./quick/260617-cul-in-my-tasks-page-the-status-badges-are-c/) |
 | 260617-dd2 | I want to be able to open search with cmd + f, currently it is cmd + k | 2026-06-17 | 73495d87 | Verified | [260617-dd2-i-want-to-be-able-to-open-search-with-cm](./quick/260617-dd2-i-want-to-be-able-to-open-search-with-cm/) |
 | 260617-dta | The app has a lot of new pages that do not have a shortcut to open them. Add commands to quickly open all | 2026-06-17 | c21c5613 | — | [260617-dta-the-app-has-a-lot-of-new-pages-that-do-n](./quick/260617-dta-the-app-has-a-lot-of-new-pages-that-do-n/) |
+| 260617-e3z | in the app search, I should also be able to search issues by text | 2026-06-17 | e993df92 | Verified | [260617-e3z-in-the-app-search-i-should-also-be-able-](./quick/260617-e3z-in-the-app-search-i-should-also-be-able-/) |
 
 ## Deferred Items
 
