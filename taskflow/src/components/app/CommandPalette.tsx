@@ -110,16 +110,6 @@ export default function CommandPalette({
     storyPointsFieldKey,
   ]);
 
-  // Build issues list from sprint-board cache + debounced text search results (deduped, capped at 10)
-  const issuesMap = new Map<string, JiraIssue>();
-  for (const issue of cachedSprintBoard?.issues ?? []) {
-    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
-  }
-  for (const issue of textSearchResults ?? []) {
-    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
-  }
-  const allIssues = Array.from(issuesMap.values()).slice(0, 10);
-
   // Flatten MRs: merge assigned + reviewRequested from all gitlab-mrs cache entries, deduplicate by iid
   const gitlabCacheEntries = queryClient.getQueriesData<{
     assigned: GitLabMR[];
@@ -163,6 +153,16 @@ export default function CommandPalette({
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
+
+  // Build issues list from sprint-board cache + debounced text search results (deduped, capped at 10)
+  const issuesMap = new Map<string, JiraIssue>();
+  for (const issue of cachedSprintBoard?.issues ?? []) {
+    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
+  }
+  for (const issue of textSearchResults ?? []) {
+    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
+  }
+  const allIssues = Array.from(issuesMap.values()).slice(0, 10);
 
   // ─── Closed Jira search ────────────────────────────────────────────────────
 
