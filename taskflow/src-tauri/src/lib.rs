@@ -142,7 +142,6 @@ pub fn run() {
                 .build(handle)?;
             let nav_notifications_item = MenuItemBuilder::new("Notifications")
                 .id("menu-nav-notifications")
-                .accelerator("CmdOrCtrl+Shift+N")
                 .build(handle)?;
             let nav_settings_item = MenuItemBuilder::new("Settings")
                 .id("menu-nav-settings")
@@ -150,7 +149,7 @@ pub fn run() {
                 .build(handle)?;
             let nav_dashboard_item = MenuItemBuilder::new("Dashboard")
                 .id("menu-nav-dashboard")
-                .accelerator("CmdOrCtrl+Shift+H")
+                .accelerator("CmdOrCtrl+Shift+D")
                 .build(handle)?;
             let nav_my_tasks_item = MenuItemBuilder::new("My Tasks")
                 .id("menu-nav-my-tasks")
@@ -158,7 +157,7 @@ pub fn run() {
                 .build(handle)?;
             let nav_standup_item = MenuItemBuilder::new("Standup Notes")
                 .id("menu-nav-standup")
-                .accelerator("CmdOrCtrl+Shift+U")
+                .accelerator("CmdOrCtrl+Shift+N")
                 .build(handle)?;
             let nav_epics_item = MenuItemBuilder::new("Epics")
                 .id("menu-nav-epics")
@@ -202,7 +201,6 @@ pub fn run() {
             // --- Debug menu (added/removed at runtime via toggle_debug_menu command) ---
             let dev_tools_item = MenuItemBuilder::new("Developer Tools")
                 .id("menu-dev-tools")
-                .accelerator("CmdOrCtrl+Shift+D")
                 .build(handle)?;
             let debug_submenu = Submenu::with_items(handle, "Dev Tools", true, &[&dev_tools_item])?;
             app.manage(DebugMenuState {

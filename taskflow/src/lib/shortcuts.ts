@@ -84,14 +84,6 @@ export const SHORTCUTS: ShortcutEntry[] = [
     navMeta: { label: 'Backlog', route: '/backlog' },
   },
   {
-    id: 'nav-notifications',
-    defaultKey: '⌘⇧N',
-    description: 'Open Notifications',
-    category: 'Navigation',
-    displayKeys: ['⌘', '⇧', 'N'],
-    navMeta: { label: 'Notifications', action: 'open-notifications' },
-  },
-  {
     id: 'nav-settings',
     defaultKey: '⌘,',
     description: 'Open Settings',
@@ -100,19 +92,11 @@ export const SHORTCUTS: ShortcutEntry[] = [
     navMeta: { label: 'Settings', route: '/settings' },
   },
   {
-    id: 'nav-devtools',
-    defaultKey: '⌘⇧D',
-    description: 'Open Developer Tools',
-    category: 'Navigation',
-    displayKeys: ['⌘', '⇧', 'D'],
-    navMeta: { label: 'Developer Tools', route: '/dev-tools' },
-  },
-  {
     id: 'nav-dashboard',
-    defaultKey: 'mod+shift+h',
+    defaultKey: 'mod+shift+d',
     description: 'Go to Dashboard',
     category: 'Navigation',
-    displayKeys: ['⌘', '⇧', 'H'],
+    displayKeys: ['⌘', '⇧', 'D'],
     navMeta: { label: 'Dashboard', route: '/dashboard' },
   },
   {
@@ -125,10 +109,10 @@ export const SHORTCUTS: ShortcutEntry[] = [
   },
   {
     id: 'nav-standup',
-    defaultKey: 'mod+shift+u',
+    defaultKey: 'mod+shift+n',
     description: 'Go to Standup Notes',
     category: 'Navigation',
-    displayKeys: ['⌘', '⇧', 'U'],
+    displayKeys: ['⌘', '⇧', 'N'],
     navMeta: { label: 'Standup Notes', route: '/standup-notes' },
   },
   {

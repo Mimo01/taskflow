@@ -257,12 +257,11 @@ function AppLayout() {
   // KEYS-03: Navigation shortcuts
   useHotkeys('mod+shift+s', () => navigate('/sprint-board'));
   useHotkeys('mod+shift+b', () => navigate('/backlog'));
-  useHotkeys('mod+shift+n', () => setNotifPopoverOpen((prev) => !prev));
+
   useHotkeys('mod+comma', () => navigate('/settings'));
-  useHotkeys('mod+shift+d', () => navigate('/dev-tools'));
-  useHotkeys('mod+shift+h', () => navigate('/dashboard'));
+  useHotkeys('mod+shift+d', () => navigate('/dashboard'));
   useHotkeys('mod+shift+t', () => navigate('/my-tasks'));
-  useHotkeys('mod+shift+u', () => navigate('/standup-notes'));
+  useHotkeys('mod+shift+n', () => navigate('/standup-notes'));
   useHotkeys('mod+shift+e', () => navigate('/epics'));
   useHotkeys('mod+shift+m', () => navigate('/merge-requests'));
   useHotkeys('mod+shift+r', () => navigate('/releases'));
