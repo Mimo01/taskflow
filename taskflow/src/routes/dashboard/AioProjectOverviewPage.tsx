@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, FlaskConical } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -26,6 +26,7 @@ import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -265,6 +266,8 @@ function ProgressBarCell({
 
 export default function AioProjectOverviewPage() {
   const { projectKey } = useParams<{ projectKey: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { jiraBaseUrl } = useAuthStore();
   const { token, isLoading: tokenLoading } = useAioCredentials();
   const queryClient = useQueryClient();
@@ -596,12 +599,18 @@ export default function AioProjectOverviewPage() {
                         {cycle.detail.key}
                       </td>
                       <td className="px-4 py-3">
-                        <NavLink
-                          to={`/aio-cycle/${projectKey}/${cycle.detail.key}`}
-                          className="hover:underline"
+                        <button
+                          type="button"
+                          className="hover:underline text-left"
+                          onClick={() => {
+                            useBreadcrumbStore
+                              .getState()
+                              .push({ label: 'AIO Cycles', path: location.pathname });
+                            navigate(`/aio-cycle/${projectKey}/${cycle.detail.key}`);
+                          }}
                         >
                           {cycle.detail.title}
-                        </NavLink>
+                        </button>
                       </td>
                       <td className="w-32 px-3 py-3">
                         <OwnerCell

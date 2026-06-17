@@ -1628,7 +1628,9 @@ export async function fetchIssueDetail(
   // fields. *navigable is already used elsewhere in the codebase (BulkCreate,
   // useCreateEditQueries) for the same reason and adds negligible overhead on a
   // detail-view fetch.
-  const url = `${base}/rest/api/2/issue/${issueKey}?fields=*navigable`;
+  // NOTE: `attachment` is NOT a navigable field in Jira DC — it must be requested
+  // explicitly alongside *navigable, otherwise issue.fields.attachment is absent.
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=*navigable,attachment`;
   const response = await apiFetch(
     'jira',
     url,
@@ -1930,8 +1932,14 @@ export async function createIssue(
 export function wrapCustomFieldValue(
   field: CreatemetaField,
   value: string,
-): string | { name: string } | { id: string } {
+): string | { name: string } | { id: string } | { id: number } {
   if (field.schema.type === 'user' || field.schema.items === 'user') return { name: value };
+  // Sprint fields require a numeric id — Jira rejects string ids with "Number value expected".
+  if (field.schema.custom?.includes('gh-sprint')) {
+    const numId = Number(value);
+    if (!Number.isNaN(numId)) return { id: numId };
+    return value;
+  }
   // autoCompleteUrl fields that return id-based items (accounts, versions, components…)
   if (field.autoCompleteUrl && field.schema.type !== 'string') return { id: value };
   return value;

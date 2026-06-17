@@ -9,6 +9,7 @@ import { createIssueLink } from '@/services/jira/links';
 import type { CreatemetaField } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import type { EditInitialValues, FormState } from './useCreateEditForm';
+import { extractCustomFieldId } from './useCreateEditForm';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -155,11 +156,16 @@ export function useIssueMutations({
         fields[epicLinkFieldKey] = state.epicLinkKey;
       }
 
-      // Add custom field values
+      // Only send custom fields that: are on the edit screen (in creatmetaFields),
+      // have a non-empty value, and were actually changed by the user.
+      // Sending pre-filled unchanged fields (e.g. Sprint, Account) causes Jira 400.
       for (const [k, v] of Object.entries(state.customFieldValues)) {
         if (v.trim() === '') continue;
         const fieldMeta = creatmetaFields?.find((f) => f.fieldId === k);
-        fields[k] = fieldMeta ? wrapCustomFieldValue(fieldMeta, v) : v;
+        if (!fieldMeta) continue;
+        const initialExtracted = extractCustomFieldId(initialValues.customFields?.[k]);
+        if (v === initialExtracted) continue;
+        fields[k] = wrapCustomFieldValue(fieldMeta, v);
       }
 
       await bulkUpdateIssue(jiraBaseUrl, token, initialValues.issueKey, fields);

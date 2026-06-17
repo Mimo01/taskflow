@@ -82,13 +82,16 @@ function extractCustomFieldLabel(raw: unknown): string {
 }
 
 /** Extract the canonical ID/value to submit to Jira for a custom field. */
-function extractCustomFieldId(raw: unknown): string {
+export function extractCustomFieldId(raw: unknown): string {
   if (raw == null) return '';
   const item = Array.isArray(raw) ? (raw as unknown[])[0] : raw;
   if (item == null) return '';
   if (typeof item === 'object') {
     const o = item as Record<string, unknown>;
-    return String(o.id ?? o.name ?? o.key ?? o.value ?? '');
+    const extracted = String(o.id ?? o.name ?? o.key ?? o.value ?? '');
+    // Jira occasionally returns { id: "null" } for unset required fields (e.g. Tempo Account).
+    // Treat the literal string "null" as empty so the field is omitted from the PUT body.
+    return extracted === 'null' ? '' : extracted;
   }
   return String(item);
 }
