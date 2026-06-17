@@ -242,11 +242,17 @@ function AppLayout() {
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
   useHotkeys('mod+slash', () => setShortcutsOpen(true));
 
-  // PALETTE-01: Cmd+F opens command palette
-  useHotkeys('mod+f', (e) => {
-    e.preventDefault();
-    setPaletteOpen(true);
-  });
+  // PALETTE-01: Cmd+F opens command palette — capture-phase to suppress WKWebView's native find-in-page regardless of focus target
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handler, { capture: true });
+    return () => document.removeEventListener('keydown', handler, { capture: true });
+  }, []);
 
   // KEYS-03: Navigation shortcuts
   useHotkeys('mod+shift+s', () => navigate('/sprint-board'));

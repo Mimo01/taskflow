@@ -62,7 +62,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
   },
   {
     id: 'open-palette',
-    defaultKey: '⌘F',
+    defaultKey: 'mod+f',
     description: 'Open command palette',
     category: 'General',
     displayKeys: ['⌘', 'F'],
