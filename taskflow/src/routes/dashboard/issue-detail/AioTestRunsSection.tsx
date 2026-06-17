@@ -325,7 +325,7 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
   );
 }
 
-// Collapsible block for in-cycle runs — collapsed for PASS, expanded for FAIL/BLOCKED (D-10).
+// Collapsible block for in-cycle runs — all start collapsed.
 // Plan 54-11 round-4 follow-up: header now shows cycle key + run ID as Links
 // (cycle → /aio-cycle/.../...; run → /aio-cycle/.../.../run/{runId}) for
 // symmetry with ImpactedExecutionsList. Both targets use the cycle-derived
@@ -339,7 +339,7 @@ function CollapsibleRunBlock({
   steps,
   issueKey,
 }: AioIssueRunData & { issueKey: string }) {
-  const [isExpanded, setIsExpanded] = useState(run.status !== 'PASS');
+  const [isExpanded, setIsExpanded] = useState(false);
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
   const displayName = testCase?.title ?? run.testCase?.title ?? run.testCaseKey;
   const cycleProjectKey = run.cycleKey.split('-')[0] || '';
