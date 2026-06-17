@@ -1613,7 +1613,7 @@ export async function fetchIssueDetail(
   baseUrl: string,
   token: string,
   issueKey: string,
-  customFields: {
+  _customFields: {
     epicLinkFieldKey: string;
     epicNameFieldKey: string;
     sprintFieldKey: string;
@@ -1622,37 +1622,13 @@ export async function fetchIssueDetail(
   },
 ): Promise<JiraIssueDetail> {
   const base = baseUrl.replace(/\/$/, '');
-  const fields = [
-    'summary',
-    'status',
-    'assignee',
-    'reporter',
-    'priority',
-    'resolution',
-    'customfield_13415',
-    'issuetype',
-    'project',
-    'description',
-    'attachment',
-    'issuelinks',
-    'subtasks',
-    'labels',
-    'fixVersions',
-    'parent',
-    'timetracking',
-    'created',
-    'updated',
-    'duedate',
-    'components',
-    customFields.epicLinkFieldKey,
-    customFields.epicNameFieldKey,
-    customFields.sprintFieldKey,
-    customFields.storyPointsFieldKey,
-    customFields.epicColorFieldKey,
-  ]
-    .filter(Boolean)
-    .join(',');
-  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`;
+  // Use *navigable so that project-specific custom fields (e.g. Account) are
+  // included in the response. An explicit field list would omit any customfield_*
+  // key not known at call time, making edit-modal pre-fill impossible for those
+  // fields. *navigable is already used elsewhere in the codebase (BulkCreate,
+  // useCreateEditQueries) for the same reason and adds negligible overhead on a
+  // detail-view fetch.
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=*navigable`;
   const response = await apiFetch(
     'jira',
     url,
