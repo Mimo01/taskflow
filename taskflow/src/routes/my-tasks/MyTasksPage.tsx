@@ -585,11 +585,7 @@ export default function MyTasksPage() {
               <div className="space-y-0.5">
                 {sortedParents.map((parent) => {
                   const isParentDone = parent.fields.status.statusCategory?.key === 'done';
-                  return renderFlatRows(
-                    parent,
-                    subtasksByKey.get(parent.key) ?? [],
-                    !isParentDone,
-                  );
+                  return renderFlatRows(parent, subtasksByKey.get(parent.key) ?? [], !isParentDone);
                 })}
               </div>
             </div>
