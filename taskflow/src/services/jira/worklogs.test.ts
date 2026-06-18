@@ -82,6 +82,55 @@ describe('worklogs service', () => {
       );
     });
 
+    it('defaults blank/undefined comment to "Working on issue {KEY}"', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+      } as Response);
+
+      await createWorklog(BASE, TOKEN, ISSUE, {
+        timeSpentSeconds: 3600,
+        started: '2026-03-20T09:00:00.000+0000',
+      });
+
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledWith(
+        `${BASE}/rest/api/2/issue/${ISSUE}/worklog`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            timeSpentSeconds: 3600,
+            started: '2026-03-20T09:00:00.000+0000',
+            comment: `Working on issue ${ISSUE}`,
+          }),
+        }),
+      );
+    });
+
+    it('defaults whitespace-only comment to "Working on issue {KEY}"', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+      } as Response);
+
+      await createWorklog(BASE, TOKEN, ISSUE, {
+        timeSpentSeconds: 3600,
+        started: '2026-03-20T09:00:00.000+0000',
+        comment: '   ',
+      });
+
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledWith(
+        `${BASE}/rest/api/2/issue/${ISSUE}/worklog`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            timeSpentSeconds: 3600,
+            started: '2026-03-20T09:00:00.000+0000',
+            comment: `Working on issue ${ISSUE}`,
+          }),
+        }),
+      );
+    });
+
     it('throws ApiError on 401', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
