@@ -9,7 +9,7 @@
  * provide QueryClientProvider + MemoryRouter in render helper).
  */
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -148,5 +148,118 @@ describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
     const onIssueClick = vi.fn();
     renderPage({ onIssueClick, onOpenIssue });
     expect(screen.getByText('My Tasks')).toBeDefined();
+  });
+});
+
+// ── Subtask suppression regression tests ──────────────────────────────────────
+
+/**
+ * Builds a minimal JiraIssue fixture sufficient for renderMyDayList / groupByMyDay.
+ */
+function makeIssue(
+  key: string,
+  statusCategory: 'done' | 'indeterminate' | 'new',
+  opts: { subtask?: boolean; parentKey?: string } = {},
+) {
+  return {
+    key,
+    fields: {
+      summary: `Summary for ${key}`,
+      status: {
+        name:
+          statusCategory === 'indeterminate'
+            ? 'In Progress'
+            : statusCategory === 'done'
+              ? 'Done'
+              : 'To Do',
+        statusCategory: { key: statusCategory },
+      },
+      issuetype: { subtask: opts.subtask ?? false },
+      parent: opts.parentKey ? { key: opts.parentKey } : undefined,
+      priority: { name: 'Medium', iconUrl: '' },
+      assignee: null,
+      customfield_10016: null,
+      customfield_10021: null,
+      duedate: null,
+      timetracking: null,
+    },
+  };
+}
+
+/** Default useQuery response (no data). */
+const NO_DATA_RESPONSE = {
+  data: undefined,
+  isLoading: false,
+  isFetching: false,
+  isError: false,
+  refetch: vi.fn(),
+};
+
+describe('MyTasksPage — DONE parent subtask suppression (260618-ckn)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('does NOT render subtask rows for a DONE-category parent in Current Sprint', () => {
+    // Fixtures: one DONE parent (STORY-1) with one subtask (SUB-1)
+    const doneParent = makeIssue('STORY-1', 'done');
+    const doneSubtask = makeIssue('SUB-1', 'done', { subtask: true, parentKey: 'STORY-1' });
+
+    // Both keys belong to the current user so groupByMyDay includes STORY-1
+    const sprintData = {
+      issues: [doneParent, doneSubtask],
+      myIssueKeys: new Set(['STORY-1', 'SUB-1']),
+    };
+
+    // Mock useQuery: return sprint data for the my-tasks query key, no-data for the rest
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult is intentional
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
+      if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
+        // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        return { ...NO_DATA_RESPONSE, data: sprintData } as any;
+      }
+      // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+      return NO_DATA_RESPONSE as any;
+    });
+
+    renderPage();
+
+    // Parent row must be present
+    expect(screen.getByTestId('my-task-row-STORY-1')).toBeDefined();
+    // Subtask row must be absent — suppressed because parent is DONE
+    expect(screen.queryByTestId('my-task-row-SUB-1')).toBeNull();
+  });
+
+  it('DOES render subtask rows for an IN-PROGRESS-category parent in Current Sprint', () => {
+    // Fixtures: one IN-PROGRESS parent (STORY-2) with one subtask (SUB-2)
+    const inProgressParent = makeIssue('STORY-2', 'indeterminate');
+    const inProgressSubtask = makeIssue('SUB-2', 'indeterminate', {
+      subtask: true,
+      parentKey: 'STORY-2',
+    });
+
+    const sprintData = {
+      issues: [inProgressParent, inProgressSubtask],
+      myIssueKeys: new Set(['STORY-2', 'SUB-2']),
+    };
+
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult is intentional
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
+      if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
+        // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        return { ...NO_DATA_RESPONSE, data: sprintData } as any;
+      }
+      // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+      return NO_DATA_RESPONSE as any;
+    });
+
+    renderPage();
+
+    // Parent row present
+    expect(screen.getByTestId('my-task-row-STORY-2')).toBeDefined();
+    // Subtask row also present — IN PROGRESS parent keeps its subtasks
+    expect(screen.getByTestId('my-task-row-SUB-2')).toBeDefined();
   });
 });
