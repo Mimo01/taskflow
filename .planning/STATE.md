@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-18 - Completed quick task 260618-dw0: Default blank tempo worklog description to 'Working on issue {PROJ-KEY}'
+Last activity: 2026-06-18 - Completed quick task 260618-efy: My Tasks story time rollup now includes subtask values even in sections that hide subtask rows
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Key decisions for v1.13 (from research):
 | 260618-ckn | On my tasks page, in the current sprint tab, DONE tasks shouldn't show any subtasks (just stories); TODO and IN PROGRESS unchanged | 2026-06-18 | 62704e50 | — | [260618-ckn-on-my-tasks-page-in-the-current-sprint-t](./quick/260618-ckn-on-my-tasks-page-in-the-current-sprint-t/) |
 | 260618-d06 | On my tasks page, DONE stories should only have key crossed out, not their summary. The rest of the app has it like that | 2026-06-18 | 481eca3e | — | [260618-d06-on-my-tasks-page-done-stories-should-onl](./quick/260618-d06-on-my-tasks-page-done-stories-should-onl/) |
 | 260618-dw0 | When logging tempo, default a blank worklog description to 'Working on issue {PROJ-KEY}'; use the entered text otherwise | 2026-06-18 | ba7886db | — | [260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a](./quick/260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a/) |
+| 260618-efy | On the My Tasks page, story time logged/estimated aggregates from subtasks but sections that do not show their subtasks omit the subtask values from the aggregate | 2026-06-18 | 72ada5c1 | — | [260618-efy-on-the-my-tasks-page-story-time-logged-e](./quick/260618-efy-on-the-my-tasks-page-story-time-logged-e/) |
 
 ## Deferred Items
 
