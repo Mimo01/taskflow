@@ -582,9 +582,13 @@ export default function MyTasksPage() {
                 sectionPts={sectionPts}
               />
               <div className="space-y-0.5">
-                {sortedParents.map((parent) =>
-                  renderFlatRows(parent, subtasksByKey.get(parent.key) ?? []),
-                )}
+                {sortedParents.map((parent) => {
+                  const isParentDone = parent.fields.status.statusCategory?.key === 'done';
+                  return renderFlatRows(
+                    parent,
+                    isParentDone ? [] : (subtasksByKey.get(parent.key) ?? []),
+                  );
+                })}
               </div>
             </div>
           );
