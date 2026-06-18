@@ -10,9 +10,10 @@
  */
 
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatDuration } from '@/services/jira/duration';
 
 // ── Top-of-file mocks ─────────────────────────────────────────────────────────
 
@@ -159,7 +160,12 @@ describe('MyTasksPage — MYTASK-01 smoke render (82-DESIGN-TARGET)', () => {
 function makeIssue(
   key: string,
   statusCategory: 'done' | 'indeterminate' | 'new',
-  opts: { subtask?: boolean; parentKey?: string } = {},
+  opts: {
+    subtask?: boolean;
+    parentKey?: string;
+    timeSpentSeconds?: number;
+    originalEstimateSeconds?: number;
+  } = {},
 ) {
   return {
     key,
@@ -181,7 +187,13 @@ function makeIssue(
       customfield_10016: null,
       customfield_10021: null,
       duedate: null,
-      timetracking: null,
+      timetracking:
+        opts.timeSpentSeconds !== undefined || opts.originalEstimateSeconds !== undefined
+          ? {
+              timeSpentSeconds: opts.timeSpentSeconds ?? 0,
+              originalEstimateSeconds: opts.originalEstimateSeconds ?? 0,
+            }
+          : null,
     },
   };
 }
@@ -261,5 +273,56 @@ describe('MyTasksPage — DONE parent subtask suppression (260618-ckn)', () => {
     expect(screen.getByTestId('my-task-row-STORY-2')).toBeDefined();
     // Subtask row also present — IN PROGRESS parent keeps its subtasks
     expect(screen.getByTestId('my-task-row-SUB-2')).toBeDefined();
+  });
+});
+
+// ── Time rollup regression tests ──────────────────────────────────────────────
+
+describe('MyTasksPage — DONE parent time rollup (260618-efy)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rolls up subtask time into a DONE parent even though subtask rows are hidden', () => {
+    // Fixtures: one DONE parent with timetracking, one DONE subtask with timetracking
+    const doneParent = makeIssue('STORY-1', 'done', {
+      timeSpentSeconds: 3600,
+      originalEstimateSeconds: 7200,
+    });
+    const doneSubtask = makeIssue('SUB-1', 'done', {
+      subtask: true,
+      parentKey: 'STORY-1',
+      timeSpentSeconds: 1800,
+      originalEstimateSeconds: 3600,
+    });
+
+    const sprintData = {
+      issues: [doneParent, doneSubtask],
+      myIssueKeys: new Set(['STORY-1', 'SUB-1']),
+    };
+
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult is intentional
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
+      if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
+        // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        return { ...NO_DATA_RESPONSE, data: sprintData } as any;
+      }
+      // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+      return NO_DATA_RESPONSE as any;
+    });
+
+    renderPage();
+
+    // Parent row must be present
+    const parentRow = screen.getByTestId('my-task-row-STORY-1');
+    expect(parentRow).toBeDefined();
+
+    // Subtask row must be ABSENT — suppression still applies
+    expect(screen.queryByTestId('my-task-row-SUB-1')).toBeNull();
+
+    // Time caption must reflect COMBINED total: spent 3600+1800=5400s, est 7200+3600=10800s
+    const expectedCaption = `${formatDuration(5400)} / ${formatDuration(10800)}`;
+    expect(within(parentRow).getByText(expectedCaption)).toBeDefined();
   });
 });

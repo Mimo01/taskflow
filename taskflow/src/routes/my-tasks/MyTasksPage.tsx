@@ -508,7 +508,8 @@ export default function MyTasksPage() {
 
   // ── Render flat parent + subtask rows (subtask collapse handled inside MyTaskRow) ──
 
-  function renderFlatRows(parent: JiraIssue, subtasks: JiraIssue[]) {
+  function renderFlatRows(parent: JiraIssue, subtasks: JiraIssue[], showSubtaskRows = true) {
+    // Always accumulate time over the FULL subtask list — display is gated separately.
     const { accumulatedSpentSeconds, accumulatedEstimateSeconds } = accumulateTime(
       parent,
       subtasks,
@@ -517,7 +518,7 @@ export default function MyTasksPage() {
       <MyTaskRow
         key={parent.key}
         issue={parent}
-        subtasks={subtasks}
+        subtasks={showSubtaskRows ? subtasks : []}
         jiraBaseUrl={jiraBaseUrl!}
         storyPointsFieldKey={storyPointsFieldKey}
         flaggedFieldKey={flaggedFieldKey}
@@ -584,10 +585,7 @@ export default function MyTasksPage() {
               <div className="space-y-0.5">
                 {sortedParents.map((parent) => {
                   const isParentDone = parent.fields.status.statusCategory?.key === 'done';
-                  return renderFlatRows(
-                    parent,
-                    isParentDone ? [] : (subtasksByKey.get(parent.key) ?? []),
-                  );
+                  return renderFlatRows(parent, subtasksByKey.get(parent.key) ?? [], !isParentDone);
                 })}
               </div>
             </div>
