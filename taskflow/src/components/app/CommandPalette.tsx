@@ -191,7 +191,6 @@ export default function CommandPalette({
     enabled:
       resolvedKeyLookup.length > 0 && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
-    placeholderData: keepPreviousData,
   });
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
@@ -338,7 +337,7 @@ export default function CommandPalette({
             ) : (
               <>
                 {/* Direct Match group -- shown when query matches a Jira issue key pattern */}
-                {keyMatchResult && (
+                {resolvedKeyLookup && keyMatchResult && (
                   <CommandGroup heading="Direct Match">
                     <CommandItem
                       key={`key-match-${keyMatchResult.key}`}

@@ -341,6 +341,7 @@ export default function BacklogPage() {
   // on success (CR-01) when the reconciled server order takes over.
   const [localOrder, setLocalOrder] = useState<Map<string, string[]>>(new Map());
   const [rankError, setRankError] = useState<string | null>(null);
+  const [flagError, setFlagError] = useState<string | null>(null);
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
@@ -764,9 +765,13 @@ export default function BacklogPage() {
     });
     try {
       await setIssueFlagged(jiraBaseUrl, jiraToken, issueKey, !currentFlagged, flaggedFieldKey);
+      setFlagError(null);
       await invalidateGhBacklogData(queryClient, boardId);
     } catch {
       if (previous) queryClient.setQueryData<GhBacklogResponse>(cacheKey, previous);
+      setFlagError(
+        "Couldn't update the flag — the Flagged field may not be on the issue's edit screen. Ask your Jira admin to add it.",
+      );
     }
     // Touch unused setter so the optimistic-cache linter doesn't trip.
     void newFlaggedValue;
@@ -1292,6 +1297,23 @@ export default function BacklogPage() {
               <button
                 type="button"
                 onClick={() => setRankError(null)}
+                className="inline-flex items-center justify-center rounded p-1 hover:bg-accent transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Flag error banner — shown when setIssueFlagged fails (field not on edit screen) */}
+        {flagError && (
+          <div className="px-4 pt-2">
+            <div className="flex items-center gap-2 rounded-lg border bg-muted px-3 py-2 text-sm">
+              <span className="text-muted-foreground flex-1">{flagError}</span>
+              <button
+                type="button"
+                onClick={() => setFlagError(null)}
                 className="inline-flex items-center justify-center rounded p-1 hover:bg-accent transition-colors"
                 aria-label="Dismiss"
               >

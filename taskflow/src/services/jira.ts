@@ -250,15 +250,30 @@ export async function setIssueFlagged(
   token: string,
   issueKey: string,
   flagged: boolean,
-  fieldKey = 'customfield_10021',
+  _fieldKey = 'customfield_10021',
 ): Promise<void> {
-  return updateIssueField(
-    baseUrl,
-    token,
-    issueKey,
-    fieldKey,
-    flagged ? [{ value: 'Impediment' }] : null,
+  // Use the GreenHopper board endpoint rather than a direct field PUT. Jira's own
+  // agile board flags issues this way, and it bypasses the Edit-screen security
+  // that rejects a `customfield_*` field PUT when Flagged isn't on the issue's
+  // edit screen ("Field cannot be set. It is not on the appropriate screen").
+  // The endpoint resolves the Flagged field server-side, so _fieldKey is unused.
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/greenhopper/1.0/xboard/issue/flag/flag.json`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issueKeys: [issueKey], flag: flagged }),
+    },
+    'Create/Edit Issue',
   );
+  if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to update flag on ${issueKey}`, response.status, 'jira');
+    }
+    throw new Error(`Failed to update flag on ${issueKey}: ${response.status}`);
+  }
 }
 
 const SUBTASK_CHUNK_SIZE = 50;
