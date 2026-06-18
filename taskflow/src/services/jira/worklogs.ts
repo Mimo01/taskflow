@@ -74,6 +74,15 @@ export async function createWorklog(
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/worklog`;
 
+  // Default a blank/whitespace-only comment to a self-describing fallback so every
+  // logged worklog is meaningful in Tempo/Jira views. A real comment is passed
+  // through verbatim (no trimming of the user's text).
+  const effectiveComment =
+    params.comment && params.comment.trim() !== ''
+      ? params.comment
+      : `Working on issue ${issueKey}`;
+  const body = { ...params, comment: effectiveComment };
+
   let response: Response;
   try {
     response = await apiFetch(
@@ -85,7 +94,7 @@ export async function createWorklog(
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify(body),
       },
       'Manage Worklogs',
     );
