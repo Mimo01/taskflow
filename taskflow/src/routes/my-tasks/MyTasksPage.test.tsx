@@ -166,7 +166,12 @@ function makeIssue(
     fields: {
       summary: `Summary for ${key}`,
       status: {
-        name: statusCategory === 'indeterminate' ? 'In Progress' : statusCategory === 'done' ? 'Done' : 'To Do',
+        name:
+          statusCategory === 'indeterminate'
+            ? 'In Progress'
+            : statusCategory === 'done'
+              ? 'Done'
+              : 'To Do',
         statusCategory: { key: statusCategory },
       },
       issuetype: { subtask: opts.subtask ?? false },
@@ -207,12 +212,15 @@ describe('MyTasksPage — DONE parent subtask suppression (260618-ckn)', () => {
     };
 
     // Mock useQuery: return sprint data for the my-tasks query key, no-data for the rest
-    vi.mocked(useQuery).mockImplementation((opts: { queryKey?: unknown[] }) => {
-      const key = opts.queryKey ?? [];
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult is intentional
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
       if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
-        return { ...NO_DATA_RESPONSE, data: sprintData };
+        // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        return { ...NO_DATA_RESPONSE, data: sprintData } as any;
       }
-      return NO_DATA_RESPONSE;
+      // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+      return NO_DATA_RESPONSE as any;
     });
 
     renderPage();
@@ -236,12 +244,15 @@ describe('MyTasksPage — DONE parent subtask suppression (260618-ckn)', () => {
       myIssueKeys: new Set(['STORY-2', 'SUB-2']),
     };
 
-    vi.mocked(useQuery).mockImplementation((opts: { queryKey?: unknown[] }) => {
-      const key = opts.queryKey ?? [];
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult is intentional
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
       if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
-        return { ...NO_DATA_RESPONSE, data: sprintData };
+        // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        return { ...NO_DATA_RESPONSE, data: sprintData } as any;
       }
-      return NO_DATA_RESPONSE;
+      // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+      return NO_DATA_RESPONSE as any;
     });
 
     renderPage();
