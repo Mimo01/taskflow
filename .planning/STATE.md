@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-18 - Completed quick task 260618-d06: On my tasks page, DONE stories cross out key only, not summary
+Last activity: 2026-06-18 - Completed quick task 260618-dw0: Default blank tempo worklog description to 'Working on issue {PROJ-KEY}'
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Key decisions for v1.13 (from research):
 | 260617-e3z | in the app search, I should also be able to search issues by text | 2026-06-17 | e993df92 | Verified | [260617-e3z-in-the-app-search-i-should-also-be-able-](./quick/260617-e3z-in-the-app-search-i-should-also-be-able-/) |
 | 260618-ckn | On my tasks page, in the current sprint tab, DONE tasks shouldn't show any subtasks (just stories); TODO and IN PROGRESS unchanged | 2026-06-18 | 62704e50 | — | [260618-ckn-on-my-tasks-page-in-the-current-sprint-t](./quick/260618-ckn-on-my-tasks-page-in-the-current-sprint-t/) |
 | 260618-d06 | On my tasks page, DONE stories should only have key crossed out, not their summary. The rest of the app has it like that | 2026-06-18 | 481eca3e | — | [260618-d06-on-my-tasks-page-done-stories-should-onl](./quick/260618-d06-on-my-tasks-page-done-stories-should-onl/) |
+| 260618-dw0 | When logging tempo, default a blank worklog description to 'Working on issue {PROJ-KEY}'; use the entered text otherwise | 2026-06-18 | ba7886db | — | [260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a](./quick/260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a/) |
 
 ## Deferred Items
 
