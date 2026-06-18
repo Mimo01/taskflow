@@ -287,12 +287,7 @@ export function MyTaskRow({
           </button>
 
           {/* Summary — slightly de-emphasised relative to parent */}
-          <span
-            className={cn(
-              'flex-1 min-w-0 truncate text-sm font-normal text-foreground/90',
-              doneSummaryClass(issue.fields.status.statusCategory),
-            )}
-          >
+          <span className="flex-1 min-w-0 truncate text-sm font-normal text-foreground/90">
             {issue.fields.summary}
           </span>
         </div>
@@ -360,12 +355,7 @@ export function MyTaskRow({
         </span>
 
         {/* Summary */}
-        <span
-          className={cn(
-            'flex-1 min-w-0 truncate text-sm font-medium text-foreground',
-            doneSummaryClass(issue.fields.status.statusCategory),
-          )}
-        >
+        <span className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">
           {issue.fields.summary}
         </span>
 
