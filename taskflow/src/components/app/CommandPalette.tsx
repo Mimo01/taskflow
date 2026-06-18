@@ -289,7 +289,7 @@ export default function CommandPalette({
         className="max-w-xl mt-16 mx-auto"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={() => {}}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         <Command className="rounded-lg border shadow-lg bg-popover">
           <CommandInput
