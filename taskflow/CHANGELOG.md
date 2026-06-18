@@ -2,6 +2,21 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.13.2] — 2026-06-18
+
+### Changed
+
+- **My Tasks — hide subtasks under DONE stories in Current Sprint** — in the Current Sprint tab, subtask rows are no longer rendered beneath a story whose status is in the DONE category, cutting noise from completed work while keeping the parent visible.
+- **Tempo worklog — sensible default description** — logging work with a blank comment now defaults the description to "Working on issue {PROJ-KEY}" instead of submitting an empty worklog comment.
+
+### Fixed
+
+- **Backlog — flagging issues now works on Jira Data Center** — flagging an issue from the Backlog used to fail with "Field 'customfield_…' cannot be set. It is not on the appropriate screen" because it issued a direct custom-field PUT subject to edit-screen security. Flags are now set through Jira's own agile-board endpoint (the same mechanism the native board uses), which resolves the Flagged field server-side and bypasses that restriction. If a flag update still fails, a dismissible banner explains what to ask your Jira admin.
+- **Search — no more false-positive "Direct Match"** — the command palette's Direct Match row no longer shows a stale issue from a previous key lookup when the current query doesn't match a Jira key pattern. The key-lookup result is cleared when disabled and the row is gated on the active query.
+- **My Tasks — DONE story time still rolls up when subtasks are hidden** — time logged on a completed story's subtasks is now aggregated independently of whether those subtask rows are displayed, so the parent's time total no longer drops to zero once its subtasks are hidden.
+- **My Tasks — DONE stories strike through the key only** — a completed story now crosses out just its issue key, leaving the summary readable instead of striking through the whole row.
+- **Command palette — Space no longer closes the panel** — keydown events inside the command palette panel are no longer allowed to propagate, so pressing Space while typing a query keeps the palette open.
+
 ## [1.13.1] — 2026-06-17
 
 ### Added
