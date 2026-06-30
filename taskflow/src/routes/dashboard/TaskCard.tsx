@@ -90,8 +90,8 @@ interface TaskCardProps {
   timeInColumn?: { enteredStatus: number; durationPreviously?: number };
   /**
    * Phase 79 (D-04): when true, the card registers a dnd-kit draggable.
-   * Only non-story cards (subtasks/tasks) receive this prop — story header
-   * rows are NOT draggable.
+   * All column-cell cards (subtasks AND stories rendered as cards) are
+   * draggable. StoryHeaderRow is a separate component and is NOT draggable.
    */
   isDraggable?: boolean;
   /**
