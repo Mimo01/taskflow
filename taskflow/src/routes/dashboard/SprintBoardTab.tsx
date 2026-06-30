@@ -577,7 +577,7 @@ function VirtualizedSwimlanes({
                             timeInColumn={
                               (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
                             }
-                            isDraggable={!!card.fields.issuetype.subtask}
+                            isDraggable
                             justDragged={justDragged}
                           />
                         ))}
@@ -602,7 +602,7 @@ function VirtualizedSwimlanes({
                           timeInColumn={
                             (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
                           }
-                          isDraggable={!!card.fields.issuetype.subtask}
+                          isDraggable
                           justDragged={justDragged}
                         />
                       ))
@@ -750,7 +750,7 @@ function VirtualizedSwimlanes({
                                   (card as { timeInColumn?: { enteredStatus: number } })
                                     .timeInColumn
                                 }
-                                isDraggable={!!card.fields.issuetype.subtask}
+                                isDraggable
                                 justDragged={justDragged}
                               />
                             ))}
@@ -774,7 +774,7 @@ function VirtualizedSwimlanes({
                               timeInColumn={
                                 (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
                               }
-                              isDraggable={!!card.fields.issuetype.subtask}
+                              isDraggable
                               justDragged={justDragged}
                             />
                           ))
