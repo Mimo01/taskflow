@@ -158,7 +158,7 @@ function RowCells({
 
       {/* Epic + fix version cell — fix version badge before epic, both inline. */}
       <td className="max-w-[12rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
-        <div className="inline-flex items-center gap-1">
+        <div className="flex items-center justify-end gap-1 overflow-hidden">
           {(() => {
             const fixVersions =
               (issue.fields.fixVersions as
@@ -168,7 +168,7 @@ function RowCells({
             const firstFixVersion = fixVersions[0] ?? null;
             return firstFixVersion ? (
               <span
-                className="inline-flex max-w-full items-center overflow-hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
+                className="inline-flex min-w-0 items-center overflow-hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
                 title={firstFixVersion.name}
               >
                 <span className="truncate">{firstFixVersion.name}</span>
@@ -186,7 +186,7 @@ function RowCells({
                   onIssueClick(epicKey);
                 }}
                 className={cn(
-                  'inline-flex max-w-full items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
+                  'inline-flex min-w-0 items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
                   epicColorResult.className,
                 )}
                 style={epicColorResult.style}
