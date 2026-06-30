@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-30 - Completed quick task 260630-lk5: Add fix version column before epic in backlog story rows
+Last activity: 2026-06-30 - Completed quick task 260630-lwq: Summary column in backlog table should take maximum available space and only truncate when it really doesn't fit
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Key decisions for v1.13 (from research):
 | 260618-dw0 | When logging tempo, default a blank worklog description to 'Working on issue {PROJ-KEY}'; use the entered text otherwise | 2026-06-18 | ba7886db | — | [260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a](./quick/260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a/) |
 | 260618-efy | On the My Tasks page, story time logged/estimated aggregates from subtasks but sections that do not show their subtasks omit the subtask values from the aggregate | 2026-06-18 | 72ada5c1 | — | [260618-efy-on-the-my-tasks-page-story-time-logged-e](./quick/260618-efy-on-the-my-tasks-page-story-time-logged-e/) |
 | 260630-lk5 | Add fix version column before epic in backlog story rows | 2026-06-30 | 2bfda611 | — | [260630-lk5-add-fix-version-column-before-epic-in-ba](./quick/260630-lk5-add-fix-version-column-before-epic-in-ba/) |
+| 260630-lwq | Summary column in backlog table should take maximum available space and only truncate when it really doesn't fit | 2026-06-30 | 51b70e48 | — | [260630-lwq-summary-column-in-backlog-table-should-t](./quick/260630-lwq-summary-column-in-backlog-table-should-t/) |
 
 ## Deferred Items
 
