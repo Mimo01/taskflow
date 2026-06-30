@@ -156,54 +156,48 @@ function RowCells({
         </span>
       </td>
 
-      {/* Fix Version cell — shows first fix version name as a compact badge.
-          Uses explicit max-w (same WebKit/Tauri virtualized-table technique as
-          PriorityIcon and IssueTypeIcon) so the column never collapses to 0-width.
-          The badge uses muted styling to distinguish it from the colored epic badge.
-          Empty <td> when no fix version is set, keeping the column layout consistent. */}
-      <td className="max-w-[10rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
-        {(() => {
-          const fixVersions =
-            (issue.fields.fixVersions as Array<{ id: string; name: string }> | null | undefined) ??
-            [];
-          const firstFixVersion = fixVersions[0] ?? null;
-          return firstFixVersion ? (
-            <span
-              className="inline-flex max-w-full items-center overflow-hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
-              title={firstFixVersion.name}
-            >
-              <span className="truncate">{firstFixVersion.name}</span>
-            </span>
-          ) : null;
-        })()}
-      </td>
-
-      {/* Epic badge cell -- right-aligned, before Points column.
-          max-w caps the column so a long epic name can't steal width from
-          the Summary column under the table's auto layout; the badge label
-          truncates instead. */}
+      {/* Epic + fix version cell — both badges stacked right-aligned.
+          Fix version (muted) appears above the colored epic badge when present. */}
       <td className="max-w-[12rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
-        {epicKey ? (
-          epicsLoading ? (
-            <Skeleton className="h-4 w-14 rounded-full" />
-          ) : epicName && epicColorResult ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onIssueClick(epicKey);
-              }}
-              className={cn(
-                'inline-flex max-w-full items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
-                epicColorResult.className,
-              )}
-              style={epicColorResult.style}
-              title={`${epicKey}: ${epicName}`}
-            >
-              <span className="truncate">{epicName}</span>
-            </button>
-          ) : null
-        ) : null}
+        <div className="inline-flex flex-col items-end gap-0.5">
+          {(() => {
+            const fixVersions =
+              (issue.fields.fixVersions as
+                | Array<{ id: string; name: string }>
+                | null
+                | undefined) ?? [];
+            const firstFixVersion = fixVersions[0] ?? null;
+            return firstFixVersion ? (
+              <span
+                className="inline-flex max-w-full items-center overflow-hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
+                title={firstFixVersion.name}
+              >
+                <span className="truncate">{firstFixVersion.name}</span>
+              </span>
+            ) : null;
+          })()}
+          {epicKey ? (
+            epicsLoading ? (
+              <Skeleton className="h-4 w-14 rounded-full" />
+            ) : epicName && epicColorResult ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onIssueClick(epicKey);
+                }}
+                className={cn(
+                  'inline-flex max-w-full items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
+                  epicColorResult.className,
+                )}
+                style={epicColorResult.style}
+                title={`${epicKey}: ${epicName}`}
+              >
+                <span className="truncate">{epicName}</span>
+              </button>
+            ) : null
+          ) : null}
+        </div>
       </td>
 
       {/* Story points cell */}
