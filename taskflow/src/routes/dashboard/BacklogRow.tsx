@@ -157,7 +157,7 @@ function RowCells({
       </td>
 
       {/* Epic + fix version cell — fix version badge before epic, both inline. */}
-      <td className="max-w-[12rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
+      <td className="max-w-[20rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1 overflow-hidden">
           {(() => {
             const fixVersions =
