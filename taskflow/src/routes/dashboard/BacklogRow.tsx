@@ -156,10 +156,9 @@ function RowCells({
         </span>
       </td>
 
-      {/* Epic + fix version cell — both badges stacked right-aligned.
-          Fix version (muted) appears above the colored epic badge when present. */}
+      {/* Epic + fix version cell — fix version badge before epic, both inline. */}
       <td className="max-w-[12rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
-        <div className="inline-flex flex-col items-end gap-0.5">
+        <div className="inline-flex items-center gap-1">
           {(() => {
             const fixVersions =
               (issue.fields.fixVersions as
