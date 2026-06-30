@@ -168,10 +168,10 @@ function RowCells({
             const firstFixVersion = fixVersions[0] ?? null;
             return firstFixVersion ? (
               <span
-                className="inline-flex min-w-0 items-center overflow-hidden rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
+                className="inline-flex shrink-0 items-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
                 title={firstFixVersion.name}
               >
-                <span className="truncate">{firstFixVersion.name}</span>
+                {firstFixVersion.name}
               </span>
             ) : null;
           })()}
