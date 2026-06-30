@@ -408,6 +408,17 @@ export default function BacklogPage() {
     [storyPointsFieldKey, entityMaps],
   );
 
+  // Build a flat version id → { id, name } lookup map from the backlog
+  // versionData envelope so adapted issues can resolve fix version names.
+  const versionMap = useMemo(() => {
+    const m = new Map<number, { id: string; name: string }>();
+    if (!backlog) return m;
+    for (const versions of Object.values(backlog.versionData.versionsPerProject)) {
+      for (const v of versions) m.set(v.id, { id: String(v.id), name: v.name });
+    }
+    return m;
+  }, [backlog]);
+
   // D-04b sprint reverse-index: issueId → sprintId, built from
   // `data.sprints[].issuesIds[]`. Drives both `fields.sprint` synthesis on
   // adapted issues and the backlog/sprint partition below.
@@ -441,16 +452,22 @@ export default function BacklogPage() {
         ? [{ value: 'Impediment' }]
         : null;
       const sprintId = issueIdToSprintId.get(gh.id);
+      // Synthesize fixVersions: resolve each numeric id from the versionMap,
+      // filtering out any ids not present in the map.
+      const fixVersions = (gh.fixVersions ?? [])
+        .map((id) => versionMap.get(id))
+        .filter((v): v is { id: string; name: string } => v !== undefined);
 
       const fields: JiraIssue['fields'] = {
         ...base.fields,
         ...(epic ? { [epicLinkFieldKey]: epic.key } : {}),
         [flaggedFieldKey]: flaggedValue,
         ...(sprintId !== undefined ? { sprint: { id: sprintId } } : {}),
+        fixVersions,
       };
       return { ...base, fields };
     });
-  }, [backlog, adapt, entityMaps, issueIdToSprintId, epicLinkFieldKey, flaggedFieldKey]);
+  }, [backlog, adapt, entityMaps, issueIdToSprintId, epicLinkFieldKey, flaggedFieldKey, versionMap]);
 
   // D-01: backlog list = adapted issues with no sprint membership.
   const backlogIssuesAdapted = useMemo<JiraIssue[]>(
