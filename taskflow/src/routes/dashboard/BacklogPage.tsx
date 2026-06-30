@@ -132,7 +132,7 @@ function VirtualizedBacklogTable({
   epicsLoading?: boolean;
   visibleIssueKeys: string[];
   focusIndex: number;
-  rowRefs: React.MutableRefObject<Map<string, HTMLTableRowElement>>;
+  rowRefs: React.MutableRefObject<Map<string, HTMLElement>>;
   sprints: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint: (issueKey: string, sprintId: number, sprintName: string) => void;
   onMoveToBacklog?: (issueKey: string) => void;
@@ -159,7 +159,7 @@ function VirtualizedBacklogTable({
     return (
       <BacklogRow
         key={issue.key}
-        ref={(el: HTMLTableRowElement | null) => {
+        ref={(el: HTMLDivElement | null) => {
           if (el) {
             rowRefs.current.set(issue.key, el);
             if (style) {
@@ -197,8 +197,8 @@ function VirtualizedBacklogTable({
   }
 
   return (
-    <table className="w-full text-sm">
-      <tbody
+    <div className="w-full text-sm">
+      <div
         style={
           useVirtual
             ? { height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }
@@ -218,8 +218,8 @@ function VirtualizedBacklogTable({
               });
             })
           : filteredIssues.map((issue) => renderRow(issue))}
-      </tbody>
-    </table>
+      </div>
+    </div>
   );
 }
 
@@ -723,7 +723,7 @@ export default function BacklogPage() {
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const rowRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   useEffect(() => {
     if (focusIndex >= 0 && focusIndex < visibleIssueKeys.length) {
@@ -1417,20 +1417,18 @@ export default function BacklogPage() {
                       const activeIssue = adaptedIssues.find((i) => i.key === activeId);
                       if (!activeIssue) return null;
                       return (
-                        <table className="w-full rounded-md border border-border bg-background text-sm shadow-lg">
-                          <tbody>
-                            <BacklogRow
-                              issue={activeIssue}
-                              onIssueClick={() => {}}
-                              storyPointsFieldKey={storyPointsFieldKey}
-                              epicLinkFieldKey={epicLinkFieldKey}
-                              epicNameFieldKey={epicNameFieldKey}
-                              epicNames={epicNameMap}
-                              epicColors={epicColorMap}
-                              isOverlay
-                            />
-                          </tbody>
-                        </table>
+                        <div className="w-full rounded-md border border-border bg-background text-sm shadow-lg">
+                          <BacklogRow
+                            issue={activeIssue}
+                            onIssueClick={() => {}}
+                            storyPointsFieldKey={storyPointsFieldKey}
+                            epicLinkFieldKey={epicLinkFieldKey}
+                            epicNameFieldKey={epicNameFieldKey}
+                            epicNames={epicNameMap}
+                            epicColors={epicColorMap}
+                            isOverlay
+                          />
+                        </div>
                       );
                     })()
                   : null}

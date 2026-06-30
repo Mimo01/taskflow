@@ -89,14 +89,8 @@ function RowCells({
 }) {
   return (
     <>
-      {/* Issue-type icon cell — first column, mirroring the PriorityIcon cell
-          pattern. The inner span carries an explicit pixel size (not a Tailwind
-          class) so the column holds width in this WebKit-rendered virtualized
-          table where position:absolute rows break CSS table column sizing.
-          Renders nothing (empty span) when the issue has no issuetype — the
-          IssueTypeIcon component has no null guard and would otherwise show the
-          default CheckSquare. */}
-      <td className="pl-4 pr-0 py-2 density-compact:py-1 density-comfortable:py-3">
+      {/* Issue-type icon cell */}
+      <div className="flex-none pl-4 pr-0 py-2 density-compact:py-1 density-comfortable:py-3">
         <span
           className="flex items-center justify-center"
           style={{ width: 18, height: 18 }}
@@ -104,10 +98,10 @@ function RowCells({
         >
           {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
         </span>
-      </td>
+      </div>
 
       {/* Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue */}
-      <td className="relative w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
+      <div className="relative flex-none w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
         <button
           type="button"
           className={cn(
@@ -121,16 +115,10 @@ function RowCells({
         >
           {issue.key}
         </button>
-      </td>
+      </div>
 
-      {/* Priority cell — its own column so icons align vertically, mirroring the
-          sprint-board swimlane's key → priority → title order. The inner span
-          carries an explicit pixel size (not a Tailwind class) so the column
-          holds width: in this WebKit-rendered virtualized table, position:absolute
-          rows break CSS table column sizing and class-sized content contributes 0
-          min-content — the same explicit-px technique CachedAvatar uses to keep
-          its column from collapsing. Empty span when the issue has no priority. */}
-      <td className="px-0 py-2 density-compact:py-1 density-comfortable:py-3">
+      {/* Priority cell */}
+      <div className="flex-none px-0 py-2 density-compact:py-1 density-comfortable:py-3">
         <span
           className="flex items-center justify-center"
           style={{ width: 18, height: 18 }}
@@ -142,10 +130,10 @@ function RowCells({
             }
           />
         </span>
-      </td>
+      </div>
 
-      {/* Summary cell -- takes remaining space, truncates on overflow */}
-      <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden">
+      {/* Summary cell -- flex-1 so it expands to fill remaining space per row independently */}
+      <div className="flex-1 min-w-0 px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden">
         <span className="flex items-center gap-2 text-sm min-w-0">
           {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
           <span className="truncate">{issue.fields.summary}</span>
@@ -154,10 +142,10 @@ function RowCells({
             statusCategoryKey={issue.fields.status.statusCategory?.key}
           />
         </span>
-      </td>
+      </div>
 
-      {/* Epic + fix version cell — fix version badge before epic, both inline. */}
-      <td className="max-w-[20rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
+      {/* Epic + fix version cell — flex-none so each row sizes to its own content */}
+      <div className="flex-none max-w-[20rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1 overflow-hidden">
           {(() => {
             const fixVersions =
@@ -197,10 +185,10 @@ function RowCells({
             ) : null
           ) : null}
         </div>
-      </td>
+      </div>
 
       {/* Story points cell */}
-      <td className="w-14 px-2 py-2 density-compact:py-1 density-comfortable:py-3 text-right">
+      <div className="flex-none w-14 px-2 py-2 density-compact:py-1 density-comfortable:py-3 text-right">
         {storyPoints !== null ? (
           <span className="inline-flex w-7 items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-foreground">
             {storyPoints}
@@ -210,23 +198,23 @@ function RowCells({
             ?
           </span>
         )}
-      </td>
+      </div>
 
       {/* Assignee cell */}
-      <td className="w-10 pl-2 pr-4 py-2 density-compact:py-1 density-comfortable:py-3">
+      <div className="flex-none w-10 pl-2 pr-4 py-2 density-compact:py-1 density-comfortable:py-3">
         <CachedAvatar
           url={issue.fields.assignee?.avatarUrls['48x48'] || null}
           name={issue.fields.assignee?.displayName || 'Unassigned'}
           size={24}
         />
-      </td>
+      </div>
     </>
   );
 }
 
 // -- Component ----------------------------------------------------------------
 
-export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>(
+export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(
   function BacklogRow(
     {
       issue,
@@ -293,7 +281,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       : null;
 
     const rowClassName = cn(
-      'border-b border-border transition-colors cursor-pointer',
+      'flex w-full items-center border-b border-border transition-colors cursor-pointer',
       isFlagged
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
         : 'hover:bg-muted/30',
@@ -314,7 +302,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
 
     if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag && !onSendToTop && !onSendToBottom) {
       return (
-        <tr
+        <div
           ref={setNodeRef}
           data-testid={`backlog-row-${issue.key}`}
           className={rowClassName}
@@ -329,7 +317,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           {...listeners}
         >
           <RowCells {...cellsProps} />
-        </tr>
+        </div>
       );
     }
 
@@ -337,7 +325,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       <ContextMenu>
         <ContextMenuTrigger
           render={
-            <tr
+            <div
               ref={setNodeRef}
               data-testid={`backlog-row-${issue.key}`}
               className={rowClassName}
@@ -352,7 +340,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
               {...listeners}
             >
               <RowCells {...cellsProps} />
-            </tr>
+            </div>
           }
         />
         <ContextMenuContent>
