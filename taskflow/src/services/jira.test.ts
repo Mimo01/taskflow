@@ -26,6 +26,7 @@ import {
   searchJira,
   searchJiraClosed,
   validateJira,
+  wrapCustomFieldValue,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -1856,6 +1857,70 @@ describe('jira service', () => {
       const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
       const decodedUrl = decodeURIComponent(url);
       expect(decodedUrl).toContain('issuetype != Epic');
+    });
+  });
+
+  describe('wrapCustomFieldValue', () => {
+    it('Sprint (gh-sprint): returns bare integer, not { id: n }', () => {
+      const field = {
+        fieldId: 'customfield_10020',
+        name: 'Sprint',
+        required: false,
+        schema: { type: 'array', items: 'json', custom: 'com.pyxis.greenhopper.jira:gh-sprint' },
+      } as Parameters<typeof wrapCustomFieldValue>[0];
+      expect(wrapCustomFieldValue(field, '7782')).toBe(7782);
+    });
+
+    it('Sprint (gh-sprint): returns string as-is when value is not numeric', () => {
+      const field = {
+        fieldId: 'customfield_10020',
+        name: 'Sprint',
+        required: false,
+        schema: { type: 'array', items: 'json', custom: 'com.pyxis.greenhopper.jira:gh-sprint' },
+      } as Parameters<typeof wrapCustomFieldValue>[0];
+      expect(wrapCustomFieldValue(field, 'not-a-number')).toBe('not-a-number');
+    });
+
+    it('Tempo Account (tempo-accounts): returns bare string ID, not { id: "..." }', () => {
+      const field = {
+        fieldId: 'customfield_10200',
+        name: 'Account',
+        required: false,
+        schema: { type: 'option', custom: 'com.tempoplugin.tempo-accounts:account.cf' },
+        autoCompleteUrl: 'https://jira.example.com/rest/tempo-accounts/1/account/search?query=',
+      } as Parameters<typeof wrapCustomFieldValue>[0];
+      expect(wrapCustomFieldValue(field, '8886')).toBe('8886');
+    });
+
+    it('user field: returns { name: value }', () => {
+      const field = {
+        fieldId: 'assignee',
+        name: 'Assignee',
+        required: false,
+        schema: { type: 'user' },
+      } as Parameters<typeof wrapCustomFieldValue>[0];
+      expect(wrapCustomFieldValue(field, 'jdoe')).toEqual({ name: 'jdoe' });
+    });
+
+    it('autoCompleteUrl non-string field (e.g. versions): returns { id: value }', () => {
+      const field = {
+        fieldId: 'customfield_10300',
+        name: 'Fix Version',
+        required: false,
+        schema: { type: 'version' },
+        autoCompleteUrl: 'https://jira.example.com/rest/api/2/version?query=',
+      } as Parameters<typeof wrapCustomFieldValue>[0];
+      expect(wrapCustomFieldValue(field, '10001')).toEqual({ id: '10001' });
+    });
+
+    it('plain string field: returns value as-is', () => {
+      const field = {
+        fieldId: 'customfield_10400',
+        name: 'Environment',
+        required: false,
+        schema: { type: 'string' },
+      } as Parameters<typeof wrapCustomFieldValue>[0];
+      expect(wrapCustomFieldValue(field, 'production')).toBe('production');
     });
   });
 });
