@@ -2,6 +2,19 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.13.3] — 2026-07-02
+
+### Added
+
+- **Backlog — fix version badge on each story row** — a new badge cell appears before the epic badge, showing the first fix version assigned to the story so you can see release targeting at a glance without opening the issue.
+
+### Fixed
+
+- **Backlog — summary column fills available width without truncating too early** — the summary cell now uses a per-row flex layout instead of table layout, so it expands to fill all remaining space and only truncates when the row truly runs out of room. Fixed-width cells (type, key, priority, epic, fix version) take exactly the space they need; the summary absorbs the rest.
+- **Sprint board — dragging a card to the same-status column no longer fires a transition** — dropping an issue onto the column it already belongs to was silently posting a no-op transition to the Jira API; that call is now suppressed, leaving the board state unchanged.
+- **Issue edit — Sprint field now saves correctly** — the custom-field wrapper for Sprint fields now emits a bare integer id instead of `{ id: N }`. Jira Data Center rejects the object form with "Number value expected", causing Sprint changes made from the edit form to fail silently.
+- **Issue edit — Tempo Account field now saves correctly** — the wrapper for Tempo Account fields now emits a bare string id instead of `{ id: "…" }`. The Tempo plugin rejects the object wrapper, causing Account selections to fail with a 400 on save.
+
 ## [1.13.2] — 2026-06-18
 
 ### Changed
