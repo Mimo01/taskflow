@@ -1152,6 +1152,10 @@ export default function SprintBoardTab() {
     const transition = allTransitions.find((t) => t.id === transitionId);
     if (!transition) return;
 
+    // D-13: no-op guard — drop on same status column accepts the drop visually
+    // but skips the API call when the destination status hasn't changed.
+    if (transition.to.id === draggedIssue.fields.status?.id) return;
+
     // CR-01/CR-02: capture the current drag token. If a newer drag starts before
     // this probe resolves, dragTokenRef.current will have advanced and beginTransition
     // bails after every await so a stale probe can never mutate state for the wrong drag.

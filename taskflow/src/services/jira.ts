@@ -1947,15 +1947,17 @@ export async function createIssue(
 export function wrapCustomFieldValue(
   field: CreatemetaField,
   value: string,
-): string | { name: string } | { id: string } | { id: number } {
+): string | number | { name: string } | { id: string } | { id: number } {
   if (field.schema.type === 'user' || field.schema.items === 'user') return { name: value };
-  // Sprint fields require a numeric id — Jira rejects string ids with "Number value expected".
+  // Sprint fields require a bare numeric integer — Jira rejects { id: n } and string ids.
   if (field.schema.custom?.includes('gh-sprint')) {
     const numId = Number(value);
-    if (!Number.isNaN(numId)) return { id: numId };
+    if (!Number.isNaN(numId)) return numId;
     return value;
   }
-  // autoCompleteUrl fields that return id-based items (accounts, versions, components…)
+  // Tempo Account fields expect a bare string ID — the plugin rejects { id: "..." } wrappers.
+  if (field.schema.custom?.includes('tempo-accounts')) return value;
+  // autoCompleteUrl fields that return id-based items (versions, components…)
   if (field.autoCompleteUrl && field.schema.type !== 'string') return { id: value };
   return value;
 }

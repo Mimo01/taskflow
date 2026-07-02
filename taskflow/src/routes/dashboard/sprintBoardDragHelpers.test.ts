@@ -109,6 +109,29 @@ describe('filterDroppableTransitions', () => {
   it('returns [] when input is empty', () => {
     expect(filterDroppableTransitions([], 'status-10')).toEqual([]);
   });
+
+  it('includes a global self-loop transition (same-column drop is accepted visually; no-op guard is in handleDragEnd)', () => {
+    // D-13: the drop model must still include same-destination transitions so the
+    // column stays droppable. The API call is suppressed in handleDragEnd, not here.
+    const selfLoop: JiraTransition = {
+      id: '99',
+      name: 'Reopen',
+      to: { id: 'status-10', name: 'To Do', statusCategory: { id: 0, key: 'new', name: '' } },
+    };
+    const forward: JiraTransition = {
+      id: '100',
+      name: 'Start',
+      to: {
+        id: 'status-20',
+        name: 'In Progress',
+        statusCategory: { id: 0, key: 'indeterminate', name: '' },
+      },
+      fromStatusId: 'status-10',
+    };
+    const result = filterDroppableTransitions([selfLoop, forward], 'status-10');
+    expect(result.map((t) => t.id)).toContain('99');
+    expect(result.map((t) => t.id)).toContain('100');
+  });
 });
 
 // ---------------------------------------------------------------------------
