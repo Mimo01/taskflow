@@ -18,14 +18,24 @@ interface AttachmentPreviewModalProps {
   onDownload: (attachment: JiraAttachment) => void;
 }
 
-// Text/code preview size guard: truncate content beyond this length (~256 KB),
-// or when the attachment's reported size exceeds ~2 MB.
-const MAX_PREVIEW_CHARS = 256 * 1024;
+// Text/code preview size guard: skip fetching entirely (show DownloadFallback
+// instead) once the attachment's reported size exceeds this. Applied
+// *before* any fetch — unlike a post-fetch truncation, this never downloads
+// an oversized file just to discard most of it.
 const MAX_PREVIEW_FILE_SIZE = 2 * 1024 * 1024;
+// Defense-in-depth: truncate the rendered string if a file with no reported
+// `size` (or one just under the cap) still turns out to be huge in practice.
+const MAX_PREVIEW_CHARS = 256 * 1024;
+// PDF/video/audio previews are decoded/embedded as a whole (no streaming via
+// blob/data URLs), so gate them behind a larger inline-preview cap too.
+const MAX_MEDIA_PREVIEW_SIZE = 50 * 1024 * 1024;
 
-function truncateForPreview(text: string, attachment: JiraAttachment) {
-  const oversized = (attachment.size ?? 0) > MAX_PREVIEW_FILE_SIZE;
-  const truncated = oversized || text.length > MAX_PREVIEW_CHARS;
+function isOversized(attachment: JiraAttachment, cap: number) {
+  return (attachment.size ?? 0) > cap;
+}
+
+function truncateForPreview(text: string) {
+  const truncated = text.length > MAX_PREVIEW_CHARS;
   const shown = truncated ? text.slice(0, MAX_PREVIEW_CHARS) : text;
   return { truncated, shown };
 }
@@ -64,8 +74,15 @@ function DownloadFallback({
   );
 }
 
-function TextPreview({ attachment }: { attachment: JiraAttachment }) {
-  const { loading, error, getText } = useAuthBlob(attachment.content);
+function TextPreview({
+  attachment,
+  onDownload,
+}: {
+  attachment: JiraAttachment;
+  onDownload: (attachment: JiraAttachment) => void;
+}) {
+  const oversized = isOversized(attachment, MAX_PREVIEW_FILE_SIZE);
+  const { loading, error, getText } = useAuthBlob(attachment.content, { lazy: true });
   const [text, setText] = useState<string | null>(null);
   const [textError, setTextError] = useState(false);
 
@@ -73,7 +90,7 @@ function TextPreview({ attachment }: { attachment: JiraAttachment }) {
   useEffect(() => {
     setText(null);
     setTextError(false);
-    if (loading || error) return;
+    if (oversized || loading || error) return;
     let cancelled = false;
     getText()
       .then((full) => {
@@ -85,7 +102,11 @@ function TextPreview({ attachment }: { attachment: JiraAttachment }) {
     return () => {
       cancelled = true;
     };
-  }, [attachment.content, loading, error]);
+  }, [attachment.content, oversized, loading, error]);
+
+  if (oversized) {
+    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+  }
 
   if (error || textError) {
     return <span className="text-white/80 text-sm">[content not available]</span>;
@@ -95,7 +116,7 @@ function TextPreview({ attachment }: { attachment: JiraAttachment }) {
     return <span className="inline-block w-64 h-40 bg-muted animate-pulse rounded-md" />;
   }
 
-  const { truncated, shown } = truncateForPreview(text, attachment);
+  const { truncated, shown } = truncateForPreview(text);
 
   return (
     <div>
@@ -107,8 +128,15 @@ function TextPreview({ attachment }: { attachment: JiraAttachment }) {
   );
 }
 
-function CodePreview({ attachment }: { attachment: JiraAttachment }) {
-  const { loading, error, getText } = useAuthBlob(attachment.content);
+function CodePreview({
+  attachment,
+  onDownload,
+}: {
+  attachment: JiraAttachment;
+  onDownload: (attachment: JiraAttachment) => void;
+}) {
+  const oversized = isOversized(attachment, MAX_PREVIEW_FILE_SIZE);
+  const { loading, error, getText } = useAuthBlob(attachment.content, { lazy: true });
   const [text, setText] = useState<string | null>(null);
   const [textError, setTextError] = useState(false);
 
@@ -116,7 +144,7 @@ function CodePreview({ attachment }: { attachment: JiraAttachment }) {
   useEffect(() => {
     setText(null);
     setTextError(false);
-    if (loading || error) return;
+    if (oversized || loading || error) return;
     let cancelled = false;
     getText()
       .then((full) => {
@@ -128,7 +156,11 @@ function CodePreview({ attachment }: { attachment: JiraAttachment }) {
     return () => {
       cancelled = true;
     };
-  }, [attachment.content, loading, error]);
+  }, [attachment.content, oversized, loading, error]);
+
+  if (oversized) {
+    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+  }
 
   if (error || textError) {
     return <span className="text-white/80 text-sm">[content not available]</span>;
@@ -138,7 +170,7 @@ function CodePreview({ attachment }: { attachment: JiraAttachment }) {
     return <span className="inline-block w-64 h-40 bg-muted animate-pulse rounded-md" />;
   }
 
-  const { truncated, shown } = truncateForPreview(text, attachment);
+  const { truncated, shown } = truncateForPreview(text);
   const highlighted = highlightCode(shown, attachment.filename);
 
   return (
@@ -161,23 +193,54 @@ function CodePreview({ attachment }: { attachment: JiraAttachment }) {
 function PdfPreview({
   attachment,
   onFallback,
+  onDownload,
 }: {
   attachment: JiraAttachment;
   onFallback: () => void;
+  onDownload: (attachment: JiraAttachment) => void;
 }) {
-  const { blobUrl, loading, error } = useAuthBlob(attachment.content);
+  const oversized = isOversized(attachment, MAX_MEDIA_PREVIEW_SIZE);
+  // WKWebView (Tauri's macOS/iOS webview) does not reliably render `blob:`
+  // URLs with application/pdf content via <iframe>/<embed> — the same bytes
+  // as a `data:` URI render fine, so PDFs use getDataUrl instead of blobUrl.
+  const { getDataUrl } = useAuthBlob(attachment.content, { lazy: true });
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  if (error) {
-    onFallback();
-    return null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: getDataUrl is derived from attachment.content via useAuthBlob and is stable per resolved src; attachment.content is the intentional re-run trigger for navigation between attachments
+  useEffect(() => {
+    setDataUrl(null);
+    setFailed(false);
+    if (oversized) return;
+    let cancelled = false;
+    getDataUrl('application/pdf')
+      .then((url) => {
+        if (!cancelled) setDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [attachment.content, oversized]);
+
+  useEffect(() => {
+    if (failed) onFallback();
+  }, [failed, onFallback]);
+
+  if (oversized) {
+    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
   }
-  if (loading || !blobUrl) {
+  if (failed) return null;
+  if (!dataUrl) {
     return <span className="inline-block w-64 h-40 bg-muted animate-pulse rounded-md" />;
   }
   return (
-    <iframe
+    <embed
       title={attachment.filename}
-      src={blobUrl}
+      src={dataUrl}
+      type="application/pdf"
       className="w-[90vw] h-[85vh] rounded-lg bg-white"
     />
   );
@@ -186,12 +249,18 @@ function PdfPreview({
 function VideoPreview({
   attachment,
   onFallback,
+  onDownload,
 }: {
   attachment: JiraAttachment;
   onFallback: () => void;
+  onDownload: (attachment: JiraAttachment) => void;
 }) {
-  const { blobUrl, loading, error } = useAuthBlob(attachment.content);
+  const oversized = isOversized(attachment, MAX_MEDIA_PREVIEW_SIZE);
+  const { blobUrl, loading, error } = useAuthBlob(attachment.content, { lazy: oversized });
 
+  if (oversized) {
+    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+  }
   if (error) {
     onFallback();
     return null;
@@ -213,12 +282,18 @@ function VideoPreview({
 function AudioPreview({
   attachment,
   onFallback,
+  onDownload,
 }: {
   attachment: JiraAttachment;
   onFallback: () => void;
+  onDownload: (attachment: JiraAttachment) => void;
 }) {
-  const { blobUrl, loading, error } = useAuthBlob(attachment.content);
+  const oversized = isOversized(attachment, MAX_MEDIA_PREVIEW_SIZE);
+  const { blobUrl, loading, error } = useAuthBlob(attachment.content, { lazy: oversized });
 
+  if (oversized) {
+    return <DownloadFallback attachment={attachment} onDownload={onDownload} />;
+  }
   if (error) {
     onFallback();
     return null;
@@ -271,6 +346,16 @@ export function AttachmentPreviewModal({
     }
   }, [open]);
 
+  // If the previewable list shrinks while open (e.g. a concurrent delete)
+  // and currentIndex no longer resolves, close rather than render nothing
+  // while the parent still thinks the modal is open.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: onClose is stable; items/currentIndex are the intentional re-run triggers
+  useEffect(() => {
+    if (open && items.length > 0 && !items[currentIndex]) {
+      onClose();
+    }
+  }, [open, items, currentIndex]);
+
   if (!open || items.length === 0) return null;
 
   const current = items[currentIndex];
@@ -292,19 +377,37 @@ export function AttachmentPreviewModal({
       );
       break;
     case 'text':
-      body = <TextPreview attachment={current} />;
+      body = <TextPreview attachment={current} onDownload={onDownload} />;
       break;
     case 'code':
-      body = <CodePreview attachment={current} />;
+      body = <CodePreview attachment={current} onDownload={onDownload} />;
       break;
     case 'pdf':
-      body = <PdfPreview attachment={current} onFallback={() => setFallback(true)} />;
+      body = (
+        <PdfPreview
+          attachment={current}
+          onFallback={() => setFallback(true)}
+          onDownload={onDownload}
+        />
+      );
       break;
     case 'video':
-      body = <VideoPreview attachment={current} onFallback={() => setFallback(true)} />;
+      body = (
+        <VideoPreview
+          attachment={current}
+          onFallback={() => setFallback(true)}
+          onDownload={onDownload}
+        />
+      );
       break;
     case 'audio':
-      body = <AudioPreview attachment={current} onFallback={() => setFallback(true)} />;
+      body = (
+        <AudioPreview
+          attachment={current}
+          onFallback={() => setFallback(true)}
+          onDownload={onDownload}
+        />
+      );
       break;
     default:
       body = <DownloadFallback attachment={current} onDownload={onDownload} />;

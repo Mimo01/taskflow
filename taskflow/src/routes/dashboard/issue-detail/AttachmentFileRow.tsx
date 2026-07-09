@@ -17,7 +17,8 @@ function formatFileSize(bytes?: number): string {
 }
 
 function getFileIcon(mimeType: string) {
-  if (mimeType.startsWith('text/') || mimeType === 'application/pdf') {
+  const mime = mimeType ?? '';
+  if (mime.startsWith('text/') || mime === 'application/pdf') {
     return FileText;
   }
   return File;

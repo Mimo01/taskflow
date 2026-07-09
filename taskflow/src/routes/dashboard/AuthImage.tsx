@@ -4,7 +4,7 @@ interface AuthImageProps {
   src: string;
   alt?: string;
   className?: string;
-  onClick?: (e: React.MouseEvent<HTMLImageElement>) => void;
+  onClick?: () => void;
 }
 
 /**
@@ -19,7 +19,7 @@ export function AuthImage({ src, alt, className, onClick }: AuthImageProps) {
     ? (e: React.KeyboardEvent<HTMLImageElement>) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClick(e as unknown as React.MouseEvent<HTMLImageElement>);
+          onClick();
         }
       }
     : undefined;

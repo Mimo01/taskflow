@@ -39,9 +39,10 @@ export function AttachmentsSection({
   const downloadFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
-  const images = attachments.filter((a) => a.mimeType.startsWith('image/'));
-  const nonImages = attachments.filter((a) => !a.mimeType.startsWith('image/'));
-  const previewable = attachments.filter((a) => resolvePreviewKind(a) !== 'other');
+  const images = attachments.filter((a) => (a.mimeType ?? '').startsWith('image/'));
+  const nonImages = attachments.filter((a) => !(a.mimeType ?? '').startsWith('image/'));
+  const previewKinds = new Map(attachments.map((a) => [a.id, resolvePreviewKind(a)]));
+  const previewable = attachments.filter((a) => previewKinds.get(a.id) !== 'other');
 
   // Mutation for drag-drop uploads
   const dropMutation = useMutation({
@@ -213,7 +214,7 @@ export function AttachmentsSection({
                       onDownload={handleDownload}
                       onDelete={onDelete}
                       onPreview={
-                        resolvePreviewKind(file) !== 'other'
+                        previewKinds.get(file.id) !== 'other'
                           ? () => handlePreviewClick(file)
                           : undefined
                       }

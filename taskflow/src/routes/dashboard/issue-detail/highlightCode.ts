@@ -13,6 +13,7 @@ import rust from 'highlight.js/lib/languages/rust';
 import typescript from 'highlight.js/lib/languages/typescript';
 import xml from 'highlight.js/lib/languages/xml';
 import yaml from 'highlight.js/lib/languages/yaml';
+import { CODE_EXTENSION_LANGUAGE_MAP as EXTENSION_TO_LANGUAGE } from './resolvePreviewKind';
 
 hljs.registerLanguage('json', json);
 hljs.registerLanguage('javascript', javascript);
@@ -28,28 +29,6 @@ hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('yaml', yaml);
 hljs.registerLanguage('xml', xml);
 hljs.registerLanguage('css', css);
-
-const EXTENSION_TO_LANGUAGE: Record<string, string> = {
-  json: 'json',
-  js: 'javascript',
-  jsx: 'javascript',
-  ts: 'typescript',
-  tsx: 'typescript',
-  py: 'python',
-  rb: 'ruby',
-  go: 'go',
-  rs: 'rust',
-  java: 'java',
-  c: 'c',
-  cpp: 'cpp',
-  h: 'c',
-  sh: 'bash',
-  yml: 'yaml',
-  yaml: 'yaml',
-  xml: 'xml',
-  html: 'xml',
-  css: 'css',
-};
 
 function getExtension(filename: string): string {
   const idx = filename.lastIndexOf('.');
