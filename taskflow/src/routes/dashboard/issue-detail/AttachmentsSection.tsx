@@ -8,9 +8,10 @@ import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { AttachmentFileRow } from './AttachmentFileRow';
-import { AttachmentLightbox } from './AttachmentLightbox';
+import { AttachmentPreviewModal } from './AttachmentPreviewModal';
 import { AttachmentThumbnail } from './AttachmentThumbnail';
 import { AttachmentUpload } from './AttachmentUpload';
+import { resolvePreviewKind } from './resolvePreviewKind';
 
 interface AttachmentsSectionProps {
   attachments: JiraAttachment[];
@@ -26,8 +27,8 @@ export function AttachmentsSection({
   onDelete,
 }: AttachmentsSectionProps) {
   const [isExpanded, setIsExpanded] = useState(attachments.length > 0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dropUploadName, setDropUploadName] = useState<string | null>(null);
   const [dropUploadError, setDropUploadError] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export function AttachmentsSection({
 
   const images = attachments.filter((a) => a.mimeType.startsWith('image/'));
   const nonImages = attachments.filter((a) => !a.mimeType.startsWith('image/'));
+  const previewable = attachments.filter((a) => resolvePreviewKind(a) !== 'other');
 
   // Mutation for drag-drop uploads
   const dropMutation = useMutation({
@@ -90,9 +92,18 @@ export function AttachmentsSection({
     }
   }
 
-  function handleThumbnailClick(index: number) {
-    setLightboxIndex(index);
-    setLightboxOpen(true);
+  function handleThumbnailClick(img: JiraAttachment) {
+    const index = previewable.indexOf(img);
+    if (index === -1) return;
+    setPreviewIndex(index);
+    setPreviewOpen(true);
+  }
+
+  function handlePreviewClick(file: JiraAttachment) {
+    const index = previewable.indexOf(file);
+    if (index === -1) return;
+    setPreviewIndex(index);
+    setPreviewOpen(true);
   }
 
   function handleDragOver(e: React.DragEvent) {
@@ -182,11 +193,11 @@ export function AttachmentsSection({
               {/* Image thumbnails grid */}
               {images.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {images.map((img, idx) => (
+                  {images.map((img) => (
                     <AttachmentThumbnail
                       key={img.id}
                       attachment={img}
-                      onClick={() => handleThumbnailClick(idx)}
+                      onClick={() => handleThumbnailClick(img)}
                     />
                   ))}
                 </div>
@@ -201,6 +212,11 @@ export function AttachmentsSection({
                       attachment={file}
                       onDownload={handleDownload}
                       onDelete={onDelete}
+                      onPreview={
+                        resolvePreviewKind(file) !== 'other'
+                          ? () => handlePreviewClick(file)
+                          : undefined
+                      }
                     />
                   ))}
                   {downloadFeedback && (
@@ -217,13 +233,14 @@ export function AttachmentsSection({
         </div>
       )}
 
-      {/* Lightbox */}
-      <AttachmentLightbox
-        images={images}
-        currentIndex={lightboxIndex}
-        open={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        onNavigate={setLightboxIndex}
+      {/* Preview modal */}
+      <AttachmentPreviewModal
+        items={previewable}
+        currentIndex={previewIndex}
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        onNavigate={setPreviewIndex}
+        onDownload={handleDownload}
       />
     </section>
   );
