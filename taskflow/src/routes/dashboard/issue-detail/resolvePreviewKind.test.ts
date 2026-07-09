@@ -52,9 +52,7 @@ describe('resolvePreviewKind', () => {
   });
 
   it('classifies .csv with generic mimeType as text', () => {
-    expect(resolvePreviewKind(makeAttachment('data.csv', 'application/octet-stream'))).toBe(
-      'text',
-    );
+    expect(resolvePreviewKind(makeAttachment('data.csv', 'application/octet-stream'))).toBe('text');
   });
 
   it('classifies .ts with generic mimeType as code', () => {
@@ -68,9 +66,7 @@ describe('resolvePreviewKind', () => {
   });
 
   it('classifies .js with generic mimeType as code', () => {
-    expect(resolvePreviewKind(makeAttachment('index.js', 'application/octet-stream'))).toBe(
-      'code',
-    );
+    expect(resolvePreviewKind(makeAttachment('index.js', 'application/octet-stream'))).toBe('code');
   });
 
   it('classifies .py with generic mimeType as code', () => {
