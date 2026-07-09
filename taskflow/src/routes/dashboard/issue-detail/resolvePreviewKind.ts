@@ -2,27 +2,32 @@ import type { JiraAttachment } from '@/services/jira';
 
 export type PreviewKind = 'image' | 'text' | 'code' | 'pdf' | 'video' | 'audio' | 'other';
 
-const CODE_EXTENSIONS = new Set([
-  'json',
-  'js',
-  'jsx',
-  'ts',
-  'tsx',
-  'py',
-  'rb',
-  'go',
-  'rs',
-  'java',
-  'c',
-  'cpp',
-  'h',
-  'sh',
-  'yml',
-  'yaml',
-  'xml',
-  'html',
-  'css',
-]);
+// Single source of truth for "extension is code" (resolvePreviewKind) and
+// "extension maps to this hljs language" (highlightCode) — keeps the two
+// classifications from silently drifting apart as extensions are added.
+export const CODE_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
+  json: 'json',
+  js: 'javascript',
+  jsx: 'javascript',
+  ts: 'typescript',
+  tsx: 'typescript',
+  py: 'python',
+  rb: 'ruby',
+  go: 'go',
+  rs: 'rust',
+  java: 'java',
+  c: 'c',
+  cpp: 'cpp',
+  h: 'c',
+  sh: 'bash',
+  yml: 'yaml',
+  yaml: 'yaml',
+  xml: 'xml',
+  html: 'xml',
+  css: 'css',
+};
+
+const CODE_EXTENSIONS = new Set(Object.keys(CODE_EXTENSION_LANGUAGE_MAP));
 
 const TEXT_EXTENSIONS = new Set(['md', 'log', 'csv', 'txt']);
 
