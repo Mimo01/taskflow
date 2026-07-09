@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-06-30 - Completed quick task 260630-lwq: Summary column in backlog table should take maximum available space and only truncate when it really doesn't fit
+Last activity: 2026-07-09 - Completed quick task 260709-e0f: Add preview on issue detail for more media types
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Key decisions for v1.13 (from research):
 | 260618-efy | On the My Tasks page, story time logged/estimated aggregates from subtasks but sections that do not show their subtasks omit the subtask values from the aggregate | 2026-06-18 | 72ada5c1 | — | [260618-efy-on-the-my-tasks-page-story-time-logged-e](./quick/260618-efy-on-the-my-tasks-page-story-time-logged-e/) |
 | 260630-lk5 | Add fix version column before epic in backlog story rows | 2026-06-30 | 2bfda611 | — | [260630-lk5-add-fix-version-column-before-epic-in-ba](./quick/260630-lk5-add-fix-version-column-before-epic-in-ba/) |
 | 260630-lwq | Summary column in backlog table should take maximum available space and only truncate when it really doesn't fit | 2026-06-30 | 51b70e48 | — | [260630-lwq-summary-column-in-backlog-table-should-t](./quick/260630-lwq-summary-column-in-backlog-table-should-t/) |
+| 260709-e0f | Add preview on issue detail for more media types (text/code/pdf/video/audio via highlight.js + shared useAuthBlob) | 2026-07-09 | 75355a87 | Needs Review | [260709-e0f-add-preview-on-issue-detail-for-more-med](./quick/260709-e0f-add-preview-on-issue-detail-for-more-med/) |
 
 ## Deferred Items
 
