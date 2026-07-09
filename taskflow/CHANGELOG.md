@@ -2,6 +2,16 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.13.4] — 2026-07-09
+
+### Added
+
+- **Issue detail — attachment preview now supports text, code, PDF, video, and audio files** — the attachment lightbox has been generalized into a type-switching preview modal. Clicking a previewable attachment row now opens an inline viewer instead of only working for images: text/markdown/log/CSV files render as plain text, recognized source files (JS/TS, Python, Ruby, Go, Rust, Java, C/C++, shell, YAML, XML, HTML, CSS, JSON) get syntax highlighting, PDFs render in an embedded viewer, and video/audio files get native media playback controls.
+
+### Fixed
+
+- **Attachment preview — hardened kind detection and loading behavior** — addressed follow-up code-review findings on the new preview modal: more reliable mimeType/extension-based classification, and fixes to how authenticated attachment blobs are fetched and released across preview types.
+
 ## [1.13.3] — 2026-07-02
 
 ### Added
