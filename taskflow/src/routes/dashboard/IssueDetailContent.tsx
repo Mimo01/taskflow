@@ -1,6 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Check, Copy, ExternalLink, LayoutList, Link2, Pencil, Pin, Plus } from 'lucide-react';
+import {
+  Check,
+  ClipboardCopy,
+  Copy,
+  ExternalLink,
+  LayoutList,
+  Pencil,
+  Pin,
+  Plus,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -516,7 +525,7 @@ export function IssueDetailContent({
             {copiedLink ? (
               <Check className="size-3.5 text-primary" />
             ) : (
-              <Link2 className="size-3.5" />
+              <ClipboardCopy className="size-3.5" />
             )}
           </Button>
         </div>
