@@ -26,10 +26,7 @@ describe('aggregateTimeTracking', () => {
   });
 
   it('treats missing timetracking on the issue or any subtask as 0, never NaN', () => {
-    const subtasks = [
-      { fields: {} },
-      { fields: { timetracking: { timeSpentSeconds: 10 } } },
-    ];
+    const subtasks = [{ fields: {} }, { fields: { timetracking: { timeSpentSeconds: 10 } } }];
 
     const result = aggregateTimeTracking(undefined, subtasks, { isSubtask: false });
 
