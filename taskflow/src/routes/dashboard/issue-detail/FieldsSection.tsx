@@ -1081,6 +1081,21 @@ export function FieldsSection({
           </PopoverContent>
         </Popover>
       </MetaRow>
+
+      {/* Deployment package -- read-only, sourced from customfield_15725 */}
+      <MetaRow label="Deployment package">
+        {(() => {
+          const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
+          return deploymentPackageValue ? (
+            <span data-testid="deployment-package-value">{deploymentPackageValue}</span>
+          ) : (
+            <span data-testid="deployment-package-value" className="text-muted-foreground">
+              &mdash;
+            </span>
+          );
+        })()}
+      </MetaRow>
+
       {/* Flagged -- toggle impediment flag */}
       {(() => {
         const isFlagged = isIssueFlagged(issue as unknown as JiraIssue, flaggedFieldKey);
