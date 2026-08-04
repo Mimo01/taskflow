@@ -64,6 +64,38 @@ export function extractSeverity(
   return field?.value ?? field?.name ?? null;
 }
 
+/**
+ * Extract the deployment package display string from customfield_15725.
+ * Shape is unconfirmed (project-specific custom field), so this accepts
+ * `unknown` and tolerates a plain string, a single option object
+ * (`.value` wins over `.name`), or an array of either -- joined with ', '.
+ * Returns null for every non-representable input rather than throwing.
+ * Exported for unit testing.
+ */
+export function extractDeploymentPackage(field: unknown): string | null {
+  const extractOne = (entry: unknown): string | null => {
+    if (typeof entry === 'string') {
+      const trimmed = entry.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+    if (entry && typeof entry === 'object') {
+      const obj = entry as { value?: unknown; name?: unknown };
+      const value = typeof obj.value === 'string' ? obj.value.trim() : '';
+      if (value.length > 0) return value;
+      const name = typeof obj.name === 'string' ? obj.name.trim() : '';
+      if (name.length > 0) return name;
+    }
+    return null;
+  };
+
+  if (Array.isArray(field)) {
+    const parts = field.map(extractOne).filter((v): v is string => v !== null);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+
+  return extractOne(field);
+}
+
 interface AssignableUser {
   displayName: string;
   name: string;
@@ -1049,6 +1081,21 @@ export function FieldsSection({
           </PopoverContent>
         </Popover>
       </MetaRow>
+
+      {/* Deployment package -- read-only, sourced from customfield_15725 */}
+      <MetaRow label="Deployment package">
+        {(() => {
+          const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
+          return deploymentPackageValue ? (
+            <span data-testid="deployment-package-value">{deploymentPackageValue}</span>
+          ) : (
+            <span data-testid="deployment-package-value" className="text-muted-foreground">
+              &mdash;
+            </span>
+          );
+        })()}
+      </MetaRow>
+
       {/* Flagged -- toggle impediment flag */}
       {(() => {
         const isFlagged = isIssueFlagged(issue as unknown as JiraIssue, flaggedFieldKey);
