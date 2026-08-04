@@ -493,30 +493,33 @@ export function IssueDetailContent({
           <Copy className="size-3.5" />
           Clone
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            openUrl(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`).catch(() => {})
-          }
-          className="gap-1.5 text-xs"
-        >
-          <ExternalLink className="size-3.5" />
-          Open in Jira
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          onClick={handleCopyJiraLink}
-          aria-label="Copy Jira link"
-          title={copiedLink ? 'Copied!' : 'Copy Jira link'}
-        >
-          {copiedLink ? (
-            <Check className="size-3.5 text-primary" />
-          ) : (
-            <Link2 className="size-3.5" />
-          )}
-        </Button>
+        <div className="inline-flex items-stretch">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              openUrl(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`).catch(() => {})
+            }
+            className="gap-1.5 rounded-r-none border-r-0 text-xs"
+          >
+            <ExternalLink className="size-3.5" />
+            Open in Jira
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={handleCopyJiraLink}
+            aria-label="Copy Jira link"
+            title={copiedLink ? 'Copied!' : 'Copy Jira link'}
+            className="rounded-l-none"
+          >
+            {copiedLink ? (
+              <Check className="size-3.5 text-primary" />
+            ) : (
+              <Link2 className="size-3.5" />
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
