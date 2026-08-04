@@ -617,13 +617,25 @@ export default function ReleaseDetailPage() {
     }
   };
 
-  // Full-page navigation to an issue, preserving the release-name breadcrumb.
-  // Kept separate from the outlet's onIssueClick because the outlet's
-  // routeLabel() maps /release/ to the generic literal "Release" — this local
-  // push carries the actual release name instead.
-  const openIssueFull = (issueKey: string) => {
+  // Seed this release's own breadcrumb entry once, idempotently. Needed
+  // before EITHER exit path — direct key click (openIssueFull below) or
+  // opening the peek panel — because the peek's "Open full page" button
+  // navigates via main.tsx's generic handleIssueClick, which appends onto
+  // whatever the trail already contains rather than knowing the release
+  // name itself. Without seeding here first, that generic handler falls
+  // back to routeLabel()'s literal "Release" instead of the real name.
+  const seedReleaseBreadcrumb = () => {
     if (!version) return;
-    breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
+    const currentTrail = useBreadcrumbStore.getState().trail;
+    const last = currentTrail[currentTrail.length - 1];
+    if (last?.path !== `/release/${versionId}`) {
+      breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
+    }
+  };
+
+  // Full-page navigation to an issue, preserving the release-name breadcrumb.
+  const openIssueFull = (issueKey: string) => {
+    seedReleaseBreadcrumb();
     navigate(`/issue/${issueKey}`);
   };
 
@@ -822,6 +834,7 @@ export default function ReleaseDetailPage() {
                           key={row.issue.id}
                           className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
                           onClick={() => {
+                            seedReleaseBreadcrumb();
                             (onOpenIssue ?? openIssueFull)(row.issue.key);
                           }}
                         >
