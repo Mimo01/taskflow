@@ -29,7 +29,7 @@ import {
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -143,6 +143,9 @@ export default function ReleaseDetailPage() {
   const { versionId } = useParams<{ versionId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const { onOpenIssue } =
+    useOutletContext<{ onOpenIssue?: (key: string) => void; [key: string]: unknown }>() ?? {};
 
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
@@ -614,6 +617,16 @@ export default function ReleaseDetailPage() {
     }
   };
 
+  // Full-page navigation to an issue, preserving the release-name breadcrumb.
+  // Kept separate from the outlet's onIssueClick because the outlet's
+  // routeLabel() maps /release/ to the generic literal "Release" — this local
+  // push carries the actual release name instead.
+  const openIssueFull = (issueKey: string) => {
+    if (!version) return;
+    breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
+    navigate(`/issue/${issueKey}`);
+  };
+
   const handleOpenInJira = () => {
     if (jiraBaseUrl && activeJiraProject && versionId) {
       const base = jiraBaseUrl.replace(/\/$/, '');
@@ -809,12 +822,20 @@ export default function ReleaseDetailPage() {
                           key={row.issue.id}
                           className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
                           onClick={() => {
-                            breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
-                            navigate(`/issue/${row.issue.key}`);
+                            (onOpenIssue ?? openIssueFull)(row.issue.key);
                           }}
                         >
                           <td className="py-1.5 px-2 font-mono text-xs whitespace-nowrap border-b border-border/50 text-primary">
-                            {row.issue.key}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openIssueFull(row.issue.key);
+                              }}
+                              className="font-mono text-xs text-primary hover:underline cursor-pointer"
+                            >
+                              {row.issue.key}
+                            </button>
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50">
                             <span className="line-clamp-1">{row.issue.fields.summary}</span>
