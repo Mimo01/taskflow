@@ -1478,6 +1478,11 @@ export interface JiraIssueDetail {
         summary: string;
         status: { name: string; statusCategory?: { key: string } };
         assignee?: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
+        timetracking?: {
+          originalEstimateSeconds?: number;
+          timeSpentSeconds?: number;
+          remainingEstimateSeconds?: number;
+        };
       };
     }>;
     issuelinks: JiraIssueLink[];
@@ -1583,13 +1588,18 @@ export async function fetchEnrichedSubtasks(
       summary: string;
       status: { name: string; statusCategory: unknown };
       assignee: JiraIssueDetail['fields']['assignee'];
+      timetracking?: {
+        originalEstimateSeconds?: number;
+        timeSpentSeconds?: number;
+        remainingEstimateSeconds?: number;
+      };
     };
   }>,
 ): Promise<typeof subtasks> {
   const base = baseUrl.replace(/\/$/, '');
   const subtaskKeys = subtasks.map((s) => s.key).join(',');
   const enrichJql = encodeURIComponent(`key in (${subtaskKeys})`);
-  const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee,status&maxResults=${subtasks.length}`;
+  const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee,status,timetracking&maxResults=${subtasks.length}`;
   const enrichRes = await apiFetch(
     'jira',
     enrichUrl,
@@ -1605,6 +1615,11 @@ export async function fetchEnrichedSubtasks(
       fields: {
         assignee: JiraIssueDetail['fields']['assignee'];
         status: { name: string; statusCategory: unknown };
+        timetracking?: {
+          originalEstimateSeconds?: number;
+          timeSpentSeconds?: number;
+          remainingEstimateSeconds?: number;
+        };
       };
     }>;
   };
@@ -1619,6 +1634,7 @@ export async function fetchEnrichedSubtasks(
         // Use fresh status from server so status pills reflect the latest
         // transition even when the parent's issue-detail cache is stale.
         status: fresh?.status ?? sub.fields.status,
+        timetracking: fresh?.timetracking ?? sub.fields.timetracking,
       },
     };
   });
