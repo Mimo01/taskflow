@@ -48,4 +48,52 @@ describe('aggregateTimeTracking', () => {
 
     expect(result).toEqual({ spentSeconds: 0, estimateSeconds: 0 });
   });
+
+  it('falls back to remainingEstimateSeconds per-subtask when originalEstimateSeconds is absent', () => {
+    const own = { timeSpentSeconds: 0, originalEstimateSeconds: 0 };
+    const subtasks = [
+      { fields: { timetracking: { timeSpentSeconds: 10, remainingEstimateSeconds: 3600 } } },
+      { fields: { timetracking: { timeSpentSeconds: 20, remainingEstimateSeconds: 7200 } } },
+    ];
+
+    const result = aggregateTimeTracking(own, subtasks, { isSubtask: false });
+
+    expect(result).toEqual({ spentSeconds: 30, estimateSeconds: 10800 });
+  });
+
+  it('prefers originalEstimateSeconds over remainingEstimateSeconds per-subtask when both are set', () => {
+    const own = { timeSpentSeconds: 0, originalEstimateSeconds: 0 };
+    const subtasks = [
+      {
+        fields: {
+          timetracking: {
+            timeSpentSeconds: 0,
+            originalEstimateSeconds: 1000,
+            remainingEstimateSeconds: 500,
+          },
+        },
+      },
+    ];
+
+    const result = aggregateTimeTracking(own, subtasks, { isSubtask: false });
+
+    expect(result.estimateSeconds).toBe(1000);
+  });
+
+  it('falls back to remainingEstimateSeconds on the own value when originalEstimateSeconds is absent', () => {
+    const own = { timeSpentSeconds: 0, remainingEstimateSeconds: 4500 };
+
+    const result = aggregateTimeTracking(own, undefined, { isSubtask: false });
+
+    expect(result.estimateSeconds).toBe(4500);
+  });
+
+  it('contributes 0 estimate for a subtask with neither originalEstimateSeconds nor remainingEstimateSeconds set', () => {
+    const own = { timeSpentSeconds: 0, originalEstimateSeconds: 0 };
+    const subtasks = [{ fields: { timetracking: { timeSpentSeconds: 5 } } }];
+
+    const result = aggregateTimeTracking(own, subtasks, { isSubtask: false });
+
+    expect(result).toEqual({ spentSeconds: 5, estimateSeconds: 0 });
+  });
 });

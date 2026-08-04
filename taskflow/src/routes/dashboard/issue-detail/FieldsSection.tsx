@@ -1093,7 +1093,14 @@ export function FieldsSection({
 
       <WatcherToggle issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
 
-      <TimeTrackingSummary timetracking={f.timetracking} />
+      <TimeTrackingSummary
+        timetracking={f.timetracking}
+        aggregatetimeoriginalestimate={f.aggregatetimeoriginalestimate}
+        aggregatetimeestimate={f.aggregatetimeestimate}
+        aggregatetimespent={f.aggregatetimespent}
+        timespent={f.timespent}
+        aggregateprogress={f.aggregateprogress}
+      />
     </>
   );
 }
