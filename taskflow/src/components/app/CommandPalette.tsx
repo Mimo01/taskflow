@@ -288,7 +288,15 @@ export default function CommandPalette({
         className="max-w-xl mt-16 mx-auto"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          // Let Escape keep bubbling to document so the react-hotkeys-hook
+          // listener above (and the backdrop's own Escape handler) still
+          // close the palette -- only contain other keys (space/enter from
+          // typing in the search input) so they don't reach the backdrop's
+          // onClick/onKeyDown dismiss handlers.
+          if (e.key === 'Escape') return;
+          e.stopPropagation();
+        }}
       >
         <Command className="rounded-lg border shadow-lg bg-popover">
           <CommandInput

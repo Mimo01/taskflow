@@ -185,7 +185,7 @@ describe('CommandPalette', () => {
     renderPalette();
     expect(screen.getByText('Sprint Board')).toBeInTheDocument();
     expect(screen.getByText('Backlog')).toBeInTheDocument();
-    expect(screen.getByText('Notifications')).toBeInTheDocument();
+    expect(screen.getByText('Standup Notes')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
@@ -206,7 +206,7 @@ describe('CommandPalette', () => {
     // Check for shortcut hint text in the document
     expect(screen.getByText('⌘⇧S')).toBeInTheDocument();
     expect(screen.getByText('⌘⇧B')).toBeInTheDocument();
-    expect(screen.getByText('⌘⇧N')).toBeInTheDocument();
+    expect(screen.getByText('⌘,')).toBeInTheDocument();
   });
 
   // PALETTE-04: actions group visible in both states (always rendered for stable cmdk refs)
