@@ -2,6 +2,19 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.13.5] — 2026-08-04
+
+### Added
+
+- **Issue detail — Deployment package field under Fix Versions** — the sidebar now shows a read-only "Deployment package" row (sourced from Jira's custom field) between Fix Versions and Flagged, with an em dash placeholder when unset.
+- **Issue detail — Worklog progress bar** — the Worklog tab now shows a spent-vs-estimated progress bar, matching the Standup page's styling, rolling up time from the issue itself plus its subtasks.
+- **Issue detail — copy Jira link button** — a copy-link icon is now joined into the "Open in Jira" split button, copying the issue's browse URL with a brief checkmark confirmation.
+
+### Fixed
+
+- **Issue detail — Time Tracking field always showed "No time logged"** — the sidebar now reads Jira's server-computed aggregate time fields (which reliably cover Tempo-logged time and subtask estimates) instead of only the per-issue timetracking object, falling back to the nested object when aggregates are absent.
+- **Releases page — row click now opens a preview, key click navigates full-page** — clicking an issue row on the release detail page now opens the peek panel like the rest of the app, while clicking the issue key still navigates directly; the release-name breadcrumb is now preserved when opening a full page from the release peek panel instead of falling back to the generic "Release" label.
+
 ## [1.13.4] — 2026-07-09
 
 ### Added
