@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-08-04 - Completed quick task 260804-bh3: On issue detail in the worklog tab, add a progress bar of logged vs estimated time, matching the standup notes page style
+Last activity: 2026-08-04 - Completed quick task 260804-g1l: Add a copy-link sub-button next to Open in Jira on issue detail
 
 ## Performance Metrics
 
@@ -94,6 +94,7 @@ Key decisions for v1.13 (from research):
 | 260630-lk5 | Add fix version column before epic in backlog story rows | 2026-06-30 | 2bfda611 | — | [260630-lk5-add-fix-version-column-before-epic-in-ba](./quick/260630-lk5-add-fix-version-column-before-epic-in-ba/) |
 | 260630-lwq | Summary column in backlog table should take maximum available space and only truncate when it really doesn't fit | 2026-06-30 | 51b70e48 | — | [260630-lwq-summary-column-in-backlog-table-should-t](./quick/260630-lwq-summary-column-in-backlog-table-should-t/) |
 | 260709-e0f | Add preview on issue detail for more media types (text/code/pdf/video/audio via highlight.js + shared useAuthBlob) | 2026-07-09 | 75355a87 | Needs Review | [260709-e0f-add-preview-on-issue-detail-for-more-med](./quick/260709-e0f-add-preview-on-issue-detail-for-more-med/) |
+| 260804-g1l | Add a copy-link sub-button next to Open in Jira on issue detail | 2026-08-04 | 6e426bff | Verified | [260804-g1l-add-a-copy-link-sub-button-next-to-open-](./quick/260804-g1l-add-a-copy-link-sub-button-next-to-open-/) |
 
 ## Deferred Items
 
