@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 Phase: Milestone v1.13 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-08-04 - Completed quick task 260804-gj4: On releases page, clicking on task should work the same as in the rest of the app. it should only open a preview. Clicking on the task key should open full view
+Last activity: 2026-08-04 - Completed quick task 260804-jhf: On issue detail in the sidebar, there should be a 'Deployment package' field under fix version. The content seem to be comming in customfield_15725
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Key decisions for v1.13 (from research):
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 260804-jhf | On issue detail in the sidebar, there should be a 'Deployment package' field under fix version. The content seem to be comming in customfield_15725 | 2026-08-04 | e5efa506 | Verified | [260804-jhf-on-issue-detail-in-the-sidebar-there-sho](./quick/260804-jhf-on-issue-detail-in-the-sidebar-there-sho/) |
 | 260615-smu | Polish and modernize the dashboard | 2026-06-15 | 6e9e1ff7 | Verified | [260615-smu-modernize-dashboard](./quick/260615-smu-modernize-dashboard/) |
 | 260616-igl | On standup notes page, in the 'yesterday' day selector I also want to be able to select today | 2026-06-16 | 2ff57d85 | Verified | [260616-igl-on-standup-notes-page-in-the-yesterday-d](./quick/260616-igl-on-standup-notes-page-in-the-yesterday-d/) |
 | 260616-ktv | Add appendMyTasksItemIfMissing migration (v27) — fix My Tasks sidebar entry invisible for existing users (closes v1.13 audit blocker MYTASK-01) | 2026-06-16 | 5c2ac903 | — | [260616-ktv-my-tasks-sidebar-migration](./quick/260616-ktv-my-tasks-sidebar-migration/) |
