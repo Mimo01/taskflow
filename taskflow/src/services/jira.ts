@@ -1512,6 +1512,21 @@ export interface JiraIssueDetail {
     duedate: string | null;
     components?: Array<{ id: string; name: string }>;
     customfield_13415?: { value?: string; name?: string } | null;
+    /**
+     * Jira's own server-computed aggregate time-tracking fields (system
+     * fields, distinct from the per-issue `timetracking` sub-object above).
+     * These sum the issue's OWN time tracking PLUS all of its subtasks',
+     * computed reliably by Jira itself -- including for worklogs written by
+     * 3rd-party providers like Tempo, which don't always keep the nested
+     * `timetracking.*Seconds` fields in sync. Preferred source for the
+     * sidebar Time Tracking field: see TimeTrackingSummary.tsx.
+     */
+    aggregatetimeoriginalestimate?: number | null;
+    aggregatetimeestimate?: number | null;
+    aggregatetimespent?: number | null;
+    timespent?: number | null;
+    workratio?: number;
+    aggregateprogress?: { progress: number; total: number; percent?: number };
     [key: string]: unknown;
   };
   changelog?: {

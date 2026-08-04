@@ -59,6 +59,13 @@ export interface JiraIssue {
       remainingEstimateSeconds?: number;
       timeSpentSeconds?: number;
     };
+    /** Jira's own server-computed aggregate (own + subtasks) time-tracking fields. */
+    aggregatetimeoriginalestimate?: number | null;
+    aggregatetimeestimate?: number | null;
+    aggregatetimespent?: number | null;
+    timespent?: number | null;
+    workratio?: number;
+    aggregateprogress?: { progress: number; total: number; percent?: number };
     // v1.8 additions — Reporter, Priority, Severity (all optional, additive):
     reporter?: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
     priority?: { name: string; iconUrl?: string } | null;
