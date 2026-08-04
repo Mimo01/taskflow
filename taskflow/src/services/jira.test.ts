@@ -940,7 +940,7 @@ describe('jira service', () => {
       expect(result).toEqual(mockIssue);
     });
 
-    it('includes dynamic custom field keys in the fields= query param', async () => {
+    it('requests *navigable,attachment so any project-specific custom field is returned', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
@@ -954,9 +954,7 @@ describe('jira service', () => {
         storyPointsFieldKey: 'customfield_10028',
       });
       const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
-      expect(calledUrl).toContain('customfield_10100');
-      expect(calledUrl).toContain('customfield_10055');
-      expect(calledUrl).toContain('customfield_10028');
+      expect(calledUrl).toContain('fields=*navigable,attachment');
     });
 
     it('throws when response.ok is false', async () => {

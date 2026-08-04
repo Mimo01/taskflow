@@ -145,6 +145,14 @@ function setupDefaultStores({ aioEnabled = true }: { aioEnabled?: boolean } = {}
   mockUseAuthStore.mockReturnValue(JIRA_BASE_URL);
 }
 
+// CollapsibleRunBlock always starts collapsed (see AioTestRunsSection.tsx —
+// "fix: always initialize AIO test runs collapsed"), so tests asserting on
+// step-table content must expand the run block first.
+async function expandFirstRun() {
+  const button = await screen.findByRole('button', { name: /^Expand test run for/ });
+  await userEvent.click(button);
+}
+
 describe('AioTestRunsSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -249,6 +257,7 @@ describe('AioTestRunsSection', () => {
     mockFetchSteps.mockResolvedValue([STEP_PASS]);
 
     renderSection();
+    await expandFirstRun();
     await waitFor(() => {
       expect(screen.getByText('Step')).toBeTruthy();
       expect(screen.getByText('Expected')).toBeTruthy();
@@ -265,6 +274,7 @@ describe('AioTestRunsSection', () => {
     mockFetchSteps.mockResolvedValue([STEP_NOT_EXECUTED]);
 
     renderSection();
+    await expandFirstRun();
     await waitFor(() => {
       expect(screen.getByText('—')).toBeTruthy();
     });
@@ -310,6 +320,7 @@ describe('AioTestRunsSection', () => {
     mockFetchSteps.mockResolvedValue([stepWithAttachment as unknown as typeof STEP_PASS]);
 
     renderSection();
+    await expandFirstRun();
     await waitFor(() => {
       // StepThumbnail renders a div[role="button"] with aria-label containing the fileName
       expect(
@@ -331,6 +342,7 @@ describe('AioTestRunsSection', () => {
     mockFetchSteps.mockResolvedValue([stepWithAttachment as unknown as typeof STEP_PASS]);
 
     renderSection();
+    await expandFirstRun();
     await waitFor(() => {
       expect(
         screen.getByRole('button', { name: 'screenshot.png - click to view full size' }),
@@ -412,6 +424,7 @@ describe('AioTestRunsSection', () => {
     it('renders ||header|| / |cell| table inside step.step as a <table> element', async () => {
       mockFetchRunDetail.mockResolvedValue(mkRunDetail(mkStep({ step: TABLE_STEP })));
       renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await expandFirstRun();
       await waitFor(() => {
         // Two tables: outer StepTable (4-col Step|Expected|Actual|Status) +
         // inner table from the wiki ||header|| markup.
@@ -425,6 +438,7 @@ describe('AioTestRunsSection', () => {
     it('renders {color:#d04437}*FAILED:*{color} marker — braces not visible, FAILED visible', async () => {
       mockFetchRunDetail.mockResolvedValue(mkRunDetail(mkStep({ step: COLOR_STEP })));
       const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await expandFirstRun();
       await waitFor(() => {
         // FAILED: token visible (inside <strong> after jira2md conversion)
         expect(container.textContent ?? '').toContain('FAILED:');
@@ -436,6 +450,7 @@ describe('AioTestRunsSection', () => {
     it('renders {panel}...{panel} as a callout div with [data-callout="panel"]', async () => {
       mockFetchRunDetail.mockResolvedValue(mkRunDetail(mkStep({ step: PANEL_STEP })));
       const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await expandFirstRun();
       await waitFor(() => {
         expect(container.querySelector('[data-callout="panel"]')).not.toBeNull();
       });
@@ -455,6 +470,7 @@ describe('AioTestRunsSection', () => {
         ),
       );
       const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await expandFirstRun();
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /VAS\.png/ })).toBeTruthy();
       });
@@ -470,6 +486,7 @@ describe('AioTestRunsSection', () => {
     it('renders h4. + *bold* + hard-break (\\\\) cluster as <h4> with <strong> child and <br>', async () => {
       mockFetchRunDetail.mockResolvedValue(mkRunDetail(mkStep({ step: H4_STEP })));
       const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await expandFirstRun();
       await waitFor(() => {
         expect(container.querySelector('h4')).not.toBeNull();
       });
@@ -524,6 +541,7 @@ describe('AioTestRunsSection', () => {
       });
 
       renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await expandFirstRun();
 
       // Wait for the rendered run to surface — the unique run ID body proves the
       // queryFn consumed the widened traceability response (not a stale legacy
