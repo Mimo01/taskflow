@@ -378,6 +378,11 @@ function AppLayout() {
       // Drilling issue→issue — push current issue onto trail
       const currentKey = location.pathname.replace('/issue/', '');
       breadcrumbPush({ path: location.pathname, label: currentKey });
+    } else if (location.pathname.startsWith('/release/')) {
+      // ReleaseDetailPage seeds its own breadcrumb entry (with the real
+      // release name, via seedReleaseBreadcrumb) before opening a peek or
+      // navigating full-page — don't clobber it with the generic
+      // routeLabel() literal "Release" here.
     } else {
       // From a list page — push source page name as first breadcrumb entry
       breadcrumbReset();
