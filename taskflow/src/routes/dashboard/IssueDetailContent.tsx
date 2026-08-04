@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Copy, ExternalLink, LayoutList, Pencil, Pin, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Check, Copy, ExternalLink, LayoutList, Link2, Pencil, Pin, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
@@ -187,6 +187,35 @@ export function IssueDetailContent({
   const queryClient = useQueryClient();
   const jiraBaseUrlFromStore = useAuthStore((s) => s.jiraBaseUrl);
   const [bulkCreateOpen, setBulkCreateOpen] = useState(false);
+
+  // ─ Copy Jira link ───────────────────────────────────────────────────────
+  const [copiedLink, setCopiedLink] = useState(false);
+  const copiedLinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedLinkTimer.current) clearTimeout(copiedLinkTimer.current);
+    },
+    [],
+  );
+
+  function handleCopyJiraLink() {
+    const url = `${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`;
+    // Only flash "Copied!" once the write actually resolves — a rejected clipboard
+    // (unavailable in the webview) must not show a false success.
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopiedLink(true);
+        if (copiedLinkTimer.current) clearTimeout(copiedLinkTimer.current);
+        copiedLinkTimer.current = setTimeout(() => {
+          setCopiedLink(false);
+          copiedLinkTimer.current = null;
+        }, 2000);
+      })
+      .catch(() => {
+        // Clipboard unavailable — leave the button in its idle state.
+      });
+  }
 
   async function handleDeleteAttachment(attachment: JiraAttachment) {
     const token = await readSecret('jira-pat');
@@ -395,7 +424,7 @@ export function IssueDetailContent({
         </section>
       )}
 
-      {/* Pin + Edit + Log Work + Open in Jira */}
+      {/* Pin + Edit + Log Work + Open in Jira + Copy Jira link */}
       <div className="flex justify-end gap-2">
         <Button
           variant="outline"
@@ -474,6 +503,19 @@ export function IssueDetailContent({
         >
           <ExternalLink className="size-3.5" />
           Open in Jira
+        </Button>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          onClick={handleCopyJiraLink}
+          aria-label="Copy Jira link"
+          title={copiedLink ? 'Copied!' : 'Copy Jira link'}
+        >
+          {copiedLink ? (
+            <Check className="size-3.5 text-primary" />
+          ) : (
+            <Link2 className="size-3.5" />
+          )}
         </Button>
       </div>
     </div>
