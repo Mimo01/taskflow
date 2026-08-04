@@ -1512,6 +1512,8 @@ export interface JiraIssueDetail {
     duedate: string | null;
     components?: Array<{ id: string; name: string }>;
     customfield_13415?: { value?: string; name?: string } | null;
+    /** Deployment package (project-specific custom field; shape unconfirmed -- read via extractDeploymentPackage) */
+    customfield_15725?: unknown;
     /**
      * Jira's own server-computed aggregate time-tracking fields (system
      * fields, distinct from the per-issue `timetracking` sub-object above).
