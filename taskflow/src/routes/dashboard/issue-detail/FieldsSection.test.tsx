@@ -181,7 +181,7 @@ vi.mock('./useFieldMutation', () => ({
 
 import type { JiraIssueDetail } from '@/services/jira';
 import { fetchIssuePriorityOptions } from '@/services/jira';
-import { extractSeverity } from './FieldsSection';
+import { extractDeploymentPackage, extractSeverity } from './FieldsSection';
 
 // --- Pure helper tests ---
 describe('extractSeverity', () => {
@@ -207,6 +207,52 @@ describe('extractSeverity', () => {
 
   it('returns null when both value and name are absent', () => {
     expect(extractSeverity({})).toBeNull();
+  });
+});
+
+describe('extractDeploymentPackage', () => {
+  it('returns plain string as-is', () => {
+    expect(extractDeploymentPackage('PKG-1')).toBe('PKG-1');
+  });
+
+  it('returns value from single option object', () => {
+    expect(extractDeploymentPackage({ value: 'PKG-1' })).toBe('PKG-1');
+  });
+
+  it('returns name from single option object when value absent', () => {
+    expect(extractDeploymentPackage({ name: 'PKG-1' })).toBe('PKG-1');
+  });
+
+  it('prefers value over name when both present', () => {
+    expect(extractDeploymentPackage({ value: 'A', name: 'B' })).toBe('A');
+  });
+
+  it('joins mixed-shape array entries with ", "', () => {
+    expect(extractDeploymentPackage([{ value: 'A' }, { name: 'B' }])).toBe('A, B');
+  });
+
+  it('joins plain string array entries with ", "', () => {
+    expect(extractDeploymentPackage(['A', 'B'])).toBe('A, B');
+  });
+
+  it('returns null for empty array', () => {
+    expect(extractDeploymentPackage([])).toBeNull();
+  });
+
+  it('returns null for null', () => {
+    expect(extractDeploymentPackage(null)).toBeNull();
+  });
+
+  it('returns null for undefined', () => {
+    expect(extractDeploymentPackage(undefined)).toBeNull();
+  });
+
+  it('returns null for empty object', () => {
+    expect(extractDeploymentPackage({})).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(extractDeploymentPackage('')).toBeNull();
   });
 });
 
