@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: planning
-last_updated: "2026-08-10T10:50:31.117Z"
+last_updated: "2026-08-10T00:00:00.000Z"
 last_activity: 2026-08-10
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,125 +17,91 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-14)
+See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** v1.13 shipped — planning next milestone (`/gsd:new-milestone`); cut the v1.13.x release with `release.sh`
+**Current focus:** v1.14 Release Management — roadmap created (Phases 87-91); ready for `/gsd-plan-phase 87`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 87 of 91 (Release Detail Decomposition) — not yet planned
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-10 — Milestone v1.14 started
+Status: Roadmap approved, ready to plan Phase 87
+Last activity: 2026-08-10 — ROADMAP.md written for v1.14 (Phases 87-91), REQUIREMENTS.md traceability filled (26/26 mapped)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
-**Velocity (v1.12 reference):**
+**Velocity (v1.13 reference):**
 
-- Plans completed: 19 (5 phases, 6 days, 441 commits)
+- Plans completed: 23 (6 phases, 9 days, 411 commits)
 - Average phase size: ~3.8 plans
-- LOC delta: +46,310 / −3,051
+- LOC delta: +41,255 / −21,884
 
-**By Phase (v1.13 planned):**
+**By Phase (v1.14 planned):**
 
 | Phase | Requirements | Description |
 |-------|-------------|-------------|
-| 81 | CHART-01..03 | Recharts v3 + shadcn chart + ChartWrapper (explicit-height, responsive prop, 'use no memo') |
-| 82 | MYTASK-01..08 | My Tasks page: grouping modes, scope toggle, inline actions, persisted prefs |
-| 83 | DASH-01..03, DASH-07 | Dashboard stat tiles + sprint health chart (zero new API calls, warm cache) |
-| 84 | DASH-04..07 | Dashboard trend chart + MR review queue + activity strip (independent sections) |
-| 85 | INSIGHT-01..02 | Sprint insights: probe-gated velocity and burndown charts (conditional) |
-| Phase 81-charting-foundation P01 | 8m | 2 tasks | 5 files |
-| Phase 81 P03 | 35min+UAT | 3 tasks | 3 files |
+| 87 | FOUND-01 | Decompose ReleaseDetailPage.tsx (1518 LOC) into release-detail/ folder — zero behavior change |
+| 88 | RELBR-01..05, RELMS-01..04 | Release branch existence/create + GitLab milestone existence/create, both confirm-dialog gated |
+| 89 | DRIFT-01..09 | Three-channel MR discovery (Jira-key, milestone, branch-target) + drift flagging, read-only |
+| 90 | MRFIX-01..04 | Per-MR retarget + assign-milestone, optimistic, independently retryable, no confirm/warning |
+| 91 | MERGE-01..03 | Post-release merge-back check, advisory verdict with manual override |
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-- Phase 86 added: Redesign dashboard to new screenshot layout and remove old widgets
+- v1.14 roadmap created 2026-08-10: 5 phases (87-91), continuing numbering from v1.13's Phase 86. Coarse granularity — reconciled the research's 6-slice build order into 5 phases by combining release-branch-create + milestone-create into one phase (88), since both share the "first write" cross-cutting concerns (permission gating, idempotent-mutation contract).
 
 ### Decisions
 
-Key decisions for v1.13 (from research):
+Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 
-- Charting stack: Recharts v3.8+ via shadcn `chart` primitive — all four researchers converged; `responsive` prop replaces `ResponsiveContainer` (React Compiler #4590/#5173 conflict avoidance)
-- ChartWrapper must use `'use no memo'` escape hatch and explicit-height outer div (WebKit 0×0 prevention — same failure class as virtualized-table-zero-width-col memory)
-- My Tasks "all assigned" scope must use `fetchAllSearchPages` — page-cap pitfall (memory: project_fetch_once_pagecap_pitfall); two named functions prevent client-side filter temptation
-- SP aggregation must filter `!issuetype.subtask` before summing — double-counting (SP parent + subtasks); gate: unit test parent(5)+2 subtasks(2 each) = 5
-- Tempo date bucketing: `tempo.started.slice(0, 10)` only — never `new Date(...).toISOString()` (UTC shift bug, memory: standup-date.ts pattern)
-- Phase 85 (Insights) starts with a mandatory live probe; no chart code before probe results are documented
-- Velocity requires `p-limit(3)` concurrency cap + `staleTime: Infinity` for closed-sprint data
-- [Phase ?]: Task 3 Human UAT approved: smoke chart renders correctly in real Tauri WebKit (CHART-02 satisfied)
+- NO permission/role gating on write buttons (team is all Developer+); NO fork-MR handling (team doesn't use forks); NO bulk "fix all" — per-MR actions only
+- Retarget applies directly with NO confirm dialog and NO inline warning — user reviewed GitLab's documented approval-reset behavior and declined the warning research recommended
+- Confirm dialogs on CREATE actions only (branch, milestone); retarget/assign apply directly
+- `release/` prefix hardcoded; `develop` is the GitLab project default branch read from the API, not configurable
+- Two independent mutations (retarget, assign-milestone) per MR row, not one combined PUT — needed for independent per-action retry
+- Merge-back detection is layered and advisory: tracking-MR state first, `repository/compare` content-diff fallback, `merged:true` as positive-only fast path — never trust `merged:false` alone (GitLab #36963 squash/rebase false-negative)
+- Channel C (branch-target MR discovery) must use a fully-paginated fetch, never `fetchRecentProjectMRs`'s 100-cap — this bug class has already recurred twice in this codebase
+
+### Pending Todos
+
+None yet.
 
 ### Blockers/Concerns
 
-- Phase 85: closed-sprint SP field availability on the specific DC instance is unconfirmed — probe required before any chart code
-- Phase 85: product owner must approve N-sequential-sprint fetch cost and burndown via unofficial `scopechangeburndownchart` endpoint
+- Phase 88 needs a live probe: confirm the team's actual GitLab PAT role distribution (any sub-Developer/Reporter users?) and scan existing milestone titles for near-duplicates before finalizing write-gating and Channel B matching
+- Phase 89 needs a live probe: confirm whether any release branch has ever carried >100 targeting MRs, or build a synthetic fixture, to prove Channel C pagination-completeness
+- Phase 90 needs a live probe: verify via a real MR with approvals whether approval/protected-branch rules are actually configured on the team's project
+- Phase 91 is probe-gated: the team's actual GitLab merge-strategy setting (squash vs merge-commit vs rebase) is unknown and determines whether the `merged` field can ever be trusted, even as a positive-only fast path — must be confirmed before finalizing detection method
 - Apple Developer ID + Windows code signing still deferred (carried from v1.7)
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Status | Directory |
-|---|-------------|------|--------|--------|-----------|
-| 260804-jhf | On issue detail in the sidebar, there should be a 'Deployment package' field under fix version. The content seem to be comming in customfield_15725 | 2026-08-04 | e5efa506 | Verified | [260804-jhf-on-issue-detail-in-the-sidebar-there-sho](./quick/260804-jhf-on-issue-detail-in-the-sidebar-there-sho/) |
-| 260615-smu | Polish and modernize the dashboard | 2026-06-15 | 6e9e1ff7 | Verified | [260615-smu-modernize-dashboard](./quick/260615-smu-modernize-dashboard/) |
-| 260616-igl | On standup notes page, in the 'yesterday' day selector I also want to be able to select today | 2026-06-16 | 2ff57d85 | Verified | [260616-igl-on-standup-notes-page-in-the-yesterday-d](./quick/260616-igl-on-standup-notes-page-in-the-yesterday-d/) |
-| 260616-ktv | Add appendMyTasksItemIfMissing migration (v27) — fix My Tasks sidebar entry invisible for existing users (closes v1.13 audit blocker MYTASK-01) | 2026-06-16 | 5c2ac903 | — | [260616-ktv-my-tasks-sidebar-migration](./quick/260616-ktv-my-tasks-sidebar-migration/) |
-| 260616-mmw | Address v1.13 tech debt: orphaned ChartWrapper/burndown types, stale cache comments, traceability reconciliation | 2026-06-16 | 02312626 | — | [260616-mmw-address-v1-13-tech-debt-orphaned-chartwr](./quick/260616-mmw-address-v1-13-tech-debt-orphaned-chartwr/) |
-| 260804-gj4 | On releases page, clicking on task should work the same as in the rest of the app. it should only open a preview. Clicking on the task key should open full view | 2026-08-04 | c1cc920e | — | [260804-gj4-on-releases-page-clicking-on-task-should](./quick/260804-gj4-on-releases-page-clicking-on-task-should/) |
-| 260804-bh3 | On issue detail in the worklog tab, add a progress bar of logged vs estimated time, matching the standup notes page style. Subtasks show their own logged/estimated; stories show story+all subtasks combined; epics are skipped. | 2026-08-04 | 1a7e69ff | — | [260804-bh3-on-issue-detail-in-the-worklog-tab-add-a](./quick/260804-bh3-on-issue-detail-in-the-worklog-tab-add-a/) |
-| 260617-cul | In my tasks page, the status badges are clickable and display transitions. I want to remove that, it should just open the issue preview like the entire row does | 2026-06-17 | 84c1a4ac | — | [260617-cul-in-my-tasks-page-the-status-badges-are-c](./quick/260617-cul-in-my-tasks-page-the-status-badges-are-c/) |
-| 260617-dd2 | I want to be able to open search with cmd + f, currently it is cmd + k | 2026-06-17 | 73495d87 | Verified | [260617-dd2-i-want-to-be-able-to-open-search-with-cm](./quick/260617-dd2-i-want-to-be-able-to-open-search-with-cm/) |
-| 260617-dta | The app has a lot of new pages that do not have a shortcut to open them. Add commands to quickly open all | 2026-06-17 | c21c5613 | — | [260617-dta-the-app-has-a-lot-of-new-pages-that-do-n](./quick/260617-dta-the-app-has-a-lot-of-new-pages-that-do-n/) |
-| 260617-e3z | in the app search, I should also be able to search issues by text | 2026-06-17 | e993df92 | Verified | [260617-e3z-in-the-app-search-i-should-also-be-able-](./quick/260617-e3z-in-the-app-search-i-should-also-be-able-/) |
-| 260618-ckn | On my tasks page, in the current sprint tab, DONE tasks shouldn't show any subtasks (just stories); TODO and IN PROGRESS unchanged | 2026-06-18 | 62704e50 | — | [260618-ckn-on-my-tasks-page-in-the-current-sprint-t](./quick/260618-ckn-on-my-tasks-page-in-the-current-sprint-t/) |
-| 260618-d06 | On my tasks page, DONE stories should only have key crossed out, not their summary. The rest of the app has it like that | 2026-06-18 | 481eca3e | — | [260618-d06-on-my-tasks-page-done-stories-should-onl](./quick/260618-d06-on-my-tasks-page-done-stories-should-onl/) |
-| 260618-dw0 | When logging tempo, default a blank worklog description to 'Working on issue {PROJ-KEY}'; use the entered text otherwise | 2026-06-18 | ba7886db | — | [260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a](./quick/260618-dw0-when-logging-tempo-if-i-do-not-fill-in-a/) |
-| 260618-efy | On the My Tasks page, story time logged/estimated aggregates from subtasks but sections that do not show their subtasks omit the subtask values from the aggregate | 2026-06-18 | 72ada5c1 | — | [260618-efy-on-the-my-tasks-page-story-time-logged-e](./quick/260618-efy-on-the-my-tasks-page-story-time-logged-e/) |
-| 260630-lk5 | Add fix version column before epic in backlog story rows | 2026-06-30 | 2bfda611 | — | [260630-lk5-add-fix-version-column-before-epic-in-ba](./quick/260630-lk5-add-fix-version-column-before-epic-in-ba/) |
-| 260630-lwq | Summary column in backlog table should take maximum available space and only truncate when it really doesn't fit | 2026-06-30 | 51b70e48 | — | [260630-lwq-summary-column-in-backlog-table-should-t](./quick/260630-lwq-summary-column-in-backlog-table-should-t/) |
-| 260709-e0f | Add preview on issue detail for more media types (text/code/pdf/video/audio via highlight.js + shared useAuthBlob) | 2026-07-09 | 75355a87 | Needs Review | [260709-e0f-add-preview-on-issue-detail-for-more-med](./quick/260709-e0f-add-preview-on-issue-detail-for-more-med/) |
-| 260804-g1l | Add a copy-link sub-button next to Open in Jira on issue detail | 2026-08-04 | 6e426bff | Verified | [260804-g1l-add-a-copy-link-sub-button-next-to-open-](./quick/260804-g1l-add-a-copy-link-sub-button-next-to-open-/) |
 
 ## Deferred Items
 
-Items acknowledged and deferred at v1.13 close (2026-06-16). Open-artifact audit
-surfaced 81 items — all cross-project historical noise, no v1.13 blockers
-(milestone audit: 6/6 phases verified, 0 integration blockers, all flows complete).
+Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 | Category | Item | Status |
 |----------|------|--------|
 | quick_tasks | 72 stale quick-task dirs (no completion file; dates back to 260521) | deferred — cleanup via /gsd-cleanup |
-| debug | backlog-drag-autoscroll-desync | investigating (pre-v1.13) |
-| debug | backlog-drag-autoscroll-residual | diagnosed (pre-v1.13) |
-| debug | bulk-button-style-mismatch | diagnosed (pre-v1.13) |
-| debug | phase73-no-transitions | diagnosed (pre-v1.13) |
-| debug | subtask-row-layout-overflow | diagnosed (pre-v1.13) |
-| debug | subtask-type-shows-id | diagnosed (pre-v1.13) |
-| debug | knowledge-base | archived |
+| debug | 6 pre-v1.13 debug sessions (backlog-drag-autoscroll x2, bulk-button-style-mismatch, phase73-no-transitions, subtask-row-layout-overflow, subtask-type-shows-id) | diagnosed, non-blocking |
 | todo | priority-stripe-rest-rank (color stripe by Jira REST priority rank) | deferred since P78 (rank.ts known-broken) |
-| uat | Phase 85 HUMAN-UAT | passed (0 open scenarios — audit false positive) |
-
-Carried forward from v1.12 close (still open):
-
-| Category | Item | Status |
-|----------|------|--------|
 | uat | Phase 78/79 Windows/WebView2 drag UAT | deferred — needs Windows host |
 | uat | Phase 80 live-Jira UAT (partial-failure/retry) | deferred — untestable without live DC |
 | tech_debt | Phase 78 dnd-kit autoScroll disabled (upstream #1108) | accepted |
 | tech_debt | Phase 79 D-07 screen/validator transitions not pre-filtered | accepted |
-| code_review | Phase 80 WR-02 React key collision in failure list | non-blocking |
-| code_review | Phase 80 WR-03 silent @current degradation | non-blocking |
 | code_review | WR-05 (70-REVIEW) unguarded SP cast in Today*Section.tsx | non-blocking |
 | code_review | IN-01 (70-REVIEW) setCopied setTimeout not cleared | benign |
 
 ## Session Continuity
 
-Last session: 2026-06-15T20:37:42.899Z
-Stopped at: Phase 86 UI-SPEC approved
-Resume file: .planning/phases/86-redesign-dashboard-to-new-screenshot-layout-and-remove-old-w/86-UI-SPEC.md
+Last session: 2026-08-10
+Stopped at: v1.14 ROADMAP.md created (Phases 87-91), REQUIREMENTS.md traceability filled 26/26
+Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 87 with `/gsd-plan-phase 87` (Release Detail Decomposition — pure refactor, safe to skip `--research-phase`)
+- Phases 88-91 each carry a flagged live-GitLab probe step (see Blockers/Concerns) — surface these during their respective planning passes
