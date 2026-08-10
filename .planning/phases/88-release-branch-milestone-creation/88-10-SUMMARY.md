@@ -113,3 +113,12 @@ None — no external service configuration required.
 ---
 *Phase: 88-release-branch-milestone-creation*
 *Completed: 2026-08-10*
+
+## Self-Check: PASSED
+
+- FOUND: taskflow/src/services/gitlab.ts
+- FOUND: taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx
+- FOUND: taskflow/src/routes/dashboard/release-detail/CreateBranchDialog.tsx
+- FOUND: commit 03e85b5c (feat(88-10): read GitLab response body before classifying 401/403 on create paths (WR-11))
+- FOUND: commit 4d94770a (feat(88-10): prefill a valid milestone title from the Jira version name (WR-01, WR-10))
+- FOUND: commit f4d764a7 (feat(88-10): lock both create dialogs against dismissal while a write is in flight (WR-03))
