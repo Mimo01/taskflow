@@ -94,8 +94,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 88-01-PLAN.md — Pure `releaseBranch.ts` + `releaseMilestone.ts` modules with unit tests (version derivation, git-ref validation, title format, duplicate detection)
-- [ ] 88-02-PLAN.md — `gitlab.ts` service layer: `fetchProject`, `fetchProjectBranches`, `fetchBranch` (404-as-missing), `createBranch`, `createMilestone` + interface extensions
+- [x] 88-01-PLAN.md — Pure `releaseBranch.ts` + `releaseMilestone.ts` modules with unit tests (version derivation, git-ref validation, title format, duplicate detection)
+- [x] 88-02-PLAN.md — `gitlab.ts` service layer: `fetchProject`, `fetchProjectBranches`, `fetchBranch` (404-as-missing), `createBranch`, `createMilestone` + interface extensions
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -226,7 +226,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
+| 88. Release Branch & Milestone Creation | 2/6 | In Progress|  |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
