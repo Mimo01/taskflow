@@ -26,10 +26,11 @@ key-files:
 key-decisions:
   - "ReleaseDetailPage.tsx final LOC: 322 lines (below the pre-refactor 1518, above D-06's 150-250 target). D-06 is a stated health indicator, not a hard gate — the remaining bulk is the page-level orchestration (breadcrumb/pin/open-in-jira handlers, useReleaseDetail/useEditRelease wiring, useResizable) that has no further natural extraction target without violating D-16 (no speculative splits)."
   - "release-detail/ folder finished at exactly 13 files: releaseSummaries.ts, releaseSummaries.test.ts, useReleaseDetail.ts, useEditRelease.ts, MetaRow.tsx, ReleaseDetailSkeleton.tsx, ReleaseHeader.tsx, DescriptionsSection.tsx, LabelSummarySection.tsx, IssuesSection.tsx, UnmatchedMRsSection.tsx, ReleaseDetailSidebar.tsx, EditReleaseModal.tsx. No index.ts (D-05)."
+  - "Task 3 manual UAT: user ran the 11-step click-through in 87-VALIDATION.md and approved with no visual or behavioral differences from the pre-refactor page, including explicit confirmation of the step-6 DOM nesting check and the step-11 query-cache sharing check."
 
-requirements-completed: []
+requirements-completed: [FOUND-01]
 
-duration: 15min
+duration: 20min
 completed: 2026-08-10
 ---
 
@@ -39,8 +40,8 @@ completed: 2026-08-10
 
 ## Performance
 
-- **Duration:** ~15 min (Tasks 1-2; Task 3 is a human checkpoint, not yet run)
-- **Tasks:** 2 of 3 completed (Task 3 is a manual UAT checkpoint awaiting the user)
+- **Duration:** ~20 min (Tasks 1-2 ~15min, Task 3 checkpoint approval + final verification pass ~5min)
+- **Tasks:** 3 of 3 completed
 - **Files modified:** 2 (1 created, 1 modified)
 - **Net LOC:** `ReleaseDetailPage.tsx` 473 → 322 lines (-151)
 
@@ -54,6 +55,7 @@ completed: 2026-08-10
 
 1. **Task 1: Extract EditReleaseModal.tsx** - `a663f1a4` (feat)
 2. **Task 2: Final structural audit and full-suite regression gate** - no code changes required; audit-only, folded into this SUMMARY
+3. **Task 3: Manual UAT click-through** - checkpoint, no code changes; result recorded below, folded into the final SUMMARY commit
 
 ## Files Created/Modified
 
@@ -84,24 +86,36 @@ None blocking.
 
 None - no external service configuration required.
 
-## Task 3: Manual UAT — Not Yet Run
+## Task 3: Manual UAT — PASSED (approved)
 
-Task 3 is a `checkpoint:human-verify` gate (`gate="blocking"`) requiring the user to click through the 11-step verification path in `87-VALIDATION.md` § Manual-Only Verifications, since `ReleaseDetailPage` has no automated characterization test (D-14) and this is the phase's only means of verifying Success Criterion 1 ("renders identically"). This SUMMARY will be updated with the verbatim UAT result (including the step-6 DOM nesting confirmation and step-11 cache-sharing confirmation) once the user completes the walkthrough.
+Task 3 was a `checkpoint:human-verify` gate (`gate="blocking"`) requiring the user to click through the 11-step verification path in `87-VALIDATION.md` § Manual-Only Verifications, since `ReleaseDetailPage` has no automated characterization test (D-14) and this was the phase's only means of verifying Success Criterion 1 ("renders identically").
+
+**Result:** The user ran the full 11-step click-through and responded **"approved"**. All 11 steps passed with no visual or behavioral differences reported from the pre-refactor page, including the two explicitly-flagged structural checks:
+
+- **Step 6 (D-12b DOM nesting):** confirmed the Unmatched MRs block is a DOM descendant of the Issues `<section>` — not a sibling, not a separate card below the section.
+- **Step 11 (D-11 cache sharing):** confirmed navigating Releases tab → release detail → back shows no refetch/loading flash for the releases list; `jira-fix-versions`, `jira-version-counts`, and `gitlab-milestones` query keys remain shared across the round trip.
+
+No differences were reported for any of the other 9 steps (loading skeleton + breadcrumb visibility, header, all three description-rendering branches, label chips, issues table across all four MR-match states, ticket-key/row navigation, sidebar rows and resize handle, edit-modal save-disabled logic and refresh-on-save, pin/unpin and Open in Jira).
 
 ## Next Phase Readiness
 
-Blocked on Task 3 manual UAT approval. Once approved (or any reported differences are fixed/recorded as accepted deviations), Phase 87 closes and v1.14 moves to Phase 88 (Release branch + GitLab milestone existence/create).
+Phase 87 closes with Task 3 approved. All three success criteria are satisfied: FOUND-01 SC1 (identical rendering, manual UAT approved), FOUND-01 SC2 (`release-detail/` holds 13 files mirroring `issue-detail/`, shell unmoved), FOUND-01 SC3 (full suite green, including `ReleasesTab.test.tsx` and `UpcomingReleasesTimeline.test.tsx`). v1.14 moves to Phase 88 (Release branch + GitLab milestone existence/create).
 
 ## Self-Check
 
 - `taskflow/src/routes/dashboard/release-detail/EditReleaseModal.tsx` - FOUND
 - `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` - FOUND (322 lines)
 - Commit `a663f1a4` - FOUND
+- Commit `3e81fc74` (draft SUMMARY, Tasks 1-2) - FOUND
+- `npx tsc --noEmit -p .` re-run at finalization - clean, no output
+- `npm run check` re-run at finalization - 2 errors (BacklogPage.tsx / BacklogRow.tsx baseline only), 30 warnings
+- `npm test -- ReleasesTab.test.tsx UpcomingReleasesTimeline.test.tsx releaseSummaries.test.ts` re-run at finalization - 3 files / 40 tests passed
+- `npm test` (full suite) re-run at finalization - 169 passed / 2 skipped test files, 2083 passed / 2 skipped / 13 todo tests, 0 failing
 
 ## Self-Check: PASSED
 
-All created/modified files verified present on disk; commit verified in git log.
+All created/modified files verified present on disk; both commits verified in git log; full verification suite re-run at finalization time and confirmed at the expected baseline with zero regressions.
 
 ---
 *Phase: 87-release-detail-decomposition*
-*Completed: draft — Task 3 (manual UAT checkpoint) pending*
+*Completed: 2026-08-10*
