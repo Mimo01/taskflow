@@ -456,17 +456,25 @@ function ownProjectMilestones(
 
 **If this table is empty:** N/A — see entries above.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **RELMS-04 live-data probe not executed — real milestone title collision risk unknown**
    - What we know: The real title format is `X.Y.Z (DD.MM.YYYY)` (D-01, user-confirmed). The client-side duplicate check will compare against the windowed+ancestor-filtered list (D-05/D-07).
    - What's unclear: Whether the team's actual GitLab project has any existing whitespace-padded, case-variant, or off-format milestone titles that would confuse an exact-string duplicate match, and whether `include_ancestors=true` behaves as documented (project_id/group_id presence, A3 above) on this specific GitLab instance/version.
-   - Recommendation: `probe.sh` (written to this phase's directory) must be run by a human with `GITLAB_BASE_URL`, `GITLAB_PAT`, and `PROJECT_ID` env vars set, against the real GitLab instance, before RELMS-04's exact-match-vs-fuzzy-match decision is locked in a plan. This is a manual-run script (same convention as Phase 85's `probe.sh`) — this research agent has no access to the app's stored PAT (Tauri stronghold, unlockable only inside the running desktop app) and cannot execute it directly.
+   - **Resolved: 2026-08-10** — `probe.sh` was run against the live instance (`git.devel.sun.orange.sk`, project 455) during Plan 88-11 Task 5. 265 milestones fetched with `include_ancestors=true`.
+     - Probe B verdict, verbatim: `PROBE B => PASS (project_id field present — D-07 local filter is viable)`. All 265 carry `project_id == 455`; **0** inherited/ancestor milestones. Assumption A3 is confirmed — `ownProjectMilestones` takes its filtering path, never the defensive unfiltered fallback.
+     - Probe C collisions: **0**. The trimmed-duplicate section printed no `COLLISION:` lines, and there are no exact full-title duplicates either. `normalizeMilestoneTitle` (trim + collapse whitespace + lowercase) blocks no legitimate title in the team's real history, so `findDuplicateMilestone`'s exact-normalized-match approach is validated against real data.
+     - Off-format titles: **157 of 265**. Of these, **78** are structurally correct but not zero-padded (`D.M.YYYY` rather than `DD.MM.YYYY` — e.g. `13.4.0 (3.1.2023)`, `25.9.0 (3.6.2025)`, `29.6.0 (6.3.2026)`), and **79** are legacy or non-version titles (`v0.13.5`, `sprint-3`, `sprint-2`, `sprint-0`, `XMAS`, `CHR5`, `8.26`, `8.28.0`, `6.8.0`, `15.11.2022`, plus one malformed `17.4.0 (Fix 26.09.2023)`). The sole **active** milestone, `33.7.0 (11.08.2026)`, is in strict D-01/D-02 format — no active release carries an off-format title, so D-11's unparseable-title gate is exercised only by closed history.
+     - App/probe agreement: confirmed in the running app. The create-milestone dialog for release `Standard 18.8.2026` (window 2026-08-11 → 2026-08-25) showed exactly `33.7.0 (11.08.2026)`, matching the probe's own-project titles for that window, with no inherited titles present.
+   - **Follow-up findings (recorded, not fixed here — out of scope per Plan 88-11 step 5):**
+     - *Non-padded dates weaken duplicate detection.* `findDuplicateMilestone` compares the whole normalized title, and the team writes dates both padded and unpadded. A legacy `25.9.0 (3.6.2025)` would not collide with a newly created `25.9.0 (03.06.2025)`, so the app can create what the team reads as a second milestone for the same release. Zero collisions today, but the check is weaker in practice than the clean result implies.
+     - *Duplicate version numbers across different dates.* `28.9.0` exists as both `(16.12.2025)` and `(13.01.2026)`; `33.6.0` as both `(04.08.2026)` and `(28.07.2026)`. Because D-09 derives branch names from the version component only, `release/28.9.0` and `release/33.6.0` are each ambiguous between two milestones.
 
 2. **Exact GitLab edition/version running on the team's instance is unconfirmed**
    - What we know: The codebase already targets GitLab API v4 (`/api/v4/...`) consistently across `gitlab.ts`; `include_ancestors` (the current, non-deprecated param name) is already in use, implying a reasonably current GitLab version (16.7+).
    - What's unclear: The precise GitLab CE/EE version and whether any self-hosted customization affects the exact response shapes documented above.
    - Recommendation: Not blocking for this phase — the API shapes used (branches, milestones, projects) have been stable across many GitLab releases. If `probe.sh` surfaces an unexpected response shape, escalate then.
+   - Discharged by escalation-if-needed per Plan 88-11 `<out_of_scope>`: the probe returned the documented response shapes for projects, branches and milestones, so no escalation was triggered.
 
 ## Environment Availability
 
