@@ -7,6 +7,8 @@ import {
   type MilestoneLike,
   normalizeMilestoneTitle,
   ownProjectMilestones,
+  RECENT_MILESTONE_LIMIT,
+  recentMilestonesByDate,
 } from './releaseMilestone';
 
 function makeMilestone(overrides: Partial<MilestoneLike> = {}): MilestoneLike {
@@ -126,5 +128,66 @@ describe('findDuplicateMilestone', () => {
     ];
     const result = findDuplicateMilestone(milestones, '33.5.0 (21.07.2026)', 7);
     expect(result).toBeNull();
+  });
+});
+
+describe('recentMilestonesByDate', () => {
+  it('returns the newest milestones first', () => {
+    const milestones = [
+      makeMilestone({ title: '33.5.0 (21.07.2026)', due_date: '2026-07-21' }),
+      makeMilestone({ title: '33.7.0 (11.08.2026)', due_date: '2026-08-11' }),
+      makeMilestone({ title: '33.6.0 (04.08.2026)', due_date: '2026-08-04' }),
+    ];
+    const result = recentMilestonesByDate(milestones);
+    expect(result.map((m) => m.title)).toEqual([
+      '33.7.0 (11.08.2026)',
+      '33.6.0 (04.08.2026)',
+      '33.5.0 (21.07.2026)',
+    ]);
+  });
+
+  it('caps the list at the requested limit', () => {
+    const milestones = Array.from({ length: 12 }, (_, i) =>
+      makeMilestone({ title: `33.${i}.0`, due_date: `2026-08-${String(i + 1).padStart(2, '0')}` }),
+    );
+    expect(recentMilestonesByDate(milestones, 5)).toHaveLength(5);
+  });
+
+  it('defaults to RECENT_MILESTONE_LIMIT entries', () => {
+    const milestones = Array.from({ length: 12 }, (_, i) =>
+      makeMilestone({ title: `33.${i}.0`, due_date: `2026-08-${String(i + 1).padStart(2, '0')}` }),
+    );
+    expect(recentMilestonesByDate(milestones)).toHaveLength(RECENT_MILESTONE_LIMIT);
+  });
+
+  it('falls back to start_date when due_date is absent', () => {
+    const milestones = [
+      makeMilestone({ title: 'older', due_date: null, start_date: '2026-01-01' }),
+      makeMilestone({ title: 'newer', due_date: null, start_date: '2026-06-01' }),
+    ];
+    expect(recentMilestonesByDate(milestones).map((m) => m.title)).toEqual(['newer', 'older']);
+  });
+
+  it('sorts undated milestones last rather than dropping them', () => {
+    const milestones = [
+      makeMilestone({ title: 'undated', due_date: null, start_date: null }),
+      makeMilestone({ title: 'dated', due_date: '2026-08-11' }),
+    ];
+    expect(recentMilestonesByDate(milestones).map((m) => m.title)).toEqual(['dated', 'undated']);
+  });
+
+  it('returns an empty list for a non-positive limit', () => {
+    const milestones = [makeMilestone({ title: '33.7.0 (11.08.2026)', due_date: '2026-08-11' })];
+    expect(recentMilestonesByDate(milestones, 0)).toEqual([]);
+  });
+
+  it('does not mutate the input array', () => {
+    const milestones = [
+      makeMilestone({ title: 'a', due_date: '2026-01-01' }),
+      makeMilestone({ title: 'b', due_date: '2026-06-01' }),
+    ];
+    const snapshot = milestones.map((m) => m.title);
+    recentMilestonesByDate(milestones);
+    expect(milestones.map((m) => m.title)).toEqual(snapshot);
   });
 });
