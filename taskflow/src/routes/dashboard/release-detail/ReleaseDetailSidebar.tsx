@@ -170,18 +170,21 @@ export function ReleaseDetailSidebar({
               </span>
             )
           ) : (
-            <span className="flex items-center justify-between gap-2">
+            // Stacked, not justify-between: in a narrow sidebar the warning and
+            // its action crowd each other on one line, and justify-between drags
+            // them to opposite edges with a ragged gap between.
+            <span className="flex flex-col items-start gap-1">
               <span
                 className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
                 data-testid="gitlab-link-none"
               >
-                <AlertTriangle className="size-3" />
+                <AlertTriangle className="size-3 shrink-0" />
                 No milestone matched
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5 text-xs h-7"
+                className="-ml-2 h-7 gap-1.5 text-xs"
                 onClick={onCreateMilestone}
                 disabled={!canCreateMilestone}
                 title={canCreateMilestone ? undefined : 'Set a release date on this version first'}
@@ -193,7 +196,8 @@ export function ReleaseDetailSidebar({
         </MetaRow>
 
         <MetaRow label="Release Branch">
-          <span className="flex items-center justify-between gap-2">
+          {/* Stacked rather than justify-between — see the milestone row above. */}
+          <span className="flex flex-col items-start gap-1">
             {branchState.kind === 'blocked-no-milestone' ? (
               <span className="text-muted-foreground" data-testid="branch-status-blocked">
                 Create the milestone first
@@ -231,8 +235,24 @@ export function ReleaseDetailSidebar({
                 className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
                 data-testid="branch-status-exists"
               >
-                <Check className="size-3" />
+                <Check className="size-3 shrink-0" />
                 <span className="font-mono text-xs">{branchState.branchName}</span>
+              </span>
+            ) : branchState.kind === 'released' ? (
+              <span
+                className="inline-flex items-center gap-1 text-muted-foreground"
+                title={
+                  branchState.tagName
+                    ? `${branchState.branchName} was merged and deleted; tagged ${branchState.tagName}`
+                    : `${branchState.branchName} was merged and deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
+                }
+                data-testid="branch-status-released"
+              >
+                <Check className="size-3 shrink-0" />
+                Released
+                {branchState.tagName && (
+                  <span className="font-mono text-xs">{branchState.tagName}</span>
+                )}
               </span>
             ) : (
               <span

@@ -330,6 +330,60 @@ export async function fetchProjectBranches(
   return allBranches;
 }
 
+/**
+ * Fetch a project's tags matching `search`, following pagination.
+ *
+ * Used to surface the artifact of a released version whose release branch has
+ * already been merged and deleted. Tags are an INCOMPLETE record — some
+ * shipped releases carry no tag — so a caller must treat a miss as "no tag
+ * found", never as "not released".
+ *
+ * Unlike the branch and milestone fetchers this resolves to an empty list on
+ * failure instead of throwing: the tag is supplementary evidence decorating an
+ * already-known released state, so a tag outage must not escalate into a
+ * branch-row error.
+ *
+ * @param baseUrl - GitLab base URL
+ * @param token - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param search - substring filter passed to GitLab's `search` param
+ * @returns matching tags, or an empty list if the lookup fails
+ */
+export async function searchProjectTags(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  search: string,
+): Promise<GitLabTag[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  // Bounded so a paginating server that never shrinks a page cannot spin
+  // forever; 20 pages covers 2000 tags, well past any realistic search hit.
+  const maxPages = 20;
+  const allTags: GitLabTag[] = [];
+
+  try {
+    for (let page = 1; page <= maxPages; page++) {
+      const url = `${base}/api/v4/projects/${projectId}/repository/tags?per_page=${perPage}&page=${page}&search=${encodeURIComponent(search)}`;
+      const response = await apiFetch(
+        'gitlab',
+        url,
+        { headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' } },
+        'Load Release Tags',
+      );
+      if (!response.ok) return allTags;
+
+      const data = (await response.json()) as GitLabTag[];
+      allTags.push(...data);
+      if (data.length < perPage) break;
+    }
+  } catch {
+    return allTags;
+  }
+
+  return allTags;
+}
+
 // ─── Phase 2: Developer Dashboard ────────────────────────────────────────────
 
 export interface GitLabMilestone {

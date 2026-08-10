@@ -91,6 +91,27 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     expect(el).toHaveTextContent('No release branch');
   });
 
+  it('renders the released state with its tag, and offers no Create action', () => {
+    renderSidebar({
+      branchState: { kind: 'released', branchName: 'release/33.6.0', tagName: 'v33.6.0' },
+    });
+    const el = screen.getByTestId('branch-status-released');
+    expect(el).toHaveTextContent('Released');
+    expect(el).toHaveTextContent('v33.6.0');
+    // A shipped release must not invite re-creating its merged branch.
+    expect(screen.queryByRole('button', { name: /create branch/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('branch-status-missing')).not.toBeInTheDocument();
+  });
+
+  it('renders the released state without a tag — a missing tag is not evidence of drift', () => {
+    renderSidebar({
+      branchState: { kind: 'released', branchName: 'release/33.5.0', tagName: null },
+    });
+    const el = screen.getByTestId('branch-status-released');
+    expect(el).toHaveTextContent('Released');
+    expect(screen.queryByTestId('branch-status-missing')).not.toBeInTheDocument();
+  });
+
   it('Test F: renders the check-failed state', () => {
     renderSidebar({
       branchState: { kind: 'check-failed', branchName: 'release/33.5.0' },
