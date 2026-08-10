@@ -14,7 +14,7 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { RefreshCw, Rocket } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -22,7 +22,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMilestone } from '@/services/gitlab';
-import { fetchProjectMilestonesInRange } from '@/services/gitlab';
+import { fetchProjectBranches, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import { fetchFixVersions } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
@@ -31,6 +31,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
+import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
 
 interface VersionIssueCounts {
   issuesFixed: number;
@@ -75,6 +76,8 @@ interface MatchedVersion {
   match: ReleaseMatch;
   issuesFixed: number;
   issuesTotal: number;
+  branchMissing: boolean;
+  milestoneMissing: boolean;
 }
 
 type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
@@ -179,6 +182,29 @@ export default function ReleasesTab() {
     staleTime: 5 * 60_000,
   });
 
+  // D-18: the entire `release/`-prefixed branch set is fetched in exactly ONE
+  // fully-paginated request regardless of row count, then matched locally per
+  // row. Never a per-row batch-query-hook call (that pattern exists a few
+  // lines below only because Jira issue counts have no batch endpoint) and never an
+  // unfiltered all-branches fetch.
+  const { data: releaseBranches } = useQuery({
+    queryKey: ['gitlab-release-branches', activeGitlabProject],
+    queryFn: () =>
+      fetchProjectBranches(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        RELEASE_BRANCH_PREFIX,
+      ),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
+    staleTime: 5 * 60_000,
+  });
+
+  const releaseBranchNames = useMemo(
+    () => new Set((releaseBranches ?? []).map((b) => b.name)),
+    [releaseBranches],
+  );
+
   // Per-version issue counts (parallel queries)
   const versionCountQueries = useQueries({
     queries: (fixVersions ?? []).map((v) => ({
@@ -210,11 +236,22 @@ export default function ReleasesTab() {
         (_, i) => (fixVersions ?? [])[i]?.id === version.id,
       );
       const counts = countQuery?.data;
+
+      // D-17/D-18/D-19: derive drift flags locally from the matched milestone
+      // title. D-11 — an unparseable version in the title derives `null` and
+      // shows no branch indicator (nothing is guessed).
+      const milestoneMissing = bestMatch.type === 'none';
+      const derived =
+        bestMatch.type === 'none' ? null : deriveReleaseBranchName(bestMatch.candidateName);
+      const branchMissing = derived !== null && !releaseBranchNames.has(derived);
+
       return {
         version,
         match: bestMatch,
         issuesFixed: counts?.issuesFixed ?? 0,
         issuesTotal: counts?.issuesTotal ?? 0,
+        branchMissing,
+        milestoneMissing,
       };
     };
 
