@@ -74,7 +74,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 87-06-PLAN.md — Extract `EditReleaseModal`, final structural audit, full-suite gate + manual UAT
+- [x] 87-06-PLAN.md — Extract `EditReleaseModal`, final structural audit, full-suite gate + manual UAT
 
 **UI hint**: yes
 
@@ -206,7 +206,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. Release Detail Decomposition | 5/6 | In Progress|  |
+| 87. Release Detail Decomposition | 6/6 | Complete   | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
