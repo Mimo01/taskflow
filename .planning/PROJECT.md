@@ -4,6 +4,19 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a graph-driven personal dashboard, a dedicated My Tasks command center, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
+## Current Milestone: v1.14 Release Management
+
+**Goal:** Turn the Releases view from a read-only Jira↔GitLab match into a working release-coordination surface that detects git-flow drift and lets the user fix it per-MR.
+
+**Target features:**
+- **Release branch awareness** — resolve `release/<milestone name>` (milestone is the tag source, `release/` prefix hardcoded), detect whether it exists, warn at release level when it doesn't, and offer to create it off the GitLab project default branch behind a confirm dialog
+- **Three-channel MR discovery + drift flagging** — union MRs found via (A) Jira-key linkage to fix-version issues, (B) carrying the GitLab milestone, (C) targeting the release branch; the disagreements between channels are the signal (wrong target branch, missing milestone, task not in fix version)
+- **Per-MR corrective actions** — retarget to the release branch and assign the release milestone, applied directly with optimistic update + rollback, per-row inline status and retry (v1.12 bulk-subtask row pattern, no "fix all")
+- **Milestone creation** — create a missing GitLab milestone from the release view (format `1.1.0` / `2.0.0`), latest milestones listed for reference, user types the final name, behind a confirm dialog
+- **Post-release merge-back check** — once the Jira fix version is marked released, verify `release/[tag]` has been merged into the default branch; surface the release as unfinished until it lands
+
+**Key context:** Builds on `releaseLinker.ts` (date-only matching), `fetchMilestoneMRs`, and `updateMilestone` — the only pre-existing GitLab write. New GitLab API surface: create branch, create milestone, update MR target branch, assign MR milestone, branch merge-status check. The `develop` branch is the GitLab project default branch — read it from the API, no configuration.
+
 ## Latest Shipped Milestone: v1.13 Personal Workspace (shipped 2026-06-16)
 
 **Goal:** Give each person a focused home in Taskflow — a real "My Tasks" command center, the app's first charting capability, and a redesigned graph-driven Dashboard that surfaces what matters at a glance. **17/18 committed requirements delivered (DASH-06 descoped, INSIGHT-01/02 retired by design); milestone audit `tech_debt` with 0 blockers.**
@@ -145,9 +158,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- Milestone v1.13 shipped 2026-06-16. No active milestone — next milestone TBD via /gsd:new-milestone. -->
+<!-- Milestone v1.14 Release Management started 2026-08-10. -->
 
-_None — v1.13 Personal Workspace shipped. Define the next milestone with `/gsd:new-milestone`._
+- [ ] Release branch resolved as `release/<milestone name>`; existence detected and surfaced as a release-level warning when missing
+- [ ] Create the missing release branch off the GitLab project default branch, behind a confirm dialog
+- [ ] Three-channel MR discovery for a release (Jira-key linkage, milestone-carrying, release-branch-targeting) unioned into one MR set
+- [ ] Drift flagging: wrong target branch, missing milestone, and MRs whose Jira task isn't in the fix version
+- [ ] Per-MR corrective actions (retarget to release branch, assign release milestone) with per-row status and retry
+- [ ] Create a missing GitLab milestone from the release view (format `1.1.0`), latest milestones listed for reference, user types the name
+- [ ] Post-release merge-back check: once the Jira fix version is released, verify `release/[tag]` merged into the default branch
 
 ### Out of Scope
 
@@ -160,7 +179,7 @@ _None — v1.13 Personal Workspace shipped. Define the next milestone with `/gsd
 - Email or Slack notifications — external service dependencies
 - Inline MR diff / full code review UI — GitLab's UI is mature; deep-link for full review
 - Bulk operations on sprint board issues — components built but user-deferred during v1.5 review; files on disk, not wired
-- GitLab write actions (approve, comment, request changes) — deferred to v2.0
+- GitLab *review* write actions (approve, comment, request changes) — deferred to v2.0. Narrowed at v1.14: release-management writes (create branch, create milestone, retarget MR, assign milestone) are explicitly in scope; the exclusion now covers only code-review actions, where GitLab's own UI is mature
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
 - Pinned-issues section on Standup Notes Today (STAND-08) — descoped by user during v1.10 Phase 70; pinning surface stays on the issue itself
 - Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit c5b19544); Log Work stays on the Worklogs page and issue detail
@@ -351,4 +370,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Dashboard charts source from existing data only — no new API surface (v1.13 Phase 86) | Reuse warm caches (sprint data, Tempo worklogs, releases, commits); a redesign shouldn't add fetch cost | ✓ Good — dual-axis chart + cards built entirely on existing queries |
 
 ---
-*Last updated: 2026-06-16 — after v1.13 Personal Workspace milestone*
+*Last updated: 2026-08-10 — after starting v1.14 Release Management milestone*
