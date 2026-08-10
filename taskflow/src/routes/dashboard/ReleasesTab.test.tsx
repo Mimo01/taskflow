@@ -2,7 +2,7 @@
 // PM-04: Completion status per fix version row
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,6 +21,7 @@ vi.mock('@/services/jira', () => ({
 vi.mock('@/services/gitlab', () => ({
   fetchProjectMilestonesInRange: vi.fn().mockResolvedValue([]),
   fetchProjectTags: vi.fn().mockResolvedValue([]),
+  fetchProjectBranches: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock releaseLinker
@@ -78,9 +79,12 @@ describe('ReleasesTab', () => {
     } as Response);
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([]);
-    const { fetchProjectMilestonesInRange, fetchProjectTags } = await import('@/services/gitlab');
+    const { fetchProjectMilestonesInRange, fetchProjectTags, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([]);
     vi.mocked(fetchProjectTags).mockResolvedValue([]);
+    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
     vi.mocked(matchGitLabToFixVersion).mockReturnValue({
       type: 'none',
@@ -404,5 +408,122 @@ describe('REL-03: timing labels', () => {
 
     await screen.findByText('Future Release');
     expect(screen.getByText(/in \d+ days/i)).toBeTruthy();
+  });
+});
+
+describe('release-row drift indicators (D-17/D-18/D-19)', () => {
+  it('fetches the release branch set exactly once, filtered by the release/ prefix', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'v33.5.0', '2026-07-21'),
+      makeFixVersion('v2', 'v33.6.0', '2026-08-01'),
+      makeFixVersion('v3', 'v33.7.0', '2026-08-15'),
+    ]);
+
+    const { fetchProjectBranches } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
+    // Guard against cross-test bleed: earlier tests' components may still have
+    // in-flight promises resolving on the shared module mock when this test's
+    // render begins. Clear synchronously right before render (before any
+    // await yields to the microtask queue) so only this render's real calls
+    // are counted below.
+    vi.mocked(fetchProjectBranches).mockClear();
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText('v33.5.0');
+
+    expect(fetchProjectBranches).toHaveBeenCalledTimes(1);
+    expect(fetchProjectBranches).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.any(Number),
+      'release/',
+    );
+  });
+
+  it('shows the missing-branch indicator when the derived branch name is absent from the fetched set', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    // Provide a milestone candidate so matchGitLabToFixVersion (mocked below) is invoked
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
+      {
+        id: 1,
+        iid: 1,
+        title: '33.5.0 (21.07.2026)',
+        description: null,
+        start_date: null,
+        due_date: '2026-07-21',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'exact',
+      candidateName: '33.5.0 (21.07.2026)',
+      candidateUrl: 'https://gitlab.example.com/milestone/1',
+    });
+
+    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    const icon = await screen.findByTestId('row-missing-branch');
+    expect(icon.getAttribute('title')).toBe('No release branch');
+  });
+
+  it('hides the missing-branch indicator when the derived branch name is present in the fetched set', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    // Provide a milestone candidate so matchGitLabToFixVersion (mocked below) is invoked
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
+      {
+        id: 1,
+        iid: 1,
+        title: '33.5.0 (21.07.2026)',
+        description: null,
+        start_date: null,
+        due_date: '2026-07-21',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'exact',
+      candidateName: '33.5.0 (21.07.2026)',
+      candidateUrl: 'https://gitlab.example.com/milestone/1',
+    });
+
+    vi.mocked(fetchProjectBranches).mockResolvedValue([
+      {
+        name: 'release/33.5.0',
+        web_url: 'https://gitlab.example.com/branch/release%2F33.5.0',
+        merged: false,
+        protected: false,
+        commit: { id: 'abc123', short_id: 'abc123' },
+      },
+    ]);
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText('v33.5.0');
+    await waitFor(() => {
+      expect(screen.queryByTestId('row-missing-branch')).toBeNull();
+    });
   });
 });
