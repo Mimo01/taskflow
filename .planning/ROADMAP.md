@@ -148,7 +148,7 @@ Gap Wave 4 *(blocked on 88-07..88-10)*
 Plans:
 **Wave 1**
 
-- [ ] 89-01-PLAN.md — Probe A2 + widen GitLabMR + three fully-paginated MR fetchers
+- [x] 89-01-PLAN.md — Probe A2 + widen GitLabMR + three fully-paginated MR fetchers
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -264,7 +264,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
-| 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
+| 89. Three-Channel Drift Detection | 1/5 | In Progress|  |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
