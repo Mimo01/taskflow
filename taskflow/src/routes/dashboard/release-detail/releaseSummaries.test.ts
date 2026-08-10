@@ -29,12 +29,14 @@ function makeMR(overrides: Partial<GitLabMR> = {}): GitLabMR {
   } as unknown as GitLabMR;
 }
 
-function makeIssue(overrides: {
-  key?: string;
-  statusCategoryKey?: string | undefined;
-  storyPoints?: number | null | undefined;
-  storyPointsFieldKey?: string;
-} = {}): JiraIssue {
+function makeIssue(
+  overrides: {
+    key?: string;
+    statusCategoryKey?: string | undefined;
+    storyPoints?: number | null | undefined;
+    storyPointsFieldKey?: string;
+  } = {},
+): JiraIssue {
   const fieldKey = overrides.storyPointsFieldKey ?? 'customfield_10016';
   return {
     id: '1',
