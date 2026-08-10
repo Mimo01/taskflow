@@ -62,7 +62,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 87-03-PLAN.md — Extract `MetaRow`, `ReleaseDetailSkeleton`, `ReleaseHeader`, `DescriptionsSection`, `LabelSummarySection`
+- [x] 87-03-PLAN.md — Extract `MetaRow`, `ReleaseDetailSkeleton`, `ReleaseHeader`, `DescriptionsSection`, `LabelSummarySection`
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -206,7 +206,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. Release Detail Decomposition | 2/6 | In Progress|  |
+| 87. Release Detail Decomposition | 3/6 | In Progress|  |
 | 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
