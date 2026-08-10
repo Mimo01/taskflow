@@ -123,7 +123,7 @@ Gap Wave 2 *(blocked on 88-08)*
 
 Gap Wave 3 *(blocked on 88-09)*
 
-- [ ] 88-10-PLAN.md — WR-11 body-first 401/403 error classification + WR-01 valid title prefill + WR-03 in-flight dismissal lock
+- [x] 88-10-PLAN.md — WR-11 body-first 401/403 error classification + WR-01 valid title prefill + WR-03 in-flight dismissal lock
 
 Gap Wave 4 *(blocked on 88-07..88-10)*
 
@@ -245,7 +245,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 9/11 | In Progress|  |
+| 88. Release Branch & Milestone Creation | 10/11 | In Progress|  |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
