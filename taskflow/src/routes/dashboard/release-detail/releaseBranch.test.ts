@@ -121,11 +121,11 @@ describe('isValidGitRefName', () => {
   });
 
   it('rejects a name containing an ASCII control character', () => {
-    expect(isValidGitRefName('release/33.5.0')).toBe(false);
+    expect(isValidGitRefName('release/33.5.0\u0001')).toBe(false); // SOH control char
   });
 
   it('rejects a name containing a DEL character', () => {
-    expect(isValidGitRefName('release/33.5.0')).toBe(false);
+    expect(isValidGitRefName('release/33.5.0\u007F')).toBe(false); // DEL
   });
 
   it('rejects each disallowed special character', () => {
@@ -187,5 +187,64 @@ describe('resolveBranchState', () => {
       branchExists: false,
     });
     expect(result).toEqual({ kind: 'missing', branchName: 'release/33.5.0' });
+  });
+
+  it('returns check-failed when the branch-existence query errored (CR-03)', () => {
+    const result: BranchState = resolveBranchState({
+      hasMatchedMilestone: true,
+      milestoneTitle: '33.5.0 (21.07.2026)',
+      branchExists: undefined,
+      branchCheckFailed: true,
+    });
+    expect(result).toEqual({ kind: 'check-failed', branchName: 'release/33.5.0' });
+  });
+
+  it('returns loading when branchCheckFailed is false', () => {
+    const result: BranchState = resolveBranchState({
+      hasMatchedMilestone: true,
+      milestoneTitle: '33.5.0 (21.07.2026)',
+      branchExists: undefined,
+      branchCheckFailed: false,
+    });
+    expect(result).toEqual({ kind: 'loading', branchName: 'release/33.5.0' });
+  });
+
+  it('returns loading when branchCheckFailed is omitted (optional, defaults to not-failed)', () => {
+    const result: BranchState = resolveBranchState({
+      hasMatchedMilestone: true,
+      milestoneTitle: '33.5.0 (21.07.2026)',
+      branchExists: undefined,
+    });
+    expect(result).toEqual({ kind: 'loading', branchName: 'release/33.5.0' });
+  });
+
+  it('returns blocked-no-milestone even when branchCheckFailed is true (D-10 outranks CR-03)', () => {
+    const result: BranchState = resolveBranchState({
+      hasMatchedMilestone: false,
+      milestoneTitle: null,
+      branchExists: undefined,
+      branchCheckFailed: true,
+    });
+    expect(result).toEqual({ kind: 'blocked-no-milestone' });
+  });
+
+  it('returns unresolvable even when branchCheckFailed is true (D-11 outranks CR-03)', () => {
+    const result: BranchState = resolveBranchState({
+      hasMatchedMilestone: true,
+      milestoneTitle: 'Sprint 42',
+      branchExists: undefined,
+      branchCheckFailed: true,
+    });
+    expect(result).toEqual({ kind: 'unresolvable' });
+  });
+
+  it('returns check-failed even when branchExists is true (error wins over a stale successful value)', () => {
+    const result: BranchState = resolveBranchState({
+      hasMatchedMilestone: true,
+      milestoneTitle: '33.5.0 (21.07.2026)',
+      branchExists: true,
+      branchCheckFailed: true,
+    });
+    expect(result).toEqual({ kind: 'check-failed', branchName: 'release/33.5.0' });
   });
 });
