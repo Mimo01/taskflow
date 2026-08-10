@@ -35,7 +35,6 @@ import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -46,6 +45,8 @@ import { readSecret } from '@/services/stronghold';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { MetaRow } from './release-detail/MetaRow';
+import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
 // ---- Main Component ----
@@ -1128,40 +1129,6 @@ export default function ReleaseDetailPage() {
           </Dialog.Root>
         </div>
       )}
-    </div>
-  );
-}
-
-// ---- Shared layout components (matching MergeRequestDetailPage) ----
-
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="text-xs text-muted-foreground w-28 shrink-0 pt-0.5">{label}</span>
-      <span className="flex-1 min-w-0">{children}</span>
-    </div>
-  );
-}
-
-// ---- Skeleton ----
-
-function ReleaseDetailSkeleton() {
-  return (
-    <div data-testid="release-detail-skeleton" className="flex h-full p-6 gap-6">
-      <div className="flex-1 space-y-4">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-16 w-full" />
-      </div>
-      <div className="shrink-0 space-y-3" style={{ width: 288 }}>
-        <Skeleton className="h-5 w-full" />
-        <Skeleton className="h-5 w-full" />
-        <Skeleton className="h-5 w-3/4" />
-        <Skeleton className="h-5 w-full" />
-      </div>
     </div>
   );
 }
