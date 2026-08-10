@@ -7,6 +7,8 @@ import {
   GitBranch,
   GitMerge,
   Pencil,
+  Plus,
+  RefreshCw,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,28 +19,33 @@ import { MetaRow } from './MetaRow';
 import type { BranchState } from './releaseBranch';
 import type { LabelCoverage } from './releaseSummaries';
 
-// Inline text action for the sidebar meta rows. These rows are a column of
-// quiet label/value pairs, and a full ghost Button (h-7, its own padding and
-// hover fill) read as a control dropped into a data list. A text link keeps
-// the row rhythm while staying a real <button> for keyboard and a11y.
+// Inline action for the sidebar meta rows. Bordered rather than ghost: a
+// borderless control in a column of label/value pairs reads as text, so the
+// outline is what marks it as clickable. Kept short (h-6) and icon-led so it
+// still sits inside the row rhythm instead of towering over it.
 function RowAction({
   children,
   onClick,
   title,
+  icon: Icon = Plus,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title?: string;
+  icon?: typeof Plus;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       onClick={onClick}
       title={title}
-      className="rounded-sm text-primary text-xs hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="h-6 gap-1 px-2 text-xs"
     >
+      <Icon className="size-3 shrink-0" />
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -229,7 +236,9 @@ export function ReleaseDetailSidebar({
                 <AlertTriangle className="size-3 shrink-0" />
                 Couldn't check
               </span>
-              <RowAction onClick={onRetryBranchCheck}>Retry</RowAction>
+              <RowAction icon={RefreshCw} onClick={onRetryBranchCheck}>
+                Retry
+              </RowAction>
             </span>
           ) : branchState.kind === 'loading' ? (
             <span className="text-muted-foreground text-xs">Loading...</span>
