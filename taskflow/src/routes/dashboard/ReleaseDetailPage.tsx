@@ -14,20 +14,16 @@ import {
   Calendar,
   Check,
   ExternalLink,
-  FileText,
   GitMerge,
   Info,
   Loader2,
   Pencil,
   Pin,
-  Tag,
   X,
 } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -43,6 +39,8 @@ import { readSecret } from '@/services/stronghold';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { DescriptionsSection } from './release-detail/DescriptionsSection';
+import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { MetaRow } from './release-detail/MetaRow';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { ReleaseBreadcrumbHeader, ReleaseTitleHeading } from './release-detail/ReleaseHeader';
@@ -325,79 +323,17 @@ export default function ReleaseDetailPage() {
 
               {/* Description(s) — when a GitLab milestone is matched but neither
                   side has text, collapse the two empty blocks into one. */}
-              {gitlabMatch.type !== 'none' &&
-              matchedMilestone &&
-              !version.description &&
-              !matchedMilestone.description ? (
-                <section>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <FileText className="size-3.5" />
-                    Description
-                  </h3>
-                  <p className="text-sm text-muted-foreground italic">No description</p>
-                </section>
-              ) : (
-                <>
-                  {/* Jira Description */}
-                  <section>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <FileText className="size-3.5" />
-                      {gitlabMatch.type !== 'none' && matchedMilestone
-                        ? 'Jira Description'
-                        : 'Description'}
-                    </h3>
-                    {version.description ? (
-                      <p className="text-sm whitespace-pre-wrap">{version.description}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">No description</p>
-                    )}
-                  </section>
-
-                  {/* GitLab Description */}
-                  {gitlabMatch.type !== 'none' && matchedMilestone && (
-                    <section>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <FileText className="size-3.5" />
-                        GitLab Description
-                      </h3>
-                      {matchedMilestone.description ? (
-                        <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_li]:my-0">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {matchedMilestone.description}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic">No description</p>
-                      )}
-                    </section>
-                  )}
-                </>
-              )}
+              <DescriptionsSection
+                gitlabMatchType={gitlabMatch.type}
+                matchedMilestone={matchedMilestone}
+                versionDescription={version.description}
+              />
 
               {/* Label summary from milestone MRs */}
-              {milestoneMRs && labelSummary.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Tag className="size-3.5" />
-                    Labels
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {labelSummary.map((l) => (
-                      <span
-                        key={l.label.name}
-                        className="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
-                        style={{
-                          backgroundColor: l.label.color,
-                          color: l.label.text_color,
-                          borderColor: `${l.label.color}80`,
-                        }}
-                      >
-                        {l.label.name} ({l.count})
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
+              <LabelSummarySection
+                milestoneMRsLoaded={!!milestoneMRs}
+                labelSummary={labelSummary}
+              />
 
               {/* Issues with MR matching */}
               <section>
