@@ -7,8 +7,7 @@
  */
 
 import { Dialog } from '@base-ui/react/dialog';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetch } from '@tauri-apps/plugin-http';
+import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   AlertTriangle,
@@ -27,7 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
@@ -40,102 +39,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
 import { statusPillClass } from '@/lib/statusStyles';
-import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
-import {
-  fetchMilestoneMRs,
-  fetchProjectMilestonesInRange,
-  fetchRecentProjectMRs,
-  updateMilestone,
-} from '@/services/gitlab';
-import type { JiraIssue } from '@/services/jira';
-import { fetchFixVersions, updateFixVersion } from '@/services/jira';
-import { extractTicketKeys, linkMRToTask } from '@/services/linkEngine';
-import type { ReleaseMatch } from '@/services/releaseLinker';
-import { matchGitLabToFixVersion } from '@/services/releaseLinker';
+import { updateMilestone } from '@/services/gitlab';
+import { updateFixVersion } from '@/services/jira';
+import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
-import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
-
-// ---- Issue count fetching (duplicated from ReleasesTab to keep self-contained) ----
-
-interface VersionIssueCounts {
-  issuesFixed: number;
-  issuesTotal: number;
-}
-
-async function fetchVersionIssueCounts(
-  baseUrl: string,
-  token: string,
-  versionId: string,
-): Promise<VersionIssueCounts> {
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  const baseJql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes()`;
-  const totalJql = encodeURIComponent(baseJql);
-  const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
-  const totalUrl = `${base}/rest/api/2/search?jql=${totalJql}&maxResults=0&fields=`;
-  const doneUrl = `${base}/rest/api/2/search?jql=${doneJql}&maxResults=0&fields=`;
-
-  const [totalResult, doneResult] = await Promise.allSettled([
-    fetch(totalUrl, { headers }).then((r) =>
-      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
-    ),
-    fetch(doneUrl, { headers }).then((r) =>
-      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
-    ),
-  ]);
-
-  const issuesTotal = totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
-  const issuesFixed = doneResult.status === 'fulfilled' ? (doneResult.value.total ?? 0) : 0;
-
-  return { issuesFixed, issuesTotal };
-}
-
-// ---- Fetch Jira issues for a fix version ----
-
-async function fetchFixVersionIssues(
-  baseUrl: string,
-  token: string,
-  versionId: string,
-  storyPointsFieldKey: string,
-): Promise<JiraIssue[]> {
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
-  // Request both common story-point field keys plus the instance-resolved key
-  // (mirrors the Set-based pattern in services/jira.ts) so effort works on
-  // instances using customfield_10028 instead of customfield_10016.
-  const fields = [
-    'summary',
-    'status',
-    'assignee',
-    'issuetype',
-    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
-  ].join(',');
-  const maxResults = 200;
-  let startAt = 0;
-  const allIssues: JiraIssue[] = [];
-
-  while (true) {
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}&maxResults=${maxResults}&startAt=${startAt}`;
-    const resp = await fetch(url, { headers });
-    if (!resp.ok) throw new Error(`Failed to fetch issues: status ${resp.status}`);
-
-    const data = (await resp.json()) as { issues: JiraIssue[]; total: number };
-    const before = allIssues.length;
-    allIssues.push(...data.issues);
-
-    if (allIssues.length >= data.total || allIssues.length === before) break;
-    startAt = allIssues.length;
-  }
-
-  return allIssues;
-}
+import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
 // ---- Main Component ----
 
@@ -151,10 +62,8 @@ export default function ReleaseDetailPage() {
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
   const releaseDetailPanelWidth = useSettingsStore((s) => s.releaseDetailPanelWidth);
   const setReleaseDetailPanelWidth = useSettingsStore((s) => s.setReleaseDetailPanelWidth);
-  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
 
   // Pinned-release tab support (mirrors AioCycleDetailPage cycle pinning)
   const releaseKey = `REL-${versionId}`;
@@ -164,7 +73,32 @@ export default function ReleaseDetailPage() {
   const setPinnedReleaseMeta = usePinnedTabsStore((s) => s.setPinnedReleaseMeta);
   const clearReleaseMeta = usePinnedTabsStore((s) => s.clearReleaseMeta);
 
-  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  // Single data-layer hook: 6 queries + gitlab token effect + derived values (D-07)
+  const {
+    version,
+    isLoading,
+    issueCounts,
+    gitlabMatch,
+    matchedMilestone,
+    milestoneMRs,
+    isLoadingIssues,
+    releaseIssues,
+    releaseMrs,
+    matchedRows,
+    unmatchedMRs,
+    wrongMilestoneByKey,
+    labelSummary,
+    labelCoverage,
+    mrStateCounts,
+    issueStatusCounts,
+    storyPoints,
+    hasStoryPoints,
+    gitlabToken,
+    jiraBaseUrl,
+    activeJiraProject,
+    gitlabBaseUrl,
+    activeGitlabProject,
+  } = useReleaseDetail(versionId);
 
   // Drag-to-resize for right panel
   const containerRef = useRef<HTMLDivElement>(null);
@@ -177,14 +111,6 @@ export default function ReleaseDetailPage() {
   });
   const [handleHovered, setHandleHovered] = useState(false);
 
-  useEffect(() => {
-    if (gitlabBaseUrl) {
-      readSecret('gitlab-pat')
-        .then((t) => setGitlabToken(t))
-        .catch(() => setGitlabToken(null));
-    }
-  }, [gitlabBaseUrl]);
-
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDate, setEditDate] = useState('');
@@ -196,283 +122,6 @@ export default function ReleaseDetailPage() {
   const [jiraError, setJiraError] = useState<string | null>(null);
   const [gitlabError, setGitlabError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Fetch all fix versions (shared cache key with ReleasesTab)
-  const { data: fixVersions, isLoading } = useQuery({
-    queryKey: ['jira-fix-versions', activeJiraProject],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !activeJiraProject) throw new Error('No credentials');
-      return fetchFixVersions(jiraBaseUrl, token, activeJiraProject);
-    },
-    staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!activeJiraProject,
-  });
-
-  // Find the matching version
-  const version = fixVersions?.find((v) => v.id === versionId) ?? null;
-
-  // Fetch issue counts for this version
-  const { data: issueCounts } = useQuery({
-    queryKey: ['jira-version-counts', versionId],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
-      return fetchVersionIssueCounts(jiraBaseUrl, token, versionId);
-    },
-    staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!versionId,
-  });
-
-  // Fetch GitLab milestones scoped around this version's release date
-  const MILESTONE_LEEWAY_DAYS = 7;
-  const milestoneWindow = (() => {
-    if (!version?.releaseDate) return null;
-    const addDays = (d: string, n: number) => {
-      const dt = new Date(d);
-      dt.setDate(dt.getDate() + n);
-      return dt.toISOString().slice(0, 10);
-    };
-    return {
-      from: addDays(version.releaseDate, -MILESTONE_LEEWAY_DAYS),
-      to: addDays(version.releaseDate, MILESTONE_LEEWAY_DAYS),
-    };
-  })();
-
-  const { data: milestones } = useQuery({
-    queryKey: [
-      'gitlab-milestones',
-      activeGitlabProject,
-      milestoneWindow?.from,
-      milestoneWindow?.to,
-    ],
-    queryFn: () =>
-      fetchProjectMilestonesInRange(
-        gitlabBaseUrl ?? '',
-        gitlabToken ?? '',
-        activeGitlabProject ?? 0,
-        milestoneWindow?.from ?? '',
-        milestoneWindow?.to ?? '',
-      ),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
-    staleTime: 5 * 60_000,
-  });
-
-  // Match GitLab milestone to this fix version by date. We track the chosen
-  // milestone OBJECT (not just its title) so editing resolves by a stable id —
-  // re-finding by title breaks the moment the user renames the milestone, and
-  // an order-dependent fuzzy match could otherwise target the wrong milestone.
-  const { gitlabMatch, matchedMilestone } = ((): {
-    gitlabMatch: ReleaseMatch;
-    matchedMilestone: GitLabMilestone | null;
-  } => {
-    const noMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
-    if (!version?.releaseDate || !milestones) {
-      return { gitlabMatch: noMatch, matchedMilestone: null };
-    }
-
-    const fixMs = new Date(`${version.releaseDate}T00:00:00Z`).getTime();
-    let exact: { match: ReleaseMatch; milestone: GitLabMilestone } | null = null;
-    let bestFuzzy: {
-      match: ReleaseMatch;
-      milestone: GitLabMilestone;
-      diffMs: number;
-    } | null = null;
-
-    for (const m of milestones as GitLabMilestone[]) {
-      const match = matchGitLabToFixVersion(version.releaseDate, {
-        date: m.due_date,
-        name: m.title,
-        url: m.web_url,
-      });
-      if (match.type === 'exact') {
-        exact = { match, milestone: m };
-        break;
-      }
-      if (match.type === 'fuzzy') {
-        // Deterministic tie-break: prefer the milestone whose due_date is
-        // closest to the release date when more than one falls in the window.
-        const candMs = m.due_date ? new Date(`${m.due_date}T00:00:00Z`).getTime() : Number.NaN;
-        const diffMs = Number.isNaN(candMs) ? Number.POSITIVE_INFINITY : Math.abs(fixMs - candMs);
-        if (!bestFuzzy || diffMs < bestFuzzy.diffMs) {
-          bestFuzzy = { match, milestone: m, diffMs };
-        }
-      }
-    }
-
-    const chosen = exact ?? bestFuzzy;
-    return {
-      gitlabMatch: chosen ? chosen.match : noMatch,
-      matchedMilestone: chosen ? chosen.milestone : null,
-    };
-  })();
-
-  // Fetch Jira issues for this fix version
-  const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
-    queryKey: ['jira-fixversion-issues', versionId, storyPointsFieldKey],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
-      return fetchFixVersionIssues(jiraBaseUrl, token, versionId, storyPointsFieldKey);
-    },
-    staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!versionId,
-  });
-
-  // Fetch MRs for matched GitLab milestone
-  const { data: milestoneMRs } = useQuery({
-    queryKey: ['gitlab-milestone-mrs', activeGitlabProject, gitlabMatch.candidateName],
-    queryFn: () =>
-      fetchMilestoneMRs(
-        gitlabBaseUrl ?? '',
-        gitlabToken ?? '',
-        activeGitlabProject ?? 0,
-        gitlabMatch.candidateName,
-      ),
-    staleTime: 5 * 60_000,
-    enabled:
-      !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && gitlabMatch.type !== 'none',
-  });
-
-  // Match MRs to Jira issues
-  const releaseIssues = fixVersionIssues ?? [];
-  const releaseMrs = milestoneMRs ?? [];
-  const releaseIssueKeySet = new Set(releaseIssues.map((i) => i.key));
-  const releaseMrByIssue = new Map<string, GitLabMR>();
-  const releaseUnmatched: GitLabMR[] = [];
-  for (const mr of releaseMrs) {
-    const matchedKey = linkMRToTask(mr, releaseIssueKeySet);
-    if (matchedKey) {
-      releaseMrByIssue.set(matchedKey, mr);
-    } else {
-      releaseUnmatched.push(mr);
-    }
-  }
-  const matchedRows = releaseIssues.map((issue) => ({
-    issue,
-    mr: releaseMrByIssue.get(issue.key) ?? null,
-  }));
-  const unmatchedMRs = releaseUnmatched;
-
-  // GGX-WARN-01: Find tasks that have NO MR in the matched milestone ("Missing MR" case)
-  // but DO have an MR elsewhere — i.e. on a different/absent milestone ("Wrong milestone").
-  // Optimization: instead of one slow GitLab `search` request per missing task, fetch the
-  // project's latest 100 MRs ONCE (fast list endpoint) and match every task locally. Only
-  // runs when a milestone matched and there is at least one missing row. Trade-off: an MR
-  // older than the latest 100 won't be found and the task stays "Missing MR".
-  const missingRows = matchedRows.filter((r) => r.mr === null);
-  const { data: recentProjectMRs } = useQuery({
-    queryKey: ['gitlab-recent-project-mrs', activeGitlabProject],
-    queryFn: () =>
-      fetchRecentProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0, 100),
-    enabled:
-      !!gitlabBaseUrl &&
-      !!activeGitlabProject &&
-      !!gitlabToken &&
-      gitlabMatch.type !== 'none' &&
-      missingRows.length > 0,
-    staleTime: 5 * 60_000,
-  });
-
-  // Build issueKey -> offending MR. For each missing row, scan the fetched MRs: confirm the
-  // MR truly carries the key (title-or-branch via linkMRToTask), then pick the FIRST whose
-  // milestone differs from (or is absent vs.) the release's matched milestone. A null
-  // milestone is a warn case per the locked trigger; compare by id.
-  const wrongMilestoneByKey = new Map<string, GitLabMR>();
-  if (matchedMilestone && recentProjectMRs) {
-    for (const r of missingRows) {
-      const keySet = new Set([r.issue.key]);
-      const offending = recentProjectMRs.find(
-        (mr) =>
-          linkMRToTask(mr, keySet) !== null &&
-          (mr.milestone == null || mr.milestone.id !== matchedMilestone.id),
-      );
-      if (offending) wrongMilestoneByKey.set(r.issue.key, offending);
-    }
-  }
-
-  // Aggregate unique labels across all milestone MRs with counts
-  const labelMap = new Map<
-    string,
-    { label: { name: string; color: string; text_color: string }; count: number }
-  >();
-  for (const mr of releaseMrs) {
-    for (const label of mr.labels) {
-      const existing = labelMap.get(label.name);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        labelMap.set(label.name, { label, count: 1 });
-      }
-    }
-  }
-  const labelSummary = Array.from(labelMap.values()).sort((a, b) => {
-    if (b.count !== a.count) return b.count - a.count;
-    return a.label.name.localeCompare(b.label.name);
-  });
-
-  // Compute label coverage stats: how many MRs have at least one label
-  const labelCoverage = (() => {
-    if (releaseMrs.length === 0) return null;
-    const unlabeled = releaseMrs.filter((mr) => mr.labels.length === 0);
-    return {
-      total: releaseMrs.length,
-      labeled: releaseMrs.length - unlabeled.length,
-      unlabeled,
-      allLabeled: unlabeled.length === 0,
-    };
-  })();
-
-  // MR state distribution — count merged / opened, folding everything else
-  // (closed, locked) into "closed" so the math stays exhaustive without a switch.
-  const mrStateCounts = (() => {
-    let merged = 0;
-    let opened = 0;
-    let closed = 0;
-    for (const mr of releaseMrs) {
-      if (mr.state === 'merged') merged += 1;
-      else if (mr.state === 'opened') opened += 1;
-      else closed += 1;
-    }
-    return { merged, opened, closed };
-  })();
-
-  // Issue status distribution from statusCategory.key. Bucket exhaustively so an
-  // out-of-union runtime key falls back to 'new' instead of producing NaN.
-  const issueStatusCounts = (() => {
-    const counts = { new: 0, indeterminate: 0, done: 0 };
-    for (const issue of releaseIssues) {
-      const key = issue.fields.status.statusCategory?.key;
-      if (key === 'done') counts.done += 1;
-      else if (key === 'indeterminate') counts.indeterminate += 1;
-      else counts.new += 1;
-    }
-    return counts;
-  })();
-
-  // Story-point effort: sum the instance-resolved story-point field (guarded against
-  // null) for total and for done-category issues. hasStoryPoints gates graceful
-  // hiding of the effort line.
-  const issueStoryPoints = (issue: JiraIssue): number | null => {
-    const sp = issue.fields[storyPointsFieldKey] as number | null | undefined;
-    return typeof sp === 'number' ? sp : null;
-  };
-  const storyPoints = (() => {
-    let total = 0;
-    let completed = 0;
-    for (const issue of releaseIssues) {
-      const sp = issueStoryPoints(issue);
-      if (sp !== null) {
-        total += sp;
-        if (issue.fields.status.statusCategory?.key === 'done') completed += sp;
-      }
-    }
-    return { total, completed };
-  })();
-  const hasStoryPoints = releaseIssues.some((i) => {
-    const sp = issueStoryPoints(i);
-    return sp !== null && sp > 0;
-  });
 
   // Populate edit form when entering edit mode (seeds both Jira + GitLab fields)
   const startEditing = () => {
