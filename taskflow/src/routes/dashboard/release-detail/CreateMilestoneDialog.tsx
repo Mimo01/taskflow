@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { extractVersionFromMilestoneTitle } from './releaseBranch';
 import {
   buildMilestoneTitle,
   findDuplicateMilestone,
@@ -44,7 +45,8 @@ interface CreateMilestoneDialogProps {
   onOpenChange: (open: boolean) => void;
   releaseDate: string | null;
   recentMilestones: MilestoneReferenceItem[];
-  activeGitlabProject: number;
+  versionName: string;
+  activeGitlabProject: number | null;
   onConfirm: (title: string) => void;
   isPending?: boolean;
   errorMessage?: string | null;
@@ -55,6 +57,7 @@ export function CreateMilestoneDialog({
   onOpenChange,
   releaseDate,
   recentMilestones,
+  versionName,
   activeGitlabProject,
   onConfirm,
   isPending,
@@ -62,15 +65,34 @@ export function CreateMilestoneDialog({
 }: CreateMilestoneDialogProps) {
   const [title, setTitle] = useState('');
 
-  // Reset (and re-prefill) whenever the dialog is (re)opened or the release
-  // date changes — same identity-keyed reset pattern as BoardResolutionDialog.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset is intentionally keyed to open/releaseDate identity, not title.
+  // Reset (and re-prefill) whenever the dialog is (re)opened, the release
+  // date changes, or the source version name changes — same identity-keyed
+  // reset pattern as BoardResolutionDialog.
+  // WR-01: passing an empty version into buildMilestoneTitle violates its
+  // documented contract ("the bare version string") and produces a
+  // leading-space title (" (21.07.2026)") that fails isValidMilestoneTitle,
+  // so the dialog opened already invalid. Extract the bare X.Y.Z version from
+  // the Jira version name instead (stripping an optional leading "v", since
+  // Jira names are commonly v-prefixed while extractVersionFromMilestoneTitle's
+  // contract is anchored to a leading digit) and only build a title when a
+  // version was actually found.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset is intentionally keyed to open/releaseDate/versionName identity, not title.
   useEffect(() => {
-    setTitle(buildMilestoneTitle('', releaseDate) ?? '');
-  }, [open, releaseDate]);
+    const bareVersionName = versionName.replace(/^v/i, '');
+    const version = extractVersionFromMilestoneTitle(bareVersionName);
+    setTitle(version ? (buildMilestoneTitle(version, releaseDate) ?? '') : '');
+  }, [open, releaseDate, versionName]);
 
   const formatValid = isValidMilestoneTitle(title);
-  const duplicate = findDuplicateMilestone(recentMilestones, title, activeGitlabProject);
+  // WR-10: activeGitlabProject === null means the GitLab project isn't
+  // configured. Previously the call site passed `?? 0`, which
+  // ownProjectMilestones silently filters to an empty list whenever any
+  // milestone carries a numeric project_id — disabling duplicate detection
+  // for every title instead of blocking submit outright.
+  const projectConfigured = activeGitlabProject !== null;
+  const duplicate = projectConfigured
+    ? findDuplicateMilestone(recentMilestones, title, activeGitlabProject)
+    : null;
 
   const sortedRecentMilestones = [...recentMilestones].sort((a, b) => {
     const aDate = a.due_date ?? '';
@@ -79,7 +101,7 @@ export function CreateMilestoneDialog({
   });
 
   function handleConfirm() {
-    if (isPending || !formatValid || duplicate !== null) return;
+    if (isPending || !formatValid || duplicate !== null || !projectConfigured) return;
     onConfirm(title);
   }
 
@@ -118,7 +140,9 @@ export function CreateMilestoneDialog({
             onChange={(e) => setTitle(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">Format: X.Y.Z (DD.MM.YYYY)</p>
-          {duplicate !== null ? (
+          {!projectConfigured ? (
+            <p className="text-xs text-destructive">GitLab project not configured</p>
+          ) : duplicate !== null ? (
             <p className="text-xs text-destructive">
               A milestone named '{title}' already exists in this project.
             </p>
@@ -136,7 +160,7 @@ export function CreateMilestoneDialog({
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button
             onClick={handleConfirm}
-            disabled={isPending || !formatValid || duplicate !== null}
+            disabled={isPending || !formatValid || duplicate !== null || !projectConfigured}
           >
             {isPending ? 'Creating…' : 'Create milestone'}
           </Button>
