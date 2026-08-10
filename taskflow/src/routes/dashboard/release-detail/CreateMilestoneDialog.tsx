@@ -28,6 +28,7 @@ import { extractVersionFromMilestoneTitle } from './releaseBranch';
 import {
   buildMilestoneTitle,
   findDuplicateMilestone,
+  formatMilestoneDueDate,
   isValidMilestoneTitle,
   type MilestoneLike,
   recentMilestonesByDate,
@@ -80,19 +81,26 @@ export function CreateMilestoneDialog({
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset is intentionally keyed to open/releaseDate/versionName identity, not title.
   useEffect(() => {
     const bareVersionName = versionName.replace(/^v/i, '');
-    const version = extractVersionFromMilestoneTitle(bareVersionName);
-    setTitle(version ? (buildMilestoneTitle(version, releaseDate) ?? '') : '');
+    setTitle(extractVersionFromMilestoneTitle(bareVersionName) ?? '');
   }, [open, releaseDate, versionName]);
 
-  const formatValid = isValidMilestoneTitle(title);
+  // The user types ONLY the version; the date half is appended from the Jira
+  // release date. Hand-typing the date was the single largest source of
+  // format-invalid titles, and the date is not the user's to choose — it is
+  // whatever Jira says the release ships on.
+  const composedTitle = buildMilestoneTitle(title, releaseDate) ?? '';
+  const formatValid = isValidMilestoneTitle(composedTitle);
+  const formattedDate = formatMilestoneDueDate(releaseDate);
   // WR-10: activeGitlabProject === null means the GitLab project isn't
   // configured. Previously the call site passed `?? 0`, which
   // ownProjectMilestones silently filters to an empty list whenever any
   // milestone carries a numeric project_id — disabling duplicate detection
   // for every title instead of blocking submit outright.
   const projectConfigured = activeGitlabProject !== null;
+  // Check the COMPOSED title — that is what gets sent to GitLab, so checking
+  // the bare version would compare against a string no milestone ever carries.
   const duplicate = projectConfigured
-    ? findDuplicateMilestone(recentMilestones, title, activeGitlabProject)
+    ? findDuplicateMilestone(recentMilestones, composedTitle, activeGitlabProject)
     : null;
 
   // Render a capped, newest-first slice — but note `duplicate` above runs over
@@ -102,7 +110,7 @@ export function CreateMilestoneDialog({
 
   function handleConfirm() {
     if (isPending || !formatValid || duplicate !== null || !projectConfigured) return;
-    onConfirm(title);
+    onConfirm(composedTitle);
   }
 
   // WR-03: inline dialog text is the ONLY error surface for this write
@@ -143,24 +151,45 @@ export function CreateMilestoneDialog({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="create-milestone-title">Milestone title</Label>
-          <Input
-            id="create-milestone-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">Format: X.Y.Z (DD.MM.YYYY)</p>
+          <Label htmlFor="create-milestone-title">Milestone version</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="create-milestone-title"
+              className="font-mono"
+              value={title}
+              inputMode="numeric"
+              placeholder="33.8.0"
+              aria-describedby="create-milestone-preview"
+              // Mask: accept only the characters a version is made of, so an
+              // invalid title cannot be typed in the first place.
+              onChange={(e) => setTitle(e.target.value.replace(/[^\d.]/g, ''))}
+            />
+            {formattedDate && (
+              <span className="whitespace-nowrap font-mono text-muted-foreground text-sm">
+                ({formattedDate})
+              </span>
+            )}
+          </div>
+          {formattedDate ? (
+            <p id="create-milestone-preview" className="text-muted-foreground text-xs">
+              Date comes from the Jira release date. Will create:{' '}
+              <span className="font-mono">{composedTitle || '—'}</span>
+            </p>
+          ) : (
+            <p id="create-milestone-preview" className="text-destructive text-xs">
+              This version has no Jira release date, so the milestone title can't be built.
+            </p>
+          )}
           {!projectConfigured ? (
             <p className="text-xs text-destructive">GitLab project not configured</p>
           ) : duplicate !== null ? (
             <p className="text-xs text-destructive">
-              A milestone named '{title}' already exists in this project.
+              A milestone named '{composedTitle}' already exists in this project.
             </p>
           ) : (
+            formattedDate &&
             !formatValid && (
-              <p className="text-xs text-destructive">
-                Title must match X.Y.Z (DD.MM.YYYY), e.g. 33.5.0 (21.07.2026)
-              </p>
+              <p className="text-xs text-destructive">Version must be X.Y.Z, e.g. 33.5.0</p>
             )
           )}
           {errorMessage && <p className="text-xs text-destructive">{errorMessage}</p>}

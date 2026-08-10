@@ -256,7 +256,13 @@ export default function ReleasesTab() {
       // CR-01: the drift signal fires only on confirmed absence, never on an
       // in-flight or errored branch query — a false "no branch" reads as real
       // drift and would send the user chasing a branch that already exists.
-      const branchMissing = branchesLoaded && derived !== null && !releaseBranchNames.has(derived);
+      // Released versions are excluded for the same reason milestoneMissing
+      // excludes them: release branches are deleted once merged, so every
+      // historical release reports "missing" forever. That is the normal end
+      // state, not drift, and it buries the signal for the unreleased versions
+      // this indicator exists to police.
+      const branchMissing =
+        branchesLoaded && derived !== null && !version.released && !releaseBranchNames.has(derived);
 
       return {
         version,

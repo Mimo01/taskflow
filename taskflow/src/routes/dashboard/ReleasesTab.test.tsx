@@ -480,6 +480,48 @@ describe('release-row drift indicators (D-17/D-18/D-19)', () => {
     expect(icon.getAttribute('title')).toBe('No release branch');
   });
 
+  it('does not show the missing-branch indicator for a RELEASED version', async () => {
+    // Release branches are deleted once merged, so every historical release
+    // would otherwise report "No release branch" forever — noise that buries
+    // the signal for the unreleased versions this indicator polices.
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      { id: 'v1', name: 'v33.5.0', releaseDate: '2026-07-21', released: true },
+    ]);
+
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
+      {
+        id: 1,
+        iid: 1,
+        title: '33.5.0 (21.07.2026)',
+        description: null,
+        start_date: null,
+        due_date: '2026-07-21',
+        state: 'closed',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'exact',
+      candidateName: '33.5.0 (21.07.2026)',
+      candidateUrl: 'https://gitlab.example.com/milestone/1',
+    });
+
+    // Branch genuinely absent — the merged-and-deleted end state.
+    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText(/33\.5\.0/);
+    expect(screen.queryByTestId('row-missing-branch')).not.toBeInTheDocument();
+  });
+
   it('does not show the missing-branch indicator while the branch query is still in flight', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);

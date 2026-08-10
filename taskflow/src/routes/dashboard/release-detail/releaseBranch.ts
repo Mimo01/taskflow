@@ -96,7 +96,29 @@ export type BranchState =
   | { kind: 'check-failed'; branchName: string }
   | { kind: 'loading'; branchName: string }
   | { kind: 'exists'; branchName: string }
+  /** Version is released and the branch is gone — the normal post-merge end
+   *  state, not drift. `tagName` is the matching `v<version>` tag when one
+   *  exists; tags are an incomplete record (some releases have none), so its
+   *  absence is not evidence the release did not ship. */
+  | { kind: 'released'; branchName: string; tagName: string | null }
   | { kind: 'missing'; branchName: string };
+
+/**
+ * Find the release tag for a version among a project's tags.
+ *
+ * Matches `<version>` with an optional `v` prefix, case-insensitively, and
+ * requires a whole-name match so `33.5.0` cannot match `v8.33.5.0` or
+ * `v33.5.0-rc1`. Returns the tag name as GitLab spells it, for display.
+ *
+ * @param tags - candidate tag names
+ * @param version - bare version string, e.g. `33.6.0`
+ * @returns the matching tag name, or null when none matches
+ */
+export function findReleaseTag(tags: readonly string[], version: string | null): string | null {
+  if (!version) return null;
+  const target = version.toLowerCase();
+  return tags.find((t) => t.toLowerCase().replace(/^v/, '') === target) ?? null;
+}
 
 /**
  * Resolve the release branch UI state from the matched milestone and the
@@ -117,8 +139,17 @@ export function resolveBranchState(params: {
   milestoneTitle: string | null | undefined;
   branchExists: boolean | undefined;
   branchCheckFailed?: boolean;
+  versionReleased?: boolean;
+  releaseTagName?: string | null;
 }): BranchState {
-  const { hasMatchedMilestone, milestoneTitle, branchExists, branchCheckFailed } = params;
+  const {
+    hasMatchedMilestone,
+    milestoneTitle,
+    branchExists,
+    branchCheckFailed,
+    versionReleased,
+    releaseTagName,
+  } = params;
 
   if (!hasMatchedMilestone) {
     return { kind: 'blocked-no-milestone' };
@@ -144,5 +175,18 @@ export function resolveBranchState(params: {
     return { kind: 'loading', branchName };
   }
 
-  return branchExists ? { kind: 'exists', branchName } : { kind: 'missing', branchName };
+  if (branchExists) {
+    return { kind: 'exists', branchName };
+  }
+
+  // A released version whose branch is absent has simply been merged and
+  // cleaned up. Reporting that as 'missing' invites the user to re-create a
+  // branch for a shipped release. Only downgrade a CONFIRMED absence — the
+  // loading and check-failed cases are handled above, so reaching here means
+  // the query succeeded and said no.
+  if (versionReleased) {
+    return { kind: 'released', branchName, tagName: releaseTagName ?? null };
+  }
+
+  return { kind: 'missing', branchName };
 }

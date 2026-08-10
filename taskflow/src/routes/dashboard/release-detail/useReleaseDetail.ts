@@ -9,12 +9,18 @@ import {
   fetchProjectMilestones,
   fetchRecentProjectMRs,
   filterMilestonesToRange,
+  searchProjectTags,
 } from '@/services/gitlab';
 import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { deriveReleaseBranchName, resolveBranchState } from './releaseBranch';
+import {
+  deriveReleaseBranchName,
+  extractVersionFromMilestoneTitle,
+  findReleaseTag,
+  resolveBranchState,
+} from './releaseBranch';
 import { ownProjectMilestones } from './releaseMilestone';
 import {
   buildWrongMilestoneMap,
@@ -143,11 +149,38 @@ export function useReleaseDetail(versionId: string | undefined) {
   // CR-03: `fetchBranch` throws on 401/403/500/timeout, so without this signal a
   // failed check is indistinguishable from in-flight (`branchExists === undefined`
   // covers both) and pins the UI at 'Loading…' forever with no retry.
+  // Release branches are deleted once merged, so a released version's branch is
+  // legitimately gone. Look for the `v<version>` tag as the surviving artifact.
+  // Only fetched for released versions whose branch check came back negative —
+  // the tag adds nothing while a branch still exists.
+  const releasedVersion = version?.released === true;
+  const matchedVersionNumber = extractVersionFromMilestoneTitle(matchedMilestone?.title);
+  const needsTagLookup =
+    releasedVersion && branchResult?.exists === false && !!matchedVersionNumber;
+
+  const { data: releaseTags } = useQuery({
+    queryKey: ['gitlab-release-tags', activeGitlabProject, matchedVersionNumber],
+    queryFn: () =>
+      searchProjectTags(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        matchedVersionNumber ?? '',
+      ),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && needsTagLookup,
+    staleTime: 5 * 60_000,
+  });
+
   const branchState = resolveBranchState({
     hasMatchedMilestone: matchedMilestone !== null,
     milestoneTitle: matchedMilestone?.title ?? null,
     branchExists: branchResult?.exists,
     branchCheckFailed,
+    versionReleased: releasedVersion,
+    releaseTagName: findReleaseTag(
+      (releaseTags ?? []).map((t) => t.name),
+      matchedVersionNumber,
+    ),
   });
 
   // CR-03: wrap `refetch` so callers (the sidebar's Retry button) need no arguments.
