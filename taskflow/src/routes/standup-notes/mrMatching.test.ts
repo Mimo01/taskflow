@@ -62,6 +62,8 @@ function makeReviewerMR(iid: number, title: string, sourceBranch: string): GitLa
     project_id: 1,
     title,
     source_branch: sourceBranch,
+    target_branch: 'develop',
+    draft: false,
     state: 'opened',
     author: { id: 99, name: 'Author', username: 'author', avatar_url: '' },
     reviewers: [],

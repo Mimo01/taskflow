@@ -16,6 +16,8 @@ const baseMR: GitLabMR = {
   project_id: 5,
   title: '',
   source_branch: 'main',
+  target_branch: 'develop',
+  draft: false,
   state: 'opened',
   author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
   reviewers: [],
