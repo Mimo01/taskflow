@@ -9,6 +9,8 @@ import {
   fetchMRCommits,
   fetchMRDiscussions,
   fetchParticipatedMRs,
+  fetchProject,
+  fetchProjectBranches,
   fetchProjectMilestones,
   fetchReviewerMRs,
   fetchUserCommits,
@@ -271,6 +273,164 @@ describe('gitlab service', () => {
       expect(vi.mocked(mockFetch)).toHaveBeenCalledWith(
         expect.stringContaining('/projects/42/milestones'),
         expect.any(Object),
+      );
+    });
+  });
+
+  describe('fetchProject', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+
+    it('resolves the project with default_branch on 200', async () => {
+      const mockProject = {
+        id: 7,
+        name: 'x',
+        name_with_namespace: 'g / x',
+        path_with_namespace: 'g/x',
+        default_branch: 'develop',
+      };
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockProject,
+      } as Response);
+
+      const result = await fetchProject(BASE, TOKEN, 7);
+      expect(result).toEqual(mockProject);
+      expect(result.default_branch).toBe('develop');
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(fetchProject(BASE, TOKEN, 7)).rejects.toMatchObject({
+        status: 401,
+        source: 'gitlab',
+      });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(fetchProject(BASE, TOKEN, 7)).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+      });
+    });
+
+    it('throws a plain Error containing the status on other non-ok responses', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(fetchProject(BASE, TOKEN, 7)).rejects.toThrow('500');
+    });
+
+    it('rejects with "Cannot reach" when apiFetch itself throws (network error)', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
+
+      await expect(fetchProject(BASE, TOKEN, 7)).rejects.toThrow('Cannot reach');
+    });
+  });
+
+  describe('fetchProjectBranches (D-18 full pagination)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+    const PROJECT_ID = 42;
+
+    function makeBranch(name: string) {
+      return {
+        name,
+        web_url: `${BASE}/g/x/-/tree/${name}`,
+        merged: false,
+        protected: false,
+        commit: { id: 'abc123', short_id: 'abc123' },
+      };
+    }
+
+    it('paginates past a full page — resolves 103 branches from two fetch calls', async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => makeBranch(`release/${i}`));
+      const page2 = Array.from({ length: 3 }, (_, i) => makeBranch(`release/extra-${i}`));
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => page1 } as Response)
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => page2 } as Response);
+
+      const result = await fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/');
+      expect(result).toHaveLength(103);
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(2);
+    });
+
+    it('resolves a single short page with exactly one fetch call', async () => {
+      const page1 = Array.from({ length: 3 }, (_, i) => makeBranch(`release/${i}`));
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => page1,
+      } as Response);
+
+      const result = await fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/');
+      expect(result).toHaveLength(3);
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(1);
+    });
+
+    it('URL-encodes the search term and includes per_page=100', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+
+      await fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/');
+
+      const [calledUrl] = vi.mocked(mockFetch).mock.calls[0] as [string, unknown];
+      expect(calledUrl).toContain('search=release%2F');
+      expect(calledUrl).toContain('per_page=100');
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/'),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/'),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+
+    it('throws a plain Error on other non-ok responses', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/')).rejects.toThrow(
+        '500',
       );
     });
   });

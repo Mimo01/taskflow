@@ -35,6 +35,7 @@ export interface GitLabProject {
   name: string;
   name_with_namespace: string;
   path_with_namespace: string;
+  default_branch: string;
 }
 
 /**
@@ -221,6 +222,114 @@ export async function listGitLabProjects(baseUrl: string, token: string): Promis
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
 }
 
+/**
+ * Fetch a single GitLab project, including its `default_branch` (D-14).
+ * Used to resolve the project's actual default branch instead of hardcoding
+ * `main` — release branches are created off whatever the project's default is.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @returns The project, including `default_branch`
+ */
+export async function fetchProject(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+): Promise<GitLabProject> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Load Project',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new ApiError('Failed to fetch project', response.status, 'gitlab');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch project: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as GitLabProject;
+}
+
+/**
+ * Fetch all branches for a project matching `search`, fully paginated (D-18).
+ * Used to discover the full `release/`-prefixed branch set — no page cap, since
+ * a single capped page plus client-side filtering has already bitten this
+ * codebase twice (the fetch-once page-cap trap).
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param search    - Branch name search term (GitLab substring match)
+ * @returns All matching branches across every page
+ */
+export async function fetchProjectBranches(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  search: string,
+): Promise<GitLabBranch[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allBranches: GitLabBranch[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/repository/branches?per_page=${perPage}&page=${page}&search=${encodeURIComponent(search)}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: {
+            'PRIVATE-TOKEN': token,
+            'Content-Type': 'application/json',
+          },
+        },
+        'Load Release Branches',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch release branches', response.status, 'gitlab');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch release branches: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabBranch[];
+    allBranches.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  return allBranches;
+}
+
 // ─── Phase 2: Developer Dashboard ────────────────────────────────────────────
 
 export interface GitLabMilestone {
@@ -232,6 +341,25 @@ export interface GitLabMilestone {
   due_date: string | null; // "YYYY-MM-DD" or null
   state: 'active' | 'closed';
   web_url: string;
+  /**
+   * Present on ancestor (group-inherited) milestones so callers can filter
+   * to own-project milestones locally without a second request (D-07).
+   * RESEARCH assumption A3 (their presence) is unverified against the team's
+   * live instance, so both are optional — degrade safely when absent.
+   */
+  project_id?: number | null;
+  group_id?: number | null;
+}
+
+/**
+ * A GitLab repository branch (D-13/D-18 — release branch existence + discovery).
+ */
+export interface GitLabBranch {
+  name: string;
+  web_url: string;
+  merged: boolean;
+  protected: boolean;
+  commit: { id: string; short_id: string };
 }
 
 export interface GitLabTag {
