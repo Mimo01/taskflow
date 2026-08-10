@@ -143,8 +143,6 @@ export function findDuplicateMilestone<T extends MilestoneLike>(
 ): T | null {
   const ownMilestones = ownProjectMilestones(milestones, projectId);
   const normalizedCandidate = normalizeMilestoneTitle(candidateTitle);
-  const found = ownMilestones.find(
-    (m) => normalizeMilestoneTitle(m.title) === normalizedCandidate,
-  );
+  const found = ownMilestones.find((m) => normalizeMilestoneTitle(m.title) === normalizedCandidate);
   return found ?? null;
 }
