@@ -87,31 +87,38 @@ export function isValidGitRefName(name: string): boolean {
 /** Discriminated union describing the release branch's derived/resolved
  *  state, evaluated in strict precedence order by `resolveBranchState`:
  *  no matched milestone (D-10) -> unresolvable (D-11) -> invalid ref
- *  (RELBR-05) -> branchExists tri-state (loading/exists/missing). */
+ *  (RELBR-05) -> check-failed (CR-03) -> branchExists tri-state
+ *  (loading/exists/missing). */
 export type BranchState =
   | { kind: 'blocked-no-milestone' }
   | { kind: 'unresolvable' }
   | { kind: 'invalid-ref'; branchName: string }
+  | { kind: 'check-failed'; branchName: string }
   | { kind: 'loading'; branchName: string }
   | { kind: 'exists'; branchName: string }
   | { kind: 'missing'; branchName: string };
 
 /**
  * Resolve the release branch UI state from the matched milestone and the
- * branch-existence query result, applying the D-10/D-11/RELBR-05 precedence
- * order.
+ * branch-existence query result, applying the D-10/D-11/RELBR-05/CR-03
+ * precedence order.
  *
  * @param params.hasMatchedMilestone - whether a GitLab milestone was matched to the fix version (D-10 gate)
  * @param params.milestoneTitle - the matched milestone's title, if any
  * @param params.branchExists - `undefined` while the existence query is in flight, else the fetched boolean
+ * @param params.branchCheckFailed - `true` when the branch-existence query errored — distinct from
+ *   `branchExists === undefined`, which means in flight. `fetchBranch` throws on 401/403/500/timeout,
+ *   so without this signal a failed check is indistinguishable from loading and pins the UI at
+ *   'Loading…' forever.
  * @returns the resolved `BranchState`
  */
 export function resolveBranchState(params: {
   hasMatchedMilestone: boolean;
   milestoneTitle: string | null | undefined;
   branchExists: boolean | undefined;
+  branchCheckFailed?: boolean;
 }): BranchState {
-  const { hasMatchedMilestone, milestoneTitle, branchExists } = params;
+  const { hasMatchedMilestone, milestoneTitle, branchExists, branchCheckFailed } = params;
 
   if (!hasMatchedMilestone) {
     return { kind: 'blocked-no-milestone' };
@@ -124,6 +131,13 @@ export function resolveBranchState(params: {
 
   if (!isValidGitRefName(branchName)) {
     return { kind: 'invalid-ref', branchName };
+  }
+
+  // CR-03: must stay above the undefined -> loading fallback, because an
+  // errored query also leaves `branchExists` undefined — without this
+  // branch a failed check is indistinguishable from an in-flight one.
+  if (branchCheckFailed) {
+    return { kind: 'check-failed', branchName };
   }
 
   if (branchExists === undefined) {
