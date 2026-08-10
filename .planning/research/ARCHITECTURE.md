@@ -1,570 +1,315 @@
-# Architecture Research
+# Architecture Research: v1.14 Release Management
 
-**Domain:** Personal Workspace integration into Taskflow (My Tasks page + Dashboard redesign + charting foundation)
-**Researched:** 2026-06-14
-**Confidence:** HIGH — grounded entirely in reading the actual codebase (jira.ts, main.tsx, routes.tsx, greenhopper/*, stores/*)
+**Domain:** Subsequent-milestone integration — git-flow release coordination bolted onto an existing Tauri 2 + React 18 + TanStack Query app
+**Researched:** 2026-08-10
+**Confidence:** HIGH (all claims verified by reading the actual files listed in `<files_to_read>`; no invented APIs)
 
----
-
-## Standard Architecture
+## Standard Architecture (as it exists today — do not redesign)
 
 ### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           main.tsx (AppLayout)                              │
-│  HashRouter + QueryClientProvider + Zustand stores                          │
-│  Manages: peek state, create modal, nav handlers, hotkeys                   │
-│  Outlet context: { onIssueClick, onOpenIssue, openEdit, openClone, ... }    │
-├──────────────────────────┬──────────────────────────────────────────────────┤
-│       Sidebar            │   main (flex-1 overflow-auto)                    │
-│  sidebar-items.ts        │                                                  │
-│  + visibility toggles    │  ┌────────────────────────────────────────────┐  │
-│                          │  │  /dashboard   → DashboardPage (MODIFIED)   │  │
-│                          │  ├────────────────────────────────────────────┤  │
-│                          │  │  /my-tasks    → MyTasksPage (NEW)          │  │
-│                          │  ├────────────────────────────────────────────┤  │
-│                          │  │  /sprint-board → SprintBoardTab (existing) │  │
-│                          │  ├────────────────────────────────────────────┤  │
-│                          │  │  /standup-notes → StandupNotesPage        │  │
-│                          │  └────────────────────────────────────────────┘  │
-│                          │                                                  │
-│                          │  PeekPanel (flex-row sibling, non-blocking)      │
-└──────────────────────────┴──────────────────────────────────────────────────┘
-                                      │
-┌─────────────────────────────────────┴───────────────────────────────────────┐
-│                         Data Layer                                          │
-│                                                                             │
-│  services/jira.ts (barrel — all 60+ imports use this path)                 │
-│  ├─ fetchSprintIssues()         ['jira-issues','sprint-board',project,spKey]│
-│  ├─ fetchMyTasksHierarchy()     ['jira-issues','my-tasks',project,spKey]   │
-│  ├─ fetchActiveSprint()         ['jira-active-sprint',project,base,boardId] │
-│  └─ (NEW) fetchMyAssignedIssues() ['jira-issues','my-tasks-all',project]   │
-│                                                                             │
-│  services/jira/sprints.ts                                                   │
-│  ├─ fetchActiveSprint()         (existing)                                  │
-│  └─ (NEW) fetchClosedSprints()  ['jira-closed-sprints',boardId]             │
-│                                                                             │
-│  services/jira/greenhopper/                                                 │
-│  ├─ useGhAllData()              ['gh-all-data', boardId]  (sprint-board only)│
-│  └─ fetchBacklogData()          ['gh-backlog', boardId]   (backlog page)    │
-│                                                                             │
-│  services/gitlab.ts                                                         │
-│  ├─ fetchAssignedMRs/fetchReviewerMRs  ['gitlab-mrs', base, userId]        │
-│  └─ ['mr-health', project_id, iid]  populated by MrHealthPanel             │
-│                                                                             │
-│  services/tempo/                                                            │
-│  └─ fetchWorklogs()             ['tempo','worklogs',...]                    │
-│                                                                             │
-│  stores/ (Zustand + Tauri Store persist)                                    │
-│  ├─ settings.store.ts           storyPointsFieldKey, peekPanelWidth, etc.  │
-│  ├─ auth.store.ts               jiraBaseUrl, jiraUserDisplayName, etc.      │
-│  └─ (NEW) my-tasks.store.ts     groupMode, scopeToggle persisted            │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                              Routes (dashboard)                          │
+│  ReleasesTab.tsx (list)          ReleaseDetailPage.tsx (1518 LOC, 1 file)│
+│  UpcomingReleasesTimeline.tsx    ── owns ALL queries + ALL mutations +   │
+│  (Dashboard card, read-only)        edit modal + issues table + sidebar │
+├──────────────────────────────────────────────────────────────────────────┤
+│                         TanStack Query (data + cache)                    │
+│  gcTime: Infinity · stale-while-revalidate · token read in queryFn body  │
+│  (never in queryKey) · broad-prefix invalidateQueries on mutation        │
+├──────────────────────────────────────────────────────────────────────────┤
+│                    Services layer (src/services/)                        │
+│  gitlab.ts (1736 LOC, 24 exports, ONE write today: updateMilestone)      │
+│  releaseLinker.ts (80 LOC, pure, zero I/O, fully unit-testable)          │
+│  jira.ts (barrel over 14 domain modules — all ~60 imports use this path) │
+│  linkEngine.ts (linkMRToTask — ticket-key ↔ MR matching, pure)           │
+├──────────────────────────────────────────────────────────────────────────┤
+│                    Zustand stores (src/stores/)                          │
+│  auth.store (credentials/base URLs, NOT persisted to disk as secrets)    │
+│  pinned-tabs.store, tempo-filters.store, subtask-templates.store — all   │
+│  createTauriStorage('<name>.json') + Zustand persist                    │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+### Component Responsibilities (verified from source)
 
-| Component | Responsibility | Notes |
-|-----------|----------------|-------|
-| `AppLayout` (main.tsx) | Global chrome: sidebar, top bar, peek panel, hotkeys, outlet context | All new pages receive `onIssueClick` / `onOpenIssue` from outlet context — no changes needed to AppLayout wiring |
-| `DashboardPage` (modified) | Hero greeting + stat tiles + sprint health chart + trend graph + MR review queue + activity strip | Replaces 3-card grid; keeps gradient hero + date section |
-| `MyTasksPage` (new) | Summary strip + grouping toggle + virtual-scrolled task list + inline quick actions | New lazy-loaded route at `/my-tasks` |
-| `ChartWrapper` (new shared) | Single wrapper for Recharts `ResponsiveContainer`, CSS-var theming, explicit height | Both Dashboard chart-cards and any future charts use it |
-| `StatTile` (new shared) | Numeric stat with label + optional trend arrow | Used 4-6x on Dashboard |
-| `MyTaskRow` (new shared) | Rich task row: type icon, priority, status pill, due date, SP, time bar, MR health badge | Used by MyTasksPage; potentially reusable in standup Today groupings |
+| Component | Responsibility | Verified detail |
+|-----------|-----------------|------------------|
+| `ReleasesTab.tsx` | List view: fix versions + date-matched GitLab milestone/tag link, per-version issue counts | 480 LOC, single file, no sub-decomposition — acceptable at this size |
+| `ReleaseDetailPage.tsx` | Everything for one release: header, description(s), issues×MR table, unmatched-MR list, label coverage, edit modal (Jira+GitLab dual-write), sidebar metadata | 1518 LOC, **one file, one component function** |
+| `services/gitlab.ts` | All GitLab REST calls. Auth via `PRIVATE-TOKEN` header (not Bearer). `apiFetch('gitlab', url, opts, label)` wrapper for logging/profiling. One write today (`updateMilestone`, PUT) | Every function follows the same try/catch → `ApiError` on 401/403 → generic "Cannot reach" on network failure pattern |
+| `services/releaseLinker.ts` | Pure date-matching between a Jira fix version and a GitLab candidate (milestone/tag). No `fetch`, no imports beyond types. Fully unit-testable | This is the pattern to emulate for the new drift/discovery logic |
+| `services/linkEngine.ts` (`linkMRToTask`) | Pure ticket-key extraction + MR↔issue matching, already used by `ReleaseDetailPage` for the milestone-MR list | Reused as-is by the new three-channel union — do not reimplement |
+| `issue-detail/` folder | **The existing precedent for decomposing a large detail page.** `FieldsSection.tsx` (1153 LOC) + 25 sibling files: `ActivityTimeline.tsx`, `AttachmentsSection.tsx`, `SubtasksSection.tsx`, `MergeRequestsSection.tsx`, `MetaRow.tsx`, plus **hooks-as-files**: `useFieldMutation.ts`, `useLinkedMRs.ts`, `useAuthBlob.ts`, plus pure helpers: `utils.ts`, `aggregateTimeTracking.ts`, `resolvePreviewKind.ts`, and a barrel `index.ts` | This is the exact convention `ReleaseDetailPage.tsx` should follow — a same-named sibling folder, one file per section/hook/pure-helper |
+| `BulkCreateSubtasksModal.tsx` (`createAllRows`) | Per-row status state machine: `pending → creating → created \| failed`, sequential loop (not `Promise.all`), `onStateChange` callback re-renders the row list, retry-failed-only via re-invoking with `states[i].status === 'created'` skip guard | This is the exact per-row inline-status + retry pattern the v1.14 CONTEXT calls out for per-MR corrective actions |
+| `StatusPopover.tsx` | Optimistic-mutation trigger pattern: reads cached GreenHopper transitions, calls `onSelect(id, name)`, parent (`SprintBoard`/`Backlog`) owns the actual `useMutation` with `onMutate` (optimistic) / `onError` (rollback) / `onSettled` (invalidate) | Confirms optimistic+rollback lives in the mutation-owning component, not the trigger UI |
 
----
-
-## Recommended Project Structure
-
-### New files
+## Recommended Project Structure (delta on top of existing)
 
 ```
-taskflow/src/
-├── routes/
-│   ├── dashboard/
-│   │   ├── index.tsx                   MODIFY — hero stays; 3-card grid replaced
-│   │   ├── DashboardStatTiles.tsx      NEW — 4-6 stat tiles (open count, done%, logged today, ...)
-│   │   ├── DashboardSprintChart.tsx    NEW — points-by-status chart; wraps ChartWrapper
-│   │   ├── DashboardTrendChart.tsx     NEW — weekly logged hours line chart; wraps ChartWrapper
-│   │   ├── DashboardVelocityChart.tsx  NEW — N-sprint velocity bar chart; wraps ChartWrapper
-│   │   ├── DashboardMrReviewQueue.tsx  NEW — reviewer MRs (reads existing gitlab-mrs cache)
-│   │   ├── DashboardActivityStrip.tsx  NEW — recent Jira activity (reuses fetchYesterdayJiraActivity)
-│   │   ├── DashboardSprintCard.tsx     MODIFY or DELETE — replaced by DashboardSprintChart + StatTiles
-│   │   ├── DashboardInProgressCard.tsx MODIFY or DELETE — replaced by StatTiles + MyTaskRow
-│   │   └── DashboardReleaseCard.tsx    KEEP or INTEGRATE into activity strip
-│   └── my-tasks/
-│       ├── MyTasksPage.tsx             NEW — route root; loads data, owns groupMode state
-│       ├── MyTasksHeader.tsx           NEW — summary strip (open count, SP totals, due-today badge)
-│       ├── MyTasksControls.tsx         NEW — scope toggle (sprint/all) + grouping toggle
-│       ├── MyTasksGroupedList.tsx      NEW — groups with collapsible story headers + virtual scroll
-│       └── MyTaskRow.tsx               NEW — rich row component
-├── components/
-│   ├── charts/
-│   │   └── ChartWrapper.tsx            NEW — lazy ResponsiveContainer + CSS-var theming
-│   └── ui/
-│       ├── stat-tile.tsx               NEW — shared stat tile primitive
-│       └── my-task-row.tsx             NEW — if reused outside my-tasks/ (standup, dashboard)
-└── stores/
-    └── my-tasks.store.ts               NEW — groupMode + scopeToggle persisted via Tauri Store
-```
+src/services/
+├── gitlab.ts                        # MODIFIED — new write functions appended (see below)
+├── releaseFlow.ts                   # NEW — pure module, sibling to releaseLinker.ts
+│                                     #   (three-channel union, drift classification,
+│                                     #    branch-name resolution, merge-back verdict)
+├── releaseLinker.ts                 # UNCHANGED — date-matching stays scoped to its job
+└── linkEngine.ts                    # UNCHANGED — reused by releaseFlow.ts
 
-### Modified files
-
-```
-taskflow/src/
-├── routes/routes.tsx                   ADD /my-tasks lazy route
-├── components/app/sidebar-items.ts     ADD 'my-tasks' entry in 'main' section
-├── services/jira.ts                    ADD fetchMyAssignedIssues() (exported via barrel)
-└── services/jira/sprints.ts            ADD fetchClosedSprints()
+src/routes/dashboard/
+├── ReleaseDetailPage.tsx            # MODIFIED — shrinks to an orchestrator (queries + layout wiring), mirrors issue-detail/index.ts pattern
+├── ReleasesTab.tsx                  # MODIFIED — release-level branch-missing warning badge added to each row (small, read-only)
+├── UpcomingReleasesTimeline.tsx     # UNCHANGED — Dashboard card, out of scope for write actions
+└── release-detail/                  # NEW folder — mirrors issue-detail/ convention
+    ├── index.ts                     # NEW — barrel (mirrors issue-detail/index.ts)
+    ├── ReleaseHeaderSection.tsx      # NEW — name/id/status header (extracted, ~40 LOC)
+    ├── ReleaseDescriptionSection.tsx # NEW — Jira+GitLab description blocks (extracted)
+    ├── ReleaseBranchSection.tsx      # NEW — branch-existence warning + "Create branch" confirm dialog + merge-back check
+    ├── ReleaseDriftSection.tsx       # NEW — three-channel drift table + per-MR retarget/assign actions
+    ├── ReleaseIssuesTable.tsx        # extracted from current inline JSX (lines ~778-1064) — the existing issues×MR table
+    ├── ReleaseSidebar.tsx            # extracted from current inline JSX (lines ~1104-1303) — the existing MetaRow-based right column
+    ├── ReleaseEditDialog.tsx         # extracted from current inline JSX (lines ~1305-1479) — the existing Jira+GitLab dual-write edit modal
+    ├── CreateMilestoneDialog.tsx     # NEW — confirm dialog, latest-milestones list, name input
+    ├── CreateBranchDialog.tsx        # NEW — confirm dialog for release branch creation
+    ├── useReleaseGitlabWrites.ts     # NEW — hook housing the 4 new mutations (createBranch, createMilestone, retargetMr, assignMrMilestone)
+    ├── useReleaseBranchState.ts      # NEW — hook wrapping branch-existence + merge-back queries
+    └── MetaRow.tsx                   # reuse issue-detail/MetaRow.tsx directly (already generic) OR duplicate — see Anti-Patterns
 ```
 
 ### Structure Rationale
 
-- **routes/my-tasks/:** Self-contained route module per established pattern (standup-notes/, worklogs/). Page, header, controls, list, and row are all local to the route until reuse is proven.
-- **components/charts/:** Charting is a new domain in the app. Isolating in its own folder signals "infrastructure" vs "feature UI". Multiple dashboard chart-cards import from here.
-- **stores/my-tasks.store.ts:** Separate store file per the tempo-filters and subtask-templates precedent. Settings store version (currently v26) is NOT bumped for a new separate store file.
-
----
+- **`release-detail/` mirrors `issue-detail/` exactly** — same-named sibling folder pattern, one responsibility per file, hooks live as `.ts` files beside `.tsx` sections, pure helpers separate from anything doing I/O. This is not a new convention; it is the one the codebase already uses for its other 1000+ line detail page.
+- **`releaseFlow.ts` is a new pure module, not an extension of `releaseLinker.ts`.** `releaseLinker.ts`'s docstring is scoped tightly ("date matching between Jira fix versions and GitLab milestones/tags") and its match thresholds (`exact`/`fuzzy`/`none` by day-diff) are a different algorithm from set-union + drift classification. Keeping them separate keeps each pure module single-purpose and independently unit-testable, matching the existing precedent of `linkEngine.ts` also living apart from `releaseLinker.ts` despite both being "MR↔release matching" adjacent.
+- **GitLab writes append to `gitlab.ts`, not a new file.** The service is a flat 1736-line file with 24 exports and one write (`updateMilestone`); there is no `services/gitlab/` domain-split (unlike `jira.ts`, which was split into 14 modules in v1.4). Splitting `gitlab.ts` now would be an unrelated refactor and contradicts "study it, do not redesign it." Follow `updateMilestone`'s exact shape for every new write.
 
 ## Architectural Patterns
 
-### Pattern 1: Outlet context for peek and navigation (existing — reuse unchanged)
+### Pattern 1: Pure discovery/drift module, network-free (emulates `releaseLinker.ts`)
 
-**What:** AppLayout threads `onIssueClick`, `onOpenIssue`, `openEdit`, `openClone` through React Router's `Outlet` context. Every route page calls `useOutletContext()` to get these handlers.
+**What:** All three-channel MR discovery, set-union, and drift classification logic lives in `services/releaseFlow.ts` as plain functions over already-fetched data. It takes arrays (Jira issues, GitLab MRs from 3 sources, the release branch name, the matched milestone) and returns a computed drift result. It performs **zero fetching**.
 
-**When to use:** Every new page that renders clickable issue rows (MyTasksPage, any new Dashboard section with issue rows).
+**Why this avoids the fetch-once-page-cap pitfall:** The pitfall (recorded in project memory as `project_fetch_once_pagecap_pitfall.md`, and explicitly fixed in v1.13 Phase 82 per `fetchAllSearchPages`) is pickers/components that fetch ONE capped page of data and then filter/search it client-side, silently truncating results. The fix pattern already established in this codebase (My Tasks "all assigned" scope, `fetchAllSearchPages`) is: **paginate fully in the service layer, keep the pure/computation layer separate from the paginating fetch layer.**
 
-**Trade-offs:** Explicit prop threading — consistent with the zero-`createContext` codebase rule. Full TypeScript type safety with no context escape hatches.
+For release MR discovery specifically:
+- Channel A (Jira-key linkage → fix-version issues): already paginated fully by `fetchFixVersionIssues` (loops `startAt` until `allIssues.length >= data.total`) — no risk here, reuse as-is.
+- Channel B (milestone-carrying MRs): `fetchMilestoneMRs` already pages fully (`while(true)` loop until `data.length < perPage`) — reuse as-is, **do not** reach for `fetchRecentProjectMRs` (the deliberately-capped-at-100 "recent MRs" helper) for this channel; that helper exists ONLY for the existing "wrong milestone" heuristic and is explicitly documented as a bounded, accuracy-tradeoff optimization (GGX-WARN-01 comment in `ReleaseDetailPage.tsx` line 1148-1171) — reusing it for authoritative drift detection would reintroduce exactly the silent-truncation bug this pitfall warns about.
+- Channel C (release-branch-targeting MRs): **needs a new, fully-paginated GitLab call** — `GET /merge_requests?target_branch=release/X&state=all` with the same `while(true) per_page=100` loop used everywhere else in `gitlab.ts` (see `fetchMilestoneMRs`, `fetchProjectMilestones`, `fetchMRDiscussions` for the exact loop shape to copy). **Do not** cap this at `per_page=100` with no continuation — that is precisely the anti-pattern the memory note warns about.
 
-**Usage in new pages:**
+**Input/output shape (proposed):**
 ```typescript
-const { onIssueClick, onOpenIssue } = useOutletContext<{
-  onIssueClick: (key: string, resetTrail?: boolean) => void;
-  onOpenIssue: (key: string) => void;
-}>();
+// services/releaseFlow.ts
+export interface ReleaseFlowInput {
+  releaseBranchName: string;                 // `release/<milestone title>`
+  fixVersionIssueKeys: string[];              // Channel A source
+  milestoneCarryingMRs: GitLabMR[];           // Channel B (from fetchMilestoneMRs, already paginated)
+  branchTargetingMRs: GitLabMR[];             // Channel C (new fully-paginated fetch)
+  matchedMilestoneId: number | null;
+}
+
+export type DriftReason =
+  | 'wrong-target-branch'   // MR carries a fix-version Jira key but targets something other than releaseBranchName
+  | 'missing-milestone'     // MR targets the release branch but doesn't carry the release milestone
+  | 'not-in-fix-version';   // MR carries the release milestone/branch but its Jira key isn't in this fix version
+
+export interface UnionedMR {
+  mr: GitLabMR;
+  foundVia: Array<'jira-key' | 'milestone' | 'branch-target'>;
+  driftReasons: DriftReason[];
+}
+
+export function unionReleaseMRs(input: ReleaseFlowInput): UnionedMR[];
+export function classifyDrift(unioned: UnionedMR[], fixVersionIssueKeys: string[]): UnionedMR[]; // or folded into unionReleaseMRs
 ```
 
-### Pattern 2: PAT loaded once at page root, passed as prop (existing — reuse D-16 pattern)
+Fully unit-testable with fixture arrays — no `fetch`, no Tauri runtime, no mocking, exactly like `releaseLinker.test.ts` today.
 
-**What:** Dashboard index.tsx loads `jira-pat` from Stronghold once via `useEffect + useState`, then passes `jiraToken` as a prop to all child card components. Cards never call `readSecret()` directly.
+### Pattern 2: GitLab write mutations — confirm-dialog vs direct-optimistic split (per CONTEXT.md, verified against `updateMilestone`'s shape)
 
-**When to use:** DashboardPage redesign and MyTasksPage. Single `readSecret` at the page level; all sub-components receive `jiraBaseUrl`, `jiraToken` as props.
+**What:** Four new `gitlab.ts` exports, each following `updateMilestone`'s exact signature convention (`baseUrl, token, projectId, ...params, fields`) and error-handling shape (network catch → generic message; `!response.ok` → 401/403 `ApiError`; else surface GitLab's JSON `message` body, falling back to `status ${code}`):
 
-**Trade-offs:** Centralised token load; child components are testable without Stronghold. Aligns with the D-16 decision documented in PROJECT.md.
-
-### Pattern 3: Distinct query keys to avoid cache contamination (existing — critical to continue)
-
-**What:** Components that need sprint data but must not share the sprint board's polling cycle use a DIFFERENT second key segment. TodayColumn uses `'sprint-board-today-full'` instead of `'sprint-board'` to avoid triggering SprintBoardTab's invalidation.
-
-**When to use:** MyTasksPage fetches under `['jira-issues','my-tasks',...]` — this already exists and is correct. Do NOT borrow `'sprint-board'` even though the underlying sprint data overlaps.
-
-**Trade-offs:** Two copies of overlapping data in cache, but prevents unintended polling cascade. Accepted by codebase-wide precedent.
-
-### Pattern 4: ChartWrapper — Recharts with CSS-var theming
-
-**What:** A single wrapper component that (a) wraps Recharts' `ResponsiveContainer` with an explicit height, (b) makes CSS variable strings available to chart children, (c) applies `'use no memo'` directive to escape React Compiler's auto-memoization for charts.
-
-**When to use:** Every chart on the Dashboard. Dashboard chart components (SprintChart, TrendChart, VelocityChart) each receive a `<ChartWrapper>` as their outermost element.
-
-**Trade-offs:** One indirection layer, but ensures consistent theming and a single opt-out from React Compiler memoization for the charting subtree.
-
-**Implementation sketch:**
 ```typescript
-// components/charts/ChartWrapper.tsx
-'use no memo';  // React Compiler escape hatch for Recharts interior-mutability
-import { ResponsiveContainer } from 'recharts';
-import type { ReactElement } from 'react';
+// gitlab.ts additions
+export async function fetchProjectDefaultBranch(baseUrl, token, projectId): Promise<string>;
+// GET /projects/:id → { default_branch }. Confirms CONTEXT.md's "read from API, no configuration".
 
-// CSS vars from index.css (Tailwind v4 exposes these in :root)
-export const chartColors = {
-  tick: 'var(--muted-foreground)',
-  grid: 'var(--border)',
-  primary: 'var(--primary)',
-  chart1: 'var(--chart-1)',
-  chart2: 'var(--chart-2)',
-  chart3: 'var(--chart-3)',
-} as const;
+export async function fetchBranch(baseUrl, token, projectId, branchName): Promise<GitLabBranch | null>;
+// GET /projects/:id/repository/branches/:branch (URL-encode slash). 404 → null (not "doesn't exist" thrown —
+// existence-check is an expected negative case, not an error).
 
-export function ChartWrapper({
-  height = 200,
-  children,
-  className,
-}: {
-  height?: number;
-  children: ReactElement;
-  className?: string;
-}) {
-  return (
-    <div className={className} style={{ width: '100%', height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        {children}
-      </ResponsiveContainer>
-    </div>
-  );
-}
+export async function createBranch(baseUrl, token, projectId, branchName, ref): Promise<GitLabBranch>;
+// POST /projects/:id/repository/branches?branch=X&ref=Y
+
+export async function createMilestone(baseUrl, token, projectId, title, description?): Promise<GitLabMilestone>;
+// POST /projects/:id/milestones — sibling write to the existing updateMilestone (PUT)
+
+export async function updateMRTargetBranch(baseUrl, token, projectId, mrIid, targetBranch): Promise<GitLabMRDetail>;
+// PUT /projects/:id/merge_requests/:iid  { target_branch }
+
+export async function assignMRMilestone(baseUrl, token, projectId, mrIid, milestoneId): Promise<GitLabMRDetail>;
+// PUT /projects/:id/merge_requests/:iid  { milestone_id }
+
+export async function fetchBranchMergeStatus(baseUrl, token, projectId, sourceBranch, targetBranch): Promise<{ merged: boolean }>;
+// GET /projects/:id/repository/compare?from=targetBranch&to=sourceBranch — merged when `commits.length === 0`
+// (release branch has zero commits not already reachable from default branch)
 ```
 
-Add chart CSS vars to `index.css` (Tailwind v4 CSS-first config):
-```css
-:root {
-  --chart-1: oklch(70% 0.2 30);   /* orange */
-  --chart-2: oklch(65% 0.2 200);  /* blue   */
-  --chart-3: oklch(60% 0.2 145);  /* green  */
-  --chart-4: oklch(65% 0.2 290);  /* purple */
-  --chart-5: oklch(55% 0.2 20);   /* red    */
-}
-.dark {
-  --chart-1: oklch(75% 0.2 30);
-  /* etc. */
-}
-```
+**Confirm-then-refetch (create-branch, create-milestone):** These are irreversible-ish, low-frequency, one-shot actions gated behind a `Dialog` (same `@base-ui/react/dialog` component `ReleaseDetailPage.tsx`'s edit modal already uses). No optimistic UI needed — show a loading state on the confirm button, `await` the mutation, `invalidateQueries` on success, surface the GitLab error message on failure (reuse the `jiraError`/`gitlabError` per-source-error state pattern already in `ReleaseDetailPage.tsx`'s `handleSave`).
 
-### Pattern 5: Zustand + Tauri Store for new persisted prefs (existing — extend)
+**Optimistic + rollback (retarget MR, assign milestone):** These apply directly per-row with no confirm step, per CONTEXT.md. Follow the `createAllRows` per-row status shape from `BulkCreateSubtasksModal.tsx` — but note that pattern is a *sequential* loop for "create all," while retarget/assign are *independent per-row* actions (no "fix all" per CONTEXT.md), so each row owns its own `useMutation` (or a shared mutation keyed by MR iid) with:
+- `onMutate`: optimistically flip the row's drift badge to "fixed" / patch the cached MR's `target_branch` or `milestone` in the TanStack Query cache directly (`queryClient.setQueryData`) so the row re-renders immediately — same technique as drag-to-rank/drag-to-transition's optimistic local order.
+- `onError`: roll back the cache patch, surface an inline per-row error + retry button (same `RowState` shape: `idle | pending | success | error`).
+- `onSettled`: `invalidateQueries` on the channel-C branch-targeting-MRs query key AND the channel-B milestone-MRs query key (a retarget can move an MR in or out of either channel's result set) — this is a **broad-prefix invalidation**, matching the existing convention (`['gitlab-milestone-mrs', activeGitlabProject]` prefix invalidation in `ReleaseDetailPage.tsx`'s `handleSave`).
 
-**What:** `createTauriStorage('my-tasks.json')` passed to Zustand's `persist` middleware. Identical to `tempo-filters.store.ts` (line 48) and `subtask-templates.store.ts`.
+**Query keys to invalidate on write:**
+| Mutation | Invalidates |
+|----------|-------------|
+| `createBranch` | `['gitlab-branch', activeGitlabProject, releaseBranchName]` |
+| `createMilestone` | `['gitlab-milestones', activeGitlabProject]` (broad prefix — same as existing) |
+| `updateMRTargetBranch` | `['gitlab-branch-target-mrs', activeGitlabProject, releaseBranchName]`, `['gitlab-milestone-mrs', activeGitlabProject]` |
+| `assignMRMilestone` | `['gitlab-milestone-mrs', activeGitlabProject]`, `['gitlab-branch-target-mrs', activeGitlabProject, releaseBranchName]` |
 
-**When to use:** My Tasks grouping mode and scope toggle.
+Token is never in any query key, per the established convention — read inside `queryFn`/`mutationFn` via `readSecret('gitlab-pat')`.
 
-**Persistence shape:**
+### Pattern 3: Branch-existence and merge-back as plain TanStack Query, not Zustand
+
+**What:** Both are per-release, server-derived, cacheable, and need the exact same three-state (Empty/Error/Stale) degradation as everything else GitLab in this codebase. Zustand in this codebase is reserved for **client-owned, persisted** state (pinned tabs, filters, templates) — never for server-derived facts. Branch existence and merge-back status are facts *about GitLab*, not app state, so they belong in `useQuery`, exactly like `milestones`/`milestoneMRs`/`recentProjectMRs` already do in `ReleaseDetailPage.tsx`.
+
 ```typescript
-export type MyTasksGroupMode = 'day' | 'status' | 'sprint';
-export type MyTasksScope = 'sprint' | 'all';
+// release-detail/useReleaseBranchState.ts
+const { data: branch, isError: branchError } = useQuery({
+  queryKey: ['gitlab-branch', activeGitlabProject, releaseBranchName],
+  queryFn: () => fetchBranch(gitlabBaseUrl, gitlabToken, activeGitlabProject, releaseBranchName),
+  enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && !!releaseBranchName,
+  staleTime: 5 * 60_000,
+});
+// branch === null means "confirmed does not exist" (a valid, renderable state — NOT an error)
+// branchError means "couldn't determine" (GitLab unreachable) — degrade independently
 
-interface MyTasksState {
-  groupMode: MyTasksGroupMode;
-  scope: MyTasksScope;
-  setGroupMode: (mode: MyTasksGroupMode) => void;
-  setScope: (scope: MyTasksScope) => void;
-}
-// persist({ name: 'my-tasks', storage: createTauriStorage('my-tasks.json') })
+const { data: mergeStatus, isError: mergeStatusError } = useQuery({
+  queryKey: ['gitlab-merge-back', activeGitlabProject, releaseBranchName, defaultBranch],
+  queryFn: () => fetchBranchMergeStatus(gitlabBaseUrl, gitlabToken, activeGitlabProject, releaseBranchName, defaultBranch),
+  enabled: !!defaultBranch && !!releaseBranchName && version?.released === true, // only check post-release
+  staleTime: 5 * 60_000,
+});
 ```
 
-Settings store version (v26) does NOT change — this is a new standalone store file, not a settings store migration.
-
----
+**Independent degradation:** This codebase's established pattern (Standup Notes' 4 independently-degrading sections, Dashboard's per-card independent loading/empty/error states, `ReleasesTab.tsx`'s separate `milestonesError` banner vs the hard Jira `ErrorState`) is: **each server-derived fact is its own query with its own `isError`, rendered as its own inline warning, never one that blanks the whole page.** `ReleaseBranchSection.tsx` should render its own `AlertTriangle` + "GitLab unreachable — branch status unknown" line when `branchError`/`mergeStatusError` is true, exactly like `ReleasesTab.tsx`'s existing `{milestonesError && <span>...GitLab unavailable</span>}` treatment — while the rest of the release detail page (Jira-sourced description, issues list) keeps rendering normally.
 
 ## Data Flow
 
-### My Tasks page — complete data flow
+### Three-channel discovery + drift (new)
 
 ```
-MyTasksPage mounts
-  ↓ useAuthStore() → jiraBaseUrl, jiraUserDisplayName
-  ↓ useMyTasksStore() → groupMode, scope
-  ↓ readSecret('jira-pat') → jiraToken (once, useEffect)
-  ↓
-
-  scope === 'sprint':
-    useQuery key: ['jira-issues','my-tasks', project, spKey]
-    queryFn:  fetchMyTasksHierarchy()    [EXISTING in jira.ts:483]
-    Strategy: 2 parallel JQL calls
-      (1) my sprint stories: project=X AND sprint in openSprints()
-                              AND issuetype not in subtaskIssueTypes()
-                              AND assignee=currentUser()
-      (2) my non-done subtasks: project=X AND issuetype in subtaskIssueTypes()
-                                 AND assignee=currentUser() AND statusCategory!=Done
-    → union parents + fetch extra parents not in sprint
-    → fetch ALL subtasks (no assignee filter) for every parent story
-    → returns { issues: JiraIssue[], myIssueKeys: Set<string> }
-
-  scope === 'all':
-    useQuery key: ['jira-issues','my-tasks-all', project, spKey]
-    queryFn: NEW fetchMyAssignedIssues() in jira.ts
-    JQL: project=X AND assignee=currentUser() AND statusCategory!=Done
-         ORDER BY updated DESC
-    Uses fetchAllSearchPages() — same paginated helper
-
-  MR health per row:
-    queryClient.getQueryData(['mr-health', project_id, iid])
-    Read from cache — populated by MrHealthPanel on Dashboard.
-    If MrHealthPanel hasn't run this session, badges show "unknown" / no badge.
-    No new fetch triggered from MyTasksPage itself.
-
-  Time bars (progress within estimate):
-    issue.fields.timetracking.originalEstimateSeconds / timeSpentSeconds
-    Already in fields= list of fetchMyTasksHierarchy.
-
-  groupMode = 'day':
-    Client-side bucket: overdue (duedate < today), due-today, upcoming (no due or future)
-    Within buckets, sort by status category (indeterminate first)
-
-  groupMode = 'status':
-    Client-side group by statusCategory.key ('new' / 'indeterminate' / 'done')
-    Subtasks nested under parent story rows (same DashboardInProgressCard pattern)
-
-  groupMode = 'sprint':
-    Group by parent.key — each story is a collapsible header row
-    Subtasks indented beneath (identical to StandupNotes TodayColumn grouping)
-    Orphan subtasks (no parent in result set) shown at bottom
+ReleaseDetailPage mounts, resolves version + releaseBranchName = `release/${version.name}`
+    │
+    ├─ Channel A: fixVersionIssues (existing fetchFixVersionIssues, fully paginated)
+    ├─ Channel B: milestoneMRs (existing fetchMilestoneMRs, fully paginated, gated on gitlabMatch)
+    └─ Channel C: branchTargetingMRs (NEW fetchBranchTargetingMRs, fully paginated, gated on releaseBranchName)
+                    │
+                    ▼
+         services/releaseFlow.ts: unionReleaseMRs(...) — pure, no I/O
+                    │
+                    ▼
+         release-detail/ReleaseDriftSection.tsx renders drift rows
+                    │
+          user clicks "Retarget" or "Assign milestone" on a row
+                    │
+                    ▼
+         useReleaseGitlabWrites.ts mutation → optimistic cache patch → GitLab PUT
+                    │
+              onSettled → invalidate Channel B + C query keys → re-run union → row updates
 ```
 
-### Dashboard redesign — complete data flow
+### Branch lifecycle (new)
 
 ```
-DashboardPage mounts
-  ↓ readSecret('jira-pat') + readSecret('gitlab-pat') (once each, useEffect)
-  ↓ useBoardId() → boardId (existing hook, staleTime:Infinity)
-  ↓
+ReleaseDetailPage mounts
+    │
+    ├─ fetchProjectDefaultBranch (cached, rarely changes — long staleTime candidate)
+    ├─ fetchBranch(releaseBranchName) → exists? render status : render warning + "Create branch" button
+    │
+    └─ (confirm dialog) createBranch(releaseBranchName, ref=defaultBranch)
+             │
+             onSuccess → invalidate ['gitlab-branch', ...] → re-render as "exists"
 
-  DashboardStatTiles
-    reads: ['jira-issues','sprint-board', project, spKey]
-    warm from SprintBoardTab if visited; cold fetch if first load
-    client-side derive: open count, in-progress count, done SP, total SP
-
-  DashboardSprintChart (points-by-status donut or bar)
-    reads: ['jira-issues','sprint-board', project, spKey]  ← SAME warm cache
-    no new fetch; derive 3 buckets (new / indeterminate / done) from issues
-    render: <BarChart> or <PieChart> via ChartWrapper
-
-  DashboardTrendChart (weekly logged hours)
-    gated: tempoEnabled check (from useSettingsStore)
-    reads: ['tempo','worklogs', dateRange, ...] — may overlap WorklogsPage cache
-    if cold: NEW query with last-28-days date range
-    aggregate by ISO week (.slice(0,10) date rule — Phase 62 standing rule)
-    graceful empty state when tempoEnabled=false
-
-  DashboardMrReviewQueue
-    reads: ['gitlab-mrs', base, userId]  ← SAME cache as MrHealthPanel (no new fetch)
-    reads: ['mr-health', project_id, iid] ← SAME cache
-    filter to: mr.reviewer_ids.includes(myUserId) AND mr.state==='opened'
-
-  DashboardActivityStrip
-    reads/fires: fetchYesterdayJiraActivity() [EXISTING in jira.ts]
-    key: ['jira-standup-activity', project, yesterdayDate]  or adjust to share
-    Note: If key matches StandupNotesPage's query, cache is shared for free.
-    Reuse standup page's key format to get cache sharing on same session.
-
-  DashboardVelocityChart (N-sprint velocity)
-    reads: ['jira-closed-sprints', boardId]
-    queryFn: NEW fetchClosedSprints(base, token, boardId, maxResults=8)
-      → GET /rest/agile/1.0/board/{boardId}/sprint?state=closed&maxResults=8
-    for each closed sprint:
-      reads: ['jira-sprint-issues-by-id', sprintId]  staleTime: Infinity
-      queryFn: NEW fetchSprintIssuesBySprintId(base, token, sprintId)
-        → GET /rest/agile/1.0/sprint/{sprintId}/issue?fields=customfield_10016,status
-      derive: committed SP (all SP) + completed SP (SP where statusCategory=done)
-    concurrency cap: p-limit(3) — already in package.json dependencies
-    render as last section (lazy-load priority — other sections render first)
+Post-release (version.released === true):
+    │
+    └─ fetchBranchMergeStatus(from=defaultBranch, to=releaseBranchName)
+             │
+             merged === false → "Release unfinished — release/X not yet merged" warning persists
+             merged === true  → warning clears
 ```
-
-### What requires new fetchers vs what reads existing cache
-
-| Dashboard section | Cache status | Action |
-|------------------|-------------|--------|
-| Stat tiles | Warm from SprintBoardTab | No new fetch |
-| Sprint health chart | Warm from SprintBoardTab | No new fetch |
-| Trend chart (Tempo) | Cold on first Dashboard visit | New query, reuse fetchWorklogs |
-| MR review queue | Warm if MrHealthPanel ran this session | Read existing cache; no new fetch |
-| Activity strip | Cold; standup page may warm it | Use fetchYesterdayJiraActivity with matching key |
-| Velocity chart | Always cold (new data shape) | New fetchers in sprints.ts + jira.ts barrel |
-
----
-
-## Burndown / Historical Data — Availability Assessment
-
-**VERDICT: Not available through supported APIs. Out of scope per PROJECT.md.**
-
-The GreenHopper endpoint `/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=X&sprintId=Y` exists and is used by Jira's own UI for sprint report rendering. However:
-
-1. It is unofficial and undocumented (not in the Jira DC REST API reference)
-2. PROJECT.md explicitly lists "Historical analytics / burndown charts" as Out of Scope
-3. The velocity chart (completed vs committed SP per closed sprint) is achievable through official REST without the unofficial endpoint
-
-For velocity, the pattern is: `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed` to list closed sprints, then `GET /rest/agile/1.0/sprint/{sprintId}/issue?fields=customfield_10016,status` per sprint to sum story points. This is confirmed available on Jira DC via the official Agile REST API reference (v9.14.0).
-
----
-
-## Integration Points
-
-### Existing fetchers and cache keys usable directly
-
-| Data | Cache key | Existing fetcher | My Tasks | Dashboard |
-|------|-----------|-----------------|----------|-----------|
-| Sprint issues (all) | `['jira-issues','sprint-board',project,spKey]` | `fetchSprintIssues(false)` | Warm read for MR badge enrichment | Stat tiles + sprint chart |
-| My sprint hierarchy | `['jira-issues','my-tasks',project,spKey]` | `fetchMyTasksHierarchy()` | Primary query | Stat tile fallback |
-| Active sprint | `['jira-active-sprint',project,base,boardId]` | `fetchActiveSprint()` | Sprint name header | Sprint chart header |
-| GitLab MRs | `['gitlab-mrs',base,userId]` | `fetchAssignedMRs + fetchReviewerMRs` | MR badge per row (read cache) | MR review queue |
-| MR health | `['mr-health',projectId,iid]` | populated by MrHealthPanel | `getQueryData` read | `getQueryData` read |
-| Tempo worklogs | `['tempo','worklogs',...]` | `fetchWorklogs()` | Time bar from `timetracking` field | Trend chart |
-| Custom fields | `['jira-custom-fields',base]` | `discoverCustomFields()` | via settingsStore | via settingsStore |
-| Board ID | `['jira-board-id',base,project]` | `useBoardId()` hook | Not needed | Sprint chart + velocity |
-
-### New fetchers to add
-
-| Fetcher | Where | Cache key | Purpose |
-|---------|-------|-----------|---------|
-| `fetchMyAssignedIssues(base, token, project, spKey)` | `services/jira.ts` (barrel, ~line 603) | `['jira-issues','my-tasks-all',project,spKey]` | My Tasks "all" scope — JQL `assignee=currentUser() AND statusCategory!=Done` |
-| `fetchClosedSprints(base, token, boardId, maxResults)` | `services/jira/sprints.ts` + re-export via barrel | `['jira-closed-sprints',boardId]` | GET `.../board/{boardId}/sprint?state=closed&maxResults=N` |
-| `fetchSprintIssuesBySprintId(base, token, sprintId, spKey)` | `services/jira/sprints.ts` or `services/jira.ts` | `['jira-sprint-issues-by-id',sprintId]` with `staleTime: Infinity` | Velocity chart per-sprint SP aggregation |
-
-### Outlet context (AppLayout/main.tsx) — no changes required
-
-`onIssueClick`, `onOpenIssue`, `openEdit`, `openClone`, `openAddSubtask` are already threaded through `Outlet` context. New pages call `useOutletContext()` with the existing type shape. No main.tsx changes needed for basic peek + navigate-to-issue functionality.
-
-### Sidebar — one new entry
-
-```typescript
-// components/app/sidebar-items.ts — add after 'dashboard' entry
-{ id: 'my-tasks', label: 'My Tasks', path: '/my-tasks', iconName: 'CheckSquare', section: 'main' }
-```
-
-Place it between `dashboard` and `standup-notes` in `SIDEBAR_ALL_ITEMS`. The `getDefaultSidebarItems()` function will include it in the all-visible default set.
-
-### Router — one new lazy route
-
-```typescript
-// routes/routes.tsx
-const MyTasksPage = lazy(() => import('./my-tasks/MyTasksPage'));
-// add to routes array:
-{ path: '/my-tasks', element: withLazy(MyTasksPage) }
-```
-
-Dashboard at `/dashboard` is currently NOT lazy (direct import). If adding Recharts, consider converting it to lazy as well to keep the initial JS bundle lighter:
-```typescript
-const DashboardPage = lazy(() => import('./dashboard/index'));
-```
-
-### Shared components already usable as-is
-
-- `StatusPopover` — in-place status transition, works on any `JiraIssue` key
-- `PriorityIcon` — from `components/ui/priority-icon.tsx`
-- `IssueTypeIcon` — from `components/ui/issue-type-icon.tsx`
-- `CachedAvatar` — from `components/ui/cached-avatar.tsx`
-- `useDelayedLoading` — from `hooks/useDelayedLoading.ts` (200ms skeleton flicker prevention)
-- `doneSummaryClass`, `issueTypeStripeClass` — from `lib/issueDisplayUtils.ts`
-- `EmptyState`, `ErrorState`, `StaleDataBanner` — from `components/ui/`
-- `Progress` — from `components/ui/progress.tsx` (for time bars)
-
----
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Sharing sprint-board cache key with My Tasks
+### Anti-Pattern 1: Reusing `fetchRecentProjectMRs` for Channel C
 
-**What people do:** Use `['jira-issues','sprint-board',...]` in MyTasksPage since the sprint data overlaps.
+**What people might do:** Since `fetchRecentProjectMRs` already exists and fetches "all MRs for a project," it's tempting to reuse it for the branch-targeting channel instead of writing a new paginated fetch.
+**Why it's wrong:** It is explicitly capped at 100 (`GGX-WARN-01` documents this as an intentional performance/accuracy trade for a *secondary heuristic*, "wrong milestone" hinting — not for authoritative drift detection). Using it as an authoritative channel would silently drop older release-branch MRs, which is exactly the fetch-once-page-cap pitfall this project has hit before (My Tasks, MR discussion pickers, assignee pickers — see project memory).
+**Do this instead:** Write `fetchBranchTargetingMRs` with the same `while(true) per_page=100` full-pagination loop already used by `fetchMilestoneMRs`/`fetchProjectMilestones` in the same file.
 
-**Why it's wrong:** `fetchSprintIssues(assignedToMe=false)` returns all team members' issues, not just mine. `fetchMyTasksHierarchy` uses a different strategy (my stories + my subtasks, then all subtasks for those parents). Sharing the key would break My Tasks when the sprint board cache contains unfiltered data, or bust the sprint board's polling when My Tasks invalidates.
+### Anti-Pattern 2: Growing `ReleaseDetailPage.tsx` further instead of decomposing first
 
-**Do this instead:** Keep `['jira-issues','my-tasks',...]` as the distinct key for `fetchMyTasksHierarchy`. The sprint board cache (`['jira-issues','sprint-board',...]`) may be read for MR badge enrichment via `getQueryData` but never written by My Tasks queries.
+**What people might do:** Add the new branch/drift/create-milestone UI as more inline JSX inside the existing 1518-line component, the same way the file grew from its original size.
+**Why it's wrong:** The file already mixes 6+ concerns (header, dual description, issues table, unmatched MRs, edit modal, sidebar) in one function component with no sub-decomposition — a stark contrast to `issue-detail/`'s 25-file decomposition for a comparable-complexity surface. Continuing to append will make the file unreviewable and untestable at the section level (note `FieldsSection.test.tsx` exists as a 659-line focused test for one 1153-line section — that granularity is impossible against a monolithic `ReleaseDetailPage.tsx`).
+**Do this instead:** Extract the *existing* sections into `release-detail/` first (mechanical, low-risk, no behavior change), then add every new v1.14 section as a new sibling file in that folder from day one.
 
-### Anti-Pattern 2: Fetching velocity sprint issues in parallel without concurrency cap
+### Anti-Pattern 3: Treating "branch doesn't exist" as an error state
 
-**What people do:** `Promise.all(closedSprints.map(id => fetchSprintIssuesBySprintId(...)))` for 8 sprints simultaneously.
+**What people might do:** Throw/surface `fetchBranch` 404s through the same `ErrorState`/`ApiError` path as auth failures.
+**Why it's wrong:** A missing release branch is an expected, common, actionable state (the whole point of RELEASE-01/02 is to detect and offer to fix it) — treating it as an error would trigger the app's `ErrorState` full-page treatment or a `StaleDataBanner`, both wrong UX for "here's a warning with a button to fix it."
+**Do this instead:** `fetchBranch` returns `null` on 404 (not a thrown error); only network failures / 401/403 go through `ApiError`. The section renders three states: loading / exists / missing-with-create-button, and a *separate* `isError` flag for "couldn't determine" (GitLab unreachable).
 
-**Why it's wrong:** 8 concurrent REST calls against Jira DC (which has `jiraConcurrencyLimit: 6` in settings) can queue-starve other in-flight requests. Velocity is the lowest-priority dashboard section.
+## Integration Points
 
-**Do this instead:** Use `p-limit(3)` (already in `package.json`) to cap velocity sprint fetches at 3 concurrent calls. `staleTime: Infinity` for closed sprint issues means this runs at most once per session per sprint.
+### External Services
 
-### Anti-Pattern 3: Reading Tauri Stronghold token inside chart components
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| GitLab REST v4 | `apiFetch('gitlab', url, opts, label)` via `tauri-plugin-http`, `PRIVATE-TOKEN` header | All new endpoints (`repository/branches`, `repository/compare`, milestone POST, MR PUT) are documented, standard GitLab API — no probe-gated unknowns like AIO had |
+| Jira REST v2 | Unchanged — no new Jira write surface in v1.14; `fetchFixVersionIssues`/`fetchFixVersions` reused as-is | Channel A source only |
 
-**What people do:** Each chart component calls `readSecret('jira-pat')` in a `useEffect` to get its own token for fetching.
+### Internal Boundaries
 
-**Why it's wrong:** Violates D-16 (single token load pattern). Creates N parallel Stronghold reads and makes components non-testable without the Tauri runtime.
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `releaseFlow.ts` ↔ `gitlab.ts`/`jira.ts` | One-directional: `release-detail/` hooks call the fetch functions, pass plain-object results into `releaseFlow.ts`'s pure functions | Mirrors `releaseLinker.ts`'s existing boundary — never let the pure module import `apiFetch`/`fetch` |
+| `release-detail/*.tsx` sections ↔ `ReleaseDetailPage.tsx` orchestrator | Props only — no `createContext`/`useContext` anywhere in this codebase (explicit decision, see PROJECT.md Key Decisions: "Prop threading for onIssueClick (not React context)") | The orchestrator owns all `useQuery`/`useMutation` calls and passes data + callbacks down, same as `issue-detail/index.ts` does today |
+| `ReleaseDriftSection.tsx` mutations ↔ TanStack Query cache | `queryClient.setQueryData` for optimistic patch, `invalidateQueries` broad-prefix on settle | No React Compiler manual memo anywhere — do not add `useMemo`/`useCallback`/`React.memo` to any new component |
+| `MetaRow` reuse | `issue-detail/MetaRow.tsx` (8 LOC) is already generic (`label` + `children`) but `ReleaseDetailPage.tsx` currently defines its own **local** `MetaRow` at the bottom of the file (duplicate, not shared) | When decomposing, either import the existing `issue-detail/MetaRow.tsx` directly (cross-folder import — check no other coupling implied) or keep a `release-detail/MetaRow.tsx` duplicate; either is consistent with current codebase style (some duplication already exists between `ReleasesTab.tsx` and `ReleaseDetailPage.tsx`'s own `fetchVersionIssueCounts`, which the file's own comment calls out as "duplicated... to keep self-contained") |
 
-**Do this instead:** Load `jiraToken` once in DashboardPage root (existing pattern), pass it as prop to `DashboardSprintChart`, `DashboardTrendChart`, `DashboardVelocityChart`.
+## Build Order
 
-### Anti-Pattern 4: Recharts `ResponsiveContainer` without explicit height on parent
+Ordered by dependency; items marked **[shippable]** can go out as their own phase/PR without the later items existing.
 
-**What people do:** `<ResponsiveContainer width="100%">` inside a flex container with `height: auto`, expecting the chart to fill available space.
+1. **Decompose `ReleaseDetailPage.tsx` into `release-detail/`** (mechanical extraction of existing sections: header, description, issues table, unmatched-MRs, sidebar, edit dialog — zero new behavior). **[shippable]** — do this first so every subsequent addition lands in the new structure, not the monolith. Low risk: existing tests (if any cover this page) should pass unchanged since it's pure extraction.
 
-**Why it's wrong:** `ResponsiveContainer` reads the DOM height of its parent. If the parent has `height: auto`, the chart collapses to 0px or renders incorrectly. This is the most common Recharts bug.
+2. **Branch existence (read-only)**: `fetchProjectDefaultBranch`, `fetchBranch` in `gitlab.ts`; `ReleaseBranchSection.tsx` rendering exists/missing/unknown; release-level warning surfaced on `ReleasesTab.tsx` rows too (small addition there). **[shippable]** — delivers RELEASE-01 (branch existence + warning) alone, no writes yet.
 
-**Do this instead:** Always pass an explicit `height` to `ChartWrapper`. The wrapper enforces this by applying `style={{ height }}` on its outer div. Never rely on CSS alone for Recharts height.
+3. **Create branch (write, confirm-gated)**: `createBranch` in `gitlab.ts`; `CreateBranchDialog.tsx`; wired into `ReleaseBranchSection.tsx`. Depends on (2) for the "missing" trigger state. **[shippable]** — delivers RELEASE-02.
 
-### Anti-Pattern 5: CSS Tailwind color strings as Recharts props (wrong approach)
+4. **Three-channel MR discovery + drift (read-only)**: new `fetchBranchTargetingMRs` in `gitlab.ts`; `services/releaseFlow.ts` pure module + its unit tests; `ReleaseDriftSection.tsx` rendering the union/drift table. Depends on (2) for `releaseBranchName` resolution (branch doesn't need to exist yet — the query for Channel C simply returns empty if the branch has no targeting MRs). Can build in parallel with (3). **[shippable]** — delivers RELEASE-03/04 as a read-only drift report before any corrective-action UI exists.
 
-**What people do:** `stroke="text-primary"` or `fill="bg-orange-500"` thinking Tailwind class names work as SVG attribute values.
+5. **Per-MR corrective actions (write, optimistic)**: `updateMRTargetBranch`, `assignMRMilestone` in `gitlab.ts`; `useReleaseGitlabWrites.ts` mutations with optimistic+rollback; per-row status UI in `ReleaseDriftSection.tsx`. Hard dependency on (4) — needs the drift rows to act on. **[shippable]** — delivers RELEASE-05.
 
-**Why it's wrong:** SVG attribute values are not CSS classes. Tailwind classes don't apply to SVG `stroke`/`fill` props passed directly to Recharts.
+6. **Create milestone (write, confirm-gated)**: `createMilestone` in `gitlab.ts`; `CreateMilestoneDialog.tsx` (latest-milestones list for reference + name input). Independent of (4)/(5) — only needs the existing `matchGitLabToFixVersion`/`gitlabMatch.type === 'none'` state that already exists in `ReleaseDetailPage.tsx` today. Could ship as early as after (1), in parallel with (2)-(5). **[shippable]** — delivers RELEASE-06.
 
-**Do this instead:** Pass CSS variable strings: `stroke="var(--primary)"`, `fill="var(--chart-1)"`. SVG elements in WKWebView/WebView2 resolve CSS variables correctly. This is the approach that gives dark/light theme support automatically.
+7. **Post-release merge-back check**: `fetchBranchMergeStatus` in `gitlab.ts`; extend `ReleaseBranchSection.tsx` (or a small dedicated sub-section) to check `version.released === true` and render the unfinished-release warning. Depends on (2) for `defaultBranch`/`releaseBranchName`. Logically last since it only activates for already-released versions, but has no hard code dependency on (3)-(6) — could ship right after (2) if desired. **[shippable]** — delivers RELEASE-07.
 
-### Anti-Pattern 6: Using `useGhAllData` directly in Dashboard or My Tasks
-
-**What people do:** Import `useGhAllData` into Dashboard or MyTasksPage to get sprint issues since it's the "single source of truth" for the sprint board.
-
-**Why it's wrong:** `useGhAllData` is gated on `isActive === useIsActiveRoute('/sprint-board')`. It will not fetch when rendering on `/dashboard` or `/my-tasks`. It also returns raw `GhBoardIssue` types, not `JiraIssue`, requiring the adapter layer that is already encapsulated inside `fetchSprintIssues`.
-
-**Do this instead:** Use `fetchSprintIssues` (for all-sprint data) or `fetchMyTasksHierarchy` (for my-issues data) under their own query keys. `gcTime: Infinity` ensures the sprint board's allData cache stays live and readable across routes — it just won't be re-fetched by dashboard queries.
-
----
-
-## Build Order (Phase Sequencing)
-
-The charting foundation must exist before chart-consuming dashboard sections. My Tasks data layer is already partially implemented (`fetchMyTasksHierarchy` exists in jira.ts at line 483, used by SubtasksPanel with query key `['jira-issues','my-tasks',...]`).
-
-**Phase A — Charting Foundation**
-- Install Recharts + `react-is` override in package.json
-- Create `src/components/charts/ChartWrapper.tsx`
-- Define `--chart-1` through `--chart-5` CSS vars in `index.css`
-- Document `'use no memo'` placement for chart components
-- Verify dark/light theming works in a dummy chart component
-- Deliverable: `ChartWrapper` renders correctly on `/dashboard` with correct theme response
-
-**Phase B — My Tasks data layer + page**
-- Add `fetchMyAssignedIssues` to `services/jira.ts` (scope = 'all')
-- Create `stores/my-tasks.store.ts`
-- Create `routes/my-tasks/` directory with all components
-- Wire lazy route in `routes/routes.tsx` + sidebar entry
-- Peek and status transitions via outlet context (no AppLayout changes)
-- Deliverable: `/my-tasks` functional with all 3 grouping modes, scope toggle, peek, status transitions
-
-**Phase C — Dashboard stat tiles + sprint health chart**
-- Replace 3-card grid in `routes/dashboard/index.tsx` with stat tiles + chart
-- DashboardStatTiles reads warm sprint-board cache
-- DashboardSprintChart (points-by-status) uses ChartWrapper
-- Keep gradient hero + date unchanged
-- Deliverable: Dashboard shows stat tiles + sprint health chart; existing release card integrated
-
-**Phase D — Trend graph + MR review queue + activity strip**
-- DashboardTrendChart (weekly logged hours, Tempo-gated)
-- DashboardMrReviewQueue (reads existing gitlab-mrs + mr-health cache)
-- DashboardActivityStrip (reuses fetchYesterdayJiraActivity)
-- Deliverable: Full dashboard layout; Tempo-enabled users see trend, others see placeholder
-
-**Phase E — Velocity trend**
-- Add `fetchClosedSprints` + `fetchSprintIssuesBySprintId` to `sprints.ts` + barrel
-- DashboardVelocityChart with `p-limit(3)` concurrency cap
-- `staleTime: Infinity` for closed sprint issue queries
-- Deliverable: Velocity chart renders last N sprints with committed vs completed SP
-
-**Dependency order:**
-- Phase A before C, D (ChartWrapper required by all chart sections)
-- Phase B independent (no chart dependency; can run in parallel with A)
-- Phase C before D (establishes dashboard layout structure)
-- Phase D before E (MR queue + activity sections frame the lower dashboard)
-- Phase E last (new fetchers + most complex caching logic; lowest priority)
-
----
+**Recommended phase grouping:** `[1]` (refactor phase, no user-visible change) → `[2, 6]` (parallel — both are independent read/write additions with no shared new module) → `[3, 4]` (parallel — branch creation and drift discovery are independent) → `[5]` (depends on 4) → `[7]` (can slot in anywhere after 2, but naturally closes the milestone as the "verify the loop closed" feature).
 
 ## Sources
 
-- Recharts React 19 support: [Support React 19 — Issue #4558](https://github.com/recharts/recharts/issues/4558)
-- React Compiler escape hatch: [React Compiler — react.dev](https://react.dev/learn/react-compiler)
-- Jira DC closed sprints API: [Jira Agile DC REST API 9.14.0](https://docs.atlassian.com/jira-software/REST/9.14.0/)
-- Velocity via REST: [How to Get Sprint Velocity Data via JIRA REST API](https://community.atlassian.com/forums/Jira-questions/How-to-Get-Sprint-Velocity-Data-via-JIRA-REST-API/qaq-p/1226330)
-- Tailwind v4 + shadcn/ui: [Tailwind v4 — shadcn/ui docs](https://ui.shadcn.com/docs/tailwind-v4)
-- Codebase sources (all HIGH confidence, read directly):
-  - `taskflow/src/main.tsx` — AppLayout, outlet context, peek state
-  - `taskflow/src/services/jira.ts` — barrel, fetchMyTasksHierarchy (line 483), fetchSprintIssues (line 389)
-  - `taskflow/src/services/jira/greenhopper/useGhAllData.ts` — route-gated polling
-  - `taskflow/src/services/jira/greenhopper/types.ts` — GhAllDataResponse, GhSprintBacklog
-  - `taskflow/src/services/jira/sprints.ts` — fetchActiveSprint, fetchSprintsForBoard
-  - `taskflow/src/stores/settings.store.ts` — persist v26, createTauriStorage pattern
-  - `taskflow/src/routes/dashboard/index.tsx` — current Dashboard structure
-  - `taskflow/src/routes/dashboard/DashboardInProgressCard.tsx` — existing grouping pattern
-  - `taskflow/src/routes/dashboard/DashboardSprintCard.tsx` — existing sprint data pattern
-  - `taskflow/src/routes/dashboard/SubtasksPanel.tsx` — fetchMyTasksHierarchy usage + cache key
-  - `taskflow/src/routes/dashboard/MrHealthPanel.tsx` — gitlab-mrs + mr-health cache pattern
-  - `taskflow/src/routes/standup-notes/TodayColumn.tsx` — grouping pattern reusable for My Tasks
-  - `taskflow/src/routes/routes.tsx` — lazy route pattern
-  - `taskflow/src/components/app/sidebar-items.ts` — sidebar entry format
-  - `taskflow/src/lib/issueDisplayUtils.ts` — shared display primitives
-  - `taskflow/package.json` — current dependencies (no chart lib present)
+- `taskflow/src/services/gitlab.ts` (read in full, 1737 lines) — auth header, error-handling, pagination-loop conventions for every existing endpoint
+- `taskflow/src/services/releaseLinker.ts` (read in full, 80 lines) — the pure-module pattern to emulate
+- `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` (read in full, 1518 lines) — current monolith structure, exact line ranges for extraction targets
+- `taskflow/src/routes/dashboard/ReleasesTab.tsx` (read in full, 480 lines) — list-view conventions, `milestonesError` independent-degradation precedent
+- `taskflow/src/routes/dashboard/issue-detail/` (directory listing + `FieldsSection.tsx`/hooks inspected) — the established decomposition precedent for a comparable-complexity detail page
+- `taskflow/src/routes/dashboard/BulkCreateSubtasksModal.tsx` (`createAllRows`, read in part) — per-row status/retry pattern source
+- `taskflow/src/routes/dashboard/StatusPopover.tsx` (read in part) — confirms optimistic mutations live in the mutation-owning component, not the trigger
+- `.planning/PROJECT.md` — v1.14 milestone goal, target features, Key Decisions table (React Compiler, prop threading not context, per-source partial-failure save pattern)
+- GitLab REST API v4 reference (branches, repository/compare, milestones, merge_requests) — training-data knowledge of standard, stable GitLab endpoints; not independently re-verified against live docs in this pass (MEDIUM confidence on exact endpoint paths/params, though these are long-stable GitLab API surfaces unlikely to have changed)
 
 ---
-
-*Architecture research for: Taskflow v1.13 Personal Workspace*
-*Researched: 2026-06-14*
+*Architecture research for: Taskflow v1.14 Release Management*
+*Researched: 2026-08-10*

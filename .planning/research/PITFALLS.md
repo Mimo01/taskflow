@@ -1,527 +1,317 @@
 # Pitfalls Research
 
-**Domain:** Charting library integration + My Tasks page + graph-driven Dashboard in Tauri 2 / React 19 / React Compiler / Tailwind v4 / TanStack Query
-**Researched:** 2026-06-14
-**Confidence:** HIGH (codebase-verified against taskflow/src) / MEDIUM (chart library specifics — verified via Context7 + official docs) / LOW where noted
-
----
+**Domain:** Git-flow release-coordination write features (GitLab branch/milestone/MR mutations) added to an existing read-mostly Tauri desktop app
+**Researched:** 2026-08-10
+**Confidence:** HIGH for GitLab platform behavior (official docs + GitLab issue tracker); HIGH for codebase-specific recurring bug classes (verified against `gitlab.ts` and project memory); MEDIUM for exact UX/detection thresholds (no live GitLab instance probed this session)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Chart renders at 0 × 0 — ResponsiveContainer / ResizeObserver inside flex/overflow-hidden container
+### Pitfall 1: Retargeting an MR silently strips approvals, invalidates the diff base, and orphans discussions — with no confirm dialog
 
 **What goes wrong:**
-A chart wrapped in `ResponsiveContainer` (Recharts) or equivalent "fill available space" sizing measures its parent via a `ResizeObserver`. If the parent has no intrinsic size at the time the observer fires — which happens inside `flex-1`, `overflow-hidden`, `position: absolute`, or `@tanstack/react-virtual` rows — the observed width is 0 and the SVG renders at 0 × 0. On WebKit (macOS/Linux Tauri webview) the timing is different from Chrome: the observer can fire before the flex layout has resolved, so the chart collapses even when the parent visually has width. This is the exact same failure class as the virtualized table 0-width column bug (memory: project_virtualized_table_zero_width_col).
+The milestone spec says "retarget MR's target branch" is optimistic + rollback with **no confirm dialog** (unlike branch/milestone creation). But `PUT .../merge_requests/:iid` with a new `target_branch` is not a benign metadata edit:
+- **Approvals reset.** GitLab's documented behavior: "approvals aren't removed when a merge request is rebased from the UI. However, approvals are reset if the target branch is changed." A fully-approved, ready-to-merge MR silently loses every approval the moment the app retargets it — the author/reviewers get no explicit "approvals cleared" toast unless they reload GitLab's MR page. A related GitLab bug thread confirms this is intended/working-as-designed, not a fluke.
+- **Diff recomputes against a new base.** The diff shown to reviewers is source vs. new-target's merge-base — this can surface a completely different (often much larger) diff if the old and new target branches have diverged, e.g. retargeting from `develop` to `release/1.4.0` when `release/1.4.0` was cut from an older `develop` commit.
+- **Pipeline goes stale.** Merge request pipelines compare source against target; a pipeline that ran (and possibly passed) against the old target is no longer meaningful against the new one and needs to re-run. GitLab does not always auto-trigger this — the MR can show a green pipeline badge that reflects the *wrong* comparison until someone re-runs it. Merge request pipelines can only access protected resources when both source and target are protected and the triggering user has push/merge access to the target — a target-branch change can also change which protections apply.
+- **Diff discussions can go outdated/orphaned.** Existing diff-note positions were anchored to the old base; when the base shifts, GitLab may mark threads outdated or lose the inline anchor, especially on lines that no longer differ under the new base.
+- Known GitLab bug (#415496): code-owner approvals sometimes are *not* cleared on target-branch change even though regular approvals are — an inconsistency the app cannot rely on either way when deciding what to warn about.
 
 **Why it happens:**
-`ResponsiveContainer` observes the immediate parent DOM node. If that parent is a flex child with `min-width: 0` but no `width` set, WebKit reports `clientWidth = 0` on first observation. The SVG is created at that size. A second observation fires once layout settles, but Recharts only re-renders if the observed size changes — and 0→0 is no change, so the chart stays invisible.
-
-The Dashboard widget containers are likely `flex-1 overflow-hidden` (the existing "Panels receive props from thin index.tsx" pattern). If a chart is dropped directly into such a container without an explicit height, the same collapse occurs.
+The requirement models this as a low-risk metadata correction ("the MR is targeting the wrong branch, just fix it") because from the release-manager's perspective it *is* just fixing a pointer. But GitLab treats target branch as load-bearing for diff/approval/pipeline state, not metadata.
 
 **How to avoid:**
-1. Wrap every chart in an explicit-size container: `<div className="w-full" style={{ height: 260 }}>`. Never rely on `height="100%"` or `ResponsiveContainer height="100%"` inside a flex parent without a fixed-height ancestor.
-2. For Dashboard widget boxes where the height is dynamic, set `min-height` (e.g., `min-h-[220px]`) on the widget wrapper so the ResizeObserver always sees a non-zero box.
-3. Prefer chart libraries that accept explicit `width` + `height` props without `ResponsiveContainer` (Recharts supports this — pass numeric `width` and `height` instead of `"100%"`). Measure width via a `useLayoutEffect` + `ref.current.offsetWidth` (same pattern used in `IssueDetailView.tsx`'s `measuredInitialWidth`). This removes the ResizeObserver from the critical render path.
-4. Do not place chart components inside `@tanstack/react-virtual` rows. Charts inside virtualized rows are unmounted when scrolled out of view; re-mounting fires a fresh ResizeObserver observation at 0 before the DOM layout settles.
+- Before firing the PUT, use (or fetch) MR detail to check approval count and pipeline status; if the MR has non-zero approvals or a passed pipeline, show an inline warning in the row ("Retargeting will clear N approval(s) and require a new pipeline run") even though there's no confirm-dialog gate per spec — a warning badge is not the same as a blocking dialog and satisfies both the "no confirm dialog" requirement and user safety.
+- After a successful retarget, invalidate/refetch that MR's approval and pipeline state in the UI (don't just optimistically flip `target_branch` and leave stale approval badges showing).
+- Do not offer retarget on **merged** or **closed** MRs — GitLab will reject it or the semantics are meaningless; filter these out of "correctable" rows before rendering the action (see Pitfall 4).
+- Consider excluding or distinctly flagging draft MRs, since a draft's purpose (and eventual target) is still in flux.
 
 **Warning signs:**
-- Chart area renders but SVG is invisible or the container collapses
-- `getBoundingClientRect()` on the chart parent returns `{ width: 0, height: 0 }` in DevTools
-- Only reproducible in macOS/Linux Tauri build, not in `npm run dev` in Chrome
+- UAT reports of "my approvals disappeared" after using a release-view action.
+- Pipeline badge staying green after a retarget when the diff clearly changed.
+- Support requests asking "why did my MR diff suddenly balloon."
 
 **Phase to address:**
-Charting foundation phase (first chart integrated). The explicit-size wrapper must be a named requirement before any chart component is written.
+Per-MR retarget action phase (the optimistic+rollback mutation) — build the approval/pipeline-loss inline warning and post-mutation cache invalidation into the same phase, not as a follow-up.
 
 ---
 
-### Pitfall 2: React Compiler incompatibility with chart libraries that rely on refs / imperative animation
+### Pitfall 2: "Has release branch been merged?" check gives false negatives on squash or rebase merges
 
 **What goes wrong:**
-`babel-plugin-react-compiler` auto-memoizes at the IR level and prohibits all manual `useMemo`, `useCallback`, and `React.memo`. Chart libraries that internally use `useRef` + imperative animation loops (e.g., D3-backed libraries like `nivo` or `visx` which call `selection.transition().duration()`) may conflict. The compiler infers that a `ref` value never changes and elides re-renders that the library expects. The chart renders once and never updates when data changes.
-
-Less critically: any consumer component that passes a callback prop (e.g., `onMouseEnter` for tooltip) must not wrap it in `useCallback` — the compiler handles that. But if a library's internal implementation relies on `useCallback` stability for its own memoization, the compiler may produce behavior the library does not expect.
+The post-release check needs to answer "was `release/[tag]` merged into the default branch?" GitLab's `GET /projects/:id/repository/branches/:branch` `merged` field (and any client-side merge-base/ancestry walk) is computed via git ancestry. **Squash merges create a brand-new commit SHA on the target branch — the original branch's commits are never literal ancestors of the target** — so ancestry-based "merged" detection reports `false` even though the content landed. This is a long-standing, still-open GitLab behavior: squash-merged branches show as not-merged, with incorrect ahead/behind counts, in both the API and the UI branch graph (documented in multiple GitLab issues, e.g. #36963). Rebase-then-merge has a related but different failure mode: the source branch's commits get new SHAs replayed onto the target, so an ancestry check against a *cached* pre-rebase SHA also reads as unmerged.
 
 **Why it happens:**
-React Compiler treats `useRef` reads as stable. Libraries that use refs as mutable containers for animation state may see the compiler "see through" their imperative model. Framer Motion is explicitly banned (STACK.md: "Framer Motion conflicts with React Compiler auto-memo"). Libraries using similar animation patterns carry the same risk.
+Ancestry/merge-base checks assume history is preserved verbatim across the merge, which is only true for a plain merge commit. Squash and rebase both intentionally rewrite history.
 
 **How to avoid:**
-1. Choose a library that is pure React-rendered SVG (Recharts, Tremor) rather than D3-imperative (visx, nivo raw). Pure React SVG = compiler sees props→render = safe.
-2. For whichever library is chosen, run the full React Compiler diagnostic: `REACT_COMPILER_MODULE_NAMES=<lib-package-name> npx react-compiler-healthcheck` in CI.
-3. Avoid libraries that use `useLayoutEffect` with DOM mutation (not just DOM read) for their core rendering — these are the most likely to conflict.
-4. If a specific chart type from the chosen library misbehaves, `"use no memo"` directive can opt that one component out of compilation as a last resort (but never as a default).
+- Do **not** rely solely on the Branches API `merged: true/false` field, and do not implement a client-side merge-base walk — both are ancestry-based and share the same false-negative class.
+- Primary signal: if the git-flow process opens a tracking MR for `release/<tag>` → `<default branch>`, check its `state === 'merged'` via the Merge Requests API — GitLab's own `state`/`merged_at` reflects the actual recorded merge event regardless of merge method (squash/rebase/ff all set `state: merged`), unlike raw branch ancestry.
+- If no such MR is guaranteed to exist (e.g. someone merged via CLI or a direct fast-forward push), fall back to a **content-diff check**: `GET /projects/:id/repository/compare?from=release/<tag>&to=<default>` and treat "no diff" (empty `diffs`) as evidence of merge — content comparison survives squash/rebase even when ancestry doesn't. This is the documented workaround for the squash false-negative class.
+- Treat the result as **advisory, not authoritative** — surface "likely merged" / "not detected as merged" with a manual override ("I confirmed this myself"), since even the compare-based check can be wrong if the release branch diverged and was reconciled differently than its own history suggests.
+- Cache this check's result short-lived (not `gcTime: Infinity` like most of the app) — it's checked once at "fix version released" time and matters for cross-session staleness.
 
 **Warning signs:**
-- Chart renders correctly on first mount but does not update when the data prop changes
-- Console warning: `[ReactCompilerRuntime] React Compiler: ...` about unexpected mutation
-- Removing `babel-plugin-react-compiler` from vite.config fixes the chart update issue
+- Release marked "unfinished" (merge-back not detected) indefinitely even after the team confirms the release branch was merged and deleted.
+- False-negative rate concentrated on projects using squash-merge-only settings.
 
 **Phase to address:**
-Charting foundation phase. Run the compiler healthcheck before committing to the library. This is a gate — do not proceed to dashboard charts without passing it.
+Post-release merge-back check phase — must be built against MR `state`/compare-diff from the first implementation, not "fixed later." The naive ancestry implementation looks correct in manual testing with plain merges and only fails against the team's actual merge strategy (unknown without checking the project's merge-method setting).
 
 ---
 
-### Pitfall 3: Theme / color tokens not followed on dark mode switch — chart colors hardcoded
+### Pitfall 3: Fetch-once page-cap pitfall recurs in three-channel MR discovery
 
 **What goes wrong:**
-Chart libraries expose colors as prop arrays (e.g., `colors={['#6366f1', '#10b981']}` or `fill="var(--color-primary)"`). A chart implemented with hardcoded hex values renders correct colors in light mode and switches to an incorrect palette in dark mode — the chart does not listen to the Tailwind v4 CSS token layer. Dark mode in Taskflow is implemented via `dark:` variants and CSS custom properties in the Tailwind v4 config; there is no `document.documentElement.classList.contains('dark')` API that chart libraries can consume directly.
+This codebase has a **documented, twice-recurring bug class**: code fetches one capped page from a list endpoint and filters client-side instead of paging to completion (mr-discussions-cap-20, assignee-missing-users). `fetchRecentProjectMRs` in `taskflow/src/services/gitlab.ts` is an *existing, intentional* instance of exactly this pattern (`per_page` capped at 100, single page — explicitly documented as a deliberate performance/accuracy trade-off: "a task whose MR is older than the cap will fall back to Missing MR rather than Wrong milestone"). The v1.14 three-channel union is at high risk of reintroducing this pattern *unintentionally* in:
+- **Channel C (release-branch-targeting MRs):** if built via `fetchProjectMRs(...)` with a `target_branch` filter and no pagination loop, a release with >100 MRs targeting the branch silently drops entries.
+- **Channel A (Jira-key linkage):** if reused from `fetchRecentProjectMRs`'s existing pattern instead of a properly paginated fetcher, it inherits the same 100-MR-age cap — for release-view drift detection, a silently missing MR means a real drift goes unflagged, which is worse than the original use case's "fall back to a less-specific warning" tolerance.
+- **Channel B (milestone-carrying MRs):** `fetchMilestoneMRs` already pages correctly (loops `while (data.length < perPage)`) — this is the pattern to copy, not `fetchRecentProjectMRs`'s.
 
 **Why it happens:**
-Chart libraries cannot read Tailwind CSS custom properties from computed style on their own. The consumer is responsible for passing semantic color values that adapt to the current theme. If the consumer hardcodes hex or uses a library's built-in theme that does not match Taskflow's design tokens, charts look inconsistent or invisible (e.g., white text on white background in light mode, dark line on dark background).
+`fetchRecentProjectMRs` exists in the codebase as a copy-pasteable "fast" pattern; under time pressure it's tempting to reuse it for a new list-then-match feature without re-checking whether the cap is safe for the new use case (drift detection needs completeness; the original use case tolerated staleness/fallback).
 
 **How to avoid:**
-1. Define a shared `useChartColors()` hook that reads the current theme from the Zustand `useSettingsStore` (`theme: 'light' | 'dark' | 'system'`) and returns a typed object of semantic chart colors (e.g., `{ primary, success, warning, danger, muted, background, grid }`). The hook resolves `'system'` to `window.matchMedia('(prefers-color-scheme: dark)').matches`.
-2. Pass only values from `useChartColors()` to chart components — never hardcode hex.
-3. For SVG text (axis labels, tick values) use `fill: currentColor` and inherit from the parent `<div className="text-foreground">` — this picks up the Tailwind `--color-foreground` token automatically.
-4. For grid lines use `stroke="var(--color-border)"` — the Tailwind v4 token name; this renders correctly in both themes without JavaScript.
+- Each of the three discovery channels must page to completion the same way `fetchMilestoneMRs` and the paginated calls in `gitlab.ts` already do — do not build any new channel on `fetchRecentProjectMRs`.
+- If a capped/fast path is ever reused for a genuinely optional fallback, it must be clearly labeled load-bearing-vs-not (like the existing GGX-WARN-01 comment), never used for the drift-flagging computation itself.
+- Add a test asserting >100 MRs across pages are all captured for the release-branch-targeting and Jira-linkage channels (mirroring the `fetchAllSearchPages` server-side-pagination test coverage established in My Tasks v1.13).
 
 **Warning signs:**
-- Chart renders correctly in light mode but axis labels are invisible in dark mode
-- Bar/line color does not match the surrounding UI accent color
-- Chart background is white when dark mode is active (chart ignores CSS background token)
+- Release view "drift" count differs from a manual GitLab UI filter count on a release with a long MR history.
+- Any new GitLab list call in this milestone missing the `while (data.length < perPage) break; page++` loop already present in `fetchMilestoneMRs`/`fetchProjectMilestones`.
 
 **Phase to address:**
-Charting foundation phase. The `useChartColors()` hook must exist before any chart that uses colors is implemented.
+Three-channel MR discovery phase — pagination correctness is a build-time code-review gate; reference `fetchMilestoneMRs` as the canonical pattern in the phase's acceptance criteria.
 
 ---
 
-### Pitfall 4: SVG performance degradation with many data points — no data decimation
+### Pitfall 4: Set-union / drift-classification logic mishandles state, drafts, forks, and branch-name case
 
 **What goes wrong:**
-A trend chart ("weekly logged hours over last N weeks" or "burndown over sprint days") renders one SVG `<circle>` or `<path>` point per data value. If the chart is animated and the dataset grows (e.g., burndown at 1-hour granularity over a 2-week sprint = 160 data points), each re-render triggers a full SVG reconciliation. In Tauri's WebKit webview, CSS transitions on many SVG elements are significantly slower than in Chrome — this manifests as janky animation on initial mount and on data refresh.
+Unioning three channels (Jira-linked, milestone-carrying, branch-targeting) and diffing for "disagreement" has several concrete failure modes:
+- **Closed/merged MRs pollute the union.** A merged MR that targeted the release branch and carries the milestone is *correct history*, not something needing a corrective action — but if the union doesn't filter by state, a "wrong target branch" flag could fire on an already-merged MR (nonsensical: you cannot retarget a merged MR) or a closed-abandoned MR (pure noise).
+- **Draft MRs get flagged with the same urgency as ready MRs.** A draft correctly targeting the release branch is fine; the same draft flagged for "missing milestone" is lower urgency than a non-draft. Undifferentiated, users get action fatigue fixing WIP work.
+- **MRs from forks** have a `source_project_id` different from the target project. Retarget/milestone-assign semantics and permissions can differ (the acting PAT may lack rights on the fork, or milestone-assignment on a cross-fork MR may behave unexpectedly). If discovery doesn't record `source_project_id`, a fork MR gets treated identically to a same-project MR and the write action fails with a confusing error.
+- **Branch-name case sensitivity.** Git branch names are case-sensitive; comparing `target_branch === releaseBranchName` with any implicit case-folding will over-match (`Release/1.4.0` treated as `release/1.4.0`) or under-match (a real match missed due to a stray case difference from manual branch creation). Compare exactly, byte-for-byte — do not `.toLowerCase()` branch names for comparison — but *do* normalize the milestone-name → branch-name derivation consistently (Pitfall 5) so ambiguity never arises in the first place.
+- **An MR matching multiple channels** must dedupe to one row, not render three times, and "found by ≥2 channels" is not the same as "the channels agree" — an MR could be found by both the branch-targeting and Jira-linkage channels yet still carry the WRONG milestone, which is itself the drift signal.
 
 **Why it happens:**
-SVG elements are DOM nodes. React reconciles them on every render. A chart with 200 circles + a smooth animation on mount performs 200 DOM insertions with transition applied to each. WebKit's compositing layer does not accelerate SVG transforms as aggressively as Chrome's Skia backend.
+Set-union code is usually written channel-by-channel and merged with a naive `Map` keyed loosely (e.g. by title), without an upfront state filter and without carrying enough metadata (state, draft, source_project_id) through to the union for downstream classification.
 
 **How to avoid:**
-1. Disable chart entry animations in Tauri builds. Use `isAnimationActive={false}` (Recharts prop) unconditionally. The animation is a cosmetic nicety that causes jank in the webview — the data is always available immediately from the cache.
-2. Apply data decimation for high-frequency data: for a 14-day burndown with hourly data, sample to one point per day. The `reduceDataPoints(data, maxPoints: number)` utility (Largest-Triangle-Three-Buckets algorithm) is worth implementing once and using for all trend charts.
-3. Prefer `<Line>` with `dot={false}` over `<Scatter>` — rendering a path without per-point circles is dramatically faster.
-4. Keep total SVG element count per chart below 150. If a dataset would exceed this, apply decimation before passing to the chart component.
+- Filter to `state: 'opened'` (or explicitly bucket a separate "merged/closed — informational only" group) as the first step after each channel fetch, before unioning.
+- Carry `draft`, `state`, `source_project_id`, and `target_branch` through into the unioned MR record (not just iid+title) so classification downstream has what it needs without re-fetching.
+- Dedupe by `project_id:iid` (numeric composite key, never title-matching) into a `Map`, with a `foundByChannels: Set<'jira'|'milestone'|'branch'>` field so "which channels found this" and "does its data match expectations" stay separate checks — union membership ≠ drift-free.
+- Exact-match branch-name comparison (no case folding); a case-only mismatch is genuine drift, not a false positive to special-case away.
+- For fork MRs, either exclude them from corrective actions entirely (flag "external — not actionable") or explicitly test retarget/milestone-assign against a fork MR before shipping — this codebase's only existing GitLab write (`updateMilestone`) has never touched a cross-fork object.
 
 **Warning signs:**
-- Chart entry animation stutters on macOS Tauri but not in browser dev server
-- Profiler shows >16ms render for the chart component on mount
-- CPU usage spikes to 100% briefly when navigating to the Dashboard page
+- Drift count includes merged MRs from months ago.
+- Retarget button rendered on a closed MR.
+- Duplicate rows for what is visibly the same MR — dedup key is wrong.
 
 **Phase to address:**
-Dashboard redesign phase (when trend/burndown charts are implemented). Animations disabled by default from the first chart — retrofitting this after user complaints is harder.
+Three-channel union + drift-flagging phase — write unit tests with fixtures covering: merged MR, closed MR, draft MR, fork MR, case-differing branch name, MR found by 1/2/3 channels, before wiring up the UI.
 
 ---
 
-### Pitfall 5: Bundle bloat from importing full chart library — no tree-shaking
+### Pitfall 5: Deriving `release/<milestone name>` breaks on spaces, slashes, and non-ASCII milestone names; branch creation collides with pre-existing branches
 
 **What goes wrong:**
-Chart libraries are large. Recharts is ~350 KB pre-gzip; nivo is modular but its peer dependency D3 adds another ~200 KB. A naive import (`import { LineChart, BarChart, ... } from 'recharts'`) pulls in the entire library even if only two chart types are used, because chart libraries often have imperfect tree-shaking (shared internal `Recharts` class for all chart types). For Taskflow (portable desktop app with bundle-size sensitivity), adding ~300 KB to the main bundle is unacceptable.
+The milestone format is `1.1.0`/`2.0.0` (mostly safe), but:
+- Git branch names **cannot contain spaces**, and have restrictions on `..`, `~`, `^`, `:`, `?`, `*`, `[`, trailing `/`, trailing `.lock`, leading `-`, and consecutive/leading/trailing dots. If a milestone is ever named anything other than the strict `X.Y.Z` pattern (a typo, a hotfix milestone like `1.1.0 hotfix`, or trailing whitespace pasted from Jira), naive string interpolation (`` `release/${milestone.title}` ``) produces an invalid ref and the create-branch call fails opaquely, or a half-applied sanitization silently creates a branch with a different name than what's displayed.
+- Milestone titles are freeform GitLab text — nothing stops `1.1.0` and `1.1.0 ` (trailing space) existing as two distinct milestones. If both branch-name derivation and channel-B milestone-title matching (`fetchMilestoneMRs` takes a raw title string) don't trim consistently, a stray space silently returns zero milestone-carrying MRs, which reads as "no drift" rather than the true cause.
+- **Branch already exists.** Creating `release/1.4.0` when it already exists (created via CLI, or a retry of a previously-successful-but-timed-out call) returns a 400 from `POST /repository/branches`. If the app doesn't treat "already exists" as idempotent success, the confirm-dialog action surfaces a scary error for a state that's actually fine.
 
 **Why it happens:**
-Chart libraries commonly put multiple chart type classes in a single module. Even if only `LineChart` is imported, the bundler cannot statically analyze that `BarChart` is unused when they share an internal `RechartsChart` base class.
+The milestone name is treated as an already-clean identifier because the *documented* format is simple, but the field is free text at the GitLab API level with no format enforcement, and "user types the final name" in the milestone-creation flow means the app cannot assume the string it later interpolates into a branch name has been validated.
 
 **How to avoid:**
-1. Import charts only via the route chunk — the Dashboard route is already lazy-loaded (`v1.7` route-level code splitting). Any chart component that lives inside `src/routes/dashboard/` is already in the Dashboard chunk and not in the main bundle. Verify this with `rollup-plugin-visualizer` (already installed per PROJECT.md) after adding the library.
-2. Never import a chart component from a shared `components/ui/` file that is imported by the main bundle.
-3. Choose Recharts over nivo for this reason: Recharts ships as a single package with good-enough tree-shaking for 2 chart types; nivo requires installing `@nivo/line`, `@nivo/bar` etc. separately but pulls D3 as a peer dep which is large. Recharts gzip size for 2 chart types is ~70–90 KB — acceptable for the Dashboard-only chunk.
-4. Run `npm run build && npx rollup-plugin-visualizer --open` after installing to verify the chart library is not in the vendor/main chunk.
+- Validate/sanitize at milestone-creation time: reject or trim milestone names that would produce an invalid git ref when prefixed with `release/` (whitespace, control characters, leading `-`, trailing `.`/`/`). Since the app controls milestone creation UX in this milestone, this is enforceable at the source.
+- Trim milestone title before EVERY use — both branch-name derivation and channel-B milestone-title matching.
+- Before calling create-branch, re-check existence via `GET /repository/branches/:branch` inside the action itself (not relying on state read at page-load, since concurrent creation is possible — Pitfall 6), and treat "already exists with the correct name" as success.
+- Encode branch names correctly when used as an API path segment — this codebase already does `encodeURIComponent(milestoneTitle)` for query params elsewhere; branch names in path position need the same care (GitLab requires full encoding of slashes/special characters in path-segment refs).
 
 **Warning signs:**
-- `rollup-plugin-visualizer` shows chart library in `vendor` or `main` chunk (not dashboard chunk)
-- Initial app load time increases
-- The `src/components/ui/` directory has a chart component import
+- "Create branch" confirm dialog fails with a raw GitLab 400 body shown to the user instead of a friendly message.
+- Milestone-carrying channel returns unexpectedly empty for a milestone visibly carrying MRs in GitLab's UI.
+- Two visually-identical milestones (whitespace-only difference) confusing the release view.
 
 **Phase to address:**
-Charting foundation phase. Verify chunk placement before implementing the first chart, not after the Dashboard is complete.
+Both the milestone-creation phase (sanitize at creation time) and the branch-creation phase (existence re-check + idempotent-exists handling) — cross-reference each other's validation so a name accepted by one flow is guaranteed safe for the other.
 
 ---
 
-### Pitfall 6: Fetch-once page-cap for "My Tasks = all my assigned issues" — the known recurring bug
+### Pitfall 6: Concurrency — cached MR/milestone/branch state driving a write action, with no server-side compare-and-swap
 
 **What goes wrong:**
-The recurring "fetch-once page-cap" pattern (memory: project_fetch_once_pagecap_pitfall): a single JQL search with `maxResults=50` (or whatever default) is fired, the first page is returned, and client-side filtering is applied to produce "my tasks". Users with more than 50 assigned issues see a truncated list silently. There is no indication that the list is incomplete.
-
-"My Tasks" is a prime candidate to repeat this mistake because the temptation is to reuse the existing `fetchSprintIssues(projectKey, assignedToMe=true)` (which already paginates correctly via `fetchAllSearchPages`), but scope the results to just the current sprint. A developer might instead write a simpler, non-paginated call with `sprint in openSprints() AND assignee = currentUser()` and `maxResults=50` and call it done.
+GitLab REST offers no ETag/If-Match compare-and-swap for these mutations. The release view reads from TanStack Query cache (populated by three-channel discovery) and fires writes based on that snapshot. Between fetch and click — or between two team members viewing the same release simultaneously:
+- Someone else already retargeted the MR → the app's rollback-on-failure path might restore the UI to "my locally cached previous value" rather than current server truth, un-fixing a teammate's legitimate concurrent change.
+- Someone else already assigned/removed the milestone → last-write-wins on the PUT itself is usually fine, but a *failed* mutation's rollback restoring a stale local snapshot can still visually revert a third person's change even though the server state is untouched.
+- **The release branch gets created by two people near-simultaneously** (both viewing "branch missing" state) → first request succeeds, second gets a 400 (exists); per Pitfall 5 this must be idempotent-success, not a failure requiring dialog re-trigger.
+- Milestone state changes elsewhere (someone closes it directly in GitLab) while cached as active — subsequent assigns still nominally succeed, but "is release ready" status computed from the stale cached milestone is wrong until refetched.
 
 **Why it happens:**
-`fetchAllSearchPages` exists in `jira.ts` and loops until `startAt >= total` with `PAGE_SIZE = 200`. But new code for "all assigned issues" across sprints (the scope toggle: "current sprint vs all assigned") may not use this helper. The `all assigned` scope requires a JQL like `project = X AND assignee = currentUser() AND statusCategory != Done` with no sprint filter — and that query can return hundreds of issues for an active developer.
+This is the same shape as the codebase's already-logged "Enrichment invalidation no-op" and "Reactive cache-read badge" bug classes: derived UI state computed from a query that goes stale, with mutation success/rollback logic that doesn't force a refetch of the *upstream* source of truth. The v1.12 drag-to-rank fix (`cancelQueries` + drag-gated local order) solves a different flavor of this — protecting against a background refetch snapping optimistic state back mid-interaction — but doesn't cover "another user acted between my fetch and my click," which needs refetch-after-mutation, not just protect-during-mutation.
 
 **How to avoid:**
-1. All new JQL searches for My Tasks must go through `fetchAllSearchPages` — no single-page `maxResults` call.
-2. The "all assigned" scope must use a proper server-side JQL: `project = ${projectKey} AND assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC`. Do not fetch a capped page of "all sprint issues" and filter client-side for the current user.
-3. For the scope toggle (current sprint / all assigned): implement as two separate named query functions (`fetchMyCurrentSprintIssues` / `fetchAllMyOpenIssues`), each calling `fetchAllSearchPages`, so there is no temptation to "just filter the sprint result client-side".
-4. Add a pagination assertion test: given a mock `total: 250, issues: [50 items]`, the fetch function must loop and return all 250 items.
+- On every per-MR mutation (retarget, milestone-assign), on both success AND failure, refetch that specific MR's detail (not just optimistically patch local cache) so drift flags recompute from truth — mirrors the "invalidate the upstream source, not just the derived query" lesson.
+- Rollback-on-failure should restore to "last known server state" (refetch), not "the value cached before I clicked."
+- Treat branch-create 400 "already exists" and milestone-assign-already-assigned as **success**, not failure — this also directly reduces Pitfall 7's failure surface across N independent writes.
+- Use the existing `useIsActiveRoute` route-aware polling pattern (or manual refresh) on the release view specifically, since — unlike most of this app's per-user views — this is multi-person-editing; staleness tolerance is lower here.
+- Surface a "last refreshed" timestamp + manual refresh affordance on the release detail view (extends the existing app-wide pattern from v1.0) so users have a visual cue their drift computation might be stale before acting.
 
 **Warning signs:**
-- My Tasks page shows exactly 50 issues regardless of how many are assigned
-- Issues assigned before the current sprint do not appear in "all assigned" scope
-- `total` in the network response is larger than the `issues` array length on first page
+- Two people report "I fixed that MR but it still shows as drifted."
+- Rollback occasionally "un-fixes" something a teammate just fixed.
+- Retry-after-failure on branch/milestone creation throws a confusing duplicate error instead of succeeding silently.
 
 **Phase to address:**
-My Tasks page phase. The `fetchAllMyOpenIssues` function must be written with `fetchAllSearchPages` from the first commit — not retrofitted.
+Every phase that adds a write must include: (1) idempotent-success handling for "already exists/already assigned" 400s, (2) refetch-not-optimistic-restore on rollback. Establish this in the shared mutation pattern in the first write-adding phase so later phases reuse it rather than re-deriving it.
 
 ---
 
-### Pitfall 7: N+1 fetches for per-task MR health / time tracking / flags in My Tasks rows
+### Pitfall 7: Partial failure across N independent per-MR writes has no batch semantics, and the UI must not imply atomicity
 
 **What goes wrong:**
-My Tasks rows display rich data: MR health badge (linked MR from GitLab), time tracking bar (Tempo worklogs), and flag status. A naive implementation fetches this per-row data individually: one `useQuery` per issue for its MR, one for its worklogs, one for its flags. With 30 issues in My Tasks, this is 90 concurrent queries on page load. The GitLab API and Tempo API have rate limits; Jira's network overhead is non-trivial on a slow on-premise instance.
-
-This mirrors the AIO defect N+1 problem solved in v1.8 Phase 58 (`per-defect-key useQuery dedup eliminating N+1 Jira fetches`).
+"Per-MR corrective actions... applied directly... per-row inline status and retry" explicitly rules out a bulk "fix all" (v1.12 bulk-subtask precedent: sequential + per-row retry, not `Promise.all`). Risks specific to this milestone:
+- If a future convenience ("select several, retarget") uses `Promise.all`, one 403 rejects the whole batch's promise, hiding which of the N actually succeeded — the v1.12 lesson (sequential loop, per-row status, retry-failed-only) must be explicitly re-applied, not assumed to transfer since this is updates to existing resources rather than creates.
+- **Two different write types per MR** (retarget AND milestone-assign) may both be needed on the same row for the same drift. Each must be an independent mutation with its own row-level status/retry — coupling them into one "fix this row" black box makes a milestone-assign-success-but-retarget-failure state impossible to represent or retry correctly.
+- **Retry after partial failure must re-check current state**, not resend the original payload — if the first attempt actually succeeded server-side but the response was lost (network blip, plausible on this team's VPN-gated on-premise setup), a naive retry could resend a redundant-but-harmless write (fine — treat as idempotent per Pitfall 6) or could retry against a stale closure value that no longer matches reality.
 
 **Why it happens:**
-Row components that own their own data fetching are architecturally clean but produce N requests. The existing sprint board has the same architecture — but the sprint board only shows current-sprint issues (bounded to ~20-40) and MR linking is done via cached GitLab MR list, not per-issue fetch.
+This app has more experience with N-independent-*creates* (bulk subtask creation) than N-independent-*updates*-to-existing-resources; the retry mental model looks similar but idempotency guarantees differ (creates can duplicate on retry; these updates generally can't — but only if treated that way explicitly).
 
 **How to avoid:**
-1. **MR health**: reuse the existing `useGitLabMRs` query (already a list-level query) and derive per-issue MR health client-side by matching on `PROJ-XXX` in MR titles — no per-row fetch. This is how the sprint board already works.
-2. **Time tracking**: Tempo worklogs per-issue should be pre-loaded at the page level for all issue keys in My Tasks, not per-row. Use a single `fetchWorklogs` call with the full list of issue keys. The existing `WorklogsPage` fetch already does this for a date range.
-3. **Flags**: flag status is available in the Jira issue `fields` from the main My Tasks JQL search (the `flagged` field on `GhIssue` is returned by allData, and REST v2 returns `customfield_10021` for flag). No extra fetch needed if the field is included in the JQL `fields=` parameter.
-4. Add TanStack Query `enabled: false` for any per-row data that is not yet needed (outside viewport). The virtualizer can signal which rows are visible; only enable queries for visible rows.
+- Model retarget and milestone-assign as two separate mutations per row with independent status/retry UI, matching the v1.12 subtask per-row pattern.
+- Retry always re-fetches/re-derives the target payload from current server state before resending — never trust the stale closure value from the original click.
+- No `Promise.all` across rows for any future "select several" convenience — reuse the sequential-with-per-row-status executor pattern already proven in bulk subtask creation (v1.12 Phase 80).
 
 **Warning signs:**
-- DevTools network tab shows 30+ simultaneous API calls on My Tasks page load
-- Tempo API returns 429 Too Many Requests
-- My Tasks page load time is proportional to the number of assigned issues
+- A retry button that just resends the exact same request object captured at first-click time.
+- Any code path using `Promise.all` across multiple MR row mutations.
 
 **Phase to address:**
-My Tasks page phase. Define the data loading architecture (page-level vs row-level queries) before implementing the row component.
+Per-MR corrective-actions phase — establish the row-mutation pattern (two independent mutations per row, retry re-derives payload) as the phase's core deliverable, tested against a simulated partial-failure fixture (N MRs, 1 fails).
 
 ---
 
-### Pitfall 8: Subtasks vs stories double-counting in stat tiles and sprint health chart
+### Pitfall 8: Buttons that always 403 for Reporter-level tokens — no capability detection or graceful degradation
 
 **What goes wrong:**
-The Dashboard stat tiles ("stories completed this sprint", "story points done") and the sprint health chart (points by status) must count either stories or subtasks — not both. Jira DC GreenHopper `allData.json` returns all issue types in `issuesData.issues`. If the stat code iterates all issues and sums `estimateStatistic.statFieldValue.value`, subtask story points are added on top of their parent story's story points, inflating the count. A story with 5 SP and 3 subtasks of 1 SP each would count as 8 SP instead of 5.
-
-This is a known pattern: v1.1 specifically notes "Workload correctly counts story points per assignee (subtasks excluded)" and Phase 59/v1.9 removed the Workload page that had this logic. The new Dashboard charts must re-implement it correctly.
-
-**Why it happens:**
-The GH `allData.json` issue list does not distinguish stories from subtasks at the top level — both have an `estimateStatistic`. Code that sums SP without checking `parentId` (null for stories, present for subtasks) double-counts. The adapter in `adapter.ts` produces `JiraIssue` with `fields.issuetype.subtask: boolean` — using this boolean to exclude is the correct filter.
-
-**How to avoid:**
-1. All SP aggregation for Dashboard metrics must filter to `!issue.fields.issuetype.subtask` (or `!issue.parentId` in GH types) before summing.
-2. For "stories completed this sprint": count only issues where `issuetype.subtask === false && done === true`.
-3. For the points-by-status chart (e.g., "In Progress: 13 SP, Done: 21 SP"): group by `statusId` from the entity map, exclude subtasks from SP sum, but do include subtask count separately if a "subtask count" metric is desired.
-4. Write a unit test with a fixture that includes a parent story with SP=5 and two subtasks with SP=2 each; assert the total is 5, not 9.
-
-**Warning signs:**
-- Sprint health chart shows more story points than the sprint velocity report in Jira itself
-- "Points done" stat tile is 40% higher than expected
-- Adding subtasks to a story increases the dashboard SP count without any story changes
-
-**Phase to address:**
-Dashboard redesign phase (stat tiles + sprint health chart). The anti-double-count filter must be in the aggregation function, tested before the chart is wired up.
-
----
-
-### Pitfall 9: Timezone bug in "this week" / day bucketing for trend charts and logged-hours
-
-**What goes wrong:**
-A "weekly logged hours" trend chart groups Tempo worklog entries by calendar week. If bucketing uses `new Date(worklog.started).toISOString().slice(0, 10)` to get the date key, the conversion to UTC shifts the calendar day for users east of UTC (e.g., UTC+2: a worklog logged at 23:00 local time becomes 21:00 UTC the previous day, landing in the wrong week bucket). A developer in Bratislava logging work on Monday evening would see it attributed to Sunday's bucket.
-
-This is the exact pattern Taskflow already documents and solves: `standup-date.ts` explicitly says "NEVER use toISOString() ... use local calendar components", and Phase 62/v1.9's `WorklogsPage` uses `.slice(0, 10)` on the API timestamp string (which is already a local-date string from Tempo: `2026-06-14T09:00:00`).
+This app is used by both developers and PMs; the app-internal Developer/PM role concept was removed in v1.10, but that says nothing about each person's actual GitLab project role. A PM's GitLab PAT is plausibly Reporter-level (read-only) on the project. If the release view renders "Create branch"/"Retarget"/"Assign milestone"/"Create milestone" buttons unconditionally:
+- Every write 403s for Reporter-role users, and this codebase's existing GitLab error handling largely collapses 401/403 into flat generic strings — a PM clicking "Create branch" gets an opaque error with no indication their *role*, not their *token validity*, is the blocker.
+- Milestone creation and branch creation typically require at least Developer; even Developer-role users can be blocked by protected-branch push/merge allowlists — a second, distinct 403 cause that role-level alone cannot predict without an extra per-branch check.
 
 **Why it happens:**
-New charting code written without awareness of the standing rule (documented in `standup-date.ts` but not enforced at the linter level). The instinct is to normalize to UTC for comparison, but Tempo returns worklog `started` as a local-timezone ISO string. Calling `toISOString()` on `new Date(tempo_started)` converts to UTC and shifts the date.
+GitLab exposes no single "can I write here" boolean for arbitrary future actions — capability is a function of (project member access_level) × (protected branch rules) × (approval settings) — and the naive approach is to just attempt the write and catch the 403, which reads as "the app is broken" rather than "you lack permission."
 
 **How to avoid:**
-1. For any date bucketing in chart aggregation functions, always use `tempo_started_string.slice(0, 10)` (Tempo timestamps are `YYYY-MM-DDTHH:mm:ss` in the user's local time — slicing is safe). Do not construct a `new Date()` from the string and then re-serialize.
-2. For "this week" bucketing: compute the week start using local year/month/day components via `toLocalDateString()` from `standup-date.ts`. Do not use `startOfWeek(new Date(...), { weekStartsOn: 1 })` from a date library if it internally uses UTC normalization.
-3. Import `toLocalDateString` from `standup-date.ts` (or a shared `lib/date-utils.ts`) into any new chart aggregation function. Make the dependency explicit.
-4. Add a unit test: a worklog with `started: "2026-06-14T23:00:00"` must bucket to week of `2026-06-14`, not `2026-06-13`.
+- On project selection / release-view load, fetch the current user's project access level (`GET /projects/:id` includes `permissions.project_access.access_level` for the authenticated token, or `GET /projects/:id/members/all/:user_id`) — GitLab levels: 20=Reporter, 30=Developer, 40=Maintainer, 50=Owner. Cache per project/session (changes rarely).
+- Gate write-action buttons on `access_level >= 30` (Developer) as a baseline; still attempt the call and surface the real error for the protected-branch-rules edge case role-level alone can't catch.
+- Below Developer, replace action buttons with a disabled state + tooltip explaining why, rather than hiding entirely — hiding would make PMs think the feature doesn't exist; a disabled-with-reason state matches this app's existing "illustrated empty states and actionable error recovery" design language (v1.3).
+- If a 403 still happens despite the role gate (protected-branch edge case), surface GitLab's actual error body — this codebase already does this for `updateMilestone` (`body?.message ?? status code`); extend that pattern to every new write endpoint by default rather than the flatter `ApiError('Failed to X', status, 'gitlab')` used elsewhere.
 
 **Warning signs:**
-- A worklog logged "today" appears in "yesterday's" week bucket for team members in UTC+1 or later
-- The "hours this week" stat shows fewer hours on Monday than expected (Monday evening hours shifted to last week)
-- Tests pass (jsdom defaults to UTC) but the Tauri build shows wrong buckets
+- Support/UAT report: "the retarget button just spins and fails for me but works for my teammate."
+- New write endpoints reusing the generic flat `ApiError` pattern instead of surfacing GitLab's response body message.
 
 **Phase to address:**
-Dashboard redesign phase (trend/logged-hours chart). The rule must be in the aggregation function's code comments, and the unit test must exist before the function is considered done.
-
----
-
-### Pitfall 10: Velocity trend promises historical sprint data Jira DC cannot cheaply provide
-
-**What goes wrong:**
-A "personal velocity trend — points over last N sprints" chart requires knowing: (a) which sprints have completed, (b) which issues were completed in each, and (c) their SP values. The GreenHopper API's `allData.json` returns **current-sprint** issues only. There is no confirmed endpoint in Taskflow's existing service layer that returns closed-sprint issues with SP. The Jira DC REST API has `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed` to list closed sprints, and `GET /rest/agile/1.0/sprint/{sprintId}/issue` to get issues per sprint — but `fetchAllSearchPages` on `sprint = SPRINT_ID AND assignee = currentUser()` for N past sprints is N serial requests (one per sprint), each potentially returning 50-200 issues.
-
-PROJECT.md explicitly lists "Historical analytics / burndown charts — no daily-use value; complex data pipeline; LinearB/Swarmia exist for this" as Out of Scope. A "velocity trend" is in scope, but must be honest about what data it can show.
-
-**Why it happens:**
-The feature is listed as "personal velocity trend (points over last N sprints)" in the Dashboard goal. Without verifying what data is available cheaply, an implementation may hit endpoints that require N=5 closed-sprint queries on Dashboard load — a 5-second waterfall on page mount. Alternatively, it may discover that closed-sprint issues do not carry SP in the GH response and need a second REST v2 enrichment.
-
-**How to avoid:**
-1. Before implementing velocity charts, probe the actual Jira DC endpoints in the dev environment: `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed&maxResults=5` — verify it returns sprint objects with `startDate`/`endDate`; then `GET /rest/agile/1.0/sprint/{sprintId}/issue?maxResults=50&fields=customfield_10016,issuetype,status` — verify SP field is present.
-2. Limit to last 5 completed sprints maximum. Five serial requests at ~400ms each = 2 seconds max. Pre-fetch in the background (not in the Dashboard component's critical path) using TanStack Query `staleTime: 5min` so repeat Dashboard visits are instant.
-3. If closed-sprint SP data is unavailable or unreliable (e.g., issues moved between sprints lose their sprint association), scope down to "completed stories count per sprint" instead of SP — this data is still valuable and always available.
-4. Make the velocity widget an independently-loading section (same pattern as Standup Notes: each section loads and degrades independently). If the closed-sprint fetch fails or times out, show "Velocity data unavailable" rather than blocking the entire Dashboard.
-
-**Warning signs:**
-- Dashboard page takes >3s to load because velocity fetch is awaited before render
-- Closed-sprint issues return empty SP fields (SP is only set on open-sprint issues in some DC configs)
-- The velocity endpoint requires a `boardId` that is not available in the existing auth store
-
-**Phase to address:**
-Dashboard redesign phase. The probe of closed-sprint endpoints must happen at phase kickoff (before any velocity chart code is written). Descope to "count of completed stories" if the probe fails.
-
----
-
-### Pitfall 11: Stale-while-revalidate flicker on My Tasks — visible re-layout when data arrives
-
-**What goes wrong:**
-My Tasks has three groupings behind a toggle (My Day / By Status / By Sprint & Parent). With `gcTime: Infinity` and `staleTime` tuned for session persistence (v1.7 pattern), navigating back to My Tasks shows cached data instantly, then re-fetches in the background. When the new data arrives, the list may regroup (e.g., a status changed since last visit), causing a visible re-layout — rows jump position mid-view. This is more jarring on My Tasks than on a sprint board because the user may have scrolled to a specific row.
-
-**Why it happens:**
-`staleTime: Infinity` means the background refetch fires and updates the cache, which triggers a re-render of the grouped list. Unlike a sprint board (cards in columns, easier to scan post-reflow), My Tasks is a flat-ish sorted list where row position changes feel disorienting.
-
-**How to avoid:**
-1. Use `staleTime: 2 * 60 * 1000` (2 minutes) for the My Tasks query rather than `Infinity`. 2 minutes is recent enough to feel live without constant background churn.
-2. On background revalidation, sort-stabilize the list: only re-sort visible rows when the user has not scrolled or has scrolled back to top. Use a ref to track scroll position; if the user is mid-list, defer the sort-resort until they scroll back to top or explicitly refresh.
-3. Show a "Refreshed" badge (similar to `StaleDataBanner` pattern in existing views) rather than silently re-sorting under the user's cursor.
-4. For the "My Day" smart-sort grouping (the most complex sort), ensure the sort key is deterministic: if two issues have the same priority, use `key` (alphabetic) as a tiebreaker. Non-deterministic sort causes different order each refresh even if no data changed.
-
-**Warning signs:**
-- Rows visibly shuffle positions on returning to My Tasks
-- An issue the user was looking at disappears from view after a background refresh
-- "My Day" sort order differs between page loads with identical data
-
-**Phase to address:**
-My Tasks page phase. The sort-stabilization strategy must be defined before the grouping/sorting logic is implemented.
-
----
-
-### Pitfall 12: Cross-sprint scope correctness — "all assigned" includes wrong-sprint issues
-
-**What goes wrong:**
-The My Tasks scope toggle includes "current sprint vs all assigned". The "all assigned" JQL (`assignee = currentUser() AND statusCategory != Done`) correctly returns all open assigned issues. But My Tasks rows display "Sprint & Parent" grouping. When an issue is assigned to the current user but belongs to a different (future) sprint, it appears in My Tasks under its sprint name — which may confuse users expecting to see only their work.
-
-A subtler bug: `sprint in openSprints()` in Jira DC returns only the **active** sprint, not future sprints. An issue added to a future sprint is not in `openSprints()`. If the "current sprint" scope uses `sprint in openSprints()` but "all assigned" uses a different JQL, the two scopes will have different data shapes (one has a sprint field, one may not).
-
-**Why it happens:**
-`sprint in openSprints()` is Jira DC's way of querying the active sprint. Future-sprint issues have a sprint ID but it is not "open". The JQL `assignee = currentUser() AND statusCategory != Done` returns future-sprint issues too, but they have `sprint.state = "future"`. The grouping logic that reads `sprint.name` to bucket issues will create separate buckets for future sprints, which may not be intended.
-
-**How to avoid:**
-1. For the "all assigned" scope, explicitly decide: include future-sprint issues or not. The recommendation is to exclude them (add `AND sprint in openSprints() OR sprint is EMPTY` to the JQL) to avoid showing issues the user will not work on imminently.
-2. For the "By Sprint & Parent" grouping, handle missing/null sprint gracefully: issues with no sprint should bucket into "No Sprint / Backlog" rather than crashing.
-3. Document the scope definition in a code comment: "all assigned = `project = X AND assignee = currentUser() AND statusCategory != Done AND (sprint in openSprints() OR sprint is EMPTY)`". This makes the intent explicit and prevents future modifications from drifting.
-
-**Warning signs:**
-- "By Sprint & Parent" grouping shows 3-4 sprint buckets when user expects 1
-- Issues in future sprints appear in "current sprint" scope after a sprint advances
-- `sprint is EMPTY` issues throw when the grouping code accesses `issue.sprint.name`
-
-**Phase to address:**
-My Tasks page phase. The JQL scope definition for each toggle state must be written and reviewed before the fetch function is implemented.
-
----
-
-### Pitfall 13: Polling cost — multiple Dashboard widgets all refetching on short intervals
-
-**What goes wrong:**
-The Dashboard redesign has stat tiles, a sprint health chart, a trend graph, MR review queue, and activity/releases — potentially 5-7 independent `useQuery` hooks. If each uses the default polling interval (60s for dashboard-level queries per v1.7), or worse, its own polling interval, the Dashboard route fires 5-7 Jira/GitLab/Tempo requests every 60 seconds. On a slow on-premise Jira, each request takes 400-1200ms; 7 concurrent requests per minute is heavy.
-
-The existing v1.9 minimal Dashboard (gradient hero + 3 cards) was deliberately minimal to avoid this. The new Dashboard is heavier.
-
-**Why it happens:**
-Each `useQuery` with `refetchInterval` runs its own timer. Multiple widgets that each own their fetch queries fire independently. The v1.7 "single poll coordinator (TanStack Query)" pattern works when queries share the same key, but different widget queries have different keys.
-
-**How to avoid:**
-1. Consolidate Dashboard data: the sprint health chart and stat tiles both read from the same `['gh-all-data', boardId]` GreenHopper query. One `useQuery` at the Dashboard level fetches `allData.json` once; widgets derive their views from the same result. No per-widget fetch for sprint data.
-2. MR review queue reads from the existing GitLab MRs query (already session-cached). No new polling.
-3. Activity/releases reads from fix versions (existing `fetchFixVersions` query, `staleTime: 5min`).
-4. Tempo logged hours reads from the Tempo worklogs query, already used in `WorklogsPage`.
-5. Use `useIsActiveRoute` (existing hook, v1.7) to pause all Dashboard polling when the user is on a different route.
-6. Net result: Dashboard should add at most 1-2 new queries beyond what is already cached.
-
-**Warning signs:**
-- Network waterfall on Dashboard shows 6+ parallel API calls every 60 seconds
-- CPU usage elevated (polling timers firing) when user is not on the Dashboard tab
-- On-premise Jira Tempo API returns 429 (rate limit) after a few minutes on the Dashboard
-
-**Phase to address:**
-Dashboard redesign phase. Define the query consolidation plan (which widgets share which queries) before implementing any widget.
-
----
-
-### Pitfall 14: React Compiler + dense Dashboard page — unexpected re-render storms on metrics updates
-
-**What goes wrong:**
-A Dashboard with 5-7 widgets, each receiving data props from a parent query, can trigger a re-render storm: when one query invalidates (e.g., sprint data refreshes), all widgets that receive derived data from that query re-render simultaneously. React Compiler auto-memoizes at the IR level, but if the dashboard parent component re-derives all widget props in a single render pass (e.g., filtering + grouping + sorting inside the component body), the compiler's memo boundaries may not prevent expensive re-computation in children.
-
-The Compiler handles pure value derivation well, but if a widget component performs a non-trivial transform (e.g., chart data aggregation with subtask exclusion, SP summing, date bucketing), and that transform receives a new object reference each time the parent re-renders (even if the values are identical), the compiler cannot optimize across the parent-child boundary.
-
-**Why it happens:**
-React Compiler's memoization is intra-component. If the parent passes `sprintIssues.filter(...).map(...)` as a prop on every render, the child receives a new array reference every time — and without `React.memo` (which the compiler replaces with its own mechanism), the child re-renders regardless of structural equality. The compiler's generated memo only memoizes values that are provably stable at the IR level.
-
-**How to avoid:**
-1. Move data derivation (aggregation, SP summing, date bucketing) into each widget component's own scope, not the Dashboard parent. The compiler can then memo the derivation independently.
-2. Alternatively, move derivation to the query selector: `useQuery({ ..., select: (data) => aggregateForStatTiles(data) })`. The `select` function result is memoized by TanStack Query structurally (using `shallowEqual`), so the widget only re-renders when the selected shape changes.
-3. For the chart data derivation specifically (the most expensive): use TanStack Query `select` to pre-aggregate before the chart component receives it.
-4. Test Dashboard render count: with React DevTools Profiler, verify that refreshing the sprint data query triggers at most one re-render per widget, not cascading re-renders.
-
-**Warning signs:**
-- React Profiler shows 8-10 component re-renders on a single query cache update
-- Dashboard becomes sluggish when sprint data is first loaded
-- Profiler "flame chart" shows the Dashboard parent re-rendering children serially
-
-**Phase to address:**
-Dashboard redesign phase. Use `select` on data-heavy queries from the first Dashboard widget. Verify with Profiler before marking the phase complete.
-
----
-
-### Pitfall 15: Chart accessibility — SVG has no keyboard navigation or screen reader data
-
-**What goes wrong:**
-Charts rendered as pure SVG are invisible to screen readers (an `<svg>` with no `role` or `<title>` reads as nothing, or as a meaningless stream of text). A bar chart showing "sprint points by status" has no accessible alternative for users with visual impairments. While Taskflow's team is small, this becomes a problem if the chart is the only representation of the data — a user who cannot distinguish bar heights by color has no fallback.
-
-**Why it happens:**
-Chart libraries produce SVG without ARIA by default. Developers add chart visuals but skip the accessibility layer because the visual looks complete.
-
-**How to avoid:**
-1. Every chart must have a `<title>` element inside the `<svg>`: `<title>Sprint points by status: To Do 8 SP, In Progress 13 SP, Done 21 SP</title>`. Recharts supports `customized` prop for injecting SVG children.
-2. Supplement every chart with a data table (visually hidden with `sr-only` or collapsible) that presents the same data in tabular form. This is the WCAG 1.1.1 non-text content requirement.
-3. Add `role="img"` and `aria-label` on the `<svg>` element.
-4. Color-blind users: ensure chart palettes use both color AND shape/pattern differentiation (e.g., dashed vs solid lines, filled vs unfilled bars). Never use red/green as the only differentiator for "done vs blocked".
-
-**Warning signs:**
-- VoiceOver (macOS) reads the Dashboard chart area as "group" with no label
-- Color is the only visual differentiator between chart series
-- No tabular fallback for chart data
-
-**Phase to address:**
-Charting foundation phase. The `<title>` + `aria-label` pattern must be in the base chart wrapper. Tabular fallback can be deferred to a polish pass, but must be noted as a known gap.
+Should land early — ideally the first release-management-write phase, since every subsequent write phase's buttons need this gate. If sequencing makes that impractical, at minimum each write phase must surface GitLab's real 403 error-body message (cheap, already proven in `updateMilestone`), with the proactive access-level gate landing no later than the phase that ships the first always-rendered, end-user-visible write button.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Hardcode hex colors in chart props | Simplest first pass | Charts ignore dark/light token switch; must be audited every theme change | Never — use `useChartColors()` hook from day one |
-| Use `ResponsiveContainer height="100%"` in a flex parent | Feels natural, matches docs | Renders at 0×0 in WebKit; silent invisible chart | Never — always set explicit pixel height on wrapper |
-| Skip `isAnimationActive={false}` | Charts look polished | Animation jank in WebKit webview; CPU spike on Dashboard mount | Never in Tauri build — animations never add value here |
-| Import all chart types at route root | Simple import | Chart library in main bundle not Dashboard chunk; ~300 KB bundle regression | Never — chart imports must stay inside lazy-loaded route files |
-| Single `useQuery` for all My Tasks data then filter client-side | Less code | Fetch-once page-cap; silently truncated results for users with >200 issues | Never — all My Tasks queries must use `fetchAllSearchPages` |
-| Sum SP across all issue types for stat tiles | One line of code | Subtask + story double-counting inflates velocity metric by 20-40% | Never — always filter `!issuetype.subtask` before summing |
-| Use `toISOString().slice(0, 10)` for date bucketing | Familiar JS pattern | Off-by-one date error for users in UTC+ timezones | Never — use local calendar components (`standup-date.ts` pattern) |
-| Implement velocity trend without probing closed-sprint endpoints | Looks complete | Endpoint may not exist or may be slow; Dashboard blocks on a 5-request waterfall | Never — probe endpoint before implementing the chart |
-| One polling interval per widget | Simple per-widget architecture | 6+ Jira requests per minute on Dashboard; rate limits | Never — consolidate to shared parent queries |
-
----
+|----------|-------------------|-----------------|------------------|
+| Reusing `fetchRecentProjectMRs`'s single-page-cap pattern for a new discovery channel | Fast to write, matches an existing function signature | Silent drift under-detection on releases with >100 recent MRs — a false "all clear" is worse than a slower UI | Never for drift-detection channels; acceptable only for genuinely optional/fallback UX like the original GGX-WARN-01 use case |
+| Treating branch `merged: true/false` API field as authoritative for merge-back check | Zero extra API calls, one field read | False negatives on squash/rebase-merged release branches — likely this team's actual merge strategy | Never — always pair with MR-state or compare-diff cross-check |
+| Skipping the GitLab access-level fetch and just catching 403 on click | Saves one API call per session | Buttons that "look broken" for Reporter-role PMs; erodes trust in the release view | Acceptable only as an interim Phase-1 shim if role-gating is explicitly deferred, with a tracked follow-up |
+| Optimistic-update-then-local-cache-rollback (no refetch) on retarget/milestone-assign failure | Simpler mutation code, matches existing StatusPopover pattern | Rollback can stomp a concurrent teammate's legitimate change (Pitfall 6) | Acceptable for single-user-editing surfaces (issue transitions); not acceptable for this multi-editor release view |
+| Naive `${prefix}${milestone.title}` branch-name interpolation | One-line derivation | Invalid-ref API errors or silent name mismatches on any milestone title with whitespace/special chars | Never — sanitize/validate at milestone-creation time instead |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Jira DC JQL / My Tasks | Using `sprint in openSprints()` + `maxResults=50` once, filtering client-side | Separate `fetchAllMyOpenIssues` + `fetchAllSearchPages`; proper `statusCategory != Done` JQL |
-| Jira DC JQL / subtask scope | Including subtasks in SP sum for Dashboard metrics | Filter `fields.issuetype.subtask === false` before any SP aggregation |
-| Jira DC JQL / sprint scope | `sprint in openSprints()` returns only active sprint; future sprints excluded | Explicitly decide scope: add `OR sprint is EMPTY` or exclude future sprints from "all assigned" |
-| GreenHopper allData.json / velocity | Assuming it contains past-sprint history | `allData.json` is current sprint only; closed-sprint data requires `GET /rest/agile/1.0/sprint/{id}/issue` — probe before implementing |
-| Tempo worklogs / date bucketing | `new Date(tempo.started).toISOString().slice(0, 10)` | `tempo.started.slice(0, 10)` — Tempo timestamps are local-time ISO strings; skip the Date constructor |
-| Chart library / WebKit | `ResponsiveContainer` with `height="100%"` in flex parent | Explicit `<div style={{ height: 260 }}>` wrapper; measure width with `useLayoutEffect` + `offsetWidth` |
-| Chart library / React Compiler | Libraries using D3 imperative animation (`selection.transition()`) | Use pure React SVG chart library (Recharts); run compiler healthcheck before committing to the library |
-| Chart library / dark mode | Hardcoded hex color props | `useChartColors()` hook reading theme from settings store; SVG text uses `fill: currentColor` |
-| GitLab / MR health in My Tasks rows | Per-row `useQuery` for MR data | Derive MR health client-side from existing page-level `useGitLabMRs` cache (same as sprint board) |
-
----
+|-------------|------------------|-------------------|
+| GitLab MR retarget (`PUT .../merge_requests/:iid` with `target_branch`) | Treating it as a metadata-only write | Recognize it resets approvals, invalidates pipeline relevance, and can outdate diff discussions — surface this explicitly, refetch approval/pipeline state after |
+| GitLab branch "merged" detection | Using `GET /repository/branches/:branch` → `merged` field or a merge-base walk | Use the release MR's `state`/`merged_at` when available, or `repository/compare` content-diff as fallback; treat as advisory |
+| GitLab branch creation (`POST /repository/branches`) | Surfacing "already exists" 400 as a hard error | Re-check existence first; treat "exists with expected name" as idempotent success |
+| GitLab milestone creation (`POST /projects/:id/milestones`) | Allowing free-text title through to branch-name derivation unsanitized | Validate/trim milestone title against git ref rules at creation time |
+| GitLab MR list endpoints (three discovery channels) | Single capped page (per_page=100, no loop) | Always page to completion — mirror `fetchMilestoneMRs`'s existing while-loop, not `fetchRecentProjectMRs`'s cap |
+| GitLab role/permission checking | Only discovering insufficient permission via a failed write's 403 | Proactively fetch project access_level on load and gate/disable buttons with an explanatory state |
+| TanStack Query cache driving a write's payload | Reading `target_branch`/`milestone` from a query that may be minutes stale in a multi-editor view | Refetch the specific MR/milestone/branch record immediately before or after the mutation; don't trust list-query cache for write payloads on a shared-editing surface |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Chart entry animations in WebKit | Jank on Dashboard mount; CPU spike | `isAnimationActive={false}` unconditionally in Tauri builds | Every chart render on WebKit |
-| SVG with 150+ elements (no decimation) | >16ms render in Profiler; visible stutter | Decimate to ≤100 points; use `dot={false}` on line charts | Any trend chart with hourly Tempo data |
-| 5-7 independent polling `useQuery` on Dashboard | 5+ Jira requests per 60s | Share `allData.json` query; use `select` for derived views | Dashboard with any background data refresh |
-| `fetchAllMyOpenIssues` without `fetchAllSearchPages` | 50-issue cap; silent truncation | Always use `fetchAllSearchPages` (PAGE_SIZE=200) | Users with >50 assigned open issues |
-| Per-row MR/Tempo queries in My Tasks (N+1) | 30+ simultaneous API calls on load | Page-level data fetch + client-side derivation per row | My Tasks with ≥10 rows |
-| Chart library not in Dashboard lazy chunk | +300 KB main bundle size | Verify with `rollup-plugin-visualizer` after install | First time chart library is imported outside a lazy route |
-| Dashboard data derivation in parent component body | Compiler cannot memo across parent-child boundary; re-render storm | Move aggregation into `select` on TanStack Query; or into child component scope | Any Dashboard query cache update |
+|------|----------|-------------|-----------------|
+| Enriching every unioned MR with full detail + approvals + discussions (mirroring `fetchParticipatedMRs`'s N-detail-fetch pattern) for every MR in a release | Slow release-detail page load, N+1 fan-out | Only fetch approval/pipeline/discussion detail for MRs actually flagged as drifted or targeted for a write action, not the whole union eagerly | Releases with 50+ MRs across all three channels |
+| Re-deriving "is release merged back" on every render/poll via a fresh compare-diff call | Repeated heavy `repository/compare` calls (potentially large diffs) on a polling interval | Compute once when fix-version is marked released, cache with an explicit manual-refresh affordance, not route-level polling | Any release with a large branch diff history |
+| Fetching project access_level on every release-view mount | Redundant identical API calls per navigation | Cache per project/session (access level changes rarely); reuse existing project-scoped query key convention | Frequent navigation in/out of the release view |
 
----
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|-------------|
+| Assuming app-level Developer/PM UI role (removed in v1.10) implies GitLab-level project permission | A PM whose app shows no role gating clicks a write button that always 403s, or worse, a Reporter-role token is allowed to attempt writes with confusing failures | Fetch and gate on actual GitLab `access_level`, independent of any app-internal role concept |
+| Logging full GitLab error response bodies via the dev-tools request logger without redaction for these new write endpoints | Minor local info exposure (low severity — local desktop app), but still worth noting | Follow existing dev-tools logging conventions already applied to `updateMilestone`; no new exposure surface if the pattern is reused as-is |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| My Tasks list re-sorts under scrolled cursor on background refresh | User loses context mid-list; disorienting | Defer re-sort until user returns to top; show "Refreshed" badge |
-| Stat tile shows inflated SP (subtask double-count) | User sees wrong sprint velocity; distrust of data | Filter `!issuetype.subtask` before summing; add unit test with double-count fixture |
-| Velocity chart shows "no data" because endpoint probe was skipped | Feature looks broken on first launch | Probe closed-sprint endpoint at phase kickoff; degrade to "N/A" with explanation |
-| Empty chart containers on first load (height=0 before resize) | Chart area appears broken; no loading state | Use skeleton placeholder at explicit height while query is loading |
-| Chart tooltip shows raw SP values without units | "13" means 13 SP but users see a bare number | Tooltips always include unit label: "13 SP", "2h 30m" |
-| "All assigned" scope shows future-sprint issues | User confused by issues they won't work on soon | Scope JQL to `sprint in openSprints() OR sprint is EMPTY` |
-| MR health badge missing on most My Tasks rows | Users assume MRs exist and are failing | Only render MR badge when a linked MR is confirmed; show nothing (not a broken icon) when no MR |
-
----
+|---------|--------------|-------------------|
+| No confirm dialog on retarget/milestone-assign (per spec) but also no post-action visibility into approval/pipeline loss | User discovers lost approvals only when they later check GitLab directly, feels the app "broke" something silently | Inline warning/toast at action time surfacing "approvals will be/were cleared" — informational, not blocking, consistent with the "no confirm dialog" requirement |
+| Drift flags computed once at page load, never distinguished from "already being fixed by someone else right now" | Two team members simultaneously "fix" the same row, one's action looks like a no-op or a confusing revert | Refetch the specific row after every mutation (Pitfall 6); consider a lightweight "recently updated by X" indicator using the MR's own `updated_at` |
+| Fork MRs and draft MRs rendered identically to normal targetable MRs in the drift list | Wasted clicks on actions that will fail or don't make sense yet | Visually distinguish (badge) draft and fork-origin MRs in the union; consider excluding forks from one-click corrective actions |
+| Branch-name/milestone-name mismatches from whitespace shown as "no drift" or "unrelated" rather than "probable near-miss" | User has to manually spot a trailing-space milestone name is why matching failed | Trim consistently everywhere (Pitfall 5) so this class of near-miss cannot occur, rather than surfacing it as a UX hint after the fact |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Charting foundation:** `rollup-plugin-visualizer` confirms chart library is in the Dashboard chunk, not vendor/main
-- [ ] **Charting foundation:** React Compiler healthcheck passes for the chosen library — no warning in CI
-- [ ] **Charting foundation:** `useChartColors()` hook exists and is used for all chart color props; no hardcoded hex
-- [ ] **Charting foundation:** All chart wrappers have explicit pixel height; `height="100%"` is not used
-- [ ] **Charting foundation:** `isAnimationActive={false}` is set on all chart components
-- [ ] **My Tasks / pagination:** `fetchAllMyOpenIssues` uses `fetchAllSearchPages`; test with `total: 250, firstPageSize: 50` fixture asserts 250 results
-- [ ] **My Tasks / N+1:** DevTools network tab on page load shows ≤3 API requests, not one per row
-- [ ] **My Tasks / scope:** "All assigned" JQL does not include future-sprint issues (or explicitly includes them by product decision — documented in code)
-- [ ] **Dashboard / subtask counting:** SP aggregation unit test: story(5 SP) + 2 subtasks(2 SP each) = 5 SP total, not 9
-- [ ] **Dashboard / date bucketing:** Unit test: Tempo worklog `started: "2026-06-14T23:00:00"` buckets to `2026-06-14`, not `2026-06-13`
-- [ ] **Dashboard / velocity:** Closed-sprint endpoint probed in dev environment before chart is implemented; probe results documented
-- [ ] **Dashboard / polling:** `useIsActiveRoute` hook applied to Dashboard; network tab shows zero requests when user is on Backlog or Sprint Board route
-- [ ] **Dashboard / accessibility:** Every chart SVG has `role="img"`, `aria-label`, and a `<title>` element with text summary of the data
-- [ ] **WebKit sizing:** Chart renders correctly in macOS Tauri build (not just in browser dev server) — manual smoke test on real Tauri window
-
----
+- [ ] **MR retarget action:** Often missing approval/pipeline-loss awareness — verify the row shows a warning and post-mutation state reflects cleared approvals, not stale "approved" badges.
+- [ ] **Post-release merge-back check:** Often missing squash/rebase handling — verify it's tested against a squash-merged release branch fixture, not just a plain merge-commit fixture, before considering it correct.
+- [ ] **Three-channel MR discovery:** Often missing pagination completeness — verify with a fixture/test asserting >100 MRs across channels are all captured, not just the happy-path <100 case.
+- [ ] **Branch/milestone creation confirm dialogs:** Often missing idempotent "already exists" handling — verify clicking Create twice (or two users clicking near-simultaneously) doesn't surface a scary raw error.
+- [ ] **Permission gating:** Often missing entirely (buttons always rendered) — verify a Reporter-role token sees disabled buttons with an explanatory tooltip, not a live button that 403s.
+- [ ] **Milestone name → branch name derivation:** Often missing sanitization — verify a milestone with a space, trailing whitespace, or non-ASCII character either gets rejected at creation or produces a valid, correctly-matching branch name end to end.
+- [ ] **Drift-flagging union:** Often missing state/draft/fork filtering — verify merged, closed, draft, and fork MRs are each handled per their intended (not default/generic) treatment, with test fixtures for each.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Chart library fails React Compiler healthcheck | HIGH — library swap required | Switch to Recharts (pure React SVG); rewrite chart components; 1-2 days |
-| Chart renders at 0×0 on WebKit | MEDIUM | Add explicit-height wrapper div; replace `ResponsiveContainer height="100%"` with `useLayoutEffect` width measurement; ~2 hours per chart |
-| Hardcoded hex colors (theme not followed) | MEDIUM | Introduce `useChartColors()` hook; replace all hardcoded props; ~4 hours |
-| Subtask SP double-counting in stat tiles | LOW | Add `.filter(i => !i.issuetype.subtask)` in aggregation; 30-minute fix; but requires re-testing all SP metrics |
-| My Tasks page-cap (50-issue truncation) | MEDIUM | Swap fetch function to use `fetchAllSearchPages`; existing helper is tested; ~1 hour code + UX notice of "Showing all N issues" |
-| Timezone date bucket bug | MEDIUM | Replace `toISOString().slice(0, 10)` with `slice(0, 10)` on the raw Tempo string; test all chart aggregations; ~2 hours |
-| Velocity chart built before endpoint probe — endpoint unavailable | HIGH | Descope velocity chart to "stories completed count" per sprint; or remove widget from v1.13; cannot be fixed without data |
-| 6+ polling queries per Dashboard | MEDIUM | Consolidate to shared `allData.json` parent query + widget `select` derivation; 3-4 hour refactor |
-| Chart library in main bundle (not Dashboard chunk) | LOW | Move import to inside lazy-loaded route file; ~30-minute fix + verify with visualizer |
-
----
+|---------|-----------------|-------------------|
+| Retarget silently cleared approvals with no warning shipped | LOW | Ship the inline warning as a follow-up patch; historical MRs already retargeted cannot have approvals restored — communicate to the team this was GitLab's own behavior, not app-caused corruption |
+| Merge-back check gives false negative on squash-merged branch | MEDIUM | Add MR-state/compare-diff fallback; for releases already stuck "unfinished," a manual override/dismiss action lets a PM mark it resolved by hand while the detection logic is fixed |
+| Pagination cap silently dropped MRs from drift detection | LOW–MEDIUM | Fix the pagination loop; re-run discovery for affected releases — no data was mutated incorrectly, only under-reported, so recovery is a re-fetch, not a data-repair task |
+| Branch created with an invalid/mismatched name due to unsanitized milestone title | MEDIUM | Requires a manual GitLab-side branch rename or delete-and-recreate; add validation retroactively and document the affected release needs manual branch cleanup |
+| Concurrent-write rollback stomped a teammate's legitimate change | LOW | Rollback only reverts local UI cache, not server state, so a simple refetch/page-reload restores correct state for the affected user — no server-side data was actually lost |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Chart 0×0 sizing on WebKit | Charting foundation | Manual smoke test in macOS Tauri build; DevTools confirms chart SVG has non-zero width/height |
-| React Compiler incompatibility | Charting foundation | `npx react-compiler-healthcheck` passes with the chosen library; data prop change triggers chart re-render |
-| Dark/light theme not followed | Charting foundation | Toggle theme in settings; chart colors update immediately without page reload |
-| SVG animation jank on WebKit | Charting foundation | `isAnimationActive={false}` present in code review; no animation visible on Dashboard mount |
-| Bundle bloat | Charting foundation | `rollup-plugin-visualizer` output reviewed; chart library absent from main/vendor chunks |
-| Fetch-once page-cap on My Tasks | My Tasks phase | Unit test with `total: 250` mock; manual test with developer with >50 issues assigned |
-| N+1 fetches per My Tasks row | My Tasks phase | Network tab shows ≤3 requests on page load with 30+ issues |
-| Subtask SP double-counting | Dashboard redesign phase | Unit test with parent+subtasks fixture; stat tile SP matches Jira sprint report |
-| Timezone date bucket bug | Dashboard redesign phase | Unit test with UTC+2 locale and late-evening `started` timestamp; bucket lands on correct local date |
-| Velocity chart without data proof | Dashboard redesign phase | Probe results documented; chart only implemented if endpoint returns usable data; else descoped |
-| Stale-while-revalidate re-sort flicker | My Tasks phase | Navigate away and back; confirm list row order is stable; scroll position preserved |
-| Cross-sprint scope bugs | My Tasks phase | "All assigned" scope: future-sprint issues confirmed absent (or present per decision, documented) |
-| Dashboard polling overload | Dashboard redesign phase | Network tab shows ≤2 requests per 60s on Dashboard; `useIsActiveRoute` verified in profiler |
-| React Compiler re-render storm | Dashboard redesign phase | React DevTools Profiler: ≤1 re-render per widget on sprint data cache update |
-| Accessibility gaps | Charting foundation | VoiceOver reads chart `<title>` content; no "group" with no label announced |
-
----
+|---------|-------------------|----------------|
+| 1. Retarget side-effects (approvals/diff/pipeline/discussions) not surfaced | Per-MR corrective-actions phase (retarget mutation) | Row shows approval-loss warning pre/post action; approval/pipeline query refetched and reflects cleared state after a real retarget against a test MR with existing approvals |
+| 2. Merge-back check false negatives on squash/rebase | Post-release merge-back check phase | Test fixture with a squash-merged release branch passes detection; ancestry-only implementation is rejected in code review |
+| 3. Fetch-once page-cap in discovery channels | Three-channel MR discovery phase | Test asserting >100-MR fixture returns complete results for all three channels; code review checks no new channel calls `fetchRecentProjectMRs` |
+| 4. Set-union/classification errors (state, draft, fork, case) | Three-channel discovery + drift-flagging phase | Fixture-based unit tests for merged/closed/draft/fork/case-mismatch MRs each produce the intended classification |
+| 5. Branch-name derivation and idempotent branch creation | Milestone-creation phase + branch-creation phase | Milestone title with space/whitespace/unicode rejected or sanitized at creation; double-create-branch test returns success not error |
+| 6. Concurrency/staleness driving writes off cache | First write-adding phase (establishes shared mutation pattern) | Mutation success/failure both trigger a refetch of the specific record, not just local optimistic patch; simulated concurrent-edit test (two mutations racing) doesn't leave stale UI |
+| 7. Partial failure across N independent per-MR writes | Per-MR corrective-actions phase | Partial-failure fixture (N MRs, 1 fails) leaves correct per-row status; retry re-derives payload from fresh state, not stale closure |
+| 8. Missing permission detection/degradation | Ideally the first write-adding phase; at minimum, every write phase surfaces real GitLab error-body messages | Reporter-role token fixture shows disabled buttons with tooltip; Developer-role-but-protected-branch 403 shows GitLab's actual message, not a generic string |
 
 ## Sources
 
-- Taskflow codebase: `src/services/jira.ts` — `fetchAllSearchPages` (line 267), `PAGE_SIZE = 200` (line 262), `fetchSprintIssuesForCurrentUser` (line 500), `fetchMySprintIssuesWithTeam` (line 471)
-- Taskflow codebase: `src/lib/standup-date.ts` — `toLocalDateString()` standing rule; `toISOString()` UTC shift warning (documented in file header)
-- Taskflow codebase: `src/routes/dashboard/IssueDetailView.tsx` — `useLayoutEffect` + `offsetWidth` width measurement pattern (line 334)
-- Taskflow codebase: `src/routes/dashboard/SprintBoardTab.tsx` — `ResizeObserver` guard pattern (line 313)
-- Taskflow PROJECT.md: "Historical analytics / burndown charts — no daily-use value" (Out of Scope); v1.7 bundle analysis tooling; v1.9 date bucketing `.slice(0, 10)` decision
-- Memory: `project_fetch_once_pagecap_pitfall` — recurring bug class; assignee-missing-users prior case
-- Memory: `project_virtualized_table_zero_width_col` — WebKit 0-width column in `position: absolute` rows; explicit-px sizing fix
-- Memory: `project_reactive_cache_read_badge` — `getQueryData()` non-reactive in render
-- React Compiler documentation: `babel-plugin-react-compiler` incompatibility with imperative animation (Framer Motion explicitly noted in STACK.md)
-- Recharts: `isAnimationActive`, `ResponsiveContainer` props — verified via Context7 `/recharts/recharts`
-- Tailwind v4 dark mode: CSS custom property token system; no `tailwind.config.js` — v4 CSS pipeline only (PROJECT.md)
-- Jira DC REST API v2: `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed` (sprint history); `GET /rest/agile/1.0/sprint/{id}/issue` (per-sprint issue list)
-- TanStack Query: `select` option for structural memoization of derived data
+- [GitLab Merge requests API](https://docs.gitlab.com/api/merge_requests/) — HIGH confidence, official docs
+- [GitLab Merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/) — HIGH confidence, official docs; confirms approvals reset on target branch change
+- [GitLab issue: code owner approvals not reset on target branch change (#415496)](https://gitlab.com/gitlab-org/gitlab/-/work_items/415496) — MEDIUM confidence, GitLab issue tracker; confirms approval-reset is intended design, flags an inconsistency
+- [GitLab issue: squash merge doesn't add 'merged' label, incorrect ahead/behind (#36963)](https://gitlab.com/gitlab-org/gitlab/-/issues/36963) — HIGH confidence, GitLab issue tracker; core evidence for Pitfall 2
+- [GitLab Squash and merge docs](https://docs.gitlab.com/user/project/merge_requests/squash_and_merge/) — HIGH confidence, official docs
+- [GitLab Merge request pipelines](https://docs.gitlab.com/ci/pipelines/merge_request_pipelines/) — HIGH confidence, official docs; protected-branch pipeline access depends on both source and target protection
+- [GitLab Roles and permissions](https://docs.gitlab.com/user/permissions/) — HIGH confidence, official docs; Reporter vs Developer capability baseline
+- [GitLab Protected branches](https://docs.gitlab.com/user/project/repository/branches/protected/) — HIGH confidence, official docs; protected-branch push/merge allowlists as a second permission layer beyond role
+- Project codebase: `taskflow/src/services/gitlab.ts` — HIGH confidence, direct inspection; source of pagination-pattern comparison (`fetchMilestoneMRs` vs `fetchRecentProjectMRs`), existing error-handling gaps, and the only pre-existing write (`updateMilestone`)
+- Project memory (`.claude` MEMORY.md): fetch-once page-cap pitfall, enrichment invalidation no-op, reactive cache-read badge, optimistic-override-must-outlive-refetch — HIGH confidence, verified recurring codebase bug classes, cross-checked against this milestone's features above
 
 ---
-*Pitfalls research for: v1.13 Personal Workspace — charting foundation, My Tasks page, Dashboard redesign in Tauri 2 / React 19 / React Compiler / Tailwind v4 / TanStack Query*
-*Researched: 2026-06-14*
+*Pitfalls research for: git-flow release-coordination write features on GitLab, added to Taskflow (Tauri 2 desktop app) — v1.14 Release Management*
+*Researched: 2026-08-10*
