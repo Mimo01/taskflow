@@ -64,7 +64,7 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
   it('renders the unresolvable state', () => {
     renderSidebar({ branchState: { kind: 'unresolvable' } });
     const el = screen.getByTestId('branch-status-unresolvable');
-    expect(el.textContent).toContain("can't be derived");
+    expect(el.textContent).toContain('No branch name from this milestone title');
   });
 
   it('renders the invalid-ref state', () => {
@@ -85,10 +85,24 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     expect(screen.getByText('release/33.5.0')).toBeInTheDocument();
   });
 
-  it('renders the missing state', () => {
-    renderSidebar({ branchState: { kind: 'missing', branchName: 'release/33.5.0' } });
-    const el = screen.getByTestId('branch-status-missing');
-    expect(el).toHaveTextContent('No release branch');
+  it('renders the missing state as a Create branch action', () => {
+    // Action-only: the row label plus the offer to create already conveys the
+    // absence, so there is no separate "No release branch" warning to assert.
+    renderSidebar({
+      branchState: { kind: 'missing', branchName: 'release/33.5.0' },
+      defaultBranch: 'main',
+    });
+    expect(screen.getByTestId('branch-status-missing')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create branch' })).toBeInTheDocument();
+  });
+
+  it('states the reason instead of a dead action when the default branch has not loaded', () => {
+    renderSidebar({
+      branchState: { kind: 'missing', branchName: 'release/33.5.0' },
+      defaultBranch: null,
+    });
+    expect(screen.getByText('Default branch not loaded yet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create branch' })).not.toBeInTheDocument();
   });
 
   it('renders the released state with its tag, and offers no Create action', () => {
@@ -117,7 +131,8 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
       branchState: { kind: 'check-failed', branchName: 'release/33.5.0' },
     });
     const el = screen.getByTestId('branch-status-check-failed');
-    expect(el).toHaveTextContent("Couldn't check the release branch");
+    expect(el).toHaveTextContent("Couldn't check");
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('Test G: Retry button calls onRetryBranchCheck exactly once', async () => {

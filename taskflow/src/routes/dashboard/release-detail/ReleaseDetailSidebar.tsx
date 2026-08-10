@@ -1,5 +1,13 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { AlertTriangle, Calendar, Check, ExternalLink, GitMerge, Pencil } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  Check,
+  ExternalLink,
+  GitBranch,
+  GitMerge,
+  Pencil,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GitLabMilestone } from '@/services/gitlab';
@@ -9,30 +17,35 @@ import { MetaRow } from './MetaRow';
 import type { BranchState } from './releaseBranch';
 import type { LabelCoverage } from './releaseSummaries';
 
-// Shared trigger for the release-branch creation action — kept as one
-// component so the button copy is authored exactly once; each MetaRow call
-// site below supplies its own literal disabled-reason title (D-10/D-11/D-14).
-function BranchCreateButton({
-  disabled,
-  title,
+// Inline text action for the sidebar meta rows. These rows are a column of
+// quiet label/value pairs, and a full ghost Button (h-7, its own padding and
+// hover fill) read as a control dropped into a data list. A text link keeps
+// the row rhythm while staying a real <button> for keyboard and a11y.
+function RowAction({
+  children,
   onClick,
+  title,
 }: {
-  disabled?: boolean;
-  title?: string;
+  children: React.ReactNode;
   onClick: () => void;
+  title?: string;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="gap-1.5 text-xs h-7"
-      disabled={disabled}
-      title={title}
+    <button
+      type="button"
       onClick={onClick}
+      title={title}
+      className="rounded-sm text-primary text-xs hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      Create branch
-    </Button>
+      {children}
+    </button>
   );
+}
+
+// Why an action is unavailable. Preferred over a disabled link: a dead
+// control states nothing, while the reason is the only thing that helps.
+function RowUnavailable({ children }: { children: React.ReactNode }) {
+  return <span className="text-muted-foreground text-xs">{children}</span>;
 }
 
 interface ReleaseDetailSidebarProps {
@@ -170,134 +183,87 @@ export function ReleaseDetailSidebar({
               </span>
             )
           ) : (
-            // Stacked, not justify-between: in a narrow sidebar the warning and
-            // its action crowd each other on one line, and justify-between drags
-            // them to opposite edges with a ragged gap between.
-            <span className="flex flex-col items-start gap-1">
-              <span
-                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                data-testid="gitlab-link-none"
-              >
-                <AlertTriangle className="size-3 shrink-0" />
-                No milestone matched
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="-ml-2 h-7 gap-1.5 text-xs"
-                onClick={onCreateMilestone}
-                disabled={!canCreateMilestone}
-                title={canCreateMilestone ? undefined : 'Set a release date on this version first'}
-              >
-                Create milestone
-              </Button>
+            // Action-only: the row label plus an offer to create already says
+            // the milestone is absent, so a separate "No milestone matched"
+            // warning was just restating the row it sits in.
+            <span data-testid="gitlab-link-none">
+              {canCreateMilestone ? (
+                <RowAction onClick={onCreateMilestone}>Create milestone</RowAction>
+              ) : (
+                <RowUnavailable>Set a release date first</RowUnavailable>
+              )}
             </span>
           )}
         </MetaRow>
 
         <MetaRow label="Release Branch">
-          {/* Stacked rather than justify-between — see the milestone row above. */}
-          <span className="flex flex-col items-start gap-1">
-            {branchState.kind === 'blocked-no-milestone' ? (
-              <span className="text-muted-foreground" data-testid="branch-status-blocked">
-                Create the milestone first
-              </span>
-            ) : branchState.kind === 'unresolvable' ? (
+          {/* Each state resolves to a single inline element — an action when the
+              branch can be created, otherwise the reason it can't. */}
+          {branchState.kind === 'blocked-no-milestone' ? (
+            <RowUnavailable>
+              <span data-testid="branch-status-blocked">Create the milestone first</span>
+            </RowUnavailable>
+          ) : branchState.kind === 'unresolvable' || branchState.kind === 'invalid-ref' ? (
+            <span
+              className="text-muted-foreground text-xs"
+              title={
+                branchState.kind === 'invalid-ref'
+                  ? `Invalid git ref: ${branchState.branchName}`
+                  : undefined
+              }
+              data-testid={
+                branchState.kind === 'invalid-ref'
+                  ? 'branch-status-invalid-ref'
+                  : 'branch-status-unresolvable'
+              }
+            >
+              No branch name from this milestone title
+            </span>
+          ) : branchState.kind === 'check-failed' ? (
+            <span className="inline-flex items-center gap-2">
               <span
-                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                data-testid="branch-status-unresolvable"
-              >
-                <AlertTriangle className="size-3" />
-                Branch name can't be derived from this milestone title
-              </span>
-            ) : branchState.kind === 'invalid-ref' ? (
-              <span
-                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                title={`Invalid git ref: ${branchState.branchName}`}
-                data-testid="branch-status-invalid-ref"
-              >
-                <AlertTriangle className="size-3" />
-                Branch name can't be derived from this milestone title
-              </span>
-            ) : branchState.kind === 'check-failed' ? (
-              <span
-                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                className="inline-flex items-center gap-1 text-orange-600 text-xs dark:text-orange-400"
                 title={`Couldn't check ${branchState.branchName}`}
                 data-testid="branch-status-check-failed"
               >
-                <AlertTriangle className="size-3" />
-                Couldn't check the release branch
+                <AlertTriangle className="size-3 shrink-0" />
+                Couldn't check
               </span>
-            ) : branchState.kind === 'loading' ? (
-              <span className="text-muted-foreground">Loading...</span>
-            ) : branchState.kind === 'exists' ? (
-              <span
-                className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
-                data-testid="branch-status-exists"
-              >
-                <Check className="size-3 shrink-0" />
-                <span className="font-mono text-xs">{branchState.branchName}</span>
-              </span>
-            ) : branchState.kind === 'released' ? (
-              <span
-                className="inline-flex items-center gap-1 text-muted-foreground"
-                title={
-                  branchState.tagName
-                    ? `${branchState.branchName} was merged and deleted; tagged ${branchState.tagName}`
-                    : `${branchState.branchName} was merged and deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
-                }
-                data-testid="branch-status-released"
-              >
-                <Check className="size-3 shrink-0" />
-                Released
-                {branchState.tagName && (
-                  <span className="font-mono text-xs">{branchState.tagName}</span>
-                )}
-              </span>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                data-testid="branch-status-missing"
-              >
-                <AlertTriangle className="size-3" />
-                No release branch
-              </span>
-            )}
-            {branchState.kind === 'missing' &&
-              (defaultBranch ? (
-                <BranchCreateButton onClick={onCreateBranch} />
+              <RowAction onClick={onRetryBranchCheck}>Retry</RowAction>
+            </span>
+          ) : branchState.kind === 'loading' ? (
+            <span className="text-muted-foreground text-xs">Loading...</span>
+          ) : branchState.kind === 'exists' ? (
+            <span
+              className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
+              data-testid="branch-status-exists"
+            >
+              <GitBranch className="size-3 shrink-0" />
+              <span className="font-mono text-xs">{branchState.branchName}</span>
+            </span>
+          ) : branchState.kind === 'released' ? (
+            <span
+              className="inline-flex items-center gap-1 text-muted-foreground text-xs"
+              title={
+                branchState.tagName
+                  ? `${branchState.branchName} was merged and deleted; tagged ${branchState.tagName}`
+                  : `${branchState.branchName} was merged and deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
+              }
+              data-testid="branch-status-released"
+            >
+              <Check className="size-3 shrink-0" />
+              Released
+              {branchState.tagName && <span className="font-mono">{branchState.tagName}</span>}
+            </span>
+          ) : (
+            <span data-testid="branch-status-missing">
+              {defaultBranch ? (
+                <RowAction onClick={onCreateBranch}>Create branch</RowAction>
               ) : (
-                <BranchCreateButton
-                  disabled
-                  title="Project default branch not loaded yet"
-                  onClick={onCreateBranch}
-                />
-              ))}
-            {branchState.kind === 'blocked-no-milestone' && (
-              <BranchCreateButton
-                disabled
-                title="Create the milestone first"
-                onClick={onCreateBranch}
-              />
-            )}
-            {(branchState.kind === 'unresolvable' || branchState.kind === 'invalid-ref') && (
-              <BranchCreateButton
-                disabled
-                title="Branch name can't be derived from this milestone title"
-                onClick={onCreateBranch}
-              />
-            )}
-            {branchState.kind === 'check-failed' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-xs h-7"
-                onClick={onRetryBranchCheck}
-              >
-                Retry
-              </Button>
-            )}
-          </span>
+                <RowUnavailable>Default branch not loaded yet</RowUnavailable>
+              )}
+            </span>
+          )}
         </MetaRow>
 
         <MetaRow label="MR Labels">
