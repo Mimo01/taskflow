@@ -1,217 +1,174 @@
 # Project Research Summary
 
-**Project:** Taskflow v1.13 Personal Workspace
-**Domain:** My Tasks command center + graph-driven Dashboard redesign + first charting library
-**Researched:** 2026-06-14
-**Confidence:** HIGH
+**Project:** Taskflow — v1.14 Release Management
+**Domain:** Git-flow release-coordination write features (GitLab branch/milestone/MR mutations) bolted onto an existing read-mostly Tauri 2 + React 18 + TanStack Query desktop app
+**Researched:** 2026-08-10
+**Confidence:** HIGH (stack, architecture, pitfalls all grounded in direct codebase inspection + verified GitLab docs; features MEDIUM — no hands-on access to competitor UIs)
 
 ## Executive Summary
 
-v1.13 introduces the app's first charting dependency and two new major surfaces: a My Tasks page (personal command center) and a redesigned Dashboard (stat tiles + charts + MR review queue). The research converges strongly on Recharts v3 via the shadcn/ui `chart` primitive as the charting foundation. The `--chart-1..5` OKLCH tokens are already in `index.css`, the shadcn `ChartContainer` wires them automatically, and Recharts v3.3+'s `responsive` prop fully resolves the only known React Compiler conflict (the `ResponsiveContainer` displayName-stripping bug). No other charting library clears the combined bar of React 19 peer dep, React Compiler safety, Tailwind v4 CSS-var theming, and React 19 compatibility. The install is two packages (`recharts` + `react-is`) plus `npx shadcn@latest add chart`.
+v1.14 turns the Releases view from a read-only Jira↔GitLab date-match into a working release-coordination surface: detect whether `release/<milestone>` exists, create it if not, union three independent signals (Jira fix-version linkage, GitLab milestone, branch target) to surface drift, let the user fix drift per-MR with no bulk "fix all," and verify merge-back once a release ships. Every capability maps to plain `fetch` calls through the existing `apiFetch('gitlab', ...)` wrapper — no new dependency, no GitLab SDK. The five new writes (`createBranch`, `createMilestone`, `updateMRTargetBranch`, `assignMRMilestone`, plus the read-heavy `fetchBranch`/`fetchBranchTargetingMRs`) all extend `services/gitlab.ts` in the exact shape of the app's one existing write, `updateMilestone`.
 
-My Tasks is predominantly a composition of existing primitives — `fetchMyTasksHierarchy` (jira.ts:483) already handles the sprint-scope data, StatusPopover handles inline transitions, and the subtask-under-parent grouping from Standup Today covers the "By Sprint & Parent" mode. The only genuinely new data fetch is the "all assigned" scope (`assignee = currentUser() AND statusCategory != Done`), which must use `fetchAllSearchPages` to avoid the recurring fetch-once page-cap pitfall. Dashboard redesign is similarly additive: stat tiles and the sprint health chart derive from the already-warm sprint board cache; the weekly hours chart reuses the Tempo worklogs service; the MR review queue reads the existing `gitlab-mrs` cache. The charting library must be installed first because it is a hard dependency for every chart-bearing dashboard section.
+The recommended approach is architecture-led: decompose the 1518-line `ReleaseDetailPage.tsx` into a `release-detail/` sibling folder (mirroring the existing `issue-detail/` 25-file precedent) as a pure, zero-behavior-change refactor *before* adding any new UI, then build branch-lifecycle and drift-detection as largely independent, parallelizable vertical slices. This keeps every new section testable in isolation and avoids compounding an already-overloaded monolith.
 
-The principal open risk is the burndown vs. velocity split. Features research argues that a live burndown via GreenHopper `scopechangeburndownchart` is in scope (daily-use value, current sprint only) and feasible on Jira DC. Architecture research disagrees: it calls the endpoint unofficial, references the PROJECT.md "historical analytics out of scope" exclusion, and recommends achieving velocity through official REST endpoints only. Both researchers agree that personal velocity from official REST is achievable but requires a probe to confirm closed-sprint SP field availability, a p-limit(3) concurrency cap across N sprint fetches, and product-owner sign-off on the N-call cost. The correct resolution is to gate both features as CONDITIONAL: do not commit implementation to either until a probe phase validates the endpoint and the product owner approves the API cost budget.
+The dominant risk is that this milestone introduces the app's *first* multi-writer, high-consequence GitLab mutations (retargeting resets MR approvals, invalidates pipelines, and orphans diff discussions) into a codebase whose only precedent write (`updateMilestone`) is low-stakes and single-purpose. A second, sharper risk is a bug class this codebase has already hit twice (fetch-once page-cap silently truncating results) recurring a third time in the three-channel discovery, and a third is that the two most "obviously simple" reads in this milestone — branch-exists and branch-merged — are the two places GitLab's own API is documented to lie (squash/rebase merges break ancestry-based "merged" detection). All three are addressed explicitly below with concrete phase-level mitigations, not deferred as follow-up polish.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The charting stack decision is fully settled by research: **Recharts v3.8+ via the shadcn/ui `chart` component**. The shadcn `ChartContainer` reads `var(--chart-*)` CSS tokens automatically, requires zero manual theme plumbing, and the copy-paste ownership model means there is no version lock-in. The `responsive` prop (v3.3+) on each chart component replaces `ResponsiveContainer` entirely, eliminating the sole React Compiler conflict point. The existing stack (Tauri 2, React 19, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome) is unchanged.
+No new dependencies. All 5-7 new GitLab capabilities (default-branch read, branch existence+merge check, branch create, milestone create, MR target-branch update, MR milestone-assign) are single REST v4 calls through the app's existing `apiFetch('gitlab', ...)` + `PRIVATE-TOKEN` pattern. Every endpoint is core GitLab Free/CE surface with no version-gating risk across gitlab.com or self-hosted. New functions land in `taskflow/src/services/gitlab.ts` (not a new module — the file is still a flat, cohesive service, unlike the already-split `jira.ts`), following `updateMilestone`'s exact try/catch → 401/403 `ApiError` → body-message-fallback shape.
 
-**Core technologies (additions only):**
-- `recharts ^3.8.1`: SVG chart engine — the only library that clears React 19 peer dep, React Compiler safe, Tailwind v4 CSS-var theming, and all required chart types (donut, stacked bar, area/line, sparkline)
-- `react-is ^19.1.0`: required Recharts peer dep for React 19; must match the React version in use
-- `src/components/ui/chart.tsx` (shadcn copy-paste): `ChartContainer`, `ChartTooltip`, `ChartLegend` wrappers — not an npm package; added via `npx shadcn@latest add chart`
-
-**Explicitly rejected:** visx (2-year-old stable release, react-spring + lodash weight, unaudited against React Compiler), Tremor (React ^18 peer dep only, wraps Recharts adding an abstraction layer), Nivo (React 19 peer dep conflicts, `--legacy-peer-deps` required), `date-fns`/`dayjs`/`luxon` (date utilities covered by existing `standup-date.ts` + `Intl.DateTimeFormat`).
+**Core technologies:**
+- `fetch` via `apiFetch('gitlab', ...)` — same transport as 20+ existing GitLab calls, no CORS/Tauri-webview unknowns
+- `GET /projects/:id/repository/branches/:branch` — branch existence check (also returns `merged`, see Conflict 1 below)
+- `POST /projects/:id/repository/branches`, `POST /projects/:id/milestones`, `PUT /projects/:id/merge_requests/:iid` — the four new writes
 
 ### Expected Features
 
-**Must have (My Tasks — table stakes):**
-- Flat list of sprint-assigned issues (`assignee = currentUser()`) with status, priority, type icon, due date, SP, timeInColumn badge, MR health badge, blocked indicator
-- Three grouping modes: My Day smart-sort (overdue → in-progress → blocked → due-today → other sprint → other assigned → done) / By Status / By Sprint & Parent
-- Scope toggle: current sprint (existing `fetchMyTasksHierarchy`) vs all assigned (new paginated fetch via `fetchAllSearchPages`)
-- Inline status transition via StatusPopover; row body → peek; issue key → full page
+Table stakes for any git-flow release-coordination surface: branch existence detection + guarded create, an MR-to-release membership list (already ~60% built), wrong-target-branch and missing-milestone flags (extends the existing `wrongMilestoneByKey` badge pattern verbatim), a per-item fix action co-located with the flag (no navigate-away), and post-release merge-back verification. All seven are already committed in PROJECT.md's Active requirements — feature research confirms none of them are over-scoped or under-scoped relative to how git-flow tooling and release dashboards are conventionally built elsewhere.
 
-**Must have (Dashboard — table stakes):**
-- Personal stat tiles: Open / In Progress / Done counts for current sprint (derived from warm sprint board cache, subtasks excluded from SP sums)
-- Sprint points-by-status stacked bar or donut chart (Recharts via shadcn chart; same warm cache)
-- MR review queue (open MRs awaiting my review; existing `gitlab-mrs` cache, no new fetch)
-- Next release countdown (retained from current Dashboard — removing it is a regression)
-- Weekly hours logged tile + Mon–Fri bar chart (Tempo worklogs; existing service)
-- Aging WIP count tile (timeInColumn per issue, already in GH allData from v1.11)
-- Sprint goal / sprint name header
+**Must have (table stakes, all P1 in FEATURES.md's matrix):** release branch resolve/detect, guarded branch create, three-channel MR union, drift flagging, per-MR retarget+assign, guarded milestone create, merge-back check.
 
-**Should have (differentiators):**
-- My Tasks: summary filter chips (status category + issue type), Log Work quick action (row context menu, reuses LogWorkPopover), time tracking mini-bar
-- Dashboard: activity feed (recent changelog, reuses `fetchYesterdayJiraActivity`), sprint burndown chart (CONDITIONAL — GH endpoint probe required), personal velocity trend (CONDITIONAL — probe + product-owner sign-off required)
+**Differentiator:** the three-channel union with per-channel provenance itself — no competitor product researched (GitLab's own dashboard, Jira Release Hub, LinearB/Swarmia) does true three-way reconciliation; most trust one channel (usually the milestone) as ground truth. This is this milestone's actual competitive edge, not a side effect.
 
-**Defer (v2+):**
-- Cross-project My Tasks (blocked by single-project constraint)
-- Team velocity / team analytics (PM-facing sprint report surface)
-- Cumulative Flow Diagram (explicitly out of scope in PROJECT.md — needs daily snapshot store)
-- Configurable widget grid (removed in v1.9 Phase 59; do not reintroduce `react-grid-layout`)
+**Explicitly out of scope / anti-features (already decided, do not re-litigate):** historical analytics/DORA dashboards, "fix all" bulk action, silent auto-retarget or auto-merge-back, customizable widget dashboards, Slack/email notifications, GitLab review actions (approve/request-changes) — all directly ruled out by PROJECT.md precedent (v1.9/v1.13 widget and analytics rejections) or by the milestone brief itself.
 
 ### Architecture Approach
 
-v1.13 adds two new lazy-loaded route modules (`routes/my-tasks/`, extended `routes/dashboard/`) and one new infrastructure folder (`components/charts/`). All new pages follow the established outlet-context pattern for peek and navigation (`useOutletContext()` for `onIssueClick`/`onOpenIssue`), the D-16 single-token-load pattern (PAT loaded once at page root, passed as props to child components), and the Zustand + Tauri Store persistence pattern for UI prefs (`my-tasks.store.ts` with `createTauriStorage('my-tasks.json')`). New fetchers (`fetchMyAssignedIssues`, `fetchClosedSprints`, `fetchSprintIssuesBySprintId`) are added to `services/jira.ts` and `services/jira/sprints.ts` and re-exported via the barrel. New queries for My Tasks must never borrow the `'sprint-board'` cache key — `['jira-issues','my-tasks',...]` is the correct existing key, and `['jira-issues','my-tasks-all',...]` is the new key for the all-assigned scope.
+Extend, don't redesign. `ReleaseDetailPage.tsx` decomposes into a `release-detail/` sibling folder mirroring the `issue-detail/` convention (one file per section, hooks-as-`.ts`-files, props-only communication — no `createContext`). A new pure module `services/releaseFlow.ts` (sibling to `releaseLinker.ts`, zero I/O, fully unit-testable) owns three-channel union and drift classification over already-fetched arrays. All new GitLab writes append to `gitlab.ts`. Branch-existence and merge-back status are plain `useQuery` (server-derived facts), never Zustand (reserved for client-owned persisted state).
 
 **Major components:**
-1. `components/charts/ChartWrapper.tsx` — explicit-height wrapper enforcing `style={{ height }}` on an outer div; uses `'use no memo'` React Compiler escape hatch; passes CSS-var strings (`var(--chart-1)` etc.) to chart children; uses Recharts `responsive` prop, never `ResponsiveContainer`
-2. `routes/my-tasks/MyTasksPage.tsx` — loads `fetchMyTasksHierarchy` (sprint scope) or `fetchMyAssignedIssues` (all scope) based on `useMyTasksStore().scope`; owns group-mode state; passes `onIssueClick` from outlet context to `MyTasksGroupedList`
-3. `routes/dashboard/index.tsx` (modified) — retains gradient hero; replaces 3-card grid with `DashboardStatTiles` + `DashboardSprintChart` + `DashboardTrendChart` + `DashboardMrReviewQueue` + optional `DashboardVelocityChart`; loads PAT once, passes to all child sections
-4. `stores/my-tasks.store.ts` — persists `groupMode: 'day' | 'status' | 'sprint'` and `scope: 'sprint' | 'all'` via Tauri Store; settings store version (v26) does NOT change
+1. `release-detail/ReleaseBranchSection.tsx` + `useReleaseBranchState.ts` — branch existence, create-branch dialog, merge-back check
+2. `release-detail/ReleaseDriftSection.tsx` + `useReleaseGitlabWrites.ts` — three-channel drift table, per-row optimistic retarget/assign mutations
+3. `services/releaseFlow.ts` — pure union/drift-classification logic, no fetch, fixture-testable
+4. `services/gitlab.ts` (extended) — 5-6 new functions in `updateMilestone`'s exact shape
 
 ### Critical Pitfalls
 
-1. **Chart 0x0 sizing on WebKit (Tauri webview)** — `ResponsiveContainer` observes its parent via ResizeObserver; if the parent is a `flex-1` or `overflow-hidden` container, WebKit reports `clientWidth = 0` on the first observation and the SVG stays invisible. This is the same failure class as the virtualized table 0-width column bug (memory: `project_virtualized_table_zero_width_col`). Prevention: always wrap charts in `<div className="w-full" style={{ height: 260 }}>` — never use `height="100%"` in a flex parent. Use the `responsive` prop on the chart component itself (Recharts v3.3+) and skip `ResponsiveContainer` entirely. Gate: required before the first chart renders in the charting foundation phase; must be verified in a real macOS Tauri build, not just the browser dev server.
-
-2. **Fetch-once page-cap on My Tasks "all assigned" scope** — the recurring bug (memory: `project_fetch_once_pagecap_pitfall`). A single JQL call with `maxResults=50` silently truncates users with >50 assigned issues. Prevention: all My Tasks JQL fetches must use `fetchAllSearchPages` (`PAGE_SIZE=200`, loops until `startAt >= total`). Two separate named functions (`fetchMyCurrentSprintIssues` / `fetchAllMyOpenIssues`) prevent the temptation to "just filter the sprint result client-side." Gate: mandatory unit test with `total: 250, firstPage: 50 items` asserting 250 results returned.
-
-3. **SP double-counting in stat tiles and sprint health chart** — GH `allData.json` returns both stories and subtasks; summing `estimateStatistic.statFieldValue.value` without filtering by `!issuetype.subtask` inflates sprint velocity by 20-40%. This was correctly handled in v1.1 Workload (now removed) and must be re-implemented for the Dashboard. Prevention: filter `!issue.fields.issuetype.subtask` before any SP aggregation. Gate: unit test with parent(5 SP) + 2 subtasks(2 SP each) asserting total = 5, not 9.
-
-4. **Local-date bucketing for Tempo chart data** — `new Date(tempo.started).toISOString().slice(0, 10)` shifts the calendar date for users in UTC+ timezones (standing rule in `standup-date.ts`). Prevention: use `tempo.started.slice(0, 10)` directly — Tempo timestamps are already local-time ISO strings; constructing a Date object and re-serializing breaks timezone correctness. Gate: unit test with `started: "2026-06-14T23:00:00"` asserting bucket = `2026-06-14`, not `2026-06-13`.
-
-5. **React Compiler incompatibility with `ResponsiveContainer`** — confirmed bug: `babel-plugin-react-compiler` strips `displayName` in production, breaking Recharts' internal `isChart()` check when `ResponsiveContainer` is used (issues #4590, #5173). Prevention: use the `responsive` prop on every chart component (`<AreaChart responsive ...>`) and never use `ResponsiveContainer`. If `ResponsiveContainer` is ever needed, add `sources: (filename) => !filename.includes('node_modules/recharts')` exclusion to `vite.config.ts`. Gate: verify chart data prop changes re-render correctly in a production build, not just dev server.
+1. **Retargeting is not a metadata edit** — it resets MR approvals, invalidates the diff base/pipeline, and can orphan diff discussions. No confirm dialog is spec'd, so an inline per-row warning ("Retargeting will clear N approval(s)") is required at the same time the mutation ships, plus a post-mutation refetch of approval/pipeline state — never leave stale "approved" badges showing.
+2. **Fetch-once page-cap recurs a third time** — `fetchRecentProjectMRs` is deliberately capped at 100 for a *secondary* heuristic; reusing it for any of the three drift-discovery channels reintroduces a bug class already hit twice in this codebase (My Tasks, MR-discussion/assignee pickers). Every new discovery channel must copy `fetchMilestoneMRs`'s full-pagination `while` loop, never `fetchRecentProjectMRs`'s cap.
+3. **Merge-back "merged" field lies on squash/rebase merges** — see Conflict 1 resolution below; must not be treated as authoritative.
+4. **Set-union/drift classification must filter state, draft, fork, and use exact (non-lowercased) branch-name comparison** — unfiltered, merged/closed MRs pollute drift counts, drafts get flagged with false urgency, and fork MRs can fail corrective-action writes with confusing errors.
+5. **No GitLab role/permission detection exists anywhere in this app** — write buttons rendered unconditionally will 403 for Reporter-level tokens (plausible for PM users) with no explanation; this must be addressed in the first write-adding phase, not per-button later.
 
 ## Implications for Roadmap
 
-Based on research, the phase structure follows a strict dependency order: charting infrastructure must precede any chart-bearing Dashboard section; My Tasks data layer is independent and can proceed in parallel; Dashboard is built section-by-section from stat tiles (cheapest, warm cache) to velocity chart (most complex, conditional probe).
+### Reconciled Build Order
 
-### Phase 1: Charting Foundation
+ARCHITECTURE.md and PITFALLS.md agree on the overall shape; PITFALLS.md's contribution is that two concerns (permission gating, shared write-mutation contract) must be established **in the first phase that ships a real write**, not deferred. Reconciled order (numbers are dependency-ordered, not final phase numbers — the roadmapper should size/group these):
 
-**Rationale:** Every chart on the Dashboard depends on Recharts + `chart.tsx`. Installing the library and verifying `ChartWrapper` renders correctly with dark/light theming in the actual Tauri WebKit build is a gate for all subsequent chart work. Doing this first prevents discovering WebKit sizing bugs after charts are implemented across multiple components.
-
-**Delivers:** `recharts` + `react-is` installed; `chart.tsx` added via shadcn; `ChartWrapper.tsx` at `src/components/charts/` with explicit-height wrapper, `'use no memo'` directive, and `responsive` prop pattern; `isAnimationActive={false}` established as default; dark/light theme verified with a smoke-test chart on `/dashboard`; `rollup-plugin-visualizer` confirms chart library is in the Dashboard chunk, not `vendor/main`.
-
-**Addresses:** Stack selection (Recharts consensus), charting infrastructure for all Dashboard charts.
-
-**Avoids:** Chart 0x0 on WebKit (explicit-height wrapper from day one), React Compiler incompatibility (`responsive` prop pattern enforced), bundle bloat (lazy-route placement verified before any chart component), SVG animation jank (`isAnimationActive={false}` default).
-
-**Research flag:** SKIP — settled decision with explicit install instructions confirmed.
-
-### Phase 2: My Tasks Page
-
-**Rationale:** My Tasks has no chart dependency. It can build in parallel with or immediately after Phase 1. The sprint-scope data layer (`fetchMyTasksHierarchy`) already exists at jira.ts:483; the "all assigned" scope adds one new paginated fetcher. Building My Tasks before the full Dashboard redesign validates the `MyTaskRow` component and grouping logic before potential reuse in Dashboard issue lists.
-
-**Delivers:** `/my-tasks` lazy route + sidebar entry; `stores/my-tasks.store.ts`; `fetchMyAssignedIssues` in `services/jira.ts` using `fetchAllSearchPages`; `MyTasksPage`, `MyTasksHeader`, `MyTasksControls`, `MyTasksGroupedList`, `MyTaskRow`; all three grouping modes (My Day, By Status, By Sprint & Parent); scope toggle (sprint / all assigned); inline StatusPopover transitions; peek via outlet context; summary filter chips.
-
-**Addresses:** My Tasks table-stakes features (flat list, grouping, transitions, peek, scope toggle), differentiators (My Day smart-sort, MR health badge, aging badge, due-date highlight, blocked indicator).
-
-**Avoids:** Fetch-once page-cap (`fetchAllSearchPages` mandatory from first commit), N+1 per-row queries (MR health derived client-side from existing `gitlab-mrs` cache, same as sprint board), cross-sprint scope bugs (JQL scope definition reviewed before implementation — `sprint in openSprints() OR sprint is EMPTY`), stale-while-revalidate re-sort flicker (`staleTime: 2min`, scroll-position-aware resort deferral).
-
-**Research flag:** SKIP for core list and grouping — all components are reused primitives.
-
-### Phase 3: Dashboard Stat Tiles + Sprint Health Chart
-
-**Rationale:** The simplest Dashboard changes with the highest user value. Stat tiles and the sprint health chart both read from the warm sprint board cache — zero new API calls. This phase establishes the new Dashboard layout (replacing the 3-card grid) and validates `ChartWrapper` in production Dashboard context before more complex chart sections are added.
-
-**Delivers:** `DashboardStatTiles` (Open / In Progress / Done counts, SP-subtask-excluded, from `['jira-issues','sprint-board',...]` warm cache); `DashboardSprintChart` (points-by-status stacked bar, Recharts via ChartWrapper); gradient hero + sprint goal header retained; next release countdown retained; old `DashboardSprintCard` and `DashboardInProgressCard` replaced.
-
-**Addresses:** Dashboard table-stakes (stat tiles, sprint health chart, release countdown, sprint goal).
-
-**Avoids:** SP double-counting (unit-tested aggregation with `!issuetype.subtask` filter), polling overload (stat tiles + sprint chart share one query with TanStack `select`), Dashboard data derivation in parent body (use `select` on TanStack Query for aggregation to enable React Compiler memo boundaries).
-
-**Research flag:** SKIP — data is already fetched, chart type is standard Recharts bar/donut, no new API.
-
-### Phase 4: Dashboard Trend Chart + MR Review Queue + Activity Strip
-
-**Rationale:** The second tier of Dashboard content. Trend chart (weekly logged hours) reuses the existing Tempo worklogs service and is gated on `tempoEnabled`. MR review queue reads the existing `gitlab-mrs` cache — no new fetch. Activity strip reuses `fetchYesterdayJiraActivity` with a matching query key to get free Standup Notes cache sharing. All three sections load and degrade independently.
-
-**Delivers:** `DashboardTrendChart` (Mon–Fri logged hours bar chart, Tempo-gated, graceful empty state when disabled); `DashboardMrReviewQueue` (open MRs awaiting my review, client-side filtered from existing `gitlab-mrs` cache); `DashboardActivityStrip` (recent Jira activity, reuses standup query key for cache sharing); weekly hours logged tile (Tempo sum for current week using `tempo.started.slice(0, 10)` bucketing).
-
-**Addresses:** Dashboard differentiators (trend chart, MR review queue, activity).
-
-**Avoids:** Timezone date bucket bug (use `tempo.started.slice(0, 10)`, not `toISOString()`), N+1 per-MR queries (client-side filter on existing list cache), polling overload (MR queue and activity read from existing caches, no new polling intervals), Dashboard re-render storms (per-section independent queries with `select` aggregation).
-
-**Research flag:** SKIP for MR queue and activity. Confirm Tempo worklog query scoped to current week returns expected shape before implementing chart aggregation.
-
-### Phase 5: Dashboard Velocity Chart (CONDITIONAL)
-
-**Rationale:** The most complex Dashboard section with the most open questions. Requires new fetchers, a concurrency cap (`p-limit(3)`), `staleTime: Infinity` for closed-sprint data, and a product-owner decision on API cost. The researchers DISAGREE on burndown: Features says `scopechangeburndownchart` is feasible and in scope (live current-sprint chart, not historical analytics); Architecture says it is unofficial and out of scope. This phase begins only after a probe of the relevant endpoints in the dev environment, with the product owner resolving the burndown question. The velocity widget must be an independent section that cannot block the rest of the Dashboard if it fails.
-
-**Delivers (conditional on probe success):** `fetchClosedSprints` + `fetchSprintIssuesBySprintId` in `services/jira/sprints.ts` + barrel; `DashboardVelocityChart` (last N completed sprints, committed vs completed SP, `p-limit(3)` concurrency, `staleTime: Infinity`); renders only when >= 3 closed sprints are available; independent loading and error state.
-
-**Addresses:** Dashboard velocity differentiator (personal throughput trend over time).
-
-**Avoids:** Dashboard-blocking velocity waterfall (renders as the last independently-loading section), closed-sprint SP unavailability (probe verifies field presence; descopes to story count if SP missing), velocity chart with insufficient history (gate on >= 3 closed sprints before rendering).
-
-**Research flag:** PROBE REQUIRED at phase kickoff before any code. (1) `GET /rest/agile/1.0/board/{boardId}/sprint?state=closed&maxResults=5` — verify sprint objects with `startDate`/`endDate`. (2) `GET /rest/agile/1.0/sprint/{sprintId}/issue?fields=customfield_10016,status` — verify SP field (`customfield_10016`) is populated on closed-sprint issues on this specific DC instance. (3) Product-owner decision on N sequential fetch cost. (4) Product-owner decision on burndown via GreenHopper `scopechangeburndownchart` — if approved, add as Phase 5b; if not, velocity via official REST is the v1.13 scope ceiling.
+1. **Decompose `ReleaseDetailPage.tsx` → `release-detail/`** — pure mechanical extraction (header, description, issues table, unmatched-MRs, sidebar, edit dialog), zero new behavior, zero new tests needed beyond "still passes." Ships first so every subsequent addition lands in the new structure, not the monolith.
+2. **Branch existence (read-only) + release-level warning** — `fetchProjectDefaultBranch`, `fetchBranch`; `ReleaseBranchSection.tsx`; small `ReleasesTab.tsx` row addition. No writes yet.
+3. **First write phase — establishes the shared contract, ships alongside `createBranch`:**
+   - `createBranch` (confirm-dialog gated) + `CreateBranchDialog.tsx`.
+   - **Cross-cutting, must land here, reused by every later write phase:** (a) GitLab project access-level fetch + button gating/disabling for sub-Developer roles (Pitfall 8) — no app-internal role concept exists post-v1.10, so this is a wholly new capability; (b) the shared mutation contract — idempotent-success handling for "already exists"/"already assigned" 400s, and rollback-on-failure that refetches the upstream record rather than restoring a locally-cached pre-mutation snapshot (Pitfall 6, directly extending this codebase's already-logged "enrichment invalidation no-op" / "reactive cache-read badge" lessons).
+   - `createMilestone` (confirm-dialog gated) + `CreateMilestoneDialog.tsx`, with milestone-title sanitization against git-ref rules enforced at creation time (Pitfall 5) — can ship in parallel with `createBranch` since it shares the contract but not the branch-name derivation.
+4. **Three-channel MR discovery + drift flagging (read-only)** — new fully-paginated `fetchBranchTargetingMRs` (copy `fetchMilestoneMRs`'s loop, never `fetchRecentProjectMRs`); `services/releaseFlow.ts` pure union/classification module with fixture-based unit tests covering merged/closed/draft/fork/case-mismatch MRs; `ReleaseDriftSection.tsx` rendering the read-only drift table. Depends on (2) for the resolved branch name; independent of (3).
+5. **Per-MR corrective actions (write, optimistic, no confirm dialog)** — `updateMRTargetBranch`, `assignMRMilestone` as two independently-retryable mutations per row (see Conflict 2 resolution below); inline approval/pipeline-loss warning at action time; retry re-derives payload from fresh server state rather than a stale closure. Hard dependency on (4).
+6. **Post-release merge-back check** — `fetchBranchMergeStatus`/MR-state lookup (see Conflict 1 resolution), advisory framing with manual override. Depends on (2) only; can ship any time after it, but naturally closes the milestone narrative.
 
 ### Phase Ordering Rationale
 
-- Phase 1 must precede Phases 3, 4, 5: `ChartWrapper` is a hard dependency for all chart-bearing Dashboard sections. WebKit sizing bugs must be resolved in isolation before charts are composed into the full Dashboard layout.
-- Phase 2 is independent: My Tasks has no chart dependency and `fetchMyTasksHierarchy` already exists. Can run immediately after or in parallel with Phase 1.
-- Phase 3 must precede Phase 4: Phase 3 establishes the new Dashboard layout structure (replacing the 3-card grid). Phase 4 adds sections into that established layout.
-- Phase 4 must precede Phase 5: Phase 5 (velocity) is the lowest-priority, highest-risk, most-conditional section. It should be added last so it cannot block or delay higher-value sections.
-- Phase 5 is conditional: If the probe fails (SP field unavailable on closed sprints, or product owner declines the API cost), Phase 5 is descoped to "story count completed per sprint" or dropped from v1.13 entirely. The rest of the milestone is unaffected.
+- Phase 1 exists purely to make every later phase land in a reviewable, section-scoped file rather than growing an already-6-concern monolith further — this is a near-zero-risk prerequisite, not busywork.
+- The first *write* phase (3) is deliberately overloaded with two cross-cutting concerns (permission gating, mutation contract) because every subsequent write phase (5, and `createMilestone`/`createBranch` themselves) depends on both existing — retrofitting them after multiple write surfaces already shipped would mean re-deriving the pattern N times instead of once.
+- Discovery/drift (4) and per-MR actions (5) are kept as two phases, not one, because (4) is read-only and independently shippable/reviewable as "does the drift report look right" before any write risk is introduced — this also isolates Pitfall 3 (pagination) and Pitfall 4 (set-union correctness) verification from Pitfall 1/6/7 (write-side correctness).
+- Merge-back (6) is architecturally independent of discovery/drift entirely (it only needs the branch name + Jira `released` flag) — it can slot in anywhere after phase 2, but is sequenced last here because it's the natural "closes the loop" milestone capstone and its correct implementation (Conflict 1) benefits from the mutation-contract lessons already established by phase 3.
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-- **Phase 5 (Velocity/Burndown):** PROBE REQUIRED. `GET /rest/agile/1.0/sprint/{sprintId}/issue` must be run against the real DC instance to verify SP field presence on closed sprints. Product owner must decide: (a) API cost budget for N sequential sprint fetches, (b) whether burndown via unofficial `scopechangeburndownchart` is approved. Document probe results in Phase 5's context file before writing any chart code.
+Phases likely needing deeper research or a live probe during planning:
+- **Merge-back check phase (6):** the exact GitLab merge-strategy setting in use on this team's actual project (squash-merge-only vs merge-commit) is unknown and materially changes which detection method is trustworthy — probe the team's project settings and/or test against a real squash-merged branch before finalizing the implementation, per Conflict 1 below.
+- **First write phase (3), permission gating sub-task:** the exact PAT role(s) in active use by this team's PMs vs developers is unverified — confirm at least one Reporter-level and one Developer-level token exist to test the gating UI against, or the "disabled with tooltip" path ships untested.
+- **Three-channel discovery phase (4):** whether the team's GitLab instance has any project with >100 MRs targeting a single release branch is unknown; if not reproducible organically, build a synthetic >100-MR fixture for the pagination-completeness test rather than skipping it.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Charting Foundation):** Decision settled; install instructions explicit; no novel API.
-- **Phase 2 (My Tasks):** All primitives reused; `fetchMyTasksHierarchy` exists; grouping logic is client-side; `fetchAllSearchPages` is the established pattern.
-- **Phase 3 (Stat Tiles + Sprint Chart):** Data already fetched; chart type is standard Recharts; no new API.
-- **Phase 4 (Trend + MR Queue + Activity):** MR queue and activity reuse existing caches; Tempo trend is the existing worklogs service with a date-range scope.
+Phases with standard, well-documented patterns (safe to skip `--research-phase`):
+- **Decompose phase (1):** pure refactor, `issue-detail/` is a proven in-codebase precedent.
+- **Branch existence / create-branch / create-milestone phases (2, part of 3):** GitLab REST v4 core surface, HIGH-confidence verified endpoint shapes (see Conflict 3 below), `updateMilestone` is a direct in-file precedent for every new write's error handling.
+
+## Conflicts Resolved
+
+### 1. Merge-back detection method — PITFALLS wins, treat as advisory
+
+**Resolution:** Do **not** use `GET /repository/branches/:branch` → `merged: boolean` as the authoritative "has release/x been merged back" signal. PITFALLS.md's citation (GitLab issue #36963, squash-merge ahead/behind and "merged" reporting incorrectly, still open) is specific, corroborated by GitLab's own squash-and-merge docs, and describes a failure mode (ancestry-based detection breaking under squash/rebase) that is mechanically certain, not a corner case — squash-created commits are genuinely never ancestors of the target, so any ancestry check (the `merged` field or a client-side merge-base walk) will false-negative whenever the team's actual merge strategy is squash or rebase, which is unknown but plausible for this team.
+
+**Final recommendation:** Layer the check —
+1. If a tracking MR for `release/<tag>` → `<default branch>` exists, treat its `state === 'merged'` (and `merged_at`) as the primary, trustworthy signal — GitLab records this regardless of merge method.
+2. If no such MR is guaranteed (direct CLI merge, fast-forward push), fall back to `GET /repository/compare?from=<default>&to=<release-branch>` and treat an empty `diffs` array as evidence of merge — content-diff survives squash/rebase where ancestry doesn't.
+3. The cheap `merged: true` field from the single-branch GET may still be read as a **positive-only, zero-cost fast path** (if it says `true`, trust it — false positives on this field are not a documented failure mode) but a `merged: false` result must never be surfaced as "not merged" on its own; it must fall through to steps 1-2 before any negative verdict is shown.
+4. Render the final verdict as **advisory** ("likely not yet merged") with a manual "I confirmed this myself" override, never as a hard blocking state — even the compare-diff fallback can be wrong if the release branch diverged and was reconciled non-standardly.
+
+STACK.md's claim that the single-branch GET alone "serves both branch-existence AND the post-release merge-back check" is accurate for branch-existence only; it is not sufficient, standalone, for the merge-back verdict. Both research files are right about different halves of the same call.
+
+### 2. One combined PUT vs two separate mutations — two mutations wins
+
+**Resolution:** Two independently-callable functions, `retargetMR` (aka `updateMRTargetBranch`) and `assignMRMilestone`, each wrapping its own `PUT /merge_requests/:iid` call with a single field in the body — not one combined call setting both `target_branch` and `milestone_id` together. This is explicitly what the user chose (PER-MR actions, not bulk, with per-row retry) and PITFALLS.md's Pitfall 7 makes the failure mode concrete: a single combined PUT that fails cannot represent "milestone-assign succeeded but retarget failed" as two independently retryable states — it collapses to one opaque row-level failure. FEATURES.md's observation that the API *can* combine both fields in one call remains true and useful only as an optional internal detail (e.g., if a future "apply both fixes at once" convenience is ever added, it could still fire one PUT) — but the primary, spec'd UX (independent retry per corrective action) requires two mutations. Both new functions may share one small private `updateMR()` PUT helper for DRYness, matching STACK.md's own suggested shape.
+
+### 3. GitLab endpoint confidence — STACK.md wins on paths/params/shapes
+
+**Resolution:** Where ARCHITECTURE.md and STACK.md's proposed endpoint signatures conflict, STACK.md's shapes are authoritative — it was independently verified against live docs.gitlab.com in this research pass (HIGH confidence), while ARCHITECTURE.md self-rated its endpoint knowledge MEDIUM (training-data recall, not re-verified). Concretely: use STACK.md's confirmed `POST /projects/:id/repository/branches` body params (`branch`, `ref`), `POST /projects/:id/milestones` params (`title`, `description`, `due_date`, `start_date`), and the Developer-role-not-Maintainer-role permission requirement for milestone/branch/MR-edit writes (STACK.md corroborated this against multiple independent GitLab permissions-doc mirrors; an earlier single-source Maintainer-only claim was not corroborated). ARCHITECTURE.md's proposed `fetchBranchMergeStatus` via `repository/compare` remains directionally correct as a *fallback* per Conflict 1 above, but should not be the sole/first-choice implementation STACK.md initially suggested (single-branch `merged` field) nor treated as sufficient alone per PITFALLS.md.
+
+## Cross-Cutting Concerns for the First Write Phase
+
+Two concerns must be established once, in whichever phase ships the first real GitLab write (branch or milestone creation), and reused — not re-derived — by every subsequent write phase:
+
+1. **Permission gating.** No GitLab role/access-level detection exists anywhere in this app today (the app-internal Developer/PM role concept was removed entirely in v1.10 and never mapped to actual GitLab project permissions). Fetch the current user's `access_level` via `GET /projects/:id` (`permissions.project_access.access_level`) on project selection or release-view load, cache it per project/session, and gate every write-action button at `access_level >= 30` (Developer). Below that threshold, render a disabled button with an explanatory tooltip — never hide the button outright (breaks discoverability) and never rely on catching a live 403 as the only signal (reads as "the app is broken" to a PM).
+2. **Shared write-mutation contract.** Every new mutation (`createBranch`, `createMilestone`, `updateMRTargetBranch`, `assignMRMilestone`) must: (a) treat "already exists"/"already assigned" 400 responses as idempotent success, not failure — GitLab's own creation-endpoint status codes are documented-inconsistent (400 vs the docs' claimed 409) and concurrent double-clicks/two-user races are a real scenario on this multi-editor surface; (b) on both success AND failure, roll back/refresh by **refetching the specific record from the server**, never by restoring a locally-cached pre-mutation snapshot — this directly extends the codebase's already-logged "enrichment invalidation no-op" and "reactive cache-read badge" lessons, and specifically prevents a rollback from stomping a teammate's concurrent legitimate change on this release view (which, unlike most of this app's per-user surfaces, is genuinely multi-person-edited).
+
+## The Page-Cap Trap (explicit callout)
+
+`fetchRecentProjectMRs` is intentionally capped at `per_page=100`, single page, no continuation — a deliberate, documented (`GGX-WARN-01`) trade-off for one *secondary, fallback* heuristic ("wrong milestone" hinting when a task's MR is too old to appear). It must **never** be reused for any of v1.14's three drift-discovery channels, all of which are load-bearing for the drift computation itself — a silently dropped MR here is a real drift going unflagged, which is strictly worse than the original use case's graceful degradation. `fetchMilestoneMRs`'s existing `while (data.length < perPage) { page++ }` full-pagination loop is the pattern to copy verbatim for the new Channel C fetcher (`fetchBranchTargetingMRs`) and for any reused/rebuilt Channel A path. This bug class (fetch-once + client-side filter/cap) has already recurred twice in this codebase (My Tasks pre-v1.13 fix, MR-discussion/assignee pickers) — a third occurrence here should be treated as a code-review gate, not a follow-up bug: no new GitLab list call in this milestone should merge without an explicit pagination-completeness test asserting >100 results are fully captured.
+
+## MR-Retarget Side Effects — Decision to Surface Back to the User
+
+The milestone brief specifies retarget applies "directly, optimistic + rollback, no confirm dialog" — but retargeting an MR is not metadata-only: GitLab resets all regular approvals (code-owner approvals inconsistently, per GitLab bug #415496), invalidates the diff base (potentially surfacing a much larger diff than before), and can leave the merge-request pipeline showing a stale/misleading green badge until re-run, plus orphaning diff-anchored discussion threads. Given "no confirm dialog" is an explicit, already-made decision, the reconciled recommendation is an **inline warning at the point of action** (e.g., "Retargeting will clear 2 approval(s) and invalidate the current pipeline") rather than a blocking dialog — this satisfies the letter of "no confirm dialog" while preventing users from being surprised by side effects discovered only later inside GitLab itself. **This specific point — informational inline warning vs. the originally-specified silent optimistic action — should be explicitly re-confirmed with the user during roadmap/phase planning**, since it's a UX addition beyond what CONTEXT.md literally asked for, even though all three research files independently converge on it being necessary.
+
+## What Is Genuinely Unknown — Needs a Live Probe
+
+- **The team's actual GitLab merge strategy** (merge commit vs. squash vs. rebase) on the project(s) this milestone targets — this single fact determines whether the simple `merged` field is ever safe to trust even as a "positive-only" fast path, and whether the MR-state/compare-diff fallback needs to be the default path from day one rather than a rarely-hit fallback. Check the project's Merge Options setting (Settings → Merge requests → Squash commits when merging) before finalizing Phase 6.
+- **Whether MR approvals/protected-branch rules are actually configured** on this team's project — if approvals aren't used at all, Pitfall 1's approval-reset warning is dead code; if they are, the inline warning is load-bearing. Verify via a live MR with approvals before shipping Phase 5.
+- **Actual GitLab role distribution across the team's PATs** (how many users are sub-Developer) — determines whether the permission-gating work in Phase 3 is addressing a real, common case or a rare edge case; affects how prominently to surface the disabled-button UX.
+- **Whether any release branch in this team's history has ever carried >100 MRs** — informs whether the pagination-completeness risk in Phase 4 is theoretical or has already silently bitten a past release (worth a one-off manual audit).
+- **Milestone title data quality in the existing GitLab project** — whether any pre-existing milestones already have whitespace/near-duplicate titles that would confuse Channel B matching once v1.14 starts relying on exact-title comparison (Pitfall 5); a quick manual scan of `GET /projects/:id/milestones` before Phase 3 ships would surface this cheaply.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack (Recharts decision) | HIGH | All four researchers converged independently on Recharts v3 via shadcn chart. Version confirmed via npm. React Compiler conflict resolved and documented (issues #4590, #5173 + v3.3.0 release notes). `--chart-1..5` tokens verified in `index.css` source. |
-| Features (My Tasks) | HIGH | Feature set grounded in Linear My Issues, Jira Your Work, GitHub assigned-to-me. All data dependencies verified against existing GH allData fields. Only the "all assigned" scope requires a new fetch; all other fields confirmed in existing cache. |
-| Features (Dashboard charts) | HIGH for tiles/sprint/hours chart; MEDIUM for burndown/velocity | Stat tiles and sprint chart: zero new API, derived from warm cache. Logged hours: existing Tempo service. Burndown and velocity: CONDITIONAL — endpoint availability unconfirmed on the specific DC instance. |
-| Architecture | HIGH | Grounded in direct codebase reading (jira.ts line references, store version numbers, route patterns, outlet context shape). All new components follow confirmed existing patterns. |
-| Pitfalls | HIGH | Critical pitfalls (WebKit 0x0 sizing, page-cap, SP double-count, date bucketing, React Compiler) all grounded in prior bugs in this codebase (memory entries) or confirmed GitHub issues against Recharts. |
+| Stack | HIGH | Endpoint paths/params re-verified against official docs.gitlab.com in this pass; role-permission wording MEDIUM-HIGH (GitLab's own docs split across pages but multiple independent sources converge) |
+| Features | MEDIUM | Grounded in GitLab's own API/docs, git-flow literature, and engineering-analytics tool positioning; triangulated from public docs/marketing for competitor UIs (Jira Release Hub, Shortcut, Sleuth), not direct hands-on inspection |
+| Architecture | HIGH (structure) / MEDIUM (raw endpoint shapes) | Component/file-structure recommendations verified by reading actual codebase files in full; endpoint knowledge self-rated MEDIUM by the researcher (training-data recall) — superseded by STACK.md per Conflict 3 |
+| Pitfalls | HIGH | GitLab platform-behavior pitfalls sourced from official docs + GitLab issue tracker (specific, dated issue numbers); codebase-specific recurring bug classes verified against `gitlab.ts` and project memory; UX/detection thresholds MEDIUM (no live GitLab instance probed this session) |
 
-**Overall confidence:** HIGH for Phases 1-4. MEDIUM for Phase 5 (conditional on probe).
+**Overall confidence:** HIGH for what to build and roughly how; MEDIUM on a small number of team-specific facts (merge strategy, approval usage, role distribution) that should be probed early in implementation rather than assumed.
 
 ### Gaps to Address
 
-- **Burndown vs. velocity decision:** Features and Architecture researchers disagree. Resolution requires a product-owner conversation and a live endpoint probe. If `scopechangeburndownchart` is approved: burndown is a live single-sprint chart (not historical analytics) and should be treated as a Phase 5b sub-feature, not as "historical analytics." If not approved: velocity via official REST is the correct path. Document the probe results in Phase 5's context file before writing any chart code.
-
-- **Status-color aliases for charts:** The `--chart-1..5` tokens are a blue-to-indigo sequential palette. Status-semantic colors (Done = green, Blocked = red, In Progress = blue) for the sprint health chart likely need named semantic aliases in `index.css` (e.g., `--chart-status-done`, `--chart-status-active`, `--chart-status-todo`) rather than repurposing the numbered tokens. Decide during Phase 3 when the sprint health chart is implemented; do not hardcode hex values.
-
-- **Velocity SP field availability:** Architecture research specifies `customfield_10016` for SP retrieval on closed-sprint issues. Confirm this field is populated on closed-sprint issues on the team's specific DC instance (SP field ID is dynamic, per `discoverStoryPointsField()` precedent). If absent, velocity must fall back to story count.
-
-- **`isAnimationActive` in Tauri vs. dev server:** All chart components should set `isAnimationActive={false}`. If animations are desired in the browser dev server for development, use `const IS_TAURI = '__TAURI_INTERNALS__' in window` as a guard. Decide once and apply consistently in `ChartWrapper` so all charts inherit the setting.
+- Team's GitLab merge-strategy setting — probe before finalizing the merge-back check phase (see "What Is Genuinely Unknown" above).
+- MR approval/protected-branch configuration reality — probe before finalizing the retarget-warning phase.
+- Whether the "inline warning, no confirm dialog" resolution for retarget side effects (see above) matches the user's actual intent, or whether they'd prefer a lightweight confirm after all now that the side effects are concretely enumerated — flag explicitly during roadmap/phase-0 discussion, don't assume.
+- Fork-MR handling (exclude from corrective actions vs. test explicitly) is under-specified in CONTEXT.md — PITFALLS.md recommends excluding or flagging as "external — not actionable"; this should be an explicit roadmap decision point, not left implicit in the drift-classification code.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-
-- Taskflow `src/services/jira.ts` — `fetchMyTasksHierarchy` (line 483), `fetchAllSearchPages` (line 267), `PAGE_SIZE = 200` (line 262)
-- Taskflow `src/index.css` — `--chart-1..5` OKLCH values confirmed in both `:root` and `.dark`
-- Taskflow `src/stores/settings.store.ts` — persist version 26; `createTauriStorage` pattern
-- Taskflow `src/routes/dashboard/index.tsx` + `DashboardInProgressCard.tsx` + `DashboardSprintCard.tsx` — existing dashboard structure and patterns
-- Taskflow `src/routes/standup-notes/TodayColumn.tsx` — subtask-under-parent grouping pattern reusable for My Tasks
-- Taskflow `vite.config.ts` — React Compiler invoked with no exclusions; basis for `responsive` prop requirement
-- Taskflow `package.json` — React 19.1.0; no chart lib present; `p-limit` already a dependency
-- Taskflow `PROJECT.md` — Out of Scope list; Key Decisions table; D-16 PAT pattern
-- [recharts/recharts GitHub](https://github.com/recharts/recharts) — v3.8.1 confirmed latest; `responsive` prop introduced in v3.3.0
-- [recharts/recharts #4590](https://github.com/recharts/recharts/issues/4590) + [#5173](https://github.com/recharts/recharts/issues/5173) — React Compiler + `ResponsiveContainer` confirmed bug
-- [shadcn/ui chart docs](https://ui.shadcn.com/docs/components/radix/chart) — `ChartContainer`, `ChartConfig`, CSS var theming for Recharts v3 + React 19
-- [Jira Agile DC REST API 9.14.0](https://docs.atlassian.com/jira-software/REST/9.14.0/) — closed sprint endpoints confirmed via official reference
-- Memory: `project_fetch_once_pagecap_pitfall` — recurring bug pattern; prevention strategy confirmed across two prior cases
+- https://docs.gitlab.com/api/branches/ — branch create/get, `merged` field
+- https://docs.gitlab.com/api/milestones/ — milestone create params
+- https://docs.gitlab.com/api/merge_requests/ — MR update params (`target_branch`, `milestone_id`)
+- https://docs.gitlab.com/api/projects/ — `default_branch` field
+- https://docs.gitlab.com/user/project/merge_requests/approvals/ — approval reset on target-branch change
+- https://docs.gitlab.com/user/project/merge_requests/squash_and_merge/ — squash-merge ancestry behavior
+- https://docs.gitlab.com/user/permissions/, https://docs.gitlab.com/user/project/repository/branches/protected/ — role/permission baselines
+- GitLab issue tracker: #36963 (squash-merge ahead/behind/merged inconsistency), #378526 (wrong-target-branch pain point), #415496 (code-owner approval reset inconsistency), #356008/#47819/#591660/#48780 (400-vs-409 creation-error inconsistency, target-branch existence validation gap)
+- `taskflow/src/services/gitlab.ts`, `releaseLinker.ts`, `linkEngine.ts`, `ReleaseDetailPage.tsx`, `ReleasesTab.tsx`, `issue-detail/`, `BulkCreateSubtasksModal.tsx`, `StatusPopover.tsx` — read in full or in large part, direct codebase inspection
+- `.planning/PROJECT.md` — v1.14 committed scope, Out-of-Scope history, Key Decisions
 
 ### Secondary (MEDIUM confidence)
-
-- [GreenHopper `scopechangeburndownchart` community thread](https://community.atlassian.com/forums/Jira-questions/How-do-I-fetch-Sprint-Burndown-data-via-API-calls-or-otherwise/qaq-p/2623047) — endpoint confirmed on Jira DC, but unofficial and undocumented
-- [GreenHopper `sprintreport` community thread](https://community.developer.atlassian.com/t/agile-api-equivalent-for-a-greenhopper-sprintreport-url/3997) — endpoint exists; N-call cost unconfirmed on target instance
-- [Linear My Issues docs](https://linear.app/docs/my-issues) — My Day grouping inspiration; Focus sections model
-- [shadcn/ui React 19 guide](https://ui.shadcn.com/docs/react-19) — `react-is` peer dep requirement
-- [bundlephobia recharts](https://bundlephobia.com/package/recharts) — ~50 kB gzip
-- [PkgPulse Recharts v3 vs Tremor vs Nivo 2026](https://www.pkgpulse.com/guides/recharts-v3-vs-tremor-vs-nivo-react-charting-2026) — bundle comparison
-
-### Tertiary (LOW confidence)
-
-- [Sprint velocity anti-patterns](https://www.parabol.co/blog/sprint-velocity/) — velocity chart design recommendations; not DC-specific
-- [Dashboard design best practices](https://www.domo.com/learn/article/dashboard-design-examples-best-practices) — layout principles only
+- GitLab: Allow MR author to change target branch (#378526) and Create merge requests docs — competitive/UX framing
+- Runway blog (cherry-picks vs backmerges), git-flow 1.0 docs, trunkbaseddevelopment.com — git-flow lifecycle conventions
+- LinearB vs Swarmia comparison pages — release-dashboard scannability positioning
+- Project memory: fetch-once page-cap pitfall, enrichment invalidation no-op, reactive cache-read badge — recurring codebase bug classes, cross-checked against this milestone
 
 ---
-*Research completed: 2026-06-14*
+*Research completed: 2026-08-10*
 *Ready for roadmap: yes*

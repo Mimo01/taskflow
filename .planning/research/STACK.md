@@ -1,225 +1,133 @@
-# Stack Research
+# Stack Research: GitLab REST API v4 Surface for Release Management (v1.14)
 
-**Domain:** Charting foundation for Tauri 2 desktop app (v1.13 Personal Workspace)
-**Researched:** 2026-06-14
-**Confidence:** HIGH
+**Domain:** GitLab REST API v4 — new write/read endpoints for git-flow release coordination
+**Researched:** 2026-08-10
+**Confidence:** HIGH for endpoint paths/params (verified against official docs.gitlab.com and gitlab-foss source); MEDIUM for exact role-permission wording and error-code consistency (GitLab's own docs are inconsistent/incomplete here, corroborated by community-reported doc gaps)
 
----
+## No New Dependencies
 
-## Decision: Recharts v3 via shadcn/ui chart primitives
+**Do NOT add any npm package for this milestone.** Every capability below is a single `fetch` call through the existing `apiFetch('gitlab', url, opts, label)` wrapper in `taskflow/src/services/gitlab.ts`, using the same `PRIVATE-TOKEN` header and `tauri-plugin-http` transport already in place. There is no GitLab SDK, no `@gitbeaker/*`, no GraphQL client needed — the app already proved this pattern works for 20+ REST calls including the one existing write (`updateMilestone`). Adding a GitLab SDK would introduce a second HTTP client, its own error-shape conventions, and likely its own CORS/Tauri-webview compatibility unknowns — pure downside for 5 more `fetch` calls.
 
-**Install:** `recharts` + `react-is` (peer dep). Copy the shadcn chart primitive via `npx shadcn@latest add chart`.
+## Required Endpoint Surface
 
-**Rationale in one line:** The project already uses shadcn/ui with `--chart-1..5` OKLCH tokens baked into both light and dark themes in `index.css`, runs Vite+Rolldown (excellent tree-shaking), and shadcn's copy-paste chart layer means the app is never locked into Recharts' API surface — the React Compiler issue is fully resolved by using the `responsive` prop (Recharts v3.3+) instead of `ResponsiveContainer`.
+All paths are relative to `${baseUrl}/api/v4`. Auth is always `PRIVATE-TOKEN: <PAT>` (matches `validateGitLab`/`updateMilestone` convention already in `gitlab.ts` — do not switch to `Authorization: Bearer`, GitLab's PAT convention is PRIVATE-TOKEN across CE/EE/SaaS/self-hosted).
 
----
+### 1. Read the project's default branch
 
-## Scope
+`GET /projects/:id`
 
-v1.13 adds the app's first charting dependency. This file covers only the charting stack addition. The existing validated stack (Tauri 2, React 19, TypeScript, Zustand, TanStack Query, shadcn/ui, @base-ui/react, Tailwind v4, Vitest, Biome, @dnd-kit, @tanstack/react-virtual, react-hotkeys-hook, cmdk, babel-plugin-react-compiler) is not re-researched.
+- **Response field:** top-level `default_branch: string` (e.g. `"develop"`, per PROJECT.md's stated setup).
+- **Permission:** Any role with read access to the project (Guest and above) — this is basic project metadata, no special scope needed.
+- **Version:** part of the core Projects API since early GitLab 8.x/9.x — no version constraint for any self-hosted instance in realistic use.
+- **Error modes:** `404` if the project ID is wrong or the token's user has no access to it (GitLab intentionally returns 404, not 403, to avoid leaking project existence to unauthorized callers — same convention seen elsewhere in this API).
+- **Integration note:** the app already fetches project-scoped data by numeric `projectId` throughout `gitlab.ts` (`fetchProjectMilestones`, `fetchProjectMRs`, etc.) but there is currently **no function that fetches the project object itself**. This is a new, small addition: `fetchProjectDetail(baseUrl, token, projectId): Promise<{ default_branch: string; ... }>`. Cache this — it changes rarely; a 30–60min `staleTime` in TanStack Query is appropriate (not `gcTime: Infinity` since a repo's default branch can theoretically change).
 
----
+### 2. Check whether a branch exists (and, for free, whether it's merged)
 
-## Recommended Stack
+`GET /projects/:id/repository/branches/:branch`
 
-### Core Technologies (additions only)
+- `:branch` must be URL-encoded (matters for `release/1.1.0` — encode the whole `release/1.1.0` segment, not just spaces; GitLab accepts slashes in branch names as long as they're percent-encoded in the path, i.e. `release%2F1.1.0`).
+- **Response body includes `merged: boolean`** — "If `true`, the branch has been merged into the default branch." This is the single most useful finding of this research: **the branch-existence check and the post-release merge-back check (capability #6) are the SAME API call.** No need for `repository/compare` or any diff-walking.
+- Full response shape: `{ name, merged, protected, default, developers_can_push, developers_can_merge, can_push, web_url, commit: { id, short_id, title, author_name, author_email, created_at, ... } }`.
+- **Permission:** readable by any role with repository read access (Guest/Reporter+, or unauthenticated for public repos) — same tier as other read endpoints already used in `gitlab.ts`.
+- **Version:** available since very early GitLab (branches API predates v4 itself); `merged` field has been present for years — no version risk for any realistic self-hosted instance.
+- **Error modes:** `404` when the branch does not exist — this is the intended way to detect non-existence (`try { GET } catch 404 → doesn't exist`, not a boolean "exists" endpoint). `401`/`403` on auth failure, matching the existing `gitlab.ts` pattern (`ApiError` with status).
+- **Integration:** one new function, e.g. `fetchBranch(baseUrl, token, projectId, branchName): Promise<GitLabBranch | null>` that returns `null` on 404 and throws (via `ApiError`, matching existing style) on 401/403/other. This single function powers:
+  - **Capability #1's precondition** ("does `release/<milestone>` exist?")
+  - **Capability #6** (post-release merge-back check) — call it again against the same branch name after the fix version is released, read `.merged`.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| recharts | ^3.8.1 | SVG chart engine — donut/pie, stacked bar, line/area, sparklines | shadcn/ui chart primitive is a thin Recharts wrapper; `--chart-1..5` tokens already defined in both themes in `index.css`; v3.3+ ships a built-in `responsive` prop that bypasses `ResponsiveContainer` (the only known React Compiler conflict point); full TypeScript types built-in; React 19 peer dep confirmed |
-| react-is | ^19.1.0 | Required peer dep by Recharts | Must match the React version in use (currently React 19.x per package.json); shadcn/ui docs explicitly call this out for React 19 |
+### 3. Create a branch off the project default branch
 
-### Supporting Libraries (chart layer only)
+`POST /projects/:id/repository/branches`
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| shadcn chart primitive (`src/components/ui/chart.tsx`) | — (copy-paste; not an npm package) | `ChartContainer`, `ChartTooltip`, `ChartTooltipContent`, `ChartLegend`, `ChartLegendContent` — thin wrappers that wire `--chart-*` CSS vars into Recharts color props via `ChartConfig` | Use for every chart in the Dashboard. Add via `npx shadcn@latest add chart`; the component is owned by the project, not locked behind a version |
+- **Body params:** `branch` (string, the new branch name — `release/1.1.0`), `ref` (string, source ref — pass the `default_branch` value read via capability #7/#1 above, e.g. `"develop"`, not a hardcoded `"main"`/`"master"`).
+- **Response:** `201 Created` with the same branch object shape as GET single branch (name/commit/protected/etc).
+- **Permission:** **Developer role or above** on the project — branch creation via API requires the same permission as pushing a new branch (Developer+; Maintainer/Owner also qualify). Reporter/Guest cannot create branches. This is a real prerequisite the user must have — surface it in onboarding/error copy ("Your GitLab token's user needs at least Developer access on this project to create release branches").
+- **Version:** core endpoint since GitLab 8.x — no constraint.
+- **Error modes:**
+  - GitLab's own docs claim `409 Conflict` for "branch already exists," but corroborated community reports (GitLab issue tracker) show this and several other "resource already exists" creation endpoints actually return **`400 Bad Request`** with a body like `{"message":"Branch already exists"}` rather than the documented 409. **Do not branch your error-handling logic on status code alone for the "already exists" case — check the response body's `message` string.** Given capability #2 already gives a reliable existence check, the recommended flow is: check-then-create (call GET branch first, only POST if 404), which sidesteps this ambiguity entirely and also matches the UX spec ("existence detected and surfaced as a release-level warning... offer to create it").
+  - `400` also possible for an invalid branch name (special characters) or invalid `ref` (source branch/SHA that doesn't exist).
+  - `403` for insufficient role.
+  - `404` for a nonexistent project ID.
+- **Integration:** new `createBranch(baseUrl, token, projectId, branch, ref): Promise<GitLabBranch>`, mirroring `updateMilestone`'s try/catch + `response.ok` + status-branch pattern, with a body-message fallback parse identical to `updateMilestone`'s existing `body?.message ?? status ${response.status}` idiom.
 
-### Development Tools (no changes needed)
+### 4. Create a project milestone
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| `babel-plugin-react-compiler` (already installed) | Auto-memoization | No config change needed when using Recharts v3.3+ `responsive` prop instead of `ResponsiveContainer`. If `ResponsiveContainer` is ever used, add `sources: (filename) => !filename.includes('node_modules/recharts')` to the babel preset options in vite.config.ts |
+`POST /projects/:id/milestones`
 
----
+- **Body params:** `title` (required, string — the format `1.1.0`/`2.0.0` per the milestone spec), optional `description`, `due_date` (`YYYY-MM-DD`), `start_date` (`YYYY-MM-DD`).
+- **Response:** the same `GitLabMilestone` shape already defined in `gitlab.ts` (id, iid, title, description, dates, state, web_url) — no new type needed, reuse the existing `GitLabMilestone` interface.
+- **Permission:** **Developer role or above** — "manage milestones" (create/edit/close) is gated at Developer+ across GitLab's permission model, same tier as branch creation. Reporter cannot create milestones.
+- **Version:** core endpoint, no constraint.
+- **Error modes:** `401`/`403` per the existing pattern in `updateMilestone`. GitLab does **not** enforce title uniqueness at the API level — creating a milestone with a title that already exists is documented to succeed silently rather than error, creating two milestones with the same title. **This is a real pitfall for this feature**: `fetchMilestoneMRs` filters by milestone title string, so a duplicate title would make MR-milestone matching ambiguous. Client-side, always check `fetchProjectMilestones` for an existing title match before offering "create" (the roadmap's stated UX — "latest milestones listed for reference, user types the final name" — already mitigates this if the list is checked, but the create call itself won't reject a duplicate, so client-side duplicate-guard logic is needed, not server-side).
+- **Integration:** new `createMilestone(baseUrl, token, projectId, fields: { title: string; description?: string; due_date?: string })`, structured identically to the existing `updateMilestone` (same file, same error-body-parse fallback, same `GitLabMilestone` return type) — this is the most natural addition since `updateMilestone` already sits right above it in the file.
 
-## Charting Library Comparison
+### 5. Update a merge request's target branch, and 6. Assign a milestone to an MR
 
-### Evaluation Criteria (load-bearing for this project)
+**Both are the same endpoint** — GitLab's MR update endpoint accepts many fields per call:
 
-1. **React Compiler compatibility** — `babel-plugin-react-compiler` runs over all source via `babel({ presets: [reactCompilerPreset()] })` in vite.config.ts with no exclusions
-2. **React 19 support** — `package.json` shows `react: ^19.1.0`
-3. **Bundle size / tree-shakeability** — Tauri portable binary; every kB matters
-4. **Tailwind v4 + dark/light theming** — `--chart-1..5` OKLCH CSS vars already in both themes; theming must be CSS-var-driven
-5. **shadcn/ui alignment** — project already uses shadcn/ui; a library that integrates with it avoids introducing a second design-system seam
-6. **Chart types needed** — donut/pie (points by status), stacked bar (status breakdown), line/area (burndown + logged hours), sparklines (trend tiles), velocity bar
+`PUT /projects/:id/merge_requests/:merge_request_iid`
 
-### Candidate Matrix
+- **Relevant body params:**
+  - `target_branch` (string) — set to the release branch name (e.g. `release/1.1.0`).
+  - `milestone_id` (integer) — the milestone's numeric **`id`** (global ID), **not** its `iid`. Pass `0` or an empty value to unassign. This matches the existing `GitLabMilestone.id` field and the exact convention `updateMilestone` already uses (`milestoneId` param is explicitly documented in that function as "NOT `iid`" — same rule applies here).
+  - Can be combined: passing both `target_branch` and `milestone_id` in one PUT body applies both corrective actions in a single request if desired, though the roadmap's stated UX (per-row inline status + retry) suggests keeping them as two separately-invokable mutations so a partial failure (e.g. retarget succeeds, milestone-assign fails) is retryable independently — recommend **two small functions sharing one underlying PUT helper**, not one combined call, to match the existing per-row optimistic-update-with-rollback pattern used elsewhere in the app (v1.12 bulk-subtask row pattern referenced in PROJECT.md).
+  - The endpoint requires "at least one non-required attribute" in the body — trivially satisfied here.
+- **Response:** the full updated MR object (same shape as `GitLabMRDetail`, already defined in `gitlab.ts`).
+- **Permission:** **Developer role or above** on the project is sufficient to edit ANY merge request in the project (not just ones you authored) — GitLab's docs state Developer/Maintainer/Owner roles "inherently grant permission to edit merge requests in the project, regardless of authorship." (An earlier single-source claim that this required Maintainer was not corroborated by GitLab's official "Manage merge requests" permissions page and multiple independent doc mirrors, which consistently say Developer+; treat Developer+ as the correct requirement.)
+- **Version:** core endpoint, no constraint.
+- **Error modes:**
+  - `401`/`403` per existing `gitlab.ts` pattern.
+  - `404` if the MR iid doesn't exist in the project.
+  - **Known GitLab behavior gap (verified via GitLab's own issue tracker, still open as of recent GitLab versions):** setting `target_branch` to a branch name that does not exist is **not reliably validated server-side** — GitLab has open bug reports showing an MR can end up pointed at a nonexistent target branch with `"diff_refs": null, "has_conflicts": true, "changes_count": null` and no clear API error, rather than a clean `400`. **Client-side mitigation is required**: before calling this PUT with `target_branch`, verify the release branch exists via capability #2's `fetchBranch` call (which the roadmap already does per-release before offering retarget). Do not rely on the PUT call itself to catch a typo'd or not-yet-created branch name.
+  - Setting `milestone_id` to a milestone ID that doesn't exist in the project: expect `400`/`404` with a body message (GitLab validates milestone project-scoping) — no confirmed edge-case bug here.
+- **Integration:** two new functions in `gitlab.ts`:
+  - `retargetMR(baseUrl, token, projectId, mrIid, targetBranch): Promise<GitLabMRDetail>`
+  - `assignMRMilestone(baseUrl, token, projectId, mrIid, milestoneId): Promise<GitLabMRDetail>`
 
-| Library | Bundle (gzip) | React 19 | React Compiler | Tailwind v4 theming | Donut | Bar | Line/Area | Sparkline | Verdict |
-|---------|--------------|----------|----------------|---------------------|-------|-----|-----------|-----------|---------|
-| **Recharts v3.8** | ~50 kB | YES (peer dep allows ^16–19) | CONDITIONAL — `ResponsiveContainer` breaks via displayName stripping; **fully resolved by v3.3+ `responsive` prop** | YES via `var(--chart-*)` — already wired in `index.css` | YES | YES | YES | YES (small chart, no axes) | **RECOMMENDED** |
-| **shadcn chart wrapper** | ~0 kB extra | YES | Same as Recharts | YES — the whole point; `ChartContainer` reads `--chart-*` automatically | YES | YES | YES | YES | **USE alongside Recharts** |
-| **visx (@visx/xychart)** | ~15 kB per pkg + react-spring | YES (no known issue) | UNKNOWN — last stable release 2 years ago; lodash + react-spring context patterns not audited against compiler; 4.0.1-alpha.0 active but unstable | Manual — must bridge to CSS vars manually | YES | YES | YES | YES | REJECT |
-| **Nivo (@nivo/\*)** | 30-80 kB per chart pkg; 500 kB+ full | CONDITIONAL — peer dep conflicts with React 19 reported; may need `--legacy-peer-deps` | UNKNOWN — no public compiler audit | Manual | YES | YES | YES | YES | REJECT |
-| **Tremor (@tremor/react)** | ~70 kB | React ^18.0.0 peer dep (NOT 19) | UNKNOWN | YES (built on Tailwind) | YES | YES | YES | YES | REJECT |
-| **uPlot** | ~40 kB | YES (framework-agnostic) | N/A (Canvas, not React) | NO — Canvas rendering; CSS vars do not apply to canvas fills | NO | NO | YES | YES | REJECT |
-| **Chart.js + react-chartjs-2** | ~50 kB + ~5 kB | YES | UNKNOWN (Canvas, ref-heavy) | NO — Canvas; requires imperative color reading on every theme change | YES | YES | YES | YES | REJECT |
-| **Observable Plot** | ~75 kB | YES (ESM) | PROBLEMATIC — imperative D3-style, React integration uses `useEffect` + ref which conflicts with compiler's hook rules | Manual | YES | YES | YES | YES | REJECT |
+  Both can share a small private `updateMR(baseUrl, token, projectId, mrIid, fields)` helper (mirrors `updateMilestone`'s shape exactly — PUT + JSON body + same `response.ok`/401/403/message-fallback error handling). This keeps the per-row retry story clean: each corrective action is independently callable and independently retryable, matching "per-row inline status and retry (v1.12 bulk-subtask row pattern, no 'fix all')" from PROJECT.md.
 
-### Why Recharts v3 Wins
+## gitlab.com vs Self-Hosted / Older GitLab
 
-**The React Compiler issue is fully resolved.** The `ResponsiveContainer` / React Compiler conflict (displayName stripping in production builds causes `isChart` check to fail) is solved by Recharts v3.3.0's built-in `responsive` prop. Write `<AreaChart responsive width="100%" height={300} data={data}>` and skip `ResponsiveContainer` entirely. shadcn's `ChartContainer` uses `min-h-[VALUE]` for sizing — no `ResponsiveContainer` needed at all.
+- **No divergence found** for any of these 7 capabilities between gitlab.com (SaaS) and self-hosted. All seven endpoints are in **GitLab Free/CE tier** — none require GitLab Premium/Ultimate licensing (unlike, e.g., MR approval rules which the codebase already notes are absent on CE/Free — see the existing `MRApprovals.approved_by ?? []` defensive guard in `fetchParticipatedMRs`).
+- All seven endpoints are old, stable, core-API surface (branches/milestones/MR-update/project-detail have existed since early GitLab 8.x/9.x). There is no realistic self-hosted version in active use today that would lack any of them. **No version-gating flag is needed anywhere in this feature.**
+- The one documented behavior that varies by *GitLab's own inconsistency* (not by edition/hosting) is the branch/resource-"already exists" status code (400 vs the documented 409) — this is a GitLab-wide quirk across multiple creation endpoints, not something specific to self-hosted or older versions. The check-then-create pattern (capability #2 before #3) avoids needing to distinguish it at all.
+- PAT auth (`PRIVATE-TOKEN` header) behaves identically on gitlab.com and self-hosted — already proven by the existing `validateGitLab`/`fetchProjectMilestones`/etc. functions working across both per the app's `GitLab: Self-hosted or gitlab.com` constraint in PROJECT.md.
 
-**The theming path is already laid.** `--chart-1` through `--chart-5` are in OKLCH in both `:root` and `.dark` in `index.css` (a blue-to-indigo palette for both themes). shadcn's `ChartConfig` reads them via `var(--chart-*)`. Zero theme code to write.
+## Integration Pattern Summary — Match Existing `gitlab.ts` Conventions
 
-**The copy-paste model eliminates API lock-in.** `chart.tsx` is owned by the project. If Recharts has a breaking change, update one file — not a wrapper library version.
+Every new function should follow the exact shape already established by `updateMilestone` (the one existing write) and the read functions around it:
 
-**Bundle impact is minimal.** Recharts v3 is ~50 kB gzip with selective D3 submodule imports. Vite+Rolldown tree-shakes unused chart types. Only `PieChart`/`Pie`, `BarChart`/`Bar`, `AreaChart`/`Area`/`Line` will end up in the bundle.
-
-**Why visx is rejected:** `@visx/xychart` last stable release is 2 years old (v3.12.0); the 4.0.x alpha is unstable; it pulls in `react-spring` (animation framework weight) and `lodash` (redundant in a modern ESM project); it requires building all axis/scale/theme plumbing manually; and it has not been audited against babel-plugin-react-compiler.
-
-**Why Tremor is rejected:** Its npm peer dep is `react ^18.0.0` — it does not declare React 19 compatibility. It also wraps Recharts anyway, adding an abstraction layer with less control and a ~70 kB price tag instead of Recharts' ~50 kB.
-
-**Why Nivo is rejected:** React 19 peer dep conflicts require `--legacy-peer-deps`, which is a maintenance liability. It is the right choice for 30+ chart types and server-side rendering — neither of which this project needs.
-
----
-
-## Installation
-
-```bash
-# From taskflow/ directory:
-npm install recharts react-is
-
-# Add the shadcn chart primitive (copies chart.tsx into src/components/ui/):
-npx shadcn@latest add chart
-```
-
-**React Compiler config:** No vite.config.ts change is required as long as charts use the `responsive` prop (Recharts v3.3+) and NOT `ResponsiveContainer`. If `ResponsiveContainer` is ever needed, add an exclusion:
-
-```typescript
-// vite.config.ts — only if ResponsiveContainer is ever used
-babel({
-  presets: [
-    reactCompilerPreset({
-      sources: (filename: string) => !filename.includes('node_modules/recharts'),
-    }),
-  ],
-}),
-```
-
----
-
-## Theming Integration
-
-The project already has everything needed. `--chart-1..5` are OKLCH values in both themes in `index.css`:
-
-```css
-/* Already in index.css (:root and .dark both define these) */
---chart-1: oklch(0.809 0.105 251.813);  /* light blue */
---chart-2: oklch(0.623 0.214 259.815);
---chart-3: oklch(0.546 0.245 262.881);
---chart-4: oklch(0.488 0.243 264.376);
---chart-5: oklch(0.424 0.199 265.638);  /* deep indigo */
-```
-
-shadcn's `ChartContainer` maps these via `ChartConfig`:
-
-```typescript
-// Example for "points by status" donut
-const chartConfig = {
-  todo: { label: 'To Do', color: 'var(--chart-1)' },
-  inProgress: { label: 'In Progress', color: 'var(--chart-2)' },
-  done: { label: 'Done', color: 'var(--chart-3)' },
-} satisfies ChartConfig;
-```
-
-The blue-to-indigo family works for both themes without needing separate palettes. Status-specific colors (e.g. Done = green) may warrant extending the `--chart-*` set with named semantic aliases in `index.css` rather than repurposing the numbered tokens.
-
----
-
-## Chart Types Implementation Notes
-
-| Chart Needed | Recharts Component | Key Props / Notes |
-|---|---|---|
-| Donut — points by status | `<PieChart>` + `<Pie innerRadius={...}>` | `innerRadius > 0` makes a donut; set `responsive` on `PieChart`; use `ChartTooltipContent` |
-| Stacked bar — status breakdown | `<BarChart>` + one `<Bar stackId="s">` per status | All bars share the same `stackId`; use `layout="vertical"` for horizontal bars |
-| Area — weekly logged hours | `<AreaChart responsive>` + `<Area type="monotone" fillOpacity={0.2}>` | `type="monotone"` for smooth curves; gradient fill via `<defs><linearGradient>` |
-| Area/Line — burndown | `<ComposedChart responsive>` + `<Area>` ideal + `<Line>` actual | Two series on same chart; `ComposedChart` handles mixed types |
-| Bar — velocity trend (sprints) | `<BarChart responsive>` | One bar per sprint; `dataKey="points"`; `XAxis dataKey="sprint"` |
-| Sparklines (stat tiles) | Small `<AreaChart responsive height={40}>` with axes/grid omitted | Pass `hide` to `XAxis`/`YAxis`; omit `CartesianGrid`; no tooltip needed |
-
----
-
-## Date Utilities: No New Dependency Needed
-
-Date handling for chart axes is covered by existing code:
-
-- `src/lib/standup-date.ts` — `toLocalDateString()` (YYYY-MM-DD from local components), `buildRecentDayOptions()` — timezone-safe, already tested
-- `src/lib/formatTimeAgo.ts` — `Intl.RelativeTimeFormat` for human-readable durations
-
-For chart axis tick formatting (e.g. "Mon", "Jun 14", sprint labels), use `Intl.DateTimeFormat` inline in the Recharts `tickFormatter` prop — no library needed. For week bucketing of Tempo worklogs, add a `getISOWeekBucket(dateStr: string): string` helper to `standup-date.ts` if needed.
-
-**Do not install `date-fns`, `dayjs`, or `luxon`.**
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Recharts v3 | visx (@visx/xychart) | Building a bespoke custom charting library with pixel-level design control, willing to own all scale/axis/tooltip code, and maintenance cadence is not a concern |
-| Recharts v3 | Nivo | When React 19 peer dep resolves and Canvas rendering is needed for 10K+ data point charts |
-| Recharts v3 | Chart.js + react-chartjs-2 | When Canvas rendering is required for massive datasets and CSS theming can be handled imperatively |
-| Recharts v3 | Observable Plot | D3-first analytical notebook apps where imperative API is acceptable |
-
----
+1. `const url = `${baseUrl.replace(/\/$/, '')}/api/v4/...``
+2. `apiFetch('gitlab', url, { method, headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' }, body: JSON.stringify(fields) }, '<Human Label>')` inside try/catch that rethrows a plain `Error('Cannot reach ${baseUrl} — check the base URL')` on network failure.
+3. On `!response.ok`: special-case `401`/`403` into `ApiError(message, status, 'gitlab')`; otherwise parse the JSON body for a `message` field and throw `Error('Failed to X: ${body?.message ?? `status ${response.status}`}')` — this is `updateMilestone`'s exact idiom and should be reused verbatim for `createBranch`, `createMilestone`, `retargetMR`, `assignMRMilestone`.
+4. Reuse existing types (`GitLabMilestone`, `GitLabMRDetail`) wherever the response shape matches; add one new `GitLabBranch` interface (`{ name, merged, protected, default, web_url, commit: {...} }`) since none currently exists in the file.
+5. Branch-name URL-encoding: use `encodeURIComponent(branchName)` for the `:branch` path segment (needed because `release/1.1.0` contains a `/`), the same way `fetchMilestoneMRs` already does `encodeURIComponent(milestoneTitle)` for query params.
+6. All five new functions belong in `taskflow/src/services/gitlab.ts` (not a new module) — the existing file already mixes read/write GitLab calls (`updateMilestone` sits alongside `fetchProjectMilestones`), and the file is a single cohesive service, not yet split like `jira.ts` was.
 
 ## What NOT to Add
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `@tremor/react` | Wraps Recharts behind a second abstraction; peer dep is React ^18 not ^19; 70 kB for something the project gets for free via shadcn chart | shadcn chart primitive on Recharts directly |
-| `@visx/xychart` | Last stable release 2 years old; react-spring + lodash weight; unaudited against React Compiler; high implementation cost | Recharts for all XY charts |
-| `d3` (full package) | Recharts imports only the D3 submodules it needs; adding the full `d3` package duplicates them and inflates the bundle | Nothing — Recharts includes what's needed |
-| `date-fns` / `dayjs` / `luxon` | Date utilities already covered by `standup-date.ts` + `Intl.DateTimeFormat`; adding a date library for chart tick labels is unnecessary | `Intl.DateTimeFormat` inline in `tickFormatter`; extend `standup-date.ts` for any new helpers |
-| `react-spring` | visx pulls this in; Recharts has its own CSS-transition animations; adding react-spring separately for chart animations conflicts with React Compiler patterns | Recharts built-in `isAnimationActive` |
-| `ResponsiveContainer` (Recharts component) | Confirmed to break with `babel-plugin-react-compiler` via displayName stripping in production builds (recharts/recharts#4590, #5173) | `responsive` prop on the chart component directly (Recharts v3.3+) |
-
----
-
-## Version Compatibility
-
-| Package | Version | Compatible With | Notes |
-|---------|---------|-----------------|-------|
-| recharts | ^3.8.1 | react@^19.1.0 | Peer dep allows ^16.8 \|\| ^17 \|\| ^18 \|\| ^19 |
-| react-is | ^19.1.0 | recharts@^3.8.1 | Must match React version; shadcn docs call this out explicitly for React 19 |
-| recharts | ^3.8.1 | babel-plugin-react-compiler@1.0.0 | Safe when using `responsive` prop; avoid `ResponsiveContainer` |
-| recharts | ^3.8.1 | tailwindcss@^4.2.1 | CSS var theming via `var(--chart-*)` in ChartConfig; OKLCH values already in `index.css` |
-| recharts | ^3.8.1 | @vitejs/plugin-react@^6 + @rolldown/plugin-babel | Rolldown tree-shakes unused chart types; no special config needed |
-
----
+| Any GitLab SDK (`@gitbeaker/*`, `node-gitlab`, etc.) | Second HTTP client with its own error/auth conventions; unverified Tauri-webview CORS compatibility; the app already has a working, tested `apiFetch` pattern for 20+ GitLab calls | Plain `fetch` via `apiFetch('gitlab', ...)`, same as every existing GitLab call |
+| GraphQL API for any of these 7 capabilities | The GitLab GraphQL API can do all of this, but it's a second query language/schema to maintain for zero benefit — REST already covers every capability cleanly and matches the existing codebase | REST v4, as detailed above |
+| `repository/compare` for the merge-back check | Works, but requires walking a `commits` array and checking `.length === 0` — strictly more complex than the `merged: boolean` field returned directly by the single-branch GET | `GET .../repository/branches/:branch` → `.merged` |
+| A dedicated "does branch exist" boolean-returning helper distinct from "is it merged" | Both facts come from the exact same API call — building two functions would mean two network round-trips where one suffices | One `fetchBranch()` returning the full branch object (or `null` on 404); read `.merged` from it wherever needed |
+| Relying on HTTP status code alone to detect "branch already exists" on create | GitLab's actual behavior (400) contradicts its documented behavior (409) for this and similar creation endpoints — status-code branching here is fragile across GitLab versions | Check-then-create: `fetchBranch()` first, only `POST` if it 404'd |
+| Trusting the retarget PUT to validate `target_branch` existence | Documented GitLab bug: MRs can end up pointed at a nonexistent target branch with no clean error | Verify branch existence client-side via `fetchBranch()` before calling `retargetMR()` |
+| A combined "update MR" call that always sets both `target_branch` and `milestone_id` together | Breaks the per-row independent-retry UX already established in v1.12 (bulk-subtask pattern) — a single combined call means one failure blocks both corrective actions | Two independently-callable functions (`retargetMR`, `assignMRMilestone`) sharing one internal PUT helper |
 
 ## Sources
 
-- [recharts/recharts GitHub](https://github.com/recharts/recharts) — v3.8.1 confirmed latest via `npm view recharts version`; peer deps verified; `responsive` prop introduced in v3.3.0 — HIGH confidence
-- [Recharts v3.3.0 release notes](https://github.com/recharts/recharts/releases/tag/v3.3.0) — built-in `responsive` prop; `ResponsiveContainer` legacy remains — HIGH confidence
-- [recharts/recharts #4590](https://github.com/recharts/recharts/issues/4590) — `ResponsiveContainer` + React Compiler rendering bug (React 19 RC) — HIGH confidence (first-hand issue)
-- [recharts/recharts #5173](https://github.com/recharts/recharts/issues/5173) — `ComposedChart` in `ResponsiveContainer` with React 19 production bug — HIGH confidence
-- [shadcn/ui chart docs](https://ui.shadcn.com/docs/components/radix/chart) — ChartContainer, ChartConfig, CSS var theming; updated for Recharts v3 and React 19 — HIGH confidence
-- [shadcn/ui React 19 guide](https://ui.shadcn.com/docs/react-19) — `react-is` peer dep requirement for React 19 — HIGH confidence
-- [react.dev — Compiling Libraries](https://react.dev/reference/react-compiler/compiling-libraries) — library consumer guidance for React Compiler compatibility — HIGH confidence
-- [Context7 /recharts/recharts](https://context7.com/recharts/recharts) — Pie/PieChart innerRadius/outerRadius, React 16-19 peer dep — HIGH confidence
-- [Context7 /airbnb/visx](https://context7.com/airbnb/visx) — XYChart theming, react-spring dependency, @visx/xychart architecture — HIGH confidence
-- [@visx/xychart npm](https://www.npmjs.com/package/@visx/xychart) — v3.12.0, last published 2 years ago; 4.0.1-alpha.0 in progress — HIGH confidence
-- [bundlephobia recharts](https://bundlephobia.com/package/recharts) — ~50 kB gzip — MEDIUM confidence (third-party tool)
-- [PkgPulse — Recharts v3 vs Tremor vs Nivo 2026](https://www.pkgpulse.com/guides/recharts-v3-vs-tremor-vs-nivo-react-charting-2026) — bundle comparison — MEDIUM confidence
-- [LogRocket — Best React chart libraries 2026](https://blog.logrocket.com/best-react-chart-libraries-2026/) — ecosystem overview — MEDIUM confidence
-- Taskflow `src/index.css` — `--chart-1..5` OKLCH values confirmed present in both `:root` and `.dark` — HIGH confidence (source verified)
-- Taskflow `vite.config.ts` — React Compiler invoked via `babel({ presets: [reactCompilerPreset()] })` with no exclusions — HIGH confidence (source verified)
-- Taskflow `package.json` — `react: ^19.1.0`, no recharts installed yet, shadcn/ui already present — HIGH confidence (source verified)
+- https://docs.gitlab.com/api/branches/ — branch create/get, `merged` field confirmed in single-branch response (HIGH confidence)
+- https://docs.gitlab.com/api/milestones/ — milestone create params (HIGH confidence on params; no explicit duplicate-title behavior documented, corroborated via community knowledge — MEDIUM)
+- https://docs.gitlab.com/api/merge_requests/ + https://docs.gitlab.com/17.5/api/merge_requests/ — MR update params including `target_branch`/`milestone_id` (HIGH confidence on param names; global-ID note for `milestone_id` explicit in docs)
+- https://docs.gitlab.com/api/projects/ — `default_branch` field confirmed on project detail response (HIGH)
+- https://docs.gitlab.com/api/repositories/ + gitlab-foss `doc/api/repositories.md` — compare API details, evaluated and deliberately NOT recommended in favor of the simpler `merged` field (HIGH)
+- https://docs.gitlab.com/user/permissions/ + web search corroboration on GitLab's "Manage merge requests" permissions page — Developer+ required for branch creation, milestone management, and MR editing regardless of authorship (MEDIUM-HIGH; GitLab's docs are split across multiple pages and not perfectly consistent, but multiple independent sources converge on Developer+, not Maintainer+)
+- GitLab issue trackers (gitlab.org/gitlab-org/gitlab#356008, gitlab-foss#47819, gitlab-org/gitlab#591660, gitlab-org/gitlab-foss#48780) — corroborate the 400-vs-409 status code inconsistency on "already exists" creation errors, and the target_branch-existence validation gap on MR create/update (MEDIUM — community/issue-tracker sourced, not official docs, but consistent across multiple independent reports)
+- `taskflow/src/services/gitlab.ts` — existing auth/fetch/error conventions studied directly (HIGH, primary source)
 
 ---
-
-*Stack research for: Taskflow v1.13 charting foundation (Tauri 2 + React 19 + React Compiler + Tailwind v4 + shadcn/ui)*
-*Researched: 2026-06-14*
+*Stack research for: GitLab REST API v4 release-management write surface*
+*Researched: 2026-08-10*
