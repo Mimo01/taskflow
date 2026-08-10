@@ -1,8 +1,8 @@
 ---
 phase: 88-release-branch-milestone-creation
-reviewed: 2026-08-10T20:15:00Z
+reviewed: 2026-08-10T19:58:36Z
 depth: standard
-files_reviewed: 16
+files_reviewed: 17
 files_reviewed_list:
   - taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
   - taskflow/src/routes/dashboard/ReleasesTab.test.tsx
@@ -17,401 +17,357 @@ files_reviewed_list:
   - taskflow/src/routes/dashboard/release-detail/releaseBranch.ts
   - taskflow/src/routes/dashboard/release-detail/releaseMilestone.test.ts
   - taskflow/src/routes/dashboard/release-detail/releaseMilestone.ts
+  - taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx
   - taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts
   - taskflow/src/services/gitlab.test.ts
   - taskflow/src/services/gitlab.ts
 findings:
-  critical: 3
-  warning: 11
-  info: 0
+  critical: 1
+  warning: 9
+  info: 4
   total: 14
 status: issues_found
 ---
 
 # Phase 88: Code Review Report
 
-**Reviewed:** 2026-08-10T20:15:00Z
+**Reviewed:** 2026-08-10T19:58:36Z
 **Depth:** standard
-**Files Reviewed:** 16
+**Files Reviewed:** 17
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the phase-88 diff (9ea7ea69..HEAD): two new GitLab write operations
-(`createBranch`, `createMilestone`), the branch-existence read (`fetchBranch`),
-the paginated branch listing (`fetchProjectBranches`), two pure helper modules,
-two dialogs, the release-detail data hook, and the Releases-list drift
-indicators. All 200 tests in scope pass locally (`vitest run` on the 8 touched
-test files).
+Re-review of the current state of phase 88 after gap-closure plans 88-07..88-10. The
+previously-closed findings verify as genuinely fixed in code: `resolveBranchState` now carries the
+`check-failed` branch above the `undefined -> loading` fallback (releaseBranch.ts:139-141) with
+sidebar copy + Retry wired (ReleaseDetailSidebar.tsx:218-226, 270-279); `createMilestone`
+invalidation is project-granular (useReleaseDetail.ts:241-247); both mutations throw instead of
+falling back to `?? 0` (useReleaseDetail.ts:162-167, 231-234); `ReleasesTab` gates `branchMissing`
+on `branchesLoaded` and scopes `milestoneMissing` to dated/unreleased versions; both write dialogs
+block dismissal while pending; `createBranch`/`createMilestone` surface GitLab's `body.message` on
+401/403. `tsc --noEmit` is clean, `biome check` on the touched paths reports no diagnostics, and
+the 8 test files in scope pass (139 tests).
 
-The service layer itself is the strongest part of the change: pagination is
-fully walked (no page-cap trap), the array-vs-string `message` widening is
-correct, the 404-as-missing exception in `fetchBranch` is deliberate and tested,
-and no secrets leak (PAT stays in the `PRIVATE-TOKEN` header and is redacted by
-`apiFetch`'s logger). No injection, XSS, or credential-handling vulnerabilities
-were found in the write paths.
-
-The defects concentrate one layer up, in **state resolution and cache
-invalidation** — exactly the areas the waived live-GitLab checkpoints would have
-exercised:
-
-1. The Releases-list "no release branch" drift warning is computed with no
-   loading/error guard, so it renders **false positives on every page load** and
-   permanently whenever the branch query fails.
-2. A successful milestone create invalidates only the *detail page's* windowed
-   milestone key; the Releases list uses a **different** window (min..max of all
-   fix versions ±7d), so its key is never invalidated and the list keeps showing
-   "No GitLab link" + the missing-milestone warning after a successful write.
-3. `resolveBranchState` conflates "query in flight" with "query errored"
-   (`branchExists === undefined` for both), so any 500/timeout on the branch
-   check pins the sidebar at "Loading..." forever with no error, no retry, and
-   no Create-branch button — the feature dead-ends with no recovery path.
-
-Secondary issues cluster around the milestone dialog (prefill produces an
-invalid leading-space title; the title's date component can silently diverge
-from the `due_date` actually written; Cancel stays enabled mid-write and
-swallows the failure), plus dead code (`invalid-ref` is unreachable), an unused
-prop, an unanchored version regex, and raw ASCII control bytes committed into a
-test file.
+The problems concentrate in the one change made outside the plans (commit f63e785a, the unwindowed
+`['gitlab-milestones', projectId, 'all']` query). That change is internally inconsistent with its
+own commit message and code comments: the commit claims "Widening the list also strengthens
+findDuplicateMilestone, which reads the same list", but the list that reaches
+`findDuplicateMilestone` is `recentMilestonesByDate(...)` — capped at 5 entries — so duplicate
+detection got *narrower*, not wider (CR-01). The same change fetches the project's entire milestone
+list twice per release-detail load (WR-02) and ships with zero effective test coverage: the hook
+test's `vi.mock('@/services/gitlab')` factory omits `fetchProjectMilestones`, so the new query
+throws on every render in tests and `recentReferenceMilestones` is provably always `[]` (WR-03).
 
 ## Critical Issues
 
-### CR-01: Missing-branch drift warning is a false positive while the branch query is loading or errored
+### CR-01: Duplicate-milestone detection silently narrowed to the 5 newest milestones
 
-**File:** `taskflow/src/routes/dashboard/ReleasesTab.tsx:246` (rendered at `:505-509`)
-**Issue:** `branchMissing` is derived purely from set membership:
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:197-208`,
+`taskflow/src/routes/dashboard/ReleaseDetailPage.tsx:370`,
+`taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx:93-94`
 
-```ts
-const branchMissing = derived !== null && !releaseBranchNames.has(derived);
+**Issue:** The hook fetches the full, unwindowed project milestone list, then hands the create
+dialog `recentMilestonesByDate(...)` — hard-capped at `RECENT_MILESTONE_LIMIT = 5`
+(releaseMilestone.ts:111,132). `CreateMilestoneDialog` uses that same 5-entry array as *both* the
+read-only reference list *and* the input to `findDuplicateMilestone` (lines 93-94). RELMS-04's
+duplicate guard therefore now compares a candidate title against at most 5 milestones — the 5
+newest by `due_date`. Before f63e785a the source was `ownWindowMilestones` (the ±7-day window,
+uncapped), which is exactly the window in which a same-dated colliding title lives. For any release
+whose date is not among the 5 newest milestone dates (a past release, a back-filled version, or any
+project with a dense cadence), the guard returns `null` for a title that demonstrably exists and
+the Create button stays enabled. Both the commit message ("strengthens findDuplicateMilestone") and
+the in-code comment at useReleaseDetail.ts:187-196 ("used ... for the create-dialog reference list
+**and its duplicate check**") describe behaviour the code does not implement — the full list is
+fetched and then discarded before the duplicate check sees it. Consequence: the user gets a
+server-side 400 instead of the local guard, and that 400 is exactly the path damaged by WR-01.
+
+**Fix:** Keep display and comparison scopes separate — cap only what is rendered.
+
+```tsx
+// useReleaseDetail.ts
+const ownAllMilestones = ownProjectMilestones(allProjectMilestones ?? [], activeGitlabProject ?? 0);
+const recentReferenceMilestones = recentMilestonesByDate(ownAllMilestones); // display only
+return { ..., recentReferenceMilestones, allOwnMilestones: ownAllMilestones } as const;
+
+// ReleaseDetailPage.tsx
+<CreateMilestoneDialog
+  recentMilestones={recentReferenceMilestones}
+  duplicateCandidates={allOwnMilestones}
+  ...
+/>
+
+// CreateMilestoneDialog.tsx
+const duplicate = projectConfigured
+  ? findDuplicateMilestone(duplicateCandidates ?? recentMilestones, title, activeGitlabProject)
+  : null;
 ```
 
-`releaseBranchNames` is built from `releaseBranches ?? []` (`:203-206`), so it is
-an **empty set** in three distinct states that are not "the branch is missing":
-query in flight, query errored, and query retry-exhausted. The `gitlab-release-branches`
-query destructures only `data` (`:190`) — `isLoading`/`isError` are discarded, and
-unlike the milestone query there is no "GitLab unavailable" chip for it
-(`:296-303` covers `milestonesError` only).
-
-Consequences: every load of the Releases tab flashes an orange "No release
-branch" warning on every date-matched row until the branch fetch resolves; if
-the branch fetch fails (500, timeout, token lacking `read_repository`), every
-row shows a permanent, unrecoverable false drift signal. The whole point of this
-indicator is trustworthiness, and it currently defaults to "drift" on absence of
-evidence. Note the phase's live-GitLab verification was waived, so the
-`search=release%2F` semantics that populate this set are also unconfirmed — a
-partial result set produces the same false positive.
-
-**Fix:**
-```ts
-const {
-  data: releaseBranches,
-  isSuccess: branchesLoaded,
-  isError: branchesError,
-} = useQuery({ /* unchanged */ });
-
-// inside toMatched:
-const branchMissing =
-  branchesLoaded && derived !== null && !releaseBranchNames.has(derived);
-```
-and surface `branchesError` next to the existing `milestonesError` chip so a
-failed branch fetch reads as "GitLab unavailable", not as "no branch".
-
-### CR-02: Successful milestone create never refreshes the Releases-list milestone cache (wrong window key)
-
-**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:186-198`
-**Issue:** `createMilestoneMutation.onSuccess` invalidates
-`['gitlab-milestones', activeGitlabProject, milestoneWindow?.from, milestoneWindow?.to]`
-where `milestoneWindow` is `computeMilestoneWindow(version.releaseDate)` —
-**this version's** release date ±7 days (`releaseSummaries.ts:37-50`).
-
-`ReleasesTab` caches under the same key prefix but a different window:
-`from = min(all fix version dates) - 7d`, `to = max(all fix version dates) + 7d`
-(`ReleasesTab.tsx:151-183`). TanStack Query's `invalidateQueries` matches by
-**prefix**, and `[…, from_detail, to_detail]` is not a prefix of
-`[…, from_list, to_list]` — the list's cache entry is untouched.
-
-Result: the user creates the milestone from the detail page, the detail page
-updates, then navigates back to Releases and the row still shows "No GitLab
-link" plus the `row-missing-milestone` warning triangle for up to the 5-minute
-`staleTime` (longer if the tab stays mounted and never refetches). The inline
-comment asserting the key is "byte-identical to the read query above" is true
-only of the detail page's own read — it is a different key from the list's.
-The `createBranch` sibling gets this right by invalidating the project-level
-`['gitlab-release-branches', activeGitlabProject]` key.
-
-**Fix:** invalidate at project granularity so every window variant is covered:
-```ts
-onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['gitlab-milestones', activeGitlabProject] });
-  queryClient.invalidateQueries({ queryKey: ['gitlab-branch', activeGitlabProject] });
-},
-```
-
-### CR-03: Branch-check failure is indistinguishable from loading — sidebar pins at "Loading..." with no recovery
-
-**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:121-139`, `releaseBranch.ts:129-133`
-**Issue:** The hook destructures only `data` from the `gitlab-branch` query and
-passes `branchResult?.exists` into `resolveBranchState`, which maps
-`branchExists === undefined` to `{ kind: 'loading' }`. `data` is `undefined`
-both while in flight **and** after the query errors (401/403/500/timeout — see
-`fetchBranch`'s throw paths at `gitlab.ts:999-1004`).
-
-So any failure of the existence check leaves the sidebar showing
-`Loading...` (`ReleaseDetailSidebar.tsx:216-217`) indefinitely: no error copy,
-no retry affordance, and — because the Create-branch button only renders for
-`kind === 'missing'` (`:235`) — the entire branch-creation feature becomes
-unreachable with no explanation. A user with a PAT lacking `read_repository`
-sees a permanent spinner-equivalent and cannot act.
-
-**Fix:** thread the error into the state machine:
-```ts
-const { data: branchResult, isError: branchError } = useQuery({ /* … */ });
-
-const branchState = resolveBranchState({
-  hasMatchedMilestone: matchedMilestone !== null,
-  milestoneTitle: matchedMilestone?.title ?? null,
-  branchExists: branchResult?.exists,
-  branchCheckFailed: branchError,
-});
-```
-Add a `{ kind: 'check-failed'; branchName: string }` variant to `BranchState`,
-evaluated before the `undefined` → `loading` fallback, and render it in the
-sidebar as an error with a retry (`refetch`) affordance.
+Also update `findDuplicateMilestone`'s JSDoc (releaseMilestone.ts:167-169), which still claims the
+source list is "the ±7-day windowed milestone query".
 
 ## Warnings
 
-### WR-01: Milestone title prefill produces an invalid leading-space value and never fills the version
+### WR-01: GitLab's object-shaped `message` renders as `[object Object]` in the only error surface
 
-**File:** `taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx:68-70`
-**Issue:** `setTitle(buildMilestoneTitle('', releaseDate) ?? '')` calls
-`buildMilestoneTitle` with an **empty version**, producing `" (21.07.2026)"` —
-a string whose first character is a space. `buildMilestoneTitle`'s contract
-(`releaseMilestone.ts:75-81`) documents `version` as "the bare version string",
-so this is a misuse of the helper to smuggle out a date fragment. The prefilled
-value fails `isValidMilestoneTitle`, so the dialog opens with a red format error
-already visible and the submit button disabled, and a user who types naturally
-(caret lands at the end) produces `" (21.07.2026)33.5.0"`. `CreateMilestoneDialog.test.tsx:30`
-locks this in with `expect(input.value).toBe(' (21.07.2026)')`.
-The Jira version name (`version.name`, already available at the call site in
-`ReleaseDetailPage.tsx:293`) is never used.
+**File:** `taskflow/src/services/gitlab.ts:1056-1070` (createBranch), `1119-1133` (createMilestone)
 
-**Fix:** pass the derived version through and prefill a *valid* title:
-```tsx
-// ReleaseDetailPage.tsx
-<CreateMilestoneDialog versionName={version.name} releaseDate={version.releaseDate ?? null} … />
+**Issue:** The response body is cast to `{ message?: string | string[] }` and only the array shape
+is flattened. GitLab's Grape `render_validation_error!` returns attribute-keyed objects — e.g.
+`{"message":{"title":["has already been taken"]}}` for a duplicate milestone title, which is the
+single most likely failure of this write path (and, per CR-01, now reachable for titles the local
+guard misses). `Array.isArray` is false for that shape, so `msg` is an object and the thrown text
+becomes `Failed to create milestone: [object Object]`. On 401/403 the object is passed straight
+into `new ApiError(msg ...)`, whose `message` stringifies the same way. D-15 forbids toasts, so
+this string is the only thing the user ever sees. The type assertion (`as {...}`) is what hides
+this from `tsc` — the runtime shape is not what the cast claims. No test covers the object shape
+(gitlab.test.ts covers only string and `string[]`).
 
-// CreateMilestoneDialog.tsx
-useEffect(() => {
-  const v = extractVersionFromMilestoneTitle(versionName) ?? '';
-  setTitle(buildMilestoneTitle(v, releaseDate) ?? '');
-}, [open, releaseDate, versionName]);
-```
-If a valid version cannot be derived, prefill `''` rather than a space-prefixed
-fragment. Update the test assertion accordingly.
+**Fix:** Normalize all three shapes in one helper and use it in both functions.
 
-### WR-02: The title's date component and the written `due_date` can silently disagree
-
-**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:178-185`
-**Issue:** `createMilestoneMutation` always writes
-`due_date: version.releaseDate`, but the title is free-text from the dialog and
-only shape-validated (`/^\d+\.\d+\.\d+ \(\d{2}\.\d{2}\.\d{4}\)$/`). Editing the
-date inside the title (e.g. typing `33.5.0 (22.07.2026)` when the Jira release
-date is `2026-07-21`) creates a milestone whose displayed title permanently
-contradicts its actual `due_date`. Because `resolveGitLabMatch` matches on
-`due_date`, the mismatch is invisible in this app but corrupts the team's
-milestone naming convention on the GitLab side.
-
-**Fix:** cross-validate before enabling submit — extract the `DD.MM.YYYY` group
-from the title and require it to equal `formatMilestoneDueDate(releaseDate)`,
-showing "The date in the title must match the release date (21.07.2026)"
-otherwise. Alternatively derive `due_date` from the title's date component so
-the two can never diverge.
-
-### WR-03: Cancel stays enabled during the write; closing the dialog swallows the failure entirely
-
-**File:** `taskflow/src/routes/dashboard/release-detail/CreateBranchDialog.tsx:45`, `CreateMilestoneDialog.tsx:136`, `ReleaseDetailPage.tsx:346-381`
-**Issue:** Only the primary button is gated on `isPending`; the `DialogClose`
-Cancel button, the Escape key, and the backdrop remain live (`onOpenChange` is
-the bare `setCreateBranchOpen` / `setCreateMilestoneOpen`). Since the *only*
-error surface for both writes is inline text inside the dialog (D-15 forbids
-toasts), dismissing during flight means a subsequent 400/403/500 is reported
-nowhere — the user reasonably believes they cancelled the operation, and if the
-write actually succeeded the branch/milestone appears with no acknowledgement.
-The same gap allows a second `mutate()` before the first settles on a fast
-double-click.
-
-**Fix:**
-```tsx
-<Dialog open={open} onOpenChange={(o) => { if (isPending) return; onOpenChange(o); }}>
-  …
-  <DialogClose render={<Button variant="outline" disabled={isPending} />}>Cancel</DialogClose>
-```
-so the dialog is modal-locked for the duration of the write and the error always
-lands somewhere visible.
-
-### WR-04: Missing-milestone drift warning fires on undated and already-released versions
-
-**File:** `taskflow/src/routes/dashboard/ReleasesTab.tsx:243`, rendered at `:500-504`
-**Issue:** `const milestoneMissing = bestMatch.type === 'none';` — no guard on
-`version.releaseDate` or `version.released`. A version with no release date can
-*never* match a milestone (matching is date-based, `matchGitLabToFixVersion`),
-so flagging it as drift is a false signal on top of the "⚠ No date set" badge it
-already shows (`:434-438`) — two warnings for one condition. Historical released
-versions whose milestones were closed/deleted also light up permanently, which
-dilutes the indicator for the unreleased versions it exists to police.
-
-**Fix:**
 ```ts
-const milestoneMissing =
-  bestMatch.type === 'none' && !!version.releaseDate && !version.released;
-```
-
-### WR-05: `invalid-ref` branch state is unreachable dead code
-
-**File:** `taskflow/src/routes/dashboard/release-detail/releaseBranch.ts:125-127` (and the type at `:94`, the sidebar arm at `ReleaseDetailSidebar.tsx:207-215`, `:252-258`)
-**Issue:** `resolveBranchState` only reaches `isValidGitRefName` with the output
-of `deriveReleaseBranchName`, which is always
-`release/` + `/^\d+\.\d+\.\d+/` — digits and dots only. Such a name cannot
-contain whitespace, control chars, `..` (each `\d+` requires ≥1 digit), `@{`,
-a leading-dot segment, a `.lock` suffix, or exceed 255 chars. The `invalid-ref`
-arm therefore can never be produced at runtime; the sidebar's two rendering
-branches for it, and `isValidGitRefName`'s only production call site, are dead.
-`ReleaseDetailSidebar.test.tsx:68-73` passes the state in by hand, which masks
-the unreachability.
-
-**Fix:** either drop the `invalid-ref` variant and keep `isValidGitRefName` as a
-guard for a *future* user-editable branch name, or — better, since the sidebar
-copy is already identical to `unresolvable` — collapse the two variants into one
-so the state machine has no unreachable arm. Whichever is chosen, document the
-dead call site rather than leaving it looking load-bearing.
-
-### WR-06: Drift indicators are icon-only with no accessible name
-
-**File:** `taskflow/src/routes/dashboard/ReleasesTab.tsx:500-509`
-**Issue:** Both indicators render `<span title="…"><AlertTriangle /></span>`.
-`title` on a non-interactive `<span>` is not reliably announced by screen
-readers, and `lucide-react` emits a bare `<svg>` with no `role`/`aria-label`, so
-assistive-tech users get *nothing* for these rows — the drift state is
-conveyed by color and shape only. They also sit inside the row `<button>`, so
-the button's own accessible name (currently version name + badges + counts)
-gains no drift information.
-
-**Fix:**
-```tsx
-<span title="No release branch">
-  <AlertTriangle aria-hidden="true" className="…" />
-  <span className="sr-only">No release branch</span>
-</span>
-```
-
-### WR-07: Raw ASCII control bytes (0x01, 0x7F) embedded in test source
-
-**File:** `taskflow/src/routes/dashboard/release-detail/releaseBranch.test.ts:124`, `:128`
-**Issue:** Both assertions read as `isValidGitRefName('release/33.5.0')` — which
-is `true` — and only pass because the file contains literal unescaped `0x01`
-and `0x7F` bytes inside the string literals (confirmed via `od -c`). Any
-formatter, editor normalization, copy/paste, or encoding round-trip that strips
-them silently inverts the test into an assertion that a valid name is invalid,
-and the failure message would be baffling. Invisible control characters in
-source are also a review hazard: nothing at the diff level shows what is being
-tested.
-
-**Fix:** use escape sequences, which are byte-stable and self-documenting:
-```ts
-expect(isValidGitRefName('release/33.5.0\u0001')).toBe(false); // SOH control char
-expect(isValidGitRefName('release/33.5.0\u007F')).toBe(false); // DEL
-```
-
-### WR-08: `matchedMilestone` prop is required, threaded through, and never used
-
-**File:** `taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.tsx:47`, `:72`
-**Issue:** The prop is declared non-optional in `ReleaseDetailSidebarProps`,
-destructured as `matchedMilestone: _matchedMilestone`, and never referenced.
-`ReleaseDetailPage.tsx:295` and the test harness are both forced to supply it.
-An underscore rename suppresses the linter but leaves a required prop that
-communicates a dependency the component does not have.
-
-**Fix:** delete the prop from the interface, the destructuring, and both call
-sites.
-
-### WR-09: Version extraction has no right boundary — distinct milestones derive the same branch name
-
-**File:** `taskflow/src/routes/dashboard/release-detail/releaseBranch.ts:45`
-**Issue:** `/^(\d+\.\d+\.\d+)/` is anchored only at the start. Titles such as
-`33.5.0.1 (21.07.2026)`, `33.5.0-rc1 (21.07.2026)`, or `33.5.01 (…)` all extract
-`33.5.0` and derive `release/33.5.0`. Two consequences on the write path: the
-existence check reports an *unrelated* branch as this milestone's branch (green
-check, Create button hidden), and a create attempt for a genuinely different
-release collides with an existing branch. The doc comment claims "a legacy title
-with a valid leading version still resolves" — but a 4-component or pre-release
-version is precisely a case that should resolve to `null` or to its full token,
-not be silently truncated. No test covers a 4-part or pre-release version.
-
-**Fix:**
-```ts
-const match = title.trim().match(/^(\d+\.\d+\.\d+)(?![\d.\-+A-Za-z])/);
-```
-so only a genuine `X.Y.Z` token followed by a separator (space, `(`, or
-end-of-string) matches; add tests for `33.5.0.1 (…)` and `33.5.0-rc1 (…)`.
-
-### WR-10: `activeGitlabProject ?? 0` fallback silently disables duplicate detection and would POST to project 0
-
-**File:** `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx:369`, `useReleaseDetail.ts:169`, `:181`
-**Issue:** When `activeGitlabProject` is null the code substitutes `0` rather
-than blocking. Two effects: (a) `findDuplicateMilestone(recentMilestones, title, 0)`
-runs `ownProjectMilestones` with `projectId = 0`, which — whenever any element
-carries a numeric `project_id` — filters the list to empty, so **duplicate
-detection silently reports "no duplicate" for every title**; (b)
-`createMilestone(baseUrl, token, 0, …)` would POST to
-`/api/v4/projects/0/milestones` instead of being rejected client-side. The read
-queries at `:97`/`:127` are protected by `enabled: !!activeGitlabProject`, but
-the mutation has no such guard — its `mutationFn` only checks
-`version?.releaseDate` (`:180`).
-
-**Fix:** guard the mutation the same way the queries are guarded:
-```ts
-mutationFn: (title: string) => {
-  if (!activeGitlabProject || !gitlabBaseUrl || !gitlabToken) {
-    throw new Error('GitLab project not configured');
+function gitlabErrorMessage(body: unknown): string | undefined {
+  const m = (body as { message?: unknown } | null)?.message;
+  if (typeof m === 'string') return m;
+  if (Array.isArray(m)) return m.map(String).join(', ');
+  if (m && typeof m === 'object') {
+    return Object.entries(m as Record<string, unknown>)
+      .map(([k, v]) => `${k} ${Array.isArray(v) ? v.join(', ') : String(v)}`)
+      .join('; ');
   }
-  if (!version?.releaseDate) throw new Error('Release date required');
-  return createMilestone(gitlabBaseUrl, gitlabToken, activeGitlabProject, { … });
-},
-```
-and apply the same three-way guard in `createBranchMutation` (`:144-156`), which
-currently checks only `releaseBranchName`/`defaultBranch`.
-
-### WR-11: 401/403 on the write paths discards GitLab's explanatory message body
-
-**File:** `taskflow/src/services/gitlab.ts:1052-1055`, `:1109-1112`
-**Issue:** Both `createBranch` and `createMilestone` short-circuit 401/403 into
-`new ApiError('Failed to create branch', status, 'gitlab')` before reading the
-body, while every *other* non-ok status gets the widened `message` extraction
-(`:1059-1063`, `:1115-1119`). 403 is the single most likely failure for a
-brand-new write feature — protected-branch rules, missing `api` scope, developer
-role restrictions — and GitLab returns an actionable reason in the body
-(e.g. `"You are not allowed to create protected branches on this project."`).
-The dialog surfaces `error.message` verbatim (`ReleaseDetailPage.tsx:351-355`),
-so the user is shown "Failed to create branch" with no cause and no next step.
-Given the live-GitLab checkpoints were waived, this is exactly the path with the
-least empirical coverage.
-
-**Fix:** read the body first, then classify:
-```ts
-if (!response.ok) {
-  const body = (await response.json().catch(() => null)) as { message?: string | string[] } | null;
-  const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
-  if (response.status === 401 || response.status === 403) {
-    throw new ApiError(msg ?? 'Failed to create branch', response.status, 'gitlab');
-  }
-  throw new Error(`Failed to create branch: ${msg ?? `status ${response.status}`}`);
+  return undefined;
 }
 ```
-Note `ApiError` from a 401 also flips `gitlabConnected` to false via `apiFetch`'s
-`markDisconnected`, so preserving the message costs nothing behaviorally.
+
+### WR-02: The full project milestone list is fetched twice on every release-detail load
+
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:87-104` and `197-203`
+
+**Issue:** `fetchProjectMilestonesInRange` is not a server-side range query — it calls
+`fetchProjectMilestones` (full pagination, `per_page=100`, `include_ancestors=true`) and filters
+client-side (gitlab.ts:884-897). The new `['gitlab-milestones', projectId, 'all']` query calls
+`fetchProjectMilestones` again. The two live under different cache keys, so react-query cannot
+dedupe them: every release-detail mount runs the same paginated sequence twice, and every milestone
+create/edit invalidation (`['gitlab-milestones', projectId]`, useReleaseDetail.ts:242 and
+useEditRelease.ts:167) refetches both. The `enabled` guard on the `'all'` query omits any
+dialog-open or `version.releaseDate` condition, so the second full fetch also runs for versions
+with no release date, where the Create-milestone button is disabled outright
+(ReleaseDetailPage.tsx:308) and the list can never be shown. This is redundant duplicated work, not
+merely slow: the windowed data is a strict subset of the data already fetched.
+
+**Fix:** Fetch once and derive. Keep the `'all'` query as the single source and compute the window
+locally, preserving the read semantics `resolveGitLabMatch` depends on:
+
+```ts
+const windowedMilestones = (allProjectMilestones ?? []).filter((m) => {
+  const d = m.due_date ?? m.start_date;
+  return !!d && !!milestoneWindow && d >= milestoneWindow.from && d <= milestoneWindow.to;
+});
+```
+
+If the separate cache entry must be preserved for `ReleasesTab` sharing, at minimum gate the
+`'all'` query on `!!version?.releaseDate` so undated versions do not pay for it.
+
+### WR-03: The new milestone query is untested — its mock export is missing, so it errors in every hook test
+
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx:24-32`
+
+**Issue:** The `vi.mock('@/services/gitlab', () => ({...}))` factory does not return
+`fetchProjectMilestones`, which useReleaseDetail.ts:200 now calls. Vitest throws on access to an
+undefined export of a factory mock (`[vitest] No "fetchProjectMilestones" export is defined on the
+"@/services/gitlab" mock`), so the `'all'` query's `queryFn` throws on every run. Verified by
+instrumenting Test A: `result.current.recentReferenceMilestones.length` is `0` in all five tests.
+The suite still passes because nothing asserts on it — the reference list, its ordering, and (per
+CR-01) the duplicate check have zero regression coverage, and future breakage of this query is
+invisible.
+
+**Fix:** Add the export to the mock and assert on the derived value.
+
+```ts
+vi.mock('@/services/gitlab', () => ({
+  ...,
+  fetchProjectMilestones: vi.fn(),
+}));
+// in setupMocks:
+vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([makeMilestone(), ...]);
+// new test: recentReferenceMilestones is populated, newest-first, capped at RECENT_MILESTONE_LIMIT
+```
+
+### WR-04: `ownWindowMilestones` is dead — computed and returned with no consumer
+
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:188` and `330`
+
+**Issue:** f63e785a repointed `ReleaseDetailPage` from `ownWindowMilestones` to
+`recentReferenceMilestones`; the old value is still computed on every render and exported from the
+hook's return object, with no consumer anywhere in `src` (verified by grep). It is a live trap: the
+two names differ only in scope, and a future caller wiring "the milestone list" to the wrong one
+reintroduces CR-01 in the other direction.
+
+**Fix:** Delete the `ownWindowMilestones` computation and its return-object entry, or — if CR-01 is
+fixed by exposing an uncapped own-project list — replace it with that list under an unambiguous
+name.
+
+### WR-05: `CreateMilestoneDialog` re-sorts an already-sorted list with different tie-break rules
+
+**File:** `taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx:97-101`
+
+**Issue:** The parent already returns the list sorted newest-first by `recentMilestonesByDate`,
+which sorts on `due_date ?? start_date` (releaseMilestone.ts:135). The dialog re-sorts on
+`due_date` alone. For any milestone that carries only `start_date` (a real GitLab shape —
+`due_date` is nullable, gitlab.ts:341), the two orderings disagree: the helper places it by its
+start date, the dialog demotes it to the bottom as undated. Two copies of the same ordering rule
+with divergent semantics is exactly the drift this phase's pure-helper split was meant to prevent.
+
+**Fix:** Drop the local sort and render `recentMilestones` as received (it is contractually
+pre-sorted), or call the shared helper:
+`const sortedRecentMilestones = recentMilestonesByDate(recentMilestones, recentMilestones.length);`
+
+### WR-06: Unbounded `while (true)` pagination with no page cap or terminal guard
+
+**File:** `taskflow/src/services/gitlab.ts:835-867` (`fetchProjectMilestones`), `295-328`
+(`fetchProjectBranches`)
+
+**Issue:** Both loops exit only when a page returns fewer than `per_page` items. A server (or
+proxy) that ignores the `page` parameter, or an endpoint that keeps returning full pages, produces
+an infinite loop that also grows `allMilestones`/`allBranches` without bound — a hung renderer, not
+a slow one. The pattern is pre-existing, but WR-02 means `fetchProjectMilestones` is now invoked
+twice per release-detail load, doubling exposure, and `probe.sh` has not been run against the live
+instance (per releaseMilestone.ts:171-173), so the pagination behaviour of the team's GitLab is
+unverified.
+
+**Fix:** Add a hard page ceiling and a defensive empty-page break:
+
+```ts
+const MAX_PAGES = 50;
+while (page <= MAX_PAGES) {
+  ...
+  if (data.length === 0 || data.length < perPage) break;
+  page++;
+}
+```
+
+### WR-07: Load-bearing doc comments now describe behaviour the code no longer has
+
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:32-41` and `187-196`;
+`taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx:1-12`;
+`taskflow/src/routes/dashboard/release-detail/releaseMilestone.ts:167-175`
+
+**Issue:** In this codebase header comments are cited as decisions (D-xx) and treated as spec by
+later work, so stale ones actively mislead:
+- useReleaseDetail.ts:35-40 — "Runs all 6 queries" and enumerates them; the hook now runs 8
+  (`gitlab-project`, `gitlab-branch`, and the new `'all'` milestones query are unlisted). The same
+  paragraph's "Query keys ... are byte-identical to their pre-refactor form to preserve cache
+  sharing" is no longer true of the `gitlab-milestones` prefix.
+- useReleaseDetail.ts:189-190 — claims the unwindowed list feeds "its duplicate check"; per CR-01 it
+  does not.
+- CreateMilestoneDialog.tsx:10-12 — "The parent supplies the reference list from the already-cached
+  **windowed** query"; it is now the unwindowed query, capped at 5.
+- releaseMilestone.ts:167-169 — `findDuplicateMilestone` "the source list is the ±7-day windowed
+  milestone query"; it is now a 5-entry newest-first slice.
+
+**Fix:** Update all four comments in the same change that resolves CR-01, so documented scope and
+wired scope match.
+
+### WR-08: Two identical "GitLab unavailable" chips can render side by side
+
+**File:** `taskflow/src/routes/dashboard/ReleasesTab.tsx:309-325`
+
+**Issue:** The pre-existing `milestonesError` chip and the new `branchesError` chip render the same
+visible text with the same styling; when both queries fail (the common case — one expired PAT
+breaks both) the header shows "GitLab unavailable GitLab unavailable". The distinguishing
+information lives only in `title`, which is unavailable to touch and screen-reader users, and the
+two chips are otherwise indistinguishable in the accessibility tree.
+
+**Fix:** Render one chip when both fail, or differentiate the visible/assistive text:
+
+```tsx
+{(milestonesError || branchesError) && (
+  <span className="text-xs text-amber-600 dark:text-amber-400" data-testid="branches-error-chip">
+    GitLab unavailable
+    <span className="sr-only">
+      {milestonesError && branchesError
+        ? ' — milestone links and missing-branch warnings are hidden'
+        : milestonesError
+          ? ' — milestone links may not appear'
+          : ' — missing-branch warnings are hidden'}
+    </span>
+  </span>
+)}
+```
+
+### WR-09: `...(rest as [])` defeats the type system in both write dialogs
+
+**File:** `taskflow/src/routes/dashboard/release-detail/CreateBranchDialog.tsx:36-39`;
+`taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx:113-116`
+
+**Issue:** `handleOpenChange(nextOpen: boolean, ...rest: unknown[])` forwards to a prop typed
+`(open: boolean) => void` by asserting `rest as []`. The assertion is a lie about the value's type
+whose only purpose is to silence the compiler; if the prop type ever gains a second parameter (the
+Dialog primitive passes `event`/`reason`), the cast forwards `unknown` values into it with no
+error. The block is duplicated verbatim across both dialogs, comment included.
+
+**Fix:** Either widen the prop to match what the primitive emits and forward honestly, or drop the
+rest args since neither call site consumes them:
+
+```tsx
+function handleOpenChange(nextOpen: boolean) {
+  if (isPending) return;
+  onOpenChange(nextOpen);
+}
+```
+
+Extract the guard into a shared `usePendingSafeOpenChange(isPending, onOpenChange)` helper to
+remove the duplication.
+
+## Info
+
+### IN-01: `formatMilestoneDueDate` accepts impossible dates — **Info**
+
+**File:** `taskflow/src/routes/dashboard/release-detail/releaseMilestone.ts:61-67`
+
+**Issue:** The guard is `/^\d{4}-\d{2}-\d{2}$/`, so `'2026-13-45'` formats to `'45.13.2026'`, which
+passes `MILESTONE_TITLE_FORMAT_RE` and would be submitted as a title while `due_date` goes to
+GitLab verbatim and is rejected. Only reachable if Jira ever returns a malformed `releaseDate`.
+
+**Fix:** Validate round-trip:
+`const d = new Date(`${isoDate}T00:00:00Z`); if (Number.isNaN(d.getTime()) || d.toISOString().slice(0,10) !== isoDate) return null;`
+
+### IN-02: Dead effect with a comment that contradicts its dependency array — **Info**
+
+**File:** `taskflow/src/routes/dashboard/ReleasesTab.tsx:300-303`
+
+**Issue:** `useEffect(() => { setBannerDismissed(false); }, [])` is commented "Reset banner
+dismissal when error state changes" but has an empty dependency array, so it runs once on mount and
+never on an error transition. A dismissed stale-data banner stays dismissed across a new error.
+Pre-existing, not introduced by this phase.
+
+**Fix:** `}, [isError]);` — or delete the effect and its comment if once-only is intended.
+
+### IN-03: `createBranch` mutation does not re-check `isValidGitRefName` before POST — **Info**
+
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:158-175`
+
+**Issue:** `resolveBranchState` blocks the button for `invalid-ref`, but the mutation only checks
+that `releaseBranchName` and `defaultBranch` are non-null. The UI gate is the sole guard; any future
+call site invoking the mutation directly can POST an invalid ref. Cheap defence-in-depth, consistent
+with the WR-10 guards added beside it.
+
+**Fix:** `if (!isValidGitRefName(releaseBranchName)) throw new Error('Invalid branch name');`
+
+### IN-04: `?? 0` project-id fallbacks remain on the read queries — **Info**
+
+**File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:98, 115, 132, 200, 269, 292`
+
+**Issue:** WR-10 removed `activeGitlabProject ?? 0` from both mutations because it would target
+project `0`. The read queries still carry it; their `enabled` guards make it currently unreachable,
+but it is the exact footgun just excised, and the two paths now read inconsistently.
+
+**Fix:** Since every one of these queries already guards on `!!activeGitlabProject`, hoist a
+narrowed `const projectId = activeGitlabProject;` and let TypeScript enforce the invariant inside
+the `queryFn`s, or throw from the `queryFn` as the mutations do.
 
 ---
 
-_Reviewed: 2026-08-10T20:15:00Z_
+_Reviewed: 2026-08-10T19:58:36Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
