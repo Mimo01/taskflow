@@ -1,5 +1,5 @@
-import { GitMerge, Info } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { GitMerge, Info } from 'lucide-react';
 import type React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
