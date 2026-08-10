@@ -21,9 +21,14 @@ vi.mock('@/services/jira', () => ({
 }));
 
 // Mock gitlab service
-vi.mock('@/services/gitlab', () => ({
+vi.mock('@/services/gitlab', async (importOriginal) => ({
+  // filterMilestonesToRange is a pure helper the hook applies to the fetched
+  // list — use the real one so the windowing under test cannot drift from a
+  // hand-rolled stub.
+  filterMilestonesToRange: (await importOriginal<typeof import('@/services/gitlab')>())
+    .filterMilestonesToRange,
   fetchProject: vi.fn(),
-  fetchProjectMilestonesInRange: vi.fn(),
+  fetchProjectMilestones: vi.fn(),
   fetchBranch: vi.fn(),
   createBranch: vi.fn(),
   createMilestone: vi.fn(),
@@ -96,7 +101,7 @@ async function setupMocks(
   vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([]);
 
   const gitlab = await import('@/services/gitlab');
-  vi.mocked(gitlab.fetchProjectMilestonesInRange).mockResolvedValue([makeMilestone()]);
+  vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([makeMilestone()]);
   vi.mocked(gitlab.fetchProject).mockResolvedValue({
     default_branch: 'develop',
   } as Awaited<ReturnType<typeof gitlab.fetchProject>>);
@@ -211,5 +216,36 @@ describe('useReleaseDetail', () => {
     const gitlab = await import('@/services/gitlab');
     expect(gitlab.createMilestone).not.toHaveBeenCalled();
     expect(gitlab.createBranch).not.toHaveBeenCalled();
+  });
+  it('Test F: ownProjectMilestoneList stays uncapped and unwindowed so duplicate detection sees every title', async () => {
+    // Regression guard: the create dialog runs findDuplicateMilestone over this
+    // exact array. If the hook ever pre-slices it (e.g. to the 5 rendered rows)
+    // or re-applies the +/-7-day match window, RELMS-04's duplicate guard
+    // silently shrinks to whatever happens to be displayed.
+    const far = Array.from({ length: 12 }, (_, i) =>
+      makeMilestone({
+        id: 100 + i,
+        title: `30.${i}.0 (01.01.2020)`,
+        due_date: `2020-01-${String(i + 1).padStart(2, '0')}`,
+      }),
+    );
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([makeMilestone(), ...far]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.ownProjectMilestoneList.length).toBe(13));
+
+    // The far-past titles fall far outside the release-date window, yet must
+    // still be present for the duplicate check.
+    expect(result.current.ownProjectMilestoneList.map((m) => m.title)).toContain(
+      '30.11.0 (01.01.2020)',
+    );
+    // The windowed match list, by contrast, excludes them.
+    expect(result.current.gitlabMatch.candidateName).toBe('33.5.0 (21.07.2026)');
   });
 });

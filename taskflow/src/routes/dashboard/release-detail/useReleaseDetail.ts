@@ -7,15 +7,15 @@ import {
   fetchMilestoneMRs,
   fetchProject,
   fetchProjectMilestones,
-  fetchProjectMilestonesInRange,
   fetchRecentProjectMRs,
+  filterMilestonesToRange,
 } from '@/services/gitlab';
 import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { deriveReleaseBranchName, resolveBranchState } from './releaseBranch';
-import { ownProjectMilestones, recentMilestonesByDate } from './releaseMilestone';
+import { ownProjectMilestones } from './releaseMilestone';
 import {
   buildWrongMilestoneMap,
   computeHasStoryPoints,
@@ -84,24 +84,27 @@ export function useReleaseDetail(versionId: string | undefined) {
   // Fetch GitLab milestones scoped around this version's release date
   const milestoneWindow = computeMilestoneWindow(version?.releaseDate);
 
-  const { data: milestones } = useQuery({
-    queryKey: [
-      'gitlab-milestones',
-      activeGitlabProject,
-      milestoneWindow?.from,
-      milestoneWindow?.to,
-    ],
+  // One paginated fetch of the project's milestones serves both consumers:
+  // the ±7-day match window below and the create-dialog reference list.
+  // `fetchProjectMilestonesInRange` is itself this same fetch plus a client-side
+  // filter, so querying both separately paginated the whole project twice per
+  // mount and refetched twice on every prefix invalidation.
+  const { data: allProjectMilestones } = useQuery({
+    queryKey: ['gitlab-milestones', activeGitlabProject, 'all'],
     queryFn: () =>
-      fetchProjectMilestonesInRange(
-        gitlabBaseUrl ?? '',
-        gitlabToken ?? '',
-        activeGitlabProject ?? 0,
-        milestoneWindow?.from ?? '',
-        milestoneWindow?.to ?? '',
-      ),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
+      fetchProjectMilestones(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
     staleTime: 5 * 60_000,
   });
+
+  // Windowed subset driving resolveGitLabMatch — same predicate
+  // `fetchProjectMilestonesInRange` applied server-side-fetched data to, so the
+  // matching behaviour is unchanged. Stays `undefined` until the fetch resolves
+  // (as the removed query did), which the match resolver treats as "not loaded".
+  const milestones =
+    allProjectMilestones && milestoneWindow
+      ? filterMilestonesToRange(allProjectMilestones, milestoneWindow.from, milestoneWindow.to)
+      : undefined;
 
   // Match GitLab milestone to this fix version by date.
   const { gitlabMatch, matchedMilestone } = resolveGitLabMatch(version?.releaseDate, milestones);
@@ -183,28 +186,13 @@ export function useReleaseDetail(versionId: string | undefined) {
     },
   });
 
-  // Ancestor-filtered windowed milestone list (D-06/D-07) — the ±7-day window
-  // that resolveGitLabMatch matches against.
-  const ownWindowMilestones = ownProjectMilestones(milestones ?? [], activeGitlabProject ?? 0);
-
-  // Unwindowed project milestones, used ONLY for the create-dialog reference
-  // list and its duplicate check. Kept separate from the windowed query above
-  // because widening that one would change which milestone resolveGitLabMatch
-  // selects; around a weekly cadence the ±7-day window frequently holds a
-  // single entry, which is too little context to judge a new title against.
-  // Sits under the same 'gitlab-milestones' prefix so the createMilestone
-  // mutation's existing prefix invalidation refreshes it too.
-  const { data: allProjectMilestones } = useQuery({
-    queryKey: ['gitlab-milestones', activeGitlabProject, 'all'],
-    queryFn: () =>
-      fetchProjectMilestones(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
-    staleTime: 5 * 60_000,
-  });
-
-  // Newest-first reference list for the create-milestone dialog (D-03).
-  const recentReferenceMilestones = recentMilestonesByDate(
-    ownProjectMilestones(allProjectMilestones ?? [], activeGitlabProject ?? 0),
+  // Ancestor-filtered, UNWINDOWED project milestones (D-06/D-07) — the create
+  // dialog's input. It must stay uncapped: `findDuplicateMilestone` runs over
+  // exactly this array, so slicing it here would shrink RELMS-04's duplicate
+  // guard. The dialog caps only what it *renders*.
+  const ownProjectMilestoneList = ownProjectMilestones(
+    allProjectMilestones ?? [],
+    activeGitlabProject ?? 0,
   );
 
   // Create the GitLab milestone carrying the Jira release date as due_date (D-04) —
@@ -327,8 +315,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     defaultBranch,
     createBranchMutation,
     createMilestoneMutation,
-    ownWindowMilestones,
-    recentReferenceMilestones,
+    ownProjectMilestoneList,
     fixVersionIssues,
     isLoadingIssues,
     milestoneMRs,

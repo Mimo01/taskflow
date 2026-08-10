@@ -881,6 +881,28 @@ export async function fetchProjectMilestones(
  * @param to        - End of range, inclusive (YYYY-MM-DD)
  * @returns Array of milestones with due_date or start_date within the range
  */
+/**
+ * Filter milestones to an inclusive `from`..`to` date range, keyed on
+ * `due_date` with a `start_date` fallback. Undated milestones are excluded.
+ *
+ * Exported so callers that already hold the full milestone list can apply the
+ * same windowing client-side instead of re-running the paginated fetch.
+ *
+ * @param milestones - candidate milestones
+ * @param from - inclusive lower bound, ISO `YYYY-MM-DD`
+ * @param to - inclusive upper bound, ISO `YYYY-MM-DD`
+ * @returns milestones whose date falls within the range
+ */
+export function filterMilestonesToRange<
+  T extends { due_date?: string | null; start_date?: string | null },
+>(milestones: readonly T[], from: string, to: string): T[] {
+  return milestones.filter((m) => {
+    const date = m.due_date ?? m.start_date;
+    if (!date) return false;
+    return date >= from && date <= to;
+  });
+}
+
 export async function fetchProjectMilestonesInRange(
   baseUrl: string,
   token: string,
@@ -889,11 +911,7 @@ export async function fetchProjectMilestonesInRange(
   to: string,
 ): Promise<GitLabMilestone[]> {
   const all = await fetchProjectMilestones(baseUrl, token, projectId);
-  return all.filter((m) => {
-    const date = m.due_date ?? m.start_date;
-    if (!date) return false;
-    return date >= from && date <= to;
-  });
+  return filterMilestonesToRange(all, from, to);
 }
 
 /**
