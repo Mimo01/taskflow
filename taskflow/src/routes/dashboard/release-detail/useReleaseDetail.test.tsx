@@ -78,31 +78,28 @@ async function setupMocks(
     jiraBaseUrl: 'https://jira.example.com',
     activeJiraProject: 'PROJ',
     gitlabBaseUrl:
-      overrides.gitlabBaseUrl === undefined ? 'https://gitlab.example.com' : overrides.gitlabBaseUrl,
+      overrides.gitlabBaseUrl === undefined
+        ? 'https://gitlab.example.com'
+        : overrides.gitlabBaseUrl,
     activeGitlabProject:
       overrides.activeGitlabProject === undefined ? 42 : overrides.activeGitlabProject,
-    // biome-ignore lint/suspicious/noExplicitAny: partial store mock covers only fields the hook reads
-  } as any);
+  } as ReturnType<typeof auth.useAuthStore>);
 
   const jira = await import('@/services/jira');
   vi.mocked(jira.fetchFixVersions).mockResolvedValue([
     { id: VERSION_ID, name: '33.5.0', releaseDate: RELEASE_DATE, released: false },
   ]);
   vi.mocked(jira.fetchVersionIssueCounts).mockResolvedValue({
-    total: 0,
-    done: 0,
-    inProgress: 0,
-    todo: 0,
-    // biome-ignore lint/suspicious/noExplicitAny: partial fixture matches only fields the hook reads
-  } as any);
+    issuesFixed: 0,
+    issuesTotal: 0,
+  });
   vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([]);
 
   const gitlab = await import('@/services/gitlab');
   vi.mocked(gitlab.fetchProjectMilestonesInRange).mockResolvedValue([makeMilestone()]);
   vi.mocked(gitlab.fetchProject).mockResolvedValue({
     default_branch: 'develop',
-    // biome-ignore lint/suspicious/noExplicitAny: partial fixture matches only fields the hook reads
-  } as any);
+  } as Awaited<ReturnType<typeof gitlab.fetchProject>>);
   vi.mocked(gitlab.fetchBranch).mockImplementation(
     overrides.fetchBranchImpl ?? (() => Promise.resolve({ exists: false })),
   );

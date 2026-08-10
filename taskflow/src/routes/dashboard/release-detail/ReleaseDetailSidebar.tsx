@@ -48,6 +48,7 @@ interface ReleaseDetailSidebarProps {
   branchState: BranchState;
   defaultBranch: string | null;
   onCreateBranch: () => void;
+  onRetryBranchCheck: () => void;
   onCreateMilestone: () => void;
   canCreateMilestone: boolean;
   milestoneMRsLoaded: boolean;
@@ -73,6 +74,7 @@ export function ReleaseDetailSidebar({
   branchState,
   defaultBranch,
   onCreateBranch,
+  onRetryBranchCheck,
   onCreateMilestone,
   canCreateMilestone,
   milestoneMRsLoaded,
@@ -213,6 +215,15 @@ export function ReleaseDetailSidebar({
                 <AlertTriangle className="size-3" />
                 Branch name can't be derived from this milestone title
               </span>
+            ) : branchState.kind === 'check-failed' ? (
+              <span
+                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                title={`Couldn't check ${branchState.branchName}`}
+                data-testid="branch-status-check-failed"
+              >
+                <AlertTriangle className="size-3" />
+                Couldn't check the release branch
+              </span>
             ) : branchState.kind === 'loading' ? (
               <span className="text-muted-foreground">Loading...</span>
             ) : branchState.kind === 'exists' ? (
@@ -255,6 +266,16 @@ export function ReleaseDetailSidebar({
                 title="Branch name can't be derived from this milestone title"
                 onClick={onCreateBranch}
               />
+            )}
+            {branchState.kind === 'check-failed' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                onClick={onRetryBranchCheck}
+              >
+                Retry
+              </Button>
             )}
           </span>
         </MetaRow>

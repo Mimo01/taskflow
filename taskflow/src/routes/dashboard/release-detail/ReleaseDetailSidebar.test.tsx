@@ -1,6 +1,7 @@
 // RELBR-02/RELBR-03: sidebar renders every BranchState variant with UI-SPEC copy
 
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
@@ -38,6 +39,7 @@ function renderSidebar(overrides: { branchState: BranchState } & Record<string, 
       defaultBranch={null}
       onCreateBranch={() => {}}
       onCreateMilestone={() => {}}
+      onRetryBranchCheck={() => {}}
       canCreateMilestone={true}
       milestoneMRsLoaded={false}
       labelCoverage={null}
@@ -87,5 +89,31 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     renderSidebar({ branchState: { kind: 'missing', branchName: 'release/33.5.0' } });
     const el = screen.getByTestId('branch-status-missing');
     expect(el).toHaveTextContent('No release branch');
+  });
+
+  it('Test F: renders the check-failed state', () => {
+    renderSidebar({
+      branchState: { kind: 'check-failed', branchName: 'release/33.5.0' },
+    });
+    const el = screen.getByTestId('branch-status-check-failed');
+    expect(el).toHaveTextContent("Couldn't check the release branch");
+  });
+
+  it('Test G: Retry button calls onRetryBranchCheck exactly once', async () => {
+    const user = userEvent.setup();
+    const onRetryBranchCheck = vi.fn();
+    renderSidebar({
+      branchState: { kind: 'check-failed', branchName: 'release/33.5.0' },
+      onRetryBranchCheck,
+    });
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetryBranchCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it('Test H: no Create branch button is rendered in the check-failed state', () => {
+    renderSidebar({
+      branchState: { kind: 'check-failed', branchName: 'release/33.5.0' },
+    });
+    expect(screen.queryByRole('button', { name: 'Create branch' })).not.toBeInTheDocument();
   });
 });
