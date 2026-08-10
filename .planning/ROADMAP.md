@@ -119,7 +119,7 @@ Gap Wave 1
 
 Gap Wave 2 *(blocked on 88-08)*
 
-- [ ] 88-09-PLAN.md — CR-02 project-granular milestone invalidation + CR-03 hook/sidebar wiring with Retry (also WR-10 mutation guards)
+- [x] 88-09-PLAN.md — CR-02 project-granular milestone invalidation + CR-03 hook/sidebar wiring with Retry (also WR-10 mutation guards)
 
 Gap Wave 3 *(blocked on 88-09)*
 
@@ -245,7 +245,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 8/11 | In Progress|  |
+| 88. Release Branch & Milestone Creation | 9/11 | In Progress|  |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
