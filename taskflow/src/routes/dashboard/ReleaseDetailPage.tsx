@@ -15,6 +15,7 @@ import { useResizable } from '@/hooks/useResizable';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
 import { DescriptionsSection } from './release-detail/DescriptionsSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { IssuesSection } from './release-detail/IssuesSection';
@@ -57,6 +58,9 @@ export default function ReleaseDetailPage() {
     gitlabMatch,
     matchedMilestone,
     branchState,
+    releaseBranchName,
+    defaultBranch,
+    createBranchMutation,
     milestoneMRs,
     isLoadingIssues,
     releaseIssues,
@@ -121,6 +125,9 @@ export default function ReleaseDetailPage() {
     direction: 'left',
   });
   const [handleHovered, setHandleHovered] = useState(false);
+
+  // Create-branch confirm dialog state (D-15/D-16 — dialog closes only on success)
+  const [createBranchOpen, setCreateBranchOpen] = useState(false);
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -281,6 +288,11 @@ export default function ReleaseDetailPage() {
             gitlabMatch={gitlabMatch}
             matchedMilestone={matchedMilestone}
             branchState={branchState}
+            defaultBranch={defaultBranch}
+            onCreateBranch={() => {
+              createBranchMutation.reset();
+              setCreateBranchOpen(true);
+            }}
             milestoneMRsLoaded={!!milestoneMRs}
             labelCoverage={labelCoverage}
             mrStateCounts={mrStateCounts}
@@ -316,6 +328,25 @@ export default function ReleaseDetailPage() {
             isSaveDisabled={isSaving || !editName.trim() || !isEditDirty || isMilestoneTitleInvalid}
             onCancel={cancelEditing}
             onSave={handleSave}
+          />
+
+          {/* Create-branch confirm dialog — closes only on success (D-15/D-16) */}
+          <CreateBranchDialog
+            open={createBranchOpen}
+            onOpenChange={setCreateBranchOpen}
+            branchName={releaseBranchName ?? ''}
+            defaultBranch={defaultBranch ?? ''}
+            isPending={createBranchMutation.isPending}
+            errorMessage={
+              createBranchMutation.error instanceof Error
+                ? createBranchMutation.error.message
+                : null
+            }
+            onConfirm={() =>
+              createBranchMutation.mutate(undefined, {
+                onSuccess: () => setCreateBranchOpen(false),
+              })
+            }
           />
         </div>
       )}
