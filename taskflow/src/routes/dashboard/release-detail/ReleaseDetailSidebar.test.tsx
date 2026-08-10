@@ -35,6 +35,8 @@ function renderSidebar(overrides: { branchState: BranchState } & Record<string, 
       version={makeVersion()}
       gitlabMatch={noneMatch}
       matchedMilestone={null}
+      defaultBranch={null}
+      onCreateBranch={() => {}}
       milestoneMRsLoaded={false}
       labelCoverage={null}
       mrStateCounts={{ merged: 0, opened: 0, closed: 0 }}

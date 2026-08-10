@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import {
+  createBranch,
   fetchBranch,
   fetchMilestoneMRs,
   fetchProject,
@@ -39,6 +40,7 @@ import {
 export function useReleaseDetail(versionId: string | undefined) {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
+  const queryClient = useQueryClient();
 
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
 
@@ -105,7 +107,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // Derive the release branch name from the matched milestone's version component (D-09).
   const releaseBranchName = deriveReleaseBranchName(matchedMilestone?.title);
 
-  // Fetch the project's default branch (D-14 — no hardcoded 'main' fallback).
+  // Fetch the project's default branch (D-14 — never a hardcoded fallback branch name).
   const { data: project } = useQuery({
     queryKey: ['gitlab-project', activeGitlabProject],
     queryFn: () => fetchProject(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
@@ -133,6 +135,32 @@ export function useReleaseDetail(versionId: string | undefined) {
     hasMatchedMilestone: matchedMilestone !== null,
     milestoneTitle: matchedMilestone?.title ?? null,
     branchExists: branchResult?.exists,
+  });
+
+  // Create the release branch off the project's fetched default_branch (D-14, D-22).
+  // No optimistic update, no success notification (D-15) — invalidate on success and let both the
+  // detail-view branch query and the Releases-list indicator re-fetch from the server.
+  const createBranchMutation = useMutation({
+    mutationFn: () => {
+      if (!releaseBranchName || !defaultBranch) {
+        throw new Error('Branch name or default branch unavailable');
+      }
+      return createBranch(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        releaseBranchName,
+        defaultBranch,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['gitlab-branch', activeGitlabProject, releaseBranchName],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['gitlab-release-branches', activeGitlabProject],
+      });
+    },
   });
 
   // Ancestor-filtered windowed milestone list (D-06/D-07) — reused by Plan 88-06's
@@ -216,6 +244,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     branchState,
     releaseBranchName,
     defaultBranch,
+    createBranchMutation,
     ownWindowMilestones,
     fixVersionIssues,
     isLoadingIssues,

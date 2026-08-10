@@ -9,6 +9,32 @@ import { MetaRow } from './MetaRow';
 import type { BranchState } from './releaseBranch';
 import type { LabelCoverage } from './releaseSummaries';
 
+// Shared trigger for the release-branch creation action — kept as one
+// component so the button copy is authored exactly once; each MetaRow call
+// site below supplies its own literal disabled-reason title (D-10/D-11/D-14).
+function BranchCreateButton({
+  disabled,
+  title,
+  onClick,
+}: {
+  disabled?: boolean;
+  title?: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1.5 text-xs h-7"
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
+    >
+      Create branch
+    </Button>
+  );
+}
+
 interface ReleaseDetailSidebarProps {
   width: number;
   isDragging: boolean;
@@ -20,6 +46,8 @@ interface ReleaseDetailSidebarProps {
   gitlabMatch: ReleaseMatch;
   matchedMilestone: GitLabMilestone | null;
   branchState: BranchState;
+  defaultBranch: string | null;
+  onCreateBranch: () => void;
   milestoneMRsLoaded: boolean;
   labelCoverage: LabelCoverage | null;
   mrStateCounts: { merged: number; opened: number; closed: number };
@@ -41,6 +69,8 @@ export function ReleaseDetailSidebar({
   gitlabMatch,
   matchedMilestone: _matchedMilestone,
   branchState,
+  defaultBranch,
+  onCreateBranch,
   milestoneMRsLoaded,
   labelCoverage,
   mrStateCounts,
@@ -145,46 +175,72 @@ export function ReleaseDetailSidebar({
         </MetaRow>
 
         <MetaRow label="Release Branch">
-          {branchState.kind === 'blocked-no-milestone' ? (
-            <span className="text-muted-foreground" data-testid="branch-status-blocked">
-              Create the milestone first
-            </span>
-          ) : branchState.kind === 'unresolvable' ? (
-            <span
-              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-              data-testid="branch-status-unresolvable"
-            >
-              <AlertTriangle className="size-3" />
-              Branch name can't be derived from this milestone title
-            </span>
-          ) : branchState.kind === 'invalid-ref' ? (
-            <span
-              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-              title={`Invalid git ref: ${branchState.branchName}`}
-              data-testid="branch-status-invalid-ref"
-            >
-              <AlertTriangle className="size-3" />
-              Branch name can't be derived from this milestone title
-            </span>
-          ) : branchState.kind === 'loading' ? (
-            <span className="text-muted-foreground">Loading...</span>
-          ) : branchState.kind === 'exists' ? (
-            <span
-              className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
-              data-testid="branch-status-exists"
-            >
-              <Check className="size-3" />
-              <span className="font-mono text-xs">{branchState.branchName}</span>
-            </span>
-          ) : (
-            <span
-              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-              data-testid="branch-status-missing"
-            >
-              <AlertTriangle className="size-3" />
-              No release branch
-            </span>
-          )}
+          <span className="flex items-center justify-between gap-2">
+            {branchState.kind === 'blocked-no-milestone' ? (
+              <span className="text-muted-foreground" data-testid="branch-status-blocked">
+                Create the milestone first
+              </span>
+            ) : branchState.kind === 'unresolvable' ? (
+              <span
+                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                data-testid="branch-status-unresolvable"
+              >
+                <AlertTriangle className="size-3" />
+                Branch name can't be derived from this milestone title
+              </span>
+            ) : branchState.kind === 'invalid-ref' ? (
+              <span
+                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                title={`Invalid git ref: ${branchState.branchName}`}
+                data-testid="branch-status-invalid-ref"
+              >
+                <AlertTriangle className="size-3" />
+                Branch name can't be derived from this milestone title
+              </span>
+            ) : branchState.kind === 'loading' ? (
+              <span className="text-muted-foreground">Loading...</span>
+            ) : branchState.kind === 'exists' ? (
+              <span
+                className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
+                data-testid="branch-status-exists"
+              >
+                <Check className="size-3" />
+                <span className="font-mono text-xs">{branchState.branchName}</span>
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                data-testid="branch-status-missing"
+              >
+                <AlertTriangle className="size-3" />
+                No release branch
+              </span>
+            )}
+            {branchState.kind === 'missing' &&
+              (defaultBranch ? (
+                <BranchCreateButton onClick={onCreateBranch} />
+              ) : (
+                <BranchCreateButton
+                  disabled
+                  title="Project default branch not loaded yet"
+                  onClick={onCreateBranch}
+                />
+              ))}
+            {branchState.kind === 'blocked-no-milestone' && (
+              <BranchCreateButton
+                disabled
+                title="Create the milestone first"
+                onClick={onCreateBranch}
+              />
+            )}
+            {(branchState.kind === 'unresolvable' || branchState.kind === 'invalid-ref') && (
+              <BranchCreateButton
+                disabled
+                title="Branch name can't be derived from this milestone title"
+                onClick={onCreateBranch}
+              />
+            )}
+          </span>
         </MetaRow>
 
         <MetaRow label="MR Labels">
