@@ -480,6 +480,80 @@ describe('release-row drift indicators (D-17/D-18/D-19)', () => {
     expect(icon.getAttribute('title')).toBe('No release branch');
   });
 
+  it('does not show the missing-branch indicator while the branch query is still in flight', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
+      {
+        id: 1,
+        iid: 1,
+        title: '33.5.0 (21.07.2026)',
+        description: null,
+        start_date: null,
+        due_date: '2026-07-21',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'exact',
+      candidateName: '33.5.0 (21.07.2026)',
+      candidateUrl: 'https://gitlab.example.com/milestone/1',
+    });
+
+    // Never resolves — simulates an in-flight query.
+    vi.mocked(fetchProjectBranches).mockReturnValue(new Promise(() => {}));
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText('v33.5.0');
+    expect(screen.queryByTestId('row-missing-branch')).toBeNull();
+  });
+
+  it('shows a GitLab-unavailable chip and hides the missing-branch indicator when the branch query errors', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
+      {
+        id: 1,
+        iid: 1,
+        title: '33.5.0 (21.07.2026)',
+        description: null,
+        start_date: null,
+        due_date: '2026-07-21',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'exact',
+      candidateName: '33.5.0 (21.07.2026)',
+      candidateUrl: 'https://gitlab.example.com/milestone/1',
+    });
+
+    vi.mocked(fetchProjectBranches).mockRejectedValue(new Error('boom'));
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText('v33.5.0');
+    expect(screen.queryByTestId('row-missing-branch')).toBeNull();
+    await screen.findByTestId('branches-error-chip');
+  });
+
   it('hides the missing-branch indicator when the derived branch name is present in the fetched set', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);

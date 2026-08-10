@@ -187,7 +187,11 @@ export default function ReleasesTab() {
   // row. Never a per-row batch-query-hook call (that pattern exists a few
   // lines below only because Jira issue counts have no batch endpoint) and never an
   // unfiltered all-branches fetch.
-  const { data: releaseBranches } = useQuery({
+  const {
+    data: releaseBranches,
+    isSuccess: branchesLoaded,
+    isError: branchesError,
+  } = useQuery({
     queryKey: ['gitlab-release-branches', activeGitlabProject],
     queryFn: () =>
       fetchProjectBranches(
@@ -243,7 +247,10 @@ export default function ReleasesTab() {
       const milestoneMissing = bestMatch.type === 'none';
       const derived =
         bestMatch.type === 'none' ? null : deriveReleaseBranchName(bestMatch.candidateName);
-      const branchMissing = derived !== null && !releaseBranchNames.has(derived);
+      // CR-01: the drift signal fires only on confirmed absence, never on an
+      // in-flight or errored branch query — a false "no branch" reads as real
+      // drift and would send the user chasing a branch that already exists.
+      const branchMissing = branchesLoaded && derived !== null && !releaseBranchNames.has(derived);
 
       return {
         version,
@@ -297,6 +304,15 @@ export default function ReleasesTab() {
           <span
             className="text-xs text-amber-600 dark:text-amber-400"
             title="GitLab milestone data unavailable — links may not appear"
+          >
+            GitLab unavailable
+          </span>
+        )}
+        {branchesError && (
+          <span
+            className="text-xs text-amber-600 dark:text-amber-400"
+            title="GitLab branch data unavailable — missing-branch warnings are hidden"
+            data-testid="branches-error-chip"
           >
             GitLab unavailable
           </span>
