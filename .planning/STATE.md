@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: executing
-last_updated: "2026-08-10T12:36:37.133Z"
+last_updated: "2026-08-10T12:46:08.249Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 87 (release-detail-decomposition) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-10
 
-Progress: [██░░░░░░░░] 17%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [██░░░░░░░░] 17%
 | 90 | MRFIX-01..04 | Per-MR retarget + assign-milestone, optimistic, independently retryable, no confirm/warning |
 | 91 | MERGE-01..03 | Post-release merge-back check, advisory verdict with manual override |
 | Phase 87 P01 | 25min | 3 tasks | 3 files |
+| Phase 87 P02 | 20min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - Merge-back detection is layered and advisory: tracking-MR state first, `repository/compare` content-diff fallback, `merged:true` as positive-only fast path — never trust `merged:false` alone (GitLab #36963 squash/rebase false-negative)
 - Channel C (branch-target MR discovery) must use a fully-paginated fetch, never `fetchRecentProjectMRs`'s 100-cap — this bug class has already recurred twice in this codebase
 - [Phase 87]: fetchVersionIssueCounts/fetchFixVersionIssues moved to services/jira.ts behind apiFetch (D-12a) — Adopts the file's existing 15s AbortController timeout and 401 markDisconnected convention; user-approved deliberate behavior delta, no other change to fetch contracts
+- [Phase ?]: Phase 87-02: hook return object destructured explicitly in page shell to preserve byte-identical JSX variable names
 
 ### Pending Todos
 
@@ -99,7 +101,7 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-10T12:36:28.556Z
+Last session: 2026-08-10T12:44:54.528Z
 Stopped at: Phase 87 context gathered
 Resume file: None
 

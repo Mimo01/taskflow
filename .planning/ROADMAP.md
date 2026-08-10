@@ -58,7 +58,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 87-02-PLAN.md — `useReleaseDetail.ts` (6 queries verbatim) and rewire the page off its inline data layer
+- [x] 87-02-PLAN.md — `useReleaseDetail.ts` (6 queries verbatim) and rewire the page off its inline data layer
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -206,7 +206,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. Release Detail Decomposition | 1/6 | In Progress|  |
+| 87. Release Detail Decomposition | 2/6 | In Progress|  |
 | 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
