@@ -1825,6 +1825,77 @@ describe('gitlab service', () => {
         createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
       ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
     });
+
+    it('WR-11 Test A: surfaces GitLab body.message on a 403 (protected-branch rule)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          message: 'You are not allowed to create protected branches on this project.',
+        }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+        message: 'You are not allowed to create protected branches on this project.',
+      });
+    });
+
+    it('WR-11 Test B: surfaces GitLab body.message on a 401', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ message: '401 Unauthorized' }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toMatchObject({
+        status: 401,
+        source: 'gitlab',
+        message: '401 Unauthorized',
+      });
+    });
+
+    it('WR-11 Test C: falls back to the generic message on 403 with an unparsable body', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => {
+          throw new Error('not json');
+        },
+      } as unknown as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+        message: 'Failed to create branch',
+      });
+    });
+
+    it('WR-11 Test E: the thrown message never contains the token value or PRIVATE-TOKEN', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          message: 'You are not allowed to create protected branches on this project.',
+        }),
+      } as Response);
+
+      try {
+        await createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop');
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        const message = (err as Error).message;
+        expect(message).not.toContain(TOKEN);
+        expect(message).not.toContain('PRIVATE-TOKEN');
+      }
+    });
   });
 
   describe('createMilestone', () => {
@@ -1911,6 +1982,39 @@ describe('gitlab service', () => {
       await expect(
         createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
       ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+
+    it('WR-11 Test D: joins an array body.message on a 403', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ message: ['Title has already been taken', 'is invalid'] }),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+        message: 'Title has already been taken, is invalid',
+      });
+    });
+
+    it('WR-11 Test E: the thrown message never contains the token value or PRIVATE-TOKEN', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ message: ['Title has already been taken', 'is invalid'] }),
+      } as Response);
+
+      try {
+        await createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        const message = (err as Error).message;
+        expect(message).not.toContain(TOKEN);
+        expect(message).not.toContain('PRIVATE-TOKEN');
+      }
     });
   });
 });

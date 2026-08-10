@@ -1050,9 +1050,6 @@ export async function createBranch(
   }
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to create branch', response.status, 'gitlab');
-    }
     // Widened vs. updateMilestone's narrower typing (Pitfall 3): GitLab's
     // validation errors commonly arrive as message: string[] (e.g. duplicate
     // branch), which would render as [object Object] if left un-joined.
@@ -1060,6 +1057,16 @@ export async function createBranch(
       message?: string | string[];
     } | null;
     const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    if (response.status === 401 || response.status === 403) {
+      // WR-11: 403 is the single most likely failure mode for this write op
+      // (protected-branch rules, missing `api` scope, role restrictions), and
+      // GitLab's body carries the only actionable text the user will ever see —
+      // D-15 forbids toasts, so the dialog is the sole error surface. Keep
+      // ApiError (not plain Error) so apiFetch's markDisconnected behaviour on
+      // 401 is preserved. Message is composed ONLY from body.message or the
+      // fixed fallback literal — never the token, header, or request URL.
+      throw new ApiError(msg ?? 'Failed to create branch', response.status, 'gitlab');
+    }
     throw new Error(`Failed to create branch: ${msg ?? `status ${response.status}`}`);
   }
 
@@ -1107,15 +1114,22 @@ export async function createMilestone(
   }
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to create milestone', response.status, 'gitlab');
-    }
     // Widened vs. updateMilestone's narrower typing (Pitfall 3): a duplicate-title
     // rejection commonly arrives as message: string[], not a bare string.
     const body = (await response.json().catch(() => null)) as {
       message?: string | string[];
     } | null;
     const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    if (response.status === 401 || response.status === 403) {
+      // WR-11: 403 is the single most likely failure mode for this write op
+      // (protected-branch rules, missing `api` scope, role restrictions), and
+      // GitLab's body carries the only actionable text the user will ever see —
+      // D-15 forbids toasts, so the dialog is the sole error surface. Keep
+      // ApiError (not plain Error) so apiFetch's markDisconnected behaviour on
+      // 401 is preserved. Message is composed ONLY from body.message or the
+      // fixed fallback literal — never the token, header, or request URL.
+      throw new ApiError(msg ?? 'Failed to create milestone', response.status, 'gitlab');
+    }
     throw new Error(`Failed to create milestone: ${msg ?? `status ${response.status}`}`);
   }
 
