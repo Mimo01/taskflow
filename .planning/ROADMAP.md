@@ -90,7 +90,7 @@ Plans:
   3. User sees when no GitLab milestone matches the Jira fix version, and can create one (format `X.Y.Z (DD.MM.YYYY)`, e.g. `33.5.0 (21.07.2026)` — corrected from `1.1.0` by CONTEXT D-01) behind a confirm dialog that lists recent milestones for reference
   4. A duplicate milestone title is detected and blocked before creation, with a clear message
 
-**Plans:** 6 plans
+**Plans:** 11 plans (6 original + 5 gap-closure)
 Plans:
 **Wave 1**
 
@@ -109,6 +109,25 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 88-06-PLAN.md — `CreateMilestoneDialog` (format enforcement, recent-milestone reference list, duplicate blocking) + `createMilestone` mutation (blocking human-verify checkpoint)
+
+**Gap closure** *(from 88-VERIFICATION.md — CR-01/CR-02/CR-03 blockers + adjacent warnings + un-waived live-GitLab checkpoints)*
+
+Gap Wave 1
+
+- [ ] 88-07-PLAN.md — CR-01: gate the Releases-list missing-branch indicator on query success + branch-fetch-error chip (also WR-04, WR-06)
+- [ ] 88-08-PLAN.md — CR-03 contract: `check-failed` `BranchState` variant + `branchCheckFailed` in `resolveBranchState` (also WR-07)
+
+Gap Wave 2 *(blocked on 88-08)*
+
+- [ ] 88-09-PLAN.md — CR-02 project-granular milestone invalidation + CR-03 hook/sidebar wiring with Retry (also WR-10 mutation guards)
+
+Gap Wave 3 *(blocked on 88-09)*
+
+- [ ] 88-10-PLAN.md — WR-11 body-first 401/403 error classification + WR-01 valid title prefill + WR-03 in-flight dismissal lock
+
+Gap Wave 4 *(blocked on 88-07..88-10)*
+
+- [ ] 88-11-PLAN.md — Live-GitLab verification: un-waives 88-05-T3 and 88-06-T3, restricted-PAT error paths, D-18 filter semantics (blocking human-verify checkpoints)
 
 **UI hint**: yes
 **Probe**: yes — do a quick manual scan of `GET /projects/:id/milestones` for existing whitespace/near-duplicate titles that could confuse exact-title matching (RELMS-04). Note: permission/role gating is explicitly OUT OF SCOPE (team is all Developer+); a 403 surfaces as a normal `ApiError` and needs no probe
