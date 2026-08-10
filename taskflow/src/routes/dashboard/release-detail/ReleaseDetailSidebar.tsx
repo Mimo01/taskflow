@@ -6,6 +6,7 @@ import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { MetaRow } from './MetaRow';
+import type { BranchState } from './releaseBranch';
 import type { LabelCoverage } from './releaseSummaries';
 
 interface ReleaseDetailSidebarProps {
@@ -18,6 +19,7 @@ interface ReleaseDetailSidebarProps {
   version: JiraFixVersion;
   gitlabMatch: ReleaseMatch;
   matchedMilestone: GitLabMilestone | null;
+  branchState: BranchState;
   milestoneMRsLoaded: boolean;
   labelCoverage: LabelCoverage | null;
   mrStateCounts: { merged: number; opened: number; closed: number };
@@ -38,6 +40,7 @@ export function ReleaseDetailSidebar({
   version,
   gitlabMatch,
   matchedMilestone: _matchedMilestone,
+  branchState,
   milestoneMRsLoaded,
   labelCoverage,
   mrStateCounts,
@@ -137,6 +140,49 @@ export function ReleaseDetailSidebar({
             >
               <AlertTriangle className="size-3" />
               No milestone matched
+            </span>
+          )}
+        </MetaRow>
+
+        <MetaRow label="Release Branch">
+          {branchState.kind === 'blocked-no-milestone' ? (
+            <span className="text-muted-foreground" data-testid="branch-status-blocked">
+              Create the milestone first
+            </span>
+          ) : branchState.kind === 'unresolvable' ? (
+            <span
+              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+              data-testid="branch-status-unresolvable"
+            >
+              <AlertTriangle className="size-3" />
+              Branch name can't be derived from this milestone title
+            </span>
+          ) : branchState.kind === 'invalid-ref' ? (
+            <span
+              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+              title={`Invalid git ref: ${branchState.branchName}`}
+              data-testid="branch-status-invalid-ref"
+            >
+              <AlertTriangle className="size-3" />
+              Branch name can't be derived from this milestone title
+            </span>
+          ) : branchState.kind === 'loading' ? (
+            <span className="text-muted-foreground">Loading...</span>
+          ) : branchState.kind === 'exists' ? (
+            <span
+              className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
+              data-testid="branch-status-exists"
+            >
+              <Check className="size-3" />
+              <span className="font-mono text-xs">{branchState.branchName}</span>
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+              data-testid="branch-status-missing"
+            >
+              <AlertTriangle className="size-3" />
+              No release branch
             </span>
           )}
         </MetaRow>
