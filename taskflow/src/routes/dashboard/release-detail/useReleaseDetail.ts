@@ -118,7 +118,11 @@ export function useReleaseDetail(versionId: string | undefined) {
   const defaultBranch = project?.default_branch ?? null;
 
   // Check whether the derived release branch already exists.
-  const { data: branchResult } = useQuery({
+  const {
+    data: branchResult,
+    isError: branchCheckFailed,
+    refetch: refetchBranchQuery,
+  } = useQuery({
     queryKey: ['gitlab-branch', activeGitlabProject, releaseBranchName],
     queryFn: () =>
       fetchBranch(
@@ -132,24 +136,38 @@ export function useReleaseDetail(versionId: string | undefined) {
     staleTime: 5 * 60_000,
   });
 
+  // CR-03: `fetchBranch` throws on 401/403/500/timeout, so without this signal a
+  // failed check is indistinguishable from in-flight (`branchExists === undefined`
+  // covers both) and pins the UI at 'Loading…' forever with no retry.
   const branchState = resolveBranchState({
     hasMatchedMilestone: matchedMilestone !== null,
     milestoneTitle: matchedMilestone?.title ?? null,
     branchExists: branchResult?.exists,
+    branchCheckFailed,
   });
+
+  // CR-03: wrap `refetch` so callers (the sidebar's Retry button) need no arguments.
+  const refetchBranchCheck = () => {
+    void refetchBranchQuery();
+  };
 
   // Create the release branch off the project's fetched default_branch (D-14, D-22).
   // No optimistic update, no success notification (D-15) — invalidate on success and let both the
   // detail-view branch query and the Releases-list indicator re-fetch from the server.
   const createBranchMutation = useMutation({
     mutationFn: () => {
+      // WR-10: `?? 0` would POST to `/api/v4/projects/0/repository/branches` — an
+      // unintended, possibly unauthorized project — instead of failing loudly.
+      if (!activeGitlabProject || !gitlabBaseUrl || !gitlabToken) {
+        throw new Error('GitLab project not configured');
+      }
       if (!releaseBranchName || !defaultBranch) {
         throw new Error('Branch name or default branch unavailable');
       }
       return createBranch(
-        gitlabBaseUrl ?? '',
-        gitlabToken ?? '',
-        activeGitlabProject ?? 0,
+        gitlabBaseUrl,
+        gitlabToken,
+        activeGitlabProject,
         releaseBranchName,
         defaultBranch,
       );
@@ -172,25 +190,35 @@ export function useReleaseDetail(versionId: string | undefined) {
   // resolveGitLabMatch matches by date, so a dateless milestone would be created
   // and would still render as unmatched. The milestone body carries only title
   // and due_date (D-04). No optimistic write, no rollback, no success notice
-  // (D-15) — invalidate the EXISTING windowed milestone key on success (D-05,
-  // byte-identical to the read query above) plus the branch-derivation query
-  // so the newly matched milestone's derived branch name re-resolves.
+  // (D-15).
+  //
+  // CR-02: invalidate at PROJECT granularity, not the four-element windowed
+  // key. TanStack Query invalidates by key prefix; `ReleasesTab` caches the
+  // same 'gitlab-milestones' prefix under a DIFFERENT window (min..max of all
+  // fix version dates ±7d) than this page's window (this version's date
+  // ±7d), so a window-specific key here can never reach the list's cache
+  // entry — the list keeps showing "No GitLab link" until its 5-minute
+  // staleTime lapses. `['gitlab-milestones', activeGitlabProject]` covers
+  // every window variant. D-05's "the windowed READ query key must stay
+  // byte-identical" constraint applies only to the read query above (lines
+  // 86-92) and is unaffected by this change.
   const createMilestoneMutation = useMutation({
     mutationFn: (title: string) => {
+      // WR-10: `?? 0` would POST to `/api/v4/projects/0/milestones` and also
+      // silently empties `ownProjectMilestones`, disabling duplicate detection
+      // for every title.
+      if (!activeGitlabProject || !gitlabBaseUrl || !gitlabToken) {
+        throw new Error('GitLab project not configured');
+      }
       if (!version?.releaseDate) throw new Error('Release date required');
-      return createMilestone(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0, {
+      return createMilestone(gitlabBaseUrl, gitlabToken, activeGitlabProject, {
         title,
         due_date: version.releaseDate,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          'gitlab-milestones',
-          activeGitlabProject,
-          milestoneWindow?.from,
-          milestoneWindow?.to,
-        ],
+        queryKey: ['gitlab-milestones', activeGitlabProject],
       });
       queryClient.invalidateQueries({
         queryKey: ['gitlab-branch', activeGitlabProject],
@@ -273,6 +301,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     gitlabMatch,
     matchedMilestone,
     branchState,
+    refetchBranchCheck,
     releaseBranchName,
     defaultBranch,
     createBranchMutation,
