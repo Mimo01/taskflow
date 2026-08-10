@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import {
+  fetchBranch,
   fetchMilestoneMRs,
+  fetchProject,
   fetchProjectMilestonesInRange,
   fetchRecentProjectMRs,
 } from '@/services/gitlab';
@@ -9,6 +11,8 @@ import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { deriveReleaseBranchName, resolveBranchState } from './releaseBranch';
+import { ownProjectMilestones } from './releaseMilestone';
 import {
   buildWrongMilestoneMap,
   computeHasStoryPoints,
@@ -98,6 +102,43 @@ export function useReleaseDetail(versionId: string | undefined) {
   // Match GitLab milestone to this fix version by date.
   const { gitlabMatch, matchedMilestone } = resolveGitLabMatch(version?.releaseDate, milestones);
 
+  // Derive the release branch name from the matched milestone's version component (D-09).
+  const releaseBranchName = deriveReleaseBranchName(matchedMilestone?.title);
+
+  // Fetch the project's default branch (D-14 — no hardcoded 'main' fallback).
+  const { data: project } = useQuery({
+    queryKey: ['gitlab-project', activeGitlabProject],
+    queryFn: () => fetchProject(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
+    staleTime: 5 * 60_000,
+  });
+  const defaultBranch = project?.default_branch ?? null;
+
+  // Check whether the derived release branch already exists.
+  const { data: branchResult } = useQuery({
+    queryKey: ['gitlab-branch', activeGitlabProject, releaseBranchName],
+    queryFn: () =>
+      fetchBranch(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        releaseBranchName ?? '',
+      ),
+    enabled:
+      !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && releaseBranchName !== null,
+    staleTime: 5 * 60_000,
+  });
+
+  const branchState = resolveBranchState({
+    hasMatchedMilestone: matchedMilestone !== null,
+    milestoneTitle: matchedMilestone?.title ?? null,
+    branchExists: branchResult?.exists,
+  });
+
+  // Ancestor-filtered windowed milestone list (D-06/D-07) — reused by Plan 88-06's
+  // create-milestone dialog for its reference list and duplicate check.
+  const ownWindowMilestones = ownProjectMilestones(milestones ?? [], activeGitlabProject ?? 0);
+
   // Fetch Jira issues for this fix version
   const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
     queryKey: ['jira-fixversion-issues', versionId, storyPointsFieldKey],
@@ -172,6 +213,10 @@ export function useReleaseDetail(versionId: string | undefined) {
     milestoneWindow,
     gitlabMatch,
     matchedMilestone,
+    branchState,
+    releaseBranchName,
+    defaultBranch,
+    ownWindowMilestones,
     fixVersionIssues,
     isLoadingIssues,
     milestoneMRs,
