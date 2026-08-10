@@ -83,37 +83,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | TBD | Pending |
-| RELBR-01 | TBD | Pending |
-| RELBR-02 | TBD | Pending |
-| RELBR-03 | TBD | Pending |
-| RELBR-04 | TBD | Pending |
-| RELBR-05 | TBD | Pending |
-| RELMS-01 | TBD | Pending |
-| RELMS-02 | TBD | Pending |
-| RELMS-03 | TBD | Pending |
-| RELMS-04 | TBD | Pending |
-| DRIFT-01 | TBD | Pending |
-| DRIFT-02 | TBD | Pending |
-| DRIFT-03 | TBD | Pending |
-| DRIFT-04 | TBD | Pending |
-| DRIFT-05 | TBD | Pending |
-| DRIFT-06 | TBD | Pending |
-| DRIFT-07 | TBD | Pending |
-| DRIFT-08 | TBD | Pending |
-| DRIFT-09 | TBD | Pending |
-| MRFIX-01 | TBD | Pending |
-| MRFIX-02 | TBD | Pending |
-| MRFIX-03 | TBD | Pending |
-| MRFIX-04 | TBD | Pending |
-| MERGE-01 | TBD | Pending |
-| MERGE-02 | TBD | Pending |
-| MERGE-03 | TBD | Pending |
+| FOUND-01 | Phase 87 | Mapped |
+| RELBR-01 | Phase 88 | Mapped |
+| RELBR-02 | Phase 88 | Mapped |
+| RELBR-03 | Phase 88 | Mapped |
+| RELBR-04 | Phase 88 | Mapped |
+| RELBR-05 | Phase 88 | Mapped |
+| RELMS-01 | Phase 88 | Mapped |
+| RELMS-02 | Phase 88 | Mapped |
+| RELMS-03 | Phase 88 | Mapped |
+| RELMS-04 | Phase 88 | Mapped |
+| DRIFT-01 | Phase 89 | Mapped |
+| DRIFT-02 | Phase 89 | Mapped |
+| DRIFT-03 | Phase 89 | Mapped |
+| DRIFT-04 | Phase 89 | Mapped |
+| DRIFT-05 | Phase 89 | Mapped |
+| DRIFT-06 | Phase 89 | Mapped |
+| DRIFT-07 | Phase 89 | Mapped |
+| DRIFT-08 | Phase 89 | Mapped |
+| DRIFT-09 | Phase 89 | Mapped |
+| MRFIX-01 | Phase 90 | Mapped |
+| MRFIX-02 | Phase 90 | Mapped |
+| MRFIX-03 | Phase 90 | Mapped |
+| MRFIX-04 | Phase 90 | Mapped |
+| MERGE-01 | Phase 91 | Mapped |
+| MERGE-02 | Phase 91 | Mapped |
+| MERGE-03 | Phase 91 | Mapped |
 
 **Coverage:**
 - v1.14 requirements: 26 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26/26 ✓
+- Unmapped: 0 ✓
 
 ## Key Decisions Recorded During Definition
 
@@ -128,4 +128,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-08-10*
-*Last updated: 2026-08-10 after initial definition*
+*Last updated: 2026-08-10 after roadmap creation (Phases 87-91)*
