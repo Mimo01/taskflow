@@ -27,7 +27,7 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 87: Release Detail Decomposition** - `ReleaseDetailPage.tsx` (1518 LOC) split into a `release-detail/` folder mirroring `issue-detail/`, zero user-visible change
+- [x] **Phase 87: Release Detail Decomposition** - `ReleaseDetailPage.tsx` (1518 LOC) split into a `release-detail/` folder mirroring `issue-detail/`, zero user-visible change (completed 2026-08-10)
 - [ ] **Phase 88: Release Branch & Milestone Creation** - resolve/detect the release branch and GitLab milestone, create either behind a confirm dialog
 - [ ] **Phase 89: Three-Channel Drift Detection** - union Jira-linkage, GitLab-milestone, and branch-target MR discovery into one drift report (read-only)
 - [ ] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry
@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Release detail code lives in a `release-detail/` folder with one file per section/hook, matching the `issue-detail/` structure convention
   3. The full test suite (including release-detail-related tests) passes with zero regressions after decomposition
 
-**Plans:** 6 plans
+**Plans:** 6/6 plans complete
 Plans:
 **Wave 1**
 
@@ -206,7 +206,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. Release Detail Decomposition | 6/6 | Complete   | 2026-08-10 |
+| 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |

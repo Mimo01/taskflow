@@ -111,6 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MERGE-03 | Phase 91 | Mapped |
 
 **Coverage:**
+
 - v1.14 requirements: 26 total
 - Mapped to phases: 26/26 ✓
 - Unmapped: 0 ✓
