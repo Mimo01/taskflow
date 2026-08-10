@@ -70,7 +70,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 87-05-PLAN.md — Extract `ReleaseDetailSidebar` and lift edit state into `useEditRelease.ts`
+- [x] 87-05-PLAN.md — Extract `ReleaseDetailSidebar` and lift edit state into `useEditRelease.ts`
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
@@ -206,7 +206,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. Release Detail Decomposition | 4/6 | In Progress|  |
+| 87. Release Detail Decomposition | 5/6 | In Progress|  |
 | 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
