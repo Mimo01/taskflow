@@ -104,7 +104,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 88-05-PLAN.md — `CreateBranchDialog` + `createBranch` mutation + sidebar Create action (blocking human-verify checkpoint)
+- [x] 88-05-PLAN.md — `CreateBranchDialog` + `createBranch` mutation + sidebar Create action (blocking human-verify checkpoint)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -226,7 +226,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 4/6 | In Progress|  |
+| 88. Release Branch & Milestone Creation | 5/6 | In Progress|  |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
