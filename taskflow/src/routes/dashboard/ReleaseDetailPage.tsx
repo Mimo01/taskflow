@@ -16,6 +16,7 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
+import { CreateMilestoneDialog } from './release-detail/CreateMilestoneDialog';
 import { DescriptionsSection } from './release-detail/DescriptionsSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { IssuesSection } from './release-detail/IssuesSection';
@@ -61,6 +62,8 @@ export default function ReleaseDetailPage() {
     releaseBranchName,
     defaultBranch,
     createBranchMutation,
+    createMilestoneMutation,
+    ownWindowMilestones,
     milestoneMRs,
     isLoadingIssues,
     releaseIssues,
@@ -128,6 +131,9 @@ export default function ReleaseDetailPage() {
 
   // Create-branch confirm dialog state (D-15/D-16 — dialog closes only on success)
   const [createBranchOpen, setCreateBranchOpen] = useState(false);
+
+  // Create-milestone confirm dialog state (D-15/D-16 — dialog closes only on success)
+  const [createMilestoneOpen, setCreateMilestoneOpen] = useState(false);
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -293,6 +299,11 @@ export default function ReleaseDetailPage() {
               createBranchMutation.reset();
               setCreateBranchOpen(true);
             }}
+            onCreateMilestone={() => {
+              createMilestoneMutation.reset();
+              setCreateMilestoneOpen(true);
+            }}
+            canCreateMilestone={!!version.releaseDate}
             milestoneMRsLoaded={!!milestoneMRs}
             labelCoverage={labelCoverage}
             mrStateCounts={mrStateCounts}
@@ -345,6 +356,26 @@ export default function ReleaseDetailPage() {
             onConfirm={() =>
               createBranchMutation.mutate(undefined, {
                 onSuccess: () => setCreateBranchOpen(false),
+              })
+            }
+          />
+
+          {/* Create-milestone confirm dialog — closes only on success (D-15/D-16) */}
+          <CreateMilestoneDialog
+            open={createMilestoneOpen}
+            onOpenChange={setCreateMilestoneOpen}
+            releaseDate={version.releaseDate ?? null}
+            recentMilestones={ownWindowMilestones}
+            activeGitlabProject={activeGitlabProject ?? 0}
+            isPending={createMilestoneMutation.isPending}
+            errorMessage={
+              createMilestoneMutation.error instanceof Error
+                ? createMilestoneMutation.error.message
+                : null
+            }
+            onConfirm={(title) =>
+              createMilestoneMutation.mutate(title, {
+                onSuccess: () => setCreateMilestoneOpen(false),
               })
             }
           />
