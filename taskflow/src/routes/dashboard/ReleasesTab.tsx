@@ -244,7 +244,13 @@ export default function ReleasesTab() {
       // D-17/D-18/D-19: derive drift flags locally from the matched milestone
       // title. D-11 — an unparseable version in the title derives `null` and
       // shows no branch indicator (nothing is guessed).
-      const milestoneMissing = bestMatch.type === 'none';
+      // WR-04: matching is date-based (matchGitLabToFixVersion), so an undated
+      // version can never match and flagging it would duplicate the existing
+      // "No date set" badge; a historical released version whose milestone was
+      // closed or deleted dilutes the signal for the unreleased versions this
+      // indicator exists to police.
+      const milestoneMissing =
+        bestMatch.type === 'none' && !!version.releaseDate && !version.released;
       const derived =
         bestMatch.type === 'none' ? null : deriveReleaseBranchName(bestMatch.candidateName);
       // CR-01: the drift signal fires only on confirmed absence, never on an
@@ -515,12 +521,20 @@ export default function ReleasesTab() {
                       after them without a redesign */}
                     {milestoneMissing && (
                       <span title="No GitLab milestone" data-testid="row-missing-milestone">
-                        <AlertTriangle className="size-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                        <AlertTriangle
+                          aria-hidden="true"
+                          className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
+                        />
+                        <span className="sr-only">No GitLab milestone</span>
                       </span>
                     )}
                     {branchMissing && (
                       <span title="No release branch" data-testid="row-missing-branch">
-                        <AlertTriangle className="size-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                        <AlertTriangle
+                          aria-hidden="true"
+                          className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
+                        />
+                        <span className="sr-only">No release branch</span>
                       </span>
                     )}
 
