@@ -22,15 +22,12 @@ describe('CreateMilestoneDialog', () => {
       />,
     );
     expect(screen.getByText('Create GitLab milestone')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Create a milestone for this release. Recent milestones are listed below for reference.',
-      ),
-    ).toBeInTheDocument();
-    const input = screen.getByLabelText('Milestone version') as HTMLInputElement;
+    expect(screen.getByText('The date comes from the Jira release date.')).toBeInTheDocument();
+    const input = screen.getByLabelText('Version') as HTMLInputElement;
     // The user types only the version; the date is appended from Jira.
     expect(input.value).toBe('33.6.0');
     expect(screen.getByText('(21.07.2026)')).toBeInTheDocument();
+    // Composed-title preview
     expect(screen.getByText('33.6.0 (21.07.2026)')).toBeInTheDocument();
     expect(screen.queryByText('Version must be X.Y.Z, e.g. 33.5.0')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create milestone' })).toBeEnabled();
@@ -48,7 +45,7 @@ describe('CreateMilestoneDialog', () => {
         versionName="v33.6.0"
       />,
     );
-    const input = screen.getByLabelText('Milestone version') as HTMLInputElement;
+    const input = screen.getByLabelText('Version') as HTMLInputElement;
     expect(input.value).toBe('33.6.0');
   });
 
@@ -64,7 +61,7 @@ describe('CreateMilestoneDialog', () => {
         versionName="Backlog"
       />,
     );
-    const input = screen.getByLabelText('Milestone version') as HTMLInputElement;
+    const input = screen.getByLabelText('Version') as HTMLInputElement;
     expect(input.value).toBe('');
   });
 
@@ -83,12 +80,10 @@ describe('CreateMilestoneDialog', () => {
     // The version still prefills — it comes from the Jira version name, not the
     // date — but with no release date the title cannot be composed at all, so
     // submit is blocked and the reason is stated rather than left implicit.
-    const input = screen.getByLabelText('Milestone version') as HTMLInputElement;
+    const input = screen.getByLabelText('Version') as HTMLInputElement;
     expect(input.value).toBe('33.5.0');
     expect(
-      screen.getByText(
-        "This version has no Jira release date, so the milestone title can't be built.",
-      ),
+      screen.getByText("This version has no Jira release date, so the title can't be built."),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create milestone' })).toBeDisabled();
   });
@@ -142,7 +137,7 @@ describe('CreateMilestoneDialog', () => {
         versionName="33.5.0"
       />,
     );
-    const input = screen.getByLabelText('Milestone version');
+    const input = screen.getByLabelText('Version');
     await user.clear(input);
     await user.type(input, '1.1');
     expect(screen.getByText('Version must be X.Y.Z, e.g. 33.5.0')).toBeInTheDocument();
@@ -162,7 +157,7 @@ describe('CreateMilestoneDialog', () => {
         versionName="33.5.0"
       />,
     );
-    const input = screen.getByLabelText('Milestone version');
+    const input = screen.getByLabelText('Version');
     await user.clear(input);
     await user.type(input, '33.6.0');
     expect(screen.getByRole('button', { name: 'Create milestone' })).toBeEnabled();
@@ -181,15 +176,14 @@ describe('CreateMilestoneDialog', () => {
         versionName="33.5.0"
       />,
     );
-    const input = screen.getByLabelText('Milestone version');
+    const input = screen.getByLabelText('Version');
     await user.clear(input);
     await user.type(input, '33.5.0');
     expect(
       screen.getByText(
         (_, element) =>
           element?.tagName === 'P' &&
-          element.textContent ===
-            "A milestone named '33.5.0 (21.07.2026)' already exists in this project.",
+          element.textContent === "'33.5.0 (21.07.2026)' already exists in this project.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create milestone' })).toBeDisabled();
@@ -316,7 +310,7 @@ describe('CreateMilestoneDialog', () => {
         versionName="33.5.0"
       />,
     );
-    const input = screen.getByLabelText('Milestone version');
+    const input = screen.getByLabelText('Version');
     await user.clear(input);
     await user.type(input, '33.6.0');
     await user.click(screen.getByRole('button', { name: 'Create milestone' }));

@@ -200,7 +200,7 @@ describe('ReleasesTab', () => {
     renderWithQuery(<ReleasesTab />);
 
     await screen.findByText('v2.1.0');
-    expect(screen.getByText('No GitLab link')).toBeTruthy();
+    expect(screen.getByText('No GitLab milestone')).toBeTruthy();
   });
 
   it('shows No GitLab link when fix version has no releaseDate', async () => {
@@ -211,7 +211,7 @@ describe('ReleasesTab', () => {
     renderWithQuery(<ReleasesTab />);
 
     await screen.findByText('v2.0.0');
-    expect(screen.getByText('No GitLab link')).toBeTruthy();
+    expect(screen.getByText('No GitLab milestone')).toBeTruthy();
   });
 
   it('shows task count and completion status per fix version row', async () => {
@@ -478,6 +478,76 @@ describe('release-row drift indicators (D-17/D-18/D-19)', () => {
 
     const icon = await screen.findByTestId('row-missing-branch');
     expect(icon.getAttribute('title')).toBe('No release branch');
+  });
+
+  it('shows a green branch icon when the release branch exists', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
+      {
+        id: 1,
+        iid: 1,
+        title: '33.5.0 (21.07.2026)',
+        description: null,
+        start_date: null,
+        due_date: '2026-07-21',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'exact',
+      candidateName: '33.5.0 (21.07.2026)',
+      candidateUrl: 'https://gitlab.example.com/milestone/1',
+    });
+
+    vi.mocked(fetchProjectBranches).mockResolvedValue([
+      { name: 'release/33.5.0', merged: false, protected: false, default: false, web_url: '' },
+    ] as unknown as Awaited<ReturnType<typeof fetchProjectBranches>>);
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    const icon = await screen.findByTestId('row-branch-present');
+    expect(icon.getAttribute('title')).toBe('Release branch release/33.5.0');
+    expect(screen.queryByTestId('row-missing-branch')).not.toBeInTheDocument();
+  });
+
+  it('shows no branch indicator at all when no milestone matched', async () => {
+    // The branch name is derived from the milestone title, so with no milestone
+    // there is no branch to have an opinion about — neither present nor missing.
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    const { fetchProjectMilestonesInRange, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'none',
+      candidateName: '',
+      candidateUrl: '',
+    });
+
+    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    // The merged milestone warning carries the whole signal on its own.
+    await screen.findByTestId('row-missing-milestone');
+    expect(screen.queryByTestId('row-missing-branch')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('row-branch-present')).not.toBeInTheDocument();
+    // And the old duplicate muted label is gone.
+    expect(screen.queryByTestId('gitlab-link-none')).not.toBeInTheDocument();
   });
 
   it('does not show the missing-branch indicator for a RELEASED version', async () => {
