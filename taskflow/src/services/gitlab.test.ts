@@ -740,7 +740,9 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(/^Failed to fetch/);
+      await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(
+        /^Failed to fetch/,
+      );
     });
 
     it('rejects with "Cannot reach" when the underlying fetch throws', async () => {
