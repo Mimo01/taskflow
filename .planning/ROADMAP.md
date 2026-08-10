@@ -144,7 +144,14 @@ Gap Wave 4 *(blocked on 88-07..88-10)*
   3. Merged, closed, and draft MRs are classified separately and never inflate the drift count
   4. The release row shows an aggregate drift count reflecting the union of all flagged MRs
 
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
+
+Plans:
+- [ ] 89-01-PLAN.md — Probe A2 + widen GitLabMR + three fully-paginated MR fetchers
+- [ ] 89-02-PLAN.md — driftDetection.ts: union with provenance, three predicates, both counts
+- [ ] 89-03-PLAN.md — Wire Channels A/B/C into useReleaseDetail; delete fetchRecentProjectMRs + buildWrongMilestoneMap
+- [ ] 89-04-PLAN.md — Releases-list aggregate drift count (one project-wide open-MR fetch)
+- [ ] 89-05-PLAN.md — MrDriftSection (absorbs UnmatchedMRsSection) + re-sourced Issues MR cell
 **UI hint**: yes
 **Probe**: yes — verify whether any release branch in the team's GitLab history has ever carried >100 MRs targeting it (or build a synthetic >100-MR fixture) so the fully-paginated Channel C fetch is proven complete, not just theoretically correct
 

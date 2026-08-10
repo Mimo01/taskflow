@@ -1,8 +1,8 @@
 ---
 phase: 89
 slug: three-channel-drift-detection
-status: draft
-nyquist_compliant: false
+status: planned
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-08-10
 ---
@@ -58,7 +58,7 @@ created: 2026-08-10
 ## Wave 0 Requirements
 
 - [ ] `taskflow/src/.../release-detail/driftDetection.test.ts` — new file; covers DRIFT-01, DRIFT-04 … DRIFT-09 (pure union + predicate + count logic; the phase's primary test target per D-19)
-- [ ] `taskflow/src/services/gitlab.test.ts` — **verify existence first.** Add pagination-loop tests for `fetchBranchTargetedMRs` / `fetchAllProjectMRs`: mock `apiFetch` with multi-page fixtures, assert the loop accumulates every page and terminates only on a short page. If the file does not exist, creating it is a larger Wave 0 item than an additive block.
+- [ ] `taskflow/src/services/gitlab.test.ts` — **exists** (confirmed by pattern mapper; RESEARCH.md's "may not exist" note is superseded). Extend additively with pagination-loop tests for `fetchBranchTargetedMRs` / `fetchAllProjectMRs`: mock `apiFetch` with multi-page fixtures, assert the loop accumulates every page and terminates only on a short page.
 - [ ] `ReleasesTab.test.tsx` — extend with the D-14/D-15 aggregate-indicator assertion once wired (inspect the existing test structure before assuming additive-only).
 - [ ] No framework install needed — Vitest already configured.
 
@@ -76,12 +76,12 @@ created: 2026-08-10
 
 ## Validation Sign-Off
 
-- [ ] All tasks have automated verify or a Wave 0 dependency
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all ❌ MISSING references above
-- [ ] No watch-mode flags (`vitest run`, never bare `vitest`)
-- [ ] Feedback latency < 10s for the quick run
-- [ ] Probe executed and Assumption A2 resolved before predicates ship
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have automated verify or a Wave 0 dependency
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all ❌ MISSING references above (driftDetection.test.ts in 89-02; gitlab.test.ts pagination tests in 89-01; ReleasesTab.test.tsx in 89-04)
+- [x] No watch-mode flags (`vitest run`, never bare `vitest`)
+- [x] Feedback latency < 10s for the quick run
+- [ ] Probe executed and Assumption A2 resolved before predicates ship (89-01 Task 1, blocking checkpoint)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** planned 2026-08-10 — verification map bound to plans 89-01..89-05
