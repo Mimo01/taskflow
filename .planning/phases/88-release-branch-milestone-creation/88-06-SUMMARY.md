@@ -50,14 +50,14 @@ completed: 2026-08-10
 
 # Phase 88 Plan 06: Create GitLab Milestone Action Summary
 
-**Added the create-GitLab-milestone write path — CreateMilestoneDialog (format enforcement + read-only reference list + duplicate blocking + in-dialog server error), a non-optimistic createMilestoneMutation, and sidebar Create-action wiring — but the plan's blocking live-GitLab checkpoint (Task 3) was reached and has NOT been performed or waived; it is presented here awaiting the developer's response.**
+**Added the create-GitLab-milestone write path — CreateMilestoneDialog (format enforcement + read-only reference list + duplicate blocking + in-dialog server error), a non-optimistic createMilestoneMutation, and sidebar Create-action wiring — but the plan's blocking live-GitLab checkpoint (Task 3) was waived by the user rather than executed, so the actual write path has never fired against a real GitLab instance.**
 
 ## Performance
 
 - **Duration:** ~45 min
 - **Started:** 2026-08-10T19:46:00Z
-- **Completed:** 2026-08-10T20:53:00Z (2 auto tasks; checkpoint task not yet resolved)
-- **Tasks:** 2 auto (committed) + 1 checkpoint (awaiting developer response)
+- **Completed:** 2026-08-10T20:53:00Z
+- **Tasks:** 2 auto (committed) + 1 checkpoint (waived, not performed)
 - **Files modified:** 6 (2 new, 4 modified)
 
 ## Accomplishments
@@ -74,7 +74,7 @@ Each auto task was committed atomically:
 1. **Task 88-06-T1: CreateMilestoneDialog with format enforcement, reference list, and duplicate blocking** - `9c07a975` (feat)
 2. **Task 88-06-T2: createMilestone mutation + sidebar Create action + page wiring** - `0e318a05` (feat)
 
-Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Reached — Not Yet Resolved" below.
+Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Waived — NOT Performed" below.
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx` - New: props-driven confirm dialog (`open`, `onOpenChange`, `releaseDate`, `recentMilestones`, `activeGitlabProject`, `onConfirm`, `isPending`, `errorMessage`)
@@ -121,21 +121,22 @@ Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Reached — Not Yet
 **Total deviations:** 3 (2 auto-fixed comment rewordings, 1 documented-but-not-fixable grep conflict, 1 precedence decision to satisfy the plan's own checkpoint scenario)
 **Impact on plan:** All deviations are wording/precedence-only — no scope creep, no behavior change beyond making the plan's own Step 4 verification scenario actually work as specified.
 
-## Checkpoint Reached — Not Yet Resolved
+## Checkpoint Waived — NOT Performed
 
-**Task 88-06-T3 ("Verify live milestone creation, duplicate blocking, and the milestone→branch unblock chain") has been reached but NOT performed and NOT waived.**
+**Task 88-06-T3 ("Verify live milestone creation, duplicate blocking, and the milestone→branch unblock chain") was waived by the user, not executed.**
 
-Per the plan's `<checkpoint_protocol>` and this execution's explicit instruction, the checkpoint has NOT been self-approved, and no live write has been attempted against the real GitLab instance. This differs from Plan 88-05's outcome (where the equivalent checkpoint WAS explicitly waived by the user with "I do not have any release to test it on, consider it approved") — that outcome has NOT been re-confirmed for this plan and must not be assumed.
+The coordinator relayed the user's verbatim response: *"waived — record accurately, do NOT claim verification passed... they have no release available to test against."* This is the same reason given for Plan 88-05's equivalent checkpoint waiver.
 
 **What this means concretely:**
 - No live write was made against a real GitLab instance. The POST to `/projects/:id/milestones` has never actually fired outside of mocked-`apiFetch` unit tests (Plan 88-02).
-- None of the 9 manual verification steps in the plan's `<how-to-verify>` block have been run.
+- None of the 9 manual verification steps in the plan's `<how-to-verify>` block were run.
 - The following behaviors are therefore **unverified in practice** (covered only by automated tests with mocked fetch responses):
   1. **The actual GitLab POST succeeding** — `createMilestone`'s request shape, headers, and response parsing have only been exercised against `gitlab.test.ts`'s mocked fixtures (Plan 88-02), never a live server.
-  2. **The created milestone carrying the exact typed title AND a `due_date` equal to the Jira release date** — unit-tested with a mocked response; never confirmed against a real GitLab project.
-  3. **D-08/D-16 server-error rendering with a REAL GitLab rejection body** (e.g. an actual "Title has already been taken" 400 for a milestone dated outside the ±7-day client-visible window) — the dialog's error display is tested with a synthetic `errorMessage` prop only.
-  4. **D-05 cache invalidation flipping the sidebar's GitLab Milestone row from unmatched to matched, and the branch row from `Create the milestone first` to an actionable state** — the mutation's `onSuccess` invalidation is implemented and grep-verified in source, but the resulting UI flip (the D-10 unblock chain) has never been observed against live server state.
-  5. **The Releases list's missing-milestone warning icon clearing** for the affected row after creation.
+  2. **The exact title and due_date landing correctly on the created milestone** — unit-tested with a mocked response only; never confirmed that the created milestone carries the exact typed title AND a `due_date` equal to the Jira fix-version release date against a real GitLab project.
+  3. **D-08/D-16 in-dialog rendering of a real server-side rejection** (e.g. an actual "Title has already been taken" 400 for a milestone dated outside the ±7-day client-visible window) — the dialog's error display is tested with a synthetic `errorMessage` prop only, never a real GitLab rejection body.
+  4. **D-05 windowed `gitlab-milestones` cache invalidation refreshing the sidebar** — the mutation's `onSuccess` invalidation of `['gitlab-milestones', activeGitlabProject, from, to]` is implemented and grep-verified in source, but the resulting UI flip (the GitLab Milestone row switching from unmatched to matched) has never been observed against live server state.
+  5. **The milestone→branch unblock chain** — whether the Release Branch row actually leaves its `Create the milestone first` blocked state and becomes actionable once the milestone is created (the D-10 unblock chain) has never been observed live.
+  6. **The Releases list's missing-milestone warning icon clearing** for the affected row after creation.
 
 **Recommendation for follow-up:** The next time a release exists with a release date and no matched milestone, run the 9-step verification from `88-06-PLAN.md`'s checkpoint (Task 88-06-T3) before relying on this write path in a real workflow. This gap should surface in `/gsd-progress` and `/gsd-audit-uat` rather than being treated as closed. This carries forward the same class of gap already flagged in Plan 88-05's SUMMARY for the create-branch write path — BOTH v1.14 GitLab writes (`createBranch`, `createMilestone`) remain live-unverified as of this plan.
 
@@ -145,7 +146,7 @@ Per the plan's `<checkpoint_protocol>` and this execution's explicit instruction
 
 ## User Setup Required
 
-None for the code itself. **Live-GitLab verification of this plan's write path remains outstanding** — see "Checkpoint Reached — Not Yet Resolved" above. The developer must run the 88-06-PLAN.md Task 88-06-T3 `<how-to-verify>` steps (or explicitly waive them) before this write path is considered production-verified.
+None for the code itself. **Live-GitLab verification of this plan's write path remains outstanding** — see "Checkpoint Waived — NOT Performed" above. The developer should run the 88-06-PLAN.md Task 88-06-T3 `<how-to-verify>` steps against a real release before this write path is considered production-verified.
 
 ## Next Phase Readiness
 - The create-milestone write path is code-complete and unit-tested (8 dialog tests + the existing 17 `gitlab.test.ts` `createMilestone` cases from Plan 88-02) but has zero live-GitLab confirmation.
