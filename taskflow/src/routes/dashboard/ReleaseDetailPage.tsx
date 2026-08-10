@@ -59,6 +59,7 @@ export default function ReleaseDetailPage() {
     gitlabMatch,
     matchedMilestone,
     branchState,
+    refetchBranchCheck,
     releaseBranchName,
     defaultBranch,
     createBranchMutation,
@@ -299,6 +300,7 @@ export default function ReleaseDetailPage() {
               createBranchMutation.reset();
               setCreateBranchOpen(true);
             }}
+            onRetryBranchCheck={refetchBranchCheck}
             onCreateMilestone={() => {
               createMilestoneMutation.reset();
               setCreateMilestoneOpen(true);
