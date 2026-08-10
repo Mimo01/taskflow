@@ -48,6 +48,8 @@ interface ReleaseDetailSidebarProps {
   branchState: BranchState;
   defaultBranch: string | null;
   onCreateBranch: () => void;
+  onCreateMilestone: () => void;
+  canCreateMilestone: boolean;
   milestoneMRsLoaded: boolean;
   labelCoverage: LabelCoverage | null;
   mrStateCounts: { merged: number; opened: number; closed: number };
@@ -71,6 +73,8 @@ export function ReleaseDetailSidebar({
   branchState,
   defaultBranch,
   onCreateBranch,
+  onCreateMilestone,
+  canCreateMilestone,
   milestoneMRsLoaded,
   labelCoverage,
   mrStateCounts,
@@ -164,12 +168,24 @@ export function ReleaseDetailSidebar({
               </span>
             )
           ) : (
-            <span
-              className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-              data-testid="gitlab-link-none"
-            >
-              <AlertTriangle className="size-3" />
-              No milestone matched
+            <span className="flex items-center justify-between gap-2">
+              <span
+                className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                data-testid="gitlab-link-none"
+              >
+                <AlertTriangle className="size-3" />
+                No milestone matched
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                onClick={onCreateMilestone}
+                disabled={!canCreateMilestone}
+                title={canCreateMilestone ? undefined : 'Set a release date on this version first'}
+              >
+                Create milestone
+              </Button>
             </span>
           )}
         </MetaRow>

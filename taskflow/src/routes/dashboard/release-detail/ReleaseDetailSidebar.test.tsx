@@ -37,6 +37,8 @@ function renderSidebar(overrides: { branchState: BranchState } & Record<string, 
       matchedMilestone={null}
       defaultBranch={null}
       onCreateBranch={() => {}}
+      onCreateMilestone={() => {}}
+      canCreateMilestone={true}
       milestoneMRsLoaded={false}
       labelCoverage={null}
       mrStateCounts={{ merged: 0, opened: 0, closed: 0 }}

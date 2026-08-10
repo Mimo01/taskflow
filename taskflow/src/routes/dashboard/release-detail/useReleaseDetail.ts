@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import {
   createBranch,
+  createMilestone,
   fetchBranch,
   fetchMilestoneMRs,
   fetchProject,
@@ -167,6 +168,36 @@ export function useReleaseDetail(versionId: string | undefined) {
   // create-milestone dialog for its reference list and duplicate check.
   const ownWindowMilestones = ownProjectMilestones(milestones ?? [], activeGitlabProject ?? 0);
 
+  // Create the GitLab milestone carrying the Jira release date as due_date (D-04) —
+  // resolveGitLabMatch matches by date, so a dateless milestone would be created
+  // and would still render as unmatched. The milestone body carries only title
+  // and due_date (D-04). No optimistic write, no rollback, no success notice
+  // (D-15) — invalidate the EXISTING windowed milestone key on success (D-05,
+  // byte-identical to the read query above) plus the branch-derivation query
+  // so the newly matched milestone's derived branch name re-resolves.
+  const createMilestoneMutation = useMutation({
+    mutationFn: (title: string) => {
+      if (!version?.releaseDate) throw new Error('Release date required');
+      return createMilestone(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0, {
+        title,
+        due_date: version.releaseDate,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          'gitlab-milestones',
+          activeGitlabProject,
+          milestoneWindow?.from,
+          milestoneWindow?.to,
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['gitlab-branch', activeGitlabProject],
+      });
+    },
+  });
+
   // Fetch Jira issues for this fix version
   const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
     queryKey: ['jira-fixversion-issues', versionId, storyPointsFieldKey],
@@ -245,6 +276,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     releaseBranchName,
     defaultBranch,
     createBranchMutation,
+    createMilestoneMutation,
     ownWindowMilestones,
     fixVersionIssues,
     isLoadingIssues,
