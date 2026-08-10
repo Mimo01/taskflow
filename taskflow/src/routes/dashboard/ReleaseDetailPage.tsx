@@ -11,7 +11,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   AlertTriangle,
-  ArrowLeft,
   Calendar,
   Check,
   ExternalLink,
@@ -21,7 +20,6 @@ import {
   Loader2,
   Pencil,
   Pin,
-  Rocket,
   Tag,
   X,
 } from 'lucide-react';
@@ -47,6 +45,7 @@ import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { MetaRow } from './release-detail/MetaRow';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
+import { ReleaseBreadcrumbHeader, ReleaseTitleHeading } from './release-detail/ReleaseHeader';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
 // ---- Main Component ----
@@ -289,6 +288,11 @@ export default function ReleaseDetailPage() {
     navigate(`/issue/${issueKey}`);
   };
 
+  const handleBreadcrumbClick = (index: number, path: string) => {
+    useBreadcrumbStore.setState({ trail: trail.slice(0, index) });
+    navigate(path, { replace: true });
+  };
+
   const handleOpenInJira = () => {
     if (jiraBaseUrl && activeJiraProject && versionId) {
       const base = jiraBaseUrl.replace(/\/$/, '');
@@ -301,35 +305,12 @@ export default function ReleaseDetailPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back + breadcrumb header */}
-      {trail.length > 0 && (
-        <div className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          {trail.map((entry, i) => (
-            <span key={entry.path} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted-foreground">/</span>}
-              <button
-                type="button"
-                onClick={() => {
-                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
-                  navigate(entry.path, { replace: true });
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {entry.label}
-              </button>
-            </span>
-          ))}
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium">{version?.name ?? 'Release'}</span>
-        </div>
-      )}
+      <ReleaseBreadcrumbHeader
+        trail={trail}
+        versionName={version?.name}
+        onBack={handleBack}
+        onBreadcrumbClick={handleBreadcrumbClick}
+      />
 
       {/* Detail body */}
       {isLoading || !version ? (
@@ -340,13 +321,7 @@ export default function ReleaseDetailPage() {
           <div className="flex-1 overflow-auto">
             <div className="p-6 space-y-6">
               {/* Header */}
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Rocket className="size-4 text-muted-foreground" />
-                  <p className="text-xs font-mono text-muted-foreground">v{version.id}</p>
-                </div>
-                <h2 className="text-xl font-semibold leading-snug">{version.name}</h2>
-              </div>
+              <ReleaseTitleHeading versionId={version.id} versionName={version.name} />
 
               {/* Description(s) — when a GitLab milestone is matched but neither
                   side has text, collapse the two empty blocks into one. */}
