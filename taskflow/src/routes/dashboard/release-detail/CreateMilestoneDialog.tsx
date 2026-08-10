@@ -30,6 +30,7 @@ import {
   findDuplicateMilestone,
   isValidMilestoneTitle,
   type MilestoneLike,
+  recentMilestonesByDate,
 } from './releaseMilestone';
 
 /** Reference-list entry: MilestoneLike plus an optional due_date so the list
@@ -94,11 +95,10 @@ export function CreateMilestoneDialog({
     ? findDuplicateMilestone(recentMilestones, title, activeGitlabProject)
     : null;
 
-  const sortedRecentMilestones = [...recentMilestones].sort((a, b) => {
-    const aDate = a.due_date ?? '';
-    const bDate = b.due_date ?? '';
-    return bDate.localeCompare(aDate);
-  });
+  // Render a capped, newest-first slice — but note `duplicate` above runs over
+  // the FULL `recentMilestones` array. Slicing before the duplicate check would
+  // silently narrow RELMS-04's guard to whatever happens to be displayed.
+  const sortedRecentMilestones = recentMilestonesByDate(recentMilestones);
 
   function handleConfirm() {
     if (isPending || !formatValid || duplicate !== null || !projectConfigured) return;

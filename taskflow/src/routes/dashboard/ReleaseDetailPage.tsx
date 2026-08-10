@@ -64,7 +64,7 @@ export default function ReleaseDetailPage() {
     defaultBranch,
     createBranchMutation,
     createMilestoneMutation,
-    recentReferenceMilestones,
+    ownProjectMilestoneList,
     milestoneMRs,
     isLoadingIssues,
     releaseIssues,
@@ -367,7 +367,7 @@ export default function ReleaseDetailPage() {
             open={createMilestoneOpen}
             onOpenChange={setCreateMilestoneOpen}
             releaseDate={version.releaseDate ?? null}
-            recentMilestones={recentReferenceMilestones}
+            recentMilestones={ownProjectMilestoneList}
             versionName={version.name}
             activeGitlabProject={activeGitlabProject}
             isPending={createMilestoneMutation.isPending}
