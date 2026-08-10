@@ -1136,6 +1136,102 @@ export async function fetchFixVersions(
   return (Array.isArray(data) ? data : []) as JiraFixVersion[];
 }
 
+/** Issue counts for a fix version: total non-subtask issues and how many are Done. */
+export interface VersionIssueCounts {
+  issuesFixed: number;
+  issuesTotal: number;
+}
+
+/**
+ * Fetch total and done issue counts for a fix version via two JQL count-only
+ * searches. Never throws on an HTTP failure — each request independently
+ * falls back to a count of 0, so this always resolves to a counts object.
+ *
+ * @param baseUrl   - Jira base URL
+ * @param token     - Personal Access Token
+ * @param versionId - Jira fix version ID (must be numeric)
+ * @returns issuesFixed (Done count) and issuesTotal (non-subtask issue count)
+ */
+export async function fetchVersionIssueCounts(
+  baseUrl: string,
+  token: string,
+  versionId: string,
+): Promise<VersionIssueCounts> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
+  const baseJql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes()`;
+  const totalJql = encodeURIComponent(baseJql);
+  const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
+  const totalUrl = `${base}/rest/api/2/search?jql=${totalJql}&maxResults=0&fields=`;
+  const doneUrl = `${base}/rest/api/2/search?jql=${doneJql}&maxResults=0&fields=`;
+
+  const [totalResult, doneResult] = await Promise.allSettled([
+    apiFetch('jira', totalUrl, { headers }, 'Load Release Issue Counts').then((r) =>
+      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
+    ),
+    apiFetch('jira', doneUrl, { headers }, 'Load Release Issue Counts').then((r) =>
+      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
+    ),
+  ]);
+
+  const issuesTotal = totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
+  const issuesFixed = doneResult.status === 'fulfilled' ? (doneResult.value.total ?? 0) : 0;
+
+  return { issuesFixed, issuesTotal };
+}
+
+/**
+ * Fetch all non-subtask Jira issues for a fix version, paginated, ordered by
+ * rank. Requests both common story-point field keys plus the
+ * instance-resolved key (mirrors the Set-based pattern elsewhere in this
+ * file) so effort works on instances using customfield_10028 instead of
+ * customfield_10016.
+ *
+ * @param baseUrl              - Jira base URL
+ * @param token                - Personal Access Token
+ * @param versionId            - Jira fix version ID (must be numeric)
+ * @param storyPointsFieldKey  - the instance-resolved story-point custom field key
+ * @returns all matching issues across all pages
+ */
+export async function fetchFixVersionIssues(
+  baseUrl: string,
+  token: string,
+  versionId: string,
+  storyPointsFieldKey: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
+  const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
+  const fields = [
+    'summary',
+    'status',
+    'assignee',
+    'issuetype',
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
+  const maxResults = 200;
+  let startAt = 0;
+  const allIssues: JiraIssue[] = [];
+
+  while (true) {
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}&maxResults=${maxResults}&startAt=${startAt}`;
+    const resp = await apiFetch('jira', url, { headers }, 'Load Release Issues');
+    if (!resp.ok) throw new Error(`Failed to fetch issues: status ${resp.status}`);
+
+    const data = (await resp.json()) as { issues: JiraIssue[]; total: number };
+    const before = allIssues.length;
+    allIssues.push(...data.issues);
+
+    if (allIssues.length >= data.total || allIssues.length === before) break;
+    startAt = allIssues.length;
+  }
+
+  return allIssues;
+}
+
 /**
  * Update a Jira fix version (release) via PUT /rest/api/2/version/{versionId}.
  *
