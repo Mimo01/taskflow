@@ -13,8 +13,8 @@
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
-import { RefreshCw, Rocket } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertTriangle, RefreshCw, Rocket } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -22,7 +22,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMilestone } from '@/services/gitlab';
-import { fetchProjectMilestonesInRange } from '@/services/gitlab';
+import { fetchProjectBranches, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import { fetchFixVersions } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
@@ -31,6 +31,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
+import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
 
 interface VersionIssueCounts {
   issuesFixed: number;
@@ -75,6 +76,8 @@ interface MatchedVersion {
   match: ReleaseMatch;
   issuesFixed: number;
   issuesTotal: number;
+  branchMissing: boolean;
+  milestoneMissing: boolean;
 }
 
 type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
@@ -179,6 +182,29 @@ export default function ReleasesTab() {
     staleTime: 5 * 60_000,
   });
 
+  // D-18: the entire `release/`-prefixed branch set is fetched in exactly ONE
+  // fully-paginated request regardless of row count, then matched locally per
+  // row. Never a per-row batch-query-hook call (that pattern exists a few
+  // lines below only because Jira issue counts have no batch endpoint) and never an
+  // unfiltered all-branches fetch.
+  const { data: releaseBranches } = useQuery({
+    queryKey: ['gitlab-release-branches', activeGitlabProject],
+    queryFn: () =>
+      fetchProjectBranches(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        RELEASE_BRANCH_PREFIX,
+      ),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
+    staleTime: 5 * 60_000,
+  });
+
+  const releaseBranchNames = useMemo(
+    () => new Set((releaseBranches ?? []).map((b) => b.name)),
+    [releaseBranches],
+  );
+
   // Per-version issue counts (parallel queries)
   const versionCountQueries = useQueries({
     queries: (fixVersions ?? []).map((v) => ({
@@ -210,11 +236,22 @@ export default function ReleasesTab() {
         (_, i) => (fixVersions ?? [])[i]?.id === version.id,
       );
       const counts = countQuery?.data;
+
+      // D-17/D-18/D-19: derive drift flags locally from the matched milestone
+      // title. D-11 — an unparseable version in the title derives `null` and
+      // shows no branch indicator (nothing is guessed).
+      const milestoneMissing = bestMatch.type === 'none';
+      const derived =
+        bestMatch.type === 'none' ? null : deriveReleaseBranchName(bestMatch.candidateName);
+      const branchMissing = derived !== null && !releaseBranchNames.has(derived);
+
       return {
         version,
         match: bestMatch,
         issuesFixed: counts?.issuesFixed ?? 0,
         issuesTotal: counts?.issuesTotal ?? 0,
+        branchMissing,
+        milestoneMissing,
       };
     };
 
@@ -325,141 +362,160 @@ export default function ReleasesTab() {
                 ...unreleasedVersions,
                 ...releasedVersions.slice(0, releasedVisible),
               ] as MatchedVersion[]
-            ).map(({ version, match, issuesFixed, issuesTotal }) => (
-              <button
-                key={version.id}
-                type="button"
-                data-testid="release-row"
-                onClick={() => handleReleaseClick(version.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleReleaseClick(version.id);
-                }}
-                className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer w-full text-left"
-              >
-                {/* Version name + badges */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-sm font-medium truncate">{version.name}</span>
-                  {/* Status badge — Released or Unreleased + timing */}
-                  {(() => {
-                    const timing = getReleaseTimingLabel(version.releaseDate, version.released);
-                    if (version.released) {
+            ).map(
+              ({ version, match, issuesFixed, issuesTotal, branchMissing, milestoneMissing }) => (
+                <button
+                  key={version.id}
+                  type="button"
+                  data-testid="release-row"
+                  onClick={() => handleReleaseClick(version.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleReleaseClick(version.id);
+                  }}
+                  className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer w-full text-left"
+                >
+                  {/* Version name + badges */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-sm font-medium truncate">{version.name}</span>
+                    {/* Status badge — Released or Unreleased + timing */}
+                    {(() => {
+                      const timing = getReleaseTimingLabel(version.releaseDate, version.released);
+                      if (version.released) {
+                        return (
+                          <Badge tone="green" className="shrink-0">
+                            Released
+                          </Badge>
+                        );
+                      }
+                      if (timing === 'overdue') {
+                        return (
+                          <>
+                            <Badge tone="red" className="shrink-0">
+                              Unreleased
+                            </Badge>
+                            <Badge tone="red" className="shrink-0">
+                              Overdue
+                            </Badge>
+                          </>
+                        );
+                      }
+                      if (timing === 'due-today') {
+                        return (
+                          <>
+                            <Badge tone="blue" className="shrink-0">
+                              Unreleased
+                            </Badge>
+                            <Badge tone="blue" className="shrink-0">
+                              Due today
+                            </Badge>
+                          </>
+                        );
+                      }
+                      if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
+                        return (
+                          <>
+                            <Badge tone="amber" className="shrink-0">
+                              Unreleased
+                            </Badge>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              In {timing.daysUntil} days
+                            </span>
+                          </>
+                        );
+                      }
+                      // Unreleased with no date
                       return (
-                        <Badge tone="green" className="shrink-0">
-                          Released
+                        <Badge tone="amber" className="shrink-0">
+                          Unreleased
                         </Badge>
                       );
-                    }
-                    if (timing === 'overdue') {
-                      return (
-                        <>
-                          <Badge tone="red" className="shrink-0">
-                            Unreleased
-                          </Badge>
-                          <Badge tone="red" className="shrink-0">
-                            Overdue
-                          </Badge>
-                        </>
-                      );
-                    }
-                    if (timing === 'due-today') {
-                      return (
-                        <>
-                          <Badge tone="blue" className="shrink-0">
-                            Unreleased
-                          </Badge>
-                          <Badge tone="blue" className="shrink-0">
-                            Due today
-                          </Badge>
-                        </>
-                      );
-                    }
-                    if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
-                      return (
-                        <>
-                          <Badge tone="amber" className="shrink-0">
-                            Unreleased
-                          </Badge>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            In {timing.daysUntil} days
-                          </span>
-                        </>
-                      );
-                    }
-                    // Unreleased with no date
-                    return (
-                      <Badge tone="amber" className="shrink-0">
-                        Unreleased
+                    })()}
+                    {/* No date warning — solid badge after status, only for undated unreleased */}
+                    {!version.releaseDate && !version.released && (
+                      <Badge tone="orange" className="shrink-0">
+                        ⚠ No date set
                       </Badge>
-                    );
-                  })()}
-                  {/* No date warning — solid badge after status, only for undated unreleased */}
-                  {!version.releaseDate && !version.released && (
-                    <Badge tone="orange" className="shrink-0">
-                      ⚠ No date set
-                    </Badge>
-                  )}
-                  {version.releaseDate && (
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {version.releaseDate}
-                    </span>
-                  )}
-                </div>
+                    )}
+                    {version.releaseDate && (
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {version.releaseDate}
+                      </span>
+                    )}
+                  </div>
 
-                {/* GitLab match indicator */}
-                <div className="flex items-center gap-3 shrink-0">
-                  {match.type === 'exact' ? (
-                    match.candidateUrl ? (
-                      <a
-                        href={match.candidateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline truncate max-w-[150px]"
-                        data-testid="gitlab-link-exact"
-                      >
-                        {match.candidateName}
-                      </a>
+                  {/* GitLab match indicator */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {match.type === 'exact' ? (
+                      match.candidateUrl ? (
+                        <a
+                          href={match.candidateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline truncate max-w-[150px]"
+                          data-testid="gitlab-link-exact"
+                        >
+                          {match.candidateName}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-xs text-foreground truncate max-w-[150px]"
+                          data-testid="gitlab-link-exact"
+                        >
+                          {match.candidateName}
+                        </span>
+                      )
+                    ) : match.type === 'fuzzy' ? (
+                      match.candidateUrl ? (
+                        <a
+                          href={match.candidateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
+                          title={`Fuzzy match: ${match.candidateName}`}
+                          data-testid="gitlab-link-fuzzy"
+                        >
+                          {match.candidateName}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
+                          title={`Fuzzy match: ${match.candidateName}`}
+                          data-testid="gitlab-link-fuzzy"
+                        >
+                          {match.candidateName}
+                        </span>
+                      )
                     ) : (
                       <span
-                        className="text-xs text-foreground truncate max-w-[150px]"
-                        data-testid="gitlab-link-exact"
+                        className="text-xs text-muted-foreground"
+                        data-testid="gitlab-link-none"
                       >
-                        {match.candidateName}
+                        No GitLab link
                       </span>
-                    )
-                  ) : match.type === 'fuzzy' ? (
-                    match.candidateUrl ? (
-                      <a
-                        href={match.candidateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
-                        title={`Fuzzy match: ${match.candidateName}`}
-                        data-testid="gitlab-link-fuzzy"
-                      >
-                        {match.candidateName}
-                      </a>
-                    ) : (
-                      <span
-                        className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
-                        title={`Fuzzy match: ${match.candidateName}`}
-                        data-testid="gitlab-link-fuzzy"
-                      >
-                        {match.candidateName}
-                      </span>
-                    )
-                  ) : (
-                    <span className="text-xs text-muted-foreground" data-testid="gitlab-link-none">
-                      No GitLab link
-                    </span>
-                  )}
+                    )}
 
-                  {/* Task count */}
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {issuesFixed} / {issuesTotal} done
-                  </span>
-                </div>
-              </button>
-            ))}
+                    {/* Drift indicators (D-17/D-18/D-19) — placed before the task-count
+                      span so a future Phase 89 aggregate drift count can append
+                      after them without a redesign */}
+                    {milestoneMissing && (
+                      <span title="No GitLab milestone" data-testid="row-missing-milestone">
+                        <AlertTriangle className="size-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                      </span>
+                    )}
+                    {branchMissing && (
+                      <span title="No release branch" data-testid="row-missing-branch">
+                        <AlertTriangle className="size-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                      </span>
+                    )}
+
+                    {/* Task count */}
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {issuesFixed} / {issuesTotal} done
+                    </span>
+                  </div>
+                </button>
+              ),
+            )}
 
             {/* Load more released */}
             {releasedVersions.length > releasedVisible && (
