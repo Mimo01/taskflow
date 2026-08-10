@@ -108,7 +108,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 88-06-PLAN.md — `CreateMilestoneDialog` (format enforcement, recent-milestone reference list, duplicate blocking) + `createMilestone` mutation (blocking human-verify checkpoint)
+- [x] 88-06-PLAN.md — `CreateMilestoneDialog` (format enforcement, recent-milestone reference list, duplicate blocking) + `createMilestone` mutation (blocking human-verify checkpoint)
 
 **UI hint**: yes
 **Probe**: yes — do a quick manual scan of `GET /projects/:id/milestones` for existing whitespace/near-duplicate titles that could confuse exact-title matching (RELMS-04). Note: permission/role gating is explicitly OUT OF SCOPE (team is all Developer+); a 403 surfaces as a normal `ApiError` and needs no probe
@@ -226,7 +226,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 5/6 | In Progress|  |
+| 88. Release Branch & Milestone Creation | 6/6 | Complete   | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
