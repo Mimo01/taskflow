@@ -198,6 +198,8 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 
 **v1.13 shipped 2026-06-16** — 6 phases (81-86), 23 plans, 411 commits, 370 files changed (+41,255/−21,884 lines) over 9 days. Gave Taskflow its first charting capability (Recharts v3 via the shadcn `chart` primitive, Tauri-webview-safe), a dedicated My Tasks command center (`/my-tasks`, My Day smart sort, scope toggle with server-side pagination), and a graph-driven Dashboard redesign to a curated 3-region screenshot layout (hero + sprint-day subline, MyIssuesCard + UpcomingReleasesTimeline, full-width dual-axis hours/commits chart) — every prior dashboard widget deleted, zero dead code, `npm run check` GREEN. A v27 settings-store migration injects the My Tasks sidebar entry for existing installs. 17/18 committed requirements satisfied (DASH-06 MR review queue descoped at UAT; INSIGHT-01/02 velocity+burndown built in Phase 85 then retired by the Phase 86 redesign). Milestone audit `tech_debt` with 0 blockers; 81 cross-project historical-noise items acknowledged as deferred (see STATE.md). Run `release.sh` to cut the v1.13.x release.
 
+**v1.14 in progress** — Phase 87 (Release Detail Decomposition) complete 2026-08-10. `ReleaseDetailPage.tsx` went 1518 → 322 lines, decomposed into 13 files under `routes/dashboard/release-detail/` (2 pure modules, 2 hooks, 9 components) mirroring the `issue-detail/` convention. Behavior-preserving: manual 11-step UAT approved, full suite 2083 passed / 0 failed, all 6 query keys byte-identical so cache sharing with the Releases tab is intact. FOUND-01 validated in Phase 87. Follow-up carried forward: `ReleasesTab.tsx` still writes the shared `jira-version-counts` cache key via its own divergent raw-fetch instead of the now-shared `fetchVersionIssueCounts` (87-REVIEW.md WR-01).
+
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
@@ -370,4 +372,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Dashboard charts source from existing data only — no new API surface (v1.13 Phase 86) | Reuse warm caches (sprint data, Tempo worklogs, releases, commits); a redesign shouldn't add fetch cost | ✓ Good — dual-axis chart + cards built entirely on existing queries |
 
 ---
-*Last updated: 2026-08-10 — after starting v1.14 Release Management milestone*
+*Last updated: 2026-08-10 — after Phase 87 (Release Detail Decomposition) completed*
