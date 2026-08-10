@@ -9,20 +9,9 @@
 import { Dialog } from '@base-ui/react/dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import {
-  AlertTriangle,
-  Calendar,
-  Check,
-  ExternalLink,
-  GitMerge,
-  Loader2,
-  Pencil,
-  Pin,
-  X,
-} from 'lucide-react';
+import { Check, ExternalLink, Loader2, Pin, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,7 +25,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { DescriptionsSection } from './release-detail/DescriptionsSection';
 import { IssuesSection } from './release-detail/IssuesSection';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
-import { MetaRow } from './release-detail/MetaRow';
+import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { ReleaseBreadcrumbHeader, ReleaseTitleHeading } from './release-detail/ReleaseHeader';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
@@ -397,205 +386,25 @@ export default function ReleaseDetailPage() {
           </div>
 
           {/* Right sidebar */}
-          <div
-            className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
-            style={{ width }}
-          >
-            <div
-              aria-hidden="true"
-              onMouseDown={handleMouseDown}
-              onMouseEnter={() => setHandleHovered(true)}
-              onMouseLeave={() => setHandleHovered(false)}
-              style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
-              className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
-            />
-            {/* Read-only metadata (editing now happens in the modal below) */}
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Details</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-xs h-7"
-                  onClick={startEditing}
-                >
-                  <Pencil className="size-3" />
-                  Edit
-                </Button>
-              </div>
-
-              <MetaRow label="Status">
-                {version.released ? (
-                  <Badge tone="green">Released</Badge>
-                ) : (
-                  <Badge tone="amber">Unreleased</Badge>
-                )}
-              </MetaRow>
-
-              <MetaRow label="Release Date">
-                {version.releaseDate ? (
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="size-3 text-muted-foreground shrink-0" />
-                    {version.releaseDate}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Not set</span>
-                )}
-              </MetaRow>
-
-              <MetaRow label="GitLab Milestone">
-                {gitlabMatch.type === 'exact' ? (
-                  gitlabMatch.candidateUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => openUrl(gitlabMatch.candidateUrl)}
-                      className="text-primary hover:underline flex items-center gap-1"
-                      data-testid="gitlab-link-exact"
-                    >
-                      {gitlabMatch.candidateName}
-                      <ExternalLink className="size-3 shrink-0" />
-                    </button>
-                  ) : (
-                    <span data-testid="gitlab-link-exact">{gitlabMatch.candidateName}</span>
-                  )
-                ) : gitlabMatch.type === 'fuzzy' ? (
-                  gitlabMatch.candidateUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => openUrl(gitlabMatch.candidateUrl)}
-                      className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
-                      title={`Fuzzy match: ${gitlabMatch.candidateName}`}
-                      data-testid="gitlab-link-fuzzy"
-                    >
-                      {gitlabMatch.candidateName}
-                      <ExternalLink className="size-3 shrink-0" />
-                    </button>
-                  ) : (
-                    <span
-                      className="border-b border-dashed border-muted-foreground"
-                      title={`Fuzzy match: ${gitlabMatch.candidateName}`}
-                      data-testid="gitlab-link-fuzzy"
-                    >
-                      {gitlabMatch.candidateName}
-                    </span>
-                  )
-                ) : (
-                  <span
-                    className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                    data-testid="gitlab-link-none"
-                  >
-                    <AlertTriangle className="size-3" />
-                    No milestone matched
-                  </span>
-                )}
-              </MetaRow>
-
-              <MetaRow label="MR Labels">
-                {gitlabMatch.type === 'none' ? (
-                  <span className="text-muted-foreground">—</span>
-                ) : milestoneMRs && labelCoverage ? (
-                  labelCoverage.allLabeled ? (
-                    <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
-                      <Check className="size-3" />
-                      All {labelCoverage.total} MRs labeled
-                    </span>
-                  ) : (
-                    <div>
-                      <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                        <AlertTriangle className="size-3" />
-                        {labelCoverage.unlabeled.length}/{labelCoverage.total} missing
-                      </span>
-                      <div className="mt-1.5 space-y-0.5">
-                        {labelCoverage.unlabeled.map((mr) => (
-                          <div key={mr.id} className="flex items-center gap-1.5">
-                            <GitMerge
-                              className={`size-3 shrink-0 ${
-                                mr.state === 'merged'
-                                  ? 'text-green-600 dark:text-green-400'
-                                  : mr.state === 'opened'
-                                    ? 'text-orange-600 dark:text-orange-400'
-                                    : 'text-gray-500'
-                              }`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => openUrl(mr.web_url)}
-                              className="text-xs font-mono hover:underline shrink-0"
-                            >
-                              !{mr.iid}
-                            </button>
-                            <span className="line-clamp-1 text-xs text-muted-foreground">
-                              {mr.title}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <span className="text-muted-foreground">Loading...</span>
-                )}
-              </MetaRow>
-
-              {/* MR state distribution — only when a milestone matched and has MRs.
-                  Hides entirely (no "—") when its data is absent. */}
-              {gitlabMatch.type !== 'none' && milestoneMRs && releaseMrs.length > 0 && (
-                <MetaRow label="MRs">
-                  <span className="inline-flex flex-wrap items-center gap-1.5">
-                    {mrStateCounts.merged > 0 && (
-                      <Badge tone="green" className="text-xs tabular-nums">
-                        {mrStateCounts.merged} merged
-                      </Badge>
-                    )}
-                    {mrStateCounts.opened > 0 && (
-                      <Badge tone="blue" className="text-xs tabular-nums">
-                        {mrStateCounts.opened} open
-                      </Badge>
-                    )}
-                    {mrStateCounts.closed > 0 && (
-                      <Badge tone="muted" className="text-xs tabular-nums">
-                        {mrStateCounts.closed} closed
-                      </Badge>
-                    )}
-                  </span>
-                </MetaRow>
-              )}
-
-              {/* Issue status distribution — hides entirely (no "—") when no
-                  issues are loaded. */}
-              {releaseIssues.length > 0 && (
-                <MetaRow label="Issues">
-                  <span className="inline-flex flex-wrap items-center gap-1.5">
-                    {issueStatusCounts.new > 0 && (
-                      <Badge tone="muted" className="text-xs tabular-nums">
-                        {issueStatusCounts.new} new
-                      </Badge>
-                    )}
-                    {issueStatusCounts.indeterminate > 0 && (
-                      <Badge tone="blue" className="text-xs tabular-nums">
-                        {issueStatusCounts.indeterminate} in progress
-                      </Badge>
-                    )}
-                    {issueStatusCounts.done > 0 && (
-                      <Badge tone="green" className="text-xs tabular-nums">
-                        {issueStatusCounts.done} done
-                      </Badge>
-                    )}
-                  </span>
-                </MetaRow>
-              )}
-
-              {/* Story-point effort — only when at least one issue carries a
-                  positive story-point value. */}
-              {hasStoryPoints && (
-                <MetaRow label="Story points">
-                  <span className="text-sm tabular-nums">
-                    {storyPoints.completed} / {storyPoints.total}
-                  </span>
-                </MetaRow>
-              )}
-            </div>
-          </div>
+          <ReleaseDetailSidebar
+            width={width}
+            isDragging={isDragging}
+            onResizeMouseDown={handleMouseDown}
+            handleHovered={handleHovered}
+            setHandleHovered={setHandleHovered}
+            onStartEditing={startEditing}
+            version={version}
+            gitlabMatch={gitlabMatch}
+            matchedMilestone={matchedMilestone}
+            milestoneMRsLoaded={!!milestoneMRs}
+            labelCoverage={labelCoverage}
+            mrStateCounts={mrStateCounts}
+            hasMrs={releaseMrs.length > 0}
+            hasIssues={releaseIssues.length > 0}
+            issueStatusCounts={issueStatusCounts}
+            hasStoryPoints={hasStoryPoints}
+            storyPoints={storyPoints}
+          />
 
           {/* Edit modal — centered overlay; sidebar stays read-only */}
           <Dialog.Root
