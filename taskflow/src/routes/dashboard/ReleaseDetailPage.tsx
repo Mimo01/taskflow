@@ -56,6 +56,7 @@ export default function ReleaseDetailPage() {
     issueCounts,
     gitlabMatch,
     matchedMilestone,
+    branchState,
     milestoneMRs,
     isLoadingIssues,
     releaseIssues,
@@ -279,6 +280,7 @@ export default function ReleaseDetailPage() {
             version={version}
             gitlabMatch={gitlabMatch}
             matchedMilestone={matchedMilestone}
+            branchState={branchState}
             milestoneMRsLoaded={!!milestoneMRs}
             labelCoverage={labelCoverage}
             mrStateCounts={mrStateCounts}
