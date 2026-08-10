@@ -85,12 +85,31 @@ Plans:
 **Requirements**: RELBR-01, RELBR-02, RELBR-03, RELBR-04, RELBR-05, RELMS-01, RELMS-02, RELMS-03, RELMS-04
 **Success Criteria** (what must be TRUE):
 
-  1. User sees whether `release/<milestone title>` exists on the release detail view, with a release-level warning surfaced when it's missing
+  1. User sees whether the release branch exists on the release detail view (name derived as `release/<version component>`, e.g. `release/33.5.0` — corrected from `release/<milestone title>` by CONTEXT D-09), with a release-level warning surfaced when it's missing
   2. User can create the missing release branch off the GitLab project default branch, behind a confirm dialog, with the branch name validated against git ref rules before creation
-  3. User sees when no GitLab milestone matches the Jira fix version, and can create one (format `1.1.0`) behind a confirm dialog that lists recent milestones for reference
+  3. User sees when no GitLab milestone matches the Jira fix version, and can create one (format `X.Y.Z (DD.MM.YYYY)`, e.g. `33.5.0 (21.07.2026)` — corrected from `1.1.0` by CONTEXT D-01) behind a confirm dialog that lists recent milestones for reference
   4. A duplicate milestone title is detected and blocked before creation, with a clear message
 
-**Plans**: TBD
+**Plans:** 6 plans
+Plans:
+**Wave 1**
+
+- [ ] 88-01-PLAN.md — Pure `releaseBranch.ts` + `releaseMilestone.ts` modules with unit tests (version derivation, git-ref validation, title format, duplicate detection)
+- [ ] 88-02-PLAN.md — `gitlab.ts` service layer: `fetchProject`, `fetchProjectBranches`, `fetchBranch` (404-as-missing), `createBranch`, `createMilestone` + interface extensions
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 88-03-PLAN.md — Branch/project queries in `useReleaseDetail` + "Release Branch" status row in the sidebar (read-only)
+- [ ] 88-04-PLAN.md — Releases list row indicators via one fully-paginated `search=release/` branch fetch
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 88-05-PLAN.md — `CreateBranchDialog` + `createBranch` mutation + sidebar Create action (blocking human-verify checkpoint)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 88-06-PLAN.md — `CreateMilestoneDialog` (format enforcement, recent-milestone reference list, duplicate blocking) + `createMilestone` mutation (blocking human-verify checkpoint)
+
 **UI hint**: yes
 **Probe**: yes — do a quick manual scan of `GET /projects/:id/milestones` for existing whitespace/near-duplicate titles that could confuse exact-title matching (RELMS-04). Note: permission/role gating is explicitly OUT OF SCOPE (team is all Developer+); a 403 surfaces as a normal `ApiError` and needs no probe
 
