@@ -28,7 +28,7 @@
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 87: Release Detail Decomposition** - `ReleaseDetailPage.tsx` (1518 LOC) split into a `release-detail/` folder mirroring `issue-detail/`, zero user-visible change (completed 2026-08-10)
-- [ ] **Phase 88: Release Branch & Milestone Creation** - resolve/detect the release branch and GitLab milestone, create either behind a confirm dialog
+- [x] **Phase 88: Release Branch & Milestone Creation** - resolve/detect the release branch and GitLab milestone, create either behind a confirm dialog (completed 2026-08-10)
 - [ ] **Phase 89: Three-Channel Drift Detection** - union Jira-linkage, GitLab-milestone, and branch-target MR discovery into one drift report (read-only)
 - [ ] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry
 - [ ] **Phase 91: Post-Release Merge-Back Verification** - advisory check that a released tag's branch has landed in the default branch
@@ -90,7 +90,7 @@ Plans:
   3. User sees when no GitLab milestone matches the Jira fix version, and can create one (format `X.Y.Z (DD.MM.YYYY)`, e.g. `33.5.0 (21.07.2026)` — corrected from `1.1.0` by CONTEXT D-01) behind a confirm dialog that lists recent milestones for reference
   4. A duplicate milestone title is detected and blocked before creation, with a clear message
 
-**Plans:** 11 plans (6 original + 5 gap-closure)
+**Plans:** 11/11 plans complete
 Plans:
 **Wave 1**
 
@@ -245,7 +245,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 11/11 | Complete   | 2026-08-10 |
+| 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
