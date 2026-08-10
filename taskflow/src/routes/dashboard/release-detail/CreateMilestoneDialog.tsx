@@ -128,34 +128,18 @@ export function CreateMilestoneDialog({
       <DialogContent showCloseButton={false} className="max-h-[85vh] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create GitLab milestone</DialogTitle>
-          <DialogDescription>
-            Create a milestone for this release. Recent milestones are listed below for reference.
-          </DialogDescription>
+          <DialogDescription>The date comes from the Jira release date.</DialogDescription>
         </DialogHeader>
 
-        {sortedRecentMilestones.length > 0 && (
-          <div>
-            <p className="mb-1 text-xs text-muted-foreground">Recent milestones</p>
-            <div className="-mx-1 flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto px-1">
-              {sortedRecentMilestones.map((m, idx) => (
-                <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: read-only reference rows have no stable id in this structural type
-                  key={`${m.title}-${idx}`}
-                  className="text-xs text-muted-foreground"
-                >
-                  <span>{m.title}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <Label htmlFor="create-milestone-title">Milestone version</Label>
-          <div className="flex items-center gap-2">
+        {/* Input first: it is the only thing the user acts on. The reference
+            list sits below as secondary context rather than competing with the
+            field for the top of the dialog. */}
+        <div className="space-y-2">
+          <Label htmlFor="create-milestone-title">Version</Label>
+          <div className="flex items-baseline gap-2">
             <Input
               id="create-milestone-title"
-              className="font-mono"
+              className="w-32 font-mono"
               value={title}
               inputMode="numeric"
               placeholder="33.8.0"
@@ -164,36 +148,53 @@ export function CreateMilestoneDialog({
               // invalid title cannot be typed in the first place.
               onChange={(e) => setTitle(e.target.value.replace(/[^\d.]/g, ''))}
             />
-            {formattedDate && (
-              <span className="whitespace-nowrap font-mono text-muted-foreground text-sm">
-                ({formattedDate})
-              </span>
-            )}
+            <span
+              id="create-milestone-preview"
+              className="whitespace-nowrap font-mono text-muted-foreground text-sm"
+            >
+              {formattedDate ? `(${formattedDate})` : ''}
+            </span>
           </div>
-          {formattedDate ? (
-            <p id="create-milestone-preview" className="text-muted-foreground text-xs">
-              Date comes from the Jira release date. Will create:{' '}
-              <span className="font-mono">{composedTitle || '—'}</span>
+
+          {/* One message at a time, in severity order — stacking a preview, a
+              format hint and a server error at once was the bulk of the clutter. */}
+          {!formattedDate ? (
+            <p className="text-destructive text-xs">
+              This version has no Jira release date, so the title can't be built.
             </p>
-          ) : (
-            <p id="create-milestone-preview" className="text-destructive text-xs">
-              This version has no Jira release date, so the milestone title can't be built.
-            </p>
-          )}
-          {!projectConfigured ? (
-            <p className="text-xs text-destructive">GitLab project not configured</p>
+          ) : !projectConfigured ? (
+            <p className="text-destructive text-xs">GitLab project not configured</p>
+          ) : errorMessage ? (
+            <p className="text-destructive text-xs">{errorMessage}</p>
           ) : duplicate !== null ? (
-            <p className="text-xs text-destructive">
-              A milestone named '{composedTitle}' already exists in this project.
+            <p className="text-destructive text-xs">
+              '{composedTitle}' already exists in this project.
             </p>
+          ) : !formatValid ? (
+            <p className="text-destructive text-xs">Version must be X.Y.Z, e.g. 33.5.0</p>
           ) : (
-            formattedDate &&
-            !formatValid && (
-              <p className="text-xs text-destructive">Version must be X.Y.Z, e.g. 33.5.0</p>
-            )
+            <p className="text-muted-foreground text-xs">
+              Creates <span className="font-mono text-foreground">{composedTitle}</span>
+            </p>
           )}
-          {errorMessage && <p className="text-xs text-destructive">{errorMessage}</p>}
         </div>
+
+        {sortedRecentMilestones.length > 0 && (
+          <div className="border-t pt-3">
+            <p className="mb-1.5 text-muted-foreground text-xs">Recent milestones</p>
+            <div className="flex flex-col gap-1">
+              {sortedRecentMilestones.map((m, idx) => (
+                <span
+                  // biome-ignore lint/suspicious/noArrayIndexKey: read-only reference rows have no stable id in this structural type
+                  key={`${m.title}-${idx}`}
+                  className="font-mono text-muted-foreground text-xs"
+                >
+                  {m.title}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline" disabled={isPending} />}>

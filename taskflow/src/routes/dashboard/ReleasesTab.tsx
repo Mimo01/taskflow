@@ -13,7 +13,7 @@
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
-import { AlertTriangle, RefreshCw, Rocket } from 'lucide-react';
+import { AlertTriangle, GitBranch, RefreshCw, Rocket } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,8 @@ interface MatchedVersion {
   issuesFixed: number;
   issuesTotal: number;
   branchMissing: boolean;
+  branchPresent: boolean;
+  branchName: string | null;
   milestoneMissing: boolean;
 }
 
@@ -263,6 +265,9 @@ export default function ReleasesTab() {
       // this indicator exists to police.
       const branchMissing =
         branchesLoaded && derived !== null && !version.released && !releaseBranchNames.has(derived);
+      // Positive counterpart: a confirmed-present branch. Only meaningful once
+      // the branch set has loaded, so it never flashes during the fetch.
+      const branchPresent = branchesLoaded && derived !== null && releaseBranchNames.has(derived);
 
       return {
         version,
@@ -270,6 +275,8 @@ export default function ReleasesTab() {
         issuesFixed: counts?.issuesFixed ?? 0,
         issuesTotal: counts?.issuesTotal ?? 0,
         branchMissing,
+        branchPresent,
+        branchName: derived,
         milestoneMissing,
       };
     };
@@ -391,7 +398,16 @@ export default function ReleasesTab() {
                 ...releasedVersions.slice(0, releasedVisible),
               ] as MatchedVersion[]
             ).map(
-              ({ version, match, issuesFixed, issuesTotal, branchMissing, milestoneMissing }) => (
+              ({
+                version,
+                match,
+                issuesFixed,
+                issuesTotal,
+                branchMissing,
+                branchPresent,
+                branchName,
+                milestoneMissing,
+              }) => (
                 <button
                   key={version.id}
                   type="button"
@@ -514,24 +530,44 @@ export default function ReleasesTab() {
                         </span>
                       )
                     ) : (
+                      // The no-match state IS the missing-milestone warning —
+                      // rendering a muted "No GitLab link" next to a separate
+                      // orange triangle said the same thing twice. When the
+                      // absence is worth flagging (dated + unreleased) this
+                      // carries the warning styling; otherwise it stays muted,
+                      // because a closed historical release legitimately has no
+                      // milestone and colouring that orange is noise.
                       <span
-                        className="text-xs text-muted-foreground"
-                        data-testid="gitlab-link-none"
+                        className={
+                          milestoneMissing
+                            ? 'inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400'
+                            : 'text-muted-foreground text-xs'
+                        }
+                        title={milestoneMissing ? 'No GitLab milestone' : undefined}
+                        data-testid={
+                          milestoneMissing ? 'row-missing-milestone' : 'gitlab-link-none'
+                        }
                       >
-                        No GitLab link
+                        {milestoneMissing && (
+                          <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
+                        )}
+                        No GitLab milestone
                       </span>
                     )}
 
                     {/* Drift indicators (D-17/D-18/D-19) — placed before the task-count
                       span so a future Phase 89 aggregate drift count can append
-                      after them without a redesign */}
-                    {milestoneMissing && (
-                      <span title="No GitLab milestone" data-testid="row-missing-milestone">
-                        <AlertTriangle
+                      after them without a redesign.
+                      Branch indicators only render when a milestone matched: the
+                      branch name is derived from the milestone title, so with no
+                      milestone there is no branch to have an opinion about. */}
+                    {branchPresent && (
+                      <span title={`Release branch ${branchName}`} data-testid="row-branch-present">
+                        <GitBranch
                           aria-hidden="true"
-                          className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
+                          className="size-3 shrink-0 text-green-600 dark:text-green-400"
                         />
-                        <span className="sr-only">No GitLab milestone</span>
+                        <span className="sr-only">Release branch exists</span>
                       </span>
                     )}
                     {branchMissing && (
