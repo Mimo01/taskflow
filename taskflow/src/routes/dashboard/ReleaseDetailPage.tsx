@@ -368,7 +368,8 @@ export default function ReleaseDetailPage() {
             onOpenChange={setCreateMilestoneOpen}
             releaseDate={version.releaseDate ?? null}
             recentMilestones={ownWindowMilestones}
-            activeGitlabProject={activeGitlabProject ?? 0}
+            versionName={version.name}
+            activeGitlabProject={activeGitlabProject}
             isPending={createMilestoneMutation.isPending}
             errorMessage={
               createMilestoneMutation.error instanceof Error

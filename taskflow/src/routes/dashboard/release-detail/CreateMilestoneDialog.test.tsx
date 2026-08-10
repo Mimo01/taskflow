@@ -9,7 +9,7 @@ const RECENT_MILESTONES = [
 ];
 
 describe('CreateMilestoneDialog', () => {
-  it('renders the locked copy and prefills the date from the release date', () => {
+  it('renders the locked copy and prefills a valid title from the version name and release date (WR-01 Test G)', () => {
     render(
       <CreateMilestoneDialog
         open
@@ -18,6 +18,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.6.0"
       />,
     );
     expect(screen.getByText('Create GitLab milestone')).toBeInTheDocument();
@@ -27,8 +28,76 @@ describe('CreateMilestoneDialog', () => {
       ),
     ).toBeInTheDocument();
     const input = screen.getByLabelText('Milestone title') as HTMLInputElement;
-    expect(input.value).toBe(' (21.07.2026)');
+    expect(input.value).toBe('33.6.0 (21.07.2026)');
     expect(screen.getByText('Format: X.Y.Z (DD.MM.YYYY)')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Title must match X.Y.Z (DD.MM.YYYY), e.g. 33.5.0 (21.07.2026)'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create milestone' })).toBeEnabled();
+  });
+
+  it('extracts the version from a v-prefixed Jira version name (WR-01 Test H)', () => {
+    render(
+      <CreateMilestoneDialog
+        open
+        onOpenChange={() => {}}
+        releaseDate="2026-07-21"
+        recentMilestones={RECENT_MILESTONES}
+        activeGitlabProject={1}
+        onConfirm={() => {}}
+        versionName="v33.6.0"
+      />,
+    );
+    const input = screen.getByLabelText('Milestone title') as HTMLInputElement;
+    expect(input.value).toBe('33.6.0 (21.07.2026)');
+  });
+
+  it('prefills the empty string when no X.Y.Z version can be extracted (WR-01 Test I)', () => {
+    render(
+      <CreateMilestoneDialog
+        open
+        onOpenChange={() => {}}
+        releaseDate="2026-07-21"
+        recentMilestones={RECENT_MILESTONES}
+        activeGitlabProject={1}
+        onConfirm={() => {}}
+        versionName="Backlog"
+      />,
+    );
+    const input = screen.getByLabelText('Milestone title') as HTMLInputElement;
+    expect(input.value).toBe('');
+  });
+
+  it('prefills the empty string when releaseDate is null (WR-01 Test J)', () => {
+    render(
+      <CreateMilestoneDialog
+        open
+        onOpenChange={() => {}}
+        releaseDate={null}
+        recentMilestones={RECENT_MILESTONES}
+        activeGitlabProject={1}
+        onConfirm={() => {}}
+        versionName="33.5.0"
+      />,
+    );
+    const input = screen.getByLabelText('Milestone title') as HTMLInputElement;
+    expect(input.value).toBe('');
+  });
+
+  it('blocks submit and shows "GitLab project not configured" when the project is unconfigured (WR-10 Test K)', () => {
+    render(
+      <CreateMilestoneDialog
+        open
+        onOpenChange={() => {}}
+        releaseDate="2026-07-21"
+        recentMilestones={RECENT_MILESTONES}
+        activeGitlabProject={null}
+        onConfirm={() => {}}
+        versionName="33.6.0"
+      />,
+    );
+    expect(screen.getByText('GitLab project not configured')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create milestone' })).toBeDisabled();
   });
 
   it('lists recent milestones read-only, newest first', () => {
@@ -40,6 +109,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.5.0"
       />,
     );
     expect(screen.getByText('Recent milestones')).toBeInTheDocument();
@@ -60,6 +130,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.5.0"
       />,
     );
     const input = screen.getByLabelText('Milestone title');
@@ -81,6 +152,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.5.0"
       />,
     );
     const input = screen.getByLabelText('Milestone title');
@@ -99,6 +171,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.5.0"
       />,
     );
     const input = screen.getByLabelText('Milestone title');
@@ -124,6 +197,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.5.0"
         errorMessage="Title has already been taken"
       />,
     );
@@ -140,6 +214,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={() => {}}
+        versionName="33.5.0"
         isPending
       />,
     );
@@ -158,6 +233,7 @@ describe('CreateMilestoneDialog', () => {
         recentMilestones={RECENT_MILESTONES}
         activeGitlabProject={1}
         onConfirm={onConfirm}
+        versionName="33.5.0"
       />,
     );
     const input = screen.getByLabelText('Milestone title');
