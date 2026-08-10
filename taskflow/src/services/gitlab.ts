@@ -1541,6 +1541,286 @@ export async function fetchMilestoneMRs(
 }
 
 /**
+ * Fetch merge requests targeting a specific branch (Channel C — DRIFT-03).
+ *
+ * Fully paginated with no page cap — see D-17. Do not replace with a single
+ * capped page; that is the GGX-WARN-01 bug class this phase deletes.
+ *
+ * @param baseUrl      - GitLab base URL
+ * @param token        - Personal Access Token
+ * @param projectId    - GitLab numeric project ID
+ * @param targetBranch - Branch name the MRs must target (e.g. `release/33.5.0`);
+ *                       percent-encoded so `/` in release branch names can't inject
+ *                       additional query params or path segments (T-89-01)
+ * @returns Array of MRs targeting `targetBranch` (all states)
+ */
+export async function fetchBranchTargetedMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  targetBranch: string,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allMRs: GitLabMR[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests?target_branch=${encodeURIComponent(targetBranch)}&state=all&per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load Branch-Targeted MRs',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch branch-targeted MRs', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch branch-targeted MRs: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabMR[];
+    allMRs.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  // Enrich labels with colors (same pattern as fetchMilestoneMRs)
+  const allLabelNames = new Set<string>();
+  for (const mr of allMRs) {
+    if (Array.isArray(mr.labels)) {
+      for (const l of mr.labels) {
+        if (typeof l === 'string') allLabelNames.add(l);
+      }
+    }
+  }
+
+  const labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  if (allLabelNames.size > 0) {
+    try {
+      const labelsUrl = `${base}/api/v4/projects/${projectId}/labels?per_page=100`;
+      const labelsResp = await apiFetch(
+        'gitlab',
+        labelsUrl,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load Branch-Targeted MRs',
+      );
+      if (labelsResp.ok) {
+        const projectLabels = (await labelsResp.json()) as Array<{
+          name: string;
+          color: string;
+          text_color: string;
+        }>;
+        for (const pl of projectLabels) {
+          labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
+        }
+      }
+    } catch {
+      // If labels fetch fails, fall back to default colors
+    }
+  }
+
+  for (const mr of allMRs) {
+    if (Array.isArray(mr.labels)) {
+      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
+        if (typeof l === 'string') {
+          const colors = labelColorMap[l];
+          return {
+            name: l,
+            color: colors?.color ?? '#6b7280',
+            text_color: colors?.text_color ?? '#FFFFFF',
+          };
+        }
+        return l;
+      });
+    }
+  }
+
+  return allMRs;
+}
+
+/**
+ * Fetch every merge request in a project across ALL states — Channel A's
+ * local-match universe (DRIFT-01).
+ *
+ * Fully paginated with no page cap — see D-17. Do not replace with a single
+ * capped page; that is the GGX-WARN-01 bug class this phase deletes.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @returns Array of every MR in the project (all states)
+ */
+export async function fetchAllProjectMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allMRs: GitLabMR[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests?state=all&per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load All Project MRs',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch project MRs', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch project MRs: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabMR[];
+    allMRs.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  // Enrich labels with colors (same pattern as fetchMilestoneMRs)
+  const allLabelNames = new Set<string>();
+  for (const mr of allMRs) {
+    if (Array.isArray(mr.labels)) {
+      for (const l of mr.labels) {
+        if (typeof l === 'string') allLabelNames.add(l);
+      }
+    }
+  }
+
+  const labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  if (allLabelNames.size > 0) {
+    try {
+      const labelsUrl = `${base}/api/v4/projects/${projectId}/labels?per_page=100`;
+      const labelsResp = await apiFetch(
+        'gitlab',
+        labelsUrl,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load All Project MRs',
+      );
+      if (labelsResp.ok) {
+        const projectLabels = (await labelsResp.json()) as Array<{
+          name: string;
+          color: string;
+          text_color: string;
+        }>;
+        for (const pl of projectLabels) {
+          labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
+        }
+      }
+    } catch {
+      // If labels fetch fails, fall back to default colors
+    }
+  }
+
+  for (const mr of allMRs) {
+    if (Array.isArray(mr.labels)) {
+      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
+        if (typeof l === 'string') {
+          const colors = labelColorMap[l];
+          return {
+            name: l,
+            color: colors?.color ?? '#6b7280',
+            text_color: colors?.text_color ?? '#FFFFFF',
+          };
+        }
+        return l;
+      });
+    }
+  }
+
+  return allMRs;
+}
+
+/**
+ * Fetch every OPEN merge request in a project (D-14 Releases-list fetch).
+ *
+ * Fully paginated with no page cap — see D-17. Do not replace with a single
+ * capped page; that is the GGX-WARN-01 bug class this phase deletes.
+ *
+ * Label-color enrichment is intentionally skipped — this consumer renders only
+ * `milestone` / `target_branch` / `iid` / `state`, never labels, so the extra
+ * labels call is avoided (same rationale as `fetchRecentProjectMRs`).
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @returns Array of every open MR in the project
+ */
+export async function fetchOpenProjectMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allMRs: GitLabMR[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests?state=opened&per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load Open Project MRs',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch open project MRs', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch open project MRs: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabMR[];
+    allMRs.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  return allMRs;
+}
+
+/**
  * Fetch a project's most-recently-updated merge requests across ALL states, in a
  * single capped request (default the latest 100).
  *
