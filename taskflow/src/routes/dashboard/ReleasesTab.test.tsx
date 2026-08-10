@@ -601,3 +601,61 @@ describe('release-row drift indicators (D-17/D-18/D-19)', () => {
     });
   });
 });
+
+describe('missing-milestone indicator scoping (WR-04) and accessible names (WR-06)', () => {
+  it('does not show the missing-milestone indicator on an undated unreleased version', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', undefined)]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'none',
+      candidateName: '',
+      candidateUrl: '',
+    });
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText('v33.5.0');
+    expect(screen.queryByTestId('row-missing-milestone')).toBeNull();
+  });
+
+  it('does not show the missing-milestone indicator on an already-released version', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      { id: 'v1', name: 'v33.5.0', releaseDate: '2026-07-21', released: true },
+    ]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'none',
+      candidateName: '',
+      candidateUrl: '',
+    });
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByText('v33.5.0');
+    expect(screen.queryByTestId('row-missing-milestone')).toBeNull();
+  });
+
+  it('shows the missing-milestone indicator with sr-only text for a dated, unreleased version with no milestone match', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
+
+    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'none',
+      candidateName: '',
+      candidateUrl: '',
+    });
+
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderWithQuery(<ReleasesTab />);
+
+    await screen.findByTestId('row-missing-milestone');
+    expect(screen.getByText('No GitLab milestone')).toBeTruthy();
+  });
+});
