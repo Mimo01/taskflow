@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-interface TrailEntry {
+export interface TrailEntry {
   path: string;
   label: string;
 }
