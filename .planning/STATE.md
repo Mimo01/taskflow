@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: planning
-last_updated: "2026-08-10T11:41:55.604Z"
-last_activity: 2026-08-10 — ROADMAP.md written for v1.14 (Phases 87-91), REQUIREMENTS.md traceability filled (26/26 mapped)
+status: executing
+last_updated: "2026-08-10T12:17:55.063Z"
+last_activity: 2026-08-10 -- Phase 87 planning complete
 progress:
   total_phases: 21
   completed_phases: 0
-  total_plans: 0
+  total_plans: 6
   completed_plans: 0
   percent: 0
 ---
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 87 of 91 (Release Detail Decomposition) — not yet planned
 Plan: —
-Status: Roadmap approved, ready to plan Phase 87
-Last activity: 2026-08-10 — ROADMAP.md written for v1.14 (Phases 87-91), REQUIREMENTS.md traceability filled (26/26 mapped)
+Status: Ready to execute
+Last activity: 2026-08-10 -- Phase 87 planning complete
 
 Progress: [░░░░░░░░░░] 0%
 
