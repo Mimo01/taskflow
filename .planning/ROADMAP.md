@@ -114,8 +114,8 @@ Plans:
 
 Gap Wave 1
 
-- [ ] 88-07-PLAN.md — CR-01: gate the Releases-list missing-branch indicator on query success + branch-fetch-error chip (also WR-04, WR-06)
-- [ ] 88-08-PLAN.md — CR-03 contract: `check-failed` `BranchState` variant + `branchCheckFailed` in `resolveBranchState` (also WR-07)
+- [x] 88-07-PLAN.md — CR-01: gate the Releases-list missing-branch indicator on query success + branch-fetch-error chip (also WR-04, WR-06)
+- [x] 88-08-PLAN.md — CR-03 contract: `check-failed` `BranchState` variant + `branchCheckFailed` in `resolveBranchState` (also WR-07)
 
 Gap Wave 2 *(blocked on 88-08)*
 
@@ -245,7 +245,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 6/6 | Complete   | 2026-08-10 |
+| 88. Release Branch & Milestone Creation | 8/11 | In Progress|  |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
