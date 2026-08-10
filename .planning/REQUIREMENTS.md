@@ -13,18 +13,18 @@
 
 ### Release Branch
 
-- [ ] **RELBR-01**: Release branch name resolves as `release/<milestone title>` from the matched GitLab milestone (`release/` prefix hardcoded)
-- [ ] **RELBR-02**: User sees whether the release branch exists on the release detail view
-- [ ] **RELBR-03**: User sees a release-level warning when the release branch is missing
-- [ ] **RELBR-04**: User can create the missing release branch off the GitLab project default branch, behind a confirm dialog
-- [ ] **RELBR-05**: Branch name is validated against git ref rules before creation (milestone titles may contain spaces, slashes, or unicode)
+- [x] **RELBR-01**: Release branch name resolves as `release/<milestone title>` from the matched GitLab milestone (`release/` prefix hardcoded)
+- [x] **RELBR-02**: User sees whether the release branch exists on the release detail view
+- [x] **RELBR-03**: User sees a release-level warning when the release branch is missing
+- [x] **RELBR-04**: User can create the missing release branch off the GitLab project default branch, behind a confirm dialog
+- [x] **RELBR-05**: Branch name is validated against git ref rules before creation (milestone titles may contain spaces, slashes, or unicode)
 
 ### Release Milestone
 
-- [ ] **RELMS-01**: User sees when no GitLab milestone matches the Jira fix version
-- [ ] **RELMS-02**: User can create a GitLab milestone from the release view, behind a confirm dialog
-- [ ] **RELMS-03**: The create dialog lists the latest existing milestones for reference and lets the user type the final name (format `1.1.0`, `2.0.0`)
-- [ ] **RELMS-04**: Duplicate milestone title is detected and blocked before creation
+- [x] **RELMS-01**: User sees when no GitLab milestone matches the Jira fix version
+- [x] **RELMS-02**: User can create a GitLab milestone from the release view, behind a confirm dialog
+- [x] **RELMS-03**: The create dialog lists the latest existing milestones for reference and lets the user type the final name (format `1.1.0`, `2.0.0`)
+- [x] **RELMS-04**: Duplicate milestone title is detected and blocked before creation
 
 ### Drift Detection
 
