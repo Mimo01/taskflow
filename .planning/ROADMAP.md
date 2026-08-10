@@ -54,7 +54,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 **Wave 1**
 
-- [ ] 87-01-PLAN.md — Pure `releaseSummaries.ts` module + unit tests + move the two Jira fetchers into `services/jira.ts` via `apiFetch`
+- [x] 87-01-PLAN.md — Pure `releaseSummaries.ts` module + unit tests + move the two Jira fetchers into `services/jira.ts` via `apiFetch`
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -206,7 +206,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 87. Release Detail Decomposition | 0/TBD | Not started | - |
+| 87. Release Detail Decomposition | 1/6 | In Progress|  |
 | 88. Release Branch & Milestone Creation | 0/TBD | Not started | - |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |

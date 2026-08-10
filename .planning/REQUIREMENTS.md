@@ -9,7 +9,7 @@
 
 ### Foundation
 
-- [ ] **FOUND-01**: `ReleaseDetailPage.tsx` (1518 LOC) is decomposed into a `release-detail/` folder mirroring the existing `issue-detail/` precedent, with zero user-visible behavior change
+- [x] **FOUND-01**: `ReleaseDetailPage.tsx` (1518 LOC) is decomposed into a `release-detail/` folder mirroring the existing `issue-detail/` precedent, with zero user-visible behavior change
 
 ### Release Branch
 

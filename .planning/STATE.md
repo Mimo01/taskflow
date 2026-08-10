@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: executing
-last_updated: "2026-08-10T12:17:55.063Z"
-last_activity: 2026-08-10 -- Phase 87 planning complete
+last_updated: "2026-08-10T12:36:37.133Z"
+last_activity: 2026-08-10
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 6
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** v1.14 Release Management — roadmap created (Phases 87-91); ready for `/gsd-plan-phase 87`
+**Current focus:** Phase 87 — release-detail-decomposition
 
 ## Current Position
 
-Phase: 87 of 91 (Release Detail Decomposition) — not yet planned
-Plan: —
+Phase: 87 (release-detail-decomposition) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-08-10 -- Phase 87 planning complete
+Last activity: 2026-08-10
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 17%
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Progress: [░░░░░░░░░░] 0%
 | 89 | DRIFT-01..09 | Three-channel MR discovery (Jira-key, milestone, branch-target) + drift flagging, read-only |
 | 90 | MRFIX-01..04 | Per-MR retarget + assign-milestone, optimistic, independently retryable, no confirm/warning |
 | 91 | MERGE-01..03 | Post-release merge-back check, advisory verdict with manual override |
+| Phase 87 P01 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - Two independent mutations (retarget, assign-milestone) per MR row, not one combined PUT — needed for independent per-action retry
 - Merge-back detection is layered and advisory: tracking-MR state first, `repository/compare` content-diff fallback, `merged:true` as positive-only fast path — never trust `merged:false` alone (GitLab #36963 squash/rebase false-negative)
 - Channel C (branch-target MR discovery) must use a fully-paginated fetch, never `fetchRecentProjectMRs`'s 100-cap — this bug class has already recurred twice in this codebase
+- [Phase 87]: fetchVersionIssueCounts/fetchFixVersionIssues moved to services/jira.ts behind apiFetch (D-12a) — Adopts the file's existing 15s AbortController timeout and 401 markDisconnected convention; user-approved deliberate behavior delta, no other change to fetch contracts
 
 ### Pending Todos
 
@@ -97,9 +99,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-10T11:41:55.600Z
+Last session: 2026-08-10T12:36:28.556Z
 Stopped at: Phase 87 context gathered
-Resume file: .planning/phases/87-release-detail-decomposition/87-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 
