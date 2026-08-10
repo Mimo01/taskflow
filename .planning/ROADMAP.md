@@ -46,7 +46,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. The release detail page renders identically (layout, data, interactions) before and after the refactor — no visible regression
   2. Release detail code lives in a `release-detail/` folder with one file per section/hook, matching the `issue-detail/` structure convention
   3. The full test suite (including release-detail-related tests) passes with zero regressions after decomposition
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+- [ ] 87-01-PLAN.md — Pure `releaseSummaries.ts` module + unit tests + move the two Jira fetchers into `services/jira.ts` via `apiFetch`
+- [ ] 87-02-PLAN.md — `useReleaseDetail.ts` (6 queries verbatim) and rewire the page off its inline data layer
+- [ ] 87-03-PLAN.md — Extract `MetaRow`, `ReleaseDetailSkeleton`, `ReleaseHeader`, `DescriptionsSection`, `LabelSummarySection`
+- [ ] 87-04-PLAN.md — Extract `IssuesSection` with `UnmatchedMRsSection` nested inside its `<section>` wrapper (D-12b)
+- [ ] 87-05-PLAN.md — Extract `ReleaseDetailSidebar` and lift edit state into `useEditRelease.ts`
+- [ ] 87-06-PLAN.md — Extract `EditReleaseModal`, final structural audit, full-suite gate + manual UAT
 **UI hint**: yes
 
 ### Phase 88: Release Branch & Milestone Creation
