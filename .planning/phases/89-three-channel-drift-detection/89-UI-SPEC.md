@@ -1,7 +1,8 @@
 ---
 phase: 89
 slug: three-channel-drift-detection
-status: draft
+status: approved
+reviewed_at: 2026-08-10
 shadcn_initialized: true
 preset: base-nova (neutral base, cssVariables, lucide icons)
 created: 2026-08-10
