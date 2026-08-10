@@ -953,6 +953,176 @@ export async function updateMilestone(
 }
 
 /**
+ * Check whether a branch exists on a GitLab project (D-13).
+ *
+ * DELIBERATE EXCEPTION to this file's universal throw-on-!ok convention: a 404
+ * here means "branch missing", a normal and expected result the release-branch
+ * feature needs to render, not an error. Do NOT "normalize" this to throw on
+ * 404 in a future refactor — that would make the missing-branch state
+ * unreachable app-wide.
+ *
+ * @param baseUrl    - GitLab base URL
+ * @param token      - Personal Access Token
+ * @param projectId  - GitLab numeric project ID
+ * @param branchName - Branch name (e.g. "release/33.5.0"); URL-encoded internally
+ * @returns `{ exists: boolean }` — never throws on a plain 404
+ */
+export async function fetchBranch(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  branchName: string,
+): Promise<{ exists: boolean }> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/repository/branches/${encodeURIComponent(branchName)}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Load Release Branch',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  // D-13: 404 means the branch doesn't exist yet — not an error condition.
+  if (response.status === 404) return { exists: false };
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to check release branch', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to check release branch: status ${response.status}`);
+  }
+
+  return { exists: true };
+}
+
+/**
+ * Create a new branch on a GitLab project (D-22, the app's second write operation).
+ *
+ * Pitfall 4: GitLab returns 400 (not 409) for "branch already exists" — there is
+ * deliberately no 409 branch here; the distinguishing signal is the message text,
+ * surfaced verbatim to the dialog (D-16).
+ *
+ * @param baseUrl    - GitLab base URL
+ * @param token      - Personal Access Token
+ * @param projectId  - GitLab numeric project ID
+ * @param branchName - New branch name (e.g. "release/33.5.0")
+ * @param ref        - Ref to branch from (typically the project's default branch)
+ * @returns The created branch's name and web_url
+ */
+export async function createBranch(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  branchName: string,
+  ref: string,
+): Promise<{ name: string; web_url: string }> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/repository/branches`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ branch: branchName, ref }),
+      },
+      'Create Release Branch',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to create branch', response.status, 'gitlab');
+    }
+    // Widened vs. updateMilestone's narrower typing (Pitfall 3): GitLab's
+    // validation errors commonly arrive as message: string[] (e.g. duplicate
+    // branch), which would render as [object Object] if left un-joined.
+    const body = (await response.json().catch(() => null)) as {
+      message?: string | string[];
+    } | null;
+    const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    throw new Error(`Failed to create branch: ${msg ?? `status ${response.status}`}`);
+  }
+
+  return (await response.json()) as { name: string; web_url: string };
+}
+
+/**
+ * Create a new milestone on a GitLab project (D-22, the app's third write operation).
+ *
+ * D-04: both `title` and `due_date` are always sent — no description field.
+ * Pitfall 4: no 409 branch — GitLab returns 400 for "title already taken".
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param fields    - `{ title, due_date }` to create the milestone with
+ * @returns The created milestone
+ */
+export async function createMilestone(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  fields: { title: string; due_date: string },
+): Promise<GitLabMilestone> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/milestones`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fields),
+      },
+      'Create Milestone',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to create milestone', response.status, 'gitlab');
+    }
+    // Widened vs. updateMilestone's narrower typing (Pitfall 3): a duplicate-title
+    // rejection commonly arrives as message: string[], not a bare string.
+    const body = (await response.json().catch(() => null)) as {
+      message?: string | string[];
+    } | null;
+    const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    throw new Error(`Failed to create milestone: ${msg ?? `status ${response.status}`}`);
+  }
+
+  return (await response.json()) as GitLabMilestone;
+}
+
+/**
  * Fetch repository tags for a GitLab project.
  *
  * @param baseUrl   - GitLab base URL

@@ -4,7 +4,10 @@
 // STAND-06: fetchUserMREvents - MR comments + approvals via GitLab User Events API
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  createBranch,
+  createMilestone,
   fetchAssignedMRs,
+  fetchBranch,
   fetchMRApprovals,
   fetchMRCommits,
   fetchMRDiscussions,
@@ -1659,6 +1662,253 @@ describe('gitlab service', () => {
       await expect(
         updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: '' }),
       ).rejects.toThrow('Failed to update milestone: title is missing');
+    });
+  });
+
+  describe('fetchBranch (D-13 404-as-missing)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+    const PROJECT_ID = 42;
+
+    it('resolves { exists: false } on 404 — does NOT throw', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({ message: '404 Branch Not Found' }),
+      } as Response);
+
+      await expect(
+        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
+      ).resolves.toEqual({ exists: false });
+    });
+
+    it('resolves { exists: true } on 200', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ name: 'release/33.5.0' }),
+      } as Response);
+
+      await expect(
+        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
+      ).resolves.toEqual({ exists: true });
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+
+    it('throws a plain Error containing the status on a 500 response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0')).rejects.toThrow('500');
+    });
+
+    it('URL-encodes the branch name as a path segment', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      } as Response);
+
+      await fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0');
+
+      const [calledUrl] = vi.mocked(mockFetch).mock.calls[0] as [string, unknown];
+      expect(calledUrl).toContain('release%2F33.5.0');
+    });
+  });
+
+  describe('createBranch', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+    const PROJECT_ID = 42;
+
+    it('resolves the created branch on 201', async () => {
+      const created = { name: 'release/33.5.0', web_url: `${BASE}/g/x/-/tree/release/33.5.0` };
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => created,
+      } as Response);
+
+      const result = await createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop');
+      expect(result).toEqual(created);
+    });
+
+    it('issues a POST with { branch, ref } body', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => ({ name: 'release/33.5.0', web_url: 'x' }),
+      } as Response);
+
+      await createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop');
+
+      const [, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [
+        string,
+        { method: string; body: string },
+      ];
+      expect(calledOptions.method).toBe('POST');
+      expect(JSON.parse(calledOptions.body)).toEqual({ branch: 'release/33.5.0', ref: 'develop' });
+    });
+
+    it('surfaces a string message body on 400', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: 'Branch already exists' }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toThrow('Branch already exists');
+    });
+
+    it('joins an array message body on 400 — never [object Object]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: ['Branch already exists'] }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toThrow('Branch already exists');
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+  });
+
+  describe('createMilestone', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+    const PROJECT_ID = 42;
+
+    const createdMilestone = {
+      id: 500,
+      iid: 12,
+      title: '33.5.0',
+      description: null,
+      start_date: null,
+      due_date: '2026-09-01',
+      state: 'active',
+      web_url: `${BASE}/g/x/-/milestones/12`,
+    };
+
+    it('resolves the created milestone on 201', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => createdMilestone,
+      } as Response);
+
+      const result = await createMilestone(BASE, TOKEN, PROJECT_ID, {
+        title: '33.5.0',
+        due_date: '2026-09-01',
+      });
+      expect(result).toEqual(createdMilestone);
+    });
+
+    it('issues a POST with { title, due_date } body — no description (D-04)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => createdMilestone,
+      } as Response);
+
+      await createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' });
+
+      const [, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [
+        string,
+        { method: string; body: string },
+      ];
+      expect(calledOptions.method).toBe('POST');
+      expect(JSON.parse(calledOptions.body)).toEqual({
+        title: '33.5.0',
+        due_date: '2026-09-01',
+      });
+    });
+
+    it('joins an array message body on 400 — never [object Object]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: ['Title has already been taken'] }),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toThrow('Title has already been taken');
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
     });
   });
 });
