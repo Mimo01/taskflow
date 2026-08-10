@@ -99,8 +99,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 88-03-PLAN.md — Branch/project queries in `useReleaseDetail` + "Release Branch" status row in the sidebar (read-only)
-- [ ] 88-04-PLAN.md — Releases list row indicators via one fully-paginated `search=release/` branch fetch
+- [x] 88-03-PLAN.md — Branch/project queries in `useReleaseDetail` + "Release Branch" status row in the sidebar (read-only)
+- [x] 88-04-PLAN.md — Releases list row indicators via one fully-paginated `search=release/` branch fetch
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -226,7 +226,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
-| 88. Release Branch & Milestone Creation | 2/6 | In Progress|  |
+| 88. Release Branch & Milestone Creation | 4/6 | In Progress|  |
 | 89. Three-Channel Drift Detection | 0/TBD | Not started | - |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
