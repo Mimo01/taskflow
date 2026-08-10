@@ -47,16 +47,18 @@ Exceptions: none. Dialog body/footer spacing follows `DialogContent`/`DialogFoot
 
 ## Typography
 
-Matches the exact scale already used in `ReleaseDetailSidebar.tsx` and `ReleasesTab.tsx`. Do not introduce a third size.
+Matches the exact scale already used in `ReleaseDetailSidebar.tsx` and `ReleasesTab.tsx`. Do not introduce a third weight.
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body / row label | 14px (`text-sm`) | 400 (regular) | 1.5 |
 | Label / meta / badge text | 12px (`text-xs`) | 400 (regular) | 1.5 |
 | Emphasis (row title, active field) | 14px (`text-sm`) | 500 (`font-medium`) | 1.5 |
-| Dialog title | 16px (browser default `DialogTitle`, per `ui/dialog.tsx`) | 600 (semibold, component default) | 1.2 |
+| Dialog title | 16px (`text-base`, per `ui/dialog.tsx` `DialogTitle`) | 500 (`font-medium`, component default) | `leading-none` (component default, ≈1.0) |
 
-Only two weights are used anywhere in this phase's surfaces: 400 (regular body/meta) and 500/600 (`font-medium`/dialog-title semibold — treat as the single "emphasis" weight tier). Badge text is always `text-xs font-medium` (baked into the `Badge` primitive — do not override).
+Correction from initial draft: `DialogTitle` in `ui/dialog.tsx` (line 107) renders `text-base leading-none font-medium` — the component default weight is **500** (`font-medium`), not 600/semibold. This phase authors zero typography overrides on `DialogTitle` (both new dialogs use the bare component with no `className` weight override), so there is no phase-authored third weight.
+
+Only two distinct CSS `font-weight` values are declared or used anywhere in this phase's surfaces: **400** (regular body/meta) and **500** (`font-medium` — used for emphasis rows and inherited unmodified by `DialogTitle`). Badge text is always `text-xs font-medium` (baked into the `Badge` primitive — do not override) — this is the same 500 tier, not a third value.
 
 ---
 
@@ -85,6 +87,17 @@ Accent reserved for: primary dialog confirm buttons (Button default variant), Gi
 
 ---
 
+## Visual Anchor
+
+Each new dialog must have one clear focal point per the single-anchor rule:
+
+| Dialog | Visual anchor | Why |
+|--------|---------------|-----|
+| `CreateBranchDialog` | The primary **"Create branch"** confirm button (default/accent variant, bottom-right of footer) | The dialog is a pure confirmation — there is no input to fill, so the action button is the only thing the eye needs to land on. The description text is secondary/informational, rendered in muted body weight so it doesn't compete. |
+| `CreateMilestoneDialog` | The **milestone title input field** (with its persistent format helper text directly beneath it) | This dialog requires user input before the primary action is even enabled; the input is where attention and the cursor land first, and the disabled-until-valid confirm button reinforces the input as the task the user must complete. The "Recent milestones" reference list is a supporting/muted secondary element, not the anchor. |
+
+---
+
 ## Copywriting Contract
 
 | Element | Copy |
@@ -97,7 +110,7 @@ Accent reserved for: primary dialog confirm buttons (Button default variant), Gi
 | Branch — confirm dialog title | **"Create release branch"** |
 | Branch — confirm dialog description | Create <code className="font-mono font-medium text-foreground">release/&#123;version&#125;</code> off <span className="font-medium text-foreground">&#123;default_branch&#125;</span>? — mirrors `ConfirmSprintMoveDialog`'s inline-emphasis sentence pattern exactly |
 | Branch — confirm dialog primary action | **"Create branch"** (idle) / **"Creating…"** (pending) — matches `isPending ? 'Moving...' : 'Confirm'` convention (ellipsis + present participle) |
-| Branch — confirm dialog cancel | **"Cancel"** |
+| Branch — confirm dialog cancel | **"Cancel"** — see *Dismiss-label convention* below |
 | Branch — creation failure (inside dialog, D-16) | Show GitLab's `message` body verbatim beneath the description, dialog stays open. No custom wrapper copy needed beyond a small "Couldn't create branch:" prefix label if the raw message alone is unclear |
 | Milestone — missing indicator (sidebar row) | Reuses the existing `IssuesSection.tsx:64` "No GitLab milestone matched" alert as-is (D-20) — **do not** write new copy for this; it is out of scope to change |
 | Milestone — missing indicator (list row tooltip, D-19) | Tooltip text: **"No GitLab milestone"** |
@@ -109,9 +122,19 @@ Accent reserved for: primary dialog confirm buttons (Button default variant), Gi
 | Milestone — title input format error | **"Title must match X.Y.Z (DD.MM.YYYY), e.g. 33.5.0 (21.07.2026)"** — shown inline below the field, submit disabled while invalid |
 | Milestone — duplicate detected (client-side, D-05/D-07) | **"A milestone named '&#123;title&#125;' already exists in this project."** — shown inline below the field, submit disabled while a match exists in the windowed+ancestor-filtered list |
 | Milestone — confirm dialog primary action | **"Create milestone"** (idle) / **"Creating…"** (pending) |
-| Milestone — confirm dialog cancel | **"Cancel"** |
+| Milestone — confirm dialog cancel | **"Cancel"** — see *Dismiss-label convention* below |
 | Milestone — creation failure (server-side duplicate or other, D-08/D-16) | Show GitLab's `message` body verbatim beneath the field, dialog stays open |
 | Destructive confirmation | Not applicable — this phase has no destructive actions (create-only; no delete/edit paths) |
+
+### Dismiss-label convention (explicit override, justified)
+
+The generic label "Cancel" is normally blocked in favor of action-specific dismiss copy (e.g. "Don't create branch"). This phase deliberately keeps **"Cancel"** instead, for a codebase-consistency reason verified in code, not by default:
+
+- `confirm-sprint-move-dialog.tsx` exposes a `cancelLabel` prop that **defaults to `'Cancel'`** (line 20-21: *"Override the cancel button label. Defaults to 'Cancel'. Use 'Keep Position' for drag context."*) — i.e. the component's own author already considered action-specific labels and reserved that override for a genuinely ambiguous context (drag-and-drop, where "Cancel" alone doesn't communicate what state is being kept).
+- `BoardResolutionDialog.tsx` (line 121) uses the literal string `Cancel` with no override at all.
+- Every existing shipping confirm/creation dialog in this codebase therefore uses "Cancel" as its default and only deviates when the action being cancelled is otherwise unclear from context.
+
+Branch/milestone creation has no such ambiguity — the dialog title ("Create release branch" / "Create GitLab milestone") and the primary button ("Create branch" / "Create milestone") already state the action plainly, so "Cancel" is unambiguous here. Introducing a new one-off label ("Don't create branch") would break the established `cancelLabel` default convention without adding clarity, and would read as inconsistent next to `ConfirmSprintMoveDialog`/`BoardResolutionDialog` in the same product. **Decision: keep "Cancel" for both dialogs, matching the project-wide default.**
 
 All copy is sentence case, matches the terse/direct tone already established in `ConfirmSprintMoveDialog` and `BoardResolutionDialog` (no exclamation marks, no marketing voice, states the action and its target plainly).
 
