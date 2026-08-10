@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: executing
-last_updated: "2026-08-10T13:04:12.548Z"
+last_updated: "2026-08-10T13:12:36.829Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 87 (release-detail-decomposition) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-08-10
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [███████░░░] 67%
 | Phase 87 P02 | 20min | 2 tasks | 2 files |
 | Phase 87 P03 | 35min | 3 tasks | 7 files |
 | Phase 87 P04 | 25min | 2 tasks | 3 files |
+| Phase 87 P05 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [Phase ?]: Phase 87-02: hook return object destructured explicitly in page shell to preserve byte-identical JSX variable names
 - [Phase 87]: [Phase 87-03]: ReleaseHeader.tsx exports two components (ReleaseBreadcrumbHeader, ReleaseTitleHeading) rather than one — breadcrumb and title occupy structurally separate JSX positions
 - [Phase ?]: Added onOpenIssueFull prop to IssuesSection to preserve PEEK-05 key/body click split (Rule 1 bug prevention)
+- [Phase ?]: Phase 87-05: useResizable/containerRef stayed in the page shell; only width/isDragging/onResizeMouseDown crossed into ReleaseDetailSidebar (hazard 7)
+- [Phase ?]: Phase 87-05: useEditRelease's 21-field return object recorded for Plan 06's EditReleaseModal wiring; page drops setEditing from its destructure since startEditing/cancelEditing/handleSave already own all editing-flag transitions
 
 ### Pending Todos
 
@@ -105,8 +108,8 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-10T13:04:12.545Z
-Stopped at: Completed 87-04-PLAN.md
+Last session: 2026-08-10T13:12:36.826Z
+Stopped at: Completed 87-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
