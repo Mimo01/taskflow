@@ -131,6 +131,10 @@ Plans 04-06 can continue extracting the remaining `ReleaseDetailPage.tsx` sectio
 
 No blockers.
 
+## Self-Check: PASSED
+
+All 5 created files and the modified page shell verified present on disk; all 4 commits (648b3896, 4949385d, c41f93e3, 65a4dece) verified in git log.
+
 ---
 *Phase: 87-release-detail-decomposition*
 *Completed: 2026-08-10*
