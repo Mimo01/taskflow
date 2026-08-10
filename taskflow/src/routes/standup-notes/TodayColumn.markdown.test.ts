@@ -43,6 +43,8 @@ function makeReviewerMR(iid: number, title: string, key: string): GitLabMR {
     project_id: 1,
     title: `[${key}] ${title}`,
     source_branch: `feature/${key}`,
+    target_branch: 'develop',
+    draft: false,
     state: 'opened',
     author: { id: 99, name: 'Author', username: 'author', avatar_url: '' },
     reviewers: [],

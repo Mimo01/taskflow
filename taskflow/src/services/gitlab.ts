@@ -428,7 +428,20 @@ export interface GitLabMR {
   project_id: number;
   title: string;
   source_branch: string;
+  /**
+   * D-10 / Phase 89 probe (89-PROBE-RESULTS.md): confirmed PRESENT on the
+   * GitLab MR *list* endpoint (Assumption A2), not just the detail endpoint.
+   * Every drift predicate reads this field from list-endpoint data.
+   */
+  target_branch: string;
   state: 'opened' | 'closed' | 'merged' | 'locked';
+  /**
+   * D-10 / Phase 89 probe (89-PROBE-RESULTS.md): confirmed PRESENT on the
+   * list endpoint. Declared for completeness only — must NOT be used to
+   * gate drift evaluation. A draft MR's `state` is still `'opened'` and it
+   * is fully evaluated by the drift predicates (per D-10).
+   */
+  draft: boolean;
   author: { id: number; name: string; username: string; avatar_url: string };
   reviewers: Array<{ id: number; name: string; username: string }>;
   updated_at: string; // ISO 8601 UTC
@@ -445,10 +458,8 @@ export interface GitLabLabel {
 
 export interface GitLabMRDetail extends Omit<GitLabMR, 'labels' | 'milestone'> {
   description: string | null;
-  target_branch: string;
   created_at: string;
   labels: GitLabLabel[]; // normalized from string[] or object[] by fetchMRDetail
-  draft: boolean;
   merge_status: string;
   has_conflicts: boolean;
   changes_count: string;
