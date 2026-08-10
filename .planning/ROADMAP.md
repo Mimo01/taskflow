@@ -127,7 +127,7 @@ Gap Wave 3 *(blocked on 88-09)*
 
 Gap Wave 4 *(blocked on 88-07..88-10)*
 
-- [ ] 88-11-PLAN.md — Live-GitLab verification: un-waives 88-05-T3 and 88-06-T3, restricted-PAT error paths, D-18 filter semantics (blocking human-verify checkpoints)
+- [ ] 88-11-PLAN.md — Live-GitLab verification: un-waives 88-05-T3 and 88-06-T3, restricted-PAT error paths, D-18 filter semantics, and `probe.sh` collision scan closing RESEARCH Open Question #1 (blocking human-verify checkpoints)
 
 **UI hint**: yes
 **Probe**: yes — do a quick manual scan of `GET /projects/:id/milestones` for existing whitespace/near-duplicate titles that could confuse exact-title matching (RELMS-04). Note: permission/role gating is explicitly OUT OF SCOPE (team is all Developer+); a 403 surfaces as a normal `ApiError` and needs no probe
