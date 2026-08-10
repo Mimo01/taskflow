@@ -23,6 +23,10 @@ export interface MilestoneLike {
   title: string;
   project_id?: number | null;
   group_id?: number | null;
+  /** ISO `YYYY-MM-DD`. Optional — only date-ordering helpers read it. */
+  due_date?: string | null;
+  /** ISO `YYYY-MM-DD`. Fallback when `due_date` is absent. */
+  start_date?: string | null;
 }
 
 /**
@@ -101,6 +105,44 @@ export function ownProjectMilestones<T extends MilestoneLike>(
     return [...milestones];
   }
   return milestones.filter((m) => m.project_id === projectId);
+}
+
+/** How many milestones the create-dialog reference list shows (D-03). */
+export const RECENT_MILESTONE_LIMIT = 5;
+
+/**
+ * Pick the most recent milestones by date, newest first, for the create-dialog
+ * reference list (D-03).
+ *
+ * The reference list deliberately does NOT reuse the ±7-day match window: that
+ * window exists to resolve a milestone for THIS release, and around a weekly
+ * cadence it often contains a single entry — too little context to judge a new
+ * title against. Widening it here would change `resolveGitLabMatch`, so this
+ * takes a separate, unwindowed input instead.
+ *
+ * Milestones with neither `due_date` nor `start_date` sort last, since an
+ * undated milestone carries no position in the release sequence.
+ *
+ * @param milestones - candidate milestones (already ancestor-filtered)
+ * @param limit - maximum entries to return
+ * @returns up to `limit` milestones, newest first
+ */
+export function recentMilestonesByDate<T extends MilestoneLike>(
+  milestones: readonly T[],
+  limit: number = RECENT_MILESTONE_LIMIT,
+): T[] {
+  if (limit <= 0) return [];
+  const dateOf = (m: T) => m.due_date ?? m.start_date ?? '';
+  return [...milestones]
+    .sort((a, b) => {
+      const da = dateOf(a);
+      const db = dateOf(b);
+      if (da === db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return db.localeCompare(da);
+    })
+    .slice(0, limit);
 }
 
 /**
