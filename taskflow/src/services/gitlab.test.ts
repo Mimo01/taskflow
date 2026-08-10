@@ -408,9 +408,9 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(
-        fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/'),
-      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+      await expect(fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/')).rejects.toMatchObject(
+        { status: 401, source: 'gitlab' },
+      );
     });
 
     it('throws ApiError with status 403 on forbidden response', async () => {
@@ -420,9 +420,9 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(
-        fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/'),
-      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+      await expect(fetchProjectBranches(BASE, TOKEN, PROJECT_ID, 'release/')).rejects.toMatchObject(
+        { status: 403, source: 'gitlab' },
+      );
     });
 
     it('throws a plain Error on other non-ok responses', async () => {
@@ -1677,9 +1677,9 @@ describe('gitlab service', () => {
         json: async () => ({ message: '404 Branch Not Found' }),
       } as Response);
 
-      await expect(
-        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
-      ).resolves.toEqual({ exists: false });
+      await expect(fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0')).resolves.toEqual({
+        exists: false,
+      });
     });
 
     it('resolves { exists: true } on 200', async () => {
@@ -1689,9 +1689,9 @@ describe('gitlab service', () => {
         json: async () => ({ name: 'release/33.5.0' }),
       } as Response);
 
-      await expect(
-        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
-      ).resolves.toEqual({ exists: true });
+      await expect(fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0')).resolves.toEqual({
+        exists: true,
+      });
     });
 
     it('throws ApiError with status 401 on unauthorized response', async () => {
@@ -1701,9 +1701,10 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(
-        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
-      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+      await expect(fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0')).rejects.toMatchObject({
+        status: 401,
+        source: 'gitlab',
+      });
     });
 
     it('throws ApiError with status 403 on forbidden response', async () => {
@@ -1713,9 +1714,10 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(
-        fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
-      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+      await expect(fetchBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0')).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+      });
     });
 
     it('throws a plain Error containing the status on a 500 response', async () => {
