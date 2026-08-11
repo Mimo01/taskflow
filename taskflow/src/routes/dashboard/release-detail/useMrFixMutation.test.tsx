@@ -110,7 +110,11 @@ describe('useMrFixMutation', () => {
 
       const before = MR_CHANNEL_QUERY_PREFIXES.map((prefix) =>
         prefix === 'gitlab-all-project-mrs'
-          ? queryClient.getQueryData(['gitlab-all-project-mrs', PROJECT_ID, '2026-01-01T00:00:00.000Z'])
+          ? queryClient.getQueryData([
+              'gitlab-all-project-mrs',
+              PROJECT_ID,
+              '2026-01-01T00:00:00.000Z',
+            ])
           : prefix === 'gitlab-milestone-mrs'
             ? queryClient.getQueryData(['gitlab-milestone-mrs', PROJECT_ID, '33.5.0 (21.07.2026)'])
             : queryClient.getQueryData(['gitlab-branch-mrs', PROJECT_ID, 'release/33.5.0']),
@@ -122,7 +126,11 @@ describe('useMrFixMutation', () => {
       restoreMrChannelCaches(queryClient, snapshots);
 
       expect(
-        queryClient.getQueryData(['gitlab-all-project-mrs', PROJECT_ID, '2026-01-01T00:00:00.000Z']),
+        queryClient.getQueryData([
+          'gitlab-all-project-mrs',
+          PROJECT_ID,
+          '2026-01-01T00:00:00.000Z',
+        ]),
       ).toEqual(before[0]);
       expect(
         queryClient.getQueryData(['gitlab-milestone-mrs', PROJECT_ID, '33.5.0 (21.07.2026)']),
@@ -151,15 +159,19 @@ describe('useMrFixMutation', () => {
       }
 
       expect(
-        queryClient.getQueryState(['gitlab-all-project-mrs', PROJECT_ID, '2026-01-01T00:00:00.000Z'])
-          ?.isInvalidated,
+        queryClient.getQueryState([
+          'gitlab-all-project-mrs',
+          PROJECT_ID,
+          '2026-01-01T00:00:00.000Z',
+        ])?.isInvalidated,
       ).toBe(true);
       expect(
         queryClient.getQueryState(['gitlab-milestone-mrs', PROJECT_ID, '33.5.0 (21.07.2026)'])
           ?.isInvalidated,
       ).toBe(true);
       expect(
-        queryClient.getQueryState(['gitlab-branch-mrs', PROJECT_ID, 'release/33.5.0'])?.isInvalidated,
+        queryClient.getQueryState(['gitlab-branch-mrs', PROJECT_ID, 'release/33.5.0'])
+          ?.isInvalidated,
       ).toBe(true);
     });
   });
@@ -188,7 +200,9 @@ describe('useMrFixMutation', () => {
 
     it('retarget: patches target_branch optimistically while pending, then invalidates the three channel prefixes on success', async () => {
       const gitlab = await import('@/services/gitlab');
-      vi.mocked(gitlab.updateMergeRequest).mockResolvedValue(makeMr({ target_branch: 'release/33.5.0' }));
+      vi.mocked(gitlab.updateMergeRequest).mockResolvedValue(
+        makeMr({ target_branch: 'release/33.5.0' }),
+      );
 
       const queryClient = makeQueryClient();
       const mr = makeMr({ id: 7, target_branch: 'develop' });
@@ -436,10 +450,12 @@ describe('useMrFixMutation', () => {
 
     it('independent: two hook instances for the same MR (retarget + assign-milestone) can be in flight with independent status', async () => {
       const gitlab = await import('@/services/gitlab');
-      vi.mocked(gitlab.updateMergeRequest).mockImplementation(async (_baseUrl, _token, _pid, _iid, fields) => {
-        if ('target_branch' in fields) throw new Error('retarget failed');
-        return makeMr({ milestone: { id: 55, title: '33.5.0 (21.07.2026)' } });
-      });
+      vi.mocked(gitlab.updateMergeRequest).mockImplementation(
+        async (_baseUrl, _token, _pid, _iid, fields) => {
+          if ('target_branch' in fields) throw new Error('retarget failed');
+          return makeMr({ milestone: { id: 55, title: '33.5.0 (21.07.2026)' } });
+        },
+      );
 
       const queryClient = makeQueryClient();
       const mr = makeMr({ id: 7, target_branch: 'develop', milestone: null });

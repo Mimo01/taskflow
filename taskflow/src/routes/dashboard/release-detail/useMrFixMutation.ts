@@ -90,7 +90,10 @@ export function patchMrInChannelCaches(
  * Restore every snapshot entry to its own exact key — used to roll back an
  * optimistic patch after a rejected write.
  */
-export function restoreMrChannelCaches(queryClient: QueryClient, snapshots: MrChannelSnapshots): void {
+export function restoreMrChannelCaches(
+  queryClient: QueryClient,
+  snapshots: MrChannelSnapshots,
+): void {
   for (const [key, data] of snapshots) {
     queryClient.setQueryData(key, data);
   }
