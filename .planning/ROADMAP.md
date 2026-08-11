@@ -195,7 +195,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 90-04-PLAN.md — Full-suite/biome-baseline gate, validation ledger, live UAT of all four requirements
+- [x] 90-04-PLAN.md — Full-suite/biome-baseline gate, validation ledger, live UAT of all four requirements
 
 **UI hint**: yes
 **Probe**: yes — verify via a live MR with approvals whether MR-approval / protected-branch rules are actually configured on the team's project, since that determines whether the documented approval-reset side effect of retargeting is a real, observable consequence for this team
@@ -283,7 +283,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
-| 90. Per-MR Corrective Actions | 3/4 | In Progress|  |
+| 90. Per-MR Corrective Actions | 4/4 | Complete   | 2026-08-11 |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
 | Milestone | Phases | Plans | Shipped |
