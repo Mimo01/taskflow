@@ -95,3 +95,7 @@ None - no external service configuration required.
 ---
 *Phase: 91-post-release-merge-back-verification*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+All 5 modified files and the summary file exist on disk; all 4 commit hashes (fe4e2ee6, af2612ad, dc26b23d, 5dc1ce32) found in git log.
