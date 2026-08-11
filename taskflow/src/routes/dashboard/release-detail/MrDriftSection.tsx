@@ -1,11 +1,13 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { AlertTriangle, Check, GitBranch, Loader2, Milestone } from 'lucide-react';
 import type React from 'react';
 import { useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import type { GitLabMR } from '@/services/gitlab';
 import { extractTicketKeys } from '@/services/linkEngine';
 import type { Channel, DriftMark, DriftRow } from './driftDetection';
+import { type MrFixAction, useMrFixMutation } from './useMrFixMutation';
 
 /**
  * D-11: freeze the row order for the life of the mounted list.
@@ -38,12 +40,27 @@ export function applyHeldOrder(rows: DriftRow[], heldIds: number[]): DriftRow[] 
   return [...held, ...rest];
 }
 
+/**
+ * Every write input the BR/MS action cells need, resolved upstream by
+ * `useReleaseDetail` and threaded through as one prop (P87 D-08 — this
+ * section stays presentational: it fetches nothing and reads no store).
+ */
+export interface MrFixContext {
+  projectId: number | null;
+  baseUrl: string | null;
+  token: string | null;
+  releaseBranchName: string | null;
+  releaseBranchExists: boolean;
+  matchedMilestone: { id: number; title: string } | null;
+}
+
 interface MrDriftSectionProps {
   rows: DriftRow[];
   flaggedCount: number;
   hasMatchedMilestone: boolean;
   isLoading: boolean;
   onNavigateToIssueFromMR: (key: string) => void;
+  fix: MrFixContext;
 }
 
 const CHANNEL_NAMES: Record<Channel, string> = {
@@ -109,12 +126,129 @@ function DriftMarkCell({
   );
 }
 
+/**
+ * BR/MS action cell (D-01..D-09, D-14, MRFIX-01..04): renders the same 28px
+ * geometry as `DriftMarkCell` in every state, but a flagged + actionable cell
+ * becomes a focus-reachable button that fires `useMrFixMutation` on click and
+ * reveals its action icon on row-hover/focus.
+ *
+ * Calls `useMrFixMutation` unconditionally (Rules of Hooks) — every cell
+ * owns its own hook instance regardless of whether it ends up actionable,
+ * so BR and MS lock independently (D-09).
+ */
+function DriftActionCell({
+  mr,
+  action,
+  mark,
+  testId,
+  fix,
+}: {
+  mr: GitLabMR;
+  action: MrFixAction;
+  mark: DriftMark;
+  testId: string;
+  fix: MrFixContext;
+}) {
+  const { status, errorMessage, fire } = useMrFixMutation({
+    action,
+    mr,
+    projectId: fix.projectId,
+    baseUrl: fix.baseUrl,
+    token: fix.token,
+    targetBranch: fix.releaseBranchName,
+    milestone: fix.matchedMilestone,
+  });
+
+  const configComplete = fix.projectId != null && fix.baseUrl != null && fix.token != null;
+  const prereqReady =
+    action === 'retarget'
+      ? fix.releaseBranchExists && fix.releaseBranchName != null
+      : fix.matchedMilestone != null;
+  const actionable = mark === 'flag' && configComplete && prereqReady;
+
+  const rootClassName = 'flex-none w-[28px] flex items-center justify-center';
+
+  if (status === 'pending') {
+    return (
+      <span data-testid={testId} className={rootClassName}>
+        <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+      </span>
+    );
+  }
+
+  if (status === 'error') {
+    const label = errorMessage ?? 'Update failed — click to retry';
+    return (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={fire}
+        title={label}
+        aria-label={label}
+        className={`${rootClassName} rounded hover:bg-accent hover:ring-1 hover:ring-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+      >
+        <AlertTriangle className="size-3.5 text-red-600 dark:text-red-400" />
+      </button>
+    );
+  }
+
+  if (mark === 'ok') {
+    return (
+      <span data-testid={testId} className={rootClassName}>
+        <Check className="size-3.5 text-green-600 dark:text-green-400" />
+      </span>
+    );
+  }
+
+  if (mark === 'na') {
+    return (
+      <span data-testid={testId} className={rootClassName}>
+        <span className="text-muted-foreground">&mdash;</span>
+      </span>
+    );
+  }
+
+  // mark === 'flag' from here on.
+  if (!actionable) {
+    const inertTitle =
+      action === 'retarget' && !prereqReady
+        ? "Release branch doesn't exist yet — create it above to enable retargeting"
+        : undefined;
+    return (
+      <span data-testid={testId} title={inertTitle} className={rootClassName}>
+        <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
+      </span>
+    );
+  }
+
+  const label =
+    action === 'retarget'
+      ? `Retarget to ${fix.releaseBranchName}`
+      : `Assign milestone ${fix.matchedMilestone?.title}`;
+  const ActionIcon = action === 'retarget' ? GitBranch : Milestone;
+
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      onClick={fire}
+      title={label}
+      aria-label={label}
+      className={`${rootClassName} group/fix rounded hover:bg-accent hover:ring-1 hover:ring-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+    >
+      <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400 group-hover/row:hidden group-focus-visible/fix:hidden" />
+      <ActionIcon className="size-3.5 hidden group-hover/row:block group-focus-visible/fix:block" />
+    </button>
+  );
+}
+
 export function MrDriftSection({
   rows,
   flaggedCount,
   hasMatchedMilestone,
   isLoading,
   onNavigateToIssueFromMR,
+  fix,
 }: MrDriftSectionProps) {
   // D-11: capture the incoming row order on first non-empty render and hold
   // it for the life of the mounted list. Wrong-branch and missing-milestone
@@ -209,7 +343,7 @@ export function MrDriftSection({
               <div
                 key={mr.id}
                 data-testid="drift-row"
-                className="flex items-center gap-2 text-sm py-1 border-b border-border/50"
+                className="group/row flex items-center gap-2 text-sm py-1 border-b border-border/50"
               >
                 <button
                   type="button"
@@ -281,8 +415,20 @@ export function MrDriftSection({
                 </Badge>
                 {row.evaluated ? (
                   <>
-                    <DriftMarkCell mark={row.br} testId="drift-br" />
-                    <DriftMarkCell mark={row.ms} testId="drift-ms" />
+                    <DriftActionCell
+                      mr={mr}
+                      action="retarget"
+                      mark={row.br}
+                      testId="drift-br"
+                      fix={fix}
+                    />
+                    <DriftActionCell
+                      mr={mr}
+                      action="assign-milestone"
+                      mark={row.ms}
+                      testId="drift-ms"
+                      fix={fix}
+                    />
                     <DriftMarkCell mark={row.task} testId="drift-task" title={taskTitle} />
                   </>
                 ) : (

@@ -1,15 +1,31 @@
 // DRIFT-04/05/06/07/08: MrDriftSection is presentational and props-driven —
 // render assertions for flagged ordering, the three columns, muted states and
 // the degraded banner.
+// MRFIX-01..04 (Plan 90-03): per-MR corrective action cells consume the real
+// useMrFixMutation hook, so every render needs a QueryClientProvider — mock
+// @/services/gitlab's updateMergeRequest, not the hook, to exercise the real
+// status/cache machinery from a click.
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
 import type { DriftRow } from './driftDetection';
-import { applyHeldOrder, matchTicketKeyInTitle, MrDriftSection } from './MrDriftSection';
+import {
+  applyHeldOrder,
+  matchTicketKeyInTitle,
+  type MrFixContext,
+  MrDriftSection,
+} from './MrDriftSection';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn(),
+}));
+
+vi.mock('@/services/gitlab', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/gitlab')>()),
+  updateMergeRequest: vi.fn(),
 }));
 
 function makeMR(overrides: Partial<GitLabMR> = {}): GitLabMR {
@@ -47,16 +63,45 @@ function makeRow(overrides: Partial<DriftRow> = {}): DriftRow {
   };
 }
 
-function renderSection(overrides: Partial<React.ComponentProps<typeof MrDriftSection>> = {}) {
-  return render(
+const DEFAULT_FIX: MrFixContext = {
+  projectId: 42,
+  baseUrl: 'https://gitlab.example.com',
+  token: 't',
+  releaseBranchName: 'release/33.5.0',
+  releaseBranchExists: true,
+  matchedMilestone: { id: 1, title: '33.5.0 (21.07.2026)' },
+};
+
+function makeWrapper(queryClient: QueryClient) {
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
+}
+
+function renderWithClient(
+  ui: React.ReactElement,
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  }),
+) {
+  return render(ui, { wrapper: makeWrapper(queryClient) });
+}
+
+function renderSection(
+  overrides: Partial<React.ComponentProps<typeof MrDriftSection>> = {},
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) {
+  return renderWithClient(
     <MrDriftSection
       rows={[]}
       flaggedCount={0}
       hasMatchedMilestone={true}
       isLoading={false}
       onNavigateToIssueFromMR={() => {}}
+      fix={DEFAULT_FIX}
       {...overrides}
     />,
+    queryClient,
   );
 }
 
@@ -243,13 +288,14 @@ describe('MrDriftSection', () => {
       const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
       const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }), br: 'ok', flagged: false });
       // Initial render: A (flagged) sorted first per driftDetection's comparator.
-      const { rerender } = render(
+      const { rerender } = renderWithClient(
         <MrDriftSection
           rows={[rowA, rowB]}
           flaggedCount={1}
           hasMatchedMilestone={true}
           isLoading={false}
           onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
         />,
       );
       let rows = screen.getAllByTestId('drift-row');
@@ -266,6 +312,7 @@ describe('MrDriftSection', () => {
           hasMatchedMilestone={true}
           isLoading={false}
           onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
         />,
       );
       rows = screen.getAllByTestId('drift-row');
@@ -277,13 +324,14 @@ describe('MrDriftSection', () => {
     it('a re-render that adds a brand-new row still shows the original rows first, new one last', () => {
       const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
       const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
-      const { rerender } = render(
+      const { rerender } = renderWithClient(
         <MrDriftSection
           rows={[rowA, rowB]}
           flaggedCount={0}
           hasMatchedMilestone={true}
           isLoading={false}
           onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
         />,
       );
 
@@ -295,6 +343,7 @@ describe('MrDriftSection', () => {
           hasMatchedMilestone={true}
           isLoading={false}
           onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
         />,
       );
       const rows = screen.getAllByTestId('drift-row');
@@ -307,13 +356,14 @@ describe('MrDriftSection', () => {
     it('a first render with rows: [] (loading) does not freeze an empty order — the first real row list is captured', () => {
       const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
       const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
-      const { rerender } = render(
+      const { rerender } = renderWithClient(
         <MrDriftSection
           rows={[]}
           flaggedCount={0}
           hasMatchedMilestone={true}
           isLoading={true}
           onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
         />,
       );
 
@@ -324,6 +374,7 @@ describe('MrDriftSection', () => {
           hasMatchedMilestone={true}
           isLoading={false}
           onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
         />,
       );
       const rows = screen.getAllByTestId('drift-row');
