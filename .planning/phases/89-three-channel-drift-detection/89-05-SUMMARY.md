@@ -153,3 +153,76 @@ Because the plan's `<verify>` requirement for Task 3 (`npx vitest run && npm run
 - `npx vitest run` (full suite) — 2307 passed, 2 skipped, 13 todo, 0 failed
 - `npx tsc --noEmit` — exits 0
 - Acceptance-criteria greps (no `<table>`, `>=4` explicit px widths, no orange-opened badge, no hooks in the component, `Found via:` present exactly once, `UnmatchedMRsSection`/`unmatchedMRs` absent repo-wide) — confirmed passing
+
+---
+
+## UAT Follow-up (post-merge, orchestrator-applied)
+
+Task 3's visual sign-off was performed by the user against the merged branch.
+The section rendered correctly, but UAT surfaced two issues that were fixed
+inline rather than deferred to a gap-closure phase. Both are recorded here
+because they landed after this SUMMARY was first written.
+
+### 1. Cold load was very slow (perf)
+
+**Reported:** "works but it is very very slow", then "still a little slow"
+after the first fix.
+
+**Measured against the live instance** (project 455) rather than assumed:
+
+| Metric | Value |
+|---|---|
+| Channel A volume | 4189 MRs / 42 pages / ~15MB |
+| Per-page latency | ~0.53s |
+| 42 pages @ 5-way parallel | 7.75s |
+| 42 pages @ 12-way parallel | 7.57s |
+| 42 pages @ 20-way parallel | 8.62s |
+
+The GitLab instance is throughput-limited, not round-trip-limited — extra
+concurrency buys nothing. Two commits:
+
+- `db4421f2` — `perf(89-05)`: read `x-total-pages` from page 1 and fetch pages
+  2..N concurrently (batches of 5) via a shared `fetchAllMRPages` helper used by
+  both project-wide fetchers. Falls back to the original sequential walk when the
+  header is absent, so completeness never depends on it. ~22s -> ~7.8s.
+- `991fae74` — `perf(89-05)`: bound Channel A with an `updated_after` window
+  **derived from open releases**, not hardcoded — earliest release date among
+  still-unreleased fix versions, minus a 6-month buffer, floored to the month for
+  query-key stability, capped at 24 months, defaulting to 12 months when no dates
+  exist. ~7.8s -> ~1.2s measured live.
+
+**D-16 impact (deliberate, needs verifier attention):** Channel A no longer
+reaches all project history. `fixVersions` is a project-level query, so the
+window is identical for every release and Channel A's key stays
+release-independent — the cache contract holds, and the window is part of the
+key so a narrower cached result is never served for a wider window. Channels B
+(milestone) and C (target branch) remain unbounded, so an MR attached to the
+release's milestone or targeting its release branch is still discovered at any
+age. Only an MR that is simultaneously old, off-milestone, off-branch and
+key-referencing can now fall outside discovery.
+
+### 2. Row count read as contradicting the detail count (UX)
+
+**Reported:** a release showed `1 drift` in the Releases list but `4` on the
+detail page.
+
+Not a defect — `list <= detail` is structural. `computeRowDriftCount` (D-14)
+counts only branch/milestone mismatches on open MRs already attached to the
+release; `countFlaggedMRs` (D-13) also counts TASK drift and Channel A
+key-matches. Labelling both "drift" made a strict subset look like a
+contradiction.
+
+- `8cf1b802` — `fix(89-04)`: the row label now reads `{n} mismatched` instead of
+  `{n} drift`. Counts and tooltip unchanged; wording only. Equalising the numbers
+  was rejected because it would require per-release union work on the Releases
+  list, reversing D-14's fetch-once design and reintroducing issue 1.
+
+### Verification after all three fixes
+
+- `npx tsc --noEmit` — exits 0
+- `npx vitest run` — 2312 passed, 2 skipped, 13 todo, 0 failed (up from 2307;
+  6 new tests covering parallel page order, the no-header fallback, mid-batch
+  failure propagation, `updated_after` presence/absence, the 24-month cap, and
+  the row-label distinction)
+- `npm run check` — documented 2-error biome baseline (BacklogPage/BacklogRow),
+  no new errors
