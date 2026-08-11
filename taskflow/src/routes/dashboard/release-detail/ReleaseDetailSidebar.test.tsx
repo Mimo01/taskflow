@@ -250,13 +250,34 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
     const el = screen.getByTestId('merge-back-likely-not-merged');
     expect(el).toHaveTextContent('Likely not merged into develop');
     expect(el.title).toBe('v33.7.0 has 12 commits not in develop');
-    // Scope to the row itself (not the whole sidebar) — the sidebar has an
-    // unrelated "Edit" button elsewhere.
-    const row = el.closest('.flex.items-start.gap-2');
-    expect(row).not.toBeNull();
-    if (row) {
-      expect(within(row as HTMLElement).queryAllByRole('button')).toHaveLength(0);
-    }
+    // WR-05: scope to the row via the stable label-derived test hook rather
+    // than a Tailwind class selector — a className/layout change to MetaRow
+    // must not silently disable this lock.
+    const row = screen.getByTestId('meta-row-merged-back');
+    // D-12 forbids an override/dismiss/acknowledge/confirm control in ANY
+    // form, not only a <button> — check every interactive element kind.
+    expect(within(row).queryAllByRole('button')).toHaveLength(0);
+    expect(
+      row.querySelectorAll('input, select, textarea, [role="checkbox"], [role="switch"], [role="menuitem"]'),
+    ).toHaveLength(0);
+    expect(row.textContent).not.toMatch(/override|dismiss|acknowledge|confirm/i);
+  });
+
+  it('renders the couldnt-verify verdict, with no button or override control in the row (D-12 lock)', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'couldnt-verify',
+        reason: 'no-mr-no-tag',
+        expectedTagName: 'v33.7.0',
+      },
+    });
+    const row = screen.getByTestId('meta-row-merged-back');
+    expect(within(row).queryAllByRole('button')).toHaveLength(0);
+    expect(
+      row.querySelectorAll('input, select, textarea, [role="checkbox"], [role="switch"], [role="menuitem"]'),
+    ).toHaveLength(0);
+    expect(row.textContent).not.toMatch(/override|dismiss|acknowledge|confirm/i);
   });
 
   it('renders the couldnt-verify/no-mr-no-tag verdict', () => {
