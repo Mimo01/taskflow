@@ -1050,20 +1050,42 @@ export async function updateMilestone(
  * object) are normalised; do not reinvent a fourth narrower widening.
  *
  * @param body - The parsed JSON error body (or `null`/non-object)
- * @returns A readable message, or `undefined` when no `message` key exists
+ * @returns A readable message, or `undefined` when no `message` key exists OR
+ *          the message is present but flattens to an empty string
  */
 export function flattenGitLabError(body: unknown): string | undefined {
   if (body === null || typeof body !== 'object') return undefined;
   const message = (body as { message?: unknown }).message;
   if (message === undefined || message === null) return undefined;
-  if (typeof message === 'string') return message;
-  if (Array.isArray(message)) return message.join(', ');
-  if (typeof message === 'object') {
-    return Object.entries(message as Record<string, unknown>)
-      .map(([field, errs]) => `${field} ${Array.isArray(errs) ? errs.join(', ') : String(errs)}`)
+
+  let flat: string | undefined;
+  if (typeof message === 'string') {
+    flat = message;
+  } else if (Array.isArray(message)) {
+    flat = message.join(', ');
+  } else if (typeof message === 'object') {
+    flat = Object.entries(message as Record<string, unknown>)
+      .map(([field, errs]) => {
+        // A field's value is `string[]` in GitLab's Rails-standard shape, but
+        // a nested object shows up too (`{target_branch:{base:['x']}}`) — and
+        // `String({})` is exactly the `[object Object]` this helper exists to
+        // prevent, so serialise it instead of stringifying it (WR-02).
+        const detail = Array.isArray(errs)
+          ? errs.join(', ')
+          : typeof errs === 'string'
+            ? errs
+            : JSON.stringify(errs);
+        return `${field} ${detail}`;
+      })
       .join('; ');
   }
-  return undefined;
+
+  // An empty result must be `undefined`, not `''` (WR-01): `{message:[]}` and
+  // `{message:{}}` both flatten to `''`, which is not nullish and so sails
+  // through every caller's `?? \`status ${response.status}\`` fallback —
+  // producing "Failed to update merge request: " with nothing after the colon,
+  // or an ApiError with an empty message that the UI renders as a tooltip.
+  return flat !== undefined && flat.length > 0 ? flat : undefined;
 }
 
 /**
