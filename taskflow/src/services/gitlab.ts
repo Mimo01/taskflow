@@ -1106,7 +1106,10 @@ export function flattenGitLabError(body: unknown): string | undefined {
  *
  * T-90-02: error messages compose only from `flattenGitLabError(body)` or a
  * fixed literal — carrying `createBranch`'s WR-11 rule forward — never the
- * token, `PRIVATE-TOKEN` header, or request URL.
+ * token, `PRIVATE-TOKEN` header, request URL, or configured base URL. That
+ * last exclusion is why the unreachable-host branch says "Cannot reach GitLab"
+ * rather than interpolating `baseUrl` the way this file's older write helpers
+ * do: this function's messages are rendered into a DOM title/aria-label.
  *
  * @param baseUrl   - GitLab base URL
  * @param token     - Personal Access Token
@@ -1151,7 +1154,12 @@ export async function updateMergeRequest(
       'Update Merge Request',
     );
   } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    // T-90-02 (WR-04): deliberately NOT `Cannot reach ${baseUrl}` like this
+    // file's older analogs. This message reaches the DOM as a drift cell's
+    // title/aria-label, and `baseUrl` is a self-hosted GitLab host name — so
+    // the reachability path is the one place the doc claim above ("never the
+    // token, PRIVATE-TOKEN header, or request URL") would otherwise be false.
+    throw new Error('Cannot reach GitLab — check the base URL');
   }
 
   if (!response.ok) {

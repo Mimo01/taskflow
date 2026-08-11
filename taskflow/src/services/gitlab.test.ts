@@ -2348,12 +2348,22 @@ describe('gitlab service', () => {
       ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
     });
 
-    it('throws a network-reachability error when apiFetch rejects', async () => {
+    // WR-04: unlike this file's older write helpers, the reachability message
+    // must NOT name the host — it is rendered into a drift cell's
+    // title/aria-label, and T-90-02 claims no base URL ever reaches a message.
+    it('throws a network-reachability error naming no host when apiFetch rejects', async () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
 
       await expect(
         updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'x' }),
-      ).rejects.toThrow(`Cannot reach ${BASE} — check the base URL`);
+      ).rejects.toThrow('Cannot reach GitLab — check the base URL');
+
+      try {
+        await updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'x' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        expect((err as Error).message).not.toContain(BASE);
+      }
     });
 
     it('the thrown message never contains the token value or PRIVATE-TOKEN', async () => {
