@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: executing
-last_updated: "2026-08-11T12:02:06.534Z"
-last_activity: 2026-08-11 -- Phase 90 planning complete
+last_updated: "2026-08-11T12:14:02.878Z"
+last_activity: 2026-08-11
 progress:
   total_phases: 21
   completed_phases: 3
   total_plans: 26
-  completed_plans: 22
+  completed_plans: 23
   percent: 14
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 90 — per mr corrective actions
+**Current focus:** Phase 90 — per-mr-corrective-actions
 
 ## Current Position
 
-Phase: 90
-Plan: Not started
+Phase: 90 (per-mr-corrective-actions) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-11 -- Phase 90 planning complete
+Last activity: 2026-08-11
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 | Phase 87 P04 | 25min | 2 tasks | 3 files |
 | Phase 87 P05 | 20min | 2 tasks | 3 files |
 | Phase 87 P06 | 20min | 3 tasks | 2 files |
+| Phase 90 P01 | 9min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [Phase ?]: Phase 87-05: useResizable/containerRef stayed in the page shell; only width/isDragging/onResizeMouseDown crossed into ReleaseDetailSidebar (hazard 7)
 - [Phase ?]: Phase 87-05: useEditRelease's 21-field return object recorded for Plan 06's EditReleaseModal wiring; page drops setEditing from its destructure since startEditing/cancelEditing/handleSave already own all editing-flag transitions
 - [Phase 87]: Task 3 manual UAT approved: 11-step click-through passed with no visual/behavioral differences, including step-6 DOM nesting (Unmatched MRs inside Issues section) and step-11 query-cache sharing
+- [Phase 90]: Probe not run — no live GitLab PAT available; 90-PROBE-RESULTS.md recorded as status: not-run, not fabricated
+- [Phase 90]: A1 (RESEARCH Open Question) left UNRESOLVED (probe D skipped) — non-blocking since flattenGitLabError handles all three GitLab error-body shapes defensively
+- [Phase 90]: updateMilestone/createBranch/createMilestone left byte-unchanged — back-porting flattenGitLabError into them is out of scope for this plan
 
 ### Pending Todos
 
@@ -91,6 +95,7 @@ None yet.
 - Phase 90 needs a live probe: verify via a real MR with approvals whether approval/protected-branch rules are actually configured on the team's project
 - Phase 91 is probe-gated: the team's actual GitLab merge-strategy setting (squash vs merge-commit vs rebase) is unknown and determines whether the `merged` field can ever be trusted, even as a positive-only fast path — must be confirmed before finalizing detection method
 - Apple Developer ID + Windows code signing still deferred (carried from v1.7)
+- Phase 90 D-16 roadmap probe still not run (no live GitLab PAT in execution environment); re-run .planning/phases/90-per-mr-corrective-actions/probe.sh and replace 90-PROBE-RESULTS.md when access is available. Non-blocking for code — flattenGitLabError handles all three error-body shapes defensively.
 
 ## Deferred Items
 
@@ -110,9 +115,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-11T11:23:28.315Z
-Stopped at: Phase 90 UI-SPEC approved
-Resume file: .planning/phases/90-per-mr-corrective-actions/90-UI-SPEC.md
+Last session: 2026-08-11T12:14:02.726Z
+Stopped at: Completed 90-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
