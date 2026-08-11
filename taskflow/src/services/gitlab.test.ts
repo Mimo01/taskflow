@@ -659,9 +659,9 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(
-        fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0'),
-      ).rejects.toThrow('status 500');
+      await expect(fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0')).rejects.toThrow(
+        'status 500',
+      );
       try {
         await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
       } catch (err) {
