@@ -680,6 +680,19 @@ describe('gitlab service', () => {
       await expect(fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(/^Failed to fetch/);
     });
 
+    it('adds updated_after to every page when a window is supplied, and omits it when not', async () => {
+      mockPaginatedMRs([[]]);
+      await fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID, '2025-08-01T00:00:00.000Z');
+      expect(vi.mocked(mockFetch).mock.calls[0][0] as string).toContain(
+        `updated_after=${encodeURIComponent('2025-08-01T00:00:00.000Z')}`,
+      );
+
+      vi.mocked(mockFetch).mockClear();
+      mockPaginatedMRs([[]]);
+      await fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID);
+      expect(vi.mocked(mockFetch).mock.calls[0][0] as string).not.toContain('updated_after');
+    });
+
     it('request URL contains state=all and NO target_branch or milestone filter', async () => {
       mockPaginatedMRs([[]]);
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   createBranch,
   createMilestone,
@@ -286,16 +286,62 @@ export function useReleaseDetail(versionId: string | undefined) {
     enabled: !!jiraBaseUrl && !!versionId,
   });
 
-  // Channel A (DRIFT-01): the project's full MR universe, project-scoped only —
-  // NO versionId in the key. The fetch itself doesn't depend on which release is
-  // open, only the filter applied afterwards (below, via `selectChannelA`) does
-  // (D-16, RESEARCH Pitfall 4). Deliberately a NEW key, never
-  // `['gitlab-recent-project-mrs', activeGitlabProject]` — reusing the deleted
-  // heuristic's key could serve a stale page-capped cache entry (Pitfall 5).
+  // Channel A's lookback window, derived from the releases the app actually
+  // shows rather than a hardcoded constant. Unbounded, this fetch is ~4200 MRs /
+  // 42 pages / ~15MB on a mature project, and the GitLab instance is
+  // throughput-limited (measured: 5-, 12- and 20-way parallelism all land at
+  // ~8s), so the only lever that moves is fetching less.
+  //
+  // Derived from `fixVersions` — a PROJECT-level query whose value is identical
+  // for every release in the project, so the Channel A key stays release-
+  // independent and the D-16 cache contract holds.
+  const channelAUpdatedAfter = useMemo(() => {
+    const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    // Buffer: MR work starts well before the release date it lands in.
+    const BUFFER_MONTHS = 6;
+    // Cap: one stale never-released version must not drag the window back to
+    // "all history" and reintroduce the 8s fetch.
+    const MAX_LOOKBACK_MONTHS = 24;
+    const DEFAULT_LOOKBACK_MONTHS = 12;
+
+    const openReleaseDates = (fixVersions ?? [])
+      .filter((v) => !v.released && v.releaseDate)
+      .map((v) => Date.parse(`${v.releaseDate}T00:00:00Z`))
+      .filter((t) => Number.isFinite(t));
+
+    const earliest =
+      openReleaseDates.length > 0
+        ? Math.min(...openReleaseDates) - BUFFER_MONTHS * MONTH_MS
+        : now - DEFAULT_LOOKBACK_MONTHS * MONTH_MS;
+
+    const floorTs = now - MAX_LOOKBACK_MONTHS * MONTH_MS;
+    const windowStart = new Date(Math.max(earliest, floorTs));
+    // Floor to the start of the month so the value — and therefore the query
+    // key — is stable across renders and across the day.
+    return new Date(
+      Date.UTC(windowStart.getUTCFullYear(), windowStart.getUTCMonth(), 1),
+    ).toISOString();
+  }, [fixVersions]);
+
+  // Channel A (DRIFT-01): the project's MR universe within `channelAUpdatedAfter`,
+  // project-scoped only — NO versionId in the key. The fetch itself doesn't
+  // depend on which release is open, only the filter applied afterwards (below,
+  // via `selectChannelA`) does (D-16, RESEARCH Pitfall 4). Deliberately a NEW
+  // key, never `['gitlab-recent-project-mrs', activeGitlabProject]` — reusing
+  // the deleted heuristic's key could serve a stale page-capped cache entry
+  // (Pitfall 5). The window IS in the key: a different window is different data,
+  // and serving a narrower cached result for a wider window would under-report
+  // drift.
   const { data: allProjectMRs, isLoading: isLoadingChannelA } = useQuery({
-    queryKey: ['gitlab-all-project-mrs', activeGitlabProject],
+    queryKey: ['gitlab-all-project-mrs', activeGitlabProject, channelAUpdatedAfter],
     queryFn: () =>
-      fetchAllProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
+      fetchAllProjectMRs(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        channelAUpdatedAfter,
+      ),
     staleTime: 5 * 60_000,
     enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
   });

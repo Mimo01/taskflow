@@ -251,7 +251,11 @@ describe('useReleaseDetail', () => {
     expect(result.current.gitlabMatch.candidateName).toBe('33.5.0 (21.07.2026)');
   });
 
-  it('Test G: Channel A fetches the project-scoped, non-windowed MR universe', async () => {
+  // Channel A is project-scoped but time-windowed: unbounded it is ~42 pages /
+  // ~15MB on a mature project and the GitLab instance is throughput-limited, so
+  // the window is the only lever that moves. The window is derived from
+  // `fixVersions` — a project-level query — so the key stays release-independent.
+  it('Test G: Channel A fetches the project-scoped MR universe with a derived window', async () => {
     await setupMocks();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -261,12 +265,38 @@ describe('useReleaseDetail', () => {
 
     const gitlab = await import('@/services/gitlab');
     await waitFor(() => expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalled());
-    expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalledWith(
-      'https://gitlab.example.com',
-      'test-token',
-      42,
-    );
-    expect(queryClient.getQueryState(['gitlab-all-project-mrs', 42])).toBeDefined();
+
+    const call = vi.mocked(gitlab.fetchAllProjectMRs).mock.calls[0];
+    expect(call[0]).toBe('https://gitlab.example.com');
+    expect(call[1]).toBe('test-token');
+    expect(call[2]).toBe(42);
+    // 4th arg is the derived ISO window, floored to a month boundary.
+    expect(call[3]).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000Z$/);
+
+    // The window is part of the key — serving a narrower cached result for a
+    // wider window would silently under-report drift.
+    expect(queryClient.getQueryState(['gitlab-all-project-mrs', 42, call[3]])).toBeDefined();
+  });
+
+  it('Test G2: the Channel A window never exceeds the 24-month lookback cap', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    // A stale never-released version dated years ago must not drag the window
+    // back to "all history" and reintroduce the slow unbounded fetch.
+    vi.mocked(jira.fetchFixVersions).mockResolvedValue([
+      { id: VERSION_ID, name: '33.7.0', releaseDate: '2019-01-01', released: false },
+    ]);
+
+    renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(new QueryClient({ defaultOptions: { queries: { retry: false } } })),
+    });
+
+    const gitlab = await import('@/services/gitlab');
+    await waitFor(() => expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalled());
+
+    const windowIso = vi.mocked(gitlab.fetchAllProjectMRs).mock.calls[0][3] as string;
+    const monthsBack = (Date.now() - Date.parse(windowIso)) / (30 * 24 * 60 * 60 * 1000);
+    expect(monthsBack).toBeLessThanOrEqual(25); // 24mo cap + month-floor slack
   });
 
   it('Test H: Channel C (fetchBranchTargetedMRs) is not called when no milestone matched (D-18)', async () => {
