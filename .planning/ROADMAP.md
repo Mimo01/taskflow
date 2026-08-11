@@ -183,7 +183,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 90-01-PLAN.md — Approvals/protected-branch probe + `updateMergeRequest` and `flattenGitLabError` in `gitlab.ts` (D-10 / WR-01)
+- [x] 90-01-PLAN.md — Approvals/protected-branch probe + `updateMergeRequest` and `flattenGitLabError` in `gitlab.ts` (D-10 / WR-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -283,7 +283,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
-| 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
+| 90. Per-MR Corrective Actions | 1/4 | In Progress|  |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
 | Milestone | Phases | Plans | Shipped |
