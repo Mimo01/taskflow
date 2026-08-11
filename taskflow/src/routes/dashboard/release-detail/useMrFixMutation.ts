@@ -33,7 +33,7 @@
  * React Compiler is on: no `useMemo`/`useCallback`/`React.memo`.
  */
 
-import type { QueryClient, QueryKey } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { GitLabMR } from '@/services/gitlab';
@@ -56,9 +56,6 @@ export const MR_CHANNEL_QUERY_PREFIXES = [
   'gitlab-branch-mrs',
 ] as const;
 
-/** Snapshots of every touched windowed cache entry, keyed by its own exact key. */
-export type MrChannelSnapshots = Array<[QueryKey, GitLabMR[] | undefined]>;
-
 /**
  * Optimistically patch MR `mrId` with `patch` in every cached entry under the
  * three channel prefixes for `projectId`, regardless of the entry's windowed
@@ -67,35 +64,25 @@ export type MrChannelSnapshots = Array<[QueryKey, GitLabMR[] | undefined]>;
  * CR-02 bug class. An absent/undefined cache entry is a no-op, not a throw;
  * a different project is never touched.
  *
- * @returns snapshots sufficient to restore every touched entry by its own exact key
+ * FIELD-SCOPED BY CONSTRUCTION (CR-01): this writes only the keys present in
+ * `patch`, onto whatever the cache holds RIGHT NOW, and only for `mrId`. It
+ * deliberately does NOT snapshot or restore whole `GitLabMR[]` arrays — an
+ * earlier version did, and a rejected write then reverted a *different*
+ * in-flight cell's already-successful optimistic patch (BR's rollback undoing
+ * MS's write on the same row), which is exactly the cross-(MR, action) state
+ * leak D-09/MRFIX-03 forbids. Rollback is therefore an INVERSE PATCH through
+ * this same function (see `onError` below), never a whole-array restore.
  */
 export function patchMrInChannelCaches(
   queryClient: QueryClient,
   projectId: number,
   mrId: number,
   patch: Partial<GitLabMR>,
-): MrChannelSnapshots {
-  const snapshots: MrChannelSnapshots = [];
+): void {
   for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
-    const entries = queryClient.getQueriesData<GitLabMR[]>({ queryKey: [prefix, projectId] });
-    snapshots.push(...entries);
     queryClient.setQueriesData<GitLabMR[]>({ queryKey: [prefix, projectId] }, (list) =>
       list?.map((m) => (m.id === mrId ? { ...m, ...patch } : m)),
     );
-  }
-  return snapshots;
-}
-
-/**
- * Restore every snapshot entry to its own exact key — used to roll back an
- * optimistic patch after a rejected write.
- */
-export function restoreMrChannelCaches(
-  queryClient: QueryClient,
-  snapshots: MrChannelSnapshots,
-): void {
-  for (const [key, data] of snapshots) {
-    queryClient.setQueryData(key, data);
   }
 }
 
@@ -110,13 +97,20 @@ export function invalidateMrChannelCaches(queryClient: QueryClient, projectId: n
 }
 
 interface MrFixMutationContext {
-  snapshots: MrChannelSnapshots;
+  /**
+   * The single field THIS (MR, action) pair overwrote, at its pre-patch value
+   * — i.e. the inverse of the optimistic patch. Re-applying it on failure
+   * restores only this field on only this MR, leaving every other field (the
+   * sibling BR/MS cell's write) and every other row untouched (CR-01).
+   */
+  previous: Partial<GitLabMR>;
 }
 
 /**
  * Per-(MR, action) mutation: fires `updateMergeRequest` for either a
  * retarget or an assign-milestone write, with an optimistic multi-cache
- * patch, exact-key rollback on failure, and a sticky component-state failure
+ * patch, a field-scoped inverse-patch rollback on failure, and a sticky
+ * component-state failure
  * (D-08) independent of the mutation object's own lifecycle.
  *
  * The cache write is optimistic while the reported `status` stays `'pending'`
@@ -175,11 +169,20 @@ export function useMrFixMutation(args: {
         action === 'retarget'
           ? { target_branch: targetBranch ?? mr.target_branch }
           : { milestone: milestone ?? mr.milestone };
-      return { snapshots: patchMrInChannelCaches(queryClient, projectId, mr.id, patch) };
+      // CR-01: capture ONLY the field this action owns, so the rollback below
+      // is an inverse patch rather than a whole-array restore.
+      const previous: Partial<GitLabMR> =
+        action === 'retarget' ? { target_branch: mr.target_branch } : { milestone: mr.milestone };
+      patchMrInChannelCaches(queryClient, projectId, mr.id, patch);
+      return { previous };
     },
     onError: (err, _vars, context) => {
-      if (context?.snapshots) {
-        restoreMrChannelCaches(queryClient, context.snapshots);
+      // CR-01: re-apply the inverse patch on the CURRENT cache. Any write that
+      // landed since this mutation started — notably the sibling cell's
+      // successful write on this same row — survives, because only the one
+      // field this action changed is written back.
+      if (context?.previous && projectId) {
+        patchMrInChannelCaches(queryClient, projectId, mr.id, context.previous);
       }
       setStatus('error');
       setErrorMessage(err instanceof Error ? err.message : 'Failed to update merge request');

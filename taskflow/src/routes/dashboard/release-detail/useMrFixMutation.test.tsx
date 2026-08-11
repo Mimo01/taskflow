@@ -1,5 +1,5 @@
 // MRFIX-01/02/03: coverage for the per-(MR, action) optimistic mutation hook —
-// prefix-scoped patch, exact-key rollback, sticky local failure, per-cell
+// prefix-scoped patch, field-scoped inverse-patch rollback, sticky local failure, per-cell
 // locking, independent concurrent instances, and project-granular invalidation.
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,7 +11,6 @@ import {
   invalidateMrChannelCaches,
   MR_CHANNEL_QUERY_PREFIXES,
   patchMrInChannelCaches,
-  restoreMrChannelCaches,
   useMrFixMutation,
 } from './useMrFixMutation';
 
@@ -103,41 +102,27 @@ describe('useMrFixMutation', () => {
       ).not.toThrow();
     });
 
-    it('restoreMrChannelCaches restores every windowed key to its exact pre-patch value', () => {
+    // CR-01: rollback is an INVERSE PATCH through this same helper, never a
+    // whole-array restore — so an unrelated field written in between (the
+    // sibling cell's successful milestone write) must survive the undo.
+    it('patchMrInChannelCaches inverse-patch undoes only its own field, preserving a field written after it', () => {
       const queryClient = makeQueryClient();
-      const mr = makeMr({ id: 7, target_branch: 'develop' });
+      const mr = makeMr({ id: 7, target_branch: 'develop', milestone: null });
       seedChannelCaches(queryClient, [mr]);
 
-      const before = MR_CHANNEL_QUERY_PREFIXES.map((prefix) =>
-        prefix === 'gitlab-all-project-mrs'
-          ? queryClient.getQueryData([
-              'gitlab-all-project-mrs',
-              PROJECT_ID,
-              '2026-01-01T00:00:00.000Z',
-            ])
-          : prefix === 'gitlab-milestone-mrs'
-            ? queryClient.getQueryData(['gitlab-milestone-mrs', PROJECT_ID, '33.5.0 (21.07.2026)'])
-            : queryClient.getQueryData(['gitlab-branch-mrs', PROJECT_ID, 'release/33.5.0']),
-      );
+      // BR patches target_branch, MS then patches milestone, BR then rolls back.
+      patchMrInChannelCaches(queryClient, PROJECT_ID, 7, { target_branch: 'release/33.5.0' });
+      patchMrInChannelCaches(queryClient, PROJECT_ID, 7, { milestone: { id: 55, title: 'M' } });
+      patchMrInChannelCaches(queryClient, PROJECT_ID, 7, { target_branch: 'develop' });
 
-      const snapshots = patchMrInChannelCaches(queryClient, PROJECT_ID, 7, {
-        target_branch: 'release/33.5.0',
-      });
-      restoreMrChannelCaches(queryClient, snapshots);
-
-      expect(
-        queryClient.getQueryData([
-          'gitlab-all-project-mrs',
-          PROJECT_ID,
-          '2026-01-01T00:00:00.000Z',
-        ]),
-      ).toEqual(before[0]);
-      expect(
-        queryClient.getQueryData(['gitlab-milestone-mrs', PROJECT_ID, '33.5.0 (21.07.2026)']),
-      ).toEqual(before[1]);
-      expect(queryClient.getQueryData(['gitlab-branch-mrs', PROJECT_ID, 'release/33.5.0'])).toEqual(
-        before[2],
-      );
+      for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
+        const entries = queryClient.getQueriesData<GitLabMR[]>({ queryKey: [prefix, PROJECT_ID] });
+        for (const [, data] of entries) {
+          const row = data?.find((m) => m.id === 7);
+          expect(row?.target_branch).toBe('develop');
+          expect(row?.milestone).toEqual({ id: 55, title: 'M' });
+        }
+      }
     });
 
     it('invalidateMrChannelCaches invalidates the project-granular key for all three prefixes, each at two-element length', () => {
@@ -497,6 +482,97 @@ describe('useMrFixMutation', () => {
       await waitFor(() => expect(msResult.current.status).toBe('idle'));
 
       expect(retargetResult.current.errorMessage).toBe('retarget failed');
+      expect(msResult.current.errorMessage).toBeNull();
+
+      // CR-01: statuses alone are not enough — the CACHE must show that the
+      // rejected retarget rolled back only `target_branch` and left the
+      // milestone write that landed while it was in flight intact.
+      const cached = queryClient.getQueryData<GitLabMR[]>([
+        'gitlab-all-project-mrs',
+        PROJECT_ID,
+        '2026-01-01T00:00:00.000Z',
+      ]);
+      expect(cached?.[0]?.target_branch).toBe('develop');
+      expect(cached?.[0]?.milestone).toEqual({ id: 55, title: '33.5.0 (21.07.2026)' });
+    });
+
+    // CR-01 regression, in the exact order that reproduced the bug: BR is
+    // fired and held pending, MS succeeds meanwhile, and only THEN does BR
+    // reject. A whole-array snapshot restore reverts `milestone` to null here
+    // (flipping the MS cell's green check back to an orange flag); the
+    // field-scoped inverse patch must not.
+    it('CR-01: a BR rollback that lands after a successful MS write leaves the milestone patch intact in every channel cache', async () => {
+      const gitlab = await import('@/services/gitlab');
+      let rejectRetarget: (err: Error) => void = () => {};
+      vi.mocked(gitlab.updateMergeRequest).mockImplementation(
+        (_baseUrl, _token, _pid, _iid, fields) =>
+          'target_branch' in fields
+            ? new Promise<GitLabMR>((_resolve, reject) => {
+                rejectRetarget = reject;
+              })
+            : Promise.resolve(makeMr({ milestone: { id: 55, title: 'M' } })),
+      );
+
+      const queryClient = makeQueryClient();
+      const mr = makeMr({ id: 7, target_branch: 'develop', milestone: null });
+      seedChannelCaches(queryClient, [mr]);
+      const wrapper = makeWrapper(queryClient);
+
+      const { result: brResult } = renderHook(
+        () =>
+          useMrFixMutation({
+            action: 'retarget',
+            mr,
+            projectId: PROJECT_ID,
+            baseUrl: 'https://gitlab.example.com',
+            token: 'test-token',
+            targetBranch: 'release/33.5.0',
+            milestone: null,
+          }),
+        { wrapper },
+      );
+      const { result: msResult } = renderHook(
+        () =>
+          useMrFixMutation({
+            action: 'assign-milestone',
+            mr,
+            projectId: PROJECT_ID,
+            baseUrl: 'https://gitlab.example.com',
+            token: 'test-token',
+            targetBranch: null,
+            milestone: { id: 55, title: 'M' },
+          }),
+        { wrapper },
+      );
+
+      // 1. BR in flight (optimistic target_branch patch applied, never settles yet).
+      act(() => brResult.current.fire());
+      await waitFor(() => expect(brResult.current.status).toBe('pending'));
+
+      // 2. MS succeeds while BR is still pending.
+      act(() => msResult.current.fire());
+      await waitFor(() => expect(msResult.current.status).toBe('idle'));
+
+      // 3. BR is rejected — its rollback must undo ONLY target_branch.
+      await act(async () => {
+        rejectRetarget(new Error('protected branch'));
+        await Promise.resolve();
+      });
+      await waitFor(() => expect(brResult.current.status).toBe('error'));
+
+      const seededKeys = [
+        ['gitlab-all-project-mrs', PROJECT_ID, '2026-01-01T00:00:00.000Z'],
+        ['gitlab-milestone-mrs', PROJECT_ID, '33.5.0 (21.07.2026)'],
+        ['gitlab-branch-mrs', PROJECT_ID, 'release/33.5.0'],
+      ];
+      for (const key of seededKeys) {
+        const row = queryClient.getQueryData<GitLabMR[]>(key)?.find((m) => m.id === 7);
+        expect(row?.target_branch).toBe('develop');
+        expect(row?.milestone).toEqual({ id: 55, title: 'M' });
+      }
+
+      // The MS cell stays green (idle, no error) even though BR failed.
+      expect(msResult.current.status).toBe('idle');
       expect(msResult.current.errorMessage).toBeNull();
     });
 
