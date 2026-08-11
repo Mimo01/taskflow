@@ -22,7 +22,11 @@ import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMilestone } from '@/services/gitlab';
-import { fetchProjectBranches, fetchProjectMilestonesInRange } from '@/services/gitlab';
+import {
+  fetchOpenProjectMRs,
+  fetchProjectBranches,
+  fetchProjectMilestonesInRange,
+} from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import { fetchFixVersions } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
@@ -31,6 +35,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
+import { computeRowDriftCount } from './release-detail/driftDetection';
 import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
 
 interface VersionIssueCounts {
@@ -80,6 +85,7 @@ interface MatchedVersion {
   branchPresent: boolean;
   branchName: string | null;
   milestoneMissing: boolean;
+  driftCount: number;
 }
 
 type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
@@ -211,6 +217,19 @@ export default function ReleasesTab() {
     [releaseBranches],
   );
 
+  // D-14: the project's entire open-MR set is fetched in exactly ONE
+  // fully-paginated request regardless of row count, then evaluated locally
+  // per row (see the drift-count derivation in toMatched below). Never a
+  // per-row query hook — that pattern exists a few lines below only because
+  // Jira issue counts have no batch endpoint.
+  const { data: openMrs, isSuccess: openMrsLoaded } = useQuery({
+    queryKey: ['gitlab-open-mrs', activeGitlabProject],
+    queryFn: () =>
+      fetchOpenProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
+    staleTime: 5 * 60_000,
+  });
+
   // Per-version issue counts (parallel queries)
   const versionCountQueries = useQueries({
     queries: (fixVersions ?? []).map((v) => ({
@@ -226,17 +245,27 @@ export default function ReleasesTab() {
     const versions = fixVersions ?? [];
     const msList: GitLabMilestone[] = milestones ?? [];
 
-    const candidates = msList.map((m) => ({ date: m.due_date, name: m.title, url: m.web_url }));
+    const candidates = msList.map((m) => ({
+      id: m.id,
+      date: m.due_date,
+      name: m.title,
+      url: m.web_url,
+    }));
 
     const toMatched = (version: JiraFixVersion): MatchedVersion => {
       let bestMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
+      let matchedMilestoneId: number | null = null;
       for (const cand of candidates) {
         const match = matchGitLabToFixVersion(version.releaseDate, cand);
         if (match.type === 'exact') {
           bestMatch = match;
+          matchedMilestoneId = cand.id;
           break;
         }
-        if (match.type === 'fuzzy' && bestMatch.type === 'none') bestMatch = match;
+        if (match.type === 'fuzzy' && bestMatch.type === 'none') {
+          bestMatch = match;
+          matchedMilestoneId = cand.id;
+        }
       }
       const countQuery = versionCountQueries.find(
         (_, i) => (fixVersions ?? [])[i]?.id === version.id,
@@ -269,6 +298,21 @@ export default function ReleasesTab() {
       // the branch set has loaded, so it never flashes during the fetch.
       const branchPresent = branchesLoaded && derived !== null && releaseBranchNames.has(derived);
 
+      // D-14/D-15/T-89-16: the aggregate drift count is gated on openMrsLoaded
+      // (query isSuccess) for the same reason branchMissing gates on
+      // branchesLoaded — a count derived from an in-flight or errored fetch
+      // would read as confirmed drift. Gated on !version.released for the
+      // same CR-01/WR-04 rationale as branchMissing/milestoneMissing above:
+      // release branches are deleted once merged, so historical releases
+      // would otherwise report drift forever and bury the signal for the
+      // unreleased versions this indicator exists to police. Planner
+      // discretion recorded: D-14 did not state a released-version rule; this
+      // follows the established precedent for the sibling indicators.
+      const driftCount =
+        openMrsLoaded && !version.released
+          ? computeRowDriftCount(openMrs ?? [], derived, matchedMilestoneId)
+          : 0;
+
       return {
         version,
         match: bestMatch,
@@ -278,6 +322,7 @@ export default function ReleasesTab() {
         branchPresent,
         branchName: derived,
         milestoneMissing,
+        driftCount,
       };
     };
 
@@ -407,6 +452,7 @@ export default function ReleasesTab() {
                 branchPresent,
                 branchName,
                 milestoneMissing,
+                driftCount,
               }) => (
                 <button
                   key={version.id}
@@ -577,6 +623,24 @@ export default function ReleasesTab() {
                           className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
                         />
                         <span className="sr-only">No release branch</span>
+                      </span>
+                    )}
+
+                    {/* D-15: aggregate drift count — the reserved Phase 89 slot.
+                      D-14: the tooltip must state the branch-and-milestone-only
+                      coverage, since the detail page's count can legitimately be
+                      higher (it also evaluates TASK drift). */}
+                    {driftCount > 0 && (
+                      <span
+                        title={`${driftCount} MRs need branch or milestone attention. Open the release for the full check, including task links.`}
+                        data-testid="row-drift-count"
+                        className="inline-flex items-center gap-1 text-xs tabular-nums text-orange-600 dark:text-orange-400"
+                      >
+                        <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
+                        <span className="sr-only">
+                          {driftCount} merge requests need branch or milestone attention
+                        </span>
+                        <span aria-hidden="true">{driftCount} drift</span>
                       </span>
                     )}
 
