@@ -216,6 +216,10 @@ Phase 87 (Release Detail Decomposition) complete 2026-08-10. `ReleaseDetailPage.
 
 Code review found one blocker: the optimistic rollback snapshotted and restored whole `GitLabMR[]` arrays, so a failing action silently reverted a sibling action's successful write — breaking MRFIX-03's independence guarantee in exactly the interleaved failure case. Fixed with a field-scoped inverse patch (`8e8e4676`) plus a regression test that asserts cache contents rather than hook status; all 9 accompanying warnings fixed. Two items persist in `90-HUMAN-UAT.md`: the roadmap-mandated `probe.sh` was never run (no live PAT reachable in any execution environment, so RESEARCH A1 stays `UNRESOLVED` — non-blocking, since `flattenGitLabError` handles all three error-body shapes defensively), and the live UAT approval predates the blocker fix. Separately, the biome baseline was found to have drifted to ~16 pre-existing diagnostics across 5 files, none from this phase — logged in `deferred-items.md`.
 
+**Phase 91 complete (2026-08-11)** — Once a Jira fix version is marked released, the release detail sidebar shows an advisory merge-back verdict: has `release/[tag]` actually landed in the project default branch? `mergeBackVerification.ts` resolves it from four evidence channels, preferring the tracking MR's `merged`/`merged_at` state and falling back to `repository/compare` content comparison when no tracking MR exists. The verdict is always advisory ("Likely not merged into {defaultBranch}") and never blocks. The manual override was descoped by user decision D-12 (given twice), which descopes MERGE-03 — same handling as DASH-06 (P84) and DRIFT-09 (P89); its absence is not a gap. Validated in Phase 91: MERGE-01, MERGE-02.
+
+Three gap-closure rounds followed the initial verification. The last (91-09) added a `TagChannelHealth` discriminant (`resolved | pending | failed`) so the sibling "Release Branch" row only asserts "No matching tag found" when the tag lookup actually resolved, rather than while it is in flight or has failed. Carried forward from `91-REVIEW.md`: CR-01 — `searchProjectTags` validates the array wrapper but not element shape, so a malformed-but-array-shaped 200 body can crash `findReleaseTag` in the render phase; verification judged it outside the phase's three defined tag-channel states but flagged it for prompt follow-up.
+
 Accepted trade-off: Channel A is bounded by an `updated_after` window derived from unreleased fix versions (measured 4189 MRs / 42 pages / ~15MB unbounded, ~7.8s → ~1.2s windowed; the GitLab instance is throughput-limited so parallelism alone did not help). Channels B and C remain unbounded, so milestone- or branch-attached MRs are still found at any age. See `89-VERIFICATION.md` for the full rationale.
 
 ## Context
@@ -390,4 +394,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Dashboard charts source from existing data only — no new API surface (v1.13 Phase 86) | Reuse warm caches (sprint data, Tempo worklogs, releases, commits); a redesign shouldn't add fetch cost | ✓ Good — dual-axis chart + cards built entirely on existing queries |
 
 ---
-*Last updated: 2026-08-11 — after Phase 90 (Per-MR Corrective Actions) completed*
+*Last updated: 2026-08-11 — after Phase 91 (Post-Release Merge-Back Verification) completed*
