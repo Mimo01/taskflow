@@ -629,7 +629,16 @@ export default function ReleasesTab() {
                     {/* D-15: aggregate drift count — the reserved Phase 89 slot.
                       D-14: the tooltip must state the branch-and-milestone-only
                       coverage, since the detail page's count can legitimately be
-                      higher (it also evaluates TASK drift). */}
+                      higher (it also evaluates TASK drift).
+
+                      The visible label deliberately does NOT say "drift". This
+                      count and the detail page's "MR Drift" badge are different
+                      measures — this one covers only branch/milestone mismatches
+                      on already-attached open MRs, while the detail badge also
+                      counts TASK drift and Channel A key-matches. Labelling both
+                      "drift" made one release read "1" here and "4" there, which
+                      users reported as a bug. "mismatched" names what this count
+                      actually is, so the two numbers no longer look contradictory. */}
                     {driftCount > 0 && (
                       <span
                         title={`${driftCount} MRs need branch or milestone attention. Open the release for the full check, including task links.`}
@@ -640,7 +649,7 @@ export default function ReleasesTab() {
                         <span className="sr-only">
                           {driftCount} merge requests need branch or milestone attention
                         </span>
-                        <span aria-hidden="true">{driftCount} drift</span>
+                        <span aria-hidden="true">{driftCount} mismatched</span>
                       </span>
                     )}
 
