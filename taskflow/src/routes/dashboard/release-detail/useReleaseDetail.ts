@@ -13,7 +13,6 @@ import {
   searchProjectTags,
 } from '@/services/gitlab';
 import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
-import { linkMRToTask } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -357,11 +356,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     matchedMilestone?.id ?? null,
   );
 
-  // The union MRs whose linked key is absent from the fix-version issue set.
-  const unmatchedMRs = Array.from(union.values())
-    .map((entry) => entry.mr)
-    .filter((mr) => linkMRToTask(mr, fixVersionIssueKeys) === null);
-
   const driftRows = buildDriftRows({
     channelA,
     channelB: releaseMrs,
@@ -403,7 +397,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     releaseIssues,
     releaseMrs,
     matchedRows,
-    unmatchedMRs,
     wrongMilestoneByKey,
     driftRows,
     driftFlaggedCount,
