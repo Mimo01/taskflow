@@ -30,6 +30,12 @@
  *   never be reported as `loading` — that kind is reserved for genuinely
  *   in-flight queries. A channel that will never resolve (disabled query,
  *   failed fetch) must terminate at `couldnt-verify`.
+ * - 91-VERIFICATION truth 5: EVERY evidence channel carries both an
+ *   in-flight signal and a failure signal into this resolver. The tag
+ *   channel was the fourth and last channel missing both — see the step 4.5
+ *   guard below — this is the same defect class CR-03/CR-04 closed for the
+ *   default-branch and tracking-MR channels; adding a fifth channel without
+ *   both signals is the defect this phase closed four times.
  */
 
 import type { GitLabMR } from '@/services/gitlab';
@@ -110,6 +116,8 @@ export function resolveMergeBackVerdict(params: {
   trackingMRsCheckFailed: boolean;
   trackingMRsUnavailable?: boolean;
   tagName: string | null;
+  tagLookupPending?: boolean;
+  tagCheckFailed?: boolean;
   expectedTagName: string | null;
   compareResult: MergeBackCompareInput | undefined;
   compareCheckFailed: boolean;
@@ -123,6 +131,8 @@ export function resolveMergeBackVerdict(params: {
     trackingMRsCheckFailed,
     trackingMRsUnavailable = false,
     tagName,
+    tagLookupPending = false,
+    tagCheckFailed = false,
     expectedTagName,
     compareResult,
     compareCheckFailed,
@@ -200,6 +210,29 @@ export function resolveMergeBackVerdict(params: {
     };
   }
 
+  // Step 4.5 (91-VERIFICATION truth 5): the tag channel's loading/failure
+  // guard, symmetric with steps 2/3/6-7. MUST sit here — below step 4, above
+  // step 5 — because a merged tracking MR targeting the default branch is
+  // definitive positive evidence (D-02) and must still win even while the
+  // tag lookup is pending or failed; placing this guard above step 4 would
+  // let a slow/broken tag fetch mask a settled positive verdict. Fires only
+  // when `tagName === null`: a resolved tag makes the channel's own
+  // pending/failed state irrelevant, so we fall through to step 5 in that
+  // case. Before this guard a tracking-MR query that resolved before the
+  // tag query rendered a terminal "no tag found" claim as settled fact
+  // before flipping to Loading and then to the real verdict, and a genuine
+  // tag-fetch failure permanently showed `no-mr-no-tag` for what was
+  // actually a check failure — the same defect class CR-03/CR-04 fixed for
+  // the other two channels.
+  if (tagName === null) {
+    if (tagCheckFailed) {
+      return { kind: 'couldnt-verify', reason: 'check-failed', expectedTagName };
+    }
+    if (tagLookupPending) {
+      return { kind: 'loading' };
+    }
+  }
+
   // Step 5 (D-01): tag absence is NEVER evidence a release did not ship;
   // Phase 88 established tags are an incomplete record.
   if (tagName === null) {
@@ -233,10 +266,20 @@ export function resolveMergeBackVerdict(params: {
     return { kind: 'merged', via: 'content-compare', defaultBranch, tagName };
   }
 
-  // Step 10 (planner call P-04): a non-empty diff plus an unknown MR
-  // channel is not enough to put "Likely not merged" on a release — one
-  // channel failed, so the app admits the gap per D-09's principle.
-  if (trackingMRsCheckFailed) {
+  // Step 10 (planner call P-04, WR-01): a non-empty diff plus an unhealthy
+  // MR channel is not enough to put the accusatory "Likely not merged" on a
+  // release — one channel failed or is permanently unavailable, so the app
+  // admits the gap per D-09's principle. Emitting `likely-not-merged`
+  // requires a HEALTHY tracking-MR channel, so this checks BOTH
+  // `trackingMRsCheckFailed` (transient fetch failure) and
+  // `trackingMRsUnavailable` (permanently disabled query, e.g. an
+  // unparseable milestone title) — 91-REVIEW WR-01. `trackingMRsUnavailable`
+  // is today unreachable at this point only through an undocumented
+  // coupling between `deriveReleaseBranchName` and
+  // `extractVersionFromMilestoneTitle` sharing one regex; the resolver's own
+  // parameter surface permits the unsafe combination, so this guard is a
+  // contract, not dead code.
+  if (trackingMRsCheckFailed || trackingMRsUnavailable) {
     return { kind: 'couldnt-verify', reason: 'check-failed', expectedTagName };
   }
 

@@ -374,6 +374,119 @@ describe('resolveMergeBackVerdict: CR-03/CR-04 terminal fallbacks for permanentl
   });
 });
 
+describe('resolveMergeBackVerdict: tag-channel loading and failure guards (91-VERIFICATION truth 5)', () => {
+  it('tagName null with tagLookupPending true and no merged MR yields loading, not couldnt-verify', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({ tagName: null, tagLookupPending: true }),
+    );
+    expect(result.kind).not.toBe('couldnt-verify');
+    expect(result).toEqual({ kind: 'loading' });
+  });
+
+  it('tagName null with tagCheckFailed true yields couldnt-verify check-failed, not no-mr-no-tag', () => {
+    const result = resolveMergeBackVerdict(makeParams({ tagName: null, tagCheckFailed: true }));
+    expect(result.kind).toBe('couldnt-verify');
+    expect((result as { reason?: string }).reason).toBe('check-failed');
+    expect((result as { reason?: string }).reason).not.toBe('no-mr-no-tag');
+  });
+
+  it('tagName null with both flags false yields couldnt-verify no-mr-no-tag (D-01 regression lock)', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({ tagName: null, tagLookupPending: false, tagCheckFailed: false }),
+    );
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'no-mr-no-tag',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('a merged MR targeting the default branch still wins with tagLookupPending true (precedence lock — step 4.5 sits below step 4)', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: [makeMR()],
+        tagName: null,
+        tagLookupPending: true,
+      }),
+    );
+    expect(result).toEqual({
+      kind: 'merged',
+      via: 'tracking-mr',
+      defaultBranch: 'develop',
+      mrIid: 4821,
+      mrUrl: 'https://gitlab.example/mr/4821',
+      mergedAt: null,
+    });
+  });
+
+  it('a merged MR targeting the default branch still wins with tagCheckFailed true', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: [makeMR()],
+        tagName: null,
+        tagCheckFailed: true,
+      }),
+    );
+    expect(result.kind).toBe('merged');
+  });
+
+  it('tagCheckFailed wins over tagLookupPending when both flags are true simultaneously', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({ tagName: null, tagLookupPending: true, tagCheckFailed: true }),
+    );
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'check-failed',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('omitting both tag-channel params entirely reproduces the pre-change verdict (default-compatibility lock)', () => {
+    const result = resolveMergeBackVerdict(makeParams({ tagName: null }));
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'no-mr-no-tag',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+});
+
+describe('resolveMergeBackVerdict: WR-01 step 10 requires a healthy tracking-MR channel', () => {
+  it('trackingMRsUnavailable true with a resolved tag and non-empty diff yields couldnt-verify check-failed, not likely-not-merged', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: undefined,
+        trackingMRsCheckFailed: false,
+        trackingMRsUnavailable: true,
+        compareResult: { diffCount: 3, commitCount: 5, timedOut: false },
+      }),
+    );
+    expect(result.kind).not.toBe('likely-not-merged');
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'check-failed',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('trackingMRsUnavailable false with a resolved tag and non-empty diff yields likely-not-merged (guard does not over-fire)', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: [],
+        trackingMRsCheckFailed: false,
+        trackingMRsUnavailable: false,
+        compareResult: { diffCount: 3, commitCount: 5, timedOut: false },
+      }),
+    );
+    expect(result).toEqual({
+      kind: 'likely-not-merged',
+      defaultBranch: 'develop',
+      tagName: 'v33.7.0',
+      commitsNotInDefault: 5,
+    });
+  });
+});
+
 describe('formatVerdictDate', () => {
   it('formats an ISO timestamp as day-of-month + short month', () => {
     expect(formatVerdictDate('2026-07-21T09:14:00.000Z')).toBe('21 Jul');
