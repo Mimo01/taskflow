@@ -26,13 +26,17 @@
  * - D-09/D-11: `hidden` covers "cannot be attempted" (not released, or no
  *   matched milestone); `loading` is additive to D-09's four terminal
  *   outcomes, not a fifth verdict kind.
+ * - CR-03/CR-04: a permanently disabled or errored evidence channel must
+ *   never be reported as `loading` — that kind is reserved for genuinely
+ *   in-flight queries. A channel that will never resolve (disabled query,
+ *   failed fetch) must terminate at `couldnt-verify`.
  */
 
 import type { GitLabMR } from '@/services/gitlab';
 
 /** Structural narrowing of `GitLabMR` — this module never depends on fields
  *  the verdict does not read. */
-export type TrackingMR = Pick<GitLabMR, 'iid' | 'state' | 'web_url'> & {
+export type TrackingMR = Pick<GitLabMR, 'iid' | 'state' | 'web_url' | 'target_branch'> & {
   merged_at?: string | null;
 };
 
@@ -101,8 +105,10 @@ export function resolveMergeBackVerdict(params: {
   releasedVersion: boolean;
   hasMatchedMilestone: boolean;
   defaultBranch: string | null;
+  defaultBranchCheckFailed?: boolean;
   trackingMRs: readonly TrackingMR[] | undefined;
   trackingMRsCheckFailed: boolean;
+  trackingMRsUnavailable?: boolean;
   tagName: string | null;
   expectedTagName: string | null;
   compareResult: MergeBackCompareInput | undefined;
@@ -112,8 +118,10 @@ export function resolveMergeBackVerdict(params: {
     releasedVersion,
     hasMatchedMilestone,
     defaultBranch,
+    defaultBranchCheckFailed = false,
     trackingMRs,
     trackingMRsCheckFailed,
+    trackingMRsUnavailable = false,
     tagName,
     expectedTagName,
     compareResult,
@@ -126,22 +134,61 @@ export function resolveMergeBackVerdict(params: {
     return { kind: 'hidden' };
   }
 
-  // Step 2 (planner call P-05): every visible verdict's copy names the
-  // fetched default branch per D-10, so rendering before the project query
-  // resolves would print an empty branch name; this is honestly "still
-  // loading", not a verdict.
+  // Step 2 (planner call P-05, CR-04): every visible verdict's copy names
+  // the fetched default branch per D-10, so rendering before the project
+  // query resolves would print an empty branch name; this is honestly
+  // "still loading", not a verdict — UNLESS the query has permanently
+  // failed (`defaultBranchCheckFailed`), in which case `defaultBranch` will
+  // never arrive and reporting `loading` forever would pin the row at
+  // "Loading…" for a 500/timeout that already happened. Mirrors
+  // `releaseBranch.ts`'s `branchCheckFailed` -> `check-failed` precedent.
   if (defaultBranch === null) {
+    if (defaultBranchCheckFailed) {
+      return { kind: 'couldnt-verify', reason: 'check-failed', expectedTagName };
+    }
     return { kind: 'loading' };
   }
 
-  // Step 3: tracking-MR query still in flight (undefined and no error yet).
-  if (trackingMRs === undefined && !trackingMRsCheckFailed) {
+  // Step 3 (CR-03): tracking-MR query still in flight (undefined and no
+  // error yet) — but ONLY when the query is genuinely in flight. When
+  // `trackingMRsUnavailable` is true (no release branch name is derivable
+  // from the milestone title, so the query is disabled and will never run),
+  // fall through instead: step 4 finds no evidence (trackingMRs stays
+  // undefined) and step 5 resolves to `couldnt-verify` with
+  // `reason: 'no-mr-no-tag'` for the unparseable-title case — the correct
+  // terminal answer, needing no new verdict kind. Parallels
+  // `releaseBranch.ts`'s `BranchState.kind === 'unresolvable'`.
+  if (trackingMRs === undefined && !trackingMRsCheckFailed && !trackingMRsUnavailable) {
     return { kind: 'loading' };
   }
 
-  // Step 4 (D-02): `merged` is the ONLY positive MR signal; every other
-  // state defers to content comparison.
-  const mergedMR = trackingMRs?.find((mr) => mr.state === 'merged');
+  // Step 4 (D-02, CR-01): `merged` is the ONLY positive MR signal; every
+  // other state defers to content comparison. CR-01: a merged MR is only
+  // evidence when it targeted the fetched default branch. In the standard
+  // git-flow shape this feature exists to police, `release/X` is merged by
+  // TWO MRs — one into `master`, one into `develop`. An unfiltered match
+  // would report the release as merged back when only the `master` MR
+  // landed — the exact false positive MERGE-01 exists to prevent. Strict
+  // equality only: never a hardcoded `'main'`/`'develop'`, never `includes`,
+  // never case-insensitive or prefix matching (git branch names are
+  // case-sensitive, and `develop-old` must never satisfy `develop`).
+  const mergedCandidates = trackingMRs?.filter(
+    (mr) => mr.state === 'merged' && mr.target_branch === defaultBranch,
+  );
+  // WR-02: pick deterministically — highest `merged_at` first (treating
+  // null/undefined/unparseable as lowest), tie-broken by highest `iid`.
+  // Input arrives in GitLab's `created_at desc` default sort order, so
+  // relying on array/find order would make the cited MR non-reproducible.
+  const mergedMR = mergedCandidates?.reduce<TrackingMR | undefined>((best, candidate) => {
+    if (!best) return candidate;
+    const bestTime = Date.parse(best.merged_at ?? '');
+    const candidateTime = Date.parse(candidate.merged_at ?? '');
+    const bestMs = Number.isNaN(bestTime) ? -Infinity : bestTime;
+    const candidateMs = Number.isNaN(candidateTime) ? -Infinity : candidateTime;
+    if (candidateMs > bestMs) return candidate;
+    if (candidateMs < bestMs) return best;
+    return candidate.iid > best.iid ? candidate : best;
+  }, undefined);
   if (mergedMR) {
     return {
       kind: 'merged',
