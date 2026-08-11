@@ -38,23 +38,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { GitLabMR } from '@/services/gitlab';
 import { updateMergeRequest } from '@/services/gitlab';
+import { MR_CHANNEL_QUERY_PREFIXES, mrChannelKeys } from './mrChannelKeys';
 
 export type MrFixAction = 'retarget' | 'assign-milestone';
 export type MrFixStatus = 'idle' | 'pending' | 'error';
 
 /**
- * The three channel query prefixes a retarget/assign-milestone write can
- * affect (mirrors the literals in useReleaseDetail.ts L352/L367/L385). Both
- * writes change channel membership — a retargeted MR newly qualifies for
- * Channel C, a milestone-assigned MR for Channel B — so all three are always
- * patched and invalidated together, regardless of which single field changed
- * (D-13).
+ * Re-exported for the existing import sites. The literals themselves live in
+ * `mrChannelKeys.ts` alongside the query-site key factories (WR-06) — they
+ * used to be re-declared here, so renaming a key in `useReleaseDetail.ts`
+ * turned every patch below into a silent no-op with no type error.
  */
-export const MR_CHANNEL_QUERY_PREFIXES = [
-  'gitlab-all-project-mrs',
-  'gitlab-milestone-mrs',
-  'gitlab-branch-mrs',
-] as const;
+export { MR_CHANNEL_QUERY_PREFIXES };
 
 /**
  * Optimistically patch MR `mrId` with `patch` in every cached entry under the
@@ -80,8 +75,9 @@ export function patchMrInChannelCaches(
   patch: Partial<GitLabMR>,
 ): void {
   for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
-    queryClient.setQueriesData<GitLabMR[]>({ queryKey: [prefix, projectId] }, (list) =>
-      list?.map((m) => (m.id === mrId ? { ...m, ...patch } : m)),
+    queryClient.setQueriesData<GitLabMR[]>(
+      { queryKey: mrChannelKeys.channelForProject(prefix, projectId) },
+      (list) => list?.map((m) => (m.id === mrId ? { ...m, ...patch } : m)),
     );
   }
 }
@@ -92,7 +88,7 @@ export function patchMrInChannelCaches(
  */
 export function invalidateMrChannelCaches(queryClient: QueryClient, projectId: number): void {
   for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
-    queryClient.invalidateQueries({ queryKey: [prefix, projectId] });
+    queryClient.invalidateQueries({ queryKey: mrChannelKeys.channelForProject(prefix, projectId) });
   }
 }
 
@@ -110,8 +106,8 @@ interface MrFixMutationContext {
  * Per-(MR, action) mutation: fires `updateMergeRequest` for either a
  * retarget or an assign-milestone write, with an optimistic multi-cache
  * patch, a field-scoped inverse-patch rollback on failure, and a sticky
- * component-state failure
- * (D-08) independent of the mutation object's own lifecycle.
+ * component-state failure (D-08) independent of the mutation object's own
+ * lifecycle.
  *
  * The cache write is optimistic while the reported `status` stays `'pending'`
  * until the PUT settles — the glyph this hook backs is pessimistic by design
@@ -157,7 +153,9 @@ export function useMrFixMutation(args: {
       setStatus('pending');
       setErrorMessage(null);
       for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
-        await queryClient.cancelQueries({ queryKey: [prefix, projectId] });
+        await queryClient.cancelQueries({
+          queryKey: mrChannelKeys.channelForProject(prefix, projectId),
+        });
       }
       // One falsy-projectId convention across this whole file (WR-03): the
       // same `!projectId` test `mutationFn` throws on and `onSettled`
