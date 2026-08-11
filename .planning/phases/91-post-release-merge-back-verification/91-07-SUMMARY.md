@@ -96,3 +96,7 @@ None - no external service configuration required.
 ---
 *Phase: 91-post-release-merge-back-verification*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+All 4 modified source/test files found on disk; all 3 commit hashes (`3cadb62f`, `6b0fb673`, `9ea672db`) found in git log.
