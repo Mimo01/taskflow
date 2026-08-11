@@ -28,15 +28,15 @@
 
 ### Drift Detection
 
-- [ ] **DRIFT-01**: Channel A — MRs are discovered via the Jira issue keys of the fix version's issues
-- [ ] **DRIFT-02**: Channel B — MRs are discovered via the GitLab milestone
-- [ ] **DRIFT-03**: Channel C — MRs are discovered via target branch equal to the release branch, using a fully paginated fetch
-- [ ] **DRIFT-04**: The three channels union into a single MR set that retains per-channel provenance
-- [ ] **DRIFT-05**: An MR is flagged when its target branch is not the release branch
-- [ ] **DRIFT-06**: An MR is flagged when the release milestone is not assigned to it
-- [ ] **DRIFT-07**: An MR is flagged when its Jira task is not in the fix version
-- [ ] **DRIFT-08**: Merged, closed, and draft MRs are classified so they do not pollute drift counts
-- [ ] **DRIFT-09**: The release row shows an aggregate drift count
+- [x] **DRIFT-01**: Channel A — MRs are discovered via the Jira issue keys of the fix version's issues
+- [x] **DRIFT-02**: Channel B — MRs are discovered via the GitLab milestone
+- [x] **DRIFT-03**: Channel C — MRs are discovered via target branch equal to the release branch, using a fully paginated fetch
+- [x] **DRIFT-04**: The three channels union into a single MR set that retains per-channel provenance
+- [x] **DRIFT-05**: An MR is flagged when its target branch is not the release branch
+- [x] **DRIFT-06**: An MR is flagged when the release milestone is not assigned to it
+- [x] **DRIFT-07**: An MR is flagged when its Jira task is not in the fix version
+- [x] **DRIFT-08**: Merged, closed, and draft MRs are classified so they do not pollute drift counts
+- [x] **DRIFT-09**: The release row shows an aggregate drift count
 
 ### Per-MR Corrective Actions
 
