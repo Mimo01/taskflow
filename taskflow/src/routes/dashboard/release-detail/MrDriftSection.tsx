@@ -149,7 +149,7 @@ function DriftActionCell({
   testId: string;
   fix: MrFixContext;
 }) {
-  const { status, errorMessage, fire } = useMrFixMutation({
+  const { status, errorMessage, fire, reset } = useMrFixMutation({
     action,
     mr,
     projectId: fix.projectId,
@@ -165,6 +165,19 @@ function DriftActionCell({
       ? fix.releaseBranchExists && fix.releaseBranchName != null
       : fix.matchedMilestone != null;
   const actionable = mark === 'flag' && configComplete && prereqReady;
+
+  // WR-08: a sticky failure must not outlive the problem it describes. If a
+  // background refetch shows this field is now correct — someone fixed it in
+  // GitLab directly, or the other user did — the red "click to retry" cell is
+  // stale, and the only way out of it would be another pointless write. This
+  // is the documented "adjust state when a prop changes" pattern (a render-
+  // phase update guarded by a ref), not an effect: React re-renders
+  // immediately, so the cell never paints red for a row that is already ok.
+  const lastMarkRef = useRef(mark);
+  if (lastMarkRef.current !== mark) {
+    lastMarkRef.current = mark;
+    if (mark === 'ok' && status === 'error') reset();
+  }
 
   const rootClassName = 'flex-none w-[28px] flex items-center justify-center';
   const actionLabel =
@@ -209,6 +222,21 @@ function DriftActionCell({
   }
 
   if (status === 'error') {
+    // WR-08: only offer the retry when a retry could actually succeed. If the
+    // prerequisite disappeared under the failure (release branch deleted,
+    // GitLab token cleared), a click is guaranteed to throw 'GitLab project
+    // not configured' / 'Release branch unavailable' — and because this
+    // branch is evaluated before the inert-cell branch below, that
+    // explanation would otherwise be unreachable for the rest of the session.
+    if (!actionable) {
+      const label = errorMessage ?? 'Update failed';
+      return (
+        <span data-testid={testId} title={label} className={rootClassName}>
+          <AlertTriangle className="size-3.5 text-red-600 dark:text-red-400" />
+          {liveRegion}
+        </span>
+      );
+    }
     const label = errorMessage ?? 'Update failed — click to retry';
     return (
       <button
