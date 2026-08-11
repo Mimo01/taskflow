@@ -216,8 +216,8 @@ Plans:
 
 **Wave 1** *(parallel — no shared files)*
 
-- [ ] 91-01-PLAN.md — `fetchSourceBranchMRs` (fully paginated) + `compareRefs` in `services/gitlab.ts`, with mocked-fetch tests
-- [ ] 91-02-PLAN.md — pure `mergeBackVerification.ts` (`MergeBackVerdict` union + `resolveMergeBackVerdict` + date formatters) with unit tests
+- [x] 91-01-PLAN.md — `fetchSourceBranchMRs` (fully paginated) + `compareRefs` in `services/gitlab.ts`, with mocked-fetch tests
+- [x] 91-02-PLAN.md — pure `mergeBackVerification.ts` (`MergeBackVerdict` union + `resolveMergeBackVerdict` + date formatters) with unit tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -295,7 +295,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
 | 90. Per-MR Corrective Actions | 4/4 | Complete    | 2026-08-11 |
-| 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
+| 91. Post-Release Merge-Back Verification | 2/3 | In Progress|  |
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
