@@ -9,15 +9,21 @@ import {
   fetchMilestoneMRs,
   fetchProject,
   fetchProjectMilestones,
-  fetchRecentProjectMRs,
   filterMilestonesToRange,
   searchProjectTags,
 } from '@/services/gitlab';
 import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
+import { linkMRToTask } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { buildDriftRows, countFlaggedMRs, selectChannelA } from './driftDetection';
+import {
+  buildDriftRows,
+  buildIssueMrIndex,
+  countFlaggedMRs,
+  selectChannelA,
+  unionMRs,
+} from './driftDetection';
 import {
   deriveReleaseBranchName,
   extractVersionFromMilestoneTitle,
@@ -26,7 +32,6 @@ import {
 } from './releaseBranch';
 import { ownProjectMilestones } from './releaseMilestone';
 import {
-  buildWrongMilestoneMap,
   computeHasStoryPoints,
   computeIssueStatusCounts,
   computeLabelCoverage,
@@ -34,7 +39,6 @@ import {
   computeMilestoneWindow,
   computeMrStateCounts,
   computeStoryPoints,
-  matchIssuesToMRs,
   resolveGitLabMatch,
 } from './releaseSummaries';
 
@@ -331,45 +335,36 @@ export function useReleaseDetail(versionId: string | undefined) {
       !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && releaseBranchName !== null,
   });
 
-  // Match MRs to Jira issues
   const releaseIssues = fixVersionIssues ?? [];
   const releaseMrs = milestoneMRs ?? [];
-  const { matchedRows, unmatchedMRs } = matchIssuesToMRs(releaseIssues, releaseMrs);
-
-  // GGX-WARN-01: Find tasks that have NO MR in the matched milestone ("Missing MR" case)
-  // but DO have an MR elsewhere — i.e. on a different/absent milestone ("Wrong milestone").
-  // Optimization: instead of one slow GitLab `search` request per missing task, fetch the
-  // project's latest 100 MRs ONCE (fast list endpoint) and match every task locally. Only
-  // runs when a milestone matched and there is at least one missing row. Trade-off: an MR
-  // older than the latest 100 won't be found and the task stays "Missing MR".
-  const missingRows = matchedRows.filter((r) => r.mr === null);
-  const { data: recentProjectMRs } = useQuery({
-    queryKey: ['gitlab-recent-project-mrs', activeGitlabProject],
-    queryFn: () =>
-      fetchRecentProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0, 100),
-    enabled:
-      !!gitlabBaseUrl &&
-      !!activeGitlabProject &&
-      !!gitlabToken &&
-      gitlabMatch.type !== 'none' &&
-      missingRows.length > 0,
-    staleTime: 5 * 60_000,
-  });
-
-  const wrongMilestoneByKey = buildWrongMilestoneMap(
-    matchedMilestone,
-    recentProjectMRs,
-    missingRows,
-  );
 
   // Three-channel drift detection (DRIFT-01/02/03/04): union the three channels,
   // filter Channel A's project-wide universe down to MRs linked to a fix-version
   // issue key, and build the deterministically-sorted drift row list.
   const fixVersionIssueKeys = new Set(releaseIssues.map((i) => i.key));
   const channelA = selectChannelA(allProjectMRs ?? [], fixVersionIssueKeys);
+
+  // D-05: the three-channel union supersedes the old capped recent-MR
+  // "wrong milestone" heuristic — an MR older than the latest 100 is no
+  // longer silently missed. This is the same union `buildDriftRows` below re-derives
+  // internally; the second, cheap union avoids threading a prebuilt map
+  // through `buildDriftRows`'s three-array signature.
+  const union = unionMRs(channelA, releaseMrs, branchTargetedMRs ?? []);
+
+  const { matchedRows, wrongMilestoneByKey } = buildIssueMrIndex(
+    union,
+    releaseIssues,
+    matchedMilestone?.id ?? null,
+  );
+
+  // The union MRs whose linked key is absent from the fix-version issue set.
+  const unmatchedMRs = Array.from(union.values())
+    .map((entry) => entry.mr)
+    .filter((mr) => linkMRToTask(mr, fixVersionIssueKeys) === null);
+
   const driftRows = buildDriftRows({
     channelA,
-    channelB: milestoneMRs ?? [],
+    channelB: releaseMrs,
     channelC: branchTargetedMRs ?? [],
     releaseBranchName,
     matchedMilestoneId: matchedMilestone?.id ?? null,
@@ -409,7 +404,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     releaseMrs,
     matchedRows,
     unmatchedMRs,
-    missingRows,
     wrongMilestoneByKey,
     driftRows,
     driftFlaggedCount,

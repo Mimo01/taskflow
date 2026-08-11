@@ -33,7 +33,6 @@ vi.mock('@/services/gitlab', async (importOriginal) => ({
   createBranch: vi.fn(),
   createMilestone: vi.fn(),
   fetchMilestoneMRs: vi.fn(),
-  fetchRecentProjectMRs: vi.fn(),
   fetchAllProjectMRs: vi.fn(),
   fetchBranchTargetedMRs: vi.fn(),
 }));
@@ -111,7 +110,6 @@ async function setupMocks(
     overrides.fetchBranchImpl ?? (() => Promise.resolve({ exists: false })),
   );
   vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([]);
-  vi.mocked(gitlab.fetchRecentProjectMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([]);
   vi.mocked(gitlab.createMilestone).mockResolvedValue(makeMilestone());
@@ -251,5 +249,40 @@ describe('useReleaseDetail', () => {
     );
     // The windowed match list, by contrast, excludes them.
     expect(result.current.gitlabMatch.candidateName).toBe('33.5.0 (21.07.2026)');
+  });
+
+  it('Test G: Channel A fetches the project-scoped, non-windowed MR universe', async () => {
+    await setupMocks();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    const gitlab = await import('@/services/gitlab');
+    await waitFor(() => expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalled());
+    expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalledWith(
+      'https://gitlab.example.com',
+      'test-token',
+      42,
+    );
+    expect(queryClient.getQueryState(['gitlab-all-project-mrs', 42])).toBeDefined();
+  });
+
+  it('Test H: Channel C (fetchBranchTargetedMRs) is not called when no milestone matched (D-18)', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    // No matching GitLab milestone for this release date — releaseBranchName derives to null.
+    vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.releaseBranchName).toBeNull());
+
+    expect(gitlab.fetchBranchTargetedMRs).not.toHaveBeenCalled();
   });
 });
