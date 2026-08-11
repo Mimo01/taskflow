@@ -89,6 +89,8 @@ Destructive: not applicable — this phase has no destructive actions (retarget/
 | Unavailable state (D-14, MRFIX-04) | BR cell tooltip when release branch doesn't exist: `Release branch doesn't exist yet — create it above to enable retargeting` (or equivalent copy pointing at the existing P88 create-branch control on the page). Cell stays inert (`⚠` orange, no hover icon swap, no click handler). |
 | Destructive confirmation | Not applicable — no confirm dialogs in this phase (D-16, hard user decision: no warning on retarget regardless of approval-reset side effects) |
 
+**Accessible naming (checker recommendation, D2):** every icon-only button in this phase carries an `aria-label` mirroring its `title` text verbatim (e.g. `aria-label={`Retarget to release/${releaseBranchName}`}`). `title` alone is not a reliable accessible-name mechanism for icon-only controls — set both.
+
 Tone: terse, technical, consistent with the existing tooltip style already in the file (e.g. `channelsTitle` → `Found via: Jira link, GitLab milestone`). No exclamation points, no marketing voice.
 
 ---
