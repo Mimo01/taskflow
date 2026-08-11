@@ -22,6 +22,7 @@ vi.mock('@/services/gitlab', () => ({
   fetchProjectMilestonesInRange: vi.fn().mockResolvedValue([]),
   fetchProjectTags: vi.fn().mockResolvedValue([]),
   fetchProjectBranches: vi.fn().mockResolvedValue([]),
+  fetchOpenProjectMRs: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock releaseLinker
@@ -79,12 +80,16 @@ describe('ReleasesTab', () => {
     } as Response);
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([]);
-    const { fetchProjectMilestonesInRange, fetchProjectTags, fetchProjectBranches } = await import(
-      '@/services/gitlab'
-    );
+    const {
+      fetchProjectMilestonesInRange,
+      fetchProjectTags,
+      fetchProjectBranches,
+      fetchOpenProjectMRs,
+    } = await import('@/services/gitlab');
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([]);
     vi.mocked(fetchProjectTags).mockResolvedValue([]);
     vi.mocked(fetchProjectBranches).mockResolvedValue([]);
+    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([]);
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
     vi.mocked(matchGitLabToFixVersion).mockReturnValue({
       type: 'none',
