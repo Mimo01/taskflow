@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: executing
-last_updated: "2026-08-11T12:14:02.878Z"
+last_updated: "2026-08-11T12:25:16.238Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 21
   completed_phases: 3
   total_plans: 26
-  completed_plans: 23
+  completed_plans: 24
   percent: 14
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 90 (per-mr-corrective-actions) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-11
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [█████████░] 88%
 | Phase 87 P05 | 20min | 2 tasks | 3 files |
 | Phase 87 P06 | 20min | 3 tasks | 2 files |
 | Phase 90 P01 | 9min | 3 tasks | 4 files |
+| Phase 90 P02 | 24min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [Phase 90]: Probe not run — no live GitLab PAT available; 90-PROBE-RESULTS.md recorded as status: not-run, not fabricated
 - [Phase 90]: A1 (RESEARCH Open Question) left UNRESOLVED (probe D skipped) — non-blocking since flattenGitLabError handles all three GitLab error-body shapes defensively
 - [Phase 90]: updateMilestone/createBranch/createMilestone left byte-unchanged — back-porting flattenGitLabError into them is out of scope for this plan
+- [Phase ?]: [Phase 90]: useMrFixMutation onMutate guards only projectId for the optimistic patch; missing targetBranch/milestone falls back to the MR's own current value (no-op write) since mutationFn's guards throw before any updateMergeRequest call regardless
+- [Phase ?]: [Phase 90]: D-12 header-badge decrement proven via patchMrInChannelCaches against the real three-element windowed cache key; driftFlaggedCount is non-memoized so it drops immediately, before any refetch
 
 ### Pending Todos
 
@@ -115,8 +118,8 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-11T12:14:02.726Z
-Stopped at: Completed 90-01-PLAN.md
+Last session: 2026-08-11T12:25:16.235Z
+Stopped at: Completed 90-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

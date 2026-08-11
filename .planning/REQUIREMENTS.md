@@ -42,7 +42,7 @@
 
 - [x] **MRFIX-01**: User can retarget an MR to the release branch from its row — applies directly with optimistic update and rollback, no confirm dialog and no warning
 - [x] **MRFIX-02**: User can assign the release milestone to an MR from its row — applies directly with optimistic update and rollback
-- [ ] **MRFIX-03**: Each corrective action shows per-row status and can be retried independently of the other
+- [x] **MRFIX-03**: Each corrective action shows per-row status and can be retried independently of the other
 - [ ] **MRFIX-04**: Retarget is unavailable while the release branch does not exist
 
 ### Merge-Back Verification
