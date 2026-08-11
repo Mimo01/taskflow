@@ -5,6 +5,7 @@ import { updateMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import { updateFixVersion } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { mrChannelKeys } from './mrChannelKeys';
 
 interface UseEditReleaseArgs {
   version: JiraFixVersion | null;
@@ -168,7 +169,9 @@ export function useEditRelease({
       // The milestone-MR query is keyed on the milestone title — invalidate it
       // too so a title rename doesn't leave the MR list/labels querying the old
       // title.
-      queryClient.invalidateQueries({ queryKey: ['gitlab-milestone-mrs', activeGitlabProject] });
+      queryClient.invalidateQueries({
+        queryKey: mrChannelKeys.channelForProject('gitlab-milestone-mrs', activeGitlabProject),
+      });
     }
 
     setIsSaving(false);

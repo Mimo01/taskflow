@@ -23,6 +23,10 @@ import {
   selectChannelA,
   unionMRs,
 } from './driftDetection';
+// WR-06: the three channel query keys are declared once, in mrChannelKeys.ts,
+// because useMrFixMutation patches and invalidates them by prefix — inline
+// literals here would let a rename silently disable every optimistic patch.
+import { mrChannelKeys } from './mrChannelKeys';
 import {
   deriveReleaseBranchName,
   extractVersionFromMilestoneTitle,
@@ -349,7 +353,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // and serving a narrower cached result for a wider window would under-report
   // drift.
   const { data: allProjectMRs, isLoading: isLoadingChannelA } = useQuery({
-    queryKey: ['gitlab-all-project-mrs', activeGitlabProject, channelAUpdatedAfter],
+    queryKey: mrChannelKeys.allProject(activeGitlabProject, channelAUpdatedAfter),
     queryFn: () =>
       fetchAllProjectMRs(
         gitlabBaseUrl ?? '',
@@ -364,7 +368,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // Channel B (DRIFT-02): MRs for the matched GitLab milestone. Unchanged —
   // this key is a cross-component cache contract with ReleasesTab/UpcomingReleasesTimeline.
   const { data: milestoneMRs, isLoading: isLoadingChannelB } = useQuery({
-    queryKey: ['gitlab-milestone-mrs', activeGitlabProject, gitlabMatch.candidateName],
+    queryKey: mrChannelKeys.milestone(activeGitlabProject, gitlabMatch.candidateName),
     queryFn: () =>
       fetchMilestoneMRs(
         gitlabBaseUrl ?? '',
@@ -382,7 +386,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // (line above). D-18 degraded state: no matched milestone means no derivable
   // branch name means nothing to query — `releaseBranchName !== null` guards it.
   const { data: branchTargetedMRs, isLoading: isLoadingChannelC } = useQuery({
-    queryKey: ['gitlab-branch-mrs', activeGitlabProject, releaseBranchName],
+    queryKey: mrChannelKeys.branch(activeGitlabProject, releaseBranchName),
     queryFn: () =>
       fetchBranchTargetedMRs(
         gitlabBaseUrl ?? '',
