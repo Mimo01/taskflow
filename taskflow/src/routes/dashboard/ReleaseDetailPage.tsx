@@ -254,6 +254,16 @@ export default function ReleaseDetailPage() {
                 hasMatchedMilestone={hasMatchedMilestone}
                 isLoading={isLoadingDrift}
                 onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
+                fix={{
+                  projectId: activeGitlabProject ?? null,
+                  baseUrl: gitlabBaseUrl ?? null,
+                  token: gitlabToken,
+                  releaseBranchName,
+                  releaseBranchExists: branchState.kind === 'exists',
+                  matchedMilestone: matchedMilestone
+                    ? { id: matchedMilestone.id, title: matchedMilestone.title }
+                    : null,
+                }}
               />
 
               {/* Action buttons */}
