@@ -293,48 +293,6 @@ export function countFlaggedMRs(rows: DriftRow[]): number {
 }
 
 /**
- * D-14: the Releases-list row drift count — branch + milestone drift only.
- * TASK is deliberately excluded: the list page never loads Jira issue keys
- * for every release, so evaluating TASK there would require a per-row Jira
- * fetch that D-14 explicitly avoids (one project-wide open-MR fetch covers
- * every row). The detail-page count (`countFlaggedMRs`) may therefore
- * legitimately exceed this number — that is expected, not a bug.
- *
- * Keeps only MRs that are `state === 'opened'` AND relevant to this row
- * (target branch equals `releaseBranchName` when non-null, OR the MR's
- * milestone id equals `matchedMilestoneId` when non-null), then counts
- * those for which BR or MS drift evaluates true.
- *
- * @param openMrs - a project-wide, fully-paginated, state=opened MR fetch
- * @param releaseBranchName - the row's derived release branch name, or null
- * @param matchedMilestoneId - the row's matched GitLab milestone id, or null
- * @returns the branch+milestone-only drift count for this row
- */
-export function computeRowDriftCount(
-  openMrs: GitLabMR[],
-  releaseBranchName: string | null,
-  matchedMilestoneId: number | null,
-): number {
-  if (releaseBranchName === null && matchedMilestoneId === null) return 0;
-
-  let count = 0;
-  for (const mr of openMrs) {
-    if (mr.state !== 'opened') continue;
-    const relevant =
-      (releaseBranchName !== null && mr.target_branch === releaseBranchName) ||
-      (matchedMilestoneId !== null && mr.milestone?.id === matchedMilestoneId);
-    if (!relevant) continue;
-    if (
-      evaluateBranchDrift(mr, releaseBranchName) ||
-      evaluateMilestoneDrift(mr, matchedMilestoneId)
-    ) {
-      count += 1;
-    }
-  }
-  return count;
-}
-
-/**
  * D-05/D-06: re-source the Issues table's MR cell (`matchedRows` +
  * `wrongMilestoneByKey`) from the three-channel union instead of the old
  * capped-recent-MR-fetch plus wrong-milestone-map heuristic (both since

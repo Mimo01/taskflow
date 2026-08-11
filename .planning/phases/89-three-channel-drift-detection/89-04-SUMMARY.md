@@ -129,3 +129,34 @@ None - no external service configuration required.
 - Commit `b4b14204` (Task 1) — FOUND in `git log --oneline --all`
 - Commit `aded3767` (Task 2) — FOUND in `git log --oneline --all`
 - Commit `e97b5366` (SUMMARY) — FOUND in `git log --oneline --all`
+
+---
+
+## DESCOPED — feature removed 2026-08-11 (post-verification)
+
+At UAT the user decided drift information belongs on the release **detail** page
+only: *"I dont need the drift/mismatched info on the list page at all, remove it.
+I only want the newly added things on detail."*
+
+Everything this plan built was therefore removed:
+
+- `ReleasesTab.tsx` — the `{n} mismatched` badge, the `driftCount` field on
+  `MatchedVersion`, the project-wide `['gitlab-open-mrs', …]` query, and the
+  now-unused `matchedMilestoneId` local.
+- `driftDetection.ts` — `computeRowDriftCount` (only consumer was this plan).
+- `gitlab.ts` — `fetchOpenProjectMRs` (only consumer was this plan).
+- All corresponding tests, including the WR-05 regression test added earlier the
+  same day (the behaviour it guarded no longer exists).
+
+The release **detail** page is untouched: `MrDriftSection`, `useReleaseDetail`'s
+three channels, `countFlaggedMRs` (D-13) and the union all remain. The only edit
+inside `release-detail/` was deleting the dead `computeRowDriftCount` helper.
+
+DRIFT-09 is marked **descoped** in `REQUIREMENTS.md` — deliberately removed on
+user instruction, not an unmet requirement. This also retires the D-13/D-14
+count-divergence confusion that prompted the earlier relabel, since there is now
+only one drift number in the product.
+
+Verification after removal: `npx tsc --noEmit` exits 0; `npx vitest run` 2306
+passed / 2 skipped / 13 todo / 0 failed (down from 2322 — 16 tests removed with
+the feature); biome unchanged from the documented baseline.

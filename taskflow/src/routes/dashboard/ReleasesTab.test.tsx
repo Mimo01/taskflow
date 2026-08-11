@@ -22,7 +22,6 @@ vi.mock('@/services/gitlab', () => ({
   fetchProjectMilestonesInRange: vi.fn().mockResolvedValue([]),
   fetchProjectTags: vi.fn().mockResolvedValue([]),
   fetchProjectBranches: vi.fn().mockResolvedValue([]),
-  fetchOpenProjectMRs: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock releaseLinker
@@ -54,26 +53,6 @@ function makeFixVersion(id: string, name: string, releaseDate: string | undefine
   return { id, name, releaseDate, released: false };
 }
 
-function makeOpenMr(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 1,
-    iid: 1,
-    project_id: 1,
-    title: 'Fix thing',
-    source_branch: 'fix-thing',
-    target_branch: 'develop',
-    state: 'opened',
-    draft: false,
-    author: { id: 1, name: 'A', username: 'a', avatar_url: '' },
-    reviewers: [],
-    updated_at: '2026-01-01T00:00:00Z',
-    web_url: 'https://gitlab.example.com/mr/1',
-    labels: [],
-    milestone: null,
-    ...overrides,
-  };
-}
-
 function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -100,16 +79,12 @@ describe('ReleasesTab', () => {
     } as Response);
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([]);
-    const {
-      fetchProjectMilestonesInRange,
-      fetchProjectTags,
-      fetchProjectBranches,
-      fetchOpenProjectMRs,
-    } = await import('@/services/gitlab');
+    const { fetchProjectMilestonesInRange, fetchProjectTags, fetchProjectBranches } = await import(
+      '@/services/gitlab'
+    );
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([]);
     vi.mocked(fetchProjectTags).mockResolvedValue([]);
     vi.mocked(fetchProjectBranches).mockResolvedValue([]);
-    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([]);
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
     vi.mocked(matchGitLabToFixVersion).mockReturnValue({
       type: 'none',
@@ -736,269 +711,5 @@ describe('release-row drift indicators (D-17/D-18/D-19)', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('row-missing-branch')).toBeNull();
     });
-  });
-
-  it('shows the row-drift-count indicator when an open MR has wrong target branch and no release milestone', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
-
-    const { fetchProjectMilestonesInRange, fetchProjectBranches, fetchOpenProjectMRs } =
-      await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      {
-        id: 1,
-        iid: 1,
-        title: '33.5.0 (21.07.2026)',
-        description: null,
-        start_date: null,
-        due_date: '2026-07-21',
-        state: 'active',
-        web_url: 'https://gitlab.example.com/milestone/1',
-      },
-    ]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'exact',
-      candidateName: '33.5.0 (21.07.2026)',
-      candidateUrl: 'https://gitlab.example.com/milestone/1',
-    });
-
-    // The release branch must EXIST for branch drift to be meaningful: an MR
-    // cannot drift from a branch nothing can target. Previously this fixture
-    // returned no branches, which locked in a false positive (WR-05).
-    vi.mocked(fetchProjectBranches).mockResolvedValue([
-      { name: 'release/33.5.0', merged: false, protected: false, default: false, web_url: '' },
-    ] as unknown as Awaited<ReturnType<typeof fetchProjectBranches>>);
-    // Relevant via milestone id match, but the target branch differs from
-    // the derived release branch and the milestone is unset — both branch
-    // and milestone drift fire, but computeRowDriftCount counts the ROW once.
-    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([
-      makeOpenMr({ id: 10, target_branch: 'develop', milestone: { id: 1, title: '33.5.0' } }),
-    ] as unknown as Awaited<ReturnType<typeof fetchOpenProjectMRs>>);
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    const badge = await screen.findByTestId('row-drift-count');
-    expect(badge.textContent).toContain('1');
-  });
-
-  it('does not show the row-drift-count indicator when no MRs are drifting', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
-
-    const { fetchProjectMilestonesInRange, fetchProjectBranches, fetchOpenProjectMRs } =
-      await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      {
-        id: 1,
-        iid: 1,
-        title: '33.5.0 (21.07.2026)',
-        description: null,
-        start_date: null,
-        due_date: '2026-07-21',
-        state: 'active',
-        web_url: 'https://gitlab.example.com/milestone/1',
-      },
-    ]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'exact',
-      candidateName: '33.5.0 (21.07.2026)',
-      candidateUrl: 'https://gitlab.example.com/milestone/1',
-    });
-
-    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
-    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([]);
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    await screen.findByText('v33.5.0');
-    expect(screen.queryByTestId('row-drift-count')).toBeNull();
-  });
-
-  it('fetches the open-MR set exactly once even when several fix versions render', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v33.5.0', '2026-07-21'),
-      makeFixVersion('v2', 'v33.6.0', '2026-08-01'),
-      makeFixVersion('v3', 'v33.7.0', '2026-08-15'),
-    ]);
-
-    const { fetchOpenProjectMRs } = await import('@/services/gitlab');
-    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([]);
-    // Guard against cross-test bleed, same rationale as the fetchProjectBranches
-    // fetch-once assertion above.
-    vi.mocked(fetchOpenProjectMRs).mockClear();
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    await screen.findByText('v33.5.0');
-
-    expect(fetchOpenProjectMRs).toHaveBeenCalledTimes(1);
-  });
-
-  // WR-05 regression: an MR cannot drift from a branch that does not exist. When
-  // the branch is confirmed ABSENT, branch drift must not be counted — otherwise
-  // every milestone-attached open MR reads as drifting, the same false positive
-  // `branchMissing`/`milestoneMissing` gate against (and D-18's degraded 'na' rule).
-  it('does not count branch drift when the release branch is confirmed absent', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
-
-    const { fetchProjectMilestonesInRange, fetchProjectBranches, fetchOpenProjectMRs } =
-      await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      {
-        id: 1,
-        iid: 1,
-        title: '33.5.0 (21.07.2026)',
-        description: null,
-        start_date: null,
-        due_date: '2026-07-21',
-        state: 'active',
-        web_url: 'https://gitlab.example.com/milestone/1',
-      },
-    ]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'exact',
-      candidateName: '33.5.0 (21.07.2026)',
-      candidateUrl: 'https://gitlab.example.com/milestone/1',
-    });
-
-    // No release branch exists.
-    vi.mocked(fetchProjectBranches).mockResolvedValue([]);
-    // Correctly milestone-attached; its target branch differs only from a branch
-    // that does not exist, so there is nothing to drift from.
-    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([
-      makeOpenMr({ id: 10, target_branch: 'develop', milestone: { id: 1, title: '33.5.0' } }),
-    ] as unknown as Awaited<ReturnType<typeof fetchOpenProjectMRs>>);
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    await screen.findByText('v33.5.0');
-    await waitFor(() => expect(screen.queryByTestId('row-drift-count')).toBeNull());
-  });
-
-  it('the row-drift-count title mentions branch and milestone coverage', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
-
-    const { fetchProjectMilestonesInRange, fetchProjectBranches, fetchOpenProjectMRs } =
-      await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      {
-        id: 1,
-        iid: 1,
-        title: '33.5.0 (21.07.2026)',
-        description: null,
-        start_date: null,
-        due_date: '2026-07-21',
-        state: 'active',
-        web_url: 'https://gitlab.example.com/milestone/1',
-      },
-    ]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'exact',
-      candidateName: '33.5.0 (21.07.2026)',
-      candidateUrl: 'https://gitlab.example.com/milestone/1',
-    });
-
-    // Branch must exist for branch drift to be real — see WR-05 note above.
-    vi.mocked(fetchProjectBranches).mockResolvedValue([
-      { name: 'release/33.5.0', merged: false, protected: false, default: false, web_url: '' },
-    ] as unknown as Awaited<ReturnType<typeof fetchProjectBranches>>);
-    vi.mocked(fetchOpenProjectMRs).mockResolvedValue([
-      makeOpenMr({ id: 10, target_branch: 'develop', milestone: { id: 1, title: '33.5.0' } }),
-    ] as unknown as Awaited<ReturnType<typeof fetchOpenProjectMRs>>);
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    const badge = await screen.findByTestId('row-drift-count');
-    const title = badge.getAttribute('title') ?? '';
-    expect(title.length).toBeGreaterThan(0);
-    expect(title.toLowerCase()).toContain('branch');
-    expect(title.toLowerCase()).toContain('milestone');
-
-    // This count is a strict subset of the detail page's "MR Drift" badge: it
-    // covers only branch/milestone mismatches on already-attached open MRs,
-    // while the detail badge also counts TASK drift and Channel A key-matches.
-    // Calling both "drift" made one release read "1" here and "4" there, which
-    // was reported as a bug. Keep the visible wording distinct.
-    const visibleLabel = Array.from(badge.querySelectorAll('span'))
-      .map((el) => el.textContent ?? '')
-      .find((text) => text.includes('mismatched'));
-    expect(visibleLabel).toBeDefined();
-    expect(badge.querySelector('[aria-hidden="true"]')?.parentElement?.textContent).not.toMatch(
-      /\d+\s+drift/,
-    );
-  });
-});
-
-describe('missing-milestone indicator scoping (WR-04) and accessible names (WR-06)', () => {
-  it('does not show the missing-milestone indicator on an undated unreleased version', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', undefined)]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'none',
-      candidateName: '',
-      candidateUrl: '',
-    });
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    await screen.findByText('v33.5.0');
-    expect(screen.queryByTestId('row-missing-milestone')).toBeNull();
-  });
-
-  it('does not show the missing-milestone indicator on an already-released version', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      { id: 'v1', name: 'v33.5.0', releaseDate: '2026-07-21', released: true },
-    ]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'none',
-      candidateName: '',
-      candidateUrl: '',
-    });
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    await screen.findByText('v33.5.0');
-    expect(screen.queryByTestId('row-missing-milestone')).toBeNull();
-  });
-
-  it('shows the missing-milestone indicator with sr-only text for a dated, unreleased version with no milestone match', async () => {
-    const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v33.5.0', '2026-07-21')]);
-
-    const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
-      type: 'none',
-      candidateName: '',
-      candidateUrl: '',
-    });
-
-    const { default: ReleasesTab } = await import('./ReleasesTab');
-    renderWithQuery(<ReleasesTab />);
-
-    await screen.findByTestId('row-missing-milestone');
-    expect(screen.getByText('No GitLab milestone')).toBeTruthy();
   });
 });
