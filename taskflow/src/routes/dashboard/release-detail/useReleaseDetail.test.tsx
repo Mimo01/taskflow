@@ -83,6 +83,10 @@ async function setupMocks(
     gitlabBaseUrl?: string | null;
     fetchBranchImpl?: () => Promise<{ exists: boolean }>;
     released?: boolean;
+    fetchProjectImpl?: () => Promise<{ default_branch: string }>;
+    milestoneTitle?: string;
+    fetchSourceBranchMRsImpl?: () => Promise<unknown[]>;
+    compareRefsImpl?: () => Promise<{ diffCount: number; commitCount: number; timedOut: boolean }>;
   } = {},
 ) {
   const auth = await import('@/stores/auth.store');
@@ -113,22 +117,34 @@ async function setupMocks(
   vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([]);
 
   const gitlab = await import('@/services/gitlab');
-  vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([makeMilestone()]);
-  vi.mocked(gitlab.fetchProject).mockResolvedValue({
-    default_branch: 'develop',
-  } as Awaited<ReturnType<typeof gitlab.fetchProject>>);
+  vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([
+    makeMilestone(overrides.milestoneTitle !== undefined ? { title: overrides.milestoneTitle } : {}),
+  ]);
+  vi.mocked(gitlab.fetchProject).mockImplementation(
+    (overrides.fetchProjectImpl ??
+      (() =>
+        Promise.resolve({
+          default_branch: 'develop',
+        }))) as unknown as typeof gitlab.fetchProject,
+  );
   vi.mocked(gitlab.fetchBranch).mockImplementation(
     overrides.fetchBranchImpl ?? (() => Promise.resolve({ exists: false })),
   );
   vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([]);
-  vi.mocked(gitlab.fetchSourceBranchMRs).mockResolvedValue([]);
-  vi.mocked(gitlab.compareRefs).mockResolvedValue({
-    diffCount: 0,
-    commitCount: 0,
-    timedOut: false,
-  });
+  vi.mocked(gitlab.fetchSourceBranchMRs).mockImplementation(
+    (overrides.fetchSourceBranchMRsImpl ?? (() => Promise.resolve([]))) as typeof gitlab.fetchSourceBranchMRs,
+  );
+  vi.mocked(gitlab.compareRefs).mockImplementation(
+    (overrides.compareRefsImpl ??
+      (() =>
+        Promise.resolve({
+          diffCount: 0,
+          commitCount: 0,
+          timedOut: false,
+        }))) as typeof gitlab.compareRefs,
+  );
   vi.mocked(gitlab.searchProjectTags).mockResolvedValue([]);
   vi.mocked(gitlab.createMilestone).mockResolvedValue(makeMilestone());
   vi.mocked(gitlab.createBranch).mockResolvedValue({
@@ -506,14 +522,107 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
     await waitFor(() => expect(gitlab.searchProjectTags).toHaveBeenCalled());
   });
 
-  it('exposes mergeBackVerdict with a kind property', async () => {
-    await setupMocks({ released: true });
+  // CR-04: a failed gitlab-project fetch must terminate the verdict at
+  // couldnt-verify, not pin it at loading forever.
+  it('CR-04: a failed default-branch fetch resolves to couldnt-verify, not loading', async () => {
+    await setupMocks({
+      released: true,
+      fetchProjectImpl: () => Promise.reject(new Error('project fetch failed')),
+    });
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
       wrapper: makeWrapper(queryClient),
     });
 
-    await waitFor(() => expect(result.current.mergeBackVerdict).toHaveProperty('kind'));
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('couldnt-verify'));
+    expect(result.current.mergeBackVerdict.kind).not.toBe('loading');
+  });
+
+  // CR-03: an unparseable milestone title derives releaseBranchName === null,
+  // which permanently disables the tracking-MR query — the resolver must
+  // still terminate rather than reading that disabled state as in-flight.
+  it('CR-03: an unparseable milestone title resolves to couldnt-verify, not loading', async () => {
+    await setupMocks({
+      released: true,
+      milestoneTitle: 'Sprint planning (21.07.2026)',
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.matchedMilestone).not.toBeNull());
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('couldnt-verify'));
+    expect(result.current.mergeBackVerdict.kind).not.toBe('loading');
+  });
+
+  // CR-01 end to end: a tracking MR merged into a branch OTHER than the
+  // fetched default branch must never be read as merge-back evidence.
+  it('CR-01: a tracking MR merged into a non-default branch resolves to likely-not-merged, not merged', async () => {
+    await setupMocks({
+      released: true,
+      fetchProjectImpl: () => Promise.resolve({ default_branch: 'develop' }),
+      fetchSourceBranchMRsImpl: () =>
+        Promise.resolve([
+          {
+            iid: 5,
+            state: 'merged',
+            target_branch: 'master',
+            web_url: 'https://gitlab.example.com/mr/5',
+            merged_at: '2026-07-20T00:00:00.000Z',
+          },
+        ]),
+      compareRefsImpl: () => Promise.resolve({ diffCount: 3, commitCount: 12, timedOut: false }),
+    });
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.searchProjectTags).mockResolvedValue([
+      { name: 'v33.5.0' } as Awaited<ReturnType<typeof gitlab.searchProjectTags>>[number],
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('likely-not-merged'));
+    expect(result.current.mergeBackVerdict.kind).not.toBe('merged');
+  });
+
+  // Happy path preserved: the same MR targeting the actual default branch
+  // must still resolve to merged via the tracking-MR channel.
+  it('a tracking MR merged into the default branch resolves to merged via tracking-mr', async () => {
+    await setupMocks({
+      released: true,
+      fetchProjectImpl: () => Promise.resolve({ default_branch: 'develop' }),
+      fetchSourceBranchMRsImpl: () =>
+        Promise.resolve([
+          {
+            iid: 5,
+            state: 'merged',
+            target_branch: 'develop',
+            web_url: 'https://gitlab.example.com/mr/5',
+            merged_at: '2026-07-20T00:00:00.000Z',
+          },
+        ]),
+      compareRefsImpl: () => Promise.resolve({ diffCount: 3, commitCount: 12, timedOut: false }),
+    });
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.searchProjectTags).mockResolvedValue([
+      { name: 'v33.5.0' } as Awaited<ReturnType<typeof gitlab.searchProjectTags>>[number],
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('merged'));
+    const verdict = result.current.mergeBackVerdict;
+    expect(verdict.kind).toBe('merged');
+    if (verdict.kind === 'merged') {
+      expect(verdict.via).toBe('tracking-mr');
+    }
   });
 });
