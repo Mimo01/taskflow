@@ -34,8 +34,8 @@ import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
-import { computeRowDriftCount } from './release-detail/driftDetection';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
+import { computeRowDriftCount } from './release-detail/driftDetection';
 import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
 
 interface VersionIssueCounts {
@@ -452,6 +452,7 @@ export default function ReleasesTab() {
                 branchPresent,
                 branchName,
                 milestoneMissing,
+                driftCount,
               }) => (
                 <button
                   key={version.id}
@@ -622,6 +623,24 @@ export default function ReleasesTab() {
                           className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
                         />
                         <span className="sr-only">No release branch</span>
+                      </span>
+                    )}
+
+                    {/* D-15: aggregate drift count — the reserved Phase 89 slot.
+                      D-14: the tooltip must state the branch-and-milestone-only
+                      coverage, since the detail page's count can legitimately be
+                      higher (it also evaluates TASK drift). */}
+                    {driftCount > 0 && (
+                      <span
+                        title={`${driftCount} MRs need branch or milestone attention. Open the release for the full check, including task links.`}
+                        data-testid="row-drift-count"
+                        className="inline-flex items-center gap-1 text-xs tabular-nums text-orange-600 dark:text-orange-400"
+                      >
+                        <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
+                        <span className="sr-only">
+                          {driftCount} merge requests need branch or milestone attention
+                        </span>
+                        <span aria-hidden="true">{driftCount} drift</span>
                       </span>
                     )}
 
