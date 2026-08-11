@@ -211,7 +211,7 @@ Plans:
   2. Detection prefers the tracking MR's state (`merged`/`merged_at`) when one exists, and falls back to content comparison (`repository/compare`) when no such MR is found
   3. The verdict is presented as advisory ("Likely not merged into {defaultBranch}") — never as a hard blocking state. **The manual override is DESCOPED by 91-CONTEXT.md D-12** (user decision, given twice: "no override control at all", nothing persists), which descopes MERGE-03. Recorded as an intentional descope, same handling as DASH-06 (P84 UAT) and DRIFT-09 (P89 UAT) — its absence is not a gap.
 
-**Plans:** 3 plans
+**Plans:** 6 plans (3 original + 3 gap closure)
 Plans:
 
 **Wave 1** *(parallel — no shared files)*
@@ -222,6 +222,17 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 91-03-PLAN.md — two gated queries in `useReleaseDetail.ts`, the "Merged back" sidebar row (D-10 copy), the D-08 wording softening, and component/hook tests
+
+**Gap closure** *(from 91-VERIFICATION.md — 3 failed truths)*
+
+**Wave 1** *(parallel — no shared files)*
+
+- [ ] 91-04-PLAN.md — CR-02 fail-closed `compareRefs` payload validation + WR-06 page ceiling on `fetchSourceBranchMRs`, with `target_branch` fixture coverage
+- [ ] 91-05-PLAN.md — CR-01/WR-02 `target_branch === defaultBranch` filter + deterministic merged-MR pick, and CR-03/CR-04 terminal fallbacks in `resolveMergeBackVerdict`
+
+**Wave 2** *(blocked on 91-05)*
+
+- [ ] 91-06-PLAN.md — thread `defaultBranchCheckFailed`/`trackingMRsUnavailable` in `useReleaseDetail.ts`, replace the WR-03 tautology, re-anchor the WR-05 D-12 lock to a stable `data-testid`
 
 **UI hint**: yes
 **Probe**: RESOLVED — no probe task planned. 91-CONTEXT.md D-03 records the answer supplied directly by the user: the team's GitLab project uses **merge commits** (not squash, not rebase/fast-forward). Detection nevertheless stays **diff-based** (`diffs.length === 0`) rather than commit-based per D-04, so it cannot silently start false-negativing if the merge method is ever changed.
