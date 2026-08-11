@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: ready_to_plan
-last_updated: 2026-08-11T14:06:40.163Z
+status: planning
+last_updated: "2026-08-11T15:15:59.024Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 21
@@ -11,7 +11,6 @@ progress:
   total_plans: 26
   completed_plans: 26
   percent: 19
-stopped_at: Phase 90 complete (4/4) — ready to discuss Phase 91
 ---
 
 # Project State
@@ -127,9 +126,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-11T13:02:38.188Z
-Stopped at: Completed 90-04-PLAN.md — Phase 90 complete, ready for verification
-Resume file: None
+Last session: 2026-08-11T15:15:59.019Z
+Stopped at: Phase 91 context gathered
+Resume file: .planning/phases/91-post-release-merge-back-verification/91-CONTEXT.md
 
 ## Operator Next Steps
 
