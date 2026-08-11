@@ -876,6 +876,19 @@ describe('release-row drift indicators (D-17/D-18/D-19)', () => {
     expect(title.length).toBeGreaterThan(0);
     expect(title.toLowerCase()).toContain('branch');
     expect(title.toLowerCase()).toContain('milestone');
+
+    // This count is a strict subset of the detail page's "MR Drift" badge: it
+    // covers only branch/milestone mismatches on already-attached open MRs,
+    // while the detail badge also counts TASK drift and Channel A key-matches.
+    // Calling both "drift" made one release read "1" here and "4" there, which
+    // was reported as a bug. Keep the visible wording distinct.
+    const visibleLabel = Array.from(badge.querySelectorAll('span'))
+      .map((el) => el.textContent ?? '')
+      .find((text) => text.includes('mismatched'));
+    expect(visibleLabel).toBeDefined();
+    expect(badge.querySelector('[aria-hidden="true"]')?.parentElement?.textContent).not.toMatch(
+      /\d+\s+drift/,
+    );
   });
 });
 
