@@ -211,7 +211,7 @@ Plans:
   2. Detection prefers the tracking MR's state (`merged`/`merged_at`) when one exists, and falls back to content comparison (`repository/compare`) when no such MR is found
   3. The verdict is presented as advisory ("Likely not merged into {defaultBranch}") — never as a hard blocking state. **The manual override is DESCOPED by 91-CONTEXT.md D-12** (user decision, given twice: "no override control at all", nothing persists), which descopes MERGE-03. Recorded as an intentional descope, same handling as DASH-06 (P84 UAT) and DRIFT-09 (P89 UAT) — its absence is not a gap.
 
-**Plans:** 8 plans (3 original + 3 gap closure round 1 + 2 gap closure round 2)
+**Plans:** 9 plans (3 original + 3 gap closure round 1 + 2 gap closure round 2 + 1 gap closure round 3)
 Plans:
 
 **Wave 1** *(parallel — no shared files)*
@@ -243,6 +243,12 @@ Plans:
 **Wave 2** *(blocked on 91-07)*
 
 - [x] 91-08-PLAN.md — thread the tag channel's `isError`/pending signals through `useReleaseDetail.ts`, add slow-resolving and rejecting `searchProjectTags` hook tests, and restore the WR-02 biome-clean surface
+
+**Gap closure round 3** *(from the re-run 91-VERIFICATION.md — truth 6: the "Release Branch" row asserts "No matching tag found" while the tag lookup is pending or failed)*
+
+**Wave 3** *(blocked on 91-08)*
+
+- [ ] 91-09-PLAN.md — `TagChannelHealth` discriminant on `BranchState`/`resolveBranchState`, tooltip suppression of the negative tag claim unless the channel resolved, and the `tagChannel` wiring in `useReleaseDetail.ts`
 
 **UI hint**: yes
 **Probe**: RESOLVED — no probe task planned. 91-CONTEXT.md D-03 records the answer supplied directly by the user: the team's GitLab project uses **merge commits** (not squash, not rebase/fast-forward). Detection nevertheless stays **diff-based** (`diffs.length === 0`) rather than commit-based per D-04, so it cannot silently start false-negativing if the merge method is ever changed.
