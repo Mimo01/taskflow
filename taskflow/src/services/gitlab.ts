@@ -422,6 +422,24 @@ export interface GitLabTag {
   release: { tag_name: string; description: string } | null;
 }
 
+/**
+ * Narrowed projection of GitLab's `GET /repository/compare` response
+ * (MERGE-02 content comparison), derived from three source fields:
+ * `diffs` → `diffCount`, `commits` → `commitCount`, `compare_timeout` →
+ * `timedOut`.
+ *
+ * `compare_same_ref` is deliberately NOT projected here — per
+ * 91-RESEARCH Pitfall 1, `compare_same_ref` only means the two refs
+ * resolve to the same commit SHA, which is false in the ordinary
+ * merge-commit case (D-03) even when the diff is empty, so reading it
+ * as "no difference" produces false negatives.
+ */
+export interface GitLabCompareResult {
+  diffCount: number;
+  commitCount: number;
+  timedOut: boolean;
+}
+
 export interface GitLabMR {
   id: number;
   iid: number;
@@ -448,6 +466,13 @@ export interface GitLabMR {
   web_url: string;
   labels: GitLabLabel[]; // label objects with colors
   milestone: { id: number; title: string } | null;
+  /**
+   * Present on the MR list endpoint in practice but NOT confirmed by the
+   * Phase 89 live probe, therefore optional (planner call P-03) — consumers
+   * must tolerate `undefined` and omit the date rather than rendering an
+   * empty or invented one.
+   */
+  merged_at?: string | null;
 }
 
 export interface GitLabLabel {
@@ -1789,6 +1814,128 @@ export async function fetchBranchTargetedMRs(
   }
 
   return allMRs;
+}
+
+/**
+ * Find every MR sourced from a release branch (MERGE-02 tracking-MR lookup),
+ * fully paginated with no page cap and no client-side filter.
+ *
+ * This is the recurring bug class in this repo — fetch one capped page then
+ * filter client-side — see project memory (fetch-once page-cap pitfall) and
+ * D-17/GGX-WARN-01. Do not add a page cap and do not fetch one page and slice.
+ *
+ * @param baseUrl      - GitLab base URL
+ * @param token        - Personal Access Token
+ * @param projectId    - GitLab numeric project ID
+ * @param sourceBranch - Branch name the MRs must be sourced from (e.g.
+ *                       `release/33.5.0`); percent-encoded so `/` in release
+ *                       branch names can't inject additional query params or
+ *                       path segments (T-91-01)
+ * @returns Array of MRs sourced from `sourceBranch` (all states)
+ */
+export async function fetchSourceBranchMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  sourceBranch: string,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allMRs: GitLabMR[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests?source_branch=${encodeURIComponent(sourceBranch)}&state=all&per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load Tracking MR',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch tracking MR', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch tracking MR: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabMR[];
+    allMRs.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  return allMRs;
+}
+
+/**
+ * Compare a release tag against the default branch (MERGE-02 content
+ * comparison), used as the fallback when the tracking-MR lookup finds
+ * nothing conclusive.
+ *
+ * Never reads `compare_same_ref` — per 91-RESEARCH Pitfall 1 it only means
+ * the two refs resolve to the same commit SHA, which is false in the
+ * ordinary merge-commit case (D-03) even when the diff is empty.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param from      - Ref to compare from (e.g. `develop`); percent-encoded
+ * @param to        - Ref to compare to (e.g. `v33.7.0`); percent-encoded
+ * @returns `{ diffCount, commitCount, timedOut }`
+ */
+export async function compareRefs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  from: string,
+  to: string,
+): Promise<GitLabCompareResult> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/repository/compare?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      },
+      'Compare Release Tag',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to compare refs', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to compare refs: status ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    diffs: unknown[];
+    commits: unknown[];
+    compare_timeout: boolean;
+  };
+
+  return {
+    diffCount: Array.isArray(data.diffs) ? data.diffs.length : 0,
+    commitCount: Array.isArray(data.commits) ? data.commits.length : 0,
+    timedOut: data.compare_timeout === true,
+  };
 }
 
 /**
