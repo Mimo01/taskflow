@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import {
   createBranch,
   createMilestone,
+  fetchAllProjectMRs,
   fetchBranch,
+  fetchBranchTargetedMRs,
   fetchMilestoneMRs,
   fetchProject,
   fetchProjectMilestones,
@@ -15,6 +17,7 @@ import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { buildDriftRows, countFlaggedMRs, selectChannelA } from './driftDetection';
 import {
   deriveReleaseBranchName,
   extractVersionFromMilestoneTitle,
@@ -280,8 +283,23 @@ export function useReleaseDetail(versionId: string | undefined) {
     enabled: !!jiraBaseUrl && !!versionId,
   });
 
-  // Fetch MRs for matched GitLab milestone
-  const { data: milestoneMRs } = useQuery({
+  // Channel A (DRIFT-01): the project's full MR universe, project-scoped only —
+  // NO versionId in the key. The fetch itself doesn't depend on which release is
+  // open, only the filter applied afterwards (below, via `selectChannelA`) does
+  // (D-16, RESEARCH Pitfall 4). Deliberately a NEW key, never
+  // `['gitlab-recent-project-mrs', activeGitlabProject]` — reusing the deleted
+  // heuristic's key could serve a stale page-capped cache entry (Pitfall 5).
+  const { data: allProjectMRs, isLoading: isLoadingChannelA } = useQuery({
+    queryKey: ['gitlab-all-project-mrs', activeGitlabProject],
+    queryFn: () =>
+      fetchAllProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
+    staleTime: 5 * 60_000,
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
+  });
+
+  // Channel B (DRIFT-02): MRs for the matched GitLab milestone. Unchanged —
+  // this key is a cross-component cache contract with ReleasesTab/UpcomingReleasesTimeline.
+  const { data: milestoneMRs, isLoading: isLoadingChannelB } = useQuery({
     queryKey: ['gitlab-milestone-mrs', activeGitlabProject, gitlabMatch.candidateName],
     queryFn: () =>
       fetchMilestoneMRs(
@@ -293,6 +311,24 @@ export function useReleaseDetail(versionId: string | undefined) {
     staleTime: 5 * 60_000,
     enabled:
       !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && gitlabMatch.type !== 'none',
+  });
+
+  // Channel C (DRIFT-03): MRs targeting the derived release branch. Version-scoped
+  // through `releaseBranchName`, matching the `gitlab-branch` query's key shape
+  // (line above). D-18 degraded state: no matched milestone means no derivable
+  // branch name means nothing to query — `releaseBranchName !== null` guards it.
+  const { data: branchTargetedMRs, isLoading: isLoadingChannelC } = useQuery({
+    queryKey: ['gitlab-branch-mrs', activeGitlabProject, releaseBranchName],
+    queryFn: () =>
+      fetchBranchTargetedMRs(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        releaseBranchName ?? '',
+      ),
+    staleTime: 5 * 60_000,
+    enabled:
+      !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && releaseBranchName !== null,
   });
 
   // Match MRs to Jira issues
@@ -326,6 +362,23 @@ export function useReleaseDetail(versionId: string | undefined) {
     missingRows,
   );
 
+  // Three-channel drift detection (DRIFT-01/02/03/04): union the three channels,
+  // filter Channel A's project-wide universe down to MRs linked to a fix-version
+  // issue key, and build the deterministically-sorted drift row list.
+  const fixVersionIssueKeys = new Set(releaseIssues.map((i) => i.key));
+  const channelA = selectChannelA(allProjectMRs ?? [], fixVersionIssueKeys);
+  const driftRows = buildDriftRows({
+    channelA,
+    channelB: milestoneMRs ?? [],
+    channelC: branchTargetedMRs ?? [],
+    releaseBranchName,
+    matchedMilestoneId: matchedMilestone?.id ?? null,
+    fixVersionIssueKeys,
+  });
+  const driftFlaggedCount = countFlaggedMRs(driftRows);
+  const isLoadingDrift = isLoadingChannelA || isLoadingChannelB || isLoadingChannelC;
+  const hasMatchedMilestone = matchedMilestone !== null;
+
   // Derived values from releaseSummaries.ts
   const labelSummary = computeLabelSummary(releaseMrs);
   const labelCoverage = computeLabelCoverage(releaseMrs);
@@ -358,6 +411,10 @@ export function useReleaseDetail(versionId: string | undefined) {
     unmatchedMRs,
     missingRows,
     wrongMilestoneByKey,
+    driftRows,
+    driftFlaggedCount,
+    isLoadingDrift,
+    hasMatchedMilestone,
     labelSummary,
     labelCoverage,
     mrStateCounts,
