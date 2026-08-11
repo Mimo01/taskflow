@@ -1872,38 +1872,6 @@ export async function fetchAllProjectMRs(
 }
 
 /**
- * Fetch every OPEN merge request in a project (D-14 Releases-list fetch).
- *
- * Fully paginated with no page cap — see D-17. Do not replace with a single
- * capped page; that is the GGX-WARN-01 bug class this phase deletes.
- *
- * Label-color enrichment is intentionally skipped — this consumer renders only
- * `milestone` / `target_branch` / `iid` / `state`, never labels, so the extra
- * labels call is avoided.
- *
- * @param baseUrl   - GitLab base URL
- * @param token     - Personal Access Token
- * @param projectId - GitLab numeric project ID
- * @returns Array of every open MR in the project
- */
-export async function fetchOpenProjectMRs(
-  baseUrl: string,
-  token: string,
-  projectId: number,
-): Promise<GitLabMR[]> {
-  const base = baseUrl.replace(/\/$/, '');
-
-  return fetchAllMRPages(
-    (page) =>
-      `${base}/api/v4/projects/${projectId}/merge_requests?state=opened&per_page=${MR_PAGE_SIZE}&page=${page}`,
-    baseUrl,
-    token,
-    'Load Open Project MRs',
-    'open project MRs',
-  );
-}
-
-/**
  * Search GitLab merge requests by text query.
  *
  * @param baseUrl - GitLab base URL

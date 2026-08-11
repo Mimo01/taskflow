@@ -6,6 +6,16 @@ score: 9/9 must-haves verified
 overrides_applied: 0
 ---
 
+> **POST-VERIFICATION AMENDMENT — 2026-08-11**
+> DRIFT-09 (aggregate drift count on the Releases list row) was **descoped by the
+> user at UAT** after this report was written: drift belongs on the release detail
+> page only. Plan 89-04's feature and its now-dead helpers (`computeRowDriftCount`,
+> `fetchOpenProjectMRs`) were removed. This report's DRIFT-09 finding is therefore
+> superseded — treat it as descoped, not as a regression or an unmet requirement.
+> The other 8 DRIFT requirements and this report's verdict are unaffected; the
+> release detail surface was not modified. See `89-04-SUMMARY.md`.
+
+
 # Phase 89: Three-Channel Drift Detection Verification Report
 
 **Phase Goal:** Users can see a single, reconciled view of every MR relevant to a release — discovered via Jira-key linkage, GitLab milestone, and release-branch targeting — with disagreements between channels flagged as drift, before any corrective write action is introduced.

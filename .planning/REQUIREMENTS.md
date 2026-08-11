@@ -36,7 +36,7 @@
 - [x] **DRIFT-06**: An MR is flagged when the release milestone is not assigned to it
 - [x] **DRIFT-07**: An MR is flagged when its Jira task is not in the fix version
 - [x] **DRIFT-08**: Merged, closed, and draft MRs are classified so they do not pollute drift counts
-- [x] **DRIFT-09**: The release row shows an aggregate drift count
+- [~] **DRIFT-09**: ~~The release row shows an aggregate drift count~~ — **DESCOPED 2026-08-11** by user at UAT: drift information is wanted on the release detail page only, not the Releases list. Built in Phase 89 (plan 89-04), then removed along with its now-dead `computeRowDriftCount` and `fetchOpenProjectMRs` helpers. Not a gap.
 
 ### Per-MR Corrective Actions
 
@@ -101,7 +101,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DRIFT-06 | Phase 89 | Mapped |
 | DRIFT-07 | Phase 89 | Mapped |
 | DRIFT-08 | Phase 89 | Mapped |
-| DRIFT-09 | Phase 89 | Mapped |
+| DRIFT-09 | Phase 89 | Descoped (user, UAT 2026-08-11) |
 | MRFIX-01 | Phase 90 | Mapped |
 | MRFIX-02 | Phase 90 | Mapped |
 | MRFIX-03 | Phase 90 | Mapped |

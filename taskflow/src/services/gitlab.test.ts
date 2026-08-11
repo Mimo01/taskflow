@@ -13,7 +13,6 @@ import {
   fetchMRApprovals,
   fetchMRCommits,
   fetchMRDiscussions,
-  fetchOpenProjectMRs,
   fetchParticipatedMRs,
   fetchProject,
   fetchProjectBranches,
@@ -788,98 +787,6 @@ describe('gitlab service', () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
 
       await expect(fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow('Cannot reach');
-    });
-  });
-
-  describe('fetchOpenProjectMRs', () => {
-    const BASE = 'https://gitlab.example.com';
-    const TOKEN = 'glpat-test';
-    const PROJECT_ID = 42;
-
-    const makeMR = (iid: number) => ({
-      id: iid * 100,
-      iid,
-      project_id: PROJECT_ID,
-      title: `PROJ-${iid} something`,
-      source_branch: `feature/PROJ-${iid}`,
-      target_branch: 'develop',
-      draft: false,
-      state: 'opened' as const,
-      author: { id: 1, name: 'A', username: 'a', avatar_url: '' },
-      reviewers: [],
-      updated_at: '2026-06-01T00:00:00.000Z',
-      web_url: `${BASE}/mr/${iid}`,
-      labels: [],
-      milestone: null,
-    });
-
-    function mockPaginatedMRs(pages: Array<ReturnType<typeof makeMR>[]>) {
-      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
-        const pageMatch = typeof url === 'string' ? url.match(/[?&]page=(\d+)/) : null;
-        const pageNum = pageMatch ? Number(pageMatch[1]) : 1;
-        const data = pages[pageNum - 1] ?? [];
-        return { ok: true, status: 200, json: async () => data } as Response;
-      });
-    }
-
-    it('accumulates every page across a multi-page fixture, one request per page, never a /labels request', async () => {
-      const page1 = Array.from({ length: 100 }, (_, i) => makeMR(i + 1));
-      const page2 = Array.from({ length: 7 }, (_, i) => makeMR(i + 101));
-      mockPaginatedMRs([page1, page2]);
-
-      const result = await fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID);
-
-      expect(result).toHaveLength(107);
-      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(2);
-      for (const call of vi.mocked(mockFetch).mock.calls) {
-        expect(call[0] as string).not.toContain('/labels');
-      }
-    });
-
-    it('request URL contains state=opened and no filter param', async () => {
-      mockPaginatedMRs([[]]);
-
-      await fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID);
-
-      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
-      expect(calledUrl).toContain(`/projects/${PROJECT_ID}/merge_requests`);
-      expect(calledUrl).toMatch(/state=opened/);
-      expect(calledUrl).not.toMatch(/target_branch=/);
-      expect(calledUrl).not.toMatch(/milestone=/);
-    });
-
-    it('rejects with ApiError on 401 and 403', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: false,
-        status: 401,
-        json: async () => ({}),
-      } as Response);
-      await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow();
-
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: false,
-        status: 403,
-        json: async () => ({}),
-      } as Response);
-      await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow();
-    });
-
-    it('rejects with generic Error "Failed to fetch..." on other non-ok statuses', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-      } as Response);
-
-      await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(
-        /^Failed to fetch/,
-      );
-    });
-
-    it('rejects with "Cannot reach" when the underlying fetch throws', async () => {
-      vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
-
-      await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow('Cannot reach');
     });
   });
 

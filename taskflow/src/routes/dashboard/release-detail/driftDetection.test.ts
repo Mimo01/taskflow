@@ -5,7 +5,6 @@ import {
   buildDriftRows,
   buildIssueMrIndex,
   classifyMrState,
-  computeRowDriftCount,
   countFlaggedMRs,
   evaluateBranchDrift,
   evaluateMilestoneDrift,
@@ -346,53 +345,6 @@ describe('buildDriftRows', () => {
     const iidSeq2 = order2.map((r) => r.mr.iid);
     expect(iidSeq1).toEqual([10, 8, 5, 3]);
     expect(iidSeq2).toEqual(iidSeq1);
-  });
-});
-
-describe('computeRowDriftCount', () => {
-  it('counts only MRs relevant to this row (branch or milestone match) with branch/milestone drift, never TASK', () => {
-    // Relevant via target branch match, but drifted on milestone (null vs 7).
-    const relevantByBranch = makeMR({
-      id: 1,
-      state: 'opened',
-      target_branch: 'release/33.5.0',
-      milestone: null,
-    });
-    // Relevant via milestone match (id 7), but drifted on target branch.
-    const relevantByMilestone = makeMR({
-      id: 2,
-      state: 'opened',
-      target_branch: 'unrelated',
-      milestone: { id: 7, title: 'v7' },
-    });
-    // Not relevant by either branch or milestone — excluded regardless of drift.
-    const irrelevant = makeMR({
-      id: 3,
-      state: 'opened',
-      target_branch: 'unrelated-branch',
-      milestone: null,
-    });
-    const count = computeRowDriftCount(
-      [relevantByBranch, relevantByMilestone, irrelevant],
-      'release/33.5.0',
-      7,
-    );
-    expect(count).toBe(2);
-  });
-
-  it('returns 0 when releaseBranchName and matchedMilestoneId are both null', () => {
-    expect(computeRowDriftCount([makeMR({ id: 1 })], null, null)).toBe(0);
-  });
-
-  it('ignores MRs whose state is not opened', () => {
-    const mergedMr = makeMR({
-      id: 1,
-      state: 'merged',
-      target_branch: 'release/33.5.0',
-      milestone: null,
-    });
-    const count = computeRowDriftCount([mergedMr], 'release/33.5.0', null);
-    expect(count).toBe(0);
   });
 });
 
