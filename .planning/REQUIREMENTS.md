@@ -47,8 +47,8 @@
 
 ### Merge-Back Verification
 
-- [ ] **MERGE-01**: Once the Jira fix version is marked released, user sees whether `release/[tag]` has been merged back into the project default branch
-- [ ] **MERGE-02**: Detection prefers the tracking MR's state and falls back to content comparison when no such MR exists
+- [x] **MERGE-01**: Once the Jira fix version is marked released, user sees whether `release/[tag]` has been merged back into the project default branch
+- [x] **MERGE-02**: Detection prefers the tracking MR's state and falls back to content comparison when no such MR exists
 - [ ] **MERGE-03**: The verdict is presented as advisory with a manual override
 
 ## Future Requirements
