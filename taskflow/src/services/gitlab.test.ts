@@ -578,7 +578,10 @@ describe('gitlab service', () => {
     const TOKEN = 'glpat-test';
     const PROJECT_ID = 42;
 
-    const makeMR = (iid: number) => ({
+    const makeMR = (
+      iid: number,
+      overrides: Partial<{ target_branch: string; state: 'opened' | 'closed' | 'merged' | 'locked' }> = {},
+    ) => ({
       id: iid * 100,
       iid,
       project_id: PROJECT_ID,
@@ -593,6 +596,7 @@ describe('gitlab service', () => {
       web_url: `${BASE}/mr/${iid}`,
       labels: [],
       milestone: null,
+      ...overrides,
     });
 
     function mockPaginatedMRs(pages: Array<ReturnType<typeof makeMR>[]>) {
@@ -667,6 +671,31 @@ describe('gitlab service', () => {
       } catch (err) {
         expect((err as Error).message).not.toContain(TOKEN);
       }
+    });
+
+    it('WR-06: a server that always returns a full page stops after exactly 20 requests (page-ceiling regression)', async () => {
+      vi.mocked(mockFetch).mockImplementation(async () => {
+        const data = Array.from({ length: 100 }, (_, i) => makeMR(i + 1));
+        return { ok: true, status: 200, json: async () => data } as Response;
+      });
+
+      const result = await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+
+      expect(mockFetch).toHaveBeenCalledTimes(20);
+      expect(result).toHaveLength(2000);
+    });
+
+    it('CR-01 service side: preserves each MR\'s target_branch verbatim with no client-side filtering', async () => {
+      const page1 = [
+        makeMR(1, { target_branch: 'master' }),
+        makeMR(2, { target_branch: 'develop' }),
+      ];
+      mockPaginatedMRs([page1]);
+
+      const result = await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+
+      expect(result).toHaveLength(2);
+      expect(result.map((mr) => mr.target_branch).sort()).toEqual(['develop', 'master']);
     });
   });
 
