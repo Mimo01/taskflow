@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  compareRefs,
   createBranch,
   createMilestone,
   fetchAllProjectMRs,
@@ -9,6 +10,7 @@ import {
   fetchMilestoneMRs,
   fetchProject,
   fetchProjectMilestones,
+  fetchSourceBranchMRs,
   filterMilestonesToRange,
   searchProjectTags,
 } from '@/services/gitlab';
@@ -23,6 +25,8 @@ import {
   selectChannelA,
   unionMRs,
 } from './driftDetection';
+import type { MergeBackVerdict } from './mergeBackVerification';
+import { resolveMergeBackVerdict } from './mergeBackVerification';
 // WR-06: the three channel query keys are declared once, in mrChannelKeys.ts,
 // because useMrFixMutation patches and invalidates them by prefix — inline
 // literals here would let a rename silently disable every optimistic patch.
@@ -180,8 +184,15 @@ export function useReleaseDetail(versionId: string | undefined) {
   // the tag adds nothing while a branch still exists.
   const releasedVersion = version?.released === true;
   const matchedVersionNumber = extractVersionFromMilestoneTitle(matchedMilestone?.title);
-  const needsTagLookup =
-    releasedVersion && branchResult?.exists === false && !!matchedVersionNumber;
+  // D-01 (91-RESEARCH Pitfall 4): the tag is now needed whenever a version is
+  // released, independent of branch state, because D-01's content-comparison
+  // fallback (used by the merge-back verdict below) triggers whenever no
+  // merged tracking MR is found — determined independently of (and often
+  // before) the branch-existence check. A released version whose branch
+  // still exists therefore also fires this query; that redundant fetch is
+  // accepted because it is a single search-scoped call and
+  // `searchProjectTags` returns `[]` on failure rather than throwing.
+  const needsTagLookup = releasedVersion && !!matchedVersionNumber;
 
   const { data: releaseTags } = useQuery({
     queryKey: ['gitlab-release-tags', activeGitlabProject, matchedVersionNumber],
@@ -196,16 +207,80 @@ export function useReleaseDetail(versionId: string | undefined) {
     staleTime: 5 * 60_000,
   });
 
+  // Both the branch row (below) and the merge-back verdict (further below)
+  // read the same resolved tag — resolve `findReleaseTag` once here rather
+  // than calling it twice.
+  const mergeBackTagName = findReleaseTag(
+    (releaseTags ?? []).map((t) => t.name),
+    matchedVersionNumber,
+  );
+
   const branchState = resolveBranchState({
     hasMatchedMilestone: matchedMilestone !== null,
     milestoneTitle: matchedMilestone?.title ?? null,
     branchExists: branchResult?.exists,
     branchCheckFailed,
     versionReleased: releasedVersion,
-    releaseTagName: findReleaseTag(
-      (releaseTags ?? []).map((t) => t.name),
-      matchedVersionNumber,
-    ),
+    releaseTagName: mergeBackTagName,
+  });
+
+  // Merge-back verdict (MERGE-01/02) — tracking-MR lookup, gated on
+  // `releasedVersion` (D-05: an unreleased version must fire ZERO extra
+  // GitLab calls). The `?? ''`/`?? 0` fallbacks are only safe because
+  // `enabled` independently gates on
+  // `!!activeGitlabProject && !!gitlabToken && !!gitlabBaseUrl` (WR-10).
+  const { data: trackingMRs, isError: trackingMRsCheckFailed } = useQuery({
+    queryKey: ['gitlab-mr-source-branch', activeGitlabProject, releaseBranchName],
+    queryFn: () =>
+      fetchSourceBranchMRs(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        releaseBranchName ?? '',
+      ),
+    enabled:
+      !!gitlabBaseUrl &&
+      !!activeGitlabProject &&
+      !!gitlabToken &&
+      releasedVersion &&
+      releaseBranchName !== null,
+    staleTime: 5 * 60_000,
+  });
+
+  // Content-comparison fallback. Per 91-RESEARCH Pitfall 3, the `enabled`
+  // gate depends on the tag query's RESOLVED result (`mergeBackTagName !==
+  // null`), not merely on `needsTagLookup` — otherwise this query fires with
+  // an empty `to` ref or never fires at all.
+  const { data: compareResult, isError: compareCheckFailed } = useQuery({
+    queryKey: ['gitlab-compare', activeGitlabProject, defaultBranch, mergeBackTagName],
+    queryFn: () =>
+      compareRefs(
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? 0,
+        defaultBranch ?? '',
+        mergeBackTagName ?? '',
+      ),
+    enabled:
+      !!gitlabBaseUrl &&
+      !!activeGitlabProject &&
+      !!gitlabToken &&
+      releasedVersion &&
+      defaultBranch !== null &&
+      mergeBackTagName !== null,
+    staleTime: 5 * 60_000,
+  });
+
+  const mergeBackVerdict: MergeBackVerdict = resolveMergeBackVerdict({
+    releasedVersion,
+    hasMatchedMilestone: matchedMilestone !== null,
+    defaultBranch,
+    trackingMRs,
+    trackingMRsCheckFailed,
+    tagName: mergeBackTagName,
+    expectedTagName: matchedVersionNumber ? `v${matchedVersionNumber}` : null,
+    compareResult,
+    compareCheckFailed,
   });
 
   // CR-03: wrap `refetch` so callers (the sidebar's Retry button) need no arguments.
@@ -450,6 +525,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     gitlabMatch,
     matchedMilestone,
     branchState,
+    mergeBackVerdict,
     refetchBranchCheck,
     releaseBranchName,
     defaultBranch,
