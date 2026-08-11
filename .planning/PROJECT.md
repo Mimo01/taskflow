@@ -210,6 +210,10 @@ Carried forward: WR-01 in `gitlab.ts` — GitLab's object-keyed validation-error
 
 Phase 87 (Release Detail Decomposition) complete 2026-08-10. `ReleaseDetailPage.tsx` went 1518 → 322 lines, decomposed into 13 files under `routes/dashboard/release-detail/` (2 pure modules, 2 hooks, 9 components) mirroring the `issue-detail/` convention. Behavior-preserving: manual 11-step UAT approved, full suite 2083 passed / 0 failed, all 6 query keys byte-identical so cache sharing with the Releases tab is intact. FOUND-01 validated in Phase 87. Follow-up carried forward: `ReleasesTab.tsx` still writes the shared `jira-version-counts` cache key via its own divergent raw-fetch instead of the now-shared `fetchVersionIssueCounts` (87-REVIEW.md WR-01).
 
+**Phase 89 complete (2026-08-11)** — Release detail now reconciles every MR relevant to a release from three discovery channels (Jira-key linkage, GitLab milestone, release-branch targeting) into one `MrDriftSection`, with per-MR provenance and branch/milestone/task drift flags; `UnmatchedMRsSection` and the page-capped heuristic (`fetchRecentProjectMRs`, `buildWrongMilestoneMap`) are deleted. The Releases list carries an aggregate per-row count. Validated in Phase 89: DRIFT-01..DRIFT-09.
+
+Accepted trade-off: Channel A is bounded by an `updated_after` window derived from unreleased fix versions (measured 4189 MRs / 42 pages / ~15MB unbounded, ~7.8s → ~1.2s windowed; the GitLab instance is throughput-limited so parallelism alone did not help). Channels B and C remain unbounded, so milestone- or branch-attached MRs are still found at any age. See `89-VERIFICATION.md` for the full rationale.
+
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
@@ -382,4 +386,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Dashboard charts source from existing data only — no new API surface (v1.13 Phase 86) | Reuse warm caches (sprint data, Tempo worklogs, releases, commits); a redesign shouldn't add fetch cost | ✓ Good — dual-axis chart + cards built entirely on existing queries |
 
 ---
-*Last updated: 2026-08-10 — after Phase 88 (Release Branch & Milestone Creation) completed*
+*Last updated: 2026-08-11 — after Phase 89 (Three-Channel Drift Detection) completed*
