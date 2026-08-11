@@ -2173,6 +2173,26 @@ describe('gitlab service', () => {
       expect(flattenGitLabError({ error: 'insufficient_scope' })).toBeUndefined();
     });
 
+    // WR-01: a present-but-empty message must be undefined, not '', or every
+    // caller's `?? `status ${n}`` fallback is defeated and the user gets a
+    // message that stops at the colon.
+    it('returns undefined (not an empty string) for an empty array or empty object message', () => {
+      expect(flattenGitLabError({ message: [] })).toBeUndefined();
+      expect(flattenGitLabError({ message: {} })).toBeUndefined();
+      expect(flattenGitLabError({ message: '' })).toBeUndefined();
+    });
+
+    // WR-02: a field value that is neither an array nor a string used to hit
+    // String({}) -> '[object Object]'.
+    it('serialises a nested-object field value instead of stringifying it', () => {
+      expect(flattenGitLabError({ message: { target_branch: { base: ['x'] } } })).toBe(
+        'target_branch {"base":["x"]}',
+      );
+      expect(flattenGitLabError({ message: { target_branch: 'is invalid' } })).toBe(
+        'target_branch is invalid',
+      );
+    });
+
     it('returns undefined for null, undefined, a bare string, and a number', () => {
       expect(flattenGitLabError(null)).toBeUndefined();
       expect(flattenGitLabError(undefined)).toBeUndefined();
@@ -2186,6 +2206,9 @@ describe('gitlab service', () => {
         { message: ['a', 'b'] },
         { message: { target_branch: ["can't be blank"] } },
         { message: { target_branch: ['x'], milestone_id: ['y'] } },
+        // WR-02: nested object, the shape that actually produced [object Object].
+        { message: { target_branch: { base: ["can't be blank"] } } },
+        { message: { target_branch: { nested: { deeper: 1 } } } },
       ];
       for (const c of cases) {
         expect(flattenGitLabError(c)).not.toMatch(/\[object Object\]/);
