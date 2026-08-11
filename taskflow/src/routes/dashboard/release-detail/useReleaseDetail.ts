@@ -31,6 +31,7 @@ import { resolveMergeBackVerdict } from './mergeBackVerification';
 // because useMrFixMutation patches and invalidates them by prefix — inline
 // literals here would let a rename silently disable every optimistic patch.
 import { mrChannelKeys } from './mrChannelKeys';
+import type { TagChannelHealth } from './releaseBranch';
 import {
   deriveReleaseBranchName,
   extractVersionFromMilestoneTitle,
@@ -192,10 +193,10 @@ export function useReleaseDetail(versionId: string | undefined) {
   // still exists therefore also fires this query; that redundant fetch is
   // accepted because it is a single search-scoped call. `searchProjectTags`
   // now rejects on failure (91-07) so the tag channel surfaces `isError`
-  // like the other three channels; the branch row above is unaffected
-  // because it reads only the resolved `mergeBackTagName`, which stays
-  // `null` on failure exactly as it did when the service swallowed the
-  // error — a tag outage still does not escalate into a branch-row error.
+  // like the other three channels; the branch row now receives `tagChannel`
+  // so it can distinguish pending/failed from a resolved absence, and a tag
+  // outage still does not change the row's `kind` — only the tooltip's
+  // wording (91-VERIFICATION truth 6).
   const needsTagLookup = releasedVersion && !!matchedVersionNumber;
 
   const { data: releaseTags, isError: tagCheckFailed } = useQuery({
@@ -227,6 +228,19 @@ export function useReleaseDetail(versionId: string | undefined) {
     matchedVersionNumber,
   );
 
+  // 91-VERIFICATION truth 6 / 91-REVIEW CR-01: `tagLookupPending` and
+  // `tagCheckFailed` already existed in scope and were already threaded into
+  // the sibling `resolveMergeBackVerdict` call below, but not into this one,
+  // so a `null` `mergeBackTagName` was indistinguishable across three
+  // structurally different situations and the branch row asserted an
+  // unverified negative. Failed is tested before pending, matching
+  // `mergeBackVerification.ts` step 4.5's precedence.
+  const tagChannel: TagChannelHealth = tagCheckFailed
+    ? 'failed'
+    : tagLookupPending
+      ? 'pending'
+      : 'resolved';
+
   const branchState = resolveBranchState({
     hasMatchedMilestone: matchedMilestone !== null,
     milestoneTitle: matchedMilestone?.title ?? null,
@@ -234,6 +248,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     branchCheckFailed,
     versionReleased: releasedVersion,
     releaseTagName: mergeBackTagName,
+    tagChannel,
   });
 
   // Merge-back verdict (MERGE-01/02) — tracking-MR lookup, gated on
