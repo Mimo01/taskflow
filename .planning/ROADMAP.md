@@ -238,7 +238,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 91-07-PLAN.md — fail-closed `searchProjectTags` (stop swallowing errors to `[]`) + `tagLookupPending`/`tagCheckFailed` guard in `resolveMergeBackVerdict` and the WR-01 step-10 guard, with unit tests
+- [x] 91-07-PLAN.md — fail-closed `searchProjectTags` (stop swallowing errors to `[]`) + `tagLookupPending`/`tagCheckFailed` guard in `resolveMergeBackVerdict` and the WR-01 step-10 guard, with unit tests
 
 **Wave 2** *(blocked on 91-07)*
 
@@ -316,7 +316,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
 | 90. Per-MR Corrective Actions | 4/4 | Complete    | 2026-08-11 |
-| 91. Post-Release Merge-Back Verification | 6/6 | Complete   | 2026-08-11 |
+| 91. Post-Release Merge-Back Verification | 7/8 | In Progress|  |
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
