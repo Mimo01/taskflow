@@ -148,7 +148,10 @@ export function useReleaseDetail(versionId: string | undefined) {
   const releaseBranchName = deriveReleaseBranchName(matchedMilestone?.title);
 
   // Fetch the project's default branch (D-14 — never a hardcoded fallback branch name).
-  const { data: project } = useQuery({
+  const {
+    data: project,
+    isError: defaultBranchCheckFailed,
+  } = useQuery({
     queryKey: ['gitlab-project', activeGitlabProject],
     queryFn: () => fetchProject(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
     enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
@@ -271,12 +274,23 @@ export function useReleaseDetail(versionId: string | undefined) {
     staleTime: 5 * 60_000,
   });
 
+  // CR-03: the tracking-MR query's `enabled` gate above includes
+  // `releaseBranchName !== null`, so an unparseable milestone title (which
+  // makes `deriveReleaseBranchName` return `null`) leaves `trackingMRs`
+  // permanently `undefined` with `isError` permanently `false` — the query
+  // never runs and never will. That state is indistinguishable from
+  // in-flight without this signal, the same defect class `releaseBranch.ts`'s
+  // `unresolvable` kind already models for the branch row.
+  const trackingMRsUnavailable = releasedVersion && releaseBranchName === null;
+
   const mergeBackVerdict: MergeBackVerdict = resolveMergeBackVerdict({
     releasedVersion,
     hasMatchedMilestone: matchedMilestone !== null,
     defaultBranch,
+    defaultBranchCheckFailed,
     trackingMRs,
     trackingMRsCheckFailed,
+    trackingMRsUnavailable,
     tagName: mergeBackTagName,
     expectedTagName: matchedVersionNumber ? `v${matchedVersionNumber}` : null,
     compareResult,
