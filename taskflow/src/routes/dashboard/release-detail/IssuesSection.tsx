@@ -7,7 +7,6 @@ import { statusPillClass } from '@/lib/statusStyles';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
-import { UnmatchedMRsSection } from './UnmatchedMRsSection';
 
 interface IssuesSectionProps {
   issueCounts: { issuesFixed: number; issuesTotal: number } | undefined;
@@ -16,11 +15,9 @@ interface IssuesSectionProps {
   isLoadingIssues: boolean;
   matchedRows: Array<{ issue: JiraIssue; mr: GitLabMR | null }>;
   wrongMilestoneByKey: Map<string, GitLabMR>;
-  unmatchedMRs: GitLabMR[];
   onOpenIssue: (key: string) => void;
   onOpenIssueFull: (key: string) => void;
   onSeedBreadcrumb: () => void;
-  onNavigateToIssueFromMR: (key: string) => void;
 }
 
 export function IssuesSection({
@@ -30,11 +27,9 @@ export function IssuesSection({
   isLoadingIssues,
   matchedRows,
   wrongMilestoneByKey,
-  unmatchedMRs,
   onOpenIssue,
   onOpenIssueFull,
   onSeedBreadcrumb,
-  onNavigateToIssueFromMR,
 }: IssuesSectionProps) {
   return (
     <section>
@@ -220,11 +215,6 @@ export function IssuesSection({
           </tbody>
         </table>
       )}
-
-      <UnmatchedMRsSection
-        unmatchedMRs={unmatchedMRs}
-        onNavigateToIssueFromMR={onNavigateToIssueFromMR}
-      />
     </section>
   );
 }

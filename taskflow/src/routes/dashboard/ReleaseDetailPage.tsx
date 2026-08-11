@@ -21,6 +21,7 @@ import { DescriptionsSection } from './release-detail/DescriptionsSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { IssuesSection } from './release-detail/IssuesSection';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
+import { MrDriftSection } from './release-detail/MrDriftSection';
 import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { ReleaseBreadcrumbHeader, ReleaseTitleHeading } from './release-detail/ReleaseHeader';
@@ -70,8 +71,11 @@ export default function ReleaseDetailPage() {
     releaseIssues,
     releaseMrs,
     matchedRows,
-    unmatchedMRs,
     wrongMilestoneByKey,
+    driftRows,
+    driftFlaggedCount,
+    isLoadingDrift,
+    hasMatchedMilestone,
     labelSummary,
     labelCoverage,
     mrStateCounts,
@@ -238,10 +242,17 @@ export default function ReleaseDetailPage() {
                 isLoadingIssues={isLoadingIssues}
                 matchedRows={matchedRows}
                 wrongMilestoneByKey={wrongMilestoneByKey}
-                unmatchedMRs={unmatchedMRs}
                 onOpenIssue={resolvedOnOpenIssue}
                 onOpenIssueFull={openIssueFull}
                 onSeedBreadcrumb={seedReleaseBreadcrumb}
+              />
+
+              {/* MR-first drift section (D-01): sibling below the Issues table */}
+              <MrDriftSection
+                rows={driftRows}
+                flaggedCount={driftFlaggedCount}
+                hasMatchedMilestone={hasMatchedMilestone}
+                isLoading={isLoadingDrift}
                 onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
               />
 

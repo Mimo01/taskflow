@@ -114,7 +114,7 @@ export function resolveGitLabMatch(
 export function matchIssuesToMRs(
   releaseIssues: JiraIssue[],
   releaseMrs: GitLabMR[],
-): { matchedRows: Array<{ issue: JiraIssue; mr: GitLabMR | null }>; unmatchedMRs: GitLabMR[] } {
+): { matchedRows: Array<{ issue: JiraIssue; mr: GitLabMR | null }>; unmatched: GitLabMR[] } {
   const releaseIssueKeySet = new Set(releaseIssues.map((i) => i.key));
   const releaseMrByIssue = new Map<string, GitLabMR>();
   const releaseUnmatched: GitLabMR[] = [];
@@ -130,8 +130,8 @@ export function matchIssuesToMRs(
     issue,
     mr: releaseMrByIssue.get(issue.key) ?? null,
   }));
-  const unmatchedMRs = releaseUnmatched;
-  return { matchedRows, unmatchedMRs };
+  const unmatched = releaseUnmatched;
+  return { matchedRows, unmatched };
 }
 
 /**
