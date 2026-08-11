@@ -193,11 +193,18 @@ export function useReleaseDetail(versionId: string | undefined) {
   // merged tracking MR is found — determined independently of (and often
   // before) the branch-existence check. A released version whose branch
   // still exists therefore also fires this query; that redundant fetch is
-  // accepted because it is a single search-scoped call and
-  // `searchProjectTags` returns `[]` on failure rather than throwing.
+  // accepted because it is a single search-scoped call. `searchProjectTags`
+  // now rejects on failure (91-07) so the tag channel surfaces `isError`
+  // like the other three channels; the branch row above is unaffected
+  // because it reads only the resolved `mergeBackTagName`, which stays
+  // `null` on failure exactly as it did when the service swallowed the
+  // error — a tag outage still does not escalate into a branch-row error.
   const needsTagLookup = releasedVersion && !!matchedVersionNumber;
 
-  const { data: releaseTags } = useQuery({
+  const {
+    data: releaseTags,
+    isError: tagCheckFailed,
+  } = useQuery({
     queryKey: ['gitlab-release-tags', activeGitlabProject, matchedVersionNumber],
     queryFn: () =>
       searchProjectTags(
@@ -209,6 +216,14 @@ export function useReleaseDetail(versionId: string | undefined) {
     enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && needsTagLookup,
     staleTime: 5 * 60_000,
   });
+
+  // 91-VERIFICATION truth 5: derived from `needsTagLookup` rather than React
+  // Query's `isPending`/`isLoading`, both of which are also true for a
+  // DISABLED query — that would pin the row at Loading forever for the case
+  // where `matchedVersionNumber` is null and `needsTagLookup` is false (the
+  // exact CR-03 defect class this phase already fixed twice). A tag query
+  // that will never run is therefore explicitly NOT pending.
+  const tagLookupPending = needsTagLookup && releaseTags === undefined && !tagCheckFailed;
 
   // Both the branch row (below) and the merge-back verdict (further below)
   // read the same resolved tag — resolve `findReleaseTag` once here rather
@@ -292,6 +307,8 @@ export function useReleaseDetail(versionId: string | undefined) {
     trackingMRsCheckFailed,
     trackingMRsUnavailable,
     tagName: mergeBackTagName,
+    tagLookupPending,
+    tagCheckFailed,
     expectedTagName: matchedVersionNumber ? `v${matchedVersionNumber}` : null,
     compareResult,
     compareCheckFailed,
