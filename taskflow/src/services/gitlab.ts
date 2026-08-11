@@ -1653,6 +1653,106 @@ export async function fetchBranchTargetedMRs(
 }
 
 /**
+ * Page size and parallel-fetch width shared by the project-wide MR fetchers.
+ *
+ * Project-wide fetches (Channel A, and the Releases-list open-MR fetch) are
+ * unbounded — they grow with project history forever. Paging them one request
+ * at a time makes the release detail page wait on N serial round-trips. GitLab
+ * returns `x-total-pages` on page 1, so pages 2..N can be fetched concurrently.
+ * The cap keeps us from opening an unbounded number of sockets against the
+ * GitLab instance on a large project.
+ */
+const MR_PAGE_SIZE = 100;
+const MR_PAGE_CONCURRENCY = 5;
+
+/**
+ * Fetch one page of merge requests, applying the shared error contract.
+ *
+ * Callers own pagination; this only normalises transport and status errors so
+ * every project-wide fetcher rejects identically regardless of which page failed.
+ */
+async function fetchMRPage(
+  url: string,
+  baseUrl: string,
+  token: string,
+  context: string,
+  errorLabel: string,
+): Promise<{ data: GitLabMR[]; response: Response }> {
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      },
+      context,
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to fetch ${errorLabel}`, response.status, 'gitlab');
+    }
+    throw new Error(`Failed to fetch ${errorLabel}: status ${response.status}`);
+  }
+
+  return { data: (await response.json()) as GitLabMR[], response };
+}
+
+/**
+ * Fully paginate a project-wide MR endpoint with no page cap (D-17).
+ *
+ * Fetches page 1, then reads `x-total-pages` to fetch the remainder in
+ * concurrency-capped batches. When that header is absent (older GitLab, or a
+ * test double that does not model headers) this falls back to the original
+ * sequential walk, so completeness never depends on the header being present.
+ *
+ * @param buildUrl - Builds the request URL for a given 1-based page number
+ */
+async function fetchAllMRPages(
+  buildUrl: (page: number) => string,
+  baseUrl: string,
+  token: string,
+  context: string,
+  errorLabel: string,
+): Promise<GitLabMR[]> {
+  const first = await fetchMRPage(buildUrl(1), baseUrl, token, context, errorLabel);
+  const allMRs: GitLabMR[] = [...first.data];
+
+  if (first.data.length < MR_PAGE_SIZE) return allMRs;
+
+  const totalPages = Number(first.response.headers?.get?.('x-total-pages') ?? Number.NaN);
+
+  if (Number.isFinite(totalPages) && totalPages > 1) {
+    const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+    for (let i = 0; i < remaining.length; i += MR_PAGE_CONCURRENCY) {
+      const batch = remaining.slice(i, i + MR_PAGE_CONCURRENCY);
+      const results = await Promise.all(
+        batch.map((page) => fetchMRPage(buildUrl(page), baseUrl, token, context, errorLabel)),
+      );
+      // Concat in page order — Promise.all preserves input order, so MR
+      // ordering stays identical to the sequential walk it replaces.
+      for (const r of results) allMRs.push(...r.data);
+    }
+    return allMRs;
+  }
+
+  // Fallback: no usable x-total-pages — walk sequentially until a short page.
+  let page = 2;
+  while (true) {
+    const { data } = await fetchMRPage(buildUrl(page), baseUrl, token, context, errorLabel);
+    allMRs.push(...data);
+    if (data.length < MR_PAGE_SIZE) break;
+    page++;
+  }
+
+  return allMRs;
+}
+
+/**
  * Fetch every merge request in a project across ALL states — Channel A's
  * local-match universe (DRIFT-01).
  *
@@ -1670,40 +1770,14 @@ export async function fetchAllProjectMRs(
   projectId: number,
 ): Promise<GitLabMR[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const perPage = 100;
-  let page = 1;
-  const allMRs: GitLabMR[] = [];
-
-  while (true) {
-    const url = `${base}/api/v4/projects/${projectId}/merge_requests?state=all&per_page=${perPage}&page=${page}`;
-
-    let response: Response;
-    try {
-      response = await apiFetch(
-        'gitlab',
-        url,
-        {
-          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-        },
-        'Load All Project MRs',
-      );
-    } catch {
-      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-    }
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new ApiError('Failed to fetch project MRs', response.status, 'gitlab');
-      }
-      throw new Error(`Failed to fetch project MRs: status ${response.status}`);
-    }
-
-    const data = (await response.json()) as GitLabMR[];
-    allMRs.push(...data);
-
-    if (data.length < perPage) break;
-    page++;
-  }
+  const allMRs = await fetchAllMRPages(
+    (page) =>
+      `${base}/api/v4/projects/${projectId}/merge_requests?state=all&per_page=${MR_PAGE_SIZE}&page=${page}`,
+    baseUrl,
+    token,
+    'Load All Project MRs',
+    'project MRs',
+  );
 
   // Enrich labels with colors (same pattern as fetchMilestoneMRs)
   const allLabelNames = new Set<string>();
@@ -1782,42 +1856,15 @@ export async function fetchOpenProjectMRs(
   projectId: number,
 ): Promise<GitLabMR[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const perPage = 100;
-  let page = 1;
-  const allMRs: GitLabMR[] = [];
 
-  while (true) {
-    const url = `${base}/api/v4/projects/${projectId}/merge_requests?state=opened&per_page=${perPage}&page=${page}`;
-
-    let response: Response;
-    try {
-      response = await apiFetch(
-        'gitlab',
-        url,
-        {
-          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-        },
-        'Load Open Project MRs',
-      );
-    } catch {
-      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-    }
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new ApiError('Failed to fetch open project MRs', response.status, 'gitlab');
-      }
-      throw new Error(`Failed to fetch open project MRs: status ${response.status}`);
-    }
-
-    const data = (await response.json()) as GitLabMR[];
-    allMRs.push(...data);
-
-    if (data.length < perPage) break;
-    page++;
-  }
-
-  return allMRs;
+  return fetchAllMRPages(
+    (page) =>
+      `${base}/api/v4/projects/${projectId}/merge_requests?state=opened&per_page=${MR_PAGE_SIZE}&page=${page}`,
+    baseUrl,
+    token,
+    'Load Open Project MRs',
+    'open project MRs',
+  );
 }
 
 /**

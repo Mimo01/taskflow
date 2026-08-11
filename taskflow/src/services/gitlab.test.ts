@@ -614,6 +614,72 @@ describe('gitlab service', () => {
       expect(result).toHaveLength(112);
     });
 
+    // Perf: page 1 advertises x-total-pages, so pages 2..N are fetched
+    // concurrently instead of one serial round-trip at a time. Completeness must
+    // be identical to the sequential walk it replaces.
+    function mockPaginatedMRsWithTotalPages(pages: Array<ReturnType<typeof makeMR>[]>) {
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        if (typeof url === 'string' && url.includes('/labels')) {
+          return { ok: true, status: 200, json: async () => [] } as Response;
+        }
+        const pageMatch = typeof url === 'string' ? url.match(/[?&]page=(\d+)/) : null;
+        const pageNum = pageMatch ? Number(pageMatch[1]) : 1;
+        const data = pages[pageNum - 1] ?? [];
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: (h: string) => (h === 'x-total-pages' ? String(pages.length) : null) },
+          json: async () => data,
+        } as unknown as Response;
+      });
+    }
+
+    it('fetches pages 2..N in parallel when x-total-pages is present, preserving page order', async () => {
+      const pages = [
+        Array.from({ length: 100 }, (_, i) => makeMR(i + 1)),
+        Array.from({ length: 100 }, (_, i) => makeMR(i + 101)),
+        Array.from({ length: 100 }, (_, i) => makeMR(i + 201)),
+        Array.from({ length: 5 }, (_, i) => makeMR(i + 301)),
+      ];
+      mockPaginatedMRsWithTotalPages(pages);
+
+      const result = await fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID);
+
+      expect(result).toHaveLength(305);
+      // Order must match the sequential walk exactly — first and last sentinels.
+      expect(result[0].iid).toBe(1);
+      expect(result[304].iid).toBe(305);
+    });
+
+    it('falls back to the sequential walk when x-total-pages is absent', async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => makeMR(i + 1));
+      const page2 = Array.from({ length: 3 }, (_, i) => makeMR(i + 101));
+      mockPaginatedMRs([page1, page2]);
+
+      const result = await fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID);
+
+      expect(result).toHaveLength(103);
+    });
+
+    it('propagates a mid-batch page failure rather than returning a partial list', async () => {
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        const pageMatch = typeof url === 'string' ? url.match(/[?&]page=(\d+)/) : null;
+        const pageNum = pageMatch ? Number(pageMatch[1]) : 1;
+        if (pageNum === 3) {
+          return { ok: false, status: 500, json: async () => ({}) } as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: (h: string) => (h === 'x-total-pages' ? '4' : null) },
+          json: async () =>
+            Array.from({ length: 100 }, (_, i) => makeMR(i + 1 + (pageNum - 1) * 100)),
+        } as unknown as Response;
+      });
+
+      await expect(fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(/^Failed to fetch/);
+    });
+
     it('request URL contains state=all and NO target_branch or milestone filter', async () => {
       mockPaginatedMRs([[]]);
 
