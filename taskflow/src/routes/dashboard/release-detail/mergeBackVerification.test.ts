@@ -28,6 +28,19 @@ function makeParams(overrides: Partial<Parameters<typeof resolveMergeBackVerdict
   };
 }
 
+/** Baseline `TrackingMR` fixture with `target_branch: 'develop'` — matches
+ *  `makeParams`'s default `defaultBranch`, so existing pre-Task-1 cases keep
+ *  their prior expectations unchanged. */
+function makeMR(overrides: Partial<TrackingMR> = {}): TrackingMR {
+  return {
+    iid: 4821,
+    state: 'merged',
+    web_url: 'https://gitlab.example/mr/4821',
+    target_branch: 'develop',
+    ...overrides,
+  };
+}
+
 describe('resolveMergeBackVerdict', () => {
   it('D-11: releasedVersion false yields hidden', () => {
     expect(resolveMergeBackVerdict(makeParams({ releasedVersion: false }))).toEqual({
@@ -56,12 +69,7 @@ describe('resolveMergeBackVerdict', () => {
   });
 
   it('D-02: a tracking MR with state merged yields merged via tracking-mr with matching fields', () => {
-    const mr: TrackingMR = {
-      iid: 4821,
-      state: 'merged',
-      web_url: 'https://gitlab.example/mr/4821',
-      merged_at: '2026-07-21T09:14:00.000Z',
-    };
+    const mr: TrackingMR = makeMR({ merged_at: '2026-07-21T09:14:00.000Z' });
     const result = resolveMergeBackVerdict(makeParams({ trackingMRs: [mr] }));
     expect(result).toEqual({
       kind: 'merged',
@@ -74,22 +82,13 @@ describe('resolveMergeBackVerdict', () => {
   });
 
   it('D-02/P-03: a tracking MR with state merged and no merged_at yields mergedAt null', () => {
-    const mr: TrackingMR = {
-      iid: 4821,
-      state: 'merged',
-      web_url: 'https://gitlab.example/mr/4821',
-    };
+    const mr: TrackingMR = makeMR();
     const result = resolveMergeBackVerdict(makeParams({ trackingMRs: [mr] }));
     expect(result).toMatchObject({ kind: 'merged', via: 'tracking-mr', mergedAt: null });
   });
 
   it('MERGE-02 precedence: a merged MR wins even when compareResult.diffCount is 12', () => {
-    const mr: TrackingMR = {
-      iid: 4821,
-      state: 'merged',
-      web_url: 'https://gitlab.example/mr/4821',
-      merged_at: null,
-    };
+    const mr: TrackingMR = makeMR({ merged_at: null });
     const result = resolveMergeBackVerdict(
       makeParams({
         trackingMRs: [mr],
@@ -101,7 +100,11 @@ describe('resolveMergeBackVerdict', () => {
   });
 
   it('D-02: a tracking MR with state closed and diffCount 0 yields merged via content-compare', () => {
-    const mr: TrackingMR = { iid: 100, state: 'closed', web_url: 'https://gitlab.example/mr/100' };
+    const mr: TrackingMR = makeMR({
+      iid: 100,
+      state: 'closed',
+      web_url: 'https://gitlab.example/mr/100',
+    });
     const result = resolveMergeBackVerdict(makeParams({ trackingMRs: [mr] }));
     expect(result).toEqual({
       kind: 'merged',
@@ -112,7 +115,11 @@ describe('resolveMergeBackVerdict', () => {
   });
 
   it('a tracking MR with state opened and diffCount 3 yields likely-not-merged', () => {
-    const mr: TrackingMR = { iid: 101, state: 'opened', web_url: 'https://gitlab.example/mr/101' };
+    const mr: TrackingMR = makeMR({
+      iid: 101,
+      state: 'opened',
+      web_url: 'https://gitlab.example/mr/101',
+    });
     const result = resolveMergeBackVerdict(
       makeParams({
         trackingMRs: [mr],
@@ -208,6 +215,162 @@ describe('resolveMergeBackVerdict', () => {
       reason: 'check-failed',
       expectedTagName: 'v33.7.0',
     });
+  });
+});
+
+describe('resolveMergeBackVerdict: CR-01/WR-02 target_branch filtering and deterministic MR selection', () => {
+  it('CR-01: a merged MR targeting master with defaultBranch develop yields likely-not-merged, not merged', () => {
+    const mr: TrackingMR = makeMR({ target_branch: 'master' });
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: [mr],
+        defaultBranch: 'develop',
+        compareResult: { diffCount: 3, commitCount: 12, timedOut: false },
+      }),
+    );
+    expect(result.kind).not.toBe('merged');
+    expect(result).toEqual({
+      kind: 'likely-not-merged',
+      defaultBranch: 'develop',
+      tagName: 'v33.7.0',
+      commitsNotInDefault: 12,
+    });
+  });
+
+  it('CR-01: a merged MR targeting master with no tag yields couldnt-verify no-mr-no-tag, not merged', () => {
+    const mr: TrackingMR = makeMR({ target_branch: 'master' });
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: [mr],
+        defaultBranch: 'develop',
+        tagName: null,
+      }),
+    );
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'no-mr-no-tag',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('CR-01: a merged MR targeting develop with defaultBranch develop yields merged via tracking-mr (happy path preserved)', () => {
+    const mr: TrackingMR = makeMR({ target_branch: 'develop' });
+    const result = resolveMergeBackVerdict(
+      makeParams({ trackingMRs: [mr], defaultBranch: 'develop' }),
+    );
+    expect(result).toEqual({
+      kind: 'merged',
+      via: 'tracking-mr',
+      defaultBranch: 'develop',
+      mrIid: mr.iid,
+      mrUrl: mr.web_url,
+      mergedAt: null,
+    });
+  });
+
+  it('WR-02: two develop-targeted merged MRs cite the later-merged_at MR regardless of input order', () => {
+    const earlier: TrackingMR = makeMR({
+      iid: 100,
+      merged_at: '2026-01-01T00:00:00.000Z',
+    });
+    const later: TrackingMR = makeMR({
+      iid: 200,
+      merged_at: '2026-06-01T00:00:00.000Z',
+    });
+
+    const ascending = resolveMergeBackVerdict(
+      makeParams({ trackingMRs: [earlier, later] }),
+    );
+    const descending = resolveMergeBackVerdict(
+      makeParams({ trackingMRs: [later, earlier] }),
+    );
+
+    expect(ascending).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 200 });
+    expect(descending).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 200 });
+  });
+
+  it('WR-02: two develop-targeted merged MRs with identical merged_at cite the higher iid', () => {
+    const sameTime = '2026-06-01T00:00:00.000Z';
+    const lowerIid: TrackingMR = makeMR({ iid: 100, merged_at: sameTime });
+    const higherIid: TrackingMR = makeMR({ iid: 200, merged_at: sameTime });
+
+    const result = resolveMergeBackVerdict(
+      makeParams({ trackingMRs: [lowerIid, higherIid] }),
+    );
+    expect(result).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 200 });
+  });
+
+  it('WR-02: a develop-targeted merged MR with merged_at null loses to one with a real timestamp', () => {
+    const nullMergedAt: TrackingMR = makeMR({ iid: 100, merged_at: null });
+    const realMergedAt: TrackingMR = makeMR({
+      iid: 50,
+      merged_at: '2026-06-01T00:00:00.000Z',
+    });
+
+    const result = resolveMergeBackVerdict(
+      makeParams({ trackingMRs: [nullMergedAt, realMergedAt] }),
+    );
+    expect(result).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 50 });
+  });
+});
+
+describe('resolveMergeBackVerdict: CR-03/CR-04 terminal fallbacks for permanently-unavailable channels', () => {
+  it('CR-04: defaultBranch null with defaultBranchCheckFailed true yields couldnt-verify check-failed, not loading', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({ defaultBranch: null, defaultBranchCheckFailed: true }),
+    );
+    expect(result.kind).not.toBe('loading');
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'check-failed',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('CR-04: defaultBranch null with defaultBranchCheckFailed omitted still yields loading (genuine in-flight preserved)', () => {
+    const result = resolveMergeBackVerdict(makeParams({ defaultBranch: null }));
+    expect(result).toEqual({ kind: 'loading' });
+  });
+
+  it('CR-03: trackingMRsUnavailable true with no tag yields couldnt-verify no-mr-no-tag, not loading', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: undefined,
+        trackingMRsCheckFailed: false,
+        trackingMRsUnavailable: true,
+        tagName: null,
+      }),
+    );
+    expect(result.kind).not.toBe('loading');
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'no-mr-no-tag',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('CR-03: trackingMRsUnavailable true with a tag and diffCount 0 yields merged via content-compare', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: undefined,
+        trackingMRsCheckFailed: false,
+        trackingMRsUnavailable: true,
+        compareResult: { diffCount: 0, commitCount: 0, timedOut: false },
+      }),
+    );
+    expect(result).toEqual({
+      kind: 'merged',
+      via: 'content-compare',
+      defaultBranch: 'develop',
+      tagName: 'v33.7.0',
+    });
+  });
+
+  it('CR-03: trackingMRs undefined with both new flags false/omitted still yields loading (genuine in-flight preserved)', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({ trackingMRs: undefined, trackingMRsCheckFailed: false }),
+    );
+    expect(result).toEqual({ kind: 'loading' });
   });
 });
 
