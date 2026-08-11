@@ -753,6 +753,36 @@ describe('gitlab service', () => {
         compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
       ).rejects.toMatchObject({ status: 401 });
     });
+
+    it('CR-02: a 200 with { message: ... } (e.g. compare_timeout body) REJECTS instead of resolving to diffCount: 0', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ message: 'Insufficient permissions' }),
+      } as Response);
+
+      await expect(
+        compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
+      ).rejects.toThrow();
+
+      try {
+        await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
+      } catch (err) {
+        expect((err as Error).message).not.toContain(TOKEN);
+      }
+    });
+
+    it('CR-02: a 200 with { diffs: [], commits: null, compare_timeout: false } REJECTS (commits-side malformation)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ diffs: [], commits: null, compare_timeout: false }),
+      } as Response);
+
+      await expect(
+        compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
+      ).rejects.toThrow();
+    });
   });
 
   describe('fetchAllProjectMRs', () => {

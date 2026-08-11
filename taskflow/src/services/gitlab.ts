@@ -1893,6 +1893,12 @@ export async function fetchSourceBranchMRs(
  * @param from      - Ref to compare from (e.g. `develop`); percent-encoded
  * @param to        - Ref to compare to (e.g. `v33.7.0`); percent-encoded
  * @returns `{ diffCount, commitCount, timedOut }`
+ * @throws {Error} when `diffs` or `commits` on an otherwise-200 body is not
+ *   an array (CR-02) — a proxy/SSO interstitial, an API version change, or
+ *   an `{ message: ... }` error body must never be read as an empty diff.
+ *   This surfaces to the caller as `compareCheckFailed` so
+ *   `resolveMergeBackVerdict` (D-04) reaches `couldnt-verify` instead of a
+ *   false positive "merged" verdict.
  */
 export async function compareRefs(
   baseUrl: string,
@@ -1925,16 +1931,22 @@ export async function compareRefs(
     throw new Error(`Failed to compare refs: status ${response.status}`);
   }
 
-  const data = (await response.json()) as {
-    diffs: unknown[];
-    commits: unknown[];
-    compare_timeout: boolean;
-  };
+  const data = (await response.json()) as unknown;
+  const body = data as { diffs?: unknown; commits?: unknown; compare_timeout?: unknown };
+
+  if (!Array.isArray(body.diffs) || !Array.isArray(body.commits)) {
+    // CR-02: a 200 with an unexpected shape (proxy/SSO interstitial, API
+    // version change, `{ message: ... }` error body) must never be read as
+    // an empty diff — D-04 requires an incomplete diff to never be read as
+    // no diff. Never interpolate the body, URL, or token into the message
+    // (T-91-02 token-leak property).
+    throw new Error('Failed to compare refs: unexpected response shape');
+  }
 
   return {
-    diffCount: Array.isArray(data.diffs) ? data.diffs.length : 0,
-    commitCount: Array.isArray(data.commits) ? data.commits.length : 0,
-    timedOut: data.compare_timeout === true,
+    diffCount: body.diffs.length,
+    commitCount: body.commits.length,
+    timedOut: body.compare_timeout === true,
   };
 }
 
