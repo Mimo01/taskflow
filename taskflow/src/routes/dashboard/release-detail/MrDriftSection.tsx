@@ -20,6 +20,30 @@ const CHANNEL_NAMES: Record<Channel, string> = {
   C: 'release branch',
 };
 
+/**
+ * Locate a normalised ticket key's ORIGINAL spelling inside a title.
+ *
+ * `extractTicketKeys` returns normalised keys — uppercased, and with the space
+ * form ("PROJ 123") rewritten to the dash form ("PROJ-123"). The returned key is
+ * therefore often not a literal substring of the title it came from, so callers
+ * must not use `title.indexOf(key)` to locate it.
+ *
+ * @returns The match position and the text as it actually appears in the title,
+ *          or `null` when the key cannot be located (caller should skip it).
+ */
+export function matchTicketKeyInTitle(
+  title: string,
+  normalisedKey: string,
+): { index: number; text: string } | null {
+  const [project, number] = normalisedKey.split('-');
+  if (!project || !number) return null;
+  const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Either separator, any case — mirrors the two patterns extractTicketKeys accepts.
+  const re = new RegExp(`${escapeRe(project)}[\\s-]${escapeRe(number)}`, 'i');
+  const m = re.exec(title);
+  return m ? { index: m.index, text: m[0] } : null;
+}
+
 function channelsTitle(channels: Set<Channel>): string {
   const names = (['A', 'B', 'C'] as Channel[])
     .filter((c) => channels.has(c))
@@ -163,8 +187,17 @@ export function MrDriftSection({
                     const parts: React.ReactNode[] = [];
                     let remaining = mr.title;
                     for (const k of keys) {
-                      const idx = remaining.indexOf(k);
-                      if (idx > 0) parts.push(remaining.slice(0, idx));
+                      // `extractTicketKeys` NORMALISES what it returns: it uppercases
+                      // the key and rewrites the space form ("PROJ 123") to the dash
+                      // form ("PROJ-123"). So the returned key is frequently NOT a
+                      // literal substring of the title, and a plain indexOf() misses.
+                      // Locate the original spelling instead — case-insensitive, with
+                      // either separator — and skip the key entirely when it cannot be
+                      // located, rather than slicing on a -1 index (which silently ate
+                      // `key.length - 1` characters of the title).
+                      const match = matchTicketKeyInTitle(remaining, k);
+                      if (!match) continue;
+                      if (match.index > 0) parts.push(remaining.slice(0, match.index));
                       parts.push(
                         <button
                           key={k}
@@ -175,10 +208,10 @@ export function MrDriftSection({
                           }}
                           className="text-primary hover:underline font-mono"
                         >
-                          {k}
+                          {match.text}
                         </button>,
                       );
-                      remaining = remaining.slice(idx + k.length);
+                      remaining = remaining.slice(match.index + match.text.length);
                     }
                     if (remaining) parts.push(remaining);
                     return parts;
