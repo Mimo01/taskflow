@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 88: Release Branch & Milestone Creation** - resolve/detect the release branch and GitLab milestone, create either behind a confirm dialog (completed 2026-08-10)
 - [x] **Phase 89: Three-Channel Drift Detection** - union Jira-linkage, GitLab-milestone, and branch-target MR discovery into one drift report (read-only) (completed 2026-08-11)
 - [x] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry (completed 2026-08-11)
-- [ ] **Phase 91: Post-Release Merge-Back Verification** - advisory check that a released tag's branch has landed in the default branch
+- [x] **Phase 91: Post-Release Merge-Back Verification** - advisory check that a released tag's branch has landed in the default branch (completed 2026-08-11)
 
 ### 🚧 v1.14 Release Management (In Progress)
 
@@ -211,7 +211,7 @@ Plans:
   2. Detection prefers the tracking MR's state (`merged`/`merged_at`) when one exists, and falls back to content comparison (`repository/compare`) when no such MR is found
   3. The verdict is presented as advisory ("Likely not merged into {defaultBranch}") — never as a hard blocking state. **The manual override is DESCOPED by 91-CONTEXT.md D-12** (user decision, given twice: "no override control at all", nothing persists), which descopes MERGE-03. Recorded as an intentional descope, same handling as DASH-06 (P84 UAT) and DRIFT-09 (P89 UAT) — its absence is not a gap.
 
-**Plans:** 9 plans (3 original + 3 gap closure round 1 + 2 gap closure round 2 + 1 gap closure round 3)
+**Plans:** 9/9 plans complete
 Plans:
 
 **Wave 1** *(parallel — no shared files)*
@@ -322,7 +322,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
 | 90. Per-MR Corrective Actions | 4/4 | Complete    | 2026-08-11 |
-| 91. Post-Release Merge-Back Verification | 9/9 | Complete   | 2026-08-11 |
+| 91. Post-Release Merge-Back Verification | 9/9 | Complete    | 2026-08-11 |
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
