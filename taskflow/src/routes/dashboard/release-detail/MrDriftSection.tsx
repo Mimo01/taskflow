@@ -1,10 +1,42 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
 import type React from 'react';
+import { useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { extractTicketKeys } from '@/services/linkEngine';
 import type { Channel, DriftMark, DriftRow } from './driftDetection';
+
+/**
+ * D-11: freeze the row order for the life of the mounted list.
+ *
+ * Wrong-branch and missing-milestone co-occur constantly on the same row, so
+ * a live re-sort (the flagged-first comparator in `driftDetection.ts` keeps
+ * re-sorting on every render) would move a row out from under the pointer
+ * between the user's two fixes. `heldIds` is a `useRef` snapshot captured
+ * once by the caller — never a `useMemo`, which is not a stability guarantee
+ * under React Compiler. Re-sorting resumes naturally on the next mount (i.e.
+ * navigating away and back), since the ref is re-created then.
+ *
+ * @param rows - the freshly computed (and possibly re-sorted) drift rows
+ * @param heldIds - the MR ids in their originally captured order
+ * @returns rows reordered to match heldIds, with any new/unknown-id rows appended last
+ */
+export function applyHeldOrder(rows: DriftRow[], heldIds: number[]): DriftRow[] {
+  if (heldIds.length === 0) return rows;
+  const byId = new Map(rows.map((r) => [r.mr.id, r] as const));
+  const held: DriftRow[] = [];
+  for (const id of heldIds) {
+    const row = byId.get(id);
+    if (row) {
+      held.push(row);
+      byId.delete(id);
+    }
+  }
+  // Remaining rows (new ids not in heldIds) keep their incoming relative order.
+  const rest = rows.filter((r) => byId.has(r.mr.id));
+  return [...held, ...rest];
+}
 
 interface MrDriftSectionProps {
   rows: DriftRow[];
@@ -84,6 +116,20 @@ export function MrDriftSection({
   isLoading,
   onNavigateToIssueFromMR,
 }: MrDriftSectionProps) {
+  // D-11: capture the incoming row order on first non-empty render and hold
+  // it for the life of the mounted list. Wrong-branch and missing-milestone
+  // co-occur constantly, so a live re-sort (buildDriftRows keeps re-sorting
+  // flagged-first on every render) would move a row out from under the
+  // pointer between the user's two fixes. This is a `useRef` snapshot, never
+  // a `useMemo` — React Compiler is on and a memo is not a stability
+  // guarantee. Re-sorting resumes on the next mount/navigation, since the
+  // ref is re-created then.
+  const orderRef = useRef<number[] | null>(null);
+  if (orderRef.current === null && rows.length > 0) {
+    orderRef.current = rows.map((r) => r.mr.id);
+  }
+  const orderedRows = applyHeldOrder(rows, orderRef.current ?? []);
+
   return (
     <div className="mt-4 pt-4 border-t border-border/50">
       <div className="flex items-center gap-1.5 mb-1">
@@ -148,7 +194,7 @@ export function MrDriftSection({
             </span>
           </div>
 
-          {rows.map((row) => {
+          {orderedRows.map((row) => {
             const { mr } = row;
             const muted = !row.evaluated;
             const key = row.taskKeys[0];

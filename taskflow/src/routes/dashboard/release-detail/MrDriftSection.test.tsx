@@ -6,7 +6,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
 import type { DriftRow } from './driftDetection';
-import { matchTicketKeyInTitle, MrDriftSection } from './MrDriftSection';
+import { applyHeldOrder, matchTicketKeyInTitle, MrDriftSection } from './MrDriftSection';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn(),
@@ -195,6 +195,141 @@ describe('MrDriftSection', () => {
       });
       expect(matchTicketKeyInTitle('no key here', 'PROJ-123')).toBeNull();
       expect(matchTicketKeyInTitle('PROJ-123', 'MALFORMED')).toBeNull();
+    });
+  });
+
+  describe('held sort order (D-11)', () => {
+    it('applyHeldOrder: reorders rows to match heldIds, appending unknown ids last', () => {
+      const r1 = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const r2 = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const r3 = makeRow({ mr: makeMR({ id: 3, iid: 3 }) });
+      const result = applyHeldOrder([r3, r1, r2], [1, 2, 3]);
+      expect(result.map((r) => r.mr.id)).toEqual([1, 2, 3]);
+    });
+
+    it('applyHeldOrder: appends a row whose id is not in heldIds after all held rows, preserving incoming relative order', () => {
+      const r1 = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const r2 = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const r99 = makeRow({ mr: makeMR({ id: 99, iid: 99 }) });
+      const result = applyHeldOrder([r99, r2, r1], [1, 2]);
+      expect(result.map((r) => r.mr.id)).toEqual([1, 2, 99]);
+    });
+
+    it('applyHeldOrder: a held id with no matching row is skipped, no hole and no throw', () => {
+      const r1 = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const result = applyHeldOrder([r1], [1, 404, 2]);
+      expect(result.map((r) => r.mr.id)).toEqual([1]);
+    });
+
+    it('applyHeldOrder: empty heldIds returns the incoming rows unchanged', () => {
+      const r1 = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const r2 = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const input = [r2, r1];
+      const result = applyHeldOrder(input, []);
+      expect(result).toEqual(input);
+      expect(result).toHaveLength(2);
+    });
+
+    it('applyHeldOrder: never mutates the input array', () => {
+      const r1 = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const r2 = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const input = [r2, r1];
+      const snapshot = [...input];
+      applyHeldOrder(input, [1, 2]);
+      expect(input).toEqual(snapshot);
+    });
+
+    it('holds the DOM order across a re-render even when a row is re-sorted flagged-first-demoted', () => {
+      const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
+      const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }), br: 'ok', flagged: false });
+      // Initial render: A (flagged) sorted first per driftDetection's comparator.
+      const { rerender } = render(
+        <MrDriftSection
+          rows={[rowA, rowB]}
+          flaggedCount={1}
+          hasMatchedMilestone={true}
+          isLoading={false}
+          onNavigateToIssueFromMR={() => {}}
+        />,
+      );
+      let rows = screen.getAllByTestId('drift-row');
+      expect(rows[0]).toHaveTextContent('!1');
+      expect(rows[1]).toHaveTextContent('!2');
+
+      // Re-render: A is fixed (now 'ok'), the comparator would re-sort it after
+      // B — but the held order must keep A in the first DOM position.
+      const fixedRowA = { ...rowA, br: 'ok' as const, flagged: false };
+      rerender(
+        <MrDriftSection
+          rows={[fixedRowA, rowB]}
+          flaggedCount={0}
+          hasMatchedMilestone={true}
+          isLoading={false}
+          onNavigateToIssueFromMR={() => {}}
+        />,
+      );
+      rows = screen.getAllByTestId('drift-row');
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent('!1');
+      expect(rows[1]).toHaveTextContent('!2');
+    });
+
+    it('a re-render that adds a brand-new row still shows the original rows first, new one last', () => {
+      const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const { rerender } = render(
+        <MrDriftSection
+          rows={[rowA, rowB]}
+          flaggedCount={0}
+          hasMatchedMilestone={true}
+          isLoading={false}
+          onNavigateToIssueFromMR={() => {}}
+        />,
+      );
+
+      const rowC = makeRow({ mr: makeMR({ id: 3, iid: 3 }) });
+      rerender(
+        <MrDriftSection
+          rows={[rowC, rowA, rowB]}
+          flaggedCount={0}
+          hasMatchedMilestone={true}
+          isLoading={false}
+          onNavigateToIssueFromMR={() => {}}
+        />,
+      );
+      const rows = screen.getAllByTestId('drift-row');
+      expect(rows).toHaveLength(3);
+      expect(rows[0]).toHaveTextContent('!1');
+      expect(rows[1]).toHaveTextContent('!2');
+      expect(rows[2]).toHaveTextContent('!3');
+    });
+
+    it('a first render with rows: [] (loading) does not freeze an empty order — the first real row list is captured', () => {
+      const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const { rerender } = render(
+        <MrDriftSection
+          rows={[]}
+          flaggedCount={0}
+          hasMatchedMilestone={true}
+          isLoading={true}
+          onNavigateToIssueFromMR={() => {}}
+        />,
+      );
+
+      rerender(
+        <MrDriftSection
+          rows={[rowB, rowA]}
+          flaggedCount={0}
+          hasMatchedMilestone={true}
+          isLoading={false}
+          onNavigateToIssueFromMR={() => {}}
+        />,
+      );
+      const rows = screen.getAllByTestId('drift-row');
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent('!2');
+      expect(rows[1]).toHaveTextContent('!1');
     });
   });
 });
