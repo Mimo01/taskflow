@@ -260,7 +260,11 @@ export function ReleaseDetailSidebar({
               title={
                 branchState.tagName
                   ? `${branchState.branchName} deleted · tagged ${branchState.tagName}`
-                  : `${branchState.branchName} deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
+                  : branchState.tagChannel === 'failed'
+                    ? `${branchState.branchName} deleted. Couldn't check for a matching tag.`
+                    : branchState.tagChannel === 'pending'
+                      ? `${branchState.branchName} deleted. Checking for a matching tag…`
+                      : `${branchState.branchName} deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
               }
               data-testid="branch-status-released"
             >
