@@ -368,12 +368,13 @@ Must include at least one non-required attribute.
 
 **If this table is empty:** N/A — see above.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does this GitLab instance's actual error response for a duplicate/invalid `target_branch` match the field-keyed shape, or the flat-string shape `updateMilestone` already assumes?**
    - What we know: GitLab's Rails-standard validation-error convention is field-keyed (`{"message": {"field": ["error"]}}`) for model-validation failures; the codebase's own `createBranch`/`createMilestone` comments (Pitfall 3 note) already independently observed this same class of shape drift on sibling endpoints.
    - What's unclear: Whether a live failing PUT to `merge_requests/:iid` on this project actually returns this exact shape, versus e.g. a flat 404 `{"message":"404 Branch Not Found"}` for a nonexistent target branch (also GitLab-documented behavior elsewhere in the API).
    - Recommendation: The flattener (Pattern 1) already handles all three shapes defensively, so this is not blocking — but the phase's probe task (below) is a natural place to also capture one real failing-PUT response body as ground truth, if convenient during the approval-rules probe.
+   - **A1 resolution (from `90-PROBE-RESULTS.md`'s `## A1 resolution` section): `A1: UNRESOLVED (probe D skipped)`.** No live GitLab PAT was available in the execution environment to run Probe D (Plan 01 Task 2); no `http_status`/`response_body` was captured. Per the plan this does not block the phase: `flattenGitLabError` handles all three known GitLab error-body shapes (string, string[], field-keyed object) defensively regardless of which one this instance actually emits. The live probe remains owed — re-run `probe.sh` with a real `GITLAB_PAT` when vault access is available.
 
 ## Probe: MR-approval / protected-branch rules (roadmap-mandated, D-16)
 
