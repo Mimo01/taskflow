@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 87: Release Detail Decomposition** - `ReleaseDetailPage.tsx` (1518 LOC) split into a `release-detail/` folder mirroring `issue-detail/`, zero user-visible change (completed 2026-08-10)
 - [x] **Phase 88: Release Branch & Milestone Creation** - resolve/detect the release branch and GitLab milestone, create either behind a confirm dialog (completed 2026-08-10)
 - [x] **Phase 89: Three-Channel Drift Detection** - union Jira-linkage, GitLab-milestone, and branch-target MR discovery into one drift report (read-only) (completed 2026-08-11)
-- [ ] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry
+- [x] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry (completed 2026-08-11)
 - [ ] **Phase 91: Post-Release Merge-Back Verification** - advisory check that a released tag's branch has landed in the default branch
 
 ### 🚧 v1.14 Release Management (In Progress)
@@ -178,7 +178,7 @@ Plans:
   3. Each corrective action shows its own per-row status and can be retried independently without affecting the other action's state
   4. The retarget action is unavailable/disabled while the release branch does not exist
 
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 Plans:
 
 **Wave 1**
@@ -283,7 +283,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
-| 90. Per-MR Corrective Actions | 4/4 | Complete   | 2026-08-11 |
+| 90. Per-MR Corrective Actions | 4/4 | Complete    | 2026-08-11 |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
 | Milestone | Phases | Plans | Shipped |

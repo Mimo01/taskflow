@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: verifying
-last_updated: "2026-08-11T13:02:38.191Z"
+status: ready_to_plan
+last_updated: 2026-08-11T14:06:40.163Z
 last_activity: 2026-08-11
 progress:
   total_phases: 21
@@ -11,6 +11,7 @@ progress:
   total_plans: 26
   completed_plans: 26
   percent: 19
+stopped_at: Phase 90 complete (4/4) — ready to discuss Phase 91
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 90 — per-mr-corrective-actions
+**Current focus:** Phase 91 — post release merge back verification
 
 ## Current Position
 
-Phase: 90 (per-mr-corrective-actions) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
+Phase: 91
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-08-11
 
 Progress: [██████████] 100%
