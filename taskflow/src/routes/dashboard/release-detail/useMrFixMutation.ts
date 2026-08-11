@@ -159,12 +159,17 @@ export function useMrFixMutation(args: {
       for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
         await queryClient.cancelQueries({ queryKey: [prefix, projectId] });
       }
-      // Guard the patch on a non-null projectId so the optimistic path
-      // cannot run against project 0 (WR-10). Other guards are re-checked by
-      // mutationFn, which throws before calling updateMergeRequest; when
-      // targetBranch/milestone is missing the patch below falls back to the
-      // MR's current value (a no-op change) rather than writing an invalid one.
-      if (projectId === null || projectId === undefined) return undefined;
+      // One falsy-projectId convention across this whole file (WR-03): the
+      // same `!projectId` test `mutationFn` throws on and `onSettled`
+      // invalidates on. The old `=== null || === undefined` form let project
+      // 0 through here while both of those rejected it — the one combination
+      // that patches the caches and then never invalidates them, stranding
+      // the optimistic write. (`=== undefined` was dead anyway: the prop type
+      // is `number | null`.) Other guards are re-checked by mutationFn, which
+      // throws before calling updateMergeRequest; when targetBranch/milestone
+      // is missing the patch below falls back to the MR's current value (a
+      // no-op change) rather than writing an invalid one.
+      if (!projectId) return undefined;
       const patch: Partial<GitLabMR> =
         action === 'retarget'
           ? { target_branch: targetBranch ?? mr.target_branch }
