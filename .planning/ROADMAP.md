@@ -202,18 +202,29 @@ Plans:
 
 ### Phase 91: Post-Release Merge-Back Verification
 
-**Goal**: Once a Jira fix version is marked released, users can see — as an advisory verdict with manual override, never a hard blocker — whether `release/[tag]` has actually been merged back into the project default branch, closing the release-coordination loop.
+**Goal**: Once a Jira fix version is marked released, users can see — as an advisory verdict, never a hard blocker — whether `release/[tag]` has actually been merged back into the project default branch, closing the release-coordination loop.
 **Depends on**: Phase 88 (needs the resolved release branch name and default branch)
 **Requirements**: MERGE-01, MERGE-02, MERGE-03
 **Success Criteria** (what must be TRUE):
 
   1. Once its Jira fix version is released, user sees whether `release/[tag]` has been merged into the project default branch
   2. Detection prefers the tracking MR's state (`merged`/`merged_at`) when one exists, and falls back to content comparison (`repository/compare`) when no such MR is found
-  3. The verdict is presented as advisory ("likely not yet merged") with a manual "I confirmed this myself" override — never as a hard blocking state
+  3. The verdict is presented as advisory ("Likely not merged into {defaultBranch}") — never as a hard blocking state. **The manual override is DESCOPED by 91-CONTEXT.md D-12** (user decision, given twice: "no override control at all", nothing persists), which descopes MERGE-03. Recorded as an intentional descope, same handling as DASH-06 (P84 UAT) and DRIFT-09 (P89 UAT) — its absence is not a gap.
 
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+
+**Wave 1** *(parallel — no shared files)*
+
+- [ ] 91-01-PLAN.md — `fetchSourceBranchMRs` (fully paginated) + `compareRefs` in `services/gitlab.ts`, with mocked-fetch tests
+- [ ] 91-02-PLAN.md — pure `mergeBackVerification.ts` (`MergeBackVerdict` union + `resolveMergeBackVerdict` + date formatters) with unit tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 91-03-PLAN.md — two gated queries in `useReleaseDetail.ts`, the "Merged back" sidebar row (D-10 copy), the D-08 wording softening, and component/hook tests
+
 **UI hint**: yes
-**Probe**: yes — this phase is probe-gated: confirm the team's actual GitLab merge-strategy setting (Settings → Merge requests → squash vs merge-commit vs rebase) on the project(s) this milestone targets before finalizing the detection method, since squash/rebase merges make the raw `merged` field on `GET /repository/branches/:branch` unreliable as a negative signal (GitLab issue #36963)
+**Probe**: RESOLVED — no probe task planned. 91-CONTEXT.md D-03 records the answer supplied directly by the user: the team's GitLab project uses **merge commits** (not squash, not rebase/fast-forward). Detection nevertheless stays **diff-based** (`diffs.length === 0`) rather than commit-based per D-04, so it cannot silently start false-negativing if the merge method is ever changed.
 
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>
