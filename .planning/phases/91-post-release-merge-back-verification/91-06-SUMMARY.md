@@ -102,3 +102,7 @@ None - no external service configuration required.
 ---
 *Phase: 91-post-release-merge-back-verification*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+All claimed files exist on disk (useReleaseDetail.ts, useReleaseDetail.test.tsx, MetaRow.tsx, ReleaseDetailSidebar.test.tsx, this SUMMARY.md) and all four commit hashes (430a958c, 6550721a, b08027fd, 0855d6ae) are present in `git log --oneline`.
