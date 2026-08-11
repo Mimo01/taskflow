@@ -178,7 +178,25 @@ Plans:
   3. Each corrective action shows its own per-row status and can be retried independently without affecting the other action's state
   4. The retarget action is unavailable/disabled while the release branch does not exist
 
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 90-01-PLAN.md — Approvals/protected-branch probe + `updateMergeRequest` and `flattenGitLabError` in `gitlab.ts` (D-10 / WR-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 90-02-PLAN.md — `useMrFixMutation.ts`: per-(MR, action) optimistic mutation, prefix-scoped cache patch/rollback, sticky local failure, project-granular invalidation
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 90-03-PLAN.md — Held sort order (D-11) + `DriftActionCell` hover-revealed BR/MS buttons + page wiring + interaction tests
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 90-04-PLAN.md — Full-suite/biome-baseline gate, validation ledger, live UAT of all four requirements
+
 **UI hint**: yes
 **Probe**: yes — verify via a live MR with approvals whether MR-approval / protected-branch rules are actually configured on the team's project, since that determines whether the documented approval-reset side effect of retargeting is a real, observable consequence for this team
 
