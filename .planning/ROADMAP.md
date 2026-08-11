@@ -211,7 +211,7 @@ Plans:
   2. Detection prefers the tracking MR's state (`merged`/`merged_at`) when one exists, and falls back to content comparison (`repository/compare`) when no such MR is found
   3. The verdict is presented as advisory ("Likely not merged into {defaultBranch}") — never as a hard blocking state. **The manual override is DESCOPED by 91-CONTEXT.md D-12** (user decision, given twice: "no override control at all", nothing persists), which descopes MERGE-03. Recorded as an intentional descope, same handling as DASH-06 (P84 UAT) and DRIFT-09 (P89 UAT) — its absence is not a gap.
 
-**Plans:** 6 plans (3 original + 3 gap closure)
+**Plans:** 8 plans (3 original + 3 gap closure round 1 + 2 gap closure round 2)
 Plans:
 
 **Wave 1** *(parallel — no shared files)*
@@ -233,6 +233,16 @@ Plans:
 **Wave 2** *(blocked on 91-05)*
 
 - [x] 91-06-PLAN.md — thread `defaultBranchCheckFailed`/`trackingMRsUnavailable` in `useReleaseDetail.ts`, replace the WR-03 tautology, re-anchor the WR-05 D-12 lock to a stable `data-testid`
+
+**Gap closure round 2** *(from the re-run 91-VERIFICATION.md — truth 5: the tag evidence channel has neither an in-flight nor a failure signal)*
+
+**Wave 1**
+
+- [ ] 91-07-PLAN.md — fail-closed `searchProjectTags` (stop swallowing errors to `[]`) + `tagLookupPending`/`tagCheckFailed` guard in `resolveMergeBackVerdict` and the WR-01 step-10 guard, with unit tests
+
+**Wave 2** *(blocked on 91-07)*
+
+- [ ] 91-08-PLAN.md — thread the tag channel's `isError`/pending signals through `useReleaseDetail.ts`, add slow-resolving and rejecting `searchProjectTags` hook tests, and restore the WR-02 biome-clean surface
 
 **UI hint**: yes
 **Probe**: RESOLVED — no probe task planned. 91-CONTEXT.md D-03 records the answer supplied directly by the user: the team's GitLab project uses **merge commits** (not squash, not rebase/fast-forward). Detection nevertheless stays **diff-based** (`diffs.length === 0`) rather than commit-based per D-04, so it cannot silently start false-negativing if the merge method is ever changed.
