@@ -34,6 +34,8 @@ vi.mock('@/services/gitlab', async (importOriginal) => ({
   createMilestone: vi.fn(),
   fetchMilestoneMRs: vi.fn(),
   fetchRecentProjectMRs: vi.fn(),
+  fetchAllProjectMRs: vi.fn(),
+  fetchBranchTargetedMRs: vi.fn(),
 }));
 
 // Mock auth store
@@ -110,6 +112,8 @@ async function setupMocks(
   );
   vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchRecentProjectMRs).mockResolvedValue([]);
+  vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([]);
+  vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([]);
   vi.mocked(gitlab.createMilestone).mockResolvedValue(makeMilestone());
   vi.mocked(gitlab.createBranch).mockResolvedValue({
     name: 'release/33.5.0',
