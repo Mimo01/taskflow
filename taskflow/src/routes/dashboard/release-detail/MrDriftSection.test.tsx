@@ -7,9 +7,10 @@
 // status/cache machinery from a click.
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { updateMergeRequest } from '@/services/gitlab';
 import type { GitLabMR } from '@/services/gitlab';
 import type { DriftRow } from './driftDetection';
 import {
@@ -27,6 +28,8 @@ vi.mock('@/services/gitlab', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/services/gitlab')>()),
   updateMergeRequest: vi.fn(),
 }));
+
+const mockUpdateMergeRequest = vi.mocked(updateMergeRequest);
 
 function makeMR(overrides: Partial<GitLabMR> = {}): GitLabMR {
   return {
@@ -382,5 +385,215 @@ describe('MrDriftSection', () => {
       expect(rows[0]).toHaveTextContent('!2');
       expect(rows[1]).toHaveTextContent('!1');
     });
+  });
+});
+
+describe('per-MR corrective actions', () => {
+  beforeEach(() => {
+    mockUpdateMergeRequest.mockReset();
+  });
+
+  it('pending: clicking a flagged BR cell whose write never resolves leaves a spinner, second click does not re-fire', async () => {
+    mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
+    const row = makeRow({ br: 'flag', flagged: true });
+    const { container } = renderSection({ rows: [row], flaggedCount: 1 });
+
+    const brCell = screen.getByTestId('drift-br');
+    fireEvent.click(brCell);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid="drift-br"] .animate-spin')).toBeTruthy();
+    });
+    expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
+
+    // Second click while pending must not re-fire (D-06, D-09).
+    fireEvent.click(screen.getByTestId('drift-br'));
+    expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('success: with the write resolving and the cache-derived mark now ok, the cell renders the green check and is no longer a button', async () => {
+    mockUpdateMergeRequest.mockResolvedValueOnce({} as GitLabMR);
+    const row = makeRow({ br: 'flag', flagged: true });
+    const { rerender } = renderSection({ rows: [row], flaggedCount: 1 });
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
+
+    // Simulate the parent re-rendering once the cache-derived mark flips to 'ok'.
+    const settledRow = { ...row, br: 'ok' as const, flagged: false };
+    rerender(
+      <MrDriftSection
+        rows={[settledRow]}
+        flaggedCount={0}
+        hasMatchedMilestone={true}
+        isLoading={false}
+        onNavigateToIssueFromMR={() => {}}
+        fix={DEFAULT_FIX}
+      />,
+    );
+
+    await waitFor(() => {
+      const cell = screen.getByTestId('drift-br');
+      expect(cell.tagName).not.toBe('BUTTON');
+      expect(cell.querySelector('svg')).toBeTruthy();
+    });
+  });
+
+  it('sticky failure: the cell ends up red with the exact tooltip and stays that way through an invalidateQueries sweep', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error("target_branch can't be blank"));
+    const row = makeRow({ br: 'flag', flagged: true });
+    const { container } = renderSection({ rows: [row], flaggedCount: 1 }, queryClient);
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drift-br')).toHaveAttribute(
+        'title',
+        "target_branch can't be blank",
+      );
+    });
+    // The red class lives on the inner AlertTriangle, not the cell root.
+    expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy();
+
+    // A background invalidateQueries + settled refetch must not clear the sticky failure (D-08).
+    await act(async () => {
+      queryClient.invalidateQueries();
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('drift-br')).toHaveAttribute(
+        'title',
+        "target_branch can't be blank",
+      );
+    });
+
+    expect(document.body.textContent).not.toContain('[object Object]');
+    expect(container.querySelectorAll('[role="alert"]')).toHaveLength(0);
+    // Nothing rendered outside the row container.
+    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+  });
+
+  it('retry: clicking the red cell calls the write a second time and the red state clears while pending', async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('boom'));
+    const row = makeRow({ br: 'flag', flagged: true });
+    renderSection({ rows: [row], flaggedCount: 1 });
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+
+    mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
+    fireEvent.click(screen.getByTestId('drift-br'));
+
+    await waitFor(() => {
+      expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('drift-br').querySelector('.animate-spin')).toBeTruthy();
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeFalsy();
+    });
+  });
+
+  it('independent: BR and MS on one row lock independently and issue two calls with disjoint bodies (D-09, MRFIX-03)', async () => {
+    mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {})); // BR never resolves
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('milestone rejected')); // MS fails
+    const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
+    renderSection({ rows: [row], flaggedCount: 1 });
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByTestId('drift-ms'));
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2));
+
+    const [brBody] = mockUpdateMergeRequest.mock.calls[0].slice(4);
+    const [msBody] = mockUpdateMergeRequest.mock.calls[1].slice(4);
+    expect(brBody).toEqual({ target_branch: 'release/33.5.0' });
+    expect(msBody).toEqual({ milestone_id: 1 });
+
+    // Failing only MS leaves BR spinning and BR's cell not red.
+    await waitFor(() => {
+      expect(screen.getByTestId('drift-ms').querySelector('.text-red-600')).toBeTruthy();
+    });
+    expect(screen.getByTestId('drift-br').querySelector('.animate-spin')).toBeTruthy();
+    expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeFalsy();
+  });
+
+  it('unavailable: with no release branch, drift-br is not a button, a click calls nothing, and MS on the same row is still actionable (MRFIX-04, D-14)', () => {
+    const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
+    renderSection({
+      rows: [row],
+      flaggedCount: 1,
+      fix: { ...DEFAULT_FIX, releaseBranchExists: false },
+    });
+
+    const brCell = screen.getByTestId('drift-br');
+    expect(brCell.tagName).not.toBe('BUTTON');
+    expect(brCell).toHaveAttribute(
+      'title',
+      "Release branch doesn't exist yet — create it above to enable retargeting",
+    );
+
+    fireEvent.click(brCell);
+    expect(mockUpdateMergeRequest).not.toHaveBeenCalled();
+
+    const msCell = screen.getByTestId('drift-ms');
+    expect(msCell.tagName).toBe('BUTTON');
+  });
+
+  it('inert cells: ok, na, non-evaluated rows and TASK (even when flagged) render no button (D-05, P89 D-11)', () => {
+    const okRow = makeRow({ br: 'ok', ms: 'ok', task: 'flag', taskReason: 'no-linked-task' });
+    renderSection({ rows: [okRow], flaggedCount: 1 });
+    expect(screen.getByTestId('drift-br').querySelector('button')).toBeNull();
+    expect(screen.getByTestId('drift-ms').querySelector('button')).toBeNull();
+    expect(screen.getByTestId('drift-task').querySelector('button')).toBeNull();
+  });
+
+  it('inert cells: a non-evaluated (merged) row never renders a button in any column', () => {
+    const mutedRow = makeRow({
+      evaluated: false,
+      br: 'na',
+      ms: 'na',
+      task: 'na',
+      mr: makeMR({ state: 'merged' }),
+    });
+    renderSection({ rows: [mutedRow] });
+    expect(screen.getByTestId('drift-br').querySelector('button')).toBeNull();
+    expect(screen.getByTestId('drift-ms').querySelector('button')).toBeNull();
+    expect(screen.getByTestId('drift-task').querySelector('button')).toBeNull();
+  });
+
+  it('degraded: with no matched milestone the banner renders and neither BR nor MS is a button (D-15)', () => {
+    const row = makeRow({ br: 'na', ms: 'na' });
+    renderSection({
+      rows: [row],
+      hasMatchedMilestone: false,
+      fix: { ...DEFAULT_FIX, matchedMilestone: null },
+    });
+    expect(screen.getByTestId('drift-degraded-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
+    expect(screen.getByTestId('drift-ms').tagName).not.toBe('BUTTON');
+  });
+
+  it('BR and MS both carry the identical aria-label and title strings (D2)', () => {
+    const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
+    renderSection({ rows: [row], flaggedCount: 1 });
+    const br = screen.getByTestId('drift-br');
+    const ms = screen.getByTestId('drift-ms');
+    expect(br.getAttribute('aria-label')).toBe(br.getAttribute('title'));
+    expect(ms.getAttribute('aria-label')).toBe(ms.getAttribute('title'));
+    expect(br.getAttribute('title')).toBe('Retarget to release/33.5.0');
+    expect(ms.getAttribute('title')).toBe('Assign milestone 33.5.0 (21.07.2026)');
+  });
+
+  it('keeps no toast/alert element outside the row on failure', async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('nope'));
+    const row = makeRow({ br: 'flag', flagged: true });
+    const { container } = renderSection({ rows: [row], flaggedCount: 1 });
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+    expect(within(container).queryByRole('alert')).toBeNull();
   });
 });
