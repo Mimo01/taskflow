@@ -221,7 +221,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 91-03-PLAN.md — two gated queries in `useReleaseDetail.ts`, the "Merged back" sidebar row (D-10 copy), the D-08 wording softening, and component/hook tests
+- [x] 91-03-PLAN.md — two gated queries in `useReleaseDetail.ts`, the "Merged back" sidebar row (D-10 copy), the D-08 wording softening, and component/hook tests
 
 **UI hint**: yes
 **Probe**: RESOLVED — no probe task planned. 91-CONTEXT.md D-03 records the answer supplied directly by the user: the team's GitLab project uses **merge commits** (not squash, not rebase/fast-forward). Detection nevertheless stays **diff-based** (`diffs.length === 0`) rather than commit-based per D-04, so it cannot silently start false-negativing if the merge method is ever changed.
@@ -295,7 +295,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
 | 90. Per-MR Corrective Actions | 4/4 | Complete    | 2026-08-11 |
-| 91. Post-Release Merge-Back Verification | 2/3 | In Progress|  |
+| 91. Post-Release Merge-Back Verification | 3/3 | Complete   | 2026-08-11 |
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
