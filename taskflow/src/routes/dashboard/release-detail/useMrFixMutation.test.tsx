@@ -125,6 +125,33 @@ describe('useMrFixMutation', () => {
       }
     });
 
+    // WR-07: a spread copies keys that are present-but-undefined, so this
+    // shape used to blank a required GitLabMR field in the cache —
+    // evaluateBranchDrift then compared `undefined !== releaseBranchName` and
+    // flagged every row on the release.
+    it('patchMrInChannelCaches ignores undefined-valued keys instead of erasing the field', () => {
+      const queryClient = makeQueryClient();
+      const mr = makeMr({ id: 7, target_branch: 'develop', milestone: { id: 9, title: 'old' } });
+      seedChannelCaches(queryClient, [mr]);
+
+      patchMrInChannelCaches(queryClient, PROJECT_ID, 7, { target_branch: undefined });
+      patchMrInChannelCaches(queryClient, PROJECT_ID, 7, {
+        target_branch: undefined,
+        milestone: null,
+      });
+
+      for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
+        const entries = queryClient.getQueriesData<GitLabMR[]>({ queryKey: [prefix, PROJECT_ID] });
+        for (const [, data] of entries) {
+          const row = data?.find((m) => m.id === 7);
+          expect(row?.target_branch).toBe('develop');
+          expect('target_branch' in (row ?? {})).toBe(true);
+          // `null` is a real value (unassigned milestone) and IS written.
+          expect(row?.milestone).toBeNull();
+        }
+      }
+    });
+
     it('invalidateMrChannelCaches invalidates the project-granular key for all three prefixes, each at two-element length', () => {
       const queryClient = makeQueryClient();
       const mr = makeMr({ id: 7 });
