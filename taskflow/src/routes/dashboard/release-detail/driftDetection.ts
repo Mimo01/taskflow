@@ -337,7 +337,7 @@ export function computeRowDriftCount(
 /**
  * D-05/D-06: re-source the Issues table's MR cell (`matchedRows` +
  * `wrongMilestoneByKey`) from the three-channel union instead of the old
- * capped-recent-MR-fetch + `buildWrongMilestoneMap` heuristic (both since
+ * capped-recent-MR-fetch plus wrong-milestone-map heuristic (both since
  * deleted). The two returned shapes are byte-identical to what
  * `IssuesSection` already consumes — this is a data-source swap, not a
  * redesign.
