@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: executing
-last_updated: "2026-08-11T12:25:16.238Z"
+last_updated: "2026-08-11T12:36:14.726Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 21
   completed_phases: 3
   total_plans: 26
-  completed_plans: 24
+  completed_plans: 25
   percent: 14
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 90 (per-mr-corrective-actions) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-11
 
-Progress: [█████████░] 92%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 92%
 | Phase 87 P06 | 20min | 3 tasks | 2 files |
 | Phase 90 P01 | 9min | 3 tasks | 4 files |
 | Phase 90 P02 | 24min | 2 tasks | 3 files |
+| Phase 90 P03 | 55min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [Phase 90]: updateMilestone/createBranch/createMilestone left byte-unchanged — back-porting flattenGitLabError into them is out of scope for this plan
 - [Phase ?]: [Phase 90]: useMrFixMutation onMutate guards only projectId for the optimistic patch; missing targetBranch/milestone falls back to the MR's own current value (no-op write) since mutationFn's guards throw before any updateMergeRequest call regardless
 - [Phase ?]: [Phase 90]: D-12 header-badge decrement proven via patchMrInChannelCaches against the real three-element windowed cache key; driftFlaggedCount is non-memoized so it drops immediately, before any refetch
+- [Phase 90]: [Phase 90-03]: applyHeldOrder/orderRef live in MrDriftSection.tsx, not useReleaseDetail.ts — the freeze is a view-layer concern of the mounted list itself; 90-VALIDATION.md places the held sort order test in MrDriftSection.test.tsx
+- [Phase 90]: [Phase 90-03]: group-focus-visible/fix: chosen over the data-revealed JS fallback for the focus reveal — matches existing group-focus/<name>: usage in dropdown-menu.tsx/context-menu.tsx under the same Tailwind v4 pipeline; Plan 04's keyboard-Tab UAT should confirm visually
 
 ### Pending Todos
 
@@ -118,8 +121,8 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-11T12:25:16.235Z
-Stopped at: Completed 90-02-PLAN.md
+Last session: 2026-08-11T12:36:14.723Z
+Stopped at: Completed 90-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

@@ -191,7 +191,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 90-03-PLAN.md — Held sort order (D-11) + `DriftActionCell` hover-revealed BR/MS buttons + page wiring + interaction tests
+- [x] 90-03-PLAN.md — Held sort order (D-11) + `DriftActionCell` hover-revealed BR/MS buttons + page wiring + interaction tests
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -283,7 +283,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
-| 90. Per-MR Corrective Actions | 2/4 | In Progress|  |
+| 90. Per-MR Corrective Actions | 3/4 | In Progress|  |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
 | Milestone | Phases | Plans | Shipped |
