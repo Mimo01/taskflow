@@ -581,7 +581,10 @@ describe('gitlab service', () => {
 
     const makeMR = (
       iid: number,
-      overrides: Partial<{ target_branch: string; state: 'opened' | 'closed' | 'merged' | 'locked' }> = {},
+      overrides: Partial<{
+        target_branch: string;
+        state: 'opened' | 'closed' | 'merged' | 'locked';
+      }> = {},
     ) => ({
       id: iid * 100,
       iid,
@@ -686,7 +689,7 @@ describe('gitlab service', () => {
       expect(result).toHaveLength(2000);
     });
 
-    it('CR-01 service side: preserves each MR\'s target_branch verbatim with no client-side filtering', async () => {
+    it("CR-01 service side: preserves each MR's target_branch verbatim with no client-side filtering", async () => {
       const page1 = [
         makeMR(1, { target_branch: 'master' }),
         makeMR(2, { target_branch: 'develop' }),
@@ -791,9 +794,7 @@ describe('gitlab service', () => {
         json: async () => ({ message: 'Insufficient permissions' }),
       } as Response);
 
-      await expect(
-        compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
-      ).rejects.toThrow();
+      await expect(compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0')).rejects.toThrow();
 
       try {
         await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
@@ -809,9 +810,7 @@ describe('gitlab service', () => {
         json: async () => ({ diffs: [], commits: null, compare_timeout: false }),
       } as Response);
 
-      await expect(
-        compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
-      ).rejects.toThrow();
+      await expect(compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0')).rejects.toThrow();
     });
   });
 
@@ -887,9 +886,9 @@ describe('gitlab service', () => {
         json: async () => ({}),
       } as Response);
 
-      await expect(
-        searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0'),
-      ).rejects.toMatchObject({ status: 401 });
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toMatchObject({
+        status: 401,
+      });
     });
 
     it('a 200 whose body is an object rather than an array rejects with /unexpected response shape/', async () => {
