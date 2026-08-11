@@ -20,9 +20,11 @@ import {
   fetchReviewerMRs,
   fetchUserCommits,
   fetchUserMREvents,
+  flattenGitLabError,
   listGitLabGroups,
   listGitLabProjects,
   searchGitLabMRs,
+  updateMergeRequest,
   updateMilestone,
   validateGitLab,
 } from './gitlab';
@@ -2138,6 +2140,214 @@ describe('gitlab service', () => {
         const message = (err as Error).message;
         expect(message).not.toContain(TOKEN);
         expect(message).not.toContain('PRIVATE-TOKEN');
+      }
+    });
+  });
+
+  describe('flattenGitLabError', () => {
+    it('returns a flat string message as-is', () => {
+      expect(flattenGitLabError({ message: 'Target branch is invalid' })).toBe(
+        'Target branch is invalid',
+      );
+    });
+
+    it('joins an array message with a comma', () => {
+      expect(flattenGitLabError({ message: ['a', 'b'] })).toBe('a, b');
+    });
+
+    it('flattens a single field-keyed object message (D-10)', () => {
+      expect(flattenGitLabError({ message: { target_branch: ["can't be blank"] } })).toBe(
+        "target_branch can't be blank",
+      );
+    });
+
+    it('flattens a multi-field-keyed object message joined with semicolons', () => {
+      expect(
+        flattenGitLabError({
+          message: { target_branch: ['x'], milestone_id: ['y'] },
+        }),
+      ).toBe('target_branch x; milestone_id y');
+    });
+
+    it('returns undefined when there is no message key', () => {
+      expect(flattenGitLabError({ error: 'insufficient_scope' })).toBeUndefined();
+    });
+
+    it('returns undefined for null, undefined, a bare string, and a number', () => {
+      expect(flattenGitLabError(null)).toBeUndefined();
+      expect(flattenGitLabError(undefined)).toBeUndefined();
+      expect(flattenGitLabError('a string')).toBeUndefined();
+      expect(flattenGitLabError(42)).toBeUndefined();
+    });
+
+    it('never returns a string containing [object Object]', () => {
+      const cases = [
+        { message: 'plain' },
+        { message: ['a', 'b'] },
+        { message: { target_branch: ["can't be blank"] } },
+        { message: { target_branch: ['x'], milestone_id: ['y'] } },
+      ];
+      for (const c of cases) {
+        expect(flattenGitLabError(c)).not.toMatch(/\[object Object\]/);
+      }
+    });
+  });
+
+  describe('updateMergeRequest', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+    const PROJECT_ID = 42;
+    const MR_IID = 7;
+
+    const updatedMr = {
+      id: 1000,
+      iid: MR_IID,
+      project_id: PROJECT_ID,
+      title: 'Some MR',
+      source_branch: 'feature/x',
+      target_branch: 'release/33.7.0',
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'A', username: 'a', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-08-11T00:00:00Z',
+      web_url: `${BASE}/g/x/-/merge_requests/${MR_IID}`,
+      labels: [],
+      milestone: null,
+    };
+
+    it('PUTs target_branch and resolves the parsed GitLabMR', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => updatedMr,
+      } as Response);
+
+      const result = await updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, {
+        target_branch: 'release/33.7.0',
+      });
+      expect(result).toEqual(updatedMr);
+
+      const [, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [
+        string,
+        { method: string; body: string },
+      ];
+      expect(calledOptions.method).toBe('PUT');
+      expect(JSON.parse(calledOptions.body)).toEqual({ target_branch: 'release/33.7.0' });
+    });
+
+    it('PUTs milestone_id with body exactly { milestone_id }', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => updatedMr,
+      } as Response);
+
+      await updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { milestone_id: 5 });
+
+      const [, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [
+        string,
+        { method: string; body: string },
+      ];
+      expect(JSON.parse(calledOptions.body)).toEqual({ milestone_id: 5 });
+    });
+
+    it('throws before any fetch when neither field is provided', async () => {
+      await expect(updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, {})).rejects.toThrow(
+        'updateMergeRequest requires target_branch or milestone_id',
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('drops unknown/extra keys from the request body', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => updatedMr,
+      } as Response);
+
+      await updateMergeRequest(
+        BASE,
+        TOKEN,
+        PROJECT_ID,
+        MR_IID,
+        // @ts-expect-error — deliberately passing an unknown runtime key
+        { target_branch: 'release/33.7.0', state_event: 'close', assignee_id: 99 },
+      );
+
+      const [, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [
+        string,
+        { method: string; body: string },
+      ];
+      expect(JSON.parse(calledOptions.body)).toEqual({ target_branch: 'release/33.7.0' });
+    });
+
+    it('flattens a field-keyed error body on a non-2xx failure — never [object Object]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: { target_branch: ["can't be blank"] } }),
+      } as Response);
+
+      await expect(
+        updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'bad' }),
+      ).rejects.toThrow("target_branch can't be blank");
+
+      try {
+        await updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'bad' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        expect((err as Error).message).not.toMatch(/\[object Object\]/);
+      }
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'x' }),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'x' }),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+
+    it('throws a network-reachability error when apiFetch rejects', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
+
+      await expect(
+        updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'x' }),
+      ).rejects.toThrow(`Cannot reach ${BASE} — check the base URL`);
+    });
+
+    it('the thrown message never contains the token value or PRIVATE-TOKEN', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ message: 'You are not allowed to update this merge request.' }),
+      } as Response);
+
+      try {
+        await updateMergeRequest(BASE, TOKEN, PROJECT_ID, MR_IID, { target_branch: 'x' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        const message = (err as Error).message;
+        expect(message).not.toContain(TOKEN);
+        expect(message).not.toContain('PRIVATE-TOKEN');
+        expect(message).not.toContain(BASE);
       }
     });
   });

@@ -1036,6 +1036,115 @@ export async function updateMilestone(
 }
 
 /**
+ * Normalise a GitLab API error body into a single readable string (D-10,
+ * closes 88-REVIEW WR-01 for this phase).
+ *
+ * `updateMilestone`, `createBranch`, and `createMilestone` each independently
+ * reinvented a narrower widening of GitLab's error-body shape (see the
+ * `body?.message ?? status` line above, and `createBranch`'s array-only
+ * widening). GitLab's Rails-standard validation-error convention can also
+ * return a field-keyed object (e.g. `{"message":{"target_branch":["can't be
+ * blank"]}}`), which neither existing analog handles — that shape falls
+ * through to `[object Object]` if passed to `String()` directly. This helper
+ * is the single place all three shapes (string, string[], field-keyed
+ * object) are normalised; do not reinvent a fourth narrower widening.
+ *
+ * @param body - The parsed JSON error body (or `null`/non-object)
+ * @returns A readable message, or `undefined` when no `message` key exists
+ */
+export function flattenGitLabError(body: unknown): string | undefined {
+  if (body === null || typeof body !== 'object') return undefined;
+  const message = (body as { message?: unknown }).message;
+  if (message === undefined || message === null) return undefined;
+  if (typeof message === 'string') return message;
+  if (Array.isArray(message)) return message.join(', ');
+  if (typeof message === 'object') {
+    return Object.entries(message as Record<string, unknown>)
+      .map(([field, errs]) => `${field} ${Array.isArray(errs) ? errs.join(', ') : String(errs)}`)
+      .join('; ');
+  }
+  return undefined;
+}
+
+/**
+ * Update a merge request's target branch and/or milestone (D-10/MRFIX-01/02,
+ * the phase's only new write endpoint).
+ *
+ * `milestone_id` is the milestone's GLOBAL `id` (matching `GitLabMR.milestone.id`
+ * and `GitLabMilestone.id`), NOT the project-scoped `iid` — mirroring the
+ * `id`-vs-`iid` note `updateMilestone` already carries. Passing `0` or an
+ * empty value unassigns the milestone.
+ *
+ * T-90-01: the request body is assembled by explicitly picking only
+ * `fields.target_branch` and `fields.milestone_id` into a fresh object —
+ * never `JSON.stringify(fields)` and never a spread of the argument — so no
+ * caller-supplied key (e.g. `state_event`, `assignee_id`) can ever reach
+ * GitLab. Throws before any request when both fields are undefined (GitLab's
+ * own "must include at least one non-required attribute" rule).
+ *
+ * T-90-02: error messages compose only from `flattenGitLabError(body)` or a
+ * fixed literal — carrying `createBranch`'s WR-11 rule forward — never the
+ * token, `PRIVATE-TOKEN` header, or request URL.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param mrIid     - Merge request project-scoped `iid`
+ * @param fields    - Subset of { target_branch, milestone_id } to update
+ * @returns The updated merge request
+ */
+export async function updateMergeRequest(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  mrIid: number,
+  fields: { target_branch?: string; milestone_id?: number },
+): Promise<GitLabMR> {
+  if (fields.target_branch === undefined && fields.milestone_id === undefined) {
+    throw new Error('updateMergeRequest requires target_branch or milestone_id');
+  }
+
+  // T-90-01: explicit pick only — never spread `fields` or JSON.stringify it,
+  // so an unknown/extra key passed at runtime is always dropped.
+  const body: { target_branch?: string; milestone_id?: number } = {};
+  if (fields.target_branch !== undefined) body.target_branch = fields.target_branch;
+  if (fields.milestone_id !== undefined) body.milestone_id = fields.milestone_id;
+
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        method: 'PUT',
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+      'Update Merge Request',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const msg = flattenGitLabError(errorBody);
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(msg ?? 'Failed to update merge request', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to update merge request: ${msg ?? `status ${response.status}`}`);
+  }
+
+  return (await response.json()) as GitLabMR;
+}
+
+/**
  * Check whether a branch exists on a GitLab project (D-13).
  *
  * DELIBERATE EXCEPTION to this file's universal throw-on-!ok convention: a 404
