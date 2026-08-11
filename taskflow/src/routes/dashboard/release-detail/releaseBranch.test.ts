@@ -289,12 +289,59 @@ describe('resolveBranchState — released versions', () => {
       kind: 'released',
       branchName: 'release/33.6.0',
       tagName: 'v33.6.0',
+      tagChannel: 'resolved',
     });
   });
 
   it('reports released with a null tag when no tag was found', () => {
     const state = resolveBranchState({ ...base, branchExists: false, versionReleased: true });
-    expect(state).toEqual({ kind: 'released', branchName: 'release/33.6.0', tagName: null });
+    expect(state).toEqual({
+      kind: 'released',
+      branchName: 'release/33.6.0',
+      tagName: null,
+      tagChannel: 'resolved',
+    });
+  });
+
+  it('defaults tagChannel to resolved when the param is omitted', () => {
+    const state = resolveBranchState({ ...base, branchExists: false, versionReleased: true });
+    expect(state).toMatchObject({ tagChannel: 'resolved' });
+  });
+
+  it('carries tagChannel: pending through to the released variant', () => {
+    const state = resolveBranchState({
+      ...base,
+      branchExists: false,
+      versionReleased: true,
+      tagChannel: 'pending',
+    });
+    expect(state).toEqual({
+      kind: 'released',
+      branchName: 'release/33.6.0',
+      tagName: null,
+      tagChannel: 'pending',
+    });
+  });
+
+  it('carries tagChannel: failed through to the released variant without changing kind', () => {
+    const state = resolveBranchState({
+      ...base,
+      branchExists: false,
+      versionReleased: true,
+      tagChannel: 'failed',
+    });
+    expect(state.kind).toBe('released');
+    expect(state).toMatchObject({ tagChannel: 'failed' });
+  });
+
+  it('does not let tagChannel: pending change precedence — branchExists undefined still yields loading', () => {
+    const state = resolveBranchState({
+      ...base,
+      branchExists: undefined,
+      versionReleased: true,
+      tagChannel: 'pending',
+    });
+    expect(state.kind).toBe('loading');
   });
 
   it('still reports exists when a released version somehow retains its branch', () => {
