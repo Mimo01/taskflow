@@ -2,10 +2,11 @@
 // branch-check error threading + retry exposure, and mutation project/token guards.
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GitLabMilestone } from '@/services/gitlab';
+import { patchMrInChannelCaches } from './useMrFixMutation';
 import { useReleaseDetail } from './useReleaseDetail';
 
 // Mock stronghold
@@ -35,6 +36,7 @@ vi.mock('@/services/gitlab', async (importOriginal) => ({
   fetchMilestoneMRs: vi.fn(),
   fetchAllProjectMRs: vi.fn(),
   fetchBranchTargetedMRs: vi.fn(),
+  updateMergeRequest: vi.fn(),
 }));
 
 // Mock auth store
@@ -341,5 +343,74 @@ describe('useReleaseDetail', () => {
     // Give any second (wrong-window) fetch a chance to fire before asserting.
     await new Promise((r) => setTimeout(r, 80));
     expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalledTimes(1);
+  });
+
+  // D-12: the header badge follows the optimistic cache patch alone — no
+  // refetch needed. driftRows/driftFlaggedCount are recomputed every render
+  // from query data (not memoized), so patchMrInChannelCaches's write is
+  // enough to flip the flagged row to clean on the very next render.
+  it('Test I: patching the cache clears a flagged count (D-12 badge decrement path)', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+      {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Fix thing',
+          status: { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Task', subtask: false },
+        },
+      },
+    ] as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>);
+
+    const driftedMr = {
+      id: 7,
+      iid: 100,
+      project_id: 42,
+      title: 'PROJ-1 fix thing',
+      source_branch: 'feature/proj-1',
+      target_branch: 'develop',
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-01-01T00:00:00.000Z',
+      web_url: 'https://gitlab.example.com/mr/100',
+      labels: [],
+      milestone: null,
+    } as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([driftedMr]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.driftFlaggedCount).toBe(1));
+
+    const releaseBranchName = result.current.releaseBranchName;
+    const matchedMilestone = result.current.matchedMilestone;
+    expect(releaseBranchName).toBe('release/33.5.0');
+    expect(matchedMilestone).not.toBeNull();
+
+    act(() => {
+      // The seeded key is the real three-element windowed form the hook
+      // actually uses (['gitlab-milestone-mrs', 42, gitlabMatch.candidateName]),
+      // not a hand-written two-element key.
+      patchMrInChannelCaches(queryClient, 42, driftedMr.id, {
+        target_branch: releaseBranchName ?? undefined,
+        milestone: matchedMilestone
+          ? { id: matchedMilestone.id, title: matchedMilestone.title }
+          : null,
+      });
+    });
+
+    await waitFor(() => expect(result.current.driftFlaggedCount).toBe(0));
   });
 });
