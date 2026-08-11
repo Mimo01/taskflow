@@ -335,19 +335,30 @@ export async function fetchProjectBranches(
  *
  * Used to surface the artifact of a released version whose release branch has
  * already been merged and deleted. Tags are an INCOMPLETE record — some
- * shipped releases carry no tag — so a caller must treat a miss as "no tag
- * found", never as "not released".
+ * shipped releases carry no tag — so a caller must treat a *successful* empty
+ * result as "no tag found", never as "not released".
  *
- * Unlike the branch and milestone fetchers this resolves to an empty list on
- * failure instead of throwing: the tag is supplementary evidence decorating an
- * already-known released state, so a tag outage must not escalate into a
- * branch-row error.
+ * Fails closed, mirroring `compareRefs`'s error discipline exactly: a
+ * transport error, a non-ok response or a malformed body all reject the
+ * promise instead of resolving to an empty/partial array. Before this the
+ * tag channel was the only one of four evidence channels (default branch,
+ * tracking MRs, compare, tags) whose failure was structurally
+ * indistinguishable from "no matching tag exists" — see 91-VERIFICATION
+ * truth 5 — which caused `resolveMergeBackVerdict` to mislabel a genuine
+ * check failure as `reason: 'no-mr-no-tag'`.
  *
  * @param baseUrl - GitLab base URL
  * @param token - Personal Access Token
  * @param projectId - GitLab numeric project ID
  * @param search - substring filter passed to GitLab's `search` param
- * @returns matching tags, or an empty list if the lookup fails
+ * @returns matching tags; a successful empty list means "no tag found"
+ * @throws {Error} on transport failure, or when a non-ok response is
+ *   returned (401/403 throw {@link ApiError}, other statuses throw a plain
+ *   `Error` with only the status number); also throws when a 200 body is not
+ *   an array — a proxy/SSO interstitial or `{ message: ... }` error body
+ *   must never be read as "zero tags" (same reasoning as `compareRefs`'s
+ *   CR-02 guard). Never interpolates the response body, URL, search term or
+ *   token into the thrown message (T-91-07-01).
  */
 export async function searchProjectTags(
   baseUrl: string,
@@ -362,23 +373,35 @@ export async function searchProjectTags(
   const maxPages = 20;
   const allTags: GitLabTag[] = [];
 
-  try {
-    for (let page = 1; page <= maxPages; page++) {
-      const url = `${base}/api/v4/projects/${projectId}/repository/tags?per_page=${perPage}&page=${page}&search=${encodeURIComponent(search)}`;
-      const response = await apiFetch(
+  for (let page = 1; page <= maxPages; page++) {
+    const url = `${base}/api/v4/projects/${projectId}/repository/tags?per_page=${perPage}&page=${page}&search=${encodeURIComponent(search)}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
         'gitlab',
         url,
         { headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' } },
         'Load Release Tags',
       );
-      if (!response.ok) return allTags;
-
-      const data = (await response.json()) as GitLabTag[];
-      allTags.push(...data);
-      if (data.length < perPage) break;
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
     }
-  } catch {
-    return allTags;
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to load release tags', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to load release tags: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as unknown;
+    if (!Array.isArray(data)) {
+      throw new Error('Failed to load release tags: unexpected response shape');
+    }
+
+    allTags.push(...(data as GitLabTag[]));
+    if (data.length < perPage) break;
   }
 
   return allTags;

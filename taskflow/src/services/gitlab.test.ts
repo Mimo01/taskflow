@@ -26,6 +26,7 @@ import {
   listGitLabGroups,
   listGitLabProjects,
   searchGitLabMRs,
+  searchProjectTags,
   updateMergeRequest,
   updateMilestone,
   validateGitLab,
@@ -811,6 +812,112 @@ describe('gitlab service', () => {
       await expect(
         compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('searchProjectTags (tag-channel fail-closed)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'glpat-test';
+    const PROJECT_ID = 42;
+
+    const makeTag = (name: string) => ({
+      name,
+      commit: { created_at: '2026-01-01T00:00:00Z' },
+      release: null,
+    });
+
+    it('a 200 page of fewer than 100 tags resolves to that array', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [makeTag('v33.7.0')],
+      } as Response);
+
+      const result = await searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0');
+
+      expect(result).toEqual([makeTag('v33.7.0')]);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('full-page pagination follows to page 2 and concatenates', async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => makeTag(`v33.7.${i}`));
+      const page2 = [makeTag('v33.7.100')];
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => page1,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => page2,
+        } as Response);
+
+      const result = await searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7');
+
+      expect(result).toHaveLength(101);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('apiFetch rejecting produces a rejected promise whose message matches /Cannot reach/', async () => {
+      vi.mocked(mockFetch).mockRejectedValueOnce(new Error('network down'));
+
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
+        /Cannot reach/,
+      );
+    });
+
+    it('a 500 response rejects with a message containing "status 500"', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
+        'status 500',
+      );
+    });
+
+    it('a 401 rejects with an ApiError carrying status 401', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0'),
+      ).rejects.toMatchObject({ status: 401 });
+    });
+
+    it('a 200 whose body is an object rather than an array rejects with /unexpected response shape/', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ message: 'Insufficient permissions' }),
+      } as Response);
+
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
+        /unexpected response shape/,
+      );
+    });
+
+    it('T-91-07-01: a 500 rejection message contains neither the token nor "PRIVATE-TOKEN"', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      try {
+        await searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0');
+        throw new Error('expected searchProjectTags to reject');
+      } catch (err) {
+        expect((err as Error).message).not.toContain(TOKEN);
+        expect((err as Error).message).not.toContain('PRIVATE-TOKEN');
+      }
     });
   });
 
