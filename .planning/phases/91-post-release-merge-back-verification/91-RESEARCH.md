@@ -495,7 +495,18 @@ An empty-diff (fully merged) response has `"diffs": []`, `"commits": []` (per do
 
 **All three assumptions are LOW risk** because the implementation pattern chosen (defensive non-2xx handling, D-04's explicit `diffs`-based gate, full pagination regardless) is already correct under either outcome. No assumption here gates a locked user decision or a compliance/security concern — flagging per protocol, but none require a checkpoint:human-verify beyond the general live-GitLab UAT already planned for this phase (see Validation Architecture).
 
-## Open Questions
+## Open Questions (RESOLVED during planning)
+
+> Both questions below were closed by explicit planner calls recorded in the Phase 91 plans:
+> - **Q1 → planner call P-02** (`91-02-PLAN.md`): the content-compare-derived `merged` verdict keeps
+>   D-10's icon/colour/main-line shape but **drops the date** and gets its own tooltip,
+>   `no diff between {tagName} and {defaultBranch}` — rather than passing the tag's creation date off
+>   as a merge date. This departs from this section's recommendation, deliberately.
+> - **Q2 → planner call P-01** (`91-02-PLAN.md`): `MergeBackVerdict` **does** get a fifth `loading`
+>   kind, as recommended. Additive to D-09 (which enumerates the terminal/visible outcomes), and
+>   required by the UI-SPEC Interaction Contract.
+>
+> Left below as the original reasoning trail. Do not re-open.
 
 1. **What tooltip text does a content-compare-derived `merged` verdict show?**
    - What we know: D-10 specifies the tooltip for a tracking-MR-derived `merged` verdict (`via !4821, merged 21.07.2026`) and for `likely-not-merged`/`couldn't-verify`. It does NOT specify wording for the case where the verdict is `merged` via the tag/content-compare fallback (D-02's "falls through to tag comparison" case, when that comparison finds zero diff).
