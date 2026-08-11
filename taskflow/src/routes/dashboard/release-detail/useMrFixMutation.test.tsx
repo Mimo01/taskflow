@@ -600,6 +600,42 @@ describe('useMrFixMutation', () => {
       expect(gitlab.updateMergeRequest).not.toHaveBeenCalled();
     });
 
+    // WR-03: project 0 used to slip past onMutate's `=== null || === undefined`
+    // guard and patch the caches under ['<prefix>', 0], while mutationFn's
+    // `!projectId` threw and onSettled's `if (projectId)` skipped the
+    // invalidate — leaving the optimistic write stranded in the cache.
+    it('guard: a projectId of 0 surfaces an error and leaves the caches unpatched', async () => {
+      const gitlab = await import('@/services/gitlab');
+      const queryClient = makeQueryClient();
+      const mr = makeMr({ id: 7, target_branch: 'develop' });
+      queryClient.setQueryData(['gitlab-all-project-mrs', 0, '2026-01-01T00:00:00.000Z'], [mr]);
+
+      const { result } = renderHook(
+        () =>
+          useMrFixMutation({
+            action: 'retarget',
+            mr,
+            projectId: 0,
+            baseUrl: 'https://gitlab.example.com',
+            token: 'test-token',
+            targetBranch: 'release/33.5.0',
+            milestone: null,
+          }),
+        { wrapper: makeWrapper(queryClient) },
+      );
+
+      act(() => result.current.fire());
+      await waitFor(() => expect(result.current.status).toBe('error'));
+      expect(gitlab.updateMergeRequest).not.toHaveBeenCalled();
+
+      const cached = queryClient.getQueryData<GitLabMR[]>([
+        'gitlab-all-project-mrs',
+        0,
+        '2026-01-01T00:00:00.000Z',
+      ]);
+      expect(cached?.[0]?.target_branch).toBe('develop');
+    });
+
     it('guard: a null baseUrl surfaces an error without calling updateMergeRequest', async () => {
       const gitlab = await import('@/services/gitlab');
       const queryClient = makeQueryClient();
