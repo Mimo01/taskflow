@@ -562,6 +562,73 @@ describe('per-MR corrective actions', () => {
     expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeFalsy();
   });
 
+  // WR-08: the error branch used to be evaluated before both `actionable` and
+  // `mark === 'ok'`, so a red cell stayed a live button whose retry could not
+  // possibly succeed, and stayed red over a row that was already fixed.
+  it('error + prerequisite gone: the cell stops being a retry button and explains itself', async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
+    const row = makeRow({ br: 'flag', flagged: true });
+    const { rerender } = renderSection({ rows: [row], flaggedCount: 1 });
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+    expect(screen.getByTestId('drift-br').tagName).toBe('BUTTON');
+
+    // The release branch disappears underneath the failure.
+    rerender(
+      <MrDriftSection
+        rows={[row]}
+        flaggedCount={1}
+        hasMatchedMilestone={true}
+        isLoading={false}
+        onNavigateToIssueFromMR={() => {}}
+        fix={{ ...DEFAULT_FIX, releaseBranchExists: false }}
+      />,
+    );
+
+    const cell = screen.getByTestId('drift-br');
+    expect(cell.tagName).not.toBe('BUTTON');
+    expect(cell.querySelector('.text-red-600')).toBeTruthy();
+    expect(cell).toHaveAttribute('title', 'protected branch');
+    fireEvent.click(cell);
+    expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('error cleared: a refetch showing the field is now ok replaces the red retry with the green check', async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
+    const row = makeRow({ br: 'flag', flagged: true });
+    const { rerender } = renderSection({ rows: [row], flaggedCount: 1 });
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+
+    // A background refetch reports the branch is correct after all (fixed in
+    // GitLab directly, or by another user).
+    rerender(
+      <MrDriftSection
+        rows={[{ ...row, br: 'ok' as const, flagged: false }]}
+        flaggedCount={0}
+        hasMatchedMilestone={true}
+        isLoading={false}
+        onNavigateToIssueFromMR={() => {}}
+        fix={DEFAULT_FIX}
+      />,
+    );
+
+    await waitFor(() => {
+      const cell = screen.getByTestId('drift-br');
+      expect(cell.querySelector('.text-red-600')).toBeFalsy();
+      expect(cell.querySelector('.text-green-600')).toBeTruthy();
+      expect(cell.tagName).not.toBe('BUTTON');
+    });
+    // Clearing the stale failure must not have fired another write.
+    expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('unavailable: with no release branch, drift-br is not a button, a click calls nothing, and MS on the same row is still actionable (MRFIX-04, D-14)', () => {
     const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
     renderSection({

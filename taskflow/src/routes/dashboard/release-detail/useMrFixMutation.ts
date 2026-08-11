@@ -147,7 +147,12 @@ export function useMrFixMutation(args: {
   token: string | null;
   targetBranch: string | null;
   milestone: { id: number; title: string } | null;
-}): { status: MrFixStatus; errorMessage: string | null; fire: () => void } {
+}): {
+  status: MrFixStatus;
+  errorMessage: string | null;
+  fire: () => void;
+  reset: () => void;
+} {
   const { action, mr, projectId, baseUrl, token, targetBranch, milestone } = args;
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<MrFixStatus>('idle');
@@ -234,5 +239,20 @@ export function useMrFixMutation(args: {
     mutation.mutate();
   };
 
-  return { status, errorMessage, fire };
+  /**
+   * Clear a sticky failure WITHOUT firing a write (WR-08). D-08 keeps a
+   * failure on screen through background refetches precisely because the
+   * cache cannot vouch for it — but once the cache says this field is now
+   * correct, the red "click to retry" affordance is stale and the only way
+   * out of it would be another pointless write. The caller drops the error
+   * when its `mark` turns 'ok'. Never call this while pending: it would
+   * desync `status` from the in-flight mutation.
+   */
+  const reset = () => {
+    if (status === 'pending') return;
+    setStatus('idle');
+    setErrorMessage(null);
+  };
+
+  return { status, errorMessage, fire, reset };
 }
