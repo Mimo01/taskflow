@@ -411,6 +411,49 @@ describe('per-MR corrective actions', () => {
     expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
   });
 
+  // WR-05: the pending state used to swap the <button> for a <span>, which
+  // drops focus to document.body — a keyboard user could not tab back to the
+  // cell they just activated, and the resulting error button never got focus
+  // either. The failure was also announced to nobody.
+  it('a11y: keyboard focus survives pending and the failure, and the error is announced', async () => {
+    let rejectWrite: (err: Error) => void = () => {};
+    mockUpdateMergeRequest.mockReturnValueOnce(
+      new Promise<GitLabMR>((_resolve, reject) => {
+        rejectWrite = reject;
+      }),
+    );
+    const row = makeRow({ br: 'flag', flagged: true });
+    renderSection({ rows: [row], flaggedCount: 1 });
+
+    const brCell = screen.getByTestId('drift-br');
+    brCell.focus();
+    expect(document.activeElement).toBe(brCell);
+
+    fireEvent.click(brCell);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br')).toHaveAttribute('aria-busy', 'true'),
+    );
+    // Still the same focused button, not a span and not document.body.
+    expect(screen.getByTestId('drift-br').tagName).toBe('BUTTON');
+    expect(document.activeElement).toBe(screen.getByTestId('drift-br'));
+    // Inert while pending without `disabled` (which would blur it).
+    expect(screen.getByTestId('drift-br')).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(screen.getByTestId('drift-br'));
+    expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      rejectWrite(new Error('protected branch'));
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+    expect(document.activeElement).toBe(screen.getByTestId('drift-br'));
+    expect(screen.getByRole('status')).toHaveTextContent('protected branch');
+  });
+
   it('success: with the write resolving and the cache-derived mark now ok, the cell renders the green check and is no longer a button', async () => {
     mockUpdateMergeRequest.mockResolvedValueOnce({} as GitLabMR);
     const row = makeRow({ br: 'flag', flagged: true });
