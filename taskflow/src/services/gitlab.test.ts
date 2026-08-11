@@ -24,7 +24,6 @@ import {
   listGitLabGroups,
   listGitLabProjects,
   searchGitLabMRs,
-  fetchRecentProjectMRs,
   updateMilestone,
   validateGitLab,
 } from './gitlab';
@@ -749,101 +748,6 @@ describe('gitlab service', () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
 
       await expect(fetchOpenProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow('Cannot reach');
-    });
-  });
-
-  describe('fetchRecentProjectMRs (GGX-WARN-01)', () => {
-    const BASE = 'https://gitlab.example.com';
-    const TOKEN = 'glpat-test';
-    const PROJECT_ID = 42;
-
-    const makeMR = (iid: number) => ({
-      id: iid * 100,
-      iid,
-      project_id: PROJECT_ID,
-      title: `PROJ-${iid} something`,
-      source_branch: `feature/PROJ-${iid}`,
-      state: 'opened' as const,
-      author: { id: 1, name: 'A', username: 'a', avatar_url: '' },
-      reviewers: [],
-      updated_at: '2026-06-01T00:00:00.000Z',
-      web_url: `${BASE}/mr/${iid}`,
-      labels: [],
-      milestone: null,
-    });
-
-    it('GGX-WARN-01: request URL targets the project MR list ordered by updated_at desc, all states', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [],
-      } as Response);
-
-      await fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID);
-
-      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
-      expect(calledUrl).toContain(`/projects/${PROJECT_ID}/merge_requests`);
-      expect(calledUrl).toMatch(/state=all/);
-      expect(calledUrl).toMatch(/order_by=updated_at/);
-      expect(calledUrl).toMatch(/sort=desc/);
-      expect(calledUrl).not.toMatch(/search=/);
-    });
-
-    it('GGX-WARN-01: defaults to a single 100-item page (no pagination fan-out)', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => Array.from({ length: 100 }, (_, i) => makeMR(i + 1)),
-      } as Response);
-
-      const result = await fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID);
-
-      expect(result).toHaveLength(100);
-      // One bounded request — the whole point of the optimization is NOT to paginate.
-      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(1);
-      expect(vi.mocked(mockFetch).mock.calls[0][0]).toContain('per_page=100');
-    });
-
-    it('GGX-WARN-01: clamps the limit to 1..100', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [],
-      } as Response);
-
-      await fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID, 5000);
-      expect(vi.mocked(mockFetch).mock.calls[0][0]).toContain('per_page=100');
-
-      await fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID, 0);
-      expect(vi.mocked(mockFetch).mock.calls[1][0]).toContain('per_page=1');
-    });
-
-    it('GGX-WARN-01: returns the parsed MRs as-is', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [makeMR(1), makeMR(2)],
-      } as Response);
-
-      const result = await fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID);
-
-      expect(result.map((m) => m.iid)).toEqual([1, 2]);
-    });
-
-    it('GGX-WARN-01: throws "Cannot reach" when the host is unreachable', async () => {
-      vi.mocked(mockFetch).mockRejectedValue(new Error('network down'));
-
-      await expect(fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow('Cannot reach');
-    });
-
-    it('GGX-WARN-01: throws ApiError on 401/403', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: false,
-        status: 403,
-        json: async () => ({}),
-      } as Response);
-
-      await expect(fetchRecentProjectMRs(BASE, TOKEN, PROJECT_ID)).rejects.toThrow();
     });
   });
 

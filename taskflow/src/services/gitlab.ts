@@ -1769,7 +1769,7 @@ export async function fetchAllProjectMRs(
  *
  * Label-color enrichment is intentionally skipped — this consumer renders only
  * `milestone` / `target_branch` / `iid` / `state`, never labels, so the extra
- * labels call is avoided (same rationale as `fetchRecentProjectMRs`).
+ * labels call is avoided.
  *
  * @param baseUrl   - GitLab base URL
  * @param token     - Personal Access Token
@@ -1818,65 +1818,6 @@ export async function fetchOpenProjectMRs(
   }
 
   return allMRs;
-}
-
-/**
- * Fetch a project's most-recently-updated merge requests across ALL states, in a
- * single capped request (default the latest 100).
- *
- * GGX-WARN-01: Used by the release detail page to detect MRs that carry a task's ticket
- * key but sit on the WRONG milestone (a "wrong milestone" warning). The page fetches this
- * list ONCE and matches every release task locally (via `linkMRToTask`), instead of firing
- * one slow GitLab `search` request per missing task — GitLab's plain MR list endpoint is
- * far faster than its search endpoint, so collapsing N searches into one bounded list call
- * is a large speedup.
- *
- * Bounded to a single page (`per_page`, max 100) ordered by `updated_at desc`: only the
- * latest MRs are returned, so a task whose MR is older than the cap will fall back to the
- * plain "Missing MR" state rather than "Wrong milestone". This is an intentional
- * performance/accuracy trade chosen for the release view.
- *
- * Label-color enrichment is intentionally skipped — this consumer renders only the
- * milestone/iid/state/web_url, never MR labels, so the extra labels call is avoided.
- *
- * @param baseUrl   - GitLab base URL
- * @param token     - Personal Access Token
- * @param projectId - GitLab numeric project ID
- * @param limit     - Max MRs to fetch (clamped to 1..100, default 100)
- * @returns The latest MRs (all states), most-recently-updated first
- */
-export async function fetchRecentProjectMRs(
-  baseUrl: string,
-  token: string,
-  projectId: number,
-  limit = 100,
-): Promise<GitLabMR[]> {
-  const base = baseUrl.replace(/\/$/, '');
-  const perPage = Math.min(Math.max(Math.trunc(limit), 1), 100);
-  const url = `${base}/api/v4/projects/${projectId}/merge_requests?state=all&order_by=updated_at&sort=desc&per_page=${perPage}&page=1`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'gitlab',
-      url,
-      {
-        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      },
-      'Load Merge Requests',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to fetch project MRs', response.status, 'gitlab');
-    }
-    throw new Error(`Failed to fetch project MRs: status ${response.status}`);
-  }
-
-  return (await response.json()) as GitLabMR[];
 }
 
 /**
