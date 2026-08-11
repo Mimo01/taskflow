@@ -152,7 +152,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 89-02-PLAN.md — driftDetection.ts: union with provenance, three predicates, both counts
+- [x] 89-02-PLAN.md — driftDetection.ts: union with provenance, three predicates, both counts
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -264,7 +264,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
-| 89. Three-Channel Drift Detection | 1/5 | In Progress|  |
+| 89. Three-Channel Drift Detection | 2/5 | In Progress|  |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
