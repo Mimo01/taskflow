@@ -105,3 +105,7 @@ None - no external service configuration required.
 ---
 *Phase: 91-post-release-merge-back-verification*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+All 5 modified source/test files and the SUMMARY.md itself found on disk; all 4 commit hashes (`550bcc53`, `694f1088`, `c28984b9`, `4bcaedb3`) found in git log.
