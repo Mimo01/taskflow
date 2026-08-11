@@ -187,7 +187,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 90-02-PLAN.md — `useMrFixMutation.ts`: per-(MR, action) optimistic mutation, prefix-scoped cache patch/rollback, sticky local failure, project-granular invalidation
+- [x] 90-02-PLAN.md — `useMrFixMutation.ts`: per-(MR, action) optimistic mutation, prefix-scoped cache patch/rollback, sticky local failure, project-granular invalidation
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -283,7 +283,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
-| 90. Per-MR Corrective Actions | 1/4 | In Progress|  |
+| 90. Per-MR Corrective Actions | 2/4 | In Progress|  |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
 | Milestone | Phases | Plans | Shipped |
