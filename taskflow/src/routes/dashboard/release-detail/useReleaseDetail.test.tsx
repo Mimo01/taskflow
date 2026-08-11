@@ -315,4 +315,31 @@ describe('useReleaseDetail', () => {
 
     expect(gitlab.fetchBranchTargetedMRs).not.toHaveBeenCalled();
   });
+
+  // WR-01 regression: Channel A's window is derived from `fixVersions`, so if the
+  // query fires before that resolves it runs once against the default window and
+  // again under the resolved one — two ~42-page/~15MB fetches per mount. The
+  // earlier Channel A tests only inspected `mock.calls[0]`, so they could not see
+  // a second call. Assert the COUNT, with fixVersions deliberately slower than the
+  // GitLab credential read (the realistic ordering: local Stronghold vs Jira RTT).
+  it('Test G3: Channel A fetches exactly once per mount when fixVersions resolves late', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    vi.mocked(jira.fetchFixVersions).mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+      return [{ id: VERSION_ID, name: '33.5.0', releaseDate: RELEASE_DATE, released: false }];
+    });
+
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchAllProjectMRs).mockClear();
+
+    renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(new QueryClient({ defaultOptions: { queries: { retry: false } } })),
+    });
+
+    await waitFor(() => expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalled());
+    // Give any second (wrong-window) fetch a chance to fire before asserting.
+    await new Promise((r) => setTimeout(r, 80));
+    expect(vi.mocked(gitlab.fetchAllProjectMRs)).toHaveBeenCalledTimes(1);
+  });
 });

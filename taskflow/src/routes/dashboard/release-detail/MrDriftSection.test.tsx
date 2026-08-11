@@ -6,7 +6,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
 import type { DriftRow } from './driftDetection';
-import { MrDriftSection } from './MrDriftSection';
+import { matchTicketKeyInTitle, MrDriftSection } from './MrDriftSection';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn(),
@@ -159,5 +159,42 @@ describe('MrDriftSection', () => {
     renderSection({ flaggedCount: 3 });
     expect(screen.getByText('MR Drift')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  // CR-01 regression: `extractTicketKeys` normalises what it returns (uppercases,
+  // and rewrites the space form "PROJ 123" to "PROJ-123"), so the key is often NOT
+  // a literal substring of the title. The old highlighter used indexOf(), got -1,
+  // and then sliced at `-1 + key.length` — silently deleting `key.length - 1`
+  // characters. Titles must render losslessly regardless of key spelling.
+  describe('title rendering does not mangle non-literal ticket keys (CR-01)', () => {
+    const cases = [
+      ['space form', 'PROJ 123 fix the thing'],
+      ['lowercase dash form', 'proj-123 fix the thing'],
+      ['lowercase space form', 'proj 123 fix the thing'],
+      ['canonical dash form', 'PROJ-123 fix the thing'],
+      ['key mid-title', 'hotfix for PROJ 123 urgently'],
+    ] as const;
+
+    for (const [label, title] of cases) {
+      it(`renders the full title verbatim — ${label}`, () => {
+        renderSection({ rows: [makeRow({ mr: makeMR({ title }) })] });
+        // Text is split across button/text nodes, so compare normalised row text.
+        const row = screen.getByText(/fix|hotfix/i).closest('div');
+        expect(row?.textContent).toContain(title);
+      });
+    }
+
+    it('matchTicketKeyInTitle finds the original spelling, or null when absent', () => {
+      expect(matchTicketKeyInTitle('PROJ 123 fix', 'PROJ-123')).toEqual({
+        index: 0,
+        text: 'PROJ 123',
+      });
+      expect(matchTicketKeyInTitle('proj-123 fix', 'PROJ-123')).toEqual({
+        index: 0,
+        text: 'proj-123',
+      });
+      expect(matchTicketKeyInTitle('no key here', 'PROJ-123')).toBeNull();
+      expect(matchTicketKeyInTitle('PROJ-123', 'MALFORMED')).toBeNull();
+    });
   });
 });

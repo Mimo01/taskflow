@@ -693,6 +693,59 @@ describe('gitlab service', () => {
       expect(vi.mocked(mockFetch).mock.calls[0][0] as string).not.toContain('updated_after');
     });
 
+    // WR-02: x-total-pages is a hint, not a contract. When it under-reports (stale,
+    // or new MRs landed mid-fetch) the old code returned a short list that looked
+    // complete — strictly worse than the sequential walk it replaced.
+    it('continues past an under-reporting x-total-pages instead of truncating', async () => {
+      const pages = [
+        Array.from({ length: 100 }, (_, i) => makeMR(i + 1)),
+        Array.from({ length: 100 }, (_, i) => makeMR(i + 101)),
+        Array.from({ length: 4 }, (_, i) => makeMR(i + 201)),
+      ];
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        if (typeof url === 'string' && url.includes('/labels')) {
+          return { ok: true, status: 200, json: async () => [] } as Response;
+        }
+        const pageMatch = typeof url === 'string' ? url.match(/[?&]page=(\d+)/) : null;
+        const pageNum = pageMatch ? Number(pageMatch[1]) : 1;
+        return {
+          ok: true,
+          status: 200,
+          // Advertises 2 pages, but there are really 3.
+          headers: { get: (h: string) => (h === 'x-total-pages' ? '2' : null) },
+          json: async () => pages[pageNum - 1] ?? [],
+        } as unknown as Response;
+      });
+
+      const result = await fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID);
+
+      expect(result).toHaveLength(204);
+    });
+
+    // WR-03: a corrupt/huge header must not allocate an unbounded page list.
+    it('bounds an absurd x-total-pages rather than allocating from it', async () => {
+      let requested = 0;
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        if (typeof url === 'string' && url.includes('/labels')) {
+          return { ok: true, status: 200, json: async () => [] } as Response;
+        }
+        requested += 1;
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: (h: string) => (h === 'x-total-pages' ? '1000000000' : null) },
+          // Short page: stops the sequential tail immediately after the cap.
+          json: async () =>
+            requested === 1 ? Array.from({ length: 100 }, (_, i) => makeMR(i + 1)) : [],
+        } as unknown as Response;
+      });
+
+      await fetchAllProjectMRs(BASE, TOKEN, PROJECT_ID);
+
+      // Capped at MR_MAX_PAGES (500), not 1e9.
+      expect(requested).toBeLessThanOrEqual(501);
+    });
+
     it('request URL contains state=all and NO target_branch or milestone filter', async () => {
       mockPaginatedMRs([[]]);
 

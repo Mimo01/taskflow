@@ -308,9 +308,15 @@ export default function ReleasesTab() {
       // unreleased versions this indicator exists to police. Planner
       // discretion recorded: D-14 did not state a released-version rule; this
       // follows the established precedent for the sibling indicators.
+      // Pass the branch only when it is CONFIRMED PRESENT. Passing `derived`
+      // unconditionally made every milestone-attached open MR count as branch
+      // drift whenever the branch does not exist yet — drift measured against a
+      // branch nothing can target. That is the same false positive `branchMissing`
+      // and `milestoneMissing` gate against, and it matches D-18's degraded rule:
+      // an unresolvable branch is 'na', not a flag.
       const driftCount =
         openMrsLoaded && !version.released
-          ? computeRowDriftCount(openMrs ?? [], derived, matchedMilestoneId)
+          ? computeRowDriftCount(openMrs ?? [], branchPresent ? derived : null, matchedMilestoneId)
           : 0;
 
       return {

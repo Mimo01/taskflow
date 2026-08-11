@@ -67,7 +67,12 @@ export function useReleaseDetail(versionId: string | undefined) {
   }, [gitlabBaseUrl]);
 
   // Fetch all fix versions (shared cache key with ReleasesTab)
-  const { data: fixVersions, isLoading } = useQuery({
+  const fixVersionsEnabled = !!jiraBaseUrl && !!activeJiraProject;
+  const {
+    data: fixVersions,
+    isLoading,
+    isFetched: fixVersionsFetched,
+  } = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -75,8 +80,18 @@ export function useReleaseDetail(versionId: string | undefined) {
       return fetchFixVersions(jiraBaseUrl, token, activeJiraProject);
     },
     staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!activeJiraProject,
+    enabled: fixVersionsEnabled,
   });
+
+  // Channel A's window is DERIVED from `fixVersions`, so firing Channel A before
+  // that query settles runs the expensive fetch twice: once against the 12-month
+  // default while `fixVersions` is undefined, then again under a different window
+  // (= a different query key) once it resolves. Each run is the ~42-page/~15MB
+  // fetch the windowing exists to avoid. `isFetched` covers success AND error, so
+  // a Jira failure still falls through to the default window and fetches once.
+  // When the versions query is disabled outright (no Jira configured) there is
+  // nothing to wait for — otherwise Channel A would never run at all.
+  const fixVersionsSettled = !fixVersionsEnabled || fixVersionsFetched;
 
   // Find the matching version
   const version = fixVersions?.find((v) => v.id === versionId) ?? null;
@@ -343,7 +358,7 @@ export function useReleaseDetail(versionId: string | undefined) {
         channelAUpdatedAfter,
       ),
     staleTime: 5 * 60_000,
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && fixVersionsSettled,
   });
 
   // Channel B (DRIFT-02): MRs for the matched GitLab milestone. Unchanged —

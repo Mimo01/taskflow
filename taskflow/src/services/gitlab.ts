@@ -1664,6 +1664,13 @@ export async function fetchBranchTargetedMRs(
  */
 const MR_PAGE_SIZE = 100;
 const MR_PAGE_CONCURRENCY = 5;
+/**
+ * Safety cap on pages walked in one fetch (= 50k MRs). Guards against a corrupt
+ * `x-total-pages` allocating an unbounded page list, and against an unbounded
+ * sequential walk if the API never returns a short page. Sibling fetchers in
+ * this file cap similarly (`searchProjectTags` 20, `fetchUserCommits` 50).
+ */
+const MR_MAX_PAGES = 500;
 
 /**
  * Fetch one page of merge requests, applying the shared error contract.
@@ -1726,23 +1733,39 @@ async function fetchAllMRPages(
 
   const totalPages = Number(first.response.headers?.get?.('x-total-pages') ?? Number.NaN);
 
+  // `page` is where the sequential tail resumes. The parallel phase (when the
+  // header is usable) advances it; otherwise the tail starts at page 2.
+  let page = 2;
+
+  // The header is a HINT, not a contract. Trusting it blindly is worse than the
+  // sequential walk it replaces: a stale or under-reporting `x-total-pages` would
+  // silently truncate the result set, and a corrupt large one would allocate an
+  // unbounded page list. Bound it, then verify with the sequential tail below.
   if (Number.isFinite(totalPages) && totalPages > 1) {
-    const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+    const boundedTotal = Math.min(totalPages, MR_MAX_PAGES);
+    const remaining = Array.from({ length: boundedTotal - 1 }, (_, i) => i + 2);
     for (let i = 0; i < remaining.length; i += MR_PAGE_CONCURRENCY) {
       const batch = remaining.slice(i, i + MR_PAGE_CONCURRENCY);
       const results = await Promise.all(
-        batch.map((page) => fetchMRPage(buildUrl(page), baseUrl, token, context, errorLabel)),
+        batch.map((p) => fetchMRPage(buildUrl(p), baseUrl, token, context, errorLabel)),
       );
       // Concat in page order — Promise.all preserves input order, so MR
       // ordering stays identical to the sequential walk it replaces.
       for (const r of results) allMRs.push(...r.data);
     }
-    return allMRs;
+    page = boundedTotal + 1;
+
+    // If the final advertised page came back FULL, the header under-reported
+    // (new MRs landed mid-fetch, or it was stale). Fall through to the tail
+    // rather than returning a short list that looks complete.
+    const lastPageWasFull = allMRs.length >= boundedTotal * MR_PAGE_SIZE;
+    if (!lastPageWasFull) return allMRs;
   }
 
-  // Fallback: no usable x-total-pages — walk sequentially until a short page.
-  let page = 2;
-  while (true) {
+  // Sequential tail: walk until a short page or the safety cap. Also the sole
+  // path when `x-total-pages` is absent (older GitLab, or a test double that
+  // does not model headers), so completeness never depends on the header.
+  while (page <= MR_MAX_PAGES) {
     const { data } = await fetchMRPage(buildUrl(page), baseUrl, token, context, errorLabel);
     allMRs.push(...data);
     if (data.length < MR_PAGE_SIZE) break;
