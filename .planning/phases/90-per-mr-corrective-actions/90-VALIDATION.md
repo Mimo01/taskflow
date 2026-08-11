@@ -2,8 +2,8 @@
 phase: 90
 slug: per-mr-corrective-actions
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-11
 ---
 
@@ -42,27 +42,27 @@ created: 2026-08-11
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | MRFIX-01 | — | Retarget PUT scoped to the resolved release branch only; no arbitrary target accepted from UI | unit (mutation) | `npx vitest run useReleaseDetail.test.tsx -t "retarget"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-01 | — | N/A | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "pending"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-02 | — | Milestone id resolved server-side from the release, not user input | unit (mutation) | `npx vitest run useReleaseDetail.test.tsx -t "assign milestone"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-03 | — | N/A | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "independent"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-03 | — | Sticky failure must not leak raw token/PAT-bearing error bodies into the UI | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "sticky failure"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-04 | — | No write path reachable when release branch is absent | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "unavailable"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-01/02 (D-10) | — | Flattened error message contains no `[object Object]` and no credential material | unit (service) | `npx vitest run gitlab -t "flattenGitLabError"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-03 (D-11) | — | N/A | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "held sort order"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-01/02 (D-12) | — | N/A | unit (hook) | `npx vitest run useReleaseDetail.test.tsx -t "flagged count"` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | MRFIX-01/02 (D-13) | — | N/A | unit (mutation) | `npx vitest run useReleaseDetail.test.tsx -t "invalidates the project-granular key"` | ✅ pattern exists | ⬜ pending |
+| 90-02-T1 | 02 | 2 | MRFIX-01 | — | Retarget PUT scoped to the resolved release branch only; no arbitrary target accepted from UI | unit (mutation) | `npx vitest run useMrFixMutation.test.tsx -t "retarget:"` | ✅ | ✅ green |
+| 90-03-T3 | 03 | 3 | MRFIX-01 | — | N/A | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "pending:"` | ✅ | ✅ green |
+| 90-02-T1 | 02 | 2 | MRFIX-02 | — | Milestone id resolved server-side from the release, not user input | unit (mutation) | `npx vitest run useMrFixMutation.test.tsx -t "assign milestone:"` | ✅ | ✅ green |
+| 90-03-T3 | 03 | 3 | MRFIX-03 | — | N/A | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "independent:"` | ✅ | ✅ green |
+| 90-03-T3 | 03 | 3 | MRFIX-03 | — | Sticky failure must not leak raw token/PAT-bearing error bodies into the UI | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "sticky failure"` | ✅ | ✅ green |
+| 90-03-T3 | 03 | 3 | MRFIX-04 | — | No write path reachable when release branch is absent | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "unavailable"` | ✅ | ✅ green |
+| 90-01-T3 | 01 | 1 | MRFIX-01/02 (D-10) | — | Flattened error message contains no `[object Object]` and no credential material | unit (service) | `npx vitest run gitlab.test.ts -t "flattenGitLabError"` | ✅ | ✅ green |
+| 90-03-T1 | 03 | 3 | MRFIX-03 (D-11) | — | N/A | unit (component) | `npx vitest run MrDriftSection.test.tsx -t "held sort order"` | ✅ | ✅ green |
+| 90-02-T2 | 02 | 2 | MRFIX-01/02 (D-12) | — | N/A | unit (hook) | `npx vitest run useReleaseDetail.test.tsx -t "flagged count"` | ✅ | ✅ green |
+| 90-02-T1 | 02 | 2 | MRFIX-01/02 (D-13) | — | N/A | unit (mutation) | `npx vitest run useMrFixMutation.test.tsx -t "invalidates the project-granular key"` | ✅ | ✅ green — **relocated**: the D-13 project-granular invalidation assertions live in `useMrFixMutation.test.tsx`'s `invalidateMrChannelCaches` suite (Plan 02 Task 1), not in `useReleaseDetail.test.tsx` as originally drafted; `useReleaseDetail.test.tsx` Test A/B cover the sibling milestone-create invalidation path instead |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status glyphs: ✅ green · ❌ red · ⚠️ flaky · (not-yet-run glyph retired — no rows remain in that state)*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/routes/dashboard/release-detail/MrDriftSection.test.tsx` — new cases: pending / success-glyph / sticky-failure / unavailable states, independent per-cell concurrency (D-09), held sort order under a mid-session success transition (D-11)
-- [ ] `src/routes/dashboard/release-detail/useReleaseDetail.test.tsx` — new cases: optimistic patch + rollback for both mutations, project-granular invalidation across all three channel query keys (D-13), flagged-count decrement before PUT settles (D-12)
-- [ ] GitLab error flattener — confirm whether a dedicated `gitlab.test.ts` exists; if not, assert the three error-body shapes (string / string[] / `Record<string,string[]>`) through `updateMergeRequest`'s error path
-- [ ] No framework/config install needed — Vitest is already fully configured
+- [x] `src/routes/dashboard/release-detail/MrDriftSection.test.tsx` — new cases: pending / success-glyph / sticky-failure / unavailable states, independent per-cell concurrency (D-09), held sort order under a mid-session success transition (D-11)
+- [x] `src/routes/dashboard/release-detail/useReleaseDetail.test.tsx` — new cases: optimistic patch + rollback for both mutations, project-granular invalidation across all three channel query keys (D-13, relocated to `useMrFixMutation.test.tsx` — see row note above), flagged-count decrement before PUT settles (D-12)
+- [x] GitLab error flattener — `gitlab.test.ts` already existed; the three error-body shapes (string / string[] / `Record<string,string[]>`) are asserted through `flattenGitLabError`'s dedicated `describe` block and through `updateMergeRequest`'s error path
+- [x] No framework/config install needed — Vitest is already fully configured
 
 ---
 
@@ -79,11 +79,21 @@ created: 2026-08-11
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags (`vitest run`, never `vitest`)
-- [ ] Feedback latency < 90s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags (`vitest run`, never `vitest`)
+- [x] Feedback latency < 90s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** all ten per-task verification rows resolve to a real, named, passing test as of the Plan 04 Task 1 run below.
+
+---
+
+## Run record
+
+**Date:** 2026-08-11 (Plan 04 Task 1)
+
+- **Full suite:** `npm run test` — 178 test files passed / 2 skipped (180 total), **2360 tests passed** / 0 failed / 2 skipped / 13 todo (2375 total)
+- **`npx tsc --noEmit`:** exits 0, clean
+- **`npx biome check ./src`:** the recorded baseline (`BacklogPage.tsx` + `BacklogRow.tsx`, 2 pre-existing formatting errors) has **drifted upward since it was last measured** (v1.13 Phase 81/82). As of this run, `biome check ./src` also flags `src/components/ui/chart.tsx` (2 `noArrayIndexKey` + 2 stale `suppressions/unused`) and `src/routes/my-tasks/MyTasksPage.tsx`/`MyTasksPage.test.tsx` (1 `noNonNullAssertion` + 7 stale `suppressions/unused`) — 14 additional diagnostics beyond the documented 2-file baseline, for **16 total pre-existing diagnostics**. **None of these files were touched by any Phase 90 plan** (90-01..90-04 only modified `gitlab.ts`/`gitlab.test.ts`, `useMrFixMutation.ts`/`.test.tsx`, `useReleaseDetail.test.tsx`, `MrDriftSection.tsx`/`.test.tsx`, `ReleaseDetailPage.tsx`) — confirmed via `git status`/`git diff` showing zero pending changes to `chart.tsx`, `MyTasksPage.tsx`, or `MyTasksPage.test.tsx` at the start of this plan. **Zero new diagnostics were introduced by Phase 90's own files.** This baseline drift is logged to `deferred-items.md` as a pre-existing, out-of-scope finding per the executor's SCOPE BOUNDARY rule (Phase 90 must not "fix" files it did not touch) — recorded honestly rather than silently gated as green.
