@@ -4,6 +4,7 @@
 // STAND-06: fetchUserMREvents - MR comments + approvals via GitLab User Events API
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  compareRefs,
   createBranch,
   createMilestone,
   fetchAllProjectMRs,
@@ -18,6 +19,7 @@ import {
   fetchProjectBranches,
   fetchProjectMilestones,
   fetchReviewerMRs,
+  fetchSourceBranchMRs,
   fetchUserCommits,
   fetchUserMREvents,
   flattenGitLabError,
@@ -568,6 +570,188 @@ describe('gitlab service', () => {
       await expect(
         fetchBranchTargetedMRs(BASE, TOKEN, PROJECT_ID, 'release/33.5.0'),
       ).rejects.toThrow('Cannot reach');
+    });
+  });
+
+  describe('fetchSourceBranchMRs (MERGE-02 tracking-MR lookup)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'glpat-test';
+    const PROJECT_ID = 42;
+
+    const makeMR = (iid: number) => ({
+      id: iid * 100,
+      iid,
+      project_id: PROJECT_ID,
+      title: `PROJ-${iid} something`,
+      source_branch: 'release/33.7.0',
+      target_branch: 'develop',
+      draft: false,
+      state: 'merged' as const,
+      author: { id: 1, name: 'A', username: 'a', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-06-01T00:00:00.000Z',
+      web_url: `${BASE}/mr/${iid}`,
+      labels: [],
+      milestone: null,
+    });
+
+    function mockPaginatedMRs(pages: Array<ReturnType<typeof makeMR>[]>) {
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        const pageMatch = typeof url === 'string' ? url.match(/[?&]page=(\d+)/) : null;
+        const pageNum = pageMatch ? Number(pageMatch[1]) : 1;
+        const data = pages[pageNum - 1] ?? [];
+        return { ok: true, status: 200, json: async () => data } as Response;
+      });
+    }
+
+    it('T-91-05: fully paginates a 100+3 fixture with no page cap (anti-page-cap regression)', async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => makeMR(i + 1));
+      const page2 = Array.from({ length: 3 }, (_, i) => makeMR(i + 101));
+      mockPaginatedMRs([page1, page2]);
+
+      const result = await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+
+      expect(result).toHaveLength(103);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      const [firstCallUrl] = vi.mocked(mockFetch).mock.calls[0] as [string, unknown];
+      const [secondCallUrl] = vi.mocked(mockFetch).mock.calls[1] as [string, unknown];
+      expect(firstCallUrl).toMatch(/page=1/);
+      expect(secondCallUrl).toMatch(/page=2/);
+    });
+
+    it('stops after a single short page, issuing exactly one request', async () => {
+      const page1 = Array.from({ length: 4 }, (_, i) => makeMR(i + 1));
+      mockPaginatedMRs([page1]);
+
+      const result = await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+
+      expect(result).toHaveLength(4);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('T-91-01: request URL contains percent-encoded source_branch, state=all, per_page=100', async () => {
+      mockPaginatedMRs([[]]);
+
+      await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+
+      const [calledUrl] = vi.mocked(mockFetch).mock.calls[0] as [string, unknown];
+      expect(calledUrl).toContain('source_branch=release%2F33.7.0');
+      expect(calledUrl).toMatch(/state=all/);
+      expect(calledUrl).toMatch(/per_page=100/);
+    });
+
+    it('rejects with ApiError with status 401', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0'),
+      ).rejects.toMatchObject({ status: 401 });
+    });
+
+    it('T-91-02: rejects with a generic Error containing "status 500" and never the token', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0'),
+      ).rejects.toThrow('status 500');
+      try {
+        await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+      } catch (err) {
+        expect((err as Error).message).not.toContain(TOKEN);
+      }
+    });
+  });
+
+  describe('compareRefs (MERGE-02 content comparison)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'glpat-test';
+    const PROJECT_ID = 42;
+
+    it('D-04: empty diff resolves to diffCount 0, commitCount 0, timedOut false', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ diffs: [], commits: [], compare_timeout: false }),
+      } as Response);
+
+      const result = await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
+
+      expect(result).toEqual({ diffCount: 0, commitCount: 0, timedOut: false });
+    });
+
+    it('non-empty diff resolves to diffCount 2, commitCount 12', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          diffs: [{}, {}],
+          commits: Array.from({ length: 12 }, () => ({})),
+          compare_timeout: false,
+        }),
+      } as Response);
+
+      const result = await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
+
+      expect(result).toEqual({ diffCount: 2, commitCount: 12, timedOut: false });
+    });
+
+    it('projects compare_timeout: true as timedOut: true', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ diffs: [], commits: [], compare_timeout: true }),
+      } as Response);
+
+      const result = await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
+
+      expect(result.timedOut).toBe(true);
+    });
+
+    it('T-91-01: URL contains percent-encoded from/to and never "straight"', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ diffs: [], commits: [], compare_timeout: false }),
+      } as Response);
+
+      await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
+
+      const [calledUrl] = vi.mocked(mockFetch).mock.calls[0] as [string, unknown];
+      expect(calledUrl).toContain(`from=${encodeURIComponent('develop')}`);
+      expect(calledUrl).toContain(`to=${encodeURIComponent('v33.7.0')}`);
+      expect(calledUrl).not.toContain('straight');
+    });
+
+    it('91-RESEARCH A1: a 404 (missing ref) REJECTS with a message containing "status 404", not a {exists:false}-style value', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'nonexistent-tag'),
+      ).rejects.toThrow('status 404');
+    });
+
+    it('rejects with ApiError with status 401', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0'),
+      ).rejects.toMatchObject({ status: 401 });
     });
   });
 
