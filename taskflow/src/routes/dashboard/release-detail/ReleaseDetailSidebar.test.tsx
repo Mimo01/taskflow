@@ -258,7 +258,9 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
     // form, not only a <button> — check every interactive element kind.
     expect(within(row).queryAllByRole('button')).toHaveLength(0);
     expect(
-      row.querySelectorAll('input, select, textarea, [role="checkbox"], [role="switch"], [role="menuitem"]'),
+      row.querySelectorAll(
+        'input, select, textarea, [role="checkbox"], [role="switch"], [role="menuitem"]',
+      ),
     ).toHaveLength(0);
     expect(row.textContent).not.toMatch(/override|dismiss|acknowledge|confirm/i);
   });
@@ -275,7 +277,9 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
     const row = screen.getByTestId('meta-row-merged-back');
     expect(within(row).queryAllByRole('button')).toHaveLength(0);
     expect(
-      row.querySelectorAll('input, select, textarea, [role="checkbox"], [role="switch"], [role="menuitem"]'),
+      row.querySelectorAll(
+        'input, select, textarea, [role="checkbox"], [role="switch"], [role="menuitem"]',
+      ),
     ).toHaveLength(0);
     expect(row.textContent).not.toMatch(/override|dismiss|acknowledge|confirm/i);
   });

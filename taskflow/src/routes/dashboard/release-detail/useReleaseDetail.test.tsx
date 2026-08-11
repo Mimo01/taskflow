@@ -119,7 +119,9 @@ async function setupMocks(
 
   const gitlab = await import('@/services/gitlab');
   vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([
-    makeMilestone(overrides.milestoneTitle !== undefined ? { title: overrides.milestoneTitle } : {}),
+    makeMilestone(
+      overrides.milestoneTitle !== undefined ? { title: overrides.milestoneTitle } : {},
+    ),
   ]);
   vi.mocked(gitlab.fetchProject).mockImplementation(
     (overrides.fetchProjectImpl ??
@@ -135,7 +137,8 @@ async function setupMocks(
   vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchSourceBranchMRs).mockImplementation(
-    (overrides.fetchSourceBranchMRsImpl ?? (() => Promise.resolve([]))) as typeof gitlab.fetchSourceBranchMRs,
+    (overrides.fetchSourceBranchMRsImpl ??
+      (() => Promise.resolve([]))) as typeof gitlab.fetchSourceBranchMRs,
   );
   vi.mocked(gitlab.compareRefs).mockImplementation(
     (overrides.compareRefsImpl ??
@@ -147,7 +150,8 @@ async function setupMocks(
         }))) as typeof gitlab.compareRefs,
   );
   vi.mocked(gitlab.searchProjectTags).mockImplementation(
-    (overrides.searchProjectTagsImpl ?? (() => Promise.resolve([]))) as typeof gitlab.searchProjectTags,
+    (overrides.searchProjectTagsImpl ??
+      (() => Promise.resolve([]))) as typeof gitlab.searchProjectTags,
   );
   vi.mocked(gitlab.createMilestone).mockResolvedValue(makeMilestone());
   vi.mocked(gitlab.createBranch).mockResolvedValue({

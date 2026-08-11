@@ -148,10 +148,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   const releaseBranchName = deriveReleaseBranchName(matchedMilestone?.title);
 
   // Fetch the project's default branch (D-14 — never a hardcoded fallback branch name).
-  const {
-    data: project,
-    isError: defaultBranchCheckFailed,
-  } = useQuery({
+  const { data: project, isError: defaultBranchCheckFailed } = useQuery({
     queryKey: ['gitlab-project', activeGitlabProject],
     queryFn: () => fetchProject(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
     enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
@@ -201,10 +198,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // error — a tag outage still does not escalate into a branch-row error.
   const needsTagLookup = releasedVersion && !!matchedVersionNumber;
 
-  const {
-    data: releaseTags,
-    isError: tagCheckFailed,
-  } = useQuery({
+  const { data: releaseTags, isError: tagCheckFailed } = useQuery({
     queryKey: ['gitlab-release-tags', activeGitlabProject, matchedVersionNumber],
     queryFn: () =>
       searchProjectTags(

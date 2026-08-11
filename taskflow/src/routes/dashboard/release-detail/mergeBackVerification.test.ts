@@ -278,12 +278,8 @@ describe('resolveMergeBackVerdict: CR-01/WR-02 target_branch filtering and deter
       merged_at: '2026-06-01T00:00:00.000Z',
     });
 
-    const ascending = resolveMergeBackVerdict(
-      makeParams({ trackingMRs: [earlier, later] }),
-    );
-    const descending = resolveMergeBackVerdict(
-      makeParams({ trackingMRs: [later, earlier] }),
-    );
+    const ascending = resolveMergeBackVerdict(makeParams({ trackingMRs: [earlier, later] }));
+    const descending = resolveMergeBackVerdict(makeParams({ trackingMRs: [later, earlier] }));
 
     expect(ascending).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 200 });
     expect(descending).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 200 });
@@ -294,9 +290,7 @@ describe('resolveMergeBackVerdict: CR-01/WR-02 target_branch filtering and deter
     const lowerIid: TrackingMR = makeMR({ iid: 100, merged_at: sameTime });
     const higherIid: TrackingMR = makeMR({ iid: 200, merged_at: sameTime });
 
-    const result = resolveMergeBackVerdict(
-      makeParams({ trackingMRs: [lowerIid, higherIid] }),
-    );
+    const result = resolveMergeBackVerdict(makeParams({ trackingMRs: [lowerIid, higherIid] }));
     expect(result).toMatchObject({ kind: 'merged', via: 'tracking-mr', mrIid: 200 });
   });
 
@@ -376,9 +370,7 @@ describe('resolveMergeBackVerdict: CR-03/CR-04 terminal fallbacks for permanentl
 
 describe('resolveMergeBackVerdict: tag-channel loading and failure guards (91-VERIFICATION truth 5)', () => {
   it('tagName null with tagLookupPending true and no merged MR yields loading, not couldnt-verify', () => {
-    const result = resolveMergeBackVerdict(
-      makeParams({ tagName: null, tagLookupPending: true }),
-    );
+    const result = resolveMergeBackVerdict(makeParams({ tagName: null, tagLookupPending: true }));
     expect(result.kind).not.toBe('couldnt-verify');
     expect(result).toEqual({ kind: 'loading' });
   });
