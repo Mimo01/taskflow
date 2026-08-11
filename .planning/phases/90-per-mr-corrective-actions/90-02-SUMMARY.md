@@ -166,3 +166,6 @@ None. All threat-model dispositions for this plan's files (T-90-06 through T-90-
 ---
 *Phase: 90-per-mr-corrective-actions*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+All created/modified files verified present on disk; all 4 commit hashes (e38674dd, 9270e86f, f80d8a2e, d01c0765) verified in git log.
