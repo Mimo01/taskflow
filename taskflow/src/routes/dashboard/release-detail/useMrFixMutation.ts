@@ -52,6 +52,23 @@ export type MrFixStatus = 'idle' | 'pending' | 'error';
 export { MR_CHANNEL_QUERY_PREFIXES };
 
 /**
+ * The only two fields this feature is allowed to write into a cached MR
+ * (WR-07).
+ *
+ * Deliberately NOT `Partial<GitLabMR>`: that accepted any field, and — because
+ * a spread copies keys that are *present with an `undefined` value* — let a
+ * caller writing `{ target_branch: someNullable ?? undefined }` erase a
+ * NON-optional field of `GitLabMR` in the cache. `evaluateBranchDrift` then
+ * compares `undefined !== releaseBranchName` and flags every row on the
+ * release. `patchMrInChannelCaches` additionally strips undefined-valued keys
+ * before spreading, so that call shape is a no-op instead of a corruption.
+ */
+export type MrFixPatch = {
+  target_branch?: string;
+  milestone?: GitLabMR['milestone'];
+};
+
+/**
  * Optimistically patch MR `mrId` with `patch` in every cached entry under the
  * three channel prefixes for `projectId`, regardless of the entry's windowed
  * suffix. Plural + prefix (not singular + exact key) because the windowed
@@ -72,12 +89,20 @@ export function patchMrInChannelCaches(
   queryClient: QueryClient,
   projectId: number,
   mrId: number,
-  patch: Partial<GitLabMR>,
+  patch: MrFixPatch,
 ): void {
+  // WR-07: `{ ...m, ...patch }` copies keys that are present with an
+  // `undefined` value, which would blank a required field. Drop them first —
+  // an all-undefined patch is a no-op, never a corruption. `null` is a real
+  // value here (an unassigned milestone) and is kept.
+  const defined = Object.entries(patch).filter(([, value]) => value !== undefined);
+  if (defined.length === 0) return;
+  const safePatch = Object.fromEntries(defined) as MrFixPatch;
+
   for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
     queryClient.setQueriesData<GitLabMR[]>(
       { queryKey: mrChannelKeys.channelForProject(prefix, projectId) },
-      (list) => list?.map((m) => (m.id === mrId ? { ...m, ...patch } : m)),
+      (list) => list?.map((m) => (m.id === mrId ? { ...m, ...safePatch } : m)),
     );
   }
 }
@@ -99,7 +124,7 @@ interface MrFixMutationContext {
    * restores only this field on only this MR, leaving every other field (the
    * sibling BR/MS cell's write) and every other row untouched (CR-01).
    */
-  previous: Partial<GitLabMR>;
+  previous: MrFixPatch;
 }
 
 /**
@@ -168,13 +193,13 @@ export function useMrFixMutation(args: {
       // is missing the patch below falls back to the MR's current value (a
       // no-op change) rather than writing an invalid one.
       if (!projectId) return undefined;
-      const patch: Partial<GitLabMR> =
+      const patch: MrFixPatch =
         action === 'retarget'
           ? { target_branch: targetBranch ?? mr.target_branch }
           : { milestone: milestone ?? mr.milestone };
       // CR-01: capture ONLY the field this action owns, so the rollback below
       // is an inverse patch rather than a whole-array restore.
-      const previous: Partial<GitLabMR> =
+      const previous: MrFixPatch =
         action === 'retarget' ? { target_branch: mr.target_branch } : { milestone: mr.milestone };
       patchMrInChannelCaches(queryClient, projectId, mr.id, patch);
       return { previous };
