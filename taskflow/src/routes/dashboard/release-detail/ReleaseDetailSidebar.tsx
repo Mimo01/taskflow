@@ -16,6 +16,8 @@ import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { MetaRow } from './MetaRow';
+import type { MergeBackVerdict } from './mergeBackVerification';
+import { formatEvidenceDate, formatVerdictDate } from './mergeBackVerification';
 import type { BranchState } from './releaseBranch';
 import type { LabelCoverage } from './releaseSummaries';
 
@@ -66,6 +68,7 @@ interface ReleaseDetailSidebarProps {
   gitlabMatch: ReleaseMatch;
   matchedMilestone: GitLabMilestone | null;
   branchState: BranchState;
+  mergeBackVerdict: MergeBackVerdict;
   defaultBranch: string | null;
   onCreateBranch: () => void;
   onRetryBranchCheck: () => void;
@@ -92,6 +95,7 @@ export function ReleaseDetailSidebar({
   gitlabMatch,
   matchedMilestone: _matchedMilestone,
   branchState,
+  mergeBackVerdict,
   defaultBranch,
   onCreateBranch,
   onRetryBranchCheck,
@@ -255,12 +259,12 @@ export function ReleaseDetailSidebar({
               className="inline-flex items-center gap-1 text-muted-foreground text-xs"
               title={
                 branchState.tagName
-                  ? `${branchState.branchName} was merged and deleted; tagged ${branchState.tagName}`
-                  : `${branchState.branchName} was merged and deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
+                  ? `${branchState.branchName} deleted · tagged ${branchState.tagName}`
+                  : `${branchState.branchName} deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
               }
               data-testid="branch-status-released"
             >
-              <Check className="size-3 shrink-0" />
+              <GitBranch className="size-3 shrink-0" />
               Released
               {branchState.tagName && <span className="font-mono">{branchState.tagName}</span>}
             </span>
@@ -274,6 +278,66 @@ export function ReleaseDetailSidebar({
             </span>
           )}
         </MetaRow>
+
+        {/* Merge-back verdict (MERGE-01/02) — hidden entirely (no "—") when
+            the check cannot be attempted at all (D-11). Pure text + icon +
+            native `title`, no interactive control of any kind (D-12/D-13). */}
+        {mergeBackVerdict.kind !== 'hidden' && (
+          <MetaRow label="Merged back">
+            {mergeBackVerdict.kind === 'loading' ? (
+              <span className="text-muted-foreground text-xs" data-testid="merge-back-loading">
+                Loading...
+              </span>
+            ) : mergeBackVerdict.kind === 'merged' && mergeBackVerdict.via === 'tracking-mr' ? (
+              <span
+                className="inline-flex items-center gap-1 text-green-600 text-xs dark:text-green-400"
+                data-testid="merge-back-merged"
+                title={
+                  formatEvidenceDate(mergeBackVerdict.mergedAt)
+                    ? `via !${mergeBackVerdict.mrIid}, merged ${formatEvidenceDate(mergeBackVerdict.mergedAt)}`
+                    : `via !${mergeBackVerdict.mrIid}`
+                }
+              >
+                <Check className="size-3 shrink-0" />
+                Merged into {mergeBackVerdict.defaultBranch}
+                {formatVerdictDate(mergeBackVerdict.mergedAt) &&
+                  ` · ${formatVerdictDate(mergeBackVerdict.mergedAt)}`}
+              </span>
+            ) : mergeBackVerdict.kind === 'merged' && mergeBackVerdict.via === 'content-compare' ? (
+              <span
+                className="inline-flex items-center gap-1 text-green-600 text-xs dark:text-green-400"
+                data-testid="merge-back-merged"
+                title={`no diff between ${mergeBackVerdict.tagName} and ${mergeBackVerdict.defaultBranch}`}
+              >
+                <Check className="size-3 shrink-0" />
+                Merged into {mergeBackVerdict.defaultBranch}
+              </span>
+            ) : mergeBackVerdict.kind === 'likely-not-merged' ? (
+              <span
+                className="inline-flex items-center gap-1 text-orange-600 text-xs dark:text-orange-400"
+                data-testid="merge-back-likely-not-merged"
+                title={`${mergeBackVerdict.tagName} has ${mergeBackVerdict.commitsNotInDefault} commits not in ${mergeBackVerdict.defaultBranch}`}
+              >
+                <AlertTriangle className="size-3 shrink-0" />
+                Likely not merged into {mergeBackVerdict.defaultBranch}
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 text-muted-foreground text-xs"
+                data-testid="merge-back-couldnt-verify"
+                title={
+                  mergeBackVerdict.reason === 'check-failed'
+                    ? 'the merge-back check could not be completed'
+                    : mergeBackVerdict.expectedTagName
+                      ? `no tracking MR and no ${mergeBackVerdict.expectedTagName} tag found`
+                      : 'no tracking MR and no release tag found'
+                }
+              >
+                Couldn't verify
+              </span>
+            )}
+          </MetaRow>
+        )}
 
         <MetaRow label="MR Labels">
           {gitlabMatch.type === 'none' ? (

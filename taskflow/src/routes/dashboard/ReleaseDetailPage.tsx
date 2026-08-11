@@ -60,6 +60,7 @@ export default function ReleaseDetailPage() {
     gitlabMatch,
     matchedMilestone,
     branchState,
+    mergeBackVerdict,
     refetchBranchCheck,
     releaseBranchName,
     defaultBranch,
@@ -324,6 +325,7 @@ export default function ReleaseDetailPage() {
             gitlabMatch={gitlabMatch}
             matchedMilestone={matchedMilestone}
             branchState={branchState}
+            mergeBackVerdict={mergeBackVerdict}
             defaultBranch={defaultBranch}
             onCreateBranch={() => {
               createBranchMutation.reset();

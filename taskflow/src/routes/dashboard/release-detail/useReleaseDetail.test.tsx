@@ -36,6 +36,9 @@ vi.mock('@/services/gitlab', async (importOriginal) => ({
   fetchMilestoneMRs: vi.fn(),
   fetchAllProjectMRs: vi.fn(),
   fetchBranchTargetedMRs: vi.fn(),
+  fetchSourceBranchMRs: vi.fn(),
+  compareRefs: vi.fn(),
+  searchProjectTags: vi.fn(),
   updateMergeRequest: vi.fn(),
 }));
 
@@ -79,6 +82,7 @@ async function setupMocks(
     activeGitlabProject?: number | null;
     gitlabBaseUrl?: string | null;
     fetchBranchImpl?: () => Promise<{ exists: boolean }>;
+    released?: boolean;
   } = {},
 ) {
   const auth = await import('@/stores/auth.store');
@@ -95,7 +99,12 @@ async function setupMocks(
 
   const jira = await import('@/services/jira');
   vi.mocked(jira.fetchFixVersions).mockResolvedValue([
-    { id: VERSION_ID, name: '33.5.0', releaseDate: RELEASE_DATE, released: false },
+    {
+      id: VERSION_ID,
+      name: '33.5.0',
+      releaseDate: RELEASE_DATE,
+      released: overrides.released ?? false,
+    },
   ]);
   vi.mocked(jira.fetchVersionIssueCounts).mockResolvedValue({
     issuesFixed: 0,
@@ -114,6 +123,13 @@ async function setupMocks(
   vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([]);
   vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([]);
+  vi.mocked(gitlab.fetchSourceBranchMRs).mockResolvedValue([]);
+  vi.mocked(gitlab.compareRefs).mockResolvedValue({
+    diffCount: 0,
+    commitCount: 0,
+    timedOut: false,
+  });
+  vi.mocked(gitlab.searchProjectTags).mockResolvedValue([]);
   vi.mocked(gitlab.createMilestone).mockResolvedValue(makeMilestone());
   vi.mocked(gitlab.createBranch).mockResolvedValue({
     name: 'release/33.5.0',
@@ -412,5 +428,92 @@ describe('useReleaseDetail', () => {
     });
 
     await waitFor(() => expect(result.current.driftFlaggedCount).toBe(0));
+  });
+});
+
+describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('an unreleased version fires zero extra GitLab calls', async () => {
+    await setupMocks({ released: false });
+    const gitlab = await import('@/services/gitlab');
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    // Let the existing branch-existence query settle before asserting the
+    // negative — otherwise "zero calls" could just mean "not finished yet".
+    await waitFor(() => expect(result.current.branchState.kind).not.toBe('loading'));
+
+    expect(gitlab.fetchSourceBranchMRs).toHaveBeenCalledTimes(0);
+    expect(gitlab.compareRefs).toHaveBeenCalledTimes(0);
+  });
+
+  it('a released version fires the tracking-MR query with the derived release branch name', async () => {
+    await setupMocks({ released: true });
+    const gitlab = await import('@/services/gitlab');
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.releaseBranchName).toBe('release/33.5.0'));
+    await waitFor(() => expect(gitlab.fetchSourceBranchMRs).toHaveBeenCalled());
+
+    expect(vi.mocked(gitlab.fetchSourceBranchMRs).mock.calls[0][3]).toBe('release/33.5.0');
+  });
+
+  it('a released version with a resolved tag fires the compare query with default branch and tag', async () => {
+    await setupMocks({ released: true });
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.searchProjectTags).mockResolvedValue([
+      { name: 'v33.5.0' } as Awaited<ReturnType<typeof gitlab.searchProjectTags>>[number],
+    ]);
+    vi.mocked(gitlab.fetchProject).mockResolvedValue({
+      default_branch: 'develop',
+    } as Awaited<ReturnType<typeof gitlab.fetchProject>>);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(gitlab.compareRefs).toHaveBeenCalled());
+    const call = vi.mocked(gitlab.compareRefs).mock.calls[0];
+    expect(call[3]).toBe('develop');
+    expect(call[4]).toBe('v33.5.0');
+    expect(result.current.mergeBackVerdict.kind).not.toBe('loading');
+  });
+
+  it('tag lookup fires for a released version even when the branch still exists (D-01 widened gate)', async () => {
+    await setupMocks({
+      released: true,
+      fetchBranchImpl: () => Promise.resolve({ exists: true }),
+    });
+    const gitlab = await import('@/services/gitlab');
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.branchState.kind).toBe('exists'));
+    await waitFor(() => expect(gitlab.searchProjectTags).toHaveBeenCalled());
+  });
+
+  it('exposes mergeBackVerdict with a kind property', async () => {
+    await setupMocks({ released: true });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.mergeBackVerdict).toHaveProperty('kind'));
   });
 });

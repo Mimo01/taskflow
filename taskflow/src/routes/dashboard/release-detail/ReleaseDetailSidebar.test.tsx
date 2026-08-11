@@ -1,10 +1,11 @@
 // RELBR-02/RELBR-03: sidebar renders every BranchState variant with UI-SPEC copy
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
+import type { MergeBackVerdict } from './mergeBackVerification';
 import type { BranchState } from './releaseBranch';
 import { ReleaseDetailSidebar } from './ReleaseDetailSidebar';
 
@@ -36,6 +37,7 @@ function renderSidebar(overrides: { branchState: BranchState } & Record<string, 
       version={makeVersion()}
       gitlabMatch={noneMatch}
       matchedMilestone={null}
+      mergeBackVerdict={{ kind: 'hidden' } satisfies MergeBackVerdict}
       defaultBranch={null}
       onCreateBranch={() => {}}
       onCreateMilestone={() => {}}
@@ -115,6 +117,10 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     // A shipped release must not invite re-creating its merged branch.
     expect(screen.queryByRole('button', { name: /create branch/i })).not.toBeInTheDocument();
     expect(screen.queryByTestId('branch-status-missing')).not.toBeInTheDocument();
+    // D-08: the row must never claim an unverified merge — the "Merged back"
+    // row is the sole owner of that claim.
+    expect(el.title).not.toMatch(/merged/i);
+    expect(el.title).toMatch(/deleted/);
   });
 
   it('renders the released state without a tag — a missing tag is not evidence of drift', () => {
@@ -124,6 +130,8 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     const el = screen.getByTestId('branch-status-released');
     expect(el).toHaveTextContent('Released');
     expect(screen.queryByTestId('branch-status-missing')).not.toBeInTheDocument();
+    expect(el.title).not.toMatch(/merged/i);
+    expect(el.title).toMatch(/deleted/);
   });
 
   it('Test F: renders the check-failed state', () => {
@@ -151,5 +159,130 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
       branchState: { kind: 'check-failed', branchName: 'release/33.5.0' },
     });
     expect(screen.queryByRole('button', { name: 'Create branch' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
+  const baseBranchState: BranchState = { kind: 'exists', branchName: 'release/33.5.0' };
+
+  it('hides the row entirely for the hidden verdict', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: { kind: 'hidden' },
+    });
+    expect(screen.queryByText('Merged back')).toBeNull();
+    expect(screen.queryByTestId('merge-back-loading')).toBeNull();
+    expect(screen.queryByTestId('merge-back-merged')).toBeNull();
+    expect(screen.queryByTestId('merge-back-likely-not-merged')).toBeNull();
+    expect(screen.queryByTestId('merge-back-couldnt-verify')).toBeNull();
+  });
+
+  it('renders the loading verdict', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: { kind: 'loading' },
+    });
+    const el = screen.getByTestId('merge-back-loading');
+    expect(el).toHaveTextContent('Loading...');
+  });
+
+  it('renders the merged/tracking-mr verdict with a mergedAt date', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'merged',
+        via: 'tracking-mr',
+        defaultBranch: 'develop',
+        mrIid: 4821,
+        mrUrl: 'https://gitlab.example.com/mr/4821',
+        mergedAt: '2026-07-21T10:00:00Z',
+      },
+    });
+    const el = screen.getByTestId('merge-back-merged');
+    expect(el).toHaveTextContent('Merged into develop');
+    expect(el).toHaveTextContent('21 Jul');
+    expect(el.title).toBe('via !4821, merged 21.07.2026');
+  });
+
+  it('renders the merged/tracking-mr verdict with mergedAt: null (P-03)', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'merged',
+        via: 'tracking-mr',
+        defaultBranch: 'develop',
+        mrIid: 4821,
+        mrUrl: 'https://gitlab.example.com/mr/4821',
+        mergedAt: null,
+      },
+    });
+    const el = screen.getByTestId('merge-back-merged');
+    expect(el.textContent).toContain('Merged into develop');
+    expect(el.textContent).not.toContain('·');
+    expect(el.title).toBe('via !4821');
+  });
+
+  it('renders the merged/content-compare verdict (P-02)', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'merged',
+        via: 'content-compare',
+        defaultBranch: 'develop',
+        tagName: 'v33.7.0',
+      },
+    });
+    const el = screen.getByTestId('merge-back-merged');
+    expect(el).toHaveTextContent('Merged into develop');
+    expect(el.title).toBe('no diff between v33.7.0 and develop');
+  });
+
+  it('renders the likely-not-merged verdict, with no button in the row (D-12 lock)', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'likely-not-merged',
+        defaultBranch: 'develop',
+        tagName: 'v33.7.0',
+        commitsNotInDefault: 12,
+      },
+    });
+    const el = screen.getByTestId('merge-back-likely-not-merged');
+    expect(el).toHaveTextContent('Likely not merged into develop');
+    expect(el.title).toBe('v33.7.0 has 12 commits not in develop');
+    // Scope to the row itself (not the whole sidebar) — the sidebar has an
+    // unrelated "Edit" button elsewhere.
+    const row = el.closest('.flex.items-start.gap-2');
+    expect(row).not.toBeNull();
+    if (row) {
+      expect(within(row as HTMLElement).queryAllByRole('button')).toHaveLength(0);
+    }
+  });
+
+  it('renders the couldnt-verify/no-mr-no-tag verdict', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'couldnt-verify',
+        reason: 'no-mr-no-tag',
+        expectedTagName: 'v33.7.0',
+      },
+    });
+    const el = screen.getByTestId('merge-back-couldnt-verify');
+    expect(el).toHaveTextContent("Couldn't verify");
+    expect(el.title).toBe('no tracking MR and no v33.7.0 tag found');
+  });
+
+  it('renders the couldnt-verify/check-failed verdict', () => {
+    renderSidebar({
+      branchState: baseBranchState,
+      mergeBackVerdict: {
+        kind: 'couldnt-verify',
+        reason: 'check-failed',
+        expectedTagName: 'v33.7.0',
+      },
+    });
+    const el = screen.getByTestId('merge-back-couldnt-verify');
+    expect(el.title).toBe('the merge-back check could not be completed');
   });
 });
