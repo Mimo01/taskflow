@@ -1818,11 +1818,14 @@ export async function fetchBranchTargetedMRs(
 
 /**
  * Find every MR sourced from a release branch (MERGE-02 tracking-MR lookup),
- * fully paginated with no page cap and no client-side filter.
+ * fully paginated (bounded at 20 pages, matching `searchProjectTags`) with no
+ * client-side filter.
  *
  * This is the recurring bug class in this repo — fetch one capped page then
  * filter client-side — see project memory (fetch-once page-cap pitfall) and
- * D-17/GGX-WARN-01. Do not add a page cap and do not fetch one page and slice.
+ * D-17/GGX-WARN-01. Do not convert this to a single-page fetch with a
+ * client-side filter/slice; the page ceiling below only bounds the walk, it
+ * does not replace full pagination.
  *
  * @param baseUrl      - GitLab base URL
  * @param token        - Personal Access Token
@@ -1831,7 +1834,10 @@ export async function fetchBranchTargetedMRs(
  *                       `release/33.5.0`); percent-encoded so `/` in release
  *                       branch names can't inject additional query params or
  *                       path segments (T-91-01)
- * @returns Array of MRs sourced from `sourceBranch` (all states)
+ * @returns Array of MRs sourced from `sourceBranch` (all states); each MR's
+ *          `target_branch` is preserved verbatim so the caller (the
+ *          resolver, Plan 91-05) can filter on it — this function performs
+ *          no target_branch filtering of its own
  */
 export async function fetchSourceBranchMRs(
   baseUrl: string,
@@ -1841,10 +1847,13 @@ export async function fetchSourceBranchMRs(
 ): Promise<GitLabMR[]> {
   const base = baseUrl.replace(/\/$/, '');
   const perPage = 100;
-  let page = 1;
+  // Bounded so a paginating server that never shrinks a page cannot spin
+  // forever; 20 pages covers 2000 MRs from one source branch, consistent
+  // with searchProjectTags's maxPages = 20.
+  const maxPages = 20;
   const allMRs: GitLabMR[] = [];
 
-  while (true) {
+  for (let page = 1; page <= maxPages; page++) {
     const url = `${base}/api/v4/projects/${projectId}/merge_requests?source_branch=${encodeURIComponent(sourceBranch)}&state=all&per_page=${perPage}&page=${page}`;
 
     let response: Response;
@@ -1872,7 +1881,6 @@ export async function fetchSourceBranchMRs(
     allMRs.push(...data);
 
     if (data.length < perPage) break;
-    page++;
   }
 
   return allMRs;
