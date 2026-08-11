@@ -120,3 +120,12 @@ None - no external service configuration required.
 ---
 *Phase: 89-three-channel-drift-detection*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+- `taskflow/src/routes/dashboard/ReleasesTab.tsx` — FOUND on disk
+- `taskflow/src/routes/dashboard/ReleasesTab.test.tsx` — FOUND on disk
+- `.planning/phases/89-three-channel-drift-detection/89-04-SUMMARY.md` — FOUND on disk
+- Commit `b4b14204` (Task 1) — FOUND in `git log --oneline --all`
+- Commit `aded3767` (Task 2) — FOUND in `git log --oneline --all`
+- Commit `e97b5366` (SUMMARY) — FOUND in `git log --oneline --all`
