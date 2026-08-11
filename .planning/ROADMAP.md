@@ -227,8 +227,8 @@ Plans:
 
 **Wave 1** *(parallel — no shared files)*
 
-- [ ] 91-04-PLAN.md — CR-02 fail-closed `compareRefs` payload validation + WR-06 page ceiling on `fetchSourceBranchMRs`, with `target_branch` fixture coverage
-- [ ] 91-05-PLAN.md — CR-01/WR-02 `target_branch === defaultBranch` filter + deterministic merged-MR pick, and CR-03/CR-04 terminal fallbacks in `resolveMergeBackVerdict`
+- [x] 91-04-PLAN.md — CR-02 fail-closed `compareRefs` payload validation + WR-06 page ceiling on `fetchSourceBranchMRs`, with `target_branch` fixture coverage
+- [x] 91-05-PLAN.md — CR-01/WR-02 `target_branch === defaultBranch` filter + deterministic merged-MR pick, and CR-03/CR-04 terminal fallbacks in `resolveMergeBackVerdict`
 
 **Wave 2** *(blocked on 91-05)*
 
@@ -306,7 +306,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
 | 89. Three-Channel Drift Detection | 5/5 | Complete    | 2026-08-11 |
 | 90. Per-MR Corrective Actions | 4/4 | Complete    | 2026-08-11 |
-| 91. Post-Release Merge-Back Verification | 3/3 | Complete   | 2026-08-11 |
+| 91. Post-Release Merge-Back Verification | 5/6 | In Progress|  |
 
 | Milestone | Phases | Plans | Shipped |
 |-----------|--------|-------|---------|
