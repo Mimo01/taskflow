@@ -247,8 +247,16 @@ export default function ReleaseDetailPage() {
                 onSeedBreadcrumb={seedReleaseBreadcrumb}
               />
 
-              {/* MR-first drift section (D-01): sibling below the Issues table */}
+              {/* MR-first drift section (D-01): sibling below the Issues table.
+                  WR-09: `key` remounts the section when the release changes —
+                  navigating to an already-cached release skips the skeleton
+                  branch above, so nothing else would remount it, and both the
+                  D-11 held row order and the per-cell fix state would carry
+                  over from the previous release. `versionId` is also passed so
+                  the held order resets even if this key is ever dropped. */}
               <MrDriftSection
+                key={versionId}
+                versionId={versionId}
                 rows={driftRows}
                 flaggedCount={driftFlaggedCount}
                 hasMatchedMilestone={hasMatchedMilestone}

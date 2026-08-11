@@ -356,6 +356,52 @@ describe('MrDriftSection', () => {
       expect(rows[2]).toHaveTextContent('!3');
     });
 
+    // WR-09: the held order is per-release. Navigating to an already-cached
+    // release reuses this component instance (no route key, skeleton branch
+    // skipped), so the ids used to stay those of the previous release —
+    // shared MRs jumped to the top and every other row fell into the
+    // append-last bucket.
+    it('resets the held order when versionId changes, and holds it while versionId is stable', () => {
+      const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
+      const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+      const rowC = makeRow({ mr: makeMR({ id: 3, iid: 3 }) });
+
+      const renderFor = (versionId: string, rows: DriftRow[]) => (
+        <MrDriftSection
+          versionId={versionId}
+          rows={rows}
+          flaggedCount={0}
+          hasMatchedMilestone={true}
+          isLoading={false}
+          onNavigateToIssueFromMR={() => {}}
+          fix={DEFAULT_FIX}
+        />
+      );
+
+      const { rerender } = renderWithClient(renderFor('100', [rowA, rowB]));
+      expect(screen.getAllByTestId('drift-row')[0]).toHaveTextContent('!1');
+
+      // Same release, re-sorted incoming order: still frozen (D-11 holds).
+      rerender(renderFor('100', [rowB, rowA]));
+      let rows = screen.getAllByTestId('drift-row');
+      expect(rows[0]).toHaveTextContent('!1');
+      expect(rows[1]).toHaveTextContent('!2');
+
+      // Different release: the previous release's order must NOT be applied —
+      // rowC is new here and would otherwise be shunted to the bottom.
+      rerender(renderFor('200', [rowC, rowB]));
+      rows = screen.getAllByTestId('drift-row');
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent('!3');
+      expect(rows[1]).toHaveTextContent('!2');
+
+      // ...and the NEW release's order is now the one being held.
+      rerender(renderFor('200', [rowB, rowC]));
+      rows = screen.getAllByTestId('drift-row');
+      expect(rows[0]).toHaveTextContent('!3');
+      expect(rows[1]).toHaveTextContent('!2');
+    });
+
     it('a first render with rows: [] (loading) does not freeze an empty order — the first real row list is captured', () => {
       const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
       const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });

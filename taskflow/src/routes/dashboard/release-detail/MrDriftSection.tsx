@@ -61,6 +61,16 @@ interface MrDriftSectionProps {
   isLoading: boolean;
   onNavigateToIssueFromMR: (key: string) => void;
   fix: MrFixContext;
+  /**
+   * Identity of the release being shown (WR-09). The D-11 held order is
+   * per-release, and the route `/release/:versionId` reuses this component
+   * instance when navigating to an ALREADY-CACHED release (the skeleton
+   * branch in ReleaseDetailPage is skipped, so nothing remounts). Without
+   * this, the held ids stayed those of the previous release: shared MRs
+   * jumped to the top, every other row fell into the append-last bucket, and
+   * the freeze was silently inoperative for the release actually on screen.
+   */
+  versionId?: string;
 }
 
 const CHANNEL_NAMES: Record<Channel, string> = {
@@ -307,6 +317,7 @@ export function MrDriftSection({
   isLoading,
   onNavigateToIssueFromMR,
   fix,
+  versionId,
 }: MrDriftSectionProps) {
   // D-11: capture the incoming row order on first non-empty render and hold
   // it for the life of the mounted list. Wrong-branch and missing-milestone
@@ -317,6 +328,14 @@ export function MrDriftSection({
   // guarantee. Re-sorting resumes on the next mount/navigation, since the
   // ref is re-created then.
   const orderRef = useRef<number[] | null>(null);
+  // WR-09: "the life of the mounted list" means the life of ONE release. The
+  // route has no `key`, so navigating to an already-cached release reuses this
+  // instance and would otherwise hold the previous release's ids forever.
+  const heldForVersion = useRef(versionId);
+  if (heldForVersion.current !== versionId) {
+    heldForVersion.current = versionId;
+    orderRef.current = null;
+  }
   if (orderRef.current === null && rows.length > 0) {
     orderRef.current = rows.map((r) => r.mr.id);
   }
