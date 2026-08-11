@@ -109,7 +109,12 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
 
   it('renders the released state with its tag, and offers no Create action', () => {
     renderSidebar({
-      branchState: { kind: 'released', branchName: 'release/33.6.0', tagName: 'v33.6.0' },
+      branchState: {
+        kind: 'released',
+        branchName: 'release/33.6.0',
+        tagName: 'v33.6.0',
+        tagChannel: 'resolved',
+      },
     });
     const el = screen.getByTestId('branch-status-released');
     expect(el).toHaveTextContent('Released');
@@ -125,13 +130,69 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
 
   it('renders the released state without a tag — a missing tag is not evidence of drift', () => {
     renderSidebar({
-      branchState: { kind: 'released', branchName: 'release/33.5.0', tagName: null },
+      branchState: {
+        kind: 'released',
+        branchName: 'release/33.5.0',
+        tagName: null,
+        tagChannel: 'resolved',
+      },
     });
     const el = screen.getByTestId('branch-status-released');
     expect(el).toHaveTextContent('Released');
     expect(screen.queryByTestId('branch-status-missing')).not.toBeInTheDocument();
     expect(el.title).not.toMatch(/merged/i);
     expect(el.title).toMatch(/deleted/);
+  });
+
+  it('resolved + null tag still asserts the exact "No matching tag found" sentence', () => {
+    renderSidebar({
+      branchState: {
+        kind: 'released',
+        branchName: 'release/33.5.0',
+        tagName: null,
+        tagChannel: 'resolved',
+      },
+    });
+    const el = screen.getByTestId('branch-status-released');
+    expect(el.title).toContain('No matching tag found');
+  });
+
+  it('does not claim "No matching tag found" while the tag channel is pending', () => {
+    renderSidebar({
+      branchState: {
+        kind: 'released',
+        branchName: 'release/33.5.0',
+        tagName: null,
+        tagChannel: 'pending',
+      },
+    });
+    const el = screen.getByTestId('branch-status-released');
+    expect(el.title).not.toContain('No matching tag found');
+    expect(el.title).toMatch(/deleted/);
+    expect(el.title).not.toMatch(/merged/i);
+    expect(el).toHaveTextContent('Released');
+    expect(
+      screen.queryByRole('button', { name: /create branch|override|dismiss|acknowledge/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not claim "No matching tag found" while the tag channel failed', () => {
+    renderSidebar({
+      branchState: {
+        kind: 'released',
+        branchName: 'release/33.5.0',
+        tagName: null,
+        tagChannel: 'failed',
+      },
+    });
+    const el = screen.getByTestId('branch-status-released');
+    expect(el.title).not.toContain('No matching tag found');
+    expect(el.title).toMatch(/deleted/);
+    expect(el.title).not.toMatch(/merged/i);
+    expect(el).toHaveTextContent('Released');
+    expect(
+      screen.queryByRole('button', { name: /create branch|override|dismiss|acknowledge/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('Test F: renders the check-failed state', () => {
