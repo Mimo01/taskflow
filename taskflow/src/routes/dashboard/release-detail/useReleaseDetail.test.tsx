@@ -87,6 +87,7 @@ async function setupMocks(
     milestoneTitle?: string;
     fetchSourceBranchMRsImpl?: () => Promise<unknown[]>;
     compareRefsImpl?: () => Promise<{ diffCount: number; commitCount: number; timedOut: boolean }>;
+    searchProjectTagsImpl?: () => Promise<unknown[]>;
   } = {},
 ) {
   const auth = await import('@/stores/auth.store');
@@ -145,7 +146,9 @@ async function setupMocks(
           timedOut: false,
         }))) as typeof gitlab.compareRefs,
   );
-  vi.mocked(gitlab.searchProjectTags).mockResolvedValue([]);
+  vi.mocked(gitlab.searchProjectTags).mockImplementation(
+    (overrides.searchProjectTagsImpl ?? (() => Promise.resolve([]))) as typeof gitlab.searchProjectTags,
+  );
   vi.mocked(gitlab.createMilestone).mockResolvedValue(makeMilestone());
   vi.mocked(gitlab.createBranch).mockResolvedValue({
     name: 'release/33.5.0',
@@ -624,5 +627,116 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
     if (verdict.kind === 'merged') {
       expect(verdict.via).toBe('tracking-mr');
     }
+  });
+
+  // 91-VERIFICATION truth 5 / 91-08 Task 1: the reported failure sequence —
+  // the tracking-MR query resolves to [] while the tag query is still in
+  // flight must render 'loading', never a terminal 'couldnt-verify' claim,
+  // until the tag query itself settles.
+  it('a slow-resolving searchProjectTags keeps the verdict at loading, not a terminal couldnt-verify claim', async () => {
+    let resolveTags: ((tags: unknown[]) => void) | undefined;
+    const tagPromise = new Promise<unknown[]>((resolve) => {
+      resolveTags = resolve;
+    });
+
+    await setupMocks({
+      released: true,
+      fetchSourceBranchMRsImpl: () => Promise.resolve([]),
+      searchProjectTagsImpl: () => tagPromise,
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.releaseBranchName).toBe('release/33.5.0'));
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('loading'));
+    expect(result.current.mergeBackVerdict.kind).not.toBe('couldnt-verify');
+
+    // Settle the tag promise now — the row should only make the terminal
+    // claim after the channel actually settles.
+    act(() => {
+      resolveTags?.([]);
+    });
+
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('couldnt-verify'));
+    const verdict = result.current.mergeBackVerdict;
+    if (verdict.kind === 'couldnt-verify') {
+      expect(verdict.reason).toBe('no-mr-no-tag');
+    }
+  });
+
+  it('a rejecting searchProjectTags resolves to couldnt-verify/check-failed, never no-mr-no-tag', async () => {
+    await setupMocks({
+      released: true,
+      fetchSourceBranchMRsImpl: () => Promise.resolve([]),
+      searchProjectTagsImpl: () =>
+        Promise.reject(new Error('Failed to load release tags: status 500')),
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('couldnt-verify'));
+    const verdict = result.current.mergeBackVerdict;
+    expect(verdict.kind).not.toBe('loading');
+    if (verdict.kind === 'couldnt-verify') {
+      expect(verdict.reason).toBe('check-failed');
+      expect(verdict.reason).not.toBe('no-mr-no-tag');
+    }
+  });
+
+  it('a merged default-branch tracking MR still resolves to merged even when the tag channel fails (D-02)', async () => {
+    await setupMocks({
+      released: true,
+      fetchProjectImpl: () => Promise.resolve({ default_branch: 'develop' }),
+      fetchSourceBranchMRsImpl: () =>
+        Promise.resolve([
+          {
+            iid: 5,
+            state: 'merged',
+            target_branch: 'develop',
+            web_url: 'https://gitlab.example.com/mr/5',
+            merged_at: '2026-07-20T00:00:00.000Z',
+          },
+        ]),
+      searchProjectTagsImpl: () =>
+        Promise.reject(new Error('Failed to load release tags: status 500')),
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('merged'));
+    const verdict = result.current.mergeBackVerdict;
+    if (verdict.kind === 'merged') {
+      expect(verdict.via).toBe('tracking-mr');
+    }
+  });
+
+  // CR-03 regression lock for the new tagLookupPending derivation: an
+  // unparseable milestone title means the tag query never fires (no
+  // derivable version number), so it must not be misreported as pending.
+  it('an unparseable milestone title never fires searchProjectTags and still terminates', async () => {
+    await setupMocks({
+      released: true,
+      milestoneTitle: 'Sprint planning (21.07.2026)',
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.matchedMilestone).not.toBeNull());
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).not.toBe('loading'));
+
+    const gitlab = await import('@/services/gitlab');
+    expect(gitlab.searchProjectTags).not.toHaveBeenCalled();
   });
 });
