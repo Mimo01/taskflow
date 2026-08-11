@@ -167,12 +167,44 @@ function DriftActionCell({
   const actionable = mark === 'flag' && configComplete && prereqReady;
 
   const rootClassName = 'flex-none w-[28px] flex items-center justify-center';
+  const actionLabel =
+    action === 'retarget'
+      ? `Retarget to ${fix.releaseBranchName}`
+      : `Assign milestone ${fix.matchedMilestone?.title}`;
+
+  /**
+   * WR-05: the failure message is otherwise announced to nobody — it lives
+   * only in a title/aria-label on an element the user may not be focused on.
+   * The region is rendered in EVERY button state (empty while idle/pending)
+   * so it already exists in the DOM when the text arrives; a live region that
+   * mounts together with its content is unreliably announced.
+   */
+  const liveRegion = (
+    <span role="status" aria-live="polite" className="sr-only">
+      {status === 'error' ? (errorMessage ?? 'Update failed') : ''}
+    </span>
+  );
 
   if (status === 'pending') {
+    // WR-05: stays a <button> (never a <span>) so a keyboard user who just
+    // activated this cell keeps the focus ring — swapping the element type
+    // dropped focus to document.body and forced a re-traversal of the row.
+    // `aria-disabled` rather than `disabled`, because browsers blur a focused
+    // element the moment it becomes disabled — which is the bug, not the fix.
+    // The click itself is already inert: `fire()` returns early while pending.
     return (
-      <span data-testid={testId} className={rootClassName}>
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={fire}
+        aria-disabled="true"
+        aria-busy="true"
+        aria-label={actionLabel}
+        className={`${rootClassName} rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+      >
         <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-      </span>
+        {liveRegion}
+      </button>
     );
   }
 
@@ -188,6 +220,7 @@ function DriftActionCell({
         className={`${rootClassName} rounded hover:bg-accent hover:ring-1 hover:ring-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
       >
         <AlertTriangle className="size-3.5 text-red-600 dark:text-red-400" />
+        {liveRegion}
       </button>
     );
   }
@@ -221,10 +254,6 @@ function DriftActionCell({
     );
   }
 
-  const label =
-    action === 'retarget'
-      ? `Retarget to ${fix.releaseBranchName}`
-      : `Assign milestone ${fix.matchedMilestone?.title}`;
   const ActionIcon = action === 'retarget' ? GitBranch : Milestone;
 
   return (
@@ -232,12 +261,13 @@ function DriftActionCell({
       type="button"
       data-testid={testId}
       onClick={fire}
-      title={label}
-      aria-label={label}
+      title={actionLabel}
+      aria-label={actionLabel}
       className={`${rootClassName} group/fix rounded hover:bg-accent hover:ring-1 hover:ring-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
     >
       <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400 group-hover/row:hidden group-focus-visible/fix:hidden" />
       <ActionIcon className="size-3.5 hidden group-hover/row:block group-focus-visible/fix:block" />
+      {liveRegion}
     </button>
   );
 }
