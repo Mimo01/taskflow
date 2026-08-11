@@ -1759,20 +1759,33 @@ async function fetchAllMRPages(
  * Fully paginated with no page cap — see D-17. Do not replace with a single
  * capped page; that is the GGX-WARN-01 bug class this phase deletes.
  *
- * @param baseUrl   - GitLab base URL
- * @param token     - Personal Access Token
- * @param projectId - GitLab numeric project ID
- * @returns Array of every MR in the project (all states)
+ * `updatedAfter` bounds how far back the local-match universe reaches. It is a
+ * performance bound, not a correctness one: an unbounded fetch on a mature
+ * project is ~4200 MRs / 42 pages / ~15MB, and the GitLab instance is
+ * throughput-limited, so no amount of parallelism makes it fast. Channels B
+ * (milestone) and C (target branch) remain unbounded, so an MR attached to the
+ * release's milestone or targeting its release branch is still discovered at
+ * any age. Only an MR that is simultaneously old, off-milestone, off-branch and
+ * key-referencing can fall outside the window. Callers derive the value from
+ * real release dates rather than hardcoding it — see `useReleaseDetail`.
+ *
+ * @param baseUrl      - GitLab base URL
+ * @param token        - Personal Access Token
+ * @param projectId    - GitLab numeric project ID
+ * @param updatedAfter - Optional ISO-8601 lower bound on `updated_at`; omitted means all history
+ * @returns Array of every MR in the project (all states) within the window
  */
 export async function fetchAllProjectMRs(
   baseUrl: string,
   token: string,
   projectId: number,
+  updatedAfter?: string,
 ): Promise<GitLabMR[]> {
   const base = baseUrl.replace(/\/$/, '');
+  const windowParam = updatedAfter ? `&updated_after=${encodeURIComponent(updatedAfter)}` : '';
   const allMRs = await fetchAllMRPages(
     (page) =>
-      `${base}/api/v4/projects/${projectId}/merge_requests?state=all&per_page=${MR_PAGE_SIZE}&page=${page}`,
+      `${base}/api/v4/projects/${projectId}/merge_requests?state=all&per_page=${MR_PAGE_SIZE}&page=${page}${windowParam}`,
     baseUrl,
     token,
     'Load All Project MRs',
