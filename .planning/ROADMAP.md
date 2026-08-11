@@ -156,8 +156,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 89-03-PLAN.md — Wire Channels A/B/C into useReleaseDetail; delete fetchRecentProjectMRs + buildWrongMilestoneMap
-- [ ] 89-04-PLAN.md — Releases-list aggregate drift count (one project-wide open-MR fetch)
+- [x] 89-03-PLAN.md — Wire Channels A/B/C into useReleaseDetail; delete fetchRecentProjectMRs + buildWrongMilestoneMap
+- [x] 89-04-PLAN.md — Releases-list aggregate drift count (one project-wide open-MR fetch)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -264,7 +264,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
-| 89. Three-Channel Drift Detection | 2/5 | In Progress|  |
+| 89. Three-Channel Drift Detection | 4/5 | In Progress|  |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
