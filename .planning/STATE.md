@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: ready_to_plan
-last_updated: 2026-08-11T07:40:48.190Z
-last_activity: 2026-08-10 -- Phase 89 execution started
+status: planning
+last_updated: "2026-08-11T11:13:38.986Z"
+last_activity: 2026-08-11
 progress:
   total_phases: 21
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 22
   completed_plans: 22
-  percent: 10
-stopped_at: Phase 89 complete (5/5) — ready to discuss Phase 90
+  percent: 14
 ---
 
 # Project State
@@ -111,9 +110,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-10T21:07:49.256Z
-Stopped at: Phase 89 UI-SPEC approved
-Resume file: .planning/phases/89-three-channel-drift-detection/89-UI-SPEC.md
+Last session: 2026-08-11T11:13:38.982Z
+Stopped at: Phase 90 context gathered
+Resume file: .planning/phases/90-per-mr-corrective-actions/90-CONTEXT.md
 
 ## Operator Next Steps
 
