@@ -84,6 +84,22 @@ export function isValidGitRefName(name: string): boolean {
   return true;
 }
 
+/**
+ * Health of the `gitlab-release-tags` query feeding this module — the single
+ * derived form of the `tagLookupPending` / `tagCheckFailed` pair that
+ * `resolveMergeBackVerdict` already takes as two separate params (see
+ * `mergeBackVerification.ts` step 4.5). `'failed'` takes precedence over
+ * `'pending'`, matching that same ordering.
+ *
+ * 91-VERIFICATION truth 6: without this discriminant, a `null` `tagName` on
+ * the `released` variant is indistinguishable across three structurally
+ * different situations — the tag query in flight, the tag query failed, and
+ * the tag query resolved with genuinely no match — which let the sidebar
+ * assert an unverified "No matching tag found" negative on every ordinary
+ * page load.
+ */
+export type TagChannelHealth = 'resolved' | 'pending' | 'failed';
+
 /** Discriminated union describing the release branch's derived/resolved
  *  state, evaluated in strict precedence order by `resolveBranchState`:
  *  no matched milestone (D-10) -> unresolvable (D-11) -> invalid ref
@@ -99,8 +115,13 @@ export type BranchState =
   /** Version is released and the branch is gone — the normal post-merge end
    *  state, not drift. `tagName` is the matching `v<version>` tag when one
    *  exists; tags are an incomplete record (some releases have none), so its
-   *  absence is not evidence the release did not ship. */
-  | { kind: 'released'; branchName: string; tagName: string | null }
+   *  absence is not evidence the release did not ship. `tagName` is
+   *  meaningful ONLY when `tagChannel === 'resolved'`; a `null` `tagName`
+   *  under `'pending'` or `'failed'` means "not known yet" / "could not be
+   *  checked", never "no tag exists". `tagChannel` is REQUIRED — deliberate
+   *  type-system enforcement (91-REVIEW WR-04) so no producer can silently
+   *  omit it and reproduce the pre-fix behaviour. */
+  | { kind: 'released'; branchName: string; tagName: string | null; tagChannel: TagChannelHealth }
   | { kind: 'missing'; branchName: string };
 
 /**
@@ -132,6 +153,10 @@ export function findReleaseTag(tags: readonly string[], version: string | null):
  *   `branchExists === undefined`, which means in flight. `fetchBranch` throws on 401/403/500/timeout,
  *   so without this signal a failed check is indistinguishable from loading and pins the UI at
  *   'Loading…' forever.
+ * @param params.tagChannel - health of the tag-lookup channel feeding `releaseTagName`. Optional on
+ *   this FUNCTION param (default `'resolved'`) so the existing call sites and unit cases compile
+ *   unchanged, but REQUIRED on the emitted `released` variant — that asymmetry exists so 91-VERIFICATION
+ *   truth 6 (the row asserting an unresolved negative as settled fact) cannot silently recur.
  * @returns the resolved `BranchState`
  */
 export function resolveBranchState(params: {
@@ -141,6 +166,7 @@ export function resolveBranchState(params: {
   branchCheckFailed?: boolean;
   versionReleased?: boolean;
   releaseTagName?: string | null;
+  tagChannel?: TagChannelHealth;
 }): BranchState {
   const {
     hasMatchedMilestone,
@@ -149,6 +175,7 @@ export function resolveBranchState(params: {
     branchCheckFailed,
     versionReleased,
     releaseTagName,
+    tagChannel = 'resolved',
   } = params;
 
   if (!hasMatchedMilestone) {
@@ -185,7 +212,7 @@ export function resolveBranchState(params: {
   // loading and check-failed cases are handled above, so reaching here means
   // the query succeeded and said no.
   if (versionReleased) {
-    return { kind: 'released', branchName, tagName: releaseTagName ?? null };
+    return { kind: 'released', branchName, tagName: releaseTagName ?? null, tagChannel };
   }
 
   return { kind: 'missing', branchName };
