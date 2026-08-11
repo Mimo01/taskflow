@@ -161,7 +161,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 89-05-PLAN.md — MrDriftSection (absorbs UnmatchedMRsSection) + re-sourced Issues MR cell
+- [x] 89-05-PLAN.md — MrDriftSection (absorbs UnmatchedMRsSection) + re-sourced Issues MR cell
 
 **UI hint**: yes
 **Probe**: yes — verify whether any release branch in the team's GitLab history has ever carried >100 MRs targeting it (or build a synthetic >100-MR fixture) so the fully-paginated Channel C fetch is proven complete, not just theoretically correct
@@ -264,7 +264,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 |-------|----------------|--------|-----------|
 | 87. Release Detail Decomposition | 6/6 | Complete    | 2026-08-10 |
 | 88. Release Branch & Milestone Creation | 11/11 | Complete    | 2026-08-10 |
-| 89. Three-Channel Drift Detection | 4/5 | In Progress|  |
+| 89. Three-Channel Drift Detection | 5/5 | Complete   | 2026-08-11 |
 | 90. Per-MR Corrective Actions | 0/TBD | Not started | - |
 | 91. Post-Release Merge-Back Verification | 0/TBD | Not started | - |
 
