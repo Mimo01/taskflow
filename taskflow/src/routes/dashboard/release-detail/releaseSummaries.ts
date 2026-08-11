@@ -135,39 +135,6 @@ export function matchIssuesToMRs(
 }
 
 /**
- * Build the issueKey -> offending MR map (GGX-WARN-01: "wrong milestone").
- * For each missing row, scan the fetched recent-project MRs: confirm the MR
- * truly carries the key (title-or-branch via `linkMRToTask`), then pick the
- * FIRST whose milestone differs from (or is absent vs.) the release's matched
- * milestone. A null milestone is a warn case per the locked trigger; compare
- * by id.
- *
- * @param matchedMilestone - the release's matched GitLab milestone, or null
- * @param recentProjectMRs - the project's latest MRs fetched for local matching
- * @param missingRows - matched rows whose `mr` is null (no MR in the matched milestone)
- * @returns Map of issue key -> the offending MR (empty when there's no matched milestone or no recent MRs)
- */
-export function buildWrongMilestoneMap(
-  matchedMilestone: GitLabMilestone | null,
-  recentProjectMRs: GitLabMR[] | undefined,
-  missingRows: Array<{ issue: JiraIssue; mr: GitLabMR | null }>,
-): Map<string, GitLabMR> {
-  const wrongMilestoneByKey = new Map<string, GitLabMR>();
-  if (matchedMilestone && recentProjectMRs) {
-    for (const r of missingRows) {
-      const keySet = new Set([r.issue.key]);
-      const offending = recentProjectMRs.find(
-        (mr) =>
-          linkMRToTask(mr, keySet) !== null &&
-          (mr.milestone == null || mr.milestone.id !== matchedMilestone.id),
-      );
-      if (offending) wrongMilestoneByKey.set(r.issue.key, offending);
-    }
-  }
-  return wrongMilestoneByKey;
-}
-
-/**
  * Aggregate unique labels across all release MRs with counts, sorted by count
  * descending then alphabetically by label name to break ties.
  *
