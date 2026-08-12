@@ -58,6 +58,7 @@ vi.mock('@/services/gitlab', () => ({
 const mockSettingsStore = {
   theme: 'system' as 'dark' | 'light' | 'system',
   density: 'default' as 'compact' | 'default' | 'comfortable',
+  fontScale: 'md' as 'sm' | 'md' | 'lg' | 'xl',
   sprintCollapseByDefault: false,
   staleMrThresholdDays: 3,
   notificationPollIntervalSecs: 60,
@@ -71,6 +72,7 @@ const mockSettingsStore = {
   accountFieldKey: null,
   setTheme: vi.fn(),
   setDensity: vi.fn(),
+  setFontScale: vi.fn(),
   setSprintCollapseByDefault: vi.fn(),
   setStaleMrThresholdDays: vi.fn(),
   setNotificationPollIntervalSecs: vi.fn(),

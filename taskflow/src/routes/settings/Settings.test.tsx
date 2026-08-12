@@ -9,6 +9,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { applyDensity, applyFontScale } from '@/services/theme';
+import AppearanceSection from './AppearanceSection';
 import Settings from './Settings';
 import WorkflowSection from './WorkflowSection';
 
@@ -84,6 +86,7 @@ vi.mock('@/services/gitlab', () => ({
 vi.mock('@/services/theme', () => ({
   applyTheme: vi.fn(),
   applyDensity: vi.fn(),
+  applyFontScale: vi.fn(),
   saveTheme: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -91,6 +94,7 @@ vi.mock('@/services/theme', () => ({
 const mockSettingsStore = {
   theme: 'system' as 'dark' | 'light' | 'system',
   density: 'default' as 'compact' | 'default' | 'comfortable',
+  fontScale: 'md' as 'sm' | 'md' | 'lg' | 'xl',
   sprintCollapseByDefault: false,
   staleMrThresholdDays: 3,
   notificationPollIntervalSecs: 60,
@@ -110,6 +114,7 @@ const mockSettingsStore = {
   setLastChecked: vi.fn(),
   setTheme: vi.fn(),
   setDensity: vi.fn(),
+  setFontScale: vi.fn(),
   setSprintCollapseByDefault: vi.fn(),
   setStaleMrThresholdDays: vi.fn(),
   setNotificationPollIntervalSecs: vi.fn(),
@@ -263,5 +268,29 @@ describe('WorkflowSection content', () => {
     const collapseCheckbox = screen.getByRole('checkbox', { name: /collapse parent stories/i });
     fireEvent.click(collapseCheckbox);
     expect(mockSettingsStore.setSprintCollapseByDefault).toHaveBeenCalledWith(true);
+  });
+});
+
+describe('AppearanceSection content', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('clicking the Extra Large Text Size button calls setFontScale and applyFontScale with xl', () => {
+    render(<AppearanceSection />);
+    fireEvent.click(screen.getByRole('button', { name: /extra large/i }));
+    expect(mockSettingsStore.setFontScale).toHaveBeenCalledWith('xl');
+    expect(applyFontScale).toHaveBeenCalledWith('xl');
+  });
+
+  it('clicking the Compact density button still calls setDensity with compact (regression guard)', () => {
+    render(<AppearanceSection />);
+    const compactButtons = screen
+      .getAllByRole('button')
+      .filter((btn) => btn.textContent?.includes('More rows visible'));
+    expect(compactButtons).toHaveLength(1);
+    fireEvent.click(compactButtons[0]);
+    expect(mockSettingsStore.setDensity).toHaveBeenCalledWith('compact');
+    expect(applyDensity).toHaveBeenCalledWith('compact');
   });
 });
