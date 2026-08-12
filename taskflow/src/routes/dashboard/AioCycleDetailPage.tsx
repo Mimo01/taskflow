@@ -133,7 +133,7 @@ function SortableHeader({
   const isActive = activeSortKey === sortKey;
   return (
     <th
-      className={`px-3 py-2 text-left text-xs font-medium text-muted-foreground ${className ?? ''}`}
+      className={`px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground ${className ?? ''}`}
     >
       <button
         type="button"
@@ -264,7 +264,7 @@ function DefectRow({
           }
         : {})}
     >
-      <td className="px-3 py-3 font-mono text-sm">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 font-mono text-sm">
         <div className="flex items-center gap-1.5">
           {issue?.fields.issuetype?.name !== undefined && (
             <IssueTypeIcon typeName={issue.fields.issuetype.name} />
@@ -281,14 +281,14 @@ function DefectRow({
           </NavLink>
         </div>
       </td>
-      <td className="px-3 py-3 text-sm">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-sm">
         {isLoading ? (
           <Skeleton className="h-4 w-32" data-testid={`defect-title-loading-${defectIdOrKey}`} />
         ) : (
           <span>{issue?.fields.summary ?? displayKey}</span>
         )}
       </td>
-      <td className="px-3 py-3">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4">
         {issue?.fields.status ? (
           <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
             {issue.fields.status.name}
@@ -297,7 +297,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-3 text-xs text-muted-foreground">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-20" />
         ) : issue?.fields.assignee ? (
@@ -313,7 +313,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-3 text-xs text-muted-foreground">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-20" />
         ) : issue?.fields.reporter ? (
@@ -329,7 +329,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-3 text-xs text-muted-foreground">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : issue?.fields.priority ? (
@@ -343,7 +343,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-3 text-xs text-muted-foreground">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : (
@@ -360,7 +360,9 @@ function DefectRow({
           })()
         )}
       </td>
-      <td className="px-3 py-3 text-xs text-muted-foreground">{triggeredBy || '—'}</td>
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
+        {triggeredBy || '—'}
+      </td>
     </tr>
   );
 }
@@ -958,7 +960,7 @@ export default function AioCycleDetailPage() {
             <div
               role="toolbar"
               aria-label="Status filters"
-              className="flex items-center gap-2 px-3 py-1.5"
+              className="flex items-center gap-2 px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5"
             >
               {CHIPS.map((chip, i) => {
                 const isActive = activeStatuses.has(chip.status);
@@ -1030,29 +1032,29 @@ export default function AioCycleDetailPage() {
                 subtitle="No test runs have been recorded for this cycle yet."
               />
             ) : filteredRuns.length === 0 && runs && runs.length > 0 ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">
+              <p className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-sm text-muted-foreground">
                 No runs match the selected filters. Try toggling more status filters above.
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/10">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                       Test Case
                     </th>
-                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-28 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="w-20 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-20 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                       Defects
                     </th>
-                    <th className="w-16 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-16 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                       Runs
                     </th>
-                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-28 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                       Assignee
                     </th>
-                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-32 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                       Date
                     </th>
                   </tr>
@@ -1075,7 +1077,7 @@ export default function AioCycleDetailPage() {
                         }
                       }}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4">
                         {run.testCaseKey && (
                           <span className="block font-mono text-xs text-muted-foreground mb-0.5">
                             {run.testCaseKey}
@@ -1083,12 +1085,12 @@ export default function AioCycleDetailPage() {
                         )}
                         {run.testCase?.title ?? run.testCaseKey}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4">
                         <span className={aioRunStatusPillClass(run.status)}>
                           {normalizeStatusLabel(run.status)}
                         </span>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4">
                         {(run.jiraDefectIDs?.length ?? 0) > 0 ? (
                           <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
                             {run.jiraDefectIDs?.length}
@@ -1097,10 +1099,10 @@ export default function AioCycleDetailPage() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">
+                      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
                         {run.runCount ?? '—'}
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">
+                      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
                         {run.assignedToID ? (
                           <AssigneeCell
                             assignedToID={run.assignedToID}
@@ -1111,7 +1113,7 @@ export default function AioCycleDetailPage() {
                           <span>—</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">
+                      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
                         {(() => {
                           const raw = run.executedDate ?? run.testCase?.updatedDate;
                           if (!raw) return '—';
@@ -1145,7 +1147,7 @@ export default function AioCycleDetailPage() {
                 <div
                   role="toolbar"
                   aria-label="Defects filters"
-                  className="flex items-center gap-2 px-3 py-2 border-b flex-wrap"
+                  className="flex items-center gap-2 px-3 py-2 density-compact:py-1 density-comfortable:py-3 border-b flex-wrap"
                 >
                   <FilterPopover
                     dimension="Status"
@@ -1209,7 +1211,7 @@ export default function AioCycleDetailPage() {
 
                 {/* No matches message when filter is active and nothing matches */}
                 {sortedDefects.length === 0 && anyFilterActive ? (
-                  <p className="px-4 py-3 text-sm text-muted-foreground">
+                  <p className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-sm text-muted-foreground">
                     No defects match the selected filters.
                   </p>
                 ) : (
@@ -1225,7 +1227,7 @@ export default function AioCycleDetailPage() {
                             activeSortDir={defectSortDir}
                             onSort={handleSortHeader}
                           />
-                          <th className="min-w-[200px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          <th className="min-w-[200px] px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                             Title
                           </th>
                           <SortableHeader
@@ -1244,7 +1246,7 @@ export default function AioCycleDetailPage() {
                             activeSortDir={defectSortDir}
                             onSort={handleSortHeader}
                           />
-                          <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          <th className="w-36 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                             Reporter
                           </th>
                           <SortableHeader
@@ -1263,7 +1265,7 @@ export default function AioCycleDetailPage() {
                             activeSortDir={defectSortDir}
                             onSort={handleSortHeader}
                           />
-                          <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          <th className="w-48 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                             Triggered By
                           </th>
                         </tr>
