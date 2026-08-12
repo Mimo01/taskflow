@@ -345,3 +345,85 @@ export function buildIssueMrIndex(
 
   return { matchedRows, wrongMilestoneByKey };
 }
+
+/**
+ * D-15 (RESEARCH Assumption A2): the header-badge flagged count for the
+ * unified task table, counting only BR and MS flags — deliberately EXCLUDES
+ * the TASK mark and does NOT read `row.flagged`. `row.flagged` is
+ * `br === 'flag' || ms === 'flag' || task === 'flag'`, and every MR not
+ * covered by a release task carries `task === 'flag'` by construction
+ * (D-11 — no-linked-task, or not-in-fix-version); reusing `countFlaggedMRs`
+ * here would inflate the badge by roughly the entire secondary-table row
+ * count. Dedup by `mr.id` is inherent, not an extra concern: `driftRows` is
+ * already one entry per unique `mr.id` (built from `unionMRs` in
+ * `buildDriftRows`), so a plain `filter().length` satisfies D-15's
+ * "distinct MRs, counted once" requirement with no additional Set.
+ *
+ * @param rows - drift rows from `buildDriftRows`
+ * @returns count of rows flagged on BR and/or MS (never TASK-only)
+ */
+export function countBrMsFlaggedMRs(rows: DriftRow[]): number {
+  return rows.filter((r) => r.br === 'flag' || r.ms === 'flag').length;
+}
+
+/**
+ * D-09 (criteria 2/5): partition `driftRows` into per-task primary rows plus
+ * a secondary list of uncovered rows, for the unified release detail task
+ * table (Wave 0 data layer; consumed by the hook in plan 02 and the unified
+ * component in plan 03).
+ *
+ * Membership rule: a row is "covered" when at least one of its `taskKeys`
+ * is present in `releaseIssues` (i.e. `row.taskKeys.some((k) => coveredKeys.has(k))`,
+ * where `coveredKeys = new Set(releaseIssues.map((i) => i.key))`). Covered
+ * rows are attached under every one of their matching tasks (an MR carrying
+ * two fix-version keys appears under both); uncovered rows land in
+ * `secondaryRows`.
+ *
+ * This is deliberately a `taskKeys` intersection, NOT `row.taskReason !== null`
+ * — the latter is the rule sketched in RESEARCH/PATTERNS and is WRONG; do not
+ * "correct" this back to it. `buildDriftRows` short-circuits every
+ * non-evaluated MR (merged/closed/locked, see `classifyMrState`) with a
+ * hardcoded `taskReason: null` regardless of its actual keys. Under the
+ * `taskReason` rule such an MR would be excluded from `secondaryRows`, and if
+ * none of its `taskKeys` match a release issue it would also be attached to
+ * no task — it would silently disappear from the page entirely, a regression
+ * against the pre-unification `MrDriftSection`, which lists every union row
+ * with no exceptions.
+ *
+ * Contract: the two returned partitions are TOTAL and DISJOINT over
+ * `driftRows` — every row appears under at least one task's `mrs` or in
+ * `secondaryRows`, and no row appears in both.
+ *
+ * `primaryRows` preserves `releaseIssues`'s incoming order (D-18 — Jira's
+ * returned order is never re-sorted); each task's `mrs` array is a sorted
+ * copy (ascending by `mr.iid`, a stable deterministic sub-order per
+ * CONTEXT's Claude's-Discretion note) — the incoming `driftRows` array is
+ * never mutated. `secondaryRows` preserves the incoming `driftRows` order.
+ *
+ * @param releaseIssues - Jira issues in the release's fix version, in Jira's returned order
+ * @param driftRows - drift rows from `buildDriftRows`
+ * @returns per-task primary rows (issue + its attached MR drift rows) plus the uncovered secondary rows
+ */
+export function buildTaskMrAttachment(
+  releaseIssues: JiraIssue[],
+  driftRows: DriftRow[],
+): {
+  primaryRows: Array<{ issue: JiraIssue; mrs: DriftRow[] }>;
+  secondaryRows: DriftRow[];
+} {
+  const coveredKeys = new Set(releaseIssues.map((issue) => issue.key));
+
+  const primaryRows = releaseIssues.map((issue) => {
+    const mrs = driftRows
+      .filter((row) => row.taskKeys.includes(issue.key))
+      .slice()
+      .sort((a, b) => a.mr.iid - b.mr.iid);
+    return { issue, mrs };
+  });
+
+  const secondaryRows = driftRows.filter(
+    (row) => !row.taskKeys.some((key) => coveredKeys.has(key)),
+  );
+
+  return { primaryRows, secondaryRows };
+}
