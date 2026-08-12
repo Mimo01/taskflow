@@ -380,11 +380,20 @@ async function fetchAllSearchPagesConcurrent(
   };
 
   const first = await fetchPage(0);
-  const allIssues: JiraIssue[] = [...((first.issues ?? []) as JiraIssue[])];
+  const firstIssues = (first.issues ?? []) as JiraIssue[];
+  const allIssues: JiraIssue[] = [...firstIssues];
   const total: number = first.total ?? 0;
 
+  // Step by what the server ACTUALLY returned, not by PAGE_SIZE. Jira caps
+  // maxResults per instance (commonly 100), so assuming our requested size
+  // would skip every issue between the real page end and the next offset —
+  // silently understating progress, the exact failure this function's
+  // fail-closed contract exists to prevent.
+  const step: number = first.maxResults ?? firstIssues.length ?? PAGE_SIZE;
+  if (step <= 0) return allIssues;
+
   const offsets: number[] = [];
-  for (let startAt = PAGE_SIZE; startAt < total; startAt += PAGE_SIZE) offsets.push(startAt);
+  for (let startAt = step; startAt < total; startAt += step) offsets.push(startAt);
   if (offsets.length === 0) return allIssues;
 
   // Bounded concurrency: keep at most PAGE_CONCURRENCY requests in flight so a

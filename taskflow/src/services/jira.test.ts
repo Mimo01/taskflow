@@ -1645,6 +1645,27 @@ describe('jira service', () => {
       expect(result.get('PROJ-10')?.total).toBe(450);
     });
 
+    it('enrichment pages by the server-reported maxResults, not the requested size', async () => {
+      // Instance caps pages at 100 even though we ask for 200. Stepping by our
+      // requested size would skip issues 101-200 and understate progress.
+      vi.mocked(mockFetch).mockImplementation(async (input) => {
+        const startAt = Number(new URL(String(input)).searchParams.get('startAt') ?? '0');
+        const issues = Array.from({ length: Math.min(100, 250 - startAt) }, (_, i) =>
+          makeStoryIssue(`PROJ-${startAt + i + 1}`, 'PROJ-10', 'done', 1),
+        );
+        return makeJsonResponse({ issues, total: 250, maxResults: 100 });
+      });
+
+      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', ['PROJ-10']);
+
+      expect(result.get('PROJ-10')?.total).toBe(250);
+      const offsets = vi
+        .mocked(mockFetch)
+        .mock.calls.map((c) => Number(new URL(String(c[0])).searchParams.get('startAt')))
+        .sort((a, b) => a - b);
+      expect(offsets).toEqual([0, 100, 200]);
+    });
+
     it('enrichment fails closed when a later page fails', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce(
