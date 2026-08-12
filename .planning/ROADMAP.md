@@ -299,7 +299,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 91.1-06-PLAN.md — BLOCKING settled-state gaps: driftUnavailable + milestone-aware isLoadingDrift, gated secondary section and badge, mr-slot-failed state (CR-01, CR-02, IN-03)
+- [x] 91.1-06-PLAN.md — BLOCKING settled-state gaps: driftUnavailable + milestone-aware isLoadingDrift, gated secondary section and badge, mr-slot-failed state (CR-01, CR-02, IN-03)
 
 **Wave 2** *(blocked on 91.1-06)*
 
