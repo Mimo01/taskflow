@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 89: Three-Channel Drift Detection** - union Jira-linkage, GitLab-milestone, and branch-target MR discovery into one drift report (read-only) (completed 2026-08-11)
 - [x] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry (completed 2026-08-11)
 - [x] **Phase 91: Post-Release Merge-Back Verification** - advisory check that a released tag's branch has landed in the default branch (completed 2026-08-11)
-- [ ] **Phase 91.2: Epics Page Redesign** (INSERTED) - `/epics` reordered by creation, with single-line rows carrying progress, points, priority, and a child-status breakdown (quick-search and labels descoped by CONTEXT D-18 / D-08)
+- [x] **Phase 91.2: Epics Page Redesign** (INSERTED) - `/epics` reordered by creation, with single-line rows carrying progress, points, priority, and a child-status breakdown (quick-search and labels descoped by CONTEXT D-18 / D-08) (completed 2026-08-12)
 
 ### 🚧 v1.14 Release Management (In Progress)
 
@@ -342,7 +342,7 @@ Plans:
 
 *(Discuss-phase decisions D-05…D-18 live in `.planning/phases/91.2-epics-page-redesign/91.2-CONTEXT.md` and are authoritative over the insert-time set above where they conflict.)*
 
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
