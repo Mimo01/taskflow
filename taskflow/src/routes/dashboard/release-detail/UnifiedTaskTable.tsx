@@ -1030,6 +1030,28 @@ export function UnifiedTaskTable({
           </div>
         ))}
 
+      {/* WR-10: `driftUnavailable` is a single OR across four independent
+          inputs, but `TaskMrCell` consumes it ONLY under `mrs.length === 0`.
+          When Channel C fails while Channel A succeeds, a task whose
+          A-discovered MR is present renders as a fully confident row — no
+          degradation signal at all — while any MR only Channel C would have
+          found is silently missing from it and from the `+N` count. The
+          honest scope for a partial failure is the page, not the row, so the
+          notice is rendered here regardless of any task's MR count. Suppressed
+          only when the banner above is already reporting the same failure. */}
+      {driftUnavailable && !(milestoneLookupFailed && !hasMatchedMilestone) && (
+        <div
+          data-testid="drift-partial-banner"
+          className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 mb-4"
+        >
+          <AlertTriangle className="size-4 text-muted-foreground shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Some GitLab merge-request lookups failed — this list may be incomplete, and a task
+            showing no merge request may simply not have been checked.
+          </p>
+        </div>
+      )}
+
       {/* Filter escape hatch (UAT-91.1-B) — needed because a successful fix
           dropping a count to zero hides its own badge. */}
       {activeFilter && (

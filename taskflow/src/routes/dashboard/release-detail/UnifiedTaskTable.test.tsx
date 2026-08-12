@@ -1790,6 +1790,45 @@ describe('CR-06: a failed milestone lookup never renders as a verified absence',
   });
 });
 
+// WR-10: driftUnavailable was consumed only under `mrs.length === 0`, so a
+// task that Channel A found an MR for rendered as a fully confident row while
+// Channel C's failure meant other MRs were silently missing from it.
+describe('WR-10: a partial channel failure is surfaced page-wide', () => {
+  it('renders the partial-failure banner even when every task has MRs', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [makeRow({ mr: makeMR({ id: 1, iid: 1 }) })] }],
+      driftUnavailable: true,
+      hasMatchedMilestone: true,
+    });
+
+    expect(screen.getByTestId('drift-partial-banner')).toBeInTheDocument();
+    // The row itself is unchanged — it has a real MR to show.
+    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!1');
+    expect(screen.queryByTestId('mr-slot-failed')).toBeNull();
+  });
+
+  it('renders no partial-failure banner when every channel answered', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [makeRow({ mr: makeMR({ id: 1, iid: 1 }) })] }],
+      driftUnavailable: false,
+    });
+
+    expect(screen.queryByTestId('drift-partial-banner')).toBeNull();
+  });
+
+  it('does not double-report: a failed milestone lookup shows only the degraded banner', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [] }],
+      driftUnavailable: true,
+      hasMatchedMilestone: false,
+      milestoneLookupFailed: true,
+    });
+
+    expect(screen.getByTestId('drift-degraded-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('drift-partial-banner')).toBeNull();
+  });
+});
+
 describe('D-16: banner', () => {
   it('with no matched milestone exactly one drift-degraded-banner renders in the whole tree', () => {
     const row = makeRow();
