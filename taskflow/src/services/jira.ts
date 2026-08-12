@@ -278,6 +278,8 @@ export async function setIssueFlagged(
 
 const SUBTASK_CHUNK_SIZE = 50;
 const PAGE_SIZE = 200;
+/** Max in-flight search pages for fetchAllSearchPagesConcurrent. */
+const PAGE_CONCURRENCY = 6;
 
 /**
  * Fetch all pages of a Jira /rest/api/2/search query.
@@ -336,6 +338,70 @@ async function fetchAllSearchPages(
     if (startAt >= total || issues.length === 0) break;
   }
 
+  return allIssues;
+}
+
+/**
+ * Fetch all pages of a Jira /rest/api/2/search query CONCURRENTLY.
+ *
+ * Same contract as fetchAllSearchPages, but after the first page reports
+ * `total` the remaining page offsets are known up front, so they are fetched
+ * in parallel (bounded by PAGE_CONCURRENCY) instead of one round trip at a
+ * time. For a project with thousands of child issues this turns N sequential
+ * latencies into ceil(N / PAGE_CONCURRENCY).
+ *
+ * Fail-closed (D-15): unlike the sequential helper, a failure on ANY page
+ * throws rather than returning a partial array. Callers here aggregate counts,
+ * where a silently short result is worse than a visible error — a missing page
+ * would render as understated progress with no indication anything was wrong.
+ *
+ * @param baseSearchUrl - Full search URL WITHOUT startAt or maxResults params.
+ * @param headers       - Request headers (auth etc.)
+ * @returns Flat array of all JiraIssue objects across all pages, in page order.
+ */
+async function fetchAllSearchPagesConcurrent(
+  baseSearchUrl: string,
+  headers: Record<string, string>,
+): Promise<JiraIssue[]> {
+  const fetchPage = async (startAt: number) => {
+    const url = `${baseSearchUrl}&maxResults=${PAGE_SIZE}&startAt=${startAt}`;
+    const response = await apiFetch('jira', url, { headers }, 'Load Issue Detail');
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError(
+          response.status === 401 ? 'Token expired' : 'Insufficient permissions',
+          response.status,
+          'jira',
+        );
+      }
+      throw response;
+    }
+    return response.json();
+  };
+
+  const first = await fetchPage(0);
+  const allIssues: JiraIssue[] = [...((first.issues ?? []) as JiraIssue[])];
+  const total: number = first.total ?? 0;
+
+  const offsets: number[] = [];
+  for (let startAt = PAGE_SIZE; startAt < total; startAt += PAGE_SIZE) offsets.push(startAt);
+  if (offsets.length === 0) return allIssues;
+
+  // Bounded concurrency: keep at most PAGE_CONCURRENCY requests in flight so a
+  // large project cannot open dozens of sockets against Jira at once.
+  const pages: JiraIssue[][] = new Array(offsets.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(PAGE_CONCURRENCY, offsets.length) }, async () => {
+    while (true) {
+      const i = next++;
+      if (i >= offsets.length) return;
+      const data = await fetchPage(offsets[i]);
+      pages[i] = (data.issues ?? []) as JiraIssue[];
+    }
+  });
+  await Promise.all(workers);
+
+  for (const page of pages) if (page) allIssues.push(...page);
   return allIssues;
 }
 
@@ -2494,7 +2560,7 @@ export async function fetchEpicEnrichmentMap(
   const storiesJql = encodeURIComponent(
     `"Epic Link" in (${epicKeys.join(',')}) AND issuetype != Sub-task`,
   );
-  const stories = await fetchAllSearchPages(
+  const stories = await fetchAllSearchPagesConcurrent(
     `${base}/rest/api/2/search?jql=${storiesJql}&fields=${storyFields}`,
     headers,
   );

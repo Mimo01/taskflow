@@ -1602,9 +1602,7 @@ describe('jira service', () => {
       const stories = [makeStoryIssue('PROJ-1', 'PROJ-10', undefined, 3)];
       vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: stories, total: 1 }));
 
-      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', [
-        'PROJ-10',
-      ]);
+      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', ['PROJ-10']);
 
       const alpha = result.get('PROJ-10');
       expect(alpha?.todo).toBe(1);
@@ -1614,6 +1612,50 @@ describe('jira service', () => {
 
     it('enrichment propagates fetch errors instead of returning an empty map', async () => {
       vi.mocked(mockFetch).mockRejectedValueOnce(new Error('network failure'));
+
+      await expect(
+        fetchEpicEnrichmentMap('https://jira.example.com', 'token', ['PROJ-10']),
+      ).rejects.toThrow();
+    });
+
+    it('enrichment fetches pages beyond the first concurrently, not serially', async () => {
+      // 3 pages of 200. Page 1 reports the total; pages 2 and 3 must be
+      // in flight together rather than awaited one after the other.
+      const page = (start: number, count: number) =>
+        Array.from({ length: count }, (_, i) =>
+          makeStoryIssue(`PROJ-${start + i}`, 'PROJ-10', 'done', 1),
+        );
+
+      let inFlight = 0;
+      let maxInFlight = 0;
+      vi.mocked(mockFetch).mockImplementation(async (input) => {
+        const startAt = Number(new URL(String(input)).searchParams.get('startAt') ?? '0');
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((r) => setTimeout(r, 5));
+        inFlight--;
+        const count = startAt === 400 ? 50 : 200;
+        return makeJsonResponse({ issues: page(startAt + 1, count), total: 450 });
+      });
+
+      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', ['PROJ-10']);
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(maxInFlight).toBeGreaterThan(1); // pages 2+3 overlapped
+      expect(result.get('PROJ-10')?.total).toBe(450);
+    });
+
+    it('enrichment fails closed when a later page fails', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(
+          makeJsonResponse({
+            issues: Array.from({ length: 200 }, (_, i) =>
+              makeStoryIssue(`PROJ-${i + 1}`, 'PROJ-10', 'done', 1),
+            ),
+            total: 400,
+          }),
+        )
+        .mockRejectedValueOnce(new Error('page 2 failed'));
 
       await expect(
         fetchEpicEnrichmentMap('https://jira.example.com', 'token', ['PROJ-10']),
