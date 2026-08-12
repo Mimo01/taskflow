@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export interface UseResizableOptions {
   /** Width to initialise the hook with (px). Typically from the persisted store value. */
   initialWidth: number;
-  /** Minimum allowed width in px. */
-  min: number;
+  /** Minimum allowed width in px. Can be a function to support dynamic bounds (e.g. scaled by root font size). */
+  min: number | (() => number);
   /** Maximum allowed width in px. Can be a function to support dynamic bounds (e.g. 50% of container). */
   max: number | (() => number);
   /** Called with the final width (px) when the user releases the mouse after a drag. Use to persist to store. */
@@ -74,7 +74,8 @@ export function useResizable({
       const rawDelta = e.clientX - startRef.current.x;
       const delta = direction === 'left' ? -rawDelta : rawDelta;
       const maxVal = typeof max === 'function' ? max() : max;
-      const next = Math.min(maxVal, Math.max(min, startRef.current.width + delta));
+      const minVal = typeof min === 'function' ? min() : min;
+      const next = Math.min(maxVal, Math.max(minVal, startRef.current.width + delta));
       setWidth(next);
     }
 

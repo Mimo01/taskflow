@@ -36,7 +36,7 @@ export function LinkedIssuesSection({ issuelinks, onOpenIssue }: LinkedIssuesSec
       <div className="space-y-2">
         {Array.from(groupedLinks.entries()).map(([label, items]) => (
           <div key={label}>
-            <p className="text-[10px] text-muted-foreground capitalize mb-0.5 pl-1">{label}</p>
+            <p className="text-[0.625rem] text-muted-foreground capitalize mb-0.5 pl-1">{label}</p>
             {items.map(({ link, target }) => (
               <button
                 key={link.id}
@@ -50,7 +50,7 @@ export function LinkedIssuesSection({ issuelinks, onOpenIssue }: LinkedIssuesSec
                   />
                   <span className="font-mono text-xs">{target.key}</span>
                   <Badge
-                    className={`text-[10px] h-4 px-1.5 border-0 font-normal ${statusCategoryBadgeClass(target.fields.status.statusCategory?.key)}`}
+                    className={`text-[0.625rem] h-4 px-1.5 border-0 font-normal ${statusCategoryBadgeClass(target.fields.status.statusCategory?.key)}`}
                   >
                     {target.fields.status.name}
                   </Badge>

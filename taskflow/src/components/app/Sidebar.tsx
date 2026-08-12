@@ -86,8 +86,12 @@ export default function Sidebar() {
   const setSidebarWidth = useSettingsStore((s) => s.setSidebarWidth);
   const { width, isDragging, handleMouseDown } = useResizable({
     initialWidth: sidebarWidth,
-    min: 160,
-    max: 320,
+    // Scale the resize bounds by the live root font-size factor so users are
+    // not locked out of widening the sidebar at larger text-size tiers. Read
+    // inside the callback (not at module load) so it stays fresh when the
+    // setting changes.
+    min: () => 160 * (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16),
+    max: () => 320 * (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16),
     onCommit: setSidebarWidth,
   });
   const [hovered, setHovered] = useState(false);
@@ -235,7 +239,7 @@ export default function Sidebar() {
   }
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
-  const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
+  const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block truncate';
 
   // Build lookup of visible item ids from store
   const visibleIds = new Set<string>();
@@ -298,7 +302,7 @@ export default function Sidebar() {
               <span className="text-lg font-extrabold tracking-tight text-foreground">
                 task<span className="text-[#f97316]">flow</span>
               </span>
-              <span className="text-[9px] font-medium tracking-[0.16em] text-muted-foreground/35 uppercase mt-0.5">
+              <span className="text-[0.5625rem] font-medium tracking-[0.16em] text-muted-foreground/35 uppercase mt-0.5">
                 manage &amp; track
               </span>
             </div>
@@ -311,7 +315,7 @@ export default function Sidebar() {
         {sectionedItems.map((section) => (
           <div key={section.id} className="flex flex-col gap-0.5">
             {!sidebarCollapsed && (
-              <span className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hidden md:block">
+              <span className="px-3 pt-3 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground/60 hidden md:block">
                 {section.label}
               </span>
             )}

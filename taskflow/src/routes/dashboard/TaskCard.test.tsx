@@ -83,7 +83,8 @@ describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
     // Strict text format: small integer + s|m|h|d (per formatTimeAgoStrict contract).
     expect(badge.textContent ?? '').toMatch(/^\d+[smhd]$/);
     // UI-SPEC §1 className contract — muted chip styling, matches story-points chip.
-    expect(badge.className).toContain('text-[11px]');
+    // rem-based per quick task 260812-mry (bounded text-[Npx] scaling sweep).
+    expect(badge.className).toContain('text-[0.6875rem]');
     expect(badge.className).toContain('bg-muted');
   });
 

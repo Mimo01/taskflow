@@ -156,36 +156,36 @@ export default function PinnedTabStrip({
           <>
             <FlaskConical className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
             <div className="flex flex-col min-w-0 leading-none">
-              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+              <span className="font-mono text-[0.5625rem] text-muted-foreground/60 whitespace-nowrap">
                 {key}
               </span>
-              <span className="truncate text-[11px] leading-tight">{resolved.name}</span>
+              <span className="truncate text-[0.6875rem] leading-tight">{resolved.name}</span>
             </div>
           </>
         ) : resolved?.type === 'release' ? (
           <>
             <Rocket className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
             <div className="flex flex-col min-w-0 leading-none">
-              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+              <span className="font-mono text-[0.5625rem] text-muted-foreground/60 whitespace-nowrap">
                 v{resolved.versionId}
               </span>
-              <span className="truncate text-[11px] leading-tight">{resolved.name}</span>
+              <span className="truncate text-[0.6875rem] leading-tight">{resolved.name}</span>
             </div>
           </>
         ) : resolved?.type === 'issue' ? (
           <>
             <IssueTypeIcon typeName={resolved.issueTypeName} />
             <div className="flex flex-col min-w-0 leading-none">
-              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+              <span className="font-mono text-[0.5625rem] text-muted-foreground/60 whitespace-nowrap">
                 {key}
               </span>
-              <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+              <span className="truncate text-[0.6875rem] leading-tight">{resolved.summary}</span>
             </div>
           </>
         ) : (
           <>
             <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
-            <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+            <span className="font-mono text-[0.6875rem] whitespace-nowrap">{key}</span>
           </>
         )}
       </div>,
@@ -221,7 +221,7 @@ export default function PinnedTabStrip({
             <div key={key} className="flex items-end gap-1 shrink-0">
               {showPlaceholderBefore && (
                 <div
-                  className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5"
+                  className="h-9 w-[6.875rem] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5"
                   style={{ width: ghost?.width }}
                 />
               )}
@@ -248,7 +248,7 @@ export default function PinnedTabStrip({
                     }}
                     className={cn(
                       'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
-                      resolved ? 'max-w-[180px]' : 'w-[110px]',
+                      resolved ? 'max-w-[11.25rem]' : 'w-[6.875rem]',
                       key === activeKey
                         ? 'border-primary text-foreground bg-muted/50'
                         : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -266,10 +266,10 @@ export default function PinnedTabStrip({
                       <>
                         <FlaskConical className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                         <div className="flex flex-col min-w-0 leading-none">
-                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                          <span className="font-mono text-[0.5625rem] text-muted-foreground/60 whitespace-nowrap">
                             {key}
                           </span>
-                          <span className="truncate text-[11px] leading-tight">
+                          <span className="truncate text-[0.6875rem] leading-tight">
                             {resolved.name}
                           </span>
                         </div>
@@ -278,10 +278,10 @@ export default function PinnedTabStrip({
                       <>
                         <Rocket className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                         <div className="flex flex-col min-w-0 leading-none">
-                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                          <span className="font-mono text-[0.5625rem] text-muted-foreground/60 whitespace-nowrap">
                             v{resolved.versionId}
                           </span>
-                          <span className="truncate text-[11px] leading-tight">
+                          <span className="truncate text-[0.6875rem] leading-tight">
                             {resolved.name}
                           </span>
                         </div>
@@ -290,10 +290,10 @@ export default function PinnedTabStrip({
                       <>
                         <IssueTypeIcon typeName={resolved.issueTypeName} />
                         <div className="flex flex-col min-w-0 leading-none">
-                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                          <span className="font-mono text-[0.5625rem] text-muted-foreground/60 whitespace-nowrap">
                             {key}
                           </span>
-                          <span className="truncate text-[11px] leading-tight">
+                          <span className="truncate text-[0.6875rem] leading-tight">
                             {resolved.summary}
                           </span>
                         </div>
@@ -301,7 +301,7 @@ export default function PinnedTabStrip({
                     ) : (
                       <>
                         <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
-                        <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+                        <span className="font-mono text-[0.6875rem] whitespace-nowrap">{key}</span>
                       </>
                     )}
                   </div>
@@ -327,7 +327,7 @@ export default function PinnedTabStrip({
               </ContextMenu>
               {showPlaceholderAfter && (
                 <div
-                  className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5"
+                  className="h-9 w-[6.875rem] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5"
                   style={{ width: ghost?.width }}
                 />
               )}

@@ -182,7 +182,7 @@ function CardBody({
           )}
         </span>
         {issueTypeName && (
-          <span className="text-[11px] text-muted-foreground/60 truncate max-w-[50%] text-right">
+          <span className="text-[0.6875rem] text-muted-foreground/60 truncate max-w-[50%] text-right">
             {issueTypeName}
           </span>
         )}
@@ -207,7 +207,7 @@ function CardBody({
           {assignee && (
             <>
               <CachedAvatar url={avatarUrl} name={displayName} size={20} />
-              <span className="text-[11px] text-muted-foreground/80 truncate">{displayName}</span>
+              <span className="text-[0.6875rem] text-muted-foreground/80 truncate">{displayName}</span>
             </>
           )}
         </div>
@@ -223,7 +223,7 @@ function CardBody({
 
           {/* Story points badge */}
           {storyPoints != null && storyPoints > 0 && (
-            <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
+            <span className="text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
               {storyPoints}
             </span>
           )}
@@ -233,7 +233,7 @@ function CardBody({
               (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
           {timeInColumn?.enteredStatus != null && (
             <span
-              className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
+              className="text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
               title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
             >
               {formatTimeAgoStrict(timeInColumn.enteredStatus)}

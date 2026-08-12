@@ -69,11 +69,11 @@ export interface UnifiedTaskTableProps {
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
 // width + nowrap; widened from 72px so the common PROJ-1234 shape fits without
 // spilling into the summary column.
-const COL_KEY = 'flex-none w-[88px] whitespace-nowrap';
+const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
-const COL_PERSON = 'flex-none w-[140px] min-w-0';
-const COL_STATE = 'flex-none w-[96px]';
-const COL_MR = 'flex-none w-[190px] min-w-0';
+const COL_PERSON = 'flex-none w-[8.75rem] min-w-0';
+const COL_STATE = 'flex-none w-[6rem]';
+const COL_MR = 'flex-none w-[11.875rem] min-w-0';
 
 const CHANNEL_NAMES: Record<Channel, string> = {
   A: 'Jira link',
@@ -125,7 +125,7 @@ function DriftMarkCell({
     <span
       data-testid={testId}
       title={title}
-      className="flex-none w-[28px] flex items-center justify-center"
+      className="flex-none w-[1.75rem] flex items-center justify-center"
     >
       {mark === 'ok' ? (
         <Check className="size-3.5 text-green-600 dark:text-green-400" />
@@ -235,7 +235,7 @@ function DriftActionCell({
     if (mark === 'ok' && status === 'error') reset();
   }
 
-  const rootClassName = 'flex-none w-[28px] flex items-center justify-center';
+  const rootClassName = 'flex-none w-[1.75rem] flex items-center justify-center';
   const actionLabel =
     action === 'retarget'
       ? `Retarget to ${fix.releaseBranchName}`
@@ -373,16 +373,16 @@ function DriftActionCell({
  */
 function ColumnHeaderStrip() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 bg-muted/30">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 bg-muted/30">
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Summary</span>
       <span className={COL_PERSON}>Assignee</span>
       <span className={COL_STATE}>Status</span>
       <span className={COL_MR}>MR</span>
-      <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
+      <span className="flex-none w-[1.75rem] text-center" title="Target branch matches release branch">
         BR
       </span>
-      <span className="flex-none w-[28px] text-center" title="Release milestone assigned">
+      <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
     </div>
@@ -400,13 +400,13 @@ function ColumnHeaderStrip() {
  */
 function SecondaryHeaderStrip() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 pl-4 bg-muted/30">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 pl-4 bg-muted/30">
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Merge request</span>
-      <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
+      <span className="flex-none w-[1.75rem] text-center" title="Target branch matches release branch">
         BR
       </span>
-      <span className="flex-none w-[28px] text-center" title="Release milestone assigned">
+      <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
         MS
       </span>
     </div>
@@ -484,7 +484,7 @@ function MrSubLine({
     <div
       data-testid="drift-row"
       title={`${mr.author.name} — ${mr.state}`}
-      className={`group/row pl-4 flex items-center gap-2 text-xs py-1 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
+      className={`group/row pl-4 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
     >
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
       <span className={`${COL_SUMMARY} truncate`}>
@@ -571,7 +571,7 @@ function DriftCellSlot({
   interactive: boolean;
 }) {
   return (
-    <div className={`relative flex-none w-[28px] ${interactive ? 'z-10' : 'pointer-events-none'}`}>
+    <div className={`relative flex-none w-[1.75rem] ${interactive ? 'z-10' : 'pointer-events-none'}`}>
       {children}
     </div>
   );
@@ -832,7 +832,7 @@ function TaskRow({
   return (
     <div
       data-testid="task-row"
-      className="group/row relative flex items-center gap-2 text-sm py-1.5 hover:bg-muted/40"
+      className="group/row relative flex items-center gap-2 text-sm py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/40"
     >
       <button
         type="button"
