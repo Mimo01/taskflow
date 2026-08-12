@@ -467,7 +467,15 @@ export default function BacklogPage() {
       };
       return { ...base, fields };
     });
-  }, [backlog, adapt, entityMaps, issueIdToSprintId, epicLinkFieldKey, flaggedFieldKey, versionMap]);
+  }, [
+    backlog,
+    adapt,
+    entityMaps,
+    issueIdToSprintId,
+    epicLinkFieldKey,
+    flaggedFieldKey,
+    versionMap,
+  ]);
 
   // D-01: backlog list = adapted issues with no sprint membership.
   const backlogIssuesAdapted = useMemo<JiraIssue[]>(
@@ -1118,7 +1126,7 @@ export default function BacklogPage() {
         <button
           type="button"
           onClick={() => toggleSection(sectionId)}
-          className={`flex items-center gap-2 w-full px-4 py-2 border-b border-border transition-colors text-left ${
+          className={`flex items-center gap-2 w-full px-4 py-2 density-compact:py-1 density-comfortable:py-3 border-b border-border transition-colors text-left ${
             isSticky
               ? 'sticky top-0 z-[5] bg-muted shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:bg-muted'
               : 'bg-muted/40 hover:bg-muted/60'
@@ -1150,7 +1158,7 @@ export default function BacklogPage() {
           <DroppableSection sectionId={sectionId} isActiveDropTarget={false}>
             {sectionStoriesLoading ? (
               /* Stories still loading — show skeleton rows */
-              <div className="px-4 py-2 space-y-2">
+              <div className="px-4 py-2 density-compact:py-1 density-comfortable:py-3 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="h-9 w-full animate-pulse rounded bg-muted" />
                 ))}
@@ -1187,7 +1195,7 @@ export default function BacklogPage() {
               </SortableContext>
             ) : issues.length > 0 ? (
               /* All issues filtered out */
-              <p className="px-4 py-3 text-sm text-muted-foreground">
+              <p className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-sm text-muted-foreground">
                 No issues match the current filters
               </p>
             ) : (
@@ -1200,7 +1208,7 @@ export default function BacklogPage() {
 
             {/* Create story button at the bottom of the section */}
             {showCreateStory && !sectionStoriesLoading && (
-              <div className="px-4 py-2 border-t border-border">
+              <div className="px-4 py-2 density-compact:py-1 density-comfortable:py-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => openCreateStory()}

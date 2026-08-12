@@ -978,20 +978,20 @@ export default function WorklogsPage() {
           <table className="w-full text-xs border-separate [border-spacing:0]">
             <thead>
               <tr>
-                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
                   Title
                 </th>
-                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
                   Key
                 </th>
-                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
                   Time
                 </th>
                 {Array.from({ length: days.length || 7 }, (_, i) => (
                   <th
                     // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
                     key={i}
-                    className="sticky top-0 z-20 bg-muted text-center px-2 py-2.5 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px]"
+                    className="sticky top-0 z-20 bg-muted text-center px-2 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px]"
                   >
                     <Skeleton className="h-3 w-8 mx-auto" />
                   </th>
@@ -1045,19 +1045,19 @@ export default function WorklogsPage() {
           >
             <thead>
               <tr>
-                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
                   Title
                 </th>
-                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
                   Key
                 </th>
-                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
                   Time
                 </th>
                 {days.map((day) => (
                   <th
                     key={day}
-                    className={`sticky top-0 z-20 text-center px-2 py-2.5 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px] ${dayHeaderBg(dayTypeMap.get(day))}`}
+                    className={`sticky top-0 z-20 text-center px-2 py-2.5 density-compact:py-2 density-comfortable:py-3 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px] ${dayHeaderBg(dayTypeMap.get(day))}`}
                   >
                     {formatDayHeader(day)}
                   </th>

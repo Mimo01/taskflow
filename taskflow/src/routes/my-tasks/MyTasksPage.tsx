@@ -143,7 +143,7 @@ const sprintGroupRank = (meta: SprintMeta | null): number =>
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40">
+    <div className="flex items-center gap-2 px-4 py-2 density-compact:py-1 density-comfortable:py-3 border-b border-border/40">
       <Skeleton className="size-4 rounded" />
       <Skeleton className="h-3 w-16 rounded" />
       <Skeleton className="size-4 rounded" />
@@ -562,7 +562,7 @@ export default function MyTasksPage() {
     }
 
     return (
-      <div className="px-4 py-3 space-y-4">
+      <div className="px-4 py-3 density-compact:py-2 density-comfortable:py-4 space-y-4 density-compact:space-y-2 density-comfortable:space-y-6">
         {bands.map(({ band, parents: bandParents }) => {
           const sortedParents = bandParents.map((r) => r.parent);
           const sectionPts = sortedParents.reduce((sum, p) => {
@@ -582,7 +582,7 @@ export default function MyTasksPage() {
                 dotClass={MY_DAY_BAND_DOT[band]}
                 sectionPts={sectionPts}
               />
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 density-compact:space-y-0 density-comfortable:space-y-1">
                 {sortedParents.map((parent) => {
                   const isParentDone = parent.fields.status.statusCategory?.key === 'done';
                   return renderFlatRows(parent, subtasksByKey.get(parent.key) ?? [], !isParentDone);
@@ -654,7 +654,7 @@ export default function MyTasksPage() {
     });
 
     return (
-      <div className="px-4 py-3 space-y-4">
+      <div className="px-4 py-3 density-compact:py-2 density-comfortable:py-4 space-y-4 density-compact:space-y-2 density-comfortable:space-y-6">
         {ordered.map(({ meta, parents: groupParents }) => {
           const sectionPts = groupParents.reduce((sum, p) => {
             const sp =
@@ -671,7 +671,7 @@ export default function MyTasksPage() {
                 dotClass={meta ? SPRINT_STATE_DOT[meta.state] : 'bg-muted-foreground/40'}
                 sectionPts={sectionPts}
               />
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 density-compact:space-y-0 density-comfortable:space-y-1">
                 {groupParents.map((parent) =>
                   renderFlatRows(parent, subtasksByParent.get(parent.key) ?? []),
                 )}
