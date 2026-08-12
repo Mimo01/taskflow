@@ -47,7 +47,7 @@ interface TodayInProgressSectionProps {
 
 function LoadingSkeletons() {
   return (
-    <div className="flex flex-col gap-2 py-2">
+    <div className="flex flex-col gap-2 density-compact:gap-1 density-comfortable:gap-3 py-2 density-compact:py-1 density-comfortable:py-3">
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
@@ -112,7 +112,7 @@ function IssueRow({
       <div
         role="button"
         tabIndex={0}
-        className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        className="w-full flex items-center gap-2 rounded px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={handleBody}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -174,7 +174,7 @@ function NestedMrRow({
     <div className="pl-6 ml-2">
       <button
         type="button"
-        className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onMRClick(`${mr.projectId}/${mr.iid}`)}
       >
         <GitBranch className="size-4 shrink-0 text-muted-foreground" />
@@ -216,7 +216,7 @@ export default function TodayInProgressSection({
       ) : isError ? (
         <ErrorState error={error} onRetry={onRetry} viewName="In Progress items" />
       ) : (
-        <div className="[&>*]:py-2">
+        <div className="[&>*]:py-2 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-3">
           {rows.map((row) => (
             <div key={row.issue.key}>
               <IssueRow

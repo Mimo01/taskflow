@@ -132,7 +132,7 @@ function SubItemList({
             // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
             key={i}
             type="button"
-            className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
           >
             <SubIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -143,7 +143,7 @@ function SubItemList({
             // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
             key={i}
             type="button"
-            className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             onClick={() => onIssueClick?.(item.issueKey ?? '')}
           >
             <SubIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -159,8 +159,11 @@ function SubItemList({
             )}
           </button>
         ) : (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-          <div key={i} className="flex items-center gap-2 py-1.5 px-2">
+          <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
+            key={i}
+            className="flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 px-2"
+          >
             <SubIcon className="size-4 shrink-0 text-muted-foreground" />
             {item.kind === 'transition' && item.transition != null ? (
               // Styled transition: two status pills + muted arrow, mirroring StatusPopover.
@@ -214,7 +217,7 @@ function ActivityGroupHeader({
   onKeyClick?: () => void;
 }) {
   return (
-    <div className="relative flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/50 focus-within:bg-muted/50">
+    <div className="relative flex w-full items-center gap-2 rounded px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/50 focus-within:bg-muted/50">
       <button
         type="button"
         aria-label={`Open ${issueKey} ${summary}`}

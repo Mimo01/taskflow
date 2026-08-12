@@ -37,7 +37,7 @@ interface TodayMrsSectionProps {
 
 function LoadingSkeletons() {
   return (
-    <div className="flex flex-col gap-2 py-2">
+    <div className="flex flex-col gap-2 density-compact:gap-1 density-comfortable:gap-3 py-2 density-compact:py-1 density-comfortable:py-3">
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
@@ -89,7 +89,7 @@ export default function TodayMrsSection({
               <button
                 key={`${mr.project_id}/${mr.iid}`}
                 type="button"
-                className="w-full text-left flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="w-full text-left flex items-center gap-2 py-3 density-compact:py-2 density-comfortable:py-4 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onMRClick(`${mr.project_id}/${mr.iid}`)}
               >
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />
