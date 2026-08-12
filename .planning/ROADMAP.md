@@ -253,6 +253,38 @@ Plans:
 **UI hint**: yes
 **Probe**: RESOLVED — no probe task planned. 91-CONTEXT.md D-03 records the answer supplied directly by the user: the team's GitLab project uses **merge commits** (not squash, not rebase/fast-forward). Detection nevertheless stays **diff-based** (`diffs.length === 0`) rather than commit-based per D-04, so it cannot silently start false-negativing if the merge method is ever changed.
 
+### Phase 91.1: Unified Release Detail Task Table (INSERTED)
+
+**Goal**: Release detail presents ONE primary table — Jira tasks in this fix version, each with its merge requests rendered inline in the row and every per-MR drift check and corrective action available there — plus a single secondary table for merge requests the release's tasks do not cover. The separate "Issues" and "MR Drift" tables are replaced, not merely restyled.
+**Depends on**: Phase 89 (drift marks/channels), Phase 90 (per-MR corrective actions)
+**Requirements**: DRIFT-01, DRIFT-02, DRIFT-03, DRIFT-04, DRIFT-05, DRIFT-06, DRIFT-07, DRIFT-08, MRFIX-01, MRFIX-02, MRFIX-03, MRFIX-04 (re-hosted onto the unified table, not re-implemented; DRIFT-09 stays descoped)
+**Success Criteria** (what must be TRUE):
+
+  1. Release detail renders exactly one primary table, keyed on Jira tasks in the fix version (task key, summary, assignee, status), and no standalone issues-only or drift-only table remains
+  2. Every MR associated with a task appears as a stacked sub-line inside that task's row — `!iid`, truncated title with ticket keys linkified, author, state badge — so a task with N MRs shows all N without interaction
+  3. The BR (target branch) and MS (milestone) drift marks and their click-to-fix actions from Phase 90 operate per MR sub-line inside the task row, with the same pending/error/retry and independent-lock behaviour they have today
+  4. The TASK drift check is dropped from the primary table (linkage is implied by the row), and a task with zero MRs still surfaces its "Missing MR" / degraded-milestone state
+  5. A secondary table lists only MRs not covered by the primary table — both MRs with no Jira key and MRs whose key is not in this fix version, the latter showing the key and flagged as out-of-scope
+  6. Primary-table rows keep the order Jira returns and never re-sort while the user is acting on them, so the Phase 89 D-11 frozen-order workaround is unnecessary rather than merely carried over
+
+**UI hint**: yes — redesign of `release-detail/IssuesSection.tsx` + `release-detail/MrDriftSection.tsx` into a unified table; the MR-fix cell behaviour in `useMrFixMutation` is re-hosted, not rewritten.
+
+**User decisions** (captured at insert time):
+
+- Multi-MR layout: stacked sub-lines within the task row (not chips, not collapse-on-click)
+- Out-of-scope-key MRs: secondary table, key shown and flagged
+- Per-MR data: state badge is required; `!iid` + linkified title + author also carried; actual target branch goes in the BR tooltip rather than its own column
+- Sorting: Jira order, no drift-driven re-sort
+
+**Plans:** 5 plans
+
+Plans:
+- [ ] 91.1-01-PLAN.md — Task↔MR attachment + BR-or-MS flagged count in driftDetection.ts, with Wave 0 unit coverage
+- [ ] 91.1-02-PLAN.md — Thread primaryRows/secondaryRows/flaggedMrCount through useReleaseDetail (additive)
+- [ ] 91.1-03-PLAN.md — Build UnifiedTaskTable.tsx: header, banner, task rows, MR sub-lines, secondary table
+- [ ] 91.1-04-PLAN.md — Relocate Phase 90 corrective-action coverage + new D-04/D-05/D-09/D-13/D-17 component tests
+- [ ] 91.1-05-PLAN.md — Collapse the two call sites, delete IssuesSection/MrDriftSection/held-order, live UAT
+
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>
 
