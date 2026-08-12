@@ -33,7 +33,7 @@ export function LinkedIssuesSection({ issuelinks, onOpenIssue }: LinkedIssuesSec
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
         Linked Issues
       </p>
-      <div className="space-y-2">
+      <div className="space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
         {Array.from(groupedLinks.entries()).map(([label, items]) => (
           <div key={label}>
             <p className="text-[0.625rem] text-muted-foreground capitalize mb-0.5 pl-1">{label}</p>
@@ -42,7 +42,7 @@ export function LinkedIssuesSection({ issuelinks, onOpenIssue }: LinkedIssuesSec
                 key={link.id}
                 type="button"
                 onClick={() => onOpenIssue?.(target.key)}
-                className="w-full text-left rounded px-1 py-1 hover:bg-accent transition-colors cursor-pointer"
+                className="w-full text-left rounded px-1 py-1 density-compact:py-0.5 density-comfortable:py-2 hover:bg-accent transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-1.5">
                   <span

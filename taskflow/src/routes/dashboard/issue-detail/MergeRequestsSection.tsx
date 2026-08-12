@@ -35,7 +35,7 @@ export function MergeRequestsSection({
             key={mr.iid}
             type="button"
             onClick={() => navigate(`/mr/${mr.project_id}/${mr.iid}`)}
-            className="w-full text-left rounded px-1 py-1 hover:bg-accent transition-colors cursor-pointer"
+            className="w-full text-left rounded px-1 py-1 density-compact:py-0.5 density-comfortable:py-2 hover:bg-accent transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-1.5">
               <span className={`size-1.5 rounded-full shrink-0 ${mrDot(mr.state)}`} />

@@ -34,7 +34,7 @@ export function ChangelogEntry({ history }: ChangelogEntryProps) {
   const { author, items, created } = history;
 
   return (
-    <div className="flex items-start gap-2 py-1.5">
+    <div className="flex items-start gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5">
       <GitCommit className="size-4 text-muted-foreground shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         {items.map((item) => (
