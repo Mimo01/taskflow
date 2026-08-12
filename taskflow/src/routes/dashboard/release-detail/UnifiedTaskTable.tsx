@@ -94,15 +94,6 @@ function channelsTitle(channels: Set<Channel>): string {
   return `Found via: ${names.join(', ')}`;
 }
 
-/** State ternary shared by MR state badges — extracted once rather than triplicated. */
-function mrStateBadgeClass(state: string): string {
-  return state === 'merged'
-    ? 'border-green-500 text-green-600'
-    : state === 'opened'
-      ? 'border-blue-500 text-blue-600'
-      : 'border-gray-400 text-gray-500';
-}
-
 function DriftMarkCell({
   mark,
   testId,
@@ -402,6 +393,7 @@ function MrSubLine({
   return (
     <div
       data-testid="drift-row"
+      title={`${mr.author.name} — ${mr.state}`}
       className="group/row pl-4 flex items-center gap-2 text-xs py-1 text-muted-foreground"
     >
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
@@ -415,16 +407,6 @@ function MrSubLine({
           titleContent
         )}
       </span>
-      <span className={`${COL_PERSON} inline-flex items-center gap-1.5`}>
-        <CachedAvatar url={mr.author.avatar_url} name={mr.author.name} size={20} />
-        <span className="truncate">{mr.author.name}</span>
-      </span>
-      <Badge
-        variant="outline"
-        className={`${COL_STATE} text-[10px] justify-center ${mrStateBadgeClass(mr.state)}`}
-      >
-        {mr.state}
-      </Badge>
       {row.evaluated ? (
         <>
           <DriftActionCell mr={mr} action="retarget" mark={row.br} testId="drift-br" fix={fix} />
