@@ -59,7 +59,9 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       </td>
 
       {/* Epic key */}
-      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground font-mono">{epic.key}</td>
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground font-mono">
+        {epic.key}
+      </td>
 
       {/* Status badge — flex wrapper so the shared pill's min-w/text-center
           take effect (statusPillClass assumes a flex-item context, as in
