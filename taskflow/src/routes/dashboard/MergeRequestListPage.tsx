@@ -193,7 +193,7 @@ export default function MergeRequestListPage() {
                 key={mr.id}
                 type="button"
                 onClick={() => handleMRClick(mr)}
-                className="w-full text-left px-6 py-3 hover:bg-muted/50 transition-colors flex items-center gap-3"
+                className="w-full text-left px-6 py-3 density-compact:py-2 density-comfortable:py-4 hover:bg-muted/50 transition-colors flex items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -280,7 +280,7 @@ function MRListSkeleton() {
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
           key={i}
-          className="px-6 py-3 space-y-2"
+          className="px-6 py-3 density-compact:py-2 density-comfortable:py-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3"
         >
           <div className="flex items-center gap-2">
             <Skeleton className="h-4 w-10" />

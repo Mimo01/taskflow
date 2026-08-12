@@ -206,7 +206,7 @@ export default function MergeRequestDetailPage() {
         <div ref={containerRef} className="flex flex-1 overflow-hidden">
           {/* Left column */}
           <div className="flex-1 overflow-auto">
-            <div className="p-6 space-y-5">
+            <div className="p-6 density-compact:p-4 density-comfortable:p-8 space-y-5 density-compact:space-y-3 density-comfortable:space-y-6">
               {/* Header — inline state badge + Open in GitLab button */}
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -253,7 +253,7 @@ export default function MergeRequestDetailPage() {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">
                     Commits ({commits.length})
                   </h3>
-                  <ul className="space-y-1">
+                  <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
                     {(showAllCommits ? commits : commits.slice(0, COMMIT_PREVIEW_COUNT)).map(
                       (c) => (
                         <CommitRow key={c.id} commit={c} />
@@ -291,7 +291,7 @@ export default function MergeRequestDetailPage() {
               style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
               className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
             />
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 density-compact:space-y-2 density-comfortable:space-y-6 text-sm">
               {/* Author */}
               <MetaRow label="Author">
                 <PersonDisplay name={mr.author.name} avatarUrl={mr.author.avatar_url} />
@@ -539,7 +539,7 @@ function PipelineStatus({ status }: { status: string }) {
 
 function CommitRow({ commit }: { commit: MRCommit }) {
   return (
-    <li className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/50 text-sm">
+    <li className="flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent/50 text-sm">
       <GitCommitHorizontal className="size-3.5 text-muted-foreground shrink-0" />
       <code className="text-xs text-muted-foreground font-mono shrink-0">
         {commit.id.slice(0, 8)}

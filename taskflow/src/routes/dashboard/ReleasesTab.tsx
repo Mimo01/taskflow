@@ -423,7 +423,7 @@ export default function ReleasesTab() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleReleaseClick(version.id);
                   }}
-                  className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer w-full text-left"
+                  className="flex items-center justify-between rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted/50 gap-3 cursor-pointer w-full text-left"
                 >
                   {/* Version name + badges */}
                   <div className="flex items-center gap-3 min-w-0">
@@ -601,7 +601,7 @@ export default function ReleasesTab() {
               <button
                 type="button"
                 onClick={loadMoreReleased}
-                className="mt-1 w-full rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-center"
+                className="mt-1 w-full rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-center"
               >
                 Load {Math.min(RELEASED_LOAD_MORE, releasedVersions.length - releasedVisible)} more
                 released

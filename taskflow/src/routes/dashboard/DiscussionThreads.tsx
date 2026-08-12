@@ -19,6 +19,7 @@ import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { tryInternalPath } from '@/lib/internalLinks';
+import { cn } from '@/lib/utils';
 import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -237,7 +238,7 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
   return (
     <div className="rounded-md border bg-muted/30 overflow-hidden mb-2 text-xs">
       {/* File header */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border-b">
+      <div className="flex items-center gap-2 px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 bg-muted/50 border-b">
         <FileCode className="size-3.5 text-muted-foreground shrink-0" />
         <span className="font-mono text-muted-foreground truncate">{filePath}</span>
         {targetLine !== null && (
@@ -273,7 +274,9 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
           </div>
         </div>
       ) : (
-        <div className="px-3 py-2 text-muted-foreground italic">Line {targetLine}</div>
+        <div className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-muted-foreground italic">
+          Line {targetLine}
+        </div>
       )}
     </div>
   );
@@ -311,7 +314,17 @@ function NoteCard({
           )}
         </div>
         {note.type === 'DiffNote' && <DiffCodePreview note={note} diffFiles={diffFiles} />}
-        <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+        <div
+          className={cn(
+            'prose prose-sm dark:prose-invert max-w-none text-sm',
+            'density-compact:prose-p:my-1 density-compact:prose-ul:my-1 density-compact:prose-ol:my-1',
+            'density-compact:prose-li:my-0 density-compact:prose-headings:mt-3 density-compact:prose-headings:mb-1',
+            'density-compact:prose-pre:p-2 density-compact:prose-td:py-1 density-compact:prose-th:py-1',
+            'density-comfortable:prose-p:my-4 density-comfortable:prose-ul:my-4 density-comfortable:prose-ol:my-4',
+            'density-comfortable:prose-li:my-1 density-comfortable:prose-headings:mt-6 density-comfortable:prose-headings:mb-3',
+            'density-comfortable:prose-pre:p-4 density-comfortable:prose-td:py-3 density-comfortable:prose-th:py-3',
+          )}
+        >
           <Markdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -332,7 +345,7 @@ function SystemNote({ note, gitlabBaseUrl }: { note: DiscussionNote; gitlabBaseU
   return (
     <div className="flex gap-2 text-xs text-muted-foreground py-1">
       <Activity className="size-3 shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0 prose prose-xs dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_li]:my-0 [&_a]:text-muted-foreground [&_a]:underline">
+      <div className="flex-1 min-w-0 prose prose-xs dark:prose-invert max-w-none [&_p]:my-0.5 density-comfortable:[&_p]:my-2 [&_ul]:my-0.5 density-comfortable:[&_ul]:my-2 [&_li]:my-0 density-comfortable:[&_li]:my-1 [&_a]:text-muted-foreground [&_a]:underline">
         <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={components()}>
           {note.body}
         </Markdown>
@@ -371,7 +384,7 @@ function DiscussionThread({
 
   return (
     <div
-      className={`rounded-lg border p-4 space-y-3 ${
+      className={`rounded-lg border p-4 density-compact:p-3 density-comfortable:p-5 space-y-3 density-compact:space-y-2 density-comfortable:space-y-4 ${
         isResolvable && !isResolved ? 'border-l-2 border-l-amber-400 dark:border-l-amber-500' : ''
       }`}
     >
@@ -380,7 +393,7 @@ function DiscussionThread({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="w-full bg-muted/50 rounded px-3 py-2 cursor-pointer hover:bg-muted flex items-center gap-2 text-sm -mx-0 -mt-0"
+          className="w-full bg-muted/50 rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 cursor-pointer hover:bg-muted flex items-center gap-2 text-sm -mx-0 -mt-0"
         >
           <CheckCircle2 className="size-4 text-green-500 shrink-0" />
           <span className="text-muted-foreground flex-1 text-left">
@@ -402,13 +415,13 @@ function DiscussionThread({
 
       {/* Thread content */}
       {expanded && (
-        <div className="space-y-3">
+        <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
           {/* Root note */}
           <NoteCard note={firstNote} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl} />
 
           {/* Replies */}
           {hasReplies && (
-            <div className="pl-8 border-l-2 border-muted space-y-3 mt-3">
+            <div className="pl-8 border-l-2 border-muted space-y-3 density-compact:space-y-2 density-comfortable:space-y-4 mt-3">
               {discussion.notes
                 .slice(1)
                 .map((note) =>
@@ -490,7 +503,7 @@ export function DiscussionThreads({
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
         {visibleDiscussions.map((discussion) => (
           <DiscussionThread
             key={discussion.id}
