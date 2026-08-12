@@ -87,4 +87,46 @@ describe('recent-items.store (Phase 20)', () => {
     expect(result.current.items[0].id).toBe('42');
     expect(result.current.items[0].url).toBe('https://gitlab.com/org/repo/-/merge_requests/42');
   });
+
+  it('pushItem with issueType stores that value on the item', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+
+    act(() => {
+      result.current.pushItem({ type: 'jira', id: 'PROJ-1', issueType: 'Bug' });
+    });
+
+    expect(result.current.items[0].issueType).toBe('Bug');
+  });
+
+  it('pushItem for an existing item without issueType preserves the previously stored issueType', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+
+    act(() => {
+      result.current.pushItem({ type: 'jira', id: 'PROJ-1', issueType: 'Bug' });
+      result.current.pushItem({ type: 'jira', id: 'PROJ-1' });
+    });
+
+    expect(result.current.items[0].issueType).toBe('Bug');
+  });
+
+  it('pushItem for an existing item with a new issueType overwrites the stored one', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+
+    act(() => {
+      result.current.pushItem({ type: 'jira', id: 'PROJ-1', issueType: 'Bug' });
+      result.current.pushItem({ type: 'jira', id: 'PROJ-1', issueType: 'Story' });
+    });
+
+    expect(result.current.items[0].issueType).toBe('Story');
+  });
+
+  it('items pushed without issueType leave the field undefined', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+
+    act(() => {
+      result.current.pushItem({ type: 'jira', id: 'PROJ-1' });
+    });
+
+    expect(result.current.items[0].issueType).toBeUndefined();
+  });
 });
