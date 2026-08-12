@@ -897,6 +897,33 @@ describe('D-17: five mutually exclusive MR-slot states', () => {
   });
 });
 
+// WR-07: both slots are deliberately `pointer-events-none` (the row click has
+// to fall through them), which means the browser never fires the hover their
+// `title` needs. Whatever the user must know has to be in the visible text.
+describe('WR-07: degraded MR slots explain themselves without a tooltip', () => {
+  it('mr-slot-failed says the status is unknown in visible text', () => {
+    renderWithRows([], { driftUnavailable: true, hasMatchedMilestone: true });
+
+    const failed = screen.getByTestId('mr-slot-failed');
+    expect(failed.className).toContain('pointer-events-none');
+    expect(failed.textContent).toMatch(/unknown/i);
+    // The tooltip survives as supplementary detail, never as the sole carrier.
+    expect(failed).toHaveAttribute(
+      'title',
+      "GitLab merge request lookup failed — this task's MR status is unknown",
+    );
+  });
+
+  it('mr-slot-unavailable names the missing milestone in visible text', () => {
+    renderWithRows([], { hasMatchedMilestone: false });
+
+    const unavailable = screen.getByTestId('mr-slot-unavailable');
+    expect(unavailable.className).toContain('pointer-events-none');
+    expect(unavailable.textContent).toMatch(/milestone/i);
+    expect(unavailable.textContent).toMatch(/not checked/i);
+  });
+});
+
 describe('D-04: task row click behaviour', () => {
   it('clicking the row body calls onSeedBreadcrumb then onOpenIssue with the issue key, and does NOT call onOpenIssueFull', () => {
     const onOpenIssue = vi.fn();
