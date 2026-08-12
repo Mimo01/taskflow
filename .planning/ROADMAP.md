@@ -280,7 +280,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 91.1-01-PLAN.md — Task↔MR attachment + BR-or-MS flagged count in driftDetection.ts, with Wave 0 unit coverage
+- [x] 91.1-01-PLAN.md — Task↔MR attachment + BR-or-MS flagged count in driftDetection.ts, with Wave 0 unit coverage
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
