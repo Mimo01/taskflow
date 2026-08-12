@@ -109,6 +109,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MERGE-01 | Phase 91 | Mapped |
 | MERGE-02 | Phase 91 | Mapped |
 | MERGE-03 | Phase 91 | Mapped |
+| RELF-01 | — | Deferred (future requirement, not in v1.14) |
+| RELF-02 | — | Deferred (future requirement, not in v1.14) |
+| RELF-03 | — | Deferred (deliberately excluded in favour of per-MR control) |
 
 **Coverage:**
 
