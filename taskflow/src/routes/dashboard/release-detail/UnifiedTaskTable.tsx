@@ -683,12 +683,25 @@ function TaskMrCell({
           {mr.state}
         </Badge>
         {others.length > 0 && (
+          /* CR-08: this marker is the ONLY route to the MRs consolidation
+             hides — non-selected MRs are attached to a covered task, so
+             `buildTaskMrAttachment` excludes them from `secondaryRows` by
+             construction. It carried `pointer-events-none`, which removes it
+             from hit-testing, so the browser never fired the hover that would
+             render its `title`: it announced N hidden MRs and offered no way
+             to see them. It must opt back INTO hit-testing (and above the row
+             overlay) for the tooltip to exist at all. The sr-only list is the
+             non-hover equivalent — a `title` is announced inconsistently and
+             not at all without a pointer. */
           <span
             data-testid="mr-extra-count"
-            className="pointer-events-none text-muted-foreground"
-            title={`Also: ${others.map((r) => `!${r.mr.iid}`).join(', ')}`}
+            className="pointer-events-auto relative z-10 cursor-help text-muted-foreground"
+            title={`Also: ${others.map((r) => `!${r.mr.iid} (${r.mr.state})`).join(', ')}`}
           >
             +{others.length}
+            <span className="sr-only">
+              {` — also on this task: ${others.map((r) => `!${r.mr.iid} (${r.mr.state})`).join(', ')}`}
+            </span>
           </span>
         )}
       </div>
