@@ -442,6 +442,10 @@ describe('useReleaseDetail', () => {
     });
 
     await waitFor(() => expect(result.current.driftFlaggedCount).toBe(1));
+    // flaggedMrCount (D-15) must track driftFlaggedCount 1:1 in this
+    // single-flagged-row scenario — both counts derive from the same
+    // deduped driftRows union.
+    expect(result.current.flaggedMrCount).toBe(result.current.driftFlaggedCount);
 
     const releaseBranchName = result.current.releaseBranchName;
     const matchedMilestone = result.current.matchedMilestone;
@@ -461,6 +465,109 @@ describe('useReleaseDetail', () => {
     });
 
     await waitFor(() => expect(result.current.driftFlaggedCount).toBe(0));
+    expect(result.current.flaggedMrCount).toBe(0);
+  });
+
+  // D-09: buildTaskMrAttachment groups driftRows under their matching task(s).
+  // A single fix-version issue with one linked MR lands entirely in primaryRows,
+  // with an empty secondaryRows.
+  it('primaryRows attaches the linked MR under its task, secondaryRows is empty', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+      {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Fix thing',
+          status: { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Task', subtask: false },
+        },
+      },
+    ] as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>);
+
+    const linkedMr = {
+      id: 7,
+      iid: 100,
+      project_id: 42,
+      title: 'PROJ-1 fix thing',
+      source_branch: 'feature/proj-1',
+      target_branch: 'develop',
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-01-01T00:00:00.000Z',
+      web_url: 'https://gitlab.example.com/mr/100',
+      labels: [],
+      milestone: null,
+    } as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([linkedMr]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.primaryRows).toHaveLength(1));
+    expect(result.current.primaryRows[0].issue.key).toBe('PROJ-1');
+    expect(result.current.primaryRows[0].mrs).toHaveLength(1);
+    expect(result.current.secondaryRows).toHaveLength(0);
+  });
+
+  // D-09: an MR whose title/source branch carry no fix-version key cannot be
+  // attached to any task and lands in secondaryRows instead.
+  it('an MR with no fix-version key in its title lands in secondaryRows, not under any task', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+      {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Fix thing',
+          status: { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Task', subtask: false },
+        },
+      },
+    ] as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>);
+
+    const keylessMr = {
+      id: 8,
+      iid: 101,
+      project_id: 42,
+      title: 'chore: bump deps',
+      source_branch: 'chore/bump-deps',
+      target_branch: 'develop',
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-01-01T00:00:00.000Z',
+      web_url: 'https://gitlab.example.com/mr/101',
+      labels: [],
+      milestone: null,
+    } as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([keylessMr]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.secondaryRows).toHaveLength(1));
+    expect(result.current.primaryRows).toHaveLength(1);
+    expect(result.current.primaryRows[0].mrs).toHaveLength(0);
   });
 });
 

@@ -21,6 +21,8 @@ import { useSettingsStore } from '@/stores/settings.store';
 import {
   buildDriftRows,
   buildIssueMrIndex,
+  buildTaskMrAttachment,
+  countBrMsFlaggedMRs,
   countFlaggedMRs,
   selectChannelA,
   unionMRs,
@@ -579,6 +581,15 @@ export function useReleaseDetail(versionId: string | undefined) {
     fixVersionIssueKeys,
   });
   const driftFlaggedCount = countFlaggedMRs(driftRows);
+
+  // D-09/D-15 (91.1-02): primaryRows/secondaryRows partition driftRows per task
+  // for the unified task table; flaggedMrCount is fed the full deduped `driftRows`
+  // union (not secondaryRows or a concatenation) — driftRows is already deduped
+  // by mr.id at the unionMRs stage, which is precisely D-15's "distinct MRs
+  // across both tables, counted once".
+  const { primaryRows, secondaryRows } = buildTaskMrAttachment(releaseIssues, driftRows);
+  const flaggedMrCount = countBrMsFlaggedMRs(driftRows);
+
   const isLoadingDrift = isLoadingChannelA || isLoadingChannelB || isLoadingChannelC;
   const hasMatchedMilestone = matchedMilestone !== null;
 
@@ -615,6 +626,9 @@ export function useReleaseDetail(versionId: string | undefined) {
     wrongMilestoneByKey,
     driftRows,
     driftFlaggedCount,
+    primaryRows,
+    secondaryRows,
+    flaggedMrCount,
     isLoadingDrift,
     hasMatchedMilestone,
     labelSummary,
