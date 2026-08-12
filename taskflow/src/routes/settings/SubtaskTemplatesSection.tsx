@@ -197,7 +197,7 @@ function TemplateRowEditor({
   const activeRow = activeRowId ? template.rows.find((r) => r.id === activeRowId) : null;
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border bg-muted/30 px-4 py-4 mt-1">
+    <div className="flex flex-col gap-4 rounded-lg border bg-muted/30 px-4 py-4 density-compact:py-3 density-comfortable:py-5 mt-1">
       {/* Subtask type selector */}
       <div className="flex items-center gap-3">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -317,7 +317,7 @@ function SortableTemplateCard({
 
   return (
     <div ref={setNodeRef} style={style} className="flex flex-col gap-0">
-      <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 density-compact:py-1 density-comfortable:py-3">
         {/* Drag handle */}
         <button
           type="button"

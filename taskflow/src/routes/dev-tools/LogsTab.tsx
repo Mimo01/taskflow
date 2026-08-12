@@ -17,7 +17,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors text-sm"
+        className="w-full flex items-center gap-3 px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left hover:bg-accent transition-colors text-sm"
       >
         <span className={sourceBadgeClass(entry.source)}>{entry.source}</span>
         {entry.operation && (
@@ -41,7 +41,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
 
       {/* Detail panel */}
       {open && (
-        <div className="border-t border-border px-4 py-3 flex flex-col gap-3">
+        <div className="border-t border-border px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 flex flex-col gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
               URL
