@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 Phase: 91.1
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-08-12
+Last activity: 2026-08-12 - Completed quick task 260812-l6f: On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same
 
 Progress: [██████████] 100%
 
@@ -111,6 +111,12 @@ None yet.
 - Apple Developer ID + Windows code signing still deferred (carried from v1.7)
 - Phase 90 D-16 roadmap probe still not run (no live GitLab PAT in execution environment); re-run .planning/phases/90-per-mr-corrective-actions/probe.sh and replace 90-PROBE-RESULTS.md when access is available. Non-blocking for code — flattenGitLabError handles all three error-body shapes defensively.
 - Biome baseline drift discovered at Phase 90 close: npx biome check ./src now flags 16 total diagnostics across 5 files (BacklogPage.tsx, BacklogRow.tsx, components/ui/chart.tsx, MyTasksPage.tsx, MyTasksPage.test.tsx), up from the documented 2-file baseline. None touched by Phase 90's own files (confirmed via git status) — pre-existing Phase 81/82 drift. See 90-per-mr-corrective-actions/deferred-items.md. Recommend a tech-debt cleanup pass.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
 
 ## Deferred Items
 
