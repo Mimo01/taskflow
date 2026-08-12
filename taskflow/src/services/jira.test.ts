@@ -12,7 +12,9 @@ import {
   fetchAllAssignedHierarchy,
   fetchAllReportedHierarchy,
   fetchCreatemeta,
+  fetchEpicEnrichmentMap,
   fetchEpicStories,
+  fetchEpicsBasic,
   fetchEpicsWithEnrichment,
   fetchFixVersions,
   fetchIssueLinkTypes,
@@ -1467,6 +1469,162 @@ describe('jira service', () => {
 
       const result = await fetchEpicsWithEnrichment('https://jira.example.com', 'token', 'PROJ');
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('EPIC-01/EPIC-03: epics list + enrichment fetchers (Phase 91.2)', () => {
+    function makeEpicIssue(
+      key: string,
+      epicName: string | null = null,
+      priority?: { name?: string; iconUrl?: string } | null,
+    ): JiraIssue {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary: `Summary of ${key}`,
+          status: { id: '3', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: null,
+          issuetype: { name: 'Epic', subtask: false },
+          customfield_10016: null,
+          customfield_10015: epicName,
+          priority,
+        },
+      };
+    }
+
+    function makeStoryIssue(
+      key: string,
+      epicKey: string,
+      statusCategoryKey: 'done' | 'indeterminate' | 'new' | undefined,
+      points: number | null = 0,
+    ): JiraIssue {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary: `Story ${key}`,
+          status: {
+            id: '10002',
+            name: statusCategoryKey ?? 'Unknown',
+            statusCategory: statusCategoryKey ? { key: statusCategoryKey } : undefined,
+          },
+          assignee: null,
+          issuetype: { name: 'Story', subtask: false },
+          customfield_10014: epicKey,
+          customfield_10016: points,
+        },
+      };
+    }
+
+    function makeJsonResponse(data: unknown) {
+      return {
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(data),
+      } as unknown as Response;
+    }
+
+    it('epics list JQL orders by created ASC and requests the priority field', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
+
+      await fetchEpicsBasic('https://jira.example.com', 'token', 'PROJ');
+
+      const calls = vi.mocked(mockFetch).mock.calls;
+      const url = decodeURIComponent(calls[0][0] as string);
+      expect(url).toContain('ORDER BY created ASC');
+      expect(url).not.toContain('ORDER BY updated DESC');
+      expect(url).toContain('statusCategory != Done');
+      const fieldsSegment = url.split('fields=')[1];
+      expect(fieldsSegment).toContain('priority');
+    });
+
+    it('epics list maps the priority object onto each epic', async () => {
+      const epics = [
+        makeEpicIssue('PROJ-10', 'Epic Alpha', {
+          name: 'Must',
+          iconUrl: 'https://jira.example.com/images/icons/priorities/must.svg',
+        }),
+        makeEpicIssue('PROJ-11', 'Epic Beta'), // priority absent
+      ];
+      vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: epics, total: 2 }));
+
+      const result = await fetchEpicsBasic('https://jira.example.com', 'token', 'PROJ');
+
+      const alpha = result.find((e) => e.key === 'PROJ-10');
+      expect(alpha?.priority?.name).toBe('Must');
+      expect(alpha?.priority?.iconUrl).toBe(
+        'https://jira.example.com/images/icons/priorities/must.svg',
+      );
+
+      const beta = result.find((e) => e.key === 'PROJ-11');
+      expect(beta?.priority).toBeNull();
+    });
+
+    it('enrichment aggregates per status category and donePoints', async () => {
+      const stories = [
+        makeStoryIssue('PROJ-1', 'PROJ-10', 'done', 5),
+        makeStoryIssue('PROJ-2', 'PROJ-10', 'done', 3),
+        makeStoryIssue('PROJ-3', 'PROJ-10', 'indeterminate', 2),
+        makeStoryIssue('PROJ-4', 'PROJ-10', 'new', 1),
+        makeStoryIssue('PROJ-5', 'PROJ-11', 'done', 8),
+        makeStoryIssue('PROJ-6', 'PROJ-11', 'indeterminate', 4),
+      ];
+      vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: stories, total: 6 }));
+
+      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', [
+        'PROJ-10',
+        'PROJ-11',
+      ]);
+
+      const alpha = result.get('PROJ-10');
+      expect(alpha).toEqual({
+        total: 4,
+        done: 2,
+        inProgress: 1,
+        todo: 1,
+        points: 11,
+        donePoints: 8,
+      });
+
+      const beta = result.get('PROJ-11');
+      expect(beta).toEqual({
+        total: 2,
+        done: 1,
+        inProgress: 1,
+        todo: 0,
+        points: 12,
+        donePoints: 8,
+      });
+    });
+
+    it('enrichment treats an unknown or missing statusCategory as todo', async () => {
+      const stories = [makeStoryIssue('PROJ-1', 'PROJ-10', undefined, 3)];
+      vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: stories, total: 1 }));
+
+      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', [
+        'PROJ-10',
+      ]);
+
+      const alpha = result.get('PROJ-10');
+      expect(alpha?.todo).toBe(1);
+      expect(alpha?.done).toBe(0);
+      expect(alpha?.inProgress).toBe(0);
+    });
+
+    it('enrichment propagates fetch errors instead of returning an empty map', async () => {
+      vi.mocked(mockFetch).mockRejectedValueOnce(new Error('network failure'));
+
+      await expect(
+        fetchEpicEnrichmentMap('https://jira.example.com', 'token', ['PROJ-10']),
+      ).rejects.toThrow();
+    });
+
+    it('enrichment returns an empty map without fetching for zero epic keys', async () => {
+      const result = await fetchEpicEnrichmentMap('https://jira.example.com', 'token', []);
+
+      expect(result.size).toBe(0);
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
