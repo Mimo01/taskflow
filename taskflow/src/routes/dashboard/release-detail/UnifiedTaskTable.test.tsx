@@ -1010,6 +1010,47 @@ describe('CR-05: overlay click model — cells opt out of hit-testing unless gen
   });
 });
 
+// CR-08: `selectDisplayMr`'s contract is that nothing is dropped — "the rest
+// surface behind the +N marker". They only surface if the marker is
+// hit-testable: `pointer-events: none` removes it from hit-testing, so the
+// browser never fires the hover its `title` needs, and there is no other route
+// to those MRs anywhere in the UI (they are excluded from secondaryRows by
+// construction).
+describe('CR-08: the +N marker actually reveals the hidden MRs', () => {
+  it('is hit-testable — it opts back into pointer events above the row overlay and never carries pointer-events-none', () => {
+    renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1 }) }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
+      makeRow({ mr: makeMR({ id: 3, iid: 3 }) }),
+    ]);
+
+    const extra = screen.getByTestId('mr-extra-count');
+    expect(extra.className).not.toContain('pointer-events-none');
+    expect(extra.className).toContain('pointer-events-auto');
+    expect(extra.className).toContain('z-10');
+    expect(extra.className).toContain('cursor-help');
+  });
+
+  it('names every hidden MR with its state, both in the tooltip and in text the tooltip does not gate', () => {
+    renderWithRows([
+      makeRow({ mr: makeMR({ id: 1, iid: 1, state: 'merged' }) }),
+      makeRow({ mr: makeMR({ id: 2, iid: 2, state: 'opened' }) }),
+      makeRow({ mr: makeMR({ id: 3, iid: 3, state: 'opened' }) }),
+    ]);
+
+    const extra = screen.getByTestId('mr-extra-count');
+    expect(extra).toHaveTextContent('+2');
+    for (const fragment of ['!1 (merged)', '!2 (opened)']) {
+      expect(extra).toHaveAttribute('title', expect.stringContaining(fragment));
+      // Not reachable only through a hover the pointer-events rules could
+      // silently disable again.
+      expect(extra.textContent).toContain(fragment);
+    }
+    // The selected MR is not listed as one of the "others".
+    expect(extra).toHaveAttribute('title', expect.not.stringContaining('!3'));
+  });
+});
+
 describe('D-05: hover-reveal scope', () => {
   // jsdom does not evaluate `:hover`, and 91.1-VALIDATION.md routes the
   // visual hover confirmation to manual UAT — assert on rendered structure
