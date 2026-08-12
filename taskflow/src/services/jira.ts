@@ -2414,6 +2414,7 @@ export interface EpicEnriched {
   summary: string;
   status: JiraIssue['fields']['status'];
   assignee: JiraIssue['fields']['assignee'];
+  priority?: { name?: string; iconUrl?: string } | null;
   totalStories: number;
   doneStories: number;
   totalPoints: number;
@@ -2422,6 +2423,7 @@ export interface EpicEnriched {
 
 /**
  * Fetch all epics in a project without story enrichment — fast first-load.
+ * Returned in creation order (oldest first), i.e. `ORDER BY created ASC`.
  */
 export async function fetchEpicsBasic(
   baseUrl: string,
@@ -2433,10 +2435,10 @@ export async function fetchEpicsBasic(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const epicFields = [
-    ...new Set(['summary', 'status', 'assignee', epicNameFieldKey, epicColorFieldKey]),
+    ...new Set(['summary', 'status', 'assignee', 'priority', epicNameFieldKey, epicColorFieldKey]),
   ].join(',');
   const epicJql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`,
+    `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY created ASC`,
   );
   const epicIssues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`,
@@ -2448,6 +2450,7 @@ export async function fetchEpicsBasic(
     summary: epic.fields.summary,
     status: epic.fields.status,
     assignee: epic.fields.assignee,
+    priority: epic.fields.priority ?? null,
     totalStories: 0,
     doneStories: 0,
     totalPoints: 0,
