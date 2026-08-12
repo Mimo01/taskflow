@@ -132,7 +132,7 @@ function FolderNode({
       <button
         type="button"
         data-testid={`folder-node-${node.ID}`}
-        className={`w-full flex items-center gap-1 py-2 pr-3 text-left text-sm transition-colors ${
+        className={`w-full flex items-center gap-1 py-2 density-compact:py-1 density-comfortable:py-3 pr-3 text-left text-sm transition-colors ${
           isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/30'
         }`}
         style={{ paddingLeft }}
@@ -468,7 +468,7 @@ export default function AioProjectOverviewPage() {
         {/* Left panel — folder tree */}
         <aside className="w-64 shrink-0 overflow-y-auto border-r border-border bg-muted/10">
           {showFolderSkeleton ? (
-            <div className="p-2 space-y-1">
+            <div className="p-2 density-compact:p-1 density-comfortable:p-3 space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
               {[40, 36, 32, 28, 40, 36].map((w, i) => (
                 <Skeleton
                   // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
@@ -509,7 +509,7 @@ export default function AioProjectOverviewPage() {
                 <button
                   type="button"
                   data-testid="folder-node-ungrouped"
-                  className={`w-full flex items-center gap-1 px-3 py-2 text-left text-sm transition-colors ${
+                  className={`w-full flex items-center gap-1 px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-sm transition-colors ${
                     selectedFolderID === -1
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted/30'
@@ -538,7 +538,10 @@ export default function AioProjectOverviewPage() {
           ) : showCycleSkeleton ? (
             <div className="p-4">
               {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-3 border-b border-border py-3">
+                <div
+                  key={i}
+                  className="flex items-center gap-3 border-b border-border py-3 density-compact:py-1.5 density-comfortable:py-4"
+                >
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 flex-1" />
                   <Skeleton className="h-4 w-24" />
@@ -569,19 +572,19 @@ export default function AioProjectOverviewPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/10">
                 <tr>
-                  <th className="w-28 px-3 py-3 text-left text-xs font-medium text-muted-foreground">
+                  <th className="w-28 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left text-xs font-medium text-muted-foreground">
                     Key
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                  <th className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left text-xs font-medium text-muted-foreground">
                     Name
                   </th>
-                  <th className="w-32 px-3 py-3 text-left text-xs font-medium text-muted-foreground">
+                  <th className="w-32 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left text-xs font-medium text-muted-foreground">
                     Owner
                   </th>
-                  <th className="w-20 px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                  <th className="w-20 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-right text-xs font-medium text-muted-foreground">
                     Total tests
                   </th>
-                  <th className="w-44 px-3 py-3 text-left text-xs font-medium text-muted-foreground">
+                  <th className="w-44 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-left text-xs font-medium text-muted-foreground">
                     Progress
                   </th>
                 </tr>
@@ -595,10 +598,10 @@ export default function AioProjectOverviewPage() {
                       data-testid={`cycle-row-${cycle.ID}`}
                       className="border-b border-border hover:bg-muted/30 transition-colors"
                     >
-                      <td className="w-28 px-3 py-3 text-xs font-mono text-muted-foreground">
+                      <td className="w-28 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs font-mono text-muted-foreground">
                         {cycle.detail.key}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4">
                         <button
                           type="button"
                           className="hover:underline text-left"
@@ -612,17 +615,17 @@ export default function AioProjectOverviewPage() {
                           {cycle.detail.title}
                         </button>
                       </td>
-                      <td className="w-32 px-3 py-3">
+                      <td className="w-32 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4">
                         <OwnerCell
                           ownedByID={cycle.detail.ownedByID}
                           token={token}
                           jiraBaseUrl={jiraBaseUrl ?? undefined}
                         />
                       </td>
-                      <td className="w-20 px-3 py-3 text-right text-xs text-muted-foreground">
+                      <td className="w-20 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-right text-xs text-muted-foreground">
                         {summary?.totalTests ?? '—'}
                       </td>
-                      <td className="w-44 px-3 py-3">
+                      <td className="w-44 px-3 py-3 density-compact:py-1.5 density-comfortable:py-4">
                         <ProgressBarCell
                           summary={summary}
                           isLoading={cycleSummariesQuery.isLoading}
