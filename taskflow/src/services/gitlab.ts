@@ -396,7 +396,19 @@ export async function searchProjectTags(
       throw new Error(`Failed to load release tags: status ${response.status}`);
     }
 
-    const data = (await response.json()) as unknown;
+    // WR-05: `response.json()` must sit inside its own try. A 200 carrying
+    // HTML — the SSO/proxy interstitial this guard exists for — rejects with a
+    // raw SyntaxError whose message embeds a prefix of the response body
+    // (`Unexpected token '<', "<html><head…"`), which both escapes the
+    // normalisation below and breaks this function's documented promise never
+    // to interpolate the body into a thrown message. It is also not an
+    // ApiError, so type-based consumer branching mis-classifies it.
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error('Failed to load release tags: unexpected response shape');
+    }
     // CR-01: validating only the array WRAPPER let `["<html>…"]` (a proxy
     // interstitial) or `[{ message: 'Insufficient permissions' }]` (a GitLab
     // error array) through the guard, whereupon the `as GitLabTag[]` cast hid
@@ -1911,7 +1923,20 @@ export async function fetchSourceBranchMRs(
       throw new Error(`Failed to fetch tracking MR: status ${response.status}`);
     }
 
-    const data = (await response.json()) as GitLabMR[];
+    // WR-05: `response.json()` gets its own try. A 200 carrying HTML (the
+    // SSO/proxy interstitial) rejects with a SyntaxError whose message embeds
+    // a prefix of the response body, leaking it past the transport catch
+    // above. The array check is the CR-01 shape guard applied here too — an
+    // `{ message: ... }` error body must never spread into `allMRs`.
+    let data: GitLabMR[];
+    try {
+      data = (await response.json()) as GitLabMR[];
+    } catch {
+      throw new Error('Failed to fetch tracking MR: unexpected response shape');
+    }
+    if (!Array.isArray(data)) {
+      throw new Error('Failed to fetch tracking MR: unexpected response shape');
+    }
     allMRs.push(...data);
 
     if (data.length < perPage) break;
@@ -1973,7 +1998,15 @@ export async function compareRefs(
     throw new Error(`Failed to compare refs: status ${response.status}`);
   }
 
-  const data = (await response.json()) as unknown;
+  // WR-05: parsing sits in its own try — a non-JSON 200 rejected with a raw
+  // SyntaxError containing a prefix of the response body, escaping both the
+  // shape normalisation below and the T-91-02 no-leak property.
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error('Failed to compare refs: unexpected response shape');
+  }
   const body = data as { diffs?: unknown; commits?: unknown; compare_timeout?: unknown };
 
   if (!Array.isArray(body.diffs) || !Array.isArray(body.commits)) {
