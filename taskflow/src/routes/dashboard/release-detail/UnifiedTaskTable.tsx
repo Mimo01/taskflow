@@ -342,6 +342,7 @@ function MrSubLine({
   keyCell?: React.ReactNode;
 }) {
   const { mr } = row;
+  const isFlagged = row.br === 'flag' || row.ms === 'flag';
 
   const iidButton = (
     <button
@@ -394,7 +395,7 @@ function MrSubLine({
     <div
       data-testid="drift-row"
       title={`${mr.author.name} — ${mr.state}`}
-      className="group/row pl-4 flex items-center gap-2 text-xs py-1 text-muted-foreground"
+      className={`group/row pl-4 flex items-center gap-2 text-xs py-1 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
     >
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
       <span className={`${COL_SUMMARY} truncate`}>
@@ -442,7 +443,7 @@ function TaskRow({
   return (
     <div
       data-testid="task-row"
-      className="relative flex items-center gap-2 text-sm py-1.5 border-b border-border/50 hover:bg-muted/40"
+      className="relative flex items-center gap-2 text-sm py-1.5 hover:bg-muted/40"
     >
       <button
         type="button"
@@ -731,7 +732,7 @@ export function UnifiedTaskTable({
           <ColumnHeaderStrip />
           <div data-testid="task-list">
             {filteredPrimaryRows.map(({ issue, mrs }) => (
-              <div key={issue.id}>
+              <div key={issue.id} data-testid="task-group" className="border-b border-border/50">
                 <TaskRow
                   issue={issue}
                   onOpenIssue={onOpenIssue}
