@@ -43,13 +43,13 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       {/* Color bar — prominent left border */}
       <td className="w-1 p-0">
         <div
-          className={`w-1 h-full min-h-[3rem] ${colorResult.className}`}
+          className={`w-1 h-full min-h-[3rem] density-compact:min-h-[2rem] density-comfortable:min-h-[3.5rem] ${colorResult.className}`}
           style={colorResult.style ? { backgroundColor: colorResult.style.color } : undefined}
         />
       </td>
 
       {/* Epic name as colored badge */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4">
         <span
           className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium text-left ${colorResult.className}`}
           style={colorResult.style}
@@ -59,12 +59,12 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       </td>
 
       {/* Epic key */}
-      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">{epic.key}</td>
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground font-mono">{epic.key}</td>
 
       {/* Status badge — flex wrapper so the shared pill's min-w/text-center
           take effect (statusPillClass assumes a flex-item context, as in
           StoryHeaderRow / TaskCard / issue detail). */}
-      <td className="px-3 py-3">
+      <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4">
         <div className="flex">
           <span className={statusPillClass(epic.status.statusCategory?.key)}>
             {epic.status.name}
@@ -75,7 +75,7 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       {/* Assignee — extra right padding so the avatar isn't flush against the
           container edge (the table has no outer horizontal padding, unlike the
           px-6 page header). */}
-      <td className="pl-3 pr-6 py-3">
+      <td className="pl-3 pr-6 py-3 density-compact:py-1.5 density-comfortable:py-4">
         <CachedAvatar
           url={epic.assignee?.avatarUrls?.['48x48'] || null}
           name={epic.assignee?.displayName || 'Unassigned'}
