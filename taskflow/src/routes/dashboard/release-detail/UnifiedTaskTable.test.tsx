@@ -1617,6 +1617,35 @@ describe('UAT-91.1-B: filtering warning badges', () => {
     expect(screen.getAllByTestId('task-row')).toHaveLength(1);
   });
 
+  // WR-08: `filteredPrimaryRows` replaces each task's `mrs` with the filtered
+  // subset before the MR cell ever sees it. Counting `+N` from that subset made
+  // a task's other MRs appear to vanish the moment a filter was applied.
+  it("WR-08: the +N marker counts the task's MRs, not the filtered subset", () => {
+    const flagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
+    const cleanA = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+    const cleanB = makeRow({ mr: makeMR({ id: 3, iid: 3 }) });
+    const cleanC = makeRow({ mr: makeMR({ id: 4, iid: 4 }) });
+    renderSection({
+      primaryRows: [
+        { issue: makeIssue({ key: 'PROJ-1' }), mrs: [flagged, cleanA, cleanB, cleanC] },
+      ],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+    });
+
+    expect(screen.getByTestId('mr-extra-count')).toHaveTextContent('+3');
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+
+    // The filter changes which MR is DISPLAYED, never how many the task has.
+    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!1');
+    const extra = screen.getByTestId('mr-extra-count');
+    expect(extra).toHaveTextContent('+3');
+    for (const iid of ['!2', '!3', '!4']) {
+      expect(extra).toHaveAttribute('title', expect.stringContaining(iid));
+    }
+  });
+
   it('Test 8: with a filter active, filter-active-notice renders and filter-clear restores every row', () => {
     const brFlagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
     const clean = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });

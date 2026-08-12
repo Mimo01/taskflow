@@ -590,12 +590,22 @@ const naDriftCells = (
  */
 function TaskMrCell({
   mrs,
+  allMrs,
   isLoadingDrift,
   driftUnavailable,
   hasMatchedMilestone,
   fix,
 }: {
   mrs: DriftRow[];
+  /**
+   * WR-08: the task's UNFILTERED MR list. `mrs` is already restricted to the
+   * active filter (deliberately — the displayed MR must match the filter), so
+   * counting the `+N` others from it under-reports: a task with one flagged
+   * and three clean MRs would show `+3` unfiltered and no marker at all under
+   * the filter, as if three MRs had vanished. The marker describes the task,
+   * not the current view, so it is always computed from this list.
+   */
+  allMrs: DriftRow[];
   isLoadingDrift: boolean;
   driftUnavailable: boolean;
   hasMatchedMilestone: boolean;
@@ -675,7 +685,8 @@ function TaskMrCell({
   if (!selected) return null; // unreachable — mrs.length > 0 is guaranteed by the branches above
 
   const { mr } = selected;
-  const others = mrs.filter((r) => r.mr.id !== mr.id);
+  // WR-08: from `allMrs`, never `mrs` — see the prop's docstring.
+  const others = allMrs.filter((r) => r.mr.id !== mr.id);
 
   // Pre-milestone look (v1.13.5), restored per the developer's explicit
   // choice at the live UAT checkpoint: GitMerge icon + state-coloured `!iid`
@@ -787,6 +798,7 @@ function TaskMrCell({
 function TaskRow({
   issue,
   mrs,
+  allMrs,
   isLoadingDrift,
   driftUnavailable,
   hasMatchedMilestone,
@@ -797,6 +809,7 @@ function TaskRow({
 }: {
   issue: JiraIssue;
   mrs: DriftRow[];
+  allMrs: DriftRow[];
   isLoadingDrift: boolean;
   driftUnavailable: boolean;
   hasMatchedMilestone: boolean;
@@ -859,6 +872,7 @@ function TaskRow({
       </div>
       <TaskMrCell
         mrs={mrs}
+        allMrs={allMrs}
         isLoadingDrift={isLoadingDrift}
         driftUnavailable={driftUnavailable}
         hasMatchedMilestone={hasMatchedMilestone}
@@ -899,11 +913,14 @@ export function UnifiedTaskTable({
         ? (r: DriftRow) => r.ms === 'flag'
         : null;
 
+  // WR-08: `allMrs` rides along unfiltered so the `+N` marker keeps describing
+  // the TASK rather than the current view — filtering it too made MRs appear
+  // to vanish from a task the moment a filter was applied.
   const filteredPrimaryRows = filterPredicate
     ? primaryRows
-        .map(({ issue, mrs }) => ({ issue, mrs: mrs.filter(filterPredicate) }))
+        .map(({ issue, mrs }) => ({ issue, mrs: mrs.filter(filterPredicate), allMrs: mrs }))
         .filter(({ mrs }) => mrs.length > 0)
-    : primaryRows;
+    : primaryRows.map(({ issue, mrs }) => ({ issue, mrs, allMrs: mrs }));
 
   const filteredSecondaryRows = filterPredicate
     ? secondaryRows.filter(filterPredicate)
@@ -1038,11 +1055,12 @@ export function UnifiedTaskTable({
         <>
           <ColumnHeaderStrip />
           <div data-testid="task-list">
-            {filteredPrimaryRows.map(({ issue, mrs }) => (
+            {filteredPrimaryRows.map(({ issue, mrs, allMrs }) => (
               <div key={issue.id} data-testid="task-group" className="border-b border-border/50">
                 <TaskRow
                   issue={issue}
                   mrs={mrs}
+                  allMrs={allMrs}
                   isLoadingDrift={isLoadingDrift}
                   driftUnavailable={driftUnavailable}
                   hasMatchedMilestone={hasMatchedMilestone}
