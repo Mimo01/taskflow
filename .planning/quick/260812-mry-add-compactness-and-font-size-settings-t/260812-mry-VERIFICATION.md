@@ -1,8 +1,13 @@
 ---
 task: quick-260812-mry
 verified: 2026-08-12T20:00:00Z
-status: human_needed
-score: 7/7 automated truths verified
+status: passed
+score: 7/7 automated truths verified; 4/4 human-verify items approved
+uat:
+  approved: true
+  approved_by: developer
+  approved_at: 2026-08-12
+  scope: "Blanket approval covering all 4 human_verification items below — recorded as given ('looks good, approved'), no per-item detail reported."
 human_verification:
   - test: "Text Size selector + live app-wide scale (Settings > Appearance)"
     expected: "Two selectors visible (Display Density 3-tier, Text Size 4-tier). Clicking Text Size > Extra Large instantly rescales text, padding, gaps, icons across the whole running app."
@@ -22,7 +27,7 @@ human_verification:
 
 **Task Goal:** Add an option to change compactness and the size of fonts / general text content across the app, exposed in the existing Appearance section of Settings.
 **Verified:** 2026-08-12
-**Status:** human_needed
+**Status:** passed (7/7 code truths verified; the 4 human-verify items were approved by the developer on 2026-08-12 as a blanket UAT approval)
 
 ## Goal Achievement
 
