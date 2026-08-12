@@ -183,8 +183,10 @@ export function resolveMergeBackVerdict(params: {
   // from the milestone title, so the query is disabled and will never run),
   // fall through instead: step 4 finds no evidence (trackingMRs stays
   // undefined) and step 5 resolves to `couldnt-verify` with
-  // `reason: 'no-mr-no-tag'` for the unparseable-title case — the correct
-  // terminal answer, needing no new verdict kind. Parallels
+  // `reason: 'check-failed'` for the unparseable-title case (WR-09 — the
+  // channel was never queried, so `no-mr-no-tag` would assert a negative it
+  // never established) — the correct terminal answer, needing no new verdict
+  // kind. Parallels
   // `releaseBranch.ts`'s `BranchState.kind === 'unresolvable'`.
   if (trackingMRs === undefined && !trackingMRsCheckFailed && !trackingMRsUnavailable) {
     return { kind: 'loading' };
@@ -253,10 +255,19 @@ export function resolveMergeBackVerdict(params: {
 
   // Step 5 (D-01): tag absence is NEVER evidence a release did not ship;
   // Phase 88 established tags are an incomplete record.
+  // WR-09: `trackingMRsUnavailable` must be consulted here too. Step 3
+  // deliberately falls through when the tracking-MR query is permanently
+  // disabled, so step 4 finds nothing and this step used to report
+  // `no-mr-no-tag` — "no tracking MR and no release tag found" — asserting a
+  // negative for a query that never executed. Step 10 already refuses to make
+  // an evidence claim under exactly this flag and calls that guard "a
+  // contract, not dead code"; this step now honours the same contract. The
+  // verdict KIND is unchanged (`couldnt-verify` either way) — this is the
+  // tooltip's copy telling the truth about which channels were checked.
   if (tagName === null) {
     return {
       kind: 'couldnt-verify',
-      reason: trackingMRsCheckFailed ? 'check-failed' : 'no-mr-no-tag',
+      reason: trackingMRsCheckFailed || trackingMRsUnavailable ? 'check-failed' : 'no-mr-no-tag',
       expectedTagName,
     };
   }
