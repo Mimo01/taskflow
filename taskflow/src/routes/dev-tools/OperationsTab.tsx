@@ -43,12 +43,15 @@ export default function OperationsTab() {
 
       {ungrouped.length > 0 && (
         <details className="border border-border rounded-lg overflow-hidden">
-          <summary className="px-4 py-3 text-sm font-medium cursor-pointer hover:bg-accent transition-colors">
+          <summary className="px-4 py-3 density-compact:py-1.5 density-comfortable:py-4 text-sm font-medium cursor-pointer hover:bg-accent transition-colors">
             Ungrouped Requests ({ungrouped.length})
           </summary>
-          <div className="border-t border-border px-4 py-2 flex flex-col gap-1">
+          <div className="border-t border-border px-4 py-2 density-compact:py-1 density-comfortable:py-3 flex flex-col gap-1">
             {ungrouped.map((fetch) => (
-              <div key={fetch.id} className="flex items-center gap-3 text-xs font-mono py-1">
+              <div
+                key={fetch.id}
+                className="flex items-center gap-3 text-xs font-mono py-1 density-compact:py-0.5 density-comfortable:py-2"
+              >
                 <span className={sourceBadgeClass(fetch.source)}>{fetch.source}</span>
                 <span className="font-semibold shrink-0">{fetch.method}</span>
                 <span className={`shrink-0 ${statusColor(fetch.status)}`}>

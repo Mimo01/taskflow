@@ -30,7 +30,7 @@ export default function SidebarItemsList() {
               return (
                 <label
                   key={nav.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                  className="flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-md hover:bg-accent cursor-pointer"
                 >
                   <input
                     type="checkbox"
