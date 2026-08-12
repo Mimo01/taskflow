@@ -362,7 +362,7 @@ function CollapsibleRunBlock({
 
   return (
     <div className="border-b border-border last:border-0">
-      <div className="flex items-center gap-2 min-h-11 px-4 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted/30">
+      <div className="flex items-center gap-2 min-h-11 density-compact:min-h-8 density-comfortable:min-h-12 px-4 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted/30">
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
