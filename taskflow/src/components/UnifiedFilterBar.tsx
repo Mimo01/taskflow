@@ -81,7 +81,7 @@ function FilterDropdown({
       <PopoverTrigger render={<Button variant={count > 0 ? 'secondary' : 'outline'} size="xs" />}>
         {label}
         {count > 0 && (
-          <span className="ml-0.5 inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
+          <span className="ml-0.5 inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[0.625rem] font-semibold leading-none">
             {count}
           </span>
         )}
@@ -317,7 +317,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
           {/* Quickfilter presets */}
           {/* Empty state hint */}
           {quickFilters.length === 0 && !hasActiveFilters && (
-            <span className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 italic">
+            <span className="shrink-0 inline-flex items-center gap-1 text-[0.6875rem] text-muted-foreground/60 italic">
               <Info className="size-3 shrink-0" />
               Saved filters appear here — use Filter to create one
             </span>
@@ -439,7 +439,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                   <span
                     key={chip.key}
                     data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[0.6875rem] leading-tight"
                   >
                     <span className="text-muted-foreground font-medium">{chip.category}:</span>
                     <span className="max-w-[120px] truncate">{chip.label}</span>
@@ -456,7 +456,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1"
+                  className="text-[0.6875rem] text-muted-foreground hover:text-foreground transition-colors px-1"
                 >
                   Clear
                 </button>
@@ -475,7 +475,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               className="text-muted-foreground gap-1"
             >
               <BookmarkPlus className="size-3" />
-              <span className="text-[11px]">Save</span>
+              <span className="text-[0.6875rem]">Save</span>
             </Button>
           )}
 
@@ -527,7 +527,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
             <Filter className="size-3" />
             Filter
             {activeCount > 0 && (
-              <span className="inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
+              <span className="inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[0.625rem] font-semibold leading-none">
                 {activeCount}
               </span>
             )}
@@ -576,7 +576,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                     <span
                       key={chip.key}
                       data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
+                      className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[0.6875rem] leading-tight"
                     >
                       <span className="text-muted-foreground font-medium">{chip.category}:</span>
                       <span className="max-w-[120px] truncate">{chip.label}</span>
@@ -593,7 +593,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                   <button
                     type="button"
                     onClick={clearAll}
-                    className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1"
+                    className="text-[0.6875rem] text-muted-foreground hover:text-foreground transition-colors px-1"
                   >
                     Clear
                   </button>

@@ -99,7 +99,7 @@ export function StoryHeaderRow({
   const useKeyBodySplit = !!onOpenIssue;
 
   const rowClassName = cn(
-    'flex items-center gap-2 px-3 py-2 transition-colors border-b',
+    'flex items-center gap-2 px-3 py-2 density-compact:py-1 density-comfortable:py-3 transition-colors border-b',
     useKeyBodySplit && 'cursor-pointer',
     isExpanded
       ? isFlagged

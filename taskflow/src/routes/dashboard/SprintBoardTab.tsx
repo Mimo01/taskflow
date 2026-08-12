@@ -530,7 +530,7 @@ function VirtualizedSwimlanes({
                 return (
                   <div
                     key={col.key}
-                    className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
+                    className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                   >
                     {subtasksLoading ? (
                       <Skeleton className="h-8 w-full" />
@@ -705,7 +705,7 @@ function VirtualizedSwimlanes({
                     return (
                       <div
                         key={col.key}
-                        className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
+                        className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                       >
                         {subtasksLoading ? (
                           <Skeleton className="h-8 w-full" />
