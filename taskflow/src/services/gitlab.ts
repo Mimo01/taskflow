@@ -359,7 +359,10 @@ export async function fetchProjectBranches(
  *   error body, or an array of non-tag elements must never be read as "zero
  *   tags" (same reasoning as `compareRefs`'s CR-02 guard). Never interpolates
  *   the response body, URL, search term or token into the thrown message
- *   (T-91-07-01).
+ *   (T-91-07-01). Also throws when the walk exhausts `maxPages` with a full
+ *   final page (WR-07) — a truncated walk must never be returned as a
+ *   complete result set, because the caller reads an empty/partial result as
+ *   a settled "no tag found".
  */
 export async function searchProjectTags(
   baseUrl: string,
@@ -425,6 +428,16 @@ export async function searchProjectTags(
 
     allTags.push(...(data as GitLabTag[]));
     if (data.length < perPage) break;
+
+    // WR-07: exhausting the cap is a FAILURE, not a result. Returning a
+    // truncated walk makes "these are all matching tags" indistinguishable
+    // from "these are the first 2000", and the caller then presents a
+    // `null` tag as `tagChannel: 'resolved'` — the settled negative
+    // ("No matching tag found", `no-mr-no-tag`) derived from an incomplete
+    // fetch that this function's fail-closed discipline exists to prevent.
+    if (page === maxPages) {
+      throw new Error('Failed to load release tags: result set exceeds page limit');
+    }
   }
 
   return allTags;
@@ -1884,6 +1897,10 @@ export async function fetchBranchTargetedMRs(
  *          `target_branch` is preserved verbatim so the caller (the
  *          resolver, Plan 91-05) can filter on it — this function performs
  *          no target_branch filtering of its own
+ * @throws {Error} on transport failure, a non-ok response, a non-JSON or
+ *   non-array 200 body (WR-05), or a walk that exhausts `maxPages` with a
+ *   full final page (WR-07) — a truncated walk can drop the merged tracking
+ *   MR and turn a `merged` verdict into `likely-not-merged`.
  */
 export async function fetchSourceBranchMRs(
   baseUrl: string,
@@ -1940,6 +1957,14 @@ export async function fetchSourceBranchMRs(
     allMRs.push(...data);
 
     if (data.length < perPage) break;
+
+    // WR-07: a truncated walk here can drop the merged tracking MR and
+    // downgrade a `merged` verdict to `likely-not-merged` — an accusatory
+    // claim derived from an incomplete fetch. Fail instead, so the caller
+    // reaches `couldnt-verify`.
+    if (page === maxPages) {
+      throw new Error('Failed to fetch tracking MR: result set exceeds page limit');
+    }
   }
 
   return allMRs;

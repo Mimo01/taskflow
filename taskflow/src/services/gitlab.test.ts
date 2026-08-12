@@ -677,16 +677,21 @@ describe('gitlab service', () => {
       }
     });
 
-    it('WR-06: a server that always returns a full page stops after exactly 20 requests (page-ceiling regression)', async () => {
+    // Formerly "stops after exactly 20 requests" and asserted a 2000-element
+    // RESULT. WR-07: the page ceiling still holds at 20 requests (that half
+    // was always the point — a paginating server must not spin forever), but
+    // a truncated walk is now a failure rather than a result. Returning it
+    // let the caller present a partial fetch as a settled negative.
+    it('WR-07: a server that always returns a full page stops after 20 requests and REJECTS', async () => {
       vi.mocked(mockFetch).mockImplementation(async () => {
         const data = Array.from({ length: 100 }, (_, i) => makeMR(i + 1));
         return { ok: true, status: 200, json: async () => data } as Response;
       });
 
-      const result = await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
-
+      await expect(fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0')).rejects.toThrow(
+        /exceeds page limit/,
+      );
       expect(mockFetch).toHaveBeenCalledTimes(20);
-      expect(result).toHaveLength(2000);
     });
 
     it("CR-01 service side: preserves each MR's target_branch verbatim with no client-side filtering", async () => {
@@ -955,6 +960,20 @@ describe('gitlab service', () => {
       await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
         /unexpected response shape/,
       );
+    });
+
+    it('WR-07: exhausting the 20-page cap rejects rather than returning a truncated walk', async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => makeTag(`v33.7.${i}`));
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => fullPage,
+      } as Response);
+
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7')).rejects.toThrow(
+        /exceeds page limit/,
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(20);
     });
 
     it('WR-05: a non-JSON 200 rejects with the normalised message, never the body text', async () => {
