@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: milestone_complete
-last_updated: 2026-08-12T14:23:57.561Z
-last_activity: 2026-08-12 -- Completed quick task 260812-mry: Add compactness and font size settings to Appearance section
+status: Phase 91.2 inserted — not planned yet
+last_updated: "2026-08-12T21:01:10.276Z"
+last_activity: "2026-08-12 - Completed quick task 260812-rx9: Enhance compactness settings coverage — density variants extended from 11 to 48 files; UAT approved"
 progress:
-  total_phases: 22
-  completed_phases: 5
+  total_phases: 23
+  completed_phases: 6
   total_plans: 45
   completed_plans: 45
-  percent: 23
-stopped_at: Milestone complete (Phase 91.1 was final phase)
+  percent: 26
 ---
 
 # Project State
@@ -25,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 91.1
+Phase: 91.2
 Plan: Not started
-Status: Milestone complete
+Status: Phase 91.2 inserted — not planned yet
 Last activity: 2026-08-12 - Completed quick task 260812-rx9: Enhance compactness settings coverage — density variants extended from 11 to 48 files; UAT approved
 
 Progress: [██████████] 100%
@@ -67,6 +66,7 @@ Progress: [██████████] 100%
 
 - v1.14 roadmap created 2026-08-10: 5 phases (87-91), continuing numbering from v1.13's Phase 86. Coarse granularity — reconciled the research's 6-slice build order into 5 phases by combining release-branch-create + milestone-create into one phase (88), since both share the "first write" cross-cutting concerns (permission gating, idempotent-mutation contract).
 - Phase 91.1 inserted after Phase 91: Unified Release Detail Task Table — one Jira-task table with inline MRs, secondary table for uncovered MRs (URGENT)
+- Phase 91.2 inserted after Phase 91: Epics Page Redesign — creation-order sort, quick-search, progress/points/priority/labels/child-status per row (URGENT)
 
 ### Decisions
 
@@ -141,9 +141,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-12T08:06:22.870Z
-Stopped at: Phase 91.1 UI-SPEC approved
-Resume file: .planning/phases/91.1-unified-release-detail-task-table/91.1-UI-SPEC.md
+Last session: 2026-08-12T21:01:10.272Z
+Stopped at: Phase 91.2 context gathered
+Resume file: .planning/phases/91.2-epics-page-redesign/91.2-CONTEXT.md
 
 ## Operator Next Steps
 
