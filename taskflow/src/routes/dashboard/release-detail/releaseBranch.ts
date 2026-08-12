@@ -118,9 +118,11 @@ export type BranchState =
    *  absence is not evidence the release did not ship. `tagName` is
    *  meaningful ONLY when `tagChannel === 'resolved'`; a `null` `tagName`
    *  under `'pending'` or `'failed'` means "not known yet" / "could not be
-   *  checked", never "no tag exists". `tagChannel` is REQUIRED — deliberate
-   *  type-system enforcement (91-REVIEW WR-04) so no producer can silently
-   *  omit it and reproduce the pre-fix behaviour. */
+   *  checked", never "no tag exists". `tagChannel` is REQUIRED here AND on
+   *  `resolveBranchState`'s parameter (91-REVIEW WR-01). Requiring it on the
+   *  variant alone enforced nothing: the resolver is the sole producer of this
+   *  variant and its own param used to default to `'resolved'`, so any caller
+   *  could omit it and get the pre-fix output. Both must stay required. */
   | { kind: 'released'; branchName: string; tagName: string | null; tagChannel: TagChannelHealth }
   | { kind: 'missing'; branchName: string };
 
@@ -162,10 +164,13 @@ export function findReleaseTag(tags: readonly string[], version: string | null):
  *   `branchExists === undefined`, which means in flight. `fetchBranch` throws on 401/403/500/timeout,
  *   so without this signal a failed check is indistinguishable from loading and pins the UI at
  *   'Loading…' forever.
- * @param params.tagChannel - health of the tag-lookup channel feeding `releaseTagName`. Optional on
- *   this FUNCTION param (default `'resolved'`) so the existing call sites and unit cases compile
- *   unchanged, but REQUIRED on the emitted `released` variant — that asymmetry exists so 91-VERIFICATION
- *   truth 6 (the row asserting an unresolved negative as settled fact) cannot silently recur.
+ * @param params.tagChannel - health of the tag-lookup channel feeding `releaseTagName`. REQUIRED, with
+ *   no default (91-REVIEW WR-01). This param — not the emitted variant — is the real producer surface:
+ *   `resolveBranchState` is the ONLY constructor of the `released` variant, so an optional param
+ *   defaulting to `'resolved'` meant every caller could silently reproduce the pre-fix output while the
+ *   variant's own requiredness constrained nothing. Requiring it here is what makes 91-VERIFICATION
+ *   truth 6 (the row asserting an unresolved negative as settled fact) a compile error rather than a
+ *   convention.
  * @returns the resolved `BranchState`
  */
 export function resolveBranchState(params: {
@@ -175,7 +180,7 @@ export function resolveBranchState(params: {
   branchCheckFailed?: boolean;
   versionReleased?: boolean;
   releaseTagName?: string | null;
-  tagChannel?: TagChannelHealth;
+  tagChannel: TagChannelHealth;
 }): BranchState {
   const {
     hasMatchedMilestone,
@@ -184,7 +189,7 @@ export function resolveBranchState(params: {
     branchCheckFailed,
     versionReleased,
     releaseTagName,
-    tagChannel = 'resolved',
+    tagChannel,
   } = params;
 
   if (!hasMatchedMilestone) {

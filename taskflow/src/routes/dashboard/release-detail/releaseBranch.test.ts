@@ -149,6 +149,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: false,
       milestoneTitle: null,
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
     });
     expect(result).toEqual({ kind: 'blocked-no-milestone' });
@@ -158,6 +159,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: 'Sprint 42',
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
     });
     expect(result).toEqual({ kind: 'unresolvable' });
@@ -167,6 +169,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
     });
     expect(result).toEqual({ kind: 'loading', branchName: 'release/33.5.0' });
@@ -176,6 +179,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: true,
     });
     expect(result).toEqual({ kind: 'exists', branchName: 'release/33.5.0' });
@@ -185,6 +189,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: false,
     });
     expect(result).toEqual({ kind: 'missing', branchName: 'release/33.5.0' });
@@ -194,6 +199,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
       branchCheckFailed: true,
     });
@@ -204,6 +210,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
       branchCheckFailed: false,
     });
@@ -214,6 +221,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
     });
     expect(result).toEqual({ kind: 'loading', branchName: 'release/33.5.0' });
@@ -223,6 +231,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: false,
       milestoneTitle: null,
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
       branchCheckFailed: true,
     });
@@ -233,6 +242,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: 'Sprint 42',
+      tagChannel: 'resolved' as const,
       branchExists: undefined,
       branchCheckFailed: true,
     });
@@ -243,6 +253,7 @@ describe('resolveBranchState', () => {
     const result: BranchState = resolveBranchState({
       hasMatchedMilestone: true,
       milestoneTitle: '33.5.0 (21.07.2026)',
+      tagChannel: 'resolved' as const,
       branchExists: true,
       branchCheckFailed: true,
     });
@@ -288,6 +299,10 @@ describe('resolveBranchState — released versions', () => {
   const base = {
     hasMatchedMilestone: true,
     milestoneTitle: '33.6.0 (04.08.2026)',
+    // WR-01: `tagChannel` is a REQUIRED param, so the fixture must supply it.
+    // It used to default to 'resolved' inside the resolver, which meant any
+    // caller could silently emit a settled "no tag" negative it never checked.
+    tagChannel: 'resolved' as const,
   };
 
   it('reports released (not missing) when a released version has no branch', () => {
@@ -315,9 +330,20 @@ describe('resolveBranchState — released versions', () => {
     });
   });
 
-  it('defaults tagChannel to resolved when the param is omitted', () => {
-    const state = resolveBranchState({ ...base, branchExists: false, versionReleased: true });
-    expect(state).toMatchObject({ tagChannel: 'resolved' });
+  it('WR-01: omitting tagChannel is a type error — the resolver has no unsafe default', () => {
+    const { tagChannel: _omitted, ...withoutTagChannel } = base;
+    const state = resolveBranchState(
+      // @ts-expect-error tagChannel is required (WR-01): an omission must fail
+      // to compile rather than silently resolve to a settled "no tag" negative.
+      {
+        ...withoutTagChannel,
+        branchExists: false,
+        versionReleased: true,
+      },
+    );
+    // Runtime behaviour under an omission is now `undefined`, NOT 'resolved' —
+    // there is deliberately no default to fall back to.
+    expect(state).toMatchObject({ kind: 'released', tagChannel: undefined });
   });
 
   it('carries tagChannel: pending through to the released variant', () => {
