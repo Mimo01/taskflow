@@ -261,18 +261,6 @@ export interface IssueLinkType {
 // longer exist. Backlog data flows through useGhBacklogData (xboard
 // data.json) instead.
 
-export interface EpicEnriched {
-  key: string;
-  epicName: string;
-  summary: string;
-  status: JiraIssue['fields']['status'];
-  assignee: JiraIssue['fields']['assignee'];
-  totalStories: number;
-  doneStories: number;
-  totalPoints: number;
-  color?: string | null;
-}
-
 // --- Phase 32 additions: Time tracking, attachments, and mentions ---
 
 export interface JiraWorklog {
