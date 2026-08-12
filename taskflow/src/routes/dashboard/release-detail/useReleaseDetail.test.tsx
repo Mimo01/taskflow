@@ -88,8 +88,18 @@ async function setupMocks(
     fetchSourceBranchMRsImpl?: () => Promise<unknown[]>;
     compareRefsImpl?: () => Promise<{ diffCount: number; commitCount: number; timedOut: boolean }>;
     searchProjectTagsImpl?: () => Promise<unknown[]>;
+    readSecretImpl?: (key: string) => Promise<string | null>;
   } = {},
 ) {
+  // Re-established on every setup because `vi.clearAllMocks()` in beforeEach
+  // does not restore an implementation a previous test installed — without
+  // this, one token-rejection test would leak into every later test.
+  const stronghold = await import('@/services/stronghold');
+  vi.mocked(stronghold.readSecret).mockImplementation(
+    (overrides.readSecretImpl ??
+      (() => Promise.resolve('test-token'))) as typeof stronghold.readSecret,
+  );
+
   const auth = await import('@/stores/auth.store');
   vi.mocked(auth.useAuthStore).mockReturnValue({
     jiraBaseUrl: 'https://jira.example.com',
@@ -739,6 +749,45 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
 
     await waitFor(() => expect(result.current.matchedMilestone).not.toBeNull());
     await waitFor(() => expect(result.current.mergeBackVerdict.kind).not.toBe('loading'));
+
+    const gitlab = await import('@/services/gitlab');
+    expect(gitlab.searchProjectTags).not.toHaveBeenCalled();
+  });
+
+  // WR-04: every GitLab `enabled` gate also requires a token. With milestone
+  // data already in cache but `readSecret('gitlab-pat')` rejecting, the tag,
+  // project and tracking-MR queries are all permanently disabled — they never
+  // run, so they never error either. Before this fix `tagLookupPending` and
+  // step 2 both modelled only "undefined && !isError" and pinned the row at
+  // Loading forever.
+  it('WR-04: a rejected gitlab-pat terminates the verdict instead of pinning it at loading', async () => {
+    await setupMocks({
+      released: true,
+      readSecretImpl: (key: string) =>
+        key === 'gitlab-pat'
+          ? Promise.reject(new Error('keychain locked'))
+          : Promise.resolve('test-token'),
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // Milestone data present in cache is what makes this reachable: the match
+    // resolves, so the merge-back check is attempted, while every credentialed
+    // query stays disabled.
+    queryClient.setQueryData(['gitlab-milestones', 42, 'all'], [makeMilestone()]);
+
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.matchedMilestone).not.toBeNull());
+    await waitFor(() => expect(result.current.mergeBackVerdict.kind).not.toBe('loading'));
+
+    const verdict = result.current.mergeBackVerdict;
+    expect(verdict.kind).toBe('couldnt-verify');
+    if (verdict.kind === 'couldnt-verify') {
+      expect(verdict.reason).toBe('check-failed');
+      expect(verdict.reason).not.toBe('no-mr-no-tag');
+    }
 
     const gitlab = await import('@/services/gitlab');
     expect(gitlab.searchProjectTags).not.toHaveBeenCalled();

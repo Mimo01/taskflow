@@ -112,6 +112,12 @@ export function resolveMergeBackVerdict(params: {
   hasMatchedMilestone: boolean;
   defaultBranch: string | null;
   defaultBranchCheckFailed: boolean;
+  /** WR-04: the default-branch query is permanently disabled (no GitLab
+   *  credentials), so `defaultBranch` will never arrive. Distinct from
+   *  `defaultBranchCheckFailed` (the query ran and errored) for the same
+   *  reason `trackingMRsUnavailable` is distinct from
+   *  `trackingMRsCheckFailed`; both terminate at `couldnt-verify`. */
+  defaultBranchUnavailable: boolean;
   trackingMRs: readonly TrackingMR[] | undefined;
   trackingMRsCheckFailed: boolean;
   trackingMRsUnavailable: boolean;
@@ -134,6 +140,7 @@ export function resolveMergeBackVerdict(params: {
     hasMatchedMilestone,
     defaultBranch,
     defaultBranchCheckFailed,
+    defaultBranchUnavailable,
     trackingMRs,
     trackingMRsCheckFailed,
     trackingMRsUnavailable,
@@ -159,8 +166,12 @@ export function resolveMergeBackVerdict(params: {
   // never arrive and reporting `loading` forever would pin the row at
   // "Loading…" for a 500/timeout that already happened. Mirrors
   // `releaseBranch.ts`'s `branchCheckFailed` -> `check-failed` precedent.
+  // WR-04 extends this guard to `defaultBranchUnavailable`: a query disabled
+  // for want of credentials never runs, so it never errors either — without
+  // this half the row reports `loading` forever, the same shape CR-04 fixed
+  // for the errored case.
   if (defaultBranch === null) {
-    if (defaultBranchCheckFailed) {
+    if (defaultBranchCheckFailed || defaultBranchUnavailable) {
       return { kind: 'couldnt-verify', reason: 'check-failed', expectedTagName };
     }
     return { kind: 'loading' };
