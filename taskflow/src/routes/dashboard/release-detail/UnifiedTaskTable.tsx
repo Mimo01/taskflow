@@ -301,14 +301,26 @@ function DriftActionCell({
   );
 }
 
-/** Shared column header strip — same grid as task rows / MR sub-lines / secondary rows (D-12). */
+/**
+ * Shared column header strip — same grid as task rows / MR sub-lines /
+ * secondary rows (D-12).
+ *
+ * WR-05 decision: visible labels only — deliberately no ARIA grid roles
+ * (table / row / columnheader). The UI-SPEC mandates a div+flex structure
+ * with no cell elements (Row anatomy: "not a table element"), so ARIA row
+ * semantics over rows that expose no cell-role children would produce an
+ * incomplete grid that assistive technology reports worse than plain text.
+ * Visible labels restore the missing information for every user, screen
+ * reader users included, with no partial-ARIA hazard. Do not "finish" this
+ * into ARIA table semantics later.
+ */
 function ColumnHeaderStrip() {
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 bg-muted/30">
-      <span className={COL_KEY} />
-      <span className={COL_SUMMARY} />
-      <span className={COL_PERSON} />
-      <span className={COL_STATE} />
+      <span className={COL_KEY}>Key</span>
+      <span className={COL_SUMMARY}>Summary</span>
+      <span className={COL_PERSON}>Assignee</span>
+      <span className={COL_STATE}>Status</span>
       <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
         BR
       </span>
@@ -680,18 +692,23 @@ export function UnifiedTaskTable({
           <h4 className="text-sm font-medium">Not covered by tasks above</h4>
           <ColumnHeaderStrip />
           {secondaryRows.map((row) => {
-            const key = row.taskKeys[0];
-            const keyCell =
-              row.taskKeys.length > 0 ? (
+            const keys = row.taskKeys;
+            let keyCell: React.ReactNode;
+            if (row.taskReason === 'not-in-fix-version') {
+              const suffix = keys.length > 1 ? 'are' : 'is';
+              keyCell = (
                 <span
                   data-testid="secondary-key-flagged"
                   className={`${COL_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1`}
-                  title={`${key} is not in fix version ${versionName}`}
+                  title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
                 >
                   <AlertTriangle className="size-3" />
-                  {key}
+                  {keys[0]}
+                  {keys.length > 1 ? ` +${keys.length - 1}` : ''}
                 </span>
-              ) : (
+              );
+            } else if (keys.length === 0) {
+              keyCell = (
                 <span
                   data-testid="secondary-key-none"
                   className={`${COL_KEY} font-mono text-xs text-muted-foreground`}
@@ -699,6 +716,21 @@ export function UnifiedTaskTable({
                   &mdash;
                 </span>
               );
+            } else {
+              // Keys present but the row carries no evaluated out-of-scope verdict — the
+              // merged/closed/locked `task: 'na'` case. Never assert a drift the row marks
+              // as not evaluated (T-91.1-14).
+              keyCell = (
+                <span
+                  data-testid="secondary-key-unevaluated"
+                  className={`${COL_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1`}
+                  title={`${keys.join(', ')} — not evaluated (MR is ${row.mr.state})`}
+                >
+                  {keys[0]}
+                  {keys.length > 1 ? ` +${keys.length - 1}` : ''}
+                </span>
+              );
+            }
             return (
               <MrSubLine
                 key={row.mr.id}
