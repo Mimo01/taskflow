@@ -18,6 +18,14 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Files changed:** taskflow/src/routes/dashboard/issue-detail/LogWorkPopover.tsx, taskflow/src/routes/dashboard/IssueDetailPage.tsx
 ---
 
+## html-in-description-rendered — literal HTML typed in issue description renders as live DOM instead of escaped text
+- **Date:** 2026-08-12
+- **Error patterns:** html, rendered, escaped, wiki markup, rehype-raw, rehype-sanitize, WikiRenderer, XSS, live html, script, marquee, b, h1, table
+- **Root cause:** WikiRenderer's pipeline (jira2md → react-markdown with rehype-raw + rehype-sanitize) never escapes literal '<', '>', '&' in the raw Jira wikiText before parsing. rehype-raw parses ALL embedded HTML — both the app's own trusted synthetic markup (mentions/panels/images/bold-italic) and any HTML a user typed directly — into the hast tree; rehype-sanitize's defaultSchema-based allowlist lets ordinary tags (b, h1-h6, table, div, span, p, a, etc.) through untouched, only stripping genuinely dangerous ones. Real Jira wiki markup has no legitimate angle-bracket usage, so user-typed HTML was indistinguishable from the app's own generated HTML.
+- **Fix:** Added an HTML-entity escape step ('&'→'&amp;', '<'→'&lt;', '>'→'&gt;') as the very first transformation in preprocessJiraMarkup, before any of the app's own regex passes inject trusted synthetic HTML (mentions, panels, bold/italic, images, tt, br, issue-key links). Synthetic HTML is added via string concatenation after the escape step, so it is unaffected; literal user-typed HTML now renders as visible escaped text.
+- **Files changed:** taskflow/src/routes/dashboard/WikiRenderer.tsx, taskflow/src/routes/dashboard/WikiRenderer.test.tsx
+---
+
 ## notification-no-sound — OS notification banners appear but no sound plays
 - **Date:** 2026-03-26
 - **Error patterns:** notification, no sound, silent, sendNotification, sound, Basso, tauri-plugin-notification
