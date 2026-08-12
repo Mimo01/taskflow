@@ -610,6 +610,25 @@ export function preprocessJiraMarkup(
   // checks and causes mergeOpenTableRows to greedily consume entire documents.
   let result = wiki.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+  // html-in-description-rendered fix: escape literal HTML metacharacters in the
+  // RAW wiki source before any preprocessing runs. Real Jira wiki markup has no
+  // legitimate use of '<', '>', or '&' — Jira itself treats HTML a user types
+  // directly into a description as inert text (escaped), not live markup (raw
+  // HTML requires the permission-gated {html} macro). Without this step,
+  // react-markdown's rehype-raw parses ANY '<tag>' in the source — including
+  // ordinary tags a user happens to type like <b>, <h1>, <table> — into real
+  // DOM elements, because rehype-sanitize's schema (based on defaultSchema)
+  // allowlists a large set of ordinary tags and only strips genuinely dangerous
+  // ones (script, iframe, on* attributes). This escape runs BEFORE every other
+  // step in this function that injects the app's OWN trusted HTML (mentions,
+  // panels, <strong>/<em>, <img>, <tt>, <br/>, issue-key links) — those are all
+  // added via template-literal string concatenation further down and are
+  // therefore untouched by this pass, so they still parse and render normally.
+  result = result
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
   // Jira emoticons: replace shortcodes like "(/)", "(x)" with Unicode emoji.
   // Must run before jira2md (which would corrupt certain patterns like (*) → bold).
   result = replaceJiraEmoticons(result);

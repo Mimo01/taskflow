@@ -515,9 +515,14 @@ After quote`;
     });
 
     it('falsy/empty href does NOT call openUrl', () => {
-      // Use raw HTML <a> without href — rehypeRaw allows raw HTML.
+      // html-in-description-rendered fix: raw HTML typed into wikiText is now
+      // escaped (matching Jira's own behavior) rather than parsed as live markup,
+      // so a literal `<a>` tag no longer reaches the `a` component override.
+      // Use a Jira named-link with a blank URL segment instead — jira2md still
+      // emits `[bare anchor]( )`, which markdown/remark parses as an anchor with
+      // no `href` attribute, exercising the same falsy-href guard.
       // Anchors without href lack the implicit "link" role, so query via text.
-      render(<WikiRenderer wikiText='<a class="bare">bare anchor</a>' />);
+      render(<WikiRenderer wikiText="[bare anchor| ]" />);
       const anchor = screen.getByText('bare anchor').closest('a');
       expect(anchor).not.toBeNull();
       fireEvent.click(anchor as HTMLAnchorElement);
