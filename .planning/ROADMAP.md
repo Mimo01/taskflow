@@ -276,7 +276,7 @@ Plans:
 - Per-MR data: state badge is required; `!iid` + linkified title + author also carried; actual target branch goes in the BR tooltip rather than its own column
 - Sorting: Jira order, no drift-driven re-sort
 
-**Plans:** 10 plans (5 original + 5 gap-closure)
+**Plans:** 10/10 plans complete
 Plans:
 **Wave 1**
 
