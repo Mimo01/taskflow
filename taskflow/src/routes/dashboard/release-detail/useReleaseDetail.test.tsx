@@ -668,6 +668,14 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
     await waitFor(() => expect(result.current.mergeBackVerdict.kind).toBe('loading'));
     expect(result.current.mergeBackVerdict.kind).not.toBe('couldnt-verify');
 
+    // WR-02: the pre-fix defect was an OMITTED ARGUMENT in this hook's
+    // `resolveBranchState` call, and the 91-09 tests only covered the
+    // resolver forwarding a value it was handed and the sidebar rendering a
+    // state it was handed. Assert the hook's own derivation here — without
+    // this, deleting `tagChannel` from the call leaves the suite green.
+    await waitFor(() => expect(result.current.branchState.kind).toBe('released'));
+    expect(result.current.branchState).toMatchObject({ tagChannel: 'pending', tagName: null });
+
     // Settle the tag promise now — the row should only make the terminal
     // claim after the channel actually settles.
     act(() => {
@@ -679,6 +687,10 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
     if (verdict.kind === 'couldnt-verify') {
       expect(verdict.reason).toBe('no-mr-no-tag');
     }
+
+    // WR-02: and the third derivation state — only NOW, after the channel
+    // actually settled, may the row claim a resolved absence.
+    expect(result.current.branchState).toMatchObject({ tagChannel: 'resolved', tagName: null });
   });
 
   it('a rejecting searchProjectTags resolves to couldnt-verify/check-failed, never no-mr-no-tag', async () => {
@@ -701,6 +713,12 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
       expect(verdict.reason).toBe('check-failed');
       expect(verdict.reason).not.toBe('no-mr-no-tag');
     }
+
+    // WR-02: same gap on the failure half of the derivation — the branch row
+    // must report `failed`, never a resolved absence, when the tag query
+    // errored.
+    await waitFor(() => expect(result.current.branchState.kind).toBe('released'));
+    expect(result.current.branchState).toMatchObject({ tagChannel: 'failed', tagName: null });
   });
 
   it('a merged default-branch tracking MR still resolves to merged even when the tag channel fails (D-02)', async () => {
