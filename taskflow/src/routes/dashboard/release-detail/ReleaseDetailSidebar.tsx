@@ -57,6 +57,164 @@ function RowUnavailable({ children }: { children: React.ReactNode }) {
   return <span className="text-muted-foreground text-xs">{children}</span>;
 }
 
+/** WR-10 exhaustiveness guard: only callable with a value the switch above has
+ *  narrowed to `never`, so an unhandled `BranchState` kind is a compile error
+ *  rather than a silent fall-through into the Create-branch arm. */
+function assertNeverBranchState(_state: never): null {
+  return null;
+}
+
+/**
+ * Release Branch row body.
+ *
+ * WR-10: extracted from a seven-arm nested ternary whose terminal `else` stood
+ * for `missing` — the one arm that renders a MUTATING affordance (Create
+ * branch). TypeScript does not check ternary-chain exhaustiveness, so adding
+ * an eighth `BranchState` kind compiled clean and landed in the arm that
+ * invites re-creating a shipped release's branch. The `default` arm's `never`
+ * assignment makes an unhandled kind a compile error instead, and the safe
+ * fallback at runtime is inert copy rather than a button.
+ */
+function BranchRowContent({
+  branchState,
+  defaultBranch,
+  onCreateBranch,
+  onRetryBranchCheck,
+}: {
+  branchState: BranchState;
+  defaultBranch: string | null;
+  onCreateBranch: () => void;
+  onRetryBranchCheck: () => void;
+}) {
+  switch (branchState.kind) {
+    case 'blocked-no-milestone':
+      return (
+        <RowUnavailable>
+          <span data-testid="branch-status-blocked">Create the milestone first</span>
+        </RowUnavailable>
+      );
+
+    case 'unresolvable':
+      return (
+        <span className="text-muted-foreground text-xs" data-testid="branch-status-unresolvable">
+          No branch name from this milestone title
+        </span>
+      );
+
+    case 'invalid-ref':
+      return (
+        <span
+          className="text-muted-foreground text-xs"
+          title={`Invalid git ref: ${branchState.branchName}`}
+          data-testid="branch-status-invalid-ref"
+        >
+          No branch name from this milestone title
+        </span>
+      );
+
+    case 'check-failed':
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="inline-flex items-center gap-1 text-orange-600 text-xs dark:text-orange-400"
+            title={`Couldn't check ${branchState.branchName}`}
+            data-testid="branch-status-check-failed"
+          >
+            <AlertTriangle className="size-3 shrink-0" />
+            Couldn't check
+          </span>
+          <RowAction icon={RefreshCw} onClick={onRetryBranchCheck}>
+            Retry
+          </RowAction>
+        </span>
+      );
+
+    case 'loading':
+      return <span className="text-muted-foreground text-xs">Loading...</span>;
+
+    case 'exists':
+      return (
+        <span
+          className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
+          data-testid="branch-status-exists"
+        >
+          <GitBranch className="size-3 shrink-0" />
+          <span className="font-mono text-xs">{branchState.branchName}</span>
+        </span>
+      );
+
+    case 'released': {
+      // WR-03: the tag-channel distinction used to live ONLY in `title`, so
+      // all three states rendered the byte-identical visible text "Released".
+      // A user without a mouse — or any keyboard user, since this is a
+      // non-focusable span — could not tell "checked, no tag" from "checking"
+      // from "check failed", which is exactly half of the 91-VERIFICATION
+      // truth 6 symptom. The marker below makes the provisional states
+      // visible, and `aria-label` mirrors the full sentence into the
+      // accessibility tree.
+      const tooltipText = branchState.tagName
+        ? `${branchState.branchName} deleted · tagged ${branchState.tagName}`
+        : branchState.tagChannel === 'failed'
+          ? `${branchState.branchName} deleted. Couldn't check for a matching tag.`
+          : branchState.tagChannel === 'pending'
+            ? `${branchState.branchName} deleted. Checking for a matching tag...`
+            : `${branchState.branchName} deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`;
+
+      return (
+        <>
+          <span
+            className="inline-flex items-center gap-1 text-muted-foreground text-xs"
+            title={tooltipText}
+            data-testid="branch-status-released"
+          >
+            <GitBranch className="size-3 shrink-0" />
+            Released
+            {branchState.tagName ? (
+              <span className="font-mono">{branchState.tagName}</span>
+            ) : branchState.tagChannel === 'pending' ? (
+              <span className="italic" data-testid="branch-status-tag-pending">
+                · checking tag...
+              </span>
+            ) : branchState.tagChannel === 'failed' ? (
+              <span className="italic" data-testid="branch-status-tag-failed">
+                · tag check failed
+              </span>
+            ) : null}
+          </span>
+          {/* The full sentence for assistive tech. A `title` is announced
+              inconsistently and `aria-label` is not supported on a role-less
+              span (it would be dropped by AT and flagged by biome's
+              useAriaPropsSupportedByRole), so the explanation is rendered as
+              visually-hidden text instead. Kept OUTSIDE the testid span so the
+              visible-text assertions stay honest. */}
+          <span className="sr-only" data-testid="branch-status-released-description">
+            {tooltipText}
+          </span>
+        </>
+      );
+    }
+
+    case 'missing':
+      return (
+        <span data-testid="branch-status-missing">
+          {defaultBranch ? (
+            <RowAction onClick={onCreateBranch}>Create branch</RowAction>
+          ) : (
+            <RowUnavailable>Default branch not loaded yet</RowUnavailable>
+          )}
+        </span>
+      );
+
+    // WR-10: an unhandled kind is a COMPILE error — `assertNeverBranchState`
+    // only accepts `never`, so a new `BranchState` kind fails to typecheck
+    // here. At runtime the fallback is deliberately inert (null), never the
+    // Create-branch affordance, in a feature whose premise is "never invite
+    // an action on unverified state".
+    default:
+      return assertNeverBranchState(branchState);
+  }
+}
+
 interface ReleaseDetailSidebarProps {
   width: number;
   isDragging: boolean;
@@ -209,78 +367,14 @@ export function ReleaseDetailSidebar({
 
         <MetaRow label="Release Branch">
           {/* Each state resolves to a single inline element — an action when the
-              branch can be created, otherwise the reason it can't. */}
-          {branchState.kind === 'blocked-no-milestone' ? (
-            <RowUnavailable>
-              <span data-testid="branch-status-blocked">Create the milestone first</span>
-            </RowUnavailable>
-          ) : branchState.kind === 'unresolvable' || branchState.kind === 'invalid-ref' ? (
-            <span
-              className="text-muted-foreground text-xs"
-              title={
-                branchState.kind === 'invalid-ref'
-                  ? `Invalid git ref: ${branchState.branchName}`
-                  : undefined
-              }
-              data-testid={
-                branchState.kind === 'invalid-ref'
-                  ? 'branch-status-invalid-ref'
-                  : 'branch-status-unresolvable'
-              }
-            >
-              No branch name from this milestone title
-            </span>
-          ) : branchState.kind === 'check-failed' ? (
-            <span className="inline-flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1 text-orange-600 text-xs dark:text-orange-400"
-                title={`Couldn't check ${branchState.branchName}`}
-                data-testid="branch-status-check-failed"
-              >
-                <AlertTriangle className="size-3 shrink-0" />
-                Couldn't check
-              </span>
-              <RowAction icon={RefreshCw} onClick={onRetryBranchCheck}>
-                Retry
-              </RowAction>
-            </span>
-          ) : branchState.kind === 'loading' ? (
-            <span className="text-muted-foreground text-xs">Loading...</span>
-          ) : branchState.kind === 'exists' ? (
-            <span
-              className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
-              data-testid="branch-status-exists"
-            >
-              <GitBranch className="size-3 shrink-0" />
-              <span className="font-mono text-xs">{branchState.branchName}</span>
-            </span>
-          ) : branchState.kind === 'released' ? (
-            <span
-              className="inline-flex items-center gap-1 text-muted-foreground text-xs"
-              title={
-                branchState.tagName
-                  ? `${branchState.branchName} deleted · tagged ${branchState.tagName}`
-                  : branchState.tagChannel === 'failed'
-                    ? `${branchState.branchName} deleted. Couldn't check for a matching tag.`
-                    : branchState.tagChannel === 'pending'
-                      ? `${branchState.branchName} deleted. Checking for a matching tag…`
-                      : `${branchState.branchName} deleted. No matching tag found — tags are an incomplete record, so this is not evidence the release did not ship.`
-              }
-              data-testid="branch-status-released"
-            >
-              <GitBranch className="size-3 shrink-0" />
-              Released
-              {branchState.tagName && <span className="font-mono">{branchState.tagName}</span>}
-            </span>
-          ) : (
-            <span data-testid="branch-status-missing">
-              {defaultBranch ? (
-                <RowAction onClick={onCreateBranch}>Create branch</RowAction>
-              ) : (
-                <RowUnavailable>Default branch not loaded yet</RowUnavailable>
-              )}
-            </span>
-          )}
+              branch can be created, otherwise the reason it can't. WR-10: the
+              per-kind mapping lives in BranchRowContent's exhaustive switch. */}
+          <BranchRowContent
+            branchState={branchState}
+            defaultBranch={defaultBranch}
+            onCreateBranch={onCreateBranch}
+            onRetryBranchCheck={onRetryBranchCheck}
+          />
         </MetaRow>
 
         {/* Merge-back verdict (MERGE-01/02) — hidden entirely (no "—") when

@@ -174,6 +174,14 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     expect(
       screen.queryByRole('button', { name: /create branch|override|dismiss|acknowledge/i }),
     ).not.toBeInTheDocument();
+
+    // WR-03: the distinction must be VISIBLE, not hover-only. Before this the
+    // row text was byte-identical in all three tag-channel states.
+    expect(screen.getByTestId('branch-status-tag-pending')).toBeInTheDocument();
+    expect(el).toHaveTextContent(/checking tag/i);
+    expect(screen.getByTestId('branch-status-released-description')).toHaveTextContent(
+      /Checking for a matching tag/i,
+    );
   });
 
   it('does not claim "No matching tag found" while the tag channel failed', () => {
@@ -193,6 +201,35 @@ describe('ReleaseDetailSidebar — Release Branch row', () => {
     expect(
       screen.queryByRole('button', { name: /create branch|override|dismiss|acknowledge/i }),
     ).not.toBeInTheDocument();
+
+    // WR-03: visible, not hover-only.
+    expect(screen.getByTestId('branch-status-tag-failed')).toBeInTheDocument();
+    expect(el).toHaveTextContent(/tag check failed/i);
+    expect(screen.getByTestId('branch-status-released-description')).toHaveTextContent(
+      /Couldn't check for a matching tag/i,
+    );
+  });
+
+  it('WR-03: the three tag-channel states are distinguishable from visible text alone', () => {
+    const visibleText = (tagChannel: 'resolved' | 'pending' | 'failed') => {
+      const { unmount } = renderSidebar({
+        branchState: {
+          kind: 'released',
+          branchName: 'release/33.5.0',
+          tagName: null,
+          tagChannel,
+        },
+      });
+      const text = screen.getByTestId('branch-status-released').textContent ?? '';
+      unmount();
+      return text;
+    };
+
+    const resolved = visibleText('resolved');
+    const pending = visibleText('pending');
+    const failed = visibleText('failed');
+
+    expect(new Set([resolved, pending, failed]).size).toBe(3);
   });
 
   it('Test F: renders the check-failed state', () => {
