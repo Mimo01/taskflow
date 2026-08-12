@@ -75,6 +75,15 @@ export function useReleaseDetail(versionId: string | undefined) {
     }
   }, [gitlabBaseUrl]);
 
+  // WR-04: the single credential predicate every GitLab `enabled` gate below
+  // uses. The pending/unavailable flags derived further down MUST be built
+  // from this same predicate: `gitlabToken` arrives asynchronously and is set
+  // to `null` when `readSecret` rejects, so a flag that models only
+  // "data === undefined && !isError" reads a PERMANENTLY DISABLED query as
+  // "in flight" and pins the row at Loading forever. That is the CR-03 defect
+  // class this phase already closed three times, one channel at a time.
+  const gitlabReady = !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken;
+
   // Fetch all fix versions (shared cache key with ReleasesTab)
   const fixVersionsEnabled = !!jiraBaseUrl && !!activeJiraProject;
   const {
@@ -208,7 +217,7 @@ export function useReleaseDetail(versionId: string | undefined) {
         activeGitlabProject ?? 0,
         matchedVersionNumber ?? '',
       ),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && needsTagLookup,
+    enabled: gitlabReady && needsTagLookup,
     staleTime: 5 * 60_000,
   });
 
@@ -218,7 +227,24 @@ export function useReleaseDetail(versionId: string | undefined) {
   // where `matchedVersionNumber` is null and `needsTagLookup` is false (the
   // exact CR-03 defect class this phase already fixed twice). A tag query
   // that will never run is therefore explicitly NOT pending.
-  const tagLookupPending = needsTagLookup && releaseTags === undefined && !tagCheckFailed;
+  //
+  // WR-04: `needsTagLookup` is only ONE of the two ways this query can be
+  // permanently disabled — the `enabled` gate above also requires
+  // `gitlabReady`. Without that half, a missing/rejected token left
+  // `releaseTags` undefined and `tagCheckFailed` false forever, pinning the
+  // branch row at "Checking for a matching tag…" and step 4.5 at `loading`.
+  // Derive from the SAME predicate the gate uses so the two cannot drift.
+  const tagLookupPending =
+    gitlabReady && needsTagLookup && releaseTags === undefined && !tagCheckFailed;
+
+  // WR-04: dropping the credential half out of `tagLookupPending` alone would
+  // swap one wrong answer for a worse one — a permanently disabled tag query
+  // would fall through to `'resolved'`, i.e. "checked, and there is no tag",
+  // which is the settled negative this whole phase exists to prevent. A
+  // channel that cannot be queried at all is a check that did not happen, so
+  // it terminates as a FAILURE, exactly like `trackingMRsUnavailable`.
+  const tagLookupUnavailable = needsTagLookup && !gitlabReady;
+  const tagChannelFailed = tagCheckFailed || tagLookupUnavailable;
 
   // Both the branch row (below) and the merge-back verdict (further below)
   // read the same resolved tag — resolve `findReleaseTag` once here rather
@@ -235,7 +261,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // structurally different situations and the branch row asserted an
   // unverified negative. Failed is tested before pending, matching
   // `mergeBackVerification.ts` step 4.5's precedence.
-  const tagChannel: TagChannelHealth = tagCheckFailed
+  const tagChannel: TagChannelHealth = tagChannelFailed
     ? 'failed'
     : tagLookupPending
       ? 'pending'
@@ -265,12 +291,7 @@ export function useReleaseDetail(versionId: string | undefined) {
         activeGitlabProject ?? 0,
         releaseBranchName ?? '',
       ),
-    enabled:
-      !!gitlabBaseUrl &&
-      !!activeGitlabProject &&
-      !!gitlabToken &&
-      releasedVersion &&
-      releaseBranchName !== null,
+    enabled: gitlabReady && releasedVersion && releaseBranchName !== null,
     staleTime: 5 * 60_000,
   });
 
@@ -288,13 +309,7 @@ export function useReleaseDetail(versionId: string | undefined) {
         defaultBranch ?? '',
         mergeBackTagName ?? '',
       ),
-    enabled:
-      !!gitlabBaseUrl &&
-      !!activeGitlabProject &&
-      !!gitlabToken &&
-      releasedVersion &&
-      defaultBranch !== null &&
-      mergeBackTagName !== null,
+    enabled: gitlabReady && releasedVersion && defaultBranch !== null && mergeBackTagName !== null,
     staleTime: 5 * 60_000,
   });
 
@@ -305,19 +320,32 @@ export function useReleaseDetail(versionId: string | undefined) {
   // never runs and never will. That state is indistinguishable from
   // in-flight without this signal, the same defect class `releaseBranch.ts`'s
   // `unresolvable` kind already models for the branch row.
-  const trackingMRsUnavailable = releasedVersion && releaseBranchName === null;
+  // WR-04: `releaseBranchName === null` is likewise only ONE of the two ways
+  // this query is permanently disabled — its `enabled` gate also requires
+  // `gitlabReady`, so a missing token leaves `trackingMRs` undefined with
+  // `isError` false forever and step 3 reports `loading` for a query that will
+  // never run.
+  const trackingMRsUnavailable = releasedVersion && (!gitlabReady || releaseBranchName === null);
+
+  // WR-04: the project query feeding `defaultBranch` shares the same gate, so
+  // a missing token leaves `defaultBranch` null with `isError` false and step
+  // 2 pins the row at `loading`. An unqueryable channel must terminate at
+  // `couldnt-verify`, per the CR-03/CR-04 rule the resolver states in its own
+  // header.
+  const defaultBranchUnavailable = !gitlabReady;
 
   const mergeBackVerdict: MergeBackVerdict = resolveMergeBackVerdict({
     releasedVersion,
     hasMatchedMilestone: matchedMilestone !== null,
     defaultBranch,
     defaultBranchCheckFailed,
+    defaultBranchUnavailable,
     trackingMRs,
     trackingMRsCheckFailed,
     trackingMRsUnavailable,
     tagName: mergeBackTagName,
     tagLookupPending,
-    tagCheckFailed,
+    tagCheckFailed: tagChannelFailed,
     expectedTagName: matchedVersionNumber ? `v${matchedVersionNumber}` : null,
     compareResult,
     compareCheckFailed,

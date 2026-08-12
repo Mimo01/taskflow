@@ -24,6 +24,7 @@ function makeParams(overrides: Partial<Parameters<typeof resolveMergeBackVerdict
     // baseline is the point — not in production code, where an omission used
     // to mean "this channel definitely did not fail".
     defaultBranchCheckFailed: false,
+    defaultBranchUnavailable: false,
     trackingMRs: [] as readonly TrackingMR[],
     trackingMRsCheckFailed: false,
     trackingMRsUnavailable: false,
@@ -330,9 +331,25 @@ describe('resolveMergeBackVerdict: CR-03/CR-04 terminal fallbacks for permanentl
     });
   });
 
-  it('CR-04: defaultBranch null with defaultBranchCheckFailed omitted still yields loading (genuine in-flight preserved)', () => {
+  it('CR-04: defaultBranch null with both failure signals false still yields loading (genuine in-flight preserved)', () => {
     const result = resolveMergeBackVerdict(makeParams({ defaultBranch: null }));
     expect(result).toEqual({ kind: 'loading' });
+  });
+
+  it('WR-04: defaultBranch null with defaultBranchUnavailable true yields couldnt-verify, not loading', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        defaultBranch: null,
+        defaultBranchCheckFailed: false,
+        defaultBranchUnavailable: true,
+      }),
+    );
+    expect(result.kind).not.toBe('loading');
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'check-failed',
+      expectedTagName: 'v33.7.0',
+    });
   });
 
   it('CR-03: trackingMRsUnavailable true with no tag yields couldnt-verify no-mr-no-tag, not loading', () => {
