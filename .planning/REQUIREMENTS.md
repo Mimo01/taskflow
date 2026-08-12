@@ -51,6 +51,20 @@
 - [x] **MERGE-02**: Detection prefers the tracking MR's state and falls back to content comparison when no such MR exists
 - [x] **MERGE-03**: The verdict is presented as advisory with a manual override
 
+### Epics Page Redesign (Phase 91.2, inserted)
+
+Derived from the ROADMAP Phase 91.2 success criteria as narrowed by `91.2-CONTEXT.md` decisions D-05…D-18. Criterion 2 (quick search) is cut in full by D-18; criterion 4's labels/components half is cut by D-08; criterion 5's blocked/flagged half is cut by D-12 — those cuts are intentional descopes, not gaps.
+
+> Note: `src/services/jira.test.ts` and `EpicsPage.test.tsx` already carry legacy `EPIC-01` / `EPIC-03` test labels from Phase 13 (`fetchEpicsWithEnrichment`). The IDs below are the Phase 91.2 requirement IDs; the label collision is cosmetic and does not affect traceability.
+
+- [ ] **EPIC-01**: Epics render in creation-ascending order (`ORDER BY created ASC`, equivalent to key order) and the order never re-shuffles while enrichment data streams in (D-17)
+- [ ] **EPIC-02**: The epic row is a single-line div+flex row with column order key → name → status → priority → progress → points → assignee, staying one line at every density, with no column collapsing to zero width in the Tauri/WebKit webview (D-05, D-06, D-07, D-09)
+- [ ] **EPIC-03**: Story progress and points load progressively behind first paint, with all four enrichment cell states: pending shimmer, success, "No stories", and error + click-to-retry (D-04, D-14, D-15, D-16)
+- [ ] **EPIC-04**: Each row shows the epic's priority via the existing `PriorityIcon` for the project's 9-level scheme — icon only, name in `title`/alt (D-10; labels/components half descoped by D-08)
+- [ ] **EPIC-05**: Each row exposes a three-segment child-status breakdown (To Do / In Progress / Done by Jira status category) as one visual with `done/total` beside it and per-status counts revealed on hover (D-11; blocked/flagged half descoped by D-12)
+- [ ] **EPIC-06**: Story points render as `done/total SP`, backed by a new `donePoints` aggregate in `fetchEpicEnrichmentMap` (D-13)
+- [ ] **EPIC-07**: Preserved behaviour — row click still opens `EpicDetailSheet`, the skeleton / error / stale-banner states, density variants and "+ Create Epic" are unchanged, no search UI is added (D-18) — and the dead `src/services/jira/epics.ts` module is removed
+
 ## Future Requirements
 
 Deferred. Tracked but not in the v1.14 roadmap.
@@ -76,6 +90,10 @@ Explicitly excluded. Documented to prevent scope creep.
 | Historical analytics / DORA / release-velocity dashboards | Rejected twice already (v1.9 widget removal, v1.13 insights retirement) |
 | GitLab review actions (approve, comment, request changes) | Still deferred to v2.0 — GitLab's own UI is mature for code review |
 | Slack / email release notifications | External service dependencies; conflicts with the no-server architecture |
+| Quick-search / filtering on the Epics list (Phase 91.2) | Fully specified during discuss-phase, then reversed by the user (D-18): *"I have changed my mind, I dont want any new search bar added to the epics page."* Recoverable from `91.2-DISCUSSION-LOG.md` if ever revisited |
+| Labels / components on the Epics list row (Phase 91.2) | Dropped by D-08 — *"I dont need labels at all on the list page"*; they remain in `EpicDetailSheet` |
+| Blocked / flagged surfacing on the Epics list (Phase 91.2) | Dropped by D-12 — *"Flags are ignored, flag is just a flag, not a progress marker. only statuses count"*; the Jira Flagged field is never fetched by this page |
+| Click-to-sort columns on the Epics list (Phase 91.2) | Rejected by D-17; creation order is fixed |
 
 ## Traceability
 
@@ -109,14 +127,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MERGE-01 | Phase 91 | Mapped |
 | MERGE-02 | Phase 91 | Mapped |
 | MERGE-03 | Phase 91 | Mapped |
+| EPIC-01 | Phase 91.2 | Mapped |
+| EPIC-02 | Phase 91.2 | Mapped |
+| EPIC-03 | Phase 91.2 | Mapped |
+| EPIC-04 | Phase 91.2 | Mapped |
+| EPIC-05 | Phase 91.2 | Mapped |
+| EPIC-06 | Phase 91.2 | Mapped |
+| EPIC-07 | Phase 91.2 | Mapped |
 | RELF-01 | — | Deferred (future requirement, not in v1.14) |
 | RELF-02 | — | Deferred (future requirement, not in v1.14) |
 | RELF-03 | — | Deferred (deliberately excluded in favour of per-MR control) |
 
 **Coverage:**
 
-- v1.14 requirements: 26 total
-- Mapped to phases: 26/26 ✓
+- v1.14 requirements: 33 total (26 release-management + 7 Phase 91.2 epics-page)
+- Mapped to phases: 33/33 ✓
 - Unmapped: 0 ✓
 
 ## Key Decisions Recorded During Definition
@@ -129,7 +154,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | **Two** independent mutations, not one combined PUT | `PUT /merge_requests/:iid` accepts both `target_branch` and `milestone_id` in one call, but a combined call cannot express "assign succeeded, retarget failed" as two retryable states |
 | Merge-back detection is **layered and advisory** | The branch `merged` field false-negatives on squash/rebase merges (GitLab #36963); user confirmed merge-back happens sometimes via MR and sometimes via direct push, so both paths are required |
 | Channel C must use a **fully paginated** fetch | `fetchRecentProjectMRs` is capped at 100 (`GGX-WARN-01`); reusing it would recur a bug class this codebase has already hit twice |
+| Epics-page enrichment must **fail closed** (Phase 91.2, D-15) | `fetchEpicEnrichmentMap`'s `.catch(() => [])` would render a failed fetch as "0 stories" — the same absence-of-evidence bug class already shipped in 88-CR-01, 91-07 and 91.1-CR-06 |
+| Epics row converts from `<table>` to **div+flex** (Phase 91.2, D-07) | Narrow columns collapse to zero width in the Tauri/WebKit webview; adding three columns to the existing `<colgroup>` would re-trigger a documented recurring bug |
 
 ---
 *Requirements defined: 2026-08-10*
-*Last updated: 2026-08-10 after roadmap creation (Phases 87-91)*
+*Last updated: 2026-08-12 — registered EPIC-01…EPIC-07 for inserted Phase 91.2*
