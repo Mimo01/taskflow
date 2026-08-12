@@ -463,6 +463,126 @@ describe('useReleaseDetail', () => {
     await waitFor(() => expect(result.current.flaggedMrCount).toBe(0));
   });
 
+  // UAT-91.1-B Test 1: one MR flagged on BR only and one flagged on MS only —
+  // brFlaggedCount and msFlaggedCount each count their own predicate, and the
+  // retained union (flaggedMrCount) counts both distinct MRs.
+  it('UAT-91.1-B Test 1: brFlaggedCount/msFlaggedCount count each predicate independently', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+      {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Fix thing',
+          status: { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Task', subtask: false },
+        },
+      },
+    ] as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>);
+
+    const brOnlyMr = {
+      id: 7,
+      iid: 100,
+      project_id: 42,
+      title: 'PROJ-1 fix thing',
+      source_branch: 'feature/proj-1',
+      target_branch: 'develop', // wrong branch: release branch is release/33.5.0
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-01-01T00:00:00.000Z',
+      web_url: 'https://gitlab.example.com/mr/100',
+      labels: [],
+      milestone: { id: 1, iid: 1, title: '33.5.0 (21.07.2026)' },
+    } as unknown as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+
+    const msOnlyMr = {
+      id: 8,
+      iid: 101,
+      project_id: 42,
+      title: 'PROJ-1 also fix thing',
+      source_branch: 'feature/proj-1-b',
+      target_branch: 'release/33.5.0',
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-01-01T00:00:00.000Z',
+      web_url: 'https://gitlab.example.com/mr/101',
+      labels: [],
+      milestone: null, // missing milestone
+    } as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+
+    vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([brOnlyMr, msOnlyMr]);
+    vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([msOnlyMr]);
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([brOnlyMr]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.brFlaggedCount).toBe(1));
+    expect(result.current.msFlaggedCount).toBe(1);
+    expect(result.current.flaggedMrCount).toBe(2);
+  });
+
+  // UAT-91.1-B Test 2 / Rule 1: a single MR flagged on both BR and MS counts 1
+  // in both per-category badges, but the retained union stays 1 (not 2).
+  it('UAT-91.1-B Test 2: an MR flagged on both counts 1 in each badge, union stays 1', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+      {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Fix thing',
+          status: { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Task', subtask: false },
+        },
+      },
+    ] as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>);
+
+    const doubleFlaggedMr = {
+      id: 9,
+      iid: 102,
+      project_id: 42,
+      title: 'PROJ-1 fix thing',
+      source_branch: 'feature/proj-1',
+      target_branch: 'develop', // wrong branch
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-01-01T00:00:00.000Z',
+      web_url: 'https://gitlab.example.com/mr/102',
+      labels: [],
+      milestone: null, // missing milestone
+    } as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+
+    vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([doubleFlaggedMr]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.brFlaggedCount).toBe(1));
+    expect(result.current.msFlaggedCount).toBe(1);
+    expect(result.current.flaggedMrCount).toBe(1);
+  });
+
   // D-09: buildTaskMrAttachment groups driftRows under their matching task(s).
   // A single fix-version issue with one linked MR lands entirely in primaryRows,
   // with an empty secondaryRows.
