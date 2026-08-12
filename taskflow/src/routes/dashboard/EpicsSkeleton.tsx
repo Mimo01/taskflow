@@ -11,7 +11,7 @@ const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 
 export function EpicsSkeleton() {
   return (
-    <div className="w-full">
+    <div className="w-full" data-testid="epics-skeleton">
       {[0, 1, 2, 3, 4].map((i) => (
         <div key={i} className="flex w-full items-center border-b border-border">
           {/* Key */}

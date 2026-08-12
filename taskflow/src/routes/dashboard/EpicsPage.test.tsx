@@ -101,21 +101,33 @@ describe('EpicsPage', () => {
     expect(keysAfter).toEqual(['PROJ-30', 'PROJ-10', 'PROJ-20']);
   });
 
-  it('EPIC-02: renders row columns in order key, name, status, priority, progress, points, assignee', async () => {
+  it('EPIC-02: renders row columns in order key, priority, name, status, progress, points, assignee', async () => {
     const { fetchEpicsBasic, fetchEpicEnrichmentMap } = await import('@/services/jira');
-    (fetchEpicsBasic as ReturnType<typeof vi.fn>).mockResolvedValue([baseEpic()]);
-    (fetchEpicEnrichmentMap as ReturnType<typeof vi.fn>).mockResolvedValue(new Map());
+    (fetchEpicsBasic as ReturnType<typeof vi.fn>).mockResolvedValue([
+      baseEpic({ priority: { name: 'Must', iconUrl: 'https://jira.example.com/icons/must.svg' } }),
+    ]);
+    (fetchEpicEnrichmentMap as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Map([
+        ['PROJ-10', { total: 10, done: 5, inProgress: 3, todo: 2, points: 20, donePoints: 8 }],
+      ]),
+    );
     renderEpicsPage();
 
     const keyEl = await screen.findByText('PROJ-10');
-    const nameEl = screen.getByText('Epic Alpha');
-    // key must precede name in DOM order (D-05)
-    const position = keyEl.compareDocumentPosition(nameEl);
-    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
     const row = keyEl.closest('.flex.w-full.items-center') as HTMLElement;
     expect(row).toBeTruthy();
     expect(row.children).toHaveLength(7);
+
+    // Assert the full settled column order, cell by cell — the previous version
+    // only checked key-before-name, which passed under any arrangement of the
+    // remaining five columns. Priority sits between key and name (UAT).
+    const cells = Array.from(row.children) as HTMLElement[];
+    expect(cells[0]).toHaveTextContent('PROJ-10');
+    expect(cells[1].querySelector('img')).toHaveAttribute('alt', 'Priority: Must');
+    expect(cells[2]).toHaveTextContent('Epic Alpha');
+    expect(cells[3]).toHaveTextContent('In Progress');
+    expect(cells[4]).toHaveTextContent('5/10');
+    expect(cells[5]).toHaveTextContent('8/20 SP');
   });
 
   it('EPIC-04: renders the priority icon with the priority name', async () => {
@@ -235,5 +247,64 @@ describe('EpicsPage', () => {
     (fetchEpicsBasic as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     renderEpicsPage();
     expect(await screen.findByText(/no epics/i)).toBeInTheDocument();
+  });
+
+  it('CR-01: stale-banner retry clears the skeleton once the refetch succeeds', async () => {
+    const { fetchEpicsBasic, fetchEpicEnrichmentMap } = await import('@/services/jira');
+    (fetchEpicsBasic as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('epics failed'))
+      .mockResolvedValue([baseEpic()]);
+    (fetchEpicEnrichmentMap as ReturnType<typeof vi.fn>).mockResolvedValue(new Map());
+
+    // Cached data + a failed refetch is what surfaces StaleDataBanner. This is
+    // the path where isLoading never transitions: isPending is false because
+    // data exists, so an isLoading-keyed reset effect never re-runs and
+    // isRefreshing pins the skeleton on forever.
+    const client = makeClient();
+    client.setQueryData(['jira-epics-basic', 'PROJ', 'https://jira.example.com'], [baseEpic()]);
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <Routes>
+            <Route element={<Outlet context={{}} />}>
+              <Route path="/" element={<EpicsPageLazy />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const retry = await screen.findByRole('button', { name: /retry|try again/i });
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(screen.getByText('PROJ-10')).toBeInTheDocument());
+    expect(screen.queryByTestId('epics-skeleton')).not.toBeInTheDocument();
+  });
+
+  it('CR-02: shows a retryable error, not an endless shimmer, when the token is unavailable', async () => {
+    const { readSecret } = await import('@/services/stronghold');
+    (readSecret as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('no secret'));
+    const { fetchEpicsBasic, fetchEpicEnrichmentMap } = await import('@/services/jira');
+    (fetchEpicsBasic as ReturnType<typeof vi.fn>).mockResolvedValue([baseEpic()]);
+    (fetchEpicEnrichmentMap as ReturnType<typeof vi.fn>).mockResolvedValue(new Map());
+
+    // Rows render from the shared cache even though no token is available.
+    const client = makeClient();
+    client.setQueryData(['jira-epics-basic', 'PROJ', 'https://jira.example.com'], [baseEpic()]);
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <Routes>
+            <Route element={<Outlet context={{}} />}>
+              <Route path="/" element={<EpicsPageLazy />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('PROJ-10')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('epic-progress-retry')).toBeInTheDocument());
+    expect(screen.queryByTestId('epic-progress-pending')).not.toBeInTheDocument();
   });
 });

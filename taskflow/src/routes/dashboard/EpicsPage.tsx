@@ -9,7 +9,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layers } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -127,11 +127,14 @@ export default function EpicsPage() {
     useSettingsStore();
 
   const [token, setToken] = useState<string | null>(null);
-  useEffect(() => {
+  const loadToken = useCallback(() => {
     readSecret('jira-pat')
       .then(setToken)
       .catch(() => setToken(null));
   }, []);
+  useEffect(() => {
+    loadToken();
+  }, [loadToken]);
 
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -141,6 +144,7 @@ export default function EpicsPage() {
   const {
     data: epicsData,
     isLoading,
+    isFetching,
     isError,
     error,
   } = useQuery<EpicEnriched[]>({
@@ -167,7 +171,16 @@ export default function EpicsPage() {
     isError: enrichmentIsError,
     refetch: refetchEnrichment,
   } = useQuery<Map<string, EpicEnrichmentCounts>>({
-    queryKey: ['jira-epics-enrichment', activeJiraProject, jiraBaseUrl, epicKeys.join(',')],
+    // Custom field keys participate in the key: changing the field mapping
+    // changes what the counts mean, so cached counts must not be reused.
+    queryKey: [
+      'jira-epics-enrichment',
+      activeJiraProject,
+      jiraBaseUrl,
+      epicKeys.join(','),
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+    ],
     queryFn: () =>
       fetchEpicEnrichmentMap(
         jiraBaseUrl ?? '',
@@ -183,6 +196,12 @@ export default function EpicsPage() {
     // Check error BEFORE data, so a stale-but-present map never masks a live
     // failure (the 91.1 CR-06 unread-isError bug class).
     if (enrichmentIsError) return { kind: 'error' };
+    // Rows can render from the shared ['jira-epics-basic', …] cache (Sidebar /
+    // Backlog / SprintBoard prefetch it, gcTime is Infinity) while readSecret
+    // has failed. The enrichment query is then permanently disabled, so
+    // reporting `pending` would shimmer forever with no recourse (CR-02).
+    // Surface it as an error — retry re-attempts the secret read.
+    if (!token) return { kind: 'error' };
     if (enrichmentMap) {
       const counts = enrichmentMap.get(epicKey) ?? {
         total: 0,
@@ -202,14 +221,22 @@ export default function EpicsPage() {
   // is a single batched JQL for all epic keys, so one click refetches enrichment
   // for every row. Do NOT build a single-epic enrichment fetcher.
   const handleRetryEnrichment = () => {
+    // A missing token is what disabled the query in the first place, so a bare
+    // refetch would be a no-op — re-attempt the secret read as well (CR-02).
+    if (!token) loadToken();
     refetchEnrichment();
   };
 
   const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
 
+  // Reset off isFetching, NOT isLoading (CR-01). Both retry affordances are only
+  // reachable while the query is in `error` state, where isLoading (isPending &&
+  // isFetching) is already false and stays false across refetch and success — so
+  // an isLoading-keyed effect never re-runs and the skeleton sticks forever.
+  // isFetching does transition (false → true → false) on every retry.
   useEffect(() => {
-    if (!isLoading) setIsRefreshing(false);
-  }, [isLoading]);
+    if (!isFetching) setIsRefreshing(false);
+  }, [isFetching]);
 
   // Reset banner dismissal when error state changes
   useEffect(() => {
@@ -260,9 +287,9 @@ export default function EpicsPage() {
         )}
 
         {showSkeleton ? (
-          <div className="p-4">
-            <EpicsSkeleton />
-          </div>
+          // No wrapper padding: settled rows render unwrapped, so a p-4 here
+          // would shift every column 16px the moment data lands.
+          <EpicsSkeleton />
         ) : !isError ? (
           <>
             {epics.length > 0 ? (
