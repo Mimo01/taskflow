@@ -38,7 +38,15 @@ export default function ReleaseDetailPage() {
 
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
-  const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
+
+  // `seedReleaseBreadcrumb` pushes this release's own entry before EITHER exit
+  // path, including opening the peek panel — which never changes the pathname.
+  // While we are still on this page that entry is self-referential, and the
+  // header already renders the release name as its trailing static segment, so
+  // leaving it in printed the name twice (and made Back navigate to the page
+  // you were already on). Drop it here; it is always the tail entry, so the
+  // indices of everything before it are unaffected.
+  const displayTrail = trail.filter((e) => e.path !== `/release/${versionId}`);
 
   const releaseDetailPanelWidth = useSettingsStore((s) => s.releaseDetailPanelWidth);
   const setReleaseDetailPanelWidth = useSettingsStore((s) => s.setReleaseDetailPanelWidth);
@@ -144,9 +152,11 @@ export default function ReleaseDetailPage() {
   const [createMilestoneOpen, setCreateMilestoneOpen] = useState(false);
 
   const handleBack = () => {
-    if (trail.length > 0) {
-      const target = trail[trail.length - 1];
-      breadcrumbPop();
+    if (displayTrail.length > 0) {
+      const target = displayTrail[displayTrail.length - 1];
+      // Assign rather than pop(): a seeded self-entry may also be sitting on
+      // the tail, and popping once would leave it behind.
+      useBreadcrumbStore.setState({ trail: displayTrail.slice(0, -1) });
       navigate(target.path, { replace: true });
     } else {
       navigate('/releases');
@@ -187,7 +197,7 @@ export default function ReleaseDetailPage() {
   };
 
   const handleBreadcrumbClick = (index: number, path: string) => {
-    useBreadcrumbStore.setState({ trail: trail.slice(0, index) });
+    useBreadcrumbStore.setState({ trail: displayTrail.slice(0, index) });
     navigate(path, { replace: true });
   };
 
@@ -204,7 +214,7 @@ export default function ReleaseDetailPage() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Back + breadcrumb header */}
       <ReleaseBreadcrumbHeader
-        trail={trail}
+        trail={displayTrail}
         versionName={version?.name}
         onBack={handleBack}
         onBreadcrumbClick={handleBreadcrumbClick}
