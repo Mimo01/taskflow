@@ -63,7 +63,7 @@ export function WorklogEntry({
   }, [showMenu]);
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
+    <div className="rounded-lg border bg-card p-3 density-compact:p-2 density-comfortable:p-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
       {/* Header line */}
       <div className="flex items-center gap-2 text-xs">
         {/* Avatar */}
@@ -125,7 +125,7 @@ export function WorklogEntry({
 
       {/* Body: comment or edit mode */}
       {isEditing ? (
-        <div className="space-y-2">
+        <div className="space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
           <DurationInput value={editDuration} onChange={onEditDurationChange} />
           <Input
             value={editComment}

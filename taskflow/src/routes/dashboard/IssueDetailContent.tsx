@@ -108,7 +108,7 @@ function subtaskListContent({
       <h3 className="text-sm font-medium text-muted-foreground mb-2">
         Subtasks ({displaySubtasks.length})
       </h3>
-      <ul className="space-y-1">
+      <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
         {displaySubtasks.map((sub) => {
           const statusCat = sub.fields.status.statusCategory as { key?: string } | undefined;
           return (
@@ -116,7 +116,7 @@ function subtaskListContent({
               <button
                 type="button"
                 onClick={() => onOpenIssue?.(sub.key)}
-                className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-accent text-sm text-left cursor-pointer"
+                className="w-full flex items-center gap-2 px-2 py-2 density-compact:py-1 density-comfortable:py-3 rounded hover:bg-accent text-sm text-left cursor-pointer"
               >
                 <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
                 <span className="flex-1 truncate">{sub.fields.summary}</span>
@@ -275,7 +275,7 @@ export function IssueDetailContent({
   const userMap = useMentionUserMap(initialUserMap, descriptionTexts, jiraBaseUrl);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 density-compact:space-y-4 density-comfortable:space-y-8">
       {/* Title (the subtask parent link now lives in the Fields/sidebar block) */}
       <div>
         <p className="text-xs font-mono text-muted-foreground mb-1">{issue.key}</p>
@@ -311,13 +311,13 @@ export function IssueDetailContent({
             <p className="text-sm text-muted-foreground italic">No stories in this epic</p>
           )}
           {epicStories && epicStories.length > 0 && (
-            <ul className="space-y-1">
+            <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
               {epicStories.map((story) => (
                 <li key={story.key}>
                   <button
                     type="button"
                     onClick={() => onOpenIssue?.(story.key)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
                   >
                     <span className="font-mono text-xs text-muted-foreground shrink-0">
                       {story.key}
@@ -407,7 +407,7 @@ export function IssueDetailContent({
             type="button"
             aria-label={`Open parent issue ${parent.key}`}
             onClick={() => onOpenIssue?.(parent.key)}
-            className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-accent text-sm text-left cursor-pointer"
+            className="w-full flex items-center gap-2 px-2 py-2 density-compact:py-1 density-comfortable:py-3 rounded hover:bg-accent text-sm text-left cursor-pointer"
           >
             <span className="font-mono text-xs text-muted-foreground shrink-0">{parent.key}</span>
             <span className="flex-1 truncate">{parent.fields.summary}</span>
