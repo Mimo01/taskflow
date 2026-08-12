@@ -89,7 +89,7 @@ export function IssueDetailSidebar({
   const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl, sidebarBoardId);
 
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 density-compact:space-y-2 density-comfortable:space-y-6 text-sm">
       <FieldsSection
         issue={issue}
         issueKey={issueKey}

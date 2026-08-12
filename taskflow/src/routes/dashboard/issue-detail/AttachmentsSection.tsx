@@ -181,7 +181,7 @@ export function AttachmentsSection({
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="space-y-3">
+        <div className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
           {attachments.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-sm font-medium text-muted-foreground">No attachments</p>

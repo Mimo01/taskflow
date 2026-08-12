@@ -768,7 +768,7 @@ function CommentCard({
   }, [showMenu]);
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
+    <div className="rounded-lg border bg-card p-3 density-compact:p-2 density-comfortable:p-4 space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
       {/* Card header */}
       <div className="flex items-center gap-2 text-xs">
         <span className="font-medium text-sm">{comment.author.displayName}</span>

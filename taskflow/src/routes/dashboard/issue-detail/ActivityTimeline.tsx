@@ -114,7 +114,7 @@ export function ActivityTimeline({
   // Loading state: if changelog is undefined (not yet fetched), show skeleton
   if (changelog === undefined) {
     return (
-      <section className="mt-6 pb-4 space-y-3">
+      <section className="mt-6 density-compact:mt-4 density-comfortable:mt-8 pb-4 density-compact:pb-3 density-comfortable:pb-5 space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-5 w-1/2" />
@@ -140,7 +140,7 @@ export function ActivityTimeline({
   }
 
   return (
-    <section className="mt-6 pb-4">
+    <section className="mt-6 density-compact:mt-4 density-comfortable:mt-8 pb-4 density-compact:pb-3 density-comfortable:pb-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-muted-foreground">Activity</h3>
         {!noActivity && (
@@ -165,7 +165,7 @@ export function ActivityTimeline({
           </p>
         </div>
       ) : (
-        <ol className="space-y-3">
+        <ol className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
           {visibleEntries.map((entry) => {
             if (entry.type === 'change') {
               return (
