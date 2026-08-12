@@ -303,8 +303,8 @@ Plans:
 
 **Wave 2** *(blocked on 91.1-06)*
 
-- [ ] 91.1-07-PLAN.md — Guarded breadcrumb seed on MR ticket-key navigation + delete dead matchIssuesToMRs (WR-01, WR-02)
-- [ ] 91.1-08-PLAN.md — driftDetection contract realignment, taskReason-driven secondary key cell, labelled header strip (WR-03, WR-04, WR-05, IN-01, IN-02)
+- [x] 91.1-07-PLAN.md — Guarded breadcrumb seed on MR ticket-key navigation + delete dead matchIssuesToMRs (WR-01, WR-02)
+- [x] 91.1-08-PLAN.md — driftDetection contract realignment, taskReason-driven secondary key cell, labelled header strip (WR-03, WR-04, WR-05, IN-01, IN-02)
 
 **Wave 3** *(blocked on 91.1-08)*
 
