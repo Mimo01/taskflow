@@ -57,6 +57,18 @@ function EpicRow({ epic, onEpicClick, enrichment, onRetryEnrichment }: EpicRowPr
         <span className="font-mono text-xs text-muted-foreground">{epic.key}</span>
       </div>
 
+      {/* Priority — icon only, name carried in title/alt (D-10).
+          Sits between key and name to match BacklogRow's column order. */}
+      <div className={cn('flex-none px-0 whitespace-nowrap', CELL_PADDING)}>
+        <span
+          className="flex items-center justify-center"
+          style={{ width: 18, height: 18 }}
+          aria-hidden={!epic.priority}
+        >
+          <PriorityIcon priority={epic.priority} />
+        </span>
+      </div>
+
       {/* Epic name — sole colour carrier (D-09); the ONE flex-1 min-w-0 cell */}
       <div className={cn('flex-1 min-w-0 px-2 overflow-hidden', CELL_PADDING)}>
         <span
@@ -79,17 +91,6 @@ function EpicRow({ epic, onEpicClick, enrichment, onRetryEnrichment }: EpicRowPr
             {epic.status.name}
           </span>
         </div>
-      </div>
-
-      {/* Priority — icon only, name carried in title/alt (D-10) */}
-      <div className={cn('flex-none w-8 px-2 whitespace-nowrap', CELL_PADDING)}>
-        <span
-          className="flex items-center justify-center"
-          style={{ width: 18, height: 18 }}
-          aria-hidden={!epic.priority}
-        >
-          <PriorityIcon priority={epic.priority} />
-        </span>
       </div>
 
       {/* Progress — segmented Done/In-Progress/To-Do bar + done/total (D-11) */}
