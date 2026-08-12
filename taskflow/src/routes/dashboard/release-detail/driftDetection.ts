@@ -309,6 +309,52 @@ export function countBrMsFlaggedMRs(rows: DriftRow[]): number {
 }
 
 /**
+ * UAT-91.1-B (Rules 1 and 2): per-category flagged counts for the two
+ * work-queue badges that replace the single `countBrMsFlaggedMRs` integer in
+ * the unified task table header.
+ *
+ * Rule 1 (BR+MS double flag): each function counts its own predicate
+ * independently. An MR flagged on BOTH `br` and `ms` counts 1 in
+ * `countBranchFlaggedMRs` AND 1 in `countMilestoneFlaggedMRs`, so
+ * `countBranchFlaggedMRs(rows) + countMilestoneFlaggedMRs(rows)` may be
+ * strictly greater than `countBrMsFlaggedMRs(rows)`'s deduplicated union.
+ * This is intentional: each badge is a work queue, and clicking "wrong
+ * branch" must surface every MR that needs a retarget — excluding
+ * double-flagged MRs from one badge would hide actionable work. The union
+ * total is no longer displayed as a headline number (it survives only as
+ * the badge group's aggregate tooltip via `countBrMsFlaggedMRs`), so
+ * `sum > union` is never visibly self-contradictory.
+ *
+ * Rule 2 (multi-key MR): counts are taken over `driftRows`, which is
+ * already one entry per distinct `mr.id` (deduped at `unionMRs` in
+ * `buildDriftRows`). An MR attached under two fix-version tasks by
+ * `buildTaskMrAttachment` therefore renders twice but increments each
+ * badge once — the badge counts problems to fix, and one retarget/milestone
+ * write fixes both rendered copies.
+ *
+ * `countBrMsFlaggedMRs` is retained as the deduplicated union and is still
+ * consumed — as the badge group's aggregate tooltip — so it is not dead
+ * code.
+ *
+ * @param rows - drift rows from `buildDriftRows`
+ * @returns count of rows flagged on `br` only (not `ms`, not `task`)
+ */
+export function countBranchFlaggedMRs(rows: DriftRow[]): number {
+  return rows.filter((r) => r.br === 'flag').length;
+}
+
+/**
+ * UAT-91.1-B (Rules 1 and 2): see `countBranchFlaggedMRs` docstring above —
+ * same rules apply, counting `ms === 'flag'` instead of `br === 'flag'`.
+ *
+ * @param rows - drift rows from `buildDriftRows`
+ * @returns count of rows flagged on `ms` only (not `br`, not `task`)
+ */
+export function countMilestoneFlaggedMRs(rows: DriftRow[]): number {
+  return rows.filter((r) => r.ms === 'flag').length;
+}
+
+/**
  * D-09 (criteria 2/5): partition `driftRows` into per-task primary rows plus
  * a secondary list of uncovered rows, for the unified release detail task
  * table (Wave 0 data layer; consumed by the hook in plan 02 and the unified
