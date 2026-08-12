@@ -22,7 +22,7 @@ import { epicColorToTailwind } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { EpicEnriched, EpicEnrichmentCounts } from '@/services/jira';
-import { fetchEpicEnrichmentMap, fetchEpicsBasic } from '@/services/jira';
+import { EPICS_PAGE_ORDER, fetchEpicEnrichmentMap, fetchEpicsBasic } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -148,7 +148,11 @@ export default function EpicsPage() {
     isError,
     error,
   } = useQuery<EpicEnriched[]>({
-    queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+    // Ordering is part of the key. fetchEpicsBasic is shared with the Sidebar,
+    // Backlog and Sprint Board epic pickers, which keep `updated DESC`; reusing
+    // the bare key would have served this page's `created ASC` order to them
+    // (and vice versa) depending on who fetched first.
+    queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl, EPICS_PAGE_ORDER],
     queryFn: () =>
       fetchEpicsBasic(
         jiraBaseUrl ?? '',
@@ -156,6 +160,7 @@ export default function EpicsPage() {
         activeJiraProject ?? '',
         epicNameFieldKey ?? undefined,
         epicColorFieldKey ?? undefined,
+        EPICS_PAGE_ORDER,
       ),
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
   });

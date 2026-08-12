@@ -2500,12 +2500,28 @@ export interface EpicEnriched {
  * Fetch all epics in a project without story enrichment — fast first-load.
  * Returned in creation order (oldest first), i.e. `ORDER BY created ASC`.
  */
+/**
+ * Allowed epic orderings. A closed union rather than a free string: the value
+ * is interpolated straight into JQL, and callers have no need for arbitrary
+ * clauses. `/epics` uses `created ASC` (D-17); every other consumer keeps the
+ * original `updated DESC` — they share the fetcher but not the page's ordering.
+ */
+export type EpicsOrderBy = 'updated DESC' | 'created ASC';
+
+/**
+ * Ordering used by the /epics page (D-17). Lives here, not in EpicsPage, so the
+ * Sidebar's route prefetch can key its warm-up identically without importing
+ * the lazily-loaded page component into its bundle.
+ */
+export const EPICS_PAGE_ORDER: EpicsOrderBy = 'created ASC';
+
 export async function fetchEpicsBasic(
   baseUrl: string,
   token: string,
   projectKey: string,
   epicNameFieldKey = 'customfield_10015',
   epicColorFieldKey = 'customfield_10013',
+  orderBy: EpicsOrderBy = 'updated DESC',
 ): Promise<EpicEnriched[]> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -2513,7 +2529,7 @@ export async function fetchEpicsBasic(
     ...new Set(['summary', 'status', 'assignee', 'priority', epicNameFieldKey, epicColorFieldKey]),
   ].join(',');
   const epicJql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY created ASC`,
+    `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY ${orderBy}`,
   );
   const epicIssues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`,
@@ -2601,88 +2617,6 @@ export async function fetchEpicEnrichmentMap(
     countMap.set(ek, entry);
   }
   return countMap;
-}
-
-/**
- * Fetch all epics in a project and enrich them with child story counts and points.
- *
- * Two-query pattern:
- * 1. JQL `issuetype = Epic` returns epic issues.
- * 2. JQL `"Epic Link" in (...)` batches child stories for aggregation.
- *
- * On stories fetch failure the function returns epics with zero counts (no throw).
- */
-export async function fetchEpicsWithEnrichment(
-  baseUrl: string,
-  token: string,
-  projectKey: string,
-  storyPointsFieldKey = 'customfield_10016',
-  epicLinkFieldKey = 'customfield_10014',
-  epicNameFieldKey = 'customfield_10015',
-): Promise<EpicEnriched[]> {
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  // Step 1: fetch epics
-  const epicFields = [
-    ...new Set([
-      'summary',
-      'status',
-      'assignee',
-      'priority',
-      'description',
-      'created',
-      'updated',
-      epicNameFieldKey,
-    ]),
-  ].join(',');
-  const epicJql = encodeURIComponent(
-    `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`,
-  );
-  const epicIssues = await fetchAllSearchPages(
-    `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`,
-    headers,
-  );
-  if (epicIssues.length === 0) return [];
-
-  // Step 2: batch-fetch child stories (exclude subtasks)
-  const epicKeys = epicIssues.map((e) => e.key);
-  const storyFields = [
-    ...new Set(['status', storyPointsFieldKey, epicLinkFieldKey, 'customfield_10016']),
-  ].join(',');
-  const storiesJql = encodeURIComponent(
-    `"Epic Link" in (${epicKeys.join(',')}) AND issuetype != Sub-task`,
-  );
-  const stories = await fetchAllSearchPages(
-    `${base}/rest/api/2/search?jql=${storiesJql}&fields=${storyFields}`,
-    headers,
-  ).catch(() => [] as JiraIssue[]);
-
-  // Step 3: aggregate per epic
-  const countMap = new Map<string, { total: number; done: number; points: number }>();
-  for (const story of stories) {
-    const ek = story.fields[epicLinkFieldKey] as string | null;
-    if (!ek) continue;
-    const entry = countMap.get(ek) ?? { total: 0, done: 0, points: 0 };
-    entry.total++;
-    if (story.fields.status.statusCategory?.key === 'done') entry.done++;
-    entry.points += (story.fields[storyPointsFieldKey] as number | null) ?? 0;
-    countMap.set(ek, entry);
-  }
-
-  return epicIssues.map((epic) => {
-    const counts = countMap.get(epic.key) ?? { total: 0, done: 0, points: 0 };
-    return {
-      key: epic.key,
-      epicName: (epic.fields[epicNameFieldKey] as string | null) ?? epic.fields.summary,
-      summary: epic.fields.summary,
-      status: epic.fields.status,
-      assignee: epic.fields.assignee,
-      totalStories: counts.total,
-      doneStories: counts.done,
-      totalPoints: counts.points,
-    };
-  });
 }
 
 /**

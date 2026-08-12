@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useResizable } from '@/hooks/useResizable';
 import {
+  EPICS_PAGE_ORDER,
   fetchActiveSprint,
   fetchEpicsBasic,
   fetchProjectStatuses,
@@ -178,8 +179,14 @@ export default function Sidebar() {
         });
       }
     } else if (path === '/backlog' || path === '/epics') {
+      // /epics orders by `created ASC` and keys its cache on that ordering, so
+      // it needs its own warm-up — prefetching the bare (updated DESC) key
+      // would leave the page to fetch from cold on arrival.
+      const epicsOrder = path === '/epics' ? EPICS_PAGE_ORDER : undefined;
       queryClient.prefetchQuery({
-        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+        queryKey: epicsOrder
+          ? ['jira-epics-basic', activeJiraProject, jiraBaseUrl, epicsOrder]
+          : ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
         queryFn: () =>
           fetchEpicsBasic(
             jiraBaseUrl,
@@ -187,6 +194,7 @@ export default function Sidebar() {
             activeJiraProject,
             epicNameFieldKey,
             epicColorFieldKey,
+            epicsOrder,
           ),
         staleTime: 5 * 60 * 1000,
       });

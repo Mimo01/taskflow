@@ -20,6 +20,7 @@ vi.mock('@/stores/auth.store', () => ({
 vi.mock('@/services/jira', () => ({
   fetchEpicsBasic: vi.fn(),
   fetchEpicEnrichmentMap: vi.fn(),
+  EPICS_PAGE_ORDER: 'created ASC',
 }));
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
@@ -261,7 +262,10 @@ describe('EpicsPage', () => {
     // data exists, so an isLoading-keyed reset effect never re-runs and
     // isRefreshing pins the skeleton on forever.
     const client = makeClient();
-    client.setQueryData(['jira-epics-basic', 'PROJ', 'https://jira.example.com'], [baseEpic()]);
+    client.setQueryData(
+      ['jira-epics-basic', 'PROJ', 'https://jira.example.com', 'created ASC'],
+      [baseEpic()],
+    );
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
@@ -290,7 +294,10 @@ describe('EpicsPage', () => {
 
     // Rows render from the shared cache even though no token is available.
     const client = makeClient();
-    client.setQueryData(['jira-epics-basic', 'PROJ', 'https://jira.example.com'], [baseEpic()]);
+    client.setQueryData(
+      ['jira-epics-basic', 'PROJ', 'https://jira.example.com', 'created ASC'],
+      [baseEpic()],
+    );
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
