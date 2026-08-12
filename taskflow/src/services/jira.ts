@@ -2458,9 +2458,25 @@ export async function fetchEpicsBasic(
   }));
 }
 
+export interface EpicEnrichmentCounts {
+  total: number;
+  done: number;
+  inProgress: number;
+  todo: number;
+  points: number;
+  donePoints: number;
+}
+
 /**
  * Fetch story counts and points for a set of epic keys and return a map.
  * Used to progressively enrich an already-displayed epic list.
+ *
+ * Returns per-status-category counts (`done` / `inProgress` / `todo`, keyed by
+ * Jira status category) plus `points` (total story points) and `donePoints`
+ * (story points from `done`-category stories only).
+ *
+ * Throws on stories-fetch failure — callers must render an error state
+ * (fail-closed; does not swallow errors into an empty map).
  */
 export async function fetchEpicEnrichmentMap(
   baseUrl: string,
@@ -2468,7 +2484,7 @@ export async function fetchEpicEnrichmentMap(
   epicKeys: string[],
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
-): Promise<Map<string, { total: number; done: number; points: number }>> {
+): Promise<Map<string, EpicEnrichmentCounts>> {
   if (epicKeys.length === 0) return new Map();
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -2481,16 +2497,32 @@ export async function fetchEpicEnrichmentMap(
   const stories = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${storiesJql}&fields=${storyFields}`,
     headers,
-  ).catch(() => [] as JiraIssue[]);
+  );
 
-  const countMap = new Map<string, { total: number; done: number; points: number }>();
+  const countMap = new Map<string, EpicEnrichmentCounts>();
   for (const story of stories) {
     const ek = story.fields[epicLinkFieldKey] as string | null;
     if (!ek) continue;
-    const entry = countMap.get(ek) ?? { total: 0, done: 0, points: 0 };
+    const entry = countMap.get(ek) ?? {
+      total: 0,
+      done: 0,
+      inProgress: 0,
+      todo: 0,
+      points: 0,
+      donePoints: 0,
+    };
     entry.total++;
-    if (story.fields.status.statusCategory?.key === 'done') entry.done++;
-    entry.points += (story.fields[storyPointsFieldKey] as number | null) ?? 0;
+    const catKey = story.fields.status.statusCategory?.key;
+    const sp = (story.fields[storyPointsFieldKey] as number | null) ?? 0;
+    entry.points += sp;
+    if (catKey === 'done') {
+      entry.done++;
+      entry.donePoints += sp;
+    } else if (catKey === 'indeterminate') {
+      entry.inProgress++;
+    } else {
+      entry.todo++;
+    }
     countMap.set(ek, entry);
   }
   return countMap;
