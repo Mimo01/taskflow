@@ -903,6 +903,30 @@ describe('gitlab service', () => {
       );
     });
 
+    it('CR-01: a 200 array of non-tag elements rejects rather than reaching findReleaseTag', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [{ message: 'Insufficient permissions' }],
+      } as Response);
+
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
+        /unexpected response shape/,
+      );
+    });
+
+    it('CR-01: a 200 array of strings (proxy interstitial) rejects', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ['<html><head>SSO</head></html>'],
+      } as Response);
+
+      await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
+        /unexpected response shape/,
+      );
+    });
+
     it('T-91-07-01: a 500 rejection message contains neither the token nor "PRIVATE-TOKEN"', async () => {
       vi.mocked(mockFetch).mockResolvedValueOnce({
         ok: false,

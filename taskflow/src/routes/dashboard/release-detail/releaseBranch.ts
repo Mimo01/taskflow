@@ -138,7 +138,16 @@ export type BranchState =
 export function findReleaseTag(tags: readonly string[], version: string | null): string | null {
   if (!version) return null;
   const target = version.toLowerCase();
-  return tags.find((t) => t.toLowerCase().replace(/^v/, '') === target) ?? null;
+  // CR-01 defence in depth: this signature promises `string[]`, but its only
+  // caller maps over a service payload whose element shape TypeScript cannot
+  // vouch for. This runs in the render phase, so a non-string element used to
+  // throw a TypeError that React Query could not convert into `isError` and
+  // that blanked the whole app through ChunkErrorBoundary. The transport guard
+  // in `searchProjectTags` is the primary fix; this makes the crash
+  // unreachable regardless of what a future caller passes.
+  return (
+    tags.find((t) => typeof t === 'string' && t.toLowerCase().replace(/^v/, '') === target) ?? null
+  );
 }
 
 /**
