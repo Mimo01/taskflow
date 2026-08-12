@@ -270,6 +270,18 @@ describe('findReleaseTag', () => {
   it('returns null for a null version', () => {
     expect(findReleaseTag(['v33.6.0'], null)).toBeNull();
   });
+
+  it('CR-01: skips non-string elements instead of throwing in the render phase', () => {
+    const malformed = [
+      undefined,
+      null,
+      { message: 'Insufficient permissions' },
+      'v33.6.0',
+    ] as unknown as readonly string[];
+
+    expect(() => findReleaseTag(malformed, '33.6.0')).not.toThrow();
+    expect(findReleaseTag(malformed, '33.6.0')).toBe('v33.6.0');
+  });
 });
 
 describe('resolveBranchState — released versions', () => {

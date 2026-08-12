@@ -355,10 +355,11 @@ export async function fetchProjectBranches(
  * @throws {Error} on transport failure, or when a non-ok response is
  *   returned (401/403 throw {@link ApiError}, other statuses throw a plain
  *   `Error` with only the status number); also throws when a 200 body is not
- *   an array — a proxy/SSO interstitial or `{ message: ... }` error body
- *   must never be read as "zero tags" (same reasoning as `compareRefs`'s
- *   CR-02 guard). Never interpolates the response body, URL, search term or
- *   token into the thrown message (T-91-07-01).
+ *   an array OF TAG OBJECTS — a proxy/SSO interstitial, an `{ message: ... }`
+ *   error body, or an array of non-tag elements must never be read as "zero
+ *   tags" (same reasoning as `compareRefs`'s CR-02 guard). Never interpolates
+ *   the response body, URL, search term or token into the thrown message
+ *   (T-91-07-01).
  */
 export async function searchProjectTags(
   baseUrl: string,
@@ -396,7 +397,17 @@ export async function searchProjectTags(
     }
 
     const data = (await response.json()) as unknown;
-    if (!Array.isArray(data)) {
+    // CR-01: validating only the array WRAPPER let `["<html>…"]` (a proxy
+    // interstitial) or `[{ message: 'Insufficient permissions' }]` (a GitLab
+    // error array) through the guard, whereupon the `as GitLabTag[]` cast hid
+    // the shape from tsc and `findReleaseTag` threw a render-phase TypeError
+    // that escaped React Query entirely and blanked the app via
+    // ChunkErrorBoundary. Elements are validated too, so a malformed 200
+    // surfaces as a check failure — never as zero tags, never as a crash.
+    if (
+      !Array.isArray(data) ||
+      data.some((tag) => typeof (tag as { name?: unknown } | null)?.name !== 'string')
+    ) {
       throw new Error('Failed to load release tags: unexpected response shape');
     }
 
