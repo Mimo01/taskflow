@@ -414,7 +414,9 @@ describe('UnifiedTaskTable', () => {
         // Scoped to the secondary section — the primary table's own empty-state
         // copy ("No issues in this fix version") also contains "fix".
         const secondarySection = screen.getByTestId('secondary-section');
-        const row = within(secondarySection).getByText(/fix|hotfix/i).closest('div');
+        const row = within(secondarySection)
+          .getByText(/fix|hotfix/i)
+          .closest('div');
         expect(row?.textContent).toContain(title);
       });
     }
@@ -934,6 +936,79 @@ describe('D-04: task row click behaviour', () => {
   });
 });
 
+// CR-05: the row's full-row click is an `absolute inset-0` overlay button, and
+// every LATER positioned sibling with `z-index: auto` hit-tests ABOVE it. jsdom
+// does not implement hit-testing or `pointer-events`, so a click test cannot
+// see this class of defect at all — assert the class contract instead
+// (deliberately, per the D-05 precedent above; do not "upgrade" these into
+// simulated-pointer tests, which would pass either way).
+describe('CR-05: overlay click model — cells opt out of hit-testing unless genuinely interactive', () => {
+  it('the consolidated MR cell wrapper carries pointer-events-none so the row overlay keeps the click', () => {
+    renderWithRows([makeRow({ mr: makeMR({ iid: 4 }) })]);
+
+    const wrapper = screen.getByTestId('mr-cell-link').parentElement as HTMLElement;
+    expect(wrapper.className).toContain('pointer-events-none');
+    expect(wrapper.className).toContain('relative');
+  });
+
+  it('the MR link inside that wrapper opts back in with pointer-events-auto + relative z-10', () => {
+    renderWithRows([makeRow({ mr: makeMR({ iid: 4 }) })]);
+
+    const link = screen.getByTestId('mr-cell-link');
+    expect(link.className).toContain('relative');
+    expect(link.className).toContain('z-10');
+    // `pointer-events` inherits, so the wrapper's `none` would otherwise make
+    // the link itself unclickable.
+    expect(link.className).toContain('pointer-events-auto');
+    expect(link.className).not.toContain('pointer-events-none');
+  });
+
+  it('inert BR/MS cells (ok / na marks) sit in a pointer-events-none slot, not a z-10 one', () => {
+    renderWithRows([makeRow({ br: 'ok', ms: 'na' })]);
+
+    for (const testId of ['drift-br', 'drift-ms']) {
+      const slot = screen.getByTestId(testId).parentElement as HTMLElement;
+      expect(slot.className).toContain('pointer-events-none');
+      expect(slot.className).not.toContain('z-10');
+    }
+  });
+
+  it('a flagged, non-actionable BR cell (no release branch) is still an inert pointer-events-none slot', () => {
+    renderWithRows([makeRow({ br: 'flag', ms: 'flag', flagged: true })], {
+      flaggedMrCount: 1,
+      fix: { ...DEFAULT_FIX, releaseBranchExists: false },
+    });
+
+    const brSlot = screen.getByTestId('drift-br').parentElement as HTMLElement;
+    expect(screen.getByTestId('drift-br').tagName).not.toBe('BUTTON');
+    expect(brSlot.className).toContain('pointer-events-none');
+    // MS on the same row IS actionable, so it must still opt above the overlay.
+    const msSlot = screen.getByTestId('drift-ms').parentElement as HTMLElement;
+    expect(screen.getByTestId('drift-ms').tagName).toBe('BUTTON');
+    expect(msSlot.className).toContain('z-10');
+    expect(msSlot.className).not.toContain('pointer-events-none');
+  });
+
+  it('no interactive button on a task row is left inside a pointer-events-none subtree without opting back in', () => {
+    renderWithRows([makeRow({ br: 'flag', ms: 'flag', flagged: true })], { flaggedMrCount: 1 });
+
+    const taskRow = screen.getByTestId('task-row');
+    for (const button of Array.from(taskRow.querySelectorAll('button'))) {
+      const optsBackIn = button.className.includes('pointer-events-auto');
+      let node: HTMLElement | null = button;
+      while (node && node !== taskRow) {
+        if (node.className.includes('pointer-events-none')) {
+          expect(
+            optsBackIn,
+            `${button.getAttribute('data-testid') ?? button.textContent} is inside a pointer-events-none subtree and never opts back in`,
+          ).toBe(true);
+        }
+        node = node.parentElement;
+      }
+    }
+  });
+});
+
 describe('D-05: hover-reveal scope', () => {
   // jsdom does not evaluate `:hover`, and 91.1-VALIDATION.md routes the
   // visual hover confirmation to manual UAT — assert on rendered structure
@@ -949,8 +1024,16 @@ describe('D-05: hover-reveal scope', () => {
   });
 
   it('secondary-table MR sub-lines still each carry their own group/row root', () => {
-    const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }), taskReason: 'no-linked-task', taskKeys: [] });
-    const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }), taskReason: 'no-linked-task', taskKeys: [] });
+    const rowA = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+    });
+    const rowB = makeRow({
+      mr: makeMR({ id: 2, iid: 2 }),
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+    });
     renderSection({ secondaryRows: [rowA, rowB] });
 
     const subLines = screen.getAllByTestId('drift-row');
