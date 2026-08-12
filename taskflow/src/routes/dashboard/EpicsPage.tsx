@@ -59,7 +59,7 @@ function EpicRow({ epic, onEpicClick, enrichment, onRetryEnrichment }: EpicRowPr
 
       {/* Priority — icon only, name carried in title/alt (D-10).
           Sits between key and name to match BacklogRow's column order. */}
-      <div className={cn('flex-none px-0 whitespace-nowrap', CELL_PADDING)}>
+      <div className={cn('flex-none pl-2 pr-0 whitespace-nowrap', CELL_PADDING)}>
         <span
           className="flex items-center justify-center"
           style={{ width: 18, height: 18 }}
