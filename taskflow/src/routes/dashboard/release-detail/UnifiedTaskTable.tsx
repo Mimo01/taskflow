@@ -55,10 +55,17 @@ export interface UnifiedTaskTableProps {
   fix: MrFixContext;
 }
 
-// Shared column grid constants (D-02) — task rows, MR sub-lines and secondary
-// rows provably use the same widths. Explicit px throughout, never `%` or an
+// Shared column grid constants (D-02) — every row that renders a given column
+// uses the same width for it. Explicit px throughout, never `%` or an
 // unconstrained narrow `flex-1` (recorded WebKit/Tauri zero-width-column
 // collapse).
+//
+// WR-06: the two tables are deliberately DIFFERENT SHAPES, and each has its own
+// header strip. A task row is Key / Summary / Assignee / Status / MR / BR / MS;
+// a secondary MR sub-line is Key / Merge request / BR / MS (consolidation
+// removed its avatar and state cells). Sharing one strip across both put three
+// column headings — Assignee, Status, MR — over the middle of the MR title
+// text. Do not "re-unify" the strips without also restoring those cells.
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
 // width + nowrap; widened from 72px so the common PROJ-1234 shape fits without
 // spilling into the summary column.
@@ -350,8 +357,10 @@ function DriftActionCell({
 }
 
 /**
- * Shared column header strip — same grid as task rows / MR sub-lines /
- * secondary rows (D-12).
+ * The PRIMARY (task) table's column header strip — same grid as a `TaskRow`.
+ * The secondary table has its own strip (`SecondaryHeaderStrip`, WR-06); this
+ * one must not be reused there, because a secondary row renders neither an
+ * Assignee nor a Status nor an MR cell.
  *
  * WR-05 decision: visible labels only — deliberately no ARIA grid roles
  * (table / row / columnheader). The UI-SPEC mandates a div+flex structure
@@ -370,6 +379,30 @@ function ColumnHeaderStrip() {
       <span className={COL_PERSON}>Assignee</span>
       <span className={COL_STATE}>Status</span>
       <span className={COL_MR}>MR</span>
+      <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
+        BR
+      </span>
+      <span className="flex-none w-[28px] text-center" title="Release milestone assigned">
+        MS
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The SECONDARY (uncovered-MRs) table's header strip (WR-06).
+ *
+ * A secondary row is an `MrSubLine`: `pl-4` + Key + the MR title + BR + MS.
+ * It renders no Assignee, Status or MR cell, so labelling those columns —
+ * which the shared `ColumnHeaderStrip` did — put three headings over the
+ * middle of the title text. The `pl-4` here matches the row's own indent so
+ * the "Key" label sits over the key cell rather than 16px to its left.
+ */
+function SecondaryHeaderStrip() {
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 pl-4 bg-muted/30">
+      <span className={COL_KEY}>Key</span>
+      <span className={COL_SUMMARY}>Merge request</span>
       <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
         BR
       </span>
@@ -1020,7 +1053,7 @@ export function UnifiedTaskTable({
       {!isLoadingIssues && filteredSecondaryRows.length > 0 && (
         <div data-testid="secondary-section" className="mt-4 pt-4 border-t border-border/50">
           <h4 className="text-sm font-medium">Not covered by tasks above</h4>
-          <ColumnHeaderStrip />
+          <SecondaryHeaderStrip />
           {filteredSecondaryRows.map((row) => {
             const keys = row.taskKeys;
             let keyCell: React.ReactNode;
