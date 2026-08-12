@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: executing
-last_updated: "2026-08-12T21:36:27.823Z"
-last_activity: 2026-08-12 -- Phase 91.2 execution started
+status: verifying
+last_updated: "2026-08-12T22:28:23.497Z"
+last_activity: 2026-08-12
 progress:
   total_phases: 23
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 49
-  completed_plans: 45
-  percent: 26
+  completed_plans: 49
+  percent: 30
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 91.2 (epics-page-redesign) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 91.2
-Last activity: 2026-08-12 -- Phase 91.2 execution started
+Plan: 4 of 4
+Status: Phase complete — ready for verification
+Last activity: 2026-08-12
 
 Progress: [██████████] 100%
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 90 P03 | 55min | 3 tasks | 3 files |
 | Phase 90 P04 | 22min | 2 tasks | 4 files |
 | Phase 91 P09 | 25min | 3 tasks | 5 files |
+| Phase 91.2 P04 | 55min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,9 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [quick-260812-mry]: Text Size = root rem scaling via html[data-font-scale], mirroring the data-density pattern (baseline tier removes the attribute). Density and Text Size stay two independent controls, never a combined UI Scale
 - [quick-260812-mry]: loadAppearance() in services/theme.ts fixes a pre-existing bug — main.tsx hardcoded applyDensity('default'), so persisted density never applied unless the user opened Settings
 - [quick-260812-mry]: px→rem sweep deliberately bounded to 5 high-traffic chrome files (30 occurrences); ~44 text-[Npx] remain app-wide as a documented deferral, not an oversight
+- [Phase 91.2-04]: Deleted dead services/jira/epics.ts duplicate module and its orphaned types.ts EpicEnriched interface; services/jira.ts is now the sole epic-fetcher home
+- [Phase 91.2-04]: PROJECT.md Key Decisions row corrected to record EpicsPage progressive enrichment (fetchEpicEnrichmentMap) as current, superseding the old too-slow-for-list-view decision
+- [Phase 91.2-04]: UAT during the human-verification checkpoint found and fixed 3 issues on the main tree: priority column reordered to match Backlog convention, priority cell pl-2 spacing, and fetchAllSearchPagesConcurrent added for bounded-concurrency (6 in flight) enrichment pagination, fail-closed per D-15
 
 ### Pending Todos
 
@@ -141,9 +145,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-12T21:07:25.468Z
-Stopped at: Phase 91.2 UI-SPEC approved
-Resume file: .planning/phases/91.2-epics-page-redesign/91.2-UI-SPEC.md
+Last session: 2026-08-12T22:28:23.494Z
+Stopped at: Completed 91.2-04-PLAN.md (phase 91.2 complete, ready for verification)
+Resume file: None
 
 ## Operator Next Steps
 
