@@ -1,5 +1,5 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { AlertTriangle, Check, GitBranch, Loader2, Milestone } from 'lucide-react';
+import { AlertTriangle, Check, GitBranch, GitMerge, Loader2, Milestone } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,7 @@ const COL_KEY = 'flex-none w-[72px]';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[140px] min-w-0';
 const COL_STATE = 'flex-none w-[96px]';
+const COL_MR = 'flex-none w-[190px] min-w-0';
 
 const CHANNEL_NAMES: Record<Channel, string> = {
   A: 'Jira link',
@@ -314,6 +315,7 @@ function ColumnHeaderStrip() {
       <span className={COL_SUMMARY}>Summary</span>
       <span className={COL_PERSON}>Assignee</span>
       <span className={COL_STATE}>Status</span>
+      <span className={COL_MR}>MR</span>
       <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
         BR
       </span>
@@ -429,13 +431,243 @@ function MrSubLine({
   );
 }
 
+/**
+ * Choose which MR to display on a consolidated task row when a task carries
+ * 2+ merge requests (developer's explicit choice, live UAT checkpoint,
+ * 2026-08-12): "99% of the time there is 1 MR for 1 task so the edge case of
+ * having multiple is not worth solving. I want it all consolidated into one
+ * single line for each task like it was before." A flagged MR (br or ms)
+ * wins; ties are broken by highest `iid`. With no flagged MR, highest `iid`
+ * wins. No MR is dropped from the underlying data — the rest surface behind
+ * the `+N` marker (`mr-extra-count`).
+ *
+ * When a category filter (UAT-91.1-B) is active, the caller
+ * (`UnifiedTaskTable`'s `filteredPrimaryRows`) has already restricted `mrs`
+ * to the matching subset before this function ever runs, so the displayed
+ * MR automatically prefers a filter match — no separate branch needed here.
+ *
+ * @param mrs - the task's attached MRs (already filter-restricted by the caller, if a filter is active)
+ * @returns the MR to render on the row, or null when the task has no MRs
+ */
+export function selectDisplayMr(mrs: DriftRow[]): DriftRow | null {
+  if (mrs.length === 0) return null;
+  const flagged = mrs.filter((r) => r.br === 'flag' || r.ms === 'flag');
+  const pool = flagged.length > 0 ? flagged : mrs;
+  return pool.reduce((best, r) => (r.mr.iid > best.mr.iid ? r : best));
+}
+
+/**
+ * Wraps a BR/MS drift cell for placement directly on a `TaskRow`, which sits
+ * behind an absolute inset-0 overlay button (D-04 full-row click). An
+ * actionable cell (button) needs `relative z-10` to win the click above the
+ * overlay's stacking context; a purely inert cell (em-dash / check glyph)
+ * gets `pointer-events-none` instead so a click there still falls through to
+ * open the row — matching the sibling-overlay convention used by the
+ * Key/Assignee/Status cells above.
+ */
+function DriftCellSlot({
+  children,
+  interactive,
+}: {
+  children: React.ReactNode;
+  interactive: boolean;
+}) {
+  return (
+    <div
+      className={`relative flex-none w-[28px] ${interactive ? 'z-10' : 'pointer-events-none'}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+const naDriftCells = (
+  <>
+    <DriftCellSlot interactive={false}>
+      <DriftMarkCell mark="na" testId="drift-br" />
+    </DriftCellSlot>
+    <DriftCellSlot interactive={false}>
+      <DriftMarkCell mark="na" testId="drift-ms" />
+    </DriftCellSlot>
+  </>
+);
+
+/**
+ * The task row's MR cell plus its BR/MS drift cells, consolidated onto one
+ * line (developer's explicit choice, live UAT checkpoint — see
+ * `selectDisplayMr`). Replaces the old per-MR sub-line list entirely in the
+ * primary table; `MrSubLine` survives unchanged for the secondary
+ * (uncovered-MRs) table.
+ *
+ * The four MrSlot states (pending/failed/none/unavailable) render inline in
+ * the MR cell's own space rather than as a separate full-width line — same
+ * precedence, same `data-testid`s, same tooltip text as before this task.
+ */
+function TaskMrCell({
+  mrs,
+  isLoadingDrift,
+  driftUnavailable,
+  hasMatchedMilestone,
+  fix,
+}: {
+  mrs: DriftRow[];
+  isLoadingDrift: boolean;
+  driftUnavailable: boolean;
+  hasMatchedMilestone: boolean;
+  fix: MrFixContext;
+}) {
+  if (isLoadingDrift) {
+    return (
+      <>
+        <div
+          data-testid="mr-slot-pending"
+          className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
+        >
+          <Loader2 className="size-3.5 animate-spin" />
+          loading…
+        </div>
+        {naDriftCells}
+      </>
+    );
+  }
+
+  // Pending beats failed beats verified-empty (order matters). A channel
+  // that failed to answer is an unknown, not a verified absence — never
+  // orange, matching the neutral mr-slot-unavailable treatment.
+  if (driftUnavailable && mrs.length === 0) {
+    return (
+      <>
+        <div
+          data-testid="mr-slot-failed"
+          title="GitLab merge request lookup failed — this task's MR status is unknown"
+          className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
+        >
+          — couldn't check merge requests
+        </div>
+        {naDriftCells}
+      </>
+    );
+  }
+
+  if (mrs.length === 0 && hasMatchedMilestone) {
+    return (
+      <>
+        <div
+          data-testid="mr-slot-none"
+          className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-orange-600 dark:text-orange-400`}
+        >
+          <AlertTriangle className="size-3.5" />
+          No merge request
+        </div>
+        {naDriftCells}
+      </>
+    );
+  }
+
+  if (mrs.length === 0 && !hasMatchedMilestone) {
+    return (
+      <>
+        <div
+          data-testid="mr-slot-unavailable"
+          title="No GitLab milestone matched — cannot check for MRs"
+          className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
+        >
+          — MR status unavailable
+        </div>
+        {naDriftCells}
+      </>
+    );
+  }
+
+  const selected = selectDisplayMr(mrs);
+  if (!selected) return null; // unreachable — mrs.length > 0 is guaranteed by the branches above
+
+  const { mr } = selected;
+  const others = mrs.filter((r) => r.mr.id !== mr.id);
+
+  // Pre-milestone look (v1.13.5), restored per the developer's explicit
+  // choice at the live UAT checkpoint: GitMerge icon + state-coloured `!iid`
+  // link + outline state badge.
+  const stateLinkClass =
+    mr.state === 'merged'
+      ? 'text-green-600 dark:text-green-400'
+      : mr.state === 'opened'
+        ? 'text-blue-600 dark:text-blue-400'
+        : 'text-gray-500';
+  const stateBadgeClass =
+    mr.state === 'merged'
+      ? 'border-green-500 text-green-600'
+      : mr.state === 'opened'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-gray-400 text-gray-500';
+
+  return (
+    <>
+      <div className={`relative ${COL_MR} flex items-center gap-1.5 text-xs`}>
+        <button
+          type="button"
+          data-testid="mr-cell-link"
+          onClick={(e) => {
+            e.stopPropagation();
+            openUrl(mr.web_url);
+          }}
+          title={`${mr.author.name} — ${mr.title}`}
+          className={`relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
+        >
+          <GitMerge className="size-3.5" />!{mr.iid}
+        </button>
+        <Badge variant="outline" className={`pointer-events-none text-[10px] ${stateBadgeClass}`}>
+          {mr.state}
+        </Badge>
+        {others.length > 0 && (
+          <span
+            data-testid="mr-extra-count"
+            className="pointer-events-none text-muted-foreground"
+            title={`Also: ${others.map((r) => `!${r.mr.iid}`).join(', ')}`}
+          >
+            +{others.length}
+          </span>
+        )}
+      </div>
+      {selected.evaluated ? (
+        <>
+          <DriftCellSlot interactive>
+            <DriftActionCell mr={mr} action="retarget" mark={selected.br} testId="drift-br" fix={fix} />
+          </DriftCellSlot>
+          <DriftCellSlot interactive>
+            <DriftActionCell
+              mr={mr}
+              action="assign-milestone"
+              mark={selected.ms}
+              testId="drift-ms"
+              fix={fix}
+            />
+          </DriftCellSlot>
+        </>
+      ) : (
+        naDriftCells
+      )}
+    </>
+  );
+}
+
 function TaskRow({
   issue,
+  mrs,
+  isLoadingDrift,
+  driftUnavailable,
+  hasMatchedMilestone,
+  fix,
   onOpenIssue,
   onOpenIssueFull,
   onSeedBreadcrumb,
 }: {
   issue: JiraIssue;
+  mrs: DriftRow[];
+  isLoadingDrift: boolean;
+  driftUnavailable: boolean;
+  hasMatchedMilestone: boolean;
+  fix: MrFixContext;
   onOpenIssue: (key: string) => void;
   onOpenIssueFull: (key: string) => void;
   onSeedBreadcrumb: () => void;
@@ -443,7 +675,7 @@ function TaskRow({
   return (
     <div
       data-testid="task-row"
-      className="relative flex items-center gap-2 text-sm py-1.5 hover:bg-muted/40"
+      className="group/row relative flex items-center gap-2 text-sm py-1.5 hover:bg-muted/40"
     >
       <button
         type="button"
@@ -492,89 +724,14 @@ function TaskRow({
           {issue.fields.status.name}
         </span>
       </div>
-      <span className="pointer-events-none flex-none w-[28px]" />
-      <span className="pointer-events-none flex-none w-[28px]" />
+      <TaskMrCell
+        mrs={mrs}
+        isLoadingDrift={isLoadingDrift}
+        driftUnavailable={driftUnavailable}
+        hasMatchedMilestone={hasMatchedMilestone}
+        fix={fix}
+      />
     </div>
-  );
-}
-
-function MrSlot({
-  isLoadingDrift,
-  driftUnavailable,
-  mrs,
-  hasMatchedMilestone,
-  onNavigateToIssueFromMR,
-  fix,
-}: {
-  isLoadingDrift: boolean;
-  driftUnavailable: boolean;
-  mrs: DriftRow[];
-  hasMatchedMilestone: boolean;
-  onNavigateToIssueFromMR: (key: string) => void;
-  fix: MrFixContext;
-}) {
-  if (isLoadingDrift) {
-    return (
-      <div
-        data-testid="mr-slot-pending"
-        className="pl-4 flex items-center gap-2 text-xs py-1 text-muted-foreground"
-      >
-        <Loader2 className="size-3.5 animate-spin" />
-        loading merge requests…
-      </div>
-    );
-  }
-
-  // Pending beats failed beats verified-empty (order matters). A channel
-  // that failed to answer is an unknown, not a verified absence — never
-  // orange, matching the neutral mr-slot-unavailable treatment.
-  if (driftUnavailable && mrs.length === 0) {
-    return (
-      <div
-        data-testid="mr-slot-failed"
-        title="GitLab merge request lookup failed — this task's MR status is unknown"
-        className="pl-4 flex items-center gap-2 text-xs py-1 text-muted-foreground"
-      >
-        — couldn't check merge requests
-      </div>
-    );
-  }
-
-  if (mrs.length === 0 && hasMatchedMilestone) {
-    return (
-      <div
-        data-testid="mr-slot-none"
-        className="pl-4 flex items-center gap-2 text-xs py-1 text-orange-600 dark:text-orange-400"
-      >
-        <AlertTriangle className="size-3.5" />
-        No merge request
-      </div>
-    );
-  }
-
-  if (mrs.length === 0 && !hasMatchedMilestone) {
-    return (
-      <div
-        data-testid="mr-slot-unavailable"
-        title="No GitLab milestone matched — cannot check for MRs"
-        className="pl-4 flex items-center gap-2 text-xs py-1 text-muted-foreground"
-      >
-        — MR status unavailable
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {mrs.map((row) => (
-        <MrSubLine
-          key={row.mr.id}
-          row={row}
-          onNavigateToIssueFromMR={onNavigateToIssueFromMR}
-          fix={fix}
-        />
-      ))}
-    </>
   );
 }
 
@@ -735,17 +892,14 @@ export function UnifiedTaskTable({
               <div key={issue.id} data-testid="task-group" className="border-b border-border/50">
                 <TaskRow
                   issue={issue}
+                  mrs={mrs}
+                  isLoadingDrift={isLoadingDrift}
+                  driftUnavailable={driftUnavailable}
+                  hasMatchedMilestone={hasMatchedMilestone}
+                  fix={fix}
                   onOpenIssue={onOpenIssue}
                   onOpenIssueFull={onOpenIssueFull}
                   onSeedBreadcrumb={onSeedBreadcrumb}
-                />
-                <MrSlot
-                  isLoadingDrift={isLoadingDrift}
-                  driftUnavailable={driftUnavailable}
-                  mrs={mrs}
-                  hasMatchedMilestone={hasMatchedMilestone}
-                  onNavigateToIssueFromMR={onNavigateToIssueFromMR}
-                  fix={fix}
                 />
               </div>
             ))}
