@@ -23,8 +23,12 @@
  *   permanent floor of untraceable MRs with no corrective action in this or
  *   any planned phase.
  * - D-12: the TASK predicate is two-part and the two reasons are
- *   distinguishable (`'no-linked-task'` vs `'not-in-fix-version'`) so the UI
- *   tooltip can explain which case applies — do not collapse to a boolean.
+ *   distinguishable (`'no-linked-task'` vs `'not-in-fix-version'`) so the
+ *   secondary table's key cell (`UnifiedTaskTable.tsx`) can decide whether to
+ *   assert an out-of-scope claim for a row — do not collapse to a boolean.
+ *   The TASK *column* was dropped from the presented grid in this phase
+ *   (criterion 4) and is not coming back; `taskReason` survives on `DriftRow`
+ *   for the secondary table's verdict read, not for a column tooltip.
  */
 
 import type { GitLabMR } from '@/services/gitlab';
@@ -49,7 +53,7 @@ export interface DriftRow {
   ms: DriftMark;
   task: DriftMark;
   taskReason: TaskDriftReason;
-  /** Keys extracted from title + source_branch — shared with the UI tooltip so it never re-derives them. */
+  /** Deduplicated keys extracted from title + source_branch, shared with the secondary table's key cell. */
   taskKeys: string[];
   /** True when any of br/ms/task is 'flag' (D-13's per-row unit of count). */
   flagged: boolean;
@@ -144,15 +148,19 @@ export function evaluateMilestoneDrift(mr: GitLabMR, matchedMilestoneId: number 
 }
 
 /**
- * Extract the combined title + source_branch Jira key list for an MR — the
- * single source of truth shared by `evaluateTaskDrift` and the UI tooltip
- * (Task 3's `buildDriftRows`) so neither re-derives it independently.
+ * Extract the combined title + source_branch Jira key list for an MR, used
+ * by `evaluateTaskDrift` and by the secondary table's key cell
+ * (`UnifiedTaskTable.tsx`). The MR-title linkifier (`MrSubLine`) legitimately
+ * uses the narrower title-only set from `extractTicketKeys(mr.title)`
+ * directly and is NOT a consumer of this function — the two sets answer
+ * different questions (title-only linkification vs. combined drift
+ * evaluation) so one field per question is not warranted on `DriftRow`.
  *
  * @param mr - the MR to extract keys from
  * @returns deduplicated keys from title then source_branch, in that order
  */
 export function extractMrTaskKeys(mr: GitLabMR): string[] {
-  return [...extractTicketKeys(mr.title), ...extractTicketKeys(mr.source_branch)];
+  return [...new Set([...extractTicketKeys(mr.title), ...extractTicketKeys(mr.source_branch)])];
 }
 
 /**
@@ -286,10 +294,12 @@ export function buildDriftRows(input: {
  * covered by a release task carries `task === 'flag'` by construction
  * (D-11 — no-linked-task, or not-in-fix-version); a naive `row.flagged` count
  * here would inflate the badge by roughly the entire secondary-table row
- * count. Dedup by `mr.id` is inherent, not an extra concern: `driftRows` is
- * already one entry per unique `mr.id` (built from `unionMRs` in
- * `buildDriftRows`), so a plain `filter().length` satisfies D-15's
- * "distinct MRs, counted once" requirement with no additional Set.
+ * count. `row.flagged` survives on `DriftRow` solely as `buildDriftRows`'s
+ * own sort key (flagged-first ordering) — it is not a rendered value and this
+ * function is not its consumer. Dedup by `mr.id` is inherent, not an extra
+ * concern: `driftRows` is already one entry per unique `mr.id` (built from
+ * `unionMRs` in `buildDriftRows`), so a plain `filter().length` satisfies
+ * D-15's "distinct MRs, counted once" requirement with no additional Set.
  *
  * @param rows - drift rows from `buildDriftRows`
  * @returns count of rows flagged on BR and/or MS (never TASK-only)
