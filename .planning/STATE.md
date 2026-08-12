@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: milestone_complete
-last_updated: 2026-08-12T13:14:48.912Z
-last_activity: 2026-08-12 -- Phase 91.1 execution started
+last_updated: 2026-08-12T14:23:57.561Z
+last_activity: 2026-08-12 -- Completed quick task 260812-mry: Add compactness and font size settings to Appearance section
 progress:
   total_phases: 22
   completed_phases: 5
@@ -97,6 +97,9 @@ Key decisions for v1.14 (from CONTEXT.md/research, do not re-litigate):
 - [Phase 90]: Live UAT recorded as a blanket developer approval ('approved') covering all ten checkpoint steps including step 3 keyboard focus-reveal, which jsdom could not prove — no per-step detail fabricated
 - [Phase 90]: Step 10 D-16 approval-reset observation recorded as 'not reported' — the D-16 probe.sh remains unrun and RESEARCH A1 stays UNRESOLVED (probe D skipped); the UAT approval resolves neither
 - [Phase ?]: TagChannelHealth required on the released BranchState variant, optional-with-default on resolveBranchState params, mirroring mergeBackVerification.ts's asymmetric-required pattern (91-REVIEW WR-04)
+- [quick-260812-mry]: Text Size = root rem scaling via html[data-font-scale], mirroring the data-density pattern (baseline tier removes the attribute). Density and Text Size stay two independent controls, never a combined UI Scale
+- [quick-260812-mry]: loadAppearance() in services/theme.ts fixes a pre-existing bug — main.tsx hardcoded applyDensity('default'), so persisted density never applied unless the user opened Settings
+- [quick-260812-mry]: px→rem sweep deliberately bounded to 5 high-traffic chrome files (30 occurrences); ~44 text-[Npx] remain app-wide as a documented deferral, not an oversight
 
 ### Pending Todos
 
@@ -114,9 +117,10 @@ None yet.
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
+| 260812-mry | Add compactness and font size settings to Appearance section | 2026-08-12 | 5566e8ff | Needs Review | [260812-mry-add-compactness-and-font-size-settings-t](./quick/260812-mry-add-compactness-and-font-size-settings-t/) |
 
 ## Deferred Items
 
