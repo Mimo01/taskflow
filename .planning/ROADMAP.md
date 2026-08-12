@@ -352,7 +352,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 91.2-03-PLAN.md — `EpicsPage.tsx`: div+flex seven-column single-line row, progressive enrichment query wiring, reshaped `EpicsSkeleton`, expanded page tests
+- [x] 91.2-03-PLAN.md — `EpicsPage.tsx`: div+flex seven-column single-line row, progressive enrichment query wiring, reshaped `EpicsSkeleton`, expanded page tests
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
