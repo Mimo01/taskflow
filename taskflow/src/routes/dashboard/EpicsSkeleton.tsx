@@ -20,7 +20,7 @@ export function EpicsSkeleton() {
           </div>
 
           {/* Priority icon — between key and name, matching EpicRow/BacklogRow */}
-          <div className={cn('flex-none px-0', CELL_PADDING)}>
+          <div className={cn('flex-none pl-2 pr-0', CELL_PADDING)}>
             <Skeleton className="h-3.5 w-3.5" />
           </div>
 
