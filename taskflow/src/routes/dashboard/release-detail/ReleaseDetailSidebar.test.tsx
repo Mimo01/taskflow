@@ -3,6 +3,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import type { MergeBackVerdict } from './mergeBackVerification';
@@ -415,5 +416,60 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
     });
     const el = screen.getByTestId('merge-back-couldnt-verify');
     expect(el.title).toBe('the merge-back check could not be completed');
+  });
+});
+
+describe('ReleaseDetailSidebar — descriptions', () => {
+  it('renders the Description heading and text in the sidebar-descriptions container', () => {
+    renderSidebar({
+      branchState: { kind: 'blocked-no-milestone' },
+      version: makeVersion({ description: 'This release ships the new sidebar.' }),
+      gitlabMatch: noneMatch,
+      matchedMilestone: null,
+    });
+    const container = within(screen.getByTestId('sidebar-descriptions'));
+    expect(container.getByText('Description')).toBeInTheDocument();
+    expect(container.getByText('This release ships the new sidebar.')).toBeInTheDocument();
+  });
+
+  it('renders "No description" when the version has no description', () => {
+    renderSidebar({
+      branchState: { kind: 'blocked-no-milestone' },
+      version: makeVersion({ description: undefined }),
+      gitlabMatch: noneMatch,
+      matchedMilestone: null,
+    });
+    const container = within(screen.getByTestId('sidebar-descriptions'));
+    expect(container.getByText('Description')).toBeInTheDocument();
+    expect(container.getByText('No description')).toBeInTheDocument();
+  });
+
+  it('renders both Jira Description and GitLab Description headings when a milestone is matched', () => {
+    const exactMatch: ReleaseMatch = {
+      type: 'exact',
+      candidateName: '33.5.0',
+      candidateUrl: 'https://gitlab.example/milestones/1',
+    };
+    const milestone: GitLabMilestone = {
+      id: 1,
+      iid: 1,
+      title: '33.5.0',
+      description: 'GitLab milestone notes.',
+      start_date: null,
+      due_date: null,
+      state: 'active',
+      web_url: 'https://gitlab.example/milestones/1',
+    };
+    renderSidebar({
+      branchState: { kind: 'blocked-no-milestone' },
+      version: makeVersion({ description: 'Jira description text.' }),
+      gitlabMatch: exactMatch,
+      matchedMilestone: milestone,
+    });
+    const container = within(screen.getByTestId('sidebar-descriptions'));
+    expect(container.getByText('Jira Description')).toBeInTheDocument();
+    expect(container.getByText('GitLab Description')).toBeInTheDocument();
+    expect(container.getByText('Jira description text.')).toBeInTheDocument();
+    expect(container.getByText('GitLab milestone notes.')).toBeInTheDocument();
   });
 });
