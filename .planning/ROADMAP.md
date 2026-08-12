@@ -289,7 +289,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 91.1-04-PLAN.md — Relocate Phase 90 corrective-action coverage + new D-04/D-05/D-09/D-13/D-17 component tests
+- [x] 91.1-04-PLAN.md — Relocate Phase 90 corrective-action coverage + new D-04/D-05/D-09/D-13/D-17 component tests
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
