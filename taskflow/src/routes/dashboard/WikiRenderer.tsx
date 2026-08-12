@@ -1389,6 +1389,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         'density-comfortable:prose-p:my-4 density-comfortable:prose-ul:my-4 density-comfortable:prose-ol:my-4',
         'density-comfortable:prose-li:my-1 density-comfortable:prose-headings:mt-6 density-comfortable:prose-headings:mb-3',
         'density-comfortable:prose-pre:p-4 density-comfortable:prose-td:py-3 density-comfortable:prose-th:py-3',
+        'density-comfortable:[&_p]:leading-relaxed density-comfortable:[&_li]:leading-relaxed',
         className,
       )}
     >
