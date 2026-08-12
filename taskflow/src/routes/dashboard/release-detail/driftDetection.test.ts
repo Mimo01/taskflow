@@ -3,11 +3,9 @@ import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import {
   buildDriftRows,
-  buildIssueMrIndex,
   buildTaskMrAttachment,
   classifyMrState,
   countBrMsFlaggedMRs,
-  countFlaggedMRs,
   type DriftRow,
   evaluateBranchDrift,
   evaluateMilestoneDrift,
@@ -216,35 +214,6 @@ describe('state classification', () => {
   });
 });
 
-describe('countFlaggedMRs', () => {
-  it('counts rows, not flags — one MR with all three columns flagged contributes 1', () => {
-    const mr = makeMR({
-      id: 1,
-      state: 'opened',
-      target_branch: 'develop',
-      milestone: { id: 9, title: 'v9' },
-      title: 'Unrelated',
-      source_branch: 'chore/x',
-    });
-    const rows = buildDriftRows({
-      channelA: [mr],
-      channelB: [],
-      channelC: [],
-      releaseBranchName: 'release/33.5.0',
-      matchedMilestoneId: 7,
-      fixVersionIssueKeys: new Set(),
-    });
-    expect(rows[0].br).toBe('flag');
-    expect(rows[0].ms).toBe('flag');
-    expect(rows[0].task).toBe('flag');
-    expect(countFlaggedMRs(rows)).toBe(1);
-  });
-
-  it('returns 0 for an empty row list', () => {
-    expect(countFlaggedMRs([])).toBe(0);
-  });
-});
-
 describe('buildDriftRows', () => {
   it('a merged MR yields br/ms/task all na, flagged false, and calls no predicate', () => {
     const merged = makeMR({ id: 1, state: 'merged', target_branch: 'develop', milestone: null });
@@ -348,45 +317,6 @@ describe('buildDriftRows', () => {
     const iidSeq2 = order2.map((r) => r.mr.iid);
     expect(iidSeq1).toEqual([10, 8, 5, 3]);
     expect(iidSeq2).toEqual(iidSeq1);
-  });
-});
-
-describe('buildIssueMrIndex', () => {
-  it('returns one matchedRows entry per fix-version issue, mr set when linked and milestone-qualified', () => {
-    const issue = makeIssue({ key: 'PROJ-1' });
-    const mr = makeMR({
-      id: 1,
-      title: 'PROJ-1 fix',
-      source_branch: 'x',
-      milestone: { id: 7, title: 'v7' },
-    });
-    const union = unionMRs([mr], [], []);
-    const { matchedRows } = buildIssueMrIndex(union, [issue], 7);
-    expect(matchedRows).toHaveLength(1);
-    expect(matchedRows[0].mr).toBe(mr);
-  });
-
-  it('records wrongMilestoneByKey for issues with no qualifying MR but a wrong-milestone linked MR', () => {
-    const issue = makeIssue({ key: 'PROJ-1' });
-    const wrongMilestoneMr = makeMR({
-      id: 1,
-      title: 'PROJ-1 fix',
-      source_branch: 'x',
-      milestone: { id: 9, title: 'v9' },
-    });
-    const union = unionMRs([wrongMilestoneMr], [], []);
-    const { matchedRows, wrongMilestoneByKey } = buildIssueMrIndex(union, [issue], 7);
-    expect(matchedRows[0].mr).toBe(null);
-    expect(wrongMilestoneByKey.get('PROJ-1')).toBe(wrongMilestoneMr);
-  });
-
-  it('with matchedMilestoneId null, every mr is null and wrongMilestoneByKey is empty', () => {
-    const issue = makeIssue({ key: 'PROJ-1' });
-    const mr = makeMR({ id: 1, title: 'PROJ-1 fix', source_branch: 'x', milestone: null });
-    const union = unionMRs([mr], [], []);
-    const { matchedRows, wrongMilestoneByKey } = buildIssueMrIndex(union, [issue], null);
-    expect(matchedRows[0].mr).toBe(null);
-    expect(wrongMilestoneByKey.size).toBe(0);
   });
 });
 
@@ -601,13 +531,14 @@ describe('countBrMsFlaggedMRs', () => {
     expect(countBrMsFlaggedMRs([row])).toBe(0);
   });
 
-  it('D-15: a mixed list returns the BR-or-MS total, strictly less than countFlaggedMRs when a task-only flag is present', () => {
+  it('D-15: a mixed list returns the BR-or-MS total, strictly less than the naive row.flagged count when a task-only flag is present', () => {
     const taskOnly = makeRow({ task: 'flag', flagged: true });
     const brFlagged = makeRow({ mr: makeMR({ id: 2 }), br: 'flag', flagged: true });
     const msFlagged = makeRow({ mr: makeMR({ id: 3 }), ms: 'flag', flagged: true });
     const rows = [taskOnly, brFlagged, msFlagged];
+    const naiveFlaggedCount = rows.filter((r) => r.flagged).length;
     expect(countBrMsFlaggedMRs(rows)).toBe(2);
-    expect(countFlaggedMRs(rows)).toBe(3);
-    expect(countBrMsFlaggedMRs(rows)).toBeLessThan(countFlaggedMRs(rows));
+    expect(naiveFlaggedCount).toBe(3);
+    expect(countBrMsFlaggedMRs(rows)).toBeLessThan(naiveFlaggedCount);
   });
 });

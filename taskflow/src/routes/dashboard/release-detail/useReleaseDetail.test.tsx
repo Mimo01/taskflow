@@ -395,7 +395,7 @@ describe('useReleaseDetail', () => {
   });
 
   // D-12: the header badge follows the optimistic cache patch alone — no
-  // refetch needed. driftRows/driftFlaggedCount are recomputed every render
+  // refetch needed. driftRows/flaggedMrCount are recomputed every render
   // from query data (not memoized), so patchMrInChannelCaches's write is
   // enough to flip the flagged row to clean on the very next render.
   it('Test I: patching the cache clears a flagged count (D-12 badge decrement path)', async () => {
@@ -441,11 +441,7 @@ describe('useReleaseDetail', () => {
       wrapper: makeWrapper(queryClient),
     });
 
-    await waitFor(() => expect(result.current.driftFlaggedCount).toBe(1));
-    // flaggedMrCount (D-15) must track driftFlaggedCount 1:1 in this
-    // single-flagged-row scenario — both counts derive from the same
-    // deduped driftRows union.
-    expect(result.current.flaggedMrCount).toBe(result.current.driftFlaggedCount);
+    await waitFor(() => expect(result.current.flaggedMrCount).toBe(1));
 
     const releaseBranchName = result.current.releaseBranchName;
     const matchedMilestone = result.current.matchedMilestone;
@@ -464,8 +460,7 @@ describe('useReleaseDetail', () => {
       });
     });
 
-    await waitFor(() => expect(result.current.driftFlaggedCount).toBe(0));
-    expect(result.current.flaggedMrCount).toBe(0);
+    await waitFor(() => expect(result.current.flaggedMrCount).toBe(0));
   });
 
   // D-09: buildTaskMrAttachment groups driftRows under their matching task(s).

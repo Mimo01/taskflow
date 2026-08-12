@@ -20,12 +20,9 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import {
   buildDriftRows,
-  buildIssueMrIndex,
   buildTaskMrAttachment,
   countBrMsFlaggedMRs,
-  countFlaggedMRs,
   selectChannelA,
-  unionMRs,
 } from './driftDetection';
 import type { MergeBackVerdict } from './mergeBackVerification';
 import { resolveMergeBackVerdict } from './mergeBackVerification';
@@ -559,19 +556,6 @@ export function useReleaseDetail(versionId: string | undefined) {
   const fixVersionIssueKeys = new Set(releaseIssues.map((i) => i.key));
   const channelA = selectChannelA(allProjectMRs ?? [], fixVersionIssueKeys);
 
-  // D-05: the three-channel union supersedes the old capped recent-MR
-  // "wrong milestone" heuristic — an MR older than the latest 100 is no
-  // longer silently missed. This is the same union `buildDriftRows` below re-derives
-  // internally; the second, cheap union avoids threading a prebuilt map
-  // through `buildDriftRows`'s three-array signature.
-  const union = unionMRs(channelA, releaseMrs, branchTargetedMRs ?? []);
-
-  const { matchedRows, wrongMilestoneByKey } = buildIssueMrIndex(
-    union,
-    releaseIssues,
-    matchedMilestone?.id ?? null,
-  );
-
   const driftRows = buildDriftRows({
     channelA,
     channelB: releaseMrs,
@@ -580,7 +564,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     matchedMilestoneId: matchedMilestone?.id ?? null,
     fixVersionIssueKeys,
   });
-  const driftFlaggedCount = countFlaggedMRs(driftRows);
 
   // D-09/D-15 (91.1-02): primaryRows/secondaryRows partition driftRows per task
   // for the unified task table; flaggedMrCount is fed the full deduped `driftRows`
@@ -622,10 +605,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     milestoneMRs,
     releaseIssues,
     releaseMrs,
-    matchedRows,
-    wrongMilestoneByKey,
-    driftRows,
-    driftFlaggedCount,
     primaryRows,
     secondaryRows,
     flaggedMrCount,

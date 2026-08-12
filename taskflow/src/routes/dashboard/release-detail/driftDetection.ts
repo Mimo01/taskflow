@@ -30,7 +30,6 @@
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { extractTicketKeys, linkMRToTask } from '@/services/linkEngine';
-import { matchIssuesToMRs } from './releaseSummaries';
 
 /** The three discovery channels (DRIFT-01/02/03). */
 export type Channel = 'A' | 'B' | 'C';
@@ -280,79 +279,12 @@ export function buildDriftRows(input: {
 }
 
 /**
- * D-13: the aggregate drift count — the number of ROWS with at least one
- * flag, not the total number of flags across all rows. An MR flagged in all
- * three columns contributes 1, not 3, so the number always matches the
- * count of orange rows on screen.
- *
- * @param rows - drift rows from `buildDriftRows`
- * @returns count of flagged rows
- */
-export function countFlaggedMRs(rows: DriftRow[]): number {
-  return rows.filter((r) => r.flagged).length;
-}
-
-/**
- * D-05/D-06: re-source the Issues table's MR cell (`matchedRows` +
- * `wrongMilestoneByKey`) from the three-channel union instead of the old
- * capped-recent-MR-fetch plus wrong-milestone-map heuristic (both since
- * deleted). The two returned shapes are byte-identical to what
- * `IssuesSection` already consumes — this is a data-source swap, not a
- * redesign.
- *
- * `matchedRows` comes from the existing `matchIssuesToMRs` (reused, not
- * reimplemented) called against the subset of the union's MRs that carry
- * the release's matched milestone id (empty subset when that id is null).
- * For every row whose `mr` is still null, `wrongMilestoneByKey` records the
- * first union MR that links to the issue's key but carries a different or
- * absent milestone.
- *
- * @param union - the three-channel union map from `unionMRs`
- * @param releaseIssues - Jira issues in the release's fix version
- * @param matchedMilestoneId - the release's matched GitLab milestone id, or null
- * @returns matched rows (issue -> mr | null) and the wrong-milestone map
- */
-export function buildIssueMrIndex(
-  union: Map<number, { mr: GitLabMR; channels: Set<Channel> }>,
-  releaseIssues: JiraIssue[],
-  matchedMilestoneId: number | null,
-): {
-  matchedRows: Array<{ issue: JiraIssue; mr: GitLabMR | null }>;
-  wrongMilestoneByKey: Map<string, GitLabMR>;
-} {
-  const unionList = Array.from(union.values()).map((entry) => entry.mr);
-
-  const releaseMilestoneMrs =
-    matchedMilestoneId === null
-      ? []
-      : unionList.filter((mr) => mr.milestone?.id === matchedMilestoneId);
-
-  const { matchedRows } = matchIssuesToMRs(releaseIssues, releaseMilestoneMrs);
-
-  const wrongMilestoneByKey = new Map<string, GitLabMR>();
-  if (matchedMilestoneId !== null) {
-    for (const row of matchedRows) {
-      if (row.mr !== null) continue;
-      const keySet = new Set([row.issue.key]);
-      const offending = unionList.find(
-        (mr) =>
-          linkMRToTask(mr, keySet) !== null &&
-          (mr.milestone == null || mr.milestone.id !== matchedMilestoneId),
-      );
-      if (offending) wrongMilestoneByKey.set(row.issue.key, offending);
-    }
-  }
-
-  return { matchedRows, wrongMilestoneByKey };
-}
-
-/**
  * D-15 (RESEARCH Assumption A2): the header-badge flagged count for the
  * unified task table, counting only BR and MS flags — deliberately EXCLUDES
  * the TASK mark and does NOT read `row.flagged`. `row.flagged` is
  * `br === 'flag' || ms === 'flag' || task === 'flag'`, and every MR not
  * covered by a release task carries `task === 'flag'` by construction
- * (D-11 — no-linked-task, or not-in-fix-version); reusing `countFlaggedMRs`
+ * (D-11 — no-linked-task, or not-in-fix-version); a naive `row.flagged` count
  * here would inflate the badge by roughly the entire secondary-table row
  * count. Dedup by `mr.id` is inherent, not an extra concern: `driftRows` is
  * already one entry per unique `mr.id` (built from `unionMRs` in
