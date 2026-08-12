@@ -96,6 +96,8 @@ let mockRecentItems: Array<{
   type: 'jira' | 'gitlab';
   id: string;
   url?: string;
+  title?: string;
+  issueType?: string;
   timestamp: number;
 }> = [];
 const mockPushItem = vi.fn();
@@ -198,6 +200,64 @@ describe('CommandPalette', () => {
     renderPalette();
     expect(screen.getByText(/TEST-42/)).toBeInTheDocument();
     expect(screen.getByText(/!99/)).toBeInTheDocument();
+  });
+
+  // Recent Items icon resolution: cache first, persisted issueType second, Clock fallback last
+  describe('Recent Items icon resolution', () => {
+    it('renders the bug icon for a recent Jira item with issueType: Bug', () => {
+      mockRecentItems = [
+        { type: 'jira', id: 'TEST-7', issueType: 'Bug', title: 'Fix crash', timestamp: Date.now() },
+      ];
+      renderPalette();
+      const row = screen.getByText('TEST-7 Fix crash').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-bug"]')).not.toBeNull();
+    });
+
+    it('prefers the cached issuetype over the persisted issueType', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['jira-issues', 'sprint-board', 'TEST', 'customfield_10016'], {
+        issues: [
+          {
+            id: '1',
+            key: 'TEST-8',
+            fields: {
+              summary: 'Cached story',
+              status: { id: '1', name: 'Open' },
+              assignee: null,
+              customfield_10016: null,
+              issuetype: { name: 'Story', subtask: false },
+            },
+          },
+        ],
+      });
+      mockRecentItems = [{ type: 'jira', id: 'TEST-8', issueType: 'Bug', timestamp: Date.now() }];
+      renderPalette({}, qc);
+      const row = screen.getByText('TEST-8 Cached story').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-book-open"]')).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-bug"]')).toBeNull();
+    });
+
+    it('falls back to the Clock glyph when no type can be resolved', () => {
+      mockRecentItems = [
+        { type: 'jira', id: 'TEST-9', title: 'No type here', timestamp: Date.now() },
+      ];
+      renderPalette();
+      const row = screen.getByText('TEST-9 No type here').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-clock"]')).not.toBeNull();
+    });
+
+    it('renders the merge glyph for a recent GitLab item', () => {
+      mockRecentItems = [
+        { type: 'gitlab', id: '1/55', title: 'Add caching', timestamp: Date.now() },
+      ];
+      renderPalette();
+      const row = screen.getByText('!55 Add caching').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-git-merge"]')).not.toBeNull();
+    });
   });
 
   // PALETTE-03: navigation items show shortcut hints
