@@ -41,7 +41,7 @@ export function QuickFilterChipRow({ labels }: QuickFilterChipRowProps) {
     <div
       role="toolbar"
       aria-label="Quick filters"
-      className="flex items-center gap-2 px-3 py-1.5 overflow-x-auto no-scrollbar"
+      className="flex items-center gap-2 px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 overflow-x-auto no-scrollbar"
     >
       {/* Label chips */}
       {labels.map((label, j) => {

@@ -138,7 +138,7 @@ function RecentItemRow({
   return (
     <button
       type="button"
-      className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex gap-2 items-center"
+      className="w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-sm hover:bg-muted flex gap-2 items-center"
       onClick={handleClick}
     >
       <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />

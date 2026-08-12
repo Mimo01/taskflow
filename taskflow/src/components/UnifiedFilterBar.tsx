@@ -89,7 +89,7 @@ function FilterDropdown({
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0">
         {/* Search input */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+        <div className="flex items-center gap-2 px-3 py-2 density-compact:py-1 density-comfortable:py-3 border-b border-border">
           <Search className="size-3.5 text-muted-foreground shrink-0" />
           <input
             ref={inputRef}
@@ -111,7 +111,7 @@ function FilterDropdown({
         </div>
 
         {/* Options list */}
-        <div className="max-h-52 overflow-y-auto py-1">
+        <div className="max-h-52 overflow-y-auto py-1 density-compact:py-0.5 density-comfortable:py-2">
           {filtered.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground">No results</p>
           ) : (
@@ -127,7 +127,7 @@ function FilterDropdown({
                   key={option}
                   type="button"
                   onClick={() => onToggle(option)}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent transition-colors text-left ${
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 text-xs hover:bg-accent transition-colors text-left ${
                     showDivider ? 'border-b border-border/60 mb-1 pb-2' : ''
                   }`}
                 >
@@ -159,7 +159,7 @@ function FilterDropdown({
 
         {/* Footer: clear selection */}
         {count > 0 && (
-          <div className="border-t border-border px-3 py-1.5">
+          <div className="border-t border-border px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5">
             <button
               type="button"
               onClick={() => {
@@ -312,8 +312,8 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   return (
     <div data-testid="unified-filter-bar" className="border-b border-border">
       {/* Primary row: quickfilters + filter toggle */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5">
-        <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -my-0.5">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5">
+        <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 density-compact:py-0 density-comfortable:py-1 -my-0.5">
           {/* Quickfilter presets */}
           {/* Empty state hint */}
           {quickFilters.length === 0 && !hasActiveFilters && (
@@ -537,8 +537,8 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
 
       {/* Expandable filter selectors row */}
       {filtersOpen && (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-border/50 bg-muted/20">
-          <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -my-0.5">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 border-t border-border/50 bg-muted/20">
+          <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 density-compact:py-0 density-comfortable:py-1 -my-0.5">
             <FilterDropdown
               label="Epic"
               options={epicKeys}
