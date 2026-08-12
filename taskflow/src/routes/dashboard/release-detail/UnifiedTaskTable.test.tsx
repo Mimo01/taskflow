@@ -302,6 +302,49 @@ describe('UnifiedTaskTable', () => {
     });
   });
 
+  // UAT-91.1-A (plan 10, task 2): healthy sub-lines recede, flagged sub-lines
+  // stand out, and separators move from every row to task-group boundaries.
+  describe('healthy rows are quiet and separators group task boundaries (UAT-91.1-A)', () => {
+    it('a sub-line with br/ms both ok is muted', () => {
+      const row = makeRow({ br: 'ok', ms: 'ok' });
+      renderWithRows([row]);
+      expect(screen.getByTestId('drift-row').className).toContain('text-muted-foreground');
+    });
+
+    it('a sub-line with a flagged br is not muted', () => {
+      const row = makeRow({ br: 'flag', ms: 'ok', flagged: true });
+      renderWithRows([row], { flaggedMrCount: 1 });
+      expect(screen.getByTestId('drift-row').className).not.toContain('text-muted-foreground');
+    });
+
+    it('a sub-line with a flagged ms is not muted', () => {
+      const row = makeRow({ br: 'ok', ms: 'flag', flagged: true });
+      renderWithRows([row], { flaggedMrCount: 1 });
+      expect(screen.getByTestId('drift-row').className).not.toContain('text-muted-foreground');
+    });
+
+    it('task-row elements carry no border-b class', () => {
+      renderWithRows([makeRow()]);
+      expect(screen.getByTestId('task-row').className).not.toContain('border-b');
+    });
+
+    it('each per-task group wrapper carries border-b — two tasks means two group separators', () => {
+      const taskA = makeIssue({ key: 'PROJ-1' });
+      const taskB = makeIssue({ key: 'PROJ-2' });
+      renderSection({
+        primaryRows: [
+          { issue: taskA, mrs: [makeRow({ mr: makeMR({ id: 1 }) })] },
+          { issue: taskB, mrs: [makeRow({ mr: makeMR({ id: 2 }) })] },
+        ],
+      });
+      const groups = screen.getAllByTestId('task-group');
+      expect(groups).toHaveLength(2);
+      for (const g of groups) {
+        expect(g.className).toContain('border-b');
+      }
+    });
+  });
+
   // CR-01 regression: `extractTicketKeys` normalises what it returns (uppercases,
   // and rewrites the space form "PROJ 123" to "PROJ-123"), so the key is often NOT
   // a literal substring of the title. The old highlighter used indexOf(), got -1,
