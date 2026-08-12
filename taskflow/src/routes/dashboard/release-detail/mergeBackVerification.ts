@@ -111,28 +111,35 @@ export function resolveMergeBackVerdict(params: {
   releasedVersion: boolean;
   hasMatchedMilestone: boolean;
   defaultBranch: string | null;
-  defaultBranchCheckFailed?: boolean;
+  defaultBranchCheckFailed: boolean;
   trackingMRs: readonly TrackingMR[] | undefined;
   trackingMRsCheckFailed: boolean;
-  trackingMRsUnavailable?: boolean;
+  trackingMRsUnavailable: boolean;
   tagName: string | null;
-  tagLookupPending?: boolean;
-  tagCheckFailed?: boolean;
+  tagLookupPending: boolean;
+  tagCheckFailed: boolean;
   expectedTagName: string | null;
   compareResult: MergeBackCompareInput | undefined;
   compareCheckFailed: boolean;
 }): MergeBackVerdict {
+  // WR-06: every channel-health param is REQUIRED with no `= false` default.
+  // The module header's invariant — EVERY evidence channel carries both an
+  // in-flight signal and a failure signal into this resolver — is only
+  // checkable in the type system, and optional-with-`false` permitted exactly
+  // the omission the header forbids: a second call site (a releases-list
+  // badge, a bulk report) would silently emit `no-mr-no-tag` for a genuine
+  // check failure. An omission must now fail to compile.
   const {
     releasedVersion,
     hasMatchedMilestone,
     defaultBranch,
-    defaultBranchCheckFailed = false,
+    defaultBranchCheckFailed,
     trackingMRs,
     trackingMRsCheckFailed,
-    trackingMRsUnavailable = false,
+    trackingMRsUnavailable,
     tagName,
-    tagLookupPending = false,
-    tagCheckFailed = false,
+    tagLookupPending,
+    tagCheckFailed,
     expectedTagName,
     compareResult,
     compareCheckFailed,
