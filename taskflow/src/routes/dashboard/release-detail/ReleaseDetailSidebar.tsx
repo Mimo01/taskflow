@@ -283,7 +283,7 @@ export function ReleaseDetailSidebar({
         className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
       />
       {/* Read-only metadata (editing now happens in the modal below) */}
-      <div className="space-y-4 text-sm">
+      <div className="space-y-4 density-compact:space-y-2 density-comfortable:space-y-6 text-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Details</h3>
           <Button
@@ -457,7 +457,7 @@ export function ReleaseDetailSidebar({
                   <AlertTriangle className="size-3" />
                   {labelCoverage.unlabeled.length}/{labelCoverage.total} missing
                 </span>
-                <div className="mt-1.5 space-y-0.5">
+                <div className="mt-1.5 space-y-0.5 density-compact:space-y-0 density-comfortable:space-y-1">
                   {labelCoverage.unlabeled.map((mr) => (
                     <div key={mr.id} className="flex items-center gap-1.5">
                       <GitMerge
