@@ -36,7 +36,22 @@ export function useResizable({
   onCommit,
   direction = 'right',
 }: UseResizableOptions) {
-  const [width, setWidth] = useState(initialWidth);
+  // Bounds are read through refs so that inline `() => ...` min/max callbacks —
+  // which get a fresh identity every render — do not churn the effects below.
+  const minRef = useRef(min);
+  const maxRef = useRef(max);
+  minRef.current = min;
+  maxRef.current = max;
+
+  const clamp = useCallback((value: number) => {
+    const minVal = typeof minRef.current === 'function' ? minRef.current() : minRef.current;
+    const maxVal = typeof maxRef.current === 'function' ? maxRef.current() : maxRef.current;
+    // maxVal can fall below minVal in a very narrow container — min wins so the
+    // panel never collapses past its floor.
+    return Math.max(minVal, Math.min(maxVal, value));
+  }, []);
+
+  const [width, setWidth] = useState(() => clamp(initialWidth));
   const [isDragging, setIsDragging] = useState(false);
   // Ref tracks live width to avoid stale closure in mouseup handler (Pitfall 1 in RESEARCH.md)
   const widthRef = useRef(width);
@@ -47,13 +62,17 @@ export function useResizable({
     widthRef.current = width;
   }, [width]);
 
-  // Sync width state when initialWidth changes after mount (e.g. store hydration)
+  // Sync width state when initialWidth changes after mount (e.g. store hydration).
+  // Clamped, because the persisted px value predates the current bounds: switching
+  // to a larger text-size tier raises the scaled minimum, and an already-narrow
+  // persisted width would otherwise render below it until the next drag.
   useEffect(() => {
     if (!isDragging) {
-      setWidth(initialWidth);
-      widthRef.current = initialWidth;
+      const next = clamp(initialWidth);
+      setWidth(next);
+      widthRef.current = next;
     }
-  }, [initialWidth, isDragging]);
+  }, [initialWidth, isDragging, clamp]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,10 +92,7 @@ export function useResizable({
       if (!startRef.current) return;
       const rawDelta = e.clientX - startRef.current.x;
       const delta = direction === 'left' ? -rawDelta : rawDelta;
-      const maxVal = typeof max === 'function' ? max() : max;
-      const minVal = typeof min === 'function' ? min() : min;
-      const next = Math.min(maxVal, Math.max(minVal, startRef.current.width + delta));
-      setWidth(next);
+      setWidth(clamp(startRef.current.width + delta));
     }
 
     function onMouseUp() {
@@ -93,7 +109,7 @@ export function useResizable({
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-  }, [isDragging, direction, min, max, onCommit]);
+  }, [isDragging, direction, clamp, onCommit]);
 
   return { width, isDragging, handleMouseDown };
 }
