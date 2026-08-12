@@ -301,14 +301,26 @@ function DriftActionCell({
   );
 }
 
-/** Shared column header strip — same grid as task rows / MR sub-lines / secondary rows (D-12). */
+/**
+ * Shared column header strip — same grid as task rows / MR sub-lines /
+ * secondary rows (D-12).
+ *
+ * WR-05 decision: visible labels only — deliberately no ARIA grid roles
+ * (table / row / columnheader). The UI-SPEC mandates a div+flex structure
+ * with no cell elements (Row anatomy: "not a table element"), so ARIA row
+ * semantics over rows that expose no cell-role children would produce an
+ * incomplete grid that assistive technology reports worse than plain text.
+ * Visible labels restore the missing information for every user, screen
+ * reader users included, with no partial-ARIA hazard. Do not "finish" this
+ * into ARIA table semantics later.
+ */
 function ColumnHeaderStrip() {
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 bg-muted/30">
-      <span className={COL_KEY} />
-      <span className={COL_SUMMARY} />
-      <span className={COL_PERSON} />
-      <span className={COL_STATE} />
+      <span className={COL_KEY}>Key</span>
+      <span className={COL_SUMMARY}>Summary</span>
+      <span className={COL_PERSON}>Assignee</span>
+      <span className={COL_STATE}>Status</span>
       <span className="flex-none w-[28px] text-center" title="Target branch matches release branch">
         BR
       </span>
