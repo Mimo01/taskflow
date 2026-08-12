@@ -31,6 +31,7 @@ import type { DriftRow } from './driftDetection';
 import {
   matchTicketKeyInTitle,
   type MrFixContext,
+  selectDisplayMr,
   UnifiedTaskTable,
   type UnifiedTaskTableProps,
 } from './UnifiedTaskTable';
@@ -187,12 +188,12 @@ describe('UnifiedTaskTable', () => {
       ],
     });
 
-    const taskKeys = screen.getAllByTestId('task-row').map((el) => el.textContent);
-    expect(taskKeys[0]).toContain('PROJ-2');
-    expect(taskKeys[1]).toContain('PROJ-1');
-    const rows = screen.getAllByTestId('drift-row');
-    expect(rows[0]).toHaveTextContent('!10');
-    expect(rows[1]).toHaveTextContent('!5');
+    const taskRows = screen.getAllByTestId('task-row');
+    expect(taskRows[0]).toHaveTextContent('PROJ-2');
+    expect(taskRows[1]).toHaveTextContent('PROJ-1');
+    const links = screen.getAllByTestId('mr-cell-link');
+    expect(links[0]).toHaveTextContent('!10');
+    expect(links[1]).toHaveTextContent('!5');
   });
 
   it('renders the warning glyph for a flagged BR mark', () => {
@@ -209,19 +210,24 @@ describe('UnifiedTaskTable', () => {
     expect(screen.getByTestId('drift-ms')).toHaveTextContent('—');
   });
 
-  it('mutes title text for a non-evaluated row and renders an em dash in both BR/MS columns', () => {
+  it('a non-evaluated (merged) row renders an em dash in both BR/MS columns and does not show the title inline', () => {
     const row = makeRow({
       evaluated: false,
       br: 'na',
       ms: 'na',
       task: 'na',
-      mr: makeMR({ state: 'merged', title: 'Merged thing' }),
+      mr: makeMR({ state: 'merged', title: 'Merged thing', iid: 9 }),
     });
     renderWithRows([row]);
     expect(screen.getByTestId('drift-br')).toHaveTextContent('—');
     expect(screen.getByTestId('drift-ms')).toHaveTextContent('—');
-    const rowEl = screen.getByTestId('drift-row');
-    expect(rowEl.textContent).toContain('Merged thing');
+    const taskRow = screen.getByTestId('task-row');
+    expect(taskRow).toHaveTextContent('!9');
+    expect(taskRow).not.toHaveTextContent('Merged thing');
+    expect(screen.getByTestId('mr-cell-link')).toHaveAttribute(
+      'title',
+      expect.stringContaining('Merged thing'),
+    );
   });
 
   it('renders real marks (not em dashes) for an evaluated draft MR', () => {
@@ -250,79 +256,112 @@ describe('UnifiedTaskTable', () => {
     expect(screen.getByTestId('flagged-ms-badge')).toHaveTextContent('1');
   });
 
-  // UAT-91.1-A (plan 10, task 1): MR sub-lines drop the author/state columns
-  // to three columns wide (iid + title + BR/MS), with author/state moved to
-  // the sub-line's hover tooltip.
-  describe('MR sub-line is three columns wide (UAT-91.1-A)', () => {
-    it('renders the !iid link and title, and no element inside the drift-row shows the MR state text', () => {
+  // UAT-91.1 (plan 10, task 4): the developer walked task 1/2's decluttered
+  // sub-lines, then asked for full consolidation — "I want it all
+  // consolidated into one single line for each task by the logic like it
+  // was before." The task row now carries the MR link, state badge and
+  // BR/MS cells directly; no MR sub-line renders in the primary table.
+  describe('Task row MR cell shows the consolidated MR (UAT-91.1 consolidation)', () => {
+    it('renders the !iid link and the state badge inline; no drift-row sub-line renders in the primary table', () => {
       const row = makeRow({ mr: makeMR({ iid: 7, title: 'Fix thing', state: 'opened' }) });
       renderWithRows([row]);
-      const rowEl = screen.getByTestId('drift-row');
-      expect(rowEl).toHaveTextContent('!7');
-      expect(rowEl).toHaveTextContent('Fix thing');
-      expect(within(rowEl).queryByText('opened')).toBeNull();
+      const taskRow = screen.getByTestId('task-row');
+      expect(taskRow).toHaveTextContent('!7');
+      expect(taskRow).toHaveTextContent('opened');
+      expect(screen.queryByTestId('drift-row')).toBeNull();
     });
 
-    it('renders no avatar/img element and does not show the author name as visible text', () => {
-      const row = makeRow({ mr: makeMR({ author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' } }) });
+    it('renders no MR-author avatar/img element and does not show the author name as visible text', () => {
+      const row = makeRow({
+        mr: makeMR({ author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' } }),
+      });
       renderWithRows([row]);
-      const rowEl = screen.getByTestId('drift-row');
-      expect(within(rowEl).queryByRole('img')).toBeNull();
-      expect(within(rowEl).queryByText('Alice')).toBeNull();
+      // Scope to the MR cell itself, not the whole task row — the task row's
+      // own Assignee column legitimately renders an "Unassigned" avatar with
+      // role="img" (unrelated to the MR author this test is about).
+      const mrCell = screen.getByTestId('mr-cell-link').closest('div') as HTMLElement;
+      expect(within(mrCell).queryByRole('img')).toBeNull();
+      expect(within(mrCell).queryByText('Alice')).toBeNull();
     });
 
-    it('carries a title attribute with both the author name and the MR state', () => {
+    it('the MR link carries a title attribute with the author name and the MR title', () => {
       const row = makeRow({
         mr: makeMR({
           author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
-          state: 'opened',
+          title: 'Fix thing',
         }),
       });
       renderWithRows([row]);
-      const rowEl = screen.getByTestId('drift-row');
-      expect(rowEl).toHaveAttribute('title', expect.stringContaining('Alice'));
-      expect(rowEl).toHaveAttribute('title', expect.stringContaining('opened'));
+      const link = screen.getByTestId('mr-cell-link');
+      expect(link).toHaveAttribute('title', expect.stringContaining('Alice'));
+      expect(link).toHaveAttribute('title', expect.stringContaining('Fix thing'));
     });
 
-    it('drift-br and drift-ms cells still render on every sub-line', () => {
+    it('drift-br and drift-ms cells still render on the consolidated row', () => {
       const row = makeRow({ br: 'flag', ms: 'ok', flagged: true });
       renderWithRows([row], { flaggedMrCount: 1 });
       expect(screen.getByTestId('drift-br')).toBeInTheDocument();
       expect(screen.getByTestId('drift-ms')).toBeInTheDocument();
     });
 
-    it('a task with three MRs renders three drift-row elements — nothing collapsed', () => {
+    it('a task with three MRs still keeps all three in the data — only the most relevant is shown, with a +2 marker', () => {
       const rows = [
         makeRow({ mr: makeMR({ id: 1, iid: 1 }) }),
         makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
         makeRow({ mr: makeMR({ id: 3, iid: 3 }) }),
       ];
       renderWithRows(rows);
-      expect(screen.getAllByTestId('drift-row')).toHaveLength(3);
+      // No flagged MR — highest iid wins.
+      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!3');
+      const extra = screen.getByTestId('mr-extra-count');
+      expect(extra).toHaveTextContent('+2');
+      expect(extra).toHaveAttribute('title', expect.stringContaining('!1'));
+      expect(extra).toHaveAttribute('title', expect.stringContaining('!2'));
+    });
+
+    it('a single MR carries no +N marker', () => {
+      renderWithRows([makeRow({ mr: makeMR({ iid: 1 }) })]);
+      expect(screen.queryByTestId('mr-extra-count')).toBeNull();
     });
   });
 
-  // UAT-91.1-A (plan 10, task 2): healthy sub-lines recede, flagged sub-lines
-  // stand out, and separators move from every row to task-group boundaries.
-  describe('healthy rows are quiet and separators group task boundaries (UAT-91.1-A)', () => {
-    it('a sub-line with br/ms both ok is muted', () => {
-      const row = makeRow({ br: 'ok', ms: 'ok' });
-      renderWithRows([row]);
-      expect(screen.getByTestId('drift-row').className).toContain('text-muted-foreground');
+  // MR selection when a task has 2+ MRs — the developer's explicit choice at
+  // the live UAT checkpoint (2026-08-12): a flagged MR wins, ties broken by
+  // highest iid; with no flag, highest iid wins.
+  describe('MR selection when a task has 2+ MRs (UAT-91.1 consolidation)', () => {
+    it('a flagged MR wins over a clean MR with a higher iid', () => {
+      const clean = makeRow({ mr: makeMR({ id: 1, iid: 9 }) });
+      const flagged = makeRow({ mr: makeMR({ id: 2, iid: 2 }), br: 'flag', flagged: true });
+      renderWithRows([clean, flagged], { flaggedMrCount: 1 });
+      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!2');
     });
 
-    it('a sub-line with a flagged br is not muted', () => {
-      const row = makeRow({ br: 'flag', ms: 'ok', flagged: true });
-      renderWithRows([row], { flaggedMrCount: 1 });
-      expect(screen.getByTestId('drift-row').className).not.toContain('text-muted-foreground');
+    it('ties among flagged MRs are broken by highest iid', () => {
+      const flaggedLow = makeRow({ mr: makeMR({ id: 1, iid: 3 }), br: 'flag', flagged: true });
+      const flaggedHigh = makeRow({ mr: makeMR({ id: 2, iid: 8 }), ms: 'flag', flagged: true });
+      renderWithRows([flaggedLow, flaggedHigh], { flaggedMrCount: 1 });
+      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!8');
     });
 
-    it('a sub-line with a flagged ms is not muted', () => {
-      const row = makeRow({ br: 'ok', ms: 'flag', flagged: true });
-      renderWithRows([row], { flaggedMrCount: 1 });
-      expect(screen.getByTestId('drift-row').className).not.toContain('text-muted-foreground');
+    it('with no flagged MR, the highest iid wins', () => {
+      const rows = [
+        makeRow({ mr: makeMR({ id: 1, iid: 4 }) }),
+        makeRow({ mr: makeMR({ id: 2, iid: 11 }) }),
+        makeRow({ mr: makeMR({ id: 3, iid: 7 }) }),
+      ];
+      renderWithRows(rows);
+      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!11');
     });
 
+    it('selectDisplayMr returns null for an empty list', () => {
+      expect(selectDisplayMr([])).toBeNull();
+    });
+  });
+
+  // Separators moved from every row to task-group boundaries at plan 09.
+  // Task 4's consolidation removed sub-lines but did not touch the grouping
+  // rule — still asserted here for regression coverage.
+  describe('separators group task boundaries, not every row', () => {
     it('task-row elements carry no border-b class', () => {
       renderWithRows([makeRow()]);
       expect(screen.getByTestId('task-row').className).not.toContain('border-b');
@@ -350,7 +389,12 @@ describe('UnifiedTaskTable', () => {
   // a literal substring of the title. The old highlighter used indexOf(), got -1,
   // and then sliced at `-1 + key.length` — silently deleting `key.length - 1`
   // characters. Titles must render losslessly regardless of key spelling.
-  describe('title rendering does not mangle non-literal ticket keys (CR-01)', () => {
+  //
+  // The primary table no longer renders MR titles inline (task 4's
+  // consolidation moved the title into the MR link's hover tooltip) — this
+  // linkification behaviour now lives exclusively in the secondary
+  // (uncovered-MRs) table's `MrSubLine`, which is unchanged by task 4.
+  describe('title rendering does not mangle non-literal ticket keys (CR-01) — secondary table', () => {
     const cases = [
       ['space form', 'PROJ 123 fix the thing'],
       ['lowercase dash form', 'proj-123 fix the thing'],
@@ -361,9 +405,16 @@ describe('UnifiedTaskTable', () => {
 
     for (const [label, title] of cases) {
       it(`renders the full title verbatim — ${label}`, () => {
-        renderWithRows([makeRow({ mr: makeMR({ title }) })]);
+        renderSection({
+          secondaryRows: [
+            makeRow({ mr: makeMR({ title }), taskReason: 'no-linked-task', taskKeys: [] }),
+          ],
+        });
         // Text is split across button/text nodes, so compare normalised row text.
-        const row = screen.getByText(/fix|hotfix/i).closest('div');
+        // Scoped to the secondary section — the primary table's own empty-state
+        // copy ("No issues in this fix version") also contains "fix".
+        const secondarySection = screen.getByTestId('secondary-section');
+        const row = within(secondarySection).getByText(/fix|hotfix/i).closest('div');
         expect(row?.textContent).toContain(title);
       });
     }
@@ -529,7 +580,7 @@ describe('per-MR corrective actions', () => {
     expect(document.body.textContent).not.toContain('[object Object]');
     expect(container.querySelectorAll('[role="alert"]')).toHaveLength(0);
     // Nothing rendered outside the row container.
-    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+    expect(screen.getAllByTestId('task-row')).toHaveLength(1);
   });
 
   it('retry: clicking the red cell calls the write a second time and the red state clears while pending', async () => {
@@ -748,11 +799,12 @@ describe('D-17: five mutually exclusive MR-slot states', () => {
     expect(unavailable.querySelector('.text-orange-600')).toBeNull();
   });
 
-  it('isLoadingDrift: false with two MRs renders two drift-row elements and no slot-state line', () => {
+  it('isLoadingDrift: false with two MRs renders the consolidated MR cell (not a slot-state line)', () => {
     const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
     const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
     renderWithRows([rowA, rowB], { isLoadingDrift: false });
-    expect(screen.getAllByTestId('drift-row')).toHaveLength(2);
+    expect(screen.getByTestId('mr-cell-link')).toBeInTheDocument();
+    expect(screen.getByTestId('mr-extra-count')).toHaveTextContent('+1');
     expect(screen.queryByTestId('mr-slot-pending')).toBeNull();
     expect(screen.queryByTestId('mr-slot-none')).toBeNull();
     expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
@@ -835,13 +887,18 @@ describe('D-04: task row click behaviour', () => {
     expect(keyButton.contains(overlay)).toBe(false);
   });
 
-  it('an MR sub-line has no line-wide click target: clicking its title text (away from a linkified key) calls none of the row handlers', () => {
+  it('a secondary-table MR sub-line has no line-wide click target: clicking its title text calls none of the row handlers', () => {
     const onOpenIssue = vi.fn();
     const onOpenIssueFull = vi.fn();
     const onSeedBreadcrumb = vi.fn();
     const onNavigateToIssueFromMR = vi.fn();
-    const row = makeRow({ mr: makeMR({ title: 'Fix unrelated thing with no ticket key' }) });
-    renderWithRows([row], {
+    const row = makeRow({
+      mr: makeMR({ title: 'Fix unrelated thing with no ticket key' }),
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+    });
+    renderSection({
+      secondaryRows: [row],
       onOpenIssue,
       onOpenIssueFull,
       onSeedBreadcrumb,
@@ -854,6 +911,27 @@ describe('D-04: task row click behaviour', () => {
     expect(onSeedBreadcrumb).not.toHaveBeenCalled();
     expect(onNavigateToIssueFromMR).not.toHaveBeenCalled();
   });
+
+  it('the MR cell link is a sibling of the overlay, not nested inside it (sibling overlay pattern)', () => {
+    const row = makeRow({ mr: makeMR({ iid: 4 }) });
+    renderWithRows([row]);
+
+    const overlay = screen.getByTestId('task-row-overlay');
+    const mrLink = screen.getByTestId('mr-cell-link');
+    expect(overlay.contains(mrLink)).toBe(false);
+    expect(mrLink.contains(overlay)).toBe(false);
+  });
+
+  it('clicking the MR cell link does not trigger the row overlay handlers', () => {
+    const onOpenIssue = vi.fn();
+    const onSeedBreadcrumb = vi.fn();
+    const row = makeRow({ mr: makeMR({ iid: 4 }) });
+    renderWithRows([row], { onOpenIssue, onSeedBreadcrumb });
+
+    fireEvent.click(screen.getByTestId('mr-cell-link'));
+    expect(onOpenIssue).not.toHaveBeenCalled();
+    expect(onSeedBreadcrumb).not.toHaveBeenCalled();
+  });
 });
 
 describe('D-05: hover-reveal scope', () => {
@@ -861,21 +939,19 @@ describe('D-05: hover-reveal scope', () => {
   // visual hover confirmation to manual UAT — assert on rendered structure
   // (className placement) instead. Do not "upgrade" this into a fake
   // pointer-simulated hover test.
-  it('group/row is present on each MR sub-line element and absent from the task row element', () => {
+  it('group/row is present on the task row so its consolidated BR/MS action cells reveal on hover', () => {
     const row = makeRow();
     const issue = makeIssue();
     renderSection({ primaryRows: [{ issue, mrs: [row] }] });
 
     const taskRow = screen.getByTestId('task-row');
-    const subLine = screen.getByTestId('drift-row');
-    expect(subLine.className).toContain('group/row');
-    expect(taskRow.className).not.toContain('group/row');
+    expect(taskRow.className).toContain('group/row');
   });
 
-  it('with two MR sub-lines under one task, the two sub-lines are separate group roots', () => {
-    const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }) });
-    const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
-    renderWithRows([rowA, rowB]);
+  it('secondary-table MR sub-lines still each carry their own group/row root', () => {
+    const rowA = makeRow({ mr: makeMR({ id: 1, iid: 1 }), taskReason: 'no-linked-task', taskKeys: [] });
+    const rowB = makeRow({ mr: makeMR({ id: 2, iid: 2 }), taskReason: 'no-linked-task', taskKeys: [] });
+    renderSection({ secondaryRows: [rowA, rowB] });
 
     const subLines = screen.getAllByTestId('drift-row');
     expect(subLines).toHaveLength(2);
@@ -888,15 +964,15 @@ describe('D-05: hover-reveal scope', () => {
   });
 });
 
-describe('D-06 / criterion 4: task row gutter', () => {
-  it('a task row renders no drift-br/drift-ms element of its own; the only such elements in the tree belong to MR sub-lines', () => {
+describe('D-06 / criterion 4: task row carries its own drift-br/drift-ms (consolidated row)', () => {
+  it('a task row renders drift-br/drift-ms for its selected MR — no separate sub-line copy in the primary table', () => {
     const row = makeRow();
     renderWithRows([row]);
 
     const taskRow = screen.getByTestId('task-row');
-    expect(within(taskRow).queryByTestId('drift-br')).toBeNull();
-    expect(within(taskRow).queryByTestId('drift-ms')).toBeNull();
-    // The only drift-br/drift-ms in the whole tree live on the sub-line.
+    expect(within(taskRow).getByTestId('drift-br')).toBeInTheDocument();
+    expect(within(taskRow).getByTestId('drift-ms')).toBeInTheDocument();
+    // Only one of each in the whole tree — no separate sub-line copy.
     expect(screen.getAllByTestId('drift-br')).toHaveLength(1);
     expect(screen.getAllByTestId('drift-ms')).toHaveLength(1);
   });
@@ -907,7 +983,7 @@ describe('D-09: duplication', () => {
     mockUpdateMergeRequest.mockReset();
   });
 
-  it('the same DriftRow supplied under two primaryRows entries renders two drift-row elements, each with its own actionable drift-br button', () => {
+  it('the same DriftRow supplied under two primaryRows entries renders two task rows, each with its own actionable drift-br button', () => {
     const shared = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
     renderSection({
       primaryRows: [
@@ -917,8 +993,8 @@ describe('D-09: duplication', () => {
       flaggedMrCount: 1,
     });
 
-    const drifts = screen.getAllByTestId('drift-row');
-    expect(drifts).toHaveLength(2);
+    const taskRows = screen.getAllByTestId('task-row');
+    expect(taskRows).toHaveLength(2);
     const brButtons = screen.getAllByTestId('drift-br');
     expect(brButtons).toHaveLength(2);
     for (const b of brButtons) expect(b.tagName).toBe('BUTTON');
@@ -1177,7 +1253,7 @@ describe('UAT-91.1-B: filtering warning badges', () => {
     const taskRows = screen.getAllByTestId('task-row');
     expect(taskRows).toHaveLength(1);
     expect(taskRows[0]).toHaveTextContent('PROJ-1');
-    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!1');
   });
 
   it('Test 5b: secondary rows are filtered by the same predicate', () => {
@@ -1239,11 +1315,11 @@ describe('UAT-91.1-B: filtering warning badges', () => {
     });
 
     fireEvent.click(screen.getByTestId('flagged-br-badge'));
-    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+    expect(screen.getAllByTestId('task-row')).toHaveLength(1);
 
     fireEvent.click(screen.getByTestId('flagged-br-badge')); // toggle off
     fireEvent.click(screen.getByTestId('flagged-ms-badge'));
-    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+    expect(screen.getAllByTestId('task-row')).toHaveLength(1);
   });
 
   it('Test 8: with a filter active, filter-active-notice renders and filter-clear restores every row', () => {
