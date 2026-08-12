@@ -32,6 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 89: Three-Channel Drift Detection** - union Jira-linkage, GitLab-milestone, and branch-target MR discovery into one drift report (read-only) (completed 2026-08-11)
 - [x] **Phase 90: Per-MR Corrective Actions** - retarget and assign-milestone per MR row, optimistic with independent retry (completed 2026-08-11)
 - [x] **Phase 91: Post-Release Merge-Back Verification** - advisory check that a released tag's branch has landed in the default branch (completed 2026-08-11)
+- [ ] **Phase 91.2: Epics Page Redesign** (INSERTED) - `/epics` reordered by creation, with single-line rows carrying progress, points, priority, and a child-status breakdown (quick-search and labels descoped by CONTEXT D-18 / D-08)
 
 ### 🚧 v1.14 Release Management (In Progress)
 
@@ -313,6 +314,49 @@ Plans:
 **Wave 4** *(blocked on 91.1-09)*
 
 - [x] 91.1-10-PLAN.md — Quiet healthy MR sub-lines, three-column sub-lines, group-level separators, live UAT re-run (UAT-91.1-A)
+
+### Phase 91.2: Epics Page Redesign (INSERTED)
+
+**Goal**: `/epics` stops being a five-column name/key/status/assignee list and becomes a genuinely useful epic-portfolio surface: epics ordered by creation (oldest-first, i.e. key order) and each row carrying progress (done/total stories, segmented bar, points), priority, and a child-status breakdown — without regressing the deliberate fast-first-paint behaviour the page has today. *(Goal amended at plan time: the quick-search box was cut by CONTEXT D-18, and labels were cut by D-08.)*
+**Depends on**: Nothing (self-contained frontend redesign; `fetchEpicsBasic` / `fetchEpicEnrichmentMap` are live in `services/jira.ts` — the `services/jira/epics.ts` copy is dead code, deleted by plan 91.2-04)
+**Requirements**: EPIC-01, EPIC-02, EPIC-03, EPIC-04, EPIC-05, EPIC-06, EPIC-07 (registered in REQUIREMENTS.md at plan time, 2026-08-12)
+**Success Criteria** (what must be TRUE):
+
+  1. Epics render in creation order (`ORDER BY created ASC`, equivalent to key order) rather than the current `updated DESC`, and the order never re-shuffles while enrichment data streams in
+  2. ~~A quick-search input filters the list client-side as the user types, matching on epic name, key, and summary, with an obvious clear affordance and an accurate "no matches" empty state distinct from "no epics"~~ — **DESCOPED 2026-08-12** by CONTEXT D-18: fully specified during discuss-phase, then reversed by the user (*"I have changed my mind, I dont want any new search bar added to the epics page"*). No input, no `/` binding, no filter predicate, no result count, no no-match empty state. Not a gap at verification time.
+  3. Each row shows story progress — done/total count plus a proportional bar — and the epic's story-point sum (as `done/total SP` per D-13), loaded progressively after first paint via `fetchEpicEnrichmentMap` so the initial render stays as fast as it is today
+  4. Each row shows the epic's priority (project's 9-level scheme icon) ~~and its labels/components~~ — the **labels/components half is DESCOPED 2026-08-12** by CONTEXT D-08 (*"I dont need labels at all on the list page"*); labels remain in `EpicDetailSheet`. Priority is still required.
+  5. Each row exposes a child-status breakdown — To Do / In Progress / Done counts ~~plus a count of blocked/flagged children~~ — readable without opening the epic. The **blocked/flagged half is DESCOPED 2026-08-12** by CONTEXT D-12 (*"Flags are ignored, flag is just a flag, not a progress marker. only statuses count"*); the Jira Flagged field is never fetched by this page.
+  6. A header summary strip is NOT required; the page keeps its current single-table shape (see D-01), and Done epics remain excluded exactly as today (`statusCategory != Done`, no toggle)
+  7. Row click still opens `EpicDetailSheet` unchanged, and the page keeps its existing skeleton / error / stale-banner states, density variants, and the "+ Create Epic" action
+  8. The table renders correctly at all three density settings and no column collapses to zero width in the Tauri/WebKit webview
+
+**UI hint**: yes — redesign of `src/routes/dashboard/EpicsPage.tsx` (224 LOC) + `EpicsSkeleton.tsx`; the enrichment fetch already exists but is currently unused by this page.
+
+**User decisions** (captured at insert time):
+
+- D-01 Layout: rich sortable-style table with a progress column and quick-search bar — **not** a card grid, and **not** an aggregate summary strip. Stays consistent with the Backlog/Releases table idiom already in the app. *(The quick-search half of this decision was later reversed by D-18.)*
+- D-02 Extra data: story progress + points, priority + labels, and the in-flight child-status breakdown. Dates (created/updated/due) were explicitly **not** selected — `created` is used for ordering only, not shown as a column. *(Labels later cut by D-08.)*
+- D-03 Done epics: keep hidden always. No "show done" toggle, no grouped-done section; the JQL `statusCategory != Done` clause stands.
+- D-04 Progress cost: the second Jira query (`fetchEpicEnrichmentMap`) is accepted, but must load progressively behind the fast basic list — the page must not block first paint on it.
+
+*(Discuss-phase decisions D-05…D-18 live in `.planning/phases/91.2-epics-page-redesign/91.2-CONTEXT.md` and are authoritative over the insert-time set above where they conflict.)*
+
+**Plans:** 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 91.2-01-PLAN.md — `services/jira.ts` epic fetchers: `created ASC` ordering, `priority` field, per-status-category counts, `donePoints`, fail-closed error propagation + service tests
+- [ ] 91.2-02-PLAN.md — `EpicProgressCells.tsx`: three-segment progress bar and `done/total SP` points cell with all four enrichment states (shimmer / ready / "No stories" / warning + retry) + unit tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 91.2-03-PLAN.md — `EpicsPage.tsx`: div+flex seven-column single-line row, progressive enrichment query wiring, reshaped `EpicsSkeleton`, expanded page tests
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 91.2-04-PLAN.md — Delete the dead `services/jira/epics.ts` module, correct the superseded PROJECT.md decision row, manual Tauri/WebKit density + colour verification
 
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>
