@@ -127,6 +127,7 @@ None yet.
 | 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
 | 260812-mry | Add compactness and font size settings to Appearance section | 2026-08-12 | 5566e8ff | Verified | [260812-mry-add-compactness-and-font-size-settings-t](./quick/260812-mry-add-compactness-and-font-size-settings-t/) |
 | 260812-rx9 | Enhance compactness settings coverage — full density sweep (wiki prose, standup notes, epics, AIO pages, +45 more surfaces) | 2026-08-12 | cdec90cb | Verified | [260812-rx9-enhance-compactness-settings-coverage](./quick/260812-rx9-enhance-compactness-settings-coverage/) |
+| 260813-fst | On release detail, order Jira tickets by created date/key ascending | 2026-08-13 | e82a947e | | — |
 
 ## Deferred Items
 
