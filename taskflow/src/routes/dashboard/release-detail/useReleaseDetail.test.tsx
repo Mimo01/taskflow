@@ -566,6 +566,89 @@ describe('useReleaseDetail', () => {
   });
 });
 
+// CR-02: a channel that cannot be queried at all is a check that did not
+// happen, so it must not terminate as a settled negative. Mirrors the
+// CR-03/WR-04 rejecting-mock pattern already used for the tag/tracking-MR
+// channels above, applied to the three MR channels feeding the unified table.
+describe('useReleaseDetail — driftUnavailable and milestone-inclusive isLoadingDrift (CR-02)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('Test 1: a rejecting fetchAllProjectMRs (Channel A) terminates driftUnavailable=true, isLoadingDrift=false', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchAllProjectMRs).mockRejectedValue(new Error('network error'));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.driftUnavailable).toBe(true));
+    expect(result.current.isLoadingDrift).toBe(false);
+  });
+
+  it('Test 2: a rejecting fetchMilestoneMRs (Channel B) terminates driftUnavailable=true', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchMilestoneMRs).mockRejectedValue(new Error('network error'));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.driftUnavailable).toBe(true));
+  });
+
+  it('Test 3: a rejecting fetchBranchTargetedMRs (Channel C) terminates driftUnavailable=true', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchBranchTargetedMRs).mockRejectedValue(new Error('network error'));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.driftUnavailable).toBe(true));
+  });
+
+  it('Test 4: with all three channels resolving normally, driftUnavailable is false', async () => {
+    await setupMocks();
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoadingDrift).toBe(false));
+    expect(result.current.driftUnavailable).toBe(false);
+  });
+
+  it('Test 5: while fetchProjectMilestones is still pending, isLoadingDrift stays true even after the three channels resolve', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    // Never-resolving promise — the milestone query stays pending forever.
+    vi.mocked(gitlab.fetchProjectMilestones).mockImplementation(() => new Promise(() => {}));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    // Channel A is project-scoped and independent of the milestone match, so
+    // it settles even while the milestone fetch is pending. Channels B/C are
+    // themselves gated on a resolved milestone match (gitlabMatch/matchedMilestone),
+    // so they never fire in this state — isLoadingDrift must stay true purely
+    // from `isLoadingMilestones`, which is exactly the CR-02 regression this
+    // test locks in.
+    await waitFor(() => expect(gitlab.fetchAllProjectMRs).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoadingDrift).toBe(true));
+  });
+});
+
 describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

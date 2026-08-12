@@ -133,7 +133,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // `fetchProjectMilestonesInRange` is itself this same fetch plus a client-side
   // filter, so querying both separately paginated the whole project twice per
   // mount and refetched twice on every prefix invalidation.
-  const { data: allProjectMilestones } = useQuery({
+  const { data: allProjectMilestones, isLoading: isLoadingMilestones } = useQuery({
     queryKey: ['gitlab-milestones', activeGitlabProject, 'all'],
     queryFn: () =>
       fetchProjectMilestones(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
@@ -500,7 +500,11 @@ export function useReleaseDetail(versionId: string | undefined) {
   // (Pitfall 5). The window IS in the key: a different window is different data,
   // and serving a narrower cached result for a wider window would under-report
   // drift.
-  const { data: allProjectMRs, isLoading: isLoadingChannelA } = useQuery({
+  const {
+    data: allProjectMRs,
+    isLoading: isLoadingChannelA,
+    isError: channelAFailed,
+  } = useQuery({
     queryKey: mrChannelKeys.allProject(activeGitlabProject, channelAUpdatedAfter),
     queryFn: () =>
       fetchAllProjectMRs(
@@ -515,7 +519,11 @@ export function useReleaseDetail(versionId: string | undefined) {
 
   // Channel B (DRIFT-02): MRs for the matched GitLab milestone. Unchanged —
   // this key is a cross-component cache contract with ReleasesTab/UpcomingReleasesTimeline.
-  const { data: milestoneMRs, isLoading: isLoadingChannelB } = useQuery({
+  const {
+    data: milestoneMRs,
+    isLoading: isLoadingChannelB,
+    isError: channelBFailed,
+  } = useQuery({
     queryKey: mrChannelKeys.milestone(activeGitlabProject, gitlabMatch.candidateName),
     queryFn: () =>
       fetchMilestoneMRs(
@@ -533,7 +541,11 @@ export function useReleaseDetail(versionId: string | undefined) {
   // through `releaseBranchName`, matching the `gitlab-branch` query's key shape
   // (line above). D-18 degraded state: no matched milestone means no derivable
   // branch name means nothing to query — `releaseBranchName !== null` guards it.
-  const { data: branchTargetedMRs, isLoading: isLoadingChannelC } = useQuery({
+  const {
+    data: branchTargetedMRs,
+    isLoading: isLoadingChannelC,
+    isError: channelCFailed,
+  } = useQuery({
     queryKey: mrChannelKeys.branch(activeGitlabProject, releaseBranchName),
     queryFn: () =>
       fetchBranchTargetedMRs(
@@ -573,7 +585,16 @@ export function useReleaseDetail(versionId: string | undefined) {
   const { primaryRows, secondaryRows } = buildTaskMrAttachment(releaseIssues, driftRows);
   const flaggedMrCount = countBrMsFlaggedMRs(driftRows);
 
-  const isLoadingDrift = isLoadingChannelA || isLoadingChannelB || isLoadingChannelC;
+  const isLoadingDrift =
+    isLoadingChannelA || isLoadingChannelB || isLoadingChannelC || isLoadingMilestones;
+
+  // CR-02/CR-03/WR-04 rule, applied to the three MR channels: a channel that
+  // cannot be queried at all is a check that did not happen, so it must not
+  // terminate as a settled negative ("No merge request"). This is a terminal
+  // failure state, not a pending one — it must NOT be folded into
+  // `isLoadingDrift`, or a permanently-failing channel would spin the
+  // pending line forever instead of surfacing the failure.
+  const driftUnavailable = channelAFailed || channelBFailed || channelCFailed;
   const hasMatchedMilestone = matchedMilestone !== null;
 
   // Derived values from releaseSummaries.ts
@@ -609,6 +630,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     secondaryRows,
     flaggedMrCount,
     isLoadingDrift,
+    driftUnavailable,
     hasMatchedMilestone,
     labelSummary,
     labelCoverage,
