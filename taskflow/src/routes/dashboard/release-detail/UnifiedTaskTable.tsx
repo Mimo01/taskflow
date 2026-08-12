@@ -680,18 +680,23 @@ export function UnifiedTaskTable({
           <h4 className="text-sm font-medium">Not covered by tasks above</h4>
           <ColumnHeaderStrip />
           {secondaryRows.map((row) => {
-            const key = row.taskKeys[0];
-            const keyCell =
-              row.taskKeys.length > 0 ? (
+            const keys = row.taskKeys;
+            let keyCell: React.ReactNode;
+            if (row.taskReason === 'not-in-fix-version') {
+              const suffix = keys.length > 1 ? 'are' : 'is';
+              keyCell = (
                 <span
                   data-testid="secondary-key-flagged"
                   className={`${COL_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1`}
-                  title={`${key} is not in fix version ${versionName}`}
+                  title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
                 >
                   <AlertTriangle className="size-3" />
-                  {key}
+                  {keys[0]}
+                  {keys.length > 1 ? ` +${keys.length - 1}` : ''}
                 </span>
-              ) : (
+              );
+            } else if (keys.length === 0) {
+              keyCell = (
                 <span
                   data-testid="secondary-key-none"
                   className={`${COL_KEY} font-mono text-xs text-muted-foreground`}
@@ -699,6 +704,21 @@ export function UnifiedTaskTable({
                   &mdash;
                 </span>
               );
+            } else {
+              // Keys present but the row carries no evaluated out-of-scope verdict — the
+              // merged/closed/locked `task: 'na'` case. Never assert a drift the row marks
+              // as not evaluated (T-91.1-14).
+              keyCell = (
+                <span
+                  data-testid="secondary-key-unevaluated"
+                  className={`${COL_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1`}
+                  title={`${keys.join(', ')} — not evaluated (MR is ${row.mr.state})`}
+                >
+                  {keys[0]}
+                  {keys.length > 1 ? ` +${keys.length - 1}` : ''}
+                </span>
+              );
+            }
             return (
               <MrSubLine
                 key={row.mr.id}
