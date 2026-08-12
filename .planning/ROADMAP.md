@@ -293,7 +293,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 91.1-05-PLAN.md — Collapse the two call sites, delete IssuesSection/MrDriftSection/held-order, live UAT
+- [x] 91.1-05-PLAN.md — Collapse the two call sites, delete IssuesSection/MrDriftSection/held-order, live UAT
 
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>
