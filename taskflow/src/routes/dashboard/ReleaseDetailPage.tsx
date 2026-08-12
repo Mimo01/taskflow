@@ -74,6 +74,7 @@ export default function ReleaseDetailPage() {
     secondaryRows,
     flaggedMrCount,
     isLoadingDrift,
+    driftUnavailable,
     hasMatchedMilestone,
     labelSummary,
     labelCoverage,
@@ -248,6 +249,7 @@ export default function ReleaseDetailPage() {
                 hasReleaseDate={!!version.releaseDate}
                 isLoadingIssues={isLoadingIssues}
                 isLoadingDrift={isLoadingDrift}
+                driftUnavailable={driftUnavailable}
                 hasMatchedMilestone={hasMatchedMilestone}
                 primaryRows={primaryRows}
                 secondaryRows={secondaryRows}
