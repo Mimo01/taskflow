@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: milestone_complete
-last_updated: 2026-08-11T22:04:22.616Z
+status: Phase 91.1 inserted — not planned yet
+last_updated: "2026-08-12T08:01:59.351Z"
 last_activity: 2026-08-11
 progress:
-  total_phases: 21
+  total_phases: 22
   completed_phases: 5
   total_plans: 35
   completed_plans: 35
-  percent: 24
-stopped_at: Milestone complete (Phase 91 was final phase)
+  percent: 23
 ---
 
 # Project State
@@ -21,13 +20,13 @@ stopped_at: Milestone complete (Phase 91 was final phase)
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Milestone complete
+**Current focus:** Phase 91.1 — Unified Release Detail Task Table
 
 ## Current Position
 
-Phase: 91
+Phase: 91.1
 Plan: Not started
-Status: Milestone complete
+Status: Phase 91.1 inserted — not planned yet
 Last activity: 2026-08-11
 
 Progress: [██████████] 100%
@@ -66,6 +65,7 @@ Progress: [██████████] 100%
 ### Roadmap Evolution
 
 - v1.14 roadmap created 2026-08-10: 5 phases (87-91), continuing numbering from v1.13's Phase 86. Coarse granularity — reconciled the research's 6-slice build order into 5 phases by combining release-branch-create + milestone-create into one phase (88), since both share the "first write" cross-cutting concerns (permission gating, idempotent-mutation contract).
+- Phase 91.1 inserted after Phase 91: Unified Release Detail Task Table — one Jira-task table with inline MRs, secondary table for uncovered MRs (URGENT)
 
 ### Decisions
 
@@ -129,9 +129,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-11T21:51:20.723Z
-Stopped at: Completed 91-09-PLAN.md
-Resume file: None
+Last session: 2026-08-12T08:01:59.347Z
+Stopped at: Phase 91.1 context gathered
+Resume file: .planning/phases/91.1-unified-release-detail-task-table/91.1-CONTEXT.md
 
 ## Operator Next Steps
 
