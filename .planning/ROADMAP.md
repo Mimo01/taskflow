@@ -276,7 +276,7 @@ Plans:
 - Per-MR data: state badge is required; `!iid` + linkified title + author also carried; actual target branch goes in the BR tooltip rather than its own column
 - Sorting: Jira order, no drift-driven re-sort
 
-**Plans:** 5 plans
+**Plans:** 10 plans (5 original + 5 gap-closure)
 Plans:
 **Wave 1**
 
@@ -294,6 +294,25 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 91.1-05-PLAN.md — Collapse the two call sites, delete IssuesSection/MrDriftSection/held-order, live UAT
+
+**Gap closure** *(from 91.1-VERIFICATION.md, 91.1-REVIEW.md, 91.1-UAT.md)*
+
+**Wave 1**
+
+- [ ] 91.1-06-PLAN.md — BLOCKING settled-state gaps: driftUnavailable + milestone-aware isLoadingDrift, gated secondary section and badge, mr-slot-failed state (CR-01, CR-02, IN-03)
+
+**Wave 2** *(blocked on 91.1-06)*
+
+- [ ] 91.1-07-PLAN.md — Guarded breadcrumb seed on MR ticket-key navigation + delete dead matchIssuesToMRs (WR-01, WR-02)
+- [ ] 91.1-08-PLAN.md — driftDetection contract realignment, taskReason-driven secondary key cell, labelled header strip (WR-03, WR-04, WR-05, IN-01, IN-02)
+
+**Wave 3** *(blocked on 91.1-08)*
+
+- [ ] 91.1-09-PLAN.md — Split the flagged badge into two clickable filtering warning badges with decided counting rules (UAT-91.1-B, IN-04)
+
+**Wave 4** *(blocked on 91.1-09)*
+
+- [ ] 91.1-10-PLAN.md — Quiet healthy MR sub-lines, three-column sub-lines, group-level separators, live UAT re-run (UAT-91.1-A)
 
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>
