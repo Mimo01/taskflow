@@ -135,7 +135,16 @@ export function useReleaseDetail(versionId: string | undefined) {
   // `fetchProjectMilestonesInRange` is itself this same fetch plus a client-side
   // filter, so querying both separately paginated the whole project twice per
   // mount and refetched twice on every prefix invalidation.
-  const { data: allProjectMilestones, isLoading: isLoadingMilestones } = useQuery({
+  const {
+    data: allProjectMilestones,
+    isLoading: isLoadingMilestones,
+    // CR-06: a milestone fetch that REJECTED is not "this project has no
+    // matching milestone" — `allProjectMilestones` is undefined either way, so
+    // without this flag a 401/5xx renders as the verified negative "No GitLab
+    // milestone matched" (plus a "set a release date" remedy that fixes
+    // nothing) and silently empties the duplicate-detection list below.
+    isError: milestonesFailed,
+  } = useQuery({
     queryKey: ['gitlab-milestones', activeGitlabProject, 'all'],
     queryFn: () =>
       fetchProjectMilestones(gitlabBaseUrl ?? '', gitlabToken ?? '', activeGitlabProject ?? 0),
@@ -398,6 +407,12 @@ export function useReleaseDetail(versionId: string | undefined) {
   // dialog's input. It must stay uncapped: `findDuplicateMilestone` runs over
   // exactly this array, so slicing it here would shrink RELMS-04's duplicate
   // guard. The dialog caps only what it *renders*.
+  //
+  // CR-06: when the fetch FAILED this collapses to `[]`, which reads to
+  // `findDuplicateMilestone` as "no milestone exists with that title" — a
+  // duplicate-free assurance nothing verified. `milestonesFailed` is returned
+  // above so the caller can suppress the create entry point instead of
+  // offering an unguarded create.
   const ownProjectMilestoneList = ownProjectMilestones(
     allProjectMilestones ?? [],
     activeGitlabProject ?? 0,
@@ -600,7 +615,11 @@ export function useReleaseDetail(versionId: string | undefined) {
   // failure state, not a pending one — it must NOT be folded into
   // `isLoadingDrift`, or a permanently-failing channel would spin the
   // pending line forever instead of surfacing the failure.
-  const driftUnavailable = channelAFailed || channelBFailed || channelCFailed;
+  //
+  // CR-06 completes the rule for the FOURTH input: the milestone lookup. It
+  // gates channels B and C and drives `hasMatchedMilestone`, so its failure is
+  // as much an unknown as any MR channel's.
+  const driftUnavailable = channelAFailed || channelBFailed || channelCFailed || milestonesFailed;
   const hasMatchedMilestone = matchedMilestone !== null;
 
   // Derived values from releaseSummaries.ts
@@ -640,6 +659,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     isLoadingDrift,
     driftUnavailable,
     hasMatchedMilestone,
+    milestonesFailed,
     labelSummary,
     labelCoverage,
     mrStateCounts,

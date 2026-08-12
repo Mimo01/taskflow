@@ -36,6 +36,13 @@ export interface UnifiedTaskTableProps {
   isLoadingDrift: boolean;
   driftUnavailable: boolean;
   hasMatchedMilestone: boolean;
+  /**
+   * CR-06: the GitLab milestone lookup itself failed. `hasMatchedMilestone`
+   * is false in this case too, but for an entirely different reason — an
+   * unanswered question, not a verified absence — so the banner must not
+   * assert "No GitLab milestone matched".
+   */
+  milestoneLookupFailed: boolean;
   primaryRows: Array<{ issue: JiraIssue; mrs: DriftRow[] }>;
   secondaryRows: DriftRow[];
   flaggedMrCount: number;
@@ -793,6 +800,7 @@ export function UnifiedTaskTable({
   isLoadingDrift,
   driftUnavailable,
   hasMatchedMilestone,
+  milestoneLookupFailed,
   primaryRows,
   secondaryRows,
   flaggedMrCount,
@@ -888,19 +896,35 @@ export function UnifiedTaskTable({
         />
       )}
 
-      {/* Degraded banner (D-16) — one banner, merges the two prior sources */}
-      {!hasMatchedMilestone && (
-        <div
-          data-testid="drift-degraded-banner"
-          className="flex items-center gap-2 rounded-md border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 px-3 py-2 mb-4"
-        >
-          <AlertTriangle className="size-4 text-orange-600 dark:text-orange-400 shrink-0" />
-          <p className="text-xs text-orange-700 dark:text-orange-300">
-            No GitLab milestone matched — MR linking is unavailable.
-            {!hasReleaseDate && ' Set a release date to enable milestone matching.'}
-          </p>
-        </div>
-      )}
+      {/* Degraded banner (D-16) — one banner, merges the two prior sources.
+          CR-06: a FAILED milestone lookup takes precedence over the
+          "no milestone matched" copy and is rendered neutrally: the check did
+          not happen, so the page must not assert an absence, and "set a
+          release date" would be a remedy for a problem nobody diagnosed. */}
+      {!hasMatchedMilestone &&
+        (milestoneLookupFailed ? (
+          <div
+            data-testid="drift-degraded-banner"
+            className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 mb-4"
+          >
+            <AlertTriangle className="size-4 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              Couldn't reach GitLab to check for a milestone — MR status is unknown for this
+              release.
+            </p>
+          </div>
+        ) : (
+          <div
+            data-testid="drift-degraded-banner"
+            className="flex items-center gap-2 rounded-md border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 px-3 py-2 mb-4"
+          >
+            <AlertTriangle className="size-4 text-orange-600 dark:text-orange-400 shrink-0" />
+            <p className="text-xs text-orange-700 dark:text-orange-300">
+              No GitLab milestone matched — MR linking is unavailable.
+              {!hasReleaseDate && ' Set a release date to enable milestone matching.'}
+            </p>
+          </div>
+        ))}
 
       {/* Filter escape hatch (UAT-91.1-B) — needed because a successful fix
           dropping a count to zero hides its own badge. */}

@@ -132,6 +132,7 @@ function defaultProps(overrides: Partial<UnifiedTaskTableProps> = {}): UnifiedTa
     isLoadingDrift: false,
     driftUnavailable: false,
     hasMatchedMilestone: true,
+    milestoneLookupFailed: false,
     primaryRows: [],
     secondaryRows: [],
     flaggedMrCount: 0,
@@ -1439,6 +1440,62 @@ describe('UAT-91.1-B: filtering warning badges', () => {
     expect(screen.queryByTestId('mr-slot-none')).toBeNull();
     expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
     expect(screen.queryByTestId('mr-slot-failed')).toBeNull();
+  });
+});
+
+// CR-06: a failed milestone lookup and a verified "no milestone exists" both
+// arrive as hasMatchedMilestone=false, but only one of them may be asserted.
+describe('CR-06: a failed milestone lookup never renders as a verified absence', () => {
+  it('milestoneLookupFailed: true replaces the "No GitLab milestone matched" assertion with an unknown-state banner', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [] }],
+      hasMatchedMilestone: false,
+      milestoneLookupFailed: true,
+      driftUnavailable: true,
+    });
+
+    const banner = screen.getByTestId('drift-degraded-banner');
+    expect(banner).toHaveTextContent(/Couldn't reach GitLab/);
+    expect(banner).not.toHaveTextContent('No GitLab milestone matched');
+    // Unknown, not a warning — no orange assertion styling.
+    expect(banner.querySelector('.text-orange-600')).toBeNull();
+  });
+
+  it('milestoneLookupFailed: true never offers the "Set a release date" remedy, even with no release date', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [] }],
+      hasMatchedMilestone: false,
+      milestoneLookupFailed: true,
+      driftUnavailable: true,
+      hasReleaseDate: false,
+    });
+
+    expect(screen.getByTestId('drift-degraded-banner')).not.toHaveTextContent('Set a release date');
+  });
+
+  it('milestoneLookupFailed: false keeps the verified-absence copy (no regression of D-16)', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [] }],
+      hasMatchedMilestone: false,
+      milestoneLookupFailed: false,
+      hasReleaseDate: false,
+    });
+
+    const banner = screen.getByTestId('drift-degraded-banner');
+    expect(banner).toHaveTextContent('No GitLab milestone matched');
+    expect(banner).toHaveTextContent('Set a release date');
+  });
+
+  it('with the lookup failed the task row shows mr-slot-failed, not the mr-slot-unavailable absence claim', () => {
+    renderWithRows([], {
+      hasMatchedMilestone: false,
+      milestoneLookupFailed: true,
+      driftUnavailable: true,
+    });
+
+    expect(screen.getByTestId('mr-slot-failed')).toBeInTheDocument();
+    expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
+    expect(screen.queryByTestId('mr-slot-none')).toBeNull();
   });
 });
 
