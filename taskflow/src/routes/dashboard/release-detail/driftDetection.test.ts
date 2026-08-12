@@ -4,8 +4,11 @@ import type { JiraIssue } from '@/services/jira';
 import {
   buildDriftRows,
   buildIssueMrIndex,
+  buildTaskMrAttachment,
   classifyMrState,
+  countBrMsFlaggedMRs,
   countFlaggedMRs,
+  type DriftRow,
   evaluateBranchDrift,
   evaluateMilestoneDrift,
   evaluateTaskDrift,
@@ -384,5 +387,227 @@ describe('buildIssueMrIndex', () => {
     const { matchedRows, wrongMilestoneByKey } = buildIssueMrIndex(union, [issue], null);
     expect(matchedRows[0].mr).toBe(null);
     expect(wrongMilestoneByKey.size).toBe(0);
+  });
+});
+
+describe('buildTaskMrAttachment', () => {
+  it('D-09: one MR whose key is a release issue attaches under that task; secondaryRows is empty', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const mr = makeMR({ id: 1, iid: 1, title: 'PROJ-1 fix', source_branch: 'x' });
+    const rows = buildDriftRows({
+      channelA: [mr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([issue], rows);
+    expect(primaryRows).toHaveLength(1);
+    expect(primaryRows[0].mrs).toHaveLength(1);
+    expect(primaryRows[0].mrs[0].mr.id).toBe(1);
+    expect(secondaryRows).toEqual([]);
+  });
+
+  it('a task with no matching MR still appears in primaryRows with an empty mrs array', () => {
+    const issue = makeIssue({ key: 'PROJ-2' });
+    const { primaryRows } = buildTaskMrAttachment([issue], []);
+    expect(primaryRows).toHaveLength(1);
+    expect(primaryRows[0].issue).toBe(issue);
+    expect(primaryRows[0].mrs).toEqual([]);
+  });
+
+  it('D-09: an MR carrying two keys that are BOTH release issues appears under both tasks', () => {
+    const issue1 = makeIssue({ key: 'PROJ-1' });
+    const issue2 = makeIssue({ key: 'PROJ-2' });
+    const mr = makeMR({
+      id: 1,
+      iid: 1,
+      title: 'PROJ-1 and PROJ-2 both referenced',
+      source_branch: 'x',
+    });
+    const rows = buildDriftRows({
+      channelA: [mr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1', 'PROJ-2']),
+    });
+    const { primaryRows } = buildTaskMrAttachment([issue1, issue2], rows);
+    expect(primaryRows[0].mrs.map((r) => r.mr.id)).toEqual([1]);
+    expect(primaryRows[1].mrs.map((r) => r.mr.id)).toEqual([1]);
+  });
+
+  it('a keyless MR lands in secondaryRows with an empty taskKeys array', () => {
+    const mr = makeMR({ id: 1, title: 'Unrelated change', source_branch: 'chore/bump-deps' });
+    const rows = buildDriftRows({
+      channelA: [mr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(),
+    });
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([], rows);
+    expect(primaryRows).toEqual([]);
+    expect(secondaryRows).toHaveLength(1);
+    expect(secondaryRows[0].taskKeys).toEqual([]);
+  });
+
+  it('an MR whose only key is not in the fix version lands in secondaryRows carrying that key', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const mr = makeMR({ id: 1, title: 'PROJ-9 fix thing', source_branch: 'x' });
+    const rows = buildDriftRows({
+      channelA: [mr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([issue], rows);
+    expect(primaryRows[0].mrs).toEqual([]);
+    expect(secondaryRows).toHaveLength(1);
+    expect(secondaryRows[0].taskKeys[0]).toBe('PROJ-9');
+  });
+
+  it('regression guard: a merged (non-evaluated, taskReason null) MR with an out-of-scope key lands in secondaryRows, not nowhere', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const mergedMr = makeMR({
+      id: 1,
+      state: 'merged',
+      title: 'PROJ-9 fix thing',
+      source_branch: 'x',
+    });
+    const rows = buildDriftRows({
+      channelA: [mergedMr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    expect(rows[0].taskReason).toBe(null);
+    expect(rows[0].evaluated).toBe(false);
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([issue], rows);
+    expect(primaryRows[0].mrs).toEqual([]);
+    expect(secondaryRows).toHaveLength(1);
+    expect(secondaryRows[0].mr.id).toBe(1);
+  });
+
+  it('partition invariant: every input mr.id appears under a task or in secondaryRows, and the two sets are disjoint', () => {
+    const issue1 = makeIssue({ key: 'PROJ-1' });
+    const issue2 = makeIssue({ key: 'PROJ-2' });
+    const mrBoth = makeMR({ id: 1, title: 'PROJ-1 and PROJ-2', source_branch: 'x' });
+    const mrOne = makeMR({ id: 2, title: 'PROJ-1 only', source_branch: 'x' });
+    const mrKeyless = makeMR({ id: 3, title: 'Unrelated', source_branch: 'chore/x' });
+    const mrOutOfScope = makeMR({ id: 4, title: 'PROJ-9 out of scope', source_branch: 'x' });
+    const rows = buildDriftRows({
+      channelA: [mrBoth, mrOne, mrKeyless, mrOutOfScope],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1', 'PROJ-2']),
+    });
+    const { primaryRows, secondaryRows } = buildTaskMrAttachment([issue1, issue2], rows);
+
+    const primaryIds = new Set(primaryRows.flatMap((p) => p.mrs.map((r) => r.mr.id)));
+    const secondaryIds = new Set(secondaryRows.map((r) => r.mr.id));
+    const inputIds = new Set(rows.map((r) => r.mr.id));
+
+    expect(new Set([...primaryIds, ...secondaryIds])).toEqual(inputIds);
+    expect([...primaryIds].some((id) => secondaryIds.has(id))).toBe(false);
+  });
+
+  it('D-18: primaryRows order equals the input releaseIssues order; each mrs array is ascending by mr.iid regardless of flag state', () => {
+    const issue2 = makeIssue({ key: 'PROJ-2' });
+    const issue1 = makeIssue({ key: 'PROJ-1' });
+    const mrHigh = makeMR({
+      id: 1,
+      iid: 5,
+      title: 'PROJ-1 fix',
+      source_branch: 'x',
+      target_branch: 'develop',
+    });
+    const mrLow = makeMR({
+      id: 2,
+      iid: 2,
+      title: 'PROJ-1 fix',
+      source_branch: 'x',
+      target_branch: 'release/1',
+    });
+    const rows = buildDriftRows({
+      channelA: [mrHigh, mrLow],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: 'release/1',
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    // one of these two is flagged (mismatched target branch) and one is not — order must still be by iid.
+    const { primaryRows } = buildTaskMrAttachment([issue2, issue1], rows);
+    expect(primaryRows[0].issue).toBe(issue2);
+    expect(primaryRows[1].issue).toBe(issue1);
+    expect(primaryRows[1].mrs.map((r) => r.mr.iid)).toEqual([2, 5]);
+  });
+
+  it('does not mutate the input driftRows array (order preserved after the call)', () => {
+    const mrA = makeMR({ id: 1, iid: 3, title: 'PROJ-1', source_branch: 'x' });
+    const mrB = makeMR({ id: 2, iid: 1, title: 'PROJ-1', source_branch: 'x' });
+    const rows = buildDriftRows({
+      channelA: [mrA, mrB],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    const idsBefore = rows.map((r) => r.mr.id);
+    buildTaskMrAttachment([makeIssue({ key: 'PROJ-1' })], rows);
+    expect(rows.map((r) => r.mr.id)).toEqual(idsBefore);
+  });
+});
+
+describe('countBrMsFlaggedMRs', () => {
+  function makeRow(overrides: Partial<DriftRow> = {}): DriftRow {
+    return {
+      mr: makeMR(),
+      channels: new Set(['A']),
+      evaluated: true,
+      br: 'ok',
+      ms: 'ok',
+      task: 'ok',
+      taskReason: null,
+      taskKeys: [],
+      flagged: false,
+      ...overrides,
+    };
+  }
+
+  it('D-15: a row flagged only on task contributes 0', () => {
+    const row = makeRow({ task: 'flag', flagged: true });
+    expect(countBrMsFlaggedMRs([row])).toBe(0);
+  });
+
+  it('D-15: a row flagged on both br and ms contributes 1, not 2', () => {
+    const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
+    expect(countBrMsFlaggedMRs([row])).toBe(1);
+  });
+
+  it("D-15: a row with br: 'na', ms: 'na' (non-evaluated) contributes 0", () => {
+    const row = makeRow({ evaluated: false, br: 'na', ms: 'na', task: 'na', flagged: false });
+    expect(countBrMsFlaggedMRs([row])).toBe(0);
+  });
+
+  it('D-15: a mixed list returns the BR-or-MS total, strictly less than countFlaggedMRs when a task-only flag is present', () => {
+    const taskOnly = makeRow({ task: 'flag', flagged: true });
+    const brFlagged = makeRow({ mr: makeMR({ id: 2 }), br: 'flag', flagged: true });
+    const msFlagged = makeRow({ mr: makeMR({ id: 3 }), ms: 'flag', flagged: true });
+    const rows = [taskOnly, brFlagged, msFlagged];
+    expect(countBrMsFlaggedMRs(rows)).toBe(2);
+    expect(countFlaggedMRs(rows)).toBe(3);
+    expect(countBrMsFlaggedMRs(rows)).toBeLessThan(countFlaggedMRs(rows));
   });
 });
