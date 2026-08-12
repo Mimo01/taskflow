@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
+import { DescriptionsSection } from './DescriptionsSection';
 import { MetaRow } from './MetaRow';
 import type { MergeBackVerdict } from './mergeBackVerification';
 import { formatEvidenceDate, formatVerdictDate } from './mergeBackVerification';
@@ -251,7 +252,7 @@ export function ReleaseDetailSidebar({
   onStartEditing,
   version,
   gitlabMatch,
-  matchedMilestone: _matchedMilestone,
+  matchedMilestone,
   branchState,
   mergeBackVerdict,
   defaultBranch,
@@ -543,6 +544,14 @@ export function ReleaseDetailSidebar({
             </span>
           </MetaRow>
         )}
+
+        <div data-testid="sidebar-descriptions" className="space-y-4 border-t pt-4">
+          <DescriptionsSection
+            gitlabMatchType={gitlabMatch.type}
+            matchedMilestone={matchedMilestone}
+            versionDescription={version.description}
+          />
+        </div>
       </div>
     </div>
   );

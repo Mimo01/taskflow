@@ -17,7 +17,6 @@ import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
 import { CreateMilestoneDialog } from './release-detail/CreateMilestoneDialog';
-import { DescriptionsSection } from './release-detail/DescriptionsSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
@@ -220,14 +219,6 @@ export default function ReleaseDetailPage() {
             <div className="p-6 space-y-6">
               {/* Header */}
               <ReleaseTitleHeading versionId={version.id} versionName={version.name} />
-
-              {/* Description(s) — when a GitLab milestone is matched but neither
-                  side has text, collapse the two empty blocks into one. */}
-              <DescriptionsSection
-                gitlabMatchType={gitlabMatch.type}
-                matchedMilestone={matchedMilestone}
-                versionDescription={version.description}
-              />
 
               {/* Label summary from milestone MRs */}
               <LabelSummarySection
