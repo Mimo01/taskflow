@@ -179,9 +179,7 @@ export default function ReleaseDetailPage() {
   // Ticket-key click inside an Unmatched MR title: always forces full-page
   // navigation while preserving the release breadcrumb entry.
   const handleNavigateToIssueFromMR = (key: string) => {
-    if (version) {
-      breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
-    }
+    seedReleaseBreadcrumb();
     navigate(`/issue/${key}`);
   };
 
