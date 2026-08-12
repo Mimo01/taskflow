@@ -312,7 +312,7 @@ Plans:
 
 **Wave 4** *(blocked on 91.1-09)*
 
-- [ ] 91.1-10-PLAN.md — Quiet healthy MR sub-lines, three-column sub-lines, group-level separators, live UAT re-run (UAT-91.1-A)
+- [x] 91.1-10-PLAN.md — Quiet healthy MR sub-lines, three-column sub-lines, group-level separators, live UAT re-run (UAT-91.1-A)
 
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>
