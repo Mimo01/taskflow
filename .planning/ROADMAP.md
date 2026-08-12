@@ -347,8 +347,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 91.2-01-PLAN.md — `services/jira.ts` epic fetchers: `created ASC` ordering, `priority` field, per-status-category counts, `donePoints`, fail-closed error propagation + service tests
-- [ ] 91.2-02-PLAN.md — `EpicProgressCells.tsx`: three-segment progress bar and `done/total SP` points cell with all four enrichment states (shimmer / ready / "No stories" / warning + retry) + unit tests
+- [x] 91.2-01-PLAN.md — `services/jira.ts` epic fetchers: `created ASC` ordering, `priority` field, per-status-category counts, `donePoints`, fail-closed error propagation + service tests
+- [x] 91.2-02-PLAN.md — `EpicProgressCells.tsx`: three-segment progress bar and `done/total SP` points cell with all four enrichment states (shimmer / ready / "No stories" / warning + retry) + unit tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
