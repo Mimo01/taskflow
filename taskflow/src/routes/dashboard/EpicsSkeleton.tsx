@@ -19,6 +19,11 @@ export function EpicsSkeleton() {
             <Skeleton className="h-3 w-16" />
           </div>
 
+          {/* Priority icon — between key and name, matching EpicRow/BacklogRow */}
+          <div className={cn('flex-none px-0', CELL_PADDING)}>
+            <Skeleton className="h-3.5 w-3.5" />
+          </div>
+
           {/* Name badge */}
           <div className={cn('flex-1 min-w-0 px-2', CELL_PADDING)}>
             <Skeleton className="h-4 w-40" />
@@ -27,11 +32,6 @@ export function EpicsSkeleton() {
           {/* Status pill */}
           <div className={cn('flex-none w-28 px-2', CELL_PADDING)}>
             <Skeleton className="h-4 w-20" />
-          </div>
-
-          {/* Priority icon */}
-          <div className={cn('flex-none w-8 px-2', CELL_PADDING)}>
-            <Skeleton className="h-3.5 w-3.5" />
           </div>
 
           {/* Progress bar */}
