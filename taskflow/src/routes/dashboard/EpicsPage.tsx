@@ -295,7 +295,12 @@ export default function EpicsPage() {
           // No wrapper padding: settled rows render unwrapped, so a p-4 here
           // would shift every column 16px the moment data lands.
           <EpicsSkeleton />
-        ) : !isError ? (
+        ) : !isError || epicsData !== undefined ? (
+          // Render rows whenever data exists, error or not. StaleDataBanner's
+          // whole premise is "cached data still visible"; gating rows on
+          // !isError alone rendered nothing beneath it, so a failed refetch
+          // blanked the page while claiming the opposite. The no-data error
+          // case still falls through to ErrorState above.
           <>
             {epics.length > 0 ? (
               <div className="w-full text-sm">

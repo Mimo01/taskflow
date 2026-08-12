@@ -285,6 +285,35 @@ describe('EpicsPage', () => {
     expect(screen.queryByTestId('epics-skeleton')).not.toBeInTheDocument();
   });
 
+  it('CR-03: keeps cached rows visible beneath the stale-data banner', async () => {
+    const { fetchEpicsBasic, fetchEpicEnrichmentMap } = await import('@/services/jira');
+    (fetchEpicsBasic as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('refetch failed'));
+    (fetchEpicEnrichmentMap as ReturnType<typeof vi.fn>).mockResolvedValue(new Map());
+
+    const client = makeClient();
+    client.setQueryData(
+      ['jira-epics-basic', 'PROJ', 'https://jira.example.com', 'created ASC'],
+      [baseEpic()],
+    );
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <Routes>
+            <Route element={<Outlet context={{}} />}>
+              <Route path="/" element={<EpicsPageLazy />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // The banner claims cached data is still visible — so it must actually be.
+    // Gating rows on !isError alone blanked the page beneath the banner.
+    await screen.findByRole('button', { name: /retry|try again/i });
+    expect(screen.getByText('PROJ-10')).toBeInTheDocument();
+    expect(screen.getByText('Epic Alpha')).toBeInTheDocument();
+  });
+
   it('CR-02: shows a retryable error, not an endless shimmer, when the token is unavailable', async () => {
     const { readSecret } = await import('@/services/stronghold');
     (readSecret as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('no secret'));
