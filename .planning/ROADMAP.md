@@ -356,7 +356,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 91.2-04-PLAN.md — Delete the dead `services/jira/epics.ts` module, correct the superseded PROJECT.md decision row, manual Tauri/WebKit density + colour verification
+- [x] 91.2-04-PLAN.md — Delete the dead `services/jira/epics.ts` module, correct the superseded PROJECT.md decision row, manual Tauri/WebKit density + colour verification
 
 <details>
 <summary>✅ v1.13 Personal Workspace (Phases 81-86) — SHIPPED 2026-06-16</summary>

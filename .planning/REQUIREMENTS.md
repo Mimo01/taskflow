@@ -58,12 +58,12 @@ Derived from the ROADMAP Phase 91.2 success criteria as narrowed by `91.2-CONTEX
 > Note: `src/services/jira.test.ts` and `EpicsPage.test.tsx` already carry legacy `EPIC-01` / `EPIC-03` test labels from Phase 13 (`fetchEpicsWithEnrichment`). The IDs below are the Phase 91.2 requirement IDs; the label collision is cosmetic and does not affect traceability.
 
 - [ ] **EPIC-01**: Epics render in creation-ascending order (`ORDER BY created ASC`, equivalent to key order) and the order never re-shuffles while enrichment data streams in (D-17)
-- [ ] **EPIC-02**: The epic row is a single-line div+flex row with column order key → name → status → priority → progress → points → assignee, staying one line at every density, with no column collapsing to zero width in the Tauri/WebKit webview (D-05, D-06, D-07, D-09)
+- [x] **EPIC-02**: The epic row is a single-line div+flex row with column order key → name → status → priority → progress → points → assignee, staying one line at every density, with no column collapsing to zero width in the Tauri/WebKit webview (D-05, D-06, D-07, D-09)
 - [ ] **EPIC-03**: Story progress and points load progressively behind first paint, with all four enrichment cell states: pending shimmer, success, "No stories", and error + click-to-retry (D-04, D-14, D-15, D-16)
 - [ ] **EPIC-04**: Each row shows the epic's priority via the existing `PriorityIcon` for the project's 9-level scheme — icon only, name in `title`/alt (D-10; labels/components half descoped by D-08)
 - [ ] **EPIC-05**: Each row exposes a three-segment child-status breakdown (To Do / In Progress / Done by Jira status category) as one visual with `done/total` beside it and per-status counts revealed on hover (D-11; blocked/flagged half descoped by D-12)
 - [ ] **EPIC-06**: Story points render as `done/total SP`, backed by a new `donePoints` aggregate in `fetchEpicEnrichmentMap` (D-13)
-- [ ] **EPIC-07**: Preserved behaviour — row click still opens `EpicDetailSheet`, the skeleton / error / stale-banner states, density variants and "+ Create Epic" are unchanged, no search UI is added (D-18) — and the dead `src/services/jira/epics.ts` module is removed
+- [x] **EPIC-07**: Preserved behaviour — row click still opens `EpicDetailSheet`, the skeleton / error / stale-banner states, density variants and "+ Create Epic" are unchanged, no search UI is added (D-18) — and the dead `src/services/jira/epics.ts` module is removed
 
 ## Future Requirements
 
