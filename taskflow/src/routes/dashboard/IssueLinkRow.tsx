@@ -124,7 +124,7 @@ export function IssueLinkRow({ linkTypes, value, onChange, onRemove }: IssueLink
               <button
                 key={issue.key}
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                className="w-full px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-sm hover:bg-accent"
                 onMouseDown={() => handleSelectIssue(issue)}
               >
                 {issue.key}: {issue.fields.summary}

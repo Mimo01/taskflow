@@ -186,7 +186,7 @@ export default function StatusPopover({
                 key={transition.id}
                 type="button"
                 onClick={() => handleSelect(transition.id, transition.to.name)}
-                className="w-full text-left px-2 py-1.5 hover:bg-accent rounded flex items-center gap-2"
+                className="w-full text-left px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-accent rounded flex items-center gap-2"
               >
                 <span className="text-muted-foreground">→</span>
                 <span className={statusPillClass(transition.to.statusCategory?.key)}>

@@ -102,7 +102,7 @@ export default function WatchedPersonPicker({
           <button
             type="button"
             onClick={() => handleSelect(null)}
-            className={`flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left hover:bg-accent/50 ${
+            className={`flex w-full items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-sm text-sm text-left hover:bg-accent/50 ${
               value === null ? 'bg-accent/40' : ''
             }`}
           >
@@ -111,10 +111,14 @@ export default function WatchedPersonPicker({
           </button>
 
           {isLoading && (
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading users…</div>
+            <div className="px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 text-sm text-muted-foreground">
+              Loading users…
+            </div>
           )}
           {!isLoading && debouncedQuery !== '' && users.length === 0 && (
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">No matching users</div>
+            <div className="px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 text-sm text-muted-foreground">
+              No matching users
+            </div>
           )}
           {users.map((user) => {
             const avatarUrl =
@@ -130,7 +134,7 @@ export default function WatchedPersonPicker({
                 key={userId}
                 type="button"
                 onClick={() => handleSelect(user)}
-                className={`flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left hover:bg-accent/50 ${
+                className={`flex w-full items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-sm text-sm text-left hover:bg-accent/50 ${
                   selectedId === userId ? 'bg-accent/40' : ''
                 }`}
               >
