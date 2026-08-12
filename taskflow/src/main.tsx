@@ -396,12 +396,18 @@ function AppLayout() {
     // backlog is { sprints: [{ issues }], backlog: JiraIssue[] }, epics is EpicEnriched[],
     // issue-detail is a single JiraIssueDetail object.
     let resolvedTitle: string | undefined;
+    let resolvedTypeName: string | undefined;
 
-    type CachedIssue = { key: string; fields: { summary: string } };
+    type CachedIssue = {
+      key: string;
+      fields: { summary: string; issuetype?: { name?: string } };
+    };
 
     // Helper: search an array of issues for a matching key
     const findTitle = (issues: CachedIssue[] | undefined) =>
       issues?.find((i) => i.key === issueKey)?.fields.summary;
+    const findTypeName = (issues: CachedIssue[] | undefined) =>
+      issues?.find((i) => i.key === issueKey)?.fields.issuetype?.name;
 
     // 1. Search all jira-issues caches (sprint-board = flat array, subtasks panel = { issues: [] })
     const issueEntries = queryClient.getQueriesData<CachedIssue[] | { issues?: CachedIssue[] }>({
@@ -412,9 +418,11 @@ function AppLayout() {
       // subtasks panel shape: { issues: [...] }
       if ('issues' in data && Array.isArray(data.issues)) {
         resolvedTitle = findTitle(data.issues);
+        resolvedTypeName = findTypeName(data.issues);
       } else if (Array.isArray(data)) {
         // sprint-board shape: flat JiraIssue[]
         resolvedTitle = findTitle(data);
+        resolvedTypeName = findTypeName(data);
       }
       if (resolvedTitle) break;
     }
@@ -423,15 +431,20 @@ function AppLayout() {
     if (!resolvedTitle) {
       // Phase 74 GH-CUT-01: backlog data now lives in ['gh-backlog', boardId]
       // as a raw GhBacklogResponse envelope whose `.issues` is an array of
-      // GhIssue { key, summary } objects (top-level summary, not fields.summary).
+      // GhIssue { key, summary, typeId } objects (top-level summary, not fields.summary);
+      // the type name lives in the sibling entityData.types[typeId].typeName map.
       const ghBacklogEntries = queryClient.getQueriesData<{
-        issues?: Array<{ key: string; summary?: string }>;
+        issues?: Array<{ key: string; summary?: string; typeId?: string }>;
+        entityData?: { types?: Record<string, { typeName?: string }> };
       }>({ queryKey: ['gh-backlog'] });
       for (const [, data] of ghBacklogEntries) {
         if (!data?.issues) continue;
         const match = data.issues.find((i) => i.key === issueKey);
         if (match?.summary) {
           resolvedTitle = match.summary;
+          resolvedTypeName = match.typeId
+            ? data.entityData?.types?.[match.typeId]?.typeName
+            : undefined;
           break;
         }
       }
@@ -459,12 +472,18 @@ function AppLayout() {
       for (const [, data] of detailEntries) {
         if (data?.fields?.summary) {
           resolvedTitle = data.fields.summary;
+          resolvedTypeName = data.fields.issuetype?.name;
           break;
         }
       }
     }
 
-    pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
+    pushRecentItem({
+      type: 'jira',
+      id: issueKey,
+      title: resolvedTitle,
+      issueType: resolvedTypeName,
+    });
   };
 
   const handleMRClick = (projectIdAndIid: string) => {
