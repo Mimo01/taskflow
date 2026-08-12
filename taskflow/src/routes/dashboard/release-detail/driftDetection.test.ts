@@ -5,7 +5,9 @@ import {
   buildDriftRows,
   buildTaskMrAttachment,
   classifyMrState,
+  countBranchFlaggedMRs,
   countBrMsFlaggedMRs,
+  countMilestoneFlaggedMRs,
   type DriftRow,
   evaluateBranchDrift,
   evaluateMilestoneDrift,
@@ -566,5 +568,74 @@ describe('countBrMsFlaggedMRs', () => {
     expect(countBrMsFlaggedMRs(rows)).toBe(2);
     expect(naiveFlaggedCount).toBe(3);
     expect(countBrMsFlaggedMRs(rows)).toBeLessThan(naiveFlaggedCount);
+  });
+});
+
+describe('countBranchFlaggedMRs / countMilestoneFlaggedMRs', () => {
+  function makeRow(overrides: Partial<DriftRow> = {}): DriftRow {
+    return {
+      mr: makeMR(),
+      channels: new Set(['A']),
+      evaluated: true,
+      br: 'ok',
+      ms: 'ok',
+      task: 'ok',
+      taskReason: null,
+      taskKeys: [],
+      flagged: false,
+      ...overrides,
+    };
+  }
+
+  it('a row with br: flag, ms: ok counts 1 in countBranchFlaggedMRs, 0 in countMilestoneFlaggedMRs', () => {
+    const row = makeRow({ br: 'flag', ms: 'ok', flagged: true });
+    expect(countBranchFlaggedMRs([row])).toBe(1);
+    expect(countMilestoneFlaggedMRs([row])).toBe(0);
+  });
+
+  it('a row with br: ok, ms: flag counts 0 in countBranchFlaggedMRs, 1 in countMilestoneFlaggedMRs', () => {
+    const row = makeRow({ br: 'ok', ms: 'flag', flagged: true });
+    expect(countBranchFlaggedMRs([row])).toBe(0);
+    expect(countMilestoneFlaggedMRs([row])).toBe(1);
+  });
+
+  it('Rule 1: a row flagged on both br and ms counts 1 in BOTH badges, and the sum exceeds the deduplicated union', () => {
+    const row = makeRow({ br: 'flag', ms: 'flag', flagged: true });
+    const rows = [row];
+    expect(countBranchFlaggedMRs(rows)).toBe(1);
+    expect(countMilestoneFlaggedMRs(rows)).toBe(1);
+    expect(countBranchFlaggedMRs(rows) + countMilestoneFlaggedMRs(rows)).toBeGreaterThan(
+      countBrMsFlaggedMRs(rows),
+    );
+  });
+
+  it('a non-evaluated row (br: na, ms: na) counts 0 in both', () => {
+    const row = makeRow({ evaluated: false, br: 'na', ms: 'na', task: 'na', flagged: false });
+    expect(countBranchFlaggedMRs([row])).toBe(0);
+    expect(countMilestoneFlaggedMRs([row])).toBe(0);
+  });
+
+  it('Rule 2: an MR present once in driftRows but attached under two fix-version tasks still counts 1', () => {
+    const issue1 = makeIssue({ key: 'PROJ-1' });
+    const issue2 = makeIssue({ key: 'PROJ-2' });
+    const mr = makeMR({
+      id: 1,
+      iid: 1,
+      title: 'PROJ-1 and PROJ-2 both referenced',
+      source_branch: 'x',
+      target_branch: 'wrong-branch',
+    });
+    const rows = buildDriftRows({
+      channelA: [mr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: 'release/1',
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1', 'PROJ-2']),
+    });
+    const { primaryRows } = buildTaskMrAttachment([issue1, issue2], rows);
+    expect(primaryRows[0].mrs.map((r) => r.mr.id)).toEqual([1]);
+    expect(primaryRows[1].mrs.map((r) => r.mr.id)).toEqual([1]);
+    expect(countBranchFlaggedMRs(rows)).toBe(1);
   });
 });
