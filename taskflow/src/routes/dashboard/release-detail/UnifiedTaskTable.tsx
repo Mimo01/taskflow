@@ -523,10 +523,20 @@ function MrSubLine({
  * 2+ merge requests (developer's explicit choice, live UAT checkpoint,
  * 2026-08-12): "99% of the time there is 1 MR for 1 task so the edge case of
  * having multiple is not worth solving. I want it all consolidated into one
- * single line for each task like it was before." A flagged MR (br or ms)
- * wins; ties are broken by highest `iid`. With no flagged MR, highest `iid`
- * wins. No MR is dropped from the underlying data — the rest surface behind
- * the `+N` marker (`mr-extra-count`).
+ * single line for each task like it was before."
+ *
+ * Precedence: a flagged MR (br or ms) wins; failing that, an EVALUATED one
+ * (WR-09); ties within the winning pool are broken by highest `iid`.
+ *
+ * The evaluated tier is not a nicety. Merged/closed MRs are not evaluated, and
+ * on a release branch that has already begun landing work they carry the
+ * HIGHEST iids — so a plain highest-iid rule surfaced the merged `!42` over
+ * the clean open `!17` and reported the task as "not evaluated" (— / —) while
+ * its actual live MR was correctly targeted and milestoned. Prefer the MR the
+ * drift columns can actually say something about.
+ *
+ * No MR is dropped from the underlying data — the rest surface behind the
+ * `+N` marker (`mr-extra-count`).
  *
  * When a category filter (UAT-91.1-B) is active, the caller
  * (`UnifiedTaskTable`'s `filteredPrimaryRows`) has already restricted `mrs`
@@ -539,7 +549,8 @@ function MrSubLine({
 export function selectDisplayMr(mrs: DriftRow[]): DriftRow | null {
   if (mrs.length === 0) return null;
   const flagged = mrs.filter((r) => r.br === 'flag' || r.ms === 'flag');
-  const pool = flagged.length > 0 ? flagged : mrs;
+  const evaluated = mrs.filter((r) => r.evaluated);
+  const pool = flagged.length > 0 ? flagged : evaluated.length > 0 ? evaluated : mrs;
   return pool.reduce((best, r) => (r.mr.iid > best.mr.iid ? r : best));
 }
 

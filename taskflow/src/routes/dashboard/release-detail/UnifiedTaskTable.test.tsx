@@ -357,6 +357,57 @@ describe('UnifiedTaskTable', () => {
     it('selectDisplayMr returns null for an empty list', () => {
       expect(selectDisplayMr([])).toBeNull();
     });
+
+    // WR-09: merged MRs are not evaluated and, on a release branch that has
+    // begun landing work, carry the highest iids — so highest-iid-wins
+    // surfaced a merged MR and reported "not evaluated" (— / —) for a task
+    // whose live MR was correctly targeted and milestoned.
+    it('with no flagged MR, an evaluated open MR beats a non-evaluated merged MR with a higher iid', () => {
+      const merged = makeRow({
+        mr: makeMR({ id: 1, iid: 42, state: 'merged' }),
+        evaluated: false,
+        br: 'na',
+        ms: 'na',
+        task: 'na',
+      });
+      const open = makeRow({ mr: makeMR({ id: 2, iid: 17 }), br: 'ok', ms: 'ok' });
+
+      expect(selectDisplayMr([merged, open])?.mr.iid).toBe(17);
+
+      renderWithRows([merged, open]);
+      expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!17');
+      // The verified checks are visible again, not replaced by em dashes.
+      expect(screen.getByTestId('drift-br')).not.toHaveTextContent('—');
+      expect(screen.getByTestId('drift-br').querySelector('svg')).toBeTruthy();
+    });
+
+    it('the flagged tier still outranks the evaluated tier (a clean evaluated MR with a higher iid does not win)', () => {
+      const flaggedLowIid = makeRow({
+        mr: makeMR({ id: 1, iid: 2 }),
+        br: 'flag',
+        flagged: true,
+      });
+      const cleanEvaluatedHighIid = makeRow({ mr: makeMR({ id: 2, iid: 30 }) });
+
+      expect(selectDisplayMr([flaggedLowIid, cleanEvaluatedHighIid])?.mr.iid).toBe(2);
+    });
+
+    it('with nothing evaluated and nothing flagged, highest iid still wins', () => {
+      const a = makeRow({
+        mr: makeMR({ id: 1, iid: 3, state: 'merged' }),
+        evaluated: false,
+        br: 'na',
+        ms: 'na',
+      });
+      const b = makeRow({
+        mr: makeMR({ id: 2, iid: 8, state: 'closed' }),
+        evaluated: false,
+        br: 'na',
+        ms: 'na',
+      });
+
+      expect(selectDisplayMr([a, b])?.mr.iid).toBe(8);
+    });
   });
 
   // Separators moved from every row to task-group boundaries at plan 09.
