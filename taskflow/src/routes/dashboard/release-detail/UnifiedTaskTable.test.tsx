@@ -460,6 +460,57 @@ describe('WR-05: column header strip labels', () => {
   });
 });
 
+// WR-06: consolidation deleted MrSubLine's avatar and state cells, but the
+// secondary table kept rendering the SHARED strip, so "Assignee", "Status" and
+// "MR" labelled columns that no longer exist — they sat over the middle of the
+// MR title. Visible labels are the WR-05 accessibility answer; mislabelled ones
+// invert it.
+describe('WR-06: the secondary table has its own header strip', () => {
+  function renderSecondary() {
+    return renderSection({
+      secondaryRows: [
+        makeRow({ mr: makeMR({ id: 1, iid: 1 }), taskReason: 'no-linked-task', taskKeys: [] }),
+      ],
+    });
+  }
+
+  it('labels only the four columns a secondary row actually renders', () => {
+    renderSecondary();
+    const secondary = within(screen.getByTestId('secondary-section'));
+
+    expect(secondary.getByText('Key')).toBeInTheDocument();
+    expect(secondary.getByText('Merge request')).toBeInTheDocument();
+    expect(secondary.getByText('BR')).toBeInTheDocument();
+    expect(secondary.getByText('MS')).toBeInTheDocument();
+  });
+
+  it('does not label Assignee, Status or MR over columns the secondary row dropped', () => {
+    renderSecondary();
+    const secondary = within(screen.getByTestId('secondary-section'));
+
+    expect(secondary.queryByText('Assignee')).toBeNull();
+    expect(secondary.queryByText('Status')).toBeNull();
+    expect(secondary.queryByText('MR')).toBeNull();
+    expect(secondary.queryByText('Summary')).toBeNull();
+  });
+
+  it('the primary strip is unchanged and still labels all seven of its columns', () => {
+    renderSection({
+      primaryRows: [{ issue: makeIssue(), mrs: [makeRow()] }],
+      secondaryRows: [
+        makeRow({ mr: makeMR({ id: 2, iid: 2 }), taskReason: 'no-linked-task', taskKeys: [] }),
+      ],
+    });
+
+    // Two strips now exist, so scope the primary assertions to the task table.
+    const taskList = screen.getByTestId('task-list');
+    const primaryStrip = taskList.previousElementSibling as HTMLElement;
+    for (const label of ['Key', 'Summary', 'Assignee', 'Status', 'MR', 'BR', 'MS']) {
+      expect(within(primaryStrip).getByText(label)).toBeInTheDocument();
+    }
+  });
+});
+
 describe('per-MR corrective actions', () => {
   beforeEach(() => {
     mockUpdateMergeRequest.mockReset();
