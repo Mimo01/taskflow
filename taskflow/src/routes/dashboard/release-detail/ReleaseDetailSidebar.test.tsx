@@ -332,7 +332,9 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
       mergeBackVerdict: {
         kind: 'couldnt-verify',
         reason: 'no-mr-no-tag',
-        expectedTagName: 'v33.7.0',
+        // WR-08: the resolver now carries the BARE version — the form
+        // `findReleaseTag` actually matches, with or without a `v`.
+        expectedTagName: '33.7.0',
       },
     });
     const row = screen.getByTestId('meta-row-merged-back');
@@ -351,12 +353,16 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
       mergeBackVerdict: {
         kind: 'couldnt-verify',
         reason: 'no-mr-no-tag',
-        expectedTagName: 'v33.7.0',
+        // WR-08: the resolver now carries the BARE version — the form
+        // `findReleaseTag` actually matches, with or without a `v`.
+        expectedTagName: '33.7.0',
       },
     });
     const el = screen.getByTestId('merge-back-couldnt-verify');
     expect(el).toHaveTextContent("Couldn't verify");
-    expect(el.title).toBe('no tracking MR and no v33.7.0 tag found');
+    expect(el.title).toBe(
+      'no tracking MR and no tag matching 33.7.0 (with or without a leading v) found',
+    );
   });
 
   it('renders the couldnt-verify/check-failed verdict', () => {
@@ -365,7 +371,9 @@ describe('ReleaseDetailSidebar — Merged back row (MERGE-01)', () => {
       mergeBackVerdict: {
         kind: 'couldnt-verify',
         reason: 'check-failed',
-        expectedTagName: 'v33.7.0',
+        // WR-08: the resolver now carries the BARE version — the form
+        // `findReleaseTag` actually matches, with or without a `v`.
+        expectedTagName: '33.7.0',
       },
     });
     const el = screen.getByTestId('merge-back-couldnt-verify');

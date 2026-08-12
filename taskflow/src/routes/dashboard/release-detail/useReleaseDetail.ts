@@ -346,7 +346,13 @@ export function useReleaseDetail(versionId: string | undefined) {
     tagName: mergeBackTagName,
     tagLookupPending,
     tagCheckFailed: tagChannelFailed,
-    expectedTagName: matchedVersionNumber ? `v${matchedVersionNumber}` : null,
+    // WR-08: the BARE version, not `v${version}`. `findReleaseTag` strips an
+    // optional leading `v` and matches either spelling, so hardcoding the
+    // prefix here made the tooltip name a tag convention that is not the one
+    // searched — misdirecting a user whose project tags without the prefix
+    // into thinking the wrong pattern was looked for. The sidebar spells out
+    // "with or without a leading v" from this value.
+    expectedTagName: matchedVersionNumber,
     compareResult,
     compareCheckFailed,
   });
