@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: Phase 91.1 inserted — not planned yet
-last_updated: "2026-08-12T08:01:59.351Z"
-last_activity: 2026-08-11
+status: executing
+last_updated: "2026-08-12T08:40:54.848Z"
+last_activity: 2026-08-12 -- Phase 91.1 planning complete
 progress:
   total_phases: 22
   completed_phases: 5
-  total_plans: 35
+  total_plans: 40
   completed_plans: 35
   percent: 23
 ---
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 91.1
 Plan: Not started
-Status: Phase 91.1 inserted — not planned yet
-Last activity: 2026-08-11
+Status: Ready to execute
+Last activity: 2026-08-12 -- Phase 91.1 planning complete
 
 Progress: [██████████] 100%
 
@@ -129,9 +129,9 @@ Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
 
 ## Session Continuity
 
-Last session: 2026-08-12T08:01:59.347Z
-Stopped at: Phase 91.1 context gathered
-Resume file: .planning/phases/91.1-unified-release-detail-task-table/91.1-CONTEXT.md
+Last session: 2026-08-12T08:06:22.870Z
+Stopped at: Phase 91.1 UI-SPEC approved
+Resume file: .planning/phases/91.1-unified-release-detail-task-table/91.1-UI-SPEC.md
 
 ## Operator Next Steps
 

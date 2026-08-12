@@ -277,12 +277,22 @@ Plans:
 - Sorting: Jira order, no drift-driven re-sort
 
 **Plans:** 5 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 91.1-01-PLAN.md — Task↔MR attachment + BR-or-MS flagged count in driftDetection.ts, with Wave 0 unit coverage
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 91.1-02-PLAN.md — Thread primaryRows/secondaryRows/flaggedMrCount through useReleaseDetail (additive)
 - [ ] 91.1-03-PLAN.md — Build UnifiedTaskTable.tsx: header, banner, task rows, MR sub-lines, secondary table
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 91.1-04-PLAN.md — Relocate Phase 90 corrective-action coverage + new D-04/D-05/D-09/D-13/D-17 component tests
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 91.1-05-PLAN.md — Collapse the two call sites, delete IssuesSection/MrDriftSection/held-order, live UAT
 
 <details>
