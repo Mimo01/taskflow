@@ -345,7 +345,7 @@ function SystemNote({ note, gitlabBaseUrl }: { note: DiscussionNote; gitlabBaseU
   return (
     <div className="flex gap-2 text-xs text-muted-foreground py-1">
       <Activity className="size-3 shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0 prose prose-xs dark:prose-invert max-w-none [&_p]:my-0.5 density-comfortable:[&_p]:my-2 [&_ul]:my-0.5 density-comfortable:[&_ul]:my-2 [&_li]:my-0 density-comfortable:[&_li]:my-1 [&_a]:text-muted-foreground [&_a]:underline">
+      <div className="flex-1 min-w-0 prose prose-xs dark:prose-invert max-w-none [&_p]:my-0.5 density-compact:[&_p]:my-0 density-comfortable:[&_p]:my-2 [&_ul]:my-0.5 density-compact:[&_ul]:my-0 density-comfortable:[&_ul]:my-2 [&_li]:my-0 density-comfortable:[&_li]:my-1 [&_a]:text-muted-foreground [&_a]:underline">
         <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={components()}>
           {note.body}
         </Markdown>
