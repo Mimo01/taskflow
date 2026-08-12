@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 Phase: 91.1
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-08-12 - Completed quick task 260812-rx9: Enhance compactness settings coverage — density variants extended from 11 to 48 files; awaiting human UAT
+Last activity: 2026-08-12 - Completed quick task 260812-rx9: Enhance compactness settings coverage — density variants extended from 11 to 48 files; UAT approved
 
 Progress: [██████████] 100%
 
@@ -121,7 +121,7 @@ None yet.
 |---|-------------|------|--------|--------|-----------|
 | 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
 | 260812-mry | Add compactness and font size settings to Appearance section | 2026-08-12 | 5566e8ff | Verified | [260812-mry-add-compactness-and-font-size-settings-t](./quick/260812-mry-add-compactness-and-font-size-settings-t/) |
-| 260812-rx9 | Enhance compactness settings coverage — full density sweep (wiki prose, standup notes, epics, AIO pages, +45 more surfaces) | 2026-08-12 | 18a1dce3 | Needs Review | [260812-rx9-enhance-compactness-settings-coverage](./quick/260812-rx9-enhance-compactness-settings-coverage/) |
+| 260812-rx9 | Enhance compactness settings coverage — full density sweep (wiki prose, standup notes, epics, AIO pages, +45 more surfaces) | 2026-08-12 | cdec90cb | Verified | [260812-rx9-enhance-compactness-settings-coverage](./quick/260812-rx9-enhance-compactness-settings-coverage/) |
 
 ## Deferred Items
 

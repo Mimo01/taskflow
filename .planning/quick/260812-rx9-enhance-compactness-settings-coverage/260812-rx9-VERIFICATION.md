@@ -1,7 +1,7 @@
 ---
 phase: quick-260812-rx9
 verified: 2026-08-12T21:50:00Z
-status: human_needed
+status: passed
 score: 8/8 must-haves verified (static); Task 4 UAT checkpoint outstanding
 overrides_applied: 0
 human_verification:
@@ -86,3 +86,19 @@ No code-level gaps found. All static must-haves (wiki prose, the two named min-h
 
 _Verified: 2026-08-12_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+## UAT Resolution (2026-08-12)
+
+Status moved `human_needed` → `passed`. The blocking human-verify checkpoint (Task 4) was
+performed by the user in the running app and approved.
+
+The visual dimension that static analysis could not confirm produced two rounds of feedback,
+both addressed and committed (`b9231844`, `cdec90cb`): compact wiki prose was loosened one
+half-step, then all three prose tiers were set explicitly to fix a non-monotonic scale where
+Comfortable's line-height was tighter than Default's.
+
+Note: `cdec90cb` changes wiki prose at default density by explicit user request, so the "default
+renders byte-identically" truth recorded in this report no longer holds for `WikiRenderer.tsx`.
+All other must-have truths are unaffected. See SUMMARY.md for the full disposition.

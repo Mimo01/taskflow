@@ -324,3 +324,51 @@ and either type "approved" or list surfaces that still look wrong.
 - Representative key-files verified present on disk: `WikiRenderer.tsx`, `EpicsPage.tsx`,
   `AioTestRunsSection.tsx`, `ReleaseDetailSidebar.tsx` — all FOUND.
 - No missing items.
+
+---
+
+## Task 4 — Human UAT: APPROVED (2026-08-12)
+
+User walked the density tiers in the running app and approved. The checkpoint gate is closed.
+
+### Post-UAT adjustments (4 commits after the original 15)
+
+| Commit | Change | Origin |
+|---|---|---|
+| `99fe186e` | Restored both-variant parity: `density-compact:[&_p]:my-0` / `[&_ul]:my-0` on the DiscussionThreads NoteCard, and `density-comfortable:[&_p]:leading-relaxed` / `[&_li]` on WikiRenderer | Code review WR-01, WR-02 |
+| `b9231844` | Loosened compact wiki prose one half-step (`my-1`→`my-1.5`, `li my-0`→`my-0.5`, headings `mt-3/mb-1`→`mt-4/mb-1.5`, `leading-snug`→`leading-normal`) | UAT: compact descriptions read too tight |
+| `cdec90cb` | Set all three wiki-prose tiers explicitly on one monotonic scale — tightened Default, loosened Comfortable | UAT: default too loose, comfortable too subtle |
+
+### Final wiki-prose scale
+
+| | Compact | Default | Comfortable |
+|---|---|---|---|
+| paragraphs, lists | `my-1.5` | `my-3` | `my-5` |
+| list items | `my-0.5` | `my-0.5` | `my-1.5` |
+| headings mt/mb | `mt-4 mb-1.5` | `mt-5 mb-2` | `mt-7 mb-3.5` |
+| line-height | 1.5 | 1.625 | 1.8 |
+
+### Deviation from R1 (recorded, accepted)
+
+`cdec90cb` intentionally changes rendering **at default density** for wiki prose. The sweep's
+original R1 invariant — "at default density the app renders byte-identically to before" — no
+longer holds for `WikiRenderer.tsx`. This was requested directly at UAT and is the only place
+in the 49-file change where the diff is not purely additive.
+
+Root cause it exposed: the Default tier was never explicitly set, so it inherited `prose-sm`'s
+own values (`p my-4`, line-height 1.714). Comfortable's `my-4` was therefore near-identical to
+Default, and its `leading-relaxed` (1.625) was *tighter* than Default — Comfortable was doing
+almost nothing on prose and working backwards on line-height. All three tiers are now explicit.
+
+### Known follow-up (not a gap)
+
+MR discussion comment cards (`DiscussionThreads.tsx` `NoteCard`) render through a separate
+`prose-xs` block and were deliberately left on their own scale during the tier rebalance. Offered
+to the user and not requested. Bring them onto the same scale if comment density is revisited.
+
+### Final state
+
+- 19 commits total (15 sweep + 4 post-UAT)
+- Density variant coverage: 11 files → 49 files
+- `npm run test`: 2586 passed / 2 skipped / 13 todo — green after every commit
+- `npm run check`: no NEW files flagged vs. the pre-task baseline at `910aaac3`
