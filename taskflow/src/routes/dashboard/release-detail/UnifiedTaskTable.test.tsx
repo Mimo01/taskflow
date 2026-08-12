@@ -285,6 +285,29 @@ describe('UnifiedTaskTable', () => {
   });
 });
 
+describe('WR-05: column header strip labels', () => {
+  it('renders visible header text Key, Summary, Assignee and Status alongside BR and MS', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    renderSection({ primaryRows: [{ issue, mrs: [] }] });
+
+    expect(screen.getByText('Key')).toBeInTheDocument();
+    expect(screen.getByText('Summary')).toBeInTheDocument();
+    expect(screen.getByText('Assignee')).toBeInTheDocument();
+    expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
+    expect(screen.getByText('BR')).toBeInTheDocument();
+    expect(screen.getByText('MS')).toBeInTheDocument();
+  });
+
+  it('renders no element with role="table", role="row" or role="columnheader"', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const { container } = renderSection({ primaryRows: [{ issue, mrs: [] }] });
+
+    expect(container.querySelector('[role="table"]')).toBeNull();
+    expect(container.querySelector('[role="row"]')).toBeNull();
+    expect(container.querySelector('[role="columnheader"]')).toBeNull();
+  });
+});
+
 describe('per-MR corrective actions', () => {
   beforeEach(() => {
     mockUpdateMergeRequest.mockReset();
