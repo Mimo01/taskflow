@@ -39,6 +39,8 @@ export interface UnifiedTaskTableProps {
   primaryRows: Array<{ issue: JiraIssue; mrs: DriftRow[] }>;
   secondaryRows: DriftRow[];
   flaggedMrCount: number;
+  brFlaggedCount?: number;
+  msFlaggedCount?: number;
   onOpenIssue: (key: string) => void;
   onOpenIssueFull: (key: string) => void;
   onSeedBreadcrumb: () => void;

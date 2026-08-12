@@ -73,6 +73,8 @@ export default function ReleaseDetailPage() {
     primaryRows,
     secondaryRows,
     flaggedMrCount,
+    brFlaggedCount,
+    msFlaggedCount,
     isLoadingDrift,
     driftUnavailable,
     hasMatchedMilestone,
@@ -252,6 +254,8 @@ export default function ReleaseDetailPage() {
                 primaryRows={primaryRows}
                 secondaryRows={secondaryRows}
                 flaggedMrCount={flaggedMrCount}
+                brFlaggedCount={brFlaggedCount}
+                msFlaggedCount={msFlaggedCount}
                 onOpenIssue={resolvedOnOpenIssue}
                 onOpenIssueFull={openIssueFull}
                 onSeedBreadcrumb={seedReleaseBreadcrumb}

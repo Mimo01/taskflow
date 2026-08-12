@@ -21,7 +21,9 @@ import { useSettingsStore } from '@/stores/settings.store';
 import {
   buildDriftRows,
   buildTaskMrAttachment,
+  countBranchFlaggedMRs,
   countBrMsFlaggedMRs,
+  countMilestoneFlaggedMRs,
   selectChannelA,
 } from './driftDetection';
 import type { MergeBackVerdict } from './mergeBackVerification';
@@ -584,6 +586,10 @@ export function useReleaseDetail(versionId: string | undefined) {
   // across both tables, counted once".
   const { primaryRows, secondaryRows } = buildTaskMrAttachment(releaseIssues, driftRows);
   const flaggedMrCount = countBrMsFlaggedMRs(driftRows);
+  // UAT-91.1-B: per-category counts for the two work-queue badges; flaggedMrCount
+  // is retained as their aggregate tooltip value (see driftDetection.ts docstring).
+  const brFlaggedCount = countBranchFlaggedMRs(driftRows);
+  const msFlaggedCount = countMilestoneFlaggedMRs(driftRows);
 
   const isLoadingDrift =
     isLoadingChannelA || isLoadingChannelB || isLoadingChannelC || isLoadingMilestones;
@@ -629,6 +635,8 @@ export function useReleaseDetail(versionId: string | undefined) {
     primaryRows,
     secondaryRows,
     flaggedMrCount,
+    brFlaggedCount,
+    msFlaggedCount,
     isLoadingDrift,
     driftUnavailable,
     hasMatchedMilestone,
