@@ -1258,8 +1258,9 @@ export async function fetchVersionIssueCounts(
 }
 
 /**
- * Fetch all non-subtask Jira issues for a fix version, paginated, ordered by
- * rank. Requests both common story-point field keys plus the
+ * Fetch all non-subtask Jira issues for a fix version, paginated, ordered
+ * oldest-first by creation date (key ascending as a tiebreak — keys are issued
+ * in creation order, so the two agree). Requests both common story-point field keys plus the
  * instance-resolved key (mirrors the Set-based pattern elsewhere in this
  * file) so effort works on instances using customfield_10028 instead of
  * customfield_10016.
@@ -1279,7 +1280,7 @@ export async function fetchFixVersionIssues(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
+  const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY created ASC, key ASC`;
   const fields = [
     'summary',
     'status',
