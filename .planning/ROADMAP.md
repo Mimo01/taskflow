@@ -308,7 +308,7 @@ Plans:
 
 **Wave 3** *(blocked on 91.1-08)*
 
-- [ ] 91.1-09-PLAN.md — Split the flagged badge into two clickable filtering warning badges with decided counting rules (UAT-91.1-B, IN-04)
+- [x] 91.1-09-PLAN.md — Split the flagged badge into two clickable filtering warning badges with decided counting rules (UAT-91.1-B, IN-04)
 
 **Wave 4** *(blocked on 91.1-09)*
 
