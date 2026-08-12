@@ -1456,6 +1456,47 @@ describe('D-13: secondary table', () => {
     expect(unevaluatedKey).toHaveAttribute('title', 'PROJ-9 — not evaluated (MR is merged)');
   });
 
+  it('the secondary table key is a link that opens the issue, like the primary table key (UAT test 5)', () => {
+    const flaggedRow = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: ['PROJ-9', 'PROJ-8'],
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    const unevaluatedRow = makeRow({
+      mr: makeMR({ id: 2, iid: 2, state: 'merged' }),
+      evaluated: false,
+      taskReason: null,
+      taskKeys: ['PROJ-7'],
+      task: 'na',
+      br: 'na',
+      ms: 'na',
+      flagged: false,
+    });
+    const { props } = renderSection({
+      secondaryRows: [flaggedRow, unevaluatedRow],
+      versionName: '33.5.0',
+    });
+
+    // Flagged branch: only the leading key is clickable — the `+1` count is not.
+    const flaggedKey = screen.getByTestId('secondary-key-flagged');
+    const flaggedButtons = flaggedKey.querySelectorAll('button');
+    expect(flaggedButtons).toHaveLength(1);
+    expect(flaggedButtons[0]).toHaveTextContent('PROJ-9');
+    fireEvent.click(flaggedButtons[0]);
+    expect(props.onNavigateToIssueFromMR).toHaveBeenCalledWith('PROJ-9');
+
+    // Unevaluated branch is linkified too, and keeps its muted styling.
+    const unevaluatedKey = screen.getByTestId('secondary-key-unevaluated');
+    const unevaluatedButton = unevaluatedKey.querySelector('button');
+    expect(unevaluatedButton).not.toBeNull();
+    expect(unevaluatedKey.querySelector('.text-orange-600')).toBeNull();
+    if (unevaluatedButton) fireEvent.click(unevaluatedButton);
+    expect(props.onNavigateToIssueFromMR).toHaveBeenCalledWith('PROJ-7');
+  });
+
   it('no rendered element in the secondary section ever contains "undefined is not in fix version"', () => {
     const flaggedKeyRow = makeRow({
       mr: makeMR({ id: 1, iid: 1 }),

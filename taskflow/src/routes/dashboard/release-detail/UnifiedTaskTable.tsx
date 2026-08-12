@@ -1115,6 +1115,21 @@ export function UnifiedTaskTable({
           {filteredSecondaryRows.map((row) => {
             const keys = row.taskKeys;
             let keyCell: React.ReactNode;
+            // The leading key is a link, matching the primary table's key cell:
+            // both open the issue full-page via the breadcrumb-seeding handler.
+            // The `+N` suffix stays inert — it is a count, not a single target.
+            const keyLink = (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateToIssueFromMR(keys[0]);
+                }}
+                className="hover:underline"
+              >
+                {keys[0]}
+              </button>
+            );
             if (row.taskReason === 'not-in-fix-version') {
               const suffix = keys.length > 1 ? 'are' : 'is';
               keyCell = (
@@ -1124,7 +1139,7 @@ export function UnifiedTaskTable({
                   title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
                 >
                   <AlertTriangle className="size-3" />
-                  {keys[0]}
+                  {keyLink}
                   {keys.length > 1 ? ` +${keys.length - 1}` : ''}
                 </span>
               );
@@ -1147,7 +1162,7 @@ export function UnifiedTaskTable({
                   className={`${COL_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1`}
                   title={`${keys.join(', ')} — not evaluated (MR is ${row.mr.state})`}
                 >
-                  {keys[0]}
+                  {keyLink}
                   {keys.length > 1 ? ` +${keys.length - 1}` : ''}
                 </span>
               );
