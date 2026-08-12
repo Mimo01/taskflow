@@ -14,6 +14,7 @@ import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 
 export type Density = 'compact' | 'default' | 'comfortable';
+export type FontScale = 'sm' | 'md' | 'lg' | 'xl';
 export type CommentSortOrder = 'newest' | 'oldest';
 
 /** Default values for all persisted data fields (no actions, no sidebarItems). */
@@ -39,6 +40,7 @@ const initialSettings = {
   retentionLimit: 200,
   jiraConcurrencyLimit: 6,
   density: 'default' as Density,
+  fontScale: 'md' as FontScale,
   sprintCollapseByDefault: false,
   keyboardOverrides: {} as Record<string, string>,
   commentSortOrder: 'newest' as CommentSortOrder,
@@ -112,6 +114,8 @@ interface SettingsState {
   jiraConcurrencyLimit: number;
   /** UI density preference. Default: 'default'. */
   density: Density;
+  /** UI text/font scale preference. Default: 'md'. */
+  fontScale: FontScale;
   /** Collapse sprints by default in the board view. Default: false. */
   sprintCollapseByDefault: boolean;
   /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
@@ -191,6 +195,7 @@ interface SettingsState {
   setRetentionLimit: (v: number) => void;
   setJiraConcurrencyLimit: (v: number) => void;
   setDensity: (d: Density) => void;
+  setFontScale: (s: FontScale) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
@@ -308,6 +313,7 @@ export const useSettingsStore = create<SettingsState>()(
         setConcurrencyRuntime(v);
       },
       setDensity: (d) => set({ density: d }),
+      setFontScale: (s) => set({ fontScale: s }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
@@ -353,7 +359,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 27,
+      version: 28,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -464,6 +470,9 @@ export const useSettingsStore = create<SettingsState>()(
           if (Array.isArray(s.sidebarItems)) {
             s.sidebarItems = appendMyTasksItemIfMissing(s.sidebarItems as SidebarItem[]);
           }
+        }
+        if (version < 28) {
+          if (s.fontScale === undefined) s.fontScale = 'md';
         }
         return persisted as SettingsState;
       },

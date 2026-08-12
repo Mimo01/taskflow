@@ -43,7 +43,7 @@ import { routes } from './routes/routes';
 import { initAvatarCache } from './services/avatarCache';
 import { discoverCustomFields, fetchIssueSummary, invalidateGhBacklogData } from './services/jira';
 import { readSecret } from './services/stronghold';
-import { applyDensity, loadTheme } from './services/theme';
+import { loadAppearance, loadTheme } from './services/theme';
 import { updaterService } from './services/updater';
 import { useAuthStore } from './stores/auth.store';
 import { useBreadcrumbStore } from './stores/breadcrumb.store';
@@ -705,13 +705,13 @@ const router = createHashRouter([
   },
 ]);
 
-// Apply persisted theme BEFORE first render to avoid flash of wrong theme.
-// loadTheme() falls back to 'system' if no preference is saved.
-// applyDensity('default') sets the density baseline synchronously — no flash
-// because 'default' means no data-density attribute (CSS baseline sizing).
-// After hydration, AppearanceSection's useEffect will apply the stored density.
-applyDensity('default');
-Promise.all([loadTheme(), initAvatarCache().catch(() => {})]).then(() => {
+// Apply persisted theme, density, and font scale BEFORE first render to avoid
+// any flash of wrong appearance. loadTheme() falls back to 'system' if no
+// preference is saved. loadAppearance() reads density and font scale
+// directly from the persisted Zustand settings blob and applies both via
+// applyDensity/applyFontScale — this does not depend on AppearanceSection
+// ever mounting, which is the pre-existing bug this fixes.
+Promise.all([loadTheme(), loadAppearance(), initAvatarCache().catch(() => {})]).then(() => {
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
