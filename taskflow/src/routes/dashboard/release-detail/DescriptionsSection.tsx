@@ -49,7 +49,7 @@ export function DescriptionsSection({
             GitLab Description
           </h3>
           {matchedMilestone.description ? (
-            <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_li]:my-0">
+            <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 density-compact:[&_p]:my-0.5 density-comfortable:[&_p]:my-2 [&_ul]:my-1 density-compact:[&_ul]:my-0.5 density-comfortable:[&_ul]:my-2 [&_ul]:pl-4 [&_li]:my-0 density-comfortable:[&_li]:my-1">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {matchedMilestone.description}
               </ReactMarkdown>
