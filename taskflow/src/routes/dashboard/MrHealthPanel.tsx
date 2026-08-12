@@ -60,7 +60,7 @@ export default function MrHealthPanel({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px]">
+    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px] density-compact:min-h-[120px] density-comfortable:min-h-[184px]">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         MR Health
       </h2>

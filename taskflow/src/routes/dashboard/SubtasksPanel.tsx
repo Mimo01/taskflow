@@ -74,7 +74,7 @@ export default function SubtasksPanel({
   const displayed = mySubtasks.slice(0, 5);
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px]">
+    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px] density-compact:min-h-[120px] density-comfortable:min-h-[184px]">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         My Subtasks
       </h2>
@@ -103,7 +103,7 @@ export default function SubtasksPanel({
               onClick={() =>
                 onIssueClick ? onIssueClick(issue.key) : openJiraIssue(jiraBaseUrl, issue.key)
               }
-              className="w-full text-left flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded px-1 cursor-pointer"
+              className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/50 rounded px-1 cursor-pointer"
             >
               <span className="font-mono text-xs text-muted-foreground w-20 flex-shrink-0">
                 {issue.key}

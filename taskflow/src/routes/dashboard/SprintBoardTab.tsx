@@ -180,7 +180,7 @@ function TransitionDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={`border-2 border-dashed rounded-md min-h-[80px] flex items-center justify-center text-xs font-semibold px-1 text-center transition-colors ${
+      className={`border-2 border-dashed rounded-md min-h-[80px] density-compact:min-h-[56px] density-comfortable:min-h-[96px] flex items-center justify-center text-xs font-semibold px-1 text-center transition-colors ${
         isOver ? tone.over : tone.idle
       }`}
     >
@@ -530,7 +530,7 @@ function VirtualizedSwimlanes({
                 return (
                   <div
                     key={col.key}
-                    className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
+                    className={`flex-1 min-w-0 min-h-[80px] density-compact:min-h-[56px] density-comfortable:min-h-[96px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                   >
                     {subtasksLoading ? (
                       <Skeleton className="h-8 w-full" />
@@ -705,7 +705,7 @@ function VirtualizedSwimlanes({
                     return (
                       <div
                         key={col.key}
-                        className={`flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
+                        className={`flex-1 min-w-0 min-h-[80px] density-compact:min-h-[56px] density-comfortable:min-h-[96px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                       >
                         {subtasksLoading ? (
                           <Skeleton className="h-8 w-full" />
