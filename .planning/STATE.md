@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 Phase: 91.2
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-08-12
+Last activity: 2026-08-13 - Completed quick task 260813-1k3: In Recently Visited, also show the issue type icon
 
 Progress: [██████████] 100%
 
@@ -128,6 +128,7 @@ None yet.
 | 260812-mry | Add compactness and font size settings to Appearance section | 2026-08-12 | 5566e8ff | Verified | [260812-mry-add-compactness-and-font-size-settings-t](./quick/260812-mry-add-compactness-and-font-size-settings-t/) |
 | 260812-rx9 | Enhance compactness settings coverage — full density sweep (wiki prose, standup notes, epics, AIO pages, +45 more surfaces) | 2026-08-12 | cdec90cb | Verified | [260812-rx9-enhance-compactness-settings-coverage](./quick/260812-rx9-enhance-compactness-settings-coverage/) |
 | 260813-fst | On release detail, order Jira tickets by created date/key ascending | 2026-08-13 | e82a947e | | — |
+| 260813-1k3 | In Recently Visited, also show the issue type icon | 2026-08-13 | 5b9c4184 | | [260813-1k3-in-the-recently-visited-also-put-the-typ](./quick/260813-1k3-in-the-recently-visited-also-put-the-typ/) |
 
 ## Deferred Items
 
