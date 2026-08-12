@@ -1,7 +1,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { AlertTriangle, Check, GitBranch, Loader2, Milestone } from 'lucide-react';
 import type React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Progress } from '@/components/ui/progress';
@@ -39,8 +39,8 @@ export interface UnifiedTaskTableProps {
   primaryRows: Array<{ issue: JiraIssue; mrs: DriftRow[] }>;
   secondaryRows: DriftRow[];
   flaggedMrCount: number;
-  brFlaggedCount?: number;
-  msFlaggedCount?: number;
+  brFlaggedCount: number;
+  msFlaggedCount: number;
   onOpenIssue: (key: string) => void;
   onOpenIssueFull: (key: string) => void;
   onSeedBreadcrumb: () => void;
@@ -606,12 +606,37 @@ export function UnifiedTaskTable({
   primaryRows,
   secondaryRows,
   flaggedMrCount,
+  brFlaggedCount,
+  msFlaggedCount,
   onOpenIssue,
   onOpenIssueFull,
   onSeedBreadcrumb,
   onNavigateToIssueFromMR,
   fix,
 }: UnifiedTaskTableProps) {
+  // UAT-91.1-B: local category filter driven by the two work-queue badges.
+  // Applied at render time (not to props) — see T-91.1-18 threat disposition.
+  const [activeFilter, setActiveFilter] = useState<'br' | 'ms' | null>(null);
+
+  const filterPredicate =
+    activeFilter === 'br'
+      ? (r: DriftRow) => r.br === 'flag'
+      : activeFilter === 'ms'
+        ? (r: DriftRow) => r.ms === 'flag'
+        : null;
+
+  const filteredPrimaryRows = filterPredicate
+    ? primaryRows
+        .map(({ issue, mrs }) => ({ issue, mrs: mrs.filter(filterPredicate) }))
+        .filter(({ mrs }) => mrs.length > 0)
+    : primaryRows;
+
+  const filteredSecondaryRows = filterPredicate
+    ? secondaryRows.filter(filterPredicate)
+    : secondaryRows;
+
+  const clearFilter = () => setActiveFilter(null);
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-2">
@@ -621,15 +646,46 @@ export function UnifiedTaskTable({
             {issueCounts.issuesFixed} / {issueCounts.issuesTotal} done
           </Badge>
         )}
-        {!isLoadingDrift && !isLoadingIssues && (
-          <Badge
-            variant="secondary"
-            className="ml-1.5 text-xs tabular-nums"
-            data-testid="flagged-count-badge"
-            title="Merge requests needing attention"
+        {!isLoadingDrift && !isLoadingIssues && (brFlaggedCount > 0 || msFlaggedCount > 0) && (
+          <div
+            className="ml-1.5 flex items-center gap-1.5"
+            title={`${flaggedMrCount} merge requests need attention`}
           >
-            {flaggedMrCount}
-          </Badge>
+            {brFlaggedCount > 0 && (
+              <button
+                type="button"
+                data-testid="flagged-br-badge"
+                aria-pressed={activeFilter === 'br'}
+                aria-label={`Show ${brFlaggedCount} merge requests targeting the wrong branch`}
+                onClick={() => setActiveFilter((prev) => (prev === 'br' ? null : 'br'))}
+              >
+                <Badge
+                  variant="outline"
+                  className="text-xs tabular-nums gap-1 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700"
+                >
+                  <AlertTriangle className="size-3" />
+                  {brFlaggedCount} wrong branch
+                </Badge>
+              </button>
+            )}
+            {msFlaggedCount > 0 && (
+              <button
+                type="button"
+                data-testid="flagged-ms-badge"
+                aria-pressed={activeFilter === 'ms'}
+                aria-label={`Show ${msFlaggedCount} merge requests with no release milestone`}
+                onClick={() => setActiveFilter((prev) => (prev === 'ms' ? null : 'ms'))}
+              >
+                <Badge
+                  variant="outline"
+                  className="text-xs tabular-nums gap-1 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700"
+                >
+                  <AlertTriangle className="size-3" />
+                  {msFlaggedCount} no milestone
+                </Badge>
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -656,18 +712,43 @@ export function UnifiedTaskTable({
         </div>
       )}
 
+      {/* Filter escape hatch (UAT-91.1-B) — needed because a successful fix
+          dropping a count to zero hides its own badge. */}
+      {activeFilter && (
+        <div
+          data-testid="filter-active-notice"
+          className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 mb-4 text-xs"
+        >
+          <span>
+            {activeFilter === 'br'
+              ? 'Showing only merge requests with a wrong target branch'
+              : 'Showing only merge requests with no release milestone'}
+          </span>
+          <button
+            type="button"
+            data-testid="filter-clear"
+            className="text-xs font-medium underline underline-offset-2"
+            onClick={clearFilter}
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
       {isLoadingIssues ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
           <Loader2 className="size-3.5 animate-spin" />
           Loading issues...
         </div>
-      ) : primaryRows.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">No issues in this fix version</p>
+      ) : filteredPrimaryRows.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4">
+          {activeFilter ? 'No merge requests match this filter' : 'No issues in this fix version'}
+        </p>
       ) : (
         <>
           <ColumnHeaderStrip />
           <div data-testid="task-list">
-            {primaryRows.map(({ issue, mrs }) => (
+            {filteredPrimaryRows.map(({ issue, mrs }) => (
               <div key={issue.id}>
                 <TaskRow
                   issue={issue}
@@ -689,11 +770,11 @@ export function UnifiedTaskTable({
         </>
       )}
 
-      {!isLoadingIssues && secondaryRows.length > 0 && (
+      {!isLoadingIssues && filteredSecondaryRows.length > 0 && (
         <div data-testid="secondary-section" className="mt-4 pt-4 border-t border-border/50">
           <h4 className="text-sm font-medium">Not covered by tasks above</h4>
           <ColumnHeaderStrip />
-          {secondaryRows.map((row) => {
+          {filteredSecondaryRows.map((row) => {
             const keys = row.taskKeys;
             let keyCell: React.ReactNode;
             if (row.taskReason === 'not-in-fix-version') {
