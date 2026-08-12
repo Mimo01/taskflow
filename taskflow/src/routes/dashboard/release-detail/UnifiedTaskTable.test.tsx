@@ -134,6 +134,8 @@ function defaultProps(overrides: Partial<UnifiedTaskTableProps> = {}): UnifiedTa
     primaryRows: [],
     secondaryRows: [],
     flaggedMrCount: 0,
+    brFlaggedCount: 0,
+    msFlaggedCount: 0,
     onOpenIssue: vi.fn(),
     onOpenIssueFull: vi.fn(),
     onSeedBreadcrumb: vi.fn(),
@@ -241,10 +243,11 @@ describe('UnifiedTaskTable', () => {
     expect(screen.getByText('No issues in this fix version')).toBeInTheDocument();
   });
 
-  it('renders the passed flaggedMrCount in the flagged-count badge', () => {
-    renderSection({ flaggedMrCount: 3 });
+  it('renders the br/ms badges from the passed per-category counts', () => {
+    renderSection({ flaggedMrCount: 3, brFlaggedCount: 2, msFlaggedCount: 1 });
     expect(screen.getByText('Issues')).toBeInTheDocument();
-    expect(screen.getByTestId('flagged-count-badge')).toHaveTextContent('3');
+    expect(screen.getByTestId('flagged-br-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('flagged-ms-badge')).toHaveTextContent('1');
   });
 
   // CR-01 regression: `extractTicketKeys` normalises what it returns (uppercases,
@@ -1007,26 +1010,181 @@ describe('D-13: secondary table', () => {
 });
 
 describe('D-14/D-15: header', () => {
-  it('the done badge and the flagged-count badge both render, the latter showing the passed flaggedMrCount', () => {
+  it('the done badge and both br/ms flagged badges render, showing the passed per-category counts', () => {
     renderSection({
       issueCounts: { issuesFixed: 4, issuesTotal: 6 },
-      flaggedMrCount: 2,
+      flaggedMrCount: 3,
+      brFlaggedCount: 2,
+      msFlaggedCount: 1,
     });
     expect(screen.getByText('4 / 6 done')).toBeInTheDocument();
-    expect(screen.getByTestId('flagged-count-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('flagged-br-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('flagged-ms-badge')).toHaveTextContent('1');
+    expect(screen.queryByTestId('flagged-count-badge')).toBeNull();
   });
 
-  it('Test 6 (IN-03): flagged-count-badge is hidden while isLoadingDrift, hidden while isLoadingIssues, and shown when both are false', () => {
-    const { unmount } = renderSection({ flaggedMrCount: 2, isLoadingDrift: true });
-    expect(screen.queryByTestId('flagged-count-badge')).toBeNull();
+  it('Test 6 (IN-03): flagged badges are hidden while isLoadingDrift, hidden while isLoadingIssues, and shown when both are false', () => {
+    const { unmount } = renderSection({
+      flaggedMrCount: 2,
+      brFlaggedCount: 2,
+      isLoadingDrift: true,
+    });
+    expect(screen.queryByTestId('flagged-br-badge')).toBeNull();
     unmount();
 
-    const { unmount: unmount2 } = renderSection({ flaggedMrCount: 2, isLoadingIssues: true });
-    expect(screen.queryByTestId('flagged-count-badge')).toBeNull();
+    const { unmount: unmount2 } = renderSection({
+      flaggedMrCount: 2,
+      brFlaggedCount: 2,
+      isLoadingIssues: true,
+    });
+    expect(screen.queryByTestId('flagged-br-badge')).toBeNull();
     unmount2();
 
-    renderSection({ flaggedMrCount: 2, isLoadingDrift: false, isLoadingIssues: false });
-    expect(screen.getByTestId('flagged-count-badge')).toHaveTextContent('2');
+    renderSection({
+      flaggedMrCount: 2,
+      brFlaggedCount: 2,
+      isLoadingDrift: false,
+      isLoadingIssues: false,
+    });
+    expect(screen.getByTestId('flagged-br-badge')).toHaveTextContent('2');
+  });
+});
+
+describe('UAT-91.1-B: filtering warning badges', () => {
+  it('Test 2: brFlaggedCount 0 renders no flagged-br-badge at all (not a 0)', () => {
+    renderSection({ flaggedMrCount: 1, brFlaggedCount: 0, msFlaggedCount: 1 });
+    expect(screen.queryByTestId('flagged-br-badge')).toBeNull();
+    expect(screen.getByTestId('flagged-ms-badge')).toBeInTheDocument();
+  });
+
+  it('Test 3: both counts zero renders neither badge', () => {
+    renderSection({ flaggedMrCount: 0, brFlaggedCount: 0, msFlaggedCount: 0 });
+    expect(screen.queryByTestId('flagged-br-badge')).toBeNull();
+    expect(screen.queryByTestId('flagged-ms-badge')).toBeNull();
+  });
+
+  it('Test 5: clicking flagged-br-badge hides MR sub-lines whose br !== flag and hides task rows left with zero matching MRs', () => {
+    const brFlagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
+    const clean = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+    const taskWithFlagged = makeIssue({ key: 'PROJ-1' });
+    const taskWithOnlyClean = makeIssue({ key: 'PROJ-2' });
+    renderSection({
+      primaryRows: [
+        { issue: taskWithFlagged, mrs: [brFlagged] },
+        { issue: taskWithOnlyClean, mrs: [clean] },
+      ],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+
+    const taskRows = screen.getAllByTestId('task-row');
+    expect(taskRows).toHaveLength(1);
+    expect(taskRows[0]).toHaveTextContent('PROJ-1');
+    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+  });
+
+  it('Test 5b: secondary rows are filtered by the same predicate', () => {
+    const brFlaggedSecondary = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      br: 'flag',
+      flagged: true,
+      taskKeys: [],
+    });
+    const cleanSecondary = makeRow({ mr: makeMR({ id: 2, iid: 2 }), taskKeys: [] });
+    renderSection({
+      secondaryRows: [brFlaggedSecondary, cleanSecondary],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+
+    const rows = within(screen.getByTestId('secondary-section')).getAllByTestId('drift-row');
+    expect(rows).toHaveLength(1);
+  });
+
+  it('Test 6: clicking flagged-br-badge twice restores every row (toggle-off), aria-pressed reflects state', () => {
+    const brFlagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
+    const clean = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+    renderSection({
+      primaryRows: [
+        { issue: makeIssue({ key: 'PROJ-1' }), mrs: [brFlagged] },
+        { issue: makeIssue({ key: 'PROJ-2' }), mrs: [clean] },
+      ],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+    });
+
+    const badge = screen.getByTestId('flagged-br-badge');
+    expect(badge).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(badge);
+    expect(badge).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByTestId('task-row')).toHaveLength(1);
+
+    fireEvent.click(badge);
+    expect(badge).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getAllByTestId('task-row')).toHaveLength(2);
+  });
+
+  it('Test 7: an MR flagged on both BR and MS is still rendered under either filter (Rule 1)', () => {
+    const doubleFlagged = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    renderSection({
+      primaryRows: [{ issue: makeIssue({ key: 'PROJ-1' }), mrs: [doubleFlagged] }],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+      msFlaggedCount: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge')); // toggle off
+    fireEvent.click(screen.getByTestId('flagged-ms-badge'));
+    expect(screen.getAllByTestId('drift-row')).toHaveLength(1);
+  });
+
+  it('Test 8: with a filter active, filter-active-notice renders and filter-clear restores every row', () => {
+    const brFlagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
+    const clean = makeRow({ mr: makeMR({ id: 2, iid: 2 }) });
+    renderSection({
+      primaryRows: [
+        { issue: makeIssue({ key: 'PROJ-1' }), mrs: [brFlagged] },
+        { issue: makeIssue({ key: 'PROJ-2' }), mrs: [clean] },
+      ],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+    expect(screen.getByTestId('filter-active-notice')).toBeInTheDocument();
+    expect(screen.getAllByTestId('task-row')).toHaveLength(1);
+
+    fireEvent.click(screen.getByTestId('filter-clear'));
+    expect(screen.queryByTestId('filter-active-notice')).toBeNull();
+    expect(screen.getAllByTestId('task-row')).toHaveLength(2);
+  });
+
+  it('while a filter is active, MrSlot empty-state lines never leak (excluded tasks are dropped entirely)', () => {
+    const brFlagged = makeRow({ mr: makeMR({ id: 1, iid: 1 }), br: 'flag', flagged: true });
+    renderSection({
+      primaryRows: [{ issue: makeIssue({ key: 'PROJ-1' }), mrs: [brFlagged] }],
+      flaggedMrCount: 1,
+      brFlaggedCount: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('flagged-br-badge'));
+    expect(screen.queryByTestId('mr-slot-pending')).toBeNull();
+    expect(screen.queryByTestId('mr-slot-none')).toBeNull();
+    expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
+    expect(screen.queryByTestId('mr-slot-failed')).toBeNull();
   });
 });
 
