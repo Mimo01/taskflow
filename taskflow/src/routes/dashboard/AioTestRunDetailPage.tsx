@@ -89,7 +89,7 @@ function DefectRow({
           }
         : {})}
     >
-      <td className="px-3 py-2 font-mono text-sm whitespace-nowrap">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 font-mono text-sm whitespace-nowrap">
         <div className="flex items-center gap-1.5">
           {issue?.fields.issuetype?.name !== undefined && (
             <IssueTypeIcon typeName={issue.fields.issuetype.name} />
@@ -99,14 +99,14 @@ function DefectRow({
           </NavLink>
         </div>
       </td>
-      <td className="px-3 py-2 text-sm">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-sm">
         {isLoading ? (
           <Skeleton className="h-4 w-32" />
         ) : (
           <span>{issue?.fields.summary ?? displayKey}</span>
         )}
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3">
         {issue?.fields.status ? (
           <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
             {issue.fields.status.name}
@@ -117,7 +117,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-20" />
         ) : issue?.fields.assignee ? (
@@ -133,7 +133,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-20" />
         ) : issue?.fields.reporter ? (
@@ -149,7 +149,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : issue?.fields.priority ? (
@@ -163,7 +163,7 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">
+      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : severityValue ? (
@@ -369,33 +369,43 @@ export default function AioTestRunDetailPage() {
                 >
                   <thead className="bg-muted/30">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold w-12">#</th>
-                      <th className="px-3 py-2 text-left font-semibold">Step</th>
-                      <th className="px-3 py-2 text-left font-semibold">Expected</th>
-                      <th className="px-3 py-2 text-left font-semibold">Actual</th>
-                      <th className="px-3 py-2 text-left font-semibold w-24">Status</th>
+                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold w-12">
+                        #
+                      </th>
+                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold">
+                        Step
+                      </th>
+                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold">
+                        Expected
+                      </th>
+                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold">
+                        Actual
+                      </th>
+                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold w-24">
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {detailQuery.data.steps.map((step, idx) => (
                       <tr key={step.id ?? idx} className="border-t border-border align-top">
-                        <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 font-mono text-xs text-muted-foreground">
                           {idx + 1}
                         </td>
-                        <td className="px-3 py-2 min-w-0">
+                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 min-w-0">
                           <WikiRenderer wikiText={step.step} />
                         </td>
-                        <td className="px-3 py-2 min-w-0">
+                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 min-w-0">
                           <WikiRenderer wikiText={step.expectedResult} />
                         </td>
-                        <td className="px-3 py-2 min-w-0">
+                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 min-w-0">
                           {step.status === 'NOT_EXECUTED' || !step.actualResult ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <WikiRenderer wikiText={step.actualResult} />
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3">
                           <span className={aioRunStatusPillClass(step.status ?? 'NOT_EXECUTED')}>
                             {normalizeStatusLabel(step.status)}
                           </span>
@@ -415,25 +425,25 @@ export default function AioTestRunDetailPage() {
                   <table className="w-full text-sm border border-border rounded-md">
                     <thead className="bg-muted/30">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Key
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Title
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Status
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Assignee
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Reporter
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Priority
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
                           Severity
                         </th>
                       </tr>
