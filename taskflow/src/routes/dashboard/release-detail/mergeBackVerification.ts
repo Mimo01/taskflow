@@ -79,6 +79,11 @@ export type MergeBackVerdict =
   | {
       kind: 'couldnt-verify';
       reason: 'no-mr-no-tag' | 'check-failed';
+      /** WR-08: the BARE version that was searched for (e.g. `33.5.0`), NOT a
+       *  `v`-prefixed spelling. `findReleaseTag` matches either form, so
+       *  naming one of them in the UI copy would describe a lookup that did
+       *  not happen. Renderers must present it as "with or without a leading
+       *  v" rather than as a literal tag name. */
       expectedTagName: string | null;
     }
   | {

@@ -333,7 +333,11 @@ export function ReleaseDetailSidebar({
                   mergeBackVerdict.reason === 'check-failed'
                     ? 'the merge-back check could not be completed'
                     : mergeBackVerdict.expectedTagName
-                      ? `no tracking MR and no ${mergeBackVerdict.expectedTagName} tag found`
+                      ? // WR-08: name the pattern actually searched. `findReleaseTag`
+                        // strips an optional leading `v` and matches either spelling,
+                        // so "no v33.5.0 tag found" described a narrower lookup than
+                        // the one performed.
+                        `no tracking MR and no tag matching ${mergeBackVerdict.expectedTagName} (with or without a leading v) found`
                       : 'no tracking MR and no release tag found'
                 }
               >
