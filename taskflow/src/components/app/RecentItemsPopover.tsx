@@ -1,11 +1,15 @@
 /**
  * RecentItemsPopover -- clock icon trigger with a popover listing the last 10
  * recently opened issues/MRs. Reads from useRecentItemsStore and resolves
- * display titles from the react-query cache when available.
+ * display titles from the react-query cache when available. Each row leads
+ * with the issue-type icon (Jira) or a merge icon (GitLab MRs) via the
+ * shared IssueTypeIcon primitive, falling back to a clock glyph when no
+ * type can be resolved from cache or the persisted item.
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { Clock } from 'lucide-react';
+import { Clock, GitMerge } from 'lucide-react';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -23,9 +27,12 @@ interface RecentItemsPopoverProps {
  * gh-backlog cache entries; an `as JiraIssue` cast would silently mislead
  * any future caller that touches `.fields.status`, `.fields.issuetype`,
  * etc.). Callers must check the discriminator before accessing other
- * fields.
+ * fields. `typeName` is carried separately (also optional) so the popover
+ * can render the correct IssueTypeIcon without widening the cast.
  */
-type RecentIssueLike = JiraIssue | { key: string; fields: { summary: string }; isPartial: true };
+type RecentIssueLike =
+  | JiraIssue
+  | { key: string; fields: { summary: string }; isPartial: true; typeName?: string };
 
 /**
  * Search all react-query cache entries for a Jira issue by key.
@@ -57,20 +64,23 @@ function findJiraIssueInCache(
   // raw GhBacklogResponse envelope. The recent-items popover only needs the
   // issue summary, so adapt the GH shape into a minimal JiraIssue-like object.
   const ghBacklogQueries = queryClient.getQueriesData<{
-    issues?: Array<{ key: string; summary?: string }>;
+    issues?: Array<{ key: string; summary?: string; typeId?: string }>;
+    entityData?: { types?: Record<string, { typeName?: string }> };
   }>({ queryKey: ['gh-backlog'] });
   for (const [, data] of ghBacklogQueries) {
     if (!data?.issues) continue;
     const match = data.issues.find((issue) => issue.key === issueKey);
     if (match) {
       // WR-02: return a narrow `isPartial` variant rather than casting to
-      // JiraIssue. The recents row only reads `.fields.summary`; any future
-      // caller that touches `.fields.status` etc. will be forced by the
-      // discriminated-union type to first check `'isPartial' in result`.
+      // JiraIssue. The recents row only reads `.fields.summary` and
+      // `.typeName`; any future caller that touches `.fields.status` etc.
+      // will be forced by the discriminated-union type to first check
+      // `'isPartial' in result`.
       return {
         key: match.key,
         fields: { summary: match.summary ?? '' },
         isPartial: true,
+        typeName: match.typeId ? data.entityData?.types?.[match.typeId]?.typeName : undefined,
       };
     }
   }
@@ -116,11 +126,15 @@ function RecentItemRow({
 }) {
   let label: string;
   let title: string | undefined;
+  let resolvedTypeName: string | undefined;
 
   if (item.type === 'jira') {
     const cached = findJiraIssueInCache(queryClient, item.id);
     label = item.id;
     title = cached?.fields.summary ?? item.title;
+    const cachedTypeName =
+      cached && 'isPartial' in cached ? cached.typeName : cached?.fields.issuetype?.name;
+    resolvedTypeName = cachedTypeName ?? item.issueType;
   } else {
     const cached = findGitLabMRInCache(queryClient, item.id);
     label = `!${item.id}`;
@@ -141,7 +155,15 @@ function RecentItemRow({
       className="w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-sm hover:bg-muted flex gap-2 items-center"
       onClick={handleClick}
     >
-      <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      {item.type === 'jira' ? (
+        resolvedTypeName ? (
+          <IssueTypeIcon typeName={resolvedTypeName} className="w-3.5 h-3.5 shrink-0" />
+        ) : (
+          <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        )
+      ) : (
+        <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+      )}
       <span className="font-mono text-muted-foreground flex-shrink-0">{label}</span>
       <span className="truncate">{title ?? ''}</span>
     </button>
