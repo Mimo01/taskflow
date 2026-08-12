@@ -160,6 +160,15 @@
   html {
     @apply font-sans;
   }
+  html[data-font-scale='sm'] {
+    font-size: 87.5%;
+  }
+  html[data-font-scale='lg'] {
+    font-size: 112.5%;
+  }
+  html[data-font-scale='xl'] {
+    font-size: 125%;
+  }
 }
 
 .bg-disabled-stripe {
