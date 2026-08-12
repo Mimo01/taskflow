@@ -352,7 +352,13 @@ describe('resolveMergeBackVerdict: CR-03/CR-04 terminal fallbacks for permanentl
     });
   });
 
-  it('CR-03: trackingMRsUnavailable true with no tag yields couldnt-verify no-mr-no-tag, not loading', () => {
+  // WR-09 revises the reason this case previously asserted. The CR-03 half —
+  // terminating instead of reporting `loading` for a query that will never
+  // run — is unchanged and still asserted below. What changed: the tooltip
+  // said "no tracking MR and no release tag found" for a tracking-MR channel
+  // that was never queried. `check-failed` states the truth (something could
+  // not be checked); `no-mr-no-tag` claimed an established negative.
+  it('CR-03/WR-09: trackingMRsUnavailable with no tag terminates as check-failed, never no-mr-no-tag', () => {
     const result = resolveMergeBackVerdict(
       makeParams({
         trackingMRs: undefined,
@@ -362,6 +368,22 @@ describe('resolveMergeBackVerdict: CR-03/CR-04 terminal fallbacks for permanentl
       }),
     );
     expect(result.kind).not.toBe('loading');
+    expect(result).toEqual({
+      kind: 'couldnt-verify',
+      reason: 'check-failed',
+      expectedTagName: 'v33.7.0',
+    });
+  });
+
+  it('WR-09: a HEALTHY tracking-MR channel with no tag still reports no-mr-no-tag (D-01)', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({
+        trackingMRs: [],
+        trackingMRsCheckFailed: false,
+        trackingMRsUnavailable: false,
+        tagName: null,
+      }),
+    );
     expect(result).toEqual({
       kind: 'couldnt-verify',
       reason: 'no-mr-no-tag',
