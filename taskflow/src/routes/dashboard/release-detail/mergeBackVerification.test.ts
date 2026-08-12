@@ -18,9 +18,18 @@ function makeParams(overrides: Partial<Parameters<typeof resolveMergeBackVerdict
     releasedVersion: true,
     hasMatchedMilestone: true,
     defaultBranch: 'develop',
+    // WR-06: these four are REQUIRED params now, so the factory states them
+    // explicitly rather than leaning on destructuring defaults inside the
+    // resolver. The defaults live here, in the test fixture, where a healthy
+    // baseline is the point — not in production code, where an omission used
+    // to mean "this channel definitely did not fail".
+    defaultBranchCheckFailed: false,
     trackingMRs: [] as readonly TrackingMR[],
     trackingMRsCheckFailed: false,
+    trackingMRsUnavailable: false,
     tagName: 'v33.7.0',
+    tagLookupPending: false,
+    tagCheckFailed: false,
     expectedTagName: 'v33.7.0',
     compareResult: defaultCompare,
     compareCheckFailed: false,
@@ -433,13 +442,31 @@ describe('resolveMergeBackVerdict: tag-channel loading and failure guards (91-VE
     });
   });
 
-  it('omitting both tag-channel params entirely reproduces the pre-change verdict (default-compatibility lock)', () => {
-    const result = resolveMergeBackVerdict(makeParams({ tagName: null }));
+  it('a healthy tag channel with no tag still yields no-mr-no-tag (D-01 baseline)', () => {
+    const result = resolveMergeBackVerdict(
+      makeParams({ tagName: null, tagLookupPending: false, tagCheckFailed: false }),
+    );
     expect(result).toEqual({
       kind: 'couldnt-verify',
       reason: 'no-mr-no-tag',
       expectedTagName: 'v33.7.0',
     });
+  });
+
+  it('WR-06: omitting a channel-health param is a type error — no silent `false` default', () => {
+    const { tagCheckFailed: _dropped, ...withoutTagCheckFailed } = makeParams({ tagName: null });
+    const result = resolveMergeBackVerdict(
+      // @ts-expect-error tagCheckFailed is required (WR-06): the module header
+      // states EVERY evidence channel carries both an in-flight and a failure
+      // signal into this resolver, and the type system is the only place that
+      // invariant is checkable. Omitting one must not compile.
+      withoutTagCheckFailed,
+    );
+    // The old default-compatibility lock asserted the omission produced
+    // `no-mr-no-tag`. That is precisely the bug: an unknown channel state read
+    // as a settled negative. The behaviour is retained only as documentation
+    // of what the type error now prevents at every real call site.
+    expect(result.kind).toBe('couldnt-verify');
   });
 });
 
