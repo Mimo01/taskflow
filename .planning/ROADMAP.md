@@ -284,8 +284,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 91.1-02-PLAN.md — Thread primaryRows/secondaryRows/flaggedMrCount through useReleaseDetail (additive)
-- [ ] 91.1-03-PLAN.md — Build UnifiedTaskTable.tsx: header, banner, task rows, MR sub-lines, secondary table
+- [x] 91.1-02-PLAN.md — Thread primaryRows/secondaryRows/flaggedMrCount through useReleaseDetail (additive)
+- [x] 91.1-03-PLAN.md — Build UnifiedTaskTable.tsx: header, banner, task rows, MR sub-lines, secondary table
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
