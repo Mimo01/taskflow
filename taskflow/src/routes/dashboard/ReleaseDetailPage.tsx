@@ -19,12 +19,11 @@ import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
 import { CreateMilestoneDialog } from './release-detail/CreateMilestoneDialog';
 import { DescriptionsSection } from './release-detail/DescriptionsSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
-import { IssuesSection } from './release-detail/IssuesSection';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
-import { MrDriftSection } from './release-detail/MrDriftSection';
 import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { ReleaseBreadcrumbHeader, ReleaseTitleHeading } from './release-detail/ReleaseHeader';
+import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
@@ -71,10 +70,9 @@ export default function ReleaseDetailPage() {
     isLoadingIssues,
     releaseIssues,
     releaseMrs,
-    matchedRows,
-    wrongMilestoneByKey,
-    driftRows,
-    driftFlaggedCount,
+    primaryRows,
+    secondaryRows,
+    flaggedMrCount,
     isLoadingDrift,
     hasMatchedMilestone,
     labelSummary,
@@ -235,33 +233,28 @@ export default function ReleaseDetailPage() {
                 labelSummary={labelSummary}
               />
 
-              {/* Issues with MR matching */}
-              <IssuesSection
+              {/* Unified task table (criterion 1): one Jira-task-keyed table with
+                  every associated MR inline underneath, plus a conditional
+                  secondary table for MRs no task covers. `key` remounts the
+                  table when the release changes — navigating to an
+                  already-cached release skips the skeleton branch above, so
+                  nothing else would remount it, and the per-cell fix state
+                  (`useMrFixMutation`'s local `status`/`errorMessage`) would
+                  otherwise carry over from the previous release. */}
+              <UnifiedTaskTable
+                key={versionId}
                 issueCounts={issueCounts}
-                gitlabMatchType={gitlabMatch.type}
+                versionName={version.name}
                 hasReleaseDate={!!version.releaseDate}
                 isLoadingIssues={isLoadingIssues}
-                matchedRows={matchedRows}
-                wrongMilestoneByKey={wrongMilestoneByKey}
+                isLoadingDrift={isLoadingDrift}
+                hasMatchedMilestone={hasMatchedMilestone}
+                primaryRows={primaryRows}
+                secondaryRows={secondaryRows}
+                flaggedMrCount={flaggedMrCount}
                 onOpenIssue={resolvedOnOpenIssue}
                 onOpenIssueFull={openIssueFull}
                 onSeedBreadcrumb={seedReleaseBreadcrumb}
-              />
-
-              {/* MR-first drift section (D-01): sibling below the Issues table.
-                  WR-09: `key` remounts the section when the release changes —
-                  navigating to an already-cached release skips the skeleton
-                  branch above, so nothing else would remount it, and both the
-                  D-11 held row order and the per-cell fix state would carry
-                  over from the previous release. `versionId` is also passed so
-                  the held order resets even if this key is ever dropped. */}
-              <MrDriftSection
-                key={versionId}
-                versionId={versionId}
-                rows={driftRows}
-                flaggedCount={driftFlaggedCount}
-                hasMatchedMilestone={hasMatchedMilestone}
-                isLoading={isLoadingDrift}
                 onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
                 fix={{
                   projectId: activeGitlabProject ?? null,
