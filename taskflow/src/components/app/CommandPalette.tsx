@@ -12,7 +12,7 @@
  */
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { SearchX } from 'lucide-react';
+import { Clock, GitMerge, SearchX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
@@ -25,6 +25,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -352,6 +353,10 @@ export default function CommandPalette({
                       value={`key-match-${keyMatchResult.key} ${keyMatchResult.fields.summary}`}
                       onSelect={() => handleIssueSelect(keyMatchResult.key)}
                     >
+                      <IssueTypeIcon
+                        typeName={keyMatchResult.fields.issuetype?.name ?? ''}
+                        className="w-3.5 h-3.5 shrink-0"
+                      />
                       {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
                       <button
                         type="button"
@@ -373,6 +378,10 @@ export default function CommandPalette({
                       value={`${issue.key} ${issue.fields.summary}`}
                       onSelect={() => handleIssueSelect(issue.key)}
                     >
+                      <IssueTypeIcon
+                        typeName={issue.fields.issuetype?.name ?? ''}
+                        className="w-3.5 h-3.5 shrink-0"
+                      />
                       {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
                       <button
                         type="button"
@@ -394,6 +403,7 @@ export default function CommandPalette({
                       value={`!${mr.iid} ${mr.title}`}
                       onSelect={() => handleMRSelect(mr)}
                     >
+                      <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                       <span className="text-muted-foreground">!{mr.iid}</span>
                       <span className="truncate">{mr.title}</span>
                     </CommandItem>
@@ -428,6 +438,10 @@ export default function CommandPalette({
                         value={`live-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key)}
                       >
+                        <IssueTypeIcon
+                          typeName={issue.fields.issuetype?.name ?? ''}
+                          className="w-3.5 h-3.5 shrink-0"
+                        />
                         {/* PEEK-05: key button → full-page */}
                         <button
                           type="button"
@@ -469,6 +483,10 @@ export default function CommandPalette({
                         value={`closed-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key)}
                       >
+                        <IssueTypeIcon
+                          typeName={issue.fields.issuetype?.name ?? ''}
+                          className="w-3.5 h-3.5 shrink-0"
+                        />
                         {/* PEEK-05: key button → full-page */}
                         <button
                           type="button"
