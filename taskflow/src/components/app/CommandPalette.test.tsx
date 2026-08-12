@@ -96,6 +96,8 @@ let mockRecentItems: Array<{
   type: 'jira' | 'gitlab';
   id: string;
   url?: string;
+  title?: string;
+  issueType?: string;
   timestamp: number;
 }> = [];
 const mockPushItem = vi.fn();
@@ -198,6 +200,64 @@ describe('CommandPalette', () => {
     renderPalette();
     expect(screen.getByText(/TEST-42/)).toBeInTheDocument();
     expect(screen.getByText(/!99/)).toBeInTheDocument();
+  });
+
+  // Recent Items icon resolution: cache first, persisted issueType second, Clock fallback last
+  describe('Recent Items icon resolution', () => {
+    it('renders the bug icon for a recent Jira item with issueType: Bug', () => {
+      mockRecentItems = [
+        { type: 'jira', id: 'TEST-7', issueType: 'Bug', title: 'Fix crash', timestamp: Date.now() },
+      ];
+      renderPalette();
+      const row = screen.getByText('TEST-7 Fix crash').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-bug"]')).not.toBeNull();
+    });
+
+    it('prefers the cached issuetype over the persisted issueType', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['jira-issues', 'sprint-board', 'TEST', 'customfield_10016'], {
+        issues: [
+          {
+            id: '1',
+            key: 'TEST-8',
+            fields: {
+              summary: 'Cached story',
+              status: { id: '1', name: 'Open' },
+              assignee: null,
+              customfield_10016: null,
+              issuetype: { name: 'Story', subtask: false },
+            },
+          },
+        ],
+      });
+      mockRecentItems = [{ type: 'jira', id: 'TEST-8', issueType: 'Bug', timestamp: Date.now() }];
+      renderPalette({}, qc);
+      const row = screen.getByText('TEST-8 Cached story').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-book-open"]')).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-bug"]')).toBeNull();
+    });
+
+    it('falls back to the Clock glyph when no type can be resolved', () => {
+      mockRecentItems = [
+        { type: 'jira', id: 'TEST-9', title: 'No type here', timestamp: Date.now() },
+      ];
+      renderPalette();
+      const row = screen.getByText('TEST-9 No type here').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-clock"]')).not.toBeNull();
+    });
+
+    it('renders the merge glyph for a recent GitLab item', () => {
+      mockRecentItems = [
+        { type: 'gitlab', id: '1/55', title: 'Add caching', timestamp: Date.now() },
+      ];
+      renderPalette();
+      const row = screen.getByText('!55 Add caching').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-git-merge"]')).not.toBeNull();
+    });
   });
 
   // PALETTE-03: navigation items show shortcut hints
@@ -373,6 +433,126 @@ describe('CommandPalette', () => {
       );
       expect(screen.getByText('TEST-12345')).toBeInTheDocument();
       expect(screen.getByText('Bare number match issue')).toBeInTheDocument();
+    });
+
+    it('shows the issue-type icon for a Bug result in the Issues group', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['jira-issues', 'sprint-board', 'TEST', 'customfield_10016'], {
+        issues: [
+          {
+            id: '1',
+            key: 'TEST-1',
+            fields: {
+              summary: 'Fix login bug',
+              status: { id: '1', name: 'Open' },
+              assignee: null,
+              customfield_10016: null,
+              issuetype: { name: 'Bug', subtask: false },
+            },
+          },
+        ],
+      });
+
+      renderPalette({}, qc);
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'Fix login' } });
+
+      const row = screen.getByText('Fix login bug').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-bug"]')).not.toBeNull();
+    });
+
+    it('shows the Story icon (not the default) for a Story result', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['jira-issues', 'sprint-board', 'TEST', 'customfield_10016'], {
+        issues: [
+          {
+            id: '2',
+            key: 'TEST-2',
+            fields: {
+              summary: 'Write onboarding story',
+              status: { id: '1', name: 'Open' },
+              assignee: null,
+              customfield_10016: null,
+              issuetype: { name: 'Story', subtask: false },
+            },
+          },
+        ],
+      });
+
+      renderPalette({}, qc);
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'onboarding' } });
+
+      const row = screen.getByText('Write onboarding story').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-book-open"]')).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-check-square"]')).toBeNull();
+    });
+
+    it('renders the icon on the Direct Match row', async () => {
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
+        id: '999',
+        key: 'TEST-99',
+        fields: {
+          summary: 'Key match issue',
+          status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Story', subtask: false },
+        },
+      });
+
+      renderPalette();
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'TEST-99' } });
+
+      await screen.findByText('Direct Match');
+      const row = screen.getByText('Key match issue').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-book-open"]')).not.toBeNull();
+    });
+
+    it('renders default icon without crashing when issuetype is missing', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['jira-issues', 'sprint-board', 'TEST', 'customfield_10016'], {
+        issues: [
+          {
+            id: '3',
+            key: 'TEST-3',
+            fields: {
+              summary: 'No type set task',
+              status: { id: '1', name: 'Open' },
+              assignee: null,
+              customfield_10016: null,
+            },
+          },
+        ],
+      });
+
+      renderPalette({}, qc);
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'No type set' } });
+
+      const row = screen.getByText('No type set task').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-square-check-big"]')).not.toBeNull();
+    });
+
+    it('renders the merge glyph on Merge Request rows', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['gitlab-mrs', 'assigned'], {
+        assigned: [{ iid: 42, project_id: 1, title: 'Add feature flag' }],
+        reviewRequested: [],
+      });
+
+      renderPalette({}, qc);
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'feature flag' } });
+
+      const row = screen.getByText('Add feature flag').closest('[cmdk-item]');
+      expect(row).not.toBeNull();
+      expect(row?.querySelector('[class*="lucide-git-merge"]')).not.toBeNull();
     });
 
     it('full key query still resolves correctly', async () => {

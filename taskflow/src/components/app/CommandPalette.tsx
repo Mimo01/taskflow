@@ -12,7 +12,7 @@
  */
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { SearchX } from 'lucide-react';
+import { Clock, GitMerge, SearchX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
@@ -25,6 +25,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -255,6 +256,12 @@ export default function CommandPalette({
     return title ? `!${iid} ${title}` : `!${iid}`;
   }
 
+  /** Resolve the icon type name for a recent Jira item: sprint-board cache first, then the
+   * persisted `issueType`, matching RecentItemsPopover.tsx's cache-then-persisted resolution. */
+  function getRecentItemTypeName(item: { id: string; issueType?: string }) {
+    return issuesMap.get(item.id)?.fields.issuetype?.name ?? item.issueType;
+  }
+
   // ─── Navigation action handlers (for action-based nav items like notifications) ─
   const navActionHandlers: Record<string, () => void> = {
     'open-notifications': () => {
@@ -321,24 +328,40 @@ export default function CommandPalette({
                   {recentItems.length === 0 ? (
                     <CommandItem disabled>No recent items</CommandItem>
                   ) : (
-                    recentItems.map((item) => (
-                      <CommandItem
-                        key={`${item.type}-${item.id}`}
-                        value={`${item.type}-${item.id}`}
-                        keywords={[item.id]}
-                        onSelect={() => {
-                          if (item.type === 'jira') {
-                            handleIssueSelect(item.id);
-                          } else {
-                            pushRecentItem({ type: 'gitlab', id: item.id, title: item.title });
-                            onNavigate(`/mr/${item.id}`);
-                            onClose();
-                          }
-                        }}
-                      >
-                        {getRecentItemLabel(item)}
-                      </CommandItem>
-                    ))
+                    recentItems.map((item) => {
+                      const resolvedTypeName =
+                        item.type === 'jira' ? getRecentItemTypeName(item) : undefined;
+                      return (
+                        <CommandItem
+                          key={`${item.type}-${item.id}`}
+                          value={`${item.type}-${item.id}`}
+                          keywords={[item.id]}
+                          onSelect={() => {
+                            if (item.type === 'jira') {
+                              handleIssueSelect(item.id);
+                            } else {
+                              pushRecentItem({ type: 'gitlab', id: item.id, title: item.title });
+                              onNavigate(`/mr/${item.id}`);
+                              onClose();
+                            }
+                          }}
+                        >
+                          {item.type === 'jira' ? (
+                            resolvedTypeName ? (
+                              <IssueTypeIcon
+                                typeName={resolvedTypeName}
+                                className="w-3.5 h-3.5 shrink-0"
+                              />
+                            ) : (
+                              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                            )
+                          ) : (
+                            <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                          )}
+                          <span className="truncate">{getRecentItemLabel(item)}</span>
+                        </CommandItem>
+                      );
+                    })
                   )}
                 </CommandGroup>
               </>
@@ -352,6 +375,10 @@ export default function CommandPalette({
                       value={`key-match-${keyMatchResult.key} ${keyMatchResult.fields.summary}`}
                       onSelect={() => handleIssueSelect(keyMatchResult.key)}
                     >
+                      <IssueTypeIcon
+                        typeName={keyMatchResult.fields.issuetype?.name ?? ''}
+                        className="w-3.5 h-3.5 shrink-0"
+                      />
                       {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
                       <button
                         type="button"
@@ -373,6 +400,10 @@ export default function CommandPalette({
                       value={`${issue.key} ${issue.fields.summary}`}
                       onSelect={() => handleIssueSelect(issue.key)}
                     >
+                      <IssueTypeIcon
+                        typeName={issue.fields.issuetype?.name ?? ''}
+                        className="w-3.5 h-3.5 shrink-0"
+                      />
                       {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
                       <button
                         type="button"
@@ -394,6 +425,7 @@ export default function CommandPalette({
                       value={`!${mr.iid} ${mr.title}`}
                       onSelect={() => handleMRSelect(mr)}
                     >
+                      <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                       <span className="text-muted-foreground">!{mr.iid}</span>
                       <span className="truncate">{mr.title}</span>
                     </CommandItem>
@@ -428,6 +460,10 @@ export default function CommandPalette({
                         value={`live-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key)}
                       >
+                        <IssueTypeIcon
+                          typeName={issue.fields.issuetype?.name ?? ''}
+                          className="w-3.5 h-3.5 shrink-0"
+                        />
                         {/* PEEK-05: key button → full-page */}
                         <button
                           type="button"
@@ -469,6 +505,10 @@ export default function CommandPalette({
                         value={`closed-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key)}
                       >
+                        <IssueTypeIcon
+                          typeName={issue.fields.issuetype?.name ?? ''}
+                          className="w-3.5 h-3.5 shrink-0"
+                        />
                         {/* PEEK-05: key button → full-page */}
                         <button
                           type="button"
