@@ -1,39 +1,45 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-10T09:26:46Z",
+  "timestamp": "2026-05-25T18:30:00Z",
   "phase": null,
-  "phase_name": "quick-260804-jhf",
-  "phase_dir": ".planning/quick/260804-jhf-on-issue-detail-in-the-sidebar-there-sho",
+  "phase_name": "quick-260525-rtu",
+  "phase_dir": ".planning/quick/260525-rtu-polish-the-visual-design-of-standup-note",
   "plan": 1,
   "task": 3,
   "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Add extractDeploymentPackage pure helper with tests", "status": "done", "commit": "8af58f25"},
-    {"id": 2, "name": "Render Deployment package row under Fix Versions and type customfield_15725", "status": "done", "commit": "e5efa506"}
+    {"id": 1, "name": "Today tint + Yesterday card treatment", "status": "done", "commit": "61ed7076"},
+    {"id": 2, "name": "Today section headers — count badges + separators", "status": "done", "commit": "8ba0e3ab"},
+    {"id": "2b", "name": "Code review fixes WR-01/WR-02", "status": "done", "commit": "24f69ba4"},
+    {"id": "2c", "name": "Feedback round 2 — match columns, py-3 rows", "status": "done", "commit": "1db01b21"}
   ],
   "remaining_tasks": [
-    {"id": 3, "name": "checkpoint:human-verify — confirm row renders correctly against live Jira", "status": "not_started"}
+    {"id": 3, "name": "Visual verification by user", "status": "in_progress"}
   ],
-  "blockers": [
-    {
-      "description": "Task 3 is a blocking human-verify checkpoint: the real shape of Jira customfield_15725 is unconfirmed, so the extractor's tolerance can only be validated against a live issue.",
-      "type": "human_action",
-      "workaround": "none — needs a real issue with a Deployment package set"
-    }
-  ],
+  "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Run the app, open an issue with a Deployment package set, confirm the sidebar row renders between Fix Versions and Flagged with the correct text (not [object Object] / raw JSON); also check an issue without one shows an em-dash.",
-      "context": "customfield_15725 was typed as unknown because its live shape was never confirmed; extractDeploymentPackage handles string, {value}, {name}, and arrays of those.",
+      "action": "Open standup notes page, visually verify design (both columns match, flat rows, roomy feel, count badges, dividers correct)",
+      "context": "Verifier returned human_needed; second feedback round also just committed",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "Row always renders, even when empty (em-dash)", "rationale": "The request asked for a visible field under Fix Versions; differs from Severity which hides when empty", "phase": "quick-260804-jhf"},
-    {"decision": "customfield_15725 typed as unknown on JiraIssueDetail['fields']", "rationale": "Real Jira value shape unconfirmed; forces all reads through the shape-tolerant extractor", "phase": "quick-260804-jhf"}
+    {"decision": "Flat divide-y rows for Yesterday (not cards)", "rationale": "User preferred Today's list style", "phase": "260525-rtu"},
+    {"decision": "Remove bg-muted/30 column tint", "rationale": "User wants both columns same design", "phase": "260525-rtu"},
+    {"decision": "py-3 on all interactive rows", "rationale": "User wants roomy but still compact", "phase": "260525-rtu"},
+    {"decision": "Parent divide-y in TodayColumn (not per-section border-t)", "rationale": "Avoids orphaned border when InProgress is empty (WR-02 fix)", "phase": "260525-rtu"}
   ],
-  "uncommitted_files": [],
-  "next_action": "Launch the app and perform the Task 3 human-verify checkpoint; reply 'approved' or paste the raw customfield_15725 payload that failed to render.",
-  "context_notes": "Working tree is clean and version was bumped to 1.13.5 (ca59303f). Tasks 1-2 are committed and green (full suite 2070 passing). Only the checkpoint remains. Separately: npm run check reports 2 pre-existing biome formatting errors in BacklogPage.tsx and BacklogRow.tsx, untouched by this task and deliberately left alone per scope rules — this contradicts the older 'Biome baseline GREEN' note. Milestone-level state: v1.13 closed; operator next step is /gsd-new-milestone."
+  "uncommitted_files": [
+    "taskflow/src-tauri/Cargo.lock",
+    "taskflow/src-tauri/Cargo.toml",
+    "taskflow/src-tauri/src/lib.rs",
+    "taskflow/src/routes/dashboard/IssueDetailContent.tsx",
+    "taskflow/src/routes/dashboard/issue-detail/AttachmentsSection.tsx",
+    "taskflow/src/routes/dashboard/issue-detail/LogWorkPopover.tsx",
+    "taskflow/src/services/gitlab.ts",
+    "taskflow/src/services/jira/worklogs.ts"
+  ],
+  "next_action": "Ask user to visually verify standup notes page; update STATE.md to Verified if approved or apply further tweaks if needed"
 }
