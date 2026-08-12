@@ -19,7 +19,6 @@
 
 import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { linkMRToTask } from '@/services/linkEngine';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 
@@ -102,36 +101,6 @@ export function resolveGitLabMatch(
     gitlabMatch: chosen ? chosen.match : noMatch,
     matchedMilestone: chosen ? chosen.milestone : null,
   };
-}
-
-/**
- * Match release MRs to release issues by ticket key.
- *
- * @param releaseIssues - Jira issues in the fix version
- * @param releaseMrs - GitLab MRs carrying the matched milestone
- * @returns per-issue matched rows (`mr` null when unmatched) plus the MRs that matched no release issue
- */
-export function matchIssuesToMRs(
-  releaseIssues: JiraIssue[],
-  releaseMrs: GitLabMR[],
-): { matchedRows: Array<{ issue: JiraIssue; mr: GitLabMR | null }>; unmatched: GitLabMR[] } {
-  const releaseIssueKeySet = new Set(releaseIssues.map((i) => i.key));
-  const releaseMrByIssue = new Map<string, GitLabMR>();
-  const releaseUnmatched: GitLabMR[] = [];
-  for (const mr of releaseMrs) {
-    const matchedKey = linkMRToTask(mr, releaseIssueKeySet);
-    if (matchedKey) {
-      releaseMrByIssue.set(matchedKey, mr);
-    } else {
-      releaseUnmatched.push(mr);
-    }
-  }
-  const matchedRows = releaseIssues.map((issue) => ({
-    issue,
-    mr: releaseMrByIssue.get(issue.key) ?? null,
-  }));
-  const unmatched = releaseUnmatched;
-  return { matchedRows, unmatched };
 }
 
 /**
