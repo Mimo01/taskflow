@@ -125,6 +125,39 @@ function DriftMarkCell({
 }
 
 /**
+ * Whether a BR/MS cell for `mark` would render an interactive `<button>`
+ * rather than an inert glyph — the single predicate `DriftActionCell` uses
+ * internally AND the task row uses to decide the cell's hit-testing class
+ * (CR-05). Keeping one function means the two can never disagree: an inert
+ * cell that claimed `z-10` would silently eat the full-row click.
+ *
+ * `pending` / `error` are deliberately not considered: both are only
+ * reachable from a click on a cell that was actionable, and when a
+ * prerequisite disappears underneath a failure the cell degrades back to an
+ * inert span — which is exactly what `false` describes.
+ */
+export function mrFixReadiness(
+  action: MrFixAction,
+  fix: MrFixContext,
+): { configComplete: boolean; prereqReady: boolean } {
+  const configComplete = fix.projectId != null && fix.baseUrl != null && fix.token != null;
+  const prereqReady =
+    action === 'retarget'
+      ? fix.releaseBranchExists && fix.releaseBranchName != null
+      : fix.matchedMilestone != null;
+  return { configComplete, prereqReady };
+}
+
+export function isMrFixActionable(
+  mark: DriftMark,
+  action: MrFixAction,
+  fix: MrFixContext,
+): boolean {
+  const { configComplete, prereqReady } = mrFixReadiness(action, fix);
+  return mark === 'flag' && configComplete && prereqReady;
+}
+
+/**
  * BR/MS action cell (D-01..D-09, D-14, MRFIX-01..04): renders the same 28px
  * geometry as `DriftMarkCell` in every state, but a flagged + actionable cell
  * becomes a focus-reachable button that fires `useMrFixMutation` on click and
@@ -157,12 +190,8 @@ function DriftActionCell({
     milestone: fix.matchedMilestone,
   });
 
-  const configComplete = fix.projectId != null && fix.baseUrl != null && fix.token != null;
-  const prereqReady =
-    action === 'retarget'
-      ? fix.releaseBranchExists && fix.releaseBranchName != null
-      : fix.matchedMilestone != null;
-  const actionable = mark === 'flag' && configComplete && prereqReady;
+  const { prereqReady } = mrFixReadiness(action, fix);
+  const actionable = isMrFixActionable(mark, action, fix);
 
   // WR-08: a sticky failure must not outlive the problem it describes. If a
   // background refetch shows this field is now correct — someone fixed it in
@@ -604,7 +633,18 @@ function TaskMrCell({
 
   return (
     <>
-      <div className={`relative ${COL_MR} flex items-center gap-1.5 text-xs`}>
+      {/* CR-05: the wrapper must opt OUT of hit-testing. It is a later
+          positioned sibling of the row's `absolute inset-0` overlay button, so
+          with `relative` alone (z-index: auto) it paints and hit-tests ABOVE
+          the overlay and swallows the D-04 full-row click across the whole
+          190px column. Genuinely interactive children opt back in with
+          `relative z-10` — the established sibling-overlay convention shared
+          with the Key/Summary/Assignee/Status cells. */}
+      <div className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs`}>
+        {/* `pointer-events-auto` on the link is load-bearing, not decoration:
+            the wrapper above opts the whole cell out of hit-testing and
+            `pointer-events` INHERITS, so without it the MR link itself would
+            stop being clickable. */}
         <button
           type="button"
           data-testid="mr-cell-link"
@@ -613,7 +653,7 @@ function TaskMrCell({
             openUrl(mr.web_url);
           }}
           title={`${mr.author.name} — ${mr.title}`}
-          className={`relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
+          className={`pointer-events-auto relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
         >
           <GitMerge className="size-3.5" />!{mr.iid}
         </button>
@@ -632,7 +672,10 @@ function TaskMrCell({
       </div>
       {selected.evaluated ? (
         <>
-          <DriftCellSlot interactive>
+          {/* CR-05: `interactive` is DERIVED, never hardcoded — an ok/na/
+              non-actionable-flag cell renders an inert glyph, and claiming
+              `z-10` for it would put a 28px dead zone over the row overlay. */}
+          <DriftCellSlot interactive={isMrFixActionable(selected.br, 'retarget', fix)}>
             <DriftActionCell
               mr={mr}
               action="retarget"
@@ -641,7 +684,7 @@ function TaskMrCell({
               fix={fix}
             />
           </DriftCellSlot>
-          <DriftCellSlot interactive>
+          <DriftCellSlot interactive={isMrFixActionable(selected.ms, 'assign-milestone', fix)}>
             <DriftActionCell
               mr={mr}
               action="assign-milestone"
