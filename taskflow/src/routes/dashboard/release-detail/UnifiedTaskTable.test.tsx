@@ -285,6 +285,29 @@ describe('UnifiedTaskTable', () => {
   });
 });
 
+describe('WR-05: column header strip labels', () => {
+  it('renders visible header text Key, Summary, Assignee and Status alongside BR and MS', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    renderSection({ primaryRows: [{ issue, mrs: [] }] });
+
+    expect(screen.getByText('Key')).toBeInTheDocument();
+    expect(screen.getByText('Summary')).toBeInTheDocument();
+    expect(screen.getByText('Assignee')).toBeInTheDocument();
+    expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
+    expect(screen.getByText('BR')).toBeInTheDocument();
+    expect(screen.getByText('MS')).toBeInTheDocument();
+  });
+
+  it('renders no element with role="table", role="row" or role="columnheader"', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const { container } = renderSection({ primaryRows: [{ issue, mrs: [] }] });
+
+    expect(container.querySelector('[role="table"]')).toBeNull();
+    expect(container.querySelector('[role="row"]')).toBeNull();
+    expect(container.querySelector('[role="columnheader"]')).toBeNull();
+  });
+});
+
 describe('per-MR corrective actions', () => {
   beforeEach(() => {
     mockUpdateMergeRequest.mockReset();
@@ -868,6 +891,84 @@ describe('D-13: secondary table', () => {
     expect(brButtons).toHaveLength(2);
     expect(msButtons).toHaveLength(2);
     for (const b of [...brButtons, ...msButtons]) expect(b.tagName).toBe('BUTTON');
+  });
+
+  it('a multi-key out-of-scope row names all keys in the tooltip, not just the first (WR-04)', () => {
+    const multiKeyRow = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: ['PROJ-9', 'PROJ-8'],
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    renderSection({
+      secondaryRows: [multiKeyRow],
+      versionName: '33.5.0',
+    });
+
+    const flaggedKey = screen.getByTestId('secondary-key-flagged');
+    expect(flaggedKey).toHaveTextContent('PROJ-9 +1');
+    expect(flaggedKey).toHaveAttribute('title', 'PROJ-9, PROJ-8 are not in fix version 33.5.0');
+  });
+
+  it('a non-evaluated (merged) MR with out-of-scope keys renders secondary-key-unevaluated, not a drift assertion (WR-04, T-91.1-14)', () => {
+    const unevaluatedRow = makeRow({
+      mr: makeMR({ id: 1, iid: 1, state: 'merged' }),
+      evaluated: false,
+      taskReason: null,
+      taskKeys: ['PROJ-9'],
+      task: 'na',
+      br: 'na',
+      ms: 'na',
+      flagged: false,
+    });
+    renderSection({
+      secondaryRows: [unevaluatedRow],
+      versionName: '33.5.0',
+    });
+
+    const unevaluatedKey = screen.getByTestId('secondary-key-unevaluated');
+    expect(unevaluatedKey).toHaveTextContent('PROJ-9');
+    expect(unevaluatedKey.querySelector('.text-orange-600')).toBeNull();
+    expect(unevaluatedKey).not.toHaveClass('text-orange-600');
+    expect(unevaluatedKey.getAttribute('title')).not.toContain('is not in fix version');
+    expect(unevaluatedKey).toHaveAttribute('title', 'PROJ-9 — not evaluated (MR is merged)');
+  });
+
+  it('no rendered element in the secondary section ever contains "undefined is not in fix version"', () => {
+    const flaggedKeyRow = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: ['PROJ-9'],
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    const keylessRow = makeRow({
+      mr: makeMR({ id: 2, iid: 2 }),
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    const unevaluatedRow = makeRow({
+      mr: makeMR({ id: 3, iid: 3, state: 'closed' }),
+      evaluated: false,
+      taskReason: null,
+      taskKeys: ['PROJ-7'],
+      task: 'na',
+      br: 'na',
+      ms: 'na',
+      flagged: false,
+    });
+    const { container } = renderSection({
+      secondaryRows: [flaggedKeyRow, keylessRow, unevaluatedRow],
+      versionName: '33.5.0',
+    });
+
+    expect(container.innerHTML).not.toContain('undefined is not in fix version');
   });
 
   it('Test 1 (CR-01): isLoadingIssues: true with a non-empty secondaryRows renders no secondary-section and no secondary-key-flagged', () => {

@@ -10,6 +10,7 @@ import {
   evaluateBranchDrift,
   evaluateMilestoneDrift,
   evaluateTaskDrift,
+  extractMrTaskKeys,
   selectChannelA,
   unionMRs,
 } from './driftDetection';
@@ -155,6 +156,31 @@ describe('evaluateMilestoneDrift', () => {
     // TypeScript itself enforces this — GitLabMR['milestone'] has no due_date.
     // This test documents the contract for a future refactor.
     expect(mr.milestone).toEqual({ id: 7, title: 'v7' });
+  });
+});
+
+describe('extractMrTaskKeys', () => {
+  it('dedupes a key that appears in both title and source_branch (IN-01)', () => {
+    const mr = makeMR({ title: 'PROJ-1 fix', source_branch: 'feature/PROJ-1' });
+    expect(extractMrTaskKeys(mr)).toEqual(['PROJ-1']);
+  });
+
+  it('keeps a distinct title key and a distinct branch key, title key first', () => {
+    const mr = makeMR({ title: 'PROJ-1 fix', source_branch: 'feature/PROJ-2' });
+    expect(extractMrTaskKeys(mr)).toEqual(['PROJ-1', 'PROJ-2']);
+  });
+
+  it('buildDriftRows output carries deduplicated taskKeys for such an MR', () => {
+    const mr = makeMR({ id: 1, title: 'PROJ-1 fix', source_branch: 'feature/PROJ-1' });
+    const rows = buildDriftRows({
+      channelA: [mr],
+      channelB: [],
+      channelC: [],
+      releaseBranchName: null,
+      matchedMilestoneId: null,
+      fixVersionIssueKeys: new Set(['PROJ-1']),
+    });
+    expect(rows[0].taskKeys).toHaveLength(1);
   });
 });
 
