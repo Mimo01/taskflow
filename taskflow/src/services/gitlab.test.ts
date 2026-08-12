@@ -701,6 +701,40 @@ describe('gitlab service', () => {
       expect(result).toHaveLength(2);
       expect(result.map((mr) => mr.target_branch).sort()).toEqual(['develop', 'master']);
     });
+
+    it('WR-05: a non-JSON 200 rejects with the normalised message, never the body text', async () => {
+      const htmlBody = '<html><head><title>SSO login</title></head></html>';
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError(`Unexpected token '<', "${htmlBody}" is not valid JSON`);
+        },
+      } as unknown as Response);
+
+      try {
+        await fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0');
+        throw new Error('expected fetchSourceBranchMRs to reject');
+      } catch (err) {
+        expect((err as Error).message).toBe(
+          'Failed to fetch tracking MR: unexpected response shape',
+        );
+        expect((err as Error).message).not.toContain('<html');
+        expect((err as Error).message).not.toContain('SSO login');
+      }
+    });
+
+    it('WR-05: a 200 whose body is an object rather than an array rejects', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ message: 'Insufficient permissions' }),
+      } as Response);
+
+      await expect(fetchSourceBranchMRs(BASE, TOKEN, PROJECT_ID, 'release/33.7.0')).rejects.toThrow(
+        /unexpected response shape/,
+      );
+    });
   });
 
   describe('compareRefs (MERGE-02 content comparison)', () => {
@@ -812,6 +846,26 @@ describe('gitlab service', () => {
 
       await expect(compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0')).rejects.toThrow();
     });
+
+    it('WR-05: a non-JSON 200 rejects with the normalised message, never the body text', async () => {
+      const htmlBody = '<html><head><title>SSO login</title></head></html>';
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError(`Unexpected token '<', "${htmlBody}" is not valid JSON`);
+        },
+      } as unknown as Response);
+
+      try {
+        await compareRefs(BASE, TOKEN, PROJECT_ID, 'develop', 'v33.7.0');
+        throw new Error('expected compareRefs to reject');
+      } catch (err) {
+        expect((err as Error).message).toBe('Failed to compare refs: unexpected response shape');
+        expect((err as Error).message).not.toContain('<html');
+        expect((err as Error).message).not.toContain('SSO login');
+      }
+    });
   });
 
   describe('searchProjectTags (tag-channel fail-closed)', () => {
@@ -901,6 +955,28 @@ describe('gitlab service', () => {
       await expect(searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0')).rejects.toThrow(
         /unexpected response shape/,
       );
+    });
+
+    it('WR-05: a non-JSON 200 rejects with the normalised message, never the body text', async () => {
+      const htmlBody = '<html><head><title>SSO login</title></head></html>';
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError(`Unexpected token '<', "${htmlBody}" is not valid JSON`);
+        },
+      } as unknown as Response);
+
+      try {
+        await searchProjectTags(BASE, TOKEN, PROJECT_ID, '33.7.0');
+        throw new Error('expected searchProjectTags to reject');
+      } catch (err) {
+        expect((err as Error).message).toBe(
+          'Failed to load release tags: unexpected response shape',
+        );
+        expect((err as Error).message).not.toContain('<html');
+        expect((err as Error).message).not.toContain('SSO login');
+      }
     });
 
     it('CR-01: a 200 array of non-tag elements rejects rather than reaching findReleaseTag', async () => {
