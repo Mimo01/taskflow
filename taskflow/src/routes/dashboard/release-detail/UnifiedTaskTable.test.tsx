@@ -250,6 +250,58 @@ describe('UnifiedTaskTable', () => {
     expect(screen.getByTestId('flagged-ms-badge')).toHaveTextContent('1');
   });
 
+  // UAT-91.1-A (plan 10, task 1): MR sub-lines drop the author/state columns
+  // to three columns wide (iid + title + BR/MS), with author/state moved to
+  // the sub-line's hover tooltip.
+  describe('MR sub-line is three columns wide (UAT-91.1-A)', () => {
+    it('renders the !iid link and title, and no element inside the drift-row shows the MR state text', () => {
+      const row = makeRow({ mr: makeMR({ iid: 7, title: 'Fix thing', state: 'opened' }) });
+      renderWithRows([row]);
+      const rowEl = screen.getByTestId('drift-row');
+      expect(rowEl).toHaveTextContent('!7');
+      expect(rowEl).toHaveTextContent('Fix thing');
+      expect(within(rowEl).queryByText('opened')).toBeNull();
+    });
+
+    it('renders no avatar/img element and does not show the author name as visible text', () => {
+      const row = makeRow({ mr: makeMR({ author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' } }) });
+      renderWithRows([row]);
+      const rowEl = screen.getByTestId('drift-row');
+      expect(within(rowEl).queryByRole('img')).toBeNull();
+      expect(within(rowEl).queryByText('Alice')).toBeNull();
+    });
+
+    it('carries a title attribute with both the author name and the MR state', () => {
+      const row = makeRow({
+        mr: makeMR({
+          author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
+          state: 'opened',
+        }),
+      });
+      renderWithRows([row]);
+      const rowEl = screen.getByTestId('drift-row');
+      expect(rowEl).toHaveAttribute('title', expect.stringContaining('Alice'));
+      expect(rowEl).toHaveAttribute('title', expect.stringContaining('opened'));
+    });
+
+    it('drift-br and drift-ms cells still render on every sub-line', () => {
+      const row = makeRow({ br: 'flag', ms: 'ok', flagged: true });
+      renderWithRows([row], { flaggedMrCount: 1 });
+      expect(screen.getByTestId('drift-br')).toBeInTheDocument();
+      expect(screen.getByTestId('drift-ms')).toBeInTheDocument();
+    });
+
+    it('a task with three MRs renders three drift-row elements — nothing collapsed', () => {
+      const rows = [
+        makeRow({ mr: makeMR({ id: 1, iid: 1 }) }),
+        makeRow({ mr: makeMR({ id: 2, iid: 2 }) }),
+        makeRow({ mr: makeMR({ id: 3, iid: 3 }) }),
+      ];
+      renderWithRows(rows);
+      expect(screen.getAllByTestId('drift-row')).toHaveLength(3);
+    });
+  });
+
   // CR-01 regression: `extractTicketKeys` normalises what it returns (uppercases,
   // and rewrites the space form "PROJ 123" to "PROJ-123"), so the key is often NOT
   // a literal substring of the title. The old highlighter used indexOf(), got -1,
