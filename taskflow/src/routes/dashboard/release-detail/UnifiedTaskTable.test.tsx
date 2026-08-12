@@ -1109,6 +1109,98 @@ describe('D-09: duplication', () => {
   });
 });
 
+// CR-07: on the consolidated row the BR/MS cells render at a FIXED position
+// whose `mr` prop changes with the selection. Their write state lives in
+// component state (D-08), so without keying them to mr.id React reuses the
+// hook instance and a sticky failure — plus the retry write behind it — binds
+// to a different merge request than the one it describes.
+describe('CR-07: per-cell write state follows MR identity, not row position', () => {
+  beforeEach(() => {
+    mockUpdateMergeRequest.mockReset();
+  });
+
+  it("a failure on the selected MR does not survive onto a different MR when a filter changes the selection, and the retry writes the NEW MR's iid", async () => {
+    mockUpdateMergeRequest.mockRejectedValueOnce(new Error('protected branch'));
+    // !9 is selected unfiltered (highest iid among the flagged). The "no
+    // milestone" filter drops it — only !5 carries ms === 'flag'.
+    const mr9 = makeRow({
+      mr: makeMR({ id: 9, iid: 9 }),
+      br: 'flag',
+      ms: 'ok',
+      flagged: true,
+    });
+    const mr5 = makeRow({
+      mr: makeMR({ id: 5, iid: 5 }),
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    renderWithRows([mr9, mr5], {
+      flaggedMrCount: 2,
+      brFlaggedCount: 2,
+      msFlaggedCount: 1,
+    });
+
+    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!9');
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.text-red-600')).toBeTruthy(),
+    );
+    expect(mockUpdateMergeRequest.mock.calls[0][3]).toBe(9);
+
+    // Selection changes underneath the cell.
+    fireEvent.click(screen.getByTestId('flagged-ms-badge'));
+    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!5');
+
+    // !9's failure must not describe !5.
+    const brCell = screen.getByTestId('drift-br');
+    expect(brCell.querySelector('.text-red-600')).toBeFalsy();
+    expect(brCell).not.toHaveAttribute('title', 'protected branch');
+
+    mockUpdateMergeRequest.mockResolvedValueOnce({} as GitLabMR);
+    fireEvent.click(brCell);
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2));
+    expect(mockUpdateMergeRequest.mock.calls[1][3]).toBe(5);
+  });
+
+  it('a pending write does not migrate its spinner or its fire-lock onto the next selected MR', async () => {
+    mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
+    const mr9 = makeRow({
+      mr: makeMR({ id: 9, iid: 9 }),
+      br: 'flag',
+      ms: 'ok',
+      flagged: true,
+    });
+    const mr5 = makeRow({
+      mr: makeMR({ id: 5, iid: 5 }),
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    renderWithRows([mr9, mr5], {
+      flaggedMrCount: 2,
+      brFlaggedCount: 2,
+      msFlaggedCount: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('drift-br'));
+    await waitFor(() =>
+      expect(screen.getByTestId('drift-br').querySelector('.animate-spin')).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getByTestId('flagged-ms-badge'));
+    expect(screen.getByTestId('mr-cell-link')).toHaveTextContent('!5');
+
+    const brCell = screen.getByTestId('drift-br');
+    expect(brCell.querySelector('.animate-spin')).toBeFalsy();
+    // The lock belonged to !9's in-flight write, so !5 must still be firable.
+    mockUpdateMergeRequest.mockReturnValueOnce(new Promise(() => {}));
+    fireEvent.click(brCell);
+    await waitFor(() => expect(mockUpdateMergeRequest).toHaveBeenCalledTimes(2));
+    expect(mockUpdateMergeRequest.mock.calls[1][3]).toBe(5);
+  });
+});
+
 describe('D-13: secondary table', () => {
   it('secondaryRows: [] renders no secondary-section and no "Not covered by tasks above" text at all', () => {
     renderSection({ secondaryRows: [] });

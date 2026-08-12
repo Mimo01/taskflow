@@ -207,8 +207,23 @@ function DriftActionCell({
   // is the documented "adjust state when a prop changes" pattern (a render-
   // phase update guarded by a ref), not an effect: React re-renders
   // immediately, so the cell never paints red for a row that is already ok.
+  //
+  // CR-07: the same guard must also fire when the CELL'S MR CHANGES. On the
+  // consolidated task row this cell renders at a fixed position whose `mr`
+  // prop is `selectDisplayMr(mrs)` — a value a filter toggle or a cache patch
+  // can swap underneath it. `mark` alone does not notice (two MRs both flagged
+  // share `mark === 'flag'`), so an error/pending state — and the `fire()`
+  // lock — would migrate onto a merge request whose write was never issued.
+  // Callers additionally `key` this component by `mr.id`; this guard is the
+  // belt to that braces, and covers any caller that forgets.
   const lastMarkRef = useRef(mark);
-  if (lastMarkRef.current !== mark) {
+  const lastMrIdRef = useRef(mr.id);
+  if (lastMrIdRef.current !== mr.id) {
+    lastMrIdRef.current = mr.id;
+    lastMarkRef.current = mark;
+    // Unconditional: nothing this instance holds describes the new MR.
+    reset();
+  } else if (lastMarkRef.current !== mark) {
     lastMarkRef.current = mark;
     if (mark === 'ok' && status === 'error') reset();
   }
@@ -682,8 +697,15 @@ function TaskMrCell({
           {/* CR-05: `interactive` is DERIVED, never hardcoded — an ok/na/
               non-actionable-flag cell renders an inert glyph, and claiming
               `z-10` for it would put a 28px dead zone over the row overlay. */}
+          {/* CR-07: `key` by mr.id, not by position. These cells hold their
+              write state in component state (D-08, deliberately, so a failure
+              survives background refetches), and the row's `mr` changes
+              whenever the selection input does — without the key React would
+              reuse the hook instance and a sticky failure, plus its retry
+              write, would rebind to a different merge request. */}
           <DriftCellSlot interactive={isMrFixActionable(selected.br, 'retarget', fix)}>
             <DriftActionCell
+              key={`br-${mr.id}`}
               mr={mr}
               action="retarget"
               mark={selected.br}
@@ -693,6 +715,7 @@ function TaskMrCell({
           </DriftCellSlot>
           <DriftCellSlot interactive={isMrFixActionable(selected.ms, 'assign-milestone', fix)}>
             <DriftActionCell
+              key={`ms-${mr.id}`}
               mr={mr}
               action="assign-milestone"
               mark={selected.ms}
