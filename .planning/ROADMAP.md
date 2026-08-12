@@ -261,8 +261,8 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. Release detail renders exactly one primary table, keyed on Jira tasks in the fix version (task key, summary, assignee, status), and no standalone issues-only or drift-only table remains
-  2. Every MR associated with a task appears as a stacked sub-line inside that task's row — `!iid`, truncated title with ticket keys linkified, author, state badge — so a task with N MRs shows all N without interaction
-  3. The BR (target branch) and MS (milestone) drift marks and their click-to-fix actions from Phase 90 operate per MR sub-line inside the task row, with the same pending/error/retry and independent-lock behaviour they have today
+  2. ~~Every MR associated with a task appears as a stacked sub-line inside that task's row — `!iid`, truncated title with ticket keys linkified, author, state badge — so a task with N MRs shows all N without interaction~~ **SUPERSEDED at live UAT, 2026-08-12.** Built as specified, then rejected by the developer on real data as too noisy: "99% of the time there is 1 MR for 1 task so the edge case of having multiple is not worth solving. I want it all consolidated into one single line for each task by the logic like it was before." Replacement criterion: **each task renders on exactly one line**, carrying the pre-v1.14 MR cell (GitMerge icon + state-coloured `!iid` + outline state badge). A multi-MR task shows its most relevant MR — flagged wins, then evaluated, tie-break highest iid — plus a hoverable `+N` marker naming the rest. No MR is dropped from the data layer.
+  3. The BR (target branch) and MS (milestone) drift marks and their click-to-fix actions from Phase 90 operate on the task row's displayed MR (**amended** — was "per MR sub-line", superseded with criterion 2), with the same pending/error/retry and independent-lock behaviour they have today
   4. The TASK drift check is dropped from the primary table (linkage is implied by the row), and a task with zero MRs still surfaces its "Missing MR" / degraded-milestone state
   5. A secondary table lists only MRs not covered by the primary table — both MRs with no Jira key and MRs whose key is not in this fix version, the latter showing the key and flagged as out-of-scope
   6. Primary-table rows keep the order Jira returns and never re-sort while the user is acting on them, so the Phase 89 D-11 frozen-order workaround is unnecessary rather than merely carried over
@@ -271,7 +271,7 @@ Plans:
 
 **User decisions** (captured at insert time):
 
-- Multi-MR layout: stacked sub-lines within the task row (not chips, not collapse-on-click)
+- ~~Multi-MR layout: stacked sub-lines within the task row (not chips, not collapse-on-click)~~ — **reversed at live UAT 2026-08-12**: one line per task, most-relevant MR shown, `+N` marker for the rest (see superseded criterion 2)
 - Out-of-scope-key MRs: secondary table, key shown and flagged
 - Per-MR data: state badge is required; `!iid` + linkified title + author also carried; actual target branch goes in the BR tooltip rather than its own column
 - Sorting: Jira order, no drift-driven re-sort
