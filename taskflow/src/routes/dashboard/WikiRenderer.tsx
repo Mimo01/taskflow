@@ -1382,10 +1382,10 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
     <article
       className={cn(
         'prose prose-sm dark:prose-invert max-w-none break-words',
-        'density-compact:prose-p:my-1 density-compact:prose-ul:my-1 density-compact:prose-ol:my-1',
-        'density-compact:prose-li:my-0 density-compact:prose-headings:mt-3 density-compact:prose-headings:mb-1',
+        'density-compact:prose-p:my-1.5 density-compact:prose-ul:my-1.5 density-compact:prose-ol:my-1.5',
+        'density-compact:prose-li:my-0.5 density-compact:prose-headings:mt-4 density-compact:prose-headings:mb-1.5',
         'density-compact:prose-pre:p-2 density-compact:prose-td:py-1 density-compact:prose-th:py-1',
-        'density-compact:[&_p]:leading-snug density-compact:[&_li]:leading-snug',
+        'density-compact:[&_p]:leading-normal density-compact:[&_li]:leading-normal',
         'density-comfortable:prose-p:my-4 density-comfortable:prose-ul:my-4 density-comfortable:prose-ol:my-4',
         'density-comfortable:prose-li:my-1 density-comfortable:prose-headings:mt-6 density-comfortable:prose-headings:mb-3',
         'density-comfortable:prose-pre:p-4 density-comfortable:prose-td:py-3 density-comfortable:prose-th:py-3',
