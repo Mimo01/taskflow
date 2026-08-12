@@ -9,7 +9,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layers } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -21,8 +21,8 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import type { EpicEnriched } from '@/services/jira';
-import { fetchEpicsBasic } from '@/services/jira';
+import type { EpicEnrichmentCounts, EpicEnriched } from '@/services/jira';
+import { fetchEpicEnrichmentMap, fetchEpicsBasic } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -120,7 +120,8 @@ export default function EpicsPage() {
   const onEpicClick = ctx.onEpicClick;
 
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { epicNameFieldKey, epicColorFieldKey } = useSettingsStore();
+  const { epicNameFieldKey, epicColorFieldKey, storyPointsFieldKey, epicLinkFieldKey } =
+    useSettingsStore();
 
   const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
@@ -152,6 +153,54 @@ export default function EpicsPage() {
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
   });
   const epics = epicsData ?? [];
+
+  // Progressive enrichment (D-04, D-14): a second query keyed off the loaded
+  // epic keys. Its isLoading/isError must never gate showSkeleton, ErrorState
+  // or StaleDataBanner — those remain driven exclusively by the basic query.
+  const epicKeys = useMemo(() => epics.map((e) => e.key), [epics]);
+
+  const {
+    data: enrichmentMap,
+    isError: enrichmentIsError,
+    refetch: refetchEnrichment,
+  } = useQuery<Map<string, EpicEnrichmentCounts>>({
+    queryKey: ['jira-epics-enrichment', activeJiraProject, jiraBaseUrl, epicKeys.join(',')],
+    queryFn: () =>
+      fetchEpicEnrichmentMap(
+        jiraBaseUrl ?? '',
+        token ?? '',
+        epicKeys,
+        storyPointsFieldKey ?? undefined,
+        epicLinkFieldKey ?? undefined,
+      ),
+    enabled: !!jiraBaseUrl && !!token && epicKeys.length > 0,
+  });
+
+  function getEnrichmentState(epicKey: string): EnrichmentCellState {
+    // Check error BEFORE data, so a stale-but-present map never masks a live
+    // failure (the 91.1 CR-06 unread-isError bug class).
+    if (enrichmentIsError) return { kind: 'error' };
+    if (enrichmentMap) {
+      const counts = enrichmentMap.get(epicKey) ?? {
+        total: 0,
+        done: 0,
+        inProgress: 0,
+        todo: 0,
+        points: 0,
+        donePoints: 0,
+      };
+      // An epic absent from the map genuinely has zero children (D-16).
+      return { kind: 'ready', counts };
+    }
+    return { kind: 'pending' };
+  }
+
+  // Retry semantics are WHOLE-QUERY (locked at plan time): fetchEpicEnrichmentMap
+  // is a single batched JQL for all epic keys, so one click refetches enrichment
+  // for every row. Do NOT build a single-epic enrichment fetcher.
+  const handleRetryEnrichment = () => {
+    refetchEnrichment();
+  };
 
   const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
 
@@ -220,8 +269,8 @@ export default function EpicsPage() {
                     key={epic.key}
                     epic={epic}
                     onEpicClick={onEpicClick}
-                    enrichment={{ kind: 'pending' }}
-                    onRetryEnrichment={() => {}}
+                    enrichment={getEnrichmentState(epic.key)}
+                    onRetryEnrichment={handleRetryEnrichment}
                   />
                 ))}
               </div>
