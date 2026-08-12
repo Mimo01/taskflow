@@ -211,9 +211,14 @@ export function IssueDetailView({
   // Track recent item when issue data is available
   useEffect(() => {
     if (issueKey && issue) {
-      pushRecentItem({ type: 'jira', id: issueKey, title: issue.fields.summary });
+      pushRecentItem({
+        type: 'jira',
+        id: issueKey,
+        title: issue.fields.summary,
+        issueType: issue.fields.issuetype?.name,
+      });
     }
-  }, [issueKey, issue?.fields.summary, issue, pushRecentItem]);
+  }, [issueKey, issue?.fields.summary, issue?.fields.issuetype?.name, issue, pushRecentItem]);
 
   // TTFMP — fires once when base issue first resolves (header paint)
   const ttfmpFiredRef = useRef(false);
