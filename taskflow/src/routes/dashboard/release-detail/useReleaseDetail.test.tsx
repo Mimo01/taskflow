@@ -767,6 +767,40 @@ describe('useReleaseDetail — driftUnavailable and milestone-inclusive isLoadin
     await waitFor(() => expect(gitlab.fetchAllProjectMRs).toHaveBeenCalled());
     await waitFor(() => expect(result.current.isLoadingDrift).toBe(true));
   });
+
+  // CR-06: the milestone query is the FOURTH input to the same rule. Its
+  // failure leaves `allProjectMilestones` undefined — indistinguishable from
+  // "this project has no milestones" unless `isError` is carried forward.
+  it('Test 6 (CR-06): a rejecting fetchProjectMilestones terminates driftUnavailable=true with isLoadingDrift=false', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchProjectMilestones).mockRejectedValue(new Error('401 unauthorized'));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.milestonesFailed).toBe(true));
+    expect(result.current.driftUnavailable).toBe(true);
+    expect(result.current.isLoadingDrift).toBe(false);
+    // Still no matched milestone — but the page now knows WHY, so it can say
+    // "unknown" instead of asserting the absence.
+    expect(result.current.hasMatchedMilestone).toBe(false);
+  });
+
+  it('Test 7 (CR-06): a resolving fetchProjectMilestones leaves milestonesFailed false and driftUnavailable false', async () => {
+    await setupMocks();
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoadingDrift).toBe(false));
+    expect(result.current.milestonesFailed).toBe(false);
+    expect(result.current.driftUnavailable).toBe(false);
+  });
 });
 
 describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {

@@ -78,6 +78,7 @@ export default function ReleaseDetailPage() {
     isLoadingDrift,
     driftUnavailable,
     hasMatchedMilestone,
+    milestonesFailed,
     labelSummary,
     labelCoverage,
     mrStateCounts,
@@ -251,6 +252,7 @@ export default function ReleaseDetailPage() {
                 isLoadingDrift={isLoadingDrift}
                 driftUnavailable={driftUnavailable}
                 hasMatchedMilestone={hasMatchedMilestone}
+                milestoneLookupFailed={milestonesFailed}
                 primaryRows={primaryRows}
                 secondaryRows={secondaryRows}
                 flaggedMrCount={flaggedMrCount}
@@ -333,7 +335,11 @@ export default function ReleaseDetailPage() {
               createMilestoneMutation.reset();
               setCreateMilestoneOpen(true);
             }}
-            canCreateMilestone={!!version.releaseDate}
+            // CR-06: with the milestone list unfetched, CreateMilestoneDialog's
+            // duplicate guard runs over an empty array and passes for every
+            // title — it would happily create a second milestone for a release
+            // that already has one. Offer the action only once we know what exists.
+            canCreateMilestone={!!version.releaseDate && !milestonesFailed}
             milestoneMRsLoaded={!!milestoneMRs}
             labelCoverage={labelCoverage}
             mrStateCounts={mrStateCounts}
