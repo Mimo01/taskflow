@@ -52,7 +52,10 @@ export interface UnifiedTaskTableProps {
 // rows provably use the same widths. Explicit px throughout, never `%` or an
 // unconstrained narrow `flex-1` (recorded WebKit/Tauri zero-width-column
 // collapse).
-const COL_KEY = 'flex-none w-[72px]';
+// Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
+// width + nowrap; widened from 72px so the common PROJ-1234 shape fits without
+// spilling into the summary column.
+const COL_KEY = 'flex-none w-[88px] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[140px] min-w-0';
 const COL_STATE = 'flex-none w-[96px]';
@@ -473,9 +476,7 @@ function DriftCellSlot({
   interactive: boolean;
 }) {
   return (
-    <div
-      className={`relative flex-none w-[28px] ${interactive ? 'z-10' : 'pointer-events-none'}`}
-    >
+    <div className={`relative flex-none w-[28px] ${interactive ? 'z-10' : 'pointer-events-none'}`}>
       {children}
     </div>
   );
@@ -632,7 +633,13 @@ function TaskMrCell({
       {selected.evaluated ? (
         <>
           <DriftCellSlot interactive>
-            <DriftActionCell mr={mr} action="retarget" mark={selected.br} testId="drift-br" fix={fix} />
+            <DriftActionCell
+              mr={mr}
+              action="retarget"
+              mark={selected.br}
+              testId="drift-br"
+              fix={fix}
+            />
           </DriftCellSlot>
           <DriftCellSlot interactive>
             <DriftActionCell
