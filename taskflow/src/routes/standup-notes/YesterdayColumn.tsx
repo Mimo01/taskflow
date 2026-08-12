@@ -573,7 +573,7 @@ function buildGroups(
 
 function LoadingSkeletons() {
   return (
-    <div className="flex flex-col gap-2 py-2">
+    <div className="flex flex-col gap-2 density-compact:gap-1 density-comfortable:gap-3 py-2 density-compact:py-1 density-comfortable:py-3">
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
@@ -767,7 +767,7 @@ export default function YesterdayColumn({
           {issueGroups.length > 0 && (
             <div className="mb-4">
               <StandupSectionHeader label="Worked On" count={issueGroups.length} />
-              <div className="[&>*]:py-2">
+              <div className="[&>*]:py-2 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-3">
                 {issueGroups.map((group) => (
                   <IssueActivityGroup
                     key={group.issueKey}
@@ -794,7 +794,7 @@ export default function YesterdayColumn({
                 label="Other Merge Requests"
                 count={standaloneMrGroups.length}
               />
-              <div className="divide-y divide-border [&>*]:py-2">
+              <div className="divide-y divide-border [&>*]:py-2 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-3">
                 {standaloneMrGroups.map((mr) => (
                   <StandaloneMrGroup
                     key={mr.iid}

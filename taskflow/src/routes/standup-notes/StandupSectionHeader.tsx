@@ -20,7 +20,7 @@ export default function StandupSectionHeader({
   showZero = false,
 }: StandupSectionHeaderProps) {
   return (
-    <div className="flex items-center gap-3 mb-2">
+    <div className="flex items-center gap-3 mb-2 density-compact:mb-1 density-comfortable:mb-3">
       <h3 className="text-sm font-semibold text-muted-foreground/60">{label}</h3>
       {(count > 0 || showZero) && (
         <span className="text-sm font-normal text-muted-foreground/60">{count}</span>
