@@ -21,7 +21,7 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import type { EpicEnrichmentCounts, EpicEnriched } from '@/services/jira';
+import type { EpicEnriched, EpicEnrichmentCounts } from '@/services/jira';
 import { fetchEpicEnrichmentMap, fetchEpicsBasic } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -46,6 +46,8 @@ function EpicRow({ epic, onEpicClick, enrichment, onRetryEnrichment }: EpicRowPr
   const colorResult = epicColorToTailwind(epic.color ?? null, epic.key);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: matches the previous <tr onClick> row semantics — plan explicitly forbids adding new a11y semantics here
+    // biome-ignore lint/a11y/useKeyWithClickEvents: matches the previous <tr onClick> row semantics — plan explicitly forbids adding new a11y semantics here
     <div
       className="flex w-full items-center border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
       onClick={() => onEpicClick?.(epic.key)}
