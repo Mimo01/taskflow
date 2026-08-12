@@ -129,6 +129,7 @@ function defaultProps(overrides: Partial<UnifiedTaskTableProps> = {}): UnifiedTa
     hasReleaseDate: true,
     isLoadingIssues: false,
     isLoadingDrift: false,
+    driftUnavailable: false,
     hasMatchedMilestone: true,
     primaryRows: [],
     secondaryRows: [],
@@ -590,9 +591,10 @@ describe('per-MR corrective actions', () => {
   });
 });
 
-// D-17: the four MR-slot states (pending/none/unavailable/resolved) are
-// mutually exclusive, with pending gated first so it always wins.
-describe('D-17: four mutually exclusive MR-slot states', () => {
+// D-17/CR-02: the five MR-slot states (pending/failed/none/unavailable/resolved)
+// are mutually exclusive, with pending gated first, then failed, so a channel
+// that never answered can never be mistaken for a verified absence.
+describe('D-17: five mutually exclusive MR-slot states', () => {
   it('D-17: isLoadingDrift: true with mrs: [] renders mr-slot-pending and neither mr-slot-none nor mr-slot-unavailable', () => {
     renderWithRows([], { isLoadingDrift: true });
     expect(screen.getByTestId('mr-slot-pending')).toBeInTheDocument();
@@ -633,6 +635,38 @@ describe('D-17: four mutually exclusive MR-slot states', () => {
     expect(screen.queryByTestId('mr-slot-pending')).toBeNull();
     expect(screen.queryByTestId('mr-slot-none')).toBeNull();
     expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
+  });
+
+  it('Test 3 (CR-02): driftUnavailable: true, mrs: [], hasMatchedMilestone: true renders mr-slot-failed only', () => {
+    renderWithRows([], {
+      isLoadingDrift: false,
+      driftUnavailable: true,
+      hasMatchedMilestone: true,
+    });
+    expect(screen.getByTestId('mr-slot-failed')).toBeInTheDocument();
+    expect(screen.queryByTestId('mr-slot-none')).toBeNull();
+    expect(screen.queryByTestId('mr-slot-unavailable')).toBeNull();
+    expect(screen.queryByTestId('mr-slot-pending')).toBeNull();
+  });
+
+  it('Test 4 (CR-02): mr-slot-failed contains no .text-orange-600 element (neutral, not a warning)', () => {
+    renderWithRows([], {
+      isLoadingDrift: false,
+      driftUnavailable: true,
+      hasMatchedMilestone: true,
+    });
+    const failed = screen.getByTestId('mr-slot-failed');
+    expect(failed.querySelector('.text-orange-600')).toBeNull();
+    expect(failed).toHaveAttribute(
+      'title',
+      "GitLab merge request lookup failed — this task's MR status is unknown",
+    );
+  });
+
+  it('Test 5 (CR-02): isLoadingDrift: true still wins over driftUnavailable: true (mr-slot-pending renders, mr-slot-failed does not)', () => {
+    renderWithRows([], { isLoadingDrift: true, driftUnavailable: true });
+    expect(screen.getByTestId('mr-slot-pending')).toBeInTheDocument();
+    expect(screen.queryByTestId('mr-slot-failed')).toBeNull();
   });
 });
 
@@ -835,6 +869,40 @@ describe('D-13: secondary table', () => {
     expect(msButtons).toHaveLength(2);
     for (const b of [...brButtons, ...msButtons]) expect(b.tagName).toBe('BUTTON');
   });
+
+  it('Test 1 (CR-01): isLoadingIssues: true with a non-empty secondaryRows renders no secondary-section and no secondary-key-flagged', () => {
+    const flaggedKeyRow = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: ['PROJ-9'],
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    renderSection({
+      secondaryRows: [flaggedKeyRow],
+      isLoadingIssues: true,
+    });
+    expect(screen.queryByTestId('secondary-section')).toBeNull();
+    expect(screen.queryByTestId('secondary-key-flagged')).toBeNull();
+  });
+
+  it('Test 2 (CR-01): isLoadingIssues: false with the same non-empty secondaryRows still renders secondary-section (no regression of D-13)', () => {
+    const flaggedKeyRow = makeRow({
+      mr: makeMR({ id: 1, iid: 1 }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: ['PROJ-9'],
+      br: 'flag',
+      ms: 'flag',
+      flagged: true,
+    });
+    renderSection({
+      secondaryRows: [flaggedKeyRow],
+      isLoadingIssues: false,
+    });
+    expect(screen.getByTestId('secondary-section')).toBeInTheDocument();
+    expect(screen.getByTestId('secondary-key-flagged')).toBeInTheDocument();
+  });
 });
 
 describe('D-14/D-15: header', () => {
@@ -844,6 +912,19 @@ describe('D-14/D-15: header', () => {
       flaggedMrCount: 2,
     });
     expect(screen.getByText('4 / 6 done')).toBeInTheDocument();
+    expect(screen.getByTestId('flagged-count-badge')).toHaveTextContent('2');
+  });
+
+  it('Test 6 (IN-03): flagged-count-badge is hidden while isLoadingDrift, hidden while isLoadingIssues, and shown when both are false', () => {
+    const { unmount } = renderSection({ flaggedMrCount: 2, isLoadingDrift: true });
+    expect(screen.queryByTestId('flagged-count-badge')).toBeNull();
+    unmount();
+
+    const { unmount: unmount2 } = renderSection({ flaggedMrCount: 2, isLoadingIssues: true });
+    expect(screen.queryByTestId('flagged-count-badge')).toBeNull();
+    unmount2();
+
+    renderSection({ flaggedMrCount: 2, isLoadingDrift: false, isLoadingIssues: false });
     expect(screen.getByTestId('flagged-count-badge')).toHaveTextContent('2');
   });
 });

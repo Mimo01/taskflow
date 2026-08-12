@@ -34,6 +34,7 @@ export interface UnifiedTaskTableProps {
   hasReleaseDate: boolean;
   isLoadingIssues: boolean;
   isLoadingDrift: boolean;
+  driftUnavailable: boolean;
   hasMatchedMilestone: boolean;
   primaryRows: Array<{ issue: JiraIssue; mrs: DriftRow[] }>;
   secondaryRows: DriftRow[];
@@ -502,12 +503,14 @@ function TaskRow({
 
 function MrSlot({
   isLoadingDrift,
+  driftUnavailable,
   mrs,
   hasMatchedMilestone,
   onNavigateToIssueFromMR,
   fix,
 }: {
   isLoadingDrift: boolean;
+  driftUnavailable: boolean;
   mrs: DriftRow[];
   hasMatchedMilestone: boolean;
   onNavigateToIssueFromMR: (key: string) => void;
@@ -521,6 +524,21 @@ function MrSlot({
       >
         <Loader2 className="size-3.5 animate-spin" />
         loading merge requests…
+      </div>
+    );
+  }
+
+  // Pending beats failed beats verified-empty (order matters). A channel
+  // that failed to answer is an unknown, not a verified absence — never
+  // orange, matching the neutral mr-slot-unavailable treatment.
+  if (driftUnavailable && mrs.length === 0) {
+    return (
+      <div
+        data-testid="mr-slot-failed"
+        title="GitLab merge request lookup failed — this task's MR status is unknown"
+        className="pl-4 flex items-center gap-2 text-xs py-1 text-muted-foreground"
+      >
+        — couldn't check merge requests
       </div>
     );
   }
@@ -569,6 +587,7 @@ export function UnifiedTaskTable({
   hasReleaseDate,
   isLoadingIssues,
   isLoadingDrift,
+  driftUnavailable,
   hasMatchedMilestone,
   primaryRows,
   secondaryRows,
@@ -588,14 +607,16 @@ export function UnifiedTaskTable({
             {issueCounts.issuesFixed} / {issueCounts.issuesTotal} done
           </Badge>
         )}
-        <Badge
-          variant="secondary"
-          className="ml-1.5 text-xs tabular-nums"
-          data-testid="flagged-count-badge"
-          title="Merge requests needing attention"
-        >
-          {flaggedMrCount}
-        </Badge>
+        {!isLoadingDrift && !isLoadingIssues && (
+          <Badge
+            variant="secondary"
+            className="ml-1.5 text-xs tabular-nums"
+            data-testid="flagged-count-badge"
+            title="Merge requests needing attention"
+          >
+            {flaggedMrCount}
+          </Badge>
+        )}
       </div>
 
       {/* Progress bar (Jira-driven) */}
@@ -642,6 +663,7 @@ export function UnifiedTaskTable({
                 />
                 <MrSlot
                   isLoadingDrift={isLoadingDrift}
+                  driftUnavailable={driftUnavailable}
                   mrs={mrs}
                   hasMatchedMilestone={hasMatchedMilestone}
                   onNavigateToIssueFromMR={onNavigateToIssueFromMR}
@@ -653,7 +675,7 @@ export function UnifiedTaskTable({
         </>
       )}
 
-      {secondaryRows.length > 0 && (
+      {!isLoadingIssues && secondaryRows.length > 0 && (
         <div data-testid="secondary-section" className="mt-4 pt-4 border-t border-border/50">
           <h4 className="text-sm font-medium">Not covered by tasks above</h4>
           <ColumnHeaderStrip />
