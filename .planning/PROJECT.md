@@ -220,6 +220,14 @@ Code review found one blocker: the optimistic rollback snapshotted and restored 
 
 Three gap-closure rounds followed the initial verification. The last (91-09) added a `TagChannelHealth` discriminant (`resolved | pending | failed`) so the sibling "Release Branch" row only asserts "No matching tag found" when the tag lookup actually resolved, rather than while it is in flight or has failed. Carried forward from `91-REVIEW.md`: CR-01 — `searchProjectTags` validates the array wrapper but not element shape, so a malformed-but-array-shaped 200 body can crash `findReleaseTag` in the render phase; verification judged it outside the phase's three defined tag-channel states but flagged it for prompt follow-up.
 
+**Phase 91.1 complete (2026-08-12)** — Inserted phase. Release detail now presents ONE primary table keyed on Jira tasks in the fix version; the separate `IssuesSection` and `MrDriftSection` are deleted, not restyled, and a single secondary table lists MRs the release's tasks do not cover. The BR/MS drift marks and their Phase 90 click-to-fix actions are re-hosted onto the unified row.
+
+The phase's defining event was a **live-UAT reversal**. Success criteria 2/3 mandated stacked per-MR sub-lines inside each task row; that was built, shown on real data, and rejected — "99% of the time there is 1 MR for 1 task so the edge case of having multiple is not worth solving." The table consolidated to one line per task with the pre-v1.14 MR cell (GitMerge icon + state-coloured `!iid` + outline state badge), a most-relevant MR selection (flagged > evaluated > highest iid) and a hoverable `+N` marker for the rest. The roadmap criteria were struck through and replaced rather than silently diverged from — see ROADMAP Phase 91.1.
+
+Five gap-closure plans (06-10) closed two BLOCKING verification gaps, five review warnings and both UAT design gaps. A second review pass over the consolidation then found four real regressions it had introduced, all fixed: the MR cell hit-tested above the row's overlay button and had been swallowing row clicks across ~190px of every row (CR-05); the milestone query's `isError` was never read, so a failed GitLab fetch rendered as a *verified* "no milestone matched" and silently disabled create-milestone duplicate detection (CR-06); `DriftActionCell` was position-keyed, letting a sticky write failure rebind to a different MR after a filter toggle (CR-07); and the `+N` marker carried `pointer-events-none`, making the hidden MRs unreachable anywhere in the UI (CR-08).
+
+Four items persist in `91.1-HUMAN-UAT.md` — badge filtering end-to-end, the WR-01 breadcrumb path, the CR-01/CR-02 reload flash, and the row click surface after the CR-05 fix. All have automated coverage; none were walked live after the fix pass. Known tension, accepted: `brFlaggedCount` counts distinct flagged MRs while the table renders one row per task, so a task with three BR-flagged MRs contributes 3 to the badge but 1 actionable row.
+
 Accepted trade-off: Channel A is bounded by an `updated_after` window derived from unreleased fix versions (measured 4189 MRs / 42 pages / ~15MB unbounded, ~7.8s → ~1.2s windowed; the GitLab instance is throughput-limited so parallelism alone did not help). Channels B and C remain unbounded, so milestone- or branch-attached MRs are still found at any age. See `89-VERIFICATION.md` for the full rationale.
 
 ## Context
@@ -394,4 +402,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Dashboard charts source from existing data only — no new API surface (v1.13 Phase 86) | Reuse warm caches (sprint data, Tempo worklogs, releases, commits); a redesign shouldn't add fetch cost | ✓ Good — dual-axis chart + cards built entirely on existing queries |
 
 ---
-*Last updated: 2026-08-11 — after Phase 91 (Post-Release Merge-Back Verification) completed*
+*Last updated: 2026-08-12 — after Phase 91.1 (Unified Release Detail Task Table) completed*
