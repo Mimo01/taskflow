@@ -619,6 +619,13 @@ function TaskMrCell({
   // Pending beats failed beats verified-empty (order matters). A channel
   // that failed to answer is an unknown, not a verified absence — never
   // orange, matching the neutral mr-slot-unavailable treatment.
+  // WR-07: these two slots keep `pointer-events-none` ON PURPOSE — they are
+  // non-interactive, and the row's full-row click must fall through them
+  // (CR-05). That also means their `title` can never render: the browser
+  // fires no hover for an element removed from hit-testing. So the VISIBLE
+  // text has to carry the state on its own, with the long-form explanation in
+  // the page-wide banner above. The titles below are supplementary only —
+  // never move information into them that appears nowhere else.
   if (driftUnavailable && mrs.length === 0) {
     return (
       <>
@@ -627,7 +634,7 @@ function TaskMrCell({
           title="GitLab merge request lookup failed — this task's MR status is unknown"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          — couldn't check merge requests
+          — MR status unknown
         </div>
         {naDriftCells}
       </>
@@ -657,7 +664,7 @@ function TaskMrCell({
           title="No GitLab milestone matched — cannot check for MRs"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          — MR status unavailable
+          — no milestone, not checked
         </div>
         {naDriftCells}
       </>
