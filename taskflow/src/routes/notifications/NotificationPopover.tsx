@@ -171,7 +171,7 @@ function VirtualizedNotificationList({
                   }}
                 >
                   {entry.type === 'header' ? (
-                    <div className="bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b">
+                    <div className="bg-background/95 backdrop-blur-sm px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 border-b">
                       <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                         {entry.label}
                       </span>
@@ -194,7 +194,7 @@ function VirtualizedNotificationList({
               entry.type === 'header' ? (
                 <div
                   key={entry.key}
-                  className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b"
+                  className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 border-b"
                 >
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     {entry.label}

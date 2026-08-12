@@ -78,7 +78,7 @@ export function WorklogEntryRow({
   }
 
   return (
-    <div className="group relative flex items-center gap-2 py-0.5 min-w-0">
+    <div className="group relative flex items-center gap-2 py-0.5 density-compact:py-0 density-comfortable:py-1 min-w-0">
       <span className="text-xs font-semibold shrink-0">{formatSecs(entry.timeSpentSeconds)}</span>
       {entry.comment && (
         <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
