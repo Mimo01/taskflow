@@ -71,7 +71,9 @@ describe('rankIssueApi status handling', () => {
   });
 
   it('throws a generic Error on other non-ok statuses (500)', async () => {
+    // No decodable JSON body → flattenJiraError(null) is undefined → falls
+    // back to the fixed `status ${n}` literal (quick-260813-dzc).
     mockApiFetch.mockResolvedValueOnce(res(500));
-    await expect(call()).rejects.toThrow(/Failed to rank issue: 500/);
+    await expect(call()).rejects.toThrow(/Failed to rank issue: status 500/);
   });
 });
