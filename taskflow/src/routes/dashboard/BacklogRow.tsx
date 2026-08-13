@@ -214,191 +214,189 @@ function RowCells({
 
 // -- Component ----------------------------------------------------------------
 
-export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(
-  function BacklogRow(
-    {
-      issue,
-      onIssueClick,
-      onOpenIssue,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      epicNameFieldKey,
-      epicNames,
-      epicColors,
-      epicsLoading,
-      isFocused,
-      sprints,
-      onMoveToSprint,
-      onMoveToBacklog,
-      isFlagged,
-      onToggleFlag,
-      onSendToTop,
-      onSendToBottom,
-      isOverlay,
-      justDragged,
-    },
-    _ref,
-  ) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-      id: issue.key,
-      disabled: isOverlay,
-    });
-
-    const dragStyle: React.CSSProperties = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      // Phase 78-04 (jump fix): canonical dnd-kit DragOverlay setup. There is no
-      // longer a live-reordered in-slot ghost (order changes only on drop), so
-      // the dragged row keeps its original slot while the SOLID DragOverlay clone
-      // follows the cursor. Hide the in-list source row (opacity 0) so it doesn't
-      // double with the overlay; dnd-kit's verticalListSortingStrategy shifts the
-      // sibling rows via transforms to open the drop gap.
-      opacity: isDragging && !isOverlay ? 0 : undefined,
-      cursor: isDragging ? 'grabbing' : 'grab',
-      position: 'relative',
-    };
-
-    // D-07 / Defect-A: ONE coherent, subtle overlay treatment. The previous
-    // ring-2 + ring-offset + shadow-xl HERE stacked on top of the table
-    // wrapper's own ring-2 + shadow-2xl, producing a heavy, janky-looking
-    // ghost. The single soft treatment now lives on the table wrapper in
-    // BacklogPage; the row itself adds nothing extra.
-    const overlayClassName = isOverlay ? 'bg-background' : undefined;
-
-    const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-    // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
-    const epicName = epicKey
-      ? (epicNames?.get(epicKey) ?? (issue.fields[epicNameFieldKey] as string | null) ?? epicKey)
-      : null;
-    const storyPoints =
-      (issue.fields[storyPointsFieldKey] as number | null | undefined) ??
-      (issue.fields.customfield_10016 as number | null | undefined) ??
-      null;
-
-    // Resolve epic badge color from Jira color map, with hash-based fallback
-    const epicColorResult = epicKey
-      ? epicColorToTailwind(epicColors?.get(epicKey) ?? null, epicKey)
-      : null;
-
-    const rowClassName = cn(
-      'flex w-full items-center border-b border-border transition-colors cursor-pointer',
-      isFlagged
-        ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
-        : 'hover:bg-muted/30',
-      isFocused && 'bg-muted border-l-2 border-primary',
-      overlayClassName,
-    );
-
-    const cellsProps = {
-      issue,
-      epicKey,
-      epicName,
-      epicColorResult,
-      storyPoints,
-      onIssueClick,
-      epicsLoading,
-      isFlagged,
-    };
-
-    if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag && !onSendToTop && !onSendToBottom) {
-      return (
-        <div
-          ref={setNodeRef}
-          data-testid={`backlog-row-${issue.key}`}
-          className={rowClassName}
-          style={dragStyle}
-          data-dragging={isDragging ? 'true' : undefined}
-          onClick={() => {
-            if (justDragged?.current) return;
-            (onOpenIssue ?? onIssueClick)(issue.key);
-          }}
-          aria-current={isFocused ? 'true' : undefined}
-          {...attributes}
-          {...listeners}
-        >
-          <RowCells {...cellsProps} />
-        </div>
-      );
-    }
-
-    return (
-      <ContextMenu>
-        <ContextMenuTrigger
-          render={
-            <div
-              ref={setNodeRef}
-              data-testid={`backlog-row-${issue.key}`}
-              className={rowClassName}
-              style={dragStyle}
-              data-dragging={isDragging ? 'true' : undefined}
-              onClick={() => {
-                if (justDragged?.current) return;
-                (onOpenIssue ?? onIssueClick)(issue.key);
-              }}
-              aria-current={isFocused ? 'true' : undefined}
-              {...attributes}
-              {...listeners}
-            >
-              <RowCells {...cellsProps} />
-            </div>
-          }
-        />
-        <ContextMenuContent>
-          {(onSendToTop || onSendToBottom) && (
-            <ContextMenuGroup>
-              <ContextMenuLabel>Reorder</ContextMenuLabel>
-              <ContextMenuSeparator />
-              {onSendToTop && (
-                <ContextMenuItem onClick={() => onSendToTop(issue.key)}>
-                  <ArrowUpToLine className="size-3.5" />
-                  Send to top
-                </ContextMenuItem>
-              )}
-              {onSendToBottom && (
-                <ContextMenuItem onClick={() => onSendToBottom(issue.key)}>
-                  <ArrowDownToLine className="size-3.5" />
-                  Send to bottom
-                </ContextMenuItem>
-              )}
-            </ContextMenuGroup>
-          )}
-          {onToggleFlag && (
-            <>
-              {(onSendToTop || onSendToBottom) && <ContextMenuSeparator />}
-              <ContextMenuGroup>
-                <ContextMenuLabel>Flag</ContextMenuLabel>
-                <ContextMenuSeparator />
-                <ContextMenuItem onClick={() => onToggleFlag(issue.key)}>
-                  <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
-                  {isFlagged ? 'Unflag' : 'Flag'}
-                </ContextMenuItem>
-              </ContextMenuGroup>
-            </>
-          )}
-          {(onMoveToSprint || onMoveToBacklog) && (
-            <>
-              {(onSendToTop || onSendToBottom || onToggleFlag) && <ContextMenuSeparator />}
-              <ContextMenuGroup>
-                <ContextMenuLabel>Move to...</ContextMenuLabel>
-                <ContextMenuSeparator />
-                <SprintMoveMenuItems
-                  sprints={sprints ?? []}
-                  currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
-                  showBacklog={!!onMoveToBacklog}
-                  onSelectSprint={(sprintId, sprintName) =>
-                    onMoveToSprint?.(issue.key, sprintId, sprintName)
-                  }
-                  onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
-                  Item={ContextMenuItem}
-                  Label={ContextMenuLabel}
-                />
-              </ContextMenuGroup>
-            </>
-          )}
-        </ContextMenuContent>
-      </ContextMenu>
-    );
+export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(function BacklogRow(
+  {
+    issue,
+    onIssueClick,
+    onOpenIssue,
+    storyPointsFieldKey,
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    epicNames,
+    epicColors,
+    epicsLoading,
+    isFocused,
+    sprints,
+    onMoveToSprint,
+    onMoveToBacklog,
+    isFlagged,
+    onToggleFlag,
+    onSendToTop,
+    onSendToBottom,
+    isOverlay,
+    justDragged,
   },
-);
+  _ref,
+) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: issue.key,
+    disabled: isOverlay,
+  });
+
+  const dragStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    // Phase 78-04 (jump fix): canonical dnd-kit DragOverlay setup. There is no
+    // longer a live-reordered in-slot ghost (order changes only on drop), so
+    // the dragged row keeps its original slot while the SOLID DragOverlay clone
+    // follows the cursor. Hide the in-list source row (opacity 0) so it doesn't
+    // double with the overlay; dnd-kit's verticalListSortingStrategy shifts the
+    // sibling rows via transforms to open the drop gap.
+    opacity: isDragging && !isOverlay ? 0 : undefined,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    position: 'relative',
+  };
+
+  // D-07 / Defect-A: ONE coherent, subtle overlay treatment. The previous
+  // ring-2 + ring-offset + shadow-xl HERE stacked on top of the table
+  // wrapper's own ring-2 + shadow-2xl, producing a heavy, janky-looking
+  // ghost. The single soft treatment now lives on the table wrapper in
+  // BacklogPage; the row itself adds nothing extra.
+  const overlayClassName = isOverlay ? 'bg-background' : undefined;
+
+  const epicKey = issue.fields[epicLinkFieldKey] as string | null;
+  // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
+  const epicName = epicKey
+    ? (epicNames?.get(epicKey) ?? (issue.fields[epicNameFieldKey] as string | null) ?? epicKey)
+    : null;
+  const storyPoints =
+    (issue.fields[storyPointsFieldKey] as number | null | undefined) ??
+    (issue.fields.customfield_10016 as number | null | undefined) ??
+    null;
+
+  // Resolve epic badge color from Jira color map, with hash-based fallback
+  const epicColorResult = epicKey
+    ? epicColorToTailwind(epicColors?.get(epicKey) ?? null, epicKey)
+    : null;
+
+  const rowClassName = cn(
+    'flex w-full items-center border-b border-border transition-colors cursor-pointer',
+    isFlagged
+      ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
+      : 'hover:bg-muted/30',
+    isFocused && 'bg-muted border-l-2 border-primary',
+    overlayClassName,
+  );
+
+  const cellsProps = {
+    issue,
+    epicKey,
+    epicName,
+    epicColorResult,
+    storyPoints,
+    onIssueClick,
+    epicsLoading,
+    isFlagged,
+  };
+
+  if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag && !onSendToTop && !onSendToBottom) {
+    return (
+      <div
+        ref={setNodeRef}
+        data-testid={`backlog-row-${issue.key}`}
+        className={rowClassName}
+        style={dragStyle}
+        data-dragging={isDragging ? 'true' : undefined}
+        onClick={() => {
+          if (justDragged?.current) return;
+          (onOpenIssue ?? onIssueClick)(issue.key);
+        }}
+        aria-current={isFocused ? 'true' : undefined}
+        {...attributes}
+        {...listeners}
+      >
+        <RowCells {...cellsProps} />
+      </div>
+    );
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger
+        render={
+          <div
+            ref={setNodeRef}
+            data-testid={`backlog-row-${issue.key}`}
+            className={rowClassName}
+            style={dragStyle}
+            data-dragging={isDragging ? 'true' : undefined}
+            onClick={() => {
+              if (justDragged?.current) return;
+              (onOpenIssue ?? onIssueClick)(issue.key);
+            }}
+            aria-current={isFocused ? 'true' : undefined}
+            {...attributes}
+            {...listeners}
+          >
+            <RowCells {...cellsProps} />
+          </div>
+        }
+      />
+      <ContextMenuContent>
+        {(onSendToTop || onSendToBottom) && (
+          <ContextMenuGroup>
+            <ContextMenuLabel>Reorder</ContextMenuLabel>
+            <ContextMenuSeparator />
+            {onSendToTop && (
+              <ContextMenuItem onClick={() => onSendToTop(issue.key)}>
+                <ArrowUpToLine className="size-3.5" />
+                Send to top
+              </ContextMenuItem>
+            )}
+            {onSendToBottom && (
+              <ContextMenuItem onClick={() => onSendToBottom(issue.key)}>
+                <ArrowDownToLine className="size-3.5" />
+                Send to bottom
+              </ContextMenuItem>
+            )}
+          </ContextMenuGroup>
+        )}
+        {onToggleFlag && (
+          <>
+            {(onSendToTop || onSendToBottom) && <ContextMenuSeparator />}
+            <ContextMenuGroup>
+              <ContextMenuLabel>Flag</ContextMenuLabel>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onToggleFlag(issue.key)}>
+                <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                {isFlagged ? 'Unflag' : 'Flag'}
+              </ContextMenuItem>
+            </ContextMenuGroup>
+          </>
+        )}
+        {(onMoveToSprint || onMoveToBacklog) && (
+          <>
+            {(onSendToTop || onSendToBottom || onToggleFlag) && <ContextMenuSeparator />}
+            <ContextMenuGroup>
+              <ContextMenuLabel>Move to...</ContextMenuLabel>
+              <ContextMenuSeparator />
+              <SprintMoveMenuItems
+                sprints={sprints ?? []}
+                currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
+                showBacklog={!!onMoveToBacklog}
+                onSelectSprint={(sprintId, sprintName) =>
+                  onMoveToSprint?.(issue.key, sprintId, sprintName)
+                }
+                onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
+                Item={ContextMenuItem}
+                Label={ContextMenuLabel}
+              />
+            </ContextMenuGroup>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+});
 
 export default BacklogRow;

@@ -207,7 +207,9 @@ function CardBody({
           {assignee && (
             <>
               <CachedAvatar url={avatarUrl} name={displayName} size={20} />
-              <span className="text-[0.6875rem] text-muted-foreground/80 truncate">{displayName}</span>
+              <span className="text-[0.6875rem] text-muted-foreground/80 truncate">
+                {displayName}
+              </span>
             </>
           )}
         </div>

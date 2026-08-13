@@ -379,7 +379,10 @@ function ColumnHeaderStrip() {
       <span className={COL_PERSON}>Assignee</span>
       <span className={COL_STATE}>Status</span>
       <span className={COL_MR}>MR</span>
-      <span className="flex-none w-[1.75rem] text-center" title="Target branch matches release branch">
+      <span
+        className="flex-none w-[1.75rem] text-center"
+        title="Target branch matches release branch"
+      >
         BR
       </span>
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
@@ -403,7 +406,10 @@ function SecondaryHeaderStrip() {
     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 pl-4 bg-muted/30">
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Merge request</span>
-      <span className="flex-none w-[1.75rem] text-center" title="Target branch matches release branch">
+      <span
+        className="flex-none w-[1.75rem] text-center"
+        title="Target branch matches release branch"
+      >
         BR
       </span>
       <span className="flex-none w-[1.75rem] text-center" title="Release milestone assigned">
@@ -571,7 +577,9 @@ function DriftCellSlot({
   interactive: boolean;
 }) {
   return (
-    <div className={`relative flex-none w-[1.75rem] ${interactive ? 'z-10' : 'pointer-events-none'}`}>
+    <div
+      className={`relative flex-none w-[1.75rem] ${interactive ? 'z-10' : 'pointer-events-none'}`}
+    >
       {children}
     </div>
   );
