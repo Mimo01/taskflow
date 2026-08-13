@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 Phase: 91.2
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-08-13 - Completed quick task 260813-1vr: In the search modal results, also show the issue type icon
+Last activity: 2026-08-13 - Completed quick task 260813-dbf: fix gitlab.ts WR-01: flatten object-keyed GitLab error message bodies
 
 Progress: [██████████] 100%
 
@@ -130,6 +130,7 @@ None yet.
 | 260813-fst | On release detail, order Jira tickets by created date/key ascending | 2026-08-13 | e82a947e | | — |
 | 260813-1k3 | In Recently Visited, also show the issue type icon | 2026-08-13 | 5b9c4184 | | [260813-1k3-in-the-recently-visited-also-put-the-typ](./quick/260813-1k3-in-the-recently-visited-also-put-the-typ/) |
 | 260813-1vr | In the search modal results, also show the issue type icon | 2026-08-13 | 0a29595d | | [260813-1vr-in-the-search-modal-results-also-put-the](./quick/260813-1vr-in-the-search-modal-results-also-put-the/) |
+| 260813-dbf | Fix gitlab.ts WR-01: flatten object-keyed GitLab error message bodies | 2026-08-13 | 6a68948d | | [260813-dbf-fix-gitlab-ts-wr-01-flatten-object-keyed](./quick/260813-dbf-fix-gitlab-ts-wr-01-flatten-object-keyed/) |
 
 ## Deferred Items
 
