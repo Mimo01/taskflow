@@ -1112,48 +1112,36 @@ export async function updateMilestone(
     }
     // Surface GitLab's error body (e.g. {"message":"title is missing"}) instead
     // of an opaque status code; fall back to the status when no message exists.
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(`Failed to update milestone: ${body?.message ?? `status ${response.status}`}`);
+    const body: unknown = await response.json().catch(() => null);
+    throw new Error(
+      `Failed to update milestone: ${flattenGitLabError(body) ?? `status ${response.status}`}`,
+    );
   }
 
   return (await response.json()) as GitLabMilestone;
 }
 
 /**
- * Normalise a GitLab API error body into a single readable string (D-10,
- * closes 88-REVIEW WR-01 for this phase).
+ * Flatten a single GitLab error-body candidate value (a `message` or `error`
+ * field's value) into a readable string, or `undefined` when the candidate is
+ * missing/null or flattens to an empty string.
  *
- * `updateMilestone`, `createBranch`, and `createMilestone` each independently
- * reinvented a narrower widening of GitLab's error-body shape (see the
- * `body?.message ?? status` line above, and `createBranch`'s array-only
- * widening). GitLab's Rails-standard validation-error convention can also
- * return a field-keyed object (e.g. `{"message":{"target_branch":["can't be
- * blank"]}}`), which neither existing analog handles — that shape falls
- * through to `[object Object]` if passed to `String()` directly. This helper
- * is the single place all three shapes (string, string[], field-keyed
- * object) are normalised; do not reinvent a fourth narrower widening.
- *
- * @param body - The parsed JSON error body (or `null`/non-object)
- * @returns A readable message, or `undefined` when no `message` key exists OR
- *          the message is present but flattens to an empty string
+ * A field's value is `string[]` in GitLab's Rails-standard shape, but a
+ * nested object shows up too (`{target_branch:{base:['x']}}`) — and
+ * `String({})` is exactly the `[object Object]` this helper exists to
+ * prevent, so serialise it instead of stringifying it (WR-02).
  */
-export function flattenGitLabError(body: unknown): string | undefined {
-  if (body === null || typeof body !== 'object') return undefined;
-  const message = (body as { message?: unknown }).message;
-  if (message === undefined || message === null) return undefined;
+function flattenErrorCandidate(candidate: unknown): string | undefined {
+  if (candidate === undefined || candidate === null) return undefined;
 
   let flat: string | undefined;
-  if (typeof message === 'string') {
-    flat = message;
-  } else if (Array.isArray(message)) {
-    flat = message.join(', ');
-  } else if (typeof message === 'object') {
-    flat = Object.entries(message as Record<string, unknown>)
+  if (typeof candidate === 'string') {
+    flat = candidate;
+  } else if (Array.isArray(candidate)) {
+    flat = candidate.join(', ');
+  } else if (typeof candidate === 'object') {
+    flat = Object.entries(candidate as Record<string, unknown>)
       .map(([field, errs]) => {
-        // A field's value is `string[]` in GitLab's Rails-standard shape, but
-        // a nested object shows up too (`{target_branch:{base:['x']}}`) — and
-        // `String({})` is exactly the `[object Object]` this helper exists to
-        // prevent, so serialise it instead of stringifying it (WR-02).
         const detail = Array.isArray(errs)
           ? errs.join(', ')
           : typeof errs === 'string'
@@ -1170,6 +1158,35 @@ export function flattenGitLabError(body: unknown): string | undefined {
   // producing "Failed to update merge request: " with nothing after the colon,
   // or an ApiError with an empty message that the UI renders as a tooltip.
   return flat !== undefined && flat.length > 0 ? flat : undefined;
+}
+
+/**
+ * Normalise a GitLab API error body into a single readable string (D-10,
+ * closes 88-REVIEW WR-01 for this phase).
+ *
+ * `updateMilestone`, `createBranch`, and `createMilestone` each independently
+ * reinvented a narrower widening of GitLab's error-body shape (see the
+ * `body?.message ?? status` line above, and `createBranch`'s array-only
+ * widening). GitLab's Rails-standard validation-error convention can also
+ * return a field-keyed object (e.g. `{"message":{"target_branch":["can't be
+ * blank"]}}`), which neither existing analog handles — that shape falls
+ * through to `[object Object]` if passed to `String()` directly. This helper
+ * is the single place all three shapes (string, string[], field-keyed
+ * object) are normalised; do not reinvent a fourth narrower widening.
+ *
+ * `message` is preferred; `error` is the fallback when `message` is
+ * missing/null or flattens to empty — GitLab returns a bare `error` string on
+ * some param-validation and OAuth-ish responses (e.g. `{"error":"branch is
+ * missing"}`).
+ *
+ * @param body - The parsed JSON error body (or `null`/non-object)
+ * @returns A readable message, or `undefined` when neither `message` nor
+ *          `error` yields a non-empty flattened string
+ */
+export function flattenGitLabError(body: unknown): string | undefined {
+  if (body === null || typeof body !== 'object') return undefined;
+  const { message, error } = body as { message?: unknown; error?: unknown };
+  return flattenErrorCandidate(message) ?? flattenErrorCandidate(error);
 }
 
 /**
@@ -1356,13 +1373,11 @@ export async function createBranch(
   }
 
   if (!response.ok) {
-    // Widened vs. updateMilestone's narrower typing (Pitfall 3): GitLab's
-    // validation errors commonly arrive as message: string[] (e.g. duplicate
-    // branch), which would render as [object Object] if left un-joined.
-    const body = (await response.json().catch(() => null)) as {
-      message?: string | string[];
-    } | null;
-    const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    // Body shapes (string / string[] / field-keyed object) are all normalised
+    // by flattenGitLabError (see its doc comment) — never reinvent a local
+    // widening here.
+    const body: unknown = await response.json().catch(() => null);
+    const msg = flattenGitLabError(body);
     if (response.status === 401 || response.status === 403) {
       // WR-11: 403 is the single most likely failure mode for this write op
       // (protected-branch rules, missing `api` scope, role restrictions), and
@@ -1420,12 +1435,11 @@ export async function createMilestone(
   }
 
   if (!response.ok) {
-    // Widened vs. updateMilestone's narrower typing (Pitfall 3): a duplicate-title
-    // rejection commonly arrives as message: string[], not a bare string.
-    const body = (await response.json().catch(() => null)) as {
-      message?: string | string[];
-    } | null;
-    const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    // Body shapes (string / string[] / field-keyed object) are all normalised
+    // by flattenGitLabError (see its doc comment) — never reinvent a local
+    // widening here.
+    const body: unknown = await response.json().catch(() => null);
+    const msg = flattenGitLabError(body);
     if (response.status === 401 || response.status === 403) {
       // WR-11: 403 is the single most likely failure mode for this write op
       // (protected-branch rules, missing `api` scope, role restrictions), and
