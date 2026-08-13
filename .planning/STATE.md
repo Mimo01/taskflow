@@ -136,6 +136,7 @@ None yet.
 | 260813-dbf | Fix gitlab.ts WR-01: flatten object-keyed GitLab error message bodies | 2026-08-13 | 6a68948d | | [260813-dbf-fix-gitlab-ts-wr-01-flatten-object-keyed](./quick/260813-dbf-fix-gitlab-ts-wr-01-flatten-object-keyed/) |
 | 260813-dzc | Flatten Jira field-validation error bodies (errors object) across jira service error paths — WR-01 sibling | 2026-08-13 | 2b4cd504 | | [260813-dzc-flatten-jira-field-validation-error-bodi](./quick/260813-dzc-flatten-jira-field-validation-error-bodi/) |
 | 260813-epk | Make all tests and linters pass — reformat 4 biome-drifted files | 2026-08-13 | 494ff60b | | [260813-epk-make-all-tests-and-linters-pass](./quick/260813-epk-make-all-tests-and-linters-pass/) |
+| 260813-rel | Release v1.14.0 via release.sh — changelog written from git log analysis | 2026-08-13 | 88b3763c | Released | — |
 
 ## Deferred Items
 
