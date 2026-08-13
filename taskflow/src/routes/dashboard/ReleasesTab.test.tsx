@@ -15,6 +15,7 @@ vi.mock('@/services/stronghold', () => ({
 // Mock jira service
 vi.mock('@/services/jira', () => ({
   fetchFixVersions: vi.fn().mockResolvedValue([]),
+  fetchVersionIssueCounts: vi.fn().mockResolvedValue({ issuesFixed: 0, issuesTotal: 0 }),
 }));
 
 // Mock gitlab service
@@ -218,21 +219,11 @@ describe('ReleasesTab', () => {
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.1.0', '2026-03-15')]);
 
-    // fetchVersionIssueCounts makes two parallel JQL search calls:
-    //   1. GET /rest/api/2/search?jql=fixVersion=...&maxResults=0 → { total: 8 } (all issues)
-    //   2. GET /rest/api/2/search?jql=fixVersion=...+AND+statusCategory=Done&maxResults=0 → { total: 3 }
-    // We distinguish by checking for statusCategory in the URL.
-    const { fetch: mockFetch } = await import('@tauri-apps/plugin-http');
-    vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
-      const urlStr =
-        typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
-      if (urlStr.includes('statusCategory')) {
-        // Done-only JQL endpoint → total=3 fixed
-        return { ok: true, json: async () => ({ total: 3 }) } as Response;
-      }
-      // Total JQL endpoint → total=8 (all issues in fix version)
-      return { ok: true, json: async () => ({ total: 8 }) } as Response;
-    });
+    // Counts come from the shared `fetchVersionIssueCounts` in services/jira.ts — the same
+    // producer `useReleaseDetail.ts` uses, so both writers of the `jira-version-counts` cache
+    // key agree on shape (87-REVIEW WR-01). Mock the service, not the transport.
+    const { fetchVersionIssueCounts } = await import('@/services/jira');
+    vi.mocked(fetchVersionIssueCounts).mockResolvedValue({ issuesFixed: 3, issuesTotal: 8 });
 
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);

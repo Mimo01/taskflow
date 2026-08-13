@@ -12,7 +12,6 @@
  */
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetch } from '@tauri-apps/plugin-http';
 import { AlertTriangle, GitBranch, RefreshCw, Rocket } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +23,7 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMilestone } from '@/services/gitlab';
 import { fetchProjectBranches, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
-import { fetchFixVersions } from '@/services/jira';
+import { fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
@@ -32,44 +31,6 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
 import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
-
-interface VersionIssueCounts {
-  issuesFixed: number;
-  issuesAffected: number;
-  issuesTotal: number;
-}
-
-async function fetchVersionIssueCounts(
-  baseUrl: string,
-  token: string,
-  _versionId: string,
-): Promise<VersionIssueCounts> {
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  // Both counts come from the same JQL source so they are always consistent with each other
-  // and with what Jira's own UI displays.
-  // statusCategory = Done matches any "Done" status regardless of how it is named.
-  const baseJql = `fixVersion = ${_versionId} AND issuetype not in subtaskIssueTypes()`;
-  const totalJql = encodeURIComponent(baseJql);
-  const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
-  const totalUrl = `${base}/rest/api/2/search?jql=${totalJql}&maxResults=0&fields=`;
-  const doneUrl = `${base}/rest/api/2/search?jql=${doneJql}&maxResults=0&fields=`;
-
-  const [totalResult, doneResult] = await Promise.allSettled([
-    fetch(totalUrl, { headers }).then((r) =>
-      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
-    ),
-    fetch(doneUrl, { headers }).then((r) =>
-      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
-    ),
-  ]);
-
-  const issuesTotal = totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
-  const issuesFixed = doneResult.status === 'fulfilled' ? (doneResult.value.total ?? 0) : 0;
-
-  return { issuesFixed, issuesAffected: 0, issuesTotal };
-}
 
 interface MatchedVersion {
   version: JiraFixVersion;
