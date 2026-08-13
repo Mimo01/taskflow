@@ -27,6 +27,7 @@ import {
   postTransition,
   searchJira,
   searchJiraClosed,
+  updateFixVersion,
   validateJira,
   wrapCustomFieldValue,
 } from './jira';
@@ -632,6 +633,97 @@ describe('jira service', () => {
       await expect(
         fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ'),
       ).rejects.toThrow('Permission denied');
+    });
+
+    it('WR-01: surfaces the field-validation reason from the errors object, not the generic fallback', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          errorMessages: [],
+          errors: { fixVersions: "Field 'fixVersions' cannot be set" },
+        }),
+      } as Response);
+
+      await expect(
+        fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ'),
+      ).rejects.toThrow("fixVersions: Field 'fixVersions' cannot be set");
+    });
+
+    it('WR-01: surfaces the field-validation reason via ApiError on 403', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          errorMessages: [],
+          errors: { fixVersions: "Field 'fixVersions' cannot be set" },
+        }),
+      } as Response);
+
+      await expect(
+        fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ'),
+      ).rejects.toThrow("fixVersions: Field 'fixVersions' cannot be set");
+    });
+
+    it('falls back to the generic literal when the error body has neither key, no bare colon', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ'),
+      ).rejects.toThrow('Failed to fetch fix versions');
+    });
+  });
+
+  describe('updateFixVersion', () => {
+    it('WR-01: surfaces the field-validation reason from the errors object', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          errorMessages: [],
+          errors: { fixVersions: "Field 'fixVersions' cannot be set" },
+        }),
+      } as Response);
+
+      await expect(
+        updateFixVersion('https://jira.example.com', 'my-token', '10000', { name: 'v1.1' }),
+      ).rejects.toThrow("fixVersions: Field 'fixVersions' cannot be set");
+    });
+
+    it('falls back to the generic literal when the error body has neither key', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        updateFixVersion('https://jira.example.com', 'my-token', '10000', { name: 'v1.1' }),
+      ).rejects.toThrow('Failed to update fix version');
+    });
+
+    it('never leaks the token or Authorization header into the rejection message', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          errorMessages: [],
+          errors: { fixVersions: "Field 'fixVersions' cannot be set" },
+        }),
+      } as Response);
+
+      try {
+        await updateFixVersion('https://jira.example.com', TOKEN, '10000', { name: 'v1.1' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        const message = (err as Error).message;
+        expect(message).not.toContain(TOKEN);
+        expect(message).not.toContain('Authorization');
+      }
     });
   });
 
@@ -1255,6 +1347,35 @@ describe('jira service', () => {
           customfield_99999: 'bad',
         }),
       ).rejects.toThrow('Field not on screen: customfield_99999');
+    });
+
+    it('WR-01: surfaces the field-validation reason from the errors object, not the generic fallback', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          errorMessages: [],
+          errors: { fixVersions: "Field 'fixVersions' cannot be set" },
+        }),
+      } as Response);
+
+      await expect(
+        bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', {
+          fixVersions: [{ id: '1' }],
+        }),
+      ).rejects.toThrow("fixVersions: Field 'fixVersions' cannot be set");
+    });
+
+    it('falls back to the generic literal when the error body has neither key, no bare colon', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', { summary: 'x' }),
+      ).rejects.toThrow('Failed to update PROJ-5: 400');
     });
   });
 

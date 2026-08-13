@@ -9,6 +9,7 @@
 
 import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
+import { flattenJiraError } from './errors';
 
 /**
  * Rank an issue before or after a neighbour via the Jira Agile REST API.
@@ -60,6 +61,9 @@ export async function rankIssueApi(
     return;
   }
   if (!response.ok) {
-    throw new Error(`Failed to rank issue: ${response.status}`);
+    const body: unknown = await Promise.resolve(response.json?.()).catch(() => null);
+    throw new Error(
+      `Failed to rank issue: ${flattenJiraError(body) ?? `status ${response.status}`}`,
+    );
   }
 }
