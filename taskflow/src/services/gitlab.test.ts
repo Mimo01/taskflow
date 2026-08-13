@@ -2637,8 +2637,37 @@ describe('gitlab service', () => {
       ).toBe('target_branch x; milestone_id y');
     });
 
-    it('returns undefined when there is no message key', () => {
-      expect(flattenGitLabError({ error: 'insufficient_scope' })).toBeUndefined();
+    it('returns undefined when there is no message key and no error key', () => {
+      expect(flattenGitLabError({ status: 400 })).toBeUndefined();
+    });
+
+    it('falls back to the error key when message is absent', () => {
+      expect(flattenGitLabError({ error: 'branch is missing' })).toBe('branch is missing');
+    });
+
+    it('joins an array error value with a comma (same flattening path as message)', () => {
+      expect(flattenGitLabError({ error: ['a', 'b'] })).toBe('a, b');
+    });
+
+    it('flattens a field-keyed object error value', () => {
+      expect(flattenGitLabError({ error: { base: ['is invalid'] } })).toBe('base is invalid');
+    });
+
+    it('prefers message over error when both are present', () => {
+      expect(flattenGitLabError({ message: 'primary', error: 'secondary' })).toBe('primary');
+    });
+
+    it('falls through to error when message is present but empty', () => {
+      expect(flattenGitLabError({ message: [], error: 'fallback' })).toBe('fallback');
+    });
+
+    it('returns undefined for an empty error string or empty error object', () => {
+      expect(flattenGitLabError({ error: '' })).toBeUndefined();
+      expect(flattenGitLabError({ error: {} })).toBeUndefined();
+    });
+
+    it('returns undefined when neither message nor error key is present', () => {
+      expect(flattenGitLabError({ something_else: 'x' })).toBeUndefined();
     });
 
     // WR-01: a present-but-empty message must be undefined, not '', or every
