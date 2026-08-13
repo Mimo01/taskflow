@@ -61,7 +61,7 @@ export async function rankIssueApi(
     return;
   }
   if (!response.ok) {
-    const body: unknown = await Promise.resolve(response.json?.()).catch(() => null);
+    const body: unknown = await response.json().catch(() => null);
     throw new Error(
       `Failed to rank issue: ${flattenJiraError(body) ?? `status ${response.status}`}`,
     );

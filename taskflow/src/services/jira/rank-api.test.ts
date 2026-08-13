@@ -57,7 +57,17 @@ describe('rankIssueApi', () => {
   });
 
   it('throws generic Error on 500', async () => {
-    vi.mocked(apiFetch).mockResolvedValueOnce({ ok: false, status: 500 } as Response);
+    // A bodiless 500 (HTML error page, proxy timeout): json() rejects, so the
+    // caller falls back to the bare status. The mock must still expose json()
+    // — a real Response always has one, and omitting it here previously forced
+    // defensive optional chaining into the production code.
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error('not json');
+      },
+    } as unknown as Response);
     await expect(rankIssueApi(BASE, TOKEN, 'PROJ-1', RANK_FIELD_ID, {})).rejects.toThrow('500');
   });
 
