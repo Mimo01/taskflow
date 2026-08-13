@@ -2,37 +2,40 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
-status: milestone_complete
-last_updated: 2026-08-12T23:00:21.934Z
-last_activity: 2026-08-12
+status: Awaiting next milestone
+last_updated: "2026-08-13T08:42:18.923Z"
+last_activity: 2026-08-13 — Milestone v1.14 completed and archived
 progress:
   total_phases: 23
   completed_phases: 7
   total_plans: 49
   completed_plans: 49
   percent: 30
-stopped_at: Milestone complete (Phase 91.2 was final phase)
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-10)
+See: .planning/PROJECT.md (updated 2026-08-13)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Milestone complete
+**Current focus:** Planning next milestone (run /gsd-new-milestone)
 
 ## Current Position
 
-Phase: 91.2
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-08-13 - Completed quick task 260813-epk: make all tests and linters pass (reformatted 4 biome-drifted files; all gates green)
-
-Progress: [██████████] 100%
+Phase: Milestone v1.14 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-13 — Milestone v1.14 completed and archived
 
 ## Performance Metrics
+
+**Velocity (v1.14 reference):**
+
+- Plans completed: 49 (7 phases, 551 commits)
+- Average phase size: ~7 plans
+- LOC delta (src): +21,865 / −4,131
 
 **Velocity (v1.13 reference):**
 
@@ -136,19 +139,22 @@ None yet.
 
 ## Deferred Items
 
-Carried forward from v1.13 close (2026-06-16) — none block v1.14 planning:
+Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open artifacts from the pre-close audit. None block v1.15 planning:
 
 | Category | Item | Status |
 |----------|------|--------|
-| quick_tasks | 72 stale quick-task dirs (no completion file; dates back to 260521) | deferred — cleanup via /gsd-cleanup |
-| debug | 6 pre-v1.13 debug sessions (backlog-drag-autoscroll x2, bulk-button-style-mismatch, phase73-no-transitions, subtask-row-layout-overflow, subtask-type-shows-id) | diagnosed, non-blocking |
+| quick_task | 95 stale quick-task dirs (no completion file; dates back to 260521) | deferred — cleanup via /gsd-cleanup |
+| debug | 7 pre-v1.14 debug sessions (backlog-drag-autoscroll x2, bulk-button-style-mismatch, knowledge-base, phase73-no-transitions, subtask-row-layout-overflow, subtask-type-shows-id) | diagnosed/archived, non-blocking |
 | todo | priority-stripe-rest-rank (color stripe by Jira REST priority rank) | deferred since P78 (rank.ts known-broken) |
-| uat | Phase 78/79 Windows/WebView2 drag UAT | deferred — needs Windows host |
-| uat | Phase 80 live-Jira UAT (partial-failure/retry) | deferred — untestable without live DC |
-| tech_debt | Phase 78 dnd-kit autoScroll disabled (upstream #1108) | accepted |
-| tech_debt | Phase 79 D-07 screen/validator transitions not pre-filtered | accepted |
-| code_review | WR-05 (70-REVIEW) unguarded SP cast in Today*Section.tsx | non-blocking |
-| code_review | IN-01 (70-REVIEW) setCopied setTimeout not cleared | benign |
+| uat | Phase 88 88-HUMAN-UAT.md — 3 pending scenarios (live-GitLab create-branch, create-milestone, restricted-PAT error surfacing) | waived by user; mocked-fetch unit coverage only |
+| uat | Phase 90 90-HUMAN-UAT.md — 2 pending scenarios (D-16 approvals/protected-branch probe; CR-01 rollback fix vs live data) | no reachable GitLab PAT; per D-16 changes no UI |
+| verification | Phase 88 / 90 / 91.1 VERIFICATION.md all `human_needed` | accepted at close; unit coverage exists for every claim |
+| tech_debt | Phase 87: page shell 322 LOC vs D-06's 150-250 target; WR-04 undertested branching exports; WR-06 duplicate-breadcrumb-key carried over | accepted |
+| tech_debt | Phase 89 WR-04: a failed Channel A/B/C query still renders as "no drift" at the channel level (partially superseded by 91.1's drift-partial banner) | accepted |
+| tech_debt | Phase 89 WR-06: list page and detail page tie-break "matched milestone" differently within the ±7d window | accepted |
+| tech_debt | Biome baseline: 4 lint errors (chart.tsx noArrayIndexKey x2, BacklogRow.tsx noStaticElementInteractions/useKeyWithClickEvents x4) — pre-existing from Phases 81/82, need human judgment | accepted |
+| tech_debt | Phase 91 WR-01: releaseBranch.ts:120-123 doc comment overstates that `tagChannel` is type-enforced required | doc-accuracy only |
+| tech_debt | Phase 91.2 WR-06/07/08, IN-04/05: progress cell `w-32` tight at 3 digits, assignee `w-10` narrower than avatar, duplicated count types, duplicate retry controls, sub-pixel segment slivers | cosmetic |
 
 ## Session Continuity
 
@@ -158,5 +164,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 87 with `/gsd-plan-phase 87` (Release Detail Decomposition — pure refactor, safe to skip `--research-phase`)
-- Phases 88-91 each carry a flagged live-GitLab probe step (see Blockers/Concerns) — surface these during their respective planning passes
+- Start the next milestone with /gsd-new-milestone
