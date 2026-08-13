@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 Phase: 91.2
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-08-13 - Completed quick task 260813-dzc: flatten Jira field-validation error bodies (errors object) across jira service error paths
+Last activity: 2026-08-13 - Completed quick task 260813-epk: make all tests and linters pass (reformatted 4 biome-drifted files; all gates green)
 
 Progress: [██████████] 100%
 
@@ -132,6 +132,7 @@ None yet.
 | 260813-1vr | In the search modal results, also show the issue type icon | 2026-08-13 | 0a29595d | | [260813-1vr-in-the-search-modal-results-also-put-the](./quick/260813-1vr-in-the-search-modal-results-also-put-the/) |
 | 260813-dbf | Fix gitlab.ts WR-01: flatten object-keyed GitLab error message bodies | 2026-08-13 | 6a68948d | | [260813-dbf-fix-gitlab-ts-wr-01-flatten-object-keyed](./quick/260813-dbf-fix-gitlab-ts-wr-01-flatten-object-keyed/) |
 | 260813-dzc | Flatten Jira field-validation error bodies (errors object) across jira service error paths — WR-01 sibling | 2026-08-13 | 2b4cd504 | | [260813-dzc-flatten-jira-field-validation-error-bodi](./quick/260813-dzc-flatten-jira-field-validation-error-bodi/) |
+| 260813-epk | Make all tests and linters pass — reformat 4 biome-drifted files | 2026-08-13 | 494ff60b | | [260813-epk-make-all-tests-and-linters-pass](./quick/260813-epk-make-all-tests-and-linters-pass/) |
 
 ## Deferred Items
 
