@@ -2377,6 +2377,25 @@ describe('gitlab service', () => {
         updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: '' }),
       ).rejects.toThrow('Failed to update milestone: title is missing');
     });
+
+    it('WR-01: flattens an object-keyed message body — never [object Object]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: { title: ['has already been taken'] } }),
+      } as Response);
+
+      await expect(
+        updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: 'dup' }),
+      ).rejects.toThrow('title has already been taken');
+
+      try {
+        await updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: 'dup' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        expect((err as Error).message).not.toMatch(/\[object Object\]/);
+      }
+    });
   });
 
   describe('fetchBranch (D-13 404-as-missing)', () => {
@@ -2514,6 +2533,53 @@ describe('gitlab service', () => {
       await expect(
         createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
       ).rejects.toThrow('Branch already exists');
+    });
+
+    it('WR-01: flattens an object-keyed message body on 400 — never [object Object]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: { branch: ['already exists'] } }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toThrow('branch already exists');
+
+      try {
+        await createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop');
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        expect((err as Error).message).not.toMatch(/\[object Object\]/);
+      }
+    });
+
+    it('WR-01: flattens an object-keyed message body on 403 as an ApiError', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ message: { branch: ['already exists'] } }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+        message: 'branch already exists',
+      });
+    });
+
+    it('WR-01: falls back to status when message flattens to empty', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: {} }),
+      } as Response);
+
+      await expect(
+        createBranch(BASE, TOKEN, PROJECT_ID, 'release/33.5.0', 'develop'),
+      ).rejects.toThrow('Failed to create branch: status 400');
     });
 
     it('throws ApiError with status 401 on unauthorized response', async () => {
@@ -2942,6 +3008,65 @@ describe('gitlab service', () => {
       await expect(
         createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
       ).rejects.toThrow('Title has already been taken');
+    });
+
+    it('WR-01 headline case: flattens an object-keyed message body on 400 — never [object Object]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: { title: ['has already been taken'] } }),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toThrow('title has already been taken');
+
+      try {
+        await createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        expect((err as Error).message).not.toMatch(/\[object Object\]/);
+      }
+    });
+
+    it('WR-01: falls back to status when message flattens to empty', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: [] }),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toThrow('Failed to create milestone: status 400');
+    });
+
+    it('WR-01: falls back to the error key when message is absent', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'title is missing' }),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toThrow('title is missing');
+    });
+
+    it('WR-01: flattens an object-keyed message body on 403 as an ApiError', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ message: { title: ['has already been taken'] } }),
+      } as Response);
+
+      await expect(
+        createMilestone(BASE, TOKEN, PROJECT_ID, { title: '33.5.0', due_date: '2026-09-01' }),
+      ).rejects.toMatchObject({
+        status: 403,
+        source: 'gitlab',
+        message: 'title has already been taken',
+      });
     });
 
     it('throws ApiError with status 401 on unauthorized response', async () => {

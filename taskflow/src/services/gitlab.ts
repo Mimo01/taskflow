@@ -1112,8 +1112,10 @@ export async function updateMilestone(
     }
     // Surface GitLab's error body (e.g. {"message":"title is missing"}) instead
     // of an opaque status code; fall back to the status when no message exists.
-    const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(`Failed to update milestone: ${body?.message ?? `status ${response.status}`}`);
+    const body: unknown = await response.json().catch(() => null);
+    throw new Error(
+      `Failed to update milestone: ${flattenGitLabError(body) ?? `status ${response.status}`}`,
+    );
   }
 
   return (await response.json()) as GitLabMilestone;
@@ -1371,13 +1373,11 @@ export async function createBranch(
   }
 
   if (!response.ok) {
-    // Widened vs. updateMilestone's narrower typing (Pitfall 3): GitLab's
-    // validation errors commonly arrive as message: string[] (e.g. duplicate
-    // branch), which would render as [object Object] if left un-joined.
-    const body = (await response.json().catch(() => null)) as {
-      message?: string | string[];
-    } | null;
-    const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    // Body shapes (string / string[] / field-keyed object) are all normalised
+    // by flattenGitLabError (see its doc comment) — never reinvent a local
+    // widening here.
+    const body: unknown = await response.json().catch(() => null);
+    const msg = flattenGitLabError(body);
     if (response.status === 401 || response.status === 403) {
       // WR-11: 403 is the single most likely failure mode for this write op
       // (protected-branch rules, missing `api` scope, role restrictions), and
@@ -1435,12 +1435,11 @@ export async function createMilestone(
   }
 
   if (!response.ok) {
-    // Widened vs. updateMilestone's narrower typing (Pitfall 3): a duplicate-title
-    // rejection commonly arrives as message: string[], not a bare string.
-    const body = (await response.json().catch(() => null)) as {
-      message?: string | string[];
-    } | null;
-    const msg = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    // Body shapes (string / string[] / field-keyed object) are all normalised
+    // by flattenGitLabError (see its doc comment) — never reinvent a local
+    // widening here.
+    const body: unknown = await response.json().catch(() => null);
+    const msg = flattenGitLabError(body);
     if (response.status === 401 || response.status === 403) {
       // WR-11: 403 is the single most likely failure mode for this write op
       // (protected-branch rules, missing `api` scope, role restrictions), and
