@@ -2,6 +2,34 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.0] — 2026-08-13
+
+### Added
+
+- **Releases — release branch and GitLab milestone creation** — the release detail sidebar now resolves the release's GitLab branch and milestone and reports their state (present, missing, released, or check-failed with a retry). When either is missing, a Create action opens a confirm dialog that pre-fills the derived branch name / milestone title from the Jira version, enforces the naming format, blocks duplicates, shows the last five existing milestones for reference, and stays locked while the write is in flight. The Releases tab list gained per-row indicator icons so you can see branch and milestone coverage without opening a release.
+- **Releases — three-channel drift detection** — merge requests are now discovered through three independent channels (Jira issue linkage, GitLab milestone assignment, and branch target) and unioned into a single drift report, so an MR that is attached one way but not the others no longer disappears. Each task row carries a drift-count indicator, and MRs the release's tasks don't cover are listed separately, including out-of-scope MRs whose Jira key belongs to another fix version.
+- **Releases — per-MR corrective actions** — the BR (target branch) and MS (milestone) drift marks are now clickable fixes. Retargeting a merge request or assigning it the release milestone happens inline, updates optimistically across every cache holding that MR, and each cell locks, errors, and retries independently of the others; row order is frozen while you work so nothing jumps under the cursor.
+- **Releases — post-release merge-back verification** — a released version now gets an advisory "Merged back" row showing whether its release branch has landed in the default branch, derived from open source-branch MRs plus a ref comparison. The check stays silent rather than claiming "not merged back" when the underlying tag lookup itself failed.
+- **Releases — one line per task** — the separate Issues and MR Drift tables are replaced by a single unified task table: each Jira task in the fix version occupies exactly one row carrying its most relevant merge request (flagged first, then evaluated, tie-broken by highest iid) with a hoverable `+N` marker for the rest. The single flagged badge became two warning badges — wrong target branch and milestone drift — each of which filters the table to matching rows.
+- **Epics page redesign** — `/epics` now orders epics by creation (oldest first) instead of last-updated, and each single-line row carries priority (project's 9-level icon scheme), a segmented To Do / In Progress / Done breakdown bar, done/total story counts, and a done/total story-point sum. The enrichment data streams in progressively behind the fast first paint, with its pages fetched concurrently, and the row order never re-shuffles as it arrives.
+- **Appearance — compactness and text size settings** — Settings → Appearance gained a density selector (compact / default / comfortable) and a text-size selector. Density variants were applied across the app: My Tasks, backlog headers, notifications, worklogs, filter bars, popovers and pickers, issue detail rows and cards, MR list and detail, discussions, releases, standup notes, the Epics page, the settings and dev-tools lists, wiki prose, and all three AIO pages. Text size scales bounded px-to-rem values on ranked surfaces and is applied pre-paint so there's no flash on launch.
+- **Issue-type icons in recent items and search** — the Recently Visited popover now persists and renders each item's issue-type icon, and every result row in the command palette (both search results and recent items) shows it too.
+
+### Changed
+
+- **Release detail — descriptions moved into the sidebar** — the release description and per-label descriptions now live in the sidebar instead of the main content column; everything else is unchanged.
+- **Release detail internals** — the 1518-line `ReleaseDetailPage.tsx` was decomposed into a `release-detail/` folder mirroring the existing `issue-detail/` structure (header, sidebar, sections, edit modal, and a `useReleaseDetail` data hook), with no user-visible change.
+- **Drift lookups are cheaper** — project-wide merge request pages are fetched in parallel and bounded by a window derived from the open releases, rather than walking the whole project history serially.
+
+### Fixed
+
+- **Release detail — Jira tickets now ordered by created date** — the task table returned issues in Jira's default order instead of a stable creation order.
+- **Issue descriptions — literal HTML is escaped before rendering** — descriptions containing raw HTML-looking text no longer get interpreted by the wiki renderer.
+- **GitLab errors are readable again** — failed branch, milestone, and merge-request writes returned object-keyed error bodies that surfaced as unhelpful blobs; they're now flattened into a readable message, with a fallback to the `error` key. GitLab 401/403 responses on the create paths are classified after reading the body rather than before.
+- **Jira errors are readable again** — field-validation error bodies (including the rank API) are flattened across the Jira service's error paths instead of being shown as an opaque object.
+- **Settings panel width no longer drifts out of bounds** — a persisted panel width is clamped to the currently valid range on load.
+- **Density floors** — Sprint Board columns, the Subtasks and MR Health cards, and AIO test-run rows had fixed minimum heights that fought the compact setting; they now scale with density.
+
 ## [1.13.5] — 2026-08-04
 
 ### Added
