@@ -624,10 +624,7 @@ export function preprocessJiraMarkup(
   // panels, <strong>/<em>, <img>, <tt>, <br/>, issue-key links) — those are all
   // added via template-literal string concatenation further down and are
   // therefore untouched by this pass, so they still parse and render normally.
-  result = result
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  result = result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Jira emoticons: replace shortcodes like "(/)", "(x)" with Unicode emoji.
   // Must run before jira2md (which would corrupt certain patterns like (*) → bold).
