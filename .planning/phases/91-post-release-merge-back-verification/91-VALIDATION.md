@@ -1,10 +1,11 @@
 ---
 phase: 91
 slug: post-release-merge-back-verification
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-11
+audited: 2026-08-13
 ---
 
 # Phase 91 — Validation Strategy
@@ -42,14 +43,31 @@ created: 2026-08-11
 
 ## Per-Task Verification Map
 
-> Filled by the planner — one row per task in `91-*-PLAN.md`. The Requirement column must
-> reference MERGE-01 or MERGE-02 only; **MERGE-03 is descoped (D-12) and has no tasks.**
+> Reconciled 2026-08-13 against the 31 executed tasks across plans 91-01…91-09 (the planner never
+> filled this table at plan time). Mapped at plan granularity. MERGE-03 is descoped (D-12) and
+> correctly has no tasks and no tests.
+>
+> **Threat Ref / Secure Behavior:** N/A for every row — read-only phase, no new writes or auth surface.
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| _(planner fills)_ | | | | — | N/A — read-only phase, no new writes or auth surface | | | | ⬜ pending |
+| Plan | Tasks | Requirement | Test Type | Automated Command | File Exists | Status |
+|------|-------|-------------|-----------|-------------------|-------------|--------|
+| 91-01 | 3 | MERGE-02 | unit | `npx vitest run src/routes/dashboard/release-detail/mergeBackVerification.test.ts` | ✅ | ✅ green |
+| 91-02 | 3 | MERGE-02 | unit + service | `npx vitest run src/routes/dashboard/release-detail/mergeBackVerification.test.ts src/services/gitlab.test.ts` | ✅ | ✅ green |
+| 91-03 | 4 | MERGE-01, MERGE-02 | component + hook | `npx vitest run src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx src/routes/dashboard/release-detail/useReleaseDetail.test.tsx` | ✅ | ✅ green |
+| 91-04 | 3 | MERGE-02 | service | `npx vitest run src/services/gitlab.test.ts` | ✅ | ✅ green |
+| 91-05 | 3 | MERGE-01, MERGE-02 | component | `npx vitest run src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx` | ✅ | ✅ green |
+| 91-06 | 4 | MERGE-01 (+MERGE-03 descope recorded) | component | same | ✅ | ✅ green |
+| 91-07 | 3 | MERGE-01, MERGE-02 | component + unit | `npx vitest run src/routes/dashboard/release-detail/` | ✅ | ✅ green |
+| 91-08 | 4 | MERGE-01, MERGE-02 | unit (CR/WR review fixes) | `npx vitest run src/routes/dashboard/release-detail/mergeBackVerification.test.ts` | ✅ | ✅ green |
+| 91-09 | 4 | MERGE-01, MERGE-02 | unit + component (tag-channel health) | `npx vitest run src/routes/dashboard/release-detail/` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+**Delivered coverage:** `mergeBackVerification.test.ts` carries 47 tests across 7 describes, including
+the CR-01/WR-02 `target_branch` filtering, CR-03/CR-04 terminal fallbacks, the tag-channel loading/failure
+guards (91-VERIFICATION truth 5), and the WR-01 step-10 healthy-tracking-MR-channel requirement.
+`ReleaseDetailSidebar.test.tsx` has a dedicated `Merged back row (MERGE-01)` describe;
+`useReleaseDetail.test.tsx` has `merge-back queries (D-05 gating)`.
 
 ---
 
@@ -78,18 +96,18 @@ created: 2026-08-11
 
 ## Wave 0 Requirements
 
-- [ ] `taskflow/src/routes/dashboard/release-detail/mergeBackVerification.test.ts` — **new** pure-module
+- [x] `taskflow/src/routes/dashboard/release-detail/mergeBackVerification.test.ts` — **delivered** (47 tests) pure-module
       test file (sibling to `releaseBranch.test.ts`), covering every MERGE-02 precedence case above
-- [ ] Extend `taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx` — new
+- [x] **Delivered** — extended `taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx` — new
       "Merged back" row cases (4 visible states + hidden), **and update** the existing
       `branch-status-released` assertions to match D-08's softened wording
-- [ ] Extend `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx` — assert query
+- [x] **Delivered** — extended `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx` — assert query
       gating: zero calls for an unreleased version; both new queries fire for a released version with
       a matched milestone
-- [ ] Extend `taskflow/src/services/gitlab.test.ts` — mocked-fetch coverage for `fetchSourceBranchMRs`
+- [x] **Delivered** — extended `taskflow/src/services/gitlab.test.ts` — mocked-fetch coverage for `fetchSourceBranchMRs`
       (2-page pagination fixture) and `compareRefs` (empty-diff, non-empty-diff, `compare_timeout: true`,
       and missing-ref fixtures)
-- [ ] No framework/config install needed — Vitest + Testing Library + jsdom already configured
+- [x] No framework/config install needed — Vitest + Testing Library + jsdom already configured
 
 ---
 
@@ -105,12 +123,30 @@ created: 2026-08-11
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or a Wave 0 dependency
-- [ ] Sampling continuity: no 3 consecutive tasks without an automated verify
-- [ ] Wave 0 covers all MISSING references above
-- [ ] No watch-mode flags (`vitest run`, never bare `vitest`)
-- [ ] Feedback latency < 10s for targeted runs
-- [ ] MERGE-03 recorded as **descoped**, not as a gap
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or a Wave 0 dependency (31 tasks / 9 plans)
+- [x] Sampling continuity: no 3 consecutive tasks without an automated verify
+- [x] Wave 0 covers all MISSING references above — all 4 items delivered
+- [x] No watch-mode flags (`vitest run`, never bare `vitest`)
+- [x] Feedback latency < 10s for targeted runs
+- [x] MERGE-03 recorded as **descoped**, not as a gap (override accepted in 91-VERIFICATION.md)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-08-13 (retroactive audit via `/gsd-validate-phase`)
+
+---
+
+## Validation Audit 2026-08-13
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+All four Wave 0 deliverables exist and pass; every plan maps to a green automated command. The
+`nyquist_compliant: false` flag was **stale bookkeeping** — this file was written at plan time and never
+updated after execution. No test was missing; nobody ticked the boxes.
+
+The three Manual-Only rows below are correctly manual (they need a live GitLab instance with a real PAT,
+a real released fix version, and a real merged `release/*` branch) and remain open. They are tracked as
+open human-verification items in `.planning/v1.14-MILESTONE-AUDIT.md`, not as validation gaps.
