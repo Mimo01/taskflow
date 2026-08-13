@@ -61,6 +61,69 @@ describe('rankIssueApi', () => {
     await expect(rankIssueApi(BASE, TOKEN, 'PROJ-1', RANK_FIELD_ID, {})).rejects.toThrow('500');
   });
 
+  it('WR-01: surfaces the field-validation reason from the errors object on 400', async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        errorMessages: [],
+        errors: { rankCustomFieldId: 'is not a rank field' },
+      }),
+    } as unknown as Response);
+    await expect(rankIssueApi(BASE, TOKEN, 'PROJ-1', RANK_FIELD_ID, {})).rejects.toThrow(
+      'rankCustomFieldId: is not a rank field',
+    );
+  });
+
+  it('surfaces a populated errorMessages entry on 400', async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ errorMessages: ['Issue does not exist'] }),
+    } as unknown as Response);
+    await expect(rankIssueApi(BASE, TOKEN, 'PROJ-1', RANK_FIELD_ID, {})).rejects.toThrow(
+      'Issue does not exist',
+    );
+  });
+
+  it('falls back to a bare status when the 500 body is non-JSON, with no trailing bare colon', async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error('not json');
+      },
+    } as unknown as Response);
+    try {
+      await rankIssueApi(BASE, TOKEN, 'PROJ-1', RANK_FIELD_ID, {});
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      const message = (err as Error).message;
+      expect(message).toContain('status 500');
+      expect(message.trim().endsWith(':')).toBe(false);
+    }
+  });
+
+  it('never leaks the token, Authorization header, or request URL into the rejection message', async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        errorMessages: [],
+        errors: { rankCustomFieldId: 'is not a rank field' },
+      }),
+    } as unknown as Response);
+    try {
+      await rankIssueApi(BASE, TOKEN, 'PROJ-1', RANK_FIELD_ID, {});
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      const message = (err as Error).message;
+      expect(message).not.toContain(TOKEN);
+      expect(message).not.toContain('Authorization');
+      expect(message).not.toContain(BASE);
+    }
+  });
+
   it('rankCustomFieldId is passed as integer not string', async () => {
     vi.mocked(apiFetch).mockResolvedValueOnce({ ok: true, status: 204 } as Response);
     await rankIssueApi(BASE, TOKEN, 'PROJ-2', RANK_FIELD_ID, {});

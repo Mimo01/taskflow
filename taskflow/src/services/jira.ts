@@ -24,6 +24,7 @@ import {
   fetchAllSearchPages as fetchAllSearchPagesClient,
   isResponseLikeError,
 } from './jira/client';
+import { flattenJiraError } from './jira/errors';
 import { fetchAllJiraStatuses } from './jira/statuses';
 import type { JiraComment } from './jira/types';
 
@@ -1198,8 +1199,7 @@ export async function fetchFixVersions(
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    const msg =
-      (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to fetch fix versions';
+    const msg = flattenJiraError(data) ?? 'Failed to fetch fix versions';
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(msg, response.status, 'jira');
     }
@@ -1347,8 +1347,7 @@ export async function updateFixVersion(
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    const msg =
-      (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to update fix version';
+    const msg = flattenJiraError(data) ?? 'Failed to update fix version';
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(msg, response.status, 'jira');
     }
@@ -2364,7 +2363,9 @@ export async function createIssueLink(
  * @param token    - Personal Access Token
  * @param issueKey - Issue key (e.g. "PROJ-1")
  * @param fields   - Map of field keys to values (only confirmed-present fields)
- * @throws Error with Jira's errorMessages[0] on non-ok, non-204 response
+ * @throws Error with Jira's flattened error body (errorMessages, or the
+ *   field-validation errors object when errorMessages is empty) on non-ok,
+ *   non-204 response
  */
 export async function bulkUpdateIssue(
   baseUrl: string,
@@ -2388,10 +2389,7 @@ export async function bulkUpdateIssue(
       throw new ApiError(`Failed to update ${issueKey}`, response.status, 'jira');
     }
     const body = await response.json().catch(() => ({}));
-    throw new Error(
-      (body as { errorMessages?: string[] }).errorMessages?.[0] ??
-        `Failed to update ${issueKey}: ${response.status}`,
-    );
+    throw new Error(flattenJiraError(body) ?? `Failed to update ${issueKey}: ${response.status}`);
   }
 }
 

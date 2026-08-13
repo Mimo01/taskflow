@@ -4,6 +4,7 @@
 
 import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
+import { flattenJiraError } from './errors';
 import type { JiraFixVersion } from './types';
 
 /**
@@ -41,8 +42,7 @@ export async function fetchFixVersions(
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    const msg =
-      (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to fetch fix versions';
+    const msg = flattenJiraError(data) ?? 'Failed to fetch fix versions';
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(msg, response.status, 'jira');
     }
