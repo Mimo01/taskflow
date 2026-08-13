@@ -674,20 +674,76 @@
 
 ---
 
+## Milestone: v1.14 — Release Management
+
+**Shipped:** 2026-08-13
+**Phases:** 7 (87-91.2, two inserted) | **Plans:** 49
+
+### What Was Built
+
+- Release detail decomposition (Phase 87): `ReleaseDetailPage.tsx` 1518 → 322 LOC, split into a 13-file `release-detail/` folder mirroring `issue-detail/` — a pure `releaseSummaries.ts`, a `useReleaseDetail.ts` hook owning all six queries, a `useEditRelease.ts` state hook, and one file per section. Zero user-visible change, all six query keys byte-identical so cache sharing with the Releases tab survived.
+- Release branch & GitLab milestone creation (Phase 88): existence detection for `release/<version>` and the matching milestone, surfaced as six sidebar `BranchState` variants plus Releases-list drift triangles; confirm-gated creation of either, with git-ref validation, the real `X.Y.Z (DD.MM.YYYY)` title format, and duplicate-title blocking. Five new `gitlab.ts` functions.
+- Three-channel drift detection (Phase 89): MRs discovered via Jira-key linkage, GitLab milestone, and release-branch target, unioned with per-MR provenance in `driftDetection.ts`; three drift predicates; merged/closed/draft classified separately. The capped `fetchRecentProjectMRs` and the `buildWrongMilestoneMap` heuristic were deleted, not deprecated.
+- Per-MR corrective actions (Phase 90): `updateMergeRequest` + `flattenGitLabError`; `useMrFixMutation` runs one mutation per (MR, action) with a prefix-matched optimistic patch across all three channel caches, field-scoped rollback, and a sticky failure surviving background refetch.
+- Post-release merge-back verification (Phase 91): an eleven-step advisory resolver over four fail-closed evidence channels — tracking MR, `repository/compare` content diff, tags, default branch — never blocking, no override control (MERGE-03 descoped).
+- Unified release detail table (Phase 91.1, inserted) and epics page redesign (Phase 91.2, inserted): one task-keyed table with inline drift actions and a secondary uncovered-MR table; `/epics` as a div+flex single-line portfolio row with progressive, fail-closed enrichment.
+
+### What Worked
+
+- **Decomposition as an explicit first phase** — Phase 87 bought a 13-file section-scoped surface *before* four feature phases landed on it. Every later phase touched a named file rather than growing a 1518-LOC monolith, and the "zero behavior change" contract was enforced by byte-identical query keys plus an 11-step manual UAT.
+- **Pure-module-first sequencing** — `releaseBranch.ts`, `releaseMilestone.ts`, `driftDetection.ts` and `mergeBackVerification.ts` were each built React-free with a co-located Vitest suite in Wave 1, then wired. `resolveMergeBackVerdict` shipped with 23 mock-free unit tests covering every branch of an eleven-step precedence resolver — a hook-level test suite could not have covered that.
+- **Pagination discipline held again** — every new MR fetcher is fully paginated with an explicit page ceiling, and the known-capped fetcher was removed. The fetch-once page-cap bug class did not recur.
+- **The roadmap recorded reversals instead of hiding them** — when live UAT killed Phase 91.1's stacked sub-lines, the success criteria were struck through with the quoted user rationale and a replacement criterion, rather than the implementation silently diverging from the plan. Same for the DRIFT-09, MERGE-03, D-18, D-08 and D-12 descopes.
+- **Regression tests were proven to fail first** — in Phase 91.2 the first test written for CR-01 passed against unfixed code (the bug reproduced on the cached-data path, not the no-data path the review described). Checking each fix failed before it passed caught a review's wrong repro path.
+
+### What Was Inefficient
+
+- **A third of the milestone's plans were gap closure** — 16 of 49 plans (88-07..11, 91-04..09, 91.1-06..10) existed only to close verification, review or UAT gaps. Phase 91 needed *three* verification rounds before its evidence channels stopped rendering absence-of-evidence as verified negatives.
+- **The same bug class was fixed five separate times** — `?? []` / `.catch(() => [])` / unread `isError` rendering a failed fetch as a confident negative appeared as 88-CR-01, 89-WR-04, 91-07, 91.1-CR-06 and 91.2-D-15. Each was found downstream by review or verification rather than by a rule applied at write time.
+- **Phase 91.1 built its own specified design, then deleted it** — stacked per-MR sub-lines were fully implemented and tested before real data showed them as noise ("99% of the time there is 1 MR for 1 task"). A sketch against live data before Wave 1 would have cost one agent instead of several plans, and the consolidation pass then introduced four fresh regressions (CR-05..CR-08) that needed their own review round.
+- **Live-GitLab evidence never materialised** — every write path in the milestone (create-branch, create-milestone, retarget, assign) is covered by mocked-fetch tests only; the Phase 88 checkpoints were waived, the Phase 90 D-16 probe had no reachable PAT, and the Phase 90 CR-01 rollback fix landed *after* the blanket live-UAT approval. Three phases close at `human_needed`.
+- **Biome baseline drifted unnoticed again** — re-measured at 4 errors + 30 warnings across 5 files, all pre-existing from Phases 81/82, and only surfaced during the milestone audit.
+
+### Patterns Established
+
+- **Fail closed, always** — a data channel must distinguish *pending*, *failed* and *verified-empty*. Never let `?? []`, `.catch(() => [])`, or an unread `isError` produce a confident negative claim in the UI. Terminal "couldn't verify" states beat permanent loading.
+- **Decompose a monolith as its own phase before feature work lands on it** — a behavior-preserving split with byte-identical cache keys and a manual UAT is cheap; growing a 1518-LOC file across four feature phases is not.
+- **A shared fetcher's ordering/JQL belongs in the query key, as a per-caller parameter** — `fetchEpicsBasic`'s `created ASC` silently reordered the Sidebar, Backlog and Sprint Board pickers until ordering became a parameter carried in the key.
+- **Multi-state UI needs a per-(entity, action) mutation instance** — one mutation per cell with a field-scoped inverse patch is what makes "assign succeeded, retarget failed" expressible; whole-array snapshots silently revert a sibling's successful write.
+
+### Key Lessons
+
+1. **Write the fail-closed rule into the plan, not into the review.** Five instances of the same absence-of-evidence bug in one milestone means the check belongs in the planning template's definition of done for any query-backed claim — every phase paid for it downstream instead.
+2. **Show a data-shaped mockup before building a data-shaped layout.** Phase 91.1's sub-lines and Phase 91.2's quick-search/labels were all fully specified, built or planned, then cut on contact with real data or a changed mind. The v1.13 lesson ("get the visual target before the incremental build") recurred at row level.
+3. **A waived live checkpoint is a permanent gap, not a deferred one.** Three milestones' worth of GitLab write paths now exist with zero live execution evidence. Either arrange a reachable test instance/PAT once, or stop planning blocking live checkpoints that will predictably be waived.
+4. **Verify a review's repro path before writing its regression test.** The 91.2 CR-01 test passed against unfixed code; the bug lived on a different path than described. Prove the test fails first — this is now the third milestone where reviewer-reported repro steps needed correction.
+
+### Cost Observations
+
+- Sessions: 49 plans across 7 phases (2 inserted) + ~25 quick tasks, 551 commits; phase execution compressed into 2026-08-10 → 08-12 after a long quick-task interval since v1.13
+- Gap/fix plans: 16 of 49 (33%) — the highest share since v1.0
+- Milestone audit: closed `tech_debt` (0 blockers); 31/31 committed requirements satisfied, DRIFT-09 and MERGE-03 intentionally descoped; 111 items acknowledged as deferred, overwhelmingly historical noise (95 stale quick-task dirs, 7 pre-v1.14 debug sessions)
+- Notable: low deletion ratio (+68,011/−5,675) versus v1.13's build-then-redesign churn — this milestone added surface rather than replacing it, despite two inserted redesign phases
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 | v1.13 |
-|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|-------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 | 9 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ | ~80,895+ |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) | 0 (0%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 | v1.12 | v1.13 | v1.14 |
+|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|-------|-------|-------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) | 5 (76-80) | 6 (81-86) | 7 (87-91.2) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 | 19 | 23 | 49 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — | ~30 | few | ~25 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 | 6 | 9 | 3‡ |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ | ~80,895+ | ~80,895+ | ~98,000+ |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) | 0 (0%) | 0 (0%) | 16 (33%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) | 32/32 (100%) | 17/18 (94%)***** | 31/31 (100%)****** |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
 \*\*\* 17 base v1.9 + 2 TEMPO-08/TEMPO-EDIT-01 pulled forward from v2 (Phase 64)
 \*\*\*\* 27/27 in-scope satisfied; STAND-08 + STAND-09 descoped by user during Phase 70 redesign
 \*\*\*\*\* 17/18 committed satisfied; DASH-06 (MR review queue) descoped at Phase 84 UAT; INSIGHT-01/02 conditional insights built in Phase 85 then retired by the Phase 86 redesign
+\*\*\*\*\*\* 31/31 committed satisfied; DRIFT-09 descoped at Phase 89 UAT and MERGE-03 descoped by Phase 91 D-12 (both user decisions, recorded as intentional)
+
+‡ v1.14 phase execution ran 2026-08-10 → 08-12; the calendar gap since v1.13 (58 days) was spent on quick tasks, not milestone phases
