@@ -21,6 +21,15 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn().mockResolvedValue(undefined),
 }));
 
+// External links now render through LinkContextMenu (260827-f6e), which calls
+// useDetectedBrowsers → useQuery. Most of this file's `render()` calls are
+// bare (no QueryClientProvider) since they predate that change and don't
+// exercise the right-click menu — stub the hook rather than retrofitting a
+// provider onto every existing call site.
+vi.mock('@/lib/useDetectedBrowsers', () => ({
+  useDetectedBrowsers: () => [],
+}));
+
 // Auth store state shared across tests — each test suite resets it.
 // jiraBaseUrl is concrete so the issue-key tests can build a matching browse URL
 // that tryInternalPath resolves to /issue/PROD-123 (260610-fnk Test E). The
@@ -527,6 +536,37 @@ After quote`;
       expect(anchor).not.toBeNull();
       fireEvent.click(anchor as HTMLAnchorElement);
       expect(openUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('LinkContextMenu wiring on external links (260827-f6e)', () => {
+    beforeEach(() => {
+      vi.mocked(openUrl).mockClear();
+      authStoreState.jiraBaseUrl = null;
+      authStoreState.gitlabBaseUrl = null;
+      authStoreState.activeGitlabProject = null;
+      authStoreState.activeGitlabProjectPath = null;
+    });
+
+    it('right-clicking an external wiki link shows the LinkContextMenu items', async () => {
+      render(<WikiRenderer wikiText="[See PROJ-123|https://jira.orange.sk/browse/PROJ-123]" />);
+      const link = screen.getByRole('link', { name: /See PROJ-123/ });
+      fireEvent.contextMenu(link);
+      expect(await screen.findByText('Open in System Default')).toBeInTheDocument();
+      expect(screen.getByText('Copy link')).toBeInTheDocument();
+    });
+
+    it('the wrapped external link stays exactly one <a> element, still inline inside its <p>', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="See [See PROJ-123|https://jira.orange.sk/browse/PROJ-123] here" />,
+      );
+      const paragraph = container.querySelector('p');
+      expect(paragraph).not.toBeNull();
+      const anchors = paragraph?.querySelectorAll('a');
+      expect(anchors?.length).toBe(1);
+      // No <div> descendant of <p> — the render-prop wrap introduces no wrapper element.
+      expect(paragraph?.querySelector('div')).toBeNull();
+      expect(anchors?.[0].getAttribute('href')).toBe('https://jira.orange.sk/browse/PROJ-123');
     });
   });
 

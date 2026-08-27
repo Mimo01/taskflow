@@ -13,6 +13,7 @@
  */
 import { Check, ExternalLink, MailOpen, X } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 /* ── props ──────────────────────────────────────────── */
@@ -259,12 +260,14 @@ export default function NotificationRow({
                   </ActionIcon>
                 )}
                 {item.url && onOpenInBrowser && (
-                  <ActionIcon
-                    onClick={() => onOpenInBrowser()}
-                    title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </ActionIcon>
+                  <LinkContextMenu href={item.url}>
+                    <ActionIcon
+                      onClick={() => onOpenInBrowser()}
+                      title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </ActionIcon>
+                  </LinkContextMenu>
                 )}
                 {onDismiss && (
                   <ActionIcon onClick={() => onDismiss()} title="Dismiss" variant="destructive">
