@@ -3,6 +3,7 @@ import type React from 'react';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Progress } from '@/components/ui/progress';
 import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -440,14 +441,16 @@ function MrSubLine({
   const isFlagged = row.br === 'flag' || row.ms === 'flag';
 
   const iidButton = (
-    <button
-      type="button"
-      onClick={() => openExternal(mr.web_url)}
-      title={channelsTitle(row.channels)}
-      className="font-mono text-xs hover:underline"
-    >
-      !{mr.iid}
-    </button>
+    <LinkContextMenu href={mr.web_url}>
+      <button
+        type="button"
+        onClick={() => openExternal(mr.web_url)}
+        title={channelsTitle(row.channels)}
+        className="font-mono text-xs hover:underline"
+      >
+        !{mr.iid}
+      </button>
+    </LinkContextMenu>
   );
 
   const titleContent = (() => {
@@ -737,18 +740,26 @@ function TaskMrCell({
             the wrapper above opts the whole cell out of hit-testing and
             `pointer-events` INHERITS, so without it the MR link itself would
             stop being clickable. */}
-        <button
-          type="button"
-          data-testid="mr-cell-link"
-          onClick={(e) => {
-            e.stopPropagation();
-            openExternal(mr.web_url);
-          }}
-          title={`${mr.author.name} — ${mr.title}`}
-          className={`pointer-events-auto relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
-        >
-          <GitMerge className="size-3.5" />!{mr.iid}
-        </button>
+        {/* render prop (not the default children/span wrap) — this cell relies on
+            precise pointer-events opt-in (CR-05 above), so LinkContextMenu attaches
+            directly to the <button> with no extra wrapper element. */}
+        <LinkContextMenu
+          href={mr.web_url}
+          render={
+            <button
+              type="button"
+              data-testid="mr-cell-link"
+              onClick={(e) => {
+                e.stopPropagation();
+                openExternal(mr.web_url);
+              }}
+              title={`${mr.author.name} — ${mr.title}`}
+              className={`pointer-events-auto relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
+            >
+              <GitMerge className="size-3.5" />!{mr.iid}
+            </button>
+          }
+        />
         <Badge variant="outline" className={`pointer-events-none text-[10px] ${stateBadgeClass}`}>
           {mr.state}
         </Badge>

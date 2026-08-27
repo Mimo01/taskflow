@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { openExternal } from '@/lib/openExternal';
 import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
@@ -319,30 +320,34 @@ export function ReleaseDetailSidebar({
         <MetaRow label="GitLab Milestone">
           {gitlabMatch.type === 'exact' ? (
             gitlabMatch.candidateUrl ? (
-              <button
-                type="button"
-                onClick={() => openExternal(gitlabMatch.candidateUrl)}
-                className="text-primary hover:underline flex items-center gap-1"
-                data-testid="gitlab-link-exact"
-              >
-                {gitlabMatch.candidateName}
-                <ExternalLink className="size-3 shrink-0" />
-              </button>
+              <LinkContextMenu href={gitlabMatch.candidateUrl}>
+                <button
+                  type="button"
+                  onClick={() => openExternal(gitlabMatch.candidateUrl)}
+                  className="text-primary hover:underline flex items-center gap-1"
+                  data-testid="gitlab-link-exact"
+                >
+                  {gitlabMatch.candidateName}
+                  <ExternalLink className="size-3 shrink-0" />
+                </button>
+              </LinkContextMenu>
             ) : (
               <span data-testid="gitlab-link-exact">{gitlabMatch.candidateName}</span>
             )
           ) : gitlabMatch.type === 'fuzzy' ? (
             gitlabMatch.candidateUrl ? (
-              <button
-                type="button"
-                onClick={() => openExternal(gitlabMatch.candidateUrl)}
-                className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
-                title={`Fuzzy match: ${gitlabMatch.candidateName}`}
-                data-testid="gitlab-link-fuzzy"
-              >
-                {gitlabMatch.candidateName}
-                <ExternalLink className="size-3 shrink-0" />
-              </button>
+              <LinkContextMenu href={gitlabMatch.candidateUrl}>
+                <button
+                  type="button"
+                  onClick={() => openExternal(gitlabMatch.candidateUrl)}
+                  className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
+                  title={`Fuzzy match: ${gitlabMatch.candidateName}`}
+                  data-testid="gitlab-link-fuzzy"
+                >
+                  {gitlabMatch.candidateName}
+                  <ExternalLink className="size-3 shrink-0" />
+                </button>
+              </LinkContextMenu>
             ) : (
               <span
                 className="border-b border-dashed border-muted-foreground"
@@ -469,13 +474,15 @@ export function ReleaseDetailSidebar({
                               : 'text-gray-500'
                         }`}
                       />
-                      <button
-                        type="button"
-                        onClick={() => openExternal(mr.web_url)}
-                        className="text-xs font-mono hover:underline shrink-0"
-                      >
-                        !{mr.iid}
-                      </button>
+                      <LinkContextMenu href={mr.web_url}>
+                        <button
+                          type="button"
+                          onClick={() => openExternal(mr.web_url)}
+                          className="text-xs font-mono hover:underline shrink-0"
+                        >
+                          !{mr.iid}
+                        </button>
+                      </LinkContextMenu>
                       <span className="line-clamp-1 text-xs text-muted-foreground">{mr.title}</span>
                     </div>
                   ))}
