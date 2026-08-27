@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-08-27 - Verified quick task 260827-f6e: Expand link-open feature with a right-click context menu (open in any detected browser, copy link) across all 12 existing call sites — live user confirmation received
+Last activity: 2026-08-27 - Completed quick task 260827-gji: Fix My Tasks MR review badges to compute real review state via deriveReviewHealth()
 
 ## Performance Metrics
 
@@ -139,6 +139,7 @@ None yet.
 | 260813-epk | Make all tests and linters pass — reformat 4 biome-drifted files | 2026-08-13 | 494ff60b | | [260813-epk-make-all-tests-and-linters-pass](./quick/260813-epk-make-all-tests-and-linters-pass/) |
 | 260813-rel | Release v1.14.0 via release.sh — changelog written from git log analysis | 2026-08-13 | 88b3763c | Released | — |
 | 260827-f6e | Expand link-open feature with a right-click context menu — open in any detected browser or copy link to clipboard, wired across all 12 existing openExternal call sites | 2026-08-27 | 41abf1d2 | Verified | [260827-f6e-we-have-recently-added-an-option-to-open](./quick/260827-f6e-we-have-recently-added-an-option-to-open/) |
+| 260827-gji | Fix My Tasks MR review badges — wire real per-MR approvals/discussions into deriveReviewHealth() instead of hardcoded "Awaiting review"; delete dead dashboard/TaskRow.tsx and MrRow.tsx | 2026-08-27 | fab68c91 | | [260827-gji-my-tasks-currently-hardcodes-every-linke](./quick/260827-gji-my-tasks-currently-hardcodes-every-linke/) |
 
 ## Deferred Items
 
