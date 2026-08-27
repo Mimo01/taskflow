@@ -12,7 +12,9 @@
  * - scope='current-sprint' → fetchMyTasksHierarchy
  * - scope='all-assigned'   → fetchAllAssignedHierarchy
  * - scope='all-reported'   → fetchAllReportedHierarchy
- * - GitLab authored MRs → deriveReviewHealth via matchMrsToStories-style key matching
+ * - GitLab authored MRs → matched against visible issue keys (matched-key filter +
+ *   20-MR cap), then enriched with real per-MR approvals (always) and discussions
+ *   (only when zero approvers) via deriveReviewHealth (260827-gji)
  *
  * Behavior preserved:
  * - 3 scopes (transient, not persisted), epic exclusion, paging
@@ -20,16 +22,21 @@
  * - per-section loading/error/empty states
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { BadgeCheck, CheckSquare, Hourglass, ListFilter, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  buildMrHealthByKey,
+  resolveMrHealth,
+  selectMrsForHealth,
+} from '@/lib/my-tasks-mr-health';
 import { groupByMyDay } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
-import { fetchAuthoredMRs } from '@/services/gitlab';
+import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import {
   fetchAllAssignedHierarchy,
@@ -37,8 +44,6 @@ import {
   fetchMyTasksHierarchy,
   isIssueFlagged,
 } from '@/services/jira';
-import type { ReviewHealth } from '@/services/linkEngine';
-import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -333,6 +338,10 @@ export default function MyTasksPage() {
     placeholderData: (prev) => prev,
   });
 
+  // ── Active scope data ──────────────────────────────────────────────────────
+  const activeData =
+    scope === 'current-sprint' ? sprintData : scope === 'all-assigned' ? allData : reportedData;
+
   // ── GitLab authored MRs (for real MR health) ──────────────────────────────
   const gitlabEnabled = !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId;
   const { data: authoredMRs } = useQuery({
@@ -342,27 +351,48 @@ export default function MyTasksPage() {
     enabled: gitlabEnabled,
   });
 
-  // Build map: issue key → ReviewHealth, derived from authored MR title/branch matching
-  const mrHealthByKey = new Map<string, ReviewHealth>();
-  if (authoredMRs) {
-    for (const mr of authoredMRs) {
-      const title = mr.title ?? '';
-      const branch = (mr.source_branch as string | undefined) ?? '';
-      const keys = [...extractTicketKeys(title), ...extractTicketKeys(branch)];
-      for (const key of keys) {
-        if (!mrHealthByKey.has(key)) {
-          // Without per-MR approvals data, default to 'waiting_for_review'.
-          // Full deriveReviewHealth would need approvals+discussions — those are
-          // not fetched here (graceful degradation: show waiting state).
-          mrHealthByKey.set(key, 'waiting_for_review');
-        }
-      }
-    }
-  }
+  // Bounded enrichment: only authored MRs matching a currently-visible issue
+  // key, capped at MR_HEALTH_ENRICHMENT_CAP, sorted by most recently updated.
+  const visibleIssueKeys = new Set((activeData?.issues ?? []).map((i) => i.key));
+  const enrichTargets = gitlabEnabled
+    ? selectMrsForHealth(authoredMRs ?? [], visibleIssueKeys)
+    : [];
 
-  // ── Active scope data ──────────────────────────────────────────────────────
-  const activeData =
-    scope === 'current-sprint' ? sprintData : scope === 'all-assigned' ? allData : reportedData;
+  // Approvals batch — always fetched for every enrichment target.
+  const approvalResults = useQueries({
+    queries: enrichTargets.map(({ mr }) => ({
+      queryKey: ['gitlab-mr-approvals', String(mr.project_id), String(mr.iid)],
+      queryFn: () => fetchMRApprovals(gitlabBaseUrl!, gitlabToken!, mr.project_id, mr.iid),
+      staleTime: 60_000,
+      retry: 1,
+      enabled: gitlabEnabled,
+    })),
+  });
+
+  // Discussions batch — gated to unapproved MRs only, since deriveReviewHealth
+  // short-circuits on any approver. Avoids running the paginating discussions
+  // fetcher for every enrichment target.
+  const discussionResults = useQueries({
+    queries: enrichTargets.map(({ mr }, i) => ({
+      queryKey: ['gitlab-mr-discussions', String(mr.project_id), String(mr.iid)],
+      queryFn: () => fetchMRDiscussions(gitlabBaseUrl!, gitlabToken!, mr.project_id, mr.iid),
+      staleTime: 60_000,
+      retry: 1,
+      enabled:
+        gitlabEnabled &&
+        approvalResults[i]?.data !== undefined &&
+        approvalResults[i].data.approved_by.length === 0,
+    })),
+  });
+
+  // Build map: issue key → ReviewHealth, most actionable state wins on collision.
+  const mrHealthByKey = buildMrHealthByKey(
+    enrichTargets.map(({ keys }, i) => ({
+      keys,
+      health: resolveMrHealth(approvalResults[i]?.data, discussionResults[i]?.data),
+    })),
+  );
+
   const isLoading =
     scope === 'current-sprint'
       ? sprintLoading
