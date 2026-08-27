@@ -82,6 +82,121 @@ fn unique_path(path: PathBuf) -> PathBuf {
     }
 }
 
+#[derive(serde::Serialize)]
+struct BrowserInfo {
+    id: String,
+    label: String,
+    path: String,
+}
+
+/// Detect installed browsers via filesystem presence checks only (`Path::exists()`).
+/// No subprocess is spawned. Returns an empty Vec if nothing is found — this command
+/// never errors. "System Default" is a UI-only concept and is not part of this list.
+#[tauri::command]
+fn list_browsers() -> Vec<BrowserInfo> {
+    let mut browsers = Vec::new();
+
+    #[cfg(target_os = "macos")]
+    {
+        let candidates: &[(&str, &str)] = &[
+            ("safari", "Safari"),
+            ("chrome", "Google Chrome"),
+            ("firefox", "Firefox"),
+            ("edge", "Microsoft Edge"),
+            ("brave", "Brave Browser"),
+            ("arc", "Arc"),
+            ("vivaldi", "Vivaldi"),
+            ("opera", "Opera"),
+            ("chromium", "Chromium"),
+            ("zen", "Zen Browser"),
+        ];
+        let home_apps = dirs::home_dir().map(|h| h.join("Applications"));
+        for (id, name) in candidates {
+            let system_path = std::path::PathBuf::from(format!("/Applications/{name}.app"));
+            if system_path.exists() {
+                browsers.push(BrowserInfo {
+                    id: (*id).to_string(),
+                    label: (*name).to_string(),
+                    path: system_path.to_string_lossy().to_string(),
+                });
+                continue;
+            }
+            if let Some(home_apps) = &home_apps {
+                let user_path = home_apps.join(format!("{name}.app"));
+                if user_path.exists() {
+                    browsers.push(BrowserInfo {
+                        id: (*id).to_string(),
+                        label: (*name).to_string(),
+                        path: user_path.to_string_lossy().to_string(),
+                    });
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let candidates: &[(&str, &str, &str)] = &[
+            ("chrome", "Google Chrome", "Google\\Chrome\\Application\\chrome.exe"),
+            ("firefox", "Firefox", "Mozilla Firefox\\firefox.exe"),
+            ("edge", "Microsoft Edge", "Microsoft\\Edge\\Application\\msedge.exe"),
+            ("brave", "Brave Browser", "BraveSoftware\\Brave-Browser\\Application\\brave.exe"),
+            ("vivaldi", "Vivaldi", "Vivaldi\\Application\\vivaldi.exe"),
+            ("opera", "Opera", "Opera\\opera.exe"),
+        ];
+        let roots: Vec<String> = ["ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"]
+            .iter()
+            .filter_map(|var| std::env::var(var).ok())
+            .collect();
+        for (id, name, rel) in candidates {
+            for root in &roots {
+                let candidate = std::path::Path::new(root).join(rel);
+                if candidate.exists() {
+                    browsers.push(BrowserInfo {
+                        id: (*id).to_string(),
+                        label: (*name).to_string(),
+                        path: candidate.to_string_lossy().to_string(),
+                    });
+                    break;
+                }
+            }
+        }
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let candidates: &[(&str, &str, &str)] = &[
+            ("firefox", "Firefox", "firefox"),
+            ("chrome", "Google Chrome", "google-chrome"),
+            ("chrome-stable", "Google Chrome", "google-chrome-stable"),
+            ("chromium", "Chromium", "chromium"),
+            ("chromium-browser", "Chromium", "chromium-browser"),
+            ("brave", "Brave Browser", "brave-browser"),
+            ("edge", "Microsoft Edge", "microsoft-edge"),
+            ("vivaldi", "Vivaldi", "vivaldi"),
+            ("opera", "Opera", "opera"),
+        ];
+        let path_dirs: Vec<String> = std::env::var("PATH")
+            .map(|p| p.split(':').map(|s| s.to_string()).collect())
+            .unwrap_or_default();
+        for (id, name, bin) in candidates {
+            for dir in &path_dirs {
+                let candidate = std::path::Path::new(dir).join(bin);
+                if candidate.exists() {
+                    browsers.push(BrowserInfo {
+                        id: (*id).to_string(),
+                        label: (*name).to_string(),
+                        path: candidate.to_string_lossy().to_string(),
+                    });
+                    break;
+                }
+            }
+        }
+    }
+
+    browsers
+}
+
 fn get_salt_path(app: &tauri::App) -> PathBuf {
     app.path()
         .app_data_dir()
@@ -278,7 +393,12 @@ pub fn run() {
                 _ => {}
             }
         })
-        .invoke_handler(tauri::generate_handler![greet, toggle_debug_menu, save_attachment])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            toggle_debug_menu,
+            save_attachment,
+            list_browsers
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
