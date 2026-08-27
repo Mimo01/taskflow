@@ -1,4 +1,3 @@
-import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   AlertTriangle,
   Calendar,
@@ -12,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { openExternal } from '@/lib/openExternal';
 import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
@@ -321,7 +321,7 @@ export function ReleaseDetailSidebar({
             gitlabMatch.candidateUrl ? (
               <button
                 type="button"
-                onClick={() => openUrl(gitlabMatch.candidateUrl)}
+                onClick={() => openExternal(gitlabMatch.candidateUrl)}
                 className="text-primary hover:underline flex items-center gap-1"
                 data-testid="gitlab-link-exact"
               >
@@ -335,7 +335,7 @@ export function ReleaseDetailSidebar({
             gitlabMatch.candidateUrl ? (
               <button
                 type="button"
-                onClick={() => openUrl(gitlabMatch.candidateUrl)}
+                onClick={() => openExternal(gitlabMatch.candidateUrl)}
                 className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
                 title={`Fuzzy match: ${gitlabMatch.candidateName}`}
                 data-testid="gitlab-link-fuzzy"
@@ -471,7 +471,7 @@ export function ReleaseDetailSidebar({
                       />
                       <button
                         type="button"
-                        onClick={() => openUrl(mr.web_url)}
+                        onClick={() => openExternal(mr.web_url)}
                         className="text-xs font-mono hover:underline shrink-0"
                       >
                         !{mr.iid}

@@ -9,7 +9,6 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -31,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useResizable } from '@/hooks/useResizable';
+import { openExternal } from '@/lib/openExternal';
 import type { Discussion, GitLabMRDetail, MRCommit, MRDiffFile } from '@/services/gitlab';
 import {
   fetchMRApprovals,
@@ -219,7 +219,7 @@ export default function MergeRequestDetailPage() {
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs shrink-0"
-                    onClick={() => openUrl(mr.web_url)}
+                    onClick={() => openExternal(mr.web_url)}
                   >
                     <ExternalLink className="size-3.5" />
                     Open in GitLab

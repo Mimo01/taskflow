@@ -6,18 +6,19 @@
  * Clicking a row opens the Jira issue in the system browser.
  */
 import { useQuery } from '@tanstack/react-query';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { Badge } from '@/components/ui/badge';
+import { openExternal } from '@/lib/openExternal';
 import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
 
 async function openJiraIssue(jiraBaseUrl: string, issueKey: string) {
   const url = `${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`;
-  try {
-    await openUrl(url);
-  } catch {
+  // openExternal already tries the selected browser then the OS default and
+  // never rejects — this final `window.open` rung only fires when even the
+  // default-browser attempt fails, via the onFallbackFailed callback.
+  await openExternal(url, () => {
     window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  });
 }
 
 interface SubtasksPanelProps {

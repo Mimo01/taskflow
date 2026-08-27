@@ -74,12 +74,13 @@ vi.mock('@/stores/settings.store', () => {
     epicColorFieldKey: 'customfield_10013',
     flaggedFieldKey: 'customfield_10021',
     commentSortOrder: 'newest' as const,
+    externalBrowser: null as string | null,
   };
-  return {
-    useSettingsStore: vi.fn((selector?: (s: typeof state) => unknown) =>
-      selector ? selector(state) : state,
-    ),
-  };
+  const useSettingsStore = vi.fn((selector?: (s: typeof state) => unknown) =>
+    selector ? selector(state) : state,
+  );
+  (useSettingsStore as unknown as { getState: () => typeof state }).getState = () => state;
+  return { useSettingsStore };
 });
 
 // Mock WikiRenderer — avoids jira2md complexity in unit tests
