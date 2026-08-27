@@ -7,6 +7,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { openExternal } from '@/lib/openExternal';
 import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -98,25 +99,29 @@ export default function SubtasksPanel({
       {!isLoading && displayed.length > 0 && (
         <div className="flex flex-col">
           {displayed.map((issue) => (
-            <button
+            <LinkContextMenu
               key={issue.key}
-              type="button"
-              onClick={() =>
-                onIssueClick ? onIssueClick(issue.key) : openJiraIssue(jiraBaseUrl, issue.key)
-              }
-              className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/50 rounded px-1 cursor-pointer"
+              href={`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issue.key}`}
             >
-              <span className="font-mono text-xs text-muted-foreground w-20 flex-shrink-0">
-                {issue.key}
-              </span>
-              <span className="flex-1 truncate text-sm">{issue.fields.summary}</span>
-              <Badge variant="secondary" className="text-xs flex-shrink-0">
-                {issue.fields.status.name}
-              </Badge>
-              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                ‹ {issue.fields.parent?.fields.summary}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onIssueClick ? onIssueClick(issue.key) : openJiraIssue(jiraBaseUrl, issue.key)
+                }
+                className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/50 rounded px-1 cursor-pointer"
+              >
+                <span className="font-mono text-xs text-muted-foreground w-20 flex-shrink-0">
+                  {issue.key}
+                </span>
+                <span className="flex-1 truncate text-sm">{issue.fields.summary}</span>
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  {issue.fields.status.name}
+                </Badge>
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                  ‹ {issue.fields.parent?.fields.summary}
+                </span>
+              </button>
+            </LinkContextMenu>
           ))}
         </div>
       )}

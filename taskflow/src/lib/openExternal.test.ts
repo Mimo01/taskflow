@@ -71,10 +71,7 @@ describe('openExternalWith', () => {
     await openExternalWith('https://example.com', '/Applications/Firefox.app');
 
     expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
-    expect(mockedOpenUrl).toHaveBeenCalledWith(
-      'https://example.com',
-      '/Applications/Firefox.app',
-    );
+    expect(mockedOpenUrl).toHaveBeenCalledWith('https://example.com', '/Applications/Firefox.app');
   });
 
   it('calls openUrl with a single argument when browserPath is null (System Default)', async () => {
@@ -95,10 +92,7 @@ describe('openExternalWith', () => {
     // Explicit browser wins, not the store's default — and openUrl is called
     // exactly once (no fallback rung reads the store either).
     expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
-    expect(mockedOpenUrl).toHaveBeenCalledWith(
-      'https://example.com',
-      '/Applications/Firefox.app',
-    );
+    expect(mockedOpenUrl).toHaveBeenCalledWith('https://example.com', '/Applications/Firefox.app');
   });
 
   it('resolves (never throws) when openUrl rejects', async () => {

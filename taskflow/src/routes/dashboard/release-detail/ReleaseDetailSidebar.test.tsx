@@ -14,6 +14,14 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn(),
 }));
 
+// GitLab milestone/MR links now render through LinkContextMenu (260827-f6e),
+// which calls useDetectedBrowsers → useQuery. These tests don't exercise the
+// right-click menu, so stub the hook rather than adding a QueryClientProvider
+// to every render() call in this file.
+vi.mock('@/lib/useDetectedBrowsers', () => ({
+  useDetectedBrowsers: () => [],
+}));
+
 function makeVersion(overrides: Partial<JiraFixVersion> = {}): JiraFixVersion {
   return {
     id: '10000',
