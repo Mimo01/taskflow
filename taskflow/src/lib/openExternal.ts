@@ -44,3 +44,27 @@ export async function openExternal(url: string, onFallbackFailed?: () => void): 
     onFallbackFailed?.();
   }
 }
+
+/**
+ * openExternalWith — per-link explicit-browser override for the right-click
+ * "Open in {browser}" / "Open in System Default" context menu (quick task
+ * 260827-f6e). Deliberately bypasses `useSettingsStore.getState().externalBrowser`
+ * — the Settings default browser is a global preference, but this is a one-off
+ * escape hatch for a single link the user right-clicked. Never reads or writes
+ * the persisted setting.
+ *
+ * `browserPath` non-null → launch that specific browser. `browserPath` null →
+ * System Default (calls `openUrl` with the URL only, same as the fallback rung
+ * in `openExternal`). Fails quietly like `openExternal` — never throws.
+ */
+export async function openExternalWith(url: string, browserPath: string | null): Promise<void> {
+  try {
+    if (browserPath) {
+      await openUrl(url, browserPath);
+    } else {
+      await openUrl(url);
+    }
+  } catch {
+    // Fail quietly — no toast, matching this module's documented convention.
+  }
+}

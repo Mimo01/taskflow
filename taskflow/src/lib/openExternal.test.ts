@@ -1,7 +1,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSettingsStore } from '@/stores/settings.store';
-import { openExternal } from './openExternal';
+import { openExternal, openExternalWith } from './openExternal';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn(),
@@ -55,6 +55,58 @@ describe('openExternal', () => {
 
     await expect(openExternal('https://example.com')).resolves.toBeUndefined();
 
+    expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('openExternalWith', () => {
+  beforeEach(() => {
+    mockedOpenUrl.mockReset();
+    useSettingsStore.setState({ externalBrowser: null });
+  });
+
+  it('calls openUrl with the explicit browser path when one is given', async () => {
+    mockedOpenUrl.mockResolvedValue(undefined);
+
+    await openExternalWith('https://example.com', '/Applications/Firefox.app');
+
+    expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
+    expect(mockedOpenUrl).toHaveBeenCalledWith(
+      'https://example.com',
+      '/Applications/Firefox.app',
+    );
+  });
+
+  it('calls openUrl with a single argument when browserPath is null (System Default)', async () => {
+    mockedOpenUrl.mockResolvedValue(undefined);
+
+    await openExternalWith('https://example.com', null);
+
+    expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
+    expect(mockedOpenUrl).toHaveBeenCalledWith('https://example.com');
+  });
+
+  it('ignores the settings store externalBrowser entirely', async () => {
+    useSettingsStore.setState({ externalBrowser: '/Applications/Chrome.app' });
+    mockedOpenUrl.mockResolvedValue(undefined);
+
+    await openExternalWith('https://example.com', '/Applications/Firefox.app');
+
+    // Explicit browser wins, not the store's default — and openUrl is called
+    // exactly once (no fallback rung reads the store either).
+    expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
+    expect(mockedOpenUrl).toHaveBeenCalledWith(
+      'https://example.com',
+      '/Applications/Firefox.app',
+    );
+  });
+
+  it('resolves (never throws) when openUrl rejects', async () => {
+    mockedOpenUrl.mockRejectedValue(new Error('launch failed'));
+
+    await expect(
+      openExternalWith('https://example.com', '/Applications/Firefox.app'),
+    ).resolves.toBeUndefined();
     expect(mockedOpenUrl).toHaveBeenCalledTimes(1);
   });
 });
