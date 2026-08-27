@@ -6,7 +6,7 @@
  * map. No fetch, no React, no store access — callers own all I/O.
  */
 
-import { type Discussion, type GitLabMR, type MRApprovals } from '@/services/gitlab';
+import type { Discussion, GitLabMR, MRApprovals } from '@/services/gitlab';
 import { deriveReviewHealth, extractTicketKeys, type ReviewHealth } from '@/services/linkEngine';
 
 /** Maximum number of authored MRs enriched with per-MR approvals/discussions. */
@@ -40,9 +40,7 @@ export function selectMrsForHealth(
     }
   }
 
-  matched.sort(
-    (a, b) => new Date(b.mr.updated_at).getTime() - new Date(a.mr.updated_at).getTime(),
-  );
+  matched.sort((a, b) => new Date(b.mr.updated_at).getTime() - new Date(a.mr.updated_at).getTime());
 
   return matched.slice(0, MR_HEALTH_ENRICHMENT_CAP);
 }
