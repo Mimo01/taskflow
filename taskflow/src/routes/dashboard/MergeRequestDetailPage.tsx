@@ -28,6 +28,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useResizable } from '@/hooks/useResizable';
 import { openExternal } from '@/lib/openExternal';
@@ -215,15 +216,17 @@ export default function MergeRequestDetailPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-semibold leading-snug flex-1">{mr.title}</h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs shrink-0"
-                    onClick={() => openExternal(mr.web_url)}
-                  >
-                    <ExternalLink className="size-3.5" />
-                    Open in GitLab
-                  </Button>
+                  <LinkContextMenu href={mr.web_url}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs shrink-0"
+                      onClick={() => openExternal(mr.web_url)}
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Open in GitLab
+                    </Button>
+                  </LinkContextMenu>
                 </div>
               </div>
 

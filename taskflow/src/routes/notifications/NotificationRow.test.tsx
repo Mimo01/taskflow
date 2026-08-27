@@ -5,6 +5,13 @@ import NotificationRow from './NotificationRow';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
+// LinkContextMenu (wrapping the open-in-browser icon) calls useDetectedBrowsers,
+// which needs a QueryClient. These existing tests don't exercise the right-click
+// menu, so stub the hook rather than wrapping every render() in a provider.
+vi.mock('@/lib/useDetectedBrowsers', () => ({
+  useDetectedBrowsers: () => [],
+}));
+
 function makeItem(
   source: 'jira' | 'gitlab',
   overrides?: Partial<NotificationItem>,
@@ -182,6 +189,29 @@ describe('NotificationRow', () => {
   it('does not render action tray when no actions', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
     expect(container.querySelector('[data-testid="action-tray"]')).not.toBeInTheDocument();
+  });
+
+  // Right-click LinkContextMenu (260827-f6e)
+  it('right-clicking the open-in-browser icon shows the LinkContextMenu when item.url is present', async () => {
+    const { container } = render(
+      <NotificationRow
+        item={makeItem('jira', { url: 'https://jira.example.com/browse/PROJ-123' })}
+        onClick={() => {}}
+        onOpenInBrowser={() => {}}
+      />,
+    );
+    const trigger = container.querySelector('[data-slot="context-menu-trigger"]');
+    expect(trigger).not.toBeNull();
+    fireEvent.contextMenu(trigger as Element);
+    expect(await screen.findByText('Open in System Default')).toBeInTheDocument();
+    expect(screen.getByText('Copy link')).toBeInTheDocument();
+  });
+
+  it('renders no context-menu trigger for a row without item.url', () => {
+    const { container } = render(
+      <NotificationRow item={makeItem('jira')} onClick={() => {}} onOpenInBrowser={() => {}} />,
+    );
+    expect(container.querySelector('[data-slot="context-menu-trigger"]')).not.toBeInTheDocument();
   });
 
   // Status change formatting

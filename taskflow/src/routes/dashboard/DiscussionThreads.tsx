@@ -17,6 +17,7 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { tryInternalPath } from '@/lib/internalLinks';
 import { openExternal } from '@/lib/openExternal';
 import { cn } from '@/lib/utils';
@@ -84,26 +85,31 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
           resolvedHref = `${gitlabBaseUrl.replace(/\/$/, '')}${resolvedHref}`;
         }
         return (
-          <a
-            {...props}
+          <LinkContextMenu
             href={resolvedHref}
-            onClick={(e) => {
-              e.preventDefault();
-              if (!resolvedHref) return;
-              // Try in-app routing first (Jira browse → /issue/:key,
-              // GitLab MR → /mr/:projectId/:iid on path match).
-              const internalPath = tryInternalPath(resolvedHref, linkCtx);
-              if (internalPath !== null) {
-                breadcrumbPush(deriveSourceCrumb(location.pathname));
-                navigate(internalPath);
-                return;
-              }
-              openExternal(resolvedHref);
-            }}
-            className="text-primary hover:underline cursor-pointer"
-          >
-            {children}
-          </a>
+            render={
+              <a
+                {...props}
+                href={resolvedHref}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!resolvedHref) return;
+                  // Try in-app routing first (Jira browse → /issue/:key,
+                  // GitLab MR → /mr/:projectId/:iid on path match).
+                  const internalPath = tryInternalPath(resolvedHref, linkCtx);
+                  if (internalPath !== null) {
+                    breadcrumbPush(deriveSourceCrumb(location.pathname));
+                    navigate(internalPath);
+                    return;
+                  }
+                  openExternal(resolvedHref);
+                }}
+                className="text-primary hover:underline cursor-pointer"
+              >
+                {children}
+              </a>
+            }
+          />
         );
       },
     }),
