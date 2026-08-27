@@ -18,6 +18,14 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Files changed:** taskflow/src/routes/dashboard/issue-detail/LogWorkPopover.tsx, taskflow/src/routes/dashboard/IssueDetailPage.tsx
 ---
 
+## my-tasks-stale-after-edit — My Tasks list doesn't update after sidebar edit
+- **Date:** 2026-08-27
+- **Error patterns:** stale, cache, My Tasks, task list, sidebar edit, status change, not immediately updated, react query, invalidateQueries, jira-issues
+- **Root cause:** Sidebar mutations (useFieldMutation.ts field edits; FieldsSection.tsx transitionMutation/resolutionTransitionMutation/sprintMoveMutation) never invalidated the `['jira-issues']` query-key family that MyTasksPage's three list queries (my-tasks, my-tasks-all, my-tasks-reported) are keyed under. List only refreshed after 30s staleTime elapsed or a full reload.
+- **Fix:** Added `queryClient.invalidateQueries({ queryKey: ['jira-issues'] })` to the `onSettled` of useFieldMutation.ts's shared field-edit mutation and FieldsSection.tsx's transitionMutation, resolutionTransitionMutation, sprintMoveMutation. React Query's prefix matching (exact:false) cascades to every scoped variant (my-tasks, my-tasks-all, my-tasks-reported, sprint-board, etc.) without enumerating each one.
+- **Files changed:** taskflow/src/routes/dashboard/issue-detail/useFieldMutation.ts, taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx
+---
+
 ## html-in-description-rendered — literal HTML typed in issue description renders as live DOM instead of escaped text
 - **Date:** 2026-08-12
 - **Error patterns:** html, rendered, escaped, wiki markup, rehype-raw, rehype-sanitize, WikiRenderer, XSS, live html, script, marquee, b, h1, table
