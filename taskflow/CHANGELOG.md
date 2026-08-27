@@ -18,6 +18,22 @@ All notable changes to Taskflow are documented here.
 
 - Dead `dashboard/TaskRow.tsx` and `dashboard/MrRow.tsx` components, superseded by the My Tasks MR-health helpers.
 
+## [1.14.1] — 2026-08-27
+
+### Added
+
+- **Open links in a chosen browser** — links throughout the app (issue descriptions, comments, discussions, wiki text, notification rows, and release/MR sidebars) now support right-clicking to open with a specific installed browser via a context menu, instead of only the OS default. A new Settings → Links section lets you set a preferred default browser from the detected list, shown by friendly name rather than raw executable path.
+- **My Tasks — real per-MR review status** — the "needs review" badge now reflects actual per-MR approval state and gated discussions instead of a placeholder, with a GitPullRequest icon added to the badge for clarity.
+
+### Fixed
+
+- **Sidebar field edits no longer leave My Tasks and other issue lists stale** — editing a field from the issue detail sidebar now invalidates the full `jira-issues` query family, so lists relying on cached issue data pick up the change immediately.
+- **Comment action menu no longer clipped near the composer** — the comment actions dropdown is now portaled so it escapes the sticky composer's overflow clipping instead of being cut off.
+
+### Removed
+
+- Dead `dashboard/TaskRow.tsx` and `dashboard/MrRow.tsx` components, superseded by the My Tasks MR-health helpers.
+
 ## [1.14.0] — 2026-08-13
 
 ### Added
