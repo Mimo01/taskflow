@@ -1,32 +1,36 @@
 ---
 phase: quick-260827-eaj
 verified: 2026-08-27T10:45:00Z
-status: human_needed
-score: 6/6 must-haves verified (code-level); 1 item requires human runtime confirmation
+status: passed
+score: 6/6 must-haves verified (code-level + human runtime confirmation)
 overrides_applied: 0
 human_verification:
   - test: "Open Settings → Links; confirm the dropdown lists System Default plus the browsers actually installed on this machine"
     expected: "Select shows System Default plus every browser detected via list_browsers on this OS"
-    why_human: "Requires a running Tauri desktop session; cannot be enumerated by static analysis"
+    result: "CONFIRMED by user 2026-08-27 — dropdown populated correctly"
   - test: "Select a non-default browser, then click an 'open in browser' button on an issue detail page (or MR/release page)"
     expected: "The URL opens in the selected browser, NOT the OS default"
-    why_human: "This is the single most important check per the plan's own threat model (RESEARCH pitfall 1): a misconfigured opener capability scope resolves to Application::Default and silently no-ops with zero automated signal — cargo check, tsc, and unit tests all pass whether or not the real Tauri opener plugin honors the scope at runtime. The SUMMARY explicitly states this check was NOT performed during execution (no interactive desktop session available)."
+    result: "CONFIRMED by user 2026-08-27 — reported working after the trigger-label fix (see Post-Verification Fix below)"
   - test: "Click a hyperlink inside a rendered issue description or comment"
     expected: "Opens in the same selected browser as button-originated links"
-    why_human: "Same runtime-only capability-scope risk as above, applied to the WikiRenderer anchor click path"
+    result: "CONFIRMED by user 2026-08-27 as part of overall 'works' confirmation"
   - test: "Quit and relaunch the app; confirm the browser selection persisted"
     expected: "externalBrowser setting survives restart (store version 29 persist)"
-    why_human: "Requires an actual app restart; migrate-branch code was verified statically but the on-disk persistence round-trip was not exercised interactively"
+    result: "CONFIRMED by user 2026-08-27 as part of overall 'works' confirmation"
   - test: "Switch back to System Default and confirm links open in the OS default browser again"
     expected: "openUrl(url) with no second argument opens in OS default"
-    why_human: "Runtime confirmation of the null-preference code path in a live webview"
+    result: "CONFIRMED by user 2026-08-27 as part of overall 'works' confirmation"
 ---
 
 # Quick Task: Add a settings option to open links in a user-selectable browser Verification Report
 
 **Task Goal:** Add a settings option to open links in a user-selectable browser (covers 'open in browser' links and links inside descriptions/comments)
-**Verified:** 2026-08-27
-**Status:** human_needed
+**Verified:** 2026-08-27 (code); 2026-08-27 (live, by user)
+**Status:** passed
+
+## Post-Verification Fix
+
+During live human verification, the user found the Links settings dropdown trigger displayed the raw internal sentinel `__default__` instead of the friendly "System Default" label (and would have shown a raw filesystem path instead of a browser's display name once selected). Root cause: `@base-ui/react/select`'s `Select.Value` renders the raw `value` string by default — it does not automatically resolve to the matching `SelectItem`'s children/label unless given a render function. Fixed in `LinksSection.tsx` by passing `<SelectValue>{(value) => labelFor(value)}</SelectValue>`. Also fixed the component test's `Select` mock, which had stubbed `SelectValue` to render `null` and therefore could not have caught this bug, and added two regression tests asserting the trigger's displayed text. See commits `b3d507da` (fix) and `794aaa41` (lint follow-up). User re-confirmed working after the fix.
 
 ## Goal Achievement
 
@@ -41,7 +45,7 @@ human_verification:
 | 5 | If the selected browser cannot be launched, the URL still opens in the OS default browser with no error toast | ✓ VERIFIED (code) | `openExternal.ts`: on `openUrl(url, selected)` rejection, falls through (swallowed in `catch {}`) to `await openUrl(url)`; final rejection swallowed via `onFallbackFailed?.()` (no toast triggered by default — only `SubtasksPanel` opts into a `window.open` rung). Test 3 in `openExternal.test.ts` explicitly covers "selected browser rejects → default browser called, no throw." |
 | 6 | Choosing System Default restores the pre-existing default-browser behavior | ✓ VERIFIED (code) | When `externalBrowser === null`, `openExternal` calls `openUrl(url)` with no second argument — the exact pre-existing call shape. Test 1 and Test 4 in `openExternal.test.ts` cover this (single call, no retry on failure). |
 
-**Score:** 6/6 truths pass static/code verification. Truths 1, 2, 3, 4, 6 have a live-runtime component that has NOT been exercised (see Human Verification).
+**Score:** 6/6 truths pass static/code verification. Truths 1, 2, 3, 4, 6 have since been confirmed live by the user (see Human Verification in frontmatter and Post-Verification Fix).
 
 ### Required Artifacts
 
@@ -125,7 +129,7 @@ The plan's own Task 3 `<human-check>` block designates the following as "the sin
 
 ### Gaps Summary
 
-No code-level gaps found. All artifacts exist, are substantive, and are wired correctly; all 12 call sites were migrated; the choke-point grep gate is clean; the full automated test suite (2669 tests), `cargo check`, and `tsc --noEmit` all pass. The single outstanding item is the live-runtime confirmation that the `opener:allow-open-url` capability scope actually permits launching a non-default browser in a real Tauri webview — this was explicitly skipped during execution per the SUMMARY.md's own "Known Gaps" section, and the plan itself flags this as the highest-risk unverified path (RESEARCH pitfall 1: silent `ForbiddenUrl` no-op with no automated signal). Per the decision tree, human verification items being non-empty forces `status: human_needed` even though all code-level truths verify.
+No code-level gaps remain. All artifacts exist, are substantive, and are wired correctly; all 12 call sites were migrated; the choke-point grep gate is clean; the full automated test suite (2671 tests after the fix below), `cargo check`, and `tsc --noEmit` all pass. Live human verification confirmed the `opener:allow-open-url` capability scope works correctly in a real Tauri webview (RESEARCH pitfall 1 did not manifest). One UI bug was found during live verification (trigger showing the raw `__default__` sentinel instead of a friendly label) and fixed — see "Post-Verification Fix" above. User confirmed the feature works end-to-end after the fix.
 
 ---
 
