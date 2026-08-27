@@ -11,6 +11,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreVertical } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -758,6 +759,7 @@ function CommentCard({
   userMap,
 }: CommentCardProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu on outside click
@@ -766,6 +768,7 @@ function CommentCard({
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowMenu(false);
+        setMenuPosition(null);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -789,39 +792,57 @@ function CommentCard({
           <div className="ml-auto relative">
             <button
               type="button"
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => {
+                if (showMenu) {
+                  setShowMenu(false);
+                  setMenuPosition(null);
+                  return;
+                }
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMenuPosition({
+                  top: rect.bottom + 4,
+                  right: window.innerWidth - rect.right,
+                });
+                setShowMenu(true);
+              }}
               className="p-1 rounded hover:bg-accent"
               aria-label="Comment actions"
             >
               <MoreVertical className="size-4" />
             </button>
-            {showMenu && (
-              <div
-                ref={menuRef}
-                className="absolute right-0 top-8 z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false);
-                    onEdit(comment);
-                  }}
-                  className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
+            {showMenu &&
+              menuPosition &&
+              createPortal(
+                <div
+                  ref={menuRef}
+                  style={{ top: menuPosition.top, right: menuPosition.right }}
+                  className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
                 >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false);
-                    onDelete(comment);
-                  }}
-                  className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setMenuPosition(null);
+                      onEdit(comment);
+                    }}
+                    className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setMenuPosition(null);
+                      onDelete(comment);
+                    }}
+                    className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
+                  >
+                    Delete
+                  </button>
+                </div>,
+                document.body,
+              )}
           </div>
         )}
       </div>

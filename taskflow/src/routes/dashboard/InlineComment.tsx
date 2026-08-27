@@ -8,6 +8,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bold, Code, Italic, List, MoreVertical } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
@@ -86,6 +87,7 @@ export default function InlineComment({
 
   // Menu state
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +98,7 @@ export default function InlineComment({
       setEditingCommentId(null);
       setEditText('');
       setOpenMenuId(null);
+      setMenuPosition(null);
     }
   }, [isOpen]);
 
@@ -105,6 +108,7 @@ export default function InlineComment({
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpenMenuId(null);
+        setMenuPosition(null);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -165,6 +169,7 @@ export default function InlineComment({
     setEditingCommentId(comment.id);
     setEditText(comment.body);
     setOpenMenuId(null);
+    setMenuPosition(null);
   }
 
   function handleEditSave(commentId: string) {
@@ -180,6 +185,7 @@ export default function InlineComment({
 
   function handleDelete(comment: JiraComment) {
     setOpenMenuId(null);
+    setMenuPosition(null);
     if (!window.confirm('Delete this comment? This cannot be undone.')) return;
     deleteMutation.mutate(comment.id);
   }
@@ -210,33 +216,49 @@ export default function InlineComment({
                     <div className="ml-auto relative">
                       <button
                         type="button"
-                        onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}
+                        onClick={(e) => {
+                          if (openMenuId === c.id) {
+                            setOpenMenuId(null);
+                            setMenuPosition(null);
+                            return;
+                          }
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMenuPosition({
+                            top: rect.bottom + 4,
+                            right: window.innerWidth - rect.right,
+                          });
+                          setOpenMenuId(c.id);
+                        }}
                         className="p-1 rounded hover:bg-accent"
                         aria-label="Comment actions"
                       >
                         <MoreVertical className="size-4" />
                       </button>
-                      {openMenuId === c.id && (
-                        <div
-                          ref={menuRef}
-                          className="absolute right-0 top-8 z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleEditStart(c)}
-                            className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
+                      {openMenuId === c.id &&
+                        menuPosition &&
+                        createPortal(
+                          <div
+                            ref={menuRef}
+                            style={{ top: menuPosition.top, right: menuPosition.right }}
+                            className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
                           >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(c)}
-                            className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
+                            <button
+                              type="button"
+                              onClick={() => handleEditStart(c)}
+                              className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(c)}
+                              className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
+                            >
+                              Delete
+                            </button>
+                          </div>,
+                          document.body,
+                        )}
                     </div>
                   )}
                 </div>
