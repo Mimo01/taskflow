@@ -34,8 +34,14 @@ vi.mock('@/components/ui/select', async () => {
       </button>
     );
   }
-  function SelectValue(_props: GenericProps) {
-    return null;
+  function SelectValue({
+    children,
+  }: {
+    children?: React.ReactNode | ((value: string) => React.ReactNode);
+  }) {
+    const ctx = React.useContext(SelectContext);
+    if (typeof children === 'function') return <>{children(ctx.value)}</>;
+    return <>{children}</>;
   }
   function SelectContent({ children }: GenericProps) {
     const ctx = React.useContext(SelectContext);
@@ -89,13 +95,37 @@ describe('LinksSection', () => {
     expect(screen.getByRole('heading', { name: /^links$/i, level: 2 })).toBeInTheDocument();
   });
 
+  it('shows the friendly "System Default" label in the trigger, not the raw sentinel value', async () => {
+    render(<LinksSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Firefox')).toBeInTheDocument();
+    });
+
+    const trigger = screen.getByRole('button');
+    expect(trigger).toHaveTextContent('System Default');
+    expect(trigger).not.toHaveTextContent('__default__');
+  });
+
+  it('shows the selected browser\'s friendly label in the trigger, not its raw path', async () => {
+    mockSettingsStore.externalBrowser = '/Applications/Firefox.app';
+
+    render(<LinksSection />);
+
+    await waitFor(() => {
+      const trigger = screen.getByRole('button');
+      expect(trigger).toHaveTextContent('Firefox');
+    });
+    expect(screen.getByRole('button')).not.toHaveTextContent('/Applications/Firefox.app');
+  });
+
   it('lists System Default plus every detected browser', async () => {
     render(<LinksSection />);
 
     await waitFor(() => {
       expect(screen.getByText('Firefox')).toBeInTheDocument();
     });
-    expect(screen.getByText('System Default')).toBeInTheDocument();
+    expect(screen.getAllByText('System Default').length).toBeGreaterThan(0);
     expect(screen.getByText('Google Chrome')).toBeInTheDocument();
   });
 
@@ -117,7 +147,7 @@ describe('LinksSection', () => {
 
     render(<LinksSection />);
 
-    expect(screen.getByText('System Default')).toBeInTheDocument();
+    expect(screen.getAllByText('System Default').length).toBeGreaterThan(0);
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('list_browsers');
     });

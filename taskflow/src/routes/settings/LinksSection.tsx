@@ -57,6 +57,13 @@ export default function LinksSection() {
 
   const selectValue = externalBrowser === null ? SYSTEM_DEFAULT_VALUE : externalBrowser;
 
+  const labelFor = (value: string): string => {
+    if (value === SYSTEM_DEFAULT_VALUE) return 'System Default';
+    const match = browsers.find((b) => b.path === value);
+    if (match) return match.label;
+    return `${basename(value)} (not found)`;
+  };
+
   return (
     <div data-testid="section-links" className="flex flex-col gap-8">
       <h2 className="text-lg font-semibold">Links</h2>
@@ -73,7 +80,7 @@ export default function LinksSection() {
           onValueChange={(val) => setExternalBrowser(val === SYSTEM_DEFAULT_VALUE ? null : val)}
         >
           <SelectTrigger id="external-browser" className="w-64">
-            <SelectValue />
+            <SelectValue>{(value: string) => labelFor(value)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
