@@ -29,11 +29,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  buildMrHealthByKey,
-  resolveMrHealth,
-  selectMrsForHealth,
-} from '@/lib/my-tasks-mr-health';
+import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
 import { groupByMyDay } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';

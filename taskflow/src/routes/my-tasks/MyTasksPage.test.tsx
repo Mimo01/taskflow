@@ -435,9 +435,11 @@ describe('MyTasksPage — real MR review health (260827-gji)', () => {
       gitlabUserId: null,
     });
     // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult[] is intentional
-    const queriesSpy = vi.mocked(useQueries).mockImplementation((opts: any) =>
-      opts.queries.map(() => ({ data: undefined, isLoading: false, isError: false })),
-    );
+    const queriesSpy = vi
+      .mocked(useQueries)
+      .mockImplementation((opts: any) =>
+        opts.queries.map(() => ({ data: undefined, isLoading: false, isError: false })),
+      );
 
     renderPage();
 
