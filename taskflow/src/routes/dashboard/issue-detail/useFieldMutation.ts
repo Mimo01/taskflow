@@ -70,6 +70,12 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
+      // My Tasks page (and other list surfaces: sprint board, subtasks panel,
+      // standup notes) render from queries keyed under the 'jira-issues' family
+      // (['jira-issues','my-tasks',...], ['jira-issues','my-tasks-all',...], etc).
+      // Without invalidating this prefix, a sidebar field edit doesn't reflect in
+      // those lists until staleTime elapses or a full reload remounts the page.
+      queryClient.invalidateQueries({ queryKey: ['jira-issues'] });
     },
   });
 }

@@ -398,6 +398,11 @@ export function FieldsSection({
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
+      // My Tasks page (and other list surfaces) render from queries keyed under
+      // the 'jira-issues' family (['jira-issues','my-tasks',...] etc). Without
+      // this, a status change in the sidebar doesn't reflect in those lists
+      // until staleTime elapses or a full reload. Mirrors useFieldMutation.ts.
+      queryClient.invalidateQueries({ queryKey: ['jira-issues'] });
     },
   });
 
@@ -439,6 +444,9 @@ export function FieldsSection({
       else invalidateGhAllData(queryClient);
       if (boardId) invalidateGhBacklogData(queryClient, boardId);
       else invalidateGhBacklogData(queryClient);
+      // Mirrors transitionMutation — keeps My Tasks and other 'jira-issues'-keyed
+      // list surfaces in sync with an in-place resolution change.
+      queryClient.invalidateQueries({ queryKey: ['jira-issues'] });
     },
   });
 
@@ -474,6 +482,10 @@ export function FieldsSection({
       if (boardId) invalidateGhBacklogData(queryClient, boardId);
       else invalidateGhBacklogData(queryClient);
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
+      // A sprint move changes which 'jira-issues'-keyed list (My Tasks
+      // current-sprint / all-assigned / all-reported, sprint board, etc.) the
+      // issue belongs to — invalidate so those lists pick it up immediately.
+      queryClient.invalidateQueries({ queryKey: ['jira-issues'] });
     },
   });
 
