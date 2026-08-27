@@ -9,7 +9,6 @@
  * - Reply indentation for thread replies
  */
 
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { Activity, CheckCircle2, ChevronDown, ChevronRight, FileCode, Lock } from 'lucide-react';
 import { type ComponentPropsWithoutRef, useCallback, useState } from 'react';
 import Markdown from 'react-markdown';
@@ -19,6 +18,7 @@ import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { tryInternalPath } from '@/lib/internalLinks';
+import { openExternal } from '@/lib/openExternal';
 import { cn } from '@/lib/utils';
 import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
@@ -98,7 +98,7 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
                 navigate(internalPath);
                 return;
               }
-              openUrl(resolvedHref);
+              openExternal(resolvedHref);
             }}
             className="text-primary hover:underline cursor-pointer"
           >

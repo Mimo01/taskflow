@@ -59,6 +59,7 @@ const initialSettings = {
   selectedAioProjectKey: null as string | null,
   quickFilters: [] as QuickFilter[],
   rankFieldKey: null as string | null,
+  externalBrowser: null as string | null,
   notifCommentMentionEnabled: true,
   notifIssueUpdateEnabled: true,
   notifMrNoteEnabled: true,
@@ -98,6 +99,9 @@ interface SettingsState {
   /** Discovered rank custom field key. Null until populated from GreenHopper backlog response. */
   rankFieldKey: string | null;
   setRankFieldKey: (key: string) => void;
+  /** Absolute launch path of the user-selected external browser. Null means System Default. */
+  externalBrowser: string | null;
+  setExternalBrowser: (path: string | null) => void;
   /** Master toggle for developer tools. Default: false. */
   devToolsEnabled: boolean;
   /** Enable request/response logging to debug log store. Default: false. */
@@ -330,6 +334,7 @@ export const useSettingsStore = create<SettingsState>()(
       setFlaggedFieldKey: (key) => set({ flaggedFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
       setRankFieldKey: (key) => set({ rankFieldKey: key }),
+      setExternalBrowser: (path) => set({ externalBrowser: path }),
       setSidebarItems: (items) => set({ sidebarItems: items }),
       setSidebarItemVisible: (id, visible) =>
         set((s) => ({
@@ -359,7 +364,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 28,
+      version: 29,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -473,6 +478,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 28) {
           if (s.fontScale === undefined) s.fontScale = 'md';
+        }
+        if (version < 29) {
+          if (s.externalBrowser === undefined) s.externalBrowser = null;
         }
         return persisted as SettingsState;
       },

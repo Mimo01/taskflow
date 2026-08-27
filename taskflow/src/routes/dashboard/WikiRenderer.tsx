@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { openUrl } from '@tauri-apps/plugin-opener';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
 import {
@@ -18,6 +17,7 @@ import remarkGfm from 'remark-gfm';
 import { SKIP, visit } from 'unist-util-visit';
 import { tryInternalPath } from '@/lib/internalLinks';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { openExternal } from '@/lib/openExternal';
 import { cn } from '@/lib/utils';
 import { fetchIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -36,7 +36,7 @@ import { ImageLightbox } from './ImageLightbox';
  *  - `<mention data-id="…">` (user mentions)
  *  - `<img src alt>` (resolved attachment images)
  *  - `<br>` (hard breaks emitted by mergeOpenTableRows + Jira `\\` markers)
- *  - `<a href>` (external links, routed through `openUrl` in markdownComponents)
+ *  - `<a href>` (external links, routed through `openExternal` in markdownComponents)
  * `<script>` payloads embedded in user content render as LITERAL TEXT after
  * sanitisation — verified by the T-54-07-01 XSS guard test in WikiRenderer.test.tsx.
  */
@@ -1307,8 +1307,9 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
     //   group/project path matches activeGitlabProjectPath). On a hit, the app
     //   navigates in-app via useNavigate() without touching the OS browser.
     // - Only on a miss (no known internal route) do links fall through to
-    //   openUrl from @tauri-apps/plugin-opener so the Tauri webview is not
-    //   hijacked.
+    //   openExternal (the sanctioned external-URL boundary), which honors the
+    //   user-selected browser preference and falls back to the OS default so
+    //   the Tauri webview is not hijacked.
     a: ({ href, children, ...rest }: ComponentPropsWithoutRef<'a'>) => {
       // Falsy href → render plain <a> with no openUrl, no preventDefault.
       if (!href) {
@@ -1363,7 +1364,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           navigate(internalPath);
           return;
         }
-        openUrl(href).catch(() => {});
+        openExternal(href);
       };
       // Preserve href on the rendered anchor for accessibility (right-click
       // "Copy link", screen readers, keyboard navigation).
