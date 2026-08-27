@@ -537,14 +537,18 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
     await waitFor(() => expect(screen.getByText('Test issue title')).toBeTruthy());
 
     // Open the 3-dot comment actions menu, then click Edit inside it.
-    // Use the parent container of the menu button to scope button lookups and avoid
-    // collisions with the "Edit" button in IssueDetailContent's action row.
+    // The dropdown is portaled to document.body (to escape the scrollable
+    // comment list's clipping context), so it can't be scoped via the menu
+    // button's DOM ancestor anymore. Scope via the portaled menu's own
+    // container instead, to avoid colliding with the "Edit" button in
+    // IssueDetailContent's action row.
     const { within } = await import('@testing-library/react');
     const menuButton = await screen.findByLabelText('Comment actions');
-    const menuContainer = menuButton.closest('.relative') as HTMLElement;
     fireEvent.click(menuButton);
 
-    // The dropdown is rendered inside the same .relative container
+    const menuContainer = (await screen.findByText('Delete')).closest(
+      '.fixed',
+    ) as HTMLElement;
     const editButton = within(menuContainer).getByRole('button', { name: 'Edit' });
     fireEvent.click(editButton);
 
