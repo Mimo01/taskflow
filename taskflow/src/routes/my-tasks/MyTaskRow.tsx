@@ -18,7 +18,7 @@
  * - statusPill wrapped in a flex div (pill needs flex parent for geometry)
  */
 
-import { Flag, Tag } from 'lucide-react';
+import { Flag, GitPullRequest, Tag } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
@@ -387,6 +387,7 @@ export function MyTaskRow({
                 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400',
             )}
           >
+            <GitPullRequest className="size-3 shrink-0" />
             {MR_HEALTH_LABEL[mrHealth]}
           </span>
         )}
