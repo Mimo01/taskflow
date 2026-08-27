@@ -6,6 +6,13 @@
   "permissions": [
     "core:default",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "http://*", "app": true },
+        { "url": "https://*", "app": true }
+      ]
+    },
     "stronghold:default",
     "store:default",
     {

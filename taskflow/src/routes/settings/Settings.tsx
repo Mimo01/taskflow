@@ -13,6 +13,7 @@
 
 import {
   Bell,
+  ExternalLink,
   GitBranch,
   LayoutTemplate,
   Link2,
@@ -28,6 +29,7 @@ import AppearanceSection from './AppearanceSection';
 import ConnectionsSection from './ConnectionsSection';
 import DebugModeSection from './DebugModeSection';
 import IntegrationsSection from './IntegrationsSection';
+import LinksSection from './LinksSection';
 import NotificationsSection from './NotificationsSection';
 import SidebarSection from './SidebarSection';
 import SubtaskTemplatesSection from './SubtaskTemplatesSection';
@@ -37,6 +39,7 @@ import WorkflowSection from './WorkflowSection';
 type SettingsSection =
   | 'connections'
   | 'appearance'
+  | 'links'
   | 'sidebar'
   | 'notifications'
   | 'workflow'
@@ -48,6 +51,7 @@ type SettingsSection =
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'connections', label: 'Connections', icon: <Link2 className="h-4 w-4" /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette className="h-4 w-4" /> },
+  { id: 'links', label: 'Links', icon: <ExternalLink className="h-4 w-4" /> },
   { id: 'sidebar', label: 'Sidebar', icon: <PanelLeft className="h-4 w-4" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
   { id: 'workflow', label: 'Workflow', icon: <GitBranch className="h-4 w-4" /> },
@@ -95,6 +99,7 @@ export default function Settings() {
           </div>
         )}
         {activeSection === 'appearance' && <AppearanceSection />}
+        {activeSection === 'links' && <LinksSection />}
         {activeSection === 'sidebar' && <SidebarSection />}
         {activeSection === 'notifications' && <NotificationsSection />}
         {activeSection === 'workflow' && <WorkflowSection />}

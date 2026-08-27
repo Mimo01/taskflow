@@ -6,12 +6,12 @@
  * with inline editing capabilities.
  */
 
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { ExternalLink, Pin } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useResizable } from '@/hooks/useResizable';
+import { openExternal } from '@/lib/openExternal';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -203,7 +203,7 @@ export default function ReleaseDetailPage() {
   const handleOpenInJira = () => {
     if (jiraBaseUrl && activeJiraProject && versionId) {
       const base = jiraBaseUrl.replace(/\/$/, '');
-      openUrl(`${base}/projects/${activeJiraProject}/versions/${versionId}`);
+      openExternal(`${base}/projects/${activeJiraProject}/versions/${versionId}`);
     }
   };
 

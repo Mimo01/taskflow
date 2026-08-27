@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   Check,
   ClipboardCopy,
@@ -15,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
+import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type {
@@ -506,9 +506,7 @@ export function IssueDetailContent({
           <Button
             variant="outline"
             size="sm"
-            onClick={() =>
-              openUrl(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`).catch(() => {})
-            }
+            onClick={() => openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)}
             className="gap-1.5 rounded-r-none border-r-0 text-xs"
           >
             <ExternalLink className="size-3.5" />

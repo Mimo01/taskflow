@@ -479,18 +479,22 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     });
   });
 
-  it('persist version is 28 (v28 migration smoke — fontScale added in quick task 260812-mry)', () => {
+  it('persist version is 29 (v29 migration smoke — externalBrowser added in quick task 260827-eaj)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     const match = src.match(/version:\s*(\d+),/);
     expect(match).not.toBeNull();
     const version = Number(match?.[1]);
-    expect(version).toBe(28);
+    expect(version).toBe(29);
   });
 
   it('rankFieldKey defaults to null', () => {
     expect(useSettingsStore.getState().rankFieldKey).toBeNull();
+  });
+
+  it('externalBrowser defaults to null', () => {
+    expect(useSettingsStore.getState().externalBrowser).toBeNull();
   });
 
   it("setRankFieldKey('customfield_10105') sets state to 'customfield_10105' (D-11 composed-key contract)", () => {
