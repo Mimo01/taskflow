@@ -107,7 +107,7 @@ describe('LinksSection', () => {
     expect(trigger).not.toHaveTextContent('__default__');
   });
 
-  it('shows the selected browser\'s friendly label in the trigger, not its raw path', async () => {
+  it("shows the selected browser's friendly label in the trigger, not its raw path", async () => {
     mockSettingsStore.externalBrowser = '/Applications/Firefox.app';
 
     render(<LinksSection />);
