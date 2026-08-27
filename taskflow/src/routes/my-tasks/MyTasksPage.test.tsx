@@ -9,7 +9,7 @@
  * provide QueryClientProvider + MemoryRouter in render helper).
  */
 
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueries, useQuery } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +28,7 @@ vi.mock('@tanstack/react-query', async () => {
       isError: false,
       refetch: vi.fn(),
     }),
+    useQueries: vi.fn().mockReturnValue([]),
   };
 });
 
@@ -59,6 +60,8 @@ vi.mock('@/services/jira', () => ({
 
 vi.mock('@/services/gitlab', () => ({
   fetchAuthoredMRs: vi.fn().mockResolvedValue([]),
+  fetchMRApprovals: vi.fn(),
+  fetchMRDiscussions: vi.fn(),
 }));
 
 vi.mock('@/services/stronghold', () => ({
@@ -92,6 +95,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 import { useOutletContext } from 'react-router-dom';
+import { useAuthStore } from '@/stores/auth.store';
 
 function renderPage(outletCtx?: Record<string, unknown>) {
   vi.mocked(useOutletContext).mockReturnValue(outletCtx ?? {});
@@ -324,5 +328,123 @@ describe('MyTasksPage — DONE parent time rollup (260618-efy)', () => {
     // Time caption must reflect COMBINED total: spent 3600+1800=5400s, est 7200+3600=10800s
     const expectedCaption = `${formatDuration(5400)} / ${formatDuration(10800)}`;
     expect(within(parentRow).getByText(expectedCaption)).toBeDefined();
+  });
+});
+
+// ── Real MR review health regression tests (260827-gji) ─────────────────────
+
+describe('MyTasksPage — real MR review health (260827-gji)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+      gitlabUserId: 42,
+    });
+  });
+
+  const authoredMr = {
+    id: 1,
+    iid: 7,
+    project_id: 99,
+    title: 'PROJ-1 fix',
+    source_branch: 'feature/PROJ-1',
+    target_branch: 'main',
+    state: 'opened' as const,
+    draft: false,
+    author: { id: 42, name: 'Me', username: 'me', avatar_url: '' },
+    reviewers: [],
+    updated_at: '2026-01-01T00:00:00Z',
+    web_url: 'https://gitlab.example.com/mr/7',
+    labels: [],
+    milestone: null,
+  };
+
+  function mockQueriesFor({
+    approvals,
+    discussions,
+  }: {
+    approvals: { approved_by: Array<{ user: { id: number; name: string } }>; approved: boolean };
+    discussions: Array<{ notes: Array<{ resolvable: boolean; resolved: boolean }> }>;
+  }) {
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult is intentional
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
+      if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
+        return {
+          ...NO_DATA_RESPONSE,
+          data: {
+            issues: [makeIssue('PROJ-1', 'indeterminate')],
+            myIssueKeys: new Set(['PROJ-1']),
+          },
+          // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        } as any;
+      }
+      if (key[0] === 'gitlab-authored-mrs') {
+        // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+        return { ...NO_DATA_RESPONSE, data: [authoredMr] } as any;
+      }
+      // biome-ignore lint/suspicious/noExplicitAny: cast partial mock to satisfy UseQueryResult
+      return NO_DATA_RESPONSE as any;
+    });
+
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult[] is intentional
+    vi.mocked(useQueries).mockImplementation((opts: any) => {
+      return opts.queries.map((q: { queryKey: readonly unknown[] }) => {
+        if (q.queryKey[0] === 'gitlab-mr-approvals') {
+          return { data: approvals, isLoading: false, isError: false };
+        }
+        if (q.queryKey[0] === 'gitlab-mr-discussions') {
+          return { data: discussions, isLoading: false, isError: false };
+        }
+        return { data: undefined, isLoading: false, isError: false };
+      });
+    });
+  }
+
+  it('renders the approved chip when the authored MR has an approver', async () => {
+    mockQueriesFor({
+      approvals: { approved_by: [{ user: { id: 1, name: 'Reviewer' } }], approved: true },
+      discussions: [],
+    });
+
+    renderPage();
+
+    const parentRow = await screen.findByTestId('my-task-row-PROJ-1');
+    expect(within(parentRow).getByText('Approved')).toBeDefined();
+  });
+
+  it('renders the changes-requested chip when zero approvers and an unresolved note exists', async () => {
+    mockQueriesFor({
+      approvals: { approved_by: [], approved: false },
+      discussions: [{ notes: [{ resolvable: true, resolved: false }] }],
+    });
+
+    renderPage();
+
+    const parentRow = await screen.findByTestId('my-task-row-PROJ-1');
+    expect(within(parentRow).getByText('Changes requested')).toBeDefined();
+  });
+
+  it('constructs no enrichment queries when GitLab config is absent (renders unchanged)', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: null,
+      gitlabUserId: null,
+    });
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — partial UseQueryResult[] is intentional
+    const queriesSpy = vi.mocked(useQueries).mockImplementation((opts: any) =>
+      opts.queries.map(() => ({ data: undefined, isLoading: false, isError: false })),
+    );
+
+    renderPage();
+
+    expect(screen.getByText('My Tasks')).toBeDefined();
+    // Both useQueries calls (approvals + discussions) must be invoked with empty query arrays.
+    for (const call of queriesSpy.mock.calls) {
+      expect((call[0] as { queries: unknown[] }).queries).toEqual([]);
+    }
   });
 });
