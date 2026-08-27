@@ -7,6 +7,14 @@ import NotificationPopover from './NotificationPopover';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
+// LinkContextMenu (wrapping NotificationRow's open-in-browser icon) calls
+// useDetectedBrowsers, which needs a QueryClient. These tests don't exercise
+// the right-click menu, so stub the hook directly rather than wrapping every
+// render() call in a QueryClientProvider.
+vi.mock('@/lib/useDetectedBrowsers', () => ({
+  useDetectedBrowsers: () => [],
+}));
+
 describe('NotificationPopover', () => {
   beforeEach(() => {
     act(() => {

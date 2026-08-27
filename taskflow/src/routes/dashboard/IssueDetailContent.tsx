@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -503,15 +504,19 @@ export function IssueDetailContent({
           Clone
         </Button>
         <div className="inline-flex items-stretch">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)}
-            className="gap-1.5 rounded-r-none border-r-0 text-xs"
-          >
-            <ExternalLink className="size-3.5" />
-            Open in Jira
-          </Button>
+          {/* `LinkContextMenu`'s default trigger is `span.contents` (no box), so this
+              wrap does not disturb the joined-border segmented-control layout below. */}
+          <LinkContextMenu href={`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)}
+              className="gap-1.5 rounded-r-none border-r-0 text-xs"
+            >
+              <ExternalLink className="size-3.5" />
+              Open in Jira
+            </Button>
+          </LinkContextMenu>
           <Button
             variant="outline"
             size="icon-sm"

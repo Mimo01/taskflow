@@ -10,6 +10,7 @@ import { ExternalLink, Pin } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { useResizable } from '@/hooks/useResizable';
 import { openExternal } from '@/lib/openExternal';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -200,10 +201,14 @@ export default function ReleaseDetailPage() {
     navigate(path, { replace: true });
   };
 
+  const jiraVersionUrl =
+    jiraBaseUrl && activeJiraProject && versionId
+      ? `${jiraBaseUrl.replace(/\/$/, '')}/projects/${activeJiraProject}/versions/${versionId}`
+      : null;
+
   const handleOpenInJira = () => {
-    if (jiraBaseUrl && activeJiraProject && versionId) {
-      const base = jiraBaseUrl.replace(/\/$/, '');
-      openExternal(`${base}/projects/${activeJiraProject}/versions/${versionId}`);
+    if (jiraVersionUrl) {
+      openExternal(jiraVersionUrl);
     }
   };
 
@@ -300,15 +305,29 @@ export default function ReleaseDetailPage() {
                   <Pin className={`size-3.5${pinned ? ' fill-current text-primary' : ''}`} />
                   {pinned ? 'Unpin' : 'Pin'}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={handleOpenInJira}
-                >
-                  <ExternalLink className="size-3.5" />
-                  Open in Jira
-                </Button>
+                {jiraVersionUrl ? (
+                  <LinkContextMenu href={jiraVersionUrl}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={handleOpenInJira}
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Open in Jira
+                    </Button>
+                  </LinkContextMenu>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={handleOpenInJira}
+                  >
+                    <ExternalLink className="size-3.5" />
+                    Open in Jira
+                  </Button>
+                )}
               </div>
             </div>
           </div>

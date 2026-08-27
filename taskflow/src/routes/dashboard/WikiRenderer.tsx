@@ -15,6 +15,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { SKIP, visit } from 'unist-util-visit';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { tryInternalPath } from '@/lib/internalLinks';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { openExternal } from '@/lib/openExternal';
@@ -1367,11 +1368,18 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         openExternal(href);
       };
       // Preserve href on the rendered anchor for accessibility (right-click
-      // "Copy link", screen readers, keyboard navigation).
+      // "Copy link", screen readers, keyboard navigation). Wrapped in
+      // LinkContextMenu via the render prop so no extra element is
+      // introduced — this stays a single inline <a> (260827-f6e).
       return (
-        <a href={href} onClick={handleClick} {...rest}>
-          {children}
-        </a>
+        <LinkContextMenu
+          href={href}
+          render={
+            <a href={href} onClick={handleClick} {...rest}>
+              {children}
+            </a>
+          }
+        />
       );
     },
   };
