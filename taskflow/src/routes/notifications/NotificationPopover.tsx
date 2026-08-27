@@ -12,13 +12,13 @@
  */
 
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
+import { openExternal } from '../../lib/openExternal';
 import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationRow from './NotificationRow';
@@ -321,7 +321,7 @@ export default function NotificationPopover({
   function getOpenInBrowser(item: NotificationItem): (() => void) | undefined {
     return item.url
       ? () => {
-          openUrl(item.url ?? '').catch(() => {});
+          openExternal(item.url ?? '');
           markAsRead(item.id);
         }
       : undefined;

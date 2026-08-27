@@ -32,11 +32,15 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 
 // Mock settings store
-vi.mock('@/stores/settings.store', () => ({
-  useSettingsStore: vi.fn(() => ({
+vi.mock('@/stores/settings.store', () => {
+  const state = {
     storyPointsFieldKey: 'customfield_10016',
-  })),
-}));
+    externalBrowser: null as string | null,
+  };
+  const useSettingsStore = vi.fn(() => state);
+  (useSettingsStore as unknown as { getState: () => typeof state }).getState = () => state;
+  return { useSettingsStore };
+});
 
 // Mock jira service
 vi.mock('@/services/jira', () => ({

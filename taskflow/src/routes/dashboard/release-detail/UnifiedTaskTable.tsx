@@ -1,10 +1,10 @@
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { AlertTriangle, Check, GitBranch, GitMerge, Loader2, Milestone } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Progress } from '@/components/ui/progress';
+import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -442,7 +442,7 @@ function MrSubLine({
   const iidButton = (
     <button
       type="button"
-      onClick={() => openUrl(mr.web_url)}
+      onClick={() => openExternal(mr.web_url)}
       title={channelsTitle(row.channels)}
       className="font-mono text-xs hover:underline"
     >
@@ -742,7 +742,7 @@ function TaskMrCell({
           data-testid="mr-cell-link"
           onClick={(e) => {
             e.stopPropagation();
-            openUrl(mr.web_url);
+            openExternal(mr.web_url);
           }}
           title={`${mr.author.name} — ${mr.title}`}
           className={`pointer-events-auto relative z-10 inline-flex items-center gap-1 hover:underline ${stateLinkClass}`}
