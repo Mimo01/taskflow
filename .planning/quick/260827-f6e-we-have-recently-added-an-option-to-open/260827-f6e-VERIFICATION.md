@@ -1,8 +1,8 @@
 ---
 phase: quick-260827-f6e
 verified: 2026-08-27T12:00:00Z
-status: human_needed
-score: 7/7 must-have truths verified (codebase); 4 items require live-app human verification
+status: passed
+score: 7/7 must-have truths verified (codebase); 4/4 human-verification items confirmed working live by user on 2026-08-27
 overrides_applied: 0
 human_verification:
   - test: "Launch the packaged/dev Tauri app, right-click a link inside an issue description (or any wiki-rendered prose)"
