@@ -77,4 +77,15 @@ describe('attachmentRef', () => {
       '[weirdname.txt|https://jira.example.com/secure/attachment/4/weird%5Dname.txt]',
     );
   });
+
+  it('strips every hazardous character, not just the first, from the sanitized filename', () => {
+    const att = makeAttachment({
+      filename: 'report]v2]final.pdf',
+      mimeType: 'application/pdf',
+      content: 'https://jira.example.com/secure/attachment/5/report%5Dv2%5Dfinal.pdf',
+    });
+    expect(attachmentRef(att)).toBe(
+      '[reportv2final.pdf|https://jira.example.com/secure/attachment/5/report%5Dv2%5Dfinal.pdf]',
+    );
+  });
 });
