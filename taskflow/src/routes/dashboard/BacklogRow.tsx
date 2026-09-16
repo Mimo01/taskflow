@@ -255,6 +255,18 @@ export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(func
     opacity: isDragging && !isOverlay ? 0 : undefined,
     cursor: isDragging ? 'grabbing' : 'grab',
     position: 'relative',
+    // Autoscroll fix: without this, a mousedown+move over row text during
+    // PointerSensor's activationConstraint window (150ms/5px, before dnd-kit
+    // formally claims the pointer) can start a NATIVE text-selection drag
+    // instead. If that happens near the top/bottom edge of the scroll
+    // container, the BROWSER autoscrolls on its own — independent of dnd-kit
+    // and the app's custom autoscroll — producing the intermittent
+    // "sometimes it scrolls, sometimes it doesn't" symptom. Disabling native
+    // selection/touch-scroll on the draggable row eliminates that phantom
+    // trigger so the ONLY autoscroll left is the deliberate one below.
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    touchAction: 'none',
   };
 
   // D-07 / Defect-A: ONE coherent, subtle overlay treatment. The previous

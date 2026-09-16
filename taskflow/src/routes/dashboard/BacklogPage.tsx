@@ -733,6 +733,71 @@ export default function BacklogPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLElement>>(new Map());
 
+  // ── Custom drag autoscroll (debug: backlog-drag-inconsistent-autoscroll) ──
+  // dnd-kit's built-in `autoScroll` is deliberately OFF (P78 final decision,
+  // see DndContext below) because it keys collision/drop-target rects off
+  // scroll-adjusted measurements that lag a frame behind (dnd-kit#1108),
+  // desyncing the dragged row or drop target from the cursor. This hand-rolled
+  // autoscroll is fully decoupled from dnd-kit's internal rect measuring: it
+  // only tracks the raw pointer Y position and imperatively nudges
+  // `scrollRef.current.scrollTop`. It never touches dnd-kit's collision
+  // detection, sortable rects, or `localOrder` — reorder/rank computation
+  // still happens exactly once on drop (handleDragEnd, reading live DOM/state
+  // at that moment), so this cannot reintroduce the P78 desync bug.
+  const autoscrollPointerYRef = useRef<number | null>(null);
+  const autoscrollRafRef = useRef<number | null>(null);
+  const AUTOSCROLL_EDGE_PX = 70;
+  const AUTOSCROLL_MAX_SPEED_PX = 18;
+
+  const handleAutoscrollPointerMove = useCallback((e: PointerEvent) => {
+    autoscrollPointerYRef.current = e.clientY;
+  }, []);
+
+  const autoscrollTick = useCallback(() => {
+    if (!isDraggingRef.current) {
+      autoscrollRafRef.current = null;
+      return;
+    }
+    const el = scrollRef.current;
+    const y = autoscrollPointerYRef.current;
+    if (el && y != null) {
+      const rect = el.getBoundingClientRect();
+      let delta = 0;
+      if (y < rect.top + AUTOSCROLL_EDGE_PX) {
+        const intensity = Math.min(1, (rect.top + AUTOSCROLL_EDGE_PX - y) / AUTOSCROLL_EDGE_PX);
+        delta = -Math.ceil(intensity * AUTOSCROLL_MAX_SPEED_PX);
+      } else if (y > rect.bottom - AUTOSCROLL_EDGE_PX) {
+        const intensity = Math.min(
+          1,
+          (y - (rect.bottom - AUTOSCROLL_EDGE_PX)) / AUTOSCROLL_EDGE_PX,
+        );
+        delta = Math.ceil(intensity * AUTOSCROLL_MAX_SPEED_PX);
+      }
+      if (delta !== 0) el.scrollTop += delta;
+    }
+    autoscrollRafRef.current = requestAnimationFrame(autoscrollTick);
+  }, []);
+
+  const startCustomAutoscroll = useCallback(() => {
+    autoscrollPointerYRef.current = null;
+    window.addEventListener('pointermove', handleAutoscrollPointerMove, { passive: true });
+    if (autoscrollRafRef.current == null) {
+      autoscrollRafRef.current = requestAnimationFrame(autoscrollTick);
+    }
+  }, [handleAutoscrollPointerMove, autoscrollTick]);
+
+  const stopCustomAutoscroll = useCallback(() => {
+    window.removeEventListener('pointermove', handleAutoscrollPointerMove);
+    if (autoscrollRafRef.current != null) {
+      cancelAnimationFrame(autoscrollRafRef.current);
+      autoscrollRafRef.current = null;
+    }
+    autoscrollPointerYRef.current = null;
+  }, [handleAutoscrollPointerMove]);
+
+  // Safety net: stop autoscroll if the component unmounts mid-drag.
+  useEffect(() => stopCustomAutoscroll, [stopCustomAutoscroll]);
+
   useEffect(() => {
     if (focusIndex >= 0 && focusIndex < visibleIssueKeys.length) {
       const key = visibleIssueKeys[focusIndex];
@@ -970,6 +1035,7 @@ export default function BacklogPage() {
     setActiveId(active.id as string);
     isDraggingRef.current = true;
     setRankError(null);
+    startCustomAutoscroll();
   }
 
   // Phase 78-04 (jump fix): there is NO onDragOver handler. The old handler
@@ -985,6 +1051,7 @@ export default function BacklogPage() {
   function handleDragEnd({ active, over }: DragEndEvent) {
     isDraggingRef.current = false;
     setActiveId(null);
+    stopCustomAutoscroll();
     // Force a reconciliation re-render on EVERY drag-end path (including the
     // no-op / cross-section / dropped-on-section-gap early returns below). After a
     // drag that auto-scrolled the inner container, dnd-kit's drag-start active-node
@@ -1064,6 +1131,7 @@ export default function BacklogPage() {
   function handleDragCancel(_event: DragCancelEvent) {
     isDraggingRef.current = false;
     setActiveId(null);
+    stopCustomAutoscroll();
     // Re-clone localOrder so sortable rows reset their transforms against
     // the current scroll position (same reason as the no-op path in handleDragEnd).
     setLocalOrder((prev) => new Map(prev));
