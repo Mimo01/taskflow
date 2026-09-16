@@ -618,7 +618,11 @@ export function IssueDetailView({
         <div
           className={`sticky bottom-0 border-t py-3 ${activityNegMx} ${activityPadX} bg-background`}
         >
-          <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl ?? ''} />
+          <CommentComposer
+            issueKey={issueKey}
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            attachments={issue?.fields.attachment ?? []}
+          />
         </div>
       )}
     </div>
