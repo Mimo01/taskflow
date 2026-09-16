@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { attachmentRef } from '@/lib/attachment-markup';
-import { postComment } from '@/services/jira';
 import type { JiraAttachment } from '@/services/jira';
+import { postComment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
@@ -71,11 +71,7 @@ function getCursorPixelPosition(
   return position;
 }
 
-export function CommentComposer({
-  issueKey,
-  jiraBaseUrl,
-  attachments = [],
-}: CommentComposerProps) {
+export function CommentComposer({ issueKey, jiraBaseUrl, attachments = [] }: CommentComposerProps) {
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mentionPopoverRef = useRef<MentionPopoverHandle>(null);

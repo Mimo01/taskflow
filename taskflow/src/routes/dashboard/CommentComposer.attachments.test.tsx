@@ -146,7 +146,9 @@ describe('CommentComposer attachments', () => {
       clipboardData: { files: [file] },
     });
 
-    await waitFor(() => expect(screen.getByText(/failed to upload broken\.png/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/failed to upload broken\.png/i)).toBeInTheDocument(),
+    );
     expect(textarea.value).toBe('');
   });
 

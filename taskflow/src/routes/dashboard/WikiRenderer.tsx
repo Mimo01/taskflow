@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
+import { File, FileText } from 'lucide-react';
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -61,7 +62,23 @@ const wikiSanitizeSchema = {
     strong: [...(defaultSchema.attributes?.strong ?? []), 'dataColor'],
     mention: ['dataId'],
     img: [...(defaultSchema.attributes?.img ?? []), 'src', 'alt'],
-    a: [...(defaultSchema.attributes?.a ?? []), 'href', 'className'],
+    // T-sak-01: hast-util-sanitize requires className VALUES to be explicitly
+    // allowlisted — a bare `'className'` entry keeps the attribute but strips every
+    // value (proven empirically, see quick-260916-sak Task 3). defaultSchema already
+    // ships its OWN `['className', 'data-footnote-backref']` tuple on `a`
+    // (footnote back-references); findDefinition() returns only the FIRST matching
+    // tuple it finds for a given key, so appending a second `className` tuple after
+    // the spread would be silently ignored. Filter the inherited tuple out and
+    // replace it with one merging BOTH allowed values — `data-footnote-backref`
+    // (defaultSchema's) and `wiki-attachment-chip` (this renderer's, always the
+    // literal constant from preprocessJiraMarkup — never user-controlled input).
+    a: [
+      ...(defaultSchema.attributes?.a ?? []).filter(
+        (entry) => !(Array.isArray(entry) && entry[0] === 'className'),
+      ),
+      'href',
+      ['className', 'data-footnote-backref', 'wiki-attachment-chip'],
+    ],
   },
 };
 
@@ -831,7 +848,10 @@ export function preprocessJiraMarkup(
   result = result.replace(/\[\^([^\]]+)\]/g, (_match, filename: string) => {
     const url = attachments?.[filename];
     if (url) {
-      return `<a href="${url}">${filename}</a>`;
+      // T-sak-01: the class attribute is ALWAYS the literal constant below —
+      // never interpolate user-controlled content into it. rehype-sanitize
+      // already allowlists `className` on `a` (wikiSanitizeSchema, line ~64).
+      return `<a href="${url}" class="wiki-attachment-chip">${filename}</a>`;
     }
     return `\`${filename}\``;
   });
@@ -1164,6 +1184,18 @@ const calloutStyles: Record<string, string> = {
     'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
 };
 
+/**
+ * File-type icon for a resolved `[^filename]` attachment chip. Mirrors
+ * AttachmentFileRow.tsx's getFileIcon rule, but keyed off the filename
+ * extension since the renderer only has a filename here, not a mimeType.
+ */
+function getChipFileIcon(filename: string) {
+  if (/\.(pdf|txt|log|md)$/i.test(filename)) {
+    return FileText;
+  }
+  return File;
+}
+
 const OlDepthContext = createContext(0);
 const OL_LIST_STYLES = ['decimal', 'lower-alpha', 'lower-roman'] as const;
 
@@ -1336,6 +1368,44 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       if (issueRouteMatch) {
         return <IssueKeyLink issueKey={issueRouteMatch[1]} />;
       }
+      const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        // Reuse the `internalPath` computed at render time — single source of truth.
+        if (internalPath !== null) {
+          breadcrumbPush(deriveSourceCrumb(location.pathname));
+          navigate(internalPath);
+          return;
+        }
+        openExternal(href);
+      };
+      // Resolved [^filename] attachment reference (preprocessJiraMarkup emits the
+      // literal `wiki-attachment-chip` class — never user-controlled, T-sak-01).
+      // The chip is still an external attachment URL, so it reuses `handleClick`
+      // rather than forking its own click handling.
+      const restProps = rest as Record<string, unknown>;
+      const chipClassName = restProps.className;
+      const isAttachmentChip =
+        typeof chipClassName === 'string' &&
+        chipClassName.split(/\s+/).includes('wiki-attachment-chip');
+      if (isAttachmentChip) {
+        const filename =
+          typeof children === 'string'
+            ? children
+            : Array.isArray(children)
+              ? children.filter((c): c is string => typeof c === 'string').join('')
+              : '';
+        const ChipIcon = getChipFileIcon(filename);
+        return (
+          <a
+            href={href}
+            onClick={handleClick}
+            className="wiki-attachment-chip inline-flex items-center gap-1 rounded border bg-muted/40 px-1.5 py-0.5 text-xs no-underline hover:bg-muted"
+          >
+            <ChipIcon className="size-3.5 text-muted-foreground shrink-0" />
+            {children}
+          </a>
+        );
+      }
       // Image attachment link → inline text anchor that opens ImageLightbox on
       // click. AuthImage inside the lightbox translates AIO bridge URLs to the
       // direct download endpoint, so both same-instance bridge URLs and direct
@@ -1357,16 +1427,6 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           </a>
         );
       }
-      const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
-        e.preventDefault();
-        // Reuse the `internalPath` computed at render time — single source of truth.
-        if (internalPath !== null) {
-          breadcrumbPush(deriveSourceCrumb(location.pathname));
-          navigate(internalPath);
-          return;
-        }
-        openExternal(href);
-      };
       // Preserve href on the rendered anchor for accessibility (right-click
       // "Copy link", screen readers, keyboard navigation). Wrapped in
       // LinkContextMenu via the render prop so no extra element is

@@ -51,7 +51,9 @@ describe('attachmentRef', () => {
       mimeType: 'image/png',
       content: 'https://jira.example.com/secure/attachment/2/weird%21name.png',
     });
-    expect(attachmentRef(att)).toBe('!https://jira.example.com/secure/attachment/2/weird%21name.png!');
+    expect(attachmentRef(att)).toBe(
+      '!https://jira.example.com/secure/attachment/2/weird%21name.png!',
+    );
   });
 
   it('falls back to the resolved-URL form for a hazardous non-image filename (|)', () => {
