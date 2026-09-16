@@ -1225,7 +1225,8 @@ export interface VersionIssueCounts {
  * @param baseUrl   - Jira base URL
  * @param token     - Personal Access Token
  * @param versionId - Jira fix version ID (must be numeric)
- * @returns issuesFixed (Done count) and issuesTotal (non-subtask issue count)
+ * @returns issuesFixed (Done count) and issuesTotal (issue count, including subtasks
+ *          that carry this fix version directly)
  */
 export async function fetchVersionIssueCounts(
   baseUrl: string,
@@ -1236,7 +1237,12 @@ export async function fetchVersionIssueCounts(
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  const baseJql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes()`;
+  // No subtask exclusion here (unlike the Backlog/Sprint JQL elsewhere in this
+  // file): those views exclude subtasks because they render nested under their
+  // parent story, but the Releases view is a flat issue+MR table with no
+  // parent/subtask nesting, so a subtask carrying this fix version directly
+  // must be counted like any other issue.
+  const baseJql = `fixVersion = ${versionId}`;
   const totalJql = encodeURIComponent(baseJql);
   const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
   const totalUrl = `${base}/rest/api/2/search?jql=${totalJql}&maxResults=0&fields=`;
@@ -1258,7 +1264,8 @@ export async function fetchVersionIssueCounts(
 }
 
 /**
- * Fetch all non-subtask Jira issues for a fix version, paginated, ordered
+ * Fetch all Jira issues for a fix version (including subtasks carrying the
+ * version directly), paginated, ordered
  * oldest-first by creation date (key ascending as a tiebreak — keys are issued
  * in creation order, so the two agree). Requests both common story-point field keys plus the
  * instance-resolved key (mirrors the Set-based pattern elsewhere in this
@@ -1280,7 +1287,10 @@ export async function fetchFixVersionIssues(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY created ASC, key ASC`;
+  // No subtask exclusion here (see fetchVersionIssueCounts above for why): the
+  // Releases view is a flat issue+MR table, so a subtask carrying this fix
+  // version directly must appear as its own row alongside Stories/Bugs.
+  const jql = `fixVersion = ${versionId} ORDER BY created ASC, key ASC`;
   const fields = [
     'summary',
     'status',
