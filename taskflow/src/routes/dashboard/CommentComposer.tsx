@@ -164,6 +164,13 @@ export function CommentComposer({ issueKey, jiraBaseUrl, attachments = [] }: Com
     }
   }
 
+  function handleDragOver(e: React.DragEvent<HTMLTextAreaElement>) {
+    // Required for `onDrop` to fire at all (HTML5 DnD spec) — dropEffect
+    // hints the browser this target accepts a file drop.
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }
+
   function handleDrop(e: React.DragEvent<HTMLTextAreaElement>) {
     const file = e.dataTransfer.files?.[0];
     if (file) {
@@ -311,6 +318,7 @@ export function CommentComposer({ issueKey, jiraBaseUrl, attachments = [] }: Com
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
+                onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 placeholder="Add a comment…"
                 className="rounded-t-none min-h-[80px] resize-none"

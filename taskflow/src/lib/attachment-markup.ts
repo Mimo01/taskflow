@@ -15,6 +15,8 @@ export function isImageAttachment(att: Pick<JiraAttachment, 'mimeType'>): boolea
 
 /** Characters that would break out of the `!...!` / `[^...]` wiki-markup regexes. */
 const HAZARDOUS_FILENAME_CHARS = /[!|\]]/;
+/** Same char class, `g`-flagged, for stripping every occurrence (not just the first). */
+const HAZARDOUS_FILENAME_CHARS_GLOBAL = /[!|\]]/g;
 
 /**
  * Build the Jira wiki markup string that references an attachment.
@@ -35,7 +37,7 @@ export function attachmentRef(att: JiraAttachment): string {
     return hazardous ? `!${att.content}!` : `!${att.filename}!`;
   }
   if (hazardous) {
-    const sanitized = att.filename.replace(HAZARDOUS_FILENAME_CHARS, '');
+    const sanitized = att.filename.replace(HAZARDOUS_FILENAME_CHARS_GLOBAL, '');
     return `[${sanitized}|${att.content}]`;
   }
   return `[^${att.filename}]`;
