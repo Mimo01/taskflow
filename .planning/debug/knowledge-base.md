@@ -65,3 +65,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Added Edit submenu to the Tauri menu bar in `lib.rs` with `PredefinedMenuItem::undo`, `redo`, separator, `cut`, `copy`, `paste`, `select_all`.
 - **Files changed:** taskflow/src-tauri/src/lib.rs
 ---
+
+## releases-missing-subtasks — Releases view silently excludes subtasks with a fix version set
+- **Date:** 2026-09-16
+- **Error patterns:** releases, subtasks, fix version, missing, silent filtering, issuetype not in subtaskIssueTypes, JQL
+- **Root cause:** `fetchFixVersionIssues` and `fetchVersionIssueCounts` in taskflow/src/services/jira.ts both hardcoded `issuetype not in subtaskIssueTypes()` in their JQL, unconditionally excluding subtask-type issues from the Releases view's issue list and summary counts, even when a subtask has the fix version set directly. This exclusion clause was a valid pattern in Backlog/Sprint views (where subtasks render nested under their parent story) but was unreflectively copied into the Releases view, which is a flat issue+MR table with no nesting.
+- **Fix:** Removed the `issuetype not in subtaskIssueTypes()` clause from both JQL builders in taskflow/src/services/jira.ts (`fetchFixVersionIssues`'s `jql` and `fetchVersionIssueCounts`'s `baseJql`), and added comments explaining why Releases intentionally includes subtasks unlike Backlog/Sprint.
+- **Files changed:** taskflow/src/services/jira.ts
+---
