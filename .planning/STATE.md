@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-16 - Completed quick task 260916-rk1: On releases page, add task type icon (pattern already used in other task lists)
+Last activity: 2026-09-16 - Completed quick task 260916-sak: I can currently attach files to jira issues but I cant add them to description/comments. Add a nice dynamic way to include attachments in the descriptions/comments
 
 ## Performance Metrics
 
@@ -141,6 +141,7 @@ None yet.
 | 260827-f6e | Expand link-open feature with a right-click context menu — open in any detected browser or copy link to clipboard, wired across all 12 existing openExternal call sites | 2026-08-27 | 41abf1d2 | Verified | [260827-f6e-we-have-recently-added-an-option-to-open](./quick/260827-f6e-we-have-recently-added-an-option-to-open/) |
 | 260827-gji | Fix My Tasks MR review badges — wire real per-MR approvals/discussions into deriveReviewHealth() instead of hardcoded "Awaiting review"; delete dead dashboard/TaskRow.tsx and MrRow.tsx; added GitPullRequest icon to the badge (1267a5d7) for MR context | 2026-08-27 | fab68c91 | Verified | [260827-gji-my-tasks-currently-hardcodes-every-linke](./quick/260827-gji-my-tasks-currently-hardcodes-every-linke/) |
 | 260916-rk1 | On releases page, add task type icon (pattern already used in other task lists) | 2026-09-16 | 2c7a8908 | | [260916-rk1-on-releases-page-add-task-type-icon-patt](./quick/260916-rk1-on-releases-page-add-task-type-icon-patt/) |
+| 260916-sak | I can currently attach files to jira issues but I cant add them to description/comments. Add a nice dynamic way to include attachments in the descriptions/comments | 2026-09-16 | 8605daca | Verified | [260916-sak-i-can-currently-attach-files-to-jira-iss](./quick/260916-sak-i-can-currently-attach-files-to-jira-iss/) |
 
 ## Deferred Items
 
