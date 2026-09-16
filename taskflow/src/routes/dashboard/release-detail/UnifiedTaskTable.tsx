@@ -3,6 +3,7 @@ import type React from 'react';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Progress } from '@/components/ui/progress';
 import { openExternal } from '@/lib/openExternal';
@@ -70,6 +71,7 @@ export interface UnifiedTaskTableProps {
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
 // width + nowrap; widened from 72px so the common PROJ-1234 shape fits without
 // spilling into the summary column.
+const COL_ICON = 'flex-none w-[1.125rem]';
 const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0';
@@ -375,6 +377,7 @@ function DriftActionCell({
 function ColumnHeaderStrip() {
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 bg-muted/30">
+      <span className={COL_ICON} aria-hidden="true" />
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Summary</span>
       <span className={COL_PERSON}>Assignee</span>
@@ -863,6 +866,13 @@ function TaskRow({
           onOpenIssue(issue.key);
         }}
       />
+      <span
+        className={`pointer-events-none relative ${COL_ICON} flex items-center justify-center`}
+        style={{ width: 18, height: 18 }}
+        aria-hidden={!issue.fields.issuetype}
+      >
+        {issue.fields.issuetype?.name && <IssueTypeIcon typeName={issue.fields.issuetype.name} />}
+      </span>
       <button
         type="button"
         onClick={() => {
