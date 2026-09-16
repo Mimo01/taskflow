@@ -54,15 +54,23 @@ export function AttachmentPickerModal({
           onChange={(e) => setFilter(e.target.value)}
         />
         {attachments.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No attachments on this issue</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No attachments on this issue
+          </p>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No attachments match "{filter}"</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No attachments match "{filter}"
+          </p>
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {images.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {images.map((att) => (
-                  <AttachmentThumbnail key={att.id} attachment={att} onClick={() => handleSelect(att)} />
+                  <AttachmentThumbnail
+                    key={att.id}
+                    attachment={att}
+                    onClick={() => handleSelect(att)}
+                  />
                 ))}
               </div>
             )}

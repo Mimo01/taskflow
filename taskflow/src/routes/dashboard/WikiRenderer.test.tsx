@@ -2275,5 +2275,56 @@ After quote`;
       expect(container.textContent).not.toMatch(/<\^file\.txt>/);
       expect(container.textContent).toContain('file.txt');
     });
+
+    it('resolved [^filename] carries the wiki-attachment-chip class and survives sanitize', () => {
+      const attachments = {
+        'report.pdf': 'https://jira.example.com/secure/attachment/1/report.pdf',
+      };
+      const { container } = render(
+        <WikiRenderer wikiText="[^report.pdf]" attachments={attachments} />,
+      );
+      const anchor = container.querySelector('a');
+      expect(anchor).not.toBeNull();
+      expect(anchor?.className).toContain('wiki-attachment-chip');
+    });
+
+    it('the chip renders a file-type icon plus the filename', () => {
+      const attachments = {
+        'report.pdf': 'https://jira.example.com/secure/attachment/1/report.pdf',
+      };
+      const { container } = render(
+        <WikiRenderer wikiText="[^report.pdf]" attachments={attachments} />,
+      );
+      const anchor = container.querySelector('a.wiki-attachment-chip');
+      expect(anchor).not.toBeNull();
+      expect(anchor?.querySelector('svg')).not.toBeNull();
+      expect(anchor?.textContent).toBe('report.pdf');
+    });
+
+    it('[^unknown.txt] with no matching attachment still renders the code-span fallback (regression)', () => {
+      const { container } = render(<WikiRenderer wikiText="[^unknown.txt]" />);
+      const code = container.querySelector('code');
+      expect(code).not.toBeNull();
+      expect(code?.textContent).toBe('unknown.txt');
+      expect(container.querySelector('a.wiki-attachment-chip')).toBeNull();
+    });
+
+    it('a normal external link (no chip class) keeps its existing openExternal/internal-path behavior (regression)', () => {
+      const { container } = render(<WikiRenderer wikiText="[Example|https://example.com/page]" />);
+      const anchor = container.querySelector('a');
+      expect(anchor).not.toBeNull();
+      expect(anchor?.className ?? '').not.toContain('wiki-attachment-chip');
+      expect(anchor?.querySelector('svg')).toBeNull();
+    });
+
+    it('XSS guard: a crafted class attribute in user wiki text cannot inject a new tag or override the chip class', () => {
+      const { container } = render(
+        <WikiRenderer wikiText='<a href="https://example.com" class="wiki-attachment-chip"><img src=x onerror="alert(1)"></a>' />,
+      );
+      // rehype-sanitize strips the injected <img onerror> entirely — no script execution surface.
+      const injectedImg = container.querySelector('img[onerror]');
+      expect(injectedImg).toBeNull();
+      expect(container.querySelector('script')).toBeNull();
+    });
   });
 });
