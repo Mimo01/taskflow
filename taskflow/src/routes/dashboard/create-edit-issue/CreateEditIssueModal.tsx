@@ -68,6 +68,11 @@ export function CreateEditIssueModal({
   const [uploadingName, setUploadingName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [stagedUploadError, setStagedUploadError] = useState<string | null>(null);
+  // Set when create succeeds but a staged attachment failed to upload, so the modal
+  // stays open with the error visible (locked decision: never roll back the created
+  // issue). Disables the submit button so the still-populated form can't be
+  // resubmitted into a second, duplicate Jira issue (WR-01).
+  const [hasCreatedWithError, setHasCreatedWithError] = useState(false);
   // Synchronous companion to stagedUploadError: set inside useIssueMutations'
   // onStagedUploadError (called mid-mutationFn) so the top-level onSuccess callback
   // below — invoked right after the mutation promise resolves — can read it without
@@ -83,6 +88,7 @@ export function CreateEditIssueModal({
     setUploadError(null);
     setStagedUploadError(null);
     stagedUploadErrorRef.current = null;
+    setHasCreatedWithError(false);
   }, [open]);
 
   const editIssueKey = mode === 'edit' ? initialValues?.issueKey : undefined;
@@ -261,6 +267,7 @@ export function CreateEditIssueModal({
       if (stagedUploadErrorRef.current) {
         setStagedFiles([]);
         stagedUploadErrorRef.current = null;
+        setHasCreatedWithError(true);
         return;
       }
       onClose();
@@ -664,7 +671,12 @@ export function CreateEditIssueModal({
               </Button>
               <Button
                 type="submit"
-                disabled={!state.summary.trim() || !requiredCustomFieldsFilled || isPending}
+                disabled={
+                  !state.summary.trim() ||
+                  !requiredCustomFieldsFilled ||
+                  isPending ||
+                  hasCreatedWithError
+                }
                 className="gap-1.5"
               >
                 {isPending && <Loader2 className="size-3.5 animate-spin" />}

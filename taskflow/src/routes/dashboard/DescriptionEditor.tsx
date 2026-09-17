@@ -33,7 +33,13 @@ function insertAtCursor(
   currentValue: string,
 ) {
   const el = textareaRef.current;
-  if (!el) return;
+  if (!el) {
+    // Target textarea isn't mounted (e.g. Preview tab active while an attach
+    // action resolves) — append via state instead of silently dropping the
+    // insertion (CR-01).
+    setValue(currentValue ? `${currentValue}\n${before}${after}` : `${before}${after}`);
+    return;
+  }
   const start = el.selectionStart;
   const end = el.selectionEnd;
   const newText =
@@ -82,10 +88,10 @@ export const DescriptionEditor = forwardRef<DescriptionEditorHandle, Description
     }
 
     function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-      const file = e.clipboardData.files?.[0];
-      if (file) {
+      const files = e.clipboardData.files;
+      if (files && files.length > 0) {
         e.preventDefault();
-        onFileSelected?.(file);
+        for (const file of Array.from(files)) onFileSelected?.(file);
       }
     }
 
@@ -95,11 +101,11 @@ export const DescriptionEditor = forwardRef<DescriptionEditorHandle, Description
     }
 
     function handleDrop(e: React.DragEvent<HTMLTextAreaElement>) {
-      const file = e.dataTransfer.files?.[0];
-      if (file) {
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
         e.preventDefault();
         e.stopPropagation();
-        onFileSelected?.(file);
+        for (const file of Array.from(files)) onFileSelected?.(file);
       }
     }
 

@@ -167,7 +167,7 @@ export function useIssueMutations({
         summary: state.summary.trim(),
       };
 
-      if (state.description.trim() !== (initialValues.description ?? '')) {
+      if (state.description !== (initialValues.description ?? '')) {
         fields.description = state.description;
       }
       if (state.selectedAssigneeName !== initialValues.assigneeName) {
