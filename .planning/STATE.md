@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-16 - Completed quick task 260916-sak: I can currently attach files to jira issues but I cant add them to description/comments. Add a nice dynamic way to include attachments in the descriptions/comments
+Last activity: 2026-09-17 - Completed quick task 260916-ta1: I want to enhance story creation and editing. Make the whole process more polished. Add option to add attachments to description and more
 
 ## Performance Metrics
 
@@ -142,6 +142,7 @@ None yet.
 | 260827-gji | Fix My Tasks MR review badges — wire real per-MR approvals/discussions into deriveReviewHealth() instead of hardcoded "Awaiting review"; delete dead dashboard/TaskRow.tsx and MrRow.tsx; added GitPullRequest icon to the badge (1267a5d7) for MR context | 2026-08-27 | fab68c91 | Verified | [260827-gji-my-tasks-currently-hardcodes-every-linke](./quick/260827-gji-my-tasks-currently-hardcodes-every-linke/) |
 | 260916-rk1 | On releases page, add task type icon (pattern already used in other task lists) | 2026-09-16 | 2c7a8908 | | [260916-rk1-on-releases-page-add-task-type-icon-patt](./quick/260916-rk1-on-releases-page-add-task-type-icon-patt/) |
 | 260916-sak | I can currently attach files to jira issues but I cant add them to description/comments. Add a nice dynamic way to include attachments in the descriptions/comments | 2026-09-16 | 8605daca | Verified | [260916-sak-i-can-currently-attach-files-to-jira-iss](./quick/260916-sak-i-can-currently-attach-files-to-jira-iss/) |
+| 260916-ta1 | I want to enhance story creation and editing. Make the whole process more polished. Add option to add attachments to description and more | 2026-09-17 | 351e1ccd | Verified | [260916-ta1-i-want-to-enhance-story-creation-and-edi](./quick/260916-ta1-i-want-to-enhance-story-creation-and-edi/) |
 
 ## Deferred Items
 
