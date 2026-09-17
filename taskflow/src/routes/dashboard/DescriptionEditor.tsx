@@ -176,25 +176,31 @@ export const DescriptionEditor = forwardRef<DescriptionEditorHandle, Description
 
             {stagedFiles.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {stagedFiles.map((file, index) => (
-                  <div
-                    key={`${file.name}-${index}`}
-                    title="will upload on save"
-                    className="flex items-center gap-1.5 rounded border border-dashed px-2 py-1 text-xs text-muted-foreground bg-muted/30"
-                  >
-                    <span className="truncate max-w-[160px]">{file.name}</span>
-                    {file.size > 0 && <span className="shrink-0">{formatFileSize(file.size)}</span>}
-                    <span className="shrink-0 italic">will upload on save</span>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${file.name}`}
-                      className="shrink-0 rounded p-0.5 hover:bg-accent"
-                      onClick={() => onRemoveStagedFile?.(index)}
+                {stagedFiles.map((file, index) => {
+                  // File objects have no stable unique id, so the index is part of the key.
+                  const key = `${file.name}-${index}`;
+                  return (
+                    <div
+                      key={key}
+                      title="will upload on save"
+                      className="flex items-center gap-1.5 rounded border border-dashed px-2 py-1 text-xs text-muted-foreground bg-muted/30"
                     >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
+                      <span className="truncate max-w-[160px]">{file.name}</span>
+                      {file.size > 0 && (
+                        <span className="shrink-0">{formatFileSize(file.size)}</span>
+                      )}
+                      <span className="shrink-0 italic">will upload on save</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${file.name}`}
+                        className="shrink-0 rounded p-0.5 hover:bg-accent"
+                        onClick={() => onRemoveStagedFile?.(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

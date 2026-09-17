@@ -156,7 +156,12 @@ describe('CreateEditIssueModal attachments', () => {
     it('pasting a file calls uploadAttachment immediately with the issue key and inserts the returned ref', async () => {
       const { uploadAttachment } = await import('@/services/jira/attachments');
       vi.mocked(uploadAttachment).mockResolvedValue([
-        { id: '5', filename: 'note.pdf', content: 'https://x/note.pdf', mimeType: 'application/pdf' },
+        {
+          id: '5',
+          filename: 'note.pdf',
+          content: 'https://x/note.pdf',
+          mimeType: 'application/pdf',
+        },
       ]);
 
       render(
