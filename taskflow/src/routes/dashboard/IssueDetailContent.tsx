@@ -471,6 +471,7 @@ export function IssueDetailContent({
               storyPoints: (issue.fields[storyPointsFieldKey] as number) ?? null,
               epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
               customFields,
+              attachments: issue.fields.attachment ?? [],
             });
           }}
           className="gap-1.5 text-xs"

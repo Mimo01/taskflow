@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JiraAttachment } from '@/services/jira';
-import { attachmentRef, isImageAttachment } from './attachment-markup';
+import { attachmentRef, isImageAttachment, stagedAttachmentRef } from './attachment-markup';
 
 function makeAttachment(overrides: Partial<JiraAttachment> = {}): JiraAttachment {
   return {
@@ -87,5 +87,23 @@ describe('attachmentRef', () => {
     expect(attachmentRef(att)).toBe(
       '[reportv2final.pdf|https://jira.example.com/secure/attachment/5/report%5Dv2%5Dfinal.pdf]',
     );
+  });
+});
+
+describe('stagedAttachmentRef', () => {
+  it('renders a staged image file as !filename!', () => {
+    expect(stagedAttachmentRef({ name: 'shot.png', type: 'image/png' })).toBe('!shot.png!');
+  });
+
+  it('renders a staged non-image file as [^filename]', () => {
+    expect(stagedAttachmentRef({ name: 'report.pdf', type: 'application/pdf' })).toBe(
+      '[^report.pdf]',
+    );
+  });
+
+  it('strips hazardous chars from the filename inside the ref', () => {
+    const ref = stagedAttachmentRef({ name: 'we!rd]file.pdf', type: 'application/pdf' });
+    expect(ref).toBe('[^werdfile.pdf]');
+    expect(ref).not.toMatch(/we!rd\]file/);
   });
 });

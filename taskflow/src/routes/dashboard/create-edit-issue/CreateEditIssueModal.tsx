@@ -1,7 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog';
-import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Loader2, Paperclip, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,11 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { attachmentRef, stagedAttachmentRef } from '@/lib/attachment-markup';
 import { fetchIssuePriorityOptions, fetchPriorities, type JiraPriority } from '@/services/jira';
+import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { DescriptionEditor } from '../DescriptionEditor';
+import { DescriptionEditor, type DescriptionEditorHandle } from '../DescriptionEditor';
 import { CustomFieldsSection } from './CustomFieldsSection';
 import { IssueTypeSelector } from './IssueTypeSelector';
 import { LinkRowsSection } from './LinkRowsSection';
@@ -49,6 +51,7 @@ export function CreateEditIssueModal({
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore();
   const projectKey = activeJiraProject ?? '';
+  const queryClient = useQueryClient();
 
   const { state, dispatch, isSubtask } = useCreateEditForm({
     open,
@@ -57,6 +60,80 @@ export function CreateEditIssueModal({
     defaultIssueType,
     defaultParentKey,
   });
+
+  // ── Description attachments (Task 2: create-mode staging + edit-mode immediate upload) ──
+  const descriptionRef = useRef<DescriptionEditorHandle>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [uploadingName, setUploadingName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [stagedUploadError, setStagedUploadError] = useState<string | null>(null);
+  // Synchronous companion to stagedUploadError: set inside useIssueMutations'
+  // onStagedUploadError (called mid-mutationFn) so the top-level onSuccess callback
+  // below — invoked right after the mutation promise resolves — can read it without
+  // waiting on React state batching.
+  const stagedUploadErrorRef = useRef<string | null>(null);
+
+  // Reset all staged/upload state whenever the modal (re)opens, so a reopened modal
+  // never carries files or errors from the previous session.
+  useEffect(() => {
+    if (!open) return;
+    setStagedFiles([]);
+    setUploadingName(null);
+    setUploadError(null);
+    setStagedUploadError(null);
+    stagedUploadErrorRef.current = null;
+  }, [open]);
+
+  const editIssueKey = mode === 'edit' ? initialValues?.issueKey : undefined;
+
+  // Edit mode: upload immediately against the existing issue key (mirrors
+  // CommentComposer.tsx's uploadMutation pattern).
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !editIssueKey) throw new Error('No Jira credentials');
+      return uploadAttachment(jiraBaseUrl, token, editIssueKey, file);
+    },
+    onSuccess: (created) => {
+      setUploadingName(null);
+      setUploadError(null);
+      if (jiraBaseUrl && editIssueKey) {
+        queryClient.invalidateQueries({
+          queryKey: ['jira-issue-detail', editIssueKey, jiraBaseUrl],
+        });
+      }
+      const att = created[0];
+      if (att) descriptionRef.current?.insertRef(attachmentRef(att));
+    },
+    onError: (_err, file) => {
+      setUploadError(`Failed to upload ${file.name}. Check file size and try again.`);
+      setUploadingName(null);
+    },
+  });
+
+  function handleFileSelected(file: File) {
+    if (mode === 'edit' && editIssueKey) {
+      setUploadError(null);
+      setUploadingName(file.name);
+      uploadMutation.mutate(file);
+    } else {
+      // Create mode: stage locally (no issue key yet) and insert the ref immediately
+      // so the description submitted to createIssue already contains it.
+      setStagedFiles((prev) => [...prev, file]);
+      descriptionRef.current?.insertRef(stagedAttachmentRef(file));
+    }
+  }
+
+  function handleRemoveStagedFile(index: number) {
+    setStagedFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelected(file);
+    e.target.value = '';
+  }
 
   const {
     creatmetaFields,
@@ -169,8 +246,23 @@ export function CreateEditIssueModal({
     parentInheritMap,
     epicLinkFieldKey,
     storyPointsFieldKey,
+    stagedFiles,
+    onStagedUploadError: (failedNames) => {
+      const msg = `Issue created, but ${failedNames.length} file(s) failed to upload: ${failedNames.join(', ')}`;
+      stagedUploadErrorRef.current = msg;
+      setStagedUploadError(msg);
+    },
     onSuccess: () => {
       dispatch({ type: 'SET_FIELD', field: 'apiError', value: null });
+      // If a staged-file upload failed post-create, the issue was still created
+      // successfully (locked decision: never roll back). Keep the modal open so the
+      // failure message stays visible instead of auto-closing over it — there is no
+      // toast/notification convention in this app to surface it after close.
+      if (stagedUploadErrorRef.current) {
+        setStagedFiles([]);
+        stagedUploadErrorRef.current = null;
+        return;
+      }
       onClose();
     },
     onError: (msg) => dispatch({ type: 'SET_FIELD', field: 'apiError', value: msg || null }),
@@ -227,15 +319,44 @@ export function CreateEditIssueModal({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="issue-description" className="text-sm font-medium">
-                Description
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="issue-description" className="text-sm font-medium">
+                  Description
+                </label>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  Attach file
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileInputChange}
+                />
+              </div>
               <DescriptionEditor
+                ref={descriptionRef}
                 id="issue-description"
                 value={state.description}
                 onChange={(v) => dispatch({ type: 'SET_FIELD', field: 'description', value: v })}
                 disabled={isPending}
+                attachments={initialValues?.attachments ?? []}
+                stagedFiles={stagedFiles}
+                onFileSelected={handleFileSelected}
+                onRemoveStagedFile={handleRemoveStagedFile}
+                uploadingName={uploadingName}
+                uploadError={uploadError}
               />
+              {stagedUploadError && (
+                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {stagedUploadError}
+                </p>
+              )}
             </div>
 
             {isSubtask && (
@@ -544,7 +665,9 @@ export function CreateEditIssueModal({
               <Button
                 type="submit"
                 disabled={!state.summary.trim() || !requiredCustomFieldsFilled || isPending}
+                className="gap-1.5"
               >
+                {isPending && <Loader2 className="size-3.5 animate-spin" />}
                 {isPending
                   ? mode === 'create'
                     ? 'Creating...'
