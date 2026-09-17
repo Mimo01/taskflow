@@ -42,3 +42,25 @@ export function attachmentRef(att: JiraAttachment): string {
   }
   return `[^${att.filename}]`;
 }
+
+/**
+ * Build a wiki markup reference for a file that has not been uploaded yet
+ * (create-mode staging, before an issue key exists). Unlike `attachmentRef`,
+ * there is no `content` URL to fall back to for hazardous filenames, so a
+ * hazardous filename's hazard characters (`!`, `|`, `]`) are globally
+ * stripped from the filename before it is embedded in the markup delimiters.
+ *
+ * KNOWN DIVERGENCE (accepted edge case, not an oversight): for a hazardous
+ * filename, this staged ref can differ from what `attachmentRef` would later
+ * produce for the same file post-upload — `attachmentRef` falls back to the
+ * resolved content URL (Jira preserves the original filename server-side),
+ * while this function can only sanitize the display filename since no URL
+ * exists pre-upload. Non-hazardous filenames produce identical output either
+ * way.
+ */
+export function stagedAttachmentRef(file: Pick<File, 'name' | 'type'>): string {
+  const hazardous = HAZARDOUS_FILENAME_CHARS.test(file.name);
+  const safeName = hazardous ? file.name.replace(HAZARDOUS_FILENAME_CHARS_GLOBAL, '') : file.name;
+  const isImage = (file.type ?? '').startsWith('image/');
+  return isImage ? `!${safeName}!` : `[^${safeName}]`;
+}

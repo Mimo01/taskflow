@@ -1,4 +1,5 @@
 import { useEffect, useReducer } from 'react';
+import type { JiraAttachment } from '@/services/jira';
 import type { IssueLinkRowValue } from '../IssueLinkRow';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -16,6 +17,10 @@ export interface EditInitialValues {
    *  pre-fill required custom fields (e.g. Account). The value shape mirrors what Jira
    *  returns in issue.fields — objects, arrays, primitives. */
   customFields?: Record<string, unknown>;
+  /** Issue's existing attachments (edit mode) — threaded to DescriptionEditor so its
+   *  paperclip picker and Preview tab can resolve references. Not applicable to create
+   *  mode (no attachments exist yet); Clone intentionally omits this too. */
+  attachments?: JiraAttachment[];
 }
 
 const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
