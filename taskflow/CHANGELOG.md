@@ -2,6 +2,25 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.2] — 2026-09-17
+
+### Added
+
+- **Attachments in comments and descriptions** — comments and issue descriptions now support inserting attachments directly, instead of only the issue-level attachments list. A paperclip toolbar button opens a picker over the issue's existing attachments, and paste/drop are also wired up. In the description editor, files can be staged before an issue is even created (uploaded once the issue is saved) or uploaded immediately when editing; comments upload immediately. Both editors gained an Edit/Preview toggle so inserted references render as image previews or styled file chips.
+- **Story creation and editing — more polished** — the create/edit issue modal's submit button now shows a spinner while saving, and staged/uploaded attachment status lines sit cleanly within the description field's layout.
+- **Releases — task-type icon on task rows** — the unified task table now shows each row's issue-type icon before its key, matching the Backlog row layout.
+
+### Fixed
+
+- **Releases view was missing subtasks that carry the fix version directly** — `fetchFixVersionIssues` and `fetchVersionIssueCounts` unconditionally excluded subtask-type issues (a rule copied from Backlog/Sprint, where subtasks nest under their parent instead of appearing as their own row); the flat Releases task table has no such nesting, so those subtasks now show up.
+- **Backlog drag — intermittent autoscroll near list edges** — the erratic autoscroll during drag wasn't dnd-kit's autoScroll (still disabled) but native browser text-selection autoscroll leaking in because the draggable row allowed text selection during the drag gesture. Selection is now disabled on the row, replaced by a custom scoped autoscroll loop that only runs for the drag's lifecycle.
+- **Attachment reference markup with multiple hazardous characters** — filenames containing more than one hazardous character (`!`, `|`, `]`) only had the first one stripped, corrupting the fallback markup.
+- **Comment drag-and-drop upload was silently non-functional** — the composer handled `onDrop` but not `onDragOver`, so the browser never fired a drop event per the HTML5 DnD spec.
+- **Description editor — attachment insertion while Preview tab is active** — inserting a reference no longer gets silently dropped when the underlying textarea is unmounted; it now falls back to appending via state.
+- **Description editor — paste/drop of multiple files** — only the first pasted or dropped file was handled; all files are now processed.
+- **Description editor — spurious no-op PATCH on save** — an asymmetric `trim()` comparison in the edit-mode description diff could trigger an unnecessary update.
+- **Create flow — duplicate issue risk on attachment upload failure** — the submit button now stays disabled after a create succeeds but a staged attachment fails to upload, preventing an accidental resubmit.
+
 ## [1.14.1] — 2026-08-27
 
 ### Added
