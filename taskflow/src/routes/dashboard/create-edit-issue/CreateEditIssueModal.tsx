@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Paperclip, X } from 'lucide-react';
+import { Loader2, Paperclip, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,7 +99,9 @@ export function CreateEditIssueModal({
       setUploadingName(null);
       setUploadError(null);
       if (jiraBaseUrl && editIssueKey) {
-        queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', editIssueKey, jiraBaseUrl] });
+        queryClient.invalidateQueries({
+          queryKey: ['jira-issue-detail', editIssueKey, jiraBaseUrl],
+        });
       }
       const att = created[0];
       if (att) descriptionRef.current?.insertRef(attachmentRef(att));
@@ -663,7 +665,9 @@ export function CreateEditIssueModal({
               <Button
                 type="submit"
                 disabled={!state.summary.trim() || !requiredCustomFieldsFilled || isPending}
+                className="gap-1.5"
               >
+                {isPending && <Loader2 className="size-3.5 animate-spin" />}
                 {isPending
                   ? mode === 'create'
                     ? 'Creating...'
