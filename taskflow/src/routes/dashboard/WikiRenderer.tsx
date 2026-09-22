@@ -510,39 +510,123 @@ function replaceJiraEmoticons(text: string): string {
 }
 
 /**
- * Pre-process Jira table data rows (`|cell|`) to normalize Jira inline formatting
- * (bold `*text*`, italic `_text_`) to markdown equivalents on a per-cell basis,
- * BEFORE passing the text to jira2md.
+ * Pre-process Jira table data rows (`|cell|`) AND ordinary prose lines to
+ * normalize Jira inline formatting (bold `*text*`, italic `_text_`) to HTML
+ * equivalents on a per-cell / per-line basis, BEFORE passing the text to jira2md.
  *
  * Problem: jira2md's bold and italic regexes (greedy *...* and _..._ patterns) are
- * greedy and operate on the full input string. For a row like
- * `|*Header A*|*Header B*|`, the bold pattern matches from the FIRST `*` to the
- * LAST `*` across cell separators, producing `**Header A*|*Header B**` — corrupting
- * the entire row. The same applies to italic: `|_A_|_B_|` → `|*A_|_B*|`.
+ * greedy and operate on the full input string (bounded to one source line, since
+ * `.` does not cross newlines). For a row like `|*Header A*|*Header B*|`, the bold
+ * pattern matches from the FIRST `*` to the LAST `*` across cell separators,
+ * producing `**Header A*|*Header B**` — corrupting the entire row. The same applies
+ * to italic: `|_A_|_B_|` → `|*A_|_B*|`. The identical defect corrupts ordinary prose
+ * lines that contain two or more `*...*` (or `_..._`) spans on the same physical
+ * line: e.g. `*1. -TEXT-* niečo *Vianočná Super Prima-*` bleeds into one `<strong>`
+ * spanning both spans and the text between them (wiki-bold-corrupts-text).
  *
- * Fix: split each data row into cell segments using a bracket-aware character walk
- * (so `[display|url]` named-links are treated as a single token), apply the bold
- * and italic conversion independently to each cell, then rejoin. This guarantees
- * that a `*` or `_` in one cell can never "pair" with a marker in a different cell.
+ * Fix: for table data rows, split into cell segments using a bracket-aware
+ * character walk (so `[display|url]` named-links are treated as a single token),
+ * apply the bold and italic conversion independently to each cell, then rejoin —
+ * guaranteeing a `*` or `_` in one cell can never "pair" with a marker in a
+ * different cell. For ordinary prose lines, apply the same non-greedy conversion
+ * directly to the whole line, so each opening marker pairs with its own nearest
+ * closing marker instead of jira2md's greedy first-to-last-on-line pairing.
  *
  * After this step, the matching Jira→markdown transformations in jira2md see no
- * unprocessed `*...*` or `_..._` in data rows and leave them untouched (the double
- * `**` is already markdown bold, and `*text*` inside `**...**` is unambiguous italic).
+ * unprocessed `*...*` or `_..._` in data rows/prose lines and leave them untouched
+ * (already-emitted `<strong>`/`<em>` pass through jira2md unmodified).
  *
  * Runs after `injectHeaderlessTableSeparators` (which may inject synthetic `| | |`
  * and `|---|---|` rows — both are safe, as they contain no `*` or `_` formatting).
- * Skips `||header||` rows and non-table lines unchanged.
+ * Skips `||header||` rows unchanged (pre-existing scope; jira2md's own table-header
+ * handling processes them separately).
  *
  * Private helper — not exported.
  */
+// wiki-bold-corrupts-text: apply Jira bold (*text*) / italic (_text_) → HTML
+// conversion to a single segment of text (a table cell, or an entire prose
+// line). Non-greedy, link-protected — each opening marker pairs with its own
+// nearest closing marker instead of jira2md's greedy first-to-last-on-line
+// pairing (see normalizeTableCellInlineFormatting doc comment below).
+//
+// Link syntax [display|url] is protected from bold/italic conversion by
+// replacing [...] substrings with null-byte placeholders before the regex
+// runs, then restoring them. This prevents the italic regex from matching
+// underscores inside URLs (e.g. hash=1A_B2_C3) or bold/italic markers
+// spanning a named link token.
+//
+// Private helper — not exported.
+function convertInlineBoldItalic(segment: string): string {
+  const linkPlaceholders: string[] = [];
+  const withPlaceholders = segment.replace(/\[[^\]]*\]/g, (match) => {
+    const idx = linkPlaceholders.length;
+    linkPlaceholders.push(match);
+    return `\x00LINK${idx}\x00`;
+  });
+  // wiki-bold-corrupts-text (round 2): Strikethrough `-text-` → <del>text</del>.
+  // jira2md's own strikethrough rule (`/(\s+)-(\S+.*?\S)-(\s+)/g`, applied further
+  // down the pipeline in to_markdown()) REQUIRES whitespace immediately before the
+  // opening `-` and after the closing `-`. That already works for ordinary
+  // mid-sentence strikethrough ("this -text- is struck"), so it is intentionally
+  // NOT duplicated here. It fails, however, when the strikethrough span is nested
+  // directly inside a bold/italic span — e.g. `*1. -TEXT-*` — because the dash
+  // touches the bold delimiter `*` instead of whitespace: `-TEXT-*` has no
+  // whitespace after the closing `-`, so jira2md's regex never matches and the
+  // dashes render as literal characters instead of a struck-through span.
+  // Fix: convert `-text-` directly to `<del>` HTML here, BEFORE the bold/italic
+  // conversion below, treating `*`/`_` (in addition to whitespace/start/end-of-line)
+  // as valid boundaries on either side. This mirrors the non-greedy, \S-boundary
+  // technique already used for bold/italic/underline in this file, and runs before
+  // bold/italic conversion so `*1. -TEXT-*` becomes `*1. <del>TEXT</del>*` first,
+  // then the bold pass below wraps it as `<strong>1. <del>TEXT</del></strong>`.
+  // Link bracket content is already hidden behind \x00LINK\x00 placeholders above,
+  // so this cannot touch dashes inside `[display|url]` (that case has its own,
+  // narrower fix — see the `[-text-|url]` conversion later in preprocessJiraMarkup).
+  // Content chars deliberately exclude `*`/`_` (not just require `\S`): `\S+`
+  // alone would greedily consume through an adjacent bold/italic delimiter
+  // (and even an entire second `-...-` span further along the line) before
+  // backtracking, since `*`/`_` are themselves non-whitespace — reproduced
+  // directly: `\S+[^\n]*?\S` against a line with two dash-wrapped spans each
+  // followed by `*` swallowed both spans and everything between them into one
+  // match, mirroring the exact bug this whole fix is meant to prevent.
+  let c = withPlaceholders.replace(
+    /(?<=^|[\s*_])-([^\s*_\n]+[^*_\n]*?[^\s*_\n])-(?=[\s*_]|$)/g,
+    '<del>$1</del>',
+  );
+  // Bold: *text* → <strong>text</strong>
+  // Output HTML directly so jira2md won't re-process: *text* would become
+  // **text** under jira2md's bold rule, and _text_ → *text* → **text**.
+  // <strong> and <em> pass through jira2md unmodified and are allowed by
+  // the rehype-sanitize default schema.
+  c = c.replace(/(?<!\*)\*(\S[^*\n]*?\S|\S)\*(?!\*)/g, '<strong>$1</strong>');
+  // Italic: _text_ → <em>text</em>
+  c = c.replace(/(?<!_)_(\S[^_\n]*?\S|\S)_(?!_)/g, '<em>$1</em>');
+  // Restore link placeholders
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is intentionally used as a unique sentinel delimiter — it cannot appear in wiki markup text, making false-positive matches impossible
+  return c.replace(/\x00LINK(\d+)\x00/g, (_, i) => linkPlaceholders[parseInt(i, 10)]);
+}
+
 function normalizeTableCellInlineFormatting(wiki: string): string {
   const lines = wiki.split('\n');
   const out: string[] = [];
 
   for (const line of lines) {
     const trimmed = line.replace(/[ \t]+$/, '');
-    // Only process single-pipe data rows: starts with | but not ||
-    if (!trimmed.startsWith('|') || trimmed.startsWith('||')) {
+
+    // wiki-bold-corrupts-text: prose/paragraph lines (not `|` table rows, and
+    // not `||` header rows — see below) are just as exposed as table cells to
+    // jira2md's greedy same-line bold/italic pairing: a line with TWO OR MORE
+    // *...* (or _..._) spans gets its formatting bled from the FIRST opening
+    // marker to the LAST closing marker on the line, silently wrapping any
+    // unrelated intervening text (including a second, unrelated bold span
+    // later on the line) inside one <strong>/<em>. `||header||` rows are left
+    // untouched here (pre-existing scope, unchanged) since jira2md's own
+    // table-header handling processes them separately.
+    if (!trimmed.startsWith('|')) {
+      out.push(convertInlineBoldItalic(line));
+      continue;
+    }
+    if (trimmed.startsWith('||')) {
       out.push(line);
       continue;
     }
@@ -571,32 +655,7 @@ function normalizeTableCellInlineFormatting(wiki: string): string {
     segments.push(current);
 
     // Apply Jira→markdown inline formatting per cell (non-greedy, no cross-cell bleed).
-    // Link syntax [display|url] is protected from bold/italic conversion by replacing
-    // [...] substrings with null-byte placeholders before the regex runs, then
-    // restoring them. This prevents the italic regex from matching underscores inside
-    // URLs (e.g. hash=1A_B2_C3) or bold/italic markers spanning a named link token.
-    const normalized = segments.map((cell) => {
-      const linkPlaceholders: string[] = [];
-      const withPlaceholders = cell.replace(/\[[^\]]*\]/g, (match) => {
-        const idx = linkPlaceholders.length;
-        linkPlaceholders.push(match);
-        return `\x00LINK${idx}\x00`;
-      });
-      // Bold: *text* → <strong>text</strong>
-      // Output HTML directly so jira2md won't re-process: *text* would become
-      // **text** under jira2md's bold rule, and _text_ → *text* → **text**.
-      // <strong> and <em> pass through jira2md unmodified and are allowed by
-      // the rehype-sanitize default schema.
-      let c = withPlaceholders.replace(
-        /(?<!\*)\*(\S[^*\n]*?\S|\S)\*(?!\*)/g,
-        '<strong>$1</strong>',
-      );
-      // Italic: _text_ → <em>text</em>
-      c = c.replace(/(?<!_)_(\S[^_\n]*?\S|\S)_(?!_)/g, '<em>$1</em>');
-      // Restore link placeholders
-      // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is intentionally used as a unique sentinel delimiter — it cannot appear in wiki markup text, making false-positive matches impossible
-      return c.replace(/\x00LINK(\d+)\x00/g, (_, i) => linkPlaceholders[parseInt(i, 10)]);
-    });
+    const normalized = segments.map(convertInlineBoldItalic);
 
     out.push(normalized.join('|'));
   }
@@ -749,11 +808,32 @@ export function preprocessJiraMarkup(
   // table and renders them as plain text.
   result = injectHeaderlessTableSeparators(result);
 
-  // Table cell inline formatting: normalize Jira bold (*text*) and italic (_text_)
-  // to markdown equivalents on a per-cell basis, BEFORE jira2md. jira2md's bold and
-  // italic regexes are greedy and cross cell separators, corrupting rows like
-  // |*Header A*|*Header B*| into |**Header A*|*Header B**|. Running the conversion
-  // per cell prevents any cross-boundary pairing.
+  // Horizontal divider: Jira `----` on its own line must render as a full-width <hr>.
+  // jira2md's strikethrough regex /(\s+)-(\S+.*?\S)-(\s+)/g matches `----` when it
+  // is surrounded by newlines — the outer two dashes become strikethrough delimiters
+  // and the inner `--` becomes the struck content, producing `~~--~~` which renders
+  // as literal struck-through dashes. Fix: convert any line that consists entirely of
+  // 4 or more dashes to the markdown thematic break form `---` BEFORE jira2md runs.
+  // `---` is safe: jira2md's strikethrough inner-content pattern requires at least 2
+  // chars (\S+.*?\S), so a 1-char inner portion (`-`) is never matched and `---`
+  // passes through jira2md unchanged. react-markdown renders standalone `---` as <hr>.
+  //
+  // Must run BEFORE normalizeTableCellInlineFormatting/convertInlineBoldItalic below
+  // (wiki-bold-corrupts-text): that step now also converts Jira strikethrough
+  // (`-text-`) directly to `<del>` HTML on a per-line basis, and its boundary rule
+  // treats a run of dashes as potentially "content" (any `\S`, including `-` itself).
+  // If it ran on a still-untouched `----`/`-----` line, it would corrupt the divider
+  // into `<del>--</del>` instead of leaving it for the `<hr>` conversion. Converting
+  // pure-dash-run lines to the 3-dash `---` form first sidesteps this entirely (3
+  // total characters can never satisfy the strikethrough rule's 4-character minimum
+  // of open + 2-char content + close).
+  result = result.replace(/^-{4,}$/gm, '\n---\n');
+
+  // Table cell inline formatting: normalize Jira bold (*text*), italic (_text_), and
+  // strikethrough (-text-) to markdown/HTML equivalents on a per-cell basis, BEFORE
+  // jira2md. jira2md's bold and italic regexes are greedy and cross cell separators,
+  // corrupting rows like |*Header A*|*Header B*| into |**Header A*|*Header B**|.
+  // Running the conversion per cell prevents any cross-boundary pairing.
   result = normalizeTableCellInlineFormatting(result);
 
   // Numeric/alpha/roman ordered-list prefixes: some Jira content uses `1. item`,
@@ -793,17 +873,6 @@ export function preprocessJiraMarkup(
   // - `h1.foo` … `h6.foo` → `h1. foo` (so jira2md emits valid `#…# foo`)
   // - `\\` at end-of-line or surrounded by spaces → markdown hard break (`  \n`)
   result = result.replace(/^(h[1-6]\.)(\S)/gm, '$1 $2');
-
-  // Horizontal divider: Jira `----` on its own line must render as a full-width <hr>.
-  // jira2md's strikethrough regex /(\s+)-(\S+.*?\S)-(\s+)/g matches `----` when it
-  // is surrounded by newlines — the outer two dashes become strikethrough delimiters
-  // and the inner `--` becomes the struck content, producing `~~--~~` which renders
-  // as literal struck-through dashes. Fix: convert any line that consists entirely of
-  // 4 or more dashes to the markdown thematic break form `---` BEFORE jira2md runs.
-  // `---` is safe: jira2md's strikethrough inner-content pattern requires at least 2
-  // chars (\S+.*?\S), so a 1-char inner portion (`-`) is never matched and `---`
-  // passes through jira2md unchanged. react-markdown renders standalone `---` as <hr>.
-  result = result.replace(/^-{4,}$/gm, '\n---\n');
 
   // Table data rows (starting with `|` but not `||`) may contain `\\` hard-break
   // markers that were not processed by mergeOpenTableRows (which only handles merged

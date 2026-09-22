@@ -124,6 +124,47 @@ describe('WikiRenderer', () => {
       expect(strong?.textContent).toBe('bold');
     });
 
+    it('wiki-bold-corrupts-text: two bold spans on the same prose line render independently (no bleed)', () => {
+      // Without the fix, jira2md's greedy per-line bold regex pairs the FIRST `*`
+      // with the LAST `*` on the line, merging both spans and the text between
+      // them into one <strong>. Verbatim-shaped repro from the bug report.
+      // `-TEXT-` inside the first span is itself valid Jira strikethrough markup
+      // (wiki-bold-corrupts-text round 2), so its dashes are consumed as
+      // strikethrough delimiters and do not appear in the rendered text —
+      // see the dedicated nested bold+strikethrough test below for that behavior.
+      const { container } = render(
+        <WikiRenderer wikiText="*1. -TEXT-* niečo *Vianočná Super Prima-*" />,
+      );
+      const strongs = container.querySelectorAll('strong');
+      expect(strongs.length).toBe(2);
+      expect(strongs[0]?.textContent).toBe('1. TEXT');
+      expect(strongs[0]?.querySelector('del')?.textContent).toBe('TEXT');
+      expect(strongs[1]?.textContent).toBe('Vianočná Super Prima-');
+      // The unrelated text between the two spans must not be swallowed into bold.
+      expect(container.textContent).toContain('niečo');
+      const nieco = Array.from(container.querySelectorAll('*')).find(
+        (el) => el.textContent === 'niečo',
+      );
+      // 'niečo' itself must not render inside a <strong>.
+      expect(nieco?.closest('strong')).toBeUndefined();
+    });
+
+    it('wiki-bold-corrupts-text (round 2): strikethrough dashes nested inside a bold span render as <del>, not literal dashes', () => {
+      // jira2md's own strikethrough rule requires whitespace immediately before the
+      // opening `-` and after the closing `-`. Inside `*1. -TEXT-*` the closing `-`
+      // is immediately followed by the bold delimiter `*`, not whitespace, so
+      // jira2md's rule never fires and the dashes render as literal characters.
+      const { container } = render(<WikiRenderer wikiText="*1. -TEXT-*" />);
+      const strong = container.querySelector('strong');
+      expect(strong).not.toBeNull();
+      const del = strong?.querySelector('del');
+      expect(del).not.toBeNull();
+      expect(del?.textContent).toBe('TEXT');
+      expect(strong?.textContent).toBe('1. TEXT');
+      // Must not contain the literal dash characters anywhere in the bold text.
+      expect(strong?.textContent).not.toContain('-TEXT-');
+    });
+
     it('renders italic text from _italic_ wiki markup', () => {
       const { container } = render(<WikiRenderer wikiText="_italic_" />);
       // jira2md converts _italic_ → *italic*, react-markdown renders as <em>
