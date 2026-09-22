@@ -2,7 +2,7 @@
  * WorklogsPage.test.tsx — Unit tests for the Tempo Worklog Viewer
  *
  * Coverage:
- *   TEMPO-02 — date presets (6 pills, This Week active on mount, Custom reveals date inputs)
+ *   TEMPO-02 — date presets (6 pills, This Week active on mount, Custom reveals two DatePicker triggers)
  *   TEMPO-03 — single-select people filter (dropdown, chip, dismiss)
  *   TEMPO-04 — save named filter combining preset + person (inline input, empty-name guard)
  *   TEMPO-05 — load, rename, delete saved filters (pill click, double-click rename, × delete)
@@ -141,6 +141,36 @@ function thisWeekDate(dayOffset: 0 | 1 | 2 | 3 | 4 = 0): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Opens a DatePicker's popover (already-rendered trigger button matched by
+ * `triggerName`) and clicks the day cell for `dateStr` (YYYY-MM-DD),
+ * navigating months via the Previous/Next Month buttons if the target date
+ * isn't in the currently displayed month. Day cells carry a stable
+ * `data-day="YYYY-MM-DD"` attribute (react-day-picker's isoDate), which is
+ * far more robust than matching the locale-formatted accessible name.
+ */
+async function selectCalendarDay(triggerName: RegExp, dateStr: string) {
+  const { screen } = await import('@testing-library/react');
+  fireEvent.click(screen.getByRole('button', { name: triggerName }));
+  let grid = await screen.findByRole('grid');
+
+  for (let i = 0; i < 24; i++) {
+    const cell = grid.querySelector(`[role="gridcell"][data-day="${dateStr}"] button`);
+    if (cell) {
+      fireEvent.click(cell);
+      return;
+    }
+    const captionEl = grid.parentElement?.querySelector('[class*="caption"]');
+    const captionText = captionEl?.textContent ?? '';
+    const displayed = new Date(`1 ${captionText}`);
+    const target = new Date(dateStr);
+    if (Number.isNaN(displayed.getTime())) break;
+    const navName = target < displayed ? /Previous Month/i : /Next Month/i;
+    fireEvent.click(screen.getByRole('button', { name: navName }));
+    grid = await screen.findByRole('grid');
+  }
+}
+
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
@@ -219,45 +249,43 @@ describe('WorklogsPage', () => {
       expect(thisWeekBtn.className).toContain('bg-accent');
     });
 
-    it('Custom preset reveals two date inputs when clicked', async () => {
+    it('Custom preset reveals two DatePicker triggers when clicked', async () => {
       const { getByText, container } = await renderPage();
 
-      // No date inputs initially
-      expect(container.querySelectorAll('input[type="date"]').length).toBe(0);
+      // No date-picker triggers initially
+      expect(container.querySelectorAll('[data-slot="date-picker-trigger"]').length).toBe(0);
 
       fireEvent.click(getByText('Custom'));
 
-      // Two date inputs should appear
-      expect(container.querySelectorAll('input[type="date"]').length).toBe(2);
+      // Two DatePicker triggers should appear
+      expect(container.querySelectorAll('[data-slot="date-picker-trigger"]').length).toBe(2);
     });
 
     it('Custom range does not fetch until both from and to are set and to >= from', async () => {
-      const { getByText, container } = await renderPage();
+      const { getByText } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
 
-      // Switch to Custom — no date inputs filled yet
+      // Switch to Custom — no dates filled yet
       fireEvent.click(getByText('Custom'));
 
       // Count calls after mount (This Week fires once on mount)
       const callsBefore = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls.length;
 
       // Fill only from — no extra call expected
-      const [fromInput] = container.querySelectorAll('input[type="date"]');
-      fireEvent.change(fromInput, { target: { value: '2026-05-10' } });
+      await selectCalendarDay(/From date/i, '2026-05-10');
 
       await new Promise((r) => setTimeout(r, 50));
 
       expect((fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
 
       // Fill to with invalid range (to < from) — still no extra call
-      const [, toInput] = container.querySelectorAll('input[type="date"]');
-      fireEvent.change(toInput, { target: { value: '2026-05-05' } });
+      await selectCalendarDay(/To date/i, '2026-05-05');
 
       await new Promise((r) => setTimeout(r, 50));
       expect((fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
 
       // Fill valid range — now fetch should fire
-      fireEvent.change(toInput, { target: { value: '2026-05-15' } });
+      await selectCalendarDay(/To date/i, '2026-05-15');
       await waitFor(() =>
         expect((fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
           callsBefore,
