@@ -30,6 +30,7 @@ import type { EpicColorResult } from '@/lib/epicColors';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraTransition } from '@/services/jira';
+import { useSettingsStore } from '@/stores/settings.store';
 
 interface StoryHeaderRowProps {
   storyKey: string;
@@ -98,6 +99,9 @@ export function StoryHeaderRow({
   // becomes div[role=button] (body → peek) so the inner key <button> is valid HTML.
   const useKeyBodySplit = !!onOpenIssue;
 
+  const density = useSettingsStore((s) => s.density);
+  const avatarSize = density === 'compact' ? 16 : 20;
+
   const rowClassName = cn(
     'flex items-center gap-2 density-compact:gap-1.5 px-3 py-2 density-compact:px-2 density-compact:py-0.5 density-comfortable:py-3 transition-colors border-b',
     useKeyBodySplit && 'cursor-pointer',
@@ -159,7 +163,7 @@ export function StoryHeaderRow({
       {/* Assignee avatar + name — only rendered when story has an assignee */}
       {assigneeDisplayName && (
         <div className="shrink-0 flex items-center gap-1.5 density-compact:gap-1">
-          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
+          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={avatarSize} />
           <span className="text-xs density-compact:text-[0.625rem] text-muted-foreground truncate max-w-[120px] density-compact:max-w-[90px]">
             {assigneeDisplayName}
           </span>
@@ -186,7 +190,14 @@ export function StoryHeaderRow({
       )}
 
       {/* Status badge */}
-      <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
+      <span
+        className={cn(
+          statusPillClass(statusCategoryKey),
+          'density-compact:min-w-[4rem] density-compact:px-1 density-compact:py-0 density-compact:text-[0.625rem]',
+        )}
+      >
+        {statusName}
+      </span>
 
       {/* Subtask count */}
       <span className="shrink-0 min-w-[5rem] density-compact:min-w-[4rem] text-xs density-compact:text-[0.625rem] text-muted-foreground">

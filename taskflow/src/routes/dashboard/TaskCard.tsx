@@ -45,6 +45,7 @@ import { isDoneStatus, issueTypeStripeClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
+import { useSettingsStore } from '@/stores/settings.store';
 
 interface TaskCardProps {
   issue: JiraIssue;
@@ -144,6 +145,8 @@ function CardBody({
   useKeyButton,
   onIssueClick,
 }: CardBodyProps) {
+  const density = useSettingsStore((s) => s.density);
+  const avatarSize = density === 'compact' ? 16 : 20;
   return (
     <>
       {/* Top row: flag icon (when flagged) + issue key (left) + issue type name (right) */}
@@ -208,8 +211,8 @@ function CardBody({
         <div className="flex items-center gap-1.5 density-compact:gap-1 min-w-0">
           {assignee && (
             <>
-              <CachedAvatar url={avatarUrl} name={displayName} size={20} />
-              <span className="text-[0.6875rem] text-muted-foreground/80 truncate">
+              <CachedAvatar url={avatarUrl} name={displayName} size={avatarSize} />
+              <span className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground/80 truncate">
                 {displayName}
               </span>
             </>
@@ -247,7 +250,12 @@ function CardBody({
 
           {/* Status badge — shown when not in a column context */}
           {showStatus && (
-            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+            <span
+              className={cn(
+                statusPillClass(issue.fields.status.statusCategory?.key),
+                'density-compact:min-w-[4rem] density-compact:px-1 density-compact:py-0 density-compact:text-[0.625rem]',
+              )}
+            >
               {issue.fields.status.name}
             </span>
           )}

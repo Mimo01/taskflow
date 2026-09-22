@@ -14,10 +14,10 @@ export function getInitials(name: string | null | undefined): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-const SIZE_MAP = { 20: 'size-5', 24: 'size-6', 32: 'size-8', 40: 'size-10' } as const;
+const SIZE_MAP = { 16: 'size-4', 20: 'size-5', 24: 'size-6', 32: 'size-8', 40: 'size-10' } as const;
 
 /** Icon size in pixels for unassigned avatar, keyed by avatar size. */
-const ICON_SIZE_MAP = { 20: 12, 24: 14, 32: 18, 40: 22 } as const;
+const ICON_SIZE_MAP = { 16: 10, 20: 12, 24: 14, 32: 18, 40: 22 } as const;
 
 /** Returns true when the name represents an unassigned state. */
 function isUnassigned(name: string | null | undefined): boolean {
@@ -29,8 +29,8 @@ interface CachedAvatarProps {
   url: string | null | undefined;
   /** Display name — used to generate initials fallback and accessible label. */
   name: string | null | undefined;
-  /** Pixel size (default: 32). Permitted: 20, 24, 32, 40. */
-  size?: 20 | 24 | 32 | 40;
+  /** Pixel size (default: 32). Permitted: 16, 20, 24, 32, 40. */
+  size?: 16 | 20 | 24 | 32 | 40;
   /** Additional Tailwind classes for layout overrides. */
   className?: string;
 }
