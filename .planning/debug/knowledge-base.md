@@ -73,3 +73,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Removed the `issuetype not in subtaskIssueTypes()` clause from both JQL builders in taskflow/src/services/jira.ts (`fetchFixVersionIssues`'s `jql` and `fetchVersionIssueCounts`'s `baseJql`), and added comments explaining why Releases intentionally includes subtasks unlike Backlog/Sprint.
 - **Files changed:** taskflow/src/services/jira.ts
 ---
+
+## jira-wiki-italic-non-ascii — Jira wiki italic span corrupted when followed on the same line by a link containing an underscore
+- **Date:** 2026-09-22
+- **Error patterns:** italic, underscore, asterisk, wiki markup, jira2md, link, bracket, corrupted, hard break, WikiRenderer, em, non-ascii, diacritic, Špecifikácia
+- **Root cause:** Two separate bugs found across two investigation rounds. Round 1: `preprocessJiraMarkup`'s Jira hard-break (`\\`) → newline conversion only fired when the `\\` marker was padded by an ASCII space/tab; an unpadded `\\` left two logical lines glued together. Round 2 (the actual reported bug): jira2md's `to_markdown()` applies its per-line, greedy italic (`/_(\S.*)_/g`) and bold (`/\*(\S.*)\*/g`) regexes BEFORE it extracts `[label|url]` link syntax later in its replace chain. Any underscore inside a link's URL or label on the same line as an intentional `_word_` italic span gets mis-paired as the span's closing delimiter, leaving the real closing underscore as literal text and producing a stray `*`/`_` instead of `<em>`.
+- **Fix:** Round 1: added an unconditional `result.replace(/\\\\/g, '\n')` fallback in `preprocessJiraMarkup`, mirroring the unconditional hard-break handling already used in `mergeOpenTableRows`. Round 2: added a placeholder-protection pass at the end of `preprocessJiraMarkup` that replaces every underscore inside remaining `[...]` link brackets with a `\x00USCORE\x00` sentinel before jira2md runs (mirroring the existing technique in `normalizeTableCellInlineFormatting` for table cells); `fixMarkdownLinkUnderscores` restores the placeholder back to `_` after jira2md/link extraction.
+- **Files changed:** taskflow/src/routes/dashboard/WikiRenderer.tsx, taskflow/src/routes/dashboard/WikiRenderer.test.tsx
+---
