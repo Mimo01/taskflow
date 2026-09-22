@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { SprintBoardHeader } from './SprintBoardHeader';
+import { SprintBoardHeader, SprintBoardHeaderSkeleton } from './SprintBoardHeader';
 
 describe('SprintBoardHeader', () => {
   it('renders the sprint name when name is provided', () => {
@@ -70,5 +70,25 @@ describe('SprintBoardHeader', () => {
     expect(banner.className).toContain('px-4');
     expect(banner.className).toContain('py-3');
     expect(banner.className).not.toContain('bg-muted/40');
+  });
+
+  it('renders the goal on a line below the title, with a leading icon', () => {
+    render(<SprintBoardHeader name="Sprint 42" goal="Ship the thing" />);
+    const goal = screen.getByText('Ship the thing');
+    const goalRow = goal.parentElement;
+    expect(goalRow?.querySelector('svg')).toBeInTheDocument();
+
+    const heading = screen.getByRole('heading', { level: 1, name: 'Sprint 42' });
+    const titleRow = heading.parentElement;
+    expect(titleRow).not.toBe(goalRow);
+  });
+});
+
+describe('SprintBoardHeaderSkeleton', () => {
+  it('renders a placeholder occupying the header band while loading', () => {
+    render(<SprintBoardHeaderSkeleton />);
+    const placeholder = screen.getByRole('status', { name: /loading sprint header/i });
+    expect(placeholder.className).toContain('px-4');
+    expect(placeholder.className).toContain('py-3');
   });
 });
