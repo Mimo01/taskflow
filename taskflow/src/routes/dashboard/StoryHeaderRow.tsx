@@ -100,7 +100,7 @@ export function StoryHeaderRow({
   const useKeyBodySplit = !!onOpenIssue;
 
   const density = useSettingsStore((s) => s.density);
-  const avatarSize = density === 'compact' ? 16 : 20;
+  const avatarSize = density === 'compact' ? 18 : 20;
 
   const rowClassName = cn(
     'flex items-center gap-2 density-compact:gap-1.5 px-3 py-2 density-compact:px-2 density-compact:py-1 density-comfortable:py-3 transition-colors border-b',
@@ -143,7 +143,7 @@ export function StoryHeaderRow({
         <button
           type="button"
           className={cn(
-            'group font-mono text-xs density-compact:text-[0.625rem] text-muted-foreground shrink-0 cursor-pointer',
+            'group font-mono text-xs density-compact:text-[0.6875rem] text-muted-foreground shrink-0 cursor-pointer',
             statusCategoryKey === 'done'
               ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
               : 'group-hover:underline',
@@ -164,7 +164,7 @@ export function StoryHeaderRow({
       {assigneeDisplayName && (
         <div className="shrink-0 flex items-center gap-1.5 density-compact:gap-1">
           <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={avatarSize} />
-          <span className="text-xs density-compact:text-[0.625rem] text-muted-foreground truncate max-w-[120px] density-compact:max-w-[90px]">
+          <span className="text-xs density-compact:text-[0.6875rem] text-muted-foreground truncate max-w-[120px] density-compact:max-w-[90px]">
             {assigneeDisplayName}
           </span>
         </div>
@@ -179,7 +179,7 @@ export function StoryHeaderRow({
             onEpicClick?.(epicKey);
           }}
           className={cn(
-            'shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 text-xs density-compact:text-[0.625rem] font-medium hover:opacity-80 transition-opacity',
+            'shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 text-xs density-compact:text-[0.6875rem] font-medium hover:opacity-80 transition-opacity',
             epicColorResult.className,
           )}
           style={epicColorResult.style}
@@ -193,19 +193,19 @@ export function StoryHeaderRow({
       <span
         className={cn(
           statusPillClass(statusCategoryKey),
-          'density-compact:min-w-[4rem] density-compact:px-1 density-compact:py-0 density-compact:text-[0.625rem]',
+          'density-compact:min-w-[4rem] density-compact:px-1 density-compact:py-0 density-compact:text-[0.6875rem]',
         )}
       >
         {statusName}
       </span>
 
       {/* Subtask count */}
-      <span className="shrink-0 min-w-[5rem] density-compact:min-w-[4rem] text-xs density-compact:text-[0.625rem] text-muted-foreground">
+      <span className="shrink-0 min-w-[5rem] density-compact:min-w-[4rem] text-xs density-compact:text-[0.6875rem] text-muted-foreground">
         {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
       </span>
 
       {transitionError && (
-        <span className="shrink-0 text-xs density-compact:text-[0.625rem] text-destructive">
+        <span className="shrink-0 text-xs density-compact:text-[0.6875rem] text-destructive">
           {transitionError}
         </span>
       )}

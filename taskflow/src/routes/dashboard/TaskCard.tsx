@@ -146,7 +146,7 @@ function CardBody({
   onIssueClick,
 }: CardBodyProps) {
   const density = useSettingsStore((s) => s.density);
-  const avatarSize = density === 'compact' ? 16 : 20;
+  const avatarSize = density === 'compact' ? 18 : 20;
   return (
     <>
       {/* Top row: flag icon (when flagged) + issue key (left) + issue type name (right) */}
@@ -160,7 +160,7 @@ function CardBody({
             <button
               type="button"
               className={cn(
-                'text-xs font-mono text-muted-foreground cursor-pointer density-compact:text-[0.625rem]',
+                'text-xs font-mono text-muted-foreground cursor-pointer density-compact:text-[0.6875rem]',
                 isDoneStatus(issue.fields.status.statusCategory)
                   ? 'line-through hover:[text-decoration-line:underline_line-through]'
                   : 'hover:underline',
@@ -176,7 +176,7 @@ function CardBody({
             /* Legacy path: plain span inside <button> outer */
             <span
               className={cn(
-                'text-xs font-mono text-muted-foreground density-compact:text-[0.625rem]',
+                'text-xs font-mono text-muted-foreground density-compact:text-[0.6875rem]',
                 isDoneStatus(issue.fields.status.statusCategory)
                   ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
                   : 'group-hover:underline',
@@ -187,7 +187,7 @@ function CardBody({
           )}
         </span>
         {issueTypeName && (
-          <span className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground/60 truncate max-w-[50%] text-right">
+          <span className="text-[0.6875rem] density-compact:text-[0.6875rem] text-muted-foreground/60 truncate max-w-[50%] text-right">
             {issueTypeName}
           </span>
         )}
@@ -212,7 +212,7 @@ function CardBody({
           {assignee && (
             <>
               <CachedAvatar url={avatarUrl} name={displayName} size={avatarSize} />
-              <span className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground/80 truncate">
+              <span className="text-[0.6875rem] density-compact:text-[0.6875rem] text-muted-foreground/80 truncate">
                 {displayName}
               </span>
             </>
@@ -231,7 +231,7 @@ function CardBody({
 
           {/* Story points badge */}
           {storyPoints != null && storyPoints > 0 && (
-            <span className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none">
+            <span className="text-[0.6875rem] density-compact:text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none">
               {storyPoints}
             </span>
           )}
@@ -241,7 +241,7 @@ function CardBody({
               (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
           {timeInColumn?.enteredStatus != null && (
             <span
-              className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none"
+              className="text-[0.6875rem] density-compact:text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none"
               title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
             >
               {formatTimeAgoStrict(timeInColumn.enteredStatus)}
@@ -253,7 +253,7 @@ function CardBody({
             <span
               className={cn(
                 statusPillClass(issue.fields.status.statusCategory?.key),
-                'density-compact:min-w-[4rem] density-compact:px-1 density-compact:py-0 density-compact:text-[0.625rem]',
+                'density-compact:min-w-[4rem] density-compact:px-1 density-compact:py-0 density-compact:text-[0.6875rem]',
               )}
             >
               {issue.fields.status.name}
@@ -275,7 +275,7 @@ function CardBody({
         >
           <Badge
             variant="secondary"
-            className="text-xs py-0 density-compact:text-[0.625rem] pointer-events-none"
+            className="text-xs py-0 density-compact:text-[0.6875rem] pointer-events-none"
           >
             {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
           </Badge>
