@@ -207,7 +207,7 @@ function CardBody({
       </div>
 
       {/* Bottom row: assignee avatar + name (left) + story points + status badge (right) */}
-      <div className="flex items-center justify-between mt-1 density-compact:mt-0">
+      <div className="flex items-center justify-between mt-1 density-compact:mt-0.5">
         <div className="flex items-center gap-1.5 density-compact:gap-1 min-w-0">
           {assignee && (
             <>
@@ -366,7 +366,7 @@ export default function TaskCard({
   };
 
   const outerClassName = cn(
-    'group border rounded-lg px-2 py-2 density-compact:px-1.5 density-compact:py-0.5 density-compact:gap-0.5 density-compact:rounded-md density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
+    'group border rounded-lg px-2 py-2 density-compact:px-1.5 density-compact:py-1 density-compact:gap-1 density-compact:rounded-md density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
     'border-l-[3px]',
     issueTypeStripeClass(issue.fields.issuetype),
     isFlagged &&
