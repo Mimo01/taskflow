@@ -90,7 +90,15 @@ Task 3 in the plan is `type="checkpoint:human-verify"` with `gate="blocking"`. P
 5. **Drop-zone reliability** — drag a card in compact mode onto a transition drop zone; the 40px zone must remain an easy, reliable drop target.
 6. **Narrow-window collapse** — narrow the window as far as it goes; confirm each story header row stays on one line (summary truncates first) and no column cell collapses to 0 width.
 
-This SUMMARY documents the completed automated work (Tasks 1-2, fully committed and verified via automated checks) and flags the remaining manual verification as outstanding. The quick-task workflow should resume at the checkpoint step to collect this human sign-off before the task is considered fully closed.
+**Update — checkpoint resolved:** The human ran the app, reviewed the board across densities, and requested three rounds of follow-up tuning before giving final approval:
+
+1. **Commit `2c2e14fc`** — avatar, assignee name, and status pill still read as oversized in compact mode. Added a new 16px tier to the shared `CachedAvatar` primitive (additive, existing 20/24/32/40 usages untouched), wired both `TaskCard.tsx` and `StoryHeaderRow.tsx` to read density from `useSettingsStore` and pass 16px avatars in compact; added a missing `density-compact:` variant to `TaskCard.tsx`'s assignee name (it had none at all); appended `density-compact:` geometry overrides to the two `statusPillClass()` call sites (scoped to these two files only — the shared `src/lib/statusStyles.ts` helper itself was not touched).
+2. **Commit `0bb05eff`** — compact mode now felt "too crammed." Eased card/row vertical padding and gaps up one notch (`py-0.5`→`py-1`, `gap-0.5`→`gap-1`), summary-to-footer margin (`mt-0`→`mt-0.5`), story-row padding (`py-0.5`→`py-1`), and column/drop-zone min-height (`40px`→`48px`).
+3. **Commit `a1b7b7cb`** — still felt too small overall. Bumped compact text `0.625rem`→`0.6875rem` across all previously-touched text sites, avatar `16px`→`18px` (new 18px `CachedAvatar` tier, additive), and column min-height `48px`→`54px` to match.
+
+Final human sign-off: **approved**, after round 3 (commit `a1b7b7cb`).
+
+**Known non-blocking issue** (flagged by both code review and verification): the `density-compact:` overrides appended to `statusPillClass()` call sites in commit `2c2e14fc` technically contradict the "callers must not add geometry classes" contract documented in `src/lib/statusStyles.ts:57-59`. Works correctly today via Tailwind cascade ordering and passed human visual review, but is fragile if that shared helper changes shape later.
 
 ## Self-Check: PASSED
 
