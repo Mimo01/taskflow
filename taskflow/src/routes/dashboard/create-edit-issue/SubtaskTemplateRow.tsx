@@ -380,7 +380,7 @@ export function SubtaskTemplateRow({
             </label>
             <DatePicker
               id={`${row.id}-duedate`}
-              className="w-40 text-sm"
+              className="text-sm"
               size="sm"
               value={row.duedate ?? ''}
               onChange={(v) => onChange({ duedate: v || null })}
