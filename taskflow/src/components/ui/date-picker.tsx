@@ -80,7 +80,12 @@ function DatePicker({
             startMonth={parseLocalDate(minDate)}
             endMonth={parseLocalDate(maxDate)}
             onSelect={(d) => {
-              onChange(d ? toLocalDateString(d) : '');
+              if (!d) {
+                if (clearable) onChange('');
+                setOpen(false);
+                return;
+              }
+              onChange(toLocalDateString(d));
               setOpen(false);
             }}
           />
