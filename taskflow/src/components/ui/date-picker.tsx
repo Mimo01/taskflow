@@ -97,7 +97,7 @@ function DatePicker({
           aria-label="Clear date"
           data-slot="date-picker-clear"
           onClick={() => onChange('')}
-          className="absolute right-1.5 rounded-sm p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <XIcon className="size-3.5" />
         </button>
