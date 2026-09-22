@@ -1098,10 +1098,7 @@ export function preprocessJiraMarkup(
   // wiki text) so it cannot collide with any other content or be
   // reintroduced by a later step; it is restored to `_` by
   // `fixMarkdownLinkUnderscores` after jira2md and link extraction complete.
-  result = result.replace(/\[([^\]\n]*)\]/g, (match) =>
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is intentionally used as a unique sentinel — it cannot appear in wiki markup text, making false-positive matches impossible
-    match.replace(/_/g, '\x00USCORE\x00'),
-  );
+  result = result.replace(/\[([^\]\n]*)\]/g, (match) => match.replace(/_/g, '\x00USCORE\x00'));
 
   // wiki-strikethrough-dashes: Jira strikethrough markup `-text-` wrapping a
   // named-link display label — `[-text-|url]` — never renders struck-through.
