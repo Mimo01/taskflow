@@ -14,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
@@ -132,12 +132,7 @@ export function LogWorkPopover({
           </div>
           <div>
             <Label className="text-xs mb-1">Date</Label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-8 text-xs"
-            />
+            <DatePicker value={date} onChange={setDate} size="sm" className="h-8 w-full text-xs" />
           </div>
           <div>
             <Label className="text-xs mb-1">Comment</Label>

@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog';
 import { Check, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -89,11 +90,10 @@ export function EditReleaseModal({
                 <label htmlFor="release-date" className="text-xs text-muted-foreground">
                   Release Date
                 </label>
-                <Input
+                <DatePicker
                   id="release-date"
-                  type="date"
                   value={editDate}
-                  onChange={(e) => setEditDate(e.target.value)}
+                  onChange={setEditDate}
                   disabled={isSaving}
                 />
               </div>
