@@ -2501,4 +2501,52 @@ After quote`;
       expect(container.querySelector('script')).toBeNull();
     });
   });
+
+  // --- Strikethrough named-link display text (wiki-strikethrough-dashes) ---
+  //
+  // Jira wiki strikethrough `-text-` wrapping a named-link display label —
+  // `[-text-|url]` — never rendered struck-through. jira2md's own
+  // strikethrough rule requires whitespace immediately before the opening
+  // `-` and after the closing `-`; inside `[-text-|url]` the opening `-` is
+  // preceded by `[` and the closing `-` is followed by `|` (neither is
+  // whitespace), so the rule never matches. The untouched `-text-` then
+  // falls through to jira2md's Named Links rule as literal display text,
+  // producing a plain link labelled "-text-" instead of a struck-through
+  // "text" link.
+  //
+  // Fix: preprocessJiraMarkup converts `[-text-|url]` to `[<del>text</del>|url]`
+  // BEFORE jira2md runs, bypassing jira2md's whitespace-gated strikethrough
+  // regex entirely.
+  describe('strikethrough named-link display text (wiki-strikethrough-dashes)', () => {
+    it('renders [-text-|url] as a struck-through link, not literal dashes', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="[-text-|https://www.example.com]" />,
+      );
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://www.example.com');
+      const del = link?.querySelector('del');
+      expect(del).not.toBeNull();
+      expect(del?.textContent).toBe('text');
+      // Must not contain the literal dash characters anywhere in the link text.
+      expect(link?.textContent).not.toContain('-text-');
+    });
+
+    it('leaves a plain link with a hyphenated (non-strikethrough) label unaffected', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="[well-known-term|https://www.example.com]" />,
+      );
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.querySelector('del')).toBeNull();
+      expect(link?.textContent).toBe('well-known-term');
+    });
+
+    it('leaves ordinary mid-sentence strikethrough (whitespace-bounded) unaffected', () => {
+      const { container } = render(<WikiRenderer wikiText="this -text- is struck" />);
+      const del = container.querySelector('del');
+      expect(del).not.toBeNull();
+      expect(del?.textContent).toBe('text');
+    });
+  });
 });

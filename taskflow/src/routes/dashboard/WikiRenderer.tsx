@@ -1034,6 +1034,35 @@ export function preprocessJiraMarkup(
     match.replace(/_/g, '\x00USCORE\x00'),
   );
 
+  // wiki-strikethrough-dashes: Jira strikethrough markup `-text-` wrapping a
+  // named-link display label — `[-text-|url]` — never renders struck-through.
+  // jira2md's own strikethrough rule (`/(\s+)-(\S+.*?\S)-(\s+)/g`, applied in
+  // to_markdown() further down the pipeline) REQUIRES whitespace immediately
+  // before the opening `-` and after the closing `-`. Inside `[-text-|url]`
+  // the opening `-` is immediately preceded by `[` and the closing `-` is
+  // immediately followed by `|` — neither is whitespace, so the rule never
+  // matches. The untouched `-text-` then falls through to jira2md's Named
+  // Links rule (`/\[(.+?)\|(.+?)\]/g` → `[$1]($2)`), which treats the dashes
+  // as literal display-text characters, producing a plain link labelled
+  // "-text-" instead of a struck-through "text" link.
+  // Fix: convert the display-text strikethrough directly to `<del>text</del>`
+  // HERE — before jira2md ever sees the string — so jira2md's Named Links
+  // rule extracts `[<del>text</del>](url)` unmodified and rehype-raw renders
+  // the struck-through link text natively. HTML (not markdown `~~text~~`) is
+  // used deliberately: jira2md's Subscript rule (`/~([^~]*)~/g` →
+  // `<sub>$1</sub>`) runs on the same string and would immediately pair up
+  // adjacent `~` characters in `~~text~~`, corrupting it into
+  // `<sub></sub>text<sub></sub>` — the same "convert straight to HTML to
+  // dodge jira2md's own regexes" technique already used above for
+  // `{*}bold{*}` and `{_}italic{_}`. `<del>` is in rehype-sanitize's
+  // defaultSchema, so it survives sanitisation unchanged. Only the
+  // display-text side of a named link is handled (the reported/expected
+  // shape); the URL portion is left untouched.
+  result = result.replace(
+    /\[-(\S(?:[^|\]\n]*\S)?)-\|([^\]\n]+)\]/g,
+    (_match, label: string, url: string) => `[<del>${label}</del>|${url}]`,
+  );
+
   return { text: result, codeBlockBodies };
 }
 
