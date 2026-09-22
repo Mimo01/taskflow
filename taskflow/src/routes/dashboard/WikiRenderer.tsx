@@ -782,6 +782,20 @@ export function preprocessJiraMarkup(
   // The table-row pass above ensures no `\\` remains in table rows by this point.
   result = result.replace(/[ \t]*\\\\[ \t]*\n/g, '  \n');
   result = result.replace(/[ \t]\\\\[ \t]/g, '  \n');
+  // jira-wiki-italic-non-ascii: the two whitespace-padded patterns above miss a
+  // Jira `\\` hard break that directly touches adjacent text on one or both sides
+  // (no ASCII space/tab neighbor) — e.g. `Project\\_Špecifikácia:_` where a
+  // non-breaking space or no space at all precedes/follows the marker. Left
+  // unconverted, the `\\` keeps two logically separate lines glued onto ONE
+  // source line; jira2md's per-line italic/bold regexes (`/_(\S.*)_/g`,
+  // `/\*(\S.*)\*/g`) are greedy and pair the FIRST opening delimiter with the
+  // LAST closing delimiter on that line, corrupting everything between two
+  // separate `_..._`/`*...*` spans. Convert any remaining `\\\\` unconditionally
+  // to a plain `\n` — remark-breaks (registered in the react-markdown pipeline)
+  // treats every soft line break as a hard break, so no trailing two-space
+  // padding is needed. Mirrors the unconditional `\\` → `<br/>` handling already
+  // used for table rows in mergeOpenTableRows / the single-line-table pass above.
+  result = result.replace(/\\\\/g, '\n');
 
   // Images: !filename.png|options! or !filename.png! → resolve via attachment map.
   // Always run unconditionally so that Jira image-option syntax (!file.png|width=N!)
@@ -911,6 +925,40 @@ export function preprocessJiraMarkup(
     },
   );
 
+  // jira-wiki-italic-non-ascii (round 2): protect underscores inside remaining
+  // `[display|url]` / `[url]` link bracket syntax from jira2md's per-line,
+  // greedy italic regex (`/_(\S.*)_/g`) and bold regex (`/\*(\S.*)\*/g`).
+  // jira2md runs Bold/Italic BEFORE it extracts Named/Un-named links, and its
+  // `.` does not match `\n` but matches every other character — including `_`,
+  // `|`, `[`, `]`. So an underscore anywhere inside a link's URL or display
+  // text on the SAME line as a preceding `_..._` span becomes a candidate
+  // delimiter: the greedy match pairs the span's opening `_` with the
+  // underscore inside the link instead of the span's own closing `_`,
+  // swallowing the real closing `_` as literal text and leaving the italic
+  // span unrendered (reported shape: `*Špecifikácia:_ [TEXT|url_with_underscore]`
+  // instead of `<em>Špecifikácia:</em> <a>TEXT</a>`). This is NOT
+  // theoretical — reproduced directly against jira2md.to_markdown().
+  // `fixMarkdownLinkUnderscores` (below) already fixes the narrower case where
+  // BOTH the opening and closing `_` of the corrupting pair live entirely
+  // inside the URL — but it runs AFTER jira2md and cannot recover a span whose
+  // real closing delimiter was stolen by an unrelated link elsewhere on the
+  // line. The only complete fix is to stop jira2md from ever seeing the
+  // underscore in the first place, by protecting it here.
+  //
+  // This mirrors the placeholder-swap technique `normalizeTableCellInlineFormatting`
+  // already uses for the identical problem scoped to table cells ("This
+  // prevents the italic regex from matching underscores inside URLs") —
+  // extended here to ALL prose (table cells already resolve their own
+  // bold/italic locally before jira2md and are unaffected by this pass).
+  // The placeholder uses `\x00` (a null byte that can never appear in real
+  // wiki text) so it cannot collide with any other content or be
+  // reintroduced by a later step; it is restored to `_` by
+  // `fixMarkdownLinkUnderscores` after jira2md and link extraction complete.
+  result = result.replace(/\[([^\]\n]*)\]/g, (match) =>
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is intentionally used as a unique sentinel — it cannot appear in wiki markup text, making false-positive matches impossible
+    match.replace(/_/g, '\x00USCORE\x00'),
+  );
+
   return result;
 }
 
@@ -959,6 +1007,15 @@ function fixMarkdownLinkUnderscores(md: string): string {
   result = result.replace(/<(https?:\/\/[^>]*)>/g, (_match, url: string) => {
     return `<${url.replace(/\*/g, '_')}>`;
   });
+  // jira-wiki-italic-non-ascii (round 2): restore the `\x00USCORE\x00` placeholder
+  // preprocessJiraMarkup inserted for every underscore inside `[...]` link bracket
+  // syntax (protecting it from jira2md's per-line italic regex, which runs BEFORE
+  // link extraction and would otherwise pair an unrelated preceding `_..._` span's
+  // opening delimiter with an underscore inside the link). By this point jira2md
+  // has already converted the brackets into `[text](url)` / `<url>` markdown link
+  // forms, so it's safe to restore the placeholder back to a literal `_` everywhere.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is the same sentinel inserted by preprocessJiraMarkup — cannot appear in real content
+  result = result.replace(/\x00USCORE\x00/g, '_');
   return result;
 }
 

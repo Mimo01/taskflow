@@ -1182,6 +1182,95 @@ After quote`;
     });
   });
 
+  // --- Unpadded hard-break italic corruption (jira-wiki-italic-non-ascii) ---
+  //
+  // Root cause: preprocessJiraMarkup's global `\\` (Jira hard break) → markdown
+  // hard-break conversion required an ASCII space/tab on at least one side of
+  // the `\\` marker. When a `\\` directly touches adjacent text with no such
+  // padding (e.g. a non-breaking space, or no space at all — commonly seen
+  // around non-ASCII/diacritic words pasted from rich-text sources), the `\\`
+  // was left unconverted, keeping two logically separate lines glued onto ONE
+  // source line. jira2md's per-line italic/bold regexes are greedy across the
+  // whole line, so they paired the FIRST opening delimiter with the LAST
+  // closing delimiter, corrupting both spans and any text between them.
+  describe('unpadded hard-break italic corruption (jira-wiki-italic-non-ascii)', () => {
+    it('two _..._ spans joined by an unpadded \\\\ hard break both render as separate <em>', () => {
+      const fixture = ' _OP:_ Project\\\\_Špecifikácia:_ TEXT';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const emphasized = container.querySelectorAll('em');
+      expect(emphasized).toHaveLength(2);
+      expect(emphasized[0]?.textContent).toBe('OP:');
+      expect(emphasized[1]?.textContent).toBe('Špecifikácia:');
+      // Must NOT leave a literal backslash or stray asterisk/underscore in the output.
+      expect(container.textContent).not.toContain('\\');
+      expect(container.textContent).not.toContain('*');
+    });
+
+    it('two adjacent real newline-separated _..._ spans both render as separate <em> (baseline)', () => {
+      const fixture = ' _OP:_ Project\n_Špecifikácia:_ TEXT';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const emphasized = container.querySelectorAll('em');
+      expect(emphasized).toHaveLength(2);
+      expect(emphasized[0]?.textContent).toBe('OP:');
+      expect(emphasized[1]?.textContent).toBe('Špecifikácia:');
+    });
+  });
+
+  // --- Link-embedded underscore corrupts preceding italic span (jira-wiki-italic-non-ascii round 2) ---
+  //
+  // Root cause: jira2md's `to_markdown()` applies its per-line, greedy italic
+  // regex (`/_(\S.*)_/g`) and bold regex (`/\*(\S.*)\*/g`) BEFORE it extracts
+  // `[display|url]` / `[url]` link syntax. `.` does not match `\n` but matches
+  // every other character, including `_`, `|`, `[`, `]`. So an underscore
+  // anywhere inside a link's URL or display text on the SAME line as a
+  // preceding `_..._` span becomes a candidate delimiter: the greedy match
+  // pairs the span's opening `_` with the underscore inside the link instead
+  // of the span's own closing `_`, swallowing the real closing `_` as literal
+  // text and leaving the span unrendered (e.g. `*Špecifikácia:_ [TEXT|url]`
+  // instead of `<em>Špecifikácia:</em> <a>TEXT</a>`).
+  //
+  // Fix: preprocessJiraMarkup now protects every underscore inside remaining
+  // `[...]` bracket/link syntax with a `\x00USCORE\x00` placeholder before
+  // jira2md ever runs (mirroring the same placeholder technique
+  // normalizeTableCellInlineFormatting already used for table cells).
+  // fixMarkdownLinkUnderscores restores the placeholder to `_` after jira2md
+  // and link extraction complete.
+  describe('link-embedded underscore corrupts preceding italic span (jira-wiki-italic-non-ascii round 2)', () => {
+    it('an italic span followed by a [label|url] link whose URL contains an underscore both render correctly', () => {
+      const fixture = ' _OP:_ Project\n_Špecifikácia:_ [TEXT|https://example.com/a_b]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const emphasized = container.querySelectorAll('em');
+      expect(emphasized).toHaveLength(2);
+      expect(emphasized[0]?.textContent).toBe('OP:');
+      expect(emphasized[1]?.textContent).toBe('Špecifikácia:');
+      const link = container.querySelector('a');
+      expect(link?.getAttribute('href')).toBe('https://example.com/a_b');
+      expect(link?.textContent).toBe('TEXT');
+      // No stray literal underscore/asterisk placeholder should leak into the output.
+      expect(container.textContent).not.toContain('*');
+      expect(container.textContent).not.toContain('\u0000');
+    });
+
+    it('an italic span followed by a [label|url] link whose DISPLAY TEXT contains an underscore both render correctly', () => {
+      const fixture = ' _OP:_ Project\n_Špecifikácia:_ [a_label|https://example.com]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const emphasized = container.querySelectorAll('em');
+      expect(emphasized).toHaveLength(2);
+      expect(emphasized[1]?.textContent).toBe('Špecifikácia:');
+      const link = container.querySelector('a');
+      expect(link?.textContent).toBe('a_label');
+      expect(container.textContent).not.toContain('\u0000');
+    });
+
+    it('preserves the pre-existing two-underscores-inside-one-URL fix (fixMarkdownLinkUnderscores)', () => {
+      const fixture = 'See [link|https://x.com/hash=A_B_C]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link?.getAttribute('href')).toBe('https://x.com/hash=A_B_C');
+      expect(link?.textContent).toBe('link');
+    });
+  });
+
   // --- Monospace-wrapped links (wiki-url-not-clickable) ---
   //
   // Jira allows {{[URL]}} and {{[display|URL]}} where the outer {{...}} is
