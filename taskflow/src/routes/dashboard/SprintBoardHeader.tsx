@@ -3,10 +3,10 @@
  * name (with a state badge) and, when present, its goal as de-emphasized
  * inline text.
  *
- * Styled to match the Backlog section-header treatment (bg-muted/40 tint,
- * solid border-b) so the sticky chrome reads as one consistent app pattern
- * rather than a one-off. Returns null when there is nothing to show (no
- * name and no goal).
+ * Styled to match the Backlog page header band (untinted `px-4 py-3
+ * border-b`, `text-lg font-semibold` title) so the Sprint Board reads as an
+ * app-level page rather than a sub-toolbar. Returns null when there is
+ * nothing to show (no name and no goal).
  */
 import { Badge } from '@/components/ui/badge';
 
@@ -27,12 +27,12 @@ export function SprintBoardHeader({ name, goal, state }: SprintBoardHeaderProps)
     <header
       role="banner"
       aria-label="Sprint header"
-      className="flex items-center gap-2 min-w-0 bg-muted/40 border-b border-border px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5"
+      className="flex items-center gap-2 min-w-0 border-b px-4 py-3"
     >
       {trimmedName && (
-        <span className="shrink-0 min-w-0 max-w-[40%] truncate text-sm font-semibold text-foreground">
+        <h1 className="min-w-0 max-w-[40%] truncate text-lg font-semibold text-foreground">
           {trimmedName}
-        </span>
+        </h1>
       )}
       {state && (
         <Badge variant="secondary" tone="green" className="shrink-0">
