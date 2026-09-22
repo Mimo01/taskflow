@@ -12,6 +12,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -110,12 +111,7 @@ export function EditWorklogForm({
       </div>
       <div>
         <Label className="text-xs mb-1">Date</Label>
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="h-8 text-xs"
-        />
+        <DatePicker value={date} onChange={setDate} size="sm" className="h-8 w-full text-xs" />
       </div>
       <div>
         <Label className="text-xs mb-1">Comment</Label>

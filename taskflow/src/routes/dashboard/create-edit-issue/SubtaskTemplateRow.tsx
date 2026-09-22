@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -377,13 +378,14 @@ export function SubtaskTemplateRow({
             <label htmlFor={`${row.id}-duedate`} className="text-xs text-muted-foreground">
               Due date
             </label>
-            <Input
+            <DatePicker
               id={`${row.id}-duedate`}
-              className="h-8 w-40 text-sm"
-              type="date"
+              className="w-40 text-sm"
+              size="sm"
               value={row.duedate ?? ''}
-              onChange={(e) => onChange({ duedate: e.target.value || null })}
+              onChange={(v) => onChange({ duedate: v || null })}
               disabled={isDisabled}
+              clearable
             />
           </div>
 
