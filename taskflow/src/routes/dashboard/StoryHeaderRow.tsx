@@ -99,7 +99,7 @@ export function StoryHeaderRow({
   const useKeyBodySplit = !!onOpenIssue;
 
   const rowClassName = cn(
-    'flex items-center gap-2 px-3 py-2 density-compact:py-1 density-comfortable:py-3 transition-colors border-b',
+    'flex items-center gap-2 density-compact:gap-1.5 px-3 py-2 density-compact:px-2 density-compact:py-0.5 density-comfortable:py-3 transition-colors border-b',
     useKeyBodySplit && 'cursor-pointer',
     isExpanded
       ? isFlagged
@@ -123,18 +123,23 @@ export function StoryHeaderRow({
         aria-label={isExpanded ? 'Collapse story' : 'Expand story'}
       >
         <ChevronRight
-          className={cn('size-4 transition-transform duration-200', isExpanded && 'rotate-90')}
+          className={cn(
+            'size-4 density-compact:size-3.5 transition-transform duration-200',
+            isExpanded && 'rotate-90',
+          )}
         />
       </button>
 
       {/* Key + summary — key navigates full-page (PEEK-05); summary bubbles to body → peek */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
+      <div className="flex items-center gap-2 density-compact:gap-1.5 flex-1 min-w-0">
+        {isFlagged && (
+          <Flag className="size-3.5 density-compact:size-3 text-yellow-700 dark:text-yellow-300 shrink-0" />
+        )}
         {issueTypeName && <IssueTypeIcon typeName={issueTypeName} />}
         <button
           type="button"
           className={cn(
-            'group font-mono text-xs text-muted-foreground shrink-0 cursor-pointer',
+            'group font-mono text-xs density-compact:text-[0.625rem] text-muted-foreground shrink-0 cursor-pointer',
             statusCategoryKey === 'done'
               ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
               : 'group-hover:underline',
@@ -147,15 +152,15 @@ export function StoryHeaderRow({
           {storyKey}
         </button>
         {/* Story priority icon — PriorityIcon guards null/missing priority */}
-        <PriorityIcon priority={priority} />
-        <span className="text-sm font-medium truncate">{summary}</span>
+        <PriorityIcon priority={priority} className="w-3.5 h-3.5 shrink-0 density-compact:size-3" />
+        <span className="text-sm font-medium density-compact:text-xs truncate">{summary}</span>
       </div>
 
       {/* Assignee avatar + name — only rendered when story has an assignee */}
       {assigneeDisplayName && (
-        <div className="shrink-0 flex items-center gap-1.5">
+        <div className="shrink-0 flex items-center gap-1.5 density-compact:gap-1">
           <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
-          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+          <span className="text-xs density-compact:text-[0.625rem] text-muted-foreground truncate max-w-[120px] density-compact:max-w-[90px]">
             {assigneeDisplayName}
           </span>
         </div>
@@ -170,7 +175,7 @@ export function StoryHeaderRow({
             onEpicClick?.(epicKey);
           }}
           className={cn(
-            'shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
+            'shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 text-xs density-compact:text-[0.625rem] font-medium hover:opacity-80 transition-opacity',
             epicColorResult.className,
           )}
           style={epicColorResult.style}
@@ -184,12 +189,14 @@ export function StoryHeaderRow({
       <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
 
       {/* Subtask count */}
-      <span className="shrink-0 min-w-[5rem] text-xs text-muted-foreground">
+      <span className="shrink-0 min-w-[5rem] density-compact:min-w-[4rem] text-xs density-compact:text-[0.625rem] text-muted-foreground">
         {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
       </span>
 
       {transitionError && (
-        <span className="shrink-0 text-xs text-destructive">{transitionError}</span>
+        <span className="shrink-0 text-xs density-compact:text-[0.625rem] text-destructive">
+          {transitionError}
+        </span>
       )}
     </>
   );

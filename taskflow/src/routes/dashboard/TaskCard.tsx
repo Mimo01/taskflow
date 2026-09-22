@@ -149,13 +149,15 @@ function CardBody({
       {/* Top row: flag icon (when flagged) + issue key (left) + issue type name (right) */}
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1">
-          {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
+          {isFlagged && (
+            <Flag className="size-3.5 density-compact:size-3 text-yellow-700 dark:text-yellow-300 shrink-0" />
+          )}
           {useKeyButton ? (
             /* PEEK-05: key button — stopPropagation prevents outer body onOpenIssue */
             <button
               type="button"
               className={cn(
-                'text-xs font-mono text-muted-foreground cursor-pointer',
+                'text-xs font-mono text-muted-foreground cursor-pointer density-compact:text-[0.625rem]',
                 isDoneStatus(issue.fields.status.statusCategory)
                   ? 'line-through hover:[text-decoration-line:underline_line-through]'
                   : 'hover:underline',
@@ -171,7 +173,7 @@ function CardBody({
             /* Legacy path: plain span inside <button> outer */
             <span
               className={cn(
-                'text-xs font-mono text-muted-foreground',
+                'text-xs font-mono text-muted-foreground density-compact:text-[0.625rem]',
                 isDoneStatus(issue.fields.status.statusCategory)
                   ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
                   : 'group-hover:underline',
@@ -182,7 +184,7 @@ function CardBody({
           )}
         </span>
         {issueTypeName && (
-          <span className="text-[0.6875rem] text-muted-foreground/60 truncate max-w-[50%] text-right">
+          <span className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground/60 truncate max-w-[50%] text-right">
             {issueTypeName}
           </span>
         )}
@@ -190,7 +192,7 @@ function CardBody({
 
       {/* Summary — max 2 lines */}
       <div
-        className="text-sm leading-snug overflow-hidden"
+        className="text-sm leading-snug density-compact:text-xs density-compact:leading-tight overflow-hidden"
         style={{
           display: '-webkit-box',
           WebkitLineClamp: 2,
@@ -202,8 +204,8 @@ function CardBody({
       </div>
 
       {/* Bottom row: assignee avatar + name (left) + story points + status badge (right) */}
-      <div className="flex items-center justify-between mt-1">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between mt-1 density-compact:mt-0">
+        <div className="flex items-center gap-1.5 density-compact:gap-1 min-w-0">
           {assignee && (
             <>
               <CachedAvatar url={avatarUrl} name={displayName} size={20} />
@@ -214,18 +216,19 @@ function CardBody({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 density-compact:gap-1 shrink-0">
           {/* Priority icon — actual Jira priority.iconUrl image (R2).
               PriorityIcon guards null/empty iconUrl (renders nothing). */}
           <PriorityIcon
             priority={
               issue.fields.priority as { name?: string; iconUrl?: string } | null | undefined
             }
+            className="w-3.5 h-3.5 shrink-0 density-compact:size-3"
           />
 
           {/* Story points badge */}
           {storyPoints != null && storyPoints > 0 && (
-            <span className="text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
+            <span className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none">
               {storyPoints}
             </span>
           )}
@@ -235,7 +238,7 @@ function CardBody({
               (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
           {timeInColumn?.enteredStatus != null && (
             <span
-              className="text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
+              className="text-[0.6875rem] density-compact:text-[0.625rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none"
               title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
             >
               {formatTimeAgoStrict(timeInColumn.enteredStatus)}
@@ -259,13 +262,20 @@ function CardBody({
             e.stopPropagation();
             onToggle?.();
           }}
-          className="flex items-center gap-1 p-1 -mx-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1 p-1 density-compact:p-0.5 -mx-1 density-compact:-mx-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
           aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
         >
-          <Badge variant="secondary" className="text-xs py-0 pointer-events-none">
+          <Badge
+            variant="secondary"
+            className="text-xs py-0 density-compact:text-[0.625rem] pointer-events-none"
+          >
             {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
           </Badge>
-          {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+          {isExpanded ? (
+            <ChevronDown className="size-4 density-compact:size-3.5" />
+          ) : (
+            <ChevronRight className="size-4 density-compact:size-3.5" />
+          )}
         </button>
       )}
     </>
@@ -348,7 +358,7 @@ export default function TaskCard({
   };
 
   const outerClassName = cn(
-    'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
+    'group border rounded-lg px-2 py-2 density-compact:px-1.5 density-compact:py-0.5 density-compact:gap-0.5 density-compact:rounded-md density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
     'border-l-[3px]',
     issueTypeStripeClass(issue.fields.issuetype),
     isFlagged &&
