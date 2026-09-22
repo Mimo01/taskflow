@@ -70,7 +70,7 @@ import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BoardResolutionDialog } from './BoardResolutionDialog';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
-import { SprintBoardHeader } from './SprintBoardHeader';
+import { SprintBoardHeader, SprintBoardHeaderSkeleton } from './SprintBoardHeader';
 import { SprintBoardSkeleton } from './SprintBoardSkeleton';
 import { StoryHeaderRow } from './StoryHeaderRow';
 import {
@@ -1615,12 +1615,18 @@ export default function SprintBoardTab() {
       <div ref={boardRef} className="flex flex-col h-full">
         {/* Fixed chrome: sprint header + chips + filters — never scroll */}
         <div className="shrink-0 bg-background">
-          {!showSkeleton && !isError && data && activeSprint && (
-            <SprintBoardHeader
-              name={activeSprint.name}
-              goal={activeSprint.goal}
-              state={activeSprint.state}
-            />
+          {showSkeleton ? (
+            <SprintBoardHeaderSkeleton />
+          ) : (
+            !isError &&
+            data &&
+            activeSprint && (
+              <SprintBoardHeader
+                name={activeSprint.name}
+                goal={activeSprint.goal}
+                state={activeSprint.state}
+              />
+            )
           )}
           {!showSkeleton && !isError && data && (
             <QuickFilterChipRow labels={filterOptions.labels} />
