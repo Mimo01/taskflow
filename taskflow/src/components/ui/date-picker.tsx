@@ -52,7 +52,7 @@ function DatePicker({
   const selected = parseLocalDate(value);
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative flex items-center">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           id={id}
@@ -61,7 +61,7 @@ function DatePicker({
           data-slot="date-picker-trigger"
           className={cn(
             buttonVariants({ variant: 'outline', size }),
-            'justify-start font-normal',
+            'w-full min-w-0 justify-start font-normal',
             !selected && 'text-muted-foreground',
             clearable && selected && 'pr-7',
             className,

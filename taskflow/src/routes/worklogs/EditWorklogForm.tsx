@@ -111,7 +111,7 @@ export function EditWorklogForm({
       </div>
       <div>
         <Label className="text-xs mb-1">Date</Label>
-        <DatePicker value={date} onChange={setDate} size="sm" className="h-8 w-full text-xs" />
+        <DatePicker value={date} onChange={setDate} size="sm" className="h-8 text-xs" />
       </div>
       <div>
         <Label className="text-xs mb-1">Comment</Label>
