@@ -1615,7 +1615,7 @@ export default function SprintBoardTab() {
       <div ref={boardRef} className="flex flex-col h-full">
         {/* Fixed chrome: sprint header + chips + filters — never scroll */}
         <div className="shrink-0 bg-background">
-          {showSkeleton ? (
+          {isLoading ? (
             <SprintBoardHeaderSkeleton />
           ) : (
             !isError &&

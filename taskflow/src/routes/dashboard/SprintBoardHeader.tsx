@@ -1,14 +1,13 @@
 /**
  * SprintBoardHeader -- fixed chrome showing the active sprint's name (with a
  * state badge) on the first line and, when present, its goal on a second
- * line with a Target icon.
+ * line below it.
  *
  * Styled to match the Backlog page header band (untinted `px-4 py-3
  * border-b`, `text-lg font-semibold` title) so the Sprint Board reads as an
  * app-level page rather than a sub-toolbar. Returns null when there is
  * nothing to show (no name and no goal).
  */
-import { Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -44,15 +43,12 @@ export function SprintBoardHeader({ name, goal, state }: SprintBoardHeaderProps)
         )}
       </div>
       {trimmedGoal && (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Target className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span
-            className="min-w-0 truncate pr-0.5 text-xs text-muted-foreground"
-            title={goal ?? undefined}
-          >
-            {trimmedGoal}
-          </span>
-        </div>
+        <span
+          className="min-w-0 truncate pr-0.5 text-xs text-muted-foreground"
+          title={goal ?? undefined}
+        >
+          {trimmedGoal}
+        </span>
       )}
     </header>
   );

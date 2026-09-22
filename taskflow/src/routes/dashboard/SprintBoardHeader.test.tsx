@@ -72,15 +72,14 @@ describe('SprintBoardHeader', () => {
     expect(banner.className).not.toContain('bg-muted/40');
   });
 
-  it('renders the goal on a line below the title, with a leading icon', () => {
+  it('renders the goal on a line below the title', () => {
     render(<SprintBoardHeader name="Sprint 42" goal="Ship the thing" />);
     const goal = screen.getByText('Ship the thing');
-    const goalRow = goal.parentElement;
-    expect(goalRow?.querySelector('svg')).toBeInTheDocument();
 
     const heading = screen.getByRole('heading', { level: 1, name: 'Sprint 42' });
     const titleRow = heading.parentElement;
-    expect(titleRow).not.toBe(goalRow);
+    expect(titleRow).not.toBe(goal.parentElement);
+    expect(goal.querySelector('svg')).toBeNull();
   });
 });
 
