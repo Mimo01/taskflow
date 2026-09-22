@@ -11,22 +11,8 @@
  * UTC or at day boundaries.
  */
 
+import { toLocalDateString } from '@/lib/local-date';
 import type { ScheduleDayType } from '@/services/tempo';
-
-/**
- * Format a Date as a YYYY-MM-DD string using its LOCAL calendar components.
- *
- * Never use toISOString() here: that converts to UTC, so for a Date evaluated
- * by local getDay()/getDate() the returned string can land on the wrong day
- * (off-by-one) for users east of UTC or at the edges of the day. Local
- * components keep the string aligned with the day the rest of the logic sees.
- */
-function toLocalDateString(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 /**
  * Resolve the "yesterday" date for standup purposes — the most recent working day
