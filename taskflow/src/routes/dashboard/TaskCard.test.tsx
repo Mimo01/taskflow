@@ -2,22 +2,19 @@
 // Requirements covered: PEEK-05
 
 /**
- * TaskCard tests — Phase 73 Plan 02 (timeInColumn badge slot).
+ * TaskCard tests.
  *
- * Covers the new `timeInColumn` prop (UI-SPEC §1 / D-05 / R-03):
- *   - Absent prop → no badge rendered (no element with title prefix "Entered status").
- *   - Present prop → a small muted badge appears with strict text (/^\d+[smhd]$/)
- *     and a `title` attribute starting with "Entered status ".
- *   - Badge sits inside the existing shrink-0 row, AFTER the story-points chip
- *     and BEFORE the showStatus badge.
- *
- * The story-points chip and showStatus badge ship `text-[11px] ... bg-muted ...`
- * classes too, so we identify the timeInColumn badge specifically via its
- * `title` attribute (no other element on the card carries `title="Entered status …"`).
+ * Covers:
+ *   - PEEK-05 (Phase 77 Plan 04): key/body click split — clicking the issue key
+ *     button fires onIssueClick (stopPropagation), clicking the card body fires
+ *     onOpenIssue.
+ *   - Regression: the card renders with no "entered status" time-in-column chip
+ *     (removed quick-260922-e07 — no element carries a title starting with
+ *     "Entered status ").
  */
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 // lucide-react icons are SVGs — stub for jsdom stability (mirrors SprintBoardTab.test).
 vi.mock('lucide-react', async (importOriginal) => {
@@ -44,8 +41,7 @@ function makeIssue(overrides: Record<string, unknown> = {}) {
         statusCategory: { key: 'indeterminate' },
       },
       assignee: null,
-      // Provide a non-null, > 0 story-points value so the chip renders — this
-      // is what we DOM-order the timeInColumn badge against.
+      // Provide a non-null, > 0 story-points value so the story-points chip renders.
       customfield_10016: 5,
       issuetype: { name: 'Story', subtask: false },
       ...overrides,
@@ -53,82 +49,10 @@ function makeIssue(overrides: Record<string, unknown> = {}) {
   } as Parameters<typeof TaskCard>[0]['issue'];
 }
 
-describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
-  // Pin a deterministic "now" so formatTimeAgoStrict / formatTimeAgo are
-  // reproducible without flake on slow CI runs.
-  const FIXED_NOW = new Date('2026-05-29T12:00:00.000Z').getTime();
-
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(FIXED_NOW);
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('does not render the timeInColumn badge when the prop is undefined', () => {
-    render(<TaskCard issue={makeIssue()} />);
-    // No element on the card should expose a title starting with "Entered status".
+describe('TaskCard — no entered-status chip', () => {
+  it('does not render an entered-status time chip', () => {
+    render(<TaskCard issue={makeIssue()} showStatus />);
     expect(screen.queryByTitle(/^Entered status /)).toBeNull();
-  });
-
-  it('renders the badge with strict text + title when timeInColumn.enteredStatus is present', () => {
-    // 1d 1h ago — strict text should round to "1d", title should mention days/hours.
-    const enteredStatus = FIXED_NOW - 90_000_000; // ~1.04 days
-    render(<TaskCard issue={makeIssue()} timeInColumn={{ enteredStatus }} />);
-
-    const badge = screen.getByTitle(/^Entered status /);
-    expect(badge).toBeTruthy();
-    // Strict text format: small integer + s|m|h|d (per formatTimeAgoStrict contract).
-    expect(badge.textContent ?? '').toMatch(/^\d+[smhd]$/);
-    // UI-SPEC §1 className contract — muted chip styling, matches story-points chip.
-    // rem-based per quick task 260812-mry (bounded text-[Npx] scaling sweep).
-    expect(badge.className).toContain('text-[0.6875rem]');
-    expect(badge.className).toContain('bg-muted');
-  });
-
-  it('DOM-orders the badge after the story-points chip and before showStatus', () => {
-    const enteredStatus = FIXED_NOW - 5 * 60_000; // 5 minutes
-    const { container } = render(
-      <TaskCard issue={makeIssue()} timeInColumn={{ enteredStatus }} showStatus />,
-    );
-
-    // The shrink-0 row holds story-points + timeInColumn + status. Locate it
-    // via the timeInColumn badge (the only element on the card carrying a
-    // title that starts with "Entered status ").
-    const badge = screen.getByTitle(/^Entered status /);
-    const row = badge.parentElement as HTMLElement;
-    expect(row).not.toBeNull();
-    expect(row.className).toContain('shrink-0');
-
-    const children = within(row)
-      .getAllByText(/.*/)
-      .filter((el) => el.parentElement === row);
-    // Look for the story-points chip (text content === "5"), the timeInColumn
-    // badge (its textContent matches \d+[smhd]), and the status badge ("In
-    // Progress"). Assert relative order via Node.compareDocumentPosition.
-    const storyPointsChip = Array.from(row.children).find((n) => n.textContent === '5') as
-      | HTMLElement
-      | undefined;
-    const statusBadge = Array.from(row.children).find((n) => n.textContent === 'In Progress') as
-      | HTMLElement
-      | undefined;
-
-    if (!storyPointsChip || !statusBadge) throw new Error('row children missing');
-    expect(children.length).toBeGreaterThanOrEqual(3);
-
-    // story-points chip precedes the timeInColumn badge
-    expect(
-      storyPointsChip.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // timeInColumn badge precedes the status badge
-    expect(
-      badge.compareDocumentPosition(statusBadge) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    // Silence "unused container" lint:
-    expect(container).toBeTruthy();
   });
 });
 

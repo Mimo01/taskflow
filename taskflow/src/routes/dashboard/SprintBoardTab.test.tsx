@@ -19,7 +19,7 @@
  *
  * The test file covers:
  *   - existing HIER-02 / EPIC-02 / BOARD-* / FILT-02 behavior (preserved)
- *   - new Plan 02 assertions: orphan-subtask warnOnce, timeInColumn badge wired through
+ *   - new Plan 02 assertions: orphan-subtask warnOnce
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -450,29 +450,6 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     // observability call, which is the deterministic signal we own.
     await waitFor(() => {
       expect(warnOnceMock).toHaveBeenCalledWith('orphan-subtask', '99999');
-    });
-  });
-
-  it('forwards timeInColumn from adapted issue into TaskCard (badge wires through)', async () => {
-    const enteredStatus = Date.now() - 5 * 60_000; // 5 minutes ago
-    const story = makeIssue(
-      'PROJ-1',
-      'Card with timeInColumn',
-      false,
-      undefined,
-      'In Progress',
-      'indeterminate',
-    );
-    (story as Record<string, unknown>).timeInColumn = { enteredStatus };
-    await seedAllData([story]);
-
-    const { default: SprintBoardTab } = await import('./SprintBoardTab');
-    renderWithQuery(<SprintBoardTab />);
-
-    // The TaskCard renders a span with title starting with "Entered status ".
-    await waitFor(() => {
-      const badges = document.querySelectorAll('[title^="Entered status "]');
-      expect(badges.length).toBeGreaterThan(0);
     });
   });
 

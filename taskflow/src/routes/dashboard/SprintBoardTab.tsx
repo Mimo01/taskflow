@@ -576,9 +576,6 @@ function VirtualizedSwimlanes({
                             transitionError={cardErrors.get(card.key)}
                             isFlagged={isIssueFlagged(card, flaggedFieldKey)}
                             onToggleFlag={() => onToggleFlag(card.key)}
-                            timeInColumn={
-                              (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
-                            }
                             isDraggable
                             justDragged={justDragged}
                           />
@@ -601,9 +598,6 @@ function VirtualizedSwimlanes({
                           transitionError={cardErrors.get(card.key)}
                           isFlagged={isIssueFlagged(card, flaggedFieldKey)}
                           onToggleFlag={() => onToggleFlag(card.key)}
-                          timeInColumn={
-                            (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
-                          }
                           isDraggable
                           justDragged={justDragged}
                         />
@@ -748,10 +742,6 @@ function VirtualizedSwimlanes({
                                 transitionError={cardErrors.get(card.key)}
                                 isFlagged={isIssueFlagged(card, flaggedFieldKey)}
                                 onToggleFlag={() => onToggleFlag(card.key)}
-                                timeInColumn={
-                                  (card as { timeInColumn?: { enteredStatus: number } })
-                                    .timeInColumn
-                                }
                                 isDraggable
                                 justDragged={justDragged}
                               />
@@ -773,9 +763,6 @@ function VirtualizedSwimlanes({
                               transitionError={cardErrors.get(card.key)}
                               isFlagged={isIssueFlagged(card, flaggedFieldKey)}
                               onToggleFlag={() => onToggleFlag(card.key)}
-                              timeInColumn={
-                                (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
-                              }
                               isDraggable
                               justDragged={justDragged}
                             />
