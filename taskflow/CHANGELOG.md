@@ -2,6 +2,22 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.3] — 2026-09-22
+
+### Added
+
+- **Shared DatePicker across the app** — every date input (Worklogs filters, issue fields, and the rest) now uses a single calendar-based DatePicker built on react-day-picker, replacing the native/plain date inputs with a consistent style.
+- **Sprint Board — sticky, compact, and decluttered header** — the goal, chips, and filters now stay sticky while scrolling; compact density got tighter avatar/text/row sizing to fit more on screen; header now matches the Backlog page's style with the sprint goal on its own line and a loading skeleton; the per-card "entered status" timestamp was removed.
+
+### Fixed
+
+- **Jira wiki `+` character corrupting unrelated text with underline styling** — a stray `+` could trigger the underline-markup regex against text far outside its intended scope.
+- **Jira wiki strikethrough dashes rendering literally in named-link labels** — `-text-` inside a `[label|url]` link label wasn't recognized as strikethrough.
+- **Jira wiki bold spans merging near strikethrough** — adjacent bold (`*text*`) and strikethrough (`-text-`) delimiters could merge into a single bold span or fail to render the strikethrough.
+- **Jira wiki underscores in link brackets corrupted by italic regex** — underscores inside `[text|url]` brackets were incorrectly treated as italic delimiters, mangling the link.
+- **DatePicker clear (X) icon vertical alignment and default width** — the clear icon wasn't vertically centered, and the picker didn't default to full width like other form inputs.
+- **DatePicker deselect-click cleared the date even when not clearable** — clicking the selected day again cleared the value regardless of the `clearable` setting.
+
 ## [1.14.2] — 2026-09-17
 
 ### Added
