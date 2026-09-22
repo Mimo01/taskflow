@@ -180,7 +180,7 @@ function TransitionDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={`border-2 border-dashed rounded-md min-h-[80px] density-compact:min-h-[56px] density-comfortable:min-h-[96px] flex items-center justify-center text-xs font-semibold px-1 text-center transition-colors ${
+      className={`border-2 border-dashed rounded-md min-h-[80px] density-compact:min-h-[40px] density-comfortable:min-h-[96px] flex items-center justify-center text-xs density-compact:text-[0.625rem] font-semibold px-1 text-center transition-colors ${
         isOver ? tone.over : tone.idle
       }`}
     >
@@ -411,13 +411,15 @@ function VirtualizedSwimlanes({
 
       // Push-out offset: apply directly to DOM for 60fps smoothness.
       // When the next swimlane's header approaches from below, slide the pinned
-      // header upward pixel-by-pixel.
-      const HEADER_HEIGHT = 37; // StoryHeaderRow height in px (py-2 + text = ~37)
+      // header upward pixel-by-pixel. Measured from the mounted sticky header
+      // inner node (density- and font-scale-proof); 37 is only the pre-mount
+      // fallback (StoryHeaderRow default-density height in px).
+      const headerHeight = stickyHeaderInnerRef.current?.offsetHeight ?? 37;
       const currentItem = items.find((v) => v.index === foundIndex);
       let pushOffset = 0;
       if (currentItem) {
         const swimlaneEnd = currentItem.start + currentItem.size;
-        const headerBottom = relativeScroll + HEADER_HEIGHT;
+        const headerBottom = relativeScroll + headerHeight;
         if (headerBottom > swimlaneEnd) {
           pushOffset = headerBottom - swimlaneEnd;
         }
@@ -530,13 +532,13 @@ function VirtualizedSwimlanes({
                 return (
                   <div
                     key={col.key}
-                    className={`flex-1 min-w-0 min-h-[80px] density-compact:min-h-[56px] density-comfortable:min-h-[96px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
+                    className={`flex-1 min-w-0 min-h-[80px] density-compact:min-h-[40px] density-comfortable:min-h-[96px] flex flex-col gap-1.5 density-compact:gap-1 p-2 density-compact:p-0.5 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                   >
                     {subtasksLoading ? (
                       <Skeleton className="h-8 w-full" />
                     ) : colModel?.kind === 'split' ? (
                       // D-01: multi-transition column — render per-transition drop zones
-                      <div className="flex flex-col gap-1 h-full">
+                      <div className="flex flex-col gap-1 density-compact:gap-0.5 h-full">
                         {colModel.zones.map((zone) => (
                           <TransitionDropZone
                             key={zone.transitionId}
@@ -549,7 +551,7 @@ function VirtualizedSwimlanes({
                     ) : colModel?.kind === 'single' ? (
                       // D-02: single-transition column — one labelled drop zone, same
                       // visual as split. The col: id resolves via the column model.
-                      <div className="flex flex-col gap-1 h-full">
+                      <div className="flex flex-col gap-1 density-compact:gap-0.5 h-full">
                         <TransitionDropZone
                           id={`col:${col.key}`}
                           label={colModel.zone.transitionName}
@@ -705,12 +707,12 @@ function VirtualizedSwimlanes({
                     return (
                       <div
                         key={col.key}
-                        className={`flex-1 min-w-0 min-h-[80px] density-compact:min-h-[56px] density-comfortable:min-h-[96px] flex flex-col gap-1.5 p-2 density-compact:p-1 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
+                        className={`flex-1 min-w-0 min-h-[80px] density-compact:min-h-[40px] density-comfortable:min-h-[96px] flex flex-col gap-1.5 density-compact:gap-1 p-2 density-compact:p-0.5 density-comfortable:p-3 border-l border-border/20${isInvalid ? ' opacity-40 transition-opacity duration-150' : ''}`}
                       >
                         {subtasksLoading ? (
                           <Skeleton className="h-8 w-full" />
                         ) : colModel?.kind === 'split' ? (
-                          <div className="flex flex-col gap-1 h-full">
+                          <div className="flex flex-col gap-1 density-compact:gap-0.5 h-full">
                             {colModel.zones.map((zone) => (
                               <TransitionDropZone
                                 key={zone.transitionId}
@@ -722,7 +724,7 @@ function VirtualizedSwimlanes({
                           </div>
                         ) : colModel?.kind === 'single' ? (
                           // D-02: single-transition column — one labelled drop zone.
-                          <div className="flex flex-col gap-1 h-full">
+                          <div className="flex flex-col gap-1 density-compact:gap-0.5 h-full">
                             <TransitionDropZone
                               id={`col:${col.key}`}
                               label={colModel.zone.transitionName}
@@ -1621,7 +1623,7 @@ export default function SprintBoardTab() {
        */}
       <div ref={boardRef} className="flex flex-col h-full">
         {/* Fixed column headers — never scroll */}
-        <div className="shrink-0 bg-background border-b border-border relative h-10 z-20">
+        <div className="shrink-0 bg-background border-b border-border relative h-10 density-compact:h-7 z-20">
           <div className="flex h-full">
             {CATEGORY_COLUMNS.map((col) => {
               const count = localIssues.filter(
@@ -1630,18 +1632,20 @@ export default function SprintBoardTab() {
               return (
                 <div
                   key={col.key}
-                  className="flex-1 min-w-0 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
+                  className="flex-1 min-w-0 px-3 density-compact:px-2 flex items-center gap-1.5 density-compact:gap-1 border-l border-border/20 first:border-l-0"
                 >
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
+                  <span className="text-xs density-compact:text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground truncate">
                     {col.label}
                   </span>
-                  <span className="text-xs text-muted-foreground/70 shrink-0">({count})</span>
+                  <span className="text-xs density-compact:text-[0.625rem] text-muted-foreground/70 shrink-0">
+                    ({count})
+                  </span>
                 </div>
               );
             })}
           </div>
           {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
-          <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
+          <div className="absolute right-0 top-0 h-full px-3 density-compact:px-2 flex items-center gap-2 density-compact:gap-1.5 bg-background border-l border-border/20">
             <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
             {/* Phase 73 Plan 03 — D-07 inline aria-live feedback span. */}
             <span
