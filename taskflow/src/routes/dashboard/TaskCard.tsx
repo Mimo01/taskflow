@@ -40,7 +40,6 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { PriorityIcon } from '@/components/ui/priority-icon';
-import { formatTimeAgo, formatTimeAgoStrict } from '@/lib/formatTimeAgo';
 import { isDoneStatus, issueTypeStripeClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -83,13 +82,6 @@ interface TaskCardProps {
   /** Called when user selects Flag/Unflag from the context menu */
   onToggleFlag?: () => void;
   /**
-   * Phase 73 (Plan 02) — time-in-column data from the GH allData adapter.
-   * When present, renders a small muted badge alongside the story-points chip
-   * showing how long the issue has been in its current status (UI-SPEC §1 / D-05).
-   * Separate prop (not on `issue`) preserves backward-compat for non-board callers.
-   */
-  timeInColumn?: { enteredStatus: number; durationPreviously?: number };
-  /**
    * Phase 79 (D-04): when true, the card registers a dnd-kit draggable.
    * All column-cell cards (subtasks AND stories rendered as cards) are
    * draggable. StoryHeaderRow is a separate component and is NOT draggable.
@@ -123,7 +115,6 @@ interface CardBodyProps {
   subtaskCount?: number;
   isExpanded?: boolean;
   onToggle?: () => void;
-  timeInColumn?: { enteredStatus: number; durationPreviously?: number };
   /** When true, the key renders as a <button> with stopPropagation (PEEK-05 path). */
   useKeyButton?: boolean;
   onIssueClick?: (key: string) => void;
@@ -141,7 +132,6 @@ function CardBody({
   subtaskCount,
   isExpanded,
   onToggle,
-  timeInColumn,
   useKeyButton,
   onIssueClick,
 }: CardBodyProps) {
@@ -236,18 +226,6 @@ function CardBody({
             </span>
           )}
 
-          {/* Phase 73 Plan 02 — timeInColumn badge (UI-SPEC §1 / D-05 / R-03).
-              Decorative metadata only; native `title` provides the tooltip
-              (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
-          {timeInColumn?.enteredStatus != null && (
-            <span
-              className="text-[0.6875rem] density-compact:text-[0.6875rem] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 density-compact:px-1 density-compact:py-0 font-mono leading-none"
-              title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
-            >
-              {formatTimeAgoStrict(timeInColumn.enteredStatus)}
-            </span>
-          )}
-
           {/* Status badge — shown when not in a column context */}
           {showStatus && (
             <span
@@ -306,7 +284,6 @@ export default function TaskCard({
   transitionError,
   isFlagged,
   onToggleFlag,
-  timeInColumn,
   isDraggable,
   justDragged,
   isOverlay,
@@ -360,7 +337,6 @@ export default function TaskCard({
     subtaskCount,
     isExpanded,
     onToggle,
-    timeInColumn,
     useKeyButton: useKeyBodySplit,
     onIssueClick,
   };
