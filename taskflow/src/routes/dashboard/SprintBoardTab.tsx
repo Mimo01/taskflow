@@ -485,7 +485,7 @@ function VirtualizedSwimlanes({
         style={style}
         className="border-b border-border/40"
       >
-        <div className="bg-background">
+        <div className="bg-background shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]">
           <StoryHeaderRow
             storyKey={story.key}
             summary={story.fields.summary}
@@ -655,7 +655,7 @@ function VirtualizedSwimlanes({
 
         return (
           <div key={story.key} className="border-b border-border/40">
-            <div className="sticky top-0 z-[9] bg-background">
+            <div className="sticky top-0 z-[9] bg-background shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
               <StoryHeaderRow
                 storyKey={story.key}
                 summary={story.fields.summary}
@@ -1614,7 +1614,7 @@ export default function SprintBoardTab() {
        */}
       <div ref={boardRef} className="flex flex-col h-full">
         {/* Fixed chrome: sprint header + chips + filters — never scroll */}
-        <div className="shrink-0">
+        <div className="shrink-0 bg-background">
           {!showSkeleton && !isError && data && activeSprint && (
             <SprintBoardHeader
               name={activeSprint.name}
@@ -1627,8 +1627,10 @@ export default function SprintBoardTab() {
           )}
           {!showSkeleton && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
         </div>
-        {/* Fixed column headers — never scroll */}
-        <div className="shrink-0 bg-background border-b border-border relative h-10 density-compact:h-7 z-20">
+        {/* Fixed column headers — never scroll. Shadow gives the fixed
+            chrome/scroll-area boundary the same elevation cue as the
+            Backlog page's sticky section headers. */}
+        <div className="shrink-0 bg-background border-b border-border shadow-[0_1px_3px_rgba(0,0,0,0.1)] relative h-10 density-compact:h-7 z-20">
           <div className="flex h-full">
             {CATEGORY_COLUMNS.map((col) => {
               const count = localIssues.filter(
@@ -1691,7 +1693,7 @@ export default function SprintBoardTab() {
             {stickyHeader && (
               <div
                 ref={stickyHeaderInnerRef}
-                className="bg-background border-b border-border/30 pointer-events-auto"
+                className="bg-background border-b border-border/40 shadow-[0_1px_2px_rgba(0,0,0,0.06)] pointer-events-auto"
               >
                 <StoryHeaderRow
                   storyKey={stickyHeader.story.key}
