@@ -19,10 +19,13 @@ key-files:
   modified:
     - taskflow/src/routes/dashboard/SprintBoardHeader.tsx
     - taskflow/src/routes/dashboard/SprintBoardHeader.test.tsx
+    - taskflow/src/routes/dashboard/SprintBoardTab.tsx
 
 key-decisions:
   - "Dropped bg-muted/40 tint and density-compact/comfortable padding modifiers from the header band so the geometry is byte-for-byte identical to Backlog's px-4 py-3 border-b, rather than trying to keep a density-responsive variant"
   - "Promoted sprint name from a span to an h1 (text-lg font-semibold) to match Backlog's title semantics and size exactly, dropping shrink-0 since truncate + min-w-0 already bound overflow"
+  - "Goal moved to its own line below the title (no icon, per user feedback) instead of inline text after a middle-dot separator"
+  - "Header skeleton gates on raw isLoading, not the 200ms-delayed showSkeleton, to avoid a blank flash before the delayed flag flips; body skeleton keeps the delayed gate since it doesn't have this flash problem"
 
 patterns-established:
   - "Sprint Board header band now uses the same canonical page-header class treatment as Backlog/MergeRequestListPage/settings sections — future chrome should reuse this pattern rather than inventing a new tinted sub-toolbar look"
@@ -76,23 +79,23 @@ None - plan executed exactly as written for Task 1.
 
 ## Checkpoint / Human Verification (Task 2)
 
-Task 2 in the plan is `type="checkpoint:human-verify"` — a live visual-parity check comparing the Sprint Board header against the Backlog page header in the running app, including density toggling. No human was available mid-execution in this automated run, so verification was done via structural code inspection instead:
+Task 2 in the plan is `type="checkpoint:human-verify"` — a live visual-parity check comparing the Sprint Board header against the Backlog page header in the running app, including density toggling. Initial automated pass compared className strings only; the user then reviewed the running app and requested two follow-up changes, now folded into this task's verification:
 
-- Compared `SprintBoardHeader.tsx`'s new className strings directly against `BacklogPage.tsx:1301-1302` (`flex items-center justify-between px-4 py-3 border-b flex-shrink-0` / `<h1 className="text-lg font-semibold">`). The band classes (`px-4 py-3 border-b`) and title classes (`text-lg font-semibold`) match exactly.
-- Confirmed via the test suite that the header still returns null with no name/goal, still renders the badge only when `state` is truthy, and the goal still renders as de-emphasized inline text with a tooltip — none of that logic was touched.
-- Confirmed no `density-compact:`/`density-comfortable:` modifiers remain on the header band, so it will render identically across all three density settings (matching Backlog, which also has no density modifiers on its header band).
-
-**This is not a substitute for the plan's required live visual check.** Final human sign-off — actually running the app, switching between Backlog and Sprint Board, and toggling density in the browser — is still pending. Flagging this explicitly so it is not mistaken for a completed checkpoint.
+- **Follow-up 1 (`9c461245`):** goal moved from inline text after the title (separated by a middle dot) to its own line below the title, with a `Target` icon leading it. Also added `SprintBoardHeaderSkeleton`, gated on the 200ms-delayed `showSkeleton` flag, so the header slot wasn't visually absent while `SprintBoardTab` was fetching.
+- **User feedback round 2:** clicking into the page while data was still loading produced a blank flash (no title segment) before the header appeared — caused by the skeleton itself being gated on the delayed `showSkeleton` rather than the raw `isLoading`, leaving a ~200ms window where neither the skeleton nor the real header was mounted. User also asked to drop the `Target` icon.
+- **Follow-up 2 (`c420a22c`):** removed the `Target` icon (goal is now plain de-emphasized text on its own line, no icon). Switched the header's skeleton gate from `showSkeleton` to raw `isLoading` in `SprintBoardTab.tsx`, so the skeleton mounts immediately on load with no blank gap. The body skeleton (`SprintBoardSkeleton`) keeps the original delayed `showSkeleton` gate — only the small header needed the immediate-mount fix.
+- User confirmed the result — **approved**.
 
 ## Next Phase Readiness
-- Code change is complete, tested, typechecked, and committed (`821f4b0b`)
-- Full vitest suite (2751 tests) passes with no regressions
-- Pending: live visual sign-off per Task 2's `how-to-verify` steps (run `npm run tauri dev`, compare Backlog vs Sprint Board headers, toggle density)
+- Code changes complete, tested, typechecked, and committed (`821f4b0b`, `9c461245`, `c420a22c`)
+- Full vitest suite (2753 tests) passes with no regressions
+- Live visual sign-off: **done** — user reviewed in the running app and approved after the two follow-up rounds above
 
 ## Self-Check: PASSED
 
-- FOUND: `taskflow/src/routes/dashboard/SprintBoardHeader.tsx` contains `text-lg font-semibold` and `px-4 py-3 border-b`, no `bg-muted/40` or `density-compact:py-`
-- FOUND: commit `821f4b0b` in `git log --oneline`
+- FOUND: `taskflow/src/routes/dashboard/SprintBoardHeader.tsx` contains `text-lg font-semibold` and `px-4 py-3 border-b`, no `bg-muted/40`, `density-compact:py-`, or `Target` icon
+- FOUND: `SprintBoardTab.tsx` gates `SprintBoardHeaderSkeleton` on raw `isLoading`
+- FOUND: commits `821f4b0b`, `9c461245`, `c420a22c` in `git log --oneline`
 
 ---
 *Quick task: 260922-jtc*
