@@ -36,6 +36,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { DatePicker } from '@/components/ui/date-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -894,18 +895,20 @@ export default function WorklogsPage() {
         {/* Custom date inputs */}
         {preset === 'custom' && (
           <>
-            <input
-              type="date"
+            <DatePicker
               value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="min-w-32 rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              onChange={setCustomFrom}
+              size="sm"
+              className="min-w-32 text-xs"
+              aria-label="From date"
             />
             <span className="text-xs text-muted-foreground">to</span>
-            <input
-              type="date"
+            <DatePicker
               value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="min-w-32 rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              onChange={setCustomTo}
+              size="sm"
+              className="min-w-32 text-xs"
+              aria-label="To date"
             />
           </>
         )}
