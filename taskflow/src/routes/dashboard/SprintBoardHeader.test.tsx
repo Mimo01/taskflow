@@ -56,4 +56,19 @@ describe('SprintBoardHeader', () => {
     rerender(<SprintBoardHeader name="Sprint 42" />);
     expect(screen.queryByText('active')).toBeNull();
   });
+
+  it('renders the sprint name as a level-1 heading sized like a page title', () => {
+    render(<SprintBoardHeader name="Sprint 42" />);
+    const heading = screen.getByRole('heading', { level: 1, name: 'Sprint 42' });
+    expect(heading.className).toContain('text-lg');
+    expect(heading.className).toContain('font-semibold');
+  });
+
+  it('renders the header band with the page-header treatment, not the tinted sub-toolbar band', () => {
+    render(<SprintBoardHeader name="Sprint 42" />);
+    const banner = screen.getByRole('banner');
+    expect(banner.className).toContain('px-4');
+    expect(banner.className).toContain('py-3');
+    expect(banner.className).not.toContain('bg-muted/40');
+  });
 });
