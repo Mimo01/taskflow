@@ -70,8 +70,8 @@ import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BoardResolutionDialog } from './BoardResolutionDialog';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
+import { SprintBoardHeader } from './SprintBoardHeader';
 import { SprintBoardSkeleton } from './SprintBoardSkeleton';
-import { SprintGoalBanner } from './SprintGoalBanner';
 import { StoryHeaderRow } from './StoryHeaderRow';
 import {
   buildDropModel,
@@ -294,8 +294,9 @@ function VirtualizedSwimlanes({
 
   /**
    * Track the pixel offset of the virtualizer container from the top of the
-   * scroll container. Content like SprintGoalBanner, QuickFilterChipRow, and
-   * UnifiedFilterBar renders above the virtualizer and shifts it down.
+   * scroll container. The virtualizer measures via getBoundingClientRect and
+   * self-corrects when this offset drops to ~0 (e.g. now that the sprint
+   * header, chip row, and filter bar moved to the fixed chrome above).
    */
   const virtualizerWrapperRef = useRef<HTMLDivElement>(null);
   const swimlaneListOffsetRef = useRef<number>(0);
@@ -1604,11 +1605,28 @@ export default function SprintBoardTab() {
   return (
     <>
       {/*
-       * Flex column fills <main>. Column headers stay fixed at top (shrink-0),
-       * everything else scrolls in the flex-1 overflow area below.
-       * This avoids CSS sticky which breaks with virtualizer transforms.
+       * Flex column fills <main>. The sprint header, quick-filter chip row,
+       * unified filter bar, and column headers all stay fixed at top
+       * (shrink-0); everything else scrolls in the flex-1 overflow area
+       * below. This avoids CSS sticky, which breaks with virtualizer
+       * transforms (see the swimlaneListOffsetRef measurement note above
+       * and the JS-driven sticky swimlane overlay below).
        */}
       <div ref={boardRef} className="flex flex-col h-full">
+        {/* Fixed chrome: sprint header + chips + filters — never scroll */}
+        <div className="shrink-0">
+          {!showSkeleton && !isError && data && activeSprint && (
+            <SprintBoardHeader
+              name={activeSprint.name}
+              goal={activeSprint.goal}
+              state={activeSprint.state}
+            />
+          )}
+          {!showSkeleton && !isError && data && (
+            <QuickFilterChipRow labels={filterOptions.labels} />
+          )}
+          {!showSkeleton && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+        </div>
         {/* Fixed column headers — never scroll */}
         <div className="shrink-0 bg-background border-b border-border relative h-10 density-compact:h-7 z-20">
           <div className="flex h-full">
@@ -1769,21 +1787,6 @@ export default function SprintBoardTab() {
                     onDismiss={() => setBannerDismissed(true)}
                   />
                 </div>
-              )}
-
-              {/* Sprint goal banner */}
-              {!showSkeleton && !isError && data && activeSprint?.goal && (
-                <SprintGoalBanner goal={activeSprint.goal} />
-              )}
-
-              {/* Quick filter chip row */}
-              {!showSkeleton && !isError && data && (
-                <QuickFilterChipRow labels={filterOptions.labels} />
-              )}
-
-              {/* Unified filter bar */}
-              {!showSkeleton && !isError && data && (
-                <UnifiedFilterBar filterOptions={filterOptions} />
               )}
 
               {/* Empty */}
