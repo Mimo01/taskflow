@@ -620,13 +620,57 @@ export function preprocessJiraMarkup(
   wiki: string,
   attachments?: AttachmentMap,
   users?: UserMap,
-): string {
+): { text: string; codeBlockBodies: string[] } {
   // Normalize CRLF → LF. Jira Server/Data Center returns descriptions with \r\n
   // line endings. All line-based processors (mergeOpenTableRows, splitInlineSingleLineTables,
   // injectHeaderlessTableSeparators, normalizeTableCellInlineFormatting) split by \n
   // and trim only [ \t]+$ — leaving \r on every line, which breaks endsWithPipe
   // checks and causes mergeOpenTableRows to greedily consume entire documents.
   let result = wiki.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // wiki-plus-in-code-block: real Jira does NOT process wiki markup (bold,
+  // italic, lists, underline, emoticons, ...) inside {code}/{noformat} block
+  // BODIES — only literal text. jira2md doesn't honor that: its `to_markdown()`
+  // applies every one of its regexes (bold, italic, underline, ordered/unordered
+  // lists, ...) to the ENTIRE string BEFORE its own {code}/{noformat} → fenced
+  // code-block conversion (jira2md's index.js runs "Inserts" at line 59 and
+  // "Ordered lists" at line 41 well before "Code Block" at line 67), so content
+  // inside a code block is just as exposed to jira2md's buggy global regexes
+  // (e.g. the unscoped `/\+([^+]*)\+/g` underline rule pairing two unrelated
+  // '+' characters inside the block) as prose is — corrupting code with literal
+  // `<ins>`/`</ins>` text, mangled list numbering, etc. Extract each block's
+  // BODY only (never the `{code}`/`{noformat}` delimiter tags themselves, so
+  // jira2md's own code-block regex further down can still recognize and
+  // convert them into a fence) into an opaque null-byte placeholder here,
+  // before ANY transformation in this function or in jira2md's to_markdown()
+  // can see it. The caller restores the placeholder to this literal body text
+  // AFTER jira2md.to_markdown() has produced the fenced code block — by then
+  // the content sits inside a markdown fence that remark/rehype render as
+  // plain, safely-escaped text rather than re-parsed markup.
+  // A real newline (not part of the placeholder — never restored away) is
+  // inserted right after the open tag when the body doesn't already start
+  // with one. jira2md's fenced-code output is `` ``` `` + language + content,
+  // with no separator forced between them: a body that starts immediately
+  // after `{code}` (no blank line before the first line of code, as Jira
+  // wiki source often has) would otherwise land on the *same* markdown line
+  // as the opening fence and get parsed as the fence's info-string, silently
+  // dropping that whole first line from the rendered code block.
+  const codeBlockBodies: string[] = [];
+  result = result.replace(
+    /(\{code[^}]*\}|\{noformat\})([\s\S]*?)(\{code\}|\{noformat\})/g,
+    (_match, open: string, body: string, close: string) => {
+      const leadingNewline = body.startsWith('\n') ? '' : '\n';
+      // Strip exactly one trailing newline — the one separating the last code
+      // line from the closing tag on its own line — mirroring jira2md's own
+      // `\n?` it consumes right before `{code}` in the unprotected case.
+      // Left in place, it would double up with the `\n` jira2md's own fenced-
+      // code template already appends before the closing ``` , producing a
+      // stray blank line at the bottom of the rendered code block.
+      const trimmedBody = body.endsWith('\n') ? body.slice(0, -1) : body;
+      const idx = codeBlockBodies.push(trimmedBody) - 1;
+      return `${open}${leadingNewline}\x00CODEBODY${idx}\x00${close}`;
+    },
+  );
 
   // html-in-description-rendered fix: escape literal HTML metacharacters in the
   // RAW wiki source before any preprocessing runs. Real Jira wiki markup has no
@@ -925,6 +969,37 @@ export function preprocessJiraMarkup(
     },
   );
 
+  // Underline: Jira `+text+` syntax. jira2md's `to_markdown()` underline rule
+  // (`/\+([^+]*)\+/g` → `<ins>$1</ins>`) runs on the ENTIRE string with no
+  // per-line scoping and no whitespace-boundary requirement — it pairs the
+  // FIRST literal '+' anywhere in the document with the NEXT literal '+'
+  // anywhere after it, wrapping everything between them in `<ins>` underline
+  // styling. A lone '+' by itself (C++, 3+2, version strings, "text + text")
+  // has no visible effect, but as soon as a SECOND unrelated '+' exists
+  // anywhere later in the same rendered field (a different paragraph, a
+  // different table cell, etc.), the two incorrectly pair up and corrupt all
+  // text between them. This is the bare/unescaped counterpart of the
+  // already-fixed `\+` (backslash-escaped plus) case above — real Jira only
+  // treats `+...+` as underline when the opening `+` is immediately followed
+  // by non-whitespace and the closing `+` is immediately preceded by
+  // non-whitespace, matching the same convention as bold (`*`) and italic
+  // (`_`). Convert genuine same-line pairs directly to `<ins>` HTML here
+  // (mirroring the non-greedy, \S-boundary bold/italic pattern already used
+  // in normalizeTableCellInlineFormatting), bypassing jira2md's buggy global
+  // regex entirely, then neutralize any remaining literal '+' to the HTML
+  // entity `&#43;` (same technique already used for the escaped-\+ case
+  // above) so jira2md's own regex never sees an unpaired '+' left to mis-pair
+  // with an unrelated one elsewhere in the document. Must run AFTER the
+  // image/attachment steps above (which rely on literal '+' inside URLs for
+  // their own %20 substitution) and after the emoticon (+) replacement.
+  // Boundary characters (`[^+\s]`) — not just `\S` — deliberately exclude '+'
+  // itself: `\S` alone matches '+' (it is non-whitespace), which let a content
+  // group's boundary swallow an adjacent '+' from a run of 2+ plus signs
+  // (e.g. "C++ ... +3 ...") and incorrectly pair the FIRST '+' with a '+'
+  // several words later instead of correctly failing to pair at all.
+  result = result.replace(/(?<!\+)\+([^+\s][^+\n]*?[^+\s]|[^+\s])\+(?!\+)/g, '<ins>$1</ins>');
+  result = result.replace(/\+/g, '&#43;');
+
   // jira-wiki-italic-non-ascii (round 2): protect underscores inside remaining
   // `[display|url]` / `[url]` link bracket syntax from jira2md's per-line,
   // greedy italic regex (`/_(\S.*)_/g`) and bold regex (`/\*(\S.*)\*/g`).
@@ -959,7 +1034,7 @@ export function preprocessJiraMarkup(
     match.replace(/_/g, '\x00USCORE\x00'),
   );
 
-  return result;
+  return { text: result, codeBlockBodies };
 }
 
 /**
@@ -1282,8 +1357,21 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   } = useAuthStore();
   const linkCtx = { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath };
 
-  const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
-  const markdown = preprocessed ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)) : '';
+  const { text: preprocessed, codeBlockBodies } = wikiText
+    ? preprocessJiraMarkup(wikiText, attachments, users)
+    : { text: '', codeBlockBodies: [] };
+  // Restore {code}/{noformat} block bodies (see preprocessJiraMarkup) now that
+  // jira2md.to_markdown() has produced the fenced code block around them —
+  // the placeholder was opaque to jira2md's own wiki-markup regexes, which run
+  // before its {code}/{noformat} conversion and would otherwise corrupt code
+  // content the same way prose gets corrupted.
+  const markdown = preprocessed
+    ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)).replace(
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) sentinel, see preprocessJiraMarkup
+        /\x00CODEBODY(\d+)\x00/g,
+        (_, i) => codeBlockBodies[Number.parseInt(i, 10)],
+      )
+    : '';
 
   const markdownComponents: Record<string, unknown> = {
     // Quick task 260610-fnk (D-02): the `rehypeIssueKeys` plugin replaces bare

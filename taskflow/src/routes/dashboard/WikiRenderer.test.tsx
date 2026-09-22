@@ -2167,6 +2167,91 @@ After quote`;
     });
   });
 
+  describe('bare unpaired plus (wiki-plus-underline-bug)', () => {
+    it('lone unpaired + in prose renders literally, not as underline', () => {
+      const { container } = render(<WikiRenderer wikiText="text + text" />);
+      const text = container.textContent ?? '';
+      expect(text).toContain('text + text');
+      expect(container.querySelector('ins')).toBeNull();
+    });
+
+    it('C++ and version-style pluses render literally', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="C++ is a language. See v1.2+3 for details." />,
+      );
+      const text = container.textContent ?? '';
+      expect(text).toContain('C++');
+      expect(text).toContain('v1.2+3');
+      expect(container.querySelector('ins')).toBeNull();
+    });
+
+    it('two unrelated lone pluses in different paragraphs do not pair across the document', () => {
+      const fixture = ['First line has a + sign here.', '', 'Second line also has a + sign.'].join(
+        '\n',
+      );
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const text = container.textContent ?? '';
+      expect(text).toContain('First line has a + sign here.');
+      expect(text).toContain('Second line also has a + sign.');
+      expect(container.querySelector('ins')).toBeNull();
+    });
+
+    it('genuine +text+ underline pair still renders as <ins>', () => {
+      const { container } = render(<WikiRenderer wikiText="this is +underlined+ text" />);
+      const ins = container.querySelector('ins');
+      expect(ins).not.toBeNull();
+      expect(ins?.textContent).toBe('underlined');
+    });
+
+    it('+ inside a {code} block renders literally, not as the &#43; entity', () => {
+      const { container } = render(
+        <WikiRenderer wikiText={'{code}\nconst sum = a + b;\n{code}'} />,
+      );
+      const code = container.querySelector('pre code');
+      expect(code?.textContent).toContain('a + b');
+      expect(code?.textContent).not.toContain('&#43;');
+    });
+
+    it('+ inside a {noformat} block renders literally, not as the &#43; entity', () => {
+      const { container } = render(
+        <WikiRenderer wikiText={'{noformat}\n3+2=5\n{noformat}'} />,
+      );
+      const code = container.querySelector('pre code');
+      expect(code?.textContent).toContain('3+2=5');
+      expect(code?.textContent).not.toContain('&#43;');
+    });
+
+    it('a {code} block with multiple "+" and numbered lines renders all lines literally, with no <ins> tags', () => {
+      const fixture = [
+        '{code}1. Fix OST submit → vráti id → Manage Order submit HW s id z prvej objednávky.',
+        '2. Fix OST submit → vráti id → Manage Order submit HW zlyhá → CITT s HW + parameter z prvej objednávky.',
+        '3. Fix CITT submit (VULA, EDC, ...) + HW sale submit v jednom CITT.',
+        '{code}',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const code = container.querySelector('pre code');
+      const text = code?.textContent ?? '';
+      expect(text).toContain('1. Fix OST submit');
+      expect(text).toContain('2. Fix OST submit');
+      expect(text).toContain('3. Fix CITT submit');
+      expect(text).toContain('CITT s HW + parameter');
+      expect(text).toContain('(VULA, EDC, ...) + HW sale submit');
+      expect(text).not.toContain('&#43;');
+      expect(text).not.toContain('<ins>');
+      expect(code?.querySelector('ins')).toBeNull();
+      expect(text.endsWith('\n\n')).toBe(false);
+    });
+
+    it('a {code} block does not gain a stray trailing blank line', () => {
+      const { container } = render(
+        <WikiRenderer wikiText={'{code}\nline one\nline two\n{code}'} />,
+      );
+      const code = container.querySelector('pre code');
+      const text = code?.textContent ?? '';
+      expect(text).toBe('line one\nline two\n');
+    });
+  });
+
   // --- Consecutive exclamation marks (wiki-render-exclamation-split) ---
   //
   // jira2md's image regex /!(.+)!/g is greedy and matches any content between
