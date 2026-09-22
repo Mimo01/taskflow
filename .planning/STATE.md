@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-22 - Completed quick task 260922-cif: On sprint board, the text, cards and everything is too large even on compact view. Make it more compact and fit better onto the screen
+Last activity: 2026-09-22 - Completed quick task 260922-e07: on sprint board remove the 'entered status' timestamp from the cards
 
 ## Performance Metrics
 
@@ -145,6 +145,7 @@ None yet.
 | 260916-ta1 | I want to enhance story creation and editing. Make the whole process more polished. Add option to add attachments to description and more | 2026-09-17 | 351e1ccd | Verified | [260916-ta1-i-want-to-enhance-story-creation-and-edi](./quick/260916-ta1-i-want-to-enhance-story-creation-and-edi/) |
 | 260922-bca | I want to have a nicer datepicker across the app. The current one works but I dont like the style | 2026-09-22 | 888d37ab | Verified | [260922-bca-i-want-to-have-a-nicer-datepicker-across](./quick/260922-bca-i-want-to-have-a-nicer-datepicker-across/) |
 | 260922-cif | On sprint board, the text, cards and everything is too large even on compact view. Make it more compact and fit better onto the screen | 2026-09-22 | a1b7b7cb | Verified | [260922-cif-on-sprint-board-the-text-cards-and-every](./quick/260922-cif-on-sprint-board-the-text-cards-and-every/) |
+| 260922-e07 | on sprint board remove the 'entered status' timestamp from the cards | 2026-09-22 | 87e1230e | | [260922-e07-on-sprint-board-remove-the-entered-statu](./quick/260922-e07-on-sprint-board-remove-the-entered-statu/) |
 
 ## Deferred Items
 
