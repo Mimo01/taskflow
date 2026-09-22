@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-22 - Completed quick task 260922-irb: sprint board sticky header, goal restyle, sprint name, and visual polish
+Last activity: 2026-09-22 - Completed quick task 260922-jtc: sprint board header style match backlog page
 
 ## Performance Metrics
 
@@ -147,6 +147,7 @@ None yet.
 | 260922-cif | On sprint board, the text, cards and everything is too large even on compact view. Make it more compact and fit better onto the screen | 2026-09-22 | a1b7b7cb | Verified | [260922-cif-on-sprint-board-the-text-cards-and-every](./quick/260922-cif-on-sprint-board-the-text-cards-and-every/) |
 | 260922-e07 | on sprint board remove the 'entered status' timestamp from the cards | 2026-09-22 | 87e1230e | | [260922-e07-on-sprint-board-remove-the-entered-statu](./quick/260922-e07-on-sprint-board-remove-the-entered-statu/) |
 | 260922-irb | On sprint board, make the goal and filters sticky, restyle the goal, surface the current sprint's name, and polish the header/row visual boundaries | 2026-09-22 | 40890b3d | Verified | [260922-irb-on-sprint-board-page-the-goal-and-filter](./quick/260922-irb-on-sprint-board-page-the-goal-and-filter/) |
+| 260922-jtc | On sprint board, the header style doesn't match the other page headers. Make the sprint title match (there can be additional info, but the section size and text size should match between pages, mainly backlog page) | 2026-09-22 | 821f4b0b | Needs Review | [260922-jtc-sprint-board-header-style-should-match-o](./quick/260922-jtc-sprint-board-header-style-should-match-o/) |
 
 ## Deferred Items
 
