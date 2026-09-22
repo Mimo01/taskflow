@@ -2254,9 +2254,7 @@ After quote`;
     });
 
     it('+ inside a {noformat} block renders literally, not as the &#43; entity', () => {
-      const { container } = render(
-        <WikiRenderer wikiText={'{noformat}\n3+2=5\n{noformat}'} />,
-      );
+      const { container } = render(<WikiRenderer wikiText={'{noformat}\n3+2=5\n{noformat}'} />);
       const code = container.querySelector('pre code');
       expect(code?.textContent).toContain('3+2=5');
       expect(code?.textContent).not.toContain('&#43;');
@@ -2560,9 +2558,7 @@ After quote`;
   // regex entirely.
   describe('strikethrough named-link display text (wiki-strikethrough-dashes)', () => {
     it('renders [-text-|url] as a struck-through link, not literal dashes', () => {
-      const { container } = render(
-        <WikiRenderer wikiText="[-text-|https://www.example.com]" />,
-      );
+      const { container } = render(<WikiRenderer wikiText="[-text-|https://www.example.com]" />);
       const link = container.querySelector('a');
       expect(link).not.toBeNull();
       expect(link?.getAttribute('href')).toBe('https://www.example.com');
