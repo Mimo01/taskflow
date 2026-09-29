@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-29 - Completed quick task 260929-iwm: datepicker week starts on Monday
+Last activity: 2026-09-29 - Completed quick task 260929-j4e: worklogs date presets — Last 7 Days / rolling Last Month
 
 ## Performance Metrics
 
@@ -152,6 +152,7 @@ None yet.
 | 260929-fz1 | My Tasks: add "Testing" band (status contains "test") and render bands in workflow order (In Progress → In Review → Testing → To Do), precedence unchanged | 2026-09-29 | 8f765c0b | Verified | [260929-fz1-add-testing-section-to-my-task-list](./quick/260929-fz1-add-testing-section-to-my-task-list/) |
 | 260929-h2q | Order subtasks by parent Jira subtask order (fields.subtasks) everywhere; numeric-key fallback (Sprint Board numeric only); stories keep rank | 2026-09-29 | cf9464cd | Verified | [260929-h2q-order-subtasks-by-id-wherever-subtasks-a](./quick/260929-h2q-order-subtasks-by-id-wherever-subtasks-a/) |
 | 260929-iwm | Datepicker week starts on Monday (shared Calendar weekStartsOn=1) | 2026-09-29 | 0790e2a5 | Verified | [260929-iwm-datepicker-week-starts-on-monday](./quick/260929-iwm-datepicker-week-starts-on-monday/) |
+| 260929-j4e | Worklogs date presets: drop Last Week/Last Month/Last Working Day, add Last 7 Days + rolling Last Month (to date); legacy saved filters → This Week | 2026-09-29 | a3ff085a | Verified | [260929-j4e-worklogs-date-range-presets-remove-last-](./quick/260929-j4e-worklogs-date-range-presets-remove-last-/) |
 
 ## Deferred Items
 
