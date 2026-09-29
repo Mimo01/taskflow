@@ -2,6 +2,22 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.4] — 2026-09-29
+
+### Added
+
+- **My Tasks — "In Review — my subtasks" band** — stories assigned to someone else that are In Review but still contain your subtasks now get their own band (indigo dot) instead of being scattered or hidden, so you can see which reviews are waiting on your work.
+- **My Tasks — Testing band** — issues in a testing status now appear in a dedicated Testing band (amber dot), and all My Day bands render in workflow order rather than priority-precedence order.
+- **Worklogs — "Last 7 Days" and rolling "Last Month" presets** — replace the old Last Week / Last Month / Last Working Day presets; saved filters with a removed preset fall back to This Week.
+
+### Changed
+
+- **Subtasks follow Jira's subtask order everywhere** — My Tasks, Standup (Today/Yesterday), Sprint Board, the My Subtasks panel, and Worklogs now list subtasks in the parent's Jira order (falling back to numeric key order) instead of arbitrary or lexical order.
+
+### Fixed
+
+- **DatePicker week now starts on Monday** — calendar columns previously started on Sunday.
+
 ## [1.14.3] — 2026-09-22
 
 ### Added
