@@ -30,7 +30,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
-import { type MyDayBand, groupByMyDay } from '@/lib/my-tasks-sort';
+import { groupByMyDay, type MyDayBand } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
