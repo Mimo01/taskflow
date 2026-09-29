@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-29 - Completed quick task 260929-fz1: My Tasks "Testing" band + workflow display order
+Last activity: 2026-09-29 - Completed quick task 260929-h2q: order subtasks by Jira subtask order
 
 ## Performance Metrics
 
@@ -150,6 +150,7 @@ None yet.
 | 260922-jtc | On sprint board, the header style doesn't match the other page headers. Make the sprint title match (there can be additional info, but the section size and text size should match between pages, mainly backlog page) | 2026-09-22 | c420a22c | Verified | [260922-jtc-sprint-board-header-style-should-match-o](./quick/260922-jtc-sprint-board-header-style-should-match-o/) |
 | 260929-fnq | On My Tasks, add an "In Review — my subtasks" band for in-review stories owned by someone else where I have a subtask | 2026-09-29 | 24c6d1c2 | Verified | [260929-fnq-add-my-tasks-section-for-in-review-stori](./quick/260929-fnq-add-my-tasks-section-for-in-review-stori/) |
 | 260929-fz1 | My Tasks: add "Testing" band (status contains "test") and render bands in workflow order (In Progress → In Review → Testing → To Do), precedence unchanged | 2026-09-29 | 8f765c0b | Verified | [260929-fz1-add-testing-section-to-my-task-list](./quick/260929-fz1-add-testing-section-to-my-task-list/) |
+| 260929-h2q | Order subtasks by parent Jira subtask order (fields.subtasks) everywhere; numeric-key fallback (Sprint Board numeric only); stories keep rank | 2026-09-29 | cf9464cd | Verified | [260929-h2q-order-subtasks-by-id-wherever-subtasks-a](./quick/260929-h2q-order-subtasks-by-id-wherever-subtasks-a/) |
 
 ## Deferred Items
 
