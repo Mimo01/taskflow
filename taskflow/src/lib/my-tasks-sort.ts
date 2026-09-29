@@ -15,24 +15,30 @@ import { isIssueFlagged } from '@/services/jira';
 /**
  * My Day band enumeration, ordered by urgency (lowest index = highest attention).
  *
- * D-04 band order: flagged/blocked → overdue → in-review-with-my-MR → in-progress → to-do → done
+ * D-04 band order: flagged/blocked → overdue → in-review-with-my-MR → in-review-my-subtasks
+ * → in-progress → to-do → done
  */
 export const MY_DAY_BANDS = [
   'flagged-blocked', // 0 — flagged OR status name contains "block" (case-insensitive)
   'overdue', // 1 — duedate < today AND statusCategory !== 'done'
   'in-review-my-mr', // 2 — status name contains "review" AND issue has my linked open MR
-  'in-progress', // 3 — statusCategory === 'indeterminate' (not review)
-  'to-do', // 4 — statusCategory === 'new'
-  'done', // 5 — statusCategory === 'done'
+  'in-review-my-subtasks', // 3 — parent in review, not mine, with >=1 of my subtasks (computed in groupByMyDay, never by classifyBand)
+  'in-progress', // 4 — statusCategory === 'indeterminate' (not review)
+  'to-do', // 5 — statusCategory === 'new'
+  'done', // 6 — statusCategory === 'done'
 ] as const;
 
 export type MyDayBand = (typeof MY_DAY_BANDS)[number];
 
+export const IN_REVIEW_MY_SUBTASKS_BAND = MY_DAY_BANDS.indexOf('in-review-my-subtasks');
+export const DONE_BAND = MY_DAY_BANDS.indexOf('done');
+
 /**
- * Classify a single issue into a band index (0–5).
+ * Classify a single issue into a band index (0–6).
  *
  * Lower index = higher attention. The check order is intentional:
- * done → flagged/blocked → overdue → in-review-my-mr → in-progress → to-do
+ * flagged/blocked → done → overdue → in-review-my-mr → in-progress → to-do
+ * (band 3, in-review-my-subtasks, is never returned here; see groupByMyDay)
  */
 export function classifyBand(
   issue: JiraIssue,
@@ -47,8 +53,8 @@ export function classifyBand(
   const flagged = isIssueFlagged(issue, flaggedFieldKey);
   if (flagged || statusName.includes('block')) return 0;
 
-  // Band 5: done
-  if (category === 'done') return 5;
+  // Band 6: done
+  if (category === 'done') return DONE_BAND;
 
   // Band 1: overdue (duedate in past, not done)
   const duedate = issue.fields.duedate as string | null | undefined;
@@ -61,11 +67,11 @@ export function classifyBand(
   // Band 2: in-review with my open MR
   if (statusName.includes('review') && myOpenMRIssueKeys.has(issue.key)) return 2;
 
-  // Band 3: in-progress (indeterminate but not caught by review+MR above)
-  if (category === 'indeterminate') return 3;
+  // Band 4: in-progress (indeterminate but not caught by review+MR above)
+  if (category === 'indeterminate') return 4;
 
-  // Band 4: to-do (statusCategory 'new', or anything unmatched)
-  return 4;
+  // Band 5: to-do (statusCategory 'new', or anything unmatched)
+  return 5;
 }
 
 /**
@@ -85,8 +91,24 @@ export function subtreeBand(
   const subtaskBands = subtasks.map((s) =>
     classifyBand(s, flaggedFieldKey, myOpenMRIssueKeys, today),
   );
-  // Math.min with spread on empty array returns Infinity; cap at 5 (done)
-  return Math.min(parentBand, ...subtaskBands, 5);
+  // Math.min with spread on empty array returns Infinity; cap at done
+  return Math.min(parentBand, ...subtaskBands, DONE_BAND);
+}
+
+/**
+ * True when the parent is a non-subtask story in review that is NOT mine but has
+ * at least one subtask of mine. Ownership/status only; band precedence is handled
+ * by the caller (groupByMyDay).
+ */
+export function isForeignReviewWithMySubtask(
+  parent: JiraIssue,
+  subtasks: JiraIssue[],
+  myIssueKeys: Set<string>,
+): boolean {
+  if (parent.fields.issuetype?.subtask) return false;
+  if (myIssueKeys.has(parent.key)) return false;
+  if (!parent.fields.status.name.toLowerCase().includes('review')) return false;
+  return subtasks.some((s) => myIssueKeys.has(s.key));
 }
 
 /**
@@ -134,7 +156,14 @@ export function groupByMyDay(
   // Pass 3: compute subtree band for each eligible parent
   const bandedParents = eligibleParents.map((parent) => {
     const subtasks = subtasksByParent.get(parent.key) ?? [];
-    const bandIndex = subtreeBand(parent, subtasks, flaggedFieldKey, myOpenMRIssueKeys, today);
+    let bandIndex = subtreeBand(parent, subtasks, flaggedFieldKey, myOpenMRIssueKeys, today);
+    if (isForeignReviewWithMySubtask(parent, subtasks, myIssueKeys)) {
+      const parentBand = classifyBand(parent, flaggedFieldKey, myOpenMRIssueKeys, today);
+      // Done parents (e.g. "Reviewed") stay Done; bands 0-2 win via min.
+      if (parentBand > IN_REVIEW_MY_SUBTASKS_BAND && parentBand !== DONE_BAND) {
+        bandIndex = Math.min(bandIndex, IN_REVIEW_MY_SUBTASKS_BAND);
+      }
+    }
     return { parent, subtasks, bandIndex };
   });
 
