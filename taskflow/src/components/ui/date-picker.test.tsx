@@ -31,6 +31,17 @@ describe('DatePicker', () => {
     expect(onChange).toHaveBeenCalledWith('2026-09-22');
   });
 
+  it('starts the week on Monday', async () => {
+    render(<DatePicker value="2026-09-01" onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sep 1, 2026/ }));
+    const grid = await screen.findByRole('grid');
+    const headers = Array.from(grid.querySelectorAll('thead th'));
+    expect(headers.length).toBe(7);
+    expect(headers[0].getAttribute('aria-label') ?? headers[0].textContent).toMatch(/monday/i);
+    expect(headers[6].getAttribute('aria-label') ?? headers[6].textContent).toMatch(/sunday/i);
+    expect(grid.querySelector('[role="gridcell"]')?.getAttribute('data-day')).toBe('2026-08-31');
+  });
+
   it('does not reveal a grid when disabled trigger is clicked', () => {
     render(<DatePicker value="" onChange={vi.fn()} disabled />);
     fireEvent.click(screen.getByRole('button'));
