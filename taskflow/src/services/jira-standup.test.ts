@@ -587,6 +587,90 @@ describe('fetchIssueMeta', () => {
     expect(url).toContain('fields=issuetype,summary,parent');
   });
 
+  it('exposes subtaskKeys from fields.subtasks and makes no follow-up when parents are present', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockClear();
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: {
+              summary: 'S',
+              issuetype: { name: 'Story', subtask: false },
+              subtasks: [{ key: 'PROJ-3' }, { key: 'PROJ-2' }],
+            },
+          },
+        ],
+      }),
+    } as Response);
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-1']);
+    expect(result['PROJ-1'].subtaskKeys).toEqual(['PROJ-3', 'PROJ-2']);
+    expect(mockFetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes one follow-up for parents not in keys and populates subtaskKeys', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockClear();
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-2',
+            fields: {
+              summary: 'Sub',
+              issuetype: { name: 'Sub-task', subtask: true },
+              parent: { key: 'PROJ-1', fields: { summary: 'Story' } },
+            },
+          },
+        ],
+      }),
+    } as Response);
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [{ key: 'PROJ-1', fields: { subtasks: [{ key: 'PROJ-3' }, { key: 'PROJ-2' }] } }],
+      }),
+    } as Response);
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-2']);
+    expect(mockFetchFn).toHaveBeenCalledTimes(2);
+    const url2 = decodeURIComponent(mockFetchFn.mock.calls[1][0] as string);
+    expect(url2).toContain('key in (PROJ-1)');
+    expect(url2).toContain('fields=subtasks');
+    expect(result['PROJ-1'].subtaskKeys).toEqual(['PROJ-3', 'PROJ-2']);
+    expect(result['PROJ-2'].parentKey).toBe('PROJ-1');
+  });
+
+  it('still returns the primary map when the follow-up request rejects', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockClear();
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-2',
+            fields: {
+              summary: 'Sub',
+              issuetype: { name: 'Sub-task', subtask: true },
+              parent: { key: 'PROJ-1' },
+            },
+          },
+        ],
+      }),
+    } as Response);
+    mockFetchFn.mockRejectedValueOnce(new Error('boom'));
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-2']);
+    expect(result['PROJ-2']).toMatchObject({ isSubtask: true, parentKey: 'PROJ-1' });
+    expect(result['PROJ-1']).toBeUndefined();
+  });
+
   it('degrades to an empty map on a non-ok response', async () => {
     const mockFetchFn = vi.mocked(mockFetch);
     mockFetchFn.mockResolvedValueOnce({

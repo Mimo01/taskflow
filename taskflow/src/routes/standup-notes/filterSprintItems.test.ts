@@ -360,3 +360,33 @@ describe('filterSprintItems — grouped output', () => {
     expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-32-S1');
   });
 });
+
+describe('filterSprintItems — subtask ordering', () => {
+  it('orders row subtasks by parent fields.subtasks; placement still uses unsorted first subtask', () => {
+    const parent = makeIssue({ key: 'SHOP-40', statusKey: 'new', isSubtask: false });
+    (parent.fields as unknown as { subtasks: Array<{ key: string }> }).subtasks = [
+      { key: 'SHOP-40-S3' },
+      { key: 'SHOP-40-S1' },
+    ];
+    // Input order: S1 (in progress) first, S3 (to do) second.
+    const s1 = makeIssue({
+      key: 'SHOP-40-S1',
+      statusKey: 'indeterminate',
+      isSubtask: true,
+      displayName: ME,
+      parentKey: 'SHOP-40',
+    });
+    const s3 = makeIssue({
+      key: 'SHOP-40-S3',
+      statusKey: 'new',
+      isSubtask: true,
+      displayName: ME,
+      parentKey: 'SHOP-40',
+    });
+    const { inProgress, upNext } = filterSprintItems([parent, s1, s3], ME);
+    const row = inProgress.find((r) => r.issue.key === 'SHOP-40');
+    expect(row).toBeDefined();
+    expect(upNext.map((r) => r.issue.key)).not.toContain('SHOP-40');
+    expect(row?.subtasks.map((s) => s.key)).toEqual(['SHOP-40-S3', 'SHOP-40-S1']);
+  });
+});
