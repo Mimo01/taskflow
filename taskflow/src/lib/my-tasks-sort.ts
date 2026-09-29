@@ -13,32 +13,60 @@ import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
 
 /**
- * My Day band enumeration, ordered by urgency (lowest index = highest attention).
+ * My Day band enumeration, in CLASSIFICATION PRECEDENCE order (lowest index wins
+ * in the subtree-min). This is NOT the display order; see MY_DAY_BAND_DISPLAY_ORDER.
  *
- * D-04 band order: flagged/blocked → overdue → in-review-with-my-MR → in-review-my-subtasks
- * → in-progress → to-do → done
+ * Precedence: flagged/blocked → overdue → in-review-with-my-MR → in-review-my-subtasks
+ * → testing → in-progress → to-do → done
  */
 export const MY_DAY_BANDS = [
   'flagged-blocked', // 0 — flagged OR status name contains "block" (case-insensitive)
   'overdue', // 1 — duedate < today AND statusCategory !== 'done'
   'in-review-my-mr', // 2 — status name contains "review" AND issue has my linked open MR
   'in-review-my-subtasks', // 3 — parent in review, not mine, with >=1 of my subtasks (computed in groupByMyDay, never by classifyBand)
-  'in-progress', // 4 — statusCategory === 'indeterminate' (not review)
-  'to-do', // 5 — statusCategory === 'new'
-  'done', // 6 — statusCategory === 'done'
+  'testing', // 4 — status name contains "test" (case-insensitive)
+  'in-progress', // 5 — statusCategory === 'indeterminate' (not review/testing)
+  'to-do', // 6 — statusCategory === 'new'
+  'done', // 7 — statusCategory === 'done'
 ] as const;
 
 export type MyDayBand = (typeof MY_DAY_BANDS)[number];
 
+/**
+ * Order bands are rendered in (real workflow order). Decoupled from the
+ * precedence order of MY_DAY_BANDS. Must be a permutation of MY_DAY_BANDS.
+ */
+export const MY_DAY_BAND_DISPLAY_ORDER: readonly MyDayBand[] = [
+  'flagged-blocked',
+  'overdue',
+  'in-progress',
+  'in-review-my-mr',
+  'in-review-my-subtasks',
+  'testing',
+  'to-do',
+  'done',
+];
+
+const DISPLAY_RANK = new Map<MyDayBand, number>(
+  MY_DAY_BAND_DISPLAY_ORDER.map((band, i) => [band, i]),
+);
+
+const FLAGGED_BAND = MY_DAY_BANDS.indexOf('flagged-blocked');
+const OVERDUE_BAND = MY_DAY_BANDS.indexOf('overdue');
+const IN_REVIEW_MY_MR_BAND = MY_DAY_BANDS.indexOf('in-review-my-mr');
 export const IN_REVIEW_MY_SUBTASKS_BAND = MY_DAY_BANDS.indexOf('in-review-my-subtasks');
+const TESTING_BAND = MY_DAY_BANDS.indexOf('testing');
+const IN_PROGRESS_BAND = MY_DAY_BANDS.indexOf('in-progress');
+const TO_DO_BAND = MY_DAY_BANDS.indexOf('to-do');
 export const DONE_BAND = MY_DAY_BANDS.indexOf('done');
 
 /**
- * Classify a single issue into a band index (0–6).
+ * Classify a single issue into a band index (0–7, index into MY_DAY_BANDS).
  *
- * Lower index = higher attention. The check order is intentional:
- * flagged/blocked → done → overdue → in-review-my-mr → in-progress → to-do
- * (band 3, in-review-my-subtasks, is never returned here; see groupByMyDay)
+ * Lower index = higher precedence. The check order is intentional:
+ * flagged/blocked → done → overdue → in-review-my-mr → testing → in-progress → to-do
+ * (band 3, in-review-my-subtasks, is never returned here; only via the groupByMyDay lift).
+ * Testing: any status name containing "test" (not gated on statusCategory).
  */
 export function classifyBand(
   issue: JiraIssue,
@@ -49,29 +77,33 @@ export function classifyBand(
   const category = issue.fields.status.statusCategory?.key;
   const statusName = issue.fields.status.name.toLowerCase();
 
-  // Band 0: flagged or blocked (checked before done — flagged always wins per D-04 must_haves)
+  // flagged or blocked (checked before done — flagged always wins per D-04 must_haves)
   const flagged = isIssueFlagged(issue, flaggedFieldKey);
-  if (flagged || statusName.includes('block')) return 0;
+  if (flagged || statusName.includes('block')) return FLAGGED_BAND;
 
-  // Band 6: done
   if (category === 'done') return DONE_BAND;
 
-  // Band 1: overdue (duedate in past, not done)
+  // overdue (duedate in past, not done)
   const duedate = issue.fields.duedate as string | null | undefined;
   if (duedate) {
     const due = new Date(duedate);
     due.setHours(23, 59, 59, 999);
-    if (due < today) return 1;
+    if (due < today) return OVERDUE_BAND;
   }
 
-  // Band 2: in-review with my open MR
-  if (statusName.includes('review') && myOpenMRIssueKeys.has(issue.key)) return 2;
+  // in-review with my open MR
+  if (statusName.includes('review') && myOpenMRIssueKeys.has(issue.key)) {
+    return IN_REVIEW_MY_MR_BAND;
+  }
 
-  // Band 4: in-progress (indeterminate but not caught by review+MR above)
-  if (category === 'indeterminate') return 4;
+  // testing (status name contains "test")
+  if (statusName.includes('test')) return TESTING_BAND;
 
-  // Band 5: to-do (statusCategory 'new', or anything unmatched)
-  return 5;
+  // in-progress (indeterminate but not caught above)
+  if (category === 'indeterminate') return IN_PROGRESS_BAND;
+
+  // to-do (statusCategory 'new', or anything unmatched)
+  return TO_DO_BAND;
 }
 
 /**
@@ -112,7 +144,8 @@ export function isForeignReviewWithMySubtask(
 }
 
 /**
- * Group issues into My Day bands, sorted by urgency ascending.
+ * Group issues into My Day bands, sorted by MY_DAY_BAND_DISPLAY_ORDER (display order),
+ * which is decoupled from classification precedence.
  *
  * Only parents that belong to the current user (or whose subtasks belong to the user)
  * are included. Subtasks are attached to their parent entry. Consecutive parents in
@@ -167,8 +200,9 @@ export function groupByMyDay(
     return { parent, subtasks, bandIndex };
   });
 
-  // Sort by band index ascending (stable — preserves server rank within a band)
-  bandedParents.sort((a, b) => a.bandIndex - b.bandIndex);
+  // Sort by display rank (stable — preserves server rank within a band)
+  const displayRank = (bandIndex: number) => DISPLAY_RANK.get(MY_DAY_BANDS[bandIndex]) ?? bandIndex;
+  bandedParents.sort((a, b) => displayRank(a.bandIndex) - displayRank(b.bandIndex));
 
   // Pass 4: group consecutive same-band entries
   const result: Array<{

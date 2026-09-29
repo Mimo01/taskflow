@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   MY_DAY_BANDS,
+  MY_DAY_BAND_DISPLAY_ORDER,
   classifyBand,
   groupByMyDay,
   isForeignReviewWithMySubtask,
@@ -12,6 +13,7 @@ import type { JiraIssue } from '@/services/jira';
 const FLAGGED_FIELD_KEY = 'customfield_10021';
 const FIXED_TODAY = new Date('2026-06-14T12:00:00Z');
 const EMPTY_MR_KEYS = new Set<string>();
+const B = (id: (typeof MY_DAY_BANDS)[number]) => MY_DAY_BANDS.indexOf(id);
 
 // Helper: builds a minimal JiraIssue stub for testing
 function makeIssue(
@@ -49,12 +51,13 @@ function makeIssue(
 // --- MY_DAY_BANDS ---
 
 describe('MY_DAY_BANDS', () => {
-  it('is an array of 7 band labels in urgency order', () => {
+  it('is an array of 8 band labels in precedence order', () => {
     expect(MY_DAY_BANDS).toEqual([
       'flagged-blocked',
       'overdue',
       'in-review-my-mr',
       'in-review-my-subtasks',
+      'testing',
       'in-progress',
       'to-do',
       'done',
@@ -67,7 +70,7 @@ describe('MY_DAY_BANDS', () => {
 describe('classifyBand', () => {
   it('returns 6 (done) for issue with statusCategory.key === "done"', () => {
     const issue = makeIssue({ statusCategoryKey: 'done', statusName: 'Done' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(6);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(B('done'));
   });
 
   it('returns 0 (flagged-blocked) for a flagged issue', () => {
@@ -76,24 +79,28 @@ describe('classifyBand', () => {
       statusName: 'To Do',
       flaggedValue: [{ value: 'Impediment' }],
     });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(0);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      B('flagged-blocked'),
+    );
   });
 
   it('returns 0 (flagged-blocked) for an issue with "blocked" in status name', () => {
     const issue = makeIssue({ statusCategoryKey: 'indeterminate', statusName: 'Blocked' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(0);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      B('flagged-blocked'),
+    );
   });
 
   it('returns 1 (overdue) for a non-done issue with past duedate', () => {
     // duedate = 2026-06-13, today = 2026-06-14 → overdue
     const issue = makeIssue({ statusCategoryKey: 'new', duedate: '2026-06-13' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(1);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(B('overdue'));
   });
 
   it('returns 5 (to-do) for non-done issue with future duedate', () => {
     // duedate = 2026-06-20, today = 2026-06-14 → not overdue
     const issue = makeIssue({ statusCategoryKey: 'new', duedate: '2026-06-20' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(B('to-do'));
   });
 
   it('returns 2 (in-review-my-mr) when status includes "review" and issue has my open MR', () => {
@@ -103,7 +110,9 @@ describe('classifyBand', () => {
       statusName: 'In Review',
     });
     const myMRKeys = new Set(['PROJ-10']);
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, myMRKeys, FIXED_TODAY)).toBe(2);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, myMRKeys, FIXED_TODAY)).toBe(
+      B('in-review-my-mr'),
+    );
   });
 
   it('returns 4 (in-progress) when status includes "review" but no my MR', () => {
@@ -112,17 +121,21 @@ describe('classifyBand', () => {
       statusCategoryKey: 'indeterminate',
       statusName: 'In Review',
     });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      B('in-progress'),
+    );
   });
 
   it('returns 4 (in-progress) for indeterminate status not containing "review"', () => {
     const issue = makeIssue({ statusCategoryKey: 'indeterminate', statusName: 'In Progress' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      B('in-progress'),
+    );
   });
 
   it('returns 5 (to-do) for statusCategory "new"', () => {
     const issue = makeIssue({ statusCategoryKey: 'new', statusName: 'To Do' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(B('to-do'));
   });
 
   it('flagged takes priority over done (flagged always wins per D-04 must_haves)', () => {
@@ -132,7 +145,9 @@ describe('classifyBand', () => {
       statusName: 'Done',
       flaggedValue: [{ value: 'Impediment' }],
     });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(0);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      B('flagged-blocked'),
+    );
   });
 });
 
@@ -150,7 +165,7 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
     });
     expect(
       subtreeBand(parent, [overdueSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
-    ).toBe(1);
+    ).toBe(B('overdue'));
   });
 
   it('parent Done (band 6) + In Progress subtask (band 4) → returns 4 (in-progress)', () => {
@@ -164,7 +179,7 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
     });
     expect(
       subtreeBand(parent, [inProgressSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
-    ).toBe(4);
+    ).toBe(B('in-progress'));
   });
 
   it('flagged parent → returns 0 (flagged-blocked) regardless of subtask bands', () => {
@@ -183,12 +198,12 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
     });
     expect(
       subtreeBand(flaggedParent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
-    ).toBe(0);
+    ).toBe(B('flagged-blocked'));
   });
 
   it('no subtasks → returns parent band', () => {
     const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new', statusName: 'To Do' });
-    expect(subtreeBand(parent, [], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
+    expect(subtreeBand(parent, [], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(B('to-do'));
   });
 
   it('all subtasks done, parent in-progress → returns 4', () => {
@@ -204,7 +219,7 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
       isSubtask: true,
     });
     expect(subtreeBand(parent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
-      4,
+      B('in-progress'),
     );
   });
 });
@@ -430,7 +445,7 @@ describe('groupByMyDay — in-review-my-subtasks', () => {
     expect(groups[0].band).toBe('done');
   });
 
-  it('emits my-mr, my-subtasks, in-progress in order', () => {
+  it('emits in-progress, my-mr, my-subtasks in display order', () => {
     const mrParent = makeIssue({
       key: 'PROJ-10',
       statusCategoryKey: 'indeterminate',
@@ -447,9 +462,136 @@ describe('groupByMyDay — in-review-my-subtasks', () => {
       ['PROJ-10'],
     );
     expect(groups.map((g) => g.band)).toEqual([
+      'in-progress',
       'in-review-my-mr',
       'in-review-my-subtasks',
-      'in-progress',
     ]);
+  });
+});
+
+// --- testing band ---
+
+describe('classifyBand — testing', () => {
+  const cls = (i: JiraIssue, mr = EMPTY_MR_KEYS) =>
+    classifyBand(i, FLAGGED_FIELD_KEY, mr, FIXED_TODAY);
+
+  it.each([
+    ['Ready to test', 'indeterminate'],
+    ['Testing', 'indeterminate'],
+    ['TESTING', 'indeterminate'],
+    ['Ready for Testing', 'new'],
+  ])('"%s" (%s) is testing', (statusName, statusCategoryKey) => {
+    expect(cls(makeIssue({ statusName, statusCategoryKey }))).toBe(B('testing'));
+  });
+
+  it('flagged testing issue is flagged-blocked', () => {
+    const i = makeIssue({
+      statusName: 'Testing',
+      statusCategoryKey: 'indeterminate',
+      flaggedValue: [{ value: 'Impediment' }],
+    });
+    expect(cls(i)).toBe(B('flagged-blocked'));
+  });
+
+  it('"Blocked in test" is flagged-blocked', () => {
+    const i = makeIssue({ statusName: 'Blocked in test', statusCategoryKey: 'indeterminate' });
+    expect(cls(i)).toBe(B('flagged-blocked'));
+  });
+
+  it('overdue testing issue is overdue', () => {
+    const i = makeIssue({
+      statusName: 'Testing',
+      statusCategoryKey: 'indeterminate',
+      duedate: '2026-06-13',
+    });
+    expect(cls(i)).toBe(B('overdue'));
+  });
+
+  it('done-category "Tested" is done', () => {
+    expect(cls(makeIssue({ statusName: 'Tested', statusCategoryKey: 'done' }))).toBe(B('done'));
+  });
+
+  it('review with my MR is in-review-my-mr', () => {
+    const i = makeIssue({
+      key: 'PROJ-10',
+      statusName: 'In Review',
+      statusCategoryKey: 'indeterminate',
+    });
+    expect(cls(i, new Set(['PROJ-10']))).toBe(B('in-review-my-mr'));
+  });
+
+  it('review without MR is in-progress; indeterminate is in-progress; new is to-do', () => {
+    expect(cls(makeIssue({ statusName: 'In Review', statusCategoryKey: 'indeterminate' }))).toBe(
+      B('in-progress'),
+    );
+    expect(cls(makeIssue({ statusName: 'In Progress', statusCategoryKey: 'indeterminate' }))).toBe(
+      B('in-progress'),
+    );
+    expect(cls(makeIssue({ statusName: 'To Do', statusCategoryKey: 'new' }))).toBe(B('to-do'));
+  });
+
+  it('subtreeBand: in-progress parent with testing subtask is testing', () => {
+    const parent = makeIssue({
+      key: 'PROJ-1',
+      statusName: 'In Progress',
+      statusCategoryKey: 'indeterminate',
+    });
+    const sub = makeIssue({
+      key: 'PROJ-2',
+      statusName: 'Testing',
+      statusCategoryKey: 'indeterminate',
+      isSubtask: true,
+      parentKey: 'PROJ-1',
+    });
+    expect(subtreeBand(parent, [sub], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
+      B('testing'),
+    );
+  });
+});
+
+describe('groupByMyDay — testing and display order', () => {
+  it('foreign review parent with my subtask in Testing stays in-review-my-subtasks (fnq)', () => {
+    const groups = run(
+      [foreignReview(), mySub({ statusName: 'Testing', statusCategoryKey: 'indeterminate' })],
+      ['PROJ-2'],
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].band).toBe('in-review-my-subtasks');
+  });
+
+  it('renders all 8 bands in display order regardless of input order', () => {
+    const mk = (
+      key: string,
+      statusName: string,
+      statusCategoryKey: string,
+      extra: Parameters<typeof makeIssue>[0] = {},
+    ) => makeIssue({ key, statusName, statusCategoryKey, ...extra });
+    const issues = [
+      mk('A-1', 'Done', 'done'),
+      mk('A-2', 'To Do', 'new'),
+      mk('A-3', 'Testing', 'indeterminate'),
+      mk('A-4', 'In Progress', 'indeterminate'),
+      mk('A-5', 'In Review', 'indeterminate'),
+      mk('A-6', 'To Do', 'new', { duedate: '2026-06-13' }),
+      mk('A-7', 'To Do', 'new', { flaggedValue: [{ value: 'Impediment' }] }),
+      mk('F-1', 'In Review', 'indeterminate'),
+      mk('F-2', 'In Progress', 'indeterminate', { isSubtask: true, parentKey: 'F-1' }),
+    ];
+    const mine = ['A-1', 'A-2', 'A-3', 'A-4', 'A-5', 'A-6', 'A-7', 'F-2'];
+    const groups = run(issues, mine, ['A-5']);
+    expect(groups.map((g) => g.band)).toEqual([...MY_DAY_BAND_DISPLAY_ORDER]);
+  });
+
+  it('non-adjacent same-band parents form ONE group in input order', () => {
+    const t1 = makeIssue({ key: 'T-1', statusName: 'Testing', statusCategoryKey: 'indeterminate' });
+    const d1 = makeIssue({ key: 'D-1', statusName: 'To Do', statusCategoryKey: 'new' });
+    const t2 = makeIssue({ key: 'T-2', statusName: 'Testing', statusCategoryKey: 'indeterminate' });
+    const groups = run([t1, d1, t2], ['T-1', 'D-1', 'T-2']);
+    expect(groups.map((g) => g.band)).toEqual(['testing', 'to-do']);
+    expect(groups[0].parents.map((p) => p.parent.key)).toEqual(['T-1', 'T-2']);
+  });
+
+  it('display order is a permutation of MY_DAY_BANDS', () => {
+    expect([...MY_DAY_BAND_DISPLAY_ORDER].sort()).toEqual([...MY_DAY_BANDS].sort());
   });
 });
