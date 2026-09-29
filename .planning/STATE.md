@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-29 - Completed quick task 260929-fnq: My Tasks "In Review — my subtasks" band
+Last activity: 2026-09-29 - Completed quick task 260929-fz1: My Tasks "Testing" band + workflow display order
 
 ## Performance Metrics
 
@@ -149,6 +149,7 @@ None yet.
 | 260922-irb | On sprint board, make the goal and filters sticky, restyle the goal, surface the current sprint's name, and polish the header/row visual boundaries | 2026-09-22 | 40890b3d | Verified | [260922-irb-on-sprint-board-page-the-goal-and-filter](./quick/260922-irb-on-sprint-board-page-the-goal-and-filter/) |
 | 260922-jtc | On sprint board, the header style doesn't match the other page headers. Make the sprint title match (there can be additional info, but the section size and text size should match between pages, mainly backlog page) | 2026-09-22 | c420a22c | Verified | [260922-jtc-sprint-board-header-style-should-match-o](./quick/260922-jtc-sprint-board-header-style-should-match-o/) |
 | 260929-fnq | On My Tasks, add an "In Review — my subtasks" band for in-review stories owned by someone else where I have a subtask | 2026-09-29 | 24c6d1c2 | Verified | [260929-fnq-add-my-tasks-section-for-in-review-stori](./quick/260929-fnq-add-my-tasks-section-for-in-review-stori/) |
+| 260929-fz1 | My Tasks: add "Testing" band (status contains "test") and render bands in workflow order (In Progress → In Review → Testing → To Do), precedence unchanged | 2026-09-29 | 8f765c0b | Verified | [260929-fz1-add-testing-section-to-my-task-list](./quick/260929-fz1-add-testing-section-to-my-task-list/) |
 
 ## Deferred Items
 
