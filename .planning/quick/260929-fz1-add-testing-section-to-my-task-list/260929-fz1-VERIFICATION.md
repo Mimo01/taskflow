@@ -32,3 +32,7 @@ score: 5/5 must-haves verified
 
 ## Gaps
 None.
+
+## Human UAT
+
+2026-09-29: Approved by user — Testing band and workflow section order render as expected.
