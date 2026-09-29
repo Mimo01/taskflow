@@ -111,6 +111,25 @@ try {
   hasError = true;
 }
 
+// --- src-tauri/Cargo.lock ---
+// Cargo.toml's version is mirrored in the lockfile's own [[package]] entry;
+// without this the lock lags one release behind and needs a follow-up commit.
+try {
+  const cargoLockPath = resolve(TASKFLOW_ROOT, 'src-tauri', 'Cargo.lock');
+  const lockContent = readFileSync(cargoLockPath, 'utf8');
+  const entryRe = /(\[\[package\]\]\nname = "taskflow"\nversion = ")(\d+\.\d+\.\d+)(")/;
+  const entryMatch = lockContent.match(entryRe);
+  if (!entryMatch) {
+    throw new Error('Could not find [[package]] entry for "taskflow"');
+  }
+  const oldVersion = entryMatch[2];
+  writeFileSync(cargoLockPath, lockContent.replace(entryRe, `$1${newVersion}$3`), 'utf8');
+  console.log(`  src-tauri/Cargo.lock: ${oldVersion} -> ${newVersion}`);
+} catch (err) {
+  console.error(`  src-tauri/Cargo.lock: ERROR — ${err.message}`);
+  hasError = true;
+}
+
 if (hasError) {
   console.error('\nOne or more files failed to update. Check errors above.');
   process.exit(1);
