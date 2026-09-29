@@ -19,3 +19,6 @@ Worklogs presets are now This Week, Last 7 Days, This Month, Last Month (rolling
 Full vitest suite (2850 pass), tsc, biome green via pre-commit on both commits.
 
 ## Self-Check: PASSED
+
+## Human UAT
+2026-09-29: Approved by user — Worklogs presets are This Week · Last 7 Days · This Month · Last Month (rolling, to date) · Custom.
