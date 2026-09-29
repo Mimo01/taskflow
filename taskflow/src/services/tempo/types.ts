@@ -50,8 +50,7 @@ export interface TempoWorklog {
  */
 export type DatePreset =
   | 'this-week'
-  | 'last-week'
+  | 'last-7-days'
   | 'this-month'
-  | 'last-month'
-  | 'last-working-day'
+  | 'last-month-to-date'
   | 'custom';

@@ -4,6 +4,7 @@ import {
   getLastMonthToDateRange,
   getThisMonthRange,
   getThisWeekRange,
+  normalizeDatePreset,
 } from './worklog-date-ranges';
 
 const d = (y: number, m: number, day: number) => new Date(y, m - 1, day, 10);
@@ -45,5 +46,26 @@ describe('getThisWeekRange', () => {
 describe('getThisMonthRange', () => {
   it('first of month..today', () => {
     expect(getThisMonthRange(d(2026, 9, 29))).toEqual({ from: '2026-09-01', to: '2026-09-29' });
+  });
+});
+
+describe('normalizeDatePreset', () => {
+  it.each([
+    'this-week',
+    'last-7-days',
+    'this-month',
+    'last-month-to-date',
+    'custom',
+  ])('passes through %s', (p) => {
+    expect(normalizeDatePreset(p)).toBe(p);
+  });
+  it.each([
+    'last-week',
+    'last-month',
+    'last-working-day',
+    undefined,
+    'garbage',
+  ])('maps %s to this-week', (p) => {
+    expect(normalizeDatePreset(p)).toBe('this-week');
   });
 });

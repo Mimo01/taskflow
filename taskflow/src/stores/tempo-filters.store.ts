@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
+import { normalizeDatePreset } from '../lib/worklog-date-ranges';
 import type { DatePreset } from '../services/tempo/types';
 
 export interface TempoFilter {
@@ -46,8 +47,18 @@ export const useTempoFiltersStore = create<TempoFiltersState>()(
     {
       name: 'tempo-filters-store',
       storage: createTauriStorage('tempo-filters.json'),
-      version: 1,
-      migrate: (persisted, _version) => persisted as TempoFiltersState,
+      version: 2,
+      migrate: (persisted, version) => {
+        const s = persisted as TempoFiltersState;
+        if (version < 2 && Array.isArray(s?.savedFilters)) {
+          // v2: Last Week / Last Month / Last Working Day presets were removed
+          s.savedFilters = s.savedFilters.map((f) => ({
+            ...f,
+            preset: normalizeDatePreset(f.preset),
+          }));
+        }
+        return s;
+      },
     },
   ),
 );
