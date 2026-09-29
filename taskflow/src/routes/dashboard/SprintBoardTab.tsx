@@ -43,6 +43,7 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { orderSubtasks } from '@/lib/subtask-order';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
   buildEntityMaps,
@@ -1469,7 +1470,8 @@ export default function SprintBoardTab() {
     }
     return storyIssues.map((story) => ({
       story,
-      subtasks: subtasksByParent.get(story.key) ?? [],
+      // Numeric key order only (no fields.subtasks sequence fetch on the board).
+      subtasks: orderSubtasks(subtasksByParent.get(story.key) ?? []),
     }));
   }, [storyIssues, subtaskIssues]);
 

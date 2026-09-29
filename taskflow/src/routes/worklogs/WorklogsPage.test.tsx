@@ -849,6 +849,49 @@ describe('WorklogsPage', () => {
       expect(tableHtml).toContain('pl-6');
     });
 
+    it('orders subtask rows by the story fields.subtasks sequence', async () => {
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-1'),
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-3'),
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-2'),
+      ];
+      const sub = (key: string) => ({
+        key,
+        fields: {
+          summary: `Sub ${key}`,
+          issuetype: { name: 'Sub-task', subtask: true },
+          parent: { key: 'STORY-1', fields: { summary: 'Story One' } },
+        },
+      });
+      mockEnrichResult = [
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            subtasks: [{ key: 'SUB-3' }, { key: 'SUB-1' }, { key: 'SUB-2' }],
+          },
+        },
+        sub('SUB-1'),
+        sub('SUB-2'),
+        sub('SUB-3'),
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      const subtaskOrder = () =>
+        Array.from(
+          new Set(
+            Array.from(container.querySelectorAll('button[aria-label^="Open SUB-"]')).map((b) =>
+              b.getAttribute('aria-label'),
+            ),
+          ),
+        );
+      await waitFor(() => expect(subtaskOrder()).toHaveLength(3));
+      expect(subtaskOrder()).toEqual(['Open SUB-3', 'Open SUB-1', 'Open SUB-2']);
+    });
+
     it('TEMPO-08 unresolvable issue key renders with line-through and is included in totals', async () => {
       // KEY-X is not in enrichResult — should render with line-through
       mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 3, 'KEY-X')];

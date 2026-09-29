@@ -9,8 +9,8 @@
  *   MYTASK-02 — Summary strip count derivation from the loaded dataset
  */
 
-import type { JiraIssue } from '@/services/jira';
 import { orderSubtasks } from '@/lib/subtask-order';
+import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
 
 /**
