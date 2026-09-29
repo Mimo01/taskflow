@@ -98,4 +98,39 @@ describe('tempo-filters.store', () => {
     expect(useTempoFiltersStore.getState().savedFilters[0].username).toBe('alice');
     expect(useTempoFiltersStore.getState().savedFilters[0].displayName).toBe('Alice');
   });
+
+  it('migrate v1 -> v2 maps removed presets to this-week and preserves other fields', () => {
+    const opts = (
+      useTempoFiltersStore as unknown as {
+        persist: {
+          getOptions: () => { migrate?: (persisted: unknown, version: number) => unknown };
+        };
+      }
+    ).persist.getOptions();
+    const mk = (id: string, preset: string) => ({
+      id,
+      name: id,
+      preset,
+      username: 'alice',
+      displayName: 'Alice',
+    });
+    const out = opts.migrate?.(
+      {
+        savedFilters: [
+          mk('a', 'last-week'),
+          mk('b', 'last-month'),
+          mk('c', 'last-working-day'),
+          mk('d', 'this-month'),
+        ],
+      },
+      1,
+    ) as { savedFilters: TempoFilter[] };
+    expect(out.savedFilters.map((f) => f.preset)).toEqual([
+      'this-week',
+      'this-week',
+      'this-week',
+      'this-month',
+    ]);
+    expect(out.savedFilters[0]).toMatchObject({ id: 'a', username: 'alice', displayName: 'Alice' });
+  });
 });

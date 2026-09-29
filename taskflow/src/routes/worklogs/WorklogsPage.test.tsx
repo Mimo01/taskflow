@@ -2,7 +2,7 @@
  * WorklogsPage.test.tsx — Unit tests for the Tempo Worklog Viewer
  *
  * Coverage:
- *   TEMPO-02 — date presets (6 pills, This Week active on mount, Custom reveals two DatePicker triggers)
+ *   TEMPO-02 — date presets (5 pills, This Week active on mount, Custom reveals two DatePicker triggers)
  *   TEMPO-03 — single-select people filter (dropdown, chip, dismiss)
  *   TEMPO-04 — save named filter combining preset + person (inline input, empty-name guard)
  *   TEMPO-05 — load, rename, delete saved filters (pill click, double-click rename, × delete)
@@ -17,6 +17,7 @@ import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TempoWorklog } from '@/services/tempo';
+import type { DatePreset } from '@/services/tempo/types';
 import type { TempoFilter } from '@/stores/tempo-filters.store';
 
 // ─── Module-level mutable mock state (vi.mock factories are hoisted) ──────────
@@ -231,15 +232,18 @@ describe('WorklogsPage', () => {
   // ── TEMPO-02: date presets ─────────────────────────────────────────────────
 
   describe('TEMPO-02 — date presets', () => {
-    it('renders all 6 preset buttons', async () => {
-      const { getByText } = await renderPage();
+    it('renders exactly the 5 preset buttons in order', async () => {
+      const { getByText, queryByText } = await renderPage();
 
-      expect(getByText('This Week')).toBeTruthy();
-      expect(getByText('Last Week')).toBeTruthy();
-      expect(getByText('This Month')).toBeTruthy();
-      expect(getByText('Last Month')).toBeTruthy();
-      expect(getByText('Last Working Day')).toBeTruthy();
-      expect(getByText('Custom')).toBeTruthy();
+      const labels = ['This Week', 'Last 7 Days', 'This Month', 'Last Month', 'Custom'];
+      const nodes = labels.map((l) => getByText(l));
+      for (let i = 0; i < nodes.length - 1; i++) {
+        expect(
+          nodes[i].compareDocumentPosition(nodes[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      }
+      expect(queryByText('Last Week')).toBeNull();
+      expect(queryByText('Last Working Day')).toBeNull();
     });
 
     it('has This Week active on mount (has bg-accent class)', async () => {
@@ -299,9 +303,10 @@ describe('WorklogsPage', () => {
 
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalledTimes(1));
 
-      fireEvent.click(getByText('Last Week'));
+      fireEvent.click(getByText('Last 7 Days'));
 
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalledTimes(2));
+      expect(getByText('Last 7 Days').className).toContain('bg-accent');
     });
   });
 
@@ -648,7 +653,7 @@ describe('WorklogsPage', () => {
   const SAMPLE_FILTER: TempoFilter = {
     id: 'f1',
     name: 'Alice last month',
-    preset: 'last-month',
+    preset: 'last-month-to-date',
     username: 'alice',
     displayName: 'Alice',
   };
@@ -707,6 +712,20 @@ describe('WorklogsPage', () => {
       // The Last Month preset pill should now have the active (bg-accent) class
       const lastMonthBtn = getByText('Last Month');
       expect(lastMonthBtn.className).toContain('bg-accent');
+    });
+
+    it('loading a legacy saved filter (last-week) falls back to This Week without crashing', async () => {
+      mockSavedFilters = [{ ...SAMPLE_FILTER, preset: 'last-week' as DatePreset }];
+      const { getByText } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+
+      fireEvent.click(getByText('Alice last month'));
+
+      await waitFor(() => expect(getByText('This Week').className).toContain('bg-accent'));
+      const calls = vi.mocked(fetchWorklogs).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[3]).toBeTruthy();
+      expect(lastCall[4]).toBeTruthy();
     });
   });
   // Note: rename and delete are accessed via right-click context menu (ContextMenu component).

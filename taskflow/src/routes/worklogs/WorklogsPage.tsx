@@ -42,6 +42,13 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
 import { orderSubtaskKeys } from '@/lib/subtask-order';
+import {
+  getLast7DaysRange,
+  getLastMonthToDateRange,
+  getThisMonthRange,
+  getThisWeekRange,
+  normalizeDatePreset,
+} from '@/lib/worklog-date-ranges';
 import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
@@ -130,77 +137,6 @@ function enumerateDays(from: string, to: string): string[] {
   return days;
 }
 
-/**
- * Format a Date as a local YYYY-MM-DD string.
- * NEVER use .toISOString() for date arithmetic results: toISOString() converts to UTC
- * and shifts dates by a day in any timezone offset from UTC (RESEARCH A1).
- */
-function localISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/** This Week: ISO Monday → Sunday of the current week. */
-function getThisWeekRange(): { from: string; to: string } {
-  const today = new Date();
-  const dow = today.getDay(); // 0=Sun
-  const daysToMonday = dow === 0 ? 6 : dow - 1;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysToMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return {
-    from: localISO(monday),
-    to: localISO(sunday),
-  };
-}
-
-/** Last Week: the full Mon–Sun week before this week. */
-function getLastWeekRange(): { from: string; to: string } {
-  const { from } = getThisWeekRange();
-  const monday = new Date(`${from}T00:00:00`);
-  monday.setDate(monday.getDate() - 7);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return {
-    from: localISO(monday),
-    to: localISO(sunday),
-  };
-}
-
-/** This Month: 1st of current month → today. */
-function getThisMonthRange(): { from: string; to: string } {
-  const today = new Date();
-  const first = new Date(today.getFullYear(), today.getMonth(), 1);
-  return {
-    from: localISO(first),
-    to: localISO(today),
-  };
-}
-
-/** Last Month: 1st → last day of previous calendar month. */
-function getLastMonthRange(): { from: string; to: string } {
-  const today = new Date();
-  const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
-  const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  return {
-    from: localISO(firstDay),
-    to: localISO(lastDay),
-  };
-}
-
-/**
- * Last Working Day: most recent Mon–Fri before today.
- * Mon → Fri (-3 days), Sun → Fri (-2 days), otherwise → yesterday (-1 day).
- */
-function getLastWorkingDay(): string {
-  const today = new Date();
-  const dow = today.getDay(); // 0=Sun, 1=Mon, ...
-  const daysBack = dow === 1 ? 3 : dow === 0 ? 2 : 1;
-  const d = new Date(today);
-  d.setDate(today.getDate() - daysBack);
-  return localISO(d);
-}
-
 /** Returns bg class for a day DATA cell — always solid so brightness filter is visible. */
 function dayColClass(type: ScheduleDayType | undefined, fallbackBg = 'bg-background'): string {
   if (type === 'HOLIDAY') return 'bg-red-100 dark:bg-red-900';
@@ -252,10 +188,9 @@ function getIssueIcon(name: string | undefined): { IssueIcon: typeof BookOpen; c
 
 const DATE_PRESETS: { id: DatePreset; label: string }[] = [
   { id: 'this-week', label: 'This Week' },
-  { id: 'last-week', label: 'Last Week' },
+  { id: 'last-7-days', label: 'Last 7 Days' },
   { id: 'this-month', label: 'This Month' },
-  { id: 'last-month', label: 'Last Month' },
-  { id: 'last-working-day', label: 'Last Working Day' },
+  { id: 'last-month-to-date', label: 'Last Month' },
   { id: 'custom', label: 'Custom' },
 ];
 
@@ -346,18 +281,17 @@ export default function WorklogsPage() {
     switch (preset) {
       case 'this-week':
         return getThisWeekRange();
-      case 'last-week':
-        return getLastWeekRange();
+      case 'last-7-days':
+        return getLast7DaysRange();
       case 'this-month':
         return getThisMonthRange();
-      case 'last-month':
-        return getLastMonthRange();
-      case 'last-working-day': {
-        const d = getLastWorkingDay();
-        return { from: d, to: d };
-      }
+      case 'last-month-to-date':
+        return getLastMonthToDateRange();
       case 'custom':
         return { from: customFrom, to: customTo };
+      default:
+        // Unreachable per types; guards legacy persisted preset values at runtime.
+        return getThisWeekRange();
     }
   }, [preset, customFrom, customTo]);
 
@@ -725,7 +659,7 @@ export default function WorklogsPage() {
 
   /** TEMPO-05/D-06: Load a saved filter into component state */
   function handleLoadFilter(filter: TempoFilter) {
-    setPreset(filter.preset);
+    setPreset(normalizeDatePreset(filter.preset));
     setSelectedUsername(filter.username);
     setSelectedDisplayName(filter.displayName);
     setActiveFilterId(filter.id);

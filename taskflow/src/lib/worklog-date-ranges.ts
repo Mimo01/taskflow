@@ -1,3 +1,4 @@
+import type { DatePreset } from '../services/tempo/types';
 import { toLocalDateString } from './local-date';
 
 export interface DateRange {
@@ -36,4 +37,17 @@ export function getLastMonthToDateRange(today: Date = new Date()): DateRange {
   const lastDayPrevMonth = new Date(y, m, 0).getDate();
   const from = new Date(y, m - 1, Math.min(today.getDate(), lastDayPrevMonth));
   return { from: toLocalDateString(from), to: toLocalDateString(today) };
+}
+
+const VALID_PRESETS: ReadonlySet<string> = new Set<DatePreset>([
+  'this-week',
+  'last-7-days',
+  'this-month',
+  'last-month-to-date',
+  'custom',
+]);
+
+/** Maps any persisted/legacy/unknown preset value to a valid DatePreset (fallback: this-week). */
+export function normalizeDatePreset(p: unknown): DatePreset {
+  return typeof p === 'string' && VALID_PRESETS.has(p) ? (p as DatePreset) : 'this-week';
 }
