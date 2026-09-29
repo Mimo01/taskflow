@@ -10,6 +10,7 @@
  */
 
 import type { JiraIssue } from '@/services/jira';
+import { orderSubtasks } from '@/lib/subtask-order';
 import { isIssueFlagged } from '@/services/jira';
 
 /**
@@ -197,7 +198,8 @@ export function groupByMyDay(
         bandIndex = Math.min(bandIndex, IN_REVIEW_MY_SUBTASKS_BAND);
       }
     }
-    return { parent, subtasks, bandIndex };
+    // Band math above is order-independent; order subtasks by the parent's Jira sequence.
+    return { parent, subtasks: orderSubtasks(subtasks, parent.fields.subtasks), bandIndex };
   });
 
   // Sort by display rank (stable — preserves server rank within a band)

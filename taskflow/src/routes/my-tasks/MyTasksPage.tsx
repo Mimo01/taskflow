@@ -40,6 +40,7 @@ import {
   fetchMyTasksHierarchy,
   isIssueFlagged,
 } from '@/services/jira';
+import { orderSubtasks } from '@/lib/subtask-order';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -639,6 +640,11 @@ export default function MyTasksPage() {
         const pk = i.fields.parent?.key;
         if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), i]);
       }
+    }
+
+    for (const parent of parentsOnly) {
+      const subs = subtasksByParent.get(parent.key);
+      if (subs) subtasksByParent.set(parent.key, orderSubtasks(subs, parent.fields.subtasks));
     }
 
     if (parentsOnly.length === 0) {

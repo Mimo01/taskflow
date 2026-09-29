@@ -227,6 +227,43 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
 // --- groupByMyDay ---
 
 describe('groupByMyDay', () => {
+  it('orders subtasks by parent fields.subtasks, unlisted last by numeric key, status ignored', () => {
+    const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new' });
+    (parent.fields as unknown as { subtasks: Array<{ key: string }> }).subtasks = [
+      { key: 'S-10' },
+      { key: 'S-12' },
+      { key: 'S-3' },
+    ];
+    const mk = (key: string, statusCategoryKey = 'new') =>
+      makeIssue({ key, statusCategoryKey, isSubtask: true, parentKey: 'PROJ-1' });
+    const groups = groupByMyDay(
+      [parent, mk('S-12'), mk('S-3'), mk('S-2'), mk('S-10', 'done')],
+      new Set(['PROJ-1']),
+      FLAGGED_FIELD_KEY,
+      EMPTY_MR_KEYS,
+      FIXED_TODAY,
+    );
+    expect(groups[0].parents[0].subtasks.map((s) => s.key)).toEqual([
+      'S-10',
+      'S-12',
+      'S-3',
+      'S-2',
+    ]);
+  });
+
+  it('keeps parent rank order within a band', () => {
+    const p1 = makeIssue({ key: 'PROJ-9', statusCategoryKey: 'new' });
+    const p2 = makeIssue({ key: 'PROJ-2', statusCategoryKey: 'new' });
+    const groups = groupByMyDay(
+      [p1, p2],
+      new Set(['PROJ-9', 'PROJ-2']),
+      FLAGGED_FIELD_KEY,
+      EMPTY_MR_KEYS,
+      FIXED_TODAY,
+    );
+    expect(groups[0].parents.map((p) => p.parent.key)).toEqual(['PROJ-9', 'PROJ-2']);
+  });
+
   it('groups a single to-do parent into the to-do band', () => {
     const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new', statusName: 'To Do' });
     const myIssueKeys = new Set(['PROJ-1']);
