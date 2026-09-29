@@ -1,7 +1,7 @@
 ---
 phase: quick-260929-fnq
 verified: 2026-09-29T00:00:00Z
-status: human_needed
+status: passed
 score: 6/6 must-have truths verified (1 minor lint warning)
 human_verification:
   - test: "Open My Tasks, My Day view, with a foreign in-review story that has a subtask of mine"
@@ -45,3 +45,7 @@ No TODO, FIXME or stub markers in the diff. No debt markers.
 ## Gaps
 
 None blocking. The remaining item is the manual UAT above, plus the trivial biome import-order fix.
+
+## Human UAT
+
+2026-09-29: Approved by user — band renders as expected.
