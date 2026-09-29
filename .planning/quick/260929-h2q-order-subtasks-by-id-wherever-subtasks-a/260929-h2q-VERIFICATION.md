@@ -31,3 +31,7 @@ Goal: order subtasks by the parent's fields.subtasks sequence with a numeric-key
 - The import order in MyTasksPage.tsx is slightly off: `@/lib/subtask-order` comes after `@/services/jira`. It is a cosmetic biome-ordering nit only.
 
 No gaps. No human verification required.
+
+## Human UAT
+
+2026-09-29: Approved by user — subtasks follow Jira subtask order across all surfaces; stories keep rank order.
