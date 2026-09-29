@@ -151,7 +151,7 @@ None yet.
 | 260929-fnq | On My Tasks, add an "In Review — my subtasks" band for in-review stories owned by someone else where I have a subtask | 2026-09-29 | 24c6d1c2 | Verified | [260929-fnq-add-my-tasks-section-for-in-review-stori](./quick/260929-fnq-add-my-tasks-section-for-in-review-stori/) |
 | 260929-fz1 | My Tasks: add "Testing" band (status contains "test") and render bands in workflow order (In Progress → In Review → Testing → To Do), precedence unchanged | 2026-09-29 | 8f765c0b | Verified | [260929-fz1-add-testing-section-to-my-task-list](./quick/260929-fz1-add-testing-section-to-my-task-list/) |
 | 260929-h2q | Order subtasks by parent Jira subtask order (fields.subtasks) everywhere; numeric-key fallback (Sprint Board numeric only); stories keep rank | 2026-09-29 | cf9464cd | Verified | [260929-h2q-order-subtasks-by-id-wherever-subtasks-a](./quick/260929-h2q-order-subtasks-by-id-wherever-subtasks-a/) |
-| 260929-iwm | Datepicker week starts on Monday (shared Calendar weekStartsOn=1) | 2026-09-29 | 0790e2a5 | | [260929-iwm-datepicker-week-starts-on-monday](./quick/260929-iwm-datepicker-week-starts-on-monday/) |
+| 260929-iwm | Datepicker week starts on Monday (shared Calendar weekStartsOn=1) | 2026-09-29 | 0790e2a5 | Verified | [260929-iwm-datepicker-week-starts-on-monday](./quick/260929-iwm-datepicker-week-starts-on-monday/) |
 
 ## Deferred Items
 

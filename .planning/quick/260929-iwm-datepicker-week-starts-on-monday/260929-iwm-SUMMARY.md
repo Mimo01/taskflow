@@ -8,3 +8,6 @@ Shared `Calendar` (calendar.tsx) now defaults `weekStartsOn = 1` and passes it t
 - Deviations: worktree base was reset to 42ccd13c per branch check; node_modules symlinked (gitignored) from main checkout to run tests.
 
 ## Self-Check: PASSED
+
+## Human UAT
+2026-09-29: Approved by user — date pickers start the week on Monday across the app.
