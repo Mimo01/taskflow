@@ -353,3 +353,44 @@ describe('generateMarkdown — section header label', () => {
     vi.useRealTimers();
   });
 });
+
+describe('generateMarkdown — sub-task ordering', () => {
+  function subCommit(key: string) {
+    return {
+      id: key,
+      short_id: key,
+      title: `${key} work`,
+      message: `${key} work\n`,
+      author_name: 'jdoe',
+      author_email: 'jdoe@example.com',
+      authored_date: `${DATE}T09:00:00.000Z`,
+      web_url: 'https://gitlab.example.com',
+    };
+  }
+  function meta(keys: string[], seq?: string[]): Record<string, StandupIssueMeta> {
+    const m: Record<string, StandupIssueMeta> = {
+      'PX-1': { type: 'Story', isSubtask: false, summary: 'Story', subtaskKeys: seq },
+    };
+    for (const k of keys) {
+      m[k] = { type: 'Sub-task', isSubtask: true, summary: k, parentKey: 'PX-1' };
+    }
+    return m;
+  }
+
+  it('honors the parent subtaskKeys sequence', () => {
+    const commitsData = [subCommit('PX-2'), subCommit('PX-3')];
+    const md = generateMarkdown(
+      { commitsData, issueMeta: meta(['PX-2', 'PX-3'], ['PX-3', 'PX-2']) },
+      DATE,
+    );
+    expect(md.indexOf('  - PX-3:')).toBeGreaterThan(-1);
+    expect(md.indexOf('  - PX-3:')).toBeLessThan(md.indexOf('  - PX-2:'));
+  });
+
+  it('falls back to numeric order (PX-99 before PX-100) without subtaskKeys', () => {
+    const commitsData = [subCommit('PX-100'), subCommit('PX-99')];
+    const md = generateMarkdown({ commitsData, issueMeta: meta(['PX-100', 'PX-99']) }, DATE);
+    expect(md.indexOf('  - PX-99:')).toBeGreaterThan(-1);
+    expect(md.indexOf('  - PX-99:')).toBeLessThan(md.indexOf('  - PX-100:'));
+  });
+});

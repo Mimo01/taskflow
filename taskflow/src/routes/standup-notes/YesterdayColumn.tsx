@@ -33,6 +33,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { orderSubtaskKeys } from '@/lib/subtask-order';
 import { buildRecentDayOptions, extractJiraKeyFromMessage, getTodayDate } from '@/lib/standup-date';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
 import type { JiraActivityItem, JiraCreatedIssue, StandupIssueMeta } from '@/services/jira';
@@ -552,14 +553,15 @@ function buildGroups(
       }
     }
     group.subItems = storyLevel;
-    group.subTaskGroups = [...bySubtask.entries()]
-      .map(([key, subItems]) => ({
-        issueKey: key,
-        summary: issueMeta?.[key]?.summary ?? key,
-        issueType: issueMeta?.[key]?.type,
-        subItems,
-      }))
-      .sort((a, b) => a.issueKey.localeCompare(b.issueKey));
+    group.subTaskGroups = orderSubtaskKeys(
+      [...bySubtask.keys()],
+      issueMeta?.[group.issueKey]?.subtaskKeys,
+    ).map((key) => ({
+      issueKey: key,
+      summary: issueMeta?.[key]?.summary ?? key,
+      issueType: issueMeta?.[key]?.type,
+      subItems: bySubtask.get(key) ?? [],
+    }));
   }
 
   return {

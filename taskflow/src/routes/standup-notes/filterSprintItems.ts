@@ -35,6 +35,7 @@
  *   subtasks as a flat array. The displayName guard below is the sole assignee filter.
  */
 
+import { orderSubtasks } from '@/lib/subtask-order';
 import type { JiraIssue } from '@/services/jira';
 
 export interface SprintRow {
@@ -86,7 +87,7 @@ export function filterSprintItems(
     const mySubtasksForParent = mySubtasks.filter((s) => s.fields.parent?.key === parent.key);
     return {
       issue: parent,
-      subtasks: mySubtasksForParent,
+      subtasks: orderSubtasks(mySubtasksForParent, parent.fields.subtasks),
       // Attach resolved placement key as a non-enumerated symbol so the
       // filter below can read it without widening SprintRow's public shape.
       _placementStatusKey: isAssignedToMe(parent)
