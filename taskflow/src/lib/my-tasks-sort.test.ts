@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { MY_DAY_BANDS, classifyBand, groupByMyDay, subtreeBand } from './my-tasks-sort';
+import {
+  MY_DAY_BANDS,
+  classifyBand,
+  groupByMyDay,
+  isForeignReviewWithMySubtask,
+  subtreeBand,
+} from './my-tasks-sort';
 import type { JiraIssue } from '@/services/jira';
 
 const FLAGGED_FIELD_KEY = 'customfield_10021';
@@ -43,11 +49,12 @@ function makeIssue(
 // --- MY_DAY_BANDS ---
 
 describe('MY_DAY_BANDS', () => {
-  it('is an array of 6 band labels in urgency order', () => {
+  it('is an array of 7 band labels in urgency order', () => {
     expect(MY_DAY_BANDS).toEqual([
       'flagged-blocked',
       'overdue',
       'in-review-my-mr',
+      'in-review-my-subtasks',
       'in-progress',
       'to-do',
       'done',
@@ -58,9 +65,9 @@ describe('MY_DAY_BANDS', () => {
 // --- classifyBand ---
 
 describe('classifyBand', () => {
-  it('returns 5 (done) for issue with statusCategory.key === "done"', () => {
+  it('returns 6 (done) for issue with statusCategory.key === "done"', () => {
     const issue = makeIssue({ statusCategoryKey: 'done', statusName: 'Done' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(6);
   });
 
   it('returns 0 (flagged-blocked) for a flagged issue', () => {
@@ -83,10 +90,10 @@ describe('classifyBand', () => {
     expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(1);
   });
 
-  it('returns 4 (to-do) for non-done issue with future duedate', () => {
+  it('returns 5 (to-do) for non-done issue with future duedate', () => {
     // duedate = 2026-06-20, today = 2026-06-14 → not overdue
     const issue = makeIssue({ statusCategoryKey: 'new', duedate: '2026-06-20' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
   });
 
   it('returns 2 (in-review-my-mr) when status includes "review" and issue has my open MR', () => {
@@ -99,23 +106,23 @@ describe('classifyBand', () => {
     expect(classifyBand(issue, FLAGGED_FIELD_KEY, myMRKeys, FIXED_TODAY)).toBe(2);
   });
 
-  it('returns 3 (in-progress) when status includes "review" but no my MR', () => {
+  it('returns 4 (in-progress) when status includes "review" but no my MR', () => {
     const issue = makeIssue({
       key: 'PROJ-10',
       statusCategoryKey: 'indeterminate',
       statusName: 'In Review',
     });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(3);
-  });
-
-  it('returns 3 (in-progress) for indeterminate status not containing "review"', () => {
-    const issue = makeIssue({ statusCategoryKey: 'indeterminate', statusName: 'In Progress' });
-    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(3);
-  });
-
-  it('returns 4 (to-do) for statusCategory "new"', () => {
-    const issue = makeIssue({ statusCategoryKey: 'new', statusName: 'To Do' });
     expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
+  });
+
+  it('returns 4 (in-progress) for indeterminate status not containing "review"', () => {
+    const issue = makeIssue({ statusCategoryKey: 'indeterminate', statusName: 'In Progress' });
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
+  });
+
+  it('returns 5 (to-do) for statusCategory "new"', () => {
+    const issue = makeIssue({ statusCategoryKey: 'new', statusName: 'To Do' });
+    expect(classifyBand(issue, FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
   });
 
   it('flagged takes priority over done (flagged always wins per D-04 must_haves)', () => {
@@ -132,7 +139,7 @@ describe('classifyBand', () => {
 // --- subtreeBand (D-04 subtree evaluation) ---
 
 describe('subtreeBand — D-04 subtree evaluation', () => {
-  it('parent To Do (band 4) + overdue subtask (band 1) → returns 1 (overdue)', () => {
+  it('parent To Do (band 5) + overdue subtask (band 1) → returns 1 (overdue)', () => {
     const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new', statusName: 'To Do' });
     const overdueSubtask = makeIssue({
       key: 'PROJ-2',
@@ -146,7 +153,7 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
     ).toBe(1);
   });
 
-  it('parent Done (band 5) + In Progress subtask (band 3) → returns 3 (in-progress)', () => {
+  it('parent Done (band 6) + In Progress subtask (band 4) → returns 4 (in-progress)', () => {
     const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'done', statusName: 'Done' });
     const inProgressSubtask = makeIssue({
       key: 'PROJ-2',
@@ -157,7 +164,7 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
     });
     expect(
       subtreeBand(parent, [inProgressSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY),
-    ).toBe(3);
+    ).toBe(4);
   });
 
   it('flagged parent → returns 0 (flagged-blocked) regardless of subtask bands', () => {
@@ -181,10 +188,10 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
 
   it('no subtasks → returns parent band', () => {
     const parent = makeIssue({ key: 'PROJ-1', statusCategoryKey: 'new', statusName: 'To Do' });
-    expect(subtreeBand(parent, [], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(4);
+    expect(subtreeBand(parent, [], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(5);
   });
 
-  it('all subtasks done, parent in-progress → returns 3', () => {
+  it('all subtasks done, parent in-progress → returns 4', () => {
     const parent = makeIssue({
       key: 'PROJ-1',
       statusCategoryKey: 'indeterminate',
@@ -197,7 +204,7 @@ describe('subtreeBand — D-04 subtree evaluation', () => {
       isSubtask: true,
     });
     expect(subtreeBand(parent, [doneSubtask], FLAGGED_FIELD_KEY, EMPTY_MR_KEYS, FIXED_TODAY)).toBe(
-      3,
+      4,
     );
   });
 });
@@ -315,5 +322,134 @@ describe('groupByMyDay', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].band).toBe('to-do');
     expect(groups[0].parents).toHaveLength(2);
+  });
+});
+
+// --- in-review-my-subtasks band ---
+
+const foreignReview = (over: Parameters<typeof makeIssue>[0] = {}) =>
+  makeIssue({
+    key: 'PROJ-1',
+    statusCategoryKey: 'indeterminate',
+    statusName: 'In Review',
+    ...over,
+  });
+const mySub = (over: Parameters<typeof makeIssue>[0] = {}) =>
+  makeIssue({
+    key: 'PROJ-2',
+    statusCategoryKey: 'indeterminate',
+    statusName: 'In Progress',
+    isSubtask: true,
+    parentKey: 'PROJ-1',
+    ...over,
+  });
+const run = (issues: JiraIssue[], mine: string[], mrKeys: string[] = []) =>
+  groupByMyDay(issues, new Set(mine), FLAGGED_FIELD_KEY, new Set(mrKeys), FIXED_TODAY);
+
+describe('isForeignReviewWithMySubtask', () => {
+  const mine = new Set(['PROJ-2']);
+  it('true for foreign review parent with my subtask (case-insensitive)', () => {
+    const p = foreignReview({ statusName: 'CODE REVIEW' });
+    expect(isForeignReviewWithMySubtask(p, [mySub()], mine)).toBe(true);
+  });
+  it('false when parent is mine', () => {
+    const keys = new Set(['PROJ-1', 'PROJ-2']);
+    expect(isForeignReviewWithMySubtask(foreignReview(), [mySub()], keys)).toBe(false);
+  });
+  it('false when no subtask is mine', () => {
+    expect(isForeignReviewWithMySubtask(foreignReview(), [mySub()], new Set())).toBe(false);
+  });
+  it('false when status lacks "review"', () => {
+    const p = foreignReview({ statusName: 'In Progress' });
+    expect(isForeignReviewWithMySubtask(p, [mySub()], mine)).toBe(false);
+  });
+  it('false when parent is itself a subtask', () => {
+    const p = foreignReview({ isSubtask: true });
+    expect(isForeignReviewWithMySubtask(p, [mySub()], mine)).toBe(false);
+  });
+});
+
+describe('groupByMyDay — in-review-my-subtasks', () => {
+  it.each([
+    ['In Progress', 'indeterminate'],
+    ['To Do', 'new'],
+    ['Done', 'done'],
+  ])('lifts foreign review parent when my subtask is %s', (statusName, statusCategoryKey) => {
+    const groups = run([foreignReview(), mySub({ statusName, statusCategoryKey })], ['PROJ-2']);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].band).toBe('in-review-my-subtasks');
+  });
+
+  it('own story in review without MR stays in-progress (D-05)', () => {
+    expect(run([foreignReview()], ['PROJ-1'])[0].band).toBe('in-progress');
+  });
+
+  it('foreign non-review parent with my subtask stays in-progress', () => {
+    const groups = run([foreignReview({ statusName: 'In Progress' }), mySub()], ['PROJ-2']);
+    expect(groups[0].band).toBe('in-progress');
+  });
+
+  it('foreign review parent without my subtask is excluded', () => {
+    expect(run([foreignReview(), mySub()], [])).toHaveLength(0);
+  });
+
+  it('overdue subtask wins', () => {
+    const groups = run([foreignReview(), mySub({ duedate: '2026-06-13' })], ['PROJ-2']);
+    expect(groups[0].band).toBe('overdue');
+  });
+
+  it('flagged subtask wins', () => {
+    const groups = run(
+      [foreignReview(), mySub({ flaggedValue: [{ value: 'Impediment' }] })],
+      ['PROJ-2'],
+    );
+    expect(groups[0].band).toBe('flagged-blocked');
+  });
+
+  it('parent in my open MR keys wins', () => {
+    const groups = run([foreignReview(), mySub()], ['PROJ-2'], ['PROJ-1']);
+    expect(groups[0].band).toBe('in-review-my-mr');
+  });
+
+  it('flagged parent wins', () => {
+    const groups = run(
+      [foreignReview({ flaggedValue: [{ value: 'Impediment' }] }), mySub()],
+      ['PROJ-2'],
+    );
+    expect(groups[0].band).toBe('flagged-blocked');
+  });
+
+  it('done "Reviewed" parent with my done subtask stays done', () => {
+    const groups = run(
+      [
+        foreignReview({ statusName: 'Reviewed', statusCategoryKey: 'done' }),
+        mySub({ statusName: 'Done', statusCategoryKey: 'done' }),
+      ],
+      ['PROJ-2'],
+    );
+    expect(groups[0].band).toBe('done');
+  });
+
+  it('emits my-mr, my-subtasks, in-progress in order', () => {
+    const mrParent = makeIssue({
+      key: 'PROJ-10',
+      statusCategoryKey: 'indeterminate',
+      statusName: 'In Review',
+    });
+    const ipParent = makeIssue({
+      key: 'PROJ-20',
+      statusCategoryKey: 'indeterminate',
+      statusName: 'In Progress',
+    });
+    const groups = run(
+      [ipParent, foreignReview(), mySub(), mrParent],
+      ['PROJ-2', 'PROJ-10', 'PROJ-20'],
+      ['PROJ-10'],
+    );
+    expect(groups.map((g) => g.band)).toEqual([
+      'in-review-my-mr',
+      'in-review-my-subtasks',
+      'in-progress',
+    ]);
   });
 });
