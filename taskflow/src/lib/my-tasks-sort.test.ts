@@ -243,12 +243,7 @@ describe('groupByMyDay', () => {
       EMPTY_MR_KEYS,
       FIXED_TODAY,
     );
-    expect(groups[0].parents[0].subtasks.map((s) => s.key)).toEqual([
-      'S-10',
-      'S-12',
-      'S-3',
-      'S-2',
-    ]);
+    expect(groups[0].parents[0].subtasks.map((s) => s.key)).toEqual(['S-10', 'S-12', 'S-3', 'S-2']);
   });
 
   it('keeps parent rank order within a band', () => {

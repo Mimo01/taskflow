@@ -157,6 +157,44 @@ describe('SubtasksPanel (DASH-01)', () => {
     });
   });
 
+  describe('subtask ordering', () => {
+    it('orders group-stably by parent fields.subtasks sequence before slicing', () => {
+      const p1 = {
+        ...makeStory('PROJ-1'),
+        fields: {
+          ...makeStory('PROJ-1').fields,
+          subtasks: [{ key: 'PROJ-13' }, { key: 'PROJ-11' }],
+        },
+      };
+      const p2 = makeStory('PROJ-2');
+      const issues = [
+        makeSubtask('PROJ-11', 'PROJ-1', 'Story PROJ-1'),
+        makeSubtask('PROJ-22', 'PROJ-2', 'Story PROJ-2'),
+        makeSubtask('PROJ-13', 'PROJ-1', 'Story PROJ-1'),
+        makeSubtask('PROJ-21', 'PROJ-2', 'Story PROJ-2'),
+      ];
+      mockedUseQuery
+        .mockReturnValueOnce({
+          data: {
+            issues: [p1, p2, ...issues],
+            myIssueKeys: new Set(issues.map((i) => i.key)),
+          },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: [makeStory('PROJ-1'), makeStory('PROJ-2')],
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
+
+      const keys = screen.getAllByText(/^PROJ-\d+$/).map((el) => el.textContent);
+      expect(keys).toEqual(['PROJ-13', 'PROJ-11', 'PROJ-21', 'PROJ-22']);
+    });
+  });
+
   describe('orphan subtask filtering', () => {
     it('hides orphan subtasks whose parent.key is not in the sprint issue set', () => {
       // Subtask whose parent is NOT in the sprint board

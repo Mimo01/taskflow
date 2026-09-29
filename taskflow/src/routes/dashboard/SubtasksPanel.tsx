@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { openExternal } from '@/lib/openExternal';
+import { orderSubtasksWithinParents } from '@/lib/subtask-order';
 import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -73,7 +74,18 @@ export default function SubtasksPanel({
       sprintKeySet.has(i.fields.parent.key),
   );
 
-  const displayed = mySubtasks.slice(0, 5);
+  // Order within each parent by the parent's Jira subtask sequence (group-stable),
+  // BEFORE slicing so the 5 shown are the first 5 in that order.
+  const parentSubtaskSeq = new Map(
+    (taskData?.issues ?? [])
+      .filter((i) => !i.fields.issuetype.subtask)
+      .map((i) => [i.key, i.fields.subtasks] as const),
+  );
+  const displayed = orderSubtasksWithinParents(
+    mySubtasks,
+    (pk) => parentSubtaskSeq.get(pk),
+    (s) => s.fields.parent?.key,
+  ).slice(0, 5);
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px] density-compact:min-h-[120px] density-comfortable:min-h-[184px]">

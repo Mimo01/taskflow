@@ -41,6 +41,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
+import { orderSubtaskKeys } from '@/lib/subtask-order';
 import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
@@ -59,6 +60,7 @@ type EnrichedIssue = {
     summary: string;
     issuetype: { name: string; subtask: boolean };
     parent?: { key: string; fields: { summary: string } };
+    subtasks?: Array<{ key: string }>;
     [key: string]: unknown; // dynamic fields: epicLinkFieldKey, etc.
   };
 };
@@ -399,7 +401,7 @@ export default function WorklogsPage() {
       const base = (jiraBaseUrl ?? '').replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${uniqueKeys.join(',')})`);
       // epicLinkFieldKey = discovered Epic Link field (classic: customfield_10014, varies by instance)
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${uniqueKeys.length}`;
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,subtasks,${epicLinkFieldKey}&maxResults=${uniqueKeys.length}`;
       const response = await apiFetch(
         'jira',
         url,
@@ -439,7 +441,7 @@ export default function WorklogsPage() {
       if (!token) throw new Error('No token');
       const base = (jiraBaseUrl ?? '').replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${parentKeys.join(',')})`);
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${parentKeys.length}`;
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,subtasks,${epicLinkFieldKey}&maxResults=${parentKeys.length}`;
       const response = await apiFetch(
         'jira',
         url,
@@ -1222,70 +1224,71 @@ export default function WorklogsPage() {
                           </tr>
 
                           {/* Subtask rows */}
-                          {Array.from(storyNode.subtasks.entries()).map(
-                            ([subtaskKey, subtaskNode]) => {
-                              const subtaskTotal = Array.from(subtaskNode.dayMap.values()).reduce(
-                                (a, b) => a + b,
-                                0,
-                              );
-                              return (
-                                <tr key={`subtask-${subtaskKey}`} className="group/row">
-                                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
-                                    <button
-                                      type="button"
-                                      aria-label={`Open ${subtaskKey}`}
-                                      onClick={() => onIssueClick(subtaskKey)}
-                                      className="flex items-center gap-1 w-full text-left pl-6 min-w-0 cursor-pointer"
-                                    >
-                                      <CornerDownRight className="size-3 shrink-0 text-teal-500" />
-                                      <span className="leading-tight text-muted-foreground truncate">
-                                        {resolvedKeys.has(subtaskKey) ? (
-                                          subtaskNode.summary
-                                        ) : (
-                                          <span className="line-through">{subtaskKey}</span>
-                                        )}
-                                      </span>
-                                    </button>
-                                  </td>
-                                  <td className="sticky left-52 z-10 bg-background p-0 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">
-                                    <button
-                                      type="button"
-                                      aria-label={`Open ${subtaskKey}`}
-                                      onClick={() => onIssueClick(subtaskKey)}
-                                      className="block w-full text-left px-2 py-1.5 cursor-pointer"
-                                    >
-                                      {subtaskKey}
-                                    </button>
-                                  </td>
-                                  <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-muted-foreground min-w-14">
-                                    {formatSeconds(subtaskTotal) || '—'}
-                                  </td>
-                                  {days.map((day) => {
-                                    const secs = subtaskNode.dayMap.get(day) ?? 0;
-                                    const cellEntries = (data ?? []).filter(
-                                      (w) => w.issue.key === subtaskKey && w.dateStarted === day,
-                                    );
-                                    const cellBg = dayColClass(dayTypeMap.get(day));
-                                    return (
-                                      <td
-                                        key={day}
-                                        className={`border border-border p-0 ${cellBg}`}
-                                      >
-                                        <WorklogCellPopover
-                                          issueKey={subtaskKey}
-                                          date={day}
-                                          entries={cellEntries}
-                                          jiraBaseUrl={jiraBaseUrl ?? ''}
-                                          totalSeconds={secs}
-                                          dayColClassName={cellBg}
-                                        />
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            },
-                          )}
+                          {/* Ordering site (only one): story's fields.subtasks, numeric fallback. */}
+                          {orderSubtaskKeys(
+                            [...storyNode.subtasks.keys()],
+                            enrichMap.get(storyKey)?.fields.subtasks,
+                          ).map((subtaskKey) => {
+                            const subtaskNode = storyNode.subtasks.get(subtaskKey);
+                            if (!subtaskNode) return null;
+                            const subtaskTotal = Array.from(subtaskNode.dayMap.values()).reduce(
+                              (a, b) => a + b,
+                              0,
+                            );
+                            return (
+                              <tr key={`subtask-${subtaskKey}`} className="group/row">
+                                <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
+                                  <button
+                                    type="button"
+                                    aria-label={`Open ${subtaskKey}`}
+                                    onClick={() => onIssueClick(subtaskKey)}
+                                    className="flex items-center gap-1 w-full text-left pl-6 min-w-0 cursor-pointer"
+                                  >
+                                    <CornerDownRight className="size-3 shrink-0 text-teal-500" />
+                                    <span className="leading-tight text-muted-foreground truncate">
+                                      {resolvedKeys.has(subtaskKey) ? (
+                                        subtaskNode.summary
+                                      ) : (
+                                        <span className="line-through">{subtaskKey}</span>
+                                      )}
+                                    </span>
+                                  </button>
+                                </td>
+                                <td className="sticky left-52 z-10 bg-background p-0 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">
+                                  <button
+                                    type="button"
+                                    aria-label={`Open ${subtaskKey}`}
+                                    onClick={() => onIssueClick(subtaskKey)}
+                                    className="block w-full text-left px-2 py-1.5 cursor-pointer"
+                                  >
+                                    {subtaskKey}
+                                  </button>
+                                </td>
+                                <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-muted-foreground min-w-14">
+                                  {formatSeconds(subtaskTotal) || '—'}
+                                </td>
+                                {days.map((day) => {
+                                  const secs = subtaskNode.dayMap.get(day) ?? 0;
+                                  const cellEntries = (data ?? []).filter(
+                                    (w) => w.issue.key === subtaskKey && w.dateStarted === day,
+                                  );
+                                  const cellBg = dayColClass(dayTypeMap.get(day));
+                                  return (
+                                    <td key={day} className={`border border-border p-0 ${cellBg}`}>
+                                      <WorklogCellPopover
+                                        issueKey={subtaskKey}
+                                        date={day}
+                                        entries={cellEntries}
+                                        jiraBaseUrl={jiraBaseUrl ?? ''}
+                                        totalSeconds={secs}
+                                        dayColClassName={cellBg}
+                                      />
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
                         </React.Fragment>
                       );
                     })}
