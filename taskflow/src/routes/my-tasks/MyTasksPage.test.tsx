@@ -450,3 +450,51 @@ describe('MyTasksPage — real MR review health (260827-gji)', () => {
     }
   });
 });
+
+// ── Testing band + workflow display order (260929-fz1) ───────────────────────
+
+describe('MyTasksPage — Testing band and workflow order (260929-fz1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function withStatus(key: string, statusName: string, category: 'indeterminate' | 'new') {
+    const issue = makeIssue(key, category);
+    issue.fields.status.name = statusName;
+    return issue;
+  }
+
+  function mockIssues(issues: ReturnType<typeof makeIssue>[]) {
+    const sprintData = { issues, myIssueKeys: new Set(issues.map((i) => i.key)) };
+    vi.mocked(useQuery).mockImplementation((opts: any) => {
+      const key: readonly unknown[] = opts.queryKey ?? [];
+      if (key[0] === 'jira-issues' && key[1] === 'my-tasks') {
+        return { ...NO_DATA_RESPONSE, data: sprintData } as any;
+      }
+      return NO_DATA_RESPONSE as any;
+    });
+  }
+
+  it('renders a "Ready to test" issue under a Testing group header', () => {
+    mockIssues([withStatus('T-1', 'Ready to test', 'indeterminate')]);
+    renderPage();
+    expect(screen.getByText('Testing')).toBeDefined();
+    expect(screen.getByTestId('my-task-row-T-1')).toBeDefined();
+  });
+
+  it('renders In Progress, Testing, To Do rows in workflow order', () => {
+    mockIssues([
+      withStatus('D-1', 'To Do', 'new'),
+      withStatus('T-1', 'Ready to test', 'indeterminate'),
+      withStatus('P-1', 'In Progress', 'indeterminate'),
+    ]);
+    renderPage();
+    const p = screen.getByTestId('my-task-row-P-1');
+    const t = screen.getByTestId('my-task-row-T-1');
+    const d = screen.getByTestId('my-task-row-D-1');
+    const follows = (a: HTMLElement, b: HTMLElement) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(p, t)).toBe(true);
+    expect(follows(t, d)).toBe(true);
+  });
+});
