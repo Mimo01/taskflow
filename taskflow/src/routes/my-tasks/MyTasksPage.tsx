@@ -30,7 +30,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildMrHealthByKey, resolveMrHealth, selectMrsForHealth } from '@/lib/my-tasks-mr-health';
-import { groupByMyDay } from '@/lib/my-tasks-sort';
+import { type MyDayBand, groupByMyDay } from '@/lib/my-tasks-sort';
 import { cn } from '@/lib/utils';
 import { fetchAuthoredMRs, fetchMRApprovals, fetchMRDiscussions } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -47,10 +47,11 @@ import { MyTaskRow } from './MyTaskRow';
 
 // ── Copywriting contract ──────────────────────────────────────────────────────
 
-const MY_DAY_BAND_LABELS: Record<string, string> = {
+const MY_DAY_BAND_LABELS: Record<MyDayBand, string> = {
   'flagged-blocked': 'Flagged / Blocked',
   overdue: 'Overdue',
   'in-review-my-mr': 'In Review with my MR',
+  'in-review-my-subtasks': 'In Review — my subtasks',
   'in-progress': 'In Progress',
   'to-do': 'To Do',
   done: 'Done',
@@ -66,10 +67,11 @@ type Scope = 'current-sprint' | 'all-assigned' | 'all-reported';
 
 // ── Group header band dot colors (subtle identity dot, replaces heavy left stripe) ──
 
-const MY_DAY_BAND_DOT: Record<string, string> = {
+const MY_DAY_BAND_DOT: Record<MyDayBand, string> = {
   'flagged-blocked': 'bg-red-500',
   overdue: 'bg-destructive',
   'in-review-my-mr': 'bg-purple-500',
+  'in-review-my-subtasks': 'bg-indigo-500',
   'in-progress': 'bg-blue-500',
   'to-do': 'bg-muted-foreground/60',
   done: 'bg-green-500',
