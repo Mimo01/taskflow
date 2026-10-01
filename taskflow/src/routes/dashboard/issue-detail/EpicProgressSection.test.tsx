@@ -665,7 +665,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     expect(within(remaining).getByText('9 SP · 0m')).toBeInTheDocument();
   });
 
-  it('Risks shows severity chips for unestimated and unassigned, or No risks when clean', () => {
+  it('Risks lists one button per risk for unestimated and unassigned, or No risks when clean', () => {
     const { unmount } = renderSection(
       <EpicProgressSection
         epicKey="E-1"
@@ -677,7 +677,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     const risks = screen.getAllByTestId('epic-stat-tile')[2];
     expect(within(risks).getByText('1 unestimated')).toBeInTheDocument();
     expect(within(risks).getByText('1 unassigned')).toBeInTheDocument();
-    for (const chip of within(risks).getAllByTestId('epic-risk-chip')) {
+    for (const chip of within(risks).getAllByTestId('epic-risk-item')) {
       expect(chip).toHaveAttribute('data-severity', 'info');
     }
     expect(within(risks).queryByText('No risks')).toBeNull();
@@ -1055,7 +1055,7 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     );
   });
 
-  it('a past due date shows a warning overdue chip', () => {
+  it('a past due date shows a warning overdue item', () => {
     renderSection(
       <EpicProgressSection
         epicKey="E-1"
@@ -1065,11 +1065,11 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         epicDueDate={daysAgo(3)}
       />,
     );
-    const chip = screen.getByText('overdue').closest('[data-testid="epic-risk-chip"]');
+    const chip = screen.getByText('Overdue 3 days').closest('[data-testid="epic-risk-item"]');
     expect(chip).toHaveAttribute('data-severity', 'warning');
   });
 
-  it('opening Risks lists one row per risk with the affected issue keys', async () => {
+  it('opening a risk lists its affected issues', async () => {
     const user = userEvent.setup();
     renderSection(
       <EpicProgressSection
@@ -1083,10 +1083,10 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         onOpenIssue={vi.fn()}
       />,
     );
-    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
-    await waitFor(() => expect(rowTexts()).toContain('Unestimated1'));
-    expect(rowTexts()).toContain('Unassigned1');
-    expect(screen.getAllByRole('button', { name: 'A-4' }).length).toBeGreaterThan(0);
+    await user.click(screen.getByText('1 unassigned'));
+    const rows = await screen.findAllByTestId('epic-risk-issue');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('A-4');
   });
 
   it('bar-to-legend spacing uses no negative margins', () => {
@@ -1319,13 +1319,10 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     }
     await user.unhover(tiles[0]);
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull());
-    await user.hover(tiles[2]);
-    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Unassigned'))).toBe(true));
-    for (const r of document.querySelectorAll('[data-slot="tooltip-row"]')) {
-      const m = r.children[0] as HTMLElement;
-      expect(m.getAttribute('data-marker')).toBe('icon');
-      expect(m.style.color).toBe('');
-    }
+    expect(tiles[2].querySelector('[data-slot="tooltip-row"]')).toBeNull();
+    const riskIcons = tiles[2].querySelectorAll('[data-testid="epic-risk-item"] svg');
+    expect(riskIcons.length).toBeGreaterThan(0);
+    for (const svg of riskIcons) expect((svg as SVGElement).style.color).toBe('');
   });
 });
 
@@ -1455,49 +1452,77 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     expect(meter.parentElement?.className).toContain('whitespace-nowrap');
   });
 
-  it('Risks popover: keys are buttons that open the issue (click and Enter)', async () => {
+  it('Risks popover: rows are buttons that open the issue (click, arrows, Enter, Escape)', async () => {
     const onOpenIssue = vi.fn();
     const user = userEvent.setup();
     renderSection(
       sectionOf(
         [
           story('A-1', { cat: 'done', status: 'Done', sp: 2, assignee: 'Amy', res: daysAgo(1) }),
-          story('A-4', { cat: 'new', status: 'To Do', sp: null, assignee: null }),
-          story('A-5', { cat: 'new', status: 'To Do', sp: null, assignee: null }),
+          story('A-4', { cat: 'new', status: 'To Do', sp: 2, assignee: null }),
+          story('A-5', { cat: 'new', status: 'To Do', sp: 2, assignee: null }),
         ],
         { onOpenIssue },
       ),
     );
-    expect(screen.queryByRole('button', { name: 'A-4' })).toBeNull();
-    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
-    await user.click((await screen.findAllByRole('button', { name: 'A-4' }))[0]);
+    expect(screen.queryByText('A-4')).toBeNull();
+    await user.click(screen.getByText('2 unassigned'));
+    await user.click(await screen.findByRole('button', { name: /^A-4/ }));
     expect(onOpenIssue).toHaveBeenCalledWith('A-4');
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'A-4' })).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
 
-    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
-    const a5 = (await screen.findAllByRole('button', { name: 'A-5' }))[0];
-    a5.focus();
+    await user.click(screen.getByText('2 unassigned'));
+    const rows = await screen.findAllByTestId('epic-risk-issue');
+    rows[0].focus();
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[1]);
     await user.keyboard('{Enter}');
     expect(onOpenIssue).toHaveBeenCalledWith('A-5');
+    await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
+
+    await user.click(screen.getByText('2 unassigned'));
+    await screen.findByTestId('epic-risk-popover');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
   });
 
-  it('Risks popover shows 5 keys and expands the rest with +N more; warnings come first', async () => {
+  it('opening a risk popover by click puts focus on the first issue row', async () => {
     const user = userEvent.setup();
-    const seven = Array.from({ length: 7 }, (_, i) =>
-      story(`K-${i + 1}`, { cat: 'new', status: 'To Do', sp: 1, assignee: 'Amy' }),
+    renderSection(
+      sectionOf(
+        [
+          story('F-1', { cat: 'new', status: 'To Do', sp: 2, assignee: null }),
+          story('F-2', { cat: 'new', status: 'To Do', sp: 2, assignee: null }),
+        ],
+        { onOpenIssue: vi.fn() },
+      ),
     );
-    renderSection(sectionOf(seven, { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
-    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
-    const popover = await screen.findByTestId('epic-risks-popover');
-    const rows = within(popover).getAllByTestId('epic-risk-row');
-    expect(rows[0].textContent).toContain('Overdue');
-    const keyButtons = () => within(popover).getAllByRole('button', { name: /^K-\d+$/ });
-    expect(keyButtons()).toHaveLength(5);
-    const more = within(popover).getByRole('button', { name: '+2 more' });
-    expect(more).toHaveAttribute('aria-expanded', 'false');
-    await user.click(more);
-    expect(keyButtons()).toHaveLength(7);
+    await user.click(screen.getByText('2 unassigned'));
+    const rows = await screen.findAllByTestId('epic-risk-issue');
+    await waitFor(() => expect(document.activeElement).toBe(rows[0]));
+  });
+
+  it('risk popover lists every issue in a scrollable list; warnings come first', async () => {
+    const user = userEvent.setup();
+    const ten = Array.from({ length: 10 }, (_, i) =>
+      story(`K-${i + 1}`, { cat: 'new', status: 'To Do', sp: 1, assignee: null }),
+    );
+    renderSection(sectionOf(ten, { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
+    const items = screen.getAllByTestId('epic-risk-item');
+    expect(items[0].textContent).toMatch(/^Overdue/);
+    await user.click(screen.getByText('10 unassigned'));
+    const popover = await screen.findByTestId('epic-risk-popover');
+    expect(within(popover).getAllByTestId('epic-risk-issue')).toHaveLength(10);
+    const list = within(popover).getByTestId('epic-risk-issues');
+    expect(list.className).toContain('max-h-48');
+    expect(list.className).toContain('overflow-y-auto');
     expect(within(popover).queryByRole('button', { name: /more$/ })).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
+    await user.click(items[0]);
+    const overdue = await screen.findByTestId('epic-risk-popover');
+    expect(within(overdue).queryByTestId('epic-risk-issues')).toBeNull();
+    expect(overdue.textContent).toContain('open items');
   });
 });
 
@@ -1705,9 +1730,8 @@ describe('Risks keys without an issue opener (261001-sqm review WR-01)', () => {
         epicCreated={undefined}
       />,
     );
-    const tiles = screen.getAllByTestId('epic-stat-tile');
-    await user.click(tiles[2]);
-    await screen.findAllByText('N-4');
-    expect(screen.queryByRole('button', { name: 'N-4' })).toBeNull();
+    await user.click(screen.getAllByTestId('epic-risk-item')[0]);
+    expect((await screen.findByTestId('epic-risk-issue')).textContent).toContain('N-4');
+    expect(screen.queryByRole('button', { name: /^N-4/ })).toBeNull();
   });
 });
