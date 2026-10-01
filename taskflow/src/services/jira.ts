@@ -2811,6 +2811,141 @@ export async function fetchEpicWorklogs(
   return result;
 }
 
+export interface StatusTransition {
+  /** ISO timestamp of the transition. */
+  at: string;
+  fromId: string | null;
+  fromName: string | null;
+  toId: string | null;
+  toName: string | null;
+}
+
+export interface EpicStatusHistory {
+  /** Status transitions, ascending by time. */
+  transitions: StatusTransition[];
+  /** ISO timestamp the story was last linked to the epic (changelog `Epic Link`), when known. */
+  joinedAt: string | null;
+}
+
+type StatusHistorySearchIssue = JiraIssue & {
+  changelog?: { total?: number; histories?: ChangelogHistory[] };
+};
+
+/** Changelog payloads are heavy (whole history per issue), so chunk smaller than worklogs. */
+const STATUS_HISTORY_CHUNK = 25;
+
+function toEpicStatusHistory(histories: ChangelogHistory[], epicKey: string): EpicStatusHistory {
+  // Cloud returns histories newest-first, Data Center oldest-first: always sort ascending.
+  const sorted = [...histories].sort((a, b) =>
+    a.created < b.created ? -1 : a.created > b.created ? 1 : 0,
+  );
+  const transitions: StatusTransition[] = [];
+  let joinedAt: string | null = null;
+  for (const h of sorted) {
+    for (const item of h.items ?? []) {
+      if (item.field === 'status') {
+        transitions.push({
+          at: h.created,
+          fromId: item.from ?? null,
+          fromName: item.fromString ?? null,
+          toId: item.to ?? null,
+          toName: item.toString ?? null,
+        });
+      } else if (item.field === 'Epic Link' && (item.toString ?? '').includes(epicKey)) {
+        joinedAt = h.created;
+      }
+    }
+  }
+  return { transitions, joinedAt };
+}
+
+/**
+ * Fetch status-transition history for an epic's stories (CFD input).
+ *
+ * Search embeds each issue's changelog via `expand=changelog`. Jira Cloud caps
+ * the embedded changelog at 100 histories (newest first); issues whose
+ * `changelog.total` exceeds what came back are topped up from
+ * `/issue/{key}?expand=changelog`. Data Center returns oldest-first, so
+ * histories are always sorted ascending. A failed search rejects (fail-closed,
+ * the UI falls back to an approximation); a failed top-up keeps the embedded
+ * histories.
+ */
+export async function fetchEpicStatusHistory(
+  baseUrl: string,
+  token: string,
+  storyKeys: string[],
+  epicKey: string,
+): Promise<Map<string, EpicStatusHistory>> {
+  const result = new Map<string, EpicStatusHistory>();
+  if (storyKeys.length === 0) return result;
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  // Keys are interpolated into JQL and URL paths — accept only well-formed issue keys.
+  const keys = storyKeys.filter((k) => /^[A-Z][A-Z0-9_]*-\d+$/.test(k));
+  if (keys.length === 0) return result;
+
+  const chunks: string[] = [];
+  for (let i = 0; i < keys.length; i += STATUS_HISTORY_CHUNK) {
+    chunks.push(keys.slice(i, i + STATUS_HISTORY_CHUNK).join(','));
+  }
+  const byKey = new Map<string, StatusHistorySearchIssue>();
+  let nextChunk = 0;
+  const chunkWorkers = Array.from(
+    { length: Math.min(PAGE_CONCURRENCY, chunks.length) },
+    async () => {
+      while (true) {
+        const i = nextChunk++;
+        if (i >= chunks.length) return;
+        const jql = encodeURIComponent(`key in (${chunks[i]})`);
+        const page = await fetchAllSearchPagesConcurrent(
+          `${base}/rest/api/2/search?jql=${jql}&fields=status,created&expand=changelog`,
+          headers,
+        );
+        // Dedupe: concurrent paging can return an issue twice if pages shift mid-fetch.
+        for (const issue of page as StatusHistorySearchIssue[]) byKey.set(issue.key, issue);
+      }
+    },
+  );
+  await Promise.all(chunkWorkers);
+
+  const historiesOf = new Map<string, ChangelogHistory[]>();
+  const topUps: string[] = [];
+  for (const issue of byKey.values()) {
+    const embedded = issue.changelog?.histories ?? [];
+    historiesOf.set(issue.key, embedded);
+    if ((issue.changelog?.total ?? 0) > embedded.length) topUps.push(issue.key);
+  }
+
+  let nextTop = 0;
+  const topWorkers = Array.from({ length: Math.min(PAGE_CONCURRENCY, topUps.length) }, async () => {
+    while (true) {
+      const i = nextTop++;
+      if (i >= topUps.length) return;
+      const key = topUps[i];
+      try {
+        const response = await apiFetch(
+          'jira',
+          `${base}/rest/api/2/issue/${encodeURIComponent(key)}?expand=changelog&fields=status`,
+          { headers },
+          'Load Issue Detail',
+        );
+        if (!response.ok) continue;
+        const data = (await response.json()) as { changelog?: { histories?: ChangelogHistory[] } };
+        const full = data.changelog?.histories ?? [];
+        if (full.length > (historiesOf.get(key)?.length ?? 0)) historiesOf.set(key, full);
+      } catch {
+        // Fail open: keep the embedded histories.
+      }
+    }
+  });
+  await Promise.all(topWorkers);
+
+  for (const [key, histories] of historiesOf) {
+    result.set(key, toEpicStatusHistory(histories, epicKey));
+  }
+  return result;
+}
+
 // fetchClosedSprints and fetchSprintIssuesBySprintId removed in Phase 86 (D-01 clean slate).
 // VelocityChart.tsx (their sole consumer) was deleted; no other consumers existed.
 

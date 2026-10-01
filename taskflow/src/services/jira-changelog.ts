@@ -22,6 +22,9 @@ export interface ChangelogHistory {
   items: Array<{
     field: string;
     fieldtype?: string;
+    /** Status id for `field === 'status'` items (Jira standard payload). */
+    from?: string | null;
+    to?: string | null;
     fromString: string | null;
     toString: string | null;
   }>;
