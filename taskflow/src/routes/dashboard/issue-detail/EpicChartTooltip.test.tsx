@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import { averageForecasts, type EpicForecast, formatFinishDate } from '@/lib/epic-progress';
 import { type ChartDatum, cfdRows, EpicChartTooltip, timeRows } from './EpicChartTooltip';
+import { ForecastLegend } from './EpicCfdChart';
 
 const rowsOf = (container: HTMLElement) =>
   [...container.querySelectorAll('[data-slot="tooltip-row"]')] as HTMLElement[];
@@ -205,8 +206,9 @@ describe('EpicChartTooltip', () => {
         />,
       ).container,
     );
+    // Estimate is a filled 'area' (distinct from the forecast 'band') — 261001-rtw review WR-02.
     expect(time.map((r) => r.children[0].getAttribute('data-marker'))).toEqual([
-      'band',
+      'area',
       'line',
       'line',
     ]);
@@ -291,5 +293,30 @@ describe('EpicChartTooltip', () => {
         expect(row?.children[0]).toHaveAttribute('data-marker', 'icon');
       }
     });
+  });
+});
+
+describe('ForecastLegend review fixes (261001-rtw)', () => {
+  it('still names the shared finish when this view has nothing left to project', () => {
+    const f: EpicForecast = {
+      state: 'ok',
+      remaining: 5,
+      ratePerWeek: 1,
+      scopeRatePerWeek: 0,
+      windowDays: 14,
+      completions: 5,
+      nLikely: 5,
+      nOpt: 4,
+      nPess: 8,
+      likely: '2026-10-07',
+      optimistic: '2026-10-06',
+      pessimistic: '2026-10-12',
+      confidence: 'high',
+      explanation: '',
+    };
+    const finish = averageForecasts([{ metric: 'count', forecast: f }], '2026-09-30');
+    const { container } = render(<ForecastLegend finish={finish} hasProjection={false} />);
+    expect(container.textContent).toContain('Forecast:');
+    expect(container.textContent).toContain('nothing left in this view');
   });
 });

@@ -1300,3 +1300,21 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     }
   });
 });
+
+describe('EpicProgressSection a11y review fix (261001-rtw)', () => {
+  it('assignee row trigger is a labelled group, so its img chips are not nested images', () => {
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={[
+          story('R-1', { cat: 'new', status: 'To Do', assignee: 'Amy', created: '2026-09-01' }),
+        ]}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    const trigger = screen.getByTestId('epic-assignee-trigger');
+    expect(trigger.getAttribute('role')).toBe('group');
+    expect(trigger.closest('[role="img"]')).toBeNull();
+  });
+});

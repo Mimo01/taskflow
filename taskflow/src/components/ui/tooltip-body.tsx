@@ -32,7 +32,7 @@ export function TooltipBody({
  * Marker shapes. Colour is for STATUSES only ('status'); every other marker is monochrome
  * (foreground / muted-foreground) so a coloured glyph always means a status.
  */
-export type TooltipMarker = 'status' | 'line' | 'dashed' | 'band' | 'icon';
+export type TooltipMarker = 'status' | 'line' | 'dashed' | 'band' | 'area' | 'icon';
 export type MarkerTone = 'strong' | 'muted';
 
 const TONE_COLOR: Record<MarkerTone, string> = {
@@ -83,6 +83,18 @@ export function MarkerGlyph({
         data-tone={tone}
         className="h-0 w-2.5 shrink-0 border-t-2 border-dashed"
         style={{ borderColor: c }}
+      />
+    );
+  }
+  if (marker === 'area') {
+    // Solid filled area (e.g. Estimate) — distinct from the faint bordered forecast band.
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="area"
+        data-tone={tone}
+        className="h-2 w-2.5 shrink-0 rounded-[2px] opacity-60"
+        style={{ background: c }}
       />
     );
   }

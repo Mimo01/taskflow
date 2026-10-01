@@ -285,6 +285,13 @@ describe('IssueDetailContent', () => {
       expect(fill.className).toContain('bg-red-500');
     });
 
+    it('names the overrun in the tooltip, not only by colour', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'new', { est: 3600, spent: 7200 })]);
+      await user.hover(screen.getByTestId('story-time-bar'));
+      expect(await screen.findByText('Over estimate')).toBeInTheDocument();
+    });
+
     it('renders an empty muted track when there is no estimate', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'new', { spent: 1800 })]);

@@ -12,7 +12,6 @@ import {
   Hourglass,
   type LucideIcon,
   Timer,
-  User,
   Weight,
 } from 'lucide-react';
 import type { MarkerTone, TooltipMarker } from '@/components/ui/tooltip-body';
@@ -21,13 +20,9 @@ import type { Metric } from '@/lib/epic-progress';
 export const MARKER_ICON = {
   date: CalendarDays,
   fromToday: CalendarClock,
-  count: Hash,
-  sp: Weight,
-  time: Clock,
   logged: Clock,
   estimate: Timer,
   remaining: Hourglass,
-  person: User,
 } as const satisfies Record<string, LucideIcon>;
 
 export const METRIC_ICON: Record<Metric, LucideIcon> = {
@@ -61,10 +56,10 @@ export const SERIES = {
   logged: { stroke: MUTED, strokeWidth: 2, marker: 'line', tone: 'muted' },
   estimate: {
     fill: MUTED,
-    fillOpacity: 0.08,
+    fillOpacity: 0.15,
     stroke: MUTED,
     strokeWidth: 1,
-    marker: 'band',
+    marker: 'area',
     tone: 'muted',
   },
 } as const satisfies Record<string, SeriesMarker & Record<string, unknown>>;

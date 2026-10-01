@@ -338,7 +338,7 @@ export function EpicProgressSection({
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {statuses.map((b) => (
                   <span key={b.id} className="inline-flex items-center gap-1.5">
-                    <span className={cn('size-2 rounded-full', statusCategoryDotClass(b.cat))} />
+                    <span className={cn('size-2 rounded-[2px]', statusCategoryDotClass(b.cat))} />
                     <span>{`${b.name} · ${formatMetric(b.value, metric)}`}</span>
                   </span>
                 ))}
@@ -353,7 +353,8 @@ export function EpicProgressSection({
                       delay={0}
                       render={<div />}
                       data-testid="epic-assignee-trigger"
-                      role="img"
+                      // group, not img: its avatar and chips are role="img" children (no nested img roles).
+                      role="group"
                       tabIndex={0}
                       aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
                       className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

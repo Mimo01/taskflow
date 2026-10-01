@@ -87,7 +87,12 @@ export function ForecastLegend({
       <LegendItem marker={SERIES.forecast.marker} tone={SERIES.forecast.tone} label="Forecast" />
     );
   }
-  if (finish.state === 'ok') return null;
+  if (finish.state === 'ok') {
+    // Shared forecast exists but this view has nothing left to project (e.g. all estimates logged).
+    return finish.likely ? (
+      <span data-testid="epic-forecast-state">{`Forecast: ${formatDateKey(finish.likely)} · nothing left in this view`}</span>
+    ) : null;
+  }
   return (
     <span data-testid="epic-forecast-state">{`Forecast: ${FINISH_STATE_TEXT[finish.state]}`}</span>
   );

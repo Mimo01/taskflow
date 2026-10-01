@@ -205,7 +205,7 @@ function FinishTile({
               icon={<MARKER_ICON.date className="size-3" />}
               label={r.label}
               value={formatFinishDate(r.date, today)}
-              sub={`${r.n} working days`}
+              sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
             />
           ))}
           {finish.parts.map((p) => {
