@@ -4,11 +4,8 @@
  * is date-keyed ({from,to}) because a recharts Brush is index-based on each chart's own data.
  */
 
-import { type ChartRange, rangeIndexes, ZOOM_PRESETS, type ZoomPreset } from '@/lib/epic-progress';
+import { type ChartRange, ZOOM_PRESETS, type ZoomPreset } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
-
-/** Plot height plus the Brush strip. */
-export const CHART_HEIGHT = 252;
 
 export interface ChartZoom {
   /** The full shared domain (axis start to latest forecast date). */
@@ -16,7 +13,10 @@ export interface ChartZoom {
   /** The visible range, clamped to the domain. */
   range: ChartRange;
   preset: ZoomPreset | null;
-  forecastEnabled: boolean;
+  /** Zoom chrome (Brush + presets) is shown only for long domains. */
+  enabled: boolean;
+  /** Presets worth showing (lib visiblePresets); empty when zoom is disabled. */
+  presets: ZoomPreset[];
   /** Bumped by preset clicks only; with the domain, keys the Brush so it resyncs (never during a drag). */
   epoch: number;
   onPreset(p: ZoomPreset): void;
@@ -31,7 +31,10 @@ export const BRUSH_STYLE = {
   fill: 'transparent',
 } as const;
 
-export const brushIndexes = rangeIndexes;
+/** Plot height without the Brush strip (short domains). */
+export const PLOT_HEIGHT = 232;
+/** Plot height plus the Brush strip (zoomable domains). */
+export const CHART_HEIGHT = PLOT_HEIGHT + BRUSH_STYLE.height;
 
 /**
  * The visible x range for a chart. Without shared zoom state (no valid axis start, e.g. a
@@ -46,11 +49,16 @@ export function visibleRange(zoom: ChartZoom | null, data: { date: string }[]): 
 
 /** A brush needs 3+ points and a non-degenerate range. */
 export function brushUsable(zoom: ChartZoom | null, data: unknown[]): zoom is ChartZoom {
-  return zoom !== null && data.length >= 3 && zoom.domain.from < zoom.domain.to;
+  return zoom?.enabled === true && data.length >= 3 && zoom.domain.from < zoom.domain.to;
+}
+
+/** Chart container height: taller only when the Brush strip is rendered. */
+export function chartHeight(zoom: ChartZoom | null, data: unknown[]): number {
+  return brushUsable(zoom, data) ? CHART_HEIGHT : PLOT_HEIGHT;
 }
 
 export function ZoomPresets({ zoom }: { zoom: ChartZoom }) {
-  if (zoom.domain.from >= zoom.domain.to) return null;
+  if (!zoom.enabled || zoom.domain.from >= zoom.domain.to) return null;
   return (
     // biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome
     <div
@@ -59,18 +67,15 @@ export function ZoomPresets({ zoom }: { zoom: ChartZoom }) {
       data-testid="epic-zoom-presets"
       className="flex flex-none gap-1"
     >
-      {ZOOM_PRESETS.map((p) => (
+      {ZOOM_PRESETS.filter((p) => zoom.presets.includes(p.key)).map((p) => (
         <button
           key={p.key}
           type="button"
           aria-pressed={zoom.preset === p.key}
-          disabled={p.key === 'forecast' && !zoom.forecastEnabled}
           onClick={() => zoom.onPreset(p.key)}
           className={cn(
-            'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10 disabled:cursor-default disabled:opacity-50',
-            zoom.preset === p.key
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent disabled:hover:bg-transparent',
+            'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
+            zoom.preset === p.key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
           )}
         >
           {p.label}

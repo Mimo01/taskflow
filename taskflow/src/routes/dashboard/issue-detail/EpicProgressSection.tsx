@@ -42,6 +42,7 @@ import {
   presetRange,
   projectFinish,
   type StatusBucket,
+  visiblePresets,
   type WorklogSource,
   withProjection,
   type ZoomPreset,
@@ -253,15 +254,29 @@ export function EpicProgressSection({
   const domain = chartDomain(axisStart, today, finish);
   let chartZoom: ChartZoom | null = null;
   if (domain) {
-    const forecastEnabled = presetRange('forecast', domain, today) !== null;
-    // A stored Forecast preset that is no longer available shows as All (what's actually drawn).
-    const preset = zoom.preset === 'forecast' && !forecastEnabled ? 'all' : zoom.preset;
-    const wanted = preset ? (presetRange(preset, domain, today) ?? domain) : (zoom.range ?? domain);
+    const presets = visiblePresets(domain, today);
+    const enabled = presets.length > 0;
+    // Zoom chrome disappears for short domains: drop any stored zoom (adjust state while rendering).
+    if (!enabled && (zoom.preset !== 'all' || zoom.range !== null)) {
+      setZoom((z) => ({ preset: 'all', range: null, epoch: z.epoch + 1 }));
+    }
+    // A stored preset that is no longer shown (e.g. Forecast without a future) falls back to All.
+    const preset = !enabled
+      ? 'all'
+      : zoom.preset && !presets.includes(zoom.preset)
+        ? 'all'
+        : zoom.preset;
+    const wanted = !enabled
+      ? domain
+      : preset
+        ? (presetRange(preset, domain, today) ?? domain)
+        : (zoom.range ?? domain);
     chartZoom = {
       domain,
       range: clampRange(wanted, domain),
       preset,
-      forecastEnabled,
+      enabled,
+      presets,
       epoch: zoom.epoch,
       onPreset: (preset) => setZoom((z) => ({ preset, range: null, epoch: z.epoch + 1 })),
       onRange: (range) => setZoom((z) => ({ preset: null, range, epoch: z.epoch })),

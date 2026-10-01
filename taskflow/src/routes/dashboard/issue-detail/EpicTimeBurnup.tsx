@@ -19,6 +19,7 @@ import {
   deriveTimeBurnup,
   padToDomain,
   projectFinish,
+  rangeIndexes,
   type WorkCalendar,
   withProjection,
 } from '@/lib/epic-progress';
@@ -28,10 +29,11 @@ import { ForecastLegend, LegendItem, SourceFlag, tickLabel } from './EpicCfdChar
 import { EpicChartTooltip, timeRows } from './EpicChartTooltip';
 import {
   BRUSH_STYLE,
-  brushIndexes,
   brushUsable,
   CHART_HEIGHT,
   type ChartZoom,
+  chartHeight,
+  PLOT_HEIGHT,
   visibleRange,
   ZoomPresets,
 } from './EpicChartZoom';
@@ -71,12 +73,13 @@ export function EpicTimeBurnup({
   zoom,
 }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
+  const loadingHeight = zoom?.enabled ? CHART_HEIGHT : PLOT_HEIGHT;
 
   if (isError) {
     return (
       <div
         data-testid="epic-time-burnup-error"
-        style={{ minHeight: CHART_HEIGHT }}
+        style={{ minHeight: loadingHeight }}
         className="flex items-center gap-3 text-sm text-muted-foreground"
       >
         <span>Couldn't load worklogs</span>
@@ -95,7 +98,7 @@ export function EpicTimeBurnup({
   if (!data && !isFetching) {
     return (
       <p
-        style={{ minHeight: CHART_HEIGHT }}
+        style={{ minHeight: loadingHeight }}
         className="pr-0.5 text-sm text-muted-foreground italic"
       >
         No worklog data
@@ -108,7 +111,7 @@ export function EpicTimeBurnup({
       <Skeleton
         data-testid="epic-time-burnup-loading"
         className="w-full"
-        style={{ height: CHART_HEIGHT }}
+        style={{ height: loadingHeight }}
       />
     );
   }
@@ -134,7 +137,7 @@ export function EpicTimeBurnup({
   const projected = withProjection(base, projection);
   const chartData = zoom ? padToDomain(projected, zoom.domain.to) : projected;
   const range = visibleRange(zoom, chartData);
-  const brush = brushIndexes(chartData, range ?? { from: '', to: '' });
+  const brush = rangeIndexes(chartData, range ?? { from: '', to: '' });
   const hasProjection = projection.points.length > 0;
 
   return (
@@ -144,7 +147,8 @@ export function EpicTimeBurnup({
         data-x-from={range?.from}
         data-x-to={range?.to}
         data-domain-to={zoom?.domain.to ?? range?.to}
-        style={{ height: CHART_HEIGHT }}
+        data-zoomable={String(brushUsable(zoom, chartData))}
+        style={{ height: chartHeight(zoom, chartData) }}
       >
         {points.length === 0 || !range ? (
           <p className="text-sm text-muted-foreground italic">No timeline data</p>

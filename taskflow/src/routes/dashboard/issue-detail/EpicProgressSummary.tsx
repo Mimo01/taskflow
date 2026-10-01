@@ -110,7 +110,7 @@ function Tile({
         {typeof sub === 'string' ? (
           <span className="block truncate text-xs text-muted-foreground">{sub}</span>
         ) : sub ? (
-          <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
             {sub}
           </span>
         ) : null}
@@ -230,17 +230,7 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
       value={value}
       sub={sub}
       tip={
-        <TooltipBody
-          title="Projected finish"
-          note={
-            finish.explanation || reason ? (
-              <>
-                {finish.explanation ? <div>{finish.explanation}</div> : null}
-                {reason ? <div>{reason}</div> : null}
-              </>
-            ) : undefined
-          }
-        >
+        <TooltipBody title="Projected finish" note={finish.explanation || undefined}>
           {finishDateRows(finish).map((r) => (
             <TooltipRow
               key={r.key}
@@ -250,12 +240,20 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
               sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
             />
           ))}
-          {finish.state === 'ok' ? (
+          {finish.state === 'ok' && finish.confidence !== null ? (
             <TooltipRow
               icon={<Gauge className="size-3" />}
               label="Confidence"
               value={<ConfidenceMeter level={finish.confidence} />}
             />
+          ) : null}
+          {reason ? (
+            <div
+              data-testid="confidence-reason"
+              className="max-w-64 truncate pl-5 text-muted-foreground"
+            >
+              {reason}
+            </div>
           ) : null}
           {finish.parts.map((p) => {
             const Icon = METRIC_ICON[p.metric];
@@ -268,11 +266,6 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
                   p.included && p.forecast?.likely
                     ? formatFinishDate(p.forecast.likely, today)
                     : p.reason
-                }
-                sub={
-                  p.included ? (
-                    <ConfidenceMeter level={p.forecast?.confidence ?? null} />
-                  ) : undefined
                 }
               />
             );

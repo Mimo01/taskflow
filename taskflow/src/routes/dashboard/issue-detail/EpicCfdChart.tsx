@@ -23,16 +23,16 @@ import {
   FINISH_STATE_TEXT,
   formatDateKey,
   type Metric,
+  rangeIndexes,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { cfdRows, EpicChartTooltip } from './EpicChartTooltip';
 import {
   BRUSH_STYLE,
-  brushIndexes,
   brushUsable,
-  CHART_HEIGHT,
   type ChartZoom,
+  chartHeight,
   visibleRange,
   ZoomPresets,
 } from './EpicChartZoom';
@@ -137,7 +137,7 @@ export function EpicCfdChart({
   zoom,
 }: EpicCfdChartProps) {
   const range = visibleRange(zoom, data);
-  const brush = brushIndexes(data, range ?? { from: '', to: '' });
+  const brush = rangeIndexes(data, range ?? { from: '', to: '' });
   return (
     <div>
       <div
@@ -146,7 +146,8 @@ export function EpicCfdChart({
         data-x-from={range?.from}
         data-x-to={range?.to}
         data-domain-to={zoom?.domain.to ?? range?.to}
-        style={{ height: CHART_HEIGHT }}
+        data-zoomable={String(brushUsable(zoom, data))}
+        style={{ height: chartHeight(zoom, data) }}
       >
         {data.length === 0 || !range ? (
           <p className="text-sm text-muted-foreground italic">No timeline data</p>
