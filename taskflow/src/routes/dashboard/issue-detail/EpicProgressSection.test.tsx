@@ -8,6 +8,7 @@ import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import { SERIES } from './epic-markers';
 import { toLocalDateString } from '@/lib/local-date';
 import { fetchEpicStatusHistory, fetchEpicWorklogs, type JiraIssue } from '@/services/jira';
+import { CHART_HEIGHT, PLOT_HEIGHT } from './EpicChartZoom';
 import { EpicProgressSection } from './EpicProgressSection';
 
 vi.mock('@/services/jira', async (orig) => ({
@@ -1439,7 +1440,19 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     await user.hover(finish);
     await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Confidence'))).toBe(true));
     expect(rowTexts().some((t) => t?.startsWith('Confidence') && t.includes('Medium'))).toBe(true);
-    expect(document.body.textContent).toMatch(/Only \d+ (working days|completions)|Wide range/);
+    const reasons = document.querySelectorAll('[data-testid="confidence-reason"]');
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0].textContent).toMatch(
+      /Only \d+ (working days|completions)|Wide range|Steady|disagree/,
+    );
+    expect((reasons[0].textContent ?? '').length).toBeLessThanOrEqual(60);
+    expect(reasons[0].previousElementSibling?.textContent).toMatch(/^Confidence/);
+    expect(reasons[0].previousElementSibling).toHaveAttribute('data-slot', 'tooltip-row');
+    const tip = document.querySelector('[data-slot="tooltip-content"]') as HTMLElement;
+    expect(tip.querySelectorAll('[data-testid="confidence-meter"]')).toHaveLength(1);
+    // The tile sub-line keeps the range and meter on one non-wrapping row.
+    const meter = within(finish).getByTestId('confidence-meter');
+    expect(meter.parentElement?.className).toContain('whitespace-nowrap');
   });
 
   it('Risks popover: keys are buttons that open the issue (click and Enter)', async () => {
@@ -1576,7 +1589,7 @@ describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
     expect(activeChart()).toHaveAttribute('data-x-to', domainTo ?? '');
   });
 
-  it('Forecast preset is enabled with a forecast and disabled without one', () => {
+  it('Forecast preset is enabled with a forecast and hidden without one', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     const ok = renderSection(section(okList()));
@@ -1590,7 +1603,60 @@ describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
     );
     ok.unmount();
     renderSection(section(stories));
-    expect(forecast()).toBeDisabled();
+    const presets = screen.getByTestId('epic-zoom-presets');
+    expect(within(presets).queryByText('Forecast')).toBeNull();
+    expect(within(presets).getByText('All')).toBeInTheDocument();
+  });
+
+  it('short domains hide the zoom strip and presets and use the plot height', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={stories}
+        storyPointsFieldKey={SP}
+        epicCreated={daysAgo(12)}
+      />,
+    );
+    expect(screen.queryByTestId('epic-zoom-presets')).toBeNull();
+    const chart = screen.getByTestId('epic-burnup');
+    expect(chart).toHaveAttribute('data-zoomable', 'false');
+    expect(chart.style.height).toBe(`${PLOT_HEIGHT}px`);
+  });
+
+  it('long domains show presets and the taller chart', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList()));
+    expect(screen.getByTestId('epic-zoom-presets')).toBeInTheDocument();
+    const chart = screen.getByTestId('epic-burnup');
+    expect(chart).toHaveAttribute('data-zoomable', 'true');
+    expect(chart.style.height).toBe(`${CHART_HEIGHT}px`);
+  });
+
+  it('stored zoom resets to All when the domain drops below the threshold', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrap = (ui: ReactElement) => <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+    const short = (
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={stories}
+        storyPointsFieldKey={SP}
+        epicCreated={daysAgo(12)}
+      />
+    );
+    const { rerender } = render(wrap(section(okList())));
+    fireEvent.click(within(screen.getByTestId('epic-zoom-presets')).getByText('1M'));
+    expect(pressed()).toEqual(['1M']);
+    rerender(wrap(short));
+    expect(screen.queryByTestId('epic-zoom-presets')).toBeNull();
+    const chart = screen.getByTestId('epic-burnup');
+    expect(chart.getAttribute('data-x-to')).toBe(chart.getAttribute('data-domain-to'));
+    rerender(wrap(section(okList())));
+    expect(pressed()).toEqual(['All']);
   });
 
   it('presets sit outside the legend container', () => {

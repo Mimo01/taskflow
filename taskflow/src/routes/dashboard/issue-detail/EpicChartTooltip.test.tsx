@@ -352,7 +352,7 @@ describe('EpicChartTooltip confidence and blank rows (261001-sqm)', () => {
     workingDay: true,
   };
 
-  it('a future datum shows a Confidence meter row and the reason in the note', () => {
+  it('a future datum shows a Confidence meter row and no reason', () => {
     const { container } = render(
       <EpicChartTooltip
         active
@@ -368,7 +368,21 @@ describe('EpicChartTooltip confidence and blank rows (261001-sqm)', () => {
       'data-level',
       'medium',
     );
-    expect(container.textContent).toContain('Only 14 working days of history');
+    expect(container.textContent).not.toContain('Only 14 working days of history');
+  });
+
+  it('no Confidence row when the finish has no confidence', () => {
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: future }]}
+        metric="count"
+        rows={cfdRows('count')}
+        finish={{ ...finish, confidence: null }}
+        today="2026-09-30"
+      />,
+    );
+    expect(rowsOf(container).some((r) => r.textContent?.startsWith('Confidence'))).toBe(false);
   });
 
   it('history rows get no Confidence row', () => {

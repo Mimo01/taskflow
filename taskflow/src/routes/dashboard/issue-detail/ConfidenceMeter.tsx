@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 const WORD: Record<Confidence, string> = { low: 'Low', medium: 'Medium', high: 'High' };
 const FILLED: Record<Confidence, number> = { low: 1, medium: 2, high: 3 };
-const BAR_HEIGHT = ['h-1.5', 'h-2.5', 'h-3.5'] as const;
+const BAR_HEIGHT = ['h-1', 'h-2', 'h-3'] as const;
 
 export function ConfidenceMeter({
   level,
@@ -25,9 +25,12 @@ export function ConfidenceMeter({
       data-level={level}
       role="img"
       aria-label={`${WORD[level]} confidence`}
-      className={cn('inline-flex items-center gap-1 text-xs', className)}
+      className={cn(
+        'inline-flex h-4 flex-none items-center gap-1 whitespace-nowrap align-middle leading-none',
+        className,
+      )}
     >
-      <span aria-hidden="true" className="flex items-end gap-px">
+      <span aria-hidden="true" className="flex h-3 items-end gap-px">
         {BAR_HEIGHT.map((h, i) => (
           <span
             key={h}

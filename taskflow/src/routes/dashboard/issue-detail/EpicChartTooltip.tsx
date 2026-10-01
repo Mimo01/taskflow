@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
-  confidenceReason,
   finishDateRows,
   formatDateKey,
   formatFinishDate,
@@ -152,24 +151,13 @@ export function EpicChartTooltip({
     isFuture && finish && today ? finishDateRows(finish).filter((r) => r.date === datum.date) : [];
   // Padded blank rows (axis extended to the shared domain) carry neither history nor forecast.
   if (specs.length === 0 && !hasForecast && !band) return null;
-  const showConfidence = isFuture && finish?.state === 'ok';
-  const reason = showConfidence && finish ? confidenceReason(finish) : null;
+  const showConfidence = isFuture && finish?.state === 'ok' && finish.confidence !== null;
   const clippedText =
     isFuture && clippedAfter ? `pessimistic after ${formatDateKey(clippedAfter)}` : null;
 
   return (
     <div className={TOOLTIP_SURFACE}>
-      <TooltipBody
-        title={title}
-        note={
-          clippedText || reason ? (
-            <>
-              {clippedText ? <div>{clippedText}</div> : null}
-              {reason ? <div>{reason}</div> : null}
-            </>
-          ) : undefined
-        }
-      >
+      <TooltipBody title={title} note={clippedText ? <div>{clippedText}</div> : undefined}>
         {specs.map((r) => (
           <TooltipRow
             key={r.key}
