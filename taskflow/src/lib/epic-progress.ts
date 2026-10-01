@@ -1416,7 +1416,7 @@ export function deriveRisks(args: {
   const unestimated =
     metric === 'time'
       ? open.filter((s) => estimateOf(s) === 0)
-      : stories.filter((s) => spOf(s, spKey) === null);
+      : open.filter((s) => spOf(s, spKey) === null);
   if (unestimated.length > 0) {
     infos.push({
       key: 'unestimated',
@@ -1425,7 +1425,9 @@ export function deriveRisks(args: {
       text: `${unestimated.length} unestimated`,
       count: unestimated.length,
       detail:
-        metric === 'time' ? 'Open items without a time estimate.' : 'Items without story points.',
+        metric === 'time'
+          ? 'Open items without a time estimate.'
+          : 'Open items without story points.',
       ...keysOf(unestimated),
     });
   }

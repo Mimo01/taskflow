@@ -76,8 +76,9 @@ export function useJiraStatusList(enabled: boolean) {
 }
 
 const CALENDAR_LOOKBACK_DAYS = 120;
-const CALENDAR_HORIZON_DAYS = 182;
+const CALENDAR_HORIZON_DAYS = 365;
 const CALENDAR_STALE_MS = 24 * 60 * 60_000;
+const CALENDAR_EMPTY_STALE_MS = 5 * 60_000;
 
 /**
  * Working calendar for the forecasts: Mon-Fri minus Tempo HOLIDAY / NON_WORKING_DAY days
@@ -99,7 +100,8 @@ export function useEpicWorkCalendar(today: string): {
       if (!token || !jiraBaseUrl || !jiraUserKey) throw new Error('No credentials');
       return fetchUserSchedule(jiraBaseUrl, token, from, to, jiraUserKey);
     },
-    staleTime: CALENDAR_STALE_MS,
+    // fetchUserSchedule returns an empty map on a Tempo error; don't pin that "no holidays" result for a day.
+    staleTime: (q) => ((q.state.data?.size ?? 0) > 0 ? CALENDAR_STALE_MS : CALENDAR_EMPTY_STALE_MS),
     refetchOnWindowFocus: false,
     enabled: tempoEnabled === true && !!jiraConnected && !!jiraBaseUrl && !!jiraUserKey,
   });

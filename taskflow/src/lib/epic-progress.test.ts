@@ -1281,6 +1281,14 @@ describe('deriveRisks (261001-qvu)', () => {
     }) as AveragedForecast;
   const base = { stories, metric: 'count' as const, spKey: SP, dueDate: null, today: WED };
 
+  it('unestimated risk counts open items only (done stories without SP are ignored)', () => {
+    const withDone = [...stories, st('A-5', { cat: 'done', res: '2026-09-28T10:00:00.000+0000' })];
+    const r = deriveRisks({ ...base, stories: withDone, finish: fin() });
+    const u = r.find((x) => x.key === 'unestimated');
+    expect(u?.count).toBe(1);
+    expect(u?.issueKeys).toEqual(['A-4']);
+  });
+
   it('reports unestimated and unassigned info risks', () => {
     const r = deriveRisks({ ...base, finish: fin() });
     expect(r.map((x) => [x.key, x.text, x.severity])).toEqual([
