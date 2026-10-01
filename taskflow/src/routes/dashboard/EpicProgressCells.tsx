@@ -79,6 +79,8 @@ export function EpicProgressCell(props: { state: EnrichmentCellState; onRetry: (
           delay={0}
           render={<div />}
           data-testid="epic-progress-bar"
+          role="img"
+          aria-label={`${done} Done, ${inProgress} In Progress, ${todo} To Do`}
           className="w-16 py-1 -my-1"
         >
           <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">

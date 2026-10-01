@@ -337,6 +337,11 @@ export function deriveTimeBurnup(
         return [{ day: k > today ? today : k, seconds: sec }];
       })
       .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+    // Reconcile with Jira's aggregate logged time (what the tiles use): worklogs we can't date
+    // (invalid `started`, deleted authors, moved subtasks) land on today so the final gap == Remaining.
+    const charted = entries.reduce((n, e) => n + e.seconds, 0);
+    const unattributed = loggedOf(s) - charted;
+    if (logs.size > 0 && unattributed > 0) entries.push({ day: today, seconds: unattributed });
     const first = entries.length > 0 ? entries[0].day : null;
     const startDay =
       created !== null && first !== null ? (created < first ? created : first) : (created ?? first);

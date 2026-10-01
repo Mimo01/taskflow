@@ -469,3 +469,23 @@ describe('deriveTimeBurnup (261001-hsz)', () => {
     expect(deriveTimeBurnup([st('A', { est: H })], new Map(), undefined, TODAY)).toEqual([]);
   });
 });
+
+describe('deriveTimeBurnup review fixes (261001-hsz)', () => {
+  const H = 3600;
+  it('reconciles undatable logged time onto today so the final gap equals the Remaining tile', () => {
+    const stories = [st('A', { est: 4 * H, spent: 3 * H, created: '2026-09-28' })];
+    const logs = new Map([
+      [
+        'A',
+        [
+          { day: '2026-09-29', seconds: H },
+          { day: '', seconds: 2 * H },
+        ],
+      ],
+    ]);
+    const pts = deriveTimeBurnup(stories, logs, undefined, TODAY);
+    const last = pts[pts.length - 1];
+    expect(last.logged).toBe(3 * H);
+    expect(last.estimate - last.logged).toBe(deriveTimeTotals(stories).remaining);
+  });
+});
