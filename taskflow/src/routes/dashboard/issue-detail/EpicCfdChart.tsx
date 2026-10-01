@@ -14,6 +14,7 @@
 import { Info } from 'lucide-react';
 import { Area, Brush, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MarkerGlyph, type MarkerTone, type TooltipMarker } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
@@ -119,9 +120,18 @@ export function ForecastLegend({
 export function SourceFlag({ text }: { text?: string | null }) {
   if (!text) return null;
   return (
-    <span data-testid="epic-source-flag" role="img" aria-label={text} title={text} tabIndex={0}>
-      <Info aria-hidden="true" className="size-3 text-muted-foreground" />
-    </span>
+    // A real (button) tooltip trigger: keyboard-focusable without tabIndex on a non-interactive element.
+    <Tooltip>
+      <TooltipTrigger
+        delay={0}
+        data-testid="epic-source-flag"
+        aria-label={text}
+        className="inline-flex cursor-default items-center rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <Info aria-hidden="true" className="size-3 text-muted-foreground" />
+      </TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
+    </Tooltip>
   );
 }
 
