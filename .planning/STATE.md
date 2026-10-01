@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-01 - Completed quick task 261001-qvu: epic progress forecast averaging, holidays, hover polish, risks (UAT pending)
+Last activity: 2026-10-01 - Completed quick task 261001-rtw: epic progress one forecast, neutral markers, unified tabs, spacing (UAT pending)
 
 ## Performance Metrics
 
@@ -157,7 +157,8 @@ None yet.
 | 261001-g5q | Epic progress follow-up: Time metric (estimate/logged/remaining incl. subtasks), Card container, tooltips on tiles/segments/legend/assignees | 2026-10-01 | d2583af0 | Iterated → 261001-hsz | [261001-g5q-epic-progress-time-metric-card-container](./quick/261001-g5q-epic-progress-time-metric-card-container/) |
 | 261001-hsz | Epic progress iteration 3: worklog-based Time burnup (estimate collapse), estimate = subtasks if any else story, tooltips on all progress bars (burnup, quick peek, status/assignee, story mini bars), full-width divider layout | 2026-10-01 | f4af948a | Iterated → 261001-ilq | [261001-hsz-epic-progress-time-burnup-from-worklogs-](./quick/261001-hsz-epic-progress-time-burnup-from-worklogs-/) |
 | 261001-ilq | Epic progress iteration 4: cumulative flow diagram + remaining + forecast band, adaptive forecast (young/fast/steady/stalled/scope-growth), hero + stat strip, Jira-like assignee rows with status chips, unified tooltips and status colours | 2026-10-01 | 01f76114 | Verified (iterated → 261001-qvu) | [261001-ilq-epic-progress-cfd-adaptive-forecast-hero](./quick/261001-ilq-epic-progress-cfd-adaptive-forecast-hero/) |
-| 261001-qvu | Epic progress iteration 5: Finish = average of Count/SP/Time forecasts, Tempo holiday-aware calendar, per-day forecast hover points, fully hoverable assignee rows, tooltip row markers, risks redesign | 2026-10-01 | f26dd3a4 | Needs Review | [261001-qvu-epic-progress-forecast-averaging-holiday](./quick/261001-qvu-epic-progress-forecast-averaging-holiday/) |
+| 261001-qvu | Epic progress iteration 5: Finish = average of Count/SP/Time forecasts, Tempo holiday-aware calendar, per-day forecast hover points, fully hoverable assignee rows, tooltip row markers, risks redesign | 2026-10-01 | f26dd3a4 | Iterated → 261001-rtw | [261001-qvu-epic-progress-forecast-averaging-holiday](./quick/261001-qvu-epic-progress-forecast-averaging-holiday/) |
+| 261001-rtw | Epic progress iteration 6: one shared forecast in every chart, colour reserved for statuses (neutral markers/series), legend spacing root-cause fix, unified Count/SP/Time bands (Time person bars match chips) | 2026-10-01 | c164967e | Needs Review | [261001-rtw-epic-progress-one-forecast-neutral-marke](./quick/261001-rtw-epic-progress-one-forecast-neutral-marke/) |
 
 ## Deferred Items
 
