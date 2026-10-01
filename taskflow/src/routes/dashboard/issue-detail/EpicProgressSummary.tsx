@@ -25,6 +25,7 @@ import {
   holidaysBetween,
   METRIC_LABEL,
   type Metric,
+  RISK_VISIBLE_KEYS,
   type RiskKey,
   summaryBands,
   type TimeTotals,
@@ -251,7 +252,11 @@ function RisksTile({ risks }: { risks: EpicRisk[] }) {
                   <div className="pl-5 text-muted-foreground">
                     {r.detail}
                     {r.issueKeys.length > 0
-                      ? ` · ${r.issueKeys.join(', ')}${r.moreKeys ? ` +${r.moreKeys}` : ''}`
+                      ? ` · ${r.issueKeys.slice(0, RISK_VISIBLE_KEYS).join(', ')}${
+                          r.issueKeys.length > RISK_VISIBLE_KEYS
+                            ? ` +${r.issueKeys.length - RISK_VISIBLE_KEYS}`
+                            : ''
+                        }`
                       : ''}
                   </div>
                 </div>

@@ -137,19 +137,6 @@ export function doneDateKey(s: JiraIssue, today: string): string | null {
   return k > today ? today : k;
 }
 
-/** Daily axis when the span is <= 31 days, else weekly steps plus today. */
-function buildAxis(start: string, today: string): string[] {
-  const dates: string[] = [];
-  const span = diffDays(start, today);
-  if (span <= 31) {
-    for (let i = 0; i <= span; i++) dates.push(addDays(start, i));
-  } else {
-    for (let d = addDays(start, 6); d < today; d = addDays(d, 7)) dates.push(d);
-    dates.push(today);
-  }
-  return dates;
-}
-
 export function deriveStatusBuckets(
   stories: JiraIssue[],
   metric: Metric,
@@ -278,15 +265,20 @@ export function deriveTimeBurnup(
     };
   });
 
-  const starts = items.map((it) => it.startDay).filter((d): d is string => d !== null);
-  const epicDay = validKey(epicCreated);
-  const candidates = epicDay ? [...starts, epicDay] : starts;
-  if (candidates.length === 0) return [];
-  let axisStart = candidates.reduce((a, b) => (a < b ? a : b));
-  if (axisStart > today) axisStart = today;
-  for (const it of items) if (it.startDay === null) it.startDay = axisStart;
+  let axisStart = chartAxisStart(stories, epicCreated, today);
+  if (axisStart === null) {
+    const starts = items.map((it) => it.startDay).filter((d): d is string => d !== null);
+    if (starts.length === 0) return [];
+    axisStart = starts.reduce((a, b) => (a < b ? a : b));
+    if (axisStart > today) axisStart = today;
+  }
+  // Everything before the shared axis start is counted on the first point.
+  for (const it of items) {
+    it.startDay = it.startDay === null || it.startDay < axisStart ? axisStart : it.startDay;
+    for (const e of it.entries) if (e.day < axisStart) e.day = axisStart;
+  }
 
-  return buildAxis(axisStart, today).map((date) => {
+  return historyDates(axisStart, today).map((date) => {
     let logged = 0;
     let estimate = 0;
     for (const it of items) {
@@ -921,6 +913,41 @@ function clampDay(day: string, lo: string, hi: string): string {
 }
 
 /**
+ * Shared chart x-axis start: the epic's created day when valid and not in the future, else the
+ * earliest valid story created day (clamped to today), else null.
+ */
+export function chartAxisStart(
+  stories: JiraIssue[],
+  epicCreated: string | undefined,
+  today: string,
+): string | null {
+  const epicDay = validKey(epicCreated);
+  if (epicDay !== null && epicDay <= today) return epicDay;
+  let start: string | null = null;
+  for (const s of stories) {
+    const k = validKey(s.fields.created);
+    if (k === null) continue;
+    const c = k > today ? today : k;
+    if (start === null || c < start) start = c;
+  }
+  return start;
+}
+
+/** History sampling: daily when the span is <= CFD_MAX_DAILY, else stepped plus today. */
+export function historyDates(start: string, today: string): string[] {
+  const span = diffDays(start, today);
+  const dates: string[] = [];
+  if (span <= CFD_MAX_DAILY) {
+    for (let i = 0; i <= span; i++) dates.push(addDays(start, i));
+  } else {
+    const step = Math.ceil(span / CFD_MAX_DAILY);
+    for (let d = start; d < today; d = addDays(d, step)) dates.push(d);
+    dates.push(today);
+  }
+  return dates;
+}
+
+/**
  * Cumulative flow from status history. Weights are each story's CURRENT weight
  * (SP edits are not replayed). Transition days use the LOCAL calendar day of the
  * timestamp (matching local `today`); the worklog/done paths use the server-offset
@@ -941,14 +968,9 @@ export function deriveCfd(args: {
     const k = validKey(s.fields.created);
     return k !== null && k > today ? today : k;
   });
-  const epicDay = validKey(epicCreated);
-  let start: string | null = null;
-  if (epicDay !== null && epicDay <= today) start = epicDay;
-  else {
-    for (const c of createdOf) if (c !== null && (start === null || c < start)) start = c;
-  }
-  if (start === null) return { points: [], approximate: history === null };
-  const axisStart = start;
+  const axisStartOrNull = chartAxisStart(stories, epicCreated, today);
+  if (axisStartOrNull === null) return { points: [], approximate: history === null };
+  const axisStart = axisStartOrNull;
 
   let approximate = history === null;
   const items = stories.map((s, i) => {
@@ -991,15 +1013,7 @@ export function deriveCfd(args: {
     return { w: Number.isFinite(w) ? w : 0, enter, segs };
   });
 
-  const span = diffDays(axisStart, today);
-  const dates: string[] = [];
-  if (span <= CFD_MAX_DAILY) {
-    for (let i = 0; i <= span; i++) dates.push(addDays(axisStart, i));
-  } else {
-    const step = Math.ceil(span / CFD_MAX_DAILY);
-    for (let d = axisStart; d < today; d = addDays(d, step)) dates.push(d);
-    dates.push(today);
-  }
+  const dates = historyDates(axisStart, today);
 
   const points = dates.map((date): CfdPoint => {
     let done = 0;
@@ -1048,6 +1062,12 @@ const PROJECTION_MIN_CAP_DAYS = 60;
 /** Upper bound on projected chart points (one per calendar day, thinned beyond this). */
 export const PROJECTION_MAX_POINTS = 260;
 
+/** Latest projected date: today plus the longer of the minimum cap and the history span. */
+export function projectionCap(today: string, historyStart: string | null): string {
+  const span = historyStart !== null ? Math.max(0, diffDays(historyStart, today)) : 0;
+  return addDays(today, Math.max(PROJECTION_MIN_CAP_DAYS, span));
+}
+
 /**
  * One projected point per calendar day from today to the (clipped) latest date. Values are
  * a function of working days elapsed, so non-working days are flat. Very long horizons are
@@ -1072,8 +1092,7 @@ export function deriveProjection(
     return { points: [], clippedAfter: null };
   }
   const R = forecast.remaining;
-  const span = historyStart !== null ? Math.max(0, diffDays(historyStart, today)) : 0;
-  const cap = addDays(today, Math.max(PROJECTION_MIN_CAP_DAYS, span));
+  const cap = projectionCap(today, historyStart);
   let clippedAfter: string | null = null;
   const clip = (d: string) => {
     if (d > cap) {
@@ -1398,11 +1417,12 @@ export interface EpicRisk {
   text: string;
   count: number | null;
   detail: string;
+  /** Every affected key, numerically sorted (the UI shows RISK_VISIBLE_KEYS first). */
   issueKeys: string[];
-  moreKeys: number;
 }
 
-const RISK_MAX_KEYS = 3;
+/** Keys shown per risk before the "+N more" button. */
+export const RISK_VISIBLE_KEYS = 5;
 /** Scope growth is "significant" at this share of the done rate. */
 const RISK_SCOPE_RATIO = 0.5;
 
@@ -1410,13 +1430,11 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-function keysOf(stories: JiraIssue[]): { issueKeys: string[]; moreKeys: number } {
-  const sorted = stories
-    .map((s) => s.key)
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+function keysOf(stories: JiraIssue[]): { issueKeys: string[] } {
   return {
-    issueKeys: sorted.slice(0, RISK_MAX_KEYS),
-    moreKeys: Math.max(0, sorted.length - RISK_MAX_KEYS),
+    issueKeys: stories
+      .map((s) => s.key)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
   };
 }
 
@@ -1454,7 +1472,6 @@ export function deriveRisks(args: {
         count: null,
         detail: `Due ${formatDateKey(due)}, forecast ${formatDateKey(finish.likely)}.`,
         issueKeys: [],
-        moreKeys: 0,
       });
     }
   }
@@ -1469,7 +1486,6 @@ export function deriveRisks(args: {
       count: null,
       detail: stalled.forecast.explanation,
       issueKeys: [],
-      moreKeys: 0,
     });
   }
 
@@ -1483,7 +1499,6 @@ export function deriveRisks(args: {
       count: null,
       detail: diverging.forecast.explanation,
       issueKeys: [],
-      moreKeys: 0,
     });
   } else {
     const c = finish.parts.find((p) => p.metric === 'count')?.forecast;
@@ -1501,7 +1516,6 @@ export function deriveRisks(args: {
         count: null,
         detail: `+${round1(c.scopeRatePerWeek)} items/wk added vs ${round1(c.ratePerWeek)}/wk done.`,
         issueKeys: [],
-        moreKeys: 0,
       });
     }
   }
@@ -1539,4 +1553,244 @@ export function deriveRisks(args: {
   }
 
   return [...warnings, ...infos];
+}
+
+// ── Chart axis and zoom ──────────────────────────────────────────────────────
+
+export interface ChartRange {
+  from: string;
+  to: string;
+}
+
+/** UTC ms of a YYYY-MM-DD key. */
+export function dateKeyMs(key: string): number {
+  return toMs(key);
+}
+
+/**
+ * The one x-domain both charts share: axis start to max(today, clipped latest forecast date).
+ * Null without a start.
+ */
+export function chartDomain(
+  start: string | null,
+  today: string,
+  finish: AveragedForecast,
+): (ChartRange & { clippedAfter: string | null }) | null {
+  if (start === null) return null;
+  let to = today;
+  let clippedAfter: string | null = null;
+  if (finish.state === 'ok' && finish.pessimistic !== null && finish.pessimistic > today) {
+    const cap = projectionCap(today, start);
+    if (finish.pessimistic > cap) {
+      to = cap;
+      clippedAfter = cap;
+    } else to = finish.pessimistic;
+  }
+  return { from: start < to ? start : to, to, clippedAfter };
+}
+
+/** Append one blank row at `to` so the data (and its brush strip) spans the whole domain. */
+export function padToDomain<T extends { date: string; t: number }>(points: T[], to: string): T[] {
+  if (points.length === 0) return points;
+  const template = points[points.length - 1];
+  if (template.date >= to) return points;
+  const blank = Object.fromEntries(Object.keys(template).map((k) => [k, null])) as unknown as T;
+  return [
+    ...points,
+    {
+      ...blank,
+      date: to,
+      t: toMs(to),
+      ...('label' in template ? { label: labelOf(to) } : {}),
+    },
+  ];
+}
+
+/** Day-aligned UTC ms ticks from `from`: every day for short spans, else even steps (<= max ticks). */
+export function axisTicks(from: string, to: string, max = 6): number[] {
+  const span = Math.max(0, diffDays(from, to));
+  const step = span <= max - 1 ? 1 : Math.ceil(span / (max - 1));
+  const out: number[] = [];
+  for (let d = 0; d <= span; d += step) out.push(toMs(from) + d * DAY_MS);
+  return out;
+}
+
+export type ZoomPreset = 'all' | '3m' | '1m' | '2w' | 'forecast';
+
+export const ZOOM_PRESETS: readonly { key: ZoomPreset; label: string; days: number | null }[] = [
+  { key: 'all', label: 'All', days: null },
+  { key: '3m', label: '3M', days: 91 },
+  { key: '1m', label: '1M', days: 30 },
+  { key: '2w', label: '2W', days: 14 },
+  { key: 'forecast', label: 'Forecast', days: null },
+];
+
+const FORECAST_PRESET_LOOKBACK_DAYS = 14;
+
+/** Visible range for a preset, clamped to the domain; null when the preset is unavailable. */
+export function presetRange(
+  preset: ZoomPreset,
+  domain: ChartRange,
+  today: string,
+): ChartRange | null {
+  if (preset === 'all') return domain;
+  const maxKey = (a: string, b: string) => (a > b ? a : b);
+  if (preset === 'forecast') {
+    if (domain.to <= today) return null;
+    return {
+      from: maxKey(domain.from, addDays(today, -FORECAST_PRESET_LOOKBACK_DAYS)),
+      to: domain.to,
+    };
+  }
+  const days = ZOOM_PRESETS.find((p) => p.key === preset)?.days ?? 0;
+  return { from: maxKey(domain.from, addDays(today, -days)), to: today };
+}
+
+/** Clamp both ends into the domain, guaranteeing from < to (else the whole domain). */
+export function clampRange(range: ChartRange, domain: ChartRange): ChartRange {
+  const clamp = (k: string) => (k < domain.from ? domain.from : k > domain.to ? domain.to : k);
+  const from = clamp(range.from);
+  const to = clamp(range.to);
+  return from < to ? { from, to } : { from: domain.from, to: domain.to };
+}
+
+/**
+ * Brush indexes for a date range: `from` maps to the LAST index with date <= from and `to` to
+ * the FIRST index with date >= to, so lines start at the axis edge. startIndex < endIndex
+ * whenever there are two or more points.
+ */
+export function rangeIndexes(
+  points: { date: string }[],
+  range: ChartRange,
+): { startIndex: number; endIndex: number } {
+  const last = Math.max(0, points.length - 1);
+  let startIndex = 0;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].date <= range.from) startIndex = i;
+    else break;
+  }
+  let endIndex = last;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].date >= range.to) {
+      endIndex = i;
+      break;
+    }
+  }
+  if (points.length >= 2 && startIndex >= endIndex) {
+    if (startIndex < last) endIndex = startIndex + 1;
+    else startIndex = Math.max(0, endIndex - 1);
+  }
+  return { startIndex, endIndex };
+}
+
+// ── Confidence reason ────────────────────────────────────────────────────────
+
+/** Plain-language reason behind the averaged confidence; null unless the forecast is ok. */
+export function confidenceReason(finish: AveragedForecast): string | null {
+  if (finish.state !== 'ok' || finish.confidence === null) return null;
+  const included = finish.parts.flatMap((p) => (p.included && p.forecast ? [p] : []));
+  if (included.length === 0) return null;
+  if (finish.disagree) {
+    const ns = included.map((p) => p.forecast?.nLikely ?? 0);
+    return `Views disagree by ${Math.max(...ns) - Math.min(...ns)} working days`;
+  }
+  let weakest = included[0];
+  for (const p of included) {
+    if (
+      CONF_ORDER.indexOf(p.forecast?.confidence ?? 'low') <
+      CONF_ORDER.indexOf(weakest.forecast?.confidence ?? 'low')
+    )
+      weakest = p;
+  }
+  const f = weakest.forecast;
+  if (!f) return null;
+  const W = f.windowDays;
+  const c = f.completions;
+  const noun =
+    weakest.metric === 'time' ? 'days with logged work' : c === 1 ? 'completion' : 'completions';
+  const shortHistory = `Only ${W} working days of history`;
+  const fewEvents = `Only ${c} ${noun} in the last ${W} working days`;
+  switch (f.confidence) {
+    case 'high':
+      return `Steady pace over ${W} working days`;
+    case 'low':
+      return W < 10 ? shortHistory : fewEvents;
+    default:
+      return W < 20
+        ? shortHistory
+        : c < 8
+          ? fewEvents
+          : `Wide range: ${f.nOpt}–${f.nPess} working days`;
+  }
+}
+
+// ── Data sources ─────────────────────────────────────────────────────────────
+
+export type HistorySource = 'real' | 'partial' | 'loading' | 'unavailable';
+export type WorklogSource = 'loaded' | 'loading' | 'unavailable';
+
+export const HISTORY_SOURCE_TEXT: Record<HistorySource, string> = {
+  real: 'From Jira status history',
+  partial: 'Approximate for some items',
+  loading: 'Approximate — loading status history',
+  unavailable: 'Approximate — status history unavailable',
+};
+
+export interface SourceLine {
+  key: 'history' | 'scope' | 'worklogs' | 'estimate' | 'collapse' | 'calendar';
+  text: string;
+  approximate: boolean;
+}
+
+/** Look-back for the holiday count in the calendar note (about the 30-working-day max window). */
+const HOLIDAY_NOTE_LOOKBACK_DAYS = 42;
+
+export function calendarNote(cal: WorkCalendar, today: string, until: string | null): string {
+  if (cal.source !== 'tempo') return 'Excludes weekends (holidays unavailable)';
+  const n = holidaysBetween(cal, addDays(today, -HOLIDAY_NOTE_LOOKBACK_DAYS), until ?? today);
+  return `Excludes weekends and ${n} ${n === 1 ? 'holiday' : 'holidays'} (Tempo)`;
+}
+
+const WORKLOG_SOURCE_TEXT: Record<WorklogSource, string> = {
+  loaded: 'Logged from Jira worklogs',
+  loading: 'Approximate — loading worklogs',
+  unavailable: 'Worklogs unavailable',
+};
+
+/** Provenance lines in a fixed slot order per metric (history/worklogs, rules, calendar). */
+export function dataSourceLines(args: {
+  metric: Metric;
+  history: HistorySource;
+  worklogs: WorklogSource;
+  calendarLine: string;
+}): SourceLine[] {
+  const calendar: SourceLine = { key: 'calendar', text: args.calendarLine, approximate: false };
+  if (args.metric === 'time') {
+    return [
+      {
+        key: 'worklogs',
+        text: WORKLOG_SOURCE_TEXT[args.worklogs],
+        approximate: args.worklogs !== 'loaded',
+      },
+      { key: 'estimate', text: ESTIMATE_FORMULA_NOTE, approximate: false },
+      { key: 'collapse', text: 'Done stories collapse to their logged time.', approximate: false },
+      calendar,
+    ];
+  }
+  return [
+    {
+      key: 'history',
+      text: HISTORY_SOURCE_TEXT[args.history],
+      approximate: args.history !== 'real',
+    },
+    {
+      key: 'scope',
+      text:
+        args.history === 'real'
+          ? 'Scope from when each item joined the epic'
+          : 'Scope by story creation date',
+      approximate: args.history !== 'real',
+    },
+    calendar,
+  ];
 }
