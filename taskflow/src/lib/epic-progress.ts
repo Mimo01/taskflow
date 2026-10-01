@@ -1646,6 +1646,28 @@ export function presetRange(
   return { from: maxKey(domain.from, addDays(today, -days)), to: today };
 }
 
+/** Zoom chrome (Brush + presets) only appears for domains longer than this many calendar days. */
+export const ZOOM_MIN_DAYS = 42;
+
+export function zoomEnabled(domain: ChartRange): boolean {
+  return diffDays(domain.from, domain.to) > ZOOM_MIN_DAYS;
+}
+
+/**
+ * Presets worth showing: 'all' plus every preset that actually cuts off part of the history.
+ * Empty when zoom is disabled or only 'All' would remain (a lone "All" is useless chrome).
+ */
+export function visiblePresets(domain: ChartRange, today: string): ZoomPreset[] {
+  if (!zoomEnabled(domain)) return [];
+  const out: ZoomPreset[] = ['all'];
+  for (const { key } of ZOOM_PRESETS) {
+    if (key === 'all') continue;
+    const r = presetRange(key, domain, today);
+    if (r && r.from > domain.from) out.push(key);
+  }
+  return out.length > 1 ? out : [];
+}
+
 /** Clamp both ends into the domain, guaranteeing from < to (else the whole domain). */
 export function clampRange(range: ChartRange, domain: ChartRange): ChartRange {
   const clamp = (k: string) => (k < domain.from ? domain.from : k > domain.to ? domain.to : k);
@@ -1685,7 +1707,13 @@ export function rangeIndexes(
 
 // ── Confidence reason ────────────────────────────────────────────────────────
 
-/** Plain-language reason behind the averaged confidence; null unless the forecast is ok. */
+/** Max length of the single-line confidence reason. */
+export const CONFIDENCE_REASON_MAX = 60;
+
+/**
+ * Plain-language reason behind the averaged confidence, a single line of at most
+ * CONFIDENCE_REASON_MAX characters; null unless the forecast is ok.
+ */
 export function confidenceReason(finish: AveragedForecast): string | null {
   if (finish.state !== 'ok' || finish.confidence === null) return null;
   const included = finish.parts.flatMap((p) => (p.included && p.forecast ? [p] : []));
@@ -1709,7 +1737,7 @@ export function confidenceReason(finish: AveragedForecast): string | null {
   const noun =
     weakest.metric === 'time' ? 'days with logged work' : c === 1 ? 'completion' : 'completions';
   const shortHistory = `Only ${W} working days of history`;
-  const fewEvents = `Only ${c} ${noun} in the last ${W} working days`;
+  const fewEvents = `Only ${c} ${noun} in ${W} working days`;
   switch (f.confidence) {
     case 'high':
       return `Steady pace over ${W} working days`;
