@@ -14,6 +14,7 @@ import {
   fetchCreatemeta,
   fetchEpicEnrichmentMap,
   fetchEpicStories,
+  fetchEpicWorklogs,
   EPICS_PAGE_ORDER,
   fetchEpicsBasic,
   fetchFixVersions,
@@ -1732,6 +1733,7 @@ describe('jira service', () => {
           'aggregatetimeoriginalestimate',
           'aggregatetimespent',
           'aggregatetimeestimate',
+          'timeoriginalestimate',
         ]),
       );
     });
@@ -1741,6 +1743,117 @@ describe('jira service', () => {
 
       const result = await fetchEpicStories('https://jira.example.com', 'token', 'PROJ-42', 'PROJ');
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('fetchEpicWorklogs (261001-hsz)', () => {
+    const wl = (started: string, timeSpentSeconds: number) => ({ started, timeSpentSeconds });
+    const searchRes = (issues: unknown[]) =>
+      ({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ issues, total: issues.length, maxResults: 200 }),
+      }) as unknown as Response;
+
+    it('returns an empty map without fetching for no keys', async () => {
+      const r = await fetchEpicWorklogs(BASE, TOKEN, []);
+      expect(r.size).toBe(0);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('chunks story keys at 50 with key/parent JQL and worklog fields', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(searchRes([]));
+      const keys = Array.from({ length: 120 }, (_, i) => `P-${i + 1}`);
+      await fetchEpicWorklogs(BASE, TOKEN, keys);
+      const urls = vi.mocked(mockFetch).mock.calls.map((c) => c[0] as string);
+      expect(urls).toHaveLength(3);
+      for (const u of urls) {
+        expect(decodeURIComponent(u)).toMatch(/key in \(.*\) OR parent in \(.*\)/);
+        expect(new URL(u).searchParams.get('fields')).toBe('worklog,parent,issuetype');
+      }
+    });
+
+    it('rolls subtask logs under the parent and keeps own logs, dropping bad entries', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        searchRes([
+          {
+            key: 'P-1',
+            fields: {
+              worklog: {
+                total: 2,
+                worklogs: [
+                  wl('2026-09-30T23:30:00.000+0200', 3600),
+                  wl('2026-09-30T10:00:00.000+0200', 0),
+                ],
+              },
+            },
+          },
+          {
+            key: 'P-2',
+            fields: {
+              parent: { key: 'P-1' },
+              worklog: { total: 1, worklogs: [wl('2026-10-01T09:00:00.000+0200', 1800)] },
+            },
+          },
+          {
+            key: 'P-9',
+            fields: { worklog: { total: 1, worklogs: [wl('2026-10-01T09:00:00.000+0200', 60)] } },
+          },
+        ]),
+      );
+      const r = await fetchEpicWorklogs(BASE, TOKEN, ['P-1']);
+      expect(r.get('P-1')).toEqual([
+        { day: '2026-09-30', seconds: 3600 },
+        { day: '2026-10-01', seconds: 1800 },
+      ]);
+      expect(r.has('P-9')).toBe(false);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('tops up only truncated worklogs and keeps embedded if top-up is shorter', async () => {
+      vi.mocked(mockFetch).mockImplementation((async (url: string) => {
+        if (url.includes('/issue/P-1/worklog')) {
+          return {
+            ok: true,
+            status: 200,
+            json: () =>
+              Promise.resolve({
+                total: 3,
+                worklogs: [
+                  wl('2026-09-01T10:00:00.000+0000', 60),
+                  wl('2026-09-02T10:00:00.000+0000', 60),
+                  wl('2026-09-03T10:00:00.000+0000', 60),
+                ],
+              }),
+          };
+        }
+        if (url.includes('/issue/P-2/worklog')) return { ok: false, status: 500 };
+        return searchRes([
+          {
+            key: 'P-1',
+            fields: { worklog: { total: 3, worklogs: [wl('2026-09-01T10:00:00.000+0000', 60)] } },
+          },
+          {
+            key: 'P-2',
+            fields: { worklog: { total: 2, worklogs: [wl('2026-09-05T10:00:00.000+0000', 120)] } },
+          },
+          {
+            key: 'P-3',
+            fields: { worklog: { total: 1, worklogs: [wl('2026-09-06T10:00:00.000+0000', 30)] } },
+          },
+        ]);
+      }) as unknown as typeof mockFetch);
+      const r = await fetchEpicWorklogs(BASE, TOKEN, ['P-1', 'P-2', 'P-3']);
+      expect(r.get('P-1')).toHaveLength(3);
+      expect(r.get('P-2')).toEqual([{ day: '2026-09-05', seconds: 120 }]);
+      const urls = vi.mocked(mockFetch).mock.calls.map((c) => c[0] as string);
+      expect(urls.filter((u) => u.includes('/worklog'))).toHaveLength(2);
+      expect(urls.some((u) => u.includes('/issue/P-3/worklog'))).toBe(false);
+    });
+
+    it('rejects when the search response is not ok (fail-closed)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 500 } as unknown as Response);
+      await expect(fetchEpicWorklogs(BASE, TOKEN, ['P-1'])).rejects.toBeDefined();
     });
   });
 

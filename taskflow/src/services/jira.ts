@@ -26,7 +26,7 @@ import {
 } from './jira/client';
 import { flattenJiraError } from './jira/errors';
 import { fetchAllJiraStatuses } from './jira/statuses';
-import type { JiraComment } from './jira/types';
+import type { JiraComment, JiraWorklog } from './jira/types';
 
 export { rankIssueApi } from './jira/rank-api';
 export { addIssuesToSprint } from './jira/sprints';
@@ -182,6 +182,8 @@ export interface JiraIssue {
     aggregatetimeoriginalestimate?: number | null;
     aggregatetimespent?: number | null;
     aggregatetimeestimate?: number | null;
+    /** Epic progress (261001-hsz): the issue's OWN original estimate in seconds (no subtasks). */
+    timeoriginalestimate?: number | null;
     // v1.1 additions (all optional — non-breaking for all four existing callers):
     parent?: { id: string; key: string; fields: { summary: string } };
     subtasks?: Array<{
@@ -437,11 +439,11 @@ async function fetchAllSearchPagesConcurrent(
  * @param headers        - Request headers (auth etc.)
  * @returns Flat array of raw worklog objects across all pages.
  */
-async function fetchAllWorklogPages(
+async function fetchAllWorklogPages<T = JiraWorklog>(
   baseWorklogUrl: string,
   headers: Record<string, string>,
-): Promise<Array<{ author?: { displayName?: string } }>> {
-  const allWorklogs: Array<{ author?: { displayName?: string } }> = [];
+): Promise<T[]> {
+  const allWorklogs: T[] = [];
   let startAt = 0;
 
   // eslint-disable-next-line no-constant-condition
@@ -457,7 +459,7 @@ async function fetchAllWorklogPages(
     if (!response.ok) break;
 
     const data = await response.json();
-    const worklogs: Array<{ author?: { displayName?: string } }> = data.worklogs ?? [];
+    const worklogs: T[] = data.worklogs ?? [];
     allWorklogs.push(...worklogs);
 
     const total: number = data.total ?? 0;
@@ -2706,6 +2708,7 @@ export async function fetchEpicStories(
       'aggregatetimeoriginalestimate',
       'aggregatetimespent',
       'aggregatetimeestimate',
+      'timeoriginalestimate',
     ]),
   ].join(',');
   const jql = encodeURIComponent(
@@ -2715,6 +2718,89 @@ export async function fetchEpicStories(
     `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`,
     headers,
   ).catch(() => [] as JiraIssue[]);
+}
+
+export interface EpicWorklogDay {
+  /** Local calendar day of the worklog (YYYY-MM-DD, from `started`). */
+  day: string;
+  seconds: number;
+}
+
+type WorklogSearchIssue = JiraIssue & {
+  fields: JiraIssue['fields'] & {
+    worklog?: { total?: number; worklogs?: JiraWorklog[] };
+  };
+};
+
+/**
+ * Fetch per-day worklog entries for an epic's stories and their subtasks,
+ * rolled up under the story key (subtask logs go to the parent story).
+ *
+ * Search embeds at most 20 worklogs per issue (`worklog.total` carries the
+ * real count), so issues with `total > embedded` are topped up from
+ * `/issue/{key}/worklog`. Fail-closed: a failed search rejects so the UI can
+ * offer a retry instead of silently charting understated logged time.
+ */
+export async function fetchEpicWorklogs(
+  baseUrl: string,
+  token: string,
+  storyKeys: string[],
+): Promise<Map<string, EpicWorklogDay[]>> {
+  const result = new Map<string, EpicWorklogDay[]>();
+  if (storyKeys.length === 0) return result;
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const keySet = new Set(storyKeys);
+
+  const issues: WorklogSearchIssue[] = [];
+  for (let i = 0; i < storyKeys.length; i += SUBTASK_CHUNK_SIZE) {
+    const c = storyKeys.slice(i, i + SUBTASK_CHUNK_SIZE).join(',');
+    const jql = encodeURIComponent(`key in (${c}) OR parent in (${c})`);
+    const page = await fetchAllSearchPagesConcurrent(
+      `${base}/rest/api/2/search?jql=${jql}&fields=worklog,parent,issuetype`,
+      headers,
+    );
+    issues.push(...(page as WorklogSearchIssue[]));
+  }
+
+  const worklogsOf = new Map<string, JiraWorklog[]>();
+  const topUps: string[] = [];
+  for (const issue of issues) {
+    const wl = issue.fields.worklog;
+    const embedded = wl?.worklogs ?? [];
+    worklogsOf.set(issue.key, embedded);
+    if ((wl?.total ?? 0) > embedded.length) topUps.push(issue.key);
+  }
+
+  let next = 0;
+  const workers = Array.from({ length: Math.min(PAGE_CONCURRENCY, topUps.length) }, async () => {
+    while (true) {
+      const i = next++;
+      if (i >= topUps.length) return;
+      const key = topUps[i];
+      const full = await fetchAllWorklogPages(`${base}/rest/api/2/issue/${key}/worklog`, headers);
+      if (full.length > (worklogsOf.get(key)?.length ?? 0)) worklogsOf.set(key, full);
+    }
+  });
+  await Promise.all(workers);
+
+  for (const issue of issues) {
+    const parentKey = issue.fields.parent?.key;
+    const target =
+      parentKey && keySet.has(parentKey) ? parentKey : keySet.has(issue.key) ? issue.key : null;
+    if (!target) continue;
+    for (const w of worklogsOf.get(issue.key) ?? []) {
+      const seconds = w.timeSpentSeconds;
+      if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) continue;
+      let list = result.get(target);
+      if (!list) {
+        list = [];
+        result.set(target, list);
+      }
+      list.push({ day: String(w.started ?? '').slice(0, 10), seconds });
+    }
+  }
+  return result;
 }
 
 // fetchClosedSprints and fetchSprintIssuesBySprintId removed in Phase 86 (D-01 clean slate).

@@ -1,4 +1,4 @@
-import type { JiraIssue } from '@/services/jira';
+import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 
 export type Metric = 'count' | 'sp' | 'time';
@@ -9,6 +9,14 @@ export interface BurnupPoint {
   label: string;
   scope: number;
   done: number;
+}
+export interface TimeBurnupPoint {
+  date: string;
+  label: string;
+  /** Seconds. */
+  estimate: number;
+  /** Seconds. */
+  logged: number;
 }
 export interface StatusBucket {
   id: string;
@@ -90,15 +98,38 @@ function spOf(s: JiraIssue, spKey: string): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
-type SecKey = 'aggregatetimeoriginalestimate' | 'aggregatetimespent' | 'aggregatetimeestimate';
+type SecKey =
+  | 'aggregatetimeoriginalestimate'
+  | 'aggregatetimespent'
+  | 'aggregatetimeestimate'
+  | 'timeoriginalestimate';
 function secOf(s: JiraIssue, key: SecKey): number | null {
   const v = s.fields[key];
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
 }
 
+/** Single source for the estimate-formula tooltip copy. */
+export const ESTIMATE_FORMULA_NOTE =
+  'Per story: sum of its subtask estimates; stories without estimated subtasks use their own estimate.';
+
+/**
+ * Per-story estimate (seconds): the sum of its subtasks' original estimates
+ * when any exist, else the story's own original estimate.
+ */
+export function estimateOf(s: JiraIssue): number {
+  const own = secOf(s, 'timeoriginalestimate') ?? 0;
+  const subSum = Math.max(0, (secOf(s, 'aggregatetimeoriginalestimate') ?? 0) - own);
+  return subSum > 0 ? subSum : own;
+}
+
+/** Per-story logged time (seconds), story + subtasks (Jira aggregate). */
+export function loggedOf(s: JiraIssue): number {
+  return secOf(s, 'aggregatetimespent') ?? 0;
+}
+
 export function weightOf(s: JiraIssue, metric: Metric, spKey: string): number {
   if (metric === 'count') return 1;
-  if (metric === 'time') return secOf(s, 'aggregatetimeoriginalestimate') ?? 0;
+  if (metric === 'time') return estimateOf(s);
   return spOf(s, spKey) ?? 0;
 }
 
@@ -112,6 +143,19 @@ export function doneDateKey(s: JiraIssue, today: string): string | null {
     today;
   // Jira timestamps carry the server offset; clamp so a late-night resolve can't land past local today.
   return k > today ? today : k;
+}
+
+/** Daily axis when the span is <= 31 days, else weekly steps plus today. */
+function buildAxis(start: string, today: string): string[] {
+  const dates: string[] = [];
+  const span = diffDays(start, today);
+  if (span <= 31) {
+    for (let i = 0; i <= span; i++) dates.push(addDays(start, i));
+  } else {
+    for (let d = addDays(start, 6); d < today; d = addDays(d, 7)) dates.push(d);
+    dates.push(today);
+  }
+  return dates;
 }
 
 export function deriveBurnup(
@@ -132,14 +176,7 @@ export function deriveBurnup(
   if (epicDay && epicDay < start) start = epicDay;
   if (start > today) start = today;
 
-  const dates: string[] = [];
-  const span = diffDays(start, today);
-  if (span <= 31) {
-    for (let i = 0; i <= span; i++) dates.push(addDays(start, i));
-  } else {
-    for (let d = addDays(start, 6); d < today; d = addDays(d, 7)) dates.push(d);
-    dates.push(today);
-  }
+  const dates = buildAxis(start, today);
 
   const scopeItems = stories.map((s, i) => ({ k: created[i], w: weightOf(s, metric, spKey) }));
   const doneItems = stories.flatMap((s) => {
@@ -173,7 +210,7 @@ export function deriveStatusBuckets(
     }
     b.count += 1;
     b.points += weightOf(s, 'sp', spKey);
-    b.seconds += weightOf(s, 'time', spKey);
+    b.seconds += estimateOf(s);
     b.value += weightOf(s, metric, spKey);
   }
   return [...map.values()].sort(
@@ -206,8 +243,8 @@ export function deriveAssigneeBuckets(
       };
       map.set(id, b);
     }
-    b.logged += secOf(s, 'aggregatetimespent') ?? 0;
-    b.estimate += secOf(s, 'aggregatetimeoriginalestimate') ?? 0;
+    b.logged += loggedOf(s);
+    b.estimate += estimateOf(s);
     const w = weightOf(s, metric, spKey);
     const c = catOf(s);
     if (c === 'done') b.done += w;
@@ -264,9 +301,11 @@ export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {
   let logged = 0;
   let remaining = 0;
   for (const s of stories) {
-    estimated += secOf(s, 'aggregatetimeoriginalestimate') ?? 0;
-    logged += secOf(s, 'aggregatetimespent') ?? 0;
-    remaining += secOf(s, 'aggregatetimeestimate') ?? 0;
+    const est = estimateOf(s);
+    const log = loggedOf(s);
+    estimated += est;
+    logged += log;
+    if (catOf(s) !== 'done') remaining += Math.max(est - log, 0);
   }
   return {
     estimated,
@@ -274,6 +313,67 @@ export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {
     remaining,
     pctLogged: estimated > 0 ? Math.round((logged / estimated) * 100) : null,
   };
+}
+
+/**
+ * Worklog-based time burnup (collapse model). Logged is cumulative worklog
+ * time; Estimate is, per started story, max(estimate, logged so far) while
+ * open and logged so far once done.
+ */
+export function deriveTimeBurnup(
+  stories: JiraIssue[],
+  logs: Map<string, EpicWorklogDay[]>,
+  epicCreated: string | undefined,
+  today: string,
+): TimeBurnupPoint[] {
+  const items = stories.map((s) => {
+    const c = validKey(s.fields.created);
+    const created = c !== null && c > today ? today : c;
+    const entries = (logs.get(s.key) ?? [])
+      .flatMap((l) => {
+        const k = validKey(l.day);
+        const sec = l.seconds;
+        if (k === null || !Number.isFinite(sec) || sec <= 0) return [];
+        return [{ day: k > today ? today : k, seconds: sec }];
+      })
+      .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+    const first = entries.length > 0 ? entries[0].day : null;
+    const startDay =
+      created !== null && first !== null ? (created < first ? created : first) : (created ?? first);
+    return {
+      entries,
+      startDay,
+      doneDay: doneDateKey(s, today),
+      est: estimateOf(s),
+      ptr: 0,
+      sum: 0,
+    };
+  });
+
+  const starts = items.map((it) => it.startDay).filter((d): d is string => d !== null);
+  const epicDay = validKey(epicCreated);
+  const candidates = epicDay ? [...starts, epicDay] : starts;
+  if (candidates.length === 0) return [];
+  let axisStart = candidates.reduce((a, b) => (a < b ? a : b));
+  if (axisStart > today) axisStart = today;
+  for (const it of items) if (it.startDay === null) it.startDay = axisStart;
+
+  return buildAxis(axisStart, today).map((date) => {
+    let logged = 0;
+    let estimate = 0;
+    for (const it of items) {
+      while (it.ptr < it.entries.length && it.entries[it.ptr].day <= date) {
+        it.sum += it.entries[it.ptr].seconds;
+        it.ptr += 1;
+      }
+      logged += it.sum;
+      if (it.startDay !== null && it.startDay <= date) {
+        const done = it.doneDay !== null && it.doneDay <= date;
+        estimate += done ? it.sum : Math.max(it.est, it.sum);
+      }
+    }
+    return { date, label: labelOf(date), estimate, logged };
+  });
 }
 
 export function formatMetric(n: number, metric: Metric): string {
