@@ -1,0 +1,191 @@
+import { describe, expect, it } from 'vitest';
+import type { JiraIssue } from '@/services/jira';
+import {
+  catOf,
+  deriveAssigneeBuckets,
+  deriveBurnup,
+  deriveForecast,
+  deriveStatusBuckets,
+  doneDateKey,
+  weightOf,
+} from './epic-progress';
+
+const SP = 'customfield_10016';
+const TODAY = '2026-10-01';
+
+interface Opts {
+  cat?: 'new' | 'indeterminate' | 'done';
+  status?: string;
+  sp?: unknown;
+  assignee?: string | null;
+  created?: string;
+  res?: string | null;
+  scc?: string | null;
+  updated?: string;
+}
+function st(key: string, o: Opts = {}): JiraIssue {
+  return {
+    id: key,
+    key,
+    fields: {
+      summary: key,
+      status: {
+        id: '1',
+        name: o.status ?? 'To Do',
+        ...(o.cat ? { statusCategory: { key: o.cat } } : {}),
+      },
+      assignee: o.assignee ? { displayName: o.assignee, avatarUrls: { '48x48': '' } } : null,
+      customfield_10016: (o.sp as number | null) ?? null,
+      issuetype: { name: 'Story', subtask: false },
+      created: o.created,
+      resolutiondate: o.res,
+      statuscategorychangedate: o.scc,
+      updated: o.updated,
+    },
+  };
+}
+
+describe('catOf / weightOf', () => {
+  it('defaults missing category to new', () => {
+    expect(catOf(st('A'))).toBe('new');
+  });
+  it('weights by metric and tolerates non-numeric SP', () => {
+    expect(weightOf(st('A', { sp: 5 }), 'count', SP)).toBe(1);
+    expect(weightOf(st('A', { sp: 5 }), 'sp', SP)).toBe(5);
+    expect(weightOf(st('A', { sp: null }), 'sp', SP)).toBe(0);
+    expect(weightOf(st('A', { sp: 'x' }), 'sp', SP)).toBe(0);
+  });
+});
+
+describe('doneDateKey', () => {
+  it('is null for non-done even with resolutiondate', () => {
+    const s = st('A', { cat: 'indeterminate', res: '2026-09-01T10:00:00.000+0000' });
+    expect(doneDateKey(s, TODAY)).toBeNull();
+  });
+  it('falls back resolutiondate -> statuscategorychangedate -> updated -> today', () => {
+    const base = { cat: 'done' as const };
+    const full = st('A', {
+      ...base,
+      res: '2026-09-01T10:00:00.000+0000',
+      scc: '2026-09-02',
+      updated: '2026-09-03',
+    });
+    expect(doneDateKey(full, TODAY)).toBe('2026-09-01');
+    const noRes = st('A', { ...base, scc: '2026-09-02T00:00:00', updated: '2026-09-03' });
+    expect(doneDateKey(noRes, TODAY)).toBe('2026-09-02');
+    expect(doneDateKey(st('A', { ...base, updated: '2026-09-03' }), TODAY)).toBe('2026-09-03');
+    expect(doneDateKey(st('A', base), TODAY)).toBe(TODAY);
+  });
+});
+
+describe('deriveBurnup', () => {
+  it('returns [] when no story has created', () => {
+    expect(deriveBurnup([st('A')], 'count', SP, '2026-09-01', TODAY)).toEqual([]);
+    expect(deriveBurnup([], 'count', SP, '2026-09-01', TODAY)).toEqual([]);
+  });
+  it('is daily for spans <= 31 days with cumulative scope/done', () => {
+    const stories = [
+      st('A', { created: '2026-09-28', cat: 'done', res: '2026-09-30T00:00:00.000+0000' }),
+      st('B', { created: '2026-09-30' }),
+    ];
+    const pts = deriveBurnup(stories, 'count', SP, '2026-09-29', TODAY);
+    expect(pts[0].date).toBe('2026-09-28');
+    expect(pts[pts.length - 1].date).toBe(TODAY);
+    expect(pts).toHaveLength(4);
+    expect(pts.map((p) => p.scope)).toEqual([1, 1, 2, 2]);
+    expect(pts.map((p) => p.done)).toEqual([0, 0, 1, 1]);
+  });
+  it('is weekly for long spans with a final point at today', () => {
+    const pts = deriveBurnup([st('A', { created: '2026-06-01' })], 'count', SP, undefined, TODAY);
+    expect(pts[0].date).toBe('2026-06-07');
+    expect(pts[pts.length - 1].date).toBe(TODAY);
+    expect(pts[0].label).toBe('Jun 7');
+  });
+  it('starts at epic creation when earlier than stories and clamps done to scope', () => {
+    const stories = [st('A', { created: '2026-09-30', cat: 'done', res: '2026-09-29' })];
+    const pts = deriveBurnup(stories, 'count', SP, '2026-09-27', TODAY);
+    expect(pts[0].date).toBe('2026-09-27');
+    expect(pts.every((p) => p.done <= p.scope)).toBe(true);
+  });
+  it('uses SP weights', () => {
+    const pts = deriveBurnup(
+      [st('A', { created: '2026-09-30', sp: 8 })],
+      'sp',
+      SP,
+      undefined,
+      TODAY,
+    );
+    expect(pts[pts.length - 1].scope).toBe(8);
+  });
+});
+
+describe('deriveStatusBuckets', () => {
+  it('groups by status name ordered by category then value', () => {
+    const stories = [
+      st('A', { status: 'Done', cat: 'done', sp: 3 }),
+      st('B', { status: 'To Do', cat: 'new', sp: 2 }),
+      st('C', { status: 'Review', cat: 'indeterminate', sp: 5 }),
+      st('D', { status: 'To Do', cat: 'new', sp: 1 }),
+    ];
+    const b = deriveStatusBuckets(stories, 'count', SP);
+    expect(b.map((x) => x.name)).toEqual(['Done', 'Review', 'To Do']);
+    expect(b[2]).toMatchObject({ count: 2, points: 3, value: 2, cat: 'new' });
+    expect(deriveStatusBuckets(stories, 'sp', SP)[2].value).toBe(3);
+  });
+});
+
+describe('deriveAssigneeBuckets', () => {
+  it('includes Unassigned and sorts by remaining desc then name', () => {
+    const stories = [
+      st('A', { assignee: 'Zed', cat: 'done' }),
+      st('B', { assignee: 'Amy', cat: 'indeterminate' }),
+      st('C', { assignee: null }),
+      st('D', { assignee: null, cat: 'new' }),
+      st('E', { assignee: 'Bob', cat: 'new' }),
+    ];
+    const b = deriveAssigneeBuckets(stories, 'count', SP);
+    expect(b.map((x) => x.name)).toEqual(['Unassigned', 'Amy', 'Bob', 'Zed']);
+    expect(b[0]).toMatchObject({ todo: 2, remaining: 2 });
+    expect(b[3]).toMatchObject({ done: 1, remaining: 0 });
+  });
+});
+
+describe('deriveForecast', () => {
+  it('reports done when everything is done', () => {
+    const f = deriveForecast([st('A', { cat: 'done' })], 'count', SP, TODAY);
+    expect(f).toMatchObject({ reason: 'done', finishDate: null, pctDone: 100 });
+  });
+  it('is insufficient with fewer than 2 recent completions', () => {
+    const stories = [st('A', { cat: 'done', res: '2026-09-25' }), st('B')];
+    expect(deriveForecast(stories, 'count', SP, TODAY).reason).toBe('insufficient');
+    const old = [
+      st('A', { cat: 'done', res: '2026-01-01' }),
+      st('B', { cat: 'done', res: '2026-01-02' }),
+      st('C'),
+    ];
+    expect(deriveForecast(old, 'count', SP, TODAY).reason).toBe('insufficient');
+  });
+  it('projects finish from 4-week throughput', () => {
+    const stories = [
+      st('A', { cat: 'done', res: '2026-09-25' }),
+      st('B', { cat: 'done', res: '2026-09-26' }),
+      st('C'),
+      st('D'),
+    ];
+    // 2 done / 4 weeks = 0.5 per week; remaining 2 -> 4 weeks -> 28 days
+    const f = deriveForecast(stories, 'count', SP, TODAY);
+    expect(f).toMatchObject({ reason: 'ok', finishDate: '2026-10-29', pctDone: 50 });
+  });
+  it('counts unestimated and unassigned open; SP mode counts unestimated as 0', () => {
+    const stories = [
+      st('A', { cat: 'done', sp: 3, assignee: 'X' }),
+      st('B', { sp: 1, assignee: 'X' }),
+      st('C', { cat: 'indeterminate' }),
+      st('D', { cat: 'done' }),
+    ];
+    const c = deriveForecast(stories, 'count', SP, TODAY);
+    expect(c).toMatchObject({ unestimated: 2, unassignedOpen: 1, pctDone: 50 });
+    const s = deriveForecast(stories, 'sp', SP, TODAY);
+    expect(s).toMatchObject({ pctDone: 75, total: 4, doneTotal: 3 });
+  });
+});

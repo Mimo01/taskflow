@@ -173,6 +173,11 @@ export interface JiraIssue {
      */
     project?: { id: string; key: string };
     description?: string | null;
+    /** Epic progress (261001-fmk): requested by fetchEpicStories only; optional elsewhere. */
+    created?: string;
+    resolutiondate?: string | null;
+    updated?: string;
+    statuscategorychangedate?: string | null;
     // v1.1 additions (all optional — non-breaking for all four existing callers):
     parent?: { id: string; key: string; fields: { summary: string } };
     subtasks?: Array<{
@@ -2690,6 +2695,10 @@ export async function fetchEpicStories(
       'issuetype',
       storyPointsFieldKey,
       'customfield_10016',
+      'created',
+      'resolutiondate',
+      'updated',
+      'statuscategorychangedate',
     ]),
   ].join(',');
   const jql = encodeURIComponent(

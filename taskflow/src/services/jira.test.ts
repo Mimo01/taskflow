@@ -1714,6 +1714,25 @@ describe('jira service', () => {
       expect(decodeURIComponent(url)).toContain('issuetype != Sub-task');
     });
 
+    it('requests date fields needed for epic progress', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ issues: [], total: 0 }),
+      } as unknown as Response);
+      await fetchEpicStories('https://jira.example.com', 'token', 'PROJ-42', 'PROJ');
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const fields = new URL(url).searchParams.get('fields')?.split(',') ?? [];
+      expect(fields).toEqual(
+        expect.arrayContaining([
+          'created',
+          'resolutiondate',
+          'updated',
+          'statuscategorychangedate',
+        ]),
+      );
+    });
+
     it('returns empty array on fetch failure without throwing', async () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('network error'));
 
