@@ -305,6 +305,21 @@ describe('IssueDetailContent', () => {
       expect(screen.getAllByText(ESTIMATE_FORMULA_NOTE).length).toBeGreaterThan(0);
     });
 
+    it('uses a neutral fill (not a status colour) and icon markers in the tooltip', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      const fill = bar.firstElementChild as HTMLElement;
+      expect(fill.className).toContain('bg-muted-foreground');
+      expect(fill.className).not.toMatch(/bg-(green|blue|gray)/);
+      await user.hover(bar);
+      await screen.findAllByText(ESTIMATE_FORMULA_NOTE);
+      const markers = [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) =>
+        r.children[0].getAttribute('data-marker'),
+      );
+      expect(markers).toEqual(['icon', 'icon', 'icon']);
+    });
+
     it('done stories show zero remaining', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'done', { est: 7200, spent: 3600 })]);
