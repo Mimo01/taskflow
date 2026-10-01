@@ -901,8 +901,6 @@ export interface CfdPoint {
   band?: [number, number] | null;
 }
 
-const CFD_MAX_DAILY = 120;
-
 interface Segment {
   day: string;
   cat: Cat;
@@ -933,17 +931,14 @@ export function chartAxisStart(
   return start;
 }
 
-/** History sampling: daily when the span is <= CFD_MAX_DAILY, else stepped plus today. */
+/**
+ * History sampling: every calendar day from `start` to `today` inclusive, at any span. The chart
+ * thins only the visible window (viewSample), so zooming in shows daily detail.
+ */
 export function historyDates(start: string, today: string): string[] {
   const span = diffDays(start, today);
   const dates: string[] = [];
-  if (span <= CFD_MAX_DAILY) {
-    for (let i = 0; i <= span; i++) dates.push(addDays(start, i));
-  } else {
-    const step = Math.ceil(span / CFD_MAX_DAILY);
-    for (let d = start; d < today; d = addDays(d, step)) dates.push(d);
-    dates.push(today);
-  }
+  for (let i = 0; i <= span; i++) dates.push(addDays(start, i));
   return dates;
 }
 
@@ -1623,10 +1618,11 @@ export function axisTicks(from: string, to: string, max = 6): number[] {
   return out;
 }
 
-export type ZoomPreset = 'all' | '3m' | '1m' | '2w' | 'forecast';
+export type ZoomPreset = 'all' | '6m' | '3m' | '1m' | '2w' | 'forecast';
 
 export const ZOOM_PRESETS: readonly { key: ZoomPreset; label: string; days: number | null }[] = [
   { key: 'all', label: 'All', days: null },
+  { key: '6m', label: '6M', days: 182 },
   { key: '3m', label: '3M', days: 91 },
   { key: '1m', label: '1M', days: 30 },
   { key: '2w', label: '2W', days: 14 },
@@ -1654,34 +1650,242 @@ export function presetRange(
   return { from: maxKey(domain.from, addDays(today, -days)), to: today };
 }
 
-/** Zoom chrome (Brush + presets) only appears for domains longer than this many calendar days. */
-export const ZOOM_MIN_DAYS = 42;
+/** Smallest visible span (calendar days) the navigator lets the user select. */
+export const ZOOM_MIN_SPAN_DAYS = 7;
+
+/** Zoom chrome only appears for domains longer than this: 4 x ZOOM_MIN_SPAN_DAYS. */
+export const ZOOM_MIN_DAYS = 28;
+
+/** Domains up to this many days offer only the short preset set. */
+export const PRESET_SHORT_MAX_DAYS = 90;
+/** Domains up to this many days offer the medium preset set; longer ones the long set. */
+export const PRESET_MEDIUM_MAX_DAYS = 240;
+
+/** Calendar days from `r.from` to `r.to`. */
+export function spanDays(r: ChartRange): number {
+  return diffDays(r.from, r.to);
+}
 
 export function zoomEnabled(domain: ChartRange): boolean {
-  return diffDays(domain.from, domain.to) > ZOOM_MIN_DAYS;
+  return spanDays(domain) > ZOOM_MIN_DAYS;
 }
 
 /**
- * Presets worth showing: 'all' plus every preset that actually cuts off part of the history.
- * Empty when zoom is disabled or only 'All' would remain (a lone "All" is useless chrome).
+ * Presets worth showing: 'all' plus the length-appropriate candidates that actually cut off part
+ * of the domain. Empty when zoom is disabled or only 'All' would remain (a lone "All" is useless).
  */
 export function visiblePresets(domain: ChartRange, today: string): ZoomPreset[] {
   if (!zoomEnabled(domain)) return [];
+  const span = spanDays(domain);
+  const candidates: ZoomPreset[] =
+    span <= PRESET_SHORT_MAX_DAYS
+      ? ['2w', 'forecast']
+      : span <= PRESET_MEDIUM_MAX_DAYS
+        ? ['1m', '2w', 'forecast']
+        : ['6m', '3m', '1m', 'forecast'];
   const out: ZoomPreset[] = ['all'];
-  for (const { key } of ZOOM_PRESETS) {
-    if (key === 'all') continue;
+  for (const key of candidates) {
     const r = presetRange(key, domain, today);
     if (r && r.from > domain.from) out.push(key);
   }
   return out.length > 1 ? out : [];
 }
 
-/** Clamp both ends into the domain, guaranteeing from < to (else the whole domain). */
-export function clampRange(range: ChartRange, domain: ChartRange): ChartRange {
+/**
+ * Clamp both ends into the domain, guaranteeing from < to (else the whole domain). When the
+ * clamped span is shorter than `minSpan` days, extend `to` toward the domain end, then pull
+ * `from` back if still short.
+ */
+export function clampRange(range: ChartRange, domain: ChartRange, minSpan = 0): ChartRange {
   const clamp = (k: string) => (k < domain.from ? domain.from : k > domain.to ? domain.to : k);
-  const from = clamp(range.from);
-  const to = clamp(range.to);
-  return from < to ? { from, to } : { from: domain.from, to: domain.to };
+  let from = clamp(range.from);
+  let to = clamp(range.to);
+  if (!(from < to)) return { from: domain.from, to: domain.to };
+  if (diffDays(from, to) < minSpan) {
+    const wanted = addDays(from, minSpan);
+    to = wanted > domain.to ? domain.to : wanted;
+    if (diffDays(from, to) < minSpan) {
+      const back = addDays(to, -minSpan);
+      from = back < domain.from ? domain.from : back;
+    }
+  }
+  return { from, to };
+}
+
+/** Whole-day offsets of a range from the domain start (the navigator's slider values). */
+export function rangeToOffsets(range: ChartRange, domain: ChartRange): [number, number] {
+  return [diffDays(domain.from, range.from), diffDays(domain.from, range.to)];
+}
+
+/** Inverse of rangeToOffsets. */
+export function offsetsToRange([a, b]: [number, number], domain: ChartRange): ChartRange {
+  return { from: addDays(domain.from, a), to: addDays(domain.from, b) };
+}
+
+/** Shift both ends by `deltaDays`, sliding against the domain edges so the span is kept. */
+export function panRange(range: ChartRange, domain: ChartRange, deltaDays: number): ChartRange {
+  const total = spanDays(domain);
+  const span = spanDays(range);
+  if (span >= total) return { from: domain.from, to: domain.to };
+  const [start] = rangeToOffsets(range, domain);
+  const from = Math.min(Math.max(0, start + deltaDays), total - span);
+  return offsetsToRange([from, from + span], domain);
+}
+
+/**
+ * Pointer-pan math: days to shift for a drag from `startX` to `clientX` across a track of
+ * `trackWidth` px that represents `domainDays` days. Rounded to whole days; 0 for a zero-width track.
+ */
+export function panDeltaDays(
+  clientX: number,
+  startX: number,
+  trackWidth: number,
+  domainDays: number,
+): number {
+  if (!(trackWidth > 0)) return 0;
+  return Math.round(((clientX - startX) / trackWidth) * domainDays);
+}
+
+/**
+ * Keep a range pinned to the domain end when the domain end moves (e.g. new forecast), then
+ * clamp into the new domain with `minSpan`.
+ */
+export function rebaseRange(
+  range: ChartRange,
+  prevDomainTo: string,
+  domain: ChartRange,
+  minSpan: number,
+): ChartRange {
+  const pinned = range.to === prevDomainTo ? { from: range.from, to: domain.to } : range;
+  return clampRange(pinned, domain, minSpan);
+}
+
+// ── Visible-window sampling and calendar ticks ───────────────────────────────
+
+/** Rendered-point budget for the visible window. */
+export const VIEW_MAX_POINTS = 250;
+
+/**
+ * Thin the visible window to a point budget. Rows are sorted by date. Keeps every in-window row
+ * when there are <= max of them; otherwise every ceil(n / (max - 1))-th one. Always keeps the first
+ * and last in-window rows, one neighbour on each side of the window and every date in `keep`.
+ * Result is sorted and unique, length <= max + keep.length + 2.
+ */
+export function viewSample<T extends { date: string }>(
+  rows: T[],
+  range: ChartRange,
+  max = VIEW_MAX_POINTS,
+  keep: readonly string[] = [],
+): T[] {
+  let first = -1;
+  let last = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].date >= range.from && rows[i].date <= range.to) {
+      if (first < 0) first = i;
+      last = i;
+    }
+  }
+  if (first < 0) return rows.filter((r) => keep.includes(r.date));
+  const n = last - first + 1;
+  const step = n <= max ? 1 : Math.ceil(n / Math.max(1, max - 1));
+  const keepSet = new Set(keep);
+  const out: T[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const inWindow = i >= first && i <= last;
+    const take =
+      i === first - 1 ||
+      i === last + 1 ||
+      keepSet.has(rows[i].date) ||
+      (inWindow && (i === first || i === last || (i - first) % step === 0));
+    if (take) out.push(rows[i]);
+  }
+  return out;
+}
+
+export interface AxisTick {
+  t: number;
+  label: string;
+}
+
+/** Ticks per px: one tick per this many px of chart width. */
+const TICK_PX = 72;
+
+type TickUnit = (ms: number, y: number, m: number, d: number) => boolean;
+
+const mondayOf = (ms: number) => (Math.floor(ms / DAY_MS) + 3) % 7 === 0;
+const dayNo = (ms: number) => Math.floor(ms / DAY_MS);
+const monthStart =
+  (months: readonly number[] | null): TickUnit =>
+  (_ms, _y, m, d) =>
+    d === 1 && (months === null || months.includes(m));
+
+const MONTH_UNIT_START = 4;
+
+const TICK_LADDER: TickUnit[] = [
+  () => true,
+  (ms) => dayNo(ms) % 2 === 0,
+  (ms) => mondayOf(ms),
+  // Mondays on even week numbers since 1970-01-05 (day 4)
+  (ms) => mondayOf(ms) && ((dayNo(ms) - 4) / 7) % 2 === 0,
+  monthStart(null),
+  monthStart([0, 2, 4, 6, 8, 10]),
+  monthStart([0, 3, 6, 9]),
+  monthStart([0, 6]),
+  monthStart([0]),
+];
+
+/**
+ * Calendar-aligned axis ticks within [from, to]: days, Mondays, month starts, quarters... chosen
+ * as the finest ladder unit with <= max(3, floor(widthPx / 72)) ticks. Ticks depend only on the
+ * calendar, so they stay put while panning. Labels carry the year on the first tick when the
+ * range crosses a year, and on any tick whose year differs from the previous one.
+ */
+export function timeTicks(from: string, to: string, widthPx: number): AxisTick[] {
+  const target = Math.max(3, Math.floor(widthPx / TICK_PX));
+  const span = Math.max(0, diffDays(from, to));
+  const days: { ms: number; y: number; m: number; d: number }[] = [];
+  for (let i = 0; i <= span; i++) {
+    const ms = toMs(from) + i * DAY_MS;
+    const dt = new Date(ms);
+    days.push({ ms, y: dt.getUTCFullYear(), m: dt.getUTCMonth(), d: dt.getUTCDate() });
+  }
+  let picked: typeof days = [];
+  let unitIdx = 0;
+  for (let u = 0; u < TICK_LADDER.length; u++) {
+    const unit = TICK_LADDER[u];
+    const hits = days.filter((x) => unit(x.ms, x.y, x.m, x.d));
+    if (hits.length >= 1) {
+      picked = hits;
+      unitIdx = u;
+    }
+    if (hits.length >= 1 && hits.length <= target) break;
+  }
+  if (picked.length === 0) picked = days.slice(0, 1);
+  const crosses = days[0].y !== days[days.length - 1].y;
+  const monthUnit = unitIdx >= MONTH_UNIT_START;
+  return picked.map((x, i) => {
+    const withYear = (i === 0 && crosses) || (i > 0 && picked[i - 1].y !== x.y);
+    const base = monthUnit ? MONTHS[x.m] : `${MONTHS[x.m]} ${x.d}`;
+    return { t: x.ms, label: withYear ? `${base} ${x.y}` : base };
+  });
+}
+
+/** "Mar 2026". */
+export function formatMonthYear(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return `${MONTHS[m - 1]} ${y}`;
+}
+
+/**
+ * Compact date range: "Oct 9 – 28" within a month, else "Oct 9 – Nov 2"; the end date gets a
+ * " '27" suffix when its year differs from today's.
+ */
+export function formatDateRange(a: string, b: string, today: string): string {
+  const [ay, am] = a.split('-').map(Number);
+  const [by, bm, bd] = b.split('-').map(Number);
+  const end = ay === by && am === bm ? `${bd}` : `${MONTHS[bm - 1]} ${bd}`;
+  const suffix = String(by) !== today.slice(0, 4) ? ` '${String(by).slice(2)}` : '';
+  return `${labelOf(a)} \u2013 ${end}${suffix}`;
 }
 
 /**
