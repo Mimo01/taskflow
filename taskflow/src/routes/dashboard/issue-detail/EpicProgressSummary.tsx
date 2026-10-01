@@ -234,7 +234,7 @@ function FinishTile({
       value = 'Not converging';
       break;
     default:
-      value = forecast.likely ? dateText(forecast.likely, today) : '—';
+      value = forecast.likely && forecast.nLikely !== 0 ? dateText(forecast.likely, today) : '—';
       if (forecast.nLikely === 0) sub = 'Remaining work is unestimated';
       else if (forecast.optimistic && forecast.pessimistic) {
         sub = `${formatDateKey(forecast.optimistic)}–${formatDateKey(forecast.pessimistic)} · ${forecast.confidence ?? 'low'} confidence`;

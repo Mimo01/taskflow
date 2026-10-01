@@ -246,16 +246,19 @@ export function EpicProgressSection({
 
   // Cumulative flow (Count/SP): real status history when loaded, else the current-state
   // approximation. The chart is never replaced by a skeleton or error box.
-  const lookup = buildStatusCategoryLookup(statusList.data, stories);
-  const { points: cfdPoints, approximate } = deriveCfd({
-    stories,
-    history: history.data ?? null,
-    lookup,
-    metric,
-    spKey: storyPointsFieldKey,
-    epicCreated,
-    today,
-  });
+  // Time mode renders EpicTimeBurnup instead — skip the CFD derivation there.
+  const { points: cfdPoints, approximate } =
+    metric === 'time'
+      ? { points: [], approximate: false }
+      : deriveCfd({
+          stories,
+          history: history.data ?? null,
+          lookup: buildStatusCategoryLookup(statusList.data, stories),
+          metric,
+          spKey: storyPointsFieldKey,
+          epicCreated,
+          today,
+        });
   const projection = forecast
     ? deriveProjection(forecast, today, cfdPoints.length > 0 ? cfdPoints[0].date : null)
     : { points: [], clippedAfter: null };
@@ -333,6 +336,7 @@ export function EpicProgressSection({
                   delay={0}
                   render={<div />}
                   data-testid="epic-status-bar"
+                  role="img"
                   tabIndex={0}
                   aria-label={`Status breakdown: ${statuses
                     .filter((b) => b.value > 0)
@@ -383,6 +387,7 @@ export function EpicProgressSection({
                       delay={0}
                       render={<div />}
                       data-testid="epic-assignee-bar"
+                      role="img"
                       tabIndex={0}
                       aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
                       className="min-w-0 flex-1 py-1.5 -my-1.5"

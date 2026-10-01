@@ -44,7 +44,8 @@ export function useEpicStatusHistory(epicKey: string, storyKeys: string[], enabl
       if (!token || !jiraBaseUrl) throw new Error('No credentials');
       return fetchEpicStatusHistory(jiraBaseUrl, token, sortedKeys, epicKey);
     },
-    staleTime: 60_000,
+    // Changelog expansion is the heaviest call here; history changes slowly.
+    staleTime: 5 * 60_000,
     enabled: enabled && !!jiraConnected && !!jiraBaseUrl && sortedKeys.length > 0,
   });
 }

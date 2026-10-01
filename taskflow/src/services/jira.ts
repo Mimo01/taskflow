@@ -2851,8 +2851,10 @@ function toEpicStatusHistory(histories: ChangelogHistory[], epicKey: string): Ep
           toId: item.to ?? null,
           toName: item.toString ?? null,
         });
-      } else if (item.field === 'Epic Link' && (item.toString ?? '').includes(epicKey)) {
-        joinedAt = h.created;
+      } else if (item.field === 'Epic Link') {
+        // Exact token match: PROJ-1 must not match PROJ-10. Latest join wins; a move away clears it.
+        const linked = (item.toString ?? '').split(/[\s,]+/).includes(epicKey);
+        joinedAt = linked ? h.created : null;
       }
     }
   }
