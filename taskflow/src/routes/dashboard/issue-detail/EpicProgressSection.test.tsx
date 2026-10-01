@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ESTIMATE_FORMULA_NOTE } from '@/lib/epic-progress';
+import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
+import { SERIES } from './epic-markers';
 import { toLocalDateString } from '@/lib/local-date';
 import { fetchEpicStatusHistory, fetchEpicWorklogs, type JiraIssue } from '@/services/jira';
 import { EpicProgressSection } from './EpicProgressSection';
@@ -1482,5 +1484,145 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     await user.click(more);
     expect(keyButtons()).toHaveLength(7);
     expect(within(popover).queryByRole('button', { name: /more$/ })).toBeNull();
+  });
+});
+
+describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function workingDaysBack(n: number): string[] {
+    const out: string[] = [];
+    let d = new Date(Date.UTC(2026, 8, 30));
+    while (out.length < n) {
+      const wd = d.getUTCDay();
+      if (wd !== 0 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+      d = new Date(d.getTime() - 86_400_000);
+    }
+    return out;
+  }
+  const okList = () => [
+    ...workingDaysBack(15).map((d, i) =>
+      story(`S-${i + 1}`, {
+        cat: 'done',
+        status: 'Done',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        est: 3600,
+        res: `${d}T12:00:00.000+0000`,
+      }),
+    ),
+    ...[0, 1, 2, 3, 4].map((i) =>
+      story(`S-${100 + i}`, {
+        cat: 'new',
+        status: 'To Do',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        est: 3600,
+      }),
+    ),
+  ];
+  const section = (list: JiraIssue[]) => (
+    <EpicProgressSection
+      epicKey="E-1"
+      stories={list}
+      storyPointsFieldKey={SP}
+      epicCreated="2026-01-01"
+    />
+  );
+  const pressed = () =>
+    within(screen.getByTestId('epic-zoom-presets'))
+      .getAllByRole('button')
+      .filter((b) => b.getAttribute('aria-pressed') === 'true')
+      .map((b) => b.textContent);
+  const activeChart = () =>
+    screen.queryByTestId('epic-burnup') ?? screen.getByTestId('epic-time-burnup');
+
+  it('Count and Time charts share the same x domain', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList()));
+    const count = screen.getByTestId('epic-burnup');
+    const from = count.getAttribute('data-x-from');
+    const to = count.getAttribute('data-x-to');
+    expect(from).toBe('2026-01-01');
+    expect(to).toBe(count.getAttribute('data-domain-to'));
+    expect(to && to > '2026-09-30').toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const time = await screen.findByTestId('epic-time-burnup');
+    expect(time.getAttribute('data-x-from')).toBe(from);
+    expect(time.getAttribute('data-x-to')).toBe(to);
+  });
+
+  it('presets clamp to the domain, persist across tabs, and All restores it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList()));
+    const domainTo = screen.getByTestId('epic-burnup').getAttribute('data-domain-to');
+    expect(pressed()).toEqual(['All']);
+    fireEvent.click(within(screen.getByTestId('epic-zoom-presets')).getByText('1M'));
+    expect(pressed()).toEqual(['1M']);
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-x-from', '2026-08-31');
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-x-to', '2026-09-30');
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const time = await screen.findByTestId('epic-time-burnup');
+    expect(pressed()).toEqual(['1M']);
+    expect(time).toHaveAttribute('data-x-from', '2026-08-31');
+    expect(time).toHaveAttribute('data-x-to', '2026-09-30');
+    fireEvent.click(within(screen.getByTestId('epic-zoom-presets')).getByText('All'));
+    expect(activeChart()).toHaveAttribute('data-x-from', '2026-01-01');
+    expect(activeChart()).toHaveAttribute('data-x-to', domainTo ?? '');
+  });
+
+  it('Forecast preset is enabled with a forecast and disabled without one', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const ok = renderSection(section(okList()));
+    const forecast = () => within(screen.getByTestId('epic-zoom-presets')).getByText('Forecast');
+    expect(forecast()).toBeEnabled();
+    fireEvent.click(forecast());
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-x-from', '2026-09-16');
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute(
+      'data-x-to',
+      screen.getByTestId('epic-burnup').getAttribute('data-domain-to') ?? '',
+    );
+    ok.unmount();
+    renderSection(section(stories));
+    expect(forecast()).toBeDisabled();
+  });
+
+  it('presets sit outside the legend container', () => {
+    renderSection(section(stories));
+    expect(
+      within(screen.getByTestId('epic-cfd-legend')).queryByTestId('epic-zoom-presets'),
+    ).toBeNull();
+  });
+
+  it('SERIES uses status colours by meaning, forecast and band stay neutral', () => {
+    expect(SERIES.logged.stroke).toBe(STATUS_CATEGORY_COLOR.done);
+    expect(SERIES.remaining.stroke).toBe(STATUS_CATEGORY_COLOR.indeterminate);
+    expect(SERIES.estimate.fill).toBe(STATUS_CATEGORY_COLOR.new);
+    expect(SERIES.forecast.stroke).toBe('var(--color-foreground)');
+    expect(SERIES.band.fill).toBe('var(--color-muted-foreground)');
+  });
+
+  it('legend markers carry the status colours in both charts and the forecast meter appears', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList()));
+    const marker = (legend: HTMLElement, label: string) =>
+      within(legend).getByText(label).previousElementSibling as HTMLElement | null as HTMLElement;
+    const cfd = screen.getByTestId('epic-cfd-legend');
+    expect(marker(cfd, 'Remaining')).toHaveAttribute('data-marker', 'status-line');
+    expect(marker(cfd, 'Remaining').style.background).toBe(STATUS_CATEGORY_COLOR.indeterminate);
+    expect(within(cfd).getByTestId('confidence-meter')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const legend = await screen.findByTestId('epic-time-legend');
+    expect(marker(legend, 'Estimate')).toHaveAttribute('data-marker', 'status-area');
+    expect(marker(legend, 'Estimate').style.background).toBe(STATUS_CATEGORY_COLOR.new);
+    expect(marker(legend, 'Logged')).toHaveAttribute('data-marker', 'status-line');
+    expect(marker(legend, 'Logged').style.background).toBe(STATUS_CATEGORY_COLOR.done);
+    expect(marker(legend, 'Remaining').style.background).toBe(STATUS_CATEGORY_COLOR.indeterminate);
   });
 });

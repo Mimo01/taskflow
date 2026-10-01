@@ -12,21 +12,32 @@
  * would collide with the EpicDetailSheet text assertions, so the legend is custom.
  */
 import { Info } from 'lucide-react';
-import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { Area, Brush, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { MarkerGlyph, type MarkerTone, type TooltipMarker } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
+  axisTicks,
   type CfdPoint,
+  dateKeyMs,
   FINISH_STATE_TEXT,
   formatDateKey,
   type Metric,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
+import { ConfidenceMeter } from './ConfidenceMeter';
 import { cfdRows, EpicChartTooltip } from './EpicChartTooltip';
+import {
+  BRUSH_STYLE,
+  brushIndexes,
+  brushUsable,
+  CHART_HEIGHT,
+  type ChartZoom,
+  visibleRange,
+  ZoomPresets,
+} from './EpicChartZoom';
 import { SERIES } from './epic-markers';
 
-const CHART_HEIGHT = 220;
 const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 
 export type CfdChartPoint = CfdPoint & {
@@ -49,6 +60,8 @@ interface EpicCfdChartProps {
   /** The one shared forecast (same result as the Finish tile). */
   finish: AveragedForecast;
   today: string;
+  /** Shared zoom state (null without a valid axis start). */
+  zoom: ChartZoom | null;
 }
 
 export function tickLabel(v: unknown): string {
@@ -85,7 +98,10 @@ export function ForecastLegend({
 }) {
   if (hasProjection) {
     return (
-      <LegendItem marker={SERIES.forecast.marker} tone={SERIES.forecast.tone} label="Forecast" />
+      <>
+        <LegendItem marker={SERIES.forecast.marker} tone={SERIES.forecast.tone} label="Forecast" />
+        <ConfidenceMeter level={finish.confidence} />
+      </>
     );
   }
   if (finish.state === 'ok') {
@@ -118,11 +134,21 @@ export function EpicCfdChart({
   clippedAfter,
   finish,
   today,
+  zoom,
 }: EpicCfdChartProps) {
+  const range = visibleRange(zoom, data);
+  const brush = brushIndexes(data, range ?? { from: '', to: '' });
   return (
     <div>
-      <div data-testid="epic-burnup" data-history={history} style={{ height: CHART_HEIGHT }}>
-        {data.length === 0 ? (
+      <div
+        data-testid="epic-burnup"
+        data-history={history}
+        data-x-from={range?.from}
+        data-x-to={range?.to}
+        data-domain-to={zoom?.domain.to ?? range?.to}
+        style={{ height: CHART_HEIGHT }}
+      >
+        {data.length === 0 || !range ? (
           <p className="text-sm text-muted-foreground italic">No timeline data</p>
         ) : (
           <ChartContainer
@@ -135,11 +161,12 @@ export function EpicCfdChart({
                 type="number"
                 dataKey="t"
                 scale="time"
-                domain={['dataMin', 'dataMax']}
+                domain={[dateKeyMs(range.from), dateKeyMs(range.to)]}
+                allowDataOverflow
+                ticks={axisTicks(range.from, range.to)}
                 tickFormatter={tickLabel}
                 tickLine={false}
                 axisLine={false}
-                minTickGap={24}
               />
               <YAxis allowDecimals={metric === 'sp'} tickLine={false} axisLine={false} width={32} />
               <ChartTooltip
@@ -217,28 +244,47 @@ export function EpicCfdChart({
                 }}
                 isAnimationActive={false}
               />
+              {brushUsable(zoom, data) ? (
+                <Brush
+                  key={zoom.epoch}
+                  dataKey="t"
+                  {...BRUSH_STYLE}
+                  tickFormatter={tickLabel}
+                  startIndex={brush.startIndex}
+                  endIndex={brush.endIndex}
+                  onChange={(r) => {
+                    if (r.startIndex === brush.startIndex && r.endIndex === brush.endIndex) return;
+                    const a = data[r.startIndex];
+                    const b = data[r.endIndex];
+                    if (a && b) zoom.onRange({ from: a.date, to: b.date });
+                  }}
+                />
+              ) : null}
             </ComposedChart>
           </ChartContainer>
         )}
       </div>
-      <div
-        data-testid="epic-cfd-legend"
-        className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
-      >
-        <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.done} label="Completed" />
-        <LegendItem
-          marker="status"
-          color={STATUS_CATEGORY_COLOR.indeterminate}
-          label="In progress"
-        />
-        <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.new} label="To do" />
-        <LegendItem
-          marker={SERIES.remaining.marker}
-          tone={SERIES.remaining.tone}
-          label="Remaining"
-        />
-        <ForecastLegend finish={finish} hasProjection={hasProjection} />
-        <SourceFlag text={sourceFlag} />
+      <div className="mt-1 flex items-start justify-between gap-4">
+        <div
+          data-testid="epic-cfd-legend"
+          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"
+        >
+          <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.done} label="Completed" />
+          <LegendItem
+            marker="status"
+            color={STATUS_CATEGORY_COLOR.indeterminate}
+            label="In progress"
+          />
+          <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.new} label="To do" />
+          <LegendItem
+            marker={SERIES.remaining.marker}
+            color={SERIES.remaining.color}
+            label="Remaining"
+          />
+          <ForecastLegend finish={finish} hasProjection={hasProjection} />
+          <SourceFlag text={sourceFlag} />
+        </div>
+        {zoom ? <ZoomPresets zoom={zoom} /> : null}
       </div>
     </div>
   );

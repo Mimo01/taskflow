@@ -5,6 +5,7 @@
  * formatter. Renders on the shared TOOLTIP_SURFACE like every other tooltip.
  * Colour marks statuses only; every other row uses a neutral marker or icon.
  */
+import { Gauge } from 'lucide-react';
 import {
   type MarkerTone,
   TOOLTIP_SURFACE,
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
+  confidenceReason,
   finishDateRows,
   formatDateKey,
   formatFinishDate,
@@ -21,6 +23,7 @@ import {
   type Metric,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
+import { ConfidenceMeter } from './ConfidenceMeter';
 import { MARKER_ICON, SERIES } from './epic-markers';
 
 export interface ChartDatum {
@@ -40,7 +43,7 @@ export interface ChartRowSpec {
   label: string;
   value: string;
   marker: TooltipMarker;
-  /** Status colour (marker 'status' only). */
+  /** Status colour (the 'status*' markers only). */
   color?: string;
   tone?: MarkerTone;
 }
@@ -90,7 +93,7 @@ export function cfdRows(metric: Metric): (d: ChartDatum) => ChartRowSpec[] {
       label: 'Remaining',
       value: v(d.remaining),
       marker: SERIES.remaining.marker,
-      tone: SERIES.remaining.tone,
+      color: SERIES.remaining.color,
     },
   ];
 }
@@ -104,21 +107,21 @@ export function timeRows(format: (hours: number) => string): (d: ChartDatum) => 
       label: 'Estimate',
       value: v(d.estimate),
       marker: SERIES.estimate.marker,
-      tone: SERIES.estimate.tone,
+      color: SERIES.estimate.color,
     },
     {
       key: 'logged',
       label: 'Logged',
       value: v(d.logged),
       marker: SERIES.logged.marker,
-      tone: SERIES.logged.tone,
+      color: SERIES.logged.color,
     },
     {
       key: 'remaining',
       label: 'Remaining',
       value: v(d.remaining),
       marker: SERIES.remaining.marker,
-      tone: SERIES.remaining.tone,
+      color: SERIES.remaining.color,
     },
   ];
 }
@@ -147,13 +150,24 @@ export function EpicChartTooltip({
   const band = datum.band;
   const keyDates =
     isFuture && finish && today ? finishDateRows(finish).filter((r) => r.date === datum.date) : [];
+  // Padded blank rows (axis extended to the shared domain) carry neither history nor forecast.
+  if (specs.length === 0 && !hasForecast && !band) return null;
+  const showConfidence = isFuture && finish?.state === 'ok';
+  const reason = showConfidence && finish ? confidenceReason(finish) : null;
+  const clippedText =
+    isFuture && clippedAfter ? `pessimistic after ${formatDateKey(clippedAfter)}` : null;
 
   return (
     <div className={TOOLTIP_SURFACE}>
       <TooltipBody
         title={title}
         note={
-          isFuture && clippedAfter ? `pessimistic after ${formatDateKey(clippedAfter)}` : undefined
+          clippedText || reason ? (
+            <>
+              {clippedText ? <div>{clippedText}</div> : null}
+              {reason ? <div>{reason}</div> : null}
+            </>
+          ) : undefined
         }
       >
         {specs.map((r) => (
@@ -199,6 +213,13 @@ export function EpicChartTooltip({
             sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
           />
         ))}
+        {showConfidence && finish ? (
+          <TooltipRow
+            icon={<Gauge className="size-3" />}
+            label="Confidence"
+            value={<ConfidenceMeter level={finish.confidence} />}
+          />
+        ) : null}
       </TooltipBody>
     </div>
   );
