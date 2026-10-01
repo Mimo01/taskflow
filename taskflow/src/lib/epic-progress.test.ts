@@ -29,6 +29,15 @@ import {
   formatMetric,
   doneDateKey,
   weightOf,
+  BANDS,
+  bandPct,
+  bandTotal,
+  summaryBands,
+  formatChip,
+  formatFinishDate,
+  finishDateRows,
+  FINISH_STATE_TEXT,
+  projectFinish,
 } from './epic-progress';
 
 const SP = 'customfield_10016';
@@ -1351,5 +1360,159 @@ describe('deriveRisks (261001-qvu)', () => {
     const u = r.find((x) => x.key === 'unestimated');
     expect(u?.count).toBe(3);
     expect(u?.detail).toBe('Open items without a time estimate.');
+  });
+});
+
+describe('projectFinish (261001-rtw)', () => {
+  const mk = () =>
+    averageForecasts(
+      [
+        {
+          metric: 'count',
+          forecast: okForecast({ nLikely: 5, nOpt: 4, nPess: 8, confidence: 'high' }),
+        },
+        {
+          metric: 'sp',
+          forecast: okForecast({ nLikely: 5, nOpt: 4, nPess: 8, confidence: 'high' }),
+        },
+      ],
+      WED,
+    );
+  it('scales by remaining with identical dates and working days', () => {
+    const finish = mk();
+    const a = projectFinish(finish, 10, WED, '2026-09-01').points;
+    const b = projectFinish(finish, 40, WED, '2026-09-01').points;
+    expect(a.map((p) => p.date)).toEqual(b.map((p) => p.date));
+    expect(a.map((p) => p.wd)).toEqual(b.map((p) => p.wd));
+    a.forEach((p, i) => {
+      expect(b[i].forecast).toBeCloseTo(p.forecast * 4, 6);
+      expect(b[i].band[0]).toBeCloseTo(p.band[0] * 4, 6);
+      expect(b[i].band[1]).toBeCloseTo(p.band[1] * 4, 6);
+    });
+  });
+  it('reaches 0 at the averaged dates', () => {
+    const finish = mk();
+    const { points } = projectFinish(finish, 10, WED, '2026-09-01');
+    expect(points[0]).toMatchObject({ forecast: 10, band: [10, 10], wd: 0 });
+    const at = (d: string | null) => points.find((p) => p.date === d);
+    expect(at(finish.likely)?.forecast).toBe(0);
+    expect(at(finish.optimistic)?.band[0]).toBe(0);
+    expect(at(finish.pessimistic)?.band[1]).toBe(0);
+  });
+  it('is empty for non-ok states and zero remaining', () => {
+    const finish = mk();
+    expect(projectFinish(finish, 0, WED, null).points).toEqual([]);
+    const states = [
+      averageForecasts([{ metric: 'count', forecast: okForecast({ state: 'done' }) }], WED),
+      averageForecasts([{ metric: 'count', forecast: okForecast({ state: 'stalled' }) }], WED),
+      averageForecasts([{ metric: 'count', forecast: okForecast({ state: 'too-early' }) }], WED),
+      averageForecasts(
+        [{ metric: 'count', forecast: okForecast({ state: 'not-converging' }) }],
+        WED,
+      ),
+    ];
+    for (const f of states) {
+      expect(f.state).not.toBe('ok');
+      expect(projectFinish(f, 10, WED, null).points).toEqual([]);
+    }
+  });
+  it('is flat on holidays like deriveProjection', () => {
+    const cal = buildWorkCalendar(new Map([['2026-10-02', 'HOLIDAY']]));
+    const finish = averageForecasts(
+      [{ metric: 'count', forecast: okForecast({ nLikely: 5, nOpt: 4, nPess: 8 }) }],
+      WED,
+      cal,
+    );
+    const { points } = projectFinish(finish, 10, WED, '2026-09-01', cal);
+    const by = new Map(points.map((p) => [p.date, p]));
+    expect(by.get('2026-10-02')?.workingDay).toBe(false);
+    expect(by.get('2026-10-02')?.forecast).toBe(by.get('2026-10-01')?.forecast);
+  });
+});
+
+describe('status bands (261001-rtw)', () => {
+  const H = 3600;
+  const stories = [
+    st('A', { cat: 'done', sp: 3, est: H, assignee: 'Amy' }),
+    st('B', { cat: 'indeterminate', sp: 2, est: 2 * H, spent: 5 * H, assignee: 'Amy' }),
+    st('C', { sp: 5, est: 2 * H, assignee: 'Bob' }),
+    st('D', { sp: 1, assignee: null }),
+  ];
+  it('assignee buckets sum to the summary bands for every metric', () => {
+    for (const metric of ['count', 'sp', 'time'] as const) {
+      const bk = deriveAssigneeBuckets(stories, metric, SP);
+      const sum = { done: 0, inProgress: 0, todo: 0 };
+      for (const b of bk) {
+        sum.done += b.done;
+        sum.inProgress += b.inProgress;
+        sum.todo += b.todo;
+      }
+      expect(sum).toEqual(summaryBands(deriveSummary(stories, metric, SP)));
+    }
+  });
+  it('time bands are estimate sums, not logged', () => {
+    const b = summaryBands(deriveSummary(stories, 'time', SP));
+    expect(b.done).toBe(H);
+    expect(b.todo).toBe(2 * H);
+  });
+  it('bandPct / bandTotal', () => {
+    expect(bandPct({ done: 1, inProgress: 1, todo: 2 }, 'todo')).toBe(50);
+    expect(bandPct({ done: 0, inProgress: 0, todo: 0 }, 'done')).toBe(0);
+    expect(bandTotal({ done: 1, inProgress: 2, todo: 3 })).toBe(6);
+    expect(BANDS.map((x) => x.cat)).toEqual(['done', 'indeterminate', 'new']);
+  });
+  it('formatChip', () => {
+    expect(formatChip(2, 'count')).toBe('2');
+    expect(formatChip(2.25, 'sp')).toBe('2.3');
+    expect(formatChip(5400, 'time')).toBe('1h 30m');
+    expect(formatChip(0, 'time')).toBe('0m');
+  });
+  it('time burnup remaining today equals the totals remaining', () => {
+    const ss = [
+      st('O1', { est: 2 * H, spent: 3 * H, created: '2026-09-28' }),
+      st('O2', { est: 4 * H, spent: H, created: '2026-09-28' }),
+      st('D1', { est: H, spent: H, cat: 'done', res: '2026-09-30', created: '2026-09-28' }),
+    ];
+    const wl = new Map([
+      ['O1', [{ day: '2026-09-29', seconds: 3 * H }]],
+      ['O2', [{ day: '2026-09-29', seconds: H }]],
+      ['D1', [{ day: '2026-09-29', seconds: H }]],
+    ]);
+    const pts = deriveTimeBurnup(ss, wl, undefined, TODAY);
+    const last = pts[pts.length - 1];
+    expect(last.estimate - last.logged).toBe(deriveTimeTotals(ss).remaining);
+  });
+});
+
+describe('finish helpers (261001-rtw)', () => {
+  const finish = averageForecasts(
+    [
+      { metric: 'count', forecast: okForecast({ nLikely: 5, nOpt: 4, nPess: 8 }) },
+      { metric: 'sp', forecast: okForecast({ nLikely: 5, nOpt: 4, nPess: 8 }) },
+    ],
+    WED,
+  );
+  it('finishDateRows', () => {
+    const rows = finishDateRows(finish);
+    expect(rows.map((r) => r.label)).toEqual(['Likely', 'Earliest', 'Latest']);
+    expect(rows.map((r) => r.date)).toEqual([finish.likely, finish.optimistic, finish.pessimistic]);
+    expect(rows.map((r) => r.n)).toEqual([5, 4, 8]);
+    const done = averageForecasts(
+      [{ metric: 'count', forecast: okForecast({ state: 'done' }) }],
+      WED,
+    );
+    expect(finishDateRows(done)).toEqual([]);
+  });
+  it('state text', () => {
+    expect(FINISH_STATE_TEXT).toEqual({
+      done: 'Complete',
+      'too-early': 'Too early to tell',
+      stalled: 'Stalled',
+      'not-converging': 'Not converging',
+    });
+  });
+  it('formatFinishDate', () => {
+    expect(formatFinishDate('2026-10-07', WED)).toBe('Oct 7');
+    expect(formatFinishDate('2027-01-04', WED)).toBe('Jan 4, 2027');
   });
 });

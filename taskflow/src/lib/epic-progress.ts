@@ -823,6 +823,40 @@ export function deriveSummary(stories: JiraIssue[], metric: Metric, spKey: strin
 
 // ── Cumulative flow diagram ──────────────────────────────────────────────────
 
+// ── Status bands (generic over Count / SP / Time) ───────────────────────────
+
+export interface Bands {
+  done: number;
+  inProgress: number;
+  todo: number;
+}
+
+/** Display order of the three status bands and their status categories. */
+export const BANDS: readonly { key: keyof Bands; cat: Cat }[] = [
+  { key: 'done', cat: 'done' },
+  { key: 'inProgress', cat: 'indeterminate' },
+  { key: 'todo', cat: 'new' },
+];
+
+export function bandTotal(b: Bands): number {
+  return b.done + b.inProgress + b.todo;
+}
+
+export function bandPct(b: Bands, key: keyof Bands): number {
+  const t = bandTotal(b);
+  return t > 0 ? Math.round((b[key] / t) * 100) : 0;
+}
+
+export function summaryBands(s: EpicSummary): Bands {
+  return { done: s.doneTotal, inProgress: s.inProgressTotal, todo: s.todoTotal };
+}
+
+/** Chip text: duration for time, plain integer / 1-decimal number otherwise. */
+export function formatChip(n: number, metric: Metric): string {
+  if (metric === 'time') return formatDuration(n);
+  return String(Number.isInteger(n) ? n : Math.round(n * 10) / 10);
+}
+
 function catKey(k: string | undefined): Cat {
   return k === 'done' || k === 'indeterminate' ? k : 'new';
 }
@@ -1004,6 +1038,12 @@ export interface ProjectionPoint {
   workingDay: boolean;
 }
 
+/** The slice of a forecast that deriveProjection reads (EpicForecast and AveragedForecast both fit). */
+export type ProjectionSource = Pick<
+  EpicForecast,
+  'state' | 'remaining' | 'nLikely' | 'nOpt' | 'nPess' | 'likely' | 'optimistic' | 'pessimistic'
+>;
+
 const PROJECTION_MIN_CAP_DAYS = 60;
 /** Upper bound on projected chart points (one per calendar day, thinned beyond this). */
 export const PROJECTION_MAX_POINTS = 260;
@@ -1014,7 +1054,7 @@ export const PROJECTION_MAX_POINTS = 260;
  * thinned to at most PROJECTION_MAX_POINTS while keeping the optimistic/likely/latest dates.
  */
 export function deriveProjection(
-  forecast: EpicForecast,
+  forecast: ProjectionSource,
   today: string,
   historyStart: string | null,
   cal: WorkCalendar = DEFAULT_CALENDAR,
@@ -1135,6 +1175,21 @@ export function withProjection<
     });
   }
   return out.sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Every chart projects the ONE averaged forecast from its own current remaining, in its own
+ * unit: same dates and working-day counts everywhere, only the vertical scale differs.
+ * Empty unless the averaged state is 'ok' and remaining > 0.
+ */
+export function projectFinish(
+  finish: AveragedForecast,
+  remaining: number,
+  today: string,
+  historyStart: string | null,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
+): { points: ProjectionPoint[]; clippedAfter: string | null } {
+  return deriveProjection({ ...finish, remaining }, today, historyStart, cal);
 }
 
 // ── Averaged forecast ────────────────────────────────────────────────────────
@@ -1290,6 +1345,44 @@ export function averageForecasts(
       disagree ? ' They disagree widely, so confidence is lowered.' : ''
     }`,
   };
+}
+
+export const FINISH_STATE_TEXT: Record<Exclude<ForecastState, 'ok'>, string> = {
+  done: 'Complete',
+  'too-early': 'Too early to tell',
+  stalled: 'Stalled',
+  'not-converging': 'Not converging',
+};
+
+/** Month-day, plus the year when it differs from today's. */
+export function formatFinishDate(key: string, today: string): string {
+  const base = formatDateKey(key);
+  return key.slice(0, 4) !== today.slice(0, 4) ? `${base}, ${key.slice(0, 4)}` : base;
+}
+
+/** Likely / Earliest / Latest rows shared by the Finish tooltip and the chart tooltips. */
+export function finishDateRows(finish: AveragedForecast): {
+  key: 'likely' | 'optimistic' | 'pessimistic';
+  label: 'Likely' | 'Earliest' | 'Latest';
+  date: string;
+  n: number;
+}[] {
+  if (
+    finish.state !== 'ok' ||
+    finish.likely === null ||
+    finish.optimistic === null ||
+    finish.pessimistic === null ||
+    finish.nLikely === null ||
+    finish.nOpt === null ||
+    finish.nPess === null
+  ) {
+    return [];
+  }
+  return [
+    { key: 'likely', label: 'Likely', date: finish.likely, n: finish.nLikely },
+    { key: 'optimistic', label: 'Earliest', date: finish.optimistic, n: finish.nOpt },
+    { key: 'pessimistic', label: 'Latest', date: finish.pessimistic, n: finish.nPess },
+  ];
 }
 
 // ── Risks ────────────────────────────────────────────────────────────────────
