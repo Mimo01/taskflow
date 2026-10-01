@@ -15,10 +15,11 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { catOf, ESTIMATE_FORMULA_NOTE, estimateOf, loggedOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
-import { statusCategoryDotClass, statusPillClass } from '@/lib/statusStyles';
+import { STATUS_CATEGORY_COLOR, statusCategoryDotClass, statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type {
   JiraAttachment,
@@ -382,21 +383,30 @@ export function IssueDetailContent({
                           ) : null}
                         </TooltipTrigger>
                         <TooltipContent>
-                          <div className="space-y-0.5">
+                          <TooltipBody
+                            title={est > 0 ? undefined : 'No estimate'}
+                            note={ESTIMATE_FORMULA_NOTE}
+                          >
                             {est > 0 ? (
-                              <>
-                                <div>{`Estimate ${formatDuration(est)}`}</div>
-                                <div>{`Logged ${formatDuration(logged)}`}</div>
-                                <div>{`Remaining ${formatDuration(remaining)}`}</div>
-                              </>
-                            ) : (
-                              <>
-                                <div>No estimate</div>
-                                <div>{`Logged ${formatDuration(logged)}`}</div>
-                              </>
-                            )}
-                            <div className="text-muted-foreground">{ESTIMATE_FORMULA_NOTE}</div>
-                          </div>
+                              <TooltipRow
+                                color={STATUS_CATEGORY_COLOR.new}
+                                label="Estimate"
+                                value={formatDuration(est)}
+                              />
+                            ) : null}
+                            <TooltipRow
+                              color={overrun ? 'var(--color-red-500)' : STATUS_CATEGORY_COLOR.done}
+                              label="Logged"
+                              value={formatDuration(logged)}
+                            />
+                            {est > 0 ? (
+                              <TooltipRow
+                                color={STATUS_CATEGORY_COLOR.indeterminate}
+                                label="Remaining"
+                                value={formatDuration(remaining)}
+                              />
+                            ) : null}
+                          </TooltipBody>
                         </TooltipContent>
                       </Tooltip>
                       <span className={statusPillClass(story.fields.status.statusCategory?.key)}>

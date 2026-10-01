@@ -114,6 +114,9 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
+const rowTexts = () =>
+  [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) => r.textContent);
+
 describe('IssueDetailContent', () => {
   // DETAIL-01: for a subtask fixture with fields.parent, a clickable parent card with the
   //            parent key + summary renders in the relationships region (replaced the old
@@ -286,16 +289,15 @@ describe('IssueDetailContent', () => {
       expect(bar.firstElementChild).toBeNull();
       await user.hover(bar);
       expect(await screen.findByText('No estimate')).toBeInTheDocument();
-      expect(screen.getByText('Logged 30m')).toBeInTheDocument();
+      expect(rowTexts()).toEqual(['Logged30m']);
     });
 
     it('tooltip shows estimate, logged, remaining and the formula note', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
-      expect(await screen.findByText('Estimate 2h')).toBeInTheDocument();
-      expect(screen.getByText('Logged 30m')).toBeInTheDocument();
-      expect(screen.getByText('Remaining 1h 30m')).toBeInTheDocument();
+      await screen.findAllByText(ESTIMATE_FORMULA_NOTE);
+      expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining1h 30m']);
       expect(screen.getAllByText(ESTIMATE_FORMULA_NOTE).length).toBeGreaterThan(0);
     });
 
@@ -303,7 +305,8 @@ describe('IssueDetailContent', () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'done', { est: 7200, spent: 3600 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
-      expect(await screen.findByText('Remaining 0m')).toBeInTheDocument();
+      await screen.findAllByText(ESTIMATE_FORMULA_NOTE);
+      expect(rowTexts()).toContain('Remaining0m');
     });
   });
 });

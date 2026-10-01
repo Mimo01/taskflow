@@ -1,7 +1,8 @@
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { statusCategoryDotClass } from '@/lib/statusStyles';
+import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
+import { STATUS_CATEGORY_COLOR, statusCategoryDotClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 
 /**
@@ -102,12 +103,15 @@ export function EpicProgressCell(props: { state: EnrichmentCellState; onRetry: (
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <div className="space-y-0.5">
-            <div>{`${done} Done`}</div>
-            <div>{`${inProgress} In Progress`}</div>
-            <div>{`${todo} To Do`}</div>
-            <div className="text-muted-foreground">{`${counts.donePoints} of ${counts.points} SP done`}</div>
-          </div>
+          <TooltipBody note={`${counts.donePoints} of ${counts.points} SP done`}>
+            <TooltipRow color={STATUS_CATEGORY_COLOR.done} label="Done" value={done} />
+            <TooltipRow
+              color={STATUS_CATEGORY_COLOR.indeterminate}
+              label="In progress"
+              value={inProgress}
+            />
+            <TooltipRow color={STATUS_CATEGORY_COLOR.new} label="To do" value={todo} />
+          </TooltipBody>
         </TooltipContent>
       </Tooltip>
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">

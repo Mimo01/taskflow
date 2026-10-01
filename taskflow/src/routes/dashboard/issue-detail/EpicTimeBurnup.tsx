@@ -5,16 +5,14 @@
  * Mounted only when the Time metric is selected, so Count/SP never fetch worklogs.
  * Two series: Estimate (collapse model) and Logged (cumulative daily worklog time).
  */
-import { useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { deriveTimeBurnup, ESTIMATE_FORMULA_NOTE, formatDateKey } from '@/lib/epic-progress';
-import { type EpicWorklogDay, fetchEpicWorklogs, type JiraIssue } from '@/services/jira';
+import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
-import { readSecret } from '@/services/stronghold';
-import { useAuthStore } from '@/stores/auth.store';
 
 const HOUR = 3600;
 const CHART_HEIGHT = 220;
@@ -25,7 +23,11 @@ const timeChartConfig = {
 } satisfies ChartConfig;
 
 interface EpicTimeBurnupProps {
-  epicKey: string;
+  /** Worklog query owned by the section (lifted so the hero forecast shares it). */
+  query: Pick<
+    UseQueryResult<Map<string, EpicWorklogDay[]>>,
+    'data' | 'isError' | 'isFetching' | 'refetch'
+  >;
   stories: JiraIssue[];
   epicCreated: string | undefined;
   today: string;
@@ -40,21 +42,8 @@ function Swatch({ name }: { name: string }) {
   );
 }
 
-export function EpicTimeBurnup({ epicKey, stories, epicCreated, today }: EpicTimeBurnupProps) {
-  const { jiraBaseUrl, jiraConnected } = useAuthStore();
-
-  // Story set is part of the key: a story added/moved while the epic is open must refetch worklogs.
-  const storyKeys = stories.map((s) => s.key).sort();
-  const { data, isLoading, isError, refetch } = useQuery<Map<string, EpicWorklogDay[]>>({
-    queryKey: ['jira-epic-worklogs', epicKey, jiraBaseUrl, storyKeys.join(',')],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl) throw new Error('No credentials');
-      return fetchEpicWorklogs(jiraBaseUrl, token, storyKeys);
-    },
-    staleTime: 60_000,
-    enabled: !!jiraConnected && !!jiraBaseUrl && stories.length > 0,
-  });
+export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeBurnupProps) {
+  const { data, isFetching, isError, refetch } = query;
 
   if (isError) {
     return (
@@ -75,7 +64,8 @@ export function EpicTimeBurnup({ epicKey, stories, epicCreated, today }: EpicTim
     );
   }
 
-  if (!data && !isLoading) {
+  // A disabled query stays pending forever: branch on isFetching, not isPending (WR-02).
+  if (!data && !isFetching) {
     return (
       <p
         style={{ minHeight: CHART_HEIGHT }}
