@@ -261,3 +261,35 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     expect(screen.getByText('to do: 2h')).toBeInTheDocument();
   });
 });
+
+describe('EpicProgressSection review fixes (261001-g5q)', () => {
+  const mixed = [
+    story('M-1', {
+      cat: 'done',
+      status: 'Done',
+      sp: 3,
+      assignee: 'Amy',
+      created: daysAgo(5),
+      res: daysAgo(1),
+    }),
+    story('M-2', { cat: 'new', status: 'Backlog', sp: null, assignee: 'Amy', created: daysAgo(5) }),
+  ];
+
+  it('omits zero-value statuses from the status bar but keeps them in the legend', () => {
+    render(
+      <EpicProgressSection stories={mixed} storyPointsFieldKey={SP} epicCreated={undefined} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    expect(screen.getAllByTestId('epic-status-segment')).toHaveLength(1);
+    expect(screen.getByText(/Backlog ·/)).toBeTruthy();
+  });
+
+  it('renders tiles without block <p> inside the button and gives each assignee row one tab stop', () => {
+    const { container } = render(
+      <EpicProgressSection stories={mixed} storyPointsFieldKey={SP} epicCreated={undefined} />,
+    );
+    expect(container.querySelector('[data-testid="epic-stat-tile"] p')).toBeNull();
+    const row = screen.getAllByTestId('epic-assignee-row')[0];
+    expect(row.querySelectorAll('button')).toHaveLength(1);
+  });
+});

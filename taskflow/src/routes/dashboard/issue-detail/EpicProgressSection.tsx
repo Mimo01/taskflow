@@ -45,6 +45,7 @@ const chartConfig = {
   done: { label: 'Done', color: 'var(--color-green-500)' },
 } satisfies ChartConfig;
 
+const HOUR = 3600;
 const TILE_CLASS = 'rounded-lg ring-1 ring-foreground/10 px-3 py-2 min-w-0 text-left';
 const METRICS = [
   ['count', 'Count'],
@@ -60,8 +61,8 @@ function Tile({ label, value, tip }: { label: string; value: string; tip: ReactN
         data-testid="epic-stat-tile"
         className={cn(TILE_CLASS, 'cursor-default')}
       >
-        <p className="text-xs text-muted-foreground truncate">{label}</p>
-        <p className="text-lg font-semibold leading-tight truncate">{value}</p>
+        <span className="block text-xs text-muted-foreground truncate">{label}</span>
+        <span className="block text-lg font-semibold leading-tight truncate">{value}</span>
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
@@ -154,6 +155,10 @@ export function EpicProgressSection({
         : 'Needs at least 2 stories completed in the trailing 4 weeks';
 
   const timeMode = metric === 'time';
+  // Plot hours in time mode so the Y axis gets hour-aligned ticks (seconds ticks rounded into duplicate "1h" labels).
+  const chartData = timeMode
+    ? burnup.map((p) => ({ ...p, scope: p.scope / HOUR, done: p.done / HOUR }))
+    : burnup;
 
   return (
     <section aria-label="Epic progress" className="my-2">
@@ -199,7 +204,7 @@ export function EpicProgressSection({
                 <Tile
                   label="Remaining"
                   value={formatDuration(time.remaining)}
-                  tip={`Remaining estimate, incl. subtasks: ${formatDuration(time.remaining)}`}
+                  tip={`Jira remaining estimate, incl. subtasks: ${formatDuration(time.remaining)} (not estimate minus logged)`}
                 />
                 <Tile
                   label="% logged"
@@ -246,7 +251,7 @@ export function EpicProgressSection({
                       aria-label="Epic burnup chart"
                     >
                       <ComposedChart
-                        data={burnup}
+                        data={chartData}
                         responsive
                         margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
                       >
@@ -262,9 +267,7 @@ export function EpicProgressSection({
                           tickLine={false}
                           axisLine={false}
                           width={timeMode ? 40 : 32}
-                          tickFormatter={(v) =>
-                            timeMode ? `${Math.round(Number(v) / 3600)}h` : String(v)
-                          }
+                          tickFormatter={(v) => (timeMode ? `${v}h` : String(v))}
                         />
                         <ChartTooltip
                           content={
@@ -284,7 +287,10 @@ export function EpicProgressSection({
                                       {chartConfig[key]?.label ?? key}
                                     </span>
                                     <span className="ml-auto font-mono font-medium tabular-nums">
-                                      {formatMetric(Number(value), metric)}
+                                      {formatMetric(
+                                        timeMode ? Number(value) * HOUR : Number(value),
+                                        metric,
+                                      )}
                                     </span>
                                   </div>
                                 );
@@ -320,17 +326,21 @@ export function EpicProgressSection({
                   data-testid="epic-status-bar"
                   className="flex h-3 w-full gap-px overflow-hidden rounded bg-background"
                 >
-                  {statuses.map((b) => (
-                    <Tooltip key={b.id}>
-                      <TooltipTrigger
-                        render={<div />}
-                        data-testid="epic-status-segment"
-                        className={cn('h-full', statusCategoryDotClass(b.cat))}
-                        style={{ width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%` }}
-                      />
-                      <TooltipContent>{statusTip(b, statusTotal)}</TooltipContent>
-                    </Tooltip>
-                  ))}
+                  {statuses
+                    .filter((b) => b.value > 0)
+                    .map((b) => (
+                      <Tooltip key={b.id}>
+                        <TooltipTrigger
+                          render={<div />}
+                          data-testid="epic-status-segment"
+                          className={cn('h-full', statusCategoryDotClass(b.cat))}
+                          style={{
+                            width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%`,
+                          }}
+                        />
+                        <TooltipContent>{statusTip(b, statusTotal)}</TooltipContent>
+                      </Tooltip>
+                    ))}
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   {statuses.map((b) => (
@@ -388,10 +398,10 @@ export function EpicProgressSection({
                     </div>
                     <Tooltip>
                       <TooltipTrigger
-                        type="button"
+                        render={<div />}
                         className={cn(
                           'flex-none cursor-default truncate whitespace-nowrap text-right text-muted-foreground',
-                          timeMode ? 'w-28' : 'w-14',
+                          timeMode ? 'w-36' : 'w-14',
                         )}
                       >
                         {timeMode
