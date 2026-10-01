@@ -178,6 +178,10 @@ export interface JiraIssue {
     resolutiondate?: string | null;
     updated?: string;
     statuscategorychangedate?: string | null;
+    /** Epic progress (261001-g5q): Jira-computed aggregates in seconds, story + subtasks. */
+    aggregatetimeoriginalestimate?: number | null;
+    aggregatetimespent?: number | null;
+    aggregatetimeestimate?: number | null;
     // v1.1 additions (all optional — non-breaking for all four existing callers):
     parent?: { id: string; key: string; fields: { summary: string } };
     subtasks?: Array<{
@@ -2699,6 +2703,9 @@ export async function fetchEpicStories(
       'resolutiondate',
       'updated',
       'statuscategorychangedate',
+      'aggregatetimeoriginalestimate',
+      'aggregatetimespent',
+      'aggregatetimeestimate',
     ]),
   ].join(',');
   const jql = encodeURIComponent(
