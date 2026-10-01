@@ -68,6 +68,54 @@ describe('EpicChartTooltip', () => {
     expect((rows[0].children[0] as HTMLElement).className).toContain('border-dashed');
   });
 
+  it('shows a From today row with working days, and flags non-working days', () => {
+    const base: ChartDatum = {
+      date: '2026-10-07',
+      t: Date.UTC(2026, 9, 7),
+      remaining: null,
+      forecast: 2,
+      band: [1, 3.5],
+    };
+    const view = (d: ChartDatum) =>
+      rowsOf(
+        render(
+          <EpicChartTooltip
+            active
+            payload={[{ payload: d }]}
+            metric="count"
+            rows={cfdRows('count')}
+          />,
+        ).container,
+      );
+    const working = view({ ...base, wd: 7, workingDay: true });
+    expect(working.map((r) => r.textContent)).toEqual([
+      'Forecast2',
+      'Range1–3.5',
+      'From today7 working days',
+    ]);
+    expect(working[2].children[0]).toHaveClass('rounded-full');
+    const off = view({ ...base, wd: 7, workingDay: false });
+    expect(off[2].textContent).toContain('non-working day');
+    expect(view({ ...base, wd: 0, workingDay: true }).map((r) => r.textContent)).toEqual([
+      'Forecast2',
+      'Range1–3.5',
+    ]);
+  });
+
+  it('line series rows use a line marker', () => {
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: history }]}
+        metric="count"
+        rows={cfdRows('count')}
+      />,
+    );
+    const rows = rowsOf(container);
+    expect(rows[3].children[0]).toHaveClass('h-0.5');
+    expect(rows[0].children[0]).not.toHaveClass('h-0.5');
+  });
+
   it('notes a clipped pessimistic bound on future points', () => {
     const future: ChartDatum = {
       date: '2026-11-29',
