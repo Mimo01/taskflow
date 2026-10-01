@@ -5,12 +5,6 @@ import { formatDuration } from '@/services/jira/duration';
 export type Metric = 'count' | 'sp' | 'time';
 export type Cat = 'new' | 'indeterminate' | 'done';
 
-export interface BurnupPoint {
-  date: string;
-  label: string;
-  scope: number;
-  done: number;
-}
 export interface TimeBurnupPoint {
   date: string;
   label: string;
@@ -149,41 +143,6 @@ function buildAxis(start: string, today: string): string[] {
     dates.push(today);
   }
   return dates;
-}
-
-export function deriveBurnup(
-  stories: JiraIssue[],
-  metric: Metric,
-  spKey: string,
-  epicCreated: string | undefined,
-  today: string,
-): BurnupPoint[] {
-  const created = stories.map((s) => {
-    const k = validKey(s.fields.created);
-    return k !== null && k > today ? today : k;
-  });
-  const datedCreated = created.filter((c): c is string => c !== null);
-  if (datedCreated.length === 0) return [];
-  let start = datedCreated.reduce((a, b) => (a < b ? a : b));
-  const epicDay = validKey(epicCreated);
-  if (epicDay && epicDay < start) start = epicDay;
-  if (start > today) start = today;
-
-  const dates = buildAxis(start, today);
-
-  const scopeItems = stories.map((s, i) => ({ k: created[i], w: weightOf(s, metric, spKey) }));
-  const doneItems = stories.flatMap((s) => {
-    const k = doneDateKey(s, today);
-    return k ? [{ k, w: weightOf(s, metric, spKey) }] : [];
-  });
-
-  return dates.map((date) => {
-    let scope = 0;
-    for (const it of scopeItems) if (it.k !== null && it.k <= date) scope += it.w;
-    let done = 0;
-    for (const it of doneItems) if (it.k <= date) done += it.w;
-    return { date, label: labelOf(date), scope, done: Math.min(done, scope) };
-  });
 }
 
 export function deriveStatusBuckets(

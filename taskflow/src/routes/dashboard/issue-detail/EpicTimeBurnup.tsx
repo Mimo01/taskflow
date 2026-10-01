@@ -1,26 +1,32 @@
 'use no memo';
 
 /**
- * EpicTimeBurnup — Time-mode burnup built from worklogs (quick 261001-hsz).
- * Mounted only when the Time metric is selected, so Count/SP never fetch worklogs.
- * Two series: Estimate (collapse model) and Logged (cumulative daily worklog time).
+ * EpicTimeBurnup — Time-mode chart built from worklogs (quick 261001-hsz, extended by
+ * 261001-ilq). Mounted only when the Time metric is selected, so Count/SP never fetch
+ * worklogs. Series: Estimate (collapse model area), Logged (cumulative worklog time)
+ * and Remaining (estimate - logged), plus the daily-logged-rate forecast with its
+ * optimistic-to-pessimistic band. The worklog query is owned by the section.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
-import type { ChartConfig } from '@/components/ui/chart';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
-import { deriveTimeBurnup, ESTIMATE_FORMULA_NOTE, formatDateKey } from '@/lib/epic-progress';
+import {
+  deriveProjection,
+  deriveTimeBurnup,
+  deriveTimeForecast,
+  ESTIMATE_FORMULA_NOTE,
+  withProjection,
+} from '@/lib/epic-progress';
+import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
+import { LegendItem, tickLabel } from './EpicCfdChart';
+import { EpicChartTooltip, FORECAST_COLOR, timeRows } from './EpicChartTooltip';
 
 const HOUR = 3600;
 const CHART_HEIGHT = 220;
-
-const timeChartConfig = {
-  estimate: { label: 'Estimate', color: 'var(--color-gray-400)' },
-  logged: { label: 'Logged (from worklogs)', color: 'var(--color-green-500)' },
-} satisfies ChartConfig;
+const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 
 interface EpicTimeBurnupProps {
   /** Worklog query owned by the section (lifted so the hero forecast shares it). */
@@ -33,14 +39,7 @@ interface EpicTimeBurnupProps {
   today: string;
 }
 
-function Swatch({ name }: { name: string }) {
-  return (
-    <span
-      className="size-2 shrink-0 rounded-[2px]"
-      style={{ background: `var(--color-${name})` }}
-    />
-  );
-}
+const hoursLabel = (h: number) => formatDuration(Math.round(h * HOUR));
 
 export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
@@ -87,11 +86,28 @@ export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeB
   }
 
   const points = deriveTimeBurnup(stories, data, epicCreated, today);
-  const chartData = points.map((p) => ({
+  const base = points.map((p) => ({
     ...p,
+    t: Date.UTC(
+      Number(p.date.slice(0, 4)),
+      Number(p.date.slice(5, 7)) - 1,
+      Number(p.date.slice(8, 10)),
+    ),
     estimate: p.estimate / HOUR,
     logged: p.logged / HOUR,
+    remaining: Math.max(p.estimate - p.logged, 0) / HOUR,
   }));
+
+  // The projection maths is unit-agnostic (it only scales `remaining` by day counts), so the
+  // forecast's remaining (seconds) is converted to hours to match the chart's hour axis.
+  const forecast = deriveTimeForecast(stories, data, today);
+  const projection = deriveProjection(
+    { ...forecast, remaining: forecast.remaining / HOUR },
+    today,
+    base.length > 0 ? base[0].date : null,
+  );
+  const chartData = withProjection(base, projection);
+  const hasProjection = projection.points.length > 0;
 
   return (
     <div>
@@ -100,7 +116,7 @@ export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeB
           <p className="text-sm text-muted-foreground italic">No timeline data</p>
         ) : (
           <ChartContainer
-            config={timeChartConfig}
+            config={{}}
             className="aspect-auto h-full w-full"
             aria-label="Epic time burnup chart"
           >
@@ -110,8 +126,11 @@ export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeB
               margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             >
               <XAxis
-                dataKey="date"
-                tickFormatter={(v) => formatDateKey(String(v))}
+                type="number"
+                dataKey="t"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={tickLabel}
                 tickLine={false}
                 axisLine={false}
                 minTickGap={24}
@@ -124,60 +143,74 @@ export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeB
                 tickFormatter={(v) => `${v}h`}
               />
               <ChartTooltip
-                cursor={{ stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' }}
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(v) => `${formatDateKey(String(v))}, ${String(v).slice(0, 4)}`}
-                    formatter={(value, name, _item, _index, payload) => {
-                      const key = String(name) as keyof typeof timeChartConfig;
-                      const point = payload as { estimate?: number; logged?: number } | undefined;
-                      return (
-                        <>
-                          <div className="flex w-full items-center gap-2">
-                            <Swatch name={key} />
-                            <span className="text-muted-foreground">
-                              {timeChartConfig[key]?.label ?? key}
-                            </span>
-                            <span className="ml-auto font-mono font-medium tabular-nums">
-                              {formatDuration(Number(value) * HOUR)}
-                            </span>
-                          </div>
-                          {key === 'logged' && point ? (
-                            <div className="flex w-full items-center gap-2">
-                              <span className="size-2 shrink-0" />
-                              <span className="text-muted-foreground">Remaining</span>
-                              <span className="ml-auto font-mono font-medium tabular-nums">
-                                {formatDuration(
-                                  Math.max((point.estimate ?? 0) - (point.logged ?? 0), 0) * HOUR,
-                                )}
-                              </span>
-                            </div>
-                          ) : null}
-                        </>
-                      );
-                    }}
+                cursor={BAR_CURSOR}
+                content={(p) => (
+                  <EpicChartTooltip
+                    active={p.active}
+                    payload={p.payload}
+                    metric="time"
+                    formatValue={hoursLabel}
+                    clippedAfter={projection.clippedAfter}
+                    rows={timeRows(hoursLabel)}
                   />
-                }
+                )}
               />
               <Area
                 dataKey="estimate"
                 type="stepAfter"
-                stroke="var(--color-estimate)"
-                fill="var(--color-estimate)"
+                stroke={STATUS_CATEGORY_COLOR.new}
+                fill={STATUS_CATEGORY_COLOR.new}
                 fillOpacity={0.15}
                 isAnimationActive={false}
+              />
+              {/* Range band: a NON-stacked Area whose value is [low, high]. */}
+              <Area
+                dataKey="band"
+                type="linear"
+                stroke="none"
+                fill={FORECAST_COLOR}
+                fillOpacity={0.12}
+                isAnimationActive={false}
+                activeDot={false}
               />
               <Line
                 dataKey="logged"
                 type="stepAfter"
-                stroke="var(--color-logged)"
+                stroke={STATUS_CATEGORY_COLOR.done}
                 strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+              />
+              <Line
+                dataKey="remaining"
+                type="stepAfter"
+                stroke={STATUS_CATEGORY_COLOR.indeterminate}
+                strokeWidth={1.5}
+                dot={false}
+                isAnimationActive={false}
+              />
+              <Line
+                dataKey="forecast"
+                type="linear"
+                stroke={FORECAST_COLOR}
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                connectNulls
                 dot={false}
                 isAnimationActive={false}
               />
             </ComposedChart>
           </ChartContainer>
         )}
+      </div>
+      <div
+        data-testid="epic-time-legend"
+        className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
+      >
+        <LegendItem color={STATUS_CATEGORY_COLOR.new} label="Estimate" />
+        <LegendItem color={STATUS_CATEGORY_COLOR.done} label="Logged" />
+        <LegendItem color={STATUS_CATEGORY_COLOR.indeterminate} label="Remaining" />
+        {hasProjection ? <LegendItem dashed color={FORECAST_COLOR} label="Forecast" /> : null}
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {`${ESTIMATE_FORMULA_NOTE} Done stories collapse to their logged time.`}
