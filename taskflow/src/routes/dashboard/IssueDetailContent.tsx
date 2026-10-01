@@ -14,9 +14,11 @@ import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
+import { catOf, ESTIMATE_FORMULA_NOTE, estimateOf, loggedOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
-import { statusPillClass } from '@/lib/statusStyles';
+import { statusCategoryDotClass, statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type {
   JiraAttachment,
@@ -26,6 +28,7 @@ import type {
   JiraIssueLink,
 } from '@/services/jira';
 import { deleteAttachment } from '@/services/jira/attachments';
+import { formatDuration } from '@/services/jira/duration';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -322,38 +325,81 @@ export function IssueDetailContent({
           )}
           {epicStories && epicStories.length > 0 && (
             <ul className="space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
-              {epicStories.map((story) => (
-                <li key={story.key}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenIssue?.(story.key)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
-                  >
-                    <span className="font-mono text-xs text-muted-foreground shrink-0">
-                      {story.key}
-                    </span>
-                    <span className="flex-1 truncate">{story.fields.summary}</span>
-                    {story.fields.assignee && (
-                      <div
-                        className="flex items-center gap-1.5 shrink-0"
-                        title={story.fields.assignee.displayName}
-                      >
-                        <CachedAvatar
-                          url={story.fields.assignee.avatarUrls?.['48x48']}
-                          name={story.fields.assignee.displayName}
-                          size={20}
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {story.fields.assignee.displayName}
-                        </span>
-                      </div>
-                    )}
-                    <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
-                      {story.fields.status.name}
-                    </span>
-                  </button>
-                </li>
-              ))}
+              {epicStories.map((story) => {
+                const est = estimateOf(story);
+                const logged = loggedOf(story);
+                const overrun = est > 0 && logged > est;
+                const remaining = catOf(story) === 'done' ? 0 : Math.max(est - logged, 0);
+                return (
+                  <li key={story.key}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenIssue?.(story.key)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded hover:bg-accent text-sm text-left cursor-pointer"
+                    >
+                      <span className="font-mono text-xs text-muted-foreground shrink-0">
+                        {story.key}
+                      </span>
+                      <span className="flex-1 truncate">{story.fields.summary}</span>
+                      {story.fields.assignee && (
+                        <div
+                          className="flex items-center gap-1.5 shrink-0"
+                          title={story.fields.assignee.displayName}
+                        >
+                          <CachedAvatar
+                            url={story.fields.assignee.avatarUrls?.['48x48']}
+                            name={story.fields.assignee.displayName}
+                            size={20}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {story.fields.assignee.displayName}
+                          </span>
+                        </div>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger
+                          delay={0}
+                          render={<span />}
+                          data-testid="story-time-bar"
+                          data-overrun={overrun ? 'true' : undefined}
+                          data-empty={est > 0 ? undefined : 'true'}
+                          className="relative inline-flex h-1.5 w-16 flex-none overflow-hidden rounded-full bg-muted"
+                        >
+                          {est > 0 && logged > 0 ? (
+                            <span
+                              className={cn(
+                                'h-full',
+                                overrun ? 'bg-red-500' : statusCategoryDotClass('done'),
+                              )}
+                              style={{ width: `${Math.min(logged / est, 1) * 100}%` }}
+                            />
+                          ) : null}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="space-y-0.5">
+                            {est > 0 ? (
+                              <>
+                                <div>{`Estimate ${formatDuration(est)}`}</div>
+                                <div>{`Logged ${formatDuration(logged)}`}</div>
+                                <div>{`Remaining ${formatDuration(remaining)}`}</div>
+                              </>
+                            ) : (
+                              <>
+                                <div>No estimate</div>
+                                <div>{`Logged ${formatDuration(logged)}`}</div>
+                              </>
+                            )}
+                            <div className="text-muted-foreground">{ESTIMATE_FORMULA_NOTE}</div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                      <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
+                        {story.fields.status.name}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

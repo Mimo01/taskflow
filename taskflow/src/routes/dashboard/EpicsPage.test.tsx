@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -168,10 +169,11 @@ describe('EpicsPage', () => {
     renderEpicsPage();
 
     expect(await screen.findByText('5/10')).toBeInTheDocument();
-    expect(screen.getByTestId('epic-progress-bar')).toHaveAttribute(
-      'title',
-      '5 Done · 3 In Progress · 2 To Do',
-    );
+    const user = userEvent.setup();
+    await user.hover(screen.getByTestId('epic-progress-bar'));
+    expect(await screen.findByText('5 Done')).toBeInTheDocument();
+    expect(screen.getByText('3 In Progress')).toBeInTheDocument();
+    expect(screen.getByText('2 To Do')).toBeInTheDocument();
   });
 
   it('EPIC-06: renders story points as done/total SP', async () => {

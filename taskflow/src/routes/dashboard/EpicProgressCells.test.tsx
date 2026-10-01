@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EpicPointsCell, type EpicProgressCounts, EpicProgressCell } from './EpicProgressCells';
 
@@ -35,12 +36,16 @@ describe('EpicProgressCells (Phase 91.2)', () => {
     expect(screen.getByTestId('epic-segment-todo')).toHaveStyle({ width: '20%' });
   });
 
-  it('EPIC-05: breakdown title carries per-status counts on hover', () => {
+  it('EPIC-05: breakdown tooltip carries per-status counts on hover (no native title)', async () => {
+    const user = userEvent.setup();
     render(<EpicProgressCell state={{ kind: 'ready', counts: readyCounts }} onRetry={vi.fn()} />);
-    expect(screen.getByTestId('epic-progress-bar')).toHaveAttribute(
-      'title',
-      '5 Done · 3 In Progress · 2 To Do',
-    );
+    const bar = screen.getByTestId('epic-progress-bar');
+    expect(bar).not.toHaveAttribute('title');
+    await user.hover(bar);
+    expect(await screen.findByText('5 Done')).toBeInTheDocument();
+    expect(screen.getByText('3 In Progress')).toBeInTheDocument();
+    expect(screen.getByText('2 To Do')).toBeInTheDocument();
+    expect(screen.getByText('8 of 20 SP done')).toBeInTheDocument();
   });
 
   it('EPIC-03: progress cell shows done/total beside the bar', () => {

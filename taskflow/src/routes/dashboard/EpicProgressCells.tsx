@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { statusCategoryDotClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 
@@ -73,27 +74,40 @@ export function EpicProgressCell(props: { state: EnrichmentCellState; onRetry: (
   const { total, done, inProgress, todo } = counts;
   return (
     <div className="flex items-center gap-1.5">
-      <div
-        className="flex h-1.5 w-16 overflow-hidden rounded-full bg-muted"
-        title={`${done} Done · ${inProgress} In Progress · ${todo} To Do`}
-        data-testid="epic-progress-bar"
-      >
-        <div
-          className={statusCategoryDotClass('done')}
-          style={{ width: `${(done / total) * 100}%` }}
-          data-testid="epic-segment-done"
-        />
-        <div
-          className={statusCategoryDotClass('indeterminate')}
-          style={{ width: `${(inProgress / total) * 100}%` }}
-          data-testid="epic-segment-inprogress"
-        />
-        <div
-          className={statusCategoryDotClass('new')}
-          style={{ width: `${(todo / total) * 100}%` }}
-          data-testid="epic-segment-todo"
-        />
-      </div>
+      <Tooltip>
+        <TooltipTrigger
+          delay={0}
+          render={<div />}
+          data-testid="epic-progress-bar"
+          className="w-16 py-1 -my-1"
+        >
+          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={statusCategoryDotClass('done')}
+              style={{ width: `${(done / total) * 100}%` }}
+              data-testid="epic-segment-done"
+            />
+            <div
+              className={statusCategoryDotClass('indeterminate')}
+              style={{ width: `${(inProgress / total) * 100}%` }}
+              data-testid="epic-segment-inprogress"
+            />
+            <div
+              className={statusCategoryDotClass('new')}
+              style={{ width: `${(todo / total) * 100}%` }}
+              data-testid="epic-segment-todo"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="space-y-0.5">
+            <div>{`${done} Done`}</div>
+            <div>{`${inProgress} In Progress`}</div>
+            <div>{`${todo} To Do`}</div>
+            <div className="text-muted-foreground">{`${counts.donePoints} of ${counts.points} SP done`}</div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {done}/{total}
       </span>
