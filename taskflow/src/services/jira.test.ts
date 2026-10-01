@@ -1729,6 +1729,9 @@ describe('jira service', () => {
           'resolutiondate',
           'updated',
           'statuscategorychangedate',
+          'aggregatetimeoriginalestimate',
+          'aggregatetimespent',
+          'aggregatetimeestimate',
         ]),
       );
     });

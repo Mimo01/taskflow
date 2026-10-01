@@ -6,6 +6,8 @@ import {
   deriveBurnup,
   deriveForecast,
   deriveStatusBuckets,
+  deriveTimeTotals,
+  formatMetric,
   doneDateKey,
   weightOf,
 } from './epic-progress';
@@ -22,6 +24,9 @@ interface Opts {
   res?: string | null;
   scc?: string | null;
   updated?: string;
+  est?: unknown;
+  spent?: unknown;
+  rem?: unknown;
 }
 function st(key: string, o: Opts = {}): JiraIssue {
   return {
@@ -41,6 +46,9 @@ function st(key: string, o: Opts = {}): JiraIssue {
       resolutiondate: o.res,
       statuscategorychangedate: o.scc,
       updated: o.updated,
+      aggregatetimeoriginalestimate: o.est as number | null | undefined,
+      aggregatetimespent: o.spent as number | null | undefined,
+      aggregatetimeestimate: o.rem as number | null | undefined,
     },
   };
 }
@@ -239,5 +247,73 @@ describe('review fixes (261001-fmk)', () => {
       SP,
     );
     expect(buckets.map((b) => b.cat).sort()).toEqual(['done', 'indeterminate']);
+  });
+});
+
+describe('time metric', () => {
+  it('weightOf time uses aggregate estimate, coercing bad values to 0', () => {
+    expect(weightOf(st('A', { est: 7200 }), 'time', SP)).toBe(7200);
+    for (const bad of [null, undefined, 'x', Number.NaN, -5, Number.POSITIVE_INFINITY]) {
+      expect(weightOf(st('A', { est: bad }), 'time', SP)).toBe(0);
+    }
+  });
+
+  it('status buckets carry seconds in every mode and value in time mode', () => {
+    const stories = [st('A', { est: 3600, sp: 2 }), st('B', { est: 1800 })];
+    const t = deriveStatusBuckets(stories, 'time', SP);
+    expect(t[0].value).toBe(5400);
+    expect(t[0].seconds).toBe(5400);
+    expect(t[0].count).toBe(2);
+    expect(t[0].points).toBe(2);
+    const c = deriveStatusBuckets(stories, 'count', SP);
+    expect(c[0].seconds).toBe(5400);
+    expect(c[0].value).toBe(2);
+  });
+
+  it('assignee buckets sum logged/estimate in every mode and weight by estimate in time mode', () => {
+    const stories = [
+      st('A', { assignee: 'Ann', cat: 'done', est: 3600, spent: 1800 }),
+      st('B', { assignee: 'Ann', est: 7200, spent: 600 }),
+    ];
+    const t = deriveAssigneeBuckets(stories, 'time', SP);
+    expect(t[0]).toMatchObject({
+      estimate: 10800,
+      logged: 2400,
+      done: 3600,
+      todo: 7200,
+      remaining: 7200,
+    });
+    const c = deriveAssigneeBuckets(stories, 'count', SP);
+    expect(c[0]).toMatchObject({ estimate: 10800, logged: 2400, done: 1, todo: 1 });
+  });
+
+  it('burnup in time mode accumulates estimates by created and done date', () => {
+    const stories = [
+      st('A', { created: '2026-09-29', cat: 'done', res: '2026-09-30', est: 3600 }),
+      st('B', { created: '2026-09-30', est: 7200 }),
+    ];
+    const pts = deriveBurnup(stories, 'time', SP, undefined, '2026-10-01');
+    const last = pts[pts.length - 1];
+    expect(last.scope).toBe(10800);
+    expect(last.done).toBe(3600);
+    expect(pts.find((p) => p.date === '2026-09-29')?.scope).toBe(3600);
+  });
+
+  it('deriveTimeTotals sums and guards zero estimate', () => {
+    const r = deriveTimeTotals([
+      st('A', { est: 3600, spent: 1800, rem: 1800 }),
+      st('B', { est: 7200, spent: 3600 }),
+      st('C'),
+    ]);
+    expect(r).toEqual({ estimated: 10800, logged: 5400, remaining: 1800, pctLogged: 50 });
+    expect(deriveTimeTotals([st('A', { spent: 60 })]).pctLogged).toBeNull();
+  });
+
+  it('formatMetric formats per metric', () => {
+    expect(formatMetric(3, 'count')).toBe('3');
+    expect(formatMetric(2.5, 'count')).toBe('2.5');
+    expect(formatMetric(5, 'sp')).toBe('5 SP');
+    expect(formatMetric(9000, 'time')).toBe('2h 30m');
+    expect(formatMetric(0, 'time')).toBe('0m');
   });
 });

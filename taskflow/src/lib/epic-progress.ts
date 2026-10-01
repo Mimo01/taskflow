@@ -1,6 +1,7 @@
 import type { JiraIssue } from '@/services/jira';
+import { formatDuration } from '@/services/jira/duration';
 
-export type Metric = 'count' | 'sp';
+export type Metric = 'count' | 'sp' | 'time';
 export type Cat = 'new' | 'indeterminate' | 'done';
 
 export interface BurnupPoint {
@@ -15,6 +16,8 @@ export interface StatusBucket {
   cat: Cat;
   count: number;
   points: number;
+  /** Sum of aggregate original estimate (seconds), regardless of metric. */
+  seconds: number;
   value: number;
 }
 export interface AssigneeBucket {
@@ -24,6 +27,15 @@ export interface AssigneeBucket {
   inProgress: number;
   todo: number;
   remaining: number;
+  /** Aggregate time logged / estimated (seconds), regardless of metric. */
+  logged: number;
+  estimate: number;
+}
+export interface TimeTotals {
+  estimated: number;
+  logged: number;
+  remaining: number;
+  pctLogged: number | null;
 }
 export interface Forecast {
   pctDone: number;
@@ -78,8 +90,15 @@ function spOf(s: JiraIssue, spKey: string): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
+type SecKey = 'aggregatetimeoriginalestimate' | 'aggregatetimespent' | 'aggregatetimeestimate';
+function secOf(s: JiraIssue, key: SecKey): number | null {
+  const v = s.fields[key];
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+}
+
 export function weightOf(s: JiraIssue, metric: Metric, spKey: string): number {
   if (metric === 'count') return 1;
+  if (metric === 'time') return secOf(s, 'aggregatetimeoriginalestimate') ?? 0;
   return spOf(s, spKey) ?? 0;
 }
 
@@ -149,11 +168,12 @@ export function deriveStatusBuckets(
     const id = `${cat}:${name}`;
     let b = map.get(id);
     if (!b) {
-      b = { id, name, cat, count: 0, points: 0, value: 0 };
+      b = { id, name, cat, count: 0, points: 0, seconds: 0, value: 0 };
       map.set(id, b);
     }
     b.count += 1;
     b.points += weightOf(s, 'sp', spKey);
+    b.seconds += weightOf(s, 'time', spKey);
     b.value += weightOf(s, metric, spKey);
   }
   return [...map.values()].sort(
@@ -181,9 +201,13 @@ export function deriveAssigneeBuckets(
         inProgress: 0,
         todo: 0,
         remaining: 0,
+        logged: 0,
+        estimate: 0,
       };
       map.set(id, b);
     }
+    b.logged += secOf(s, 'aggregatetimespent') ?? 0;
+    b.estimate += secOf(s, 'aggregatetimeoriginalestimate') ?? 0;
     const w = weightOf(s, metric, spKey);
     const c = catOf(s);
     if (c === 'done') b.done += w;
@@ -233,4 +257,27 @@ export function deriveForecast(
   const perWeek = windowValue / 4;
   const days = Math.ceil(((total - doneTotal) / perWeek) * 7);
   return { ...base, finishDate: addDays(today, days), reason: 'ok' };
+}
+
+export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {
+  let estimated = 0;
+  let logged = 0;
+  let remaining = 0;
+  for (const s of stories) {
+    estimated += secOf(s, 'aggregatetimeoriginalestimate') ?? 0;
+    logged += secOf(s, 'aggregatetimespent') ?? 0;
+    remaining += secOf(s, 'aggregatetimeestimate') ?? 0;
+  }
+  return {
+    estimated,
+    logged,
+    remaining,
+    pctLogged: estimated > 0 ? Math.round((logged / estimated) * 100) : null,
+  };
+}
+
+export function formatMetric(n: number, metric: Metric): string {
+  if (metric === 'time') return formatDuration(n);
+  const v = Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
+  return metric === 'sp' ? `${v} SP` : v;
 }
