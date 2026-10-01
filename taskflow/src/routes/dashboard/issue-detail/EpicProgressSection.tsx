@@ -18,9 +18,8 @@ import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AssigneeBucket,
   averageForecasts,
+  type Bands,
   buildStatusCategoryLookup,
-  CAT_LABEL,
-  type Cat,
   deriveAdaptiveForecast,
   deriveAssigneeBuckets,
   deriveCfd,
@@ -36,18 +35,15 @@ import {
   withProjection,
 } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
-import {
-  STATUS_CATEGORY_COLOR,
-  statusCategoryBadgeClass,
-  statusCategoryColor,
-  statusCategoryDotClass,
-} from '@/lib/statusStyles';
+import { statusCategoryColor, statusCategoryDotClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
+import { BandBar, BandBreakdown, BandChips } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
 import { EpicProgressSummary } from './EpicProgressSummary';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
+import { MARKER_ICON } from './epic-markers';
 import {
   useEpicStatusHistory,
   useEpicWorkCalendar,
@@ -70,9 +66,6 @@ const METRICS = [
   ['sp', 'SP'],
   ['time', 'Time'],
 ] as const;
-const CHIP_CLASS = 'min-w-[2.25rem] rounded px-1 text-center text-[11px] tabular-nums';
-const TIME_CHIP_CLASS =
-  'min-w-[3.5rem] rounded px-1 text-center text-[11px] tabular-nums whitespace-nowrap';
 
 function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Metric): ReactNode {
   return (
@@ -95,30 +88,16 @@ function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Met
 function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   return (
     <TooltipBody title={a.name}>
-      <TooltipRow
-        color={STATUS_CATEGORY_COLOR.done}
-        label={CAT_LABEL.done}
-        value={formatMetric(a.done, metric)}
-      />
-      <TooltipRow
-        color={STATUS_CATEGORY_COLOR.indeterminate}
-        label={CAT_LABEL.indeterminate}
-        value={formatMetric(a.inProgress, metric)}
-      />
-      <TooltipRow
-        color={STATUS_CATEGORY_COLOR.new}
-        label={CAT_LABEL.new}
-        value={formatMetric(a.todo, metric)}
-      />
+      <BandBreakdown bands={assigneeBands(a)} metric={metric} />
       {metric === 'time' ? (
         <>
           <TooltipRow
-            color={STATUS_CATEGORY_COLOR.done}
+            icon={<MARKER_ICON.logged className="size-3" />}
             label="Logged"
             value={formatDuration(a.logged)}
           />
           <TooltipRow
-            color={STATUS_CATEGORY_COLOR.new}
+            icon={<MARKER_ICON.estimate className="size-3" />}
             label="Estimate"
             value={formatDuration(a.estimate)}
           />
@@ -128,65 +107,9 @@ function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   );
 }
 
-/** Numbers-only chip text (no unit suffix); the category word lives in the aria-label. */
-function chipNumber(n: number): string {
-  return String(Number.isInteger(n) ? n : Math.round(n * 10) / 10);
-}
-
-function AssigneeChips({ a, metric }: { a: AssigneeBucket; metric: Metric }) {
-  if (metric === 'time') {
-    return (
-      <span className="flex flex-none items-center gap-1">
-        <span
-          role="img"
-          data-testid="epic-assignee-chip"
-          data-cat="done"
-          aria-label={`logged ${formatDuration(a.logged)}`}
-          className={cn(
-            TIME_CHIP_CLASS,
-            statusCategoryBadgeClass('done'),
-            a.logged === 0 && 'opacity-40',
-          )}
-        >
-          {formatDuration(a.logged)}
-        </span>
-        <span
-          role="img"
-          data-testid="epic-assignee-chip"
-          data-cat="new"
-          aria-label={`estimate ${formatDuration(a.estimate)}`}
-          className={cn(
-            TIME_CHIP_CLASS,
-            statusCategoryBadgeClass('new'),
-            a.estimate === 0 && 'opacity-40',
-          )}
-        >
-          {formatDuration(a.estimate)}
-        </span>
-      </span>
-    );
-  }
-  const slots: [Cat, number][] = [
-    ['done', a.done],
-    ['indeterminate', a.inProgress],
-    ['new', a.todo],
-  ];
-  return (
-    <span className="flex flex-none items-center gap-1">
-      {slots.map(([cat, v]) => (
-        <span
-          key={cat}
-          role="img"
-          data-testid="epic-assignee-chip"
-          data-cat={cat}
-          aria-label={`${CAT_LABEL[cat].toLowerCase()} ${chipNumber(v)}`}
-          className={cn(CHIP_CLASS, statusCategoryBadgeClass(cat), v === 0 && 'opacity-40')}
-        >
-          {chipNumber(v)}
-        </span>
-      ))}
-    </span>
-  );
+/** The assignee's three status bands in the active metric's unit (time = estimate seconds). */
+function assigneeBands(a: AssigneeBucket): Bands {
+  return { done: a.done, inProgress: a.inProgress, todo: a.todo };
 }
 
 function EpicProgressSkeleton() {
@@ -359,7 +282,7 @@ export function EpicProgressSection({
             No time estimated — switch to Count
           </p>
         ) : (
-          <>
+          <div className="flex flex-col">
             {timeMode ? (
               <EpicTimeBurnup
                 query={worklogs}
@@ -381,8 +304,7 @@ export function EpicProgressSection({
                 today={today}
               />
             )}
-
-            <div className="space-y-3">
+            <div data-testid="epic-status-block" className="mt-3.5 flex flex-col gap-1.5">
               <Tooltip trackCursorAxis="x">
                 <TooltipTrigger
                   delay={0}
@@ -394,7 +316,7 @@ export function EpicProgressSection({
                     .filter((b) => b.value > 0)
                     .map((b) => `${b.name} ${formatMetric(b.value, metric)}`)
                     .join(', ')}`}
-                  className="py-1.5 -my-1.5"
+                  className="py-1.5"
                 >
                   <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
                     {statuses
@@ -417,13 +339,13 @@ export function EpicProgressSection({
                 {statuses.map((b) => (
                   <span key={b.id} className="inline-flex items-center gap-1.5">
                     <span className={cn('size-2 rounded-full', statusCategoryDotClass(b.cat))} />
-                    <span>{`${b.name} · ${b.count} · ${formatMetric(b.points, 'sp')}`}</span>
+                    <span>{`${b.name} · ${formatMetric(b.value, metric)}`}</span>
                   </span>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="mt-4.5 flex flex-col">
               {assignees.map((a) => (
                 <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
                   <Tooltip trackCursorAxis="x">
@@ -434,39 +356,23 @@ export function EpicProgressSection({
                       role="img"
                       tabIndex={0}
                       aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
-                      className="-my-1.5 flex items-center gap-2 rounded-sm py-1.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
                       <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
                         <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
                         <span className="truncate pr-0.5">{a.name}</span>
                       </span>
                       <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
-                        <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
-                          {(
-                            [
-                              ['done', a.done],
-                              ['indeterminate', a.inProgress],
-                              ['new', a.todo],
-                            ] as const
-                          )
-                            .filter(([, v]) => v > 0)
-                            .map(([cat, v]) => (
-                              <div
-                                key={cat}
-                                className={cn('h-full', statusCategoryDotClass(cat))}
-                                style={{ width: `${(v / maxAssignee) * 100}%` }}
-                              />
-                            ))}
-                        </div>
+                        <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
                       </div>
-                      <AssigneeChips a={a} metric={metric} />
+                      <BandChips bands={assigneeBands(a)} metric={metric} />
                     </TooltipTrigger>
                     <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
                   </Tooltip>
                 </div>
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     </section>
