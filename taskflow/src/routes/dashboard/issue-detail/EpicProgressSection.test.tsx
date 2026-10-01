@@ -150,7 +150,7 @@ describe('EpicProgressSection', () => {
     expect(
       within(screen.getByTestId('epic-cfd-legend')).getByText('Completed'),
     ).toBeInTheDocument();
-    expect(screen.getByText('In Review · 1 · 5 SP')).toBeInTheDocument();
+    expect(screen.getByText('In Review · 1')).toBeInTheDocument();
   });
 
   it('toggles Count / SP and updates % done', () => {
@@ -307,12 +307,12 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     expect(screen.getByRole('button', { name: 'Time' })).toBeInTheDocument();
   });
 
-  it('Time mode hero shows % logged and the logged line; strip shows Finish / Remaining / Risks', () => {
+  it('Time mode hero shows the done share of the estimate; strip shows Finish / Remaining / Risks', () => {
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const hero = screen.getByTestId('epic-hero');
-    expect(hero.textContent).toContain('50%');
-    expect(within(hero).getByText('1h 30m of 3h logged')).toBeInTheDocument();
+    expect(hero.textContent).toContain('33%');
+    expect(within(hero).getByText('1h of 3h done · 0m in progress')).toBeInTheDocument();
     const tiles = screen.getAllByTestId('epic-stat-tile');
     expect(tiles).toHaveLength(3);
     expect(tiles[0].textContent).toMatch(/^Finish/);
@@ -321,12 +321,14 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     expect(tiles[2].textContent).toMatch(/^Risks/);
   });
 
-  it('Time mode assignee row shows logged / estimate chips', () => {
+  it('Time mode assignee chips show done / in progress / to do estimate', () => {
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
-    expect(within(row).getByLabelText('logged 1h 30m')).toBeInTheDocument();
-    expect(within(row).getByLabelText('estimate 3h')).toBeInTheDocument();
+    expect(within(row).getByLabelText('done 1h')).toBeInTheDocument();
+    expect(within(row).getByLabelText('in progress 0m')).toBeInTheDocument();
+    expect(within(row).getByLabelText('to do 2h')).toBeInTheDocument();
+    expect(within(row).queryByLabelText('logged 1h 30m')).toBeNull();
   });
 
   it('Time mode with no estimates explains instead of drawing bars', () => {
@@ -389,7 +391,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     await user.unhover(within(row).getByText('Amy'));
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull());
-    await user.hover(within(row).getByText('1h 30m'));
+    await user.hover(within(row).getByLabelText('to do 2h'));
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     expect(row.querySelectorAll('button')).toHaveLength(0);
     expect(row.querySelectorAll('button, [tabindex="0"]')).toHaveLength(1);
@@ -515,7 +517,7 @@ describe('EpicProgressSection time burnup, formulas (261001-hsz)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const hero = screen.getByTestId('epic-hero');
     // T-1: no subtask estimates -> own 1h; T-2: subtasks 3h - 1h own... agg 3h, own 1h -> 2h. Total 3h.
-    expect(hero.textContent).toContain('of 3h logged');
+    expect(hero.textContent).toContain('1h of 3h done');
     await user.hover(hero);
     expect(await screen.findByText(ESTIMATE_FORMULA_NOTE)).toBeInTheDocument();
   });
@@ -1059,7 +1061,7 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     expect(document.body.textContent).toContain('A-4');
   });
 
-  it('hero caption and legend have extra spacing', () => {
+  it('bar-to-legend spacing uses no negative margins', () => {
     renderSection(
       <EpicProgressSection
         epicKey="E-1"
@@ -1068,8 +1070,15 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         epicCreated={undefined}
       />,
     );
-    expect(screen.getByTestId('epic-hero-caption').className).toContain('mt-1');
-    expect(screen.getByTestId('epic-status-bar').parentElement?.className).toContain('space-y-3');
+    expect(screen.getByTestId('epic-hero-caption').className).toContain('mt-1.5');
+    const block = screen.getByTestId('epic-status-block');
+    expect(block.className).toContain('flex-col');
+    expect(block.className).toContain('gap-1.5');
+    const negMargin = (el: HTMLElement) => el.className.split(/\s+/).some((c) => /^-m/.test(c));
+    expect(negMargin(screen.getByTestId('epic-status-bar'))).toBe(false);
+    for (const t of screen.getAllByTestId('epic-assignee-trigger')) {
+      expect(negMargin(t)).toBe(false);
+    }
   });
 });
 
@@ -1150,5 +1159,144 @@ describe('EpicProgressSection one forecast (261001-rtw)', () => {
       'Forecast: Too early to tell',
     );
     expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Too early to tell');
+  });
+});
+
+describe('EpicProgressSection unified tabs (261001-rtw)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const timed = [
+    story('T-1', {
+      cat: 'done',
+      status: 'Done',
+      assignee: 'Amy',
+      created: daysAgo(5),
+      res: daysAgo(1),
+      est: 3600,
+      spent: 5400,
+      rem: 0,
+    }),
+    story('T-2', {
+      cat: 'new',
+      status: 'To Do',
+      assignee: 'Amy',
+      created: daysAgo(4),
+      est: 7200,
+      rem: 3600,
+    }),
+  ];
+  const timedSection = () => (
+    <EpicProgressSection
+      epicKey="E-1"
+      stories={timed}
+      storyPointsFieldKey={SP}
+      epicCreated={daysAgo(6)}
+    />
+  );
+  const markers = () =>
+    [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) =>
+      r.children[0].getAttribute('data-marker'),
+    );
+
+  it('Time mode person bar segments agree with the chips (same three estimate values)', () => {
+    renderSection(timedSection());
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const row = screen.getByTestId('epic-assignee-row');
+    const chips = within(row).getAllByTestId('epic-assignee-chip');
+    expect(chips.map((c) => c.textContent)).toEqual(['1h', '0m', '2h']);
+    expect(chips.map((c) => c.getAttribute('data-cat'))).toEqual(['done', 'indeterminate', 'new']);
+    const segs = [...row.querySelectorAll('[data-segment]')] as HTMLElement[];
+    expect(segs.map((s) => s.getAttribute('data-segment'))).toEqual(['done', 'new']);
+    // Scale = the largest assignee total (3h): 1h -> 33.3%, 2h -> 66.7%.
+    expect(Number.parseFloat(segs[0].style.width)).toBeCloseTo(100 / 3, 3);
+    expect(Number.parseFloat(segs[1].style.width)).toBeCloseTo(200 / 3, 3);
+    expect(within(row).queryByLabelText(/^logged/)).toBeNull();
+  });
+
+  it('Time hero tooltip lists the three bands in hours with share, then Logged / Estimate icons', async () => {
+    const user = userEvent.setup();
+    renderSection(timedSection());
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    await user.hover(screen.getByTestId('epic-hero'));
+    await screen.findByText(ESTIMATE_FORMULA_NOTE);
+    expect(rowTexts()).toEqual([
+      'Done1h33%',
+      'In progress0m0%',
+      'To do2h67%',
+      'Logged1h 30m',
+      'Estimate3h',
+    ]);
+    expect(markers()).toEqual(['status', 'status', 'status', 'icon', 'icon']);
+  });
+
+  it('Count hero tooltip keeps the three band rows', async () => {
+    const user = userEvent.setup();
+    renderSection(timedSection());
+    await user.hover(screen.getByTestId('epic-hero'));
+    await waitFor(() => expect(rowTexts()).toEqual(['Done150%', 'In progress00%', 'To do150%']));
+  });
+
+  it('the Remaining tooltip has the same rows and note in every tab', async () => {
+    const user = userEvent.setup();
+    renderSection(timedSection());
+    const tile = () => screen.getAllByTestId('epic-stat-tile')[1];
+    await user.hover(tile());
+    await waitFor(() => expect(rowTexts()).toHaveLength(3));
+    expect(rowTexts()).toEqual(['Items1 item', 'Story points0 SP', 'Time2h']);
+    expect(markers()).toEqual(['icon', 'icon', 'icon']);
+    expect(document.body.textContent).toContain("Replaces Jira's remaining estimate");
+  });
+
+  it('Finish and Risks tooltip rows use icon markers with no inline colour', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const user = userEvent.setup();
+    const days: string[] = [];
+    let d = new Date(Date.UTC(2026, 8, 30));
+    while (days.length < 15) {
+      if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) days.push(d.toISOString().slice(0, 10));
+      d = new Date(d.getTime() - 86_400_000);
+    }
+    const list = [
+      ...days.map((day, i) =>
+        story(`S-${i + 1}`, {
+          cat: 'done',
+          status: 'Done',
+          assignee: 'Amy',
+          created: '2026-01-01',
+          res: `${day}T12:00:00.000+0000`,
+        }),
+      ),
+      ...[0, 1, 2, 3, 4].map((i) =>
+        story(`S-${100 + i}`, { cat: 'new', status: 'To Do', created: '2026-01-01' }),
+      ),
+    ];
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={list}
+        storyPointsFieldKey={SP}
+        epicCreated="2026-01-01"
+      />,
+    );
+    const tiles = screen.getAllByTestId('epic-stat-tile');
+    await user.hover(tiles[0]);
+    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Likely'))).toBe(true));
+    const finishRows = [...document.querySelectorAll('[data-slot="tooltip-row"]')];
+    expect(finishRows.length).toBeGreaterThan(3);
+    for (const r of finishRows) {
+      expect((r.children[0] as HTMLElement).getAttribute('data-marker')).toBe('icon');
+    }
+    await user.unhover(tiles[0]);
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull());
+    await user.hover(tiles[2]);
+    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Unassigned'))).toBe(true));
+    for (const r of document.querySelectorAll('[data-slot="tooltip-row"]')) {
+      const m = r.children[0] as HTMLElement;
+      expect(m.getAttribute('data-marker')).toBe('icon');
+      expect(m.style.color).toBe('');
+    }
   });
 });

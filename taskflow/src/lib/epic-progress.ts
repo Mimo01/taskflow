@@ -821,8 +821,6 @@ export function deriveSummary(stories: JiraIssue[], metric: Metric, spKey: strin
   return r;
 }
 
-// ── Cumulative flow diagram ──────────────────────────────────────────────────
-
 // ── Status bands (generic over Count / SP / Time) ───────────────────────────
 
 export interface Bands {
@@ -856,6 +854,8 @@ export function formatChip(n: number, metric: Metric): string {
   if (metric === 'time') return formatDuration(n);
   return String(Number.isInteger(n) ? n : Math.round(n * 10) / 10);
 }
+
+// ── Cumulative flow diagram ──────────────────────────────────────────────────
 
 function catKey(k: string | undefined): Cat {
   return k === 'done' || k === 'indeterminate' ? k : 'new';
