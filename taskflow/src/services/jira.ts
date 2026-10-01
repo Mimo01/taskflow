@@ -156,7 +156,7 @@ export interface JiraIssue {
       name: string;
       statusCategory?: { key: 'new' | 'indeterminate' | 'done' };
     };
-    assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
+    assignee: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
     customfield_10016: number | null; // story points (most common field key)
     issuetype: {
       /** Numeric id (Phase 72: needed for GH transitions cache lookup; optional

@@ -130,3 +130,22 @@ describe('EpicProgressSection', () => {
     expect(screen.getByText('No timeline data')).toBeInTheDocument();
   });
 });
+
+describe('EpicProgressSection review fixes (261001-fmk)', () => {
+  it('explains SP mode instead of blank bars when nothing is estimated', () => {
+    const unestimated = [
+      story('U-1', { cat: 'new', status: 'To Do', sp: null, created: daysAgo(5) }),
+      story('U-2', { cat: 'done', status: 'Done', sp: null, created: daysAgo(5), res: daysAgo(1) }),
+    ];
+    render(
+      <EpicProgressSection
+        stories={unestimated}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    expect(screen.getByText(/No story points estimated/)).toBeTruthy();
+    expect(screen.queryByTestId('epic-status-bar')).toBeNull();
+  });
+});

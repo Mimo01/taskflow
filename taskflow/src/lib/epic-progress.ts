@@ -10,6 +10,7 @@ export interface BurnupPoint {
   done: number;
 }
 export interface StatusBucket {
+  id: string;
   name: string;
   cat: Cat;
   count: number;
@@ -17,6 +18,7 @@ export interface StatusBucket {
   value: number;
 }
 export interface AssigneeBucket {
+  id: string;
   name: string;
   done: number;
   inProgress: number;
@@ -84,12 +86,13 @@ export function weightOf(s: JiraIssue, metric: Metric, spKey: string): number {
 /** Date key a done story was completed; null when the story is not in the done category. */
 export function doneDateKey(s: JiraIssue, today: string): string | null {
   if (catOf(s) !== 'done') return null;
-  return (
+  const k =
     validKey(s.fields.resolutiondate) ??
     validKey(s.fields.statuscategorychangedate) ??
     validKey(s.fields.updated) ??
-    today
-  );
+    today;
+  // Jira timestamps carry the server offset; clamp so a late-night resolve can't land past local today.
+  return k > today ? today : k;
 }
 
 export function deriveBurnup(
@@ -99,7 +102,10 @@ export function deriveBurnup(
   epicCreated: string | undefined,
   today: string,
 ): BurnupPoint[] {
-  const created = stories.map((s) => validKey(s.fields.created));
+  const created = stories.map((s) => {
+    const k = validKey(s.fields.created);
+    return k !== null && k > today ? today : k;
+  });
   const datedCreated = created.filter((c): c is string => c !== null);
   if (datedCreated.length === 0) return [];
   let start = datedCreated.reduce((a, b) => (a < b ? a : b));
@@ -139,10 +145,12 @@ export function deriveStatusBuckets(
   const map = new Map<string, StatusBucket>();
   for (const s of stories) {
     const name = s.fields.status?.name ?? 'Unknown';
-    let b = map.get(name);
+    const cat = catOf(s);
+    const id = `${cat}:${name}`;
+    let b = map.get(id);
     if (!b) {
-      b = { name, cat: catOf(s), count: 0, points: 0, value: 0 };
-      map.set(name, b);
+      b = { id, name, cat, count: 0, points: 0, value: 0 };
+      map.set(id, b);
     }
     b.count += 1;
     b.points += weightOf(s, 'sp', spKey);
@@ -161,11 +169,20 @@ export function deriveAssigneeBuckets(
 ): AssigneeBucket[] {
   const map = new Map<string, AssigneeBucket>();
   for (const s of stories) {
-    const name = s.fields.assignee?.displayName || 'Unassigned';
-    let b = map.get(name);
+    const a = s.fields.assignee;
+    // Key by DC username so same-named users (or a user literally named "Unassigned") don't merge.
+    const id = a ? `user:${a.name || a.displayName}` : 'unassigned';
+    let b = map.get(id);
     if (!b) {
-      b = { name, done: 0, inProgress: 0, todo: 0, remaining: 0 };
-      map.set(name, b);
+      b = {
+        id,
+        name: a?.displayName || a?.name || 'Unassigned',
+        done: 0,
+        inProgress: 0,
+        todo: 0,
+        remaining: 0,
+      };
+      map.set(id, b);
     }
     const w = weightOf(s, metric, spKey);
     const c = catOf(s);

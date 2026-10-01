@@ -189,3 +189,55 @@ describe('deriveForecast', () => {
     expect(s).toMatchObject({ pctDone: 75, total: 4, doneTotal: 3 });
   });
 });
+
+describe('review fixes (261001-fmk)', () => {
+  it('clamps a done date past local today to today, so burnup and % done agree', () => {
+    const s = st('X-1', {
+      cat: 'done',
+      created: '2026-09-30',
+      res: '2026-10-02T00:30:00.000+0200',
+    });
+    expect(doneDateKey(s, TODAY)).toBe(TODAY);
+    const last = deriveBurnup([s], 'count', SP, undefined, TODAY).slice(-1)[0];
+    expect(last).toMatchObject({ date: TODAY, scope: 1, done: 1 });
+  });
+
+  it('counts a story created past local today in scope at today', () => {
+    const s = st('X-2', { created: '2026-10-02T00:10:00.000+0200' });
+    expect(deriveBurnup([s], 'count', SP, undefined, TODAY).slice(-1)[0]).toMatchObject({
+      scope: 1,
+    });
+  });
+
+  it('keeps same-named assignees with different usernames apart from each other and Unassigned', () => {
+    const a = (key: string, username: string, display: string) => {
+      const s = st(key, { assignee: display });
+      (s.fields.assignee as { name?: string }).name = username;
+      return s;
+    };
+    const buckets = deriveAssigneeBuckets(
+      [
+        a('Y-1', 'jsmith', 'John Smith'),
+        a('Y-2', 'jsmith2', 'John Smith'),
+        a('Y-3', 'u', 'Unassigned'),
+        st('Y-4'),
+      ],
+      'count',
+      SP,
+    );
+    expect(buckets).toHaveLength(4);
+    expect(new Set(buckets.map((b) => b.id)).size).toBe(4);
+  });
+
+  it('keeps same-named statuses in different categories separate', () => {
+    const buckets = deriveStatusBuckets(
+      [
+        st('Z-1', { status: 'Review', cat: 'indeterminate' }),
+        st('Z-2', { status: 'Review', cat: 'done' }),
+      ],
+      'count',
+      SP,
+    );
+    expect(buckets.map((b) => b.cat).sort()).toEqual(['done', 'indeterminate']);
+  });
+});
