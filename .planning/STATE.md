@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-01 - Completed quick task 261001-fmk: epic detail progress section (UAT pending)
+Last activity: 2026-10-01 - Completed quick task 261001-g5q: epic progress Time metric, card, tooltips (UAT pending)
 
 ## Performance Metrics
 
@@ -154,6 +154,7 @@ None yet.
 | 260929-iwm | Datepicker week starts on Monday (shared Calendar weekStartsOn=1) | 2026-09-29 | 0790e2a5 | Verified | [260929-iwm-datepicker-week-starts-on-monday](./quick/260929-iwm-datepicker-week-starts-on-monday/) |
 | 260929-j4e | Worklogs date presets: drop Last Week/Last Month/Last Working Day, add Last 7 Days + rolling Last Month (to date); legacy saved filters → This Week | 2026-09-29 | a3ff085a | Verified | [260929-j4e-worklogs-date-range-presets-remove-last-](./quick/260929-j4e-worklogs-date-range-presets-remove-last-/) |
 | 261001-fmk | Epic detail progress section: burnup, status breakdown, per-assignee bars, forecast/risk tiles, Count/SP toggle (above Stories list) | 2026-10-01 | 0a03796d | Verified | [261001-fmk-epic-detail-progress-chart](./quick/261001-fmk-epic-detail-progress-chart/) |
+| 261001-g5q | Epic progress follow-up: Time metric (estimate/logged/remaining incl. subtasks), Card container, tooltips on tiles/segments/legend/assignees | 2026-10-01 | d2583af0 | Needs Review | [261001-g5q-epic-progress-time-metric-card-container](./quick/261001-g5q-epic-progress-time-metric-card-container/) |
 
 ## Deferred Items
 
