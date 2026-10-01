@@ -127,105 +127,127 @@ export function EpicProgressSection({
         <Tile label="Unassigned open" value={String(forecast.unassignedOpen)} />
       </div>
 
-      <div>
-        <div data-testid="epic-burnup" style={{ height: 220 }}>
-          {burnup.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">No timeline data</p>
-          ) : (
-            <ChartContainer
-              config={chartConfig}
-              className="aspect-auto h-full w-full"
-              aria-label="Epic burnup chart"
-            >
-              <ComposedChart
-                data={burnup}
-                responsive
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-              >
-                <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area
-                  dataKey="scope"
-                  type="stepAfter"
-                  stroke="var(--color-scope)"
-                  fill="var(--color-scope)"
-                  fillOpacity={0.15}
-                  isAnimationActive={false}
-                />
-                <Line
-                  dataKey="done"
-                  type="stepAfter"
-                  stroke="var(--color-done)"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </ComposedChart>
-            </ChartContainer>
-          )}
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">Scope by story creation date</p>
-      </div>
-
-      <div className="space-y-2">
-        <div
-          data-testid="epic-status-bar"
-          className="flex h-3 w-full gap-px overflow-hidden rounded bg-background"
-        >
-          {statuses.map((b) => (
-            <div
-              key={b.name}
-              data-testid="epic-status-segment"
-              title={b.name}
-              className={cn('h-full', statusCategoryDotClass(b.cat))}
-              style={{ width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%` }}
-            />
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {statuses.map((b) => (
-            <span key={b.name} className="inline-flex items-center gap-1.5">
-              <span className={cn('size-2 rounded-full', statusCategoryDotClass(b.cat))} />
-              <span>{`${b.name} · ${b.count} · ${fmt(b.points, 'sp')}`}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        {assignees.map((a) => (
-          <div
-            key={a.name}
-            data-testid="epic-assignee-row"
-            className="flex items-center gap-2 text-xs"
-          >
-            <span className="w-32 flex-none truncate pr-0.5" title={a.name}>
-              {a.name}
-            </span>
-            <div className="flex h-3 min-w-0 flex-1 gap-px overflow-hidden rounded bg-background">
-              {(
-                [
-                  ['done', a.done],
-                  ['indeterminate', a.inProgress],
-                  ['new', a.todo],
-                ] as const
-              )
-                .filter(([, v]) => v > 0)
-                .map(([cat, v]) => (
-                  <div
-                    key={cat}
-                    className={cn('h-full', statusCategoryDotClass(cat))}
-                    style={{ width: `${(v / maxAssignee) * 100}%` }}
-                  />
-                ))}
+      {metric === 'sp' && forecast.total === 0 ? (
+        <p className="text-sm text-muted-foreground italic pr-0.5">
+          No story points estimated — switch to Count
+        </p>
+      ) : (
+        <>
+          <div>
+            <div data-testid="epic-burnup" style={{ height: 220 }}>
+              {burnup.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No timeline data</p>
+              ) : (
+                <ChartContainer
+                  config={chartConfig}
+                  className="aspect-auto h-full w-full"
+                  aria-label="Epic burnup chart"
+                >
+                  <ComposedChart
+                    data={burnup}
+                    responsive
+                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(v) => formatDateKey(String(v))}
+                      tickLine={false}
+                      axisLine={false}
+                      minTickGap={24}
+                    />
+                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          labelFormatter={(v) =>
+                            `${formatDateKey(String(v))}, ${String(v).slice(0, 4)}`
+                          }
+                        />
+                      }
+                    />
+                    <Area
+                      dataKey="scope"
+                      type="stepAfter"
+                      stroke="var(--color-scope)"
+                      fill="var(--color-scope)"
+                      fillOpacity={0.15}
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      dataKey="done"
+                      type="stepAfter"
+                      stroke="var(--color-done)"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </ComposedChart>
+                </ChartContainer>
+              )}
             </div>
-            <span className="w-14 flex-none text-right text-muted-foreground">
-              {fmt(a.remaining, metric)}
-            </span>
+            <p className="mt-1 text-xs text-muted-foreground">Scope by story creation date</p>
           </div>
-        ))}
-      </div>
+
+          <div className="space-y-2">
+            <div
+              data-testid="epic-status-bar"
+              className="flex h-3 w-full gap-px overflow-hidden rounded bg-background"
+            >
+              {statuses.map((b) => (
+                <div
+                  key={b.id}
+                  data-testid="epic-status-segment"
+                  title={b.name}
+                  className={cn('h-full', statusCategoryDotClass(b.cat))}
+                  style={{ width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%` }}
+                />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {statuses.map((b) => (
+                <span key={b.id} className="inline-flex items-center gap-1.5">
+                  <span className={cn('size-2 rounded-full', statusCategoryDotClass(b.cat))} />
+                  <span>{`${b.name} · ${b.count} · ${fmt(b.points, 'sp')}`}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            {assignees.map((a) => (
+              <div
+                key={a.id}
+                data-testid="epic-assignee-row"
+                className="flex items-center gap-2 text-xs"
+              >
+                <span className="w-32 flex-none truncate pr-0.5" title={a.name}>
+                  {a.name}
+                </span>
+                <div className="flex h-3 min-w-0 flex-1 gap-px overflow-hidden rounded bg-background">
+                  {(
+                    [
+                      ['done', a.done],
+                      ['indeterminate', a.inProgress],
+                      ['new', a.todo],
+                    ] as const
+                  )
+                    .filter(([, v]) => v > 0)
+                    .map(([cat, v]) => (
+                      <div
+                        key={cat}
+                        className={cn('h-full', statusCategoryDotClass(cat))}
+                        style={{ width: `${(v / maxAssignee) * 100}%` }}
+                      />
+                    ))}
+                </div>
+                <span className="w-14 flex-none text-right text-muted-foreground">
+                  {fmt(a.remaining, metric)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
