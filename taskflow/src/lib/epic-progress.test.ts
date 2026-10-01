@@ -1333,8 +1333,9 @@ describe('deriveRisks (261001-qvu)', () => {
       key: 'overdue',
       severity: 'warning',
       text: 'Overdue 10 days',
-      issues: [],
     });
+    // 261002-0et review WR-01: overdue lists the open items (was an empty list).
+    expect(over[0].issues.length).toBeGreaterThan(0);
     const one = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-29' });
     expect(one[0].text).toBe('Overdue 1 day');
     const late = deriveRisks({
@@ -1378,11 +1379,18 @@ describe('deriveRisks (261001-qvu)', () => {
     });
     expect(calm.find((x) => x.key === 'scope')).toBeUndefined();
   });
-  it('orders warnings first; overdue lists no issues', () => {
+  it('blank summaries show a placeholder instead of an empty row', () => {
+    const blank = st('B-1', { sp: 1 });
+    (blank.fields as { summary: string }).summary = '   ';
+    const r = deriveRisks({ ...base, stories: [blank], finish: fin() });
+    expect(r.find((x) => x.key === 'unassigned')?.issues[0].summary).toBe('(no summary)');
+  });
+
+  it('orders warnings first; overdue lists its open issues', () => {
     const many = Array.from({ length: 5 }, (_, i) => st(`M-${i + 1}`, { sp: 1 }));
     const r = deriveRisks({ ...base, stories: many, dueDate: '2026-09-01', finish: fin() });
     expect(r[0].key).toBe('overdue');
-    expect(r[0].issues).toEqual([]);
+    expect(r[0].issues.map((i) => i.key)).toEqual(['M-1', 'M-2', 'M-3', 'M-4', 'M-5']);
     expect(r.find((x) => x.key === 'unassigned')?.issues.map((i) => i.key)).toEqual([
       'M-1',
       'M-2',

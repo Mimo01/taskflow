@@ -2,8 +2,8 @@
  * EpicProgressSummary — the hero (big %, segmented status bar, "X of Y done") plus a
  * 3-cell stat strip (Finish / Remaining / Risks) at the top of the epic progress section
  * (quick 261001-ilq). Tooltip triggers contain spans only (valid inside a <button>).
- * The hero tooltip carries the one "Data sources" block (261001-sqm); the Risks tile opens an
- * one-line risk buttons, each opening a popover of affected issues.
+ * The hero tooltip carries the one "Data sources" block (261001-sqm); the Risks tile lists
+ * one-line risk buttons, each opening a popover of affected issues (261002-0et).
  *
  * Text-collision rule (EpicDetailSheet.test): no visible text node equals exactly
  * "Done" / "In Progress" and none says "Stories" — every sentence here is a single
@@ -246,10 +246,7 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
             />
           ) : null}
           {reason ? (
-            <div
-              data-testid="confidence-reason"
-              className="max-w-64 truncate pl-5 text-muted-foreground"
-            >
+            <div data-testid="confidence-reason" className="max-w-64 pl-5 text-muted-foreground">
               {reason}
             </div>
           ) : null}
@@ -292,7 +289,7 @@ function RiskItem({
   const rowLayout = 'flex w-full min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left';
 
   const onListKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
     const rows = [
       ...e.currentTarget.querySelectorAll<HTMLButtonElement>(
         'button[data-testid="epic-risk-issue"]',
@@ -300,7 +297,14 @@ function RiskItem({
     ];
     if (rows.length === 0) return;
     const at = rows.indexOf(document.activeElement as HTMLButtonElement);
-    const next = e.key === 'ArrowDown' ? Math.min(at + 1, rows.length - 1) : Math.max(at - 1, 0);
+    const next =
+      e.key === 'Home'
+        ? 0
+        : e.key === 'End'
+          ? rows.length - 1
+          : e.key === 'ArrowDown'
+            ? Math.min(at + 1, rows.length - 1)
+            : Math.max(at - 1, 0);
     rows[next].focus();
     e.preventDefault();
   };
