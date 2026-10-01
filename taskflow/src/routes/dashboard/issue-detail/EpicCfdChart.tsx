@@ -119,7 +119,7 @@ export function ForecastLegend({
 export function SourceFlag({ text }: { text?: string | null }) {
   if (!text) return null;
   return (
-    <span data-testid="epic-source-flag" role="img" aria-label={text} title={text}>
+    <span data-testid="epic-source-flag" role="img" aria-label={text} title={text} tabIndex={0}>
       <Info aria-hidden="true" className="size-3 text-muted-foreground" />
     </span>
   );
@@ -246,7 +246,7 @@ export function EpicCfdChart({
               />
               {brushUsable(zoom, data) ? (
                 <Brush
-                  key={zoom.epoch}
+                  key={`${zoom.epoch}:${zoom.domain.from}:${zoom.domain.to}`}
                   dataKey="t"
                   {...BRUSH_STYLE}
                   tickFormatter={tickLabel}
