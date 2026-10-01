@@ -1436,7 +1436,7 @@ function round1(n: number): number {
 function issuesOf(stories: JiraIssue[]): { issues: RiskIssue[] } {
   return {
     issues: stories
-      .map((s) => ({ key: s.key, summary: s.fields.summary ?? '' }))
+      .map((s) => ({ key: s.key, summary: s.fields.summary?.trim() || '(no summary)' }))
       .sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true })),
   };
 }
@@ -1468,7 +1468,8 @@ export function deriveRisks(args: {
         text: `Overdue ${daysText(diffDays(due, today))}`,
         count: null,
         detail: `Due ${formatDateKey(due)} with ${open.length} open items.`,
-        issues: [],
+        // The open items are what's overdue — list them like the other count-based risks.
+        ...issuesOf(open),
       });
     } else if (finish.state === 'ok' && finish.likely !== null && finish.likely > due) {
       warnings.push({

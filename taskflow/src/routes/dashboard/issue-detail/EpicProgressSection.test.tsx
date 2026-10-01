@@ -1522,7 +1522,8 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
     await user.click(items[0]);
     const overdue = await screen.findByTestId('epic-risk-popover');
-    expect(within(overdue).queryByTestId('epic-risk-issues')).toBeNull();
+    // 261002-0et review WR-01: overdue lists its open items like the other count-based risks.
+    expect(within(overdue).getByTestId('epic-risk-issues')).toBeInTheDocument();
     expect(overdue.textContent).toContain('open items');
   });
 });
