@@ -14,6 +14,7 @@ import {
   fetchCreatemeta,
   fetchEpicEnrichmentMap,
   fetchEpicStories,
+  fetchEpicStatusHistory,
   fetchEpicWorklogs,
   EPICS_PAGE_ORDER,
   fetchEpicsBasic,
@@ -1872,6 +1873,195 @@ describe('jira service', () => {
     it('rejects when the search response is not ok (fail-closed)', async () => {
       vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 500 } as unknown as Response);
       await expect(fetchEpicWorklogs(BASE, TOKEN, ['P-1'])).rejects.toBeDefined();
+    });
+  });
+
+  describe('fetchEpicStatusHistory (261001-ilq)', () => {
+    const searchRes = (issues: unknown[]) =>
+      ({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ issues, total: issues.length, maxResults: 200 }),
+      }) as unknown as Response;
+    const statusItem = (from: string, to: string, fromString: string, toName: string) => ({
+      field: 'status',
+      from,
+      to,
+      fromString,
+      toString: toName,
+    });
+    const hist = (created: string, items: unknown[]) => ({ id: created, created, items });
+
+    it('returns an empty map without fetching for no keys', async () => {
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, [], 'E-1');
+      expect(r.size).toBe(0);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('chunks 60 keys into 3 searches of <= 25 with changelog expand', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(searchRes([]));
+      const keys = Array.from({ length: 60 }, (_, i) => `P-${i + 1}`);
+      await fetchEpicStatusHistory(BASE, TOKEN, [...keys, 'bad key) OR x'], 'E-1');
+      const urls = vi.mocked(mockFetch).mock.calls.map((c) => c[0] as string);
+      expect(urls).toHaveLength(3);
+      for (const u of urls) {
+        const parsed = new URL(u);
+        expect(parsed.searchParams.get('expand')).toBe('changelog');
+        expect(parsed.searchParams.get('fields')).toBe('status,created');
+        const jql = parsed.searchParams.get('jql') ?? '';
+        expect(jql).not.toContain('bad');
+        const inList = /key in \((.*)\)/.exec(jql)?.[1] ?? '';
+        expect(inList.split(',').length).toBeLessThanOrEqual(25);
+      }
+    });
+
+    it('sorts histories ascending and keeps only status items', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        searchRes([
+          {
+            key: 'P-1',
+            changelog: {
+              total: 3,
+              histories: [
+                hist('2026-09-15T10:00:00.000+0000', [statusItem('2', '3', 'In Progress', 'Done')]),
+                hist('2026-09-12T10:00:00.000+0000', [
+                  { field: 'assignee', fromString: 'a', toString: 'b' },
+                ]),
+                hist('2026-09-10T10:00:00.000+0000', [
+                  statusItem('1', '2', 'To Do', 'In Progress'),
+                ]),
+              ],
+            },
+          },
+        ]),
+      );
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1'], 'E-1');
+      expect(r.get('P-1')?.transitions).toEqual([
+        {
+          at: '2026-09-10T10:00:00.000+0000',
+          fromId: '1',
+          fromName: 'To Do',
+          toId: '2',
+          toName: 'In Progress',
+        },
+        {
+          at: '2026-09-15T10:00:00.000+0000',
+          fromId: '2',
+          fromName: 'In Progress',
+          toId: '3',
+          toName: 'Done',
+        },
+      ]);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('tops up a truncated changelog from the issue endpoint', async () => {
+      vi.mocked(mockFetch).mockImplementation((async (url: string) => {
+        if (url.includes('/issue/P-1?')) {
+          expect(url).toContain('expand=changelog');
+          return {
+            ok: true,
+            status: 200,
+            json: () =>
+              Promise.resolve({
+                changelog: {
+                  total: 2,
+                  histories: [
+                    hist('2026-09-10T10:00:00.000+0000', [
+                      statusItem('1', '2', 'To Do', 'In Progress'),
+                    ]),
+                    hist('2026-09-15T10:00:00.000+0000', [
+                      statusItem('2', '3', 'In Progress', 'Done'),
+                    ]),
+                  ],
+                },
+              }),
+          };
+        }
+        return searchRes([
+          {
+            key: 'P-1',
+            changelog: {
+              total: 2,
+              histories: [
+                hist('2026-09-15T10:00:00.000+0000', [statusItem('2', '3', 'In Progress', 'Done')]),
+              ],
+            },
+          },
+          {
+            key: 'P-2',
+            changelog: {
+              total: 1,
+              histories: [
+                hist('2026-09-11T10:00:00.000+0000', [
+                  statusItem('1', '2', 'To Do', 'In Progress'),
+                ]),
+              ],
+            },
+          },
+        ]);
+      }) as unknown as typeof mockFetch);
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1', 'P-2'], 'E-1');
+      expect(r.get('P-1')?.transitions).toHaveLength(2);
+      const urls = vi.mocked(mockFetch).mock.calls.map((c) => c[0] as string);
+      expect(urls.filter((u) => u.includes('/issue/'))).toHaveLength(1);
+      expect(urls.some((u) => u.includes('/issue/P-2'))).toBe(false);
+    });
+
+    it('keeps the embedded histories when the top-up fails', async () => {
+      vi.mocked(mockFetch).mockImplementation((async (url: string) => {
+        if (url.includes('/issue/P-1?')) return { ok: false, status: 500 };
+        return searchRes([
+          {
+            key: 'P-1',
+            changelog: {
+              total: 5,
+              histories: [
+                hist('2026-09-15T10:00:00.000+0000', [statusItem('2', '3', 'In Progress', 'Done')]),
+              ],
+            },
+          },
+        ]);
+      }) as unknown as typeof mockFetch);
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1'], 'E-1');
+      expect(r.get('P-1')?.transitions).toHaveLength(1);
+    });
+
+    it('rejects when the search response is not ok', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 500 } as unknown as Response);
+      await expect(fetchEpicStatusHistory(BASE, TOKEN, ['P-1'], 'E-1')).rejects.toBeDefined();
+    });
+
+    it('gives an issue with zero histories an empty entry', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        searchRes([{ key: 'P-1', changelog: { total: 0, histories: [] } }, { key: 'P-2' }]),
+      );
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1', 'P-2'], 'E-1');
+      expect(r.get('P-1')).toEqual({ transitions: [], joinedAt: null });
+      expect(r.get('P-2')).toEqual({ transitions: [], joinedAt: null });
+    });
+
+    it('records joinedAt from an Epic Link item naming the epic', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        searchRes([
+          {
+            key: 'P-1',
+            changelog: {
+              total: 2,
+              histories: [
+                hist('2026-09-05T10:00:00.000+0000', [
+                  { field: 'Epic Link', fromString: null, toString: 'E-9' },
+                ]),
+                hist('2026-09-08T10:00:00.000+0000', [
+                  { field: 'Epic Link', fromString: null, toString: 'E-1' },
+                ]),
+              ],
+            },
+          },
+        ]),
+      );
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1'], 'E-1');
+      expect(r.get('P-1')?.joinedAt).toBe('2026-09-08T10:00:00.000+0000');
     });
   });
 

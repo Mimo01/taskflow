@@ -19,6 +19,22 @@ const DOT_STYLES: Record<string, string> = {
   done: 'bg-green-500',
 };
 
+/**
+ * CSS colour values for charts and swatches — the same hues as DOT_STYLES.
+ * Literal `var(--color-*)` strings so Tailwind v4 keeps emitting the theme variables.
+ */
+export const STATUS_CATEGORY_COLOR = {
+  new: 'var(--color-gray-400)',
+  indeterminate: 'var(--color-blue-500)',
+  done: 'var(--color-green-500)',
+} as const;
+
+/** CSS colour for a statusCategory.key (unknown / missing falls back to the "new" colour). */
+export function statusCategoryColor(cat?: string): string {
+  if (cat === 'indeterminate' || cat === 'done' || cat === 'new') return STATUS_CATEGORY_COLOR[cat];
+  return STATUS_CATEGORY_COLOR.new;
+}
+
 /** Tailwind classes for a status badge (pill / chip) given a statusCategory.key */
 export function statusCategoryBadgeClass(categoryKey: string | undefined): string {
   return BADGE_STYLES[categoryKey ?? 'new'] ?? BADGE_STYLES.new;

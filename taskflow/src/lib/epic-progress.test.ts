@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type { JiraIssue } from '@/services/jira';
+import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@/services/jira';
 import {
+  addWorkingDays,
+  buildStatusCategoryLookup,
   catOf,
+  deriveAdaptiveForecast,
+  deriveCfd,
+  deriveProjection,
+  deriveSummary,
+  deriveTimeForecast,
+  forecastFromThroughput,
+  withProjection,
+  workingDaysBetween,
+  type EpicForecast,
   deriveAssigneeBuckets,
   deriveBurnup,
   deriveForecast,
@@ -487,5 +498,534 @@ describe('deriveTimeBurnup review fixes (261001-hsz)', () => {
     const last = pts[pts.length - 1];
     expect(last.logged).toBe(3 * H);
     expect(last.estimate - last.logged).toBe(deriveTimeTotals(stories).remaining);
+  });
+});
+
+// ── 261001-ilq ───────────────────────────────────────────────────────────────
+
+const WED = '2026-09-30';
+
+/** The n most recent working days ending at WED (inclusive), newest first. */
+function workingDaysBack(n: number): string[] {
+  const out: string[] = [];
+  let d = new Date(Date.UTC(2026, 8, 30));
+  while (out.length < n) {
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+    d = new Date(d.getTime() - 86_400_000);
+  }
+  return out;
+}
+
+const doneOn = (key: string, day: string, created = '2026-01-01T10:00:00.000+0000') =>
+  st(key, { cat: 'done', res: `${day}T12:00:00.000+0000`, created });
+const openStory = (key: string, created = '2026-01-01T10:00:00.000+0000') => st(key, { created });
+
+describe('working days', () => {
+  it('addWorkingDays skips weekends', () => {
+    expect(addWorkingDays('2026-09-30', 3)).toBe('2026-10-05');
+    expect(addWorkingDays('2026-09-30', 0)).toBe('2026-09-30');
+    expect(addWorkingDays('2026-09-30', 10)).toBe('2026-10-14');
+    expect(addWorkingDays('2026-10-03', 1)).toBe('2026-10-05');
+  });
+  it('workingDaysBetween excludes the start day and counts Mon-Fri only', () => {
+    expect(workingDaysBetween('2026-09-25', '2026-09-30')).toBe(3);
+    expect(workingDaysBetween('2026-09-30', '2026-09-30')).toBe(0);
+    expect(workingDaysBetween('2026-09-30', '2026-09-25')).toBe(0);
+    expect(workingDaysBetween('2026-09-01', '2026-09-30')).toBe(21);
+  });
+});
+
+describe('adaptive forecast case table (261001-ilq)', () => {
+  const run = (stories: JiraIssue[]) =>
+    deriveAdaptiveForecast(stories, 'count', SP, undefined, WED);
+  const ordered = (f: EpicForecast) => {
+    expect(f.optimistic).not.toBeNull();
+    expect((f.optimistic as string) <= (f.likely as string)).toBe(true);
+    expect((f.likely as string) <= (f.pessimistic as string)).toBe(true);
+  };
+
+  it('(1) a 1-week-old epic forecasts ~25 working days, not ~20 weeks', () => {
+    const created = '2026-09-20T12:00:00.000+0000';
+    const stories = [
+      doneOn('A-1', '2026-09-29', created),
+      doneOn('A-2', '2026-09-25', created),
+      st('A-3', { cat: 'indeterminate', scc: '2026-09-24T12:00:00.000+0000', created }),
+      ...Array.from({ length: 9 }, (_, i) => openStory(`A-${i + 4}`, created)),
+    ];
+    const f = run(stories);
+    expect(f.state).toBe('ok');
+    expect(f.windowDays).toBe(5);
+    expect(f.confidence).toBe('low');
+    expect(f.nLikely).toBeGreaterThanOrEqual(15);
+    expect(f.nLikely).toBeLessThanOrEqual(40);
+    expect(f.nLikely).toBeLessThan(50);
+    expect(f.nLikely).toBe(27);
+    ordered(f);
+  });
+
+  it('(2) a 3-day-old high-velocity epic still forecasts', () => {
+    const created = '2026-09-25T12:00:00.000+0000';
+    const stories = [
+      doneOn('B-1', '2026-09-30', created),
+      doneOn('B-2', '2026-09-30', created),
+      doneOn('B-3', '2026-09-29', created),
+      doneOn('B-4', '2026-09-29', created),
+      doneOn('B-5', '2026-09-28', created),
+      doneOn('B-6', '2026-09-28', created),
+      ...Array.from({ length: 6 }, (_, i) =>
+        openStory(`B-${i + 7}`, '2026-09-28T09:00:00.000+0000'),
+      ),
+    ];
+    const f = run(stories);
+    expect(f.state).toBe('ok');
+    expect(f.windowDays).toBe(3);
+    expect(f.nLikely).toBe(3);
+    expect(f.confidence).toBe('low');
+    ordered(f);
+  });
+
+  it('(3) a steady long-running epic is high confidence with a narrow band', () => {
+    const stories = [
+      ...workingDaysBack(60).map((d, i) => doneOn(`C-${i + 1}`, d)),
+      ...Array.from({ length: 20 }, (_, i) => openStory(`C-${100 + i}`)),
+    ];
+    const f = run(stories);
+    expect(f.state).toBe('ok');
+    expect(f.windowDays).toBe(30);
+    expect(f.nLikely).toBe(20);
+    expect(f.confidence).toBe('high');
+    expect(((f.nPess as number) - (f.nOpt as number)) / (f.nLikely as number)).toBeLessThanOrEqual(
+      0.5,
+    );
+    ordered(f);
+  });
+
+  it('(4) stalled when the last completion is 15 working days old', () => {
+    const days = workingDaysBack(40).slice(15);
+    const stories = [
+      ...days.map((d, i) => doneOn(`D-${i + 1}`, d)),
+      ...Array.from({ length: 5 }, (_, i) => openStory(`D-${100 + i}`)),
+    ];
+    const f = run(stories);
+    expect(f.state).toBe('stalled');
+    expect(f.likely).toBeNull();
+    expect(f.optimistic).toBeNull();
+    expect(f.pessimistic).toBeNull();
+    expect(f.explanation).toContain('15 working days');
+  });
+
+  it('(5) not converging when scope grows faster than work completes', () => {
+    const days = workingDaysBack(20);
+    const stories: JiraIssue[] = days.map((d, i) => doneOn(`E-${i + 1}`, d));
+    let n = 0;
+    // 1.5 stories created per working day after the first activity (oldest day of `days`).
+    days.slice(0, 19).forEach((d, i) => {
+      stories.push(openStory(`E-${100 + n++}`, `${d}T12:00:00.000+0000`));
+      if (i % 2 === 0) stories.push(openStory(`E-${100 + n++}`, `${d}T12:00:00.000+0000`));
+    });
+    const f = run(stories);
+    expect(f.state).toBe('not-converging');
+    expect(f.explanation).toMatch(/Scope grew .*\/wk vs .*\/wk done/);
+    expect(f.likely).toBeNull();
+  });
+
+  it('(6) too early with a single completion on a 1-day-old epic', () => {
+    const f = run([
+      doneOn('F-1', WED, '2026-09-30T08:00:00.000+0000'),
+      openStory('F-2', WED),
+      openStory('F-3', WED),
+    ]);
+    expect(f.state).toBe('too-early');
+  });
+
+  it('(7) done when everything is done', () => {
+    const f = run([doneOn('G-1', WED), doneOn('G-2', '2026-09-29')]);
+    expect(f.state).toBe('done');
+  });
+
+  it('(8) time mode projects from the daily logged rate vs remaining time', () => {
+    const days = workingDaysBack(12);
+    const a = st('H-1', { created: '2026-09-01T10:00:00.000+0000', est: 158_400, spent: 86_400 });
+    const logs = new Map<string, EpicWorklogDay[]>([
+      ['H-1', days.map((day) => ({ day, seconds: 7200 }))],
+    ]);
+    expect(deriveTimeTotals([a]).remaining).toBe(72_000);
+    const f = deriveTimeForecast([a], logs, WED);
+    expect(f.state).toBe('ok');
+    expect(f.nLikely).toBe(10);
+    expect(f.windowDays).toBe(12);
+    ordered(f);
+  });
+
+  it('counts a weekend completion toward the following Monday', () => {
+    const base = {
+      scopeAdds: [],
+      remaining: 10,
+      allDone: false,
+      firstActivity: '2026-09-21',
+      eventCount: 5,
+      unit: 'count' as const,
+    };
+    const onSat = forecastFromThroughput(
+      {
+        ...base,
+        completions: [
+          { day: '2026-09-26', w: 5 },
+          { day: WED, w: 1 },
+        ],
+      },
+      WED,
+    );
+    const onMon = forecastFromThroughput(
+      {
+        ...base,
+        completions: [
+          { day: '2026-09-28', w: 5 },
+          { day: WED, w: 1 },
+        ],
+      },
+      WED,
+    );
+    expect(onSat).toEqual(onMon);
+  });
+
+  it('a 0-completion epic with 10+ working days of in-progress activity is stalled', () => {
+    const f = run([
+      st('I-1', {
+        cat: 'indeterminate',
+        scc: '2026-09-10T12:00:00.000+0000',
+        created: '2026-09-01',
+      }),
+      openStory('I-2', '2026-09-01'),
+    ]);
+    expect(f.state).toBe('stalled');
+  });
+
+  it('SP mode with 0 remaining but unestimated open work is ok with likely = today', () => {
+    const stories = [
+      st('J-1', { cat: 'done', sp: 3, res: '2026-09-29T12:00:00.000+0000', created: '2026-09-01' }),
+      st('J-2', { created: '2026-09-01' }),
+    ];
+    const f = deriveAdaptiveForecast(stories, 'sp', SP, undefined, WED);
+    expect(f.state).toBe('ok');
+    expect(f.likely).toBe(WED);
+    expect(f.explanation).toMatch(/unestimated/);
+  });
+});
+
+describe('deriveSummary', () => {
+  const stories = [
+    st('A', { cat: 'done', sp: 3, assignee: 'X' }),
+    st('B', { sp: 1, assignee: 'X' }),
+    st('C', { cat: 'indeterminate' }),
+    st('D', { cat: 'done' }),
+  ];
+  it('counts unestimated and unassigned open (count mode)', () => {
+    expect(deriveSummary(stories, 'count', SP)).toMatchObject({
+      unestimatedSp: 2,
+      unassignedOpen: 1,
+      pctDone: 50,
+      count: 4,
+      doneCount: 2,
+      inProgressCount: 1,
+      todoCount: 1,
+      remainingCount: 2,
+    });
+  });
+  it('SP mode counts unestimated as 0 and splits totals per category', () => {
+    expect(deriveSummary(stories, 'sp', SP)).toMatchObject({
+      pctDone: 75,
+      total: 4,
+      doneTotal: 3,
+      inProgressTotal: 0,
+      todoTotal: 1,
+      remainingSp: 1,
+    });
+  });
+  it('time totals: remaining seconds and unestimated open stories only', () => {
+    const t = [
+      st('A', { est: 7200, spent: 3600 }),
+      st('B'),
+      st('C', { cat: 'done' }),
+      st('D', { cat: 'indeterminate', est: 3600, spent: 7200 }),
+    ];
+    const s = deriveSummary(t, 'time', SP);
+    expect(s.remainingSeconds).toBe(3600);
+    expect(s.unestimatedTime).toBe(1);
+  });
+});
+
+describe('deriveAssigneeBuckets avatarUrl', () => {
+  it('uses the 48x48 avatar when non-empty, else null; Unassigned is null', () => {
+    const withUrl = st('A', { assignee: 'Amy' });
+    (withUrl.fields.assignee as { avatarUrls: { '48x48': string } }).avatarUrls['48x48'] =
+      'https://x/a.png';
+    const b = deriveAssigneeBuckets([withUrl, st('B', { assignee: 'Bob' }), st('C')], 'count', SP);
+    expect(b.find((x) => x.name === 'Amy')?.avatarUrl).toBe('https://x/a.png');
+    expect(b.find((x) => x.name === 'Bob')?.avatarUrl).toBeNull();
+    expect(b.find((x) => x.name === 'Unassigned')?.avatarUrl).toBeNull();
+  });
+});
+
+describe('buildStatusCategoryLookup', () => {
+  const list: JiraStatus[] = [
+    { id: '1', name: 'To Do', statusCategory: { id: 2, key: 'new', name: 'To Do' } },
+    {
+      id: '2',
+      name: 'In Review',
+      statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
+    },
+  ];
+  it('resolves id, then list name, then story name, then new', () => {
+    const lookup = buildStatusCategoryLookup(list, [st('A', { status: 'Legacy', cat: 'done' })]);
+    expect(lookup('2', null)).toBe('indeterminate');
+    expect(lookup('999', 'In Review')).toBe('indeterminate');
+    expect(lookup('999', 'Legacy')).toBe('done');
+    expect(lookup('999', 'Mystery')).toBe('new');
+    expect(lookup(null, null)).toBe('new');
+  });
+  it('works with no status list', () => {
+    const lookup = buildStatusCategoryLookup(undefined, [st('A', { status: 'X', cat: 'done' })]);
+    expect(lookup('9', 'X')).toBe('done');
+  });
+});
+
+describe('deriveCfd', () => {
+  const list: JiraStatus[] = [
+    { id: '1', name: 'To Do', statusCategory: { id: 2, key: 'new', name: 'To Do' } },
+    {
+      id: '2',
+      name: 'In Progress',
+      statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
+    },
+    { id: '3', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+  ];
+  const tr = (
+    at: string,
+    fromId: string | null,
+    toId: string | null,
+    fromName: string | null = null,
+    toName: string | null = null,
+  ) => ({ at: `${at}T12:00:00.000+0000`, fromId, fromName, toId, toName });
+  const H = (
+    transitions: ReturnType<typeof tr>[],
+    joinedAt: string | null = null,
+  ): EpicStatusHistory => ({ transitions, joinedAt });
+  const lookup = buildStatusCategoryLookup(list, []);
+  const baseArgs = { lookup, metric: 'count' as const, spKey: SP, today: TODAY };
+  const at = (pts: { date: string }[], d: string) => pts.find((p) => p.date === d);
+
+  it('(a) real history: to do, then in progress, then done', () => {
+    const s = st('A', { cat: 'done', created: '2026-09-01T10:00:00.000+0000' });
+    const { points, approximate } = deriveCfd({
+      ...baseArgs,
+      stories: [s],
+      history: new Map([['A', H([tr('2026-09-10', '1', '2'), tr('2026-09-15', '2', '3')])]]),
+      epicCreated: '2026-09-01',
+    });
+    expect(approximate).toBe(false);
+    expect(at(points, '2026-09-05')).toMatchObject({ todo: 1, inProgress: 0, done: 0 });
+    expect(at(points, '2026-09-10')).toMatchObject({
+      todo: 0,
+      inProgress: 1,
+      done: 0,
+      remaining: 1,
+    });
+    expect(at(points, '2026-09-15')).toMatchObject({ inProgress: 0, done: 1, remaining: 0 });
+  });
+
+  it('(b) a story created before the epic enters on epicCreated in its category that day', () => {
+    const s = st('A', { cat: 'done', created: '2026-08-01T10:00:00.000+0000' });
+    const { points } = deriveCfd({
+      ...baseArgs,
+      stories: [s],
+      history: new Map([['A', H([tr('2026-08-10', '1', '2'), tr('2026-09-12', '2', '3')])]]),
+      epicCreated: '2026-09-10',
+    });
+    expect(points[0].date).toBe('2026-09-10');
+    expect(points[0]).toMatchObject({ inProgress: 1, todo: 0, done: 0 });
+    expect(at(points, '2026-09-12')).toMatchObject({ done: 1 });
+  });
+
+  it('(c) a truncated changelog anchors the initial category on the first from', () => {
+    const s = st('A', { cat: 'done', created: '2026-09-01T10:00:00.000+0000' });
+    const { points } = deriveCfd({
+      ...baseArgs,
+      stories: [s],
+      history: new Map([['A', H([tr('2026-09-20', '2', '3')])]]),
+      epicCreated: '2026-09-01',
+    });
+    expect(at(points, '2026-09-02')).toMatchObject({ inProgress: 1, todo: 0 });
+    expect(at(points, '2026-09-20')).toMatchObject({ done: 1 });
+  });
+
+  it('(d) an unmapped id maps by name; an unknown status maps to new', () => {
+    const s = st('A', { created: '2026-09-25T10:00:00.000+0000' });
+    const { points } = deriveCfd({
+      ...baseArgs,
+      stories: [s],
+      history: new Map([
+        [
+          'A',
+          H([
+            tr('2026-09-26', '1', '77', 'To Do', 'In Progress'),
+            tr('2026-09-28', '77', '88', 'In Progress', 'Wat'),
+          ]),
+        ],
+      ]),
+      epicCreated: '2026-09-25',
+    });
+    expect(at(points, '2026-09-27')).toMatchObject({ inProgress: 1 });
+    expect(at(points, '2026-09-29')).toMatchObject({ todo: 1, inProgress: 0 });
+  });
+
+  it('(e) null history falls back to the current-state approximation', () => {
+    const stories = [
+      st('A', { created: '2026-09-20' }),
+      st('B', { cat: 'indeterminate', scc: '2026-09-25T10:00:00.000+0000', created: '2026-09-20' }),
+      st('C', { cat: 'done', res: '2026-09-27T10:00:00.000+0000', created: '2026-09-20' }),
+    ];
+    const { points, approximate } = deriveCfd({
+      ...baseArgs,
+      stories,
+      history: null,
+      epicCreated: '2026-09-20',
+    });
+    expect(approximate).toBe(true);
+    expect(at(points, '2026-09-21')).toMatchObject({ todo: 3, inProgress: 0, done: 0 });
+    expect(at(points, '2026-09-25')).toMatchObject({ todo: 2, inProgress: 1, done: 0 });
+    expect(at(points, '2026-09-27')).toMatchObject({ todo: 1, inProgress: 1, done: 1 });
+  });
+
+  it('(f) a story missing from the history map uses the fallback only for itself', () => {
+    const stories = [
+      st('A', { created: '2026-09-20' }),
+      st('B', { cat: 'done', res: '2026-09-27T10:00:00.000+0000', created: '2026-09-20' }),
+    ];
+    const { points, approximate } = deriveCfd({
+      ...baseArgs,
+      stories,
+      history: new Map([['A', H([])]]),
+      epicCreated: '2026-09-20',
+    });
+    expect(approximate).toBe(true);
+    expect(at(points, '2026-09-26')).toMatchObject({ todo: 2, done: 0 });
+    expect(at(points, '2026-09-27')).toMatchObject({ todo: 1, done: 1 });
+  });
+
+  it('(g) remaining = inProgress + todo and the three sum to the entered weight (SP weights)', () => {
+    const stories = [
+      st('A', { cat: 'done', sp: 5, res: '2026-09-25T10:00:00.000+0000', created: '2026-09-20' }),
+      st('B', { sp: 3, created: '2026-09-23' }),
+    ];
+    const { points } = deriveCfd({
+      ...baseArgs,
+      metric: 'sp',
+      stories,
+      history: null,
+      epicCreated: '2026-09-20',
+    });
+    for (const p of points) {
+      expect(p.remaining).toBe((p.inProgress as number) + (p.todo as number));
+      const entered = (p.date >= '2026-09-20' ? 5 : 0) + (p.date >= '2026-09-23' ? 3 : 0);
+      expect((p.done as number) + (p.inProgress as number) + (p.todo as number)).toBe(entered);
+    }
+    expect(points[points.length - 1]).toMatchObject({ done: 5, todo: 3 });
+  });
+
+  it('(h) a done date past local today clamps to today', () => {
+    const s = st('X-1', {
+      cat: 'done',
+      created: '2026-09-30',
+      res: '2026-10-02T00:30:00.000+0200',
+    });
+    const { points } = deriveCfd({
+      ...baseArgs,
+      stories: [s],
+      history: null,
+      epicCreated: undefined,
+    });
+    expect(points[points.length - 1]).toMatchObject({ date: TODAY, done: 1, remaining: 0 });
+    expect(at(points, '2026-09-30')).toMatchObject({ todo: 1, done: 0 });
+  });
+
+  it('(i) the axis is daily to 120 days, then thinned to <= 150 points ending today', () => {
+    const daily = deriveCfd({
+      ...baseArgs,
+      stories: [st('A', { created: '2026-06-03' })],
+      history: null,
+      epicCreated: undefined,
+    });
+    expect(daily.points).toHaveLength(121);
+    const long = deriveCfd({
+      ...baseArgs,
+      stories: [st('A', { created: '2025-08-26' })],
+      history: null,
+      epicCreated: undefined,
+    });
+    expect(long.points.length).toBeLessThanOrEqual(150);
+    expect(long.points[long.points.length - 1].date).toBe(TODAY);
+    expect(long.points[0].date).toBe('2025-08-26');
+  });
+
+  it('(j) no created dates and no epicCreated gives no points', () => {
+    const none = { ...baseArgs, history: null, epicCreated: undefined };
+    expect(deriveCfd({ ...none, stories: [st('A')] }).points).toEqual([]);
+    expect(deriveCfd({ ...none, stories: [] }).points).toEqual([]);
+  });
+});
+
+describe('deriveProjection / withProjection', () => {
+  const ok: EpicForecast = {
+    state: 'ok',
+    likely: addWorkingDays(WED, 5),
+    optimistic: addWorkingDays(WED, 4),
+    pessimistic: addWorkingDays(WED, 8),
+    nLikely: 5,
+    nOpt: 4,
+    nPess: 8,
+    remaining: 10,
+    ratePerWeek: 5,
+    scopeRatePerWeek: 0,
+    windowDays: 10,
+    completions: 5,
+    confidence: 'medium',
+    explanation: '',
+  };
+  it('projects today, optimistic, likely and pessimistic with a band', () => {
+    const { points, clippedAfter } = deriveProjection(ok, WED, '2026-09-01');
+    expect(clippedAfter).toBeNull();
+    expect(points.map((p) => p.date)).toEqual([WED, ok.optimistic, ok.likely, ok.pessimistic]);
+    expect(points[0]).toMatchObject({ forecast: 10, band: [10, 10] });
+    const likely = points[2];
+    expect(likely.forecast).toBe(0);
+    expect(likely.band).toEqual([0, 10 - (10 / 8) * 5]);
+    for (const p of points) {
+      expect(p.forecast).toBeGreaterThanOrEqual(0);
+      expect(p.band[0]).toBeGreaterThanOrEqual(0);
+      expect(p.band[1]).toBeGreaterThanOrEqual(p.band[0]);
+    }
+  });
+  it('clips a pessimistic date beyond the cap', () => {
+    const far: EpicForecast = { ...ok, pessimistic: '2027-06-01', nPess: 200 };
+    const { points, clippedAfter } = deriveProjection(far, WED, '2026-09-20');
+    expect(clippedAfter).toBe('2026-11-29');
+    expect(points[points.length - 1].date).toBe('2026-11-29');
+  });
+  it('is empty for non-ok states', () => {
+    expect(deriveProjection({ ...ok, state: 'stalled' }, WED, null).points).toEqual([]);
+  });
+  it('withProjection pins today to remaining and appends null-series future points', () => {
+    const base = [
+      { date: '2026-09-29', t: Date.UTC(2026, 8, 29), label: 'Sep 29', done: 1, remaining: 12 },
+      { date: WED, t: Date.UTC(2026, 8, 30), label: 'Sep 30', done: 2, remaining: 10 },
+    ];
+    const merged = withProjection(base, deriveProjection(ok, WED, '2026-09-29'));
+    expect(merged[0]).toMatchObject({ forecast: null, band: null });
+    expect(merged[1]).toMatchObject({ forecast: 10, band: [10, 10] });
+    expect(merged).toHaveLength(5);
+    expect(merged[2]).toMatchObject({ done: null, remaining: null });
+    expect(merged.map((p) => p.t)).toEqual([...merged.map((p) => p.t)].sort((a, b) => a - b));
   });
 });
