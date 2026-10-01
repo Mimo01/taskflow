@@ -9,12 +9,15 @@
  * dots only on hover). The worklog query and the averaged finish are owned by the section.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { Area, Brush, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   type AveragedForecast,
+  axisTicks,
+  dateKeyMs,
   deriveTimeBurnup,
+  padToDomain,
   projectFinish,
   type WorkCalendar,
   withProjection,
@@ -23,10 +26,18 @@ import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { ForecastLegend, LegendItem, SourceFlag, tickLabel } from './EpicCfdChart';
 import { EpicChartTooltip, timeRows } from './EpicChartTooltip';
+import {
+  BRUSH_STYLE,
+  brushIndexes,
+  brushUsable,
+  CHART_HEIGHT,
+  type ChartZoom,
+  visibleRange,
+  ZoomPresets,
+} from './EpicChartZoom';
 import { SERIES } from './epic-markers';
 
 const HOUR = 3600;
-const CHART_HEIGHT = 220;
 const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 
 interface EpicTimeBurnupProps {
@@ -43,6 +54,8 @@ interface EpicTimeBurnupProps {
   calendar: WorkCalendar;
   /** Small neutral info flag text (see EpicCfdChart). */
   sourceFlag?: string | null;
+  /** Shared zoom state (null without a valid axis start). */
+  zoom: ChartZoom | null;
 }
 
 const hoursLabel = (h: number) => formatDuration(Math.round(h * HOUR));
@@ -55,6 +68,7 @@ export function EpicTimeBurnup({
   finish,
   calendar,
   sourceFlag,
+  zoom,
 }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
 
@@ -102,11 +116,7 @@ export function EpicTimeBurnup({
   const points = deriveTimeBurnup(stories, data, epicCreated, today);
   const base = points.map((p) => ({
     ...p,
-    t: Date.UTC(
-      Number(p.date.slice(0, 4)),
-      Number(p.date.slice(5, 7)) - 1,
-      Number(p.date.slice(8, 10)),
-    ),
+    t: dateKeyMs(p.date),
     estimate: p.estimate / HOUR,
     logged: p.logged / HOUR,
     remaining: Math.max(p.estimate - p.logged, 0) / HOUR,
@@ -118,16 +128,25 @@ export function EpicTimeBurnup({
     finish,
     todayRemainingHours,
     today,
-    base.length > 0 ? base[0].date : null,
+    zoom?.domain.from ?? (base.length > 0 ? base[0].date : null),
     calendar,
   );
-  const chartData = withProjection(base, projection);
+  const projected = withProjection(base, projection);
+  const chartData = zoom ? padToDomain(projected, zoom.domain.to) : projected;
+  const range = visibleRange(zoom, chartData);
+  const brush = brushIndexes(chartData, range ?? { from: '', to: '' });
   const hasProjection = projection.points.length > 0;
 
   return (
     <div>
-      <div data-testid="epic-time-burnup" style={{ height: CHART_HEIGHT }}>
-        {points.length === 0 ? (
+      <div
+        data-testid="epic-time-burnup"
+        data-x-from={range?.from}
+        data-x-to={range?.to}
+        data-domain-to={zoom?.domain.to ?? range?.to}
+        style={{ height: CHART_HEIGHT }}
+      >
+        {points.length === 0 || !range ? (
           <p className="text-sm text-muted-foreground italic">No timeline data</p>
         ) : (
           <ChartContainer
@@ -144,11 +163,12 @@ export function EpicTimeBurnup({
                 type="number"
                 dataKey="t"
                 scale="time"
-                domain={['dataMin', 'dataMax']}
+                domain={[dateKeyMs(range.from), dateKeyMs(range.to)]}
+                allowDataOverflow
+                ticks={axisTicks(range.from, range.to)}
                 tickFormatter={tickLabel}
                 tickLine={false}
                 axisLine={false}
-                minTickGap={24}
               />
               <YAxis
                 allowDecimals={false}
@@ -223,23 +243,46 @@ export function EpicTimeBurnup({
                 }}
                 isAnimationActive={false}
               />
+              {brushUsable(zoom, chartData) ? (
+                <Brush
+                  key={zoom.epoch}
+                  dataKey="t"
+                  {...BRUSH_STYLE}
+                  tickFormatter={tickLabel}
+                  startIndex={brush.startIndex}
+                  endIndex={brush.endIndex}
+                  onChange={(r) => {
+                    if (r.startIndex === brush.startIndex && r.endIndex === brush.endIndex) return;
+                    const a = chartData[r.startIndex];
+                    const b = chartData[r.endIndex];
+                    if (a && b) zoom.onRange({ from: a.date, to: b.date });
+                  }}
+                />
+              ) : null}
             </ComposedChart>
           </ChartContainer>
         )}
       </div>
-      <div
-        data-testid="epic-time-legend"
-        className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
-      >
-        <LegendItem marker={SERIES.estimate.marker} tone={SERIES.estimate.tone} label="Estimate" />
-        <LegendItem marker={SERIES.logged.marker} tone={SERIES.logged.tone} label="Logged" />
-        <LegendItem
-          marker={SERIES.remaining.marker}
-          tone={SERIES.remaining.tone}
-          label="Remaining"
-        />
-        <ForecastLegend finish={finish} hasProjection={hasProjection} />
-        <SourceFlag text={sourceFlag} />
+      <div className="mt-1 flex items-start justify-between gap-4">
+        <div
+          data-testid="epic-time-legend"
+          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"
+        >
+          <LegendItem
+            marker={SERIES.estimate.marker}
+            color={SERIES.estimate.color}
+            label="Estimate"
+          />
+          <LegendItem marker={SERIES.logged.marker} color={SERIES.logged.color} label="Logged" />
+          <LegendItem
+            marker={SERIES.remaining.marker}
+            color={SERIES.remaining.color}
+            label="Remaining"
+          />
+          <ForecastLegend finish={finish} hasProjection={hasProjection} />
+          <SourceFlag text={sourceFlag} />
+        </div>
+        {zoom ? <ZoomPresets zoom={zoom} /> : null}
       </div>
     </div>
   );

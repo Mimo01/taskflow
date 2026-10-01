@@ -188,13 +188,16 @@ describe('EpicChartTooltip', () => {
         />,
       ).container,
     );
+    // Remaining is the one status-coloured line shared by both charts (261001-sqm): In progress.
     expect(cfd.map((r) => r.children[0].getAttribute('data-marker'))).toEqual([
       'status',
       'status',
       'status',
-      'line',
+      'status-line',
     ]);
-    expect(cfd[3].children[0]).toHaveAttribute('data-tone', 'strong');
+    expect((cfd[3].children[0] as HTMLElement).style.background).toBe(
+      STATUS_CATEGORY_COLOR.indeterminate,
+    );
     const t: ChartDatum = { date: '2026-09-15', t: 0, estimate: 3, logged: 1, remaining: 2 };
     const time = rowsOf(
       render(
@@ -206,16 +209,16 @@ describe('EpicChartTooltip', () => {
         />,
       ).container,
     );
-    // Estimate is a filled 'area' (distinct from the forecast 'band') — 261001-rtw review WR-02.
+    // Estimate keeps a distinct filled-area glyph (not the forecast 'band') — 261001-rtw WR-02.
     expect(time.map((r) => r.children[0].getAttribute('data-marker'))).toEqual([
-      'area',
-      'line',
-      'line',
+      'status-area',
+      'status-line',
+      'status-line',
     ]);
-    expect(time.map((r) => r.children[0].getAttribute('data-tone'))).toEqual([
-      'muted',
-      'muted',
-      'strong',
+    expect(time.map((r) => (r.children[0] as HTMLElement).style.background)).toEqual([
+      STATUS_CATEGORY_COLOR.new,
+      STATUS_CATEGORY_COLOR.done,
+      STATUS_CATEGORY_COLOR.indeterminate,
     ]);
     const future: ChartDatum = {
       date: '2026-10-07',
@@ -318,5 +321,88 @@ describe('ForecastLegend review fixes (261001-rtw)', () => {
     const { container } = render(<ForecastLegend finish={finish} hasProjection={false} />);
     expect(container.textContent).toContain('Forecast:');
     expect(container.textContent).toContain('nothing left in this view');
+  });
+});
+
+describe('EpicChartTooltip confidence and blank rows (261001-sqm)', () => {
+  const f: EpicForecast = {
+    state: 'ok',
+    remaining: 5,
+    ratePerWeek: 1,
+    scopeRatePerWeek: 0,
+    windowDays: 14,
+    completions: 5,
+    nLikely: 5,
+    nOpt: 4,
+    nPess: 8,
+    likely: '2026-10-07',
+    optimistic: '2026-10-06',
+    pessimistic: '2026-10-12',
+    confidence: 'medium',
+    explanation: '',
+  };
+  const finish = averageForecasts([{ metric: 'count', forecast: f }], '2026-09-30');
+  const future: ChartDatum = {
+    date: '2026-10-07',
+    t: 0,
+    remaining: null,
+    forecast: 2,
+    band: [1, 3],
+    wd: 5,
+    workingDay: true,
+  };
+
+  it('a future datum shows a Confidence meter row and the reason in the note', () => {
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: future }]}
+        metric="count"
+        rows={cfdRows('count')}
+        finish={finish}
+        today="2026-09-30"
+      />,
+    );
+    const row = rowsOf(container).find((r) => r.textContent?.startsWith('Confidence'));
+    expect(row?.querySelector('[data-testid="confidence-meter"]')).toHaveAttribute(
+      'data-level',
+      'medium',
+    );
+    expect(container.textContent).toContain('Only 14 working days of history');
+  });
+
+  it('history rows get no Confidence row', () => {
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: history }]}
+        metric="count"
+        rows={cfdRows('count')}
+        finish={finish}
+        today="2026-09-30"
+      />,
+    );
+    expect(rowsOf(container).some((r) => r.textContent?.startsWith('Confidence'))).toBe(false);
+  });
+
+  it('renders nothing for a padded blank datum', () => {
+    const blank: ChartDatum = {
+      date: '2026-10-20',
+      t: 0,
+      remaining: null,
+      forecast: null,
+      band: null,
+    };
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: blank }]}
+        metric="count"
+        rows={cfdRows('count')}
+        finish={finish}
+        today="2026-09-30"
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

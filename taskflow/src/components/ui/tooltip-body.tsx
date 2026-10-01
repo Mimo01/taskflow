@@ -29,10 +29,19 @@ export function TooltipBody({
 }
 
 /**
- * Marker shapes. Colour is for STATUSES only ('status'); every other marker is monochrome
- * (foreground / muted-foreground) so a coloured glyph always means a status.
+ * Marker shapes. Colour means STATUS: 'status' is a swatch for a status, and 'status-line' /
+ * 'status-area' are line / area glyphs for series that carry a status meaning (e.g. Logged =
+ * Done). Every other marker is monochrome (foreground / muted-foreground).
  */
-export type TooltipMarker = 'status' | 'line' | 'dashed' | 'band' | 'area' | 'icon';
+export type TooltipMarker =
+  | 'status'
+  | 'status-line'
+  | 'status-area'
+  | 'line'
+  | 'dashed'
+  | 'band'
+  | 'area'
+  | 'icon';
 export type MarkerTone = 'strong' | 'muted';
 
 const TONE_COLOR: Record<MarkerTone, string> = {
@@ -48,7 +57,7 @@ export function MarkerGlyph({
   icon,
 }: {
   marker: TooltipMarker;
-  /** CSS colour; used ONLY by 'status'. */
+  /** CSS colour; used ONLY by the 'status*' markers. */
   color?: string;
   tone?: MarkerTone;
   icon?: ReactNode;
@@ -59,6 +68,26 @@ export function MarkerGlyph({
         aria-hidden="true"
         data-marker="status"
         className="size-2 shrink-0 rounded-[2px]"
+        style={{ background: color }}
+      />
+    );
+  }
+  if (marker === 'status-line') {
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="status-line"
+        className="h-0.5 w-2.5 shrink-0 rounded-full"
+        style={{ background: color }}
+      />
+    );
+  }
+  if (marker === 'status-area') {
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="status-area"
+        className="h-2 w-2.5 shrink-0 rounded-[2px] opacity-60"
         style={{ background: color }}
       />
     );
@@ -130,7 +159,7 @@ export function TooltipRow({
   tone,
   icon,
 }: {
-  /** Status colour (marker 'status' only; neutral markers ignore it). */
+  /** Status colour (the 'status*' markers only; neutral markers ignore it). */
   color?: string;
   label: ReactNode;
   value: ReactNode;

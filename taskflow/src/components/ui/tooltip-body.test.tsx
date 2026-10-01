@@ -84,6 +84,25 @@ describe('tooltip-body', () => {
     expect(row.children).toHaveLength(3);
   });
 
+  it('status-line and status-area use the passed colour and are distinct glyphs', () => {
+    const color = STATUS_CATEGORY_COLOR.done;
+    const glyph = (marker: 'line' | 'area' | 'status-line' | 'status-area') => {
+      const { container } = render(
+        <TooltipRow marker={marker} color={color} label="x" value="1" />,
+      );
+      return container.querySelector('[data-slot="tooltip-row"] span') as HTMLElement;
+    };
+    const sl = glyph('status-line');
+    const sa = glyph('status-area');
+    expect(sl.getAttribute('data-marker')).toBe('status-line');
+    expect(sa.getAttribute('data-marker')).toBe('status-area');
+    expect(sl.style.background).toBe(color);
+    expect(sa.style.background).toBe(color);
+    expect(sl.className).not.toBe(sa.className);
+    expect(glyph('line').getAttribute('data-marker')).toBe('line');
+    expect(glyph('area').getAttribute('data-marker')).toBe('area');
+  });
+
   it('no neutral marker renders a status colour', () => {
     const statusColors = Object.values(STATUS_CATEGORY_COLOR);
     for (const marker of ['line', 'dashed', 'band'] as const) {

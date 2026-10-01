@@ -20,7 +20,11 @@ import {
   averageForecasts,
   type Bands,
   buildStatusCategoryLookup,
+  type ChartRange,
   calendarNote,
+  chartAxisStart,
+  chartDomain,
+  clampRange,
   dataSourceLines,
   deriveAdaptiveForecast,
   deriveAssigneeBuckets,
@@ -34,10 +38,13 @@ import {
   HISTORY_SOURCE_TEXT,
   type HistorySource,
   type Metric,
+  padToDomain,
+  presetRange,
   projectFinish,
   type StatusBucket,
   type WorklogSource,
   withProjection,
+  type ZoomPreset,
 } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
 import { statusCategoryColor, statusCategoryDotClass } from '@/lib/statusStyles';
@@ -46,6 +53,7 @@ import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { BandBar, BandBreakdown, BandChips } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
+import type { ChartZoom } from './EpicChartZoom';
 import { EpicProgressSummary } from './EpicProgressSummary';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
 import { MARKER_ICON } from './epic-markers';
@@ -132,7 +140,7 @@ function EpicProgressSkeleton() {
           <Skeleton key={i} className="h-12" />
         ))}
       </div>
-      <Skeleton className="h-[220px] w-full" />
+      <Skeleton className="h-[252px] w-full" />
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-4 w-2/3" />
       {[0, 1, 2].map((i) => (
@@ -152,6 +160,12 @@ export function EpicProgressSection({
 }: EpicProgressSectionProps) {
   const [metric, setMetric] = useState<Metric>('count');
   const timeMode = metric === 'time';
+  // Lifted zoom: shared by both charts and kept across tab switches (date-keyed, not indexes).
+  const [zoom, setZoom] = useState<{
+    preset: ZoomPreset | null;
+    range: ChartRange | null;
+    epoch: number;
+  }>({ preset: 'all', range: null, epoch: 0 });
   // Hooks run before the early returns (rules of hooks). Worklogs load in every mode (after
   // first paint) because the averaged Finish includes the Time forecast.
   const storyKeys = (stories ?? []).map((s) => s.key);
@@ -233,14 +247,27 @@ export function EpicProgressSection({
         });
   // One forecast: the CFD projects the shared averaged finish from its own current remaining.
   const cfdToday = cfdPoints.length > 0 ? cfdPoints[cfdPoints.length - 1] : null;
-  const projection = projectFinish(
-    finish,
-    cfdToday?.remaining ?? 0,
-    today,
-    cfdPoints.length > 0 ? cfdPoints[0].date : null,
-    calendar,
-  );
-  const cfdData = withProjection(cfdPoints, projection);
+  const axisStart = chartAxisStart(stories, epicCreated, today);
+  const projection = projectFinish(finish, cfdToday?.remaining ?? 0, today, axisStart, calendar);
+  // One x-domain and one zoom range for both charts, so switching tabs never shifts the axis.
+  const domain = chartDomain(axisStart, today, finish);
+  let chartZoom: ChartZoom | null = null;
+  if (domain) {
+    const wanted = zoom.preset
+      ? (presetRange(zoom.preset, domain, today) ?? domain)
+      : (zoom.range ?? domain);
+    chartZoom = {
+      domain,
+      range: clampRange(wanted, domain),
+      preset: zoom.preset,
+      forecastEnabled: presetRange('forecast', domain, today) !== null,
+      epoch: zoom.epoch,
+      onPreset: (preset) => setZoom((z) => ({ preset, range: null, epoch: z.epoch + 1 })),
+      onRange: (range) => setZoom((z) => ({ preset: null, range, epoch: z.epoch })),
+    };
+  }
+  const projectedCfd = withProjection(cfdPoints, projection);
+  const cfdData = domain ? padToDomain(projectedCfd, domain.to) : projectedCfd;
   let historySource: HistorySource;
   if (history.data) historySource = approximate ? 'partial' : 'real';
   else if (history.isError || !history.isFetching) historySource = 'unavailable';
@@ -310,6 +337,7 @@ export function EpicProgressSection({
                 finish={finish}
                 calendar={calendar}
                 sourceFlag={null}
+                zoom={chartZoom}
               />
             ) : (
               <EpicCfdChart
@@ -321,6 +349,7 @@ export function EpicProgressSection({
                 clippedAfter={projection.clippedAfter}
                 finish={finish}
                 today={today}
+                zoom={chartZoom}
               />
             )}
             <div data-testid="epic-status-block" className="mt-3.5 flex flex-col gap-1.5">
