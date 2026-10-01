@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
 
 /**
  * The single tooltip surface for the epic-progress feature: base-ui TooltipContent
@@ -29,7 +28,85 @@ export function TooltipBody({
   );
 }
 
-export type TooltipMarker = 'swatch' | 'dot' | 'line';
+/**
+ * Marker shapes. Colour is for STATUSES only ('status'); every other marker is monochrome
+ * (foreground / muted-foreground) so a coloured glyph always means a status.
+ */
+export type TooltipMarker = 'status' | 'line' | 'dashed' | 'band' | 'icon';
+export type MarkerTone = 'strong' | 'muted';
+
+const TONE_COLOR: Record<MarkerTone, string> = {
+  strong: 'var(--color-foreground)',
+  muted: 'var(--color-muted-foreground)',
+};
+
+/** The leading glyph shared by TooltipRow and the chart legends. */
+export function MarkerGlyph({
+  marker,
+  color,
+  tone = 'muted',
+  icon,
+}: {
+  marker: TooltipMarker;
+  /** CSS colour; used ONLY by 'status'. */
+  color?: string;
+  tone?: MarkerTone;
+  icon?: ReactNode;
+}) {
+  if (marker === 'status') {
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="status"
+        className="size-2 shrink-0 rounded-[2px]"
+        style={{ background: color }}
+      />
+    );
+  }
+  if (marker === 'icon') {
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="icon"
+        className="flex size-3 shrink-0 items-center justify-center text-muted-foreground"
+      >
+        {icon}
+      </span>
+    );
+  }
+  const c = TONE_COLOR[tone];
+  if (marker === 'dashed') {
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="dashed"
+        data-tone={tone}
+        className="h-0 w-2.5 shrink-0 border-t-2 border-dashed"
+        style={{ borderColor: c }}
+      />
+    );
+  }
+  if (marker === 'band') {
+    return (
+      <span
+        aria-hidden="true"
+        data-marker="band"
+        data-tone={tone}
+        className="h-2 w-2.5 shrink-0 rounded-[2px] border opacity-30"
+        style={{ background: c, borderColor: c }}
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      data-marker="line"
+      data-tone={tone}
+      className="h-0.5 w-2.5 shrink-0 rounded-full"
+      style={{ background: c }}
+    />
+  );
+}
 
 /** One tooltip row: marker · label · value (· sub). */
 export function TooltipRow({
@@ -37,56 +114,24 @@ export function TooltipRow({
   label,
   value,
   sub,
-  dashed,
   marker,
+  tone,
   icon,
 }: {
-  /** CSS colour of the marker. */
+  /** Status colour (marker 'status' only; neutral markers ignore it). */
   color?: string;
   label: ReactNode;
   value: ReactNode;
   sub?: ReactNode;
-  dashed?: boolean;
-  /**
-   * Leading marker shape. Defaults to a square swatch when `color` is set, else a neutral
-   * muted dot, so every row has something on the left. Use 'line' for line series.
-   */
+  /** Defaults to 'icon' when `icon` is set, 'status' when `color` is set, else a muted 'line'. */
   marker?: TooltipMarker;
-  /** Renders this icon (coloured via `color`) instead of a shape marker. */
+  tone?: MarkerTone;
   icon?: ReactNode;
 }) {
-  const shape = marker ?? (color ? 'swatch' : 'dot');
+  const shape = marker ?? (icon ? 'icon' : color ? 'status' : 'line');
   return (
     <div data-slot="tooltip-row" className="flex items-center gap-2">
-      {icon ? (
-        <span
-          aria-hidden="true"
-          className="flex size-3 shrink-0 items-center justify-center"
-          style={{ color }}
-        >
-          {icon}
-        </span>
-      ) : (
-        <span
-          aria-hidden="true"
-          className={cn(
-            'shrink-0',
-            dashed
-              ? 'size-2 rounded-[2px] border border-dashed'
-              : shape === 'swatch'
-                ? 'size-2 rounded-[2px]'
-                : shape === 'line'
-                  ? 'h-0.5 w-2.5 rounded-full'
-                  : 'size-2 rounded-full',
-            !dashed && shape === 'dot' && !color && 'opacity-60',
-          )}
-          style={
-            dashed
-              ? { background: 'transparent', borderColor: color }
-              : { background: color ?? 'var(--color-muted-foreground)' }
-          }
-        />
-      )}
+      <MarkerGlyph marker={shape} color={color} tone={tone} icon={icon} />
       <span className="text-muted-foreground">{label}</span>
       <span className="ml-auto pl-3 font-mono font-medium tabular-nums">{value}</span>
       {sub ? <span className="text-muted-foreground tabular-nums">{sub}</span> : null}

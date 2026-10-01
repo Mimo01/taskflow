@@ -1,12 +1,27 @@
 /**
  * EpicChartTooltip — custom recharts tooltip content for the epic CFD and time charts
- * (quick 261001-ilq). Reads the hovered DATUM (payload[0].payload) rather than the
+ * (quick 261001-ilq, 261001-rtw). Reads the hovered DATUM (payload[0].payload) rather than the
  * per-series items, so row order is fixed and range-array values never reach a
  * formatter. Renders on the shared TOOLTIP_SURFACE like every other tooltip.
+ * Colour marks statuses only; every other row uses a neutral marker or icon.
  */
-import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
-import { formatDateKey, formatMetric, type Metric } from '@/lib/epic-progress';
+import {
+  type MarkerTone,
+  TOOLTIP_SURFACE,
+  TooltipBody,
+  type TooltipMarker,
+  TooltipRow,
+} from '@/components/ui/tooltip-body';
+import {
+  type AveragedForecast,
+  finishDateRows,
+  formatDateKey,
+  formatFinishDate,
+  formatMetric,
+  type Metric,
+} from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
+import { MARKER_ICON, SERIES } from './epic-markers';
 
 export interface ChartDatum {
   date: string;
@@ -24,11 +39,10 @@ export interface ChartRowSpec {
   key: string;
   label: string;
   value: string;
-  /** CSS colour of the swatch. */
-  color: string;
-  dashed?: boolean;
-  /** Line series use 'line'; area/status series keep the swatch. */
-  marker?: 'swatch' | 'line';
+  marker: TooltipMarker;
+  /** Status colour (marker 'status' only). */
+  color?: string;
+  tone?: MarkerTone;
 }
 
 interface EpicChartTooltipProps {
@@ -41,30 +55,42 @@ interface EpicChartTooltipProps {
   formatValue?: (n: number) => string;
   /** Set when the pessimistic bound was clipped to the axis cap. */
   clippedAfter?: string | null;
+  /** The shared averaged forecast; key dates get the same rows as the Finish tooltip. */
+  finish?: AveragedForecast | null;
+  today?: string;
 }
-
-/** Forecast / Remaining are not statuses: neutral colours that never collide with a status colour. */
-export const FORECAST_COLOR = 'var(--color-muted-foreground)';
-export const REMAINING_COLOR = 'var(--color-foreground)';
 
 /** CFD history rows, in fixed order: Completed / In progress / To do / Remaining. */
 export function cfdRows(metric: Metric): (d: ChartDatum) => ChartRowSpec[] {
   const v = (n: unknown) => formatMetric(Number(n ?? 0), metric);
   return (d) => [
-    { key: 'done', label: 'Completed', value: v(d.done), color: STATUS_CATEGORY_COLOR.done },
+    {
+      key: 'done',
+      label: 'Completed',
+      value: v(d.done),
+      marker: 'status',
+      color: STATUS_CATEGORY_COLOR.done,
+    },
     {
       key: 'inProgress',
       label: 'In progress',
       value: v(d.inProgress),
+      marker: 'status',
       color: STATUS_CATEGORY_COLOR.indeterminate,
     },
-    { key: 'todo', label: 'To do', value: v(d.todo), color: STATUS_CATEGORY_COLOR.new },
+    {
+      key: 'todo',
+      label: 'To do',
+      value: v(d.todo),
+      marker: 'status',
+      color: STATUS_CATEGORY_COLOR.new,
+    },
     {
       key: 'remaining',
       label: 'Remaining',
       value: v(d.remaining),
-      color: REMAINING_COLOR,
-      marker: 'line',
+      marker: SERIES.remaining.marker,
+      tone: SERIES.remaining.tone,
     },
   ];
 }
@@ -73,20 +99,26 @@ export function cfdRows(metric: Metric): (d: ChartDatum) => ChartRowSpec[] {
 export function timeRows(format: (hours: number) => string): (d: ChartDatum) => ChartRowSpec[] {
   const v = (n: unknown) => format(Number(n ?? 0));
   return (d) => [
-    { key: 'estimate', label: 'Estimate', value: v(d.estimate), color: STATUS_CATEGORY_COLOR.new },
+    {
+      key: 'estimate',
+      label: 'Estimate',
+      value: v(d.estimate),
+      marker: SERIES.estimate.marker,
+      tone: SERIES.estimate.tone,
+    },
     {
       key: 'logged',
       label: 'Logged',
       value: v(d.logged),
-      color: STATUS_CATEGORY_COLOR.done,
-      marker: 'line',
+      marker: SERIES.logged.marker,
+      tone: SERIES.logged.tone,
     },
     {
       key: 'remaining',
       label: 'Remaining',
       value: v(d.remaining),
-      color: STATUS_CATEGORY_COLOR.indeterminate,
-      marker: 'line',
+      marker: SERIES.remaining.marker,
+      tone: SERIES.remaining.tone,
     },
   ];
 }
@@ -98,6 +130,8 @@ export function EpicChartTooltip({
   rows,
   formatValue,
   clippedAfter,
+  finish,
+  today,
 }: EpicChartTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const datum = payload[0].payload as ChartDatum | undefined;
@@ -111,6 +145,8 @@ export function EpicChartTooltip({
   const specs: ChartRowSpec[] = isFuture ? [] : rows(datum);
   const hasForecast = typeof datum.forecast === 'number';
   const band = datum.band;
+  const keyDates =
+    isFuture && finish && today ? finishDateRows(finish).filter((r) => r.date === datum.date) : [];
 
   return (
     <div className={TOOLTIP_SURFACE}>
@@ -124,7 +160,7 @@ export function EpicChartTooltip({
           <TooltipRow
             key={r.key}
             color={r.color}
-            dashed={r.dashed}
+            tone={r.tone}
             marker={r.marker}
             label={r.label}
             value={r.value}
@@ -132,27 +168,37 @@ export function EpicChartTooltip({
         ))}
         {hasForecast ? (
           <TooltipRow
-            dashed
-            color={FORECAST_COLOR}
+            marker={SERIES.forecast.marker}
+            tone={SERIES.forecast.tone}
             label="Forecast"
             value={fmt(datum.forecast as number)}
           />
         ) : null}
         {isFuture && band ? (
           <TooltipRow
-            dashed
-            color={FORECAST_COLOR}
+            marker={SERIES.band.marker}
+            tone={SERIES.band.tone}
             label="Range"
             value={`${fmt(band[0])}–${fmt(band[1])}`}
           />
         ) : null}
         {hasForecast && typeof datum.wd === 'number' && datum.wd > 0 ? (
           <TooltipRow
+            icon={<MARKER_ICON.fromToday className="size-3" />}
             label="From today"
             value={`${datum.wd} working day${datum.wd === 1 ? '' : 's'}`}
             sub={datum.workingDay === false ? 'non-working day' : undefined}
           />
         ) : null}
+        {keyDates.map((r) => (
+          <TooltipRow
+            key={r.key}
+            icon={<MARKER_ICON.date className="size-3" />}
+            label={r.label}
+            value={formatFinishDate(r.date, today as string)}
+            sub={`${r.n} working days`}
+          />
+        ))}
       </TooltipBody>
     </div>
   );

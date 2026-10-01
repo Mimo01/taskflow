@@ -2,9 +2,9 @@
 
 /**
  * EpicCfdChart — cumulative flow diagram for the epic progress section (quick 261001-ilq).
- * Stacked Done / In progress / To do areas (status-category colours), a solid Remaining
- * line, and — when the forecast is ok — a dashed forecast line with an optimistic-to-
- * pessimistic range band on a numeric time axis. The projection has one point per calendar
+ * Stacked Done / In progress / To do areas (status-category colours), a solid neutral Remaining
+ * line, and — when the shared averaged forecast is ok — a dashed neutral forecast line with an
+ * optimistic-to-pessimistic range band on a numeric time axis. The projection has one point per calendar
  * day (flat on non-working days); its dots are hidden until hover (activeDot only).
  *
  * Recharts conventions shared with the other charts: 'use no memo' + explicit-height
@@ -13,9 +13,17 @@
  */
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
-import { type CfdPoint, formatDateKey, type Metric } from '@/lib/epic-progress';
+import { MarkerGlyph, type MarkerTone, type TooltipMarker } from '@/components/ui/tooltip-body';
+import {
+  type AveragedForecast,
+  type CfdPoint,
+  FINISH_STATE_TEXT,
+  formatDateKey,
+  type Metric,
+} from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
-import { cfdRows, EpicChartTooltip, FORECAST_COLOR, REMAINING_COLOR } from './EpicChartTooltip';
+import { cfdRows, EpicChartTooltip } from './EpicChartTooltip';
+import { SERIES } from './epic-markers';
 
 const CHART_HEIGHT = 220;
 const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
@@ -37,6 +45,9 @@ interface EpicCfdChartProps {
   note: string;
   hasProjection: boolean;
   clippedAfter: string | null;
+  /** The one shared forecast (same result as the Finish tile). */
+  finish: AveragedForecast;
+  today: string;
 }
 
 export function tickLabel(v: unknown): string {
@@ -44,23 +55,41 @@ export function tickLabel(v: unknown): string {
 }
 
 export function LegendItem({
-  color,
   label,
-  dashed,
+  marker,
+  color,
+  tone,
 }: {
-  color: string;
   label: string;
-  dashed?: boolean;
+  marker: TooltipMarker;
+  /** Status colour (marker 'status' only). */
+  color?: string;
+  tone?: MarkerTone;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        aria-hidden="true"
-        className={dashed ? 'size-2 rounded-[2px] border border-dashed' : 'size-2 rounded-[2px]'}
-        style={dashed ? { borderColor: color } : { background: color }}
-      />
+      <MarkerGlyph marker={marker} color={color} tone={tone} />
       <span>{label}</span>
     </span>
+  );
+}
+
+/** Legend entry for the shared forecast: the dashed item, or the state text when none is drawn. */
+export function ForecastLegend({
+  finish,
+  hasProjection,
+}: {
+  finish: AveragedForecast;
+  hasProjection: boolean;
+}) {
+  if (hasProjection) {
+    return (
+      <LegendItem marker={SERIES.forecast.marker} tone={SERIES.forecast.tone} label="Forecast" />
+    );
+  }
+  if (finish.state === 'ok') return null;
+  return (
+    <span data-testid="epic-forecast-state">{`Forecast: ${FINISH_STATE_TEXT[finish.state]}`}</span>
   );
 }
 
@@ -71,6 +100,8 @@ export function EpicCfdChart({
   note,
   hasProjection,
   clippedAfter,
+  finish,
+  today,
 }: EpicCfdChartProps) {
   return (
     <div>
@@ -104,6 +135,8 @@ export function EpicCfdChart({
                     metric={metric}
                     clippedAfter={clippedAfter}
                     rows={cfdRows(metric)}
+                    finish={finish}
+                    today={today}
                   />
                 )}
               />
@@ -139,30 +172,30 @@ export function EpicCfdChart({
                 dataKey="band"
                 type="linear"
                 stroke="none"
-                fill={FORECAST_COLOR}
-                fillOpacity={0.12}
+                fill={SERIES.band.fill}
+                fillOpacity={SERIES.band.fillOpacity}
                 isAnimationActive={false}
                 activeDot={false}
               />
               <Line
                 dataKey="remaining"
                 type="stepAfter"
-                stroke={REMAINING_COLOR}
-                strokeWidth={1.5}
+                stroke={SERIES.remaining.stroke}
+                strokeWidth={SERIES.remaining.strokeWidth}
                 dot={false}
                 isAnimationActive={false}
               />
               <Line
                 dataKey="forecast"
                 type="linear"
-                stroke={FORECAST_COLOR}
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
+                stroke={SERIES.forecast.stroke}
+                strokeWidth={SERIES.forecast.strokeWidth}
+                strokeDasharray={SERIES.forecast.strokeDasharray}
                 connectNulls
                 dot={false}
                 activeDot={{
                   r: 3,
-                  fill: FORECAST_COLOR,
+                  fill: SERIES.forecast.stroke,
                   stroke: 'var(--color-background)',
                   strokeWidth: 1,
                 }}
@@ -176,11 +209,19 @@ export function EpicCfdChart({
         data-testid="epic-cfd-legend"
         className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
       >
-        <LegendItem color={STATUS_CATEGORY_COLOR.done} label="Completed" />
-        <LegendItem color={STATUS_CATEGORY_COLOR.indeterminate} label="In progress" />
-        <LegendItem color={STATUS_CATEGORY_COLOR.new} label="To do" />
-        <LegendItem color={REMAINING_COLOR} label="Remaining" />
-        {hasProjection ? <LegendItem dashed color={FORECAST_COLOR} label="Forecast" /> : null}
+        <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.done} label="Completed" />
+        <LegendItem
+          marker="status"
+          color={STATUS_CATEGORY_COLOR.indeterminate}
+          label="In progress"
+        />
+        <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.new} label="To do" />
+        <LegendItem
+          marker={SERIES.remaining.marker}
+          tone={SERIES.remaining.tone}
+          label="Remaining"
+        />
+        <ForecastLegend finish={finish} hasProjection={hasProjection} />
       </div>
       <p data-testid="epic-cfd-note" className="mt-1 text-xs text-muted-foreground">
         {note}

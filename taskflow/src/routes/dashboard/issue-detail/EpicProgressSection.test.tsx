@@ -1072,3 +1072,83 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     expect(screen.getByTestId('epic-status-bar').parentElement?.className).toContain('space-y-3');
   });
 });
+
+describe('EpicProgressSection one forecast (261001-rtw)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function workingDaysBack(n: number): string[] {
+    const out: string[] = [];
+    let d = new Date(Date.UTC(2026, 8, 30));
+    while (out.length < n) {
+      const wd = d.getUTCDay();
+      if (wd !== 0 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+      d = new Date(d.getTime() - 86_400_000);
+    }
+    return out;
+  }
+  const okList = () => [
+    ...workingDaysBack(15).map((d, i) =>
+      story(`S-${i + 1}`, {
+        cat: 'done',
+        status: 'Done',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        res: `${d}T12:00:00.000+0000`,
+      }),
+    ),
+    ...[0, 1, 2, 3, 4].map((i) =>
+      story(`S-${100 + i}`, {
+        cat: 'new',
+        status: 'To Do',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        est: 3600,
+      }),
+    ),
+  ];
+  const section = (list: JiraIssue[], created: string | undefined) => (
+    <EpicProgressSection
+      epicKey="E-1"
+      stories={list}
+      storyPointsFieldKey={SP}
+      epicCreated={created}
+    />
+  );
+
+  it('draws the shared Forecast in the CFD (Count) and in the Time chart', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList(), '2026-01-01'));
+    expect(within(screen.getByTestId('epic-cfd-legend')).getByText('Forecast')).toBeInTheDocument();
+    expect(screen.queryByTestId('epic-forecast-state')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const legend = await screen.findByTestId('epic-time-legend');
+    expect(within(legend).getByText('Forecast')).toBeInTheDocument();
+    expect(screen.queryByTestId('epic-forecast-state')).toBeNull();
+  });
+
+  it('shows the same state text in the legend and Finish tile when not ok', () => {
+    renderSection(
+      section(
+        [
+          story('F-1', {
+            cat: 'done',
+            status: 'Done',
+            created: daysAgo(1),
+            res: daysAgo(0),
+          }),
+          story('F-2', { cat: 'new', status: 'To Do', created: daysAgo(1) }),
+        ],
+        daysAgo(1),
+      ),
+    );
+    const legend = within(screen.getByTestId('epic-cfd-legend'));
+    expect(legend.queryByText('Forecast')).toBeNull();
+    expect(screen.getByTestId('epic-forecast-state').textContent).toBe(
+      'Forecast: Too early to tell',
+    );
+    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Too early to tell');
+  });
+});
