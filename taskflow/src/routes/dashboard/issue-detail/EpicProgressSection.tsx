@@ -2,16 +2,16 @@
 
 /**
  * EpicProgressSection — detailed progress panels for the epic detail view
- * (quick 261001-fmk, extended by 261001-g5q): burnup, status breakdown, per-assignee
- * breakdown, stat tiles, all driven by a Count / SP / Time toggle, inside a Card,
- * with hover/focus tooltips. Rendered above the Stories list.
+ * (quick 261001-fmk, extended by 261001-g5q and 261001-hsz): burnup, status breakdown,
+ * per-assignee breakdown, stat tiles, all driven by a Count / SP / Time toggle, as a
+ * full-width divider-bounded section (no Card) with whole-bar hover/focus tooltips.
+ * Time mode mounts EpicTimeBurnup, which lazily loads worklogs. Rendered above the Stories list.
  *
  * 'use no memo' + explicit-height wrapper + isAnimationActive={false}: Recharts
  * conventions shared with HoursCommitsChart (React Compiler / WebKit 0x0 guard).
  */
 import { type ReactNode, useState } from 'react';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ import {
   deriveForecast,
   deriveStatusBuckets,
   deriveTimeTotals,
+  ESTIMATE_FORMULA_NOTE,
   formatDateKey,
   formatMetric,
   type Metric,
@@ -33,8 +34,10 @@ import { statusCategoryDotClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
+import { EpicTimeBurnup } from './EpicTimeBurnup';
 
 interface EpicProgressSectionProps {
+  epicKey: string;
   stories: JiraIssue[] | undefined;
   storyPointsFieldKey: string;
   epicCreated: string | undefined;
@@ -45,8 +48,9 @@ const chartConfig = {
   done: { label: 'Done', color: 'var(--color-green-500)' },
 } satisfies ChartConfig;
 
-const HOUR = 3600;
-const TILE_CLASS = 'rounded-lg ring-1 ring-foreground/10 px-3 py-2 min-w-0 text-left';
+const TILE_CLASS = 'min-w-0 text-left';
+const SECTION_CLASS = 'border-t border-b border-border py-5 my-6 space-y-5';
+const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 const METRICS = [
   ['count', 'Count'],
   ['sp', 'SP'],
@@ -69,13 +73,24 @@ function Tile({ label, value, tip }: { label: string; value: string; tip: ReactN
   );
 }
 
-function statusTip(b: StatusBucket, statusTotal: number): ReactNode {
-  const pct = statusTotal > 0 ? Math.round((b.value / statusTotal) * 100) : 0;
+function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Metric): ReactNode {
   return (
-    <div className="space-y-0.5">
-      <div className="font-medium">{b.name}</div>
-      <div>{`${b.count} items · ${formatMetric(b.points, 'sp')} · ${formatDuration(b.seconds)} est`}</div>
-      <div className="text-muted-foreground">{`${pct}% of total`}</div>
+    <div className="space-y-1">
+      {statuses
+        .filter((b) => b.value > 0)
+        .map((b) => {
+          const pct = statusTotal > 0 ? Math.round((b.value / statusTotal) * 100) : 0;
+          return (
+            <div key={b.id} className="flex items-center gap-2">
+              <span className={cn('size-2 shrink-0 rounded-full', statusCategoryDotClass(b.cat))} />
+              <span>{b.name}</span>
+              <span className="ml-auto pl-3 font-mono tabular-nums">
+                {formatMetric(b.value, metric)}
+              </span>
+              <span className="text-muted-foreground tabular-nums">{`${pct}%`}</span>
+            </div>
+          );
+        })}
     </div>
   );
 }
@@ -87,38 +102,37 @@ function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
       <div>{`done: ${formatMetric(a.done, metric)}`}</div>
       <div>{`in progress: ${formatMetric(a.inProgress, metric)}`}</div>
       <div>{`to do: ${formatMetric(a.todo, metric)}`}</div>
+      {metric === 'time' ? (
+        <div className="text-muted-foreground">{`${formatDuration(a.logged)} logged of ${formatDuration(a.estimate)}`}</div>
+      ) : null}
     </div>
   );
 }
 
-const CAT_LABEL = { done: 'done', indeterminate: 'in progress', new: 'to do' } as const;
-
 function EpicProgressSkeleton() {
   return (
-    <Card size="sm" data-testid="epic-progress-skeleton" className="my-2">
-      <CardHeader>
+    <div data-testid="epic-progress-skeleton" className={SECTION_CLASS}>
+      <div className="flex items-center justify-between">
         <Skeleton className="h-5 w-24" />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Skeleton className="h-7 w-full" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-14" />
-          ))}
-        </div>
-        <Skeleton className="h-[220px] w-full" />
-        <Skeleton className="h-4 w-48" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-5 w-full" />
+        <Skeleton className="h-6 w-32" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-10" />
         ))}
-      </CardContent>
-    </Card>
+      </div>
+      <Skeleton className="h-[220px] w-full" />
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-4 w-2/3" />
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={i} className="h-5 w-full" />
+      ))}
+    </div>
   );
 }
 
 export function EpicProgressSection({
+  epicKey,
   stories,
   storyPointsFieldKey,
   epicCreated,
@@ -155,91 +169,96 @@ export function EpicProgressSection({
         : 'Needs at least 2 stories completed in the trailing 4 weeks';
 
   const timeMode = metric === 'time';
-  // Plot hours in time mode so the Y axis gets hour-aligned ticks (seconds ticks rounded into duplicate "1h" labels).
-  const chartData = timeMode
-    ? burnup.map((p) => ({ ...p, scope: p.scope / HOUR, done: p.done / HOUR }))
-    : burnup;
+  const chartData = burnup;
 
   return (
-    <section aria-label="Epic progress" className="my-2">
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle>
-            <h3 className="text-sm font-medium text-muted-foreground">Progress</h3>
-          </CardTitle>
-          <CardAction>
-            {/* biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome */}
-            <div role="group" aria-label="Progress metric" className="flex gap-1">
-              {METRICS.map(([m, label]) => (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={metric === m}
-                  onClick={() => setMetric(m)}
-                  className={cn(
-                    'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
-                    metric === m ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {timeMode ? (
-              <>
-                <Tile
-                  label="Estimated"
-                  value={formatDuration(time.estimated)}
-                  tip={`Original estimate, incl. subtasks: ${formatDuration(time.estimated)}`}
-                />
-                <Tile
-                  label="Logged"
-                  value={formatDuration(time.logged)}
-                  tip={`Time logged, incl. subtasks: ${formatDuration(time.logged)}`}
-                />
-                <Tile
-                  label="Remaining"
-                  value={formatDuration(time.remaining)}
-                  tip={`Jira remaining estimate, incl. subtasks: ${formatDuration(time.remaining)} (not estimate minus logged)`}
-                />
-                <Tile
-                  label="% logged"
-                  value={time.pctLogged === null ? '—' : `${time.pctLogged}%`}
-                  tip={`${formatDuration(time.logged)} of ${formatDuration(time.estimated)}`}
-                />
-              </>
-            ) : (
-              <>
-                <Tile label="% done" value={`${forecast.pctDone}%`} tip={doneTip} />
-                <Tile label="Projected finish" value={finish} tip={finishTip} />
-                <Tile
-                  label="Unestimated"
-                  value={String(forecast.unestimated)}
-                  tip={`${forecast.unestimated} without story points`}
-                />
-                <Tile
-                  label="Unassigned open"
-                  value={String(forecast.unassignedOpen)}
-                  tip={`${forecast.unassignedOpen} open with no assignee`}
-                />
-              </>
-            )}
-          </div>
-
-          {metric === 'sp' && forecast.total === 0 ? (
-            <p className="text-sm text-muted-foreground italic pr-0.5">
-              No story points estimated — switch to Count
-            </p>
-          ) : timeMode && time.estimated === 0 ? (
-            <p className="text-sm text-muted-foreground italic pr-0.5">
-              No time estimated — switch to Count
-            </p>
+    <section aria-label="Epic progress" className={SECTION_CLASS}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground">Progress</h3>
+        {/* biome-ignore lint/a11y/useSemanticElements: button toggle group; <fieldset> would add unwanted chrome */}
+        <div role="group" aria-label="Progress metric" className="flex gap-1">
+          {METRICS.map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={metric === m}
+              onClick={() => setMetric(m)}
+              className={cn(
+                'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
+                metric === m ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+          {timeMode ? (
+            <>
+              <Tile
+                label="Estimated"
+                value={formatDuration(time.estimated)}
+                tip={
+                  <div className="space-y-0.5">
+                    <div>{ESTIMATE_FORMULA_NOTE}</div>
+                    <div className="text-muted-foreground">{formatDuration(time.estimated)}</div>
+                  </div>
+                }
+              />
+              <Tile
+                label="Logged"
+                value={formatDuration(time.logged)}
+                tip={`Time logged, incl. subtasks: ${formatDuration(time.logged)}`}
+              />
+              <Tile
+                label="Remaining"
+                value={formatDuration(time.remaining)}
+                tip="Open stories: estimate minus logged, never below 0. Replaces Jira's remaining estimate so it matches the chart."
+              />
+              <Tile
+                label="% logged"
+                value={time.pctLogged === null ? '—' : `${time.pctLogged}%`}
+                tip={`${formatDuration(time.logged)} of ${formatDuration(time.estimated)}`}
+              />
+            </>
           ) : (
             <>
+              <Tile label="% done" value={`${forecast.pctDone}%`} tip={doneTip} />
+              <Tile label="Projected finish" value={finish} tip={finishTip} />
+              <Tile
+                label="Unestimated"
+                value={String(forecast.unestimated)}
+                tip={`${forecast.unestimated} without story points`}
+              />
+              <Tile
+                label="Unassigned open"
+                value={String(forecast.unassignedOpen)}
+                tip={`${forecast.unassignedOpen} open with no assignee`}
+              />
+            </>
+          )}
+        </div>
+
+        {metric === 'sp' && forecast.total === 0 ? (
+          <p className="text-sm text-muted-foreground italic pr-0.5">
+            No story points estimated — switch to Count
+          </p>
+        ) : timeMode && time.estimated === 0 ? (
+          <p className="text-sm text-muted-foreground italic pr-0.5">
+            No time estimated — switch to Count
+          </p>
+        ) : (
+          <>
+            {timeMode ? (
+              <EpicTimeBurnup
+                epicKey={epicKey}
+                stories={stories}
+                epicCreated={epicCreated}
+                today={today}
+              />
+            ) : (
               <div>
                 <div data-testid="epic-burnup" style={{ height: 220 }}>
                   {burnup.length === 0 ? (
@@ -270,6 +289,7 @@ export function EpicProgressSection({
                           tickFormatter={(v) => (timeMode ? `${v}h` : String(v))}
                         />
                         <ChartTooltip
+                          cursor={BAR_CURSOR}
                           content={
                             <ChartTooltipContent
                               labelFormatter={(v) =>
@@ -287,10 +307,7 @@ export function EpicProgressSection({
                                       {chartConfig[key]?.label ?? key}
                                     </span>
                                     <span className="ml-auto font-mono font-medium tabular-nums">
-                                      {formatMetric(
-                                        timeMode ? Number(value) * HOUR : Number(value),
-                                        metric,
-                                      )}
+                                      {formatMetric(Number(value), metric)}
                                     </span>
                                   </div>
                                 );
@@ -320,103 +337,101 @@ export function EpicProgressSection({
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">Scope by story creation date</p>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <div
+            <div className="space-y-2">
+              <Tooltip trackCursorAxis="x">
+                <TooltipTrigger
+                  delay={0}
+                  render={<div />}
                   data-testid="epic-status-bar"
-                  className="flex h-3 w-full gap-px overflow-hidden rounded bg-background"
-                >
-                  {statuses
+                  tabIndex={0}
+                  aria-label={`Status breakdown: ${statuses
                     .filter((b) => b.value > 0)
-                    .map((b) => (
-                      <Tooltip key={b.id}>
-                        <TooltipTrigger
-                          render={<div />}
+                    .map((b) => `${b.name} ${formatMetric(b.value, metric)}`)
+                    .join(', ')}`}
+                  className="py-1.5 -my-1.5"
+                >
+                  <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
+                    {statuses
+                      .filter((b) => b.value > 0)
+                      .map((b) => (
+                        <div
+                          key={b.id}
                           data-testid="epic-status-segment"
                           className={cn('h-full', statusCategoryDotClass(b.cat))}
                           style={{
                             width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%`,
                           }}
                         />
-                        <TooltipContent>{statusTip(b, statusTotal)}</TooltipContent>
-                      </Tooltip>
-                    ))}
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  {statuses.map((b) => (
-                    <Tooltip key={b.id}>
-                      <TooltipTrigger
-                        type="button"
-                        className="inline-flex cursor-default items-center gap-1.5"
-                      >
-                        <span
-                          className={cn('size-2 rounded-full', statusCategoryDotClass(b.cat))}
-                        />
-                        <span>{`${b.name} · ${b.count} · ${formatMetric(b.points, 'sp')}`}</span>
-                      </TooltipTrigger>
-                      <TooltipContent>{statusTip(b, statusTotal)}</TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
+                      ))}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{statusBarTip(statuses, statusTotal, metric)}</TooltipContent>
+              </Tooltip>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {statuses.map((b) => (
+                  <span key={b.id} className="inline-flex items-center gap-1.5">
+                    <span className={cn('size-2 rounded-full', statusCategoryDotClass(b.cat))} />
+                    <span>{`${b.name} · ${b.count} · ${formatMetric(b.points, 'sp')}`}</span>
+                  </span>
+                ))}
               </div>
+            </div>
 
-              <div className="space-y-1">
-                {assignees.map((a) => (
-                  <div
-                    key={a.id}
-                    data-testid="epic-assignee-row"
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    <Tooltip>
-                      <TooltipTrigger
-                        type="button"
-                        className="w-32 flex-none cursor-default truncate pr-0.5 text-left"
-                      >
-                        {a.name}
-                      </TooltipTrigger>
-                      <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
-                    </Tooltip>
-                    <div className="flex h-3 min-w-0 flex-1 gap-px overflow-hidden rounded bg-background">
-                      {(
-                        [
-                          ['done', a.done],
-                          ['indeterminate', a.inProgress],
-                          ['new', a.todo],
-                        ] as const
-                      )
-                        .filter(([, v]) => v > 0)
-                        .map(([cat, v]) => (
-                          <Tooltip key={cat}>
-                            <TooltipTrigger
-                              render={<div />}
+            <div className="space-y-1">
+              {assignees.map((a) => (
+                <div
+                  key={a.id}
+                  data-testid="epic-assignee-row"
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <span className="w-32 flex-none truncate pr-0.5">{a.name}</span>
+                  <Tooltip trackCursorAxis="x">
+                    <TooltipTrigger
+                      delay={0}
+                      render={<div />}
+                      data-testid="epic-assignee-bar"
+                      tabIndex={0}
+                      aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
+                      className="min-w-0 flex-1 py-1.5 -my-1.5"
+                    >
+                      <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
+                        {(
+                          [
+                            ['done', a.done],
+                            ['indeterminate', a.inProgress],
+                            ['new', a.todo],
+                          ] as const
+                        )
+                          .filter(([, v]) => v > 0)
+                          .map(([cat, v]) => (
+                            <div
+                              key={cat}
                               className={cn('h-full', statusCategoryDotClass(cat))}
                               style={{ width: `${(v / maxAssignee) * 100}%` }}
                             />
-                            <TooltipContent>{`${CAT_LABEL[cat]}: ${formatMetric(v, metric)}`}</TooltipContent>
-                          </Tooltip>
-                        ))}
-                    </div>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={<div />}
-                        className={cn(
-                          'flex-none cursor-default truncate whitespace-nowrap text-right text-muted-foreground',
-                          timeMode ? 'w-36' : 'w-14',
-                        )}
-                      >
-                        {timeMode
-                          ? `${formatDuration(a.logged)} / ${formatDuration(a.estimate)}`
-                          : formatMetric(a.remaining, metric)}
-                      </TooltipTrigger>
-                      <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
-                    </Tooltip>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                          ))}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
+                  </Tooltip>
+                  <span
+                    className={cn(
+                      'flex-none truncate whitespace-nowrap text-right text-muted-foreground',
+                      timeMode ? 'w-36' : 'w-14',
+                    )}
+                  >
+                    {timeMode
+                      ? `${formatDuration(a.logged)} / ${formatDuration(a.estimate)}`
+                      : formatMetric(a.remaining, metric)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </section>
   );
 }
