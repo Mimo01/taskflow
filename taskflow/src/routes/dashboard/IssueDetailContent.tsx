@@ -32,6 +32,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
+import { EpicProgressSection } from './issue-detail/EpicProgressSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
@@ -301,7 +302,14 @@ export function IssueDetailContent({
         onDelete={handleDeleteAttachment}
       />
 
-      {/* Epic → Stories list */}
+      {/* Epic → progress charts + Stories list */}
+      {isEpic && (
+        <EpicProgressSection
+          stories={epicStories}
+          storyPointsFieldKey={storyPointsFieldKey}
+          epicCreated={issue.fields.created}
+        />
+      )}
       {isEpic && (
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
