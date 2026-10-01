@@ -40,7 +40,7 @@ describe('useEpicWorkCalendar (261001-qvu)', () => {
       'https://jira.test',
       'tok',
       '2026-06-03',
-      '2027-04-01',
+      '2027-10-01',
       'u1',
     );
     expect(result.current.calendar.source).toBe('tempo');
@@ -72,5 +72,33 @@ describe('useEpicWorkCalendar (261001-qvu)', () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(result.current.calendar.source).toBe('weekends');
     expect(result.current.calendar.isWorkingDay('2026-10-02')).toBe(true);
+  });
+});
+
+describe('useEpicWorkCalendar cache (261001-qvu review)', () => {
+  const remountAfter = async (minutes: number, data: Map<string, 'HOLIDAY'>) => {
+    mockSchedule.mockResolvedValue(data);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const w = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    );
+    const first = renderHook(() => useEpicWorkCalendar('2026-10-01'), { wrapper: w });
+    await waitFor(() => expect(mockSchedule).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(qc.getQueryCache().getAll()[0]?.state.status).toBe('success'));
+    first.unmount();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + minutes * 60_000);
+    renderHook(() => useEpicWorkCalendar('2026-10-01'), { wrapper: w });
+    vi.useRealTimers();
+    await new Promise((r) => setTimeout(r, 20));
+    return mockSchedule.mock.calls.length;
+  };
+
+  it('retries an empty (Tempo error) schedule after a few minutes', async () => {
+    expect(await remountAfter(6, new Map())).toBe(2);
+  });
+
+  it('keeps a real schedule cached for the day', async () => {
+    expect(await remountAfter(6, new Map([['2026-10-02', 'HOLIDAY']]))).toBe(1);
   });
 });

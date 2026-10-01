@@ -244,13 +244,17 @@ function FinishTile({
       }
   }
 
-  const calendarLine =
+  const holidayCount =
     calendar.source === 'tempo'
-      ? `Excludes weekends and ${holidaysBetween(
+      ? holidaysBetween(
           calendar,
           addCalendarDays(today, -HOLIDAY_NOTE_LOOKBACK_DAYS),
           finish.pessimistic ?? today,
-        )} holidays (Tempo)`
+        )
+      : 0;
+  const calendarLine =
+    calendar.source === 'tempo'
+      ? `Excludes weekends and ${holidayCount} ${holidayCount === 1 ? 'holiday' : 'holidays'} (Tempo)`
       : 'Excludes weekends (holidays unavailable)';
   const ok = finish.state === 'ok' && finish.likely && finish.optimistic && finish.pessimistic;
   return (
