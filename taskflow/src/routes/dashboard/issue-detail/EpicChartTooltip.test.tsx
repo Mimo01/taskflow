@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
+import { averageForecasts, type EpicForecast, formatFinishDate } from '@/lib/epic-progress';
 import { type ChartDatum, cfdRows, EpicChartTooltip, timeRows } from './EpicChartTooltip';
 
 const rowsOf = (container: HTMLElement) =>
@@ -93,7 +94,7 @@ describe('EpicChartTooltip', () => {
       'Range1–3.5',
       'From today7 working days',
     ]);
-    expect(working[2].children[0]).toHaveClass('rounded-full');
+    expect(working[2].children[0]).toHaveAttribute('data-marker', 'icon');
     const off = view({ ...base, wd: 7, workingDay: false });
     expect(off[2].textContent).toContain('non-working day');
     expect(view({ ...base, wd: 0, workingDay: true }).map((r) => r.textContent)).toEqual([
@@ -173,5 +174,122 @@ describe('EpicChartTooltip', () => {
       <EpicChartTooltip active payload={[]} metric="count" rows={cfdRows('count')} />,
     );
     expect(b.container).toBeEmptyDOMElement();
+  });
+
+  it('uses neutral markers for non-status rows and status swatches only for statuses', () => {
+    const cfd = rowsOf(
+      render(
+        <EpicChartTooltip
+          active
+          payload={[{ payload: history }]}
+          metric="count"
+          rows={cfdRows('count')}
+        />,
+      ).container,
+    );
+    expect(cfd.map((r) => r.children[0].getAttribute('data-marker'))).toEqual([
+      'status',
+      'status',
+      'status',
+      'line',
+    ]);
+    expect(cfd[3].children[0]).toHaveAttribute('data-tone', 'strong');
+    const t: ChartDatum = { date: '2026-09-15', t: 0, estimate: 3, logged: 1, remaining: 2 };
+    const time = rowsOf(
+      render(
+        <EpicChartTooltip
+          active
+          payload={[{ payload: t }]}
+          metric="time"
+          rows={timeRows((h) => `${h}h`)}
+        />,
+      ).container,
+    );
+    expect(time.map((r) => r.children[0].getAttribute('data-marker'))).toEqual([
+      'band',
+      'line',
+      'line',
+    ]);
+    expect(time.map((r) => r.children[0].getAttribute('data-tone'))).toEqual([
+      'muted',
+      'muted',
+      'strong',
+    ]);
+    const future: ChartDatum = {
+      date: '2026-10-07',
+      t: 0,
+      remaining: null,
+      forecast: 2,
+      band: [1, 3],
+      wd: 3,
+      workingDay: true,
+    };
+    const fut = rowsOf(
+      render(
+        <EpicChartTooltip
+          active
+          payload={[{ payload: future }]}
+          metric="count"
+          rows={cfdRows('count')}
+        />,
+      ).container,
+    );
+    expect(fut.map((r) => r.children[0].getAttribute('data-marker'))).toEqual([
+      'dashed',
+      'band',
+      'icon',
+    ]);
+  });
+
+  describe('key dates from the shared finish', () => {
+    const f: EpicForecast = {
+      state: 'ok',
+      remaining: 5,
+      ratePerWeek: 1,
+      scopeRatePerWeek: 0,
+      windowDays: 14,
+      completions: 5,
+      nLikely: 5,
+      nOpt: 4,
+      nPess: 8,
+      likely: '2026-10-07',
+      optimistic: '2026-10-06',
+      pessimistic: '2026-10-12',
+      confidence: 'high',
+      explanation: '',
+    };
+    const TODAY = '2026-09-30';
+    const finish = averageForecasts([{ metric: 'count', forecast: f }], TODAY);
+    it('adds Likely / Earliest / Latest rows with the Finish tooltip text', () => {
+      const cases = [
+        ['Likely', finish.likely, '5 working days'],
+        ['Earliest', finish.optimistic, '4 working days'],
+        ['Latest', finish.pessimistic, '8 working days'],
+      ] as const;
+      for (const [label, date, sub] of cases) {
+        const d: ChartDatum = {
+          date: date as string,
+          t: 0,
+          remaining: null,
+          forecast: 0,
+          band: [0, 0],
+        };
+        const rows = rowsOf(
+          render(
+            <EpicChartTooltip
+              active
+              payload={[{ payload: d }]}
+              metric="count"
+              rows={cfdRows('count')}
+              finish={finish}
+              today={TODAY}
+            />,
+          ).container,
+        );
+        const row = rows.find((r) => r.textContent?.startsWith(label));
+        expect(row?.textContent).toBe(`${label}${formatFinishDate(date as string, TODAY)}${sub}`);
+        expect(row?.children[0]).toHaveAttribute('data-marker', 'icon');
+      }
+    });
   });
 });

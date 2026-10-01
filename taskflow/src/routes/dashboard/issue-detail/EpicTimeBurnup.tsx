@@ -3,27 +3,28 @@
 /**
  * EpicTimeBurnup — Time-mode chart built from worklogs (quick 261001-hsz, extended by
  * 261001-ilq, 261001-qvu). Mounted only when the Time metric is selected. Series: Estimate (collapse model area), Logged (cumulative worklog time)
- * and Remaining (estimate - logged), plus the daily-logged-rate forecast with its
+ * and Remaining (estimate - logged), plus the shared averaged forecast (the same one
+ * the Finish tile shows, projected from this chart's own remaining) with its
  * optimistic-to-pessimistic band (one point per calendar day, flat on non-working days,
- * dots only on hover). The worklog query and the time forecast are owned by the section.
+ * dots only on hover). The worklog query and the averaged finish are owned by the section.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  deriveProjection,
+  type AveragedForecast,
   deriveTimeBurnup,
-  type EpicForecast,
   ESTIMATE_FORMULA_NOTE,
+  projectFinish,
   type WorkCalendar,
   withProjection,
 } from '@/lib/epic-progress';
-import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
-import { LegendItem, tickLabel } from './EpicCfdChart';
-import { EpicChartTooltip, FORECAST_COLOR, timeRows } from './EpicChartTooltip';
+import { ForecastLegend, LegendItem, tickLabel } from './EpicCfdChart';
+import { EpicChartTooltip, timeRows } from './EpicChartTooltip';
+import { SERIES } from './epic-markers';
 
 const HOUR = 3600;
 const CHART_HEIGHT = 220;
@@ -38,8 +39,8 @@ interface EpicTimeBurnupProps {
   stories: JiraIssue[];
   epicCreated: string | undefined;
   today: string;
-  /** Time forecast from the section (shared with the averaged Finish); null while unavailable. */
-  forecast: EpicForecast | null;
+  /** The one shared averaged forecast (same result as the Finish tile). */
+  finish: AveragedForecast;
   calendar: WorkCalendar;
 }
 
@@ -50,7 +51,7 @@ export function EpicTimeBurnup({
   stories,
   epicCreated,
   today,
-  forecast,
+  finish,
   calendar,
 }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
@@ -109,16 +110,15 @@ export function EpicTimeBurnup({
     remaining: Math.max(p.estimate - p.logged, 0) / HOUR,
   }));
 
-  // The projection maths is unit-agnostic (it only scales `remaining` by day counts), so the
-  // forecast's remaining (seconds) is converted to hours to match the chart's hour axis.
-  const projection = forecast
-    ? deriveProjection(
-        { ...forecast, remaining: forecast.remaining / HOUR },
-        today,
-        base.length > 0 ? base[0].date : null,
-        calendar,
-      )
-    : { points: [], clippedAfter: null };
+  // One forecast: the shared averaged finish, projected from this chart's own remaining (hours).
+  const todayRemainingHours = base.length > 0 ? base[base.length - 1].remaining : 0;
+  const projection = projectFinish(
+    finish,
+    todayRemainingHours,
+    today,
+    base.length > 0 ? base[0].date : null,
+    calendar,
+  );
   const chartData = withProjection(base, projection);
   const hasProjection = projection.points.length > 0;
 
@@ -165,15 +165,18 @@ export function EpicTimeBurnup({
                     formatValue={hoursLabel}
                     clippedAfter={projection.clippedAfter}
                     rows={timeRows(hoursLabel)}
+                    finish={finish}
+                    today={today}
                   />
                 )}
               />
               <Area
                 dataKey="estimate"
                 type="stepAfter"
-                stroke={STATUS_CATEGORY_COLOR.new}
-                fill={STATUS_CATEGORY_COLOR.new}
-                fillOpacity={0.15}
+                stroke={SERIES.estimate.stroke}
+                strokeWidth={SERIES.estimate.strokeWidth}
+                fill={SERIES.estimate.fill}
+                fillOpacity={SERIES.estimate.fillOpacity}
                 isAnimationActive={false}
               />
               {/* Range band: a NON-stacked Area whose value is [low, high]. */}
@@ -181,38 +184,38 @@ export function EpicTimeBurnup({
                 dataKey="band"
                 type="linear"
                 stroke="none"
-                fill={FORECAST_COLOR}
-                fillOpacity={0.12}
+                fill={SERIES.band.fill}
+                fillOpacity={SERIES.band.fillOpacity}
                 isAnimationActive={false}
                 activeDot={false}
               />
               <Line
                 dataKey="logged"
                 type="stepAfter"
-                stroke={STATUS_CATEGORY_COLOR.done}
-                strokeWidth={2}
+                stroke={SERIES.logged.stroke}
+                strokeWidth={SERIES.logged.strokeWidth}
                 dot={false}
                 isAnimationActive={false}
               />
               <Line
                 dataKey="remaining"
                 type="stepAfter"
-                stroke={STATUS_CATEGORY_COLOR.indeterminate}
-                strokeWidth={1.5}
+                stroke={SERIES.remaining.stroke}
+                strokeWidth={SERIES.remaining.strokeWidth}
                 dot={false}
                 isAnimationActive={false}
               />
               <Line
                 dataKey="forecast"
                 type="linear"
-                stroke={FORECAST_COLOR}
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
+                stroke={SERIES.forecast.stroke}
+                strokeWidth={SERIES.forecast.strokeWidth}
+                strokeDasharray={SERIES.forecast.strokeDasharray}
                 connectNulls
                 dot={false}
                 activeDot={{
                   r: 3,
-                  fill: FORECAST_COLOR,
+                  fill: SERIES.forecast.stroke,
                   stroke: 'var(--color-background)',
                   strokeWidth: 1,
                 }}
@@ -226,10 +229,14 @@ export function EpicTimeBurnup({
         data-testid="epic-time-legend"
         className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
       >
-        <LegendItem color={STATUS_CATEGORY_COLOR.new} label="Estimate" />
-        <LegendItem color={STATUS_CATEGORY_COLOR.done} label="Logged" />
-        <LegendItem color={STATUS_CATEGORY_COLOR.indeterminate} label="Remaining" />
-        {hasProjection ? <LegendItem dashed color={FORECAST_COLOR} label="Forecast" /> : null}
+        <LegendItem marker={SERIES.estimate.marker} tone={SERIES.estimate.tone} label="Estimate" />
+        <LegendItem marker={SERIES.logged.marker} tone={SERIES.logged.tone} label="Logged" />
+        <LegendItem
+          marker={SERIES.remaining.marker}
+          tone={SERIES.remaining.tone}
+          label="Remaining"
+        />
+        <ForecastLegend finish={finish} hasProjection={hasProjection} />
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {`${ESTIMATE_FORMULA_NOTE} Done stories collapse to their logged time.`}

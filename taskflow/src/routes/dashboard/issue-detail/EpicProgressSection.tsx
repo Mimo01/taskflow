@@ -24,7 +24,6 @@ import {
   deriveAdaptiveForecast,
   deriveAssigneeBuckets,
   deriveCfd,
-  deriveProjection,
   deriveRisks,
   deriveStatusBuckets,
   deriveSummary,
@@ -32,6 +31,7 @@ import {
   deriveTimeTotals,
   formatMetric,
   type Metric,
+  projectFinish,
   type StatusBucket,
   withProjection,
 } from '@/lib/epic-progress';
@@ -300,10 +300,11 @@ export function EpicProgressSection({
           epicCreated,
           today,
         });
-  // The chart line stays in the active metric's units (the Finish tile is the cross-metric average).
-  const metricForecast = metric === 'sp' ? spForecast : countForecast;
-  const projection = deriveProjection(
-    metricForecast,
+  // One forecast: the CFD projects the shared averaged finish from its own current remaining.
+  const cfdToday = cfdPoints.length > 0 ? cfdPoints[cfdPoints.length - 1] : null;
+  const projection = projectFinish(
+    finish,
+    cfdToday?.remaining ?? 0,
     today,
     cfdPoints.length > 0 ? cfdPoints[0].date : null,
     calendar,
@@ -365,7 +366,7 @@ export function EpicProgressSection({
                 stories={stories}
                 epicCreated={epicCreated}
                 today={today}
-                forecast={timeForecast}
+                finish={finish}
                 calendar={calendar}
               />
             ) : (
@@ -376,6 +377,8 @@ export function EpicProgressSection({
                 note={cfdNote}
                 hasProjection={projection.points.length > 0}
                 clippedAfter={projection.clippedAfter}
+                finish={finish}
+                today={today}
               />
             )}
 
