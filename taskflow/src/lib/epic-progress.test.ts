@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@/services/jira';
 import {
   addWorkingDays,
+  averageForecasts,
   buildStatusCategoryLookup,
+  buildWorkCalendar,
+  DEFAULT_CALENDAR,
+  deriveRisks,
+  holidaysBetween,
+  PROJECTION_MAX_POINTS,
+  type AveragedForecast,
   catOf,
   deriveAdaptiveForecast,
   deriveCfd,
@@ -928,9 +935,27 @@ describe('deriveProjection / withProjection', () => {
   it('projects today, optimistic, likely and pessimistic with a band', () => {
     const { points, clippedAfter } = deriveProjection(ok, WED, '2026-09-01');
     expect(clippedAfter).toBeNull();
-    expect(points.map((p) => p.date)).toEqual([WED, ok.optimistic, ok.likely, ok.pessimistic]);
-    expect(points[0]).toMatchObject({ forecast: 10, band: [10, 10] });
-    const likely = points[2];
+    expect(points.map((p) => p.date)).toEqual([
+      '2026-09-30',
+      '2026-10-01',
+      '2026-10-02',
+      '2026-10-03',
+      '2026-10-04',
+      '2026-10-05',
+      '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-10',
+      '2026-10-11',
+      '2026-10-12',
+    ]);
+    const dates = points.map((p) => p.date);
+    expect(dates).toContain(ok.optimistic);
+    expect(dates).toContain(ok.likely);
+    expect(dates).toContain(ok.pessimistic);
+    expect(points[0]).toMatchObject({ forecast: 10, band: [10, 10], wd: 0 });
+    const likely = points.find((p) => p.date === ok.likely) as (typeof points)[number];
     expect(likely.forecast).toBe(0);
     expect(likely.band).toEqual([0, 10 - (10 / 8) * 5]);
     for (const p of points) {
@@ -956,8 +981,367 @@ describe('deriveProjection / withProjection', () => {
     const merged = withProjection(base, deriveProjection(ok, WED, '2026-09-29'));
     expect(merged[0]).toMatchObject({ forecast: null, band: null });
     expect(merged[1]).toMatchObject({ forecast: 10, band: [10, 10] });
-    expect(merged).toHaveLength(5);
+    expect(merged[1].wd).toBe(0);
+    expect(merged).toHaveLength(14);
     expect(merged[2]).toMatchObject({ done: null, remaining: null });
     expect(merged.map((p) => p.t)).toEqual([...merged.map((p) => p.t)].sort((a, b) => a - b));
+  });
+});
+
+// ── 261001-qvu ───────────────────────────────────────────────────────────────
+
+const okForecast = (o: Partial<EpicForecast> = {}): EpicForecast => ({
+  state: 'ok',
+  likely: addWorkingDays(WED, 10),
+  optimistic: addWorkingDays(WED, 8),
+  pessimistic: addWorkingDays(WED, 14),
+  nLikely: 10,
+  nOpt: 8,
+  nPess: 14,
+  remaining: 10,
+  ratePerWeek: 5,
+  scopeRatePerWeek: 0,
+  windowDays: 10,
+  completions: 5,
+  confidence: 'medium',
+  explanation: 'ok-expl',
+  ...o,
+});
+const stateForecast = (state: EpicForecast['state'], o: Partial<EpicForecast> = {}) =>
+  okForecast({
+    state,
+    likely: null,
+    optimistic: null,
+    pessimistic: null,
+    nLikely: null,
+    nOpt: null,
+    nPess: null,
+    confidence: null,
+    explanation: `${state}-expl`,
+    ...o,
+  });
+
+describe('work calendar (261001-qvu)', () => {
+  const hol = (...days: string[]) => buildWorkCalendar(new Map(days.map((d) => [d, 'HOLIDAY'])));
+
+  it('skips a holiday inside the projection', () => {
+    const cal = hol('2026-10-02');
+    expect(addWorkingDays(WED, 2, cal)).toBe('2026-10-05');
+    expect(workingDaysBetween(WED, '2026-10-05', cal)).toBe(2);
+    expect(holidaysBetween(cal, WED, '2026-10-05')).toBe(1);
+  });
+  it('handles weekend and holiday adjacency', () => {
+    const cal = hol('2026-10-05');
+    expect(addWorkingDays('2026-10-02', 1, cal)).toBe('2026-10-06');
+    expect(addWorkingDays('2026-10-05', 1, cal)).toBe('2026-10-06');
+  });
+  it('ignores a Tempo working day on a weekend and reports the source', () => {
+    const cal = buildWorkCalendar(new Map([['2026-10-03', 'WORKING_DAY']]));
+    expect(cal.isWorkingDay('2026-10-03')).toBe(false);
+    expect(cal.source).toBe('tempo');
+    expect(buildWorkCalendar(new Map()).source).toBe('weekends');
+    expect(buildWorkCalendar(null)).toBe(DEFAULT_CALENDAR);
+  });
+  it('ignores malformed keys and unknown types', () => {
+    const cal = buildWorkCalendar(
+      new Map([
+        ['garbage', 'HOLIDAY'],
+        ['2026-10-02', 'SOMETHING'],
+      ]),
+    );
+    expect(cal.holidays).toEqual([]);
+  });
+  it('a holiday inside the sampling window does not lower the rate', () => {
+    const days = workingDaysBack(10);
+    const thu = '2026-09-24';
+    const cal = hol(thu);
+    const completions = days.filter((d) => d !== thu).map((day) => ({ day, w: 1 }));
+    const input = {
+      completions,
+      scopeAdds: [],
+      remaining: 10,
+      allDone: false,
+      firstActivity: days[days.length - 1],
+      eventCount: 9,
+      unit: 'count' as const,
+    };
+    expect(forecastFromThroughput(input, WED, cal).ratePerWeek).toBeCloseTo(5, 5);
+    // Holiday-less calendar sees a zero day and a lower pace.
+    const noHol = forecastFromThroughput(input, WED);
+    expect(noHol.ratePerWeek).toBeLessThan(5);
+  });
+  it('pushes the likely date one working day when a holiday falls inside', () => {
+    const stories = [
+      ...workingDaysBack(10).map((d, i) => doneOn(`D-${i}`, d)),
+      openStory('O-1'),
+      openStory('O-2'),
+    ];
+    const plain = deriveAdaptiveForecast(stories, 'count', SP, undefined, WED);
+    expect(plain.state).toBe('ok');
+    const likely = plain.likely as string;
+    const cal = hol(addWorkingDays(WED, 1));
+    const withHol = deriveAdaptiveForecast(stories, 'count', SP, undefined, WED, cal);
+    expect(withHol.state).toBe('ok');
+    expect(withHol.likely).toBe(addWorkingDays(likely, 1));
+  });
+});
+
+describe('averageForecasts (261001-qvu)', () => {
+  it('averages offsets, flags disagreement and lowers confidence', () => {
+    const a = okForecast({ nLikely: 10, nOpt: 8, nPess: 14, confidence: 'medium' });
+    const b = okForecast({ nLikely: 20, nOpt: 16, nPess: 30, confidence: 'high' });
+    const r = averageForecasts(
+      [
+        { metric: 'count', forecast: a },
+        { metric: 'sp', forecast: b },
+      ],
+      WED,
+    );
+    expect(r).toMatchObject({ state: 'ok', nLikely: 15, nOpt: 12, nPess: 22, disagree: true });
+    expect(r.likely).toBe(addWorkingDays(WED, 15));
+    expect(r.confidence).toBe('low');
+    expect(r.explanation).toContain('Items and Story points');
+    expect(r.explanation).toContain('disagree');
+  });
+  it('keeps the lowest confidence when contributors agree', () => {
+    const r = averageForecasts(
+      [
+        {
+          metric: 'count',
+          forecast: okForecast({ nLikely: 5, nOpt: 4, nPess: 8, confidence: 'high' }),
+        },
+        {
+          metric: 'sp',
+          forecast: okForecast({ nLikely: 6, nOpt: 5, nPess: 9, confidence: 'high' }),
+        },
+      ],
+      WED,
+    );
+    expect(r.disagree).toBe(false);
+    expect(r.confidence).toBe('high');
+  });
+  it('excludes unavailable metrics with reasons', () => {
+    const r = averageForecasts(
+      [
+        { metric: 'count', forecast: okForecast() },
+        { metric: 'sp', forecast: okForecast({ nLikely: 0, nOpt: 0, nPess: 0 }) },
+        { metric: 'time', forecast: null, pending: 'loading' },
+      ],
+      WED,
+    );
+    expect(r.nLikely).toBe(10);
+    expect(r.parts.map((p) => [p.metric, p.included, p.reason])).toEqual([
+      ['count', true, null],
+      ['sp', false, 'no estimates'],
+      ['time', false, 'loading worklogs'],
+    ]);
+    expect(r.explanation).toContain('Items');
+    expect(r.explanation).not.toContain('Story points');
+  });
+  it('explains time exclusions', () => {
+    const reasons = (part: { forecast: EpicForecast | null; pending?: 'loading' | 'error' }) =>
+      averageForecasts([{ metric: 'time', ...part }], WED).parts[0].reason;
+    expect(reasons({ forecast: null, pending: 'error' })).toBe('worklogs unavailable');
+    expect(reasons({ forecast: stateForecast('too-early', { completions: 0 }) })).toBe(
+      'no logged time',
+    );
+    expect(reasons({ forecast: stateForecast('too-early', { completions: 3 }) })).toBe(
+      'too early to tell',
+    );
+  });
+  it('falls back to state messaging when nothing contributes', () => {
+    const stalledMix = averageForecasts(
+      [
+        { metric: 'count', forecast: stateForecast('stalled') },
+        { metric: 'sp', forecast: stateForecast('too-early') },
+        { metric: 'time', forecast: null, pending: 'loading' },
+      ],
+      WED,
+    );
+    expect(stalledMix).toMatchObject({
+      state: 'stalled',
+      explanation: 'stalled-expl',
+      likely: null,
+    });
+    expect(
+      averageForecasts(
+        [
+          { metric: 'count', forecast: stateForecast('not-converging') },
+          { metric: 'sp', forecast: stateForecast('too-early') },
+        ],
+        WED,
+      ).state,
+    ).toBe('not-converging');
+    expect(
+      averageForecasts([{ metric: 'count', forecast: stateForecast('too-early') }], WED).state,
+    ).toBe('too-early');
+    expect(
+      averageForecasts(
+        [
+          { metric: 'count', forecast: stateForecast('done') },
+          { metric: 'time', forecast: null, pending: 'loading' },
+        ],
+        WED,
+      ).state,
+    ).toBe('done');
+    expect(averageForecasts([], WED).state).toBe('too-early');
+  });
+  it('keeps nOpt <= nLikely <= nPess and every n >= 1', () => {
+    const r = averageForecasts(
+      [
+        { metric: 'count', forecast: okForecast({ nLikely: 1, nOpt: 1, nPess: 1 }) },
+        { metric: 'sp', forecast: okForecast({ nLikely: 2, nOpt: 1, nPess: 2 }) },
+      ],
+      WED,
+    );
+    const { nOpt, nLikely, nPess } = r;
+    expect(nOpt).not.toBeNull();
+    expect((nOpt as number) <= (nLikely as number)).toBe(true);
+    expect((nLikely as number) <= (nPess as number)).toBe(true);
+    expect(nOpt as number).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('deriveProjection per-day points (261001-qvu)', () => {
+  const ok = okForecast({
+    nLikely: 5,
+    nOpt: 4,
+    nPess: 8,
+    likely: addWorkingDays(WED, 5),
+    optimistic: addWorkingDays(WED, 4),
+    pessimistic: addWorkingDays(WED, 8),
+  });
+  it('is flat on weekends and wd is non-decreasing', () => {
+    const { points } = deriveProjection(ok, WED, '2026-09-01');
+    const byDate = new Map(points.map((p) => [p.date, p]));
+    const fri = byDate.get('2026-10-02');
+    for (const d of ['2026-10-03', '2026-10-04']) {
+      const p = byDate.get(d);
+      expect(p?.workingDay).toBe(false);
+      expect(p?.forecast).toBe(fri?.forecast);
+      expect(p?.band).toEqual(fri?.band);
+    }
+    const wds = points.map((p) => p.wd);
+    expect(wds).toEqual([...wds].sort((a, b) => a - b));
+  });
+  it('marks a holiday as non-working with the previous day values', () => {
+    const cal = buildWorkCalendar(new Map([['2026-10-02', 'HOLIDAY']]));
+    const f = okForecast({
+      nLikely: 5,
+      nOpt: 4,
+      nPess: 8,
+      likely: addWorkingDays(WED, 5, cal),
+      optimistic: addWorkingDays(WED, 4, cal),
+      pessimistic: addWorkingDays(WED, 8, cal),
+    });
+    const { points } = deriveProjection(f, WED, '2026-09-01', cal);
+    const byDate = new Map(points.map((p) => [p.date, p]));
+    expect(byDate.get('2026-10-02')?.workingDay).toBe(false);
+    expect(byDate.get('2026-10-02')?.forecast).toBe(byDate.get('2026-10-01')?.forecast);
+  });
+  it('caps long horizons while keeping the key dates', () => {
+    const far = okForecast({
+      nLikely: 100,
+      nOpt: 90,
+      nPess: 400,
+      likely: addWorkingDays(WED, 100),
+      optimistic: addWorkingDays(WED, 90),
+      pessimistic: addWorkingDays(WED, 400),
+    });
+    const { points } = deriveProjection(far, WED, '2025-01-01');
+    expect(points.length).toBeLessThanOrEqual(PROJECTION_MAX_POINTS);
+    const dates = points.map((p) => p.date);
+    expect(dates).toContain(far.optimistic);
+    expect(dates).toContain(far.likely);
+    expect(dates[0]).toBe(WED);
+  });
+});
+
+describe('deriveRisks (261001-qvu)', () => {
+  const stories = [
+    st('A-1', { cat: 'done', sp: 3, assignee: 'Amy', res: '2026-09-29T10:00:00.000+0000' }),
+    st('A-2', { cat: 'indeterminate', sp: 2, assignee: 'Amy' }),
+    st('A-3', { sp: 2 }),
+    st('A-4', { assignee: 'Bob' }),
+  ];
+  const fin = (parts: AveragedForecast['parts'] = [], o: Partial<AveragedForecast> = {}) =>
+    ({
+      state: 'too-early',
+      likely: null,
+      optimistic: null,
+      pessimistic: null,
+      nLikely: null,
+      nOpt: null,
+      nPess: null,
+      confidence: null,
+      disagree: false,
+      parts,
+      explanation: '',
+      ...o,
+    }) as AveragedForecast;
+  const base = { stories, metric: 'count' as const, spKey: SP, dueDate: null, today: WED };
+
+  it('reports unestimated and unassigned info risks', () => {
+    const r = deriveRisks({ ...base, finish: fin() });
+    expect(r.map((x) => [x.key, x.text, x.severity])).toEqual([
+      ['unestimated', '1 unestimated', 'info'],
+      ['unassigned', '1 unassigned', 'info'],
+    ]);
+    expect(r[0].issueKeys).toEqual(['A-4']);
+    expect(r[1].issueKeys).toEqual(['A-3']);
+  });
+  it('flags overdue first, and late when the forecast passes the due date', () => {
+    const over = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-20' });
+    expect(over[0]).toMatchObject({ key: 'overdue', severity: 'warning' });
+    const late = deriveRisks({
+      ...base,
+      dueDate: '2026-10-05',
+      finish: fin([], { state: 'ok', likely: '2026-10-09' }),
+    });
+    expect(late[0]).toMatchObject({ key: 'late', severity: 'warning' });
+    const done = deriveRisks({
+      ...base,
+      stories: [stories[0]],
+      dueDate: '2026-09-20',
+      finish: fin(),
+    });
+    expect(done.find((x) => x.key === 'overdue' || x.key === 'late')).toBeUndefined();
+  });
+  it('flags stalled, not-converging and significant scope growth', () => {
+    const parts = (f: EpicForecast) => [
+      { metric: 'count' as const, forecast: f, included: false, reason: null },
+    ];
+    const stalled = deriveRisks({ ...base, finish: fin(parts(stateForecast('stalled'))) });
+    expect(stalled.find((x) => x.key === 'stalled')).toMatchObject({
+      severity: 'warning',
+      detail: 'stalled-expl',
+    });
+    const nc = deriveRisks({ ...base, finish: fin(parts(stateForecast('not-converging'))) });
+    expect(nc.find((x) => x.key === 'scope')?.severity).toBe('warning');
+    const growth = deriveRisks({
+      ...base,
+      finish: fin(parts(okForecast({ ratePerWeek: 4, scopeRatePerWeek: 2 }))),
+    });
+    expect(growth.find((x) => x.key === 'scope')?.severity).toBe('info');
+    const calm = deriveRisks({
+      ...base,
+      finish: fin(parts(okForecast({ ratePerWeek: 4, scopeRatePerWeek: 1 }))),
+    });
+    expect(calm.find((x) => x.key === 'scope')).toBeUndefined();
+  });
+  it('caps issue keys at 3 and orders warnings first', () => {
+    const many = Array.from({ length: 5 }, (_, i) => st(`M-${i + 1}`, { sp: 1 }));
+    const r = deriveRisks({ ...base, stories: many, dueDate: '2026-09-01', finish: fin() });
+    expect(r[0].key).toBe('overdue');
+    expect(r[0].issueKeys).toEqual(['M-1', 'M-2', 'M-3']);
+    expect(r[0].moreKeys).toBe(2);
+    const sevs = r.map((x) => x.severity);
+    expect(sevs).toEqual([...sevs].sort((a, b) => (a === b ? 0 : a === 'warning' ? -1 : 1)));
+  });
+  it('time mode counts open stories without an estimate', () => {
+    const r = deriveRisks({ ...base, metric: 'time', finish: fin() });
+    const u = r.find((x) => x.key === 'unestimated');
+    expect(u?.count).toBe(3);
+    expect(u?.detail).toBe('Open items without a time estimate.');
   });
 });
