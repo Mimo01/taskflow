@@ -19,7 +19,7 @@ import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { catOf, ESTIMATE_FORMULA_NOTE, estimateOf, loggedOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
-import { STATUS_CATEGORY_COLOR, statusCategoryDotClass, statusPillClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type {
   JiraAttachment,
@@ -37,6 +37,7 @@ import { BulkCreateSubtasksModal } from './BulkCreateSubtasksModal';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { EpicProgressSection } from './issue-detail/EpicProgressSection';
+import { MARKER_ICON } from './issue-detail/epic-markers';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
@@ -377,7 +378,7 @@ export function IssueDetailContent({
                             <span
                               className={cn(
                                 'h-full',
-                                overrun ? 'bg-red-500' : statusCategoryDotClass('done'),
+                                overrun ? 'bg-red-500' : 'bg-muted-foreground',
                               )}
                               style={{ width: `${Math.min(logged / est, 1) * 100}%` }}
                             />
@@ -390,19 +391,19 @@ export function IssueDetailContent({
                           >
                             {est > 0 ? (
                               <TooltipRow
-                                color={STATUS_CATEGORY_COLOR.new}
+                                icon={<MARKER_ICON.estimate className="size-3" />}
                                 label="Estimate"
                                 value={formatDuration(est)}
                               />
                             ) : null}
                             <TooltipRow
-                              color={overrun ? 'var(--color-red-500)' : STATUS_CATEGORY_COLOR.done}
+                              icon={<MARKER_ICON.logged className="size-3" />}
                               label="Logged"
                               value={formatDuration(logged)}
                             />
                             {est > 0 ? (
                               <TooltipRow
-                                color={STATUS_CATEGORY_COLOR.indeterminate}
+                                icon={<MARKER_ICON.remaining className="size-3" />}
                                 label="Remaining"
                                 value={formatDuration(remaining)}
                               />
