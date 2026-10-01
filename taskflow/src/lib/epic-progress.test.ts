@@ -7,6 +7,7 @@ import {
   chartAxisStart,
   chartDomain,
   clampRange,
+  CONFIDENCE_REASON_MAX,
   confidenceReason,
   dataSourceLines,
   dateKeyMs,
@@ -54,6 +55,9 @@ import {
   finishDateRows,
   FINISH_STATE_TEXT,
   projectFinish,
+  visiblePresets,
+  ZOOM_MIN_DAYS,
+  zoomEnabled,
 } from './epic-progress';
 
 const SP = 'customfield_10016';
@@ -1716,17 +1720,17 @@ describe('261001-sqm lib', () => {
         confidenceReason(
           okFinish([part('count', { confidence: 'low', windowDays: 12, completions: 3 })]),
         ),
-      ).toBe('Only 3 completions in the last 12 working days');
+      ).toBe('Only 3 completions in 12 working days');
       expect(
         confidenceReason(
           okFinish([part('sp', { confidence: 'low', windowDays: 12, completions: 1 })]),
         ),
-      ).toBe('Only 1 completion in the last 12 working days');
+      ).toBe('Only 1 completion in 12 working days');
       expect(
         confidenceReason(
           okFinish([part('time', { confidence: 'low', windowDays: 12, completions: 3 })]),
         ),
-      ).toBe('Only 3 days with logged work in the last 12 working days');
+      ).toBe('Only 3 days with logged work in 12 working days');
     });
     it('medium: wide range once history and completions are sufficient', () => {
       const f = okFinish([
@@ -1747,6 +1751,71 @@ describe('261001-sqm lib', () => {
         part('time', { confidence: 'low', windowDays: 8 }),
       ]);
       expect(confidenceReason(f)).toBe('Only 5 working days of history');
+    });
+    it('every reason fits on one line (<= CONFIDENCE_REASON_MAX)', () => {
+      const big = { windowDays: 999, completions: 999, nOpt: 999, nPess: 9999, nLikely: 9999 };
+      const reasons = [
+        confidenceReason(
+          okFinish([part('count', { nLikely: 0 }), part('time', { nLikely: 9999 })], {
+            disagree: true,
+          }),
+        ),
+        confidenceReason(okFinish([part('count', { ...big, confidence: 'low', windowDays: 9 })])),
+        ...(['count', 'sp', 'time'] as const).map((m) =>
+          confidenceReason(okFinish([part(m, { ...big, confidence: 'low' })])),
+        ),
+        confidenceReason(
+          okFinish([part('count', { ...big, confidence: 'medium', windowDays: 19 })]),
+        ),
+        confidenceReason(
+          okFinish([part('time', { ...big, confidence: 'medium', completions: 7 })]),
+        ),
+        confidenceReason(okFinish([part('count', { ...big, confidence: 'medium' })])),
+        confidenceReason(okFinish([part('count', { ...big, confidence: 'high' })])),
+      ];
+      for (const r of reasons) {
+        expect(r).not.toBeNull();
+        expect((r as string).length).toBeLessThanOrEqual(CONFIDENCE_REASON_MAX);
+      }
+    });
+  });
+
+  describe('zoom threshold and visible presets (261002-0et)', () => {
+    const TODAY = '2026-09-30';
+    it('is enabled only above ZOOM_MIN_DAYS (42/43-day boundary)', () => {
+      expect(ZOOM_MIN_DAYS).toBe(42);
+      expect(zoomEnabled({ from: '2026-08-01', to: '2026-09-12' })).toBe(false);
+      expect(zoomEnabled({ from: '2026-08-01', to: '2026-09-13' })).toBe(true);
+    });
+    it('returns no presets when zoom is disabled', () => {
+      expect(visiblePresets({ from: '2026-08-20', to: '2026-09-30' }, TODAY)).toEqual([]);
+    });
+    it('long domain with a future shows every preset', () => {
+      expect(visiblePresets({ from: '2026-03-01', to: '2026-11-01' }, TODAY)).toEqual([
+        'all',
+        '3m',
+        '1m',
+        '2w',
+        'forecast',
+      ]);
+    });
+    it('hides Forecast without a future and 3M when it would not cut history', () => {
+      expect(visiblePresets({ from: '2026-08-01', to: TODAY }, TODAY)).toEqual(['all', '1m', '2w']);
+      // 2026-08-11 .. 2026-10-30: 3M (from 2026-07-01) clipped to the domain start
+      const p = visiblePresets({ from: '2026-08-11', to: '2026-10-30' }, TODAY);
+      expect(p).not.toContain('3m');
+      expect(p).toContain('forecast');
+    });
+    it('hides 1M when the domain starts exactly 30 days before today', () => {
+      const p = visiblePresets({ from: '2026-08-31', to: '2026-10-30' }, TODAY);
+      expect(p).not.toContain('1m');
+      expect(p).toContain('2w');
+    });
+    it('never offers a lone "All" (domain just over 42 days, all presets clipped)', () => {
+      // 43-day domain wholly in the future: every preset's range starts at/before the domain start
+      const d = { from: '2026-10-05', to: '2026-11-17' };
+      expect(zoomEnabled(d)).toBe(true);
+      expect(visiblePresets(d, TODAY)).toEqual([]);
     });
   });
 
