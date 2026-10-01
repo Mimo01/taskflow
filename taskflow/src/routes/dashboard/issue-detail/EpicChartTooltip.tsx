@@ -196,7 +196,7 @@ export function EpicChartTooltip({
             icon={<MARKER_ICON.date className="size-3" />}
             label={r.label}
             value={formatFinishDate(r.date, today as string)}
-            sub={`${r.n} working days`}
+            sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
           />
         ))}
       </TooltipBody>

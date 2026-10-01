@@ -8,6 +8,7 @@ import {
   Pencil,
   Pin,
   Plus,
+  TriangleAlert,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -406,6 +407,13 @@ export function IssueDetailContent({
                                 icon={<MARKER_ICON.remaining className="size-3" />}
                                 label="Remaining"
                                 value={formatDuration(remaining)}
+                              />
+                            ) : null}
+                            {overrun ? (
+                              <TooltipRow
+                                icon={<TriangleAlert className="size-3" />}
+                                label="Over estimate"
+                                value={formatDuration(logged - est)}
                               />
                             ) : null}
                           </TooltipBody>
