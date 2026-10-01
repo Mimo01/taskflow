@@ -2721,7 +2721,7 @@ export async function fetchEpicStories(
 }
 
 export interface EpicWorklogDay {
-  /** Local calendar day of the worklog (YYYY-MM-DD, from `started`). */
+  /** Calendar day of the worklog in the author's offset (YYYY-MM-DD, `started.slice(0, 10)`). */
   day: string;
   seconds: number;
 }
@@ -2738,8 +2738,9 @@ type WorklogSearchIssue = JiraIssue & {
  *
  * Search embeds at most 20 worklogs per issue (`worklog.total` carries the
  * real count), so issues with `total > embedded` are topped up from
- * `/issue/{key}/worklog`. Fail-closed: a failed search rejects so the UI can
- * offer a retry instead of silently charting understated logged time.
+ * `/issue/{key}/worklog`. A failed search rejects so the UI can offer a retry.
+ * A failed top-up keeps the embedded worklogs; deriveTimeBurnup reconciles any
+ * shortfall against aggregatetimespent, so totals stay correct.
  */
 export async function fetchEpicWorklogs(
   baseUrl: string,
@@ -2750,18 +2751,22 @@ export async function fetchEpicWorklogs(
   if (storyKeys.length === 0) return result;
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  const keySet = new Set(storyKeys);
+  // Keys are interpolated into JQL and URL paths — accept only well-formed issue keys.
+  const keys = storyKeys.filter((k) => /^[A-Z][A-Z0-9_]*-\d+$/.test(k));
+  const keySet = new Set(keys);
 
-  const issues: WorklogSearchIssue[] = [];
-  for (let i = 0; i < storyKeys.length; i += SUBTASK_CHUNK_SIZE) {
-    const c = storyKeys.slice(i, i + SUBTASK_CHUNK_SIZE).join(',');
+  const byKey = new Map<string, WorklogSearchIssue>();
+  for (let i = 0; i < keys.length; i += SUBTASK_CHUNK_SIZE) {
+    const c = keys.slice(i, i + SUBTASK_CHUNK_SIZE).join(',');
     const jql = encodeURIComponent(`key in (${c}) OR parent in (${c})`);
     const page = await fetchAllSearchPagesConcurrent(
       `${base}/rest/api/2/search?jql=${jql}&fields=worklog,parent,issuetype`,
       headers,
     );
-    issues.push(...(page as WorklogSearchIssue[]));
+    // Dedupe: concurrent paging can return an issue twice if pages shift mid-fetch.
+    for (const issue of page as WorklogSearchIssue[]) byKey.set(issue.key, issue);
   }
+  const issues = [...byKey.values()];
 
   const worklogsOf = new Map<string, JiraWorklog[]>();
   const topUps: string[] = [];
@@ -2778,7 +2783,10 @@ export async function fetchEpicWorklogs(
       const i = next++;
       if (i >= topUps.length) return;
       const key = topUps[i];
-      const full = await fetchAllWorklogPages(`${base}/rest/api/2/issue/${key}/worklog`, headers);
+      const full = await fetchAllWorklogPages(
+        `${base}/rest/api/2/issue/${encodeURIComponent(key)}/worklog`,
+        headers,
+      );
       if (full.length > (worklogsOf.get(key)?.length ?? 0)) worklogsOf.set(key, full);
     }
   });

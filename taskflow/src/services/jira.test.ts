@@ -1851,6 +1851,24 @@ describe('jira service', () => {
       expect(urls.some((u) => u.includes('/issue/P-3/worklog'))).toBe(false);
     });
 
+    it('counts an issue returned twice by search only once', async () => {
+      const dup = {
+        key: 'P-1',
+        fields: { worklog: { total: 1, worklogs: [wl('2026-09-01T10:00:00.000+0000', 60)] } },
+      };
+      vi.mocked(mockFetch).mockResolvedValue(searchRes([dup, dup]));
+      const r = await fetchEpicWorklogs(BASE, TOKEN, ['P-1']);
+      expect(r.get('P-1')).toEqual([{ day: '2026-09-01', seconds: 60 }]);
+    });
+
+    it('drops malformed keys before building JQL', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(searchRes([]));
+      await fetchEpicWorklogs(BASE, TOKEN, ['P-1', 'X) OR project = SECRET']);
+      const url = decodeURIComponent(vi.mocked(mockFetch).mock.calls[0][0] as string);
+      expect(url).toContain('key in (P-1)');
+      expect(url).not.toContain('SECRET');
+    });
+
     it('rejects when the search response is not ok (fail-closed)', async () => {
       vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 500 } as unknown as Response);
       await expect(fetchEpicWorklogs(BASE, TOKEN, ['P-1'])).rejects.toBeDefined();

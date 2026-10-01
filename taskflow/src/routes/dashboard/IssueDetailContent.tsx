@@ -361,6 +361,12 @@ export function IssueDetailContent({
                           delay={0}
                           render={<span />}
                           data-testid="story-time-bar"
+                          role="img"
+                          aria-label={
+                            est > 0
+                              ? `Logged ${formatDuration(logged)} of ${formatDuration(est)}`
+                              : `No estimate, logged ${formatDuration(logged)}`
+                          }
                           data-overrun={overrun ? 'true' : undefined}
                           data-empty={est > 0 ? undefined : 'true'}
                           className="relative inline-flex h-1.5 w-16 flex-none overflow-hidden rounded-full bg-muted"

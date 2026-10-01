@@ -43,16 +43,14 @@ function Swatch({ name }: { name: string }) {
 export function EpicTimeBurnup({ epicKey, stories, epicCreated, today }: EpicTimeBurnupProps) {
   const { jiraBaseUrl, jiraConnected } = useAuthStore();
 
-  const { data, isPending, isError, refetch } = useQuery<Map<string, EpicWorklogDay[]>>({
-    queryKey: ['jira-epic-worklogs', epicKey, jiraBaseUrl],
+  // Story set is part of the key: a story added/moved while the epic is open must refetch worklogs.
+  const storyKeys = stories.map((s) => s.key).sort();
+  const { data, isLoading, isError, refetch } = useQuery<Map<string, EpicWorklogDay[]>>({
+    queryKey: ['jira-epic-worklogs', epicKey, jiraBaseUrl, storyKeys.join(',')],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl) throw new Error('No credentials');
-      return fetchEpicWorklogs(
-        jiraBaseUrl,
-        token,
-        stories.map((s) => s.key),
-      );
+      return fetchEpicWorklogs(jiraBaseUrl, token, storyKeys);
     },
     staleTime: 60_000,
     enabled: !!jiraConnected && !!jiraBaseUrl && stories.length > 0,
@@ -77,7 +75,18 @@ export function EpicTimeBurnup({ epicKey, stories, epicCreated, today }: EpicTim
     );
   }
 
-  if (isPending || !data) {
+  if (!data && !isLoading) {
+    return (
+      <p
+        style={{ minHeight: CHART_HEIGHT }}
+        className="pr-0.5 text-sm text-muted-foreground italic"
+      >
+        No worklog data
+      </p>
+    );
+  }
+
+  if (!data) {
     return (
       <Skeleton
         data-testid="epic-time-burnup-loading"
