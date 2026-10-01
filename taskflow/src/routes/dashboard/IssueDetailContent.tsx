@@ -305,6 +305,7 @@ export function IssueDetailContent({
       {/* Epic → progress charts + Stories list */}
       {isEpic && (
         <EpicProgressSection
+          epicKey={issueKey}
           stories={epicStories}
           storyPointsFieldKey={storyPointsFieldKey}
           epicCreated={issue.fields.created}
