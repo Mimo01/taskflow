@@ -14,7 +14,6 @@ import {
   workingDaysBetween,
   type EpicForecast,
   deriveAssigneeBuckets,
-  deriveBurnup,
   deriveStatusBuckets,
   deriveTimeBurnup,
   deriveTimeTotals,
@@ -101,47 +100,6 @@ describe('doneDateKey', () => {
   });
 });
 
-describe('deriveBurnup', () => {
-  it('returns [] when no story has created', () => {
-    expect(deriveBurnup([st('A')], 'count', SP, '2026-09-01', TODAY)).toEqual([]);
-    expect(deriveBurnup([], 'count', SP, '2026-09-01', TODAY)).toEqual([]);
-  });
-  it('is daily for spans <= 31 days with cumulative scope/done', () => {
-    const stories = [
-      st('A', { created: '2026-09-28', cat: 'done', res: '2026-09-30T00:00:00.000+0000' }),
-      st('B', { created: '2026-09-30' }),
-    ];
-    const pts = deriveBurnup(stories, 'count', SP, '2026-09-29', TODAY);
-    expect(pts[0].date).toBe('2026-09-28');
-    expect(pts[pts.length - 1].date).toBe(TODAY);
-    expect(pts).toHaveLength(4);
-    expect(pts.map((p) => p.scope)).toEqual([1, 1, 2, 2]);
-    expect(pts.map((p) => p.done)).toEqual([0, 0, 1, 1]);
-  });
-  it('is weekly for long spans with a final point at today', () => {
-    const pts = deriveBurnup([st('A', { created: '2026-06-01' })], 'count', SP, undefined, TODAY);
-    expect(pts[0].date).toBe('2026-06-07');
-    expect(pts[pts.length - 1].date).toBe(TODAY);
-    expect(pts[0].label).toBe('Jun 7');
-  });
-  it('starts at epic creation when earlier than stories and clamps done to scope', () => {
-    const stories = [st('A', { created: '2026-09-30', cat: 'done', res: '2026-09-29' })];
-    const pts = deriveBurnup(stories, 'count', SP, '2026-09-27', TODAY);
-    expect(pts[0].date).toBe('2026-09-27');
-    expect(pts.every((p) => p.done <= p.scope)).toBe(true);
-  });
-  it('uses SP weights', () => {
-    const pts = deriveBurnup(
-      [st('A', { created: '2026-09-30', sp: 8 })],
-      'sp',
-      SP,
-      undefined,
-      TODAY,
-    );
-    expect(pts[pts.length - 1].scope).toBe(8);
-  });
-});
-
 describe('deriveStatusBuckets', () => {
   it('groups by status name ordered by category then value', () => {
     const stories = [
@@ -174,22 +132,28 @@ describe('deriveAssigneeBuckets', () => {
 });
 
 describe('review fixes (261001-fmk)', () => {
-  it('clamps a done date past local today to today, so burnup and % done agree', () => {
+  it('clamps a done date past local today to today (chart intent covered by deriveCfd (h))', () => {
     const s = st('X-1', {
       cat: 'done',
       created: '2026-09-30',
       res: '2026-10-02T00:30:00.000+0200',
     });
     expect(doneDateKey(s, TODAY)).toBe(TODAY);
-    const last = deriveBurnup([s], 'count', SP, undefined, TODAY).slice(-1)[0];
-    expect(last).toMatchObject({ date: TODAY, scope: 1, done: 1 });
   });
 
-  it('counts a story created past local today in scope at today', () => {
+  it('counts a story created past local today at today', () => {
     const s = st('X-2', { created: '2026-10-02T00:10:00.000+0200' });
-    expect(deriveBurnup([s], 'count', SP, undefined, TODAY).slice(-1)[0]).toMatchObject({
-      scope: 1,
+    const lookup = buildStatusCategoryLookup(undefined, [s]);
+    const { points } = deriveCfd({
+      stories: [s],
+      history: null,
+      lookup,
+      metric: 'count',
+      spKey: SP,
+      epicCreated: undefined,
+      today: TODAY,
     });
+    expect(points[points.length - 1]).toMatchObject({ date: TODAY, todo: 1 });
   });
 
   it('keeps same-named assignees with different usernames apart from each other and Unassigned', () => {
@@ -260,18 +224,6 @@ describe('time metric', () => {
     });
     const c = deriveAssigneeBuckets(stories, 'count', SP);
     expect(c[0]).toMatchObject({ estimate: 10800, logged: 2400, done: 1, todo: 1 });
-  });
-
-  it('burnup in time mode accumulates estimates by created and done date', () => {
-    const stories = [
-      st('A', { created: '2026-09-29', cat: 'done', res: '2026-09-30', est: 3600 }),
-      st('B', { created: '2026-09-30', est: 7200 }),
-    ];
-    const pts = deriveBurnup(stories, 'time', SP, undefined, '2026-10-01');
-    const last = pts[pts.length - 1];
-    expect(last.scope).toBe(10800);
-    expect(last.done).toBe(3600);
-    expect(pts.find((p) => p.date === '2026-09-29')?.scope).toBe(3600);
   });
 
   it('deriveTimeTotals sums and guards zero estimate', () => {

@@ -5,7 +5,7 @@ import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ESTIMATE_FORMULA_NOTE } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
-import { fetchEpicWorklogs, type JiraIssue } from '@/services/jira';
+import { fetchEpicStatusHistory, fetchEpicWorklogs, type JiraIssue } from '@/services/jira';
 import { EpicProgressSection } from './EpicProgressSection';
 
 vi.mock('@/services/jira', async (orig) => ({
@@ -22,9 +22,12 @@ vi.mock('@/stores/auth.store', () => {
 });
 
 const mockWorklogs = vi.mocked(fetchEpicWorklogs);
+const mockHistory = vi.mocked(fetchEpicStatusHistory);
 beforeEach(() => {
   mockWorklogs.mockReset();
   mockWorklogs.mockResolvedValue(new Map());
+  mockHistory.mockReset();
+  mockHistory.mockResolvedValue(new Map());
 });
 
 const SP = 'customfield_10016';
@@ -143,7 +146,10 @@ describe('EpicProgressSection', () => {
     expect(screen.getAllByText('Unassigned').length).toBe(1);
     expect(screen.getAllByTestId('epic-stat-tile')).toHaveLength(3);
     expect(screen.getByTestId('epic-hero')).toBeInTheDocument();
-    expect(screen.getByText('Scope by story creation date')).toBeInTheDocument();
+    expect(screen.getByTestId('epic-cfd-note')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('epic-cfd-legend')).getByText('Completed'),
+    ).toBeInTheDocument();
     expect(screen.getByText('In Review · 1 · 5 SP')).toBeInTheDocument();
   });
 
@@ -717,5 +723,182 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     );
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
     expect(mockWorklogs).not.toHaveBeenCalled();
+  });
+});
+
+describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Working days (Mon-Fri) ending 2026-09-30 (a Wednesday), newest first. */
+  function workingDaysBack(n: number): string[] {
+    const out: string[] = [];
+    let d = new Date(Date.UTC(2026, 8, 30));
+    while (out.length < n) {
+      const wd = d.getUTCDay();
+      if (wd !== 0 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+      d = new Date(d.getTime() - 86_400_000);
+    }
+    return out;
+  }
+
+  const sectionFor = (list: JiraIssue[], epicCreated: string | undefined) => (
+    <EpicProgressSection
+      epicKey="E-1"
+      stories={list}
+      storyPointsFieldKey={SP}
+      epicCreated={epicCreated}
+    />
+  );
+
+  const okFixture = () => [
+    ...workingDaysBack(15).map((d, i) =>
+      story(`S-${i + 1}`, {
+        cat: 'done',
+        status: 'Done',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        res: `${d}T12:00:00.000+0000`,
+      }),
+    ),
+    ...[0, 1, 2, 3, 4].map((i) =>
+      story(`S-${100 + i}`, {
+        cat: 'new',
+        status: 'To Do',
+        assignee: 'Amy',
+        created: '2026-01-01',
+      }),
+    ),
+  ];
+
+  it('fetches status history once in Count mode (sorted keys + epic key) and not again in Time mode', async () => {
+    renderSection(sectionFor([stories[2], stories[0], stories[1]], daysAgo(12)));
+    await waitFor(() => expect(mockHistory).toHaveBeenCalledTimes(1));
+    expect(mockHistory).toHaveBeenCalledWith(
+      'https://jira.test',
+      'tok',
+      ['A-1', 'A-2', 'A-3'],
+      'E-1',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    await waitFor(() => expect(mockWorklogs).toHaveBeenCalledTimes(1));
+    expect(mockHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the chart wrapper in every history state, with the matching note', async () => {
+    // pending
+    mockHistory.mockReturnValue(new Promise(() => {}));
+    const pending = renderSection(sectionFor(stories, daysAgo(12)));
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'approx');
+    expect(screen.getByTestId('epic-cfd-note').textContent).toBe(
+      'Approximate — loading status history',
+    );
+    pending.unmount();
+
+    // rejected
+    mockHistory.mockReset();
+    mockHistory.mockRejectedValue(new Error('boom'));
+    const failed = renderSection(sectionFor(stories, daysAgo(12)));
+    await waitFor(() =>
+      expect(screen.getByTestId('epic-cfd-note').textContent).toBe(
+        'Approximate — status history unavailable',
+      ),
+    );
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'approx');
+    failed.unmount();
+
+    // resolved, real (an entry per story)
+    mockHistory.mockReset();
+    mockHistory.mockResolvedValue(
+      new Map(stories.map((s) => [s.key, { transitions: [], joinedAt: null }])),
+    );
+    const real = renderSection(sectionFor(stories, daysAgo(12)));
+    await waitFor(() =>
+      expect(screen.getByTestId('epic-cfd-note').textContent).toBe('From Jira status history'),
+    );
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'real');
+    real.unmount();
+
+    // resolved, approximate for some items (one story missing)
+    mockHistory.mockReset();
+    mockHistory.mockResolvedValue(
+      new Map(stories.slice(1).map((s) => [s.key, { transitions: [], joinedAt: null }])),
+    );
+    renderSection(sectionFor(stories, daysAgo(12)));
+    await waitFor(() =>
+      expect(screen.getByTestId('epic-cfd-note').textContent).toBe('Approximate for some items'),
+    );
+  });
+
+  it('legend lists Completed / In progress / To do / Remaining, plus Forecast only when ok', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const ok = renderSection(sectionFor(okFixture(), '2026-01-01'));
+    const legend = within(screen.getByTestId('epic-cfd-legend'));
+    for (const label of ['Completed', 'In progress', 'To do', 'Remaining', 'Forecast']) {
+      expect(legend.getByText(label)).toBeInTheDocument();
+    }
+    ok.unmount();
+
+    // too early: a single completion on a brand-new epic
+    renderSection(
+      sectionFor(
+        [
+          story('F-1', {
+            cat: 'done',
+            status: 'Done',
+            created: '2026-09-30',
+            res: '2026-09-30T08:00:00.000+0000',
+          }),
+          story('F-2', { cat: 'new', status: 'To Do', created: '2026-09-30' }),
+        ],
+        '2026-09-30',
+      ),
+    );
+    const tooEarly = within(screen.getByTestId('epic-cfd-legend'));
+    expect(tooEarly.getByText('Remaining')).toBeInTheDocument();
+    expect(tooEarly.queryByText('Forecast')).toBeNull();
+  });
+
+  it('shows "No timeline data" for the CFD with no dates, without a skeleton', () => {
+    renderSection(sectionFor([story('U-1', { cat: 'new', status: 'To Do' })], undefined));
+    expect(screen.getByTestId('epic-burnup')).toBeInTheDocument();
+    expect(screen.getByText('No timeline data')).toBeInTheDocument();
+  });
+
+  it('Time mode renders the chart with Estimate / Logged / Remaining in its legend', async () => {
+    renderSection(
+      sectionFor(
+        [
+          story('T-1', {
+            cat: 'done',
+            status: 'Done',
+            assignee: 'Amy',
+            created: daysAgo(5),
+            res: daysAgo(1),
+            own: 3600,
+            est: 3600,
+            spent: 5400,
+          }),
+          story('T-2', {
+            cat: 'new',
+            status: 'To Do',
+            assignee: 'Amy',
+            created: daysAgo(4),
+            own: 3600,
+            est: 10800,
+            spent: 1800,
+          }),
+        ],
+        undefined,
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    expect(await screen.findByTestId('epic-time-burnup')).toBeInTheDocument();
+    const legend = within(screen.getByTestId('epic-time-legend'));
+    for (const label of ['Estimate', 'Logged', 'Remaining']) {
+      expect(legend.getByText(label)).toBeInTheDocument();
+    }
   });
 });

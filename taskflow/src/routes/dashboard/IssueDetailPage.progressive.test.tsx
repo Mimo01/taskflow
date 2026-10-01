@@ -52,6 +52,9 @@ vi.mock('@/services/jira', () => ({
   fetchComments: vi.fn(),
   fetchEnrichedSubtasks: vi.fn(),
   fetchEpicStories: vi.fn().mockResolvedValue([]),
+  // Epic progress section lazy queries (261001-ilq)
+  fetchEpicStatusHistory: vi.fn().mockResolvedValue(new Map()),
+  fetchAllJiraStatuses: vi.fn().mockResolvedValue([]),
   deleteComment: vi.fn(),
   updateComment: vi.fn(),
   // Needed by IssueDetailSidebar → FieldsSection

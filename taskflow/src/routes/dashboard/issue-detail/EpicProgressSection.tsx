@@ -11,29 +11,28 @@
  * conventions shared with HoursCommitsChart (React Compiler / WebKit 0x0 guard).
  */
 import { type ReactNode, useState } from 'react';
-import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import type { ChartConfig } from '@/components/ui/chart';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AssigneeBucket,
+  buildStatusCategoryLookup,
   CAT_LABEL,
   type Cat,
   deriveAdaptiveForecast,
   deriveAssigneeBuckets,
-  deriveBurnup,
+  deriveCfd,
+  deriveProjection,
   deriveStatusBuckets,
   deriveSummary,
   deriveTimeForecast,
   deriveTimeTotals,
   type EpicForecast,
-  formatDateKey,
   formatMetric,
   type Metric,
   type StatusBucket,
+  withProjection,
 } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
 import {
@@ -45,9 +44,10 @@ import {
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
+import { EpicCfdChart } from './EpicCfdChart';
 import { EpicProgressSummary, type ForecastStatus } from './EpicProgressSummary';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
-import { useEpicWorklogs } from './useEpicProgressQueries';
+import { useEpicStatusHistory, useEpicWorklogs, useJiraStatusList } from './useEpicProgressQueries';
 
 interface EpicProgressSectionProps {
   epicKey: string;
@@ -56,13 +56,7 @@ interface EpicProgressSectionProps {
   epicCreated: string | undefined;
 }
 
-const chartConfig = {
-  scope: { label: 'Scope', color: 'var(--color-gray-400)' },
-  done: { label: 'Done', color: 'var(--color-green-500)' },
-} satisfies ChartConfig;
-
 const SECTION_CLASS = 'border-t border-b border-border py-5 my-6 space-y-5';
-const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 const METRICS = [
   ['count', 'Count'],
   ['sp', 'SP'],
@@ -219,17 +213,16 @@ export function EpicProgressSection({
   const [metric, setMetric] = useState<Metric>('count');
   const timeMode = metric === 'time';
   // Hooks run before the early returns (rules of hooks); worklogs load only in Time mode.
-  const worklogs = useEpicWorklogs(
-    epicKey,
-    (stories ?? []).map((s) => s.key),
-    timeMode,
-  );
+  const storyKeys = (stories ?? []).map((s) => s.key);
+  const worklogs = useEpicWorklogs(epicKey, storyKeys, timeMode);
+  // Status history + status list feed the Count/SP cumulative flow diagram only.
+  const history = useEpicStatusHistory(epicKey, storyKeys, !timeMode);
+  const statusList = useJiraStatusList(!timeMode);
 
   if (!stories) return <EpicProgressSkeleton />;
   if (stories.length === 0) return null;
 
   const today = toLocalDateString(new Date());
-  const burnup = deriveBurnup(stories, metric, storyPointsFieldKey, epicCreated, today);
   const statuses = deriveStatusBuckets(stories, metric, storyPointsFieldKey);
   const assignees = deriveAssigneeBuckets(stories, metric, storyPointsFieldKey);
   const summary = deriveSummary(stories, metric, storyPointsFieldKey);
@@ -250,7 +243,29 @@ export function EpicProgressSection({
 
   const statusTotal = statuses.reduce((n, b) => n + b.value, 0);
   const maxAssignee = Math.max(1, ...assignees.map((a) => a.done + a.inProgress + a.todo));
-  const chartData = burnup;
+
+  // Cumulative flow (Count/SP): real status history when loaded, else the current-state
+  // approximation. The chart is never replaced by a skeleton or error box.
+  const lookup = buildStatusCategoryLookup(statusList.data, stories);
+  const { points: cfdPoints, approximate } = deriveCfd({
+    stories,
+    history: history.data ?? null,
+    lookup,
+    metric,
+    spKey: storyPointsFieldKey,
+    epicCreated,
+    today,
+  });
+  const projection = forecast
+    ? deriveProjection(forecast, today, cfdPoints.length > 0 ? cfdPoints[0].date : null)
+    : { points: [], clippedAfter: null };
+  const cfdData = withProjection(cfdPoints, projection);
+  let cfdNote: string;
+  if (history.data)
+    cfdNote = approximate ? 'Approximate for some items' : 'From Jira status history';
+  else if (history.isError || !history.isFetching)
+    cfdNote = 'Approximate — status history unavailable';
+  else cfdNote = 'Approximate — loading status history';
 
   return (
     <section aria-label="Epic progress" className={SECTION_CLASS}>
@@ -302,84 +317,14 @@ export function EpicProgressSection({
                 today={today}
               />
             ) : (
-              <div>
-                <div data-testid="epic-burnup" style={{ height: 220 }}>
-                  {burnup.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">No timeline data</p>
-                  ) : (
-                    <ChartContainer
-                      config={chartConfig}
-                      className="aspect-auto h-full w-full"
-                      aria-label="Epic burnup chart"
-                    >
-                      <ComposedChart
-                        data={chartData}
-                        responsive
-                        margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                      >
-                        <XAxis
-                          dataKey="date"
-                          tickFormatter={(v) => formatDateKey(String(v))}
-                          tickLine={false}
-                          axisLine={false}
-                          minTickGap={24}
-                        />
-                        <YAxis
-                          allowDecimals={false}
-                          tickLine={false}
-                          axisLine={false}
-                          width={timeMode ? 40 : 32}
-                          tickFormatter={(v) => (timeMode ? `${v}h` : String(v))}
-                        />
-                        <ChartTooltip
-                          cursor={BAR_CURSOR}
-                          content={
-                            <ChartTooltipContent
-                              labelFormatter={(v) =>
-                                `${formatDateKey(String(v))}, ${String(v).slice(0, 4)}`
-                              }
-                              formatter={(value, name) => {
-                                const key = String(name) as keyof typeof chartConfig;
-                                return (
-                                  <div className="flex w-full items-center gap-2">
-                                    <span
-                                      className="size-2 shrink-0 rounded-[2px]"
-                                      style={{ background: `var(--color-${key})` }}
-                                    />
-                                    <span className="text-muted-foreground">
-                                      {chartConfig[key]?.label ?? key}
-                                    </span>
-                                    <span className="ml-auto font-mono font-medium tabular-nums">
-                                      {formatMetric(Number(value), metric)}
-                                    </span>
-                                  </div>
-                                );
-                              }}
-                            />
-                          }
-                        />
-                        <Area
-                          dataKey="scope"
-                          type="stepAfter"
-                          stroke="var(--color-scope)"
-                          fill="var(--color-scope)"
-                          fillOpacity={0.15}
-                          isAnimationActive={false}
-                        />
-                        <Line
-                          dataKey="done"
-                          type="stepAfter"
-                          stroke="var(--color-done)"
-                          strokeWidth={2}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                      </ComposedChart>
-                    </ChartContainer>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">Scope by story creation date</p>
-              </div>
+              <EpicCfdChart
+                data={cfdData}
+                metric={metric}
+                history={history.data && !approximate ? 'real' : 'approx'}
+                note={cfdNote}
+                hasProjection={projection.points.length > 0}
+                clippedAfter={projection.clippedAfter}
+              />
             )}
 
             <div className="space-y-2">

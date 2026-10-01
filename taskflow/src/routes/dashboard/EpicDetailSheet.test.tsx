@@ -18,6 +18,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Epic progress section lazy queries must never hit the network (261001-ilq)
+vi.mock('@/services/jira', async (orig) => ({
+  ...(await orig<typeof import('@/services/jira')>()),
+  fetchEpicStatusHistory: vi.fn().mockResolvedValue(new Map()),
+  fetchAllJiraStatuses: vi.fn().mockResolvedValue([]),
+}));
+
 // Mock auth store — prevents Tauri storage init error in jsdom
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn(() => ({

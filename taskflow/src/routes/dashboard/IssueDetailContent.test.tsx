@@ -5,6 +5,9 @@
 
 vi.mock('@/services/jira', () => ({
   fetchIssueDetail: vi.fn(),
+  // Epic progress section lazy queries (261001-ilq)
+  fetchEpicStatusHistory: vi.fn().mockResolvedValue(new Map()),
+  fetchAllJiraStatuses: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/services/stronghold', () => ({
