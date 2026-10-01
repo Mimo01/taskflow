@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-01 - Completed quick task 261001-hsz: epic progress worklog burnup, estimate formula, tooltips, layout (UAT pending)
+Last activity: 2026-10-01 - Completed quick task 261001-ilq: epic progress CFD, adaptive forecast, hero, unified tooltips (UAT pending)
 
 ## Performance Metrics
 
@@ -155,7 +155,8 @@ None yet.
 | 260929-j4e | Worklogs date presets: drop Last Week/Last Month/Last Working Day, add Last 7 Days + rolling Last Month (to date); legacy saved filters → This Week | 2026-09-29 | a3ff085a | Verified | [260929-j4e-worklogs-date-range-presets-remove-last-](./quick/260929-j4e-worklogs-date-range-presets-remove-last-/) |
 | 261001-fmk | Epic detail progress section: burnup, status breakdown, per-assignee bars, forecast/risk tiles, Count/SP toggle (above Stories list) | 2026-10-01 | 0a03796d | Verified | [261001-fmk-epic-detail-progress-chart](./quick/261001-fmk-epic-detail-progress-chart/) |
 | 261001-g5q | Epic progress follow-up: Time metric (estimate/logged/remaining incl. subtasks), Card container, tooltips on tiles/segments/legend/assignees | 2026-10-01 | d2583af0 | Iterated → 261001-hsz | [261001-g5q-epic-progress-time-metric-card-container](./quick/261001-g5q-epic-progress-time-metric-card-container/) |
-| 261001-hsz | Epic progress iteration 3: worklog-based Time burnup (estimate collapse), estimate = subtasks if any else story, tooltips on all progress bars (burnup, quick peek, status/assignee, story mini bars), full-width divider layout | 2026-10-01 | f4af948a | Needs Review | [261001-hsz-epic-progress-time-burnup-from-worklogs-](./quick/261001-hsz-epic-progress-time-burnup-from-worklogs-/) |
+| 261001-hsz | Epic progress iteration 3: worklog-based Time burnup (estimate collapse), estimate = subtasks if any else story, tooltips on all progress bars (burnup, quick peek, status/assignee, story mini bars), full-width divider layout | 2026-10-01 | f4af948a | Iterated → 261001-ilq | [261001-hsz-epic-progress-time-burnup-from-worklogs-](./quick/261001-hsz-epic-progress-time-burnup-from-worklogs-/) |
+| 261001-ilq | Epic progress iteration 4: cumulative flow diagram + remaining + forecast band, adaptive forecast (young/fast/steady/stalled/scope-growth), hero + stat strip, Jira-like assignee rows with status chips, unified tooltips and status colours | 2026-10-01 | 01f76114 | Needs Review | [261001-ilq-epic-progress-cfd-adaptive-forecast-hero](./quick/261001-ilq-epic-progress-cfd-adaptive-forecast-hero/) |
 
 ## Deferred Items
 
