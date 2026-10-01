@@ -48,16 +48,6 @@ export interface TimeTotals {
   remaining: number;
   pctLogged: number | null;
 }
-export interface Forecast {
-  pctDone: number;
-  finishDate: string | null;
-  reason: 'done' | 'insufficient' | 'ok';
-  unestimated: number;
-  unassignedOpen: number;
-  total: number;
-  doneTotal: number;
-}
-
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CAT_ORDER: Record<Cat, number> = { done: 0, indeterminate: 1, new: 2 };
 const DAY_MS = 86_400_000;
@@ -263,46 +253,6 @@ export function deriveAssigneeBuckets(
   const out = [...map.values()];
   for (const b of out) b.remaining = b.inProgress + b.todo;
   return out.sort((a, b) => b.remaining - a.remaining || a.name.localeCompare(b.name));
-}
-
-export function deriveForecast(
-  stories: JiraIssue[],
-  metric: Metric,
-  spKey: string,
-  today: string,
-): Forecast {
-  let total = 0;
-  let doneTotal = 0;
-  let unestimated = 0;
-  let unassignedOpen = 0;
-  let windowItems = 0;
-  let windowValue = 0;
-  const windowStart = addDays(today, -28);
-  for (const s of stories) {
-    const w = weightOf(s, metric, spKey);
-    total += w;
-    if (spOf(s, spKey) === null) unestimated += 1;
-    const dk = doneDateKey(s, today);
-    if (dk !== null) {
-      doneTotal += w;
-      if (dk > windowStart && dk <= today) {
-        windowItems += 1;
-        windowValue += w;
-      }
-    } else if (!s.fields.assignee) {
-      unassignedOpen += 1;
-    }
-  }
-  const allDone = stories.length > 0 && stories.every((s) => catOf(s) === 'done');
-  const pctDone = allDone ? 100 : total > 0 ? Math.round((doneTotal / total) * 100) : 0;
-  const base = { pctDone, unestimated, unassignedOpen, total, doneTotal };
-  if (allDone) return { ...base, finishDate: null, reason: 'done' };
-  if (windowItems < 2 || windowValue <= 0) {
-    return { ...base, finishDate: null, reason: 'insufficient' };
-  }
-  const perWeek = windowValue / 4;
-  const days = Math.ceil(((total - doneTotal) / perWeek) * 7);
-  return { ...base, finishDate: addDays(today, days), reason: 'ok' };
 }
 
 export function deriveTimeTotals(stories: JiraIssue[]): TimeTotals {

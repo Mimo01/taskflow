@@ -69,6 +69,9 @@ function renderEpicsPage(onEpicClick?: (key: string) => void) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let EpicsPageLazy: any = () => null;
 
+const rowTexts = () =>
+  [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) => r.textContent);
+
 describe('EpicsPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -171,9 +174,8 @@ describe('EpicsPage', () => {
     expect(await screen.findByText('5/10')).toBeInTheDocument();
     const user = userEvent.setup();
     await user.hover(screen.getByTestId('epic-progress-bar'));
-    expect(await screen.findByText('5 Done')).toBeInTheDocument();
-    expect(screen.getByText('3 In Progress')).toBeInTheDocument();
-    expect(screen.getByText('2 To Do')).toBeInTheDocument();
+    expect(await screen.findByText('8 of 20 SP done')).toBeInTheDocument();
+    expect(rowTexts()).toEqual(['Done5', 'In progress3', 'To do2']);
   });
 
   it('EPIC-06: renders story points as done/total SP', async () => {

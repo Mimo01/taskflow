@@ -2,6 +2,7 @@
 
 import { Tooltip as TooltipPrimitive } from '@base-ui/react/tooltip';
 
+import { TOOLTIP_SURFACE } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 
 function Tooltip(props: TooltipPrimitive.Root.Props) {
@@ -30,7 +31,8 @@ function TooltipContent({
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"
           className={cn(
-            'max-w-xs rounded-lg bg-background px-2.5 py-1.5 text-xs shadow-xl ring-1 ring-foreground/10 outline-none',
+            'max-w-xs outline-none',
+            TOOLTIP_SURFACE,
             'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
             'transition-opacity duration-150',
             className,

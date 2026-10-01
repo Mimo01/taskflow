@@ -15,7 +15,6 @@ import {
   type EpicForecast,
   deriveAssigneeBuckets,
   deriveBurnup,
-  deriveForecast,
   deriveStatusBuckets,
   deriveTimeBurnup,
   deriveTimeTotals,
@@ -171,46 +170,6 @@ describe('deriveAssigneeBuckets', () => {
     expect(b.map((x) => x.name)).toEqual(['Unassigned', 'Amy', 'Bob', 'Zed']);
     expect(b[0]).toMatchObject({ todo: 2, remaining: 2 });
     expect(b[3]).toMatchObject({ done: 1, remaining: 0 });
-  });
-});
-
-describe('deriveForecast', () => {
-  it('reports done when everything is done', () => {
-    const f = deriveForecast([st('A', { cat: 'done' })], 'count', SP, TODAY);
-    expect(f).toMatchObject({ reason: 'done', finishDate: null, pctDone: 100 });
-  });
-  it('is insufficient with fewer than 2 recent completions', () => {
-    const stories = [st('A', { cat: 'done', res: '2026-09-25' }), st('B')];
-    expect(deriveForecast(stories, 'count', SP, TODAY).reason).toBe('insufficient');
-    const old = [
-      st('A', { cat: 'done', res: '2026-01-01' }),
-      st('B', { cat: 'done', res: '2026-01-02' }),
-      st('C'),
-    ];
-    expect(deriveForecast(old, 'count', SP, TODAY).reason).toBe('insufficient');
-  });
-  it('projects finish from 4-week throughput', () => {
-    const stories = [
-      st('A', { cat: 'done', res: '2026-09-25' }),
-      st('B', { cat: 'done', res: '2026-09-26' }),
-      st('C'),
-      st('D'),
-    ];
-    // 2 done / 4 weeks = 0.5 per week; remaining 2 -> 4 weeks -> 28 days
-    const f = deriveForecast(stories, 'count', SP, TODAY);
-    expect(f).toMatchObject({ reason: 'ok', finishDate: '2026-10-29', pctDone: 50 });
-  });
-  it('counts unestimated and unassigned open; SP mode counts unestimated as 0', () => {
-    const stories = [
-      st('A', { cat: 'done', sp: 3, assignee: 'X' }),
-      st('B', { sp: 1, assignee: 'X' }),
-      st('C', { cat: 'indeterminate' }),
-      st('D', { cat: 'done' }),
-    ];
-    const c = deriveForecast(stories, 'count', SP, TODAY);
-    expect(c).toMatchObject({ unestimated: 2, unassignedOpen: 1, pctDone: 50 });
-    const s = deriveForecast(stories, 'sp', SP, TODAY);
-    expect(s).toMatchObject({ pctDone: 75, total: 4, doneTotal: 3 });
   });
 });
 

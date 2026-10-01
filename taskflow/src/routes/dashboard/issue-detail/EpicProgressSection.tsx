@@ -12,29 +12,42 @@
  */
 import { type ReactNode, useState } from 'react';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { ChartConfig } from '@/components/ui/chart';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AssigneeBucket,
+  CAT_LABEL,
+  type Cat,
+  deriveAdaptiveForecast,
   deriveAssigneeBuckets,
   deriveBurnup,
-  deriveForecast,
   deriveStatusBuckets,
+  deriveSummary,
+  deriveTimeForecast,
   deriveTimeTotals,
-  ESTIMATE_FORMULA_NOTE,
+  type EpicForecast,
   formatDateKey,
   formatMetric,
   type Metric,
   type StatusBucket,
 } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
-import { statusCategoryDotClass } from '@/lib/statusStyles';
+import {
+  STATUS_CATEGORY_COLOR,
+  statusCategoryBadgeClass,
+  statusCategoryColor,
+  statusCategoryDotClass,
+} from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
+import { EpicProgressSummary, type ForecastStatus } from './EpicProgressSummary';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
+import { useEpicWorklogs } from './useEpicProgressQueries';
 
 interface EpicProgressSectionProps {
   epicKey: string;
@@ -48,7 +61,6 @@ const chartConfig = {
   done: { label: 'Done', color: 'var(--color-green-500)' },
 } satisfies ChartConfig;
 
-const TILE_CLASS = 'min-w-0 text-left';
 const SECTION_CLASS = 'border-t border-b border-border py-5 my-6 space-y-5';
 const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 const METRICS = [
@@ -56,56 +68,122 @@ const METRICS = [
   ['sp', 'SP'],
   ['time', 'Time'],
 ] as const;
-
-function Tile({ label, value, tip }: { label: string; value: string; tip: ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        type="button"
-        data-testid="epic-stat-tile"
-        className={cn(TILE_CLASS, 'cursor-default')}
-      >
-        <span className="block text-xs text-muted-foreground truncate">{label}</span>
-        <span className="block text-lg font-semibold leading-tight truncate">{value}</span>
-      </TooltipTrigger>
-      <TooltipContent>{tip}</TooltipContent>
-    </Tooltip>
-  );
-}
+const CHIP_CLASS = 'min-w-[2.25rem] rounded px-1 text-center text-[11px] tabular-nums';
+const TIME_CHIP_CLASS =
+  'min-w-[3.5rem] rounded px-1 text-center text-[11px] tabular-nums whitespace-nowrap';
 
 function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Metric): ReactNode {
   return (
-    <div className="space-y-1">
+    <TooltipBody>
       {statuses
         .filter((b) => b.value > 0)
-        .map((b) => {
-          const pct = statusTotal > 0 ? Math.round((b.value / statusTotal) * 100) : 0;
-          return (
-            <div key={b.id} className="flex items-center gap-2">
-              <span className={cn('size-2 shrink-0 rounded-full', statusCategoryDotClass(b.cat))} />
-              <span>{b.name}</span>
-              <span className="ml-auto pl-3 font-mono tabular-nums">
-                {formatMetric(b.value, metric)}
-              </span>
-              <span className="text-muted-foreground tabular-nums">{`${pct}%`}</span>
-            </div>
-          );
-        })}
-    </div>
+        .map((b) => (
+          <TooltipRow
+            key={b.id}
+            color={statusCategoryColor(b.cat)}
+            label={b.name}
+            value={formatMetric(b.value, metric)}
+            sub={`${statusTotal > 0 ? Math.round((b.value / statusTotal) * 100) : 0}%`}
+          />
+        ))}
+    </TooltipBody>
   );
 }
 
 function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   return (
-    <div className="space-y-0.5">
-      <div className="font-medium">{a.name}</div>
-      <div>{`done: ${formatMetric(a.done, metric)}`}</div>
-      <div>{`in progress: ${formatMetric(a.inProgress, metric)}`}</div>
-      <div>{`to do: ${formatMetric(a.todo, metric)}`}</div>
+    <TooltipBody title={a.name}>
+      <TooltipRow
+        color={STATUS_CATEGORY_COLOR.done}
+        label={CAT_LABEL.done}
+        value={formatMetric(a.done, metric)}
+      />
+      <TooltipRow
+        color={STATUS_CATEGORY_COLOR.indeterminate}
+        label={CAT_LABEL.indeterminate}
+        value={formatMetric(a.inProgress, metric)}
+      />
+      <TooltipRow
+        color={STATUS_CATEGORY_COLOR.new}
+        label={CAT_LABEL.new}
+        value={formatMetric(a.todo, metric)}
+      />
       {metric === 'time' ? (
-        <div className="text-muted-foreground">{`${formatDuration(a.logged)} logged of ${formatDuration(a.estimate)}`}</div>
+        <>
+          <TooltipRow
+            color={STATUS_CATEGORY_COLOR.done}
+            label="Logged"
+            value={formatDuration(a.logged)}
+          />
+          <TooltipRow
+            color={STATUS_CATEGORY_COLOR.new}
+            label="Estimate"
+            value={formatDuration(a.estimate)}
+          />
+        </>
       ) : null}
-    </div>
+    </TooltipBody>
+  );
+}
+
+/** Numbers-only chip text (no unit suffix); the category word lives in the aria-label. */
+function chipNumber(n: number): string {
+  return String(Number.isInteger(n) ? n : Math.round(n * 10) / 10);
+}
+
+function AssigneeChips({ a, metric }: { a: AssigneeBucket; metric: Metric }) {
+  if (metric === 'time') {
+    return (
+      <span className="flex flex-none items-center gap-1">
+        <span
+          role="img"
+          data-testid="epic-assignee-chip"
+          data-cat="done"
+          aria-label={`logged ${formatDuration(a.logged)}`}
+          className={cn(
+            TIME_CHIP_CLASS,
+            statusCategoryBadgeClass('done'),
+            a.logged === 0 && 'opacity-40',
+          )}
+        >
+          {formatDuration(a.logged)}
+        </span>
+        <span
+          role="img"
+          data-testid="epic-assignee-chip"
+          data-cat="new"
+          aria-label={`estimate ${formatDuration(a.estimate)}`}
+          className={cn(
+            TIME_CHIP_CLASS,
+            statusCategoryBadgeClass('new'),
+            a.estimate === 0 && 'opacity-40',
+          )}
+        >
+          {formatDuration(a.estimate)}
+        </span>
+      </span>
+    );
+  }
+  const slots: [Cat, number][] = [
+    ['done', a.done],
+    ['indeterminate', a.inProgress],
+    ['new', a.todo],
+  ];
+  return (
+    <span className="flex flex-none items-center gap-1">
+      {slots.map(([cat, v]) => (
+        <span
+          key={cat}
+          role="img"
+          data-testid="epic-assignee-chip"
+          data-cat={cat}
+          aria-label={`${CAT_LABEL[cat].toLowerCase()} ${chipNumber(v)}`}
+          className={cn(CHIP_CLASS, statusCategoryBadgeClass(cat), v === 0 && 'opacity-40')}
+        >
+          {chipNumber(v)}
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -116,9 +194,10 @@ function EpicProgressSkeleton() {
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-6 w-32" />
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-10" />
+      <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+        <Skeleton className="h-16 sm:col-span-3 lg:col-span-1" />
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-12" />
         ))}
       </div>
       <Skeleton className="h-[220px] w-full" />
@@ -138,6 +217,13 @@ export function EpicProgressSection({
   epicCreated,
 }: EpicProgressSectionProps) {
   const [metric, setMetric] = useState<Metric>('count');
+  const timeMode = metric === 'time';
+  // Hooks run before the early returns (rules of hooks); worklogs load only in Time mode.
+  const worklogs = useEpicWorklogs(
+    epicKey,
+    (stories ?? []).map((s) => s.key),
+    timeMode,
+  );
 
   if (!stories) return <EpicProgressSkeleton />;
   if (stories.length === 0) return null;
@@ -146,29 +232,24 @@ export function EpicProgressSection({
   const burnup = deriveBurnup(stories, metric, storyPointsFieldKey, epicCreated, today);
   const statuses = deriveStatusBuckets(stories, metric, storyPointsFieldKey);
   const assignees = deriveAssigneeBuckets(stories, metric, storyPointsFieldKey);
-  const forecast = deriveForecast(stories, metric, storyPointsFieldKey, today);
+  const summary = deriveSummary(stories, metric, storyPointsFieldKey);
   const time = deriveTimeTotals(stories);
+
+  let forecast: EpicForecast | null;
+  let forecastStatus: ForecastStatus = 'ready';
+  if (timeMode) {
+    if (worklogs.data) forecast = deriveTimeForecast(stories, worklogs.data, today);
+    else {
+      forecast = null;
+      // A disabled query stays pending forever: branch on isFetching, not isLoading alone.
+      forecastStatus = worklogs.isError || !worklogs.isFetching ? 'error' : 'loading';
+    }
+  } else {
+    forecast = deriveAdaptiveForecast(stories, metric, storyPointsFieldKey, epicCreated, today);
+  }
 
   const statusTotal = statuses.reduce((n, b) => n + b.value, 0);
   const maxAssignee = Math.max(1, ...assignees.map((a) => a.done + a.inProgress + a.todo));
-
-  let finish: string;
-  if (forecast.reason === 'done') finish = 'Complete';
-  else if (forecast.reason === 'insufficient' || !forecast.finishDate) finish = 'Not enough data';
-  else finish = formatDateKey(forecast.finishDate);
-
-  const doneTip =
-    metric === 'sp'
-      ? `${formatMetric(forecast.doneTotal, 'sp')} of ${formatMetric(forecast.total, 'sp')} done`
-      : `${forecast.doneTotal} of ${forecast.total} done`;
-  const finishTip =
-    forecast.reason === 'done'
-      ? 'All stories are done'
-      : forecast.reason === 'ok'
-        ? 'Projected from throughput over the trailing 4 weeks'
-        : 'Needs at least 2 stories completed in the trailing 4 weeks';
-
-  const timeMode = metric === 'time';
   const chartData = burnup;
 
   return (
@@ -194,54 +275,16 @@ export function EpicProgressSection({
         </div>
       </div>
       <div className="space-y-5">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
-          {timeMode ? (
-            <>
-              <Tile
-                label="Estimated"
-                value={formatDuration(time.estimated)}
-                tip={
-                  <div className="space-y-0.5">
-                    <div>{ESTIMATE_FORMULA_NOTE}</div>
-                    <div className="text-muted-foreground">{formatDuration(time.estimated)}</div>
-                  </div>
-                }
-              />
-              <Tile
-                label="Logged"
-                value={formatDuration(time.logged)}
-                tip={`Time logged, incl. subtasks: ${formatDuration(time.logged)}`}
-              />
-              <Tile
-                label="Remaining"
-                value={formatDuration(time.remaining)}
-                tip="Open stories: estimate minus logged, never below 0. Replaces Jira's remaining estimate so it matches the chart."
-              />
-              <Tile
-                label="% logged"
-                value={time.pctLogged === null ? '—' : `${time.pctLogged}%`}
-                tip={`${formatDuration(time.logged)} of ${formatDuration(time.estimated)}`}
-              />
-            </>
-          ) : (
-            <>
-              <Tile label="% done" value={`${forecast.pctDone}%`} tip={doneTip} />
-              <Tile label="Projected finish" value={finish} tip={finishTip} />
-              <Tile
-                label="Unestimated"
-                value={String(forecast.unestimated)}
-                tip={`${forecast.unestimated} without story points`}
-              />
-              <Tile
-                label="Unassigned open"
-                value={String(forecast.unassignedOpen)}
-                tip={`${forecast.unassignedOpen} open with no assignee`}
-              />
-            </>
-          )}
-        </div>
+        <EpicProgressSummary
+          metric={metric}
+          summary={summary}
+          time={time}
+          forecast={forecast}
+          forecastStatus={forecastStatus}
+          today={today}
+        />
 
-        {metric === 'sp' && forecast.total === 0 ? (
+        {metric === 'sp' && summary.total === 0 ? (
           <p className="text-sm text-muted-foreground italic pr-0.5">
             No story points estimated — switch to Count
           </p>
@@ -253,7 +296,7 @@ export function EpicProgressSection({
           <>
             {timeMode ? (
               <EpicTimeBurnup
-                epicKey={epicKey}
+                query={worklogs}
                 stories={stories}
                 epicCreated={epicCreated}
                 today={today}
@@ -386,7 +429,10 @@ export function EpicProgressSection({
                   data-testid="epic-assignee-row"
                   className="flex items-center gap-2 text-xs"
                 >
-                  <span className="w-32 flex-none truncate pr-0.5">{a.name}</span>
+                  <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
+                    <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
+                    <span className="truncate pr-0.5">{a.name}</span>
+                  </span>
                   <Tooltip trackCursorAxis="x">
                     <TooltipTrigger
                       delay={0}
@@ -416,16 +462,7 @@ export function EpicProgressSection({
                     </TooltipTrigger>
                     <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
                   </Tooltip>
-                  <span
-                    className={cn(
-                      'flex-none truncate whitespace-nowrap text-right text-muted-foreground',
-                      timeMode ? 'w-36' : 'w-14',
-                    )}
-                  >
-                    {timeMode
-                      ? `${formatDuration(a.logged)} / ${formatDuration(a.estimate)}`
-                      : formatMetric(a.remaining, metric)}
-                  </span>
+                  <AssigneeChips a={a} metric={metric} />
                 </div>
               ))}
             </div>

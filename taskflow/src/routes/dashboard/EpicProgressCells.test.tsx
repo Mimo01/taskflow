@@ -21,6 +21,9 @@ const zeroCounts: EpicProgressCounts = {
   donePoints: 0,
 };
 
+const rowTexts = () =>
+  [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) => r.textContent);
+
 describe('EpicProgressCells (Phase 91.2)', () => {
   it('EPIC-03: progress cell renders skeleton shimmer while enrichment is pending', () => {
     render(<EpicProgressCell state={{ kind: 'pending' }} onRetry={vi.fn()} />);
@@ -42,10 +45,8 @@ describe('EpicProgressCells (Phase 91.2)', () => {
     const bar = screen.getByTestId('epic-progress-bar');
     expect(bar).not.toHaveAttribute('title');
     await user.hover(bar);
-    expect(await screen.findByText('5 Done')).toBeInTheDocument();
-    expect(screen.getByText('3 In Progress')).toBeInTheDocument();
-    expect(screen.getByText('2 To Do')).toBeInTheDocument();
-    expect(screen.getByText('8 of 20 SP done')).toBeInTheDocument();
+    expect(await screen.findByText('8 of 20 SP done')).toBeInTheDocument();
+    expect(rowTexts()).toEqual(['Done5', 'In progress3', 'To do2']);
   });
 
   it('EPIC-03: progress cell shows done/total beside the bar', () => {
