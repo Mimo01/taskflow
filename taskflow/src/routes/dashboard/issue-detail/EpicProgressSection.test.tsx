@@ -146,7 +146,7 @@ describe('EpicProgressSection', () => {
     expect(screen.getAllByText('Unassigned').length).toBe(1);
     expect(screen.getAllByTestId('epic-stat-tile')).toHaveLength(3);
     expect(screen.getByTestId('epic-hero')).toBeInTheDocument();
-    expect(screen.getByTestId('epic-cfd-note')).toBeInTheDocument();
+    expect(screen.queryByTestId('epic-cfd-note')).toBeNull();
     expect(
       within(screen.getByTestId('epic-cfd-legend')).getByText('Completed'),
     ).toBeInTheDocument();
@@ -620,7 +620,8 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     );
     const finish = screen.getAllByTestId('epic-stat-tile')[0];
     expect(finish.textContent).toContain('Oct 7');
-    expect(finish.textContent).toContain('medium confidence');
+    expect(within(finish).getByTestId('confidence-meter')).toHaveAttribute('data-level', 'medium');
+    expect(finish.textContent).toContain('Medium');
   });
 
   it('Finish shows the state text for too-early and done', () => {
@@ -813,12 +814,13 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     expect(mockHistory).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the chart wrapper in every history state, with the matching note', async () => {
+  it('keeps the chart wrapper in every history state, with the matching data source', async () => {
     // pending
     mockHistory.mockReturnValue(new Promise(() => {}));
     const pending = renderSection(sectionFor(stories, daysAgo(12)));
     expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'approx');
-    expect(screen.getByTestId('epic-cfd-note').textContent).toBe(
+    expect(screen.getByTestId('epic-source-flag')).toHaveAttribute(
+      'aria-label',
       'Approximate — loading status history',
     );
     pending.unmount();
@@ -828,7 +830,8 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     mockHistory.mockRejectedValue(new Error('boom'));
     const failed = renderSection(sectionFor(stories, daysAgo(12)));
     await waitFor(() =>
-      expect(screen.getByTestId('epic-cfd-note').textContent).toBe(
+      expect(screen.getByTestId('epic-source-flag')).toHaveAttribute(
+        'aria-label',
         'Approximate — status history unavailable',
       ),
     );
@@ -842,9 +845,16 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     );
     const real = renderSection(sectionFor(stories, daysAgo(12)));
     await waitFor(() =>
-      expect(screen.getByTestId('epic-cfd-note').textContent).toBe('From Jira status history'),
+      expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'real'),
     );
-    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'real');
+    expect(screen.queryByTestId('epic-source-flag')).toBeNull();
+    const realUser = userEvent.setup();
+    await realUser.hover(screen.getByTestId('epic-hero'));
+    await waitFor(() =>
+      expect(
+        [...document.querySelectorAll('[data-slot="tooltip-source"]')].map((r) => r.textContent),
+      ).toContain('From Jira status history'),
+    );
     real.unmount();
 
     // resolved, approximate for some items (one story missing)
@@ -854,7 +864,10 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     );
     renderSection(sectionFor(stories, daysAgo(12)));
     await waitFor(() =>
-      expect(screen.getByTestId('epic-cfd-note').textContent).toBe('Approximate for some items'),
+      expect(screen.getByTestId('epic-source-flag')).toHaveAttribute(
+        'aria-label',
+        'Approximate for some items',
+      ),
     );
   });
 
@@ -1014,10 +1027,18 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     );
     const finishTile = () => screen.getAllByTestId('epic-stat-tile')[0];
     expect(finishTile().textContent).toContain('Oct 7');
-    expect(finishTile().textContent).toContain('medium confidence');
+    expect(within(finishTile()).getByTestId('confidence-meter')).toHaveAttribute(
+      'data-level',
+      'medium',
+    );
+    expect(finishTile().textContent).toContain('Medium');
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
     expect(finishTile().textContent).toContain('Oct 7');
-    expect(finishTile().textContent).toContain('medium confidence');
+    expect(within(finishTile()).getByTestId('confidence-meter')).toHaveAttribute(
+      'data-level',
+      'medium',
+    );
+    expect(finishTile().textContent).toContain('Medium');
     await user.hover(finishTile());
     await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Items'))).toBe(true));
     const rows = rowTexts();
@@ -1025,7 +1046,10 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
       true,
     );
     expect(rows.some((t) => t?.startsWith('Time'))).toBe(true);
-    expect(document.body.textContent).toContain('Excludes weekends (holidays unavailable)');
+    await user.hover(screen.getByTestId('epic-hero'));
+    await waitFor(() =>
+      expect(document.body.textContent).toContain('Excludes weekends (holidays unavailable)'),
+    );
   });
 
   it('a past due date shows a warning overdue chip', () => {
@@ -1042,7 +1066,7 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     expect(chip).toHaveAttribute('data-severity', 'warning');
   });
 
-  it('hovering Risks lists one row per risk with the affected issue keys', async () => {
+  it('opening Risks lists one row per risk with the affected issue keys', async () => {
     const user = userEvent.setup();
     renderSection(
       <EpicProgressSection
@@ -1055,10 +1079,10 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         epicCreated={undefined}
       />,
     );
-    await user.hover(screen.getAllByTestId('epic-stat-tile')[2]);
+    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
     await waitFor(() => expect(rowTexts()).toContain('Unestimated1'));
     expect(rowTexts()).toContain('Unassigned1');
-    expect(document.body.textContent).toContain('A-4');
+    expect(screen.getAllByRole('button', { name: 'A-4' }).length).toBeGreaterThan(0);
   });
 
   it('bar-to-legend spacing uses no negative margins', () => {
@@ -1316,5 +1340,147 @@ describe('EpicProgressSection a11y review fix (261001-rtw)', () => {
     const trigger = screen.getByTestId('epic-assignee-trigger');
     expect(trigger.getAttribute('role')).toBe('group');
     expect(trigger.closest('[role="img"]')).toBeNull();
+  });
+});
+
+describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function workingDaysBack(n: number): string[] {
+    const out: string[] = [];
+    let d = new Date(Date.UTC(2026, 8, 30));
+    while (out.length < n) {
+      const wd = d.getUTCDay();
+      if (wd !== 0 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+      d = new Date(d.getTime() - 86_400_000);
+    }
+    return out;
+  }
+  const okList = () => [
+    ...workingDaysBack(15).map((d, i) =>
+      story(`S-${i + 1}`, {
+        cat: 'done',
+        status: 'Done',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        res: `${d}T12:00:00.000+0000`,
+      }),
+    ),
+    ...[0, 1, 2, 3, 4].map((i) =>
+      story(`S-${100 + i}`, {
+        cat: 'new',
+        status: 'To Do',
+        assignee: 'Amy',
+        created: '2026-01-01',
+      }),
+    ),
+  ];
+  const sectionOf = (list: JiraIssue[], extra: Record<string, unknown> = {}) => (
+    <EpicProgressSection
+      epicKey="E-1"
+      stories={list}
+      storyPointsFieldKey={SP}
+      epicCreated="2026-01-01"
+      {...extra}
+    />
+  );
+  const sourceTexts = () =>
+    [...document.querySelectorAll('[data-slot="tooltip-source"]')].map((r) => r.textContent);
+
+  it('hero tooltip lists Data sources in the same slots per tab, and no chart notes remain', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    mockHistory.mockResolvedValue(
+      new Map(okList().map((s) => [s.key, { transitions: [], joinedAt: null }])),
+    );
+    const user = userEvent.setup();
+    renderSection(sectionOf(okList()));
+    await user.hover(screen.getByTestId('epic-hero'));
+    await waitFor(() => expect(sourceTexts().length).toBe(3));
+    expect(document.body.textContent).toContain('Data sources');
+    expect(sourceTexts()).toEqual([
+      'From Jira status history',
+      'Scope from when each item joined the epic',
+      'Excludes weekends (holidays unavailable)',
+    ]);
+    await user.unhover(screen.getByTestId('epic-hero'));
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    expect(screen.queryByTestId('epic-cfd-note')).toBeNull();
+    expect(screen.queryByText(/Done stories collapse/)).toBeNull();
+    await user.hover(screen.getByTestId('epic-hero'));
+    await waitFor(() =>
+      expect(sourceTexts()).toEqual([
+        'Logged from Jira worklogs',
+        ESTIMATE_FORMULA_NOTE,
+        'Done stories collapse to their logged time.',
+        'Excludes weekends (holidays unavailable)',
+      ]),
+    );
+  });
+
+  it('shows the source flag only while history is approximate', async () => {
+    mockHistory.mockReturnValue(new Promise(() => {}));
+    renderSection(sectionOf(stories));
+    expect(screen.getByTestId('epic-source-flag')).toHaveAttribute('role', 'img');
+  });
+
+  it('Finish pairs the range with a confidence meter; the tooltip adds a Confidence row and reason', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const user = userEvent.setup();
+    renderSection(sectionOf(okList()));
+    const finish = screen.getAllByTestId('epic-stat-tile')[0];
+    expect(within(finish).getByTestId('confidence-meter')).toHaveAttribute('data-level', 'medium');
+    await user.hover(finish);
+    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Confidence'))).toBe(true));
+    expect(rowTexts().some((t) => t?.startsWith('Confidence') && t.includes('Medium'))).toBe(true);
+    expect(document.body.textContent).toMatch(/Only \d+ (working days|completions)|Wide range/);
+  });
+
+  it('Risks popover: keys are buttons that open the issue (click and Enter)', async () => {
+    const onOpenIssue = vi.fn();
+    const user = userEvent.setup();
+    renderSection(
+      sectionOf(
+        [
+          story('A-1', { cat: 'done', status: 'Done', sp: 2, assignee: 'Amy', res: daysAgo(1) }),
+          story('A-4', { cat: 'new', status: 'To Do', sp: null, assignee: null }),
+          story('A-5', { cat: 'new', status: 'To Do', sp: null, assignee: null }),
+        ],
+        { onOpenIssue },
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'A-4' })).toBeNull();
+    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
+    await user.click((await screen.findAllByRole('button', { name: 'A-4' }))[0]);
+    expect(onOpenIssue).toHaveBeenCalledWith('A-4');
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'A-4' })).toBeNull());
+
+    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
+    const a5 = (await screen.findAllByRole('button', { name: 'A-5' }))[0];
+    a5.focus();
+    await user.keyboard('{Enter}');
+    expect(onOpenIssue).toHaveBeenCalledWith('A-5');
+  });
+
+  it('Risks popover shows 5 keys and expands the rest with +N more; warnings come first', async () => {
+    const user = userEvent.setup();
+    const seven = Array.from({ length: 7 }, (_, i) =>
+      story(`K-${i + 1}`, { cat: 'new', status: 'To Do', sp: 1, assignee: 'Amy' }),
+    );
+    renderSection(sectionOf(seven, { epicDueDate: daysAgo(3) }));
+    await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
+    const popover = await screen.findByTestId('epic-risks-popover');
+    const rows = within(popover).getAllByTestId('epic-risk-row');
+    expect(rows[0].textContent).toContain('Overdue');
+    const keyButtons = () => within(popover).getAllByRole('button', { name: /^K-\d+$/ });
+    expect(keyButtons()).toHaveLength(5);
+    const more = within(popover).getByRole('button', { name: '+2 more' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    await user.click(more);
+    expect(keyButtons()).toHaveLength(7);
+    expect(within(popover).queryByRole('button', { name: /more$/ })).toBeNull();
   });
 });

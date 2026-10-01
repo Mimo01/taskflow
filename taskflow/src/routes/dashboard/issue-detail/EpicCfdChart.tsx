@@ -11,6 +11,7 @@
  * wrapper + isAnimationActive={false}. No recharts <Legend>: it renders text in jsdom and
  * would collide with the EpicDetailSheet text assertions, so the legend is custom.
  */
+import { Info } from 'lucide-react';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { MarkerGlyph, type MarkerTone, type TooltipMarker } from '@/components/ui/tooltip-body';
@@ -41,8 +42,8 @@ interface EpicCfdChartProps {
   metric: Metric;
   /** Whether the series comes from real status history (vs the current-state approximation). */
   history: 'real' | 'approx';
-  /** Caption describing where the data comes from. */
-  note: string;
+  /** Small neutral info flag text when the data source is approximate or loading. */
+  sourceFlag?: string | null;
   hasProjection: boolean;
   clippedAfter: string | null;
   /** The one shared forecast (same result as the Finish tile). */
@@ -98,11 +99,21 @@ export function ForecastLegend({
   );
 }
 
+/** Neutral info icon in the legend row when a data source is approximate or loading. */
+export function SourceFlag({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return (
+    <span data-testid="epic-source-flag" role="img" aria-label={text} title={text}>
+      <Info aria-hidden="true" className="size-3 text-muted-foreground" />
+    </span>
+  );
+}
+
 export function EpicCfdChart({
   data,
   metric,
   history,
-  note,
+  sourceFlag,
   hasProjection,
   clippedAfter,
   finish,
@@ -227,10 +238,8 @@ export function EpicCfdChart({
           label="Remaining"
         />
         <ForecastLegend finish={finish} hasProjection={hasProjection} />
+        <SourceFlag text={sourceFlag} />
       </div>
-      <p data-testid="epic-cfd-note" className="mt-1 text-xs text-muted-foreground">
-        {note}
-      </p>
     </div>
   );
 }

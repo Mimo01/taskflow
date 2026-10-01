@@ -20,6 +20,8 @@ import {
   averageForecasts,
   type Bands,
   buildStatusCategoryLookup,
+  calendarNote,
+  dataSourceLines,
   deriveAdaptiveForecast,
   deriveAssigneeBuckets,
   deriveCfd,
@@ -29,9 +31,12 @@ import {
   deriveTimeForecast,
   deriveTimeTotals,
   formatMetric,
+  HISTORY_SOURCE_TEXT,
+  type HistorySource,
   type Metric,
   projectFinish,
   type StatusBucket,
+  type WorklogSource,
   withProjection,
 } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
@@ -58,6 +63,8 @@ interface EpicProgressSectionProps {
   epicCreated: string | undefined;
   /** The epic's own due date (YYYY-MM-DD), for the overdue / late risks. */
   epicDueDate?: string | null;
+  /** Opens an issue (risk keys in the Risks popover). */
+  onOpenIssue?: (key: string) => void;
 }
 
 const SECTION_CLASS = 'border-t border-b border-border py-5 my-6 space-y-5';
@@ -141,6 +148,7 @@ export function EpicProgressSection({
   storyPointsFieldKey,
   epicCreated,
   epicDueDate,
+  onOpenIssue,
 }: EpicProgressSectionProps) {
   const [metric, setMetric] = useState<Metric>('count');
   const timeMode = metric === 'time';
@@ -233,12 +241,21 @@ export function EpicProgressSection({
     calendar,
   );
   const cfdData = withProjection(cfdPoints, projection);
-  let cfdNote: string;
-  if (history.data)
-    cfdNote = approximate ? 'Approximate for some items' : 'From Jira status history';
-  else if (history.isError || !history.isFetching)
-    cfdNote = 'Approximate — status history unavailable';
-  else cfdNote = 'Approximate — loading status history';
+  let historySource: HistorySource;
+  if (history.data) historySource = approximate ? 'partial' : 'real';
+  else if (history.isError || !history.isFetching) historySource = 'unavailable';
+  else historySource = 'loading';
+  const worklogSource: WorklogSource = worklogs.data
+    ? 'loaded'
+    : timePending === 'error'
+      ? 'unavailable'
+      : 'loading';
+  const sources = dataSourceLines({
+    metric,
+    history: historySource,
+    worklogs: worklogSource,
+    calendarLine: calendarNote(calendar, today, finish.pessimistic),
+  });
 
   return (
     <section aria-label="Epic progress" className={SECTION_CLASS}>
@@ -269,7 +286,8 @@ export function EpicProgressSection({
           time={time}
           finish={finish}
           risks={risks}
-          calendar={calendar}
+          sources={sources}
+          onOpenIssue={onOpenIssue}
           today={today}
         />
 
@@ -291,13 +309,14 @@ export function EpicProgressSection({
                 today={today}
                 finish={finish}
                 calendar={calendar}
+                sourceFlag={null}
               />
             ) : (
               <EpicCfdChart
                 data={cfdData}
                 metric={metric}
                 history={history.data && !approximate ? 'real' : 'approx'}
-                note={cfdNote}
+                sourceFlag={historySource === 'real' ? null : HISTORY_SOURCE_TEXT[historySource]}
                 hasProjection={projection.points.length > 0}
                 clippedAfter={projection.clippedAfter}
                 finish={finish}
