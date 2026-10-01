@@ -21,6 +21,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Epic progress section lazy queries must never hit the network (261001-ilq)
 vi.mock('@/services/jira', async (orig) => ({
   ...(await orig<typeof import('@/services/jira')>()),
+  fetchEpicWorklogs: vi.fn().mockResolvedValue(new Map()),
   fetchEpicStatusHistory: vi.fn().mockResolvedValue(new Map()),
   fetchAllJiraStatuses: vi.fn().mockResolvedValue([]),
 }));

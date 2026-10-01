@@ -53,6 +53,7 @@ vi.mock('@/services/jira', () => ({
   fetchEnrichedSubtasks: vi.fn(),
   fetchEpicStories: vi.fn().mockResolvedValue([]),
   // Epic progress section lazy queries (261001-ilq)
+  fetchEpicWorklogs: vi.fn().mockResolvedValue(new Map()),
   fetchEpicStatusHistory: vi.fn().mockResolvedValue(new Map()),
   fetchAllJiraStatuses: vi.fn().mockResolvedValue([]),
   deleteComment: vi.fn(),
@@ -549,9 +550,7 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
     const menuButton = await screen.findByLabelText('Comment actions');
     fireEvent.click(menuButton);
 
-    const menuContainer = (await screen.findByText('Delete')).closest(
-      '.fixed',
-    ) as HTMLElement;
+    const menuContainer = (await screen.findByText('Delete')).closest('.fixed') as HTMLElement;
     const editButton = within(menuContainer).getByRole('button', { name: 'Edit' });
     fireEvent.click(editButton);
 

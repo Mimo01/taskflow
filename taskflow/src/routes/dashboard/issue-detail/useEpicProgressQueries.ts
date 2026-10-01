@@ -6,6 +6,7 @@
  * added/moved while the epic is open refetches.
  */
 import { useQuery } from '@tanstack/react-query';
+import { addCalendarDays, buildWorkCalendar, type WorkCalendar } from '@/lib/epic-progress';
 import {
   type EpicStatusHistory,
   type EpicWorklogDay,
@@ -15,9 +16,14 @@ import {
   type JiraStatus,
 } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { fetchUserSchedule } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
-/** Per-day worklogs for the epic's stories; enabled only in Time mode by the caller. */
+/**
+ * Per-day worklogs for the epic's stories. The caller enables it in every mode (the
+ * averaged Finish needs the Time forecast); it loads after first paint.
+ */
 export function useEpicWorklogs(epicKey: string, storyKeys: string[], enabled: boolean) {
   const { jiraBaseUrl, jiraConnected } = useAuthStore();
   const sortedKeys = [...storyKeys].sort();
@@ -67,4 +73,36 @@ export function useJiraStatusList(enabled: boolean) {
     gcTime: Number.POSITIVE_INFINITY,
     enabled: enabled && !!jiraConnected && !!jiraBaseUrl,
   });
+}
+
+const CALENDAR_LOOKBACK_DAYS = 120;
+const CALENDAR_HORIZON_DAYS = 182;
+const CALENDAR_STALE_MS = 24 * 60 * 60_000;
+
+/**
+ * Working calendar for the forecasts: Mon-Fri minus Tempo HOLIDAY / NON_WORKING_DAY days
+ * for the current user. Only fetched when Tempo is enabled; any failure falls back silently
+ * to plain Mon-Fri. Own query key (does not collide with the worklogs page schedule key).
+ */
+export function useEpicWorkCalendar(today: string): {
+  calendar: WorkCalendar;
+  holidaysAvailable: boolean;
+} {
+  const { jiraBaseUrl, jiraConnected, jiraUserKey } = useAuthStore();
+  const { tempoEnabled } = useSettingsStore();
+  const from = addCalendarDays(today, -CALENDAR_LOOKBACK_DAYS);
+  const to = addCalendarDays(today, CALENDAR_HORIZON_DAYS);
+  const query = useQuery({
+    queryKey: ['tempo', 'schedule', 'epic-forecast', jiraBaseUrl, from, to, jiraUserKey ?? ''],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !jiraUserKey) throw new Error('No credentials');
+      return fetchUserSchedule(jiraBaseUrl, token, from, to, jiraUserKey);
+    },
+    staleTime: CALENDAR_STALE_MS,
+    refetchOnWindowFocus: false,
+    enabled: tempoEnabled === true && !!jiraConnected && !!jiraBaseUrl && !!jiraUserKey,
+  });
+  const calendar = buildWorkCalendar(query.data);
+  return { calendar, holidaysAvailable: calendar.source === 'tempo' };
 }

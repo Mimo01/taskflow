@@ -41,4 +41,33 @@ describe('tooltip-body', () => {
     expect(note.className).toContain('text-muted-foreground');
     expect(note.className).toContain('border-t');
   });
+
+  it('a row with no colour gets a visible neutral dot', () => {
+    const { container } = render(<TooltipRow label="Likely" value="Oct 7" />);
+    const m = container.querySelector('[data-slot="tooltip-row"] > span') as HTMLElement;
+    expect(m.className).toContain('rounded-full');
+    expect(m.style.background).not.toBe('transparent');
+    expect(m.style.background).not.toBe('');
+  });
+
+  it('marker line gives a short horizontal bar in the colour', () => {
+    const { container } = render(
+      <TooltipRow marker="line" color="rgb(7, 8, 9)" label="Remaining" value="2" />,
+    );
+    const m = container.querySelector('[data-slot="tooltip-row"] > span') as HTMLElement;
+    expect(m.className).toContain('h-0.5');
+    expect(m.style.background).toContain('rgb(7, 8, 9)');
+  });
+
+  it('icon renders inside the marker slot, coloured, with no extra text', () => {
+    const { container } = render(
+      <TooltipRow icon={<svg data-testid="ic" />} color="rgb(1, 1, 1)" label="Risk" value="2" />,
+    );
+    const row = container.querySelector('[data-slot="tooltip-row"]') as HTMLElement;
+    const m = row.children[0] as HTMLElement;
+    expect(m.querySelector('[data-testid="ic"]')).not.toBeNull();
+    expect(m.style.color).toBe('rgb(1, 1, 1)');
+    expect(m.textContent).toBe('');
+    expect(row.children).toHaveLength(3);
+  });
 });
