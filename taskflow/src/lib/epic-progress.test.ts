@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@/services/jira';
 import {
+  addCalendarDays,
   addWorkingDays,
   axisTicks,
   calendarNote,
@@ -14,6 +15,20 @@ import {
   ESTIMATE_FORMULA_NOTE,
   HISTORY_SOURCE_TEXT,
   historyDates,
+  viewSample,
+  VIEW_MAX_POINTS,
+  timeTicks,
+  formatDateRange,
+  formatMonthYear,
+  spanDays,
+  rangeToOffsets,
+  offsetsToRange,
+  panRange,
+  panDeltaDays,
+  rebaseRange,
+  ZOOM_MIN_SPAN_DAYS,
+  PRESET_SHORT_MAX_DAYS,
+  PRESET_MEDIUM_MAX_DAYS,
   padToDomain,
   presetRange,
   projectionCap,
@@ -918,7 +933,7 @@ describe('deriveCfd', () => {
     expect(at(points, '2026-09-30')).toMatchObject({ todo: 1, done: 0 });
   });
 
-  it('(i) the axis is daily to 120 days, then thinned to <= 150 points ending today', () => {
+  it('(i) the axis is daily at any span (402 days gives 402 rows) and ends today', () => {
     const daily = deriveCfd({
       ...baseArgs,
       stories: [st('A', { created: '2026-06-03' })],
@@ -932,7 +947,7 @@ describe('deriveCfd', () => {
       history: null,
       epicCreated: undefined,
     });
-    expect(long.points.length).toBeLessThanOrEqual(150);
+    expect(long.points).toHaveLength(402);
     expect(long.points[long.points.length - 1].date).toBe(TODAY);
     expect(long.points[0].date).toBe('2025-08-26');
   });
@@ -1630,12 +1645,13 @@ describe('261001-sqm lib', () => {
       expect(time.map((p) => p.date)).toEqual(historyDates('2026-01-01', T));
       expect(cfd.points.length).toBeGreaterThan(2);
     });
-    it('historyDates is daily up to 120 days, else stepped and ends on today', () => {
+    it('historyDates is always daily and ends on today', () => {
       expect(historyDates('2026-09-28', T)).toHaveLength(4);
       const long = historyDates('2025-01-01', T);
       expect(long[0]).toBe('2025-01-01');
       expect(long[long.length - 1]).toBe(T);
-      expect(long.length).toBeLessThanOrEqual(122);
+      expect(long).toHaveLength(639);
+      expect(historyDates('2024-10-02', '2026-10-02')).toHaveLength(731);
     });
     it('keeps estimate >= logged with a log before the axis start', () => {
       const pts = deriveTimeBurnup(
@@ -1808,38 +1824,39 @@ describe('261001-sqm lib', () => {
 
   describe('zoom threshold and visible presets (261002-0et)', () => {
     const TODAY = '2026-09-30';
-    it('is enabled only above ZOOM_MIN_DAYS (42/43-day boundary)', () => {
-      expect(ZOOM_MIN_DAYS).toBe(42);
-      expect(zoomEnabled({ from: '2026-08-01', to: '2026-09-12' })).toBe(false);
-      expect(zoomEnabled({ from: '2026-08-01', to: '2026-09-13' })).toBe(true);
+    it('is enabled only above ZOOM_MIN_DAYS (28/29-day boundary)', () => {
+      expect(ZOOM_MIN_DAYS).toBe(28);
+      expect(zoomEnabled({ from: '2026-08-01', to: '2026-08-29' })).toBe(false);
+      expect(zoomEnabled({ from: '2026-08-01', to: '2026-08-30' })).toBe(true);
     });
     it('returns no presets when zoom is disabled', () => {
-      expect(visiblePresets({ from: '2026-08-20', to: '2026-09-30' }, TODAY)).toEqual([]);
+      expect(visiblePresets({ from: '2026-09-10', to: '2026-09-30' }, TODAY)).toEqual([]);
     });
-    it('long domain with a future shows every preset', () => {
-      expect(visiblePresets({ from: '2026-03-01', to: '2026-11-01' }, TODAY)).toEqual([
+    it('long domain (> 240d) with a future shows the long adaptive set', () => {
+      expect(visiblePresets({ from: '2026-01-01', to: '2026-11-01' }, TODAY)).toEqual([
         'all',
+        '6m',
         '3m',
         '1m',
+        'forecast',
+      ]);
+    });
+    it('hides Forecast without a future and presets that would not cut history', () => {
+      expect(visiblePresets({ from: '2026-08-01', to: TODAY }, TODAY)).toEqual(['all', '2w']);
+      expect(visiblePresets({ from: '2026-08-11', to: '2026-10-30' }, TODAY)).toEqual([
+        'all',
         '2w',
         'forecast',
       ]);
     });
-    it('hides Forecast without a future and 3M when it would not cut history', () => {
-      expect(visiblePresets({ from: '2026-08-01', to: TODAY }, TODAY)).toEqual(['all', '1m', '2w']);
-      // 2026-08-11 .. 2026-10-30: 3M (from 2026-07-01) clipped to the domain start
-      const p = visiblePresets({ from: '2026-08-11', to: '2026-10-30' }, TODAY);
-      expect(p).not.toContain('3m');
-      expect(p).toContain('forecast');
-    });
     it('hides 1M when the domain starts exactly 30 days before today', () => {
-      const p = visiblePresets({ from: '2026-08-31', to: '2026-10-30' }, TODAY);
+      const p = visiblePresets({ from: '2026-08-31', to: '2026-12-30' }, TODAY);
       expect(p).not.toContain('1m');
       expect(p).toContain('2w');
     });
-    it('never offers a lone "All" (domain just over 42 days, all presets clipped)', () => {
-      // 43-day domain wholly in the future: every preset's range starts at/before the domain start
-      const d = { from: '2026-10-05', to: '2026-11-17' };
+    it('never offers a lone "All" (domain just over 28 days, all presets clipped)', () => {
+      // 29-day domain wholly in the future: every preset's range starts at/before the domain start
+      const d = { from: '2026-10-05', to: '2026-11-03' };
       expect(zoomEnabled(d)).toBe(true);
       expect(visiblePresets(d, TODAY)).toEqual([]);
     });
@@ -1888,5 +1905,214 @@ describe('261001-sqm lib', () => {
     const unassigned = r.find((x) => x.key === 'unassigned');
     expect(unassigned?.issues).toHaveLength(7);
     expect('moreKeys' in (unassigned ?? {})).toBe(false);
+  });
+});
+
+describe('zoom range matrix (261002-0xf)', () => {
+  const T = '2026-10-02';
+  const rowsOf = (from: string, to: string) => {
+    const out: { date: string; t: number }[] = [];
+    for (let d = from; d <= to; d = addCalendarDays(d, 1)) out.push({ date: d, t: dateKeyMs(d) });
+    return out;
+  };
+  const dim = (a: string, b: string) => Math.round((dateKeyMs(b) - dateKeyMs(a)) / 86_400_000);
+  const MIN = ZOOM_MIN_SPAN_DAYS;
+
+  it('A: 35d domain enables zoom with [all, 2w, forecast]', () => {
+    const d = { from: '2026-09-11', to: '2026-10-16' };
+    expect(zoomEnabled(d)).toBe(true);
+    expect(visiblePresets(d, T)).toEqual(['all', '2w', 'forecast']);
+  });
+  it('B: 91d domain offers 1m/2w/forecast; forecast preset starts 14d before today', () => {
+    const d = { from: '2026-08-28', to: '2026-11-27' };
+    expect(visiblePresets(d, T)).toEqual(['all', '1m', '2w', 'forecast']);
+    expect(presetRange('forecast', d, T)).toEqual({ from: '2026-09-18', to: '2026-11-27' });
+    const [today] = rangeToOffsets({ from: T, to: d.to }, d);
+    expect(today / spanDays(d)).toBeCloseTo(0.38, 1);
+  });
+  it('C: 70d domain without a future offers [all, 2w]; 1M ends today', () => {
+    const d = { from: '2026-07-24', to: T };
+    expect(visiblePresets(d, T)).toEqual(['all', '2w']);
+    expect(presetRange('1m', d, T)).toEqual({ from: '2026-09-02', to: T });
+  });
+  it('D: 126d domain offers [all, 1m, 2w, forecast]', () => {
+    expect(visiblePresets({ from: '2026-07-02', to: '2026-11-06' }, T)).toEqual([
+      'all',
+      '1m',
+      '2w',
+      'forecast',
+    ]);
+  });
+  it('E: 250d domain offers the long set; today at 50%; 2W keeps 15 daily rows', () => {
+    const d = { from: addCalendarDays(T, -125), to: addCalendarDays(T, 125) };
+    expect(visiblePresets(d, T)).toEqual(['all', '3m', '1m', 'forecast']);
+    const [today] = rangeToOffsets({ from: T, to: d.to }, d);
+    expect(today / spanDays(d)).toBe(0.5);
+    const r = presetRange('2w', d, T) as { from: string; to: string };
+    const inWin = viewSample(rowsOf(d.from, d.to), r).filter(
+      (x) => x.date >= r.from && x.date <= r.to,
+    );
+    expect(inWin).toHaveLength(15);
+  });
+  it('F: one-year domain offers 6m/3m/1m/forecast; ticks are monthly and carry the year', () => {
+    const d = { from: '2026-01-02', to: '2027-01-02' };
+    expect(visiblePresets(d, T)).toEqual(['all', '6m', '3m', '1m', 'forecast']);
+    const ticks = timeTicks(d.from, d.to, 640);
+    expect(ticks.length).toBeLessThanOrEqual(8);
+    expect(ticks[0].label).toContain('2026');
+    expect(ticks.map((x) => x.label)).toContain('Jan 2027');
+  });
+  it('G: far pessimistic finish is clipped to the projection cap; <= 260 sampled rows', () => {
+    const start = '2025-10-02';
+    const finish = { state: 'ok', pessimistic: '2030-01-01' } as unknown as AveragedForecast;
+    const d = chartDomain(start, T, finish);
+    expect(d).not.toBeNull();
+    const dom = d as NonNullable<typeof d>;
+    expect(dom.to).toBe(projectionCap(T, start));
+    expect(dom.clippedAfter).toBe(dom.to);
+    expect(viewSample(rowsOf(dom.from, dom.to), dom).length).toBeLessThanOrEqual(260);
+  });
+  it('H: 2y domain samples <= 260 at All, keeps 15 daily rows at 2W, last tick near the end', () => {
+    const d = { from: '2025-04-02', to: '2027-04-02' };
+    const rows = rowsOf(d.from, d.to);
+    expect(rows).toHaveLength(731);
+    expect(viewSample(rows, d).length).toBeLessThanOrEqual(260);
+    const w = { from: '2026-09-18', to: T };
+    const inWin = viewSample(rows, w).filter((x) => x.date >= w.from && x.date <= w.to);
+    expect(inWin).toHaveLength(15);
+    const ticks = timeTicks(d.from, d.to, 640);
+    const lastDate = new Date(ticks[ticks.length - 1].t).toISOString().slice(0, 10);
+    expect(dim(lastDate, d.to)).toBeLessThanOrEqual(92);
+  });
+
+  describe('viewSample', () => {
+    const rows = rowsOf('2026-01-01', '2026-12-31');
+    it('keeps every in-window row plus one neighbour each side when under budget', () => {
+      const out = viewSample(rows, { from: '2026-03-10', to: '2026-03-20' });
+      expect(out[0].date).toBe('2026-03-09');
+      expect(out[out.length - 1].date).toBe('2026-03-21');
+      expect(out).toHaveLength(13);
+    });
+    it('thins above budget; keeps ends, neighbours and keep dates; sorted and unique', () => {
+      const out = viewSample(rows, { from: '2026-01-02', to: '2026-12-30' }, 50, ['2026-06-15']);
+      expect(out.length).toBeLessThanOrEqual(50 + 1 + 2);
+      const dates = out.map((x) => x.date);
+      for (const k of ['2026-01-01', '2026-01-02', '2026-12-30', '2026-12-31', '2026-06-15']) {
+        expect(dates).toContain(k);
+      }
+      expect([...dates].sort()).toEqual(dates);
+      expect(new Set(dates).size).toBe(dates.length);
+    });
+    it('default budget is VIEW_MAX_POINTS', () => {
+      const out = viewSample(rows, { from: '2026-01-01', to: '2026-12-31' });
+      expect(out.length).toBeLessThanOrEqual(VIEW_MAX_POINTS + 2);
+    });
+  });
+
+  describe('timeTicks', () => {
+    it('single-day range gives one tick at from', () => {
+      expect(timeTicks('2026-09-14', '2026-09-14', 600)).toEqual([
+        { t: dateKeyMs('2026-09-14'), label: 'Sep 14' },
+      ]);
+    });
+    it('short range uses day ticks labelled "Sep 14"', () => {
+      const t = timeTicks('2026-09-14', '2026-09-18', 600);
+      expect(t.map((x) => x.label)).toEqual(['Sep 14', 'Sep 15', 'Sep 16', 'Sep 17', 'Sep 18']);
+    });
+    it('week ticks land on Mondays', () => {
+      const t = timeTicks('2026-09-01', '2026-10-15', 600);
+      for (const x of t) expect(new Date(x.t).getUTCDay()).toBe(1);
+      expect(t.length).toBeLessThanOrEqual(8);
+    });
+    it('every tick is within [from, to]', () => {
+      for (const x of timeTicks('2026-02-03', '2026-11-20', 480)) {
+        expect(x.t).toBeGreaterThanOrEqual(dateKeyMs('2026-02-03'));
+        expect(x.t).toBeLessThanOrEqual(dateKeyMs('2026-11-20'));
+      }
+    });
+    it('panning a 30-day window by 1 day keeps every shared tick and label', () => {
+      const a = timeTicks('2026-09-01', '2026-10-01', 600);
+      const b = new Map(timeTicks('2026-09-02', '2026-10-02', 600).map((x) => [x.t, x.label]));
+      const shared = a.filter((x) => b.has(x.t));
+      expect(shared.length).toBeGreaterThan(0);
+      for (const x of shared) expect(b.get(x.t)).toBe(x.label);
+    });
+  });
+
+  describe('offsets, pan, clamp, rebase', () => {
+    const dom = { from: '2026-09-01', to: '2026-10-01' };
+    it('rangeToOffsets / offsetsToRange round-trip', () => {
+      const r = { from: '2026-09-05', to: '2026-09-20' };
+      const o = rangeToOffsets(r, dom);
+      expect(o).toEqual([4, 19]);
+      expect(offsetsToRange(o, dom)).toEqual(r);
+    });
+    it('panRange keeps the span and clamps both ends', () => {
+      const r = { from: '2026-09-05', to: '2026-09-15' };
+      expect(panRange(r, dom, 3)).toEqual({ from: '2026-09-08', to: '2026-09-18' });
+      expect(panRange(r, dom, -100)).toEqual({ from: '2026-09-01', to: '2026-09-11' });
+      expect(panRange(r, dom, 100)).toEqual({ from: '2026-09-21', to: '2026-10-01' });
+    });
+    it('panDeltaDays maps pixels to whole days', () => {
+      expect(panDeltaDays(150, 100, 500, 30)).toBe(3);
+      expect(panDeltaDays(50, 100, 500, 30)).toBe(-3);
+      expect(panDeltaDays(100, 100, 500, 30)).toBe(0);
+      expect(panDeltaDays(900, 100, 0, 30)).toBe(0);
+    });
+    it('clampRange widens spans below minSpan; every result spans >= minSpan', () => {
+      expect(MIN).toBe(7);
+      expect(clampRange({ from: '2026-09-10', to: '2026-09-12' }, dom, MIN)).toEqual({
+        from: '2026-09-10',
+        to: '2026-09-17',
+      });
+      const edge = clampRange({ from: '2026-09-29', to: '2026-09-30' }, dom, MIN);
+      expect(spanDays(edge)).toBeGreaterThanOrEqual(MIN);
+      expect(edge.to).toBe('2026-10-01');
+      expect(clampRange({ from: '2026-09-10', to: '2026-09-10' }, dom, MIN)).toEqual(dom);
+      // sweep: every committed range keeps the minimum span
+      for (let a = 0; a < 30; a++) {
+        for (let b = a; b < 30; b++) {
+          const r = clampRange(offsetsToRange([a, b], dom), dom, MIN);
+          expect(spanDays(r)).toBeGreaterThanOrEqual(MIN);
+        }
+      }
+    });
+    it('rebaseRange follows a new domain end only when pinned to the old one', () => {
+      const next = { from: '2026-09-01', to: '2026-10-10' };
+      expect(
+        rebaseRange({ from: '2026-09-15', to: '2026-10-01' }, '2026-10-01', next, MIN),
+      ).toEqual({ from: '2026-09-15', to: '2026-10-10' });
+      expect(
+        rebaseRange({ from: '2026-09-05', to: '2026-09-20' }, '2026-10-01', next, MIN),
+      ).toEqual({ from: '2026-09-05', to: '2026-09-20' });
+      const tiny = rebaseRange({ from: '2026-09-09', to: '2026-09-10' }, '2026-10-01', next, MIN);
+      expect(spanDays(tiny)).toBeGreaterThanOrEqual(MIN);
+    });
+    it('panning a minimum-span range never shrinks it', () => {
+      const r = { from: '2026-09-10', to: '2026-09-17' };
+      for (const delta of [-50, -3, 0, 4, 50]) {
+        expect(spanDays(panRange(r, dom, delta))).toBe(MIN);
+      }
+    });
+  });
+
+  it('adaptive preset thresholds are exported', () => {
+    expect(PRESET_SHORT_MAX_DAYS).toBe(90);
+    expect(PRESET_MEDIUM_MAX_DAYS).toBe(240);
+  });
+
+  describe('formatDateRange / formatMonthYear', () => {
+    it('same month', () => {
+      expect(formatDateRange('2026-10-09', '2026-10-28', T)).toBe('Oct 9 – 28');
+    });
+    it('cross month', () => {
+      expect(formatDateRange('2026-10-09', '2026-11-02', T)).toBe('Oct 9 – Nov 2');
+    });
+    it('next-year suffix', () => {
+      expect(formatDateRange('2026-12-20', '2027-01-05', T)).toBe("Dec 20 – Jan 5 '27");
+    });
+    it('formatMonthYear', () => {
+      expect(formatMonthYear('2026-03-14')).toBe('Mar 2026');
+    });
   });
 });
