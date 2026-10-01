@@ -29,32 +29,64 @@ export function TooltipBody({
   );
 }
 
-/** One tooltip row: swatch · label · value (· sub). */
+export type TooltipMarker = 'swatch' | 'dot' | 'line';
+
+/** One tooltip row: marker · label · value (· sub). */
 export function TooltipRow({
   color,
   label,
   value,
   sub,
   dashed,
+  marker,
+  icon,
 }: {
-  /** CSS colour of the swatch. */
+  /** CSS colour of the marker. */
   color?: string;
   label: ReactNode;
   value: ReactNode;
   sub?: ReactNode;
   dashed?: boolean;
+  /**
+   * Leading marker shape. Defaults to a square swatch when `color` is set, else a neutral
+   * muted dot, so every row has something on the left. Use 'line' for line series.
+   */
+  marker?: TooltipMarker;
+  /** Renders this icon (coloured via `color`) instead of a shape marker. */
+  icon?: ReactNode;
 }) {
+  const shape = marker ?? (color ? 'swatch' : 'dot');
   return (
     <div data-slot="tooltip-row" className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className={cn('size-2 shrink-0 rounded-[2px]', dashed && 'border border-dashed')}
-        style={
-          dashed
-            ? { background: 'transparent', borderColor: color }
-            : { background: color ?? 'transparent' }
-        }
-      />
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="flex size-3 shrink-0 items-center justify-center"
+          style={{ color }}
+        >
+          {icon}
+        </span>
+      ) : (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'shrink-0',
+            dashed
+              ? 'size-2 rounded-[2px] border border-dashed'
+              : shape === 'swatch'
+                ? 'size-2 rounded-[2px]'
+                : shape === 'line'
+                  ? 'h-0.5 w-2.5 rounded-full'
+                  : 'size-2 rounded-full',
+            !dashed && shape === 'dot' && !color && 'opacity-60',
+          )}
+          style={
+            dashed
+              ? { background: 'transparent', borderColor: color }
+              : { background: color ?? 'var(--color-muted-foreground)' }
+          }
+        />
+      )}
       <span className="text-muted-foreground">{label}</span>
       <span className="ml-auto pl-3 font-mono font-medium tabular-nums">{value}</span>
       {sub ? <span className="text-muted-foreground tabular-nums">{sub}</span> : null}

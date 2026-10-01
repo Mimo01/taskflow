@@ -460,10 +460,13 @@ describe('EpicProgressSection time burnup, formulas (261001-hsz)', () => {
     );
   }
 
-  it('Count and SP never fetch worklogs', () => {
+  it('worklogs load once in every mode for the averaged Finish', async () => {
     renderIt();
+    await waitFor(() => expect(mockWorklogs).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
-    expect(mockWorklogs).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mockWorklogs).toHaveBeenCalledTimes(1);
   });
 
   it('Time mode shows a loading skeleton then the chart, fetching with story keys', async () => {
@@ -640,7 +643,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     expect(within(remaining).getByText('9 SP · 0m')).toBeInTheDocument();
   });
 
-  it('Risks shows amber chips for unestimated and unassigned, or None when clean', () => {
+  it('Risks shows severity chips for unestimated and unassigned, or No risks when clean', () => {
     const { unmount } = renderSection(
       <EpicProgressSection
         epicKey="E-1"
@@ -652,7 +655,10 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     const risks = screen.getAllByTestId('epic-stat-tile')[2];
     expect(within(risks).getByText('1 unestimated')).toBeInTheDocument();
     expect(within(risks).getByText('1 unassigned')).toBeInTheDocument();
-    expect(within(risks).queryByText('None')).toBeNull();
+    for (const chip of within(risks).getAllByTestId('epic-risk-chip')) {
+      expect(chip).toHaveAttribute('data-severity', 'info');
+    }
+    expect(within(risks).queryByText('No risks')).toBeNull();
     unmount();
     renderSection(
       <EpicProgressSection
@@ -672,7 +678,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
       />,
     );
     expect(
-      within(screen.getAllByTestId('epic-stat-tile')[2]).getByText('None'),
+      within(screen.getAllByTestId('epic-stat-tile')[2]).getByText('No risks'),
     ).toBeInTheDocument();
   });
 
@@ -712,7 +718,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     }
   });
 
-  it('Count and SP never fetch worklogs', () => {
+  it('worklogs load once in every mode for the averaged Finish', async () => {
     renderSection(
       <EpicProgressSection
         epicKey="E-1"
@@ -721,8 +727,11 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
         epicCreated={undefined}
       />,
     );
+    await waitFor(() => expect(mockWorklogs).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
-    expect(mockWorklogs).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mockWorklogs).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -904,7 +913,8 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
 });
 
 describe('EpicProgressSection review fixes (261001-ilq)', () => {
-  it('Finish shows "—", not today, when only unestimated work remains in SP mode', () => {
+  it('Finish is toggle-independent and never today when only unestimated work remains', async () => {
+    const user = userEvent.setup();
     const s = [
       story('F-1', {
         cat: 'done',
@@ -923,11 +933,126 @@ describe('EpicProgressSection review fixes (261001-ilq)', () => {
         epicCreated={undefined}
       />,
     );
+    const finishTile = () =>
+      screen.getAllByTestId('epic-stat-tile').find((t) => t.textContent?.includes('Finish'));
+    const countText = finishTile()?.textContent;
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
-    const finish = screen
-      .getAllByTestId('epic-stat-tile')
-      .find((t) => t.textContent?.includes('Finish'));
-    expect(finish?.textContent).toContain('—');
+    const finish = finishTile();
+    expect(finish?.textContent).toContain('Stalled');
     expect(finish?.textContent).not.toMatch(/Today/i);
+    expect(finish?.textContent).toBe(countText);
+    await user.hover(finish as HTMLElement);
+    await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
+    expect(rowTexts()).toContain('Story pointsno estimates');
+  });
+});
+
+describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function workingDaysBack(n: number): string[] {
+    const out: string[] = [];
+    let d = new Date(Date.UTC(2026, 8, 30));
+    while (out.length < n) {
+      const wd = d.getUTCDay();
+      if (wd !== 0 && wd !== 6) out.push(d.toISOString().slice(0, 10));
+      d = new Date(d.getTime() - 86_400_000);
+    }
+    return out;
+  }
+  const okList = () => [
+    ...workingDaysBack(15).map((d, i) =>
+      story(`S-${i + 1}`, {
+        cat: 'done',
+        status: 'Done',
+        assignee: 'Amy',
+        created: '2026-01-01',
+        res: `${d}T12:00:00.000+0000`,
+      }),
+    ),
+    ...[0, 1, 2, 3, 4].map((i) =>
+      story(`S-${100 + i}`, {
+        cat: 'new',
+        status: 'To Do',
+        assignee: 'Amy',
+        created: '2026-01-01',
+      }),
+    ),
+  ];
+
+  it('shows the same averaged Finish in Count and SP mode, with per-metric rows and the calendar note', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const user = userEvent.setup();
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={okList()}
+        storyPointsFieldKey={SP}
+        epicCreated="2026-01-01"
+      />,
+    );
+    const finishTile = () => screen.getAllByTestId('epic-stat-tile')[0];
+    expect(finishTile().textContent).toContain('Oct 7');
+    expect(finishTile().textContent).toContain('medium confidence');
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    expect(finishTile().textContent).toContain('Oct 7');
+    expect(finishTile().textContent).toContain('medium confidence');
+    await user.hover(finishTile());
+    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Items'))).toBe(true));
+    const rows = rowTexts();
+    expect(rows.some((t) => t?.startsWith('Story points') && t.includes('no estimates'))).toBe(
+      true,
+    );
+    expect(rows.some((t) => t?.startsWith('Time'))).toBe(true);
+    expect(document.body.textContent).toContain('Excludes weekends (holidays unavailable)');
+  });
+
+  it('a past due date shows a warning overdue chip', () => {
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={[story('O-1', { cat: 'new', status: 'To Do', sp: 1, assignee: 'Amy' })]}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+        epicDueDate={daysAgo(3)}
+      />,
+    );
+    const chip = screen.getByText('overdue').closest('[data-testid="epic-risk-chip"]');
+    expect(chip).toHaveAttribute('data-severity', 'warning');
+  });
+
+  it('hovering Risks lists one row per risk with the affected issue keys', async () => {
+    const user = userEvent.setup();
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={[
+          story('A-1', { cat: 'done', status: 'Done', sp: 2, assignee: 'Amy', res: daysAgo(1) }),
+          story('A-4', { cat: 'new', status: 'To Do', sp: null, assignee: null }),
+        ]}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    await user.hover(screen.getAllByTestId('epic-stat-tile')[2]);
+    await waitFor(() => expect(rowTexts()).toContain('Unestimated1'));
+    expect(rowTexts()).toContain('Unassigned1');
+    expect(document.body.textContent).toContain('A-4');
+  });
+
+  it('hero caption and legend have extra spacing', () => {
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={okList()}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    expect(screen.getByTestId('epic-hero-caption').className).toContain('mt-1');
+    expect(screen.getByTestId('epic-status-bar').parentElement?.className).toContain('space-y-3');
   });
 });

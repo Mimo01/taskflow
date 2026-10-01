@@ -7,34 +7,51 @@
  * "Done" / "In Progress" and none says "Stories" — every sentence here is a single
  * lowercase template-literal node.
  */
-import { AlertTriangle } from 'lucide-react';
+import { CalendarX, CircleCheck, CircleDashed, Hourglass, TrendingUp, UserX } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
+  type AveragedForecast,
+  addCalendarDays,
   CAT_LABEL,
   type Cat,
-  type EpicForecast,
+  type EpicRisk,
   type EpicSummary,
   ESTIMATE_FORMULA_NOTE,
   formatDateKey,
   formatMetric,
+  holidaysBetween,
+  METRIC_LABEL,
   type Metric,
+  type RiskKey,
   type TimeTotals,
+  type WorkCalendar,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR, statusCategoryDotClass, tonePillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/services/jira/duration';
 
-export type ForecastStatus = 'ready' | 'loading' | 'error';
+/** Look-back for the holiday count in the Finish note (about the 30-working-day max window). */
+const HOLIDAY_NOTE_LOOKBACK_DAYS = 42;
+
+const RISK_ICON: Record<RiskKey, typeof CalendarX> = {
+  overdue: CalendarX,
+  late: CalendarX,
+  stalled: Hourglass,
+  scope: TrendingUp,
+  unestimated: CircleDashed,
+  unassigned: UserX,
+};
 
 interface EpicProgressSummaryProps {
   metric: Metric;
   summary: EpicSummary;
   time: TimeTotals;
-  /** Null while the time-mode forecast has no worklog data yet. */
-  forecast: EpicForecast | null;
-  forecastStatus: ForecastStatus;
+  /** Average of the Count / SP / Time forecasts (independent of the metric toggle). */
+  finish: AveragedForecast;
+  risks: EpicRisk[];
+  calendar: WorkCalendar;
   today: string;
 }
 
@@ -184,7 +201,12 @@ function Hero({
               />
             ))}
         </span>
-        <span className="block truncate text-xs text-muted-foreground">{line}</span>
+        <span
+          data-testid="epic-hero-caption"
+          className="mt-1 block truncate text-xs text-muted-foreground"
+        >
+          {line}
+        </span>
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
@@ -192,35 +214,17 @@ function Hero({
 }
 
 function FinishTile({
-  forecast,
-  forecastStatus,
+  finish,
+  calendar,
   today,
 }: {
-  forecast: EpicForecast | null;
-  forecastStatus: ForecastStatus;
+  finish: AveragedForecast;
+  calendar: WorkCalendar;
   today: string;
 }) {
-  if (!forecast) {
-    return (
-      <Tile
-        label="Finish"
-        value="—"
-        sub={forecastStatus === 'error' ? 'Worklogs unavailable' : 'Loading worklogs'}
-        tip={
-          <TooltipBody note="The finish date is projected from the logged-time rate.">
-            <TooltipRow
-              label="Status"
-              value={forecastStatus === 'error' ? 'unavailable' : 'loading'}
-            />
-          </TooltipBody>
-        }
-      />
-    );
-  }
-
   let value: string;
   let sub: string | undefined;
-  switch (forecast.state) {
+  switch (finish.state) {
     case 'done':
       value = 'Complete';
       break;
@@ -234,43 +238,139 @@ function FinishTile({
       value = 'Not converging';
       break;
     default:
-      value = forecast.likely && forecast.nLikely !== 0 ? dateText(forecast.likely, today) : '—';
-      if (forecast.nLikely === 0) sub = 'Remaining work is unestimated';
-      else if (forecast.optimistic && forecast.pessimistic) {
-        sub = `${formatDateKey(forecast.optimistic)}–${formatDateKey(forecast.pessimistic)} · ${forecast.confidence ?? 'low'} confidence`;
+      value = finish.likely ? dateText(finish.likely, today) : '—';
+      if (finish.optimistic && finish.pessimistic) {
+        sub = `${formatDateKey(finish.optimistic)}–${formatDateKey(finish.pessimistic)} · ${finish.confidence ?? 'low'} confidence`;
       }
   }
 
-  const ok = forecast.state === 'ok' && forecast.nLikely !== 0;
+  const calendarLine =
+    calendar.source === 'tempo'
+      ? `Excludes weekends and ${holidaysBetween(
+          calendar,
+          addCalendarDays(today, -HOLIDAY_NOTE_LOOKBACK_DAYS),
+          finish.pessimistic ?? today,
+        )} holidays (Tempo)`
+      : 'Excludes weekends (holidays unavailable)';
+  const ok = finish.state === 'ok' && finish.likely && finish.optimistic && finish.pessimistic;
   return (
     <Tile
       label="Finish"
       value={value}
       sub={sub}
       tip={
-        <TooltipBody title="Projected finish" note={forecast.explanation || undefined}>
-          {ok && forecast.likely && forecast.optimistic && forecast.pessimistic ? (
+        <TooltipBody
+          title="Projected finish"
+          note={
+            <>
+              {finish.explanation ? <div>{finish.explanation}</div> : null}
+              <div>{calendarLine}</div>
+            </>
+          }
+        >
+          {ok ? (
             <>
               <TooltipRow
                 label="Likely"
-                value={dateText(forecast.likely, today)}
-                sub={`${forecast.nLikely} working days`}
+                value={dateText(finish.likely as string, today)}
+                sub={`${finish.nLikely} working days`}
               />
               <TooltipRow
                 label="Earliest"
-                value={dateText(forecast.optimistic, today)}
-                sub={`${forecast.nOpt} working days`}
+                value={dateText(finish.optimistic as string, today)}
+                sub={`${finish.nOpt} working days`}
               />
               <TooltipRow
                 label="Latest"
-                value={dateText(forecast.pessimistic, today)}
-                sub={`${forecast.nPess} working days`}
+                value={dateText(finish.pessimistic as string, today)}
+                sub={`${finish.nPess} working days`}
               />
             </>
           ) : null}
+          {finish.parts.map((p) => (
+            <TooltipRow
+              key={p.metric}
+              label={METRIC_LABEL[p.metric]}
+              value={
+                p.included && p.forecast?.likely ? dateText(p.forecast.likely, today) : p.reason
+              }
+              sub={p.included ? (p.forecast?.confidence ?? undefined) : undefined}
+            />
+          ))}
         </TooltipBody>
       }
     />
+  );
+}
+
+function RisksTile({ risks }: { risks: EpicRisk[] }) {
+  return (
+    <Tile
+      label="Risks"
+      tip={
+        <TooltipBody title="Risks">
+          {risks.length === 0 ? (
+            <TooltipRow
+              icon={<CircleCheck className="size-3" />}
+              color="var(--color-muted-foreground)"
+              label="No risks found"
+              value=""
+            />
+          ) : (
+            risks.map((r) => {
+              const Icon = RISK_ICON[r.key];
+              return (
+                <div key={r.key} className="grid gap-0.5">
+                  <TooltipRow
+                    icon={<Icon className="size-3" />}
+                    color={
+                      r.severity === 'warning'
+                        ? 'var(--color-amber-500)'
+                        : 'var(--color-muted-foreground)'
+                    }
+                    label={r.label}
+                    value={r.count ?? ''}
+                  />
+                  <div className="pl-5 text-muted-foreground">
+                    {r.detail}
+                    {r.issueKeys.length > 0
+                      ? ` · ${r.issueKeys.join(', ')}${r.moreKeys ? ` +${r.moreKeys}` : ''}`
+                      : ''}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </TooltipBody>
+      }
+    >
+      {risks.length === 0 ? (
+        <span className="flex items-center gap-1.5 text-lg font-semibold leading-tight text-muted-foreground">
+          <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+          No risks
+        </span>
+      ) : (
+        <span className="mt-0.5 flex flex-wrap gap-1">
+          {risks.map((r) => {
+            const Icon = RISK_ICON[r.key];
+            return (
+              <span
+                key={r.key}
+                data-testid="epic-risk-chip"
+                data-severity={r.severity}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                  tonePillClass(r.severity === 'warning' ? 'amber' : 'muted'),
+                )}
+              >
+                <Icon aria-hidden="true" className="size-3 shrink-0" />
+                {r.text}
+              </span>
+            );
+          })}
+        </span>
+      )}
+    </Tile>
   );
 }
 
@@ -278,8 +378,9 @@ export function EpicProgressSummary({
   metric,
   summary,
   time,
-  forecast,
-  forecastStatus,
+  finish,
+  risks,
+  calendar,
   today,
 }: EpicProgressSummaryProps) {
   const timeMode = metric === 'time';
@@ -300,23 +401,12 @@ export function EpicProgressSummary({
     .map((m) => remainingParts[m])
     .join(' · ');
 
-  const unestimated = timeMode ? summary.unestimatedTime : summary.unestimatedSp;
-  const risks: { key: string; text: string }[] = [];
-  if (unestimated > 0) risks.push({ key: 'unestimated', text: `${unestimated} unestimated` });
-  if (summary.unassignedOpen > 0) {
-    risks.push({ key: 'unassigned', text: `${summary.unassignedOpen} unassigned` });
-  }
-  if (forecast?.state === 'stalled') risks.push({ key: 'stalled', text: 'stalled' });
-  if (forecast?.state === 'not-converging') {
-    risks.push({ key: 'scope', text: 'scope growing' });
-  }
-
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
       <div className="min-w-0 sm:col-span-3 lg:col-span-1">
         <Hero metric={metric} summary={summary} time={time} />
       </div>
-      <FinishTile forecast={forecast} forecastStatus={forecastStatus} today={today} />
+      <FinishTile finish={finish} calendar={calendar} today={today} />
       <Tile
         label="Remaining"
         value={remainingPrimary}
@@ -335,39 +425,7 @@ export function EpicProgressSummary({
           </TooltipBody>
         }
       />
-      <Tile
-        label="Risks"
-        tip={
-          <TooltipBody>
-            <TooltipRow label="Unestimated" value={unestimated} />
-            <TooltipRow label="Unassigned open" value={summary.unassignedOpen} />
-            {forecast && (forecast.state === 'stalled' || forecast.state === 'not-converging') ? (
-              <TooltipRow label="Forecast" value={forecast.state} />
-            ) : null}
-          </TooltipBody>
-        }
-      >
-        {risks.length === 0 ? (
-          <span className="block truncate text-lg font-semibold leading-tight text-muted-foreground">
-            None
-          </span>
-        ) : (
-          <span className="mt-0.5 flex flex-wrap gap-1">
-            {risks.map((r) => (
-              <span
-                key={r.key}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
-                  tonePillClass('amber'),
-                )}
-              >
-                <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
-                {r.text}
-              </span>
-            ))}
-          </span>
-        )}
-      </Tile>
+      <RisksTile risks={risks} />
     </div>
   );
 }

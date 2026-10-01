@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AssigneeBucket,
+  averageForecasts,
   buildStatusCategoryLookup,
   CAT_LABEL,
   type Cat,
@@ -24,11 +25,11 @@ import {
   deriveAssigneeBuckets,
   deriveCfd,
   deriveProjection,
+  deriveRisks,
   deriveStatusBuckets,
   deriveSummary,
   deriveTimeForecast,
   deriveTimeTotals,
-  type EpicForecast,
   formatMetric,
   type Metric,
   type StatusBucket,
@@ -45,15 +46,22 @@ import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { EpicCfdChart } from './EpicCfdChart';
-import { EpicProgressSummary, type ForecastStatus } from './EpicProgressSummary';
+import { EpicProgressSummary } from './EpicProgressSummary';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
-import { useEpicStatusHistory, useEpicWorklogs, useJiraStatusList } from './useEpicProgressQueries';
+import {
+  useEpicStatusHistory,
+  useEpicWorkCalendar,
+  useEpicWorklogs,
+  useJiraStatusList,
+} from './useEpicProgressQueries';
 
 interface EpicProgressSectionProps {
   epicKey: string;
   stories: JiraIssue[] | undefined;
   storyPointsFieldKey: string;
   epicCreated: string | undefined;
+  /** The epic's own due date (YYYY-MM-DD), for the overdue / late risks. */
+  epicDueDate?: string | null;
 }
 
 const SECTION_CLASS = 'border-t border-b border-border py-5 my-6 space-y-5';
@@ -209,12 +217,16 @@ export function EpicProgressSection({
   stories,
   storyPointsFieldKey,
   epicCreated,
+  epicDueDate,
 }: EpicProgressSectionProps) {
   const [metric, setMetric] = useState<Metric>('count');
   const timeMode = metric === 'time';
-  // Hooks run before the early returns (rules of hooks); worklogs load only in Time mode.
+  // Hooks run before the early returns (rules of hooks). Worklogs load in every mode (after
+  // first paint) because the averaged Finish includes the Time forecast.
   const storyKeys = (stories ?? []).map((s) => s.key);
-  const worklogs = useEpicWorklogs(epicKey, storyKeys, timeMode);
+  const worklogs = useEpicWorklogs(epicKey, storyKeys, true);
+  const today = toLocalDateString(new Date());
+  const { calendar } = useEpicWorkCalendar(today);
   // Status history + status list feed the Count/SP cumulative flow diagram only.
   const history = useEpicStatusHistory(epicKey, storyKeys, !timeMode);
   const statusList = useJiraStatusList(!timeMode);
@@ -222,24 +234,53 @@ export function EpicProgressSection({
   if (!stories) return <EpicProgressSkeleton />;
   if (stories.length === 0) return null;
 
-  const today = toLocalDateString(new Date());
   const statuses = deriveStatusBuckets(stories, metric, storyPointsFieldKey);
   const assignees = deriveAssigneeBuckets(stories, metric, storyPointsFieldKey);
   const summary = deriveSummary(stories, metric, storyPointsFieldKey);
   const time = deriveTimeTotals(stories);
 
-  let forecast: EpicForecast | null;
-  let forecastStatus: ForecastStatus = 'ready';
-  if (timeMode) {
-    if (worklogs.data) forecast = deriveTimeForecast(stories, worklogs.data, today);
-    else {
-      forecast = null;
-      // A disabled query stays pending forever: branch on isFetching, not isLoading alone.
-      forecastStatus = worklogs.isError || !worklogs.isFetching ? 'error' : 'loading';
-    }
-  } else {
-    forecast = deriveAdaptiveForecast(stories, metric, storyPointsFieldKey, epicCreated, today);
-  }
+  const countForecast = deriveAdaptiveForecast(
+    stories,
+    'count',
+    storyPointsFieldKey,
+    epicCreated,
+    today,
+    calendar,
+  );
+  const spForecast = deriveAdaptiveForecast(
+    stories,
+    'sp',
+    storyPointsFieldKey,
+    epicCreated,
+    today,
+    calendar,
+  );
+  const timeForecast = worklogs.data
+    ? deriveTimeForecast(stories, worklogs.data, today, calendar)
+    : null;
+  // A disabled query stays pending forever: branch on isFetching, not isLoading alone.
+  const timePending = worklogs.data
+    ? undefined
+    : worklogs.isError || !worklogs.isFetching
+      ? ('error' as const)
+      : ('loading' as const);
+  const finish = averageForecasts(
+    [
+      { metric: 'count', forecast: countForecast },
+      { metric: 'sp', forecast: spForecast },
+      { metric: 'time', forecast: timeForecast, pending: timePending },
+    ],
+    today,
+    calendar,
+  );
+  const risks = deriveRisks({
+    stories,
+    metric,
+    spKey: storyPointsFieldKey,
+    finish,
+    dueDate: epicDueDate,
+    today,
+  });
 
   const statusTotal = statuses.reduce((n, b) => n + b.value, 0);
   const maxAssignee = Math.max(1, ...assignees.map((a) => a.done + a.inProgress + a.todo));
@@ -259,9 +300,14 @@ export function EpicProgressSection({
           epicCreated,
           today,
         });
-  const projection = forecast
-    ? deriveProjection(forecast, today, cfdPoints.length > 0 ? cfdPoints[0].date : null)
-    : { points: [], clippedAfter: null };
+  // The chart line stays in the active metric's units (the Finish tile is the cross-metric average).
+  const metricForecast = metric === 'sp' ? spForecast : countForecast;
+  const projection = deriveProjection(
+    metricForecast,
+    today,
+    cfdPoints.length > 0 ? cfdPoints[0].date : null,
+    calendar,
+  );
   const cfdData = withProjection(cfdPoints, projection);
   let cfdNote: string;
   if (history.data)
@@ -297,8 +343,9 @@ export function EpicProgressSection({
           metric={metric}
           summary={summary}
           time={time}
-          forecast={forecast}
-          forecastStatus={forecastStatus}
+          finish={finish}
+          risks={risks}
+          calendar={calendar}
           today={today}
         />
 
@@ -330,7 +377,7 @@ export function EpicProgressSection({
               />
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Tooltip trackCursorAxis="x">
                 <TooltipTrigger
                   delay={0}
