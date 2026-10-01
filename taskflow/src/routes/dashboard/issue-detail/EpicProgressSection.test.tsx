@@ -1424,7 +1424,8 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
   it('shows the source flag only while history is approximate', async () => {
     mockHistory.mockReturnValue(new Promise(() => {}));
     renderSection(sectionOf(stories));
-    expect(screen.getByTestId('epic-source-flag')).toHaveAttribute('role', 'img');
+    // A focusable button trigger (was role=img + tabIndex, flagged by biome noNoninteractiveTabindex).
+    expect(screen.getByTestId('epic-source-flag').tagName).toBe('BUTTON');
   });
 
   it('Finish pairs the range with a confidence meter; the tooltip adds a Confidence row and reason', async () => {
