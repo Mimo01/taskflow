@@ -57,8 +57,10 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ESTIMATE_FORMULA_NOTE } from '@/lib/epic-progress';
 import { IssueDetailContent } from './IssueDetailContent';
 
 // --- Fixture helpers ---
@@ -196,5 +198,112 @@ describe('IssueDetailContent', () => {
     const subtaskBtn = screen.getByText('PROJ-11').closest('button');
     expect(subtaskBtn).toBeTruthy();
     expect(subtaskBtn?.className).toContain('cursor-pointer');
+  });
+
+  describe('Stories list mini time bars (261001-hsz)', () => {
+    function epicIssue() {
+      return {
+        id: 'epic-1',
+        key: 'PROJ-30',
+        fields: {
+          summary: 'An epic',
+          description: '',
+          issuetype: { name: 'Epic', subtask: false },
+          status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: null,
+          reporter: null,
+          priority: null,
+          attachment: [],
+          subtasks: [],
+          issuelinks: [],
+        },
+      } as never;
+    }
+    function epicStory(
+      key: string,
+      cat: 'new' | 'indeterminate' | 'done',
+      o: { est?: number; spent?: number },
+    ) {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary: `Story ${key}`,
+          status: { name: cat === 'done' ? 'Closed' : 'Open', statusCategory: { key: cat } },
+          assignee: null,
+          issuetype: { name: 'Story', subtask: false },
+          aggregatetimeoriginalestimate: o.est,
+          timeoriginalestimate: o.est,
+          aggregatetimespent: o.spent,
+        },
+      };
+    }
+    function renderEpic(stories: unknown[], onOpenIssue = vi.fn()) {
+      render(
+        <IssueDetailContent
+          issue={epicIssue()}
+          issueKey="PROJ-30"
+          jiraBaseUrl="https://jira.example.com"
+          storyPointsFieldKey="story_points"
+          sprintFieldKey="sprint"
+          epicLinkFieldKey="epic_link"
+          epicStories={stories as never}
+          onOpenIssue={onOpenIssue}
+        />,
+        { wrapper },
+      );
+      return onOpenIssue;
+    }
+
+    it('fills proportionally and stays non-interactive inside the row button', () => {
+      const onOpen = renderEpic([epicStory('S-1', 'new', { est: 7200, spent: 3600 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(bar.tagName).toBe('SPAN');
+      expect(bar).not.toHaveAttribute('data-overrun');
+      expect(bar).not.toHaveAttribute('data-empty');
+      expect((bar.firstElementChild as HTMLElement).style.width).toBe('50%');
+      const row = bar.closest('button') as HTMLElement;
+      expect(bar.hasAttribute('tabindex')).toBe(false);
+      expect(row.querySelectorAll('button')).toHaveLength(0);
+      fireEvent.click(row);
+      expect(onOpen).toHaveBeenCalledWith('S-1');
+    });
+
+    it('flags overrun with a clamped red fill', () => {
+      renderEpic([epicStory('S-1', 'new', { est: 3600, spent: 7200 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(bar).toHaveAttribute('data-overrun', 'true');
+      const fill = bar.firstElementChild as HTMLElement;
+      expect(fill.style.width).toBe('100%');
+      expect(fill.className).toContain('bg-red-500');
+    });
+
+    it('renders an empty muted track when there is no estimate', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'new', { spent: 1800 })]);
+      const bar = screen.getByTestId('story-time-bar');
+      expect(bar).toHaveAttribute('data-empty', 'true');
+      expect(bar.firstElementChild).toBeNull();
+      await user.hover(bar);
+      expect(await screen.findByText('No estimate')).toBeInTheDocument();
+      expect(screen.getByText('Logged 30m')).toBeInTheDocument();
+    });
+
+    it('tooltip shows estimate, logged, remaining and the formula note', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
+      await user.hover(screen.getByTestId('story-time-bar'));
+      expect(await screen.findByText('Estimate 2h')).toBeInTheDocument();
+      expect(screen.getByText('Logged 30m')).toBeInTheDocument();
+      expect(screen.getByText('Remaining 1h 30m')).toBeInTheDocument();
+      expect(screen.getAllByText(ESTIMATE_FORMULA_NOTE).length).toBeGreaterThan(0);
+    });
+
+    it('done stories show zero remaining', async () => {
+      const user = userEvent.setup();
+      renderEpic([epicStory('S-1', 'done', { est: 7200, spent: 3600 })]);
+      await user.hover(screen.getByTestId('story-time-bar'));
+      expect(await screen.findByText('Remaining 0m')).toBeInTheDocument();
+    });
   });
 });
