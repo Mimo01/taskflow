@@ -2,43 +2,55 @@
  * EpicProgressSummary — the hero (big %, segmented status bar, "X of Y done") plus a
  * 3-cell stat strip (Finish / Remaining / Risks) at the top of the epic progress section
  * (quick 261001-ilq). Tooltip triggers contain spans only (valid inside a <button>).
+ * The hero tooltip carries the one "Data sources" block (261001-sqm); the Risks tile opens an
+ * interactive popover whose issue keys are real buttons.
  *
  * Text-collision rule (EpicDetailSheet.test): no visible text node equals exactly
  * "Done" / "In Progress" and none says "Stories" — every sentence here is a single
  * lowercase template-literal node.
  */
-import { CalendarX, CircleCheck, CircleDashed, CirclePause, TrendingUp, UserX } from 'lucide-react';
-import type { ReactNode } from 'react';
+import {
+  CalendarDays,
+  CalendarX,
+  CircleCheck,
+  CircleDashed,
+  CirclePause,
+  Clock,
+  Gauge,
+  History,
+  ListPlus,
+  Timer,
+  TrendingUp,
+  UserX,
+} from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
+import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
-  addCalendarDays,
+  confidenceReason,
   type EpicRisk,
   type EpicSummary,
-  ESTIMATE_FORMULA_NOTE,
   FINISH_STATE_TEXT,
   finishDateRows,
   formatDateKey,
   formatFinishDate,
   formatMetric,
-  holidaysBetween,
   METRIC_LABEL,
   type Metric,
   RISK_VISIBLE_KEYS,
   type RiskKey,
+  type SourceLine,
   summaryBands,
   type TimeTotals,
-  type WorkCalendar,
 } from '@/lib/epic-progress';
 import { tonePillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/services/jira/duration';
+import { ConfidenceMeter } from './ConfidenceMeter';
 import { BandBar, BandBreakdown } from './EpicBands';
 import { MARKER_ICON, METRIC_ICON } from './epic-markers';
-
-/** Look-back for the holiday count in the Finish note (about the 30-working-day max window). */
-const HOLIDAY_NOTE_LOOKBACK_DAYS = 42;
 
 const RISK_ICON: Record<RiskKey, typeof CalendarX> = {
   overdue: CalendarX,
@@ -49,6 +61,15 @@ const RISK_ICON: Record<RiskKey, typeof CalendarX> = {
   unassigned: UserX,
 };
 
+const SOURCE_ICON: Record<SourceLine['key'], typeof History> = {
+  history: History,
+  scope: ListPlus,
+  worklogs: Clock,
+  estimate: Timer,
+  collapse: CircleCheck,
+  calendar: CalendarDays,
+};
+
 interface EpicProgressSummaryProps {
   metric: Metric;
   summary: EpicSummary;
@@ -56,9 +77,14 @@ interface EpicProgressSummaryProps {
   /** Average of the Count / SP / Time forecasts (independent of the metric toggle). */
   finish: AveragedForecast;
   risks: EpicRisk[];
-  calendar: WorkCalendar;
+  /** Provenance lines for the hero tooltip's Data sources block. */
+  sources: SourceLine[];
+  /** Opens an issue (same handler as the Stories rows); risk keys call it. */
+  onOpenIssue?: (key: string) => void;
   today: string;
 }
+
+const TILE_CLASS = 'min-w-0 cursor-default text-left';
 
 function Tile({
   label,
@@ -69,23 +95,25 @@ function Tile({
 }: {
   label: string;
   value?: string;
-  sub?: string;
+  sub?: ReactNode;
   tip: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger
-        type="button"
-        data-testid="epic-stat-tile"
-        className="min-w-0 cursor-default text-left"
-      >
+      <TooltipTrigger type="button" data-testid="epic-stat-tile" className={TILE_CLASS}>
         <span className="block truncate text-xs text-muted-foreground">{label}</span>
         {value !== undefined ? (
           <span className="block truncate text-lg font-semibold leading-tight">{value}</span>
         ) : null}
         {children}
-        {sub ? <span className="block truncate text-xs text-muted-foreground">{sub}</span> : null}
+        {typeof sub === 'string' ? (
+          <span className="block truncate text-xs text-muted-foreground">{sub}</span>
+        ) : sub ? (
+          <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            {sub}
+          </span>
+        ) : null}
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
@@ -99,21 +127,46 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+/** The single provenance block, same slot order in every tab (lib dataSourceLines). */
+function DataSources({ sources }: { sources: SourceLine[] }) {
+  return (
+    <div className="grid gap-1">
+      <div className="font-medium text-foreground">Data sources</div>
+      {sources.map((s) => {
+        const Icon = SOURCE_ICON[s.key];
+        return (
+          <div
+            key={s.key}
+            data-slot="tooltip-source"
+            data-approximate={s.approximate}
+            className="flex items-start gap-2"
+          >
+            <Icon aria-hidden="true" className="mt-px size-3 shrink-0 text-muted-foreground" />
+            <span className="max-w-64">{s.text}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Hero({
   metric,
   summary,
   time,
+  sources,
 }: {
   metric: Metric;
   summary: EpicSummary;
   time: TimeTotals;
+  sources: SourceLine[];
 }) {
   // One model for every tab: done / in progress / to do weighted by the active metric.
   const bands = summaryBands(summary);
   const bigText = summary.total === 0 ? '—' : `${summary.pctDone}%`;
   const line = `${formatMetric(bands.done, metric)} of ${formatMetric(summary.total, metric)} done · ${formatMetric(bands.inProgress, metric)} in progress`;
   const tip = (
-    <TooltipBody note={metric === 'time' ? ESTIMATE_FORMULA_NOTE : undefined}>
+    <TooltipBody note={<DataSources sources={sources} />}>
       <BandBreakdown bands={bands} metric={metric} share />
       {metric === 'time' ? (
         <>
@@ -153,38 +206,24 @@ function Hero({
   );
 }
 
-function FinishTile({
-  finish,
-  calendar,
-  today,
-}: {
-  finish: AveragedForecast;
-  calendar: WorkCalendar;
-  today: string;
-}) {
+function FinishTile({ finish, today }: { finish: AveragedForecast; today: string }) {
   let value: string;
-  let sub: string | undefined;
+  let sub: ReactNode;
   if (finish.state !== 'ok') {
     value = FINISH_STATE_TEXT[finish.state];
   } else {
     value = finish.likely ? formatFinishDate(finish.likely, today) : '—';
     if (finish.optimistic && finish.pessimistic) {
-      sub = `${formatDateKey(finish.optimistic)}–${formatDateKey(finish.pessimistic)} · ${finish.confidence ?? 'low'} confidence`;
+      sub = (
+        <>
+          <span className="min-w-0 truncate">{`${formatDateKey(finish.optimistic)}–${formatDateKey(finish.pessimistic)}`}</span>
+          <ConfidenceMeter level={finish.confidence ?? 'low'} className="flex-none" />
+        </>
+      );
     }
   }
 
-  const holidayCount =
-    calendar.source === 'tempo'
-      ? holidaysBetween(
-          calendar,
-          addCalendarDays(today, -HOLIDAY_NOTE_LOOKBACK_DAYS),
-          finish.pessimistic ?? today,
-        )
-      : 0;
-  const calendarLine =
-    calendar.source === 'tempo'
-      ? `Excludes weekends and ${holidayCount} ${holidayCount === 1 ? 'holiday' : 'holidays'} (Tempo)`
-      : 'Excludes weekends (holidays unavailable)';
+  const reason = confidenceReason(finish);
   return (
     <Tile
       label="Finish"
@@ -194,10 +233,12 @@ function FinishTile({
         <TooltipBody
           title="Projected finish"
           note={
-            <>
-              {finish.explanation ? <div>{finish.explanation}</div> : null}
-              <div>{calendarLine}</div>
-            </>
+            finish.explanation || reason ? (
+              <>
+                {finish.explanation ? <div>{finish.explanation}</div> : null}
+                {reason ? <div>{reason}</div> : null}
+              </>
+            ) : undefined
           }
         >
           {finishDateRows(finish).map((r) => (
@@ -209,6 +250,13 @@ function FinishTile({
               sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
             />
           ))}
+          {finish.state === 'ok' ? (
+            <TooltipRow
+              icon={<Gauge className="size-3" />}
+              label="Confidence"
+              value={<ConfidenceMeter level={finish.confidence} />}
+            />
+          ) : null}
           {finish.parts.map((p) => {
             const Icon = METRIC_ICON[p.metric];
             return (
@@ -221,7 +269,11 @@ function FinishTile({
                     ? formatFinishDate(p.forecast.likely, today)
                     : p.reason
                 }
-                sub={p.included ? (p.forecast?.confidence ?? undefined) : undefined}
+                sub={
+                  p.included ? (
+                    <ConfidenceMeter level={p.forecast?.confidence ?? null} />
+                  ) : undefined
+                }
               />
             );
           })}
@@ -231,11 +283,90 @@ function FinishTile({
   );
 }
 
-function RisksTile({ risks }: { risks: EpicRisk[] }) {
+function RiskKeys({
+  risk,
+  expanded,
+  onExpand,
+  onPick,
+}: {
+  risk: EpicRisk;
+  expanded: boolean;
+  onExpand: () => void;
+  onPick: (key: string) => void;
+}) {
+  const shown = expanded ? risk.issueKeys : risk.issueKeys.slice(0, RISK_VISIBLE_KEYS);
+  const hidden = risk.issueKeys.length - shown.length;
+  const keyClass =
+    'cursor-pointer rounded px-1 py-0.5 font-mono text-[11px] hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
   return (
-    <Tile
-      label="Risks"
-      tip={
+    <div className="flex flex-wrap gap-1 pl-5">
+      {shown.map((k) => (
+        <button key={k} type="button" className={keyClass} onClick={() => onPick(k)}>
+          {k}
+        </button>
+      ))}
+      {hidden > 0 ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          className={cn(keyClass, 'text-muted-foreground')}
+          onClick={onExpand}
+        >{`+${hidden} more`}</button>
+      ) : null}
+    </div>
+  );
+}
+
+function RisksTile({
+  risks,
+  onOpenIssue,
+}: {
+  risks: EpicRisk[];
+  onOpenIssue?: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<ReadonlySet<RiskKey>>(new Set());
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        type="button"
+        data-testid="epic-stat-tile"
+        openOnHover
+        delay={150}
+        className={TILE_CLASS}
+      >
+        <span className="block truncate text-xs text-muted-foreground">Risks</span>
+        {risks.length === 0 ? (
+          <span className="flex items-center gap-1.5 text-lg font-semibold leading-tight text-muted-foreground">
+            <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+            No risks
+          </span>
+        ) : (
+          <span className="mt-0.5 flex flex-wrap gap-1">
+            {risks.map((r) => {
+              const Icon = RISK_ICON[r.key];
+              return (
+                <span
+                  key={r.key}
+                  data-testid="epic-risk-chip"
+                  data-severity={r.severity}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                    tonePillClass(r.severity === 'warning' ? 'amber' : 'muted'),
+                  )}
+                >
+                  <Icon aria-hidden="true" className="size-3 shrink-0" />
+                  {r.text}
+                </span>
+              );
+            })}
+          </span>
+        )}
+      </PopoverTrigger>
+      <PopoverContent
+        data-testid="epic-risks-popover"
+        className={cn(TOOLTIP_SURFACE, 'w-80 border-0 p-2.5 shadow-xl')}
+      >
         <TooltipBody title="Risks">
           {risks.length === 0 ? (
             <TooltipRow icon={<CircleCheck className="size-3" />} label="No risks found" value="" />
@@ -243,56 +374,31 @@ function RisksTile({ risks }: { risks: EpicRisk[] }) {
             risks.map((r) => {
               const Icon = RISK_ICON[r.key];
               return (
-                <div key={r.key} className="grid gap-0.5">
+                <div key={r.key} data-testid="epic-risk-row" className="grid gap-0.5">
                   <TooltipRow
                     icon={<Icon className="size-3" />}
                     label={r.label}
                     value={r.count ?? ''}
                   />
-                  <div className="pl-5 text-muted-foreground">
-                    {r.detail}
-                    {r.issueKeys.length > 0
-                      ? ` · ${r.issueKeys.slice(0, RISK_VISIBLE_KEYS).join(', ')}${
-                          r.issueKeys.length > RISK_VISIBLE_KEYS
-                            ? ` +${r.issueKeys.length - RISK_VISIBLE_KEYS}`
-                            : ''
-                        }`
-                      : ''}
-                  </div>
+                  <div className="pl-5 text-muted-foreground">{r.detail}</div>
+                  {r.issueKeys.length > 0 ? (
+                    <RiskKeys
+                      risk={r}
+                      expanded={expanded.has(r.key)}
+                      onExpand={() => setExpanded((prev) => new Set(prev).add(r.key))}
+                      onPick={(key) => {
+                        setOpen(false);
+                        onOpenIssue?.(key);
+                      }}
+                    />
+                  ) : null}
                 </div>
               );
             })
           )}
         </TooltipBody>
-      }
-    >
-      {risks.length === 0 ? (
-        <span className="flex items-center gap-1.5 text-lg font-semibold leading-tight text-muted-foreground">
-          <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
-          No risks
-        </span>
-      ) : (
-        <span className="mt-0.5 flex flex-wrap gap-1">
-          {risks.map((r) => {
-            const Icon = RISK_ICON[r.key];
-            return (
-              <span
-                key={r.key}
-                data-testid="epic-risk-chip"
-                data-severity={r.severity}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
-                  tonePillClass(r.severity === 'warning' ? 'amber' : 'muted'),
-                )}
-              >
-                <Icon aria-hidden="true" className="size-3 shrink-0" />
-                {r.text}
-              </span>
-            );
-          })}
-        </span>
-      )}
-    </Tile>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -302,7 +408,8 @@ export function EpicProgressSummary({
   time,
   finish,
   risks,
-  calendar,
+  sources,
+  onOpenIssue,
   today,
 }: EpicProgressSummaryProps) {
   const remainingPrimary =
@@ -324,9 +431,9 @@ export function EpicProgressSummary({
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
       <div className="min-w-0 sm:col-span-3 lg:col-span-1">
-        <Hero metric={metric} summary={summary} time={time} />
+        <Hero metric={metric} summary={summary} time={time} sources={sources} />
       </div>
-      <FinishTile finish={finish} calendar={calendar} today={today} />
+      <FinishTile finish={finish} today={today} />
       <Tile
         label="Remaining"
         value={remainingPrimary}
@@ -351,7 +458,7 @@ export function EpicProgressSummary({
           </TooltipBody>
         }
       />
-      <RisksTile risks={risks} />
+      <RisksTile risks={risks} onOpenIssue={onOpenIssue} />
     </div>
   );
 }

@@ -15,14 +15,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   type AveragedForecast,
   deriveTimeBurnup,
-  ESTIMATE_FORMULA_NOTE,
   projectFinish,
   type WorkCalendar,
   withProjection,
 } from '@/lib/epic-progress';
 import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
-import { ForecastLegend, LegendItem, tickLabel } from './EpicCfdChart';
+import { ForecastLegend, LegendItem, SourceFlag, tickLabel } from './EpicCfdChart';
 import { EpicChartTooltip, timeRows } from './EpicChartTooltip';
 import { SERIES } from './epic-markers';
 
@@ -42,6 +41,8 @@ interface EpicTimeBurnupProps {
   /** The one shared averaged forecast (same result as the Finish tile). */
   finish: AveragedForecast;
   calendar: WorkCalendar;
+  /** Small neutral info flag text (see EpicCfdChart). */
+  sourceFlag?: string | null;
 }
 
 const hoursLabel = (h: number) => formatDuration(Math.round(h * HOUR));
@@ -53,6 +54,7 @@ export function EpicTimeBurnup({
   today,
   finish,
   calendar,
+  sourceFlag,
 }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
 
@@ -237,10 +239,8 @@ export function EpicTimeBurnup({
           label="Remaining"
         />
         <ForecastLegend finish={finish} hasProjection={hasProjection} />
+        <SourceFlag text={sourceFlag} />
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {`${ESTIMATE_FORMULA_NOTE} Done stories collapse to their logged time.`}
-      </p>
     </div>
   );
 }

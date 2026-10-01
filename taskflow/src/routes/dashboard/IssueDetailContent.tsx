@@ -316,6 +316,7 @@ export function IssueDetailContent({
           storyPointsFieldKey={storyPointsFieldKey}
           epicCreated={issue.fields.created}
           epicDueDate={issue.fields.duedate}
+          onOpenIssue={onOpenIssue}
         />
       )}
       {isEpic && (
