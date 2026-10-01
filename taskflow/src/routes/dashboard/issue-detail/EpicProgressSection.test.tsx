@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { toLocalDateString } from '@/lib/local-date';
 import type { JiraIssue } from '@/services/jira';
@@ -19,6 +20,9 @@ interface Opts {
   assignee?: string | null;
   created?: string;
   res?: string;
+  est?: number;
+  spent?: number;
+  rem?: number;
 }
 function story(key: string, o: Opts): JiraIssue {
   return {
@@ -32,6 +36,9 @@ function story(key: string, o: Opts): JiraIssue {
       issuetype: { name: 'Story', subtask: false },
       created: o.created,
       resolutiondate: o.res ?? null,
+      aggregatetimeoriginalestimate: o.est,
+      aggregatetimespent: o.spent,
+      aggregatetimeestimate: o.rem,
     },
   };
 }
@@ -147,5 +154,110 @@ describe('EpicProgressSection review fixes (261001-fmk)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
     expect(screen.getByText(/No story points estimated/)).toBeTruthy();
     expect(screen.queryByTestId('epic-status-bar')).toBeNull();
+  });
+});
+
+describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () => {
+  const timed = [
+    story('T-1', {
+      cat: 'done',
+      status: 'Done',
+      assignee: 'Amy',
+      created: daysAgo(5),
+      res: daysAgo(1),
+      est: 3600,
+      spent: 5400,
+      rem: 0,
+    }),
+    story('T-2', {
+      cat: 'new',
+      status: 'To Do',
+      assignee: 'Amy',
+      created: daysAgo(4),
+      est: 7200,
+      rem: 7200,
+    }),
+  ];
+
+  function renderTimed(list = timed) {
+    render(<EpicProgressSection stories={list} storyPointsFieldKey={SP} epicCreated={undefined} />);
+  }
+
+  it('wraps the section and skeleton in a Card', () => {
+    const { container, unmount } = render(
+      <EpicProgressSection stories={timed} storyPointsFieldKey={SP} epicCreated={undefined} />,
+    );
+    const region = screen.getByRole('region', { name: 'Epic progress' });
+    expect(region.querySelector('[data-slot="card"]')).not.toBeNull();
+    expect(container.querySelector('[data-slot="card"]')).not.toBeNull();
+    unmount();
+    render(
+      <EpicProgressSection stories={undefined} storyPointsFieldKey={SP} epicCreated={undefined} />,
+    );
+    expect(screen.getByTestId('epic-progress-skeleton')).toHaveAttribute('data-slot', 'card');
+  });
+
+  it('offers Count / SP / Time with Count default', () => {
+    renderTimed();
+    expect(screen.getByRole('button', { name: 'Count' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'SP' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Time' })).toBeInTheDocument();
+  });
+
+  it('Time mode shows Estimated / Logged / Remaining / % logged tiles', () => {
+    renderTimed();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const tiles = screen.getAllByTestId('epic-stat-tile');
+    expect(tiles).toHaveLength(4);
+    const text = tiles.map((t) => t.textContent);
+    expect(text[0]).toBe('Estimated3h');
+    expect(text[1]).toBe('Logged1h 30m');
+    expect(text[2]).toBe('Remaining2h');
+    expect(text[3]).toBe('% logged50%');
+  });
+
+  it('Time mode assignee row shows logged / estimate', () => {
+    renderTimed();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const row = screen.getByTestId('epic-assignee-row');
+    expect(within(row).getByText('1h 30m / 3h')).toBeInTheDocument();
+  });
+
+  it('Time mode with no estimates explains instead of drawing bars', () => {
+    renderTimed([story('N-1', { cat: 'new', status: 'To Do', created: daysAgo(3) })]);
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    expect(screen.getByText(/No time estimated/)).toBeTruthy();
+    expect(screen.queryByTestId('epic-status-bar')).toBeNull();
+  });
+
+  it('hovering a status segment shows name, counts and percent of total', async () => {
+    const user = userEvent.setup();
+    renderTimed();
+    const seg = within(screen.getByTestId('epic-status-bar')).getAllByTestId(
+      'epic-status-segment',
+    )[0];
+    await user.hover(seg);
+    expect(await screen.findByText('1 items · 0 SP · 1h est')).toBeInTheDocument();
+    expect(screen.getByText('50% of total')).toBeInTheDocument();
+  });
+
+  it('keyboard focus on a tile shows the raw counts', async () => {
+    const user = userEvent.setup();
+    renderTimed();
+    await user.tab(); // Count
+    await user.tab(); // SP
+    await user.tab(); // Time
+    await user.tab(); // first tile
+    expect(await screen.findByText('1 of 2 done')).toBeInTheDocument();
+  });
+
+  it('hovering an assignee name shows the breakdown in the active metric', async () => {
+    const user = userEvent.setup();
+    renderTimed();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const row = screen.getByTestId('epic-assignee-row');
+    await user.hover(within(row).getByRole('button', { name: 'Amy' }));
+    expect(await screen.findByText('done: 1h')).toBeInTheDocument();
+    expect(screen.getByText('to do: 2h')).toBeInTheDocument();
   });
 });
