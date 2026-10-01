@@ -17,7 +17,7 @@ export interface ChartZoom {
   range: ChartRange;
   preset: ZoomPreset | null;
   forecastEnabled: boolean;
-  /** Bumped by preset clicks only; keys the Brush so it resyncs (never during a drag). */
+  /** Bumped by preset clicks only; with the domain, keys the Brush so it resyncs (never during a drag). */
   epoch: number;
   onPreset(p: ZoomPreset): void;
   onRange(r: ChartRange): void;

@@ -1079,6 +1079,7 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         ]}
         storyPointsFieldKey={SP}
         epicCreated={undefined}
+        onOpenIssue={vi.fn()}
       />,
     );
     await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
@@ -1472,7 +1473,7 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     const seven = Array.from({ length: 7 }, (_, i) =>
       story(`K-${i + 1}`, { cat: 'new', status: 'To Do', sp: 1, assignee: 'Amy' }),
     );
-    renderSection(sectionOf(seven, { epicDueDate: daysAgo(3) }));
+    renderSection(sectionOf(seven, { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
     await user.click(screen.getAllByTestId('epic-stat-tile')[2]);
     const popover = await screen.findByTestId('epic-risks-popover');
     const rows = within(popover).getAllByTestId('epic-risk-row');
@@ -1624,5 +1625,23 @@ describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
     expect(marker(legend, 'Logged')).toHaveAttribute('data-marker', 'status-line');
     expect(marker(legend, 'Logged').style.background).toBe(STATUS_CATEGORY_COLOR.done);
     expect(marker(legend, 'Remaining').style.background).toBe(STATUS_CATEGORY_COLOR.indeterminate);
+  });
+});
+
+describe('Risks keys without an issue opener (261001-sqm review WR-01)', () => {
+  it('renders keys as plain text, not dead buttons', async () => {
+    const user = userEvent.setup();
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={[story('N-4', { cat: 'new', status: 'To Do', sp: null, assignee: null })]}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    const tiles = screen.getAllByTestId('epic-stat-tile');
+    await user.click(tiles[2]);
+    await screen.findAllByText('N-4');
+    expect(screen.queryByRole('button', { name: 'N-4' })).toBeNull();
   });
 });

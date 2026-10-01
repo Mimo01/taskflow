@@ -292,7 +292,8 @@ function RiskKeys({
   risk: EpicRisk;
   expanded: boolean;
   onExpand: () => void;
-  onPick: (key: string) => void;
+  /** Absent when the host can't open issues — keys then render as plain text, not dead buttons. */
+  onPick?: (key: string) => void;
 }) {
   const shown = expanded ? risk.issueKeys : risk.issueKeys.slice(0, RISK_VISIBLE_KEYS);
   const hidden = risk.issueKeys.length - shown.length;
@@ -300,11 +301,17 @@ function RiskKeys({
     'cursor-pointer rounded px-1 py-0.5 font-mono text-[11px] hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
   return (
     <div className="flex flex-wrap gap-1 pl-5">
-      {shown.map((k) => (
-        <button key={k} type="button" className={keyClass} onClick={() => onPick(k)}>
-          {k}
-        </button>
-      ))}
+      {shown.map((k) =>
+        onPick ? (
+          <button key={k} type="button" className={keyClass} onClick={() => onPick(k)}>
+            {k}
+          </button>
+        ) : (
+          <span key={k} className="rounded px-1 py-0.5 font-mono text-[11px]">
+            {k}
+          </span>
+        ),
+      )}
       {hidden > 0 ? (
         <button
           type="button"
@@ -386,10 +393,14 @@ function RisksTile({
                       risk={r}
                       expanded={expanded.has(r.key)}
                       onExpand={() => setExpanded((prev) => new Set(prev).add(r.key))}
-                      onPick={(key) => {
-                        setOpen(false);
-                        onOpenIssue?.(key);
-                      }}
+                      onPick={
+                        onOpenIssue
+                          ? (key) => {
+                              setOpen(false);
+                              onOpenIssue(key);
+                            }
+                          : undefined
+                      }
                     />
                   ) : null}
                 </div>

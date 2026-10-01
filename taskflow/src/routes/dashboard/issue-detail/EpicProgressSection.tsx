@@ -253,14 +253,15 @@ export function EpicProgressSection({
   const domain = chartDomain(axisStart, today, finish);
   let chartZoom: ChartZoom | null = null;
   if (domain) {
-    const wanted = zoom.preset
-      ? (presetRange(zoom.preset, domain, today) ?? domain)
-      : (zoom.range ?? domain);
+    const forecastEnabled = presetRange('forecast', domain, today) !== null;
+    // A stored Forecast preset that is no longer available shows as All (what's actually drawn).
+    const preset = zoom.preset === 'forecast' && !forecastEnabled ? 'all' : zoom.preset;
+    const wanted = preset ? (presetRange(preset, domain, today) ?? domain) : (zoom.range ?? domain);
     chartZoom = {
       domain,
       range: clampRange(wanted, domain),
-      preset: zoom.preset,
-      forecastEnabled: presetRange('forecast', domain, today) !== null,
+      preset,
+      forecastEnabled,
       epoch: zoom.epoch,
       onPreset: (preset) => setZoom((z) => ({ preset, range: null, epoch: z.epoch + 1 })),
       onRange: (range) => setZoom((z) => ({ preset: null, range, epoch: z.epoch })),

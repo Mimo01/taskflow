@@ -245,7 +245,7 @@ export function EpicTimeBurnup({
               />
               {brushUsable(zoom, chartData) ? (
                 <Brush
-                  key={zoom.epoch}
+                  key={`${zoom.epoch}:${zoom.domain.from}:${zoom.domain.to}`}
                   dataKey="t"
                   {...BRUSH_STYLE}
                   tickFormatter={tickLabel}
