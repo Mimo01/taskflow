@@ -2,6 +2,22 @@ import { describe, expect, it } from 'vitest';
 import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@/services/jira';
 import {
   addWorkingDays,
+  axisTicks,
+  calendarNote,
+  chartAxisStart,
+  chartDomain,
+  clampRange,
+  confidenceReason,
+  dataSourceLines,
+  dateKeyMs,
+  ESTIMATE_FORMULA_NOTE,
+  HISTORY_SOURCE_TEXT,
+  historyDates,
+  padToDomain,
+  presetRange,
+  projectionCap,
+  rangeIndexes,
+  RISK_VISIBLE_KEYS,
   averageForecasts,
   buildStatusCategoryLookup,
   buildWorkCalendar,
@@ -340,14 +356,15 @@ describe('deriveTimeBurnup (261001-hsz)', () => {
     expect(at(pts, TODAY)).toMatchObject({ estimate: 3 * H, logged: 3 * H });
   });
 
-  it('a log before creation starts the story at the log day', () => {
+  it('a log before the shared axis start is counted on the first day', () => {
     const pts = deriveTimeBurnup(
       [st('A', { est: 0, created: '2026-09-30' })],
       new Map([['A', [log('2026-09-27', H)]]]),
       undefined,
       TODAY,
     );
-    expect(pts[0].date).toBe('2026-09-27');
+    expect(pts[0].date).toBe('2026-09-30');
+    expect(pts[0].logged).toBe(H);
     for (const p of pts) expect(p.estimate).toBeGreaterThanOrEqual(p.logged);
   });
 
@@ -1346,12 +1363,11 @@ describe('deriveRisks (261001-qvu)', () => {
     });
     expect(calm.find((x) => x.key === 'scope')).toBeUndefined();
   });
-  it('caps issue keys at 3 and orders warnings first', () => {
+  it('lists every issue key (UI shows the first few) and orders warnings first', () => {
     const many = Array.from({ length: 5 }, (_, i) => st(`M-${i + 1}`, { sp: 1 }));
     const r = deriveRisks({ ...base, stories: many, dueDate: '2026-09-01', finish: fin() });
     expect(r[0].key).toBe('overdue');
-    expect(r[0].issueKeys).toEqual(['M-1', 'M-2', 'M-3']);
-    expect(r[0].moreKeys).toBe(2);
+    expect(r[0].issueKeys).toEqual(['M-1', 'M-2', 'M-3', 'M-4', 'M-5']);
     const sevs = r.map((x) => x.severity);
     expect(sevs).toEqual([...sevs].sort((a, b) => (a === b ? 0 : a === 'warning' ? -1 : 1)));
   });
@@ -1514,5 +1530,268 @@ describe('finish helpers (261001-rtw)', () => {
   it('formatFinishDate', () => {
     expect(formatFinishDate('2026-10-07', WED)).toBe('Oct 7');
     expect(formatFinishDate('2027-01-04', WED)).toBe('Jan 4, 2027');
+  });
+});
+
+// ── 261001-sqm ───────────────────────────────────────────────────────────────
+
+describe('261001-sqm lib', () => {
+  const T = '2026-10-01';
+  const H = 3600;
+  const logOn = (day: string, seconds: number): EpicWorklogDay =>
+    ({ day, seconds }) as EpicWorklogDay;
+  const mkFinish = (o: Partial<AveragedForecast> = {}, parts: AveragedForecast['parts'] = []) =>
+    ({
+      state: 'too-early',
+      likely: null,
+      optimistic: null,
+      pessimistic: null,
+      nLikely: null,
+      nOpt: null,
+      nPess: null,
+      confidence: null,
+      disagree: false,
+      parts,
+      explanation: '',
+      ...o,
+    }) as AveragedForecast;
+  const part = (
+    metric: 'count' | 'sp' | 'time',
+    f: Partial<EpicForecast>,
+  ): AveragedForecast['parts'][number] => ({
+    metric,
+    forecast: okForecast(f),
+    included: true,
+    reason: null,
+  });
+  const okFinish = (parts: AveragedForecast['parts'], o: Partial<AveragedForecast> = {}) =>
+    mkFinish({ state: 'ok', confidence: 'medium', ...o }, parts);
+
+  describe('chartAxisStart', () => {
+    it('uses the epic day when it precedes today', () => {
+      expect(chartAxisStart([st('A', { created: '2026-09-20' })], '2026-09-10', T)).toBe(
+        '2026-09-10',
+      );
+    });
+    it('falls back to the earliest story day for a future or missing epic', () => {
+      const stories = [st('A', { created: '2026-09-25' }), st('B', { created: '2026-09-22' })];
+      expect(chartAxisStart(stories, '2027-01-01', T)).toBe('2026-09-22');
+      expect(chartAxisStart(stories, undefined, T)).toBe('2026-09-22');
+    });
+    it('is null when nothing is valid', () => {
+      expect(chartAxisStart([st('A')], undefined, T)).toBeNull();
+    });
+  });
+
+  describe('shared sampling', () => {
+    it('CFD and Time start and sample identically', () => {
+      const stories = [st('A', { created: '2026-03-01', est: H })];
+      const cfd = deriveCfd({
+        stories,
+        history: null,
+        lookup: () => 'new',
+        metric: 'count',
+        spKey: SP,
+        epicCreated: '2026-01-01',
+        today: T,
+      });
+      const time = deriveTimeBurnup(stories, new Map(), '2026-01-01', T);
+      expect(time.map((p) => p.date)).toEqual(cfd.points.map((p) => p.date));
+      expect(time.map((p) => p.date)).toEqual(historyDates('2026-01-01', T));
+      expect(cfd.points.length).toBeGreaterThan(2);
+    });
+    it('historyDates is daily up to 120 days, else stepped and ends on today', () => {
+      expect(historyDates('2026-09-28', T)).toHaveLength(4);
+      const long = historyDates('2025-01-01', T);
+      expect(long[0]).toBe('2025-01-01');
+      expect(long[long.length - 1]).toBe(T);
+      expect(long.length).toBeLessThanOrEqual(122);
+    });
+    it('keeps estimate >= logged with a log before the axis start', () => {
+      const pts = deriveTimeBurnup(
+        [st('A', { est: 0, created: '2026-09-30' })],
+        new Map([['A', [logOn('2026-09-20', H)]]]),
+        undefined,
+        T,
+      );
+      expect(pts[0].logged).toBe(H);
+      for (const p of pts) expect(p.estimate).toBeGreaterThanOrEqual(p.logged);
+    });
+  });
+
+  describe('chartDomain / padToDomain / axisTicks', () => {
+    it('extends to the latest forecast date for an ok finish', () => {
+      const d = chartDomain('2026-09-01', T, mkFinish({ state: 'ok', pessimistic: '2026-10-20' }));
+      expect(d).toEqual({ from: '2026-09-01', to: '2026-10-20', clippedAfter: null });
+    });
+    it('ends at today for a not-ok finish and is null without a start', () => {
+      expect(chartDomain('2026-09-01', T, mkFinish())?.to).toBe(T);
+      expect(chartDomain(null, T, mkFinish())).toBeNull();
+    });
+    it('clips beyond the projection cap', () => {
+      const cap = projectionCap(T, '2026-09-01');
+      const d = chartDomain('2026-09-01', T, mkFinish({ state: 'ok', pessimistic: '2030-01-01' }));
+      expect(d).toMatchObject({ to: cap, clippedAfter: cap });
+    });
+    it('padToDomain appends one blank row, or nothing when already reached', () => {
+      const pts = [
+        { date: '2026-09-30', t: dateKeyMs('2026-09-30'), label: 'x', v: 1 as number | null },
+      ];
+      const out = padToDomain(pts, '2026-10-05');
+      expect(out).toHaveLength(2);
+      expect(out[1]).toMatchObject({ date: '2026-10-05', v: null, label: 'Oct 5' });
+      expect(padToDomain(pts, '2026-09-30')).toBe(pts);
+    });
+    it('axisTicks are day-aligned, include from, stay within range and max', () => {
+      const t = axisTicks('2026-01-01', '2026-10-01');
+      expect(t[0]).toBe(dateKeyMs('2026-01-01'));
+      expect(t.length).toBeLessThanOrEqual(6);
+      for (const x of t) {
+        expect(x).toBeLessThanOrEqual(dateKeyMs('2026-10-01'));
+        expect(x % 86_400_000).toBe(0);
+      }
+      expect(axisTicks('2026-09-29', T)).toHaveLength(3);
+      expect(axisTicks(T, T)).toEqual([dateKeyMs(T)]);
+    });
+  });
+
+  describe('presetRange / clampRange / rangeIndexes', () => {
+    const domain = { from: '2026-03-01', to: '2026-11-01' };
+    it('1m and 3m end today; short domains clamp', () => {
+      expect(presetRange('1m', domain, T)).toEqual({ from: '2026-09-01', to: T });
+      expect(presetRange('3m', { from: '2026-09-20', to: T }, T)).toEqual({
+        from: '2026-09-20',
+        to: T,
+      });
+    });
+    it('forecast spans today-14 to the domain end, or null at today', () => {
+      expect(presetRange('forecast', domain, T)).toEqual({ from: '2026-09-17', to: '2026-11-01' });
+      expect(presetRange('forecast', { from: '2026-09-01', to: T }, T)).toBeNull();
+    });
+    it('all returns the domain', () => {
+      expect(presetRange('all', domain, T)).toBe(domain);
+    });
+    it('clampRange clamps and falls back to the domain', () => {
+      expect(clampRange({ from: '2025-01-01', to: '2030-01-01' }, domain)).toEqual(domain);
+      expect(clampRange({ from: '2026-05-01', to: '2026-05-01' }, domain)).toEqual(domain);
+    });
+    it('rangeIndexes maps from to the last <= index and to to the first >= index', () => {
+      const pts = ['2026-09-01', '2026-09-04', '2026-09-07', '2026-09-10'].map((date) => ({
+        date,
+      }));
+      expect(rangeIndexes(pts, { from: '2026-09-05', to: '2026-09-08' })).toEqual({
+        startIndex: 1,
+        endIndex: 3,
+      });
+      expect(rangeIndexes(pts, { from: '2026-08-01', to: '2027-01-01' })).toEqual({
+        startIndex: 0,
+        endIndex: 3,
+      });
+    });
+    it('rangeIndexes keeps start < end for degenerate ranges', () => {
+      const pts = ['2026-09-01', '2026-09-02', '2026-09-03'].map((date) => ({ date }));
+      const r = rangeIndexes(pts, { from: '2026-09-02', to: '2026-09-02' });
+      expect(r.startIndex).toBeLessThan(r.endIndex);
+      const r2 = rangeIndexes(pts, { from: '2026-09-03', to: '2026-09-03' });
+      expect(r2.startIndex).toBeLessThan(r2.endIndex);
+    });
+  });
+
+  describe('confidenceReason', () => {
+    it('is null unless ok with an included part', () => {
+      expect(confidenceReason(mkFinish())).toBeNull();
+      expect(confidenceReason(okFinish([]))).toBeNull();
+    });
+    it('reports disagreement in working days', () => {
+      const f = okFinish([part('count', { nLikely: 4 }), part('time', { nLikely: 10 })], {
+        disagree: true,
+      });
+      expect(confidenceReason(f)).toBe('Views disagree by 6 working days');
+    });
+    it('low: short history, few completions, singular, time noun', () => {
+      expect(
+        confidenceReason(okFinish([part('count', { confidence: 'low', windowDays: 6 })])),
+      ).toBe('Only 6 working days of history');
+      expect(
+        confidenceReason(
+          okFinish([part('count', { confidence: 'low', windowDays: 12, completions: 3 })]),
+        ),
+      ).toBe('Only 3 completions in the last 12 working days');
+      expect(
+        confidenceReason(
+          okFinish([part('sp', { confidence: 'low', windowDays: 12, completions: 1 })]),
+        ),
+      ).toBe('Only 1 completion in the last 12 working days');
+      expect(
+        confidenceReason(
+          okFinish([part('time', { confidence: 'low', windowDays: 12, completions: 3 })]),
+        ),
+      ).toBe('Only 3 days with logged work in the last 12 working days');
+    });
+    it('medium: wide range once history and completions are sufficient', () => {
+      const f = okFinish([
+        part('count', { confidence: 'medium', windowDays: 25, completions: 9, nOpt: 5, nPess: 20 }),
+      ]);
+      expect(confidenceReason(f)).toBe('Wide range: 5–20 working days');
+    });
+    it('high: steady pace', () => {
+      const f = okFinish([part('count', { confidence: 'high', windowDays: 30, completions: 12 })], {
+        confidence: 'high',
+      });
+      expect(confidenceReason(f)).toBe('Steady pace over 30 working days');
+    });
+    it('uses the weakest part, first on ties', () => {
+      const f = okFinish([
+        part('count', { confidence: 'high', windowDays: 30 }),
+        part('sp', { confidence: 'low', windowDays: 5 }),
+        part('time', { confidence: 'low', windowDays: 8 }),
+      ]);
+      expect(confidenceReason(f)).toBe('Only 5 working days of history');
+    });
+  });
+
+  describe('dataSourceLines / calendarNote', () => {
+    const base = { history: 'real', worklogs: 'loaded', calendarLine: 'cal' } as const;
+    it('Count/SP slots', () => {
+      const l = dataSourceLines({ metric: 'count', ...base });
+      expect(l.map((x) => x.key)).toEqual(['history', 'scope', 'calendar']);
+      expect(l.map((x) => x.approximate)).toEqual([false, false, false]);
+      expect(l[0].text).toBe(HISTORY_SOURCE_TEXT.real);
+      const p = dataSourceLines({ metric: 'sp', ...base, history: 'partial' });
+      expect(p.map((x) => x.approximate)).toEqual([true, true, false]);
+      expect(p[1].text).toBe('Scope by story creation date');
+    });
+    it('Time slots', () => {
+      const l = dataSourceLines({ metric: 'time', ...base });
+      expect(l.map((x) => x.key)).toEqual(['worklogs', 'estimate', 'collapse', 'calendar']);
+      expect(l[1].text).toBe(ESTIMATE_FORMULA_NOTE);
+      expect(dataSourceLines({ metric: 'time', ...base, worklogs: 'loading' })[0]).toMatchObject({
+        text: 'Approximate — loading worklogs',
+        approximate: true,
+      });
+    });
+    it('calendarNote keeps the Tempo and default texts', () => {
+      expect(calendarNote(DEFAULT_CALENDAR, T, null)).toBe(
+        'Excludes weekends (holidays unavailable)',
+      );
+      const cal = buildWorkCalendar(new Map([['2026-10-05', 'HOLIDAY']]));
+      expect(calendarNote(cal, T, '2026-10-20')).toBe('Excludes weekends and 1 holiday (Tempo)');
+      expect(calendarNote(cal, T, null)).toBe('Excludes weekends and 0 holidays (Tempo)');
+    });
+  });
+
+  it('deriveRisks returns every key (7 overdue open items -> 7 keys)', () => {
+    const many = Array.from({ length: 7 }, (_, i) => st(`Z-${i + 1}`, { sp: 1 }));
+    const r = deriveRisks({
+      stories: many,
+      metric: 'count',
+      spKey: SP,
+      finish: mkFinish(),
+      dueDate: '2026-09-01',
+      today: T,
+    });
+    expect(r[0].issueKeys).toHaveLength(7);
+    expect(RISK_VISIBLE_KEYS).toBe(5);
+    expect('moreKeys' in r[0]).toBe(false);
   });
 });
