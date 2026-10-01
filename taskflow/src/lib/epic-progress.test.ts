@@ -6,7 +6,10 @@ import {
   deriveBurnup,
   deriveForecast,
   deriveStatusBuckets,
+  deriveTimeBurnup,
   deriveTimeTotals,
+  estimateOf,
+  loggedOf,
   formatMetric,
   doneDateKey,
   weightOf,
@@ -25,6 +28,7 @@ interface Opts {
   scc?: string | null;
   updated?: string;
   est?: unknown;
+  own?: unknown;
   spent?: unknown;
   rem?: unknown;
 }
@@ -49,6 +53,7 @@ function st(key: string, o: Opts = {}): JiraIssue {
       aggregatetimeoriginalestimate: o.est as number | null | undefined,
       aggregatetimespent: o.spent as number | null | undefined,
       aggregatetimeestimate: o.rem as number | null | undefined,
+      timeoriginalestimate: o.own as number | null | undefined,
     },
   };
 }
@@ -305,7 +310,7 @@ describe('time metric', () => {
       st('B', { est: 7200, spent: 3600 }),
       st('C'),
     ]);
-    expect(r).toEqual({ estimated: 10800, logged: 5400, remaining: 1800, pctLogged: 50 });
+    expect(r).toEqual({ estimated: 10800, logged: 5400, remaining: 5400, pctLogged: 50 });
     expect(deriveTimeTotals([st('A', { spent: 60 })]).pctLogged).toBeNull();
   });
 
@@ -315,5 +320,152 @@ describe('time metric', () => {
     expect(formatMetric(5, 'sp')).toBe('5 SP');
     expect(formatMetric(9000, 'time')).toBe('2h 30m');
     expect(formatMetric(0, 'time')).toBe('0m');
+  });
+});
+
+describe('estimateOf / loggedOf (261001-hsz)', () => {
+  it('uses the subtask sum when subtasks carry estimates', () => {
+    expect(estimateOf(st('A', { own: 3600, est: 10800 }))).toBe(7200);
+  });
+  it('falls back to the own estimate when no subtask estimates', () => {
+    expect(estimateOf(st('A', { own: 3600, est: 3600 }))).toBe(3600);
+  });
+  it('treats missing own estimate as aggregate (old fixtures)', () => {
+    expect(estimateOf(st('A', { est: 7200 }))).toBe(7200);
+  });
+  it('is 0 for null / negative / NaN', () => {
+    expect(estimateOf(st('A'))).toBe(0);
+    expect(estimateOf(st('A', { est: -5, own: Number.NaN }))).toBe(0);
+  });
+  it('loggedOf reads the aggregate spent, default 0', () => {
+    expect(loggedOf(st('A', { spent: 60 }))).toBe(60);
+    expect(loggedOf(st('A'))).toBe(0);
+  });
+  it('weightOf time, status seconds and assignee estimate use estimateOf', () => {
+    const s = st('A', { own: 3600, est: 10800, spent: 600, assignee: 'Ann' });
+    expect(weightOf(s, 'time', SP)).toBe(7200);
+    expect(deriveStatusBuckets([s], 'count', SP)[0].seconds).toBe(7200);
+    const a = deriveAssigneeBuckets([s], 'count', SP)[0];
+    expect(a.estimate).toBe(7200);
+    expect(a.logged).toBe(600);
+  });
+  it('deriveTimeTotals remaining sums open max(est - logged, 0) only', () => {
+    const r = deriveTimeTotals([
+      st('A', { est: 3600, spent: 7200 }),
+      st('B', { est: 3600, spent: 600 }),
+      st('C', { est: 3600, spent: 600, cat: 'done' }),
+    ]);
+    expect(r.remaining).toBe(3000);
+    expect(r.estimated).toBe(10800);
+  });
+});
+
+describe('deriveTimeBurnup (261001-hsz)', () => {
+  const H = 3600;
+  const at = (pts: ReturnType<typeof deriveTimeBurnup>, d: string) => {
+    const p = pts.find((x) => x.date === d);
+    if (!p) throw new Error(`no point ${d}`);
+    return p;
+  };
+  const log = (day: string, seconds: number) => ({ day, seconds });
+
+  it('intermediate logs raise Logged while Estimate stays', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: 4 * H, created: '2026-09-28' })],
+      new Map([['A', [log('2026-09-29', H), log('2026-09-30', H)]]]),
+      undefined,
+      TODAY,
+    );
+    expect(at(pts, '2026-09-28')).toMatchObject({ estimate: 4 * H, logged: 0 });
+    expect(at(pts, '2026-09-29')).toMatchObject({ estimate: 4 * H, logged: H });
+    expect(at(pts, TODAY)).toMatchObject({ estimate: 4 * H, logged: 2 * H });
+  });
+
+  it('done story estimate collapses to logged-so-far from its done date', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: 4 * H, created: '2026-09-28', cat: 'done', res: '2026-09-30' })],
+      new Map([['A', [log('2026-09-29', H)]]]),
+      undefined,
+      TODAY,
+    );
+    expect(at(pts, '2026-09-29').estimate).toBe(4 * H);
+    expect(at(pts, '2026-09-30')).toMatchObject({ estimate: H, logged: H });
+  });
+
+  it('overrun on an open story raises Estimate to logged', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: H, created: '2026-09-28' })],
+      new Map([['A', [log('2026-09-29', 3 * H)]]]),
+      undefined,
+      TODAY,
+    );
+    expect(at(pts, TODAY)).toMatchObject({ estimate: 3 * H, logged: 3 * H });
+  });
+
+  it('a log before creation starts the story at the log day', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: 0, created: '2026-09-30' })],
+      new Map([['A', [log('2026-09-27', H)]]]),
+      undefined,
+      TODAY,
+    );
+    expect(pts[0].date).toBe('2026-09-27');
+    for (const p of pts) expect(p.estimate).toBeGreaterThanOrEqual(p.logged);
+  });
+
+  it('clamps a future-dated log to today', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: 2 * H, created: '2026-09-29' })],
+      new Map([['A', [log('2026-12-25', H)]]]),
+      undefined,
+      TODAY,
+    );
+    expect(pts[pts.length - 1].date).toBe(TODAY);
+    expect(at(pts, '2026-09-30').logged).toBe(0);
+    expect(at(pts, TODAY).logged).toBe(H);
+  });
+
+  it('done with zero logs drops the story estimate to 0 at done date', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: 2 * H, created: '2026-09-28', cat: 'done', res: '2026-09-30' })],
+      new Map(),
+      undefined,
+      TODAY,
+    );
+    expect(at(pts, '2026-09-29').estimate).toBe(2 * H);
+    expect(at(pts, '2026-09-30').estimate).toBe(0);
+  });
+
+  it('invariants: estimate >= logged and final gap equals Remaining tile', () => {
+    const stories = [
+      st('A', { est: 4 * H, spent: H, created: '2026-09-20' }),
+      st('B', { est: 2 * H, spent: 3 * H, created: '2026-09-22' }),
+      st('C', { est: 5 * H, spent: H, created: '2026-09-23', cat: 'done', res: '2026-09-29' }),
+      st('D', { est: H, created: 'garbage' }),
+    ];
+    const logs = new Map([
+      ['A', [log('2026-09-21', H)]],
+      ['B', [log('2026-09-24', 2 * H), log('2026-09-25', H)]],
+      ['C', [log('2026-09-26', H)]],
+    ]);
+    const pts = deriveTimeBurnup(stories, logs, '2026-09-20', TODAY);
+    for (const p of pts) expect(p.estimate).toBeGreaterThanOrEqual(p.logged);
+    const last = pts[pts.length - 1];
+    expect(last.estimate - last.logged).toBe(deriveTimeTotals(stories).remaining);
+  });
+
+  it('invalid created with logs starts at its first log day', () => {
+    const pts = deriveTimeBurnup(
+      [st('A', { est: 2 * H })],
+      new Map([['A', [log('2026-09-29', H)]]]),
+      undefined,
+      TODAY,
+    );
+    expect(pts[0].date).toBe('2026-09-29');
+    expect(pts[0].estimate).toBe(2 * H);
+  });
+
+  it('returns [] when nothing is dated and epicCreated is invalid', () => {
+    expect(deriveTimeBurnup([st('A', { est: H })], new Map(), undefined, TODAY)).toEqual([]);
   });
 });
