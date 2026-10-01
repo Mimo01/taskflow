@@ -295,7 +295,8 @@ describe('WorklogsPage', () => {
           callsBefore,
         ),
       );
-    });
+      // Three calendar interactions run ~5.1-5.4s under full-suite load; default 5s timeout flaked.
+    }, 15_000);
 
     it('switching presets triggers a re-fetch with updated date range', async () => {
       const { getByText } = await renderPage();
