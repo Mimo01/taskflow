@@ -55,6 +55,11 @@ function addDays(key: string, n: number): string {
   return new Date(toMs(key) + n * DAY_MS).toISOString().slice(0, 10);
 }
 
+/** The date key `n` calendar days after `key` (negative `n` goes back). */
+export function addCalendarDays(key: string, n: number): string {
+  return addDays(key, n);
+}
+
 function diffDays(a: string, b: string): number {
   return Math.round((toMs(b) - toMs(a)) / DAY_MS);
 }
@@ -313,42 +318,108 @@ export const CAT_LABEL: Record<Cat, string> = {
   new: 'To do',
 };
 
-function isWorkingDay(key: string): boolean {
+function isWeekday(key: string): boolean {
   const d = new Date(toMs(key)).getUTCDay();
   return d !== 0 && d !== 6;
 }
 
-/** Last Mon-Fri day on or before `key`. */
-function prevWorkingDay(key: string): string {
+/**
+ * Injectable working calendar: working days are Mon-Fri minus calendar holidays.
+ * `holidays` are sorted Mon-Fri date keys the calendar marks as non-working.
+ */
+export interface WorkCalendar {
+  isWorkingDay(key: string): boolean;
+  holidays: readonly string[];
+  source: 'tempo' | 'weekends';
+}
+
+export const DEFAULT_CALENDAR: WorkCalendar = {
+  isWorkingDay: isWeekday,
+  holidays: [],
+  source: 'weekends',
+};
+
+const HOLIDAY_TYPES = new Set(['HOLIDAY', 'NON_WORKING_DAY']);
+
+/**
+ * Calendar from a Tempo schedule map (date -> day type). Only well-formed date keys and the
+ * literal HOLIDAY / NON_WORKING_DAY types are honoured; weekends are always non-working.
+ */
+export function buildWorkCalendar(
+  schedule: ReadonlyMap<string, string> | null | undefined,
+): WorkCalendar {
+  if (!schedule || schedule.size === 0) return DEFAULT_CALENDAR;
+  const holidays: string[] = [];
+  for (const [rawKey, type] of schedule) {
+    const k = validKey(rawKey);
+    if (k === null || k !== rawKey || !HOLIDAY_TYPES.has(type) || !isWeekday(k)) continue;
+    holidays.push(k);
+  }
+  holidays.sort();
+  const set = new Set(holidays);
+  return {
+    isWorkingDay: (key) => isWeekday(key) && !set.has(key),
+    holidays,
+    source: 'tempo',
+  };
+}
+
+/** Number of calendar holidays d with a < d <= b. */
+export function holidaysBetween(cal: WorkCalendar, a: string, b: string): number {
+  let n = 0;
+  for (const h of cal.holidays) if (h > a && h <= b) n += 1;
+  return n;
+}
+
+/** Last working day on or before `key`. */
+function prevWorkingDay(key: string, cal: WorkCalendar): string {
   let k = key;
-  while (!isWorkingDay(k)) k = addDays(k, -1);
+  while (!cal.isWorkingDay(k)) k = addDays(k, -1);
   return k;
 }
 
-/** First Mon-Fri day on or after `key`. */
-function nextWorkingDay(key: string): string {
+/** First working day on or after `key`. */
+function nextWorkingDay(key: string, cal: WorkCalendar): string {
   let k = key;
-  while (!isWorkingDay(k)) k = addDays(k, 1);
+  while (!cal.isWorkingDay(k)) k = addDays(k, 1);
   return k;
 }
 
-/** The date `n` working days (Mon-Fri) after `key`. A weekend start counts from the following Monday. */
-export function addWorkingDays(key: string, n: number): string {
+/**
+ * The date `n` working days (Mon-Fri minus calendar holidays) after `key`. A weekend start
+ * counts from the following Monday.
+ */
+export function addWorkingDays(
+  key: string,
+  n: number,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
+): string {
   if (n <= 0) return key;
-  // From a weekday, whole weeks are a plain 7-day shift; a weekend start is anchored to its Friday.
-  let k = prevWorkingDay(key);
+  // Weekday fast path: whole weeks are a plain 7-day shift; a weekend start is anchored to its Friday.
+  let k = key;
+  while (!isWeekday(k)) k = addDays(k, -1);
   const weeks = Math.floor(n / 5);
   k = addDays(k, weeks * 7);
   let rem = n - weeks * 5;
   while (rem > 0) {
     k = addDays(k, 1);
-    if (isWorkingDay(k)) rem -= 1;
+    if (isWeekday(k)) rem -= 1;
+  }
+  // Each holiday crossed pushes the date out by one more working day (bounded by the holiday count).
+  let extra = holidaysBetween(cal, key, k);
+  while (extra > 0) {
+    k = addDays(k, 1);
+    if (cal.isWorkingDay(k)) extra -= 1;
   }
   return k;
 }
 
-/** Number of Mon-Fri days d with a < d <= b (0 when b <= a). */
-export function workingDaysBetween(a: string, b: string): number {
+/** Number of working days d with a < d <= b (0 when b <= a). */
+export function workingDaysBetween(
+  a: string,
+  b: string,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
+): number {
   if (b <= a) return 0;
   const span = diffDays(a, b);
   const weeks = Math.floor(span / 7);
@@ -356,9 +427,9 @@ export function workingDaysBetween(a: string, b: string): number {
   let k = addDays(a, weeks * 7);
   while (k < b) {
     k = addDays(k, 1);
-    if (isWorkingDay(k)) count += 1;
+    if (isWeekday(k)) count += 1;
   }
-  return count;
+  return Math.max(0, count - holidaysBetween(cal, a, b));
 }
 
 // ── Adaptive forecast ────────────────────────────────────────────────────────
@@ -419,7 +490,11 @@ function ceilWd(n: number): number {
  * recent days count more, net of scope growth. The range is an analytic
  * normal approximation (no Monte Carlo): deterministic and testable.
  */
-export function forecastFromThroughput(input: ThroughputInput, today: string): EpicForecast {
+export function forecastFromThroughput(
+  input: ThroughputInput,
+  today: string,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
+): EpicForecast {
   const { unit } = input;
   const base: EpicForecast = {
     state: 'too-early',
@@ -458,14 +533,14 @@ export function forecastFromThroughput(input: ThroughputInput, today: string): E
     return { ...base, explanation: 'No work started yet.' };
   }
 
-  // Working-day sampling: the anchor is today (or the previous Friday on a weekend); weekend
-  // events count toward the following Monday, clamped to the anchor.
-  const anchor = prevWorkingDay(today);
+  // Working-day sampling: the anchor is today (or the previous working day on a weekend/holiday);
+  // non-working events count toward the following working day, clamped to the anchor.
+  const anchor = prevWorkingDay(today, cal);
   const offsetOf = (day: string): number => {
     const d = day > today ? today : day;
-    let snapped = nextWorkingDay(d);
+    let snapped = nextWorkingDay(d, cal);
     if (snapped > anchor) snapped = anchor;
-    return workingDaysBetween(snapped, anchor);
+    return workingDaysBetween(snapped, anchor, cal);
   };
 
   const firstOffset = offsetOf(input.firstActivity);
@@ -575,9 +650,9 @@ export function forecastFromThroughput(input: ThroughputInput, today: string): E
   return {
     ...common,
     state: 'ok',
-    likely: addWorkingDays(today, nLikely),
-    optimistic: addWorkingDays(today, nOpt),
-    pessimistic: addWorkingDays(today, nPess),
+    likely: addWorkingDays(today, nLikely, cal),
+    optimistic: addWorkingDays(today, nOpt, cal),
+    pessimistic: addWorkingDays(today, nPess, cal),
     nLikely,
     nOpt,
     nPess,
@@ -596,6 +671,7 @@ export function deriveAdaptiveForecast(
   spKey: string,
   epicCreated: string | undefined,
   today: string,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
 ): EpicForecast {
   const epicDay = validKey(epicCreated);
   const completions: { day: string; w: number }[] = [];
@@ -637,6 +713,7 @@ export function deriveAdaptiveForecast(
       unit: metric,
     },
     today,
+    cal,
   );
 }
 
@@ -645,6 +722,7 @@ export function deriveTimeForecast(
   stories: JiraIssue[],
   logs: Map<string, EpicWorklogDay[]>,
   today: string,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
 ): EpicForecast {
   const perDay = new Map<string, number>();
   for (const s of stories) {
@@ -671,6 +749,7 @@ export function deriveTimeForecast(
       unit: 'time',
     },
     today,
+    cal,
   );
 }
 
@@ -920,14 +999,25 @@ export interface ProjectionPoint {
   t: number;
   forecast: number;
   band: [number, number];
+  /** Working days from today. */
+  wd: number;
+  workingDay: boolean;
 }
 
 const PROJECTION_MIN_CAP_DAYS = 60;
+/** Upper bound on projected chart points (one per calendar day, thinned beyond this). */
+export const PROJECTION_MAX_POINTS = 260;
 
+/**
+ * One projected point per calendar day from today to the (clipped) latest date. Values are
+ * a function of working days elapsed, so non-working days are flat. Very long horizons are
+ * thinned to at most PROJECTION_MAX_POINTS while keeping the optimistic/likely/latest dates.
+ */
 export function deriveProjection(
   forecast: EpicForecast,
   today: string,
   historyStart: string | null,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
 ): { points: ProjectionPoint[]; clippedAfter: string | null } {
   if (
     forecast.state !== 'ok' ||
@@ -956,20 +1046,37 @@ export function deriveProjection(
   const rateOpt = R / forecast.nOpt;
   const rateScenarioPess = R / forecast.nPess;
   const at = (date: string): ProjectionPoint => {
-    const wd = workingDaysBetween(today, date);
+    const wd = workingDaysBetween(today, date, cal);
     return {
       date,
       t: toMs(date),
       forecast: Math.max(0, R - rateLikely * wd),
       band: [Math.max(0, R - rateOpt * wd), Math.max(0, R - rateScenarioPess * wd)],
+      wd,
+      workingDay: cal.isWorkingDay(date),
     };
   };
+  const optDate = clip(forecast.optimistic);
+  const likelyDate = clip(forecast.likely);
+  const end = clip(forecast.pessimistic);
   const byDate = new Map<string, ProjectionPoint>();
-  byDate.set(today, { date: today, t: toMs(today), forecast: R, band: [R, R] });
-  for (const d of [forecast.optimistic, forecast.likely, forecast.pessimistic]) {
-    const c = clip(d);
-    if (!byDate.has(c)) byDate.set(c, at(c));
+  byDate.set(today, {
+    date: today,
+    t: toMs(today),
+    forecast: R,
+    band: [R, R],
+    wd: 0,
+    workingDay: cal.isWorkingDay(today),
+  });
+  const days = Math.max(0, diffDays(today, end));
+  // Budget leaves room for the three always-kept key dates plus today.
+  const stride =
+    days <= PROJECTION_MAX_POINTS - 1 ? 1 : Math.ceil(days / (PROJECTION_MAX_POINTS - 4));
+  for (let i = stride; i <= days; i += stride) {
+    const d = addDays(today, i);
+    byDate.set(d, at(d));
   }
+  for (const d of [optDate, likelyDate, end]) if (!byDate.has(d) && d > today) byDate.set(d, at(d));
   return {
     points: [...byDate.values()].sort((a, b) => a.t - b.t),
     clippedAfter,
@@ -979,24 +1086,37 @@ export function deriveProjection(
 /**
  * Merge a projection into chart points: the today point gets forecast = remaining
  * (a zero-width band), and future points are appended with every other series null.
+ * Rows carry `wd` (working days from today) and `workingDay` for the hover tooltip;
+ * history rows other than today are null.
  */
 export function withProjection<
   T extends { date: string; t: number; label?: string; remaining?: number | null },
 >(
   points: T[],
   projection: { points: ProjectionPoint[] },
-): (T & { forecast: number | null; band: [number, number] | null })[] {
+): (T & {
+  forecast: number | null;
+  band: [number, number] | null;
+  wd: number | null;
+  workingDay: boolean | null;
+})[] {
   const proj = projection.points;
   if (proj.length === 0 || points.length === 0) {
-    return points.map((p) => ({ ...p, forecast: null, band: null }));
+    return points.map((p) => ({ ...p, forecast: null, band: null, wd: null, workingDay: null }));
   }
   const todayDate = proj[0].date;
   const out = points.map((p) => {
     if (p.date === todayDate) {
       const r = typeof p.remaining === 'number' ? p.remaining : proj[0].forecast;
-      return { ...p, forecast: r, band: [r, r] as [number, number] };
+      return {
+        ...p,
+        forecast: r,
+        band: [r, r] as [number, number],
+        wd: 0,
+        workingDay: proj[0].workingDay,
+      };
     }
-    return { ...p, forecast: null, band: null };
+    return { ...p, forecast: null, band: null, wd: null, workingDay: null };
   });
   const template = points[points.length - 1];
   const lastDate = template.date;
@@ -1010,7 +1130,318 @@ export function withProjection<
       ...('label' in template ? { label: labelOf(pp.date) } : {}),
       forecast: pp.forecast,
       band: pp.band,
+      wd: pp.wd,
+      workingDay: pp.workingDay,
     });
   }
   return out.sort((a, b) => a.t - b.t);
+}
+
+// ── Averaged forecast ────────────────────────────────────────────────────────
+
+export const METRIC_LABEL: Record<Metric, string> = {
+  count: 'Items',
+  sp: 'Story points',
+  time: 'Time',
+};
+
+/** Contributors disagree when their likely spread exceeds this share of the mean likely. */
+export const AVERAGE_DISAGREE_SPREAD = 0.5;
+
+export interface ForecastPart {
+  metric: Metric;
+  forecast: EpicForecast | null;
+  pending?: 'loading' | 'error';
+}
+
+export interface AveragedForecast {
+  state: ForecastState;
+  likely: string | null;
+  optimistic: string | null;
+  pessimistic: string | null;
+  nLikely: number | null;
+  nOpt: number | null;
+  nPess: number | null;
+  confidence: Confidence | null;
+  disagree: boolean;
+  parts: {
+    metric: Metric;
+    forecast: EpicForecast | null;
+    included: boolean;
+    reason: string | null;
+  }[];
+  explanation: string;
+}
+
+const CONF_ORDER: Confidence[] = ['low', 'medium', 'high'];
+
+function isUsable(f: EpicForecast | null): f is EpicForecast {
+  return (
+    f !== null &&
+    f.state === 'ok' &&
+    f.nLikely !== null &&
+    f.nLikely > 0 &&
+    f.nOpt !== null &&
+    f.nPess !== null &&
+    f.likely !== null
+  );
+}
+
+function exclusionReason(part: ForecastPart): string {
+  const f = part.forecast;
+  if (f === null) {
+    if (part.pending === 'loading') return 'loading worklogs';
+    if (part.pending === 'error') return 'worklogs unavailable';
+    return 'unavailable';
+  }
+  switch (f.state) {
+    case 'ok':
+      return 'no estimates';
+    case 'too-early':
+      return part.metric === 'time' && f.completions === 0 ? 'no logged time' : 'too early to tell';
+    case 'stalled':
+      return 'stalled';
+    case 'not-converging':
+      return 'not converging';
+    case 'done':
+      return 'complete';
+  }
+}
+
+function joinLabels(labels: string[]): string {
+  if (labels.length <= 1) return labels.join('');
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+/**
+ * Average the available metric forecasts. Averaging is done on working-day offsets from
+ * today (earliest, likely, latest separately) and mapped back through the calendar, never
+ * on raw calendar dates.
+ */
+export function averageForecasts(
+  parts: ForecastPart[],
+  today: string,
+  cal: WorkCalendar = DEFAULT_CALENDAR,
+): AveragedForecast {
+  const rows = parts.map((p) => {
+    const included = isUsable(p.forecast);
+    return {
+      metric: p.metric,
+      forecast: p.forecast,
+      included,
+      reason: included ? null : exclusionReason(p),
+    };
+  });
+  const used = rows.flatMap((r) => (r.included && r.forecast ? [r] : []));
+  const empty = {
+    likely: null,
+    optimistic: null,
+    pessimistic: null,
+    nLikely: null,
+    nOpt: null,
+    nPess: null,
+    confidence: null,
+    disagree: false,
+    parts: rows,
+  };
+
+  if (used.length === 0) {
+    const fs = parts.flatMap((p) => (p.forecast ? [p.forecast] : []));
+    if (fs.some((f) => f.state === 'done')) {
+      return { ...empty, state: 'done', explanation: 'All work is done.' };
+    }
+    for (const state of ['stalled', 'not-converging', 'too-early'] as const) {
+      const hit = fs.find((f) => f.state === state);
+      if (hit) return { ...empty, state, explanation: hit.explanation };
+    }
+    return {
+      ...empty,
+      state: 'too-early',
+      explanation: 'No metric has enough data to project a date.',
+    };
+  }
+
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const likelies = used.map((r) => r.forecast?.nLikely ?? 0);
+  const nLikely = Math.max(1, Math.round(mean(likelies)));
+  const nOpt = Math.min(
+    nLikely,
+    Math.max(1, Math.round(mean(used.map((r) => r.forecast?.nOpt ?? 0)))),
+  );
+  const nPess = Math.max(nLikely, Math.round(mean(used.map((r) => r.forecast?.nPess ?? 0))));
+  const disagree =
+    used.length >= 2 &&
+    Math.max(...likelies) - Math.min(...likelies) > AVERAGE_DISAGREE_SPREAD * mean(likelies);
+  let level = Math.min(...used.map((r) => CONF_ORDER.indexOf(r.forecast?.confidence ?? 'low')));
+  if (disagree) level = Math.max(0, level - 1);
+  const labels = used.map((r) => METRIC_LABEL[r.metric]);
+  return {
+    state: 'ok',
+    likely: addWorkingDays(today, nLikely, cal),
+    optimistic: addWorkingDays(today, nOpt, cal),
+    pessimistic: addWorkingDays(today, nPess, cal),
+    nLikely,
+    nOpt,
+    nPess,
+    confidence: CONF_ORDER[level],
+    disagree,
+    parts: rows,
+    explanation: `Average of ${joinLabels(labels)} forecasts.${
+      disagree ? ' They disagree widely, so confidence is lowered.' : ''
+    }`,
+  };
+}
+
+// ── Risks ────────────────────────────────────────────────────────────────────
+
+export type RiskKey = 'overdue' | 'late' | 'stalled' | 'scope' | 'unestimated' | 'unassigned';
+
+export interface EpicRisk {
+  key: RiskKey;
+  severity: 'warning' | 'info';
+  /** Tooltip name. */
+  label: string;
+  /** Visible chip text (single lowercase node). */
+  text: string;
+  count: number | null;
+  detail: string;
+  issueKeys: string[];
+  moreKeys: number;
+}
+
+const RISK_MAX_KEYS = 3;
+/** Scope growth is "significant" at this share of the done rate. */
+const RISK_SCOPE_RATIO = 0.5;
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function keysOf(stories: JiraIssue[]): { issueKeys: string[]; moreKeys: number } {
+  const sorted = stories
+    .map((s) => s.key)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  return {
+    issueKeys: sorted.slice(0, RISK_MAX_KEYS),
+    moreKeys: Math.max(0, sorted.length - RISK_MAX_KEYS),
+  };
+}
+
+export function deriveRisks(args: {
+  stories: JiraIssue[];
+  metric: Metric;
+  spKey: string;
+  finish: AveragedForecast;
+  dueDate: string | null | undefined;
+  today: string;
+}): EpicRisk[] {
+  const { stories, metric, spKey, finish, today } = args;
+  const open = stories.filter((s) => catOf(s) !== 'done');
+  const warnings: EpicRisk[] = [];
+  const infos: EpicRisk[] = [];
+  const due = validKey(args.dueDate);
+
+  if (due !== null && open.length > 0) {
+    if (due < today) {
+      warnings.push({
+        key: 'overdue',
+        severity: 'warning',
+        label: 'Overdue',
+        text: 'overdue',
+        count: null,
+        detail: `Due ${formatDateKey(due)} with ${open.length} open items.`,
+        ...keysOf(open),
+      });
+    } else if (finish.state === 'ok' && finish.likely !== null && finish.likely > due) {
+      warnings.push({
+        key: 'late',
+        severity: 'warning',
+        label: 'Finish after due date',
+        text: 'late',
+        count: null,
+        detail: `Due ${formatDateKey(due)}, forecast ${formatDateKey(finish.likely)}.`,
+        issueKeys: [],
+        moreKeys: 0,
+      });
+    }
+  }
+
+  const stalled = finish.parts.find((p) => p.forecast?.state === 'stalled');
+  if (stalled?.forecast) {
+    warnings.push({
+      key: 'stalled',
+      severity: 'warning',
+      label: 'Stalled',
+      text: 'stalled',
+      count: null,
+      detail: stalled.forecast.explanation,
+      issueKeys: [],
+      moreKeys: 0,
+    });
+  }
+
+  const diverging = finish.parts.find((p) => p.forecast?.state === 'not-converging');
+  if (diverging?.forecast) {
+    warnings.push({
+      key: 'scope',
+      severity: 'warning',
+      label: 'Scope growing',
+      text: 'scope growing',
+      count: null,
+      detail: diverging.forecast.explanation,
+      issueKeys: [],
+      moreKeys: 0,
+    });
+  } else {
+    const c = finish.parts.find((p) => p.metric === 'count')?.forecast;
+    if (
+      c &&
+      c.state === 'ok' &&
+      c.scopeRatePerWeek > 0 &&
+      c.scopeRatePerWeek >= RISK_SCOPE_RATIO * c.ratePerWeek
+    ) {
+      infos.push({
+        key: 'scope',
+        severity: 'info',
+        label: 'Scope growing',
+        text: 'scope growing',
+        count: null,
+        detail: `+${round1(c.scopeRatePerWeek)} items/wk added vs ${round1(c.ratePerWeek)}/wk done.`,
+        issueKeys: [],
+        moreKeys: 0,
+      });
+    }
+  }
+
+  const unestimated =
+    metric === 'time'
+      ? open.filter((s) => estimateOf(s) === 0)
+      : stories.filter((s) => spOf(s, spKey) === null);
+  if (unestimated.length > 0) {
+    infos.push({
+      key: 'unestimated',
+      severity: 'info',
+      label: 'Unestimated',
+      text: `${unestimated.length} unestimated`,
+      count: unestimated.length,
+      detail:
+        metric === 'time' ? 'Open items without a time estimate.' : 'Items without story points.',
+      ...keysOf(unestimated),
+    });
+  }
+
+  const unassigned = open.filter((s) => !s.fields.assignee);
+  if (unassigned.length > 0) {
+    infos.push({
+      key: 'unassigned',
+      severity: 'info',
+      label: 'Unassigned',
+      text: `${unassigned.length} unassigned`,
+      count: unassigned.length,
+      detail: 'Open items with no assignee.',
+      ...keysOf(unassigned),
+    });
+  }
+
+  return [...warnings, ...infos];
 }
