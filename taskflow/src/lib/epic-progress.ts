@@ -541,6 +541,15 @@ export function forecastFromThroughput(input: ThroughputInput, today: string): E
     };
   }
 
+  // No completions at all is "too early" (or stalled, above) — never "scope grew faster".
+  if (muD <= 0) {
+    return {
+      ...common,
+      state: 'too-early',
+      explanation: 'Nothing has been completed yet, so there is no pace to project from.',
+    };
+  }
+
   if (mu <= 0 || mu < 0.1 * muD) {
     return {
       ...common,
@@ -850,6 +859,10 @@ export function deriveCfd(args: {
           cat: lookup(t.toId, t.toName),
         });
       }
+      // Current status is authoritative for today: replayed transitions can end on an unmapped
+      // status (lookup falls back to 'new'), which would disagree with the hero and the forecast.
+      const current = catOf(s);
+      if (segs[segs.length - 1].cat !== current) segs.push({ day: today, cat: current });
     } else {
       approximate = true;
       segs.push({ day: enter, cat: 'new' });

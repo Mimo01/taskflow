@@ -601,6 +601,16 @@ describe('adaptive forecast case table (261001-ilq)', () => {
     expect(onSat).toEqual(onMon);
   });
 
+  it('a 0-completion epic just past the too-early window is never "not converging"', () => {
+    for (const scc of ['2026-09-16', '2026-09-17', '2026-09-18']) {
+      const f = run([
+        st('I-1', { cat: 'indeterminate', scc: `${scc}T12:00:00.000+0000`, created: '2026-09-01' }),
+        openStory('I-2', '2026-09-01'),
+      ]);
+      expect(f.state).not.toBe('not-converging');
+    }
+  });
+
   it('a 0-completion epic with 10+ working days of in-progress activity is stalled', () => {
     const f = run([
       st('I-1', {
@@ -726,6 +736,17 @@ describe('deriveCfd', () => {
   const lookup = buildStatusCategoryLookup(list, []);
   const baseArgs = { lookup, metric: 'count' as const, spKey: SP, today: TODAY };
   const at = (pts: { date: string }[], d: string) => pts.find((p) => p.date === d);
+
+  it('ends today on the current status when history ends on an unmapped status', () => {
+    const s = st('U', { cat: 'done', created: '2026-09-01T10:00:00.000+0000' });
+    const { points } = deriveCfd({
+      ...baseArgs,
+      stories: [s],
+      history: new Map([['U', H([tr('2026-09-10', '1', '99', 'To Do', 'Mystery')])]]),
+      epicCreated: '2026-09-01',
+    });
+    expect(points[points.length - 1]).toMatchObject({ done: 1, todo: 0, inProgress: 0 });
+  });
 
   it('(a) real history: to do, then in progress, then done', () => {
     const s = st('A', { cat: 'done', created: '2026-09-01T10:00:00.000+0000' });

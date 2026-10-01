@@ -2063,6 +2063,26 @@ describe('jira service', () => {
       const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1'], 'E-1');
       expect(r.get('P-1')?.joinedAt).toBe('2026-09-08T10:00:00.000+0000');
     });
+
+    it('matches the Epic Link key exactly (E-1 is not E-10)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        searchRes([
+          {
+            key: 'P-1',
+            changelog: {
+              total: 1,
+              histories: [
+                hist('2026-09-08T10:00:00.000+0000', [
+                  { field: 'Epic Link', fromString: null, toString: 'E-10' },
+                ]),
+              ],
+            },
+          },
+        ]),
+      );
+      const r = await fetchEpicStatusHistory(BASE, TOKEN, ['P-1'], 'E-1');
+      expect(r.get('P-1')?.joinedAt).toBeNull();
+    });
   });
 
   // --- fetchJiraIssueByKey ---

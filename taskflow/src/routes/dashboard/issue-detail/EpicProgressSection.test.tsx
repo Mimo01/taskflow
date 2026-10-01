@@ -902,3 +902,32 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     }
   });
 });
+
+describe('EpicProgressSection review fixes (261001-ilq)', () => {
+  it('Finish shows "—", not today, when only unestimated work remains in SP mode', () => {
+    const s = [
+      story('F-1', {
+        cat: 'done',
+        status: 'Done',
+        sp: 3,
+        created: '2026-09-01',
+        res: '2026-09-10',
+      }),
+      story('F-2', { cat: 'new', status: 'To Do', sp: null, created: '2026-09-01' }),
+    ];
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={s}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    const finish = screen
+      .getAllByTestId('epic-stat-tile')
+      .find((t) => t.textContent?.includes('Finish'));
+    expect(finish?.textContent).toContain('—');
+    expect(finish?.textContent).not.toMatch(/Today/i);
+  });
+});
