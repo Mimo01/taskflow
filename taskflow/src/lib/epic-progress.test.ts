@@ -18,7 +18,6 @@ import {
   presetRange,
   projectionCap,
   rangeIndexes,
-  RISK_VISIBLE_KEYS,
   averageForecasts,
   buildStatusCategoryLookup,
   buildWorkCalendar,
@@ -1316,7 +1315,7 @@ describe('deriveRisks (261001-qvu)', () => {
     const r = deriveRisks({ ...base, stories: withDone, finish: fin() });
     const u = r.find((x) => x.key === 'unestimated');
     expect(u?.count).toBe(1);
-    expect(u?.issueKeys).toEqual(['A-4']);
+    expect(u?.issues.map((i) => i.key)).toEqual(['A-4']);
   });
 
   it('reports unestimated and unassigned info risks', () => {
@@ -1325,18 +1324,30 @@ describe('deriveRisks (261001-qvu)', () => {
       ['unestimated', '1 unestimated', 'info'],
       ['unassigned', '1 unassigned', 'info'],
     ]);
-    expect(r[0].issueKeys).toEqual(['A-4']);
-    expect(r[1].issueKeys).toEqual(['A-3']);
+    expect(r[0].issues).toEqual([{ key: 'A-4', summary: 'A-4' }]);
+    expect(r[1].issues).toEqual([{ key: 'A-3', summary: 'A-3' }]);
   });
   it('flags overdue first, and late when the forecast passes the due date', () => {
     const over = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-20' });
-    expect(over[0]).toMatchObject({ key: 'overdue', severity: 'warning' });
+    expect(over[0]).toMatchObject({
+      key: 'overdue',
+      severity: 'warning',
+      text: 'Overdue 10 days',
+      issues: [],
+    });
+    const one = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-29' });
+    expect(one[0].text).toBe('Overdue 1 day');
     const late = deriveRisks({
       ...base,
       dueDate: '2026-10-05',
       finish: fin([], { state: 'ok', likely: '2026-10-09' }),
     });
-    expect(late[0]).toMatchObject({ key: 'late', severity: 'warning' });
+    expect(late[0]).toMatchObject({
+      key: 'late',
+      severity: 'warning',
+      text: 'Late by 4 days',
+      issues: [],
+    });
     const done = deriveRisks({
       ...base,
       stories: [stories[0]],
@@ -1367,11 +1378,18 @@ describe('deriveRisks (261001-qvu)', () => {
     });
     expect(calm.find((x) => x.key === 'scope')).toBeUndefined();
   });
-  it('lists every issue key (UI shows the first few) and orders warnings first', () => {
+  it('orders warnings first; overdue lists no issues', () => {
     const many = Array.from({ length: 5 }, (_, i) => st(`M-${i + 1}`, { sp: 1 }));
     const r = deriveRisks({ ...base, stories: many, dueDate: '2026-09-01', finish: fin() });
     expect(r[0].key).toBe('overdue');
-    expect(r[0].issueKeys).toEqual(['M-1', 'M-2', 'M-3', 'M-4', 'M-5']);
+    expect(r[0].issues).toEqual([]);
+    expect(r.find((x) => x.key === 'unassigned')?.issues.map((i) => i.key)).toEqual([
+      'M-1',
+      'M-2',
+      'M-3',
+      'M-4',
+      'M-5',
+    ]);
     const sevs = r.map((x) => x.severity);
     expect(sevs).toEqual([...sevs].sort((a, b) => (a === b ? 0 : a === 'warning' ? -1 : 1)));
   });
@@ -1849,7 +1867,7 @@ describe('261001-sqm lib', () => {
     });
   });
 
-  it('deriveRisks returns every key (7 overdue open items -> 7 keys)', () => {
+  it('deriveRisks lists every affected issue (7 unassigned -> 7 issues)', () => {
     const many = Array.from({ length: 7 }, (_, i) => st(`Z-${i + 1}`, { sp: 1 }));
     const r = deriveRisks({
       stories: many,
@@ -1859,8 +1877,8 @@ describe('261001-sqm lib', () => {
       dueDate: '2026-09-01',
       today: T,
     });
-    expect(r[0].issueKeys).toHaveLength(7);
-    expect(RISK_VISIBLE_KEYS).toBe(5);
-    expect('moreKeys' in r[0]).toBe(false);
+    const unassigned = r.find((x) => x.key === 'unassigned');
+    expect(unassigned?.issues).toHaveLength(7);
+    expect('moreKeys' in (unassigned ?? {})).toBe(false);
   });
 });

@@ -1413,16 +1413,19 @@ export interface EpicRisk {
   severity: 'warning' | 'info';
   /** Tooltip name. */
   label: string;
-  /** Visible chip text (single lowercase node). */
+  /** Visible one-line text (e.g. '3 unestimated', 'Overdue 4 days'). */
   text: string;
   count: number | null;
   detail: string;
-  /** Every affected key, numerically sorted (the UI shows RISK_VISIBLE_KEYS first). */
-  issueKeys: string[];
+  /** Every affected issue (from the loaded stories), numerically sorted by key. */
+  issues: RiskIssue[];
 }
 
-/** Keys shown per risk before the "+N more" button. */
-export const RISK_VISIBLE_KEYS = 5;
+export interface RiskIssue {
+  key: string;
+  summary: string;
+}
+
 /** Scope growth is "significant" at this share of the done rate. */
 const RISK_SCOPE_RATIO = 0.5;
 
@@ -1430,12 +1433,16 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-function keysOf(stories: JiraIssue[]): { issueKeys: string[] } {
+function issuesOf(stories: JiraIssue[]): { issues: RiskIssue[] } {
   return {
-    issueKeys: stories
-      .map((s) => s.key)
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    issues: stories
+      .map((s) => ({ key: s.key, summary: s.fields.summary ?? '' }))
+      .sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true })),
   };
+}
+
+function daysText(n: number): string {
+  return `${n} ${n === 1 ? 'day' : 'days'}`;
 }
 
 export function deriveRisks(args: {
@@ -1458,20 +1465,20 @@ export function deriveRisks(args: {
         key: 'overdue',
         severity: 'warning',
         label: 'Overdue',
-        text: 'overdue',
+        text: `Overdue ${daysText(diffDays(due, today))}`,
         count: null,
         detail: `Due ${formatDateKey(due)} with ${open.length} open items.`,
-        ...keysOf(open),
+        issues: [],
       });
     } else if (finish.state === 'ok' && finish.likely !== null && finish.likely > due) {
       warnings.push({
         key: 'late',
         severity: 'warning',
         label: 'Finish after due date',
-        text: 'late',
+        text: `Late by ${daysText(diffDays(due, finish.likely))}`,
         count: null,
         detail: `Due ${formatDateKey(due)}, forecast ${formatDateKey(finish.likely)}.`,
-        issueKeys: [],
+        issues: [],
       });
     }
   }
@@ -1482,10 +1489,10 @@ export function deriveRisks(args: {
       key: 'stalled',
       severity: 'warning',
       label: 'Stalled',
-      text: 'stalled',
+      text: 'Stalled',
       count: null,
       detail: stalled.forecast.explanation,
-      issueKeys: [],
+      issues: [],
     });
   }
 
@@ -1495,10 +1502,10 @@ export function deriveRisks(args: {
       key: 'scope',
       severity: 'warning',
       label: 'Scope growing',
-      text: 'scope growing',
+      text: 'Scope growing',
       count: null,
       detail: diverging.forecast.explanation,
-      issueKeys: [],
+      issues: [],
     });
   } else {
     const c = finish.parts.find((p) => p.metric === 'count')?.forecast;
@@ -1512,10 +1519,10 @@ export function deriveRisks(args: {
         key: 'scope',
         severity: 'info',
         label: 'Scope growing',
-        text: 'scope growing',
+        text: 'Scope growing',
         count: null,
         detail: `+${round1(c.scopeRatePerWeek)} items/wk added vs ${round1(c.ratePerWeek)}/wk done.`,
-        issueKeys: [],
+        issues: [],
       });
     }
   }
@@ -1535,7 +1542,7 @@ export function deriveRisks(args: {
         metric === 'time'
           ? 'Open items without a time estimate.'
           : 'Open items without story points.',
-      ...keysOf(unestimated),
+      ...issuesOf(unestimated),
     });
   }
 
@@ -1548,7 +1555,7 @@ export function deriveRisks(args: {
       text: `${unassigned.length} unassigned`,
       count: unassigned.length,
       detail: 'Open items with no assignee.',
-      ...keysOf(unassigned),
+      ...issuesOf(unassigned),
     });
   }
 
