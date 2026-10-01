@@ -365,6 +365,8 @@ export function EpicProgressSection({
                 stories={stories}
                 epicCreated={epicCreated}
                 today={today}
+                forecast={timeForecast}
+                calendar={calendar}
               />
             ) : (
               <EpicCfdChart
@@ -420,46 +422,44 @@ export function EpicProgressSection({
 
             <div className="space-y-1">
               {assignees.map((a) => (
-                <div
-                  key={a.id}
-                  data-testid="epic-assignee-row"
-                  className="flex items-center gap-2 text-xs"
-                >
-                  <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
-                    <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
-                    <span className="truncate pr-0.5">{a.name}</span>
-                  </span>
+                <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
                   <Tooltip trackCursorAxis="x">
                     <TooltipTrigger
                       delay={0}
                       render={<div />}
-                      data-testid="epic-assignee-bar"
+                      data-testid="epic-assignee-trigger"
                       role="img"
                       tabIndex={0}
                       aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
-                      className="min-w-0 flex-1 py-1.5 -my-1.5"
+                      className="-my-1.5 flex items-center gap-2 rounded-sm py-1.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
-                        {(
-                          [
-                            ['done', a.done],
-                            ['indeterminate', a.inProgress],
-                            ['new', a.todo],
-                          ] as const
-                        )
-                          .filter(([, v]) => v > 0)
-                          .map(([cat, v]) => (
-                            <div
-                              key={cat}
-                              className={cn('h-full', statusCategoryDotClass(cat))}
-                              style={{ width: `${(v / maxAssignee) * 100}%` }}
-                            />
-                          ))}
+                      <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
+                        <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
+                        <span className="truncate pr-0.5">{a.name}</span>
+                      </span>
+                      <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
+                        <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
+                          {(
+                            [
+                              ['done', a.done],
+                              ['indeterminate', a.inProgress],
+                              ['new', a.todo],
+                            ] as const
+                          )
+                            .filter(([, v]) => v > 0)
+                            .map(([cat, v]) => (
+                              <div
+                                key={cat}
+                                className={cn('h-full', statusCategoryDotClass(cat))}
+                                style={{ width: `${(v / maxAssignee) * 100}%` }}
+                              />
+                            ))}
+                        </div>
                       </div>
+                      <AssigneeChips a={a} metric={metric} />
                     </TooltipTrigger>
                     <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
                   </Tooltip>
-                  <AssigneeChips a={a} metric={metric} />
                 </div>
               ))}
             </div>

@@ -4,8 +4,8 @@
  * EpicCfdChart — cumulative flow diagram for the epic progress section (quick 261001-ilq).
  * Stacked Done / In progress / To do areas (status-category colours), a solid Remaining
  * line, and — when the forecast is ok — a dashed forecast line with an optimistic-to-
- * pessimistic range band on a numeric time axis (sparse future points are placed by
- * date, not by index).
+ * pessimistic range band on a numeric time axis. The projection has one point per calendar
+ * day (flat on non-working days); its dots are hidden until hover (activeDot only).
  *
  * Recharts conventions shared with the other charts: 'use no memo' + explicit-height
  * wrapper + isAnimationActive={false}. No recharts <Legend>: it renders text in jsdom and
@@ -20,7 +20,13 @@ import { cfdRows, EpicChartTooltip, FORECAST_COLOR, REMAINING_COLOR } from './Ep
 const CHART_HEIGHT = 220;
 const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 
-export type CfdChartPoint = CfdPoint & { forecast: number | null; band: [number, number] | null };
+export type CfdChartPoint = CfdPoint & {
+  forecast: number | null;
+  band: [number, number] | null;
+  /** Working days from today (projection rows only). */
+  wd: number | null;
+  workingDay: boolean | null;
+};
 
 interface EpicCfdChartProps {
   data: CfdChartPoint[];
@@ -154,6 +160,12 @@ export function EpicCfdChart({
                 strokeDasharray="4 4"
                 connectNulls
                 dot={false}
+                activeDot={{
+                  r: 3,
+                  fill: FORECAST_COLOR,
+                  stroke: 'var(--color-background)',
+                  strokeWidth: 1,
+                }}
                 isAnimationActive={false}
               />
             </ComposedChart>

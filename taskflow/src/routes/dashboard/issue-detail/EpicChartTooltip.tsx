@@ -14,6 +14,9 @@ export interface ChartDatum {
   remaining?: number | null;
   forecast?: number | null;
   band?: [number, number] | null;
+  /** Working days from today (projection rows). */
+  wd?: number | null;
+  workingDay?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -24,6 +27,8 @@ export interface ChartRowSpec {
   /** CSS colour of the swatch. */
   color: string;
   dashed?: boolean;
+  /** Line series use 'line'; area/status series keep the swatch. */
+  marker?: 'swatch' | 'line';
 }
 
 interface EpicChartTooltipProps {
@@ -54,7 +59,13 @@ export function cfdRows(metric: Metric): (d: ChartDatum) => ChartRowSpec[] {
       color: STATUS_CATEGORY_COLOR.indeterminate,
     },
     { key: 'todo', label: 'To do', value: v(d.todo), color: STATUS_CATEGORY_COLOR.new },
-    { key: 'remaining', label: 'Remaining', value: v(d.remaining), color: REMAINING_COLOR },
+    {
+      key: 'remaining',
+      label: 'Remaining',
+      value: v(d.remaining),
+      color: REMAINING_COLOR,
+      marker: 'line',
+    },
   ];
 }
 
@@ -63,12 +74,19 @@ export function timeRows(format: (hours: number) => string): (d: ChartDatum) => 
   const v = (n: unknown) => format(Number(n ?? 0));
   return (d) => [
     { key: 'estimate', label: 'Estimate', value: v(d.estimate), color: STATUS_CATEGORY_COLOR.new },
-    { key: 'logged', label: 'Logged', value: v(d.logged), color: STATUS_CATEGORY_COLOR.done },
+    {
+      key: 'logged',
+      label: 'Logged',
+      value: v(d.logged),
+      color: STATUS_CATEGORY_COLOR.done,
+      marker: 'line',
+    },
     {
       key: 'remaining',
       label: 'Remaining',
       value: v(d.remaining),
       color: STATUS_CATEGORY_COLOR.indeterminate,
+      marker: 'line',
     },
   ];
 }
@@ -107,6 +125,7 @@ export function EpicChartTooltip({
             key={r.key}
             color={r.color}
             dashed={r.dashed}
+            marker={r.marker}
             label={r.label}
             value={r.value}
           />
@@ -125,6 +144,13 @@ export function EpicChartTooltip({
             color={FORECAST_COLOR}
             label="Range"
             value={`${fmt(band[0])}–${fmt(band[1])}`}
+          />
+        ) : null}
+        {hasForecast && typeof datum.wd === 'number' && datum.wd > 0 ? (
+          <TooltipRow
+            label="From today"
+            value={`${datum.wd} working day${datum.wd === 1 ? '' : 's'}`}
+            sub={datum.workingDay === false ? 'non-working day' : undefined}
           />
         ) : null}
       </TooltipBody>

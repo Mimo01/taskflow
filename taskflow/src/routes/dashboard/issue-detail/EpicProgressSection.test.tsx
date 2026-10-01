@@ -378,6 +378,22 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
       'Estimate3h',
     ]);
   });
+
+  it('hovering the assignee name or chips opens the row tooltip', async () => {
+    const user = userEvent.setup();
+    renderTimed();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const row = screen.getByTestId('epic-assignee-row');
+    const expected = ['Done1h', 'In progress0m', 'To do2h', 'Logged1h 30m', 'Estimate3h'];
+    await user.hover(within(row).getByText('Amy'));
+    await waitFor(() => expect(rowTexts()).toEqual(expected));
+    await user.unhover(within(row).getByText('Amy'));
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull());
+    await user.hover(within(row).getByText('1h 30m'));
+    await waitFor(() => expect(rowTexts()).toEqual(expected));
+    expect(row.querySelectorAll('button')).toHaveLength(0);
+    expect(row.querySelectorAll('button, [tabindex="0"]')).toHaveLength(1);
+  });
 });
 
 describe('EpicProgressSection review fixes (261001-g5q)', () => {

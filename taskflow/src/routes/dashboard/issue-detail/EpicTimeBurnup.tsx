@@ -2,10 +2,10 @@
 
 /**
  * EpicTimeBurnup — Time-mode chart built from worklogs (quick 261001-hsz, extended by
- * 261001-ilq). Mounted only when the Time metric is selected, so Count/SP never fetch
- * worklogs. Series: Estimate (collapse model area), Logged (cumulative worklog time)
+ * 261001-ilq, 261001-qvu). Mounted only when the Time metric is selected. Series: Estimate (collapse model area), Logged (cumulative worklog time)
  * and Remaining (estimate - logged), plus the daily-logged-rate forecast with its
- * optimistic-to-pessimistic band. The worklog query is owned by the section.
+ * optimistic-to-pessimistic band (one point per calendar day, flat on non-working days,
+ * dots only on hover). The worklog query and the time forecast are owned by the section.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
@@ -14,8 +14,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   deriveProjection,
   deriveTimeBurnup,
-  deriveTimeForecast,
+  type EpicForecast,
   ESTIMATE_FORMULA_NOTE,
+  type WorkCalendar,
   withProjection,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
@@ -37,11 +38,21 @@ interface EpicTimeBurnupProps {
   stories: JiraIssue[];
   epicCreated: string | undefined;
   today: string;
+  /** Time forecast from the section (shared with the averaged Finish); null while unavailable. */
+  forecast: EpicForecast | null;
+  calendar: WorkCalendar;
 }
 
 const hoursLabel = (h: number) => formatDuration(Math.round(h * HOUR));
 
-export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeBurnupProps) {
+export function EpicTimeBurnup({
+  query,
+  stories,
+  epicCreated,
+  today,
+  forecast,
+  calendar,
+}: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
 
   if (isError) {
@@ -100,12 +111,14 @@ export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeB
 
   // The projection maths is unit-agnostic (it only scales `remaining` by day counts), so the
   // forecast's remaining (seconds) is converted to hours to match the chart's hour axis.
-  const forecast = deriveTimeForecast(stories, data, today);
-  const projection = deriveProjection(
-    { ...forecast, remaining: forecast.remaining / HOUR },
-    today,
-    base.length > 0 ? base[0].date : null,
-  );
+  const projection = forecast
+    ? deriveProjection(
+        { ...forecast, remaining: forecast.remaining / HOUR },
+        today,
+        base.length > 0 ? base[0].date : null,
+        calendar,
+      )
+    : { points: [], clippedAfter: null };
   const chartData = withProjection(base, projection);
   const hasProjection = projection.points.length > 0;
 
@@ -197,6 +210,12 @@ export function EpicTimeBurnup({ query, stories, epicCreated, today }: EpicTimeB
                 strokeDasharray="4 4"
                 connectNulls
                 dot={false}
+                activeDot={{
+                  r: 3,
+                  fill: FORECAST_COLOR,
+                  stroke: 'var(--color-background)',
+                  strokeWidth: 1,
+                }}
                 isAnimationActive={false}
               />
             </ComposedChart>
