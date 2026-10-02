@@ -1420,8 +1420,6 @@ export interface EpicRisk {
   severity: 'warning' | 'info';
   /** Full text: the card button's aria-label and the popover header (e.g. '3 unestimated'). */
   text: string;
-  /** Readable card label, ~16 chars (CSS truncates longer, e.g. 'Overdue 1000 days'), a substring of text. */
-  short: string;
   /** Compact pill text ('3d', '+4d', '2'); null for stalled / scope. */
   token: string | null;
   count: number | null;
@@ -1484,7 +1482,6 @@ export function deriveRisks(args: {
         key: 'overdue',
         severity: 'warning',
         text: `Overdue ${daysText(n)}`,
-        short: `Overdue ${daysText(n)}`,
         token: `${n}d`,
         count: null,
         detail: `Was due ${formatDateKey(due)} \u00b7 ${open.length} ${open.length === 1 ? 'item' : 'items'} open`,
@@ -1497,7 +1494,6 @@ export function deriveRisks(args: {
         key: 'late',
         severity: 'warning',
         text: `Finishes ${daysText(n)} late`,
-        short: `${daysText(n)} late`,
         token: `+${n}d`,
         count: null,
         detail: `Due ${formatDateKey(due)} \u00b7 forecast ${formatDateKey(finish.likely)}`,
@@ -1513,7 +1509,6 @@ export function deriveRisks(args: {
       key: 'stalled',
       severity: 'warning',
       text: 'Stalled',
-      short: 'Stalled',
       token: null,
       count: null,
       detail: noPeriod(stalled.forecast.explanation),
@@ -1538,7 +1533,6 @@ export function deriveRisks(args: {
         key: 'scope',
         severity: 'warning',
         text: 'Scope growing',
-        short: 'Scope growing',
         token: null,
         count: null,
         detail: detailFor() ?? '',
@@ -1555,7 +1549,6 @@ export function deriveRisks(args: {
         key: 'scope',
         severity: 'info',
         text: 'Scope growing',
-        short: 'Scope growing',
         token: null,
         count: null,
         detail: detailFor() ?? '',
@@ -1571,7 +1564,6 @@ export function deriveRisks(args: {
       key: 'unestimated',
       severity: 'info',
       text: `${unestimated.length} unestimated`,
-      short: `${unestimated.length} unestimated`,
       token: `${unestimated.length}`,
       count: unestimated.length,
       detail: 'Open items with no points or time estimate',
@@ -1585,7 +1577,6 @@ export function deriveRisks(args: {
       key: 'unassigned',
       severity: 'info',
       text: `${unassigned.length} unassigned`,
-      short: `${unassigned.length} unassigned`,
       token: `${unassigned.length}`,
       count: unassigned.length,
       detail: 'Open items with no assignee',
