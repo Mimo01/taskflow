@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-02 - UAT approved: epic detail progress section (quick tasks 261001-fmk … 261002-fp7)
+Last activity: 2026-10-02 - Follow-up fixes after epic progress UAT: pre-commit lint gate (c234f1bf), Jira pagination step (040b778d), skeleton height prediction (efcc698b), zoom pinned-to-end flag (96a622ee)
 
 ## Performance Metrics
 
