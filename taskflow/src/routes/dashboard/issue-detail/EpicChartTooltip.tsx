@@ -5,7 +5,6 @@
  * formatter. Renders on the shared TOOLTIP_SURFACE like every other tooltip.
  * Colour marks statuses only; every other row uses a neutral marker or icon.
  */
-import { Gauge } from 'lucide-react';
 import {
   type MarkerTone,
   TOOLTIP_SURFACE,
@@ -22,7 +21,6 @@ import {
   type Metric,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
-import { ConfidenceMeter } from './ConfidenceMeter';
 import { MARKER_ICON, SERIES } from './epic-markers';
 
 export interface ChartDatum {
@@ -142,18 +140,19 @@ export function EpicChartTooltip({
   const fmt = formatValue ?? ((n: number) => formatMetric(n, metric));
   // Future (projection-only) points carry no history series.
   const isFuture = datum.remaining === null || datum.remaining === undefined;
-  const title = `${formatDateKey(datum.date)}, ${datum.date.slice(0, 4)}`;
+  const dateTitle = formatFinishDate(datum.date, today ?? datum.date);
 
   const specs: ChartRowSpec[] = isFuture ? [] : rows(datum);
   const hasForecast = typeof datum.forecast === 'number';
   const band = datum.band;
-  const keyDates =
-    isFuture && finish && today ? finishDateRows(finish).filter((r) => r.date === datum.date) : [];
+  // The key-date label merges into the title ('Oct 14 · Likely finish'); no extra rows.
+  const keyDate =
+    isFuture && finish && today ? finishDateRows(finish).find((r) => r.date === datum.date) : null;
+  const title = keyDate ? `${dateTitle} \u00b7 ${keyDate.label} finish` : dateTitle;
   // Padded blank rows (axis extended to the shared domain) carry neither history nor forecast.
   if (specs.length === 0 && !hasForecast && !band) return null;
-  const showConfidence = isFuture && finish?.state === 'ok' && finish.confidence !== null;
   const clippedText =
-    isFuture && clippedAfter ? `pessimistic after ${formatDateKey(clippedAfter)}` : null;
+    isFuture && clippedAfter ? `Latest falls after ${formatDateKey(clippedAfter)}` : null;
 
   return (
     <div className={TOOLTIP_SURFACE}>
@@ -168,7 +167,7 @@ export function EpicChartTooltip({
             value={r.value}
           />
         ))}
-        {hasForecast ? (
+        {isFuture && hasForecast ? (
           <TooltipRow
             marker={SERIES.forecast.marker}
             tone={SERIES.forecast.tone}
@@ -190,22 +189,6 @@ export function EpicChartTooltip({
             label="From today"
             value={`${datum.wd} working day${datum.wd === 1 ? '' : 's'}`}
             sub={datum.workingDay === false ? 'non-working day' : undefined}
-          />
-        ) : null}
-        {keyDates.map((r) => (
-          <TooltipRow
-            key={r.key}
-            icon={<MARKER_ICON.date className="size-3" />}
-            label={r.label}
-            value={formatFinishDate(r.date, today as string)}
-            sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
-          />
-        ))}
-        {showConfidence && finish ? (
-          <TooltipRow
-            icon={<Gauge className="size-3" />}
-            label="Confidence"
-            value={<ConfidenceMeter level={finish.confidence} />}
           />
         ) : null}
       </TooltipBody>

@@ -1,10 +1,19 @@
 /**
- * Shared zoom plumbing for the two epic charts (quick 261001-sqm): the lifted ChartZoom state
- * shape, the preset buttons, neutral Brush styling and the date-based range helpers. Zoom state
- * is date-keyed ({from,to}) because a recharts Brush is index-based on each chart's own data.
+ * Shared zoom plumbing for the two epic charts (quick 261001-sqm, reworked in 261002-0xf): the
+ * lifted ChartZoom state shape, the preset buttons, the chart heights, the live-drag hook and the
+ * date-based range helpers. Zoom state is date-keyed ({from,to}); the date navigator
+ * (EpicRangeNavigator) replaces the old index-based recharts Brush.
  */
 
-import { type ChartRange, ZOOM_PRESETS, type ZoomPreset } from '@/lib/epic-progress';
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type AveragedForecast,
+  type ChartRange,
+  VIEW_MAX_POINTS,
+  viewSample,
+  ZOOM_PRESETS,
+  type ZoomPreset,
+} from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
 
 export interface ChartZoom {
@@ -13,28 +22,22 @@ export interface ChartZoom {
   /** The visible range, clamped to the domain. */
   range: ChartRange;
   preset: ZoomPreset | null;
-  /** Zoom chrome (Brush + presets) is shown only for long domains. */
+  /** Zoom chrome (navigator + presets) is shown only for long domains. */
   enabled: boolean;
   /** Presets worth showing (lib visiblePresets); empty when zoom is disabled. */
   presets: ZoomPreset[];
-  /** Bumped by preset clicks only; with the domain, keys the Brush so it resyncs (never during a drag). */
-  epoch: number;
   onPreset(p: ZoomPreset): void;
   onRange(r: ChartRange): void;
 }
 
-/** Neutral Brush strip props (no status colours; works in light and dark). */
-export const BRUSH_STYLE = {
-  height: 20,
-  travellerWidth: 6,
-  stroke: 'var(--color-muted-foreground)',
-  fill: 'transparent',
-} as const;
-
-/** Plot height without the Brush strip (short domains). */
+/** Plot height without the navigator (short domains). */
 export const PLOT_HEIGHT = 232;
-/** Plot height plus the Brush strip (zoomable domains). */
-export const CHART_HEIGHT = PLOT_HEIGHT + BRUSH_STYLE.height;
+/** Navigator: 28px track + 4px gap (mt-1) + 16px label row. */
+export const NAVIGATOR_HEIGHT = 48;
+/** Plot height plus the navigator (zoomable domains). */
+export const CHART_HEIGHT = PLOT_HEIGHT + NAVIGATOR_HEIGHT;
+/** Both charts use the same Y axis width so switching tabs never shifts the plot. */
+export const Y_AXIS_WIDTH = 40;
 
 /**
  * The visible x range for a chart. Without shared zoom state (no valid axis start, e.g. a
@@ -47,23 +50,121 @@ export function visibleRange(zoom: ChartZoom | null, data: { date: string }[]): 
   return { from: data[0].date, to: data[data.length - 1].date };
 }
 
-/** A brush needs 3+ points and a non-degenerate range. */
-export function brushUsable(zoom: ChartZoom | null, data: unknown[]): zoom is ChartZoom {
-  return zoom?.enabled === true && data.length >= 3 && zoom.domain.from < zoom.domain.to;
+/** The navigator is rendered only when zoom is enabled and the domain is non-degenerate. */
+export function zoomUsable(zoom: ChartZoom | null): zoom is ChartZoom {
+  return zoom?.enabled === true && zoom.domain.from < zoom.domain.to;
 }
 
 /**
- * The chart slot height from the shared zoom state alone (no data): used by the skeleton /
- * empty states so they reserve the same height as the final chart. Task 3 swaps in the
- * navigator height here; chartHeight() below adds the data-length guard.
+ * The chart slot height from the shared zoom state alone. The charts, their skeleton / error
+ * states and the empty-estimate block all use this one helper, so switching tab or state never
+ * jumps (the section skeleton, drawn before the domain is known, is the accepted exception).
  */
-export function slotHeight(zoom: ChartZoom | null): number {
-  return zoom?.enabled === true && zoom.domain.from < zoom.domain.to ? CHART_HEIGHT : PLOT_HEIGHT;
+export function chartHeight(zoom: ChartZoom | null): number {
+  return zoomUsable(zoom) ? CHART_HEIGHT : PLOT_HEIGHT;
 }
 
-/** Chart container height: taller only when the Brush strip is rendered. */
-export function chartHeight(zoom: ChartZoom | null, data: unknown[]): number {
-  return brushUsable(zoom, data) ? CHART_HEIGHT : PLOT_HEIGHT;
+/** Element width via ResizeObserver (fallback until the first measurement). */
+export function useElementWidth(ref: RefObject<HTMLElement | null>, fallback = 640): number {
+  const [width, setWidth] = useState(fallback);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setWidth(Math.round(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return width;
+}
+
+/**
+ * Drag-local range: onLive updates a local range (at most once per animation frame) so only the
+ * chart re-renders while dragging; onCommit publishes to the section and clears the local state.
+ */
+export function useLiveRange(zoom: ChartZoom | null, fallback: ChartRange | null) {
+  const [live, setLive] = useState<ChartRange | null>(null);
+  const pending = useRef<ChartRange | null>(null);
+  const frame = useRef<number | null>(null);
+  const cancel = useCallback(() => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+    pending.current = null;
+  }, []);
+  useEffect(() => cancel, [cancel]);
+  const onLive = useCallback((r: ChartRange) => {
+    pending.current = r;
+    if (frame.current !== null) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null;
+      if (pending.current) setLive(pending.current);
+    });
+  }, []);
+  const onCommit = useCallback(
+    (r: ChartRange) => {
+      cancel();
+      zoom?.onRange(r);
+      setLive(null);
+    },
+    [cancel, zoom],
+  );
+  // A stable object per (from, to): the section builds zoom.range afresh each render.
+  const r = live ?? zoom?.range ?? fallback;
+  const from = r?.from;
+  const to = r?.to;
+  const range = useMemo(() => (from && to ? { from, to } : null), [from, to]);
+  return { range, onLive, onCommit };
+}
+
+export interface OverviewSample {
+  t: number;
+  remaining: number | null;
+  forecast: number | null;
+}
+
+/**
+ * The rendered rows for the visible window (viewSample'd, keeping today and the finish dates) and
+ * the thinned whole-domain overview the navigator sparkline draws. Memoised on the window and
+ * domain ends, so a live drag only re-thins the window.
+ */
+export function useChartView<T extends { date: string; t: number }>(
+  data: T[] | undefined,
+  zoom: ChartZoom | null,
+  range: ChartRange | null,
+  finish: AveragedForecast,
+  today: string,
+): { view: T[]; overview: OverviewSample[] } {
+  const { optimistic, likely, pessimistic } = finish;
+  const keep = useMemo(
+    () => [today, optimistic, likely, pessimistic].filter((k): k is string => k !== null),
+    [today, optimistic, likely, pessimistic],
+  );
+  const view = useMemo(
+    () => (data && range ? viewSample(data, range, VIEW_MAX_POINTS, keep) : []),
+    [data, range, keep],
+  );
+  const domain = useMemo(() => {
+    const from = zoom?.domain.from;
+    const to = zoom?.domain.to;
+    return from && to ? { from, to } : null;
+  }, [zoom?.domain.from, zoom?.domain.to]);
+  const overview = useMemo(
+    () =>
+      data && domain
+        ? viewSample(data, domain, 160).map((p) => {
+            const row = p as unknown as { remaining?: unknown; forecast?: unknown };
+            return {
+              t: p.t,
+              remaining: typeof row.remaining === 'number' ? row.remaining : null,
+              forecast: typeof row.forecast === 'number' ? row.forecast : null,
+            };
+          })
+        : [],
+    [data, domain],
+  );
+  return { view, overview };
 }
 
 export function ZoomPresets({ zoom }: { zoom: ChartZoom }) {
@@ -84,7 +185,7 @@ export function ZoomPresets({ zoom }: { zoom: ChartZoom }) {
           onClick={() => zoom.onPreset(p.key)}
           className={cn(
             'cursor-pointer rounded-md px-2 py-0.5 text-xs ring-1 ring-foreground/10',
-            zoom.preset === p.key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+            zoom.preset === p.key ? 'bg-accent font-medium text-foreground' : 'hover:bg-accent',
           )}
         >
           {p.label}

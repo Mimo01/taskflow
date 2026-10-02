@@ -12,31 +12,36 @@
  * would collide with the EpicDetailSheet text assertions, so the legend is custom.
  */
 import { Info } from 'lucide-react';
-import { Area, Brush, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { useRef } from 'react';
+import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MarkerGlyph, type MarkerTone, type TooltipMarker } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
-  axisTicks,
   type CfdPoint,
   dateKeyMs,
   FINISH_STATE_TEXT,
   formatDateKey,
   type Metric,
-  rangeIndexes,
+  timeTicks,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { cfdRows, EpicChartTooltip } from './EpicChartTooltip';
 import {
-  BRUSH_STYLE,
-  brushUsable,
   type ChartZoom,
   chartHeight,
+  PLOT_HEIGHT,
+  useChartView,
+  useElementWidth,
+  useLiveRange,
   visibleRange,
+  Y_AXIS_WIDTH,
   ZoomPresets,
+  zoomUsable,
 } from './EpicChartZoom';
+import { EpicRangeNavigator } from './EpicRangeNavigator';
 import { SERIES } from './epic-markers';
 
 const BAR_CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
@@ -108,7 +113,7 @@ export function ForecastLegend({
   if (finish.state === 'ok') {
     // Shared forecast exists but this view has nothing left to project (e.g. all estimates logged).
     return finish.likely ? (
-      <span data-testid="epic-forecast-state">{`Forecast: ${formatDateKey(finish.likely)} · nothing left in this view`}</span>
+      <span data-testid="epic-forecast-state">{`Forecast: ${formatDateKey(finish.likely)}`}</span>
     ) : null;
   }
   return (
@@ -146,8 +151,11 @@ export function EpicCfdChart({
   today,
   zoom,
 }: EpicCfdChartProps) {
-  const range = visibleRange(zoom, data);
-  const brush = rangeIndexes(data, range ?? { from: '', to: '' });
+  const { range, onLive, onCommit } = useLiveRange(zoom, visibleRange(null, data));
+  const plotRef = useRef<HTMLDivElement>(null);
+  const width = useElementWidth(plotRef);
+  const { view, overview } = useChartView(data, zoom, range, finish, today);
+  const ticks = range ? timeTicks(range.from, range.to, width) : [];
   return (
     <div>
       <div
@@ -156,123 +164,133 @@ export function EpicCfdChart({
         data-x-from={range?.from}
         data-x-to={range?.to}
         data-domain-to={zoom?.domain.to ?? range?.to}
-        data-zoomable={String(brushUsable(zoom, data))}
-        style={{ height: chartHeight(zoom, data) }}
+        data-zoomable={String(zoomUsable(zoom))}
+        style={{ height: chartHeight(zoom) }}
       >
         {data.length === 0 || !range ? (
           <p className="text-sm text-muted-foreground italic">No timeline data</p>
         ) : (
-          <ChartContainer
-            config={{}}
-            className="aspect-auto h-full w-full"
-            aria-label="Epic cumulative flow chart"
-          >
-            <ComposedChart data={data} responsive margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <XAxis
-                type="number"
-                dataKey="t"
-                scale="time"
-                domain={[dateKeyMs(range.from), dateKeyMs(range.to)]}
-                allowDataOverflow
-                ticks={axisTicks(range.from, range.to)}
-                tickFormatter={tickLabel}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis allowDecimals={metric === 'sp'} tickLine={false} axisLine={false} width={32} />
-              <ChartTooltip
-                cursor={BAR_CURSOR}
-                content={(p) => (
-                  <EpicChartTooltip
-                    active={p.active}
-                    payload={p.payload}
-                    metric={metric}
-                    clippedAfter={clippedAfter}
-                    rows={cfdRows(metric)}
-                    finish={finish}
-                    today={today}
+          <>
+            <div ref={plotRef} style={{ height: PLOT_HEIGHT }}>
+              <ChartContainer
+                config={{}}
+                className="aspect-auto h-full w-full"
+                aria-label="Epic cumulative flow chart"
+              >
+                <ComposedChart
+                  data={view}
+                  responsive
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <XAxis
+                    type="number"
+                    dataKey="t"
+                    scale="time"
+                    domain={[dateKeyMs(range.from), dateKeyMs(range.to)]}
+                    allowDataOverflow
+                    ticks={ticks.map((x) => x.t)}
+                    tickFormatter={(v) =>
+                      ticks.find((x) => x.t === Number(v))?.label ?? tickLabel(v)
+                    }
+                    tickLine={false}
+                    axisLine={false}
                   />
-                )}
+                  <YAxis
+                    allowDecimals={metric === 'sp'}
+                    tickLine={false}
+                    axisLine={false}
+                    width={Y_AXIS_WIDTH}
+                  />
+                  <ChartTooltip
+                    cursor={BAR_CURSOR}
+                    content={(p) => (
+                      <EpicChartTooltip
+                        active={p.active}
+                        payload={p.payload}
+                        metric={metric}
+                        clippedAfter={clippedAfter}
+                        rows={cfdRows(metric)}
+                        finish={finish}
+                        today={today}
+                      />
+                    )}
+                  />
+                  <Area
+                    dataKey="done"
+                    stackId="cfd"
+                    type="stepAfter"
+                    stroke={STATUS_CATEGORY_COLOR.done}
+                    fill={STATUS_CATEGORY_COLOR.done}
+                    fillOpacity={0.35}
+                    isAnimationActive={false}
+                  />
+                  <Area
+                    dataKey="inProgress"
+                    stackId="cfd"
+                    type="stepAfter"
+                    stroke={STATUS_CATEGORY_COLOR.indeterminate}
+                    fill={STATUS_CATEGORY_COLOR.indeterminate}
+                    fillOpacity={0.35}
+                    isAnimationActive={false}
+                  />
+                  <Area
+                    dataKey="todo"
+                    stackId="cfd"
+                    type="stepAfter"
+                    stroke={STATUS_CATEGORY_COLOR.new}
+                    fill={STATUS_CATEGORY_COLOR.new}
+                    fillOpacity={0.35}
+                    isAnimationActive={false}
+                  />
+                  {/* Range band: a NON-stacked Area whose value is [low, high]. */}
+                  <Area
+                    dataKey="band"
+                    type="linear"
+                    stroke="none"
+                    fill={SERIES.band.fill}
+                    fillOpacity={SERIES.band.fillOpacity}
+                    isAnimationActive={false}
+                    activeDot={false}
+                  />
+                  <Line
+                    dataKey="remaining"
+                    type="stepAfter"
+                    stroke={SERIES.remaining.stroke}
+                    strokeWidth={SERIES.remaining.strokeWidth}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    dataKey="forecast"
+                    type="linear"
+                    stroke={SERIES.forecast.stroke}
+                    strokeWidth={SERIES.forecast.strokeWidth}
+                    strokeDasharray={SERIES.forecast.strokeDasharray}
+                    connectNulls
+                    dot={false}
+                    activeDot={{
+                      r: 3,
+                      fill: SERIES.forecast.stroke,
+                      stroke: 'var(--color-background)',
+                      strokeWidth: 1,
+                    }}
+                    isAnimationActive={false}
+                  />
+                </ComposedChart>
+              </ChartContainer>
+            </div>
+            {zoomUsable(zoom) ? (
+              <EpicRangeNavigator
+                domain={zoom.domain}
+                range={range}
+                today={today}
+                overview={overview}
+                onLive={onLive}
+                onCommit={onCommit}
+                onReset={() => zoom.onPreset('all')}
               />
-              <Area
-                dataKey="done"
-                stackId="cfd"
-                type="stepAfter"
-                stroke={STATUS_CATEGORY_COLOR.done}
-                fill={STATUS_CATEGORY_COLOR.done}
-                fillOpacity={0.35}
-                isAnimationActive={false}
-              />
-              <Area
-                dataKey="inProgress"
-                stackId="cfd"
-                type="stepAfter"
-                stroke={STATUS_CATEGORY_COLOR.indeterminate}
-                fill={STATUS_CATEGORY_COLOR.indeterminate}
-                fillOpacity={0.35}
-                isAnimationActive={false}
-              />
-              <Area
-                dataKey="todo"
-                stackId="cfd"
-                type="stepAfter"
-                stroke={STATUS_CATEGORY_COLOR.new}
-                fill={STATUS_CATEGORY_COLOR.new}
-                fillOpacity={0.35}
-                isAnimationActive={false}
-              />
-              {/* Range band: a NON-stacked Area whose value is [low, high]. */}
-              <Area
-                dataKey="band"
-                type="linear"
-                stroke="none"
-                fill={SERIES.band.fill}
-                fillOpacity={SERIES.band.fillOpacity}
-                isAnimationActive={false}
-                activeDot={false}
-              />
-              <Line
-                dataKey="remaining"
-                type="stepAfter"
-                stroke={SERIES.remaining.stroke}
-                strokeWidth={SERIES.remaining.strokeWidth}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Line
-                dataKey="forecast"
-                type="linear"
-                stroke={SERIES.forecast.stroke}
-                strokeWidth={SERIES.forecast.strokeWidth}
-                strokeDasharray={SERIES.forecast.strokeDasharray}
-                connectNulls
-                dot={false}
-                activeDot={{
-                  r: 3,
-                  fill: SERIES.forecast.stroke,
-                  stroke: 'var(--color-background)',
-                  strokeWidth: 1,
-                }}
-                isAnimationActive={false}
-              />
-              {brushUsable(zoom, data) ? (
-                <Brush
-                  key={`${zoom.epoch}:${zoom.domain.from}:${zoom.domain.to}`}
-                  dataKey="t"
-                  {...BRUSH_STYLE}
-                  tickFormatter={tickLabel}
-                  startIndex={brush.startIndex}
-                  endIndex={brush.endIndex}
-                  onChange={(r) => {
-                    if (r.startIndex === brush.startIndex && r.endIndex === brush.endIndex) return;
-                    const a = data[r.startIndex];
-                    const b = data[r.endIndex];
-                    if (a && b) zoom.onRange({ from: a.date, to: b.date });
-                  }}
-                />
-              ) : null}
-            </ComposedChart>
-          </ChartContainer>
+            ) : null}
+          </>
         )}
       </div>
       <div className="mt-1 flex items-start justify-between gap-4">

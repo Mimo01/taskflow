@@ -39,12 +39,14 @@ import {
   padToDomain,
   presetRange,
   projectFinish,
+  rebaseRange,
   type StatusBucket,
   sourceNote,
   visiblePresets,
   WORKLOG_SOURCE_TEXT,
   type WorklogSource,
   withProjection,
+  ZOOM_MIN_SPAN_DAYS,
   type ZoomPreset,
 } from '@/lib/epic-progress';
 import { toLocalDateString } from '@/lib/local-date';
@@ -54,7 +56,7 @@ import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { BandBar, BandBreakdown, BandChips } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
-import { type ChartZoom, PLOT_HEIGHT, slotHeight } from './EpicChartZoom';
+import { type ChartZoom, chartHeight, PLOT_HEIGHT } from './EpicChartZoom';
 import { EpicProgressSummary } from './EpicProgressSummary';
 import { STAT_CONTAINER_CLASS, STAT_GRID_CLASS } from './EpicStatCard';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
@@ -158,11 +160,17 @@ export function EpicProgressSection({
   const [metric, setMetric] = useState<Metric>('count');
   const timeMode = metric === 'time';
   // Lifted zoom: shared by both charts and kept across tab switches (date-keyed, not indexes).
+  // The state is tagged with the epic it belongs to, so a different epic starts at All.
   const [zoom, setZoom] = useState<{
+    epicKey: string;
     preset: ZoomPreset | null;
     range: ChartRange | null;
-    epoch: number;
-  }>({ preset: 'all', range: null, epoch: 0 });
+    /** The domain end when `range` was chosen (a range pinned to it follows a grown domain). */
+    domainTo: string | null;
+  }>({ epicKey, preset: 'all', range: null, domainTo: null });
+  if (zoom.epicKey !== epicKey) {
+    setZoom({ epicKey, preset: 'all', range: null, domainTo: null });
+  }
   // Hooks run before the early returns (rules of hooks). Worklogs load in every mode (after
   // first paint) because the averaged Finish includes the Time forecast.
   const storyKeys = (stories ?? []).map((s) => s.key);
@@ -253,7 +261,7 @@ export function EpicProgressSection({
     const enabled = presets.length > 0;
     // Zoom chrome disappears for short domains: drop any stored zoom (adjust state while rendering).
     if (!enabled && (zoom.preset !== 'all' || zoom.range !== null)) {
-      setZoom((z) => ({ preset: 'all', range: null, epoch: z.epoch + 1 }));
+      setZoom({ epicKey, preset: 'all', range: null, domainTo: null });
     }
     // A stored preset that is no longer shown (e.g. Forecast without a future) falls back to All.
     const preset = !enabled
@@ -265,16 +273,17 @@ export function EpicProgressSection({
       ? domain
       : preset
         ? (presetRange(preset, domain, today) ?? domain)
-        : (zoom.range ?? domain);
+        : zoom.range
+          ? rebaseRange(zoom.range, zoom.domainTo ?? domain.to, domain, ZOOM_MIN_SPAN_DAYS)
+          : domain;
     chartZoom = {
       domain,
-      range: clampRange(wanted, domain),
+      range: clampRange(wanted, domain, ZOOM_MIN_SPAN_DAYS),
       preset,
       enabled,
       presets,
-      epoch: zoom.epoch,
-      onPreset: (preset) => setZoom((z) => ({ preset, range: null, epoch: z.epoch + 1 })),
-      onRange: (range) => setZoom((z) => ({ preset: null, range, epoch: z.epoch })),
+      onPreset: (preset) => setZoom({ epicKey, preset, range: null, domainTo: null }),
+      onRange: (range) => setZoom({ epicKey, preset: null, range, domainTo: domain.to }),
     };
   }
   const projectedCfd = withProjection(cfdPoints, projection);
@@ -332,7 +341,7 @@ export function EpicProgressSection({
         {(metric === 'sp' && summary.total === 0) || (timeMode && time.estimated === 0) ? (
           <div
             data-testid="epic-empty-estimate"
-            style={{ minHeight: slotHeight(chartZoom) }}
+            style={{ minHeight: chartHeight(chartZoom) }}
             className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
           >
             <span className="italic pr-0.5">
