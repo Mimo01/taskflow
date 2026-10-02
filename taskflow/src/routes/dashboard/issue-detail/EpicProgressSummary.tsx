@@ -3,8 +3,8 @@
  * 3-cell stat strip (Finish / Remaining / Risks) at the top of the epic progress section
  * (quick 261001-ilq). Tooltip triggers contain spans only (valid inside a <button>).
  * Four fixed 72px cards (EpicStatCard) in a container-query grid (261002-0xf); the hero
- * tooltip carries at most one short data-source note; the Risks card is a count plus up to
- * two readable icon labels (+N for the rest), each with a hover tooltip and a click popover.
+ * tooltip carries at most one short data-source note; the Risks card is a count plus a
+ * tally of icon+token pills (one per risk), each with a hover tooltip and a click popover.
  * Confidence shows only in the Finish tooltip, never on the card.
  *
  * Text-collision rule (EpicDetailSheet.test): no visible text node equals exactly
@@ -20,14 +20,7 @@ import {
   TrendingUp,
   UserX,
 } from 'lucide-react';
-import {
-  Fragment,
-  type KeyboardEvent,
-  type ReactNode,
-  type RefObject,
-  useRef,
-  useState,
-} from 'react';
+import { type KeyboardEvent, type ReactNode, type RefObject, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
@@ -262,7 +255,6 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
 }
 
 const ROW_LAYOUT = 'flex w-full min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left';
-const VISIBLE_RISKS = 2;
 
 function riskIconClass(risk: EpicRisk): string {
   return cn(
@@ -419,10 +411,14 @@ function TipPopover({
   );
 }
 
-const RISK_TRIGGER_CLASS = cn(
-  'inline-flex h-4 min-w-0 cursor-pointer items-center gap-1 rounded-sm px-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+const RISK_PILL_BASE = cn(
+  'inline-flex h-4 flex-none cursor-pointer items-center gap-1 rounded-full px-1.5 tabular-nums ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   SMALL_TEXT,
 );
+const RISK_PILL_TONE = {
+  warning: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-400',
+  info: 'bg-muted text-muted-foreground ring-foreground/10',
+} as const;
 
 function RiskItem({
   risk,
@@ -446,65 +442,17 @@ function RiskItem({
         'data-severity': risk.severity,
         'aria-label': risk.text,
       }}
-      triggerClass={RISK_TRIGGER_CLASS}
+      triggerClass={cn(RISK_PILL_BASE, RISK_PILL_TONE[risk.severity])}
       trigger={
         <>
-          <Icon aria-hidden="true" className={riskIconClass(risk)} />
-          <span className="min-w-0 truncate">{risk.short}</span>
+          <Icon aria-hidden="true" className="size-3 shrink-0" />
+          {risk.token !== null ? <span>{risk.token}</span> : null}
         </>
       }
       initialFocus={onOpenIssue && risk.issues.length > 0 ? firstRow : true}
     >
       {(close) => (
         <RiskPanel risk={risk} onOpenIssue={onOpenIssue} firstRow={firstRow} onPick={close} />
-      )}
-    </TipPopover>
-  );
-}
-
-function RiskOverflow({
-  hidden,
-  onOpenIssue,
-}: {
-  hidden: EpicRisk[];
-  onOpenIssue?: (key: string) => void;
-}) {
-  const firstRow = useRef<HTMLButtonElement>(null);
-  // Focus the first row of the first hidden risk that HAS rows (not just hidden[0]).
-  const firstWith = hidden.findIndex((r) => r.issues.length > 0);
-  const withRows = onOpenIssue !== undefined && firstWith >= 0;
-  return (
-    <TipPopover
-      tip={
-        <TooltipBody>
-          {hidden.map((r) => (
-            <span key={`${r.key}-${r.severity}`} className="block">
-              {r.text}
-            </span>
-          ))}
-        </TooltipBody>
-      }
-      triggerProps={{
-        'data-testid': 'epic-risk-more',
-        'aria-label': `${hidden.length} more ${hidden.length === 1 ? 'risk' : 'risks'}`,
-      }}
-      triggerClass={cn(RISK_TRIGGER_CLASS, 'flex-none tabular-nums')}
-      trigger={`+${hidden.length}`}
-      initialFocus={withRows ? firstRow : true}
-    >
-      {(close) => (
-        <>
-          {hidden.map((r, i) => (
-            <RiskPanel
-              key={`${r.key}-${r.severity}`}
-              risk={r}
-              onOpenIssue={onOpenIssue}
-              firstRow={i === firstWith ? firstRow : undefined}
-              onPick={close}
-              separated={i > 0}
-            />
-          ))}
-        </>
       )}
     </TipPopover>
   );
@@ -526,8 +474,6 @@ function RisksTile({
     ) : (
       <span className={VALUE_CLASS}>{plural(risks.length, 'risk', 'risks')}</span>
     );
-  const shown = risks.slice(0, VISIBLE_RISKS);
-  const hidden = risks.slice(VISIBLE_RISKS);
   return (
     <div data-testid="epic-stat-tile" data-stat-card="" className={STAT_CARD_CLASS}>
       <StatCardBody
@@ -535,17 +481,11 @@ function RisksTile({
         value={value}
         sub={
           risks.length > 0 ? (
-            <>
-              {shown.map((r, i) => (
-                <Fragment key={`${r.key}-${r.severity}`}>
-                  {i > 0 ? <span aria-hidden="true">{'·'}</span> : null}
-                  <RiskItem risk={r} onOpenIssue={onOpenIssue} />
-                </Fragment>
+            <span className="flex min-w-0 items-center gap-1.5">
+              {risks.map((r) => (
+                <RiskItem key={`${r.key}-${r.severity}`} risk={r} onOpenIssue={onOpenIssue} />
               ))}
-              {hidden.length > 0 ? (
-                <RiskOverflow hidden={hidden} onOpenIssue={onOpenIssue} />
-              ) : null}
-            </>
+            </span>
           ) : undefined
         }
       />

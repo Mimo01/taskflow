@@ -1345,6 +1345,7 @@ describe('deriveRisks (261001-qvu)', () => {
       expect(x.text.includes(x.short)).toBe(true);
     }
     expect(r.map((x) => x.short)).toEqual(['Overdue 10 days', '1 unestimated', '1 unassigned']);
+    expect(r.map((x) => x.token)).toEqual(['10d', '1', '1']);
   });
   it('flags overdue first, and late when the forecast passes the due date', () => {
     const over = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-20' });
@@ -1368,6 +1369,7 @@ describe('deriveRisks (261001-qvu)', () => {
       severity: 'warning',
       text: 'Finishes 4 days late',
       short: '4 days late',
+      token: '+4d',
       issues: [],
     });
     const done = deriveRisks({
@@ -1406,6 +1408,7 @@ describe('deriveRisks (261001-qvu)', () => {
       ),
     });
     expect(stalled.find((x) => x.key === 'stalled')).toMatchObject({
+      token: null,
       severity: 'warning',
       detail: 'stalled-expl',
     });
@@ -1413,6 +1416,7 @@ describe('deriveRisks (261001-qvu)', () => {
     // A view not converging while Finish is ok -> scope warning; omitted when Finish says it.
     const nc = deriveRisks({ ...base, finish: fin(parts(stateForecast('not-converging')), okFin) });
     expect(nc.find((x) => x.key === 'scope')?.severity).toBe('warning');
+    expect(nc.find((x) => x.key === 'scope')?.token).toBeNull();
     const ncFinish = deriveRisks({
       ...base,
       finish: fin(parts(stateForecast('not-converging')), { state: 'not-converging' }),
