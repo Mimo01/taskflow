@@ -195,10 +195,10 @@ export function EpicProgressSection({
     preset: ZoomPreset | null;
     range: ChartRange | null;
     /** The domain end when `range` was chosen (a range pinned to it follows a grown domain). */
-    domainTo: string | null;
-  }>({ epicKey, preset: 'all', range: null, domainTo: null });
+    pinnedToEnd: boolean;
+  }>({ epicKey, preset: 'all', range: null, pinnedToEnd: false });
   if (zoom.epicKey !== epicKey) {
-    setZoom({ epicKey, preset: 'all', range: null, domainTo: null });
+    setZoom({ epicKey, preset: 'all', range: null, pinnedToEnd: false });
   }
   // Hooks run before the early returns (rules of hooks). Worklogs load in every mode (after
   // first paint) because the averaged Finish includes the Time forecast.
@@ -295,7 +295,7 @@ export function EpicProgressSection({
     const enabled = presets.length > 0;
     // Zoom chrome disappears for short domains: drop any stored zoom (adjust state while rendering).
     if (!enabled && (zoom.preset !== 'all' || zoom.range !== null)) {
-      setZoom({ epicKey, preset: 'all', range: null, domainTo: null });
+      setZoom({ epicKey, preset: 'all', range: null, pinnedToEnd: false });
     }
     // A stored preset that is no longer shown (e.g. Forecast without a future) falls back to All.
     const preset = !enabled
@@ -308,7 +308,7 @@ export function EpicProgressSection({
       : preset
         ? (presetRange(preset, domain, today) ?? domain)
         : zoom.range
-          ? rebaseRange(zoom.range, zoom.domainTo ?? domain.to, domain, ZOOM_MIN_SPAN_DAYS)
+          ? rebaseRange(zoom.range, zoom.pinnedToEnd, domain, ZOOM_MIN_SPAN_DAYS)
           : domain;
     chartZoom = {
       domain,
@@ -316,8 +316,9 @@ export function EpicProgressSection({
       preset,
       enabled,
       presets,
-      onPreset: (preset) => setZoom({ epicKey, preset, range: null, domainTo: null }),
-      onRange: (range) => setZoom({ epicKey, preset: null, range, domainTo: domain.to }),
+      onPreset: (preset) => setZoom({ epicKey, preset, range: null, pinnedToEnd: false }),
+      onRange: (range) =>
+        setZoom({ epicKey, preset: null, range, pinnedToEnd: range.to === domain.to }),
     };
   }
   const projectedCfd = withProjection(cfdPoints, projection);

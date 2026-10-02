@@ -1772,12 +1772,15 @@ export function panDeltaDays(
  */
 export function rebaseRange(
   range: ChartRange,
-  prevDomainTo: string,
+  pinnedToEnd: boolean,
   domain: ChartRange,
   minSpan: number,
 ): ChartRange {
-  const pinned = range.to === prevDomainTo ? { from: range.from, to: domain.to } : range;
-  return clampRange(pinned, domain, minSpan);
+  // An explicit flag (set when the range was committed against the domain end) instead of
+  // comparing dates, so a forecast that shrinks and later grows again still keeps the window
+  // following the end, and a past range never gets pinned by coincidence.
+  const next = pinnedToEnd ? { from: range.from, to: domain.to } : range;
+  return clampRange(next, domain, minSpan);
 }
 
 // ── Visible-window sampling and calendar ticks ───────────────────────────────
