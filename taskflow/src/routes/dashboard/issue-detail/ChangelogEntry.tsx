@@ -201,8 +201,6 @@ function LongTextRow({ item }: { item: MergedItem }) {
     );
   }
 
-  const firstAdded = diff.parts.find((p) => p.added)?.value.trim();
-  const preview = firstAdded || (item.to ? item.to.slice(0, 80) : '');
   const label = `${expanded ? 'Hide' : 'Show'} changes (+${diff.addedWords} / −${diff.removedWords} words)`;
 
   return (
@@ -223,9 +221,6 @@ function LongTextRow({ item }: { item: MergedItem }) {
           </span>
           <span className="tabular-nums text-red-600 dark:text-red-400">−{diff.removedWords}</span>
         </button>
-        {!expanded && preview && (
-          <span className="truncate italic text-muted-foreground pr-0.5">“{preview}”</span>
-        )}
       </div>
       {expanded && (
         <div className="mt-2 overflow-hidden rounded-lg border">
@@ -280,7 +275,7 @@ function DiffColumn({
         />
         {title}
       </div>
-      <div className="max-h-72 overflow-auto px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words">
+      <div className="px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words">
         {text != null
           ? text || EMPTY
           : keyedParts.length === 0
