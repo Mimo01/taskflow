@@ -113,14 +113,14 @@ describe('ChangelogEntry', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('renders +/- tokens for multi-value fields', () => {
+  it('renders multi-value fields as removed → added', () => {
     render(
       <ChangelogEntry
         histories={[hist('1', [{ field: 'labels', fromString: 'a b', toString: 'b c' }])]}
       />,
     );
-    expect(screen.getByText('+c')).toBeInTheDocument();
-    expect(screen.getByText('−a')).toBeInTheDocument();
+    expect(screen.getByText('a').className).toContain('line-through');
+    expect(screen.getByText('c').className).toContain('font-medium');
   });
 
   it('renders the author once for a grouped burst', () => {
