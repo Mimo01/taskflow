@@ -1418,10 +1418,10 @@ export type RiskKey = 'overdue' | 'late' | 'stalled' | 'scope' | 'unestimated' |
 export interface EpicRisk {
   key: RiskKey;
   severity: 'warning' | 'info';
-  /** Full text: the chip's aria-label and the popover header (e.g. '3 unestimated'). */
+  /** Full text: the card button's aria-label and the popover header (e.g. '3 unestimated'). */
   text: string;
-  /** Short chip token (<= 4 chars, e.g. '4d', '+6d', '3'); null = icon only. */
-  chip: string | null;
+  /** Readable card label, <= 16 chars, a substring of text. */
+  short: string;
   count: number | null;
   detail: string;
   /** Affected issues (unestimated / unassigned only), numerically sorted by key. */
@@ -1482,7 +1482,7 @@ export function deriveRisks(args: {
         key: 'overdue',
         severity: 'warning',
         text: `Overdue ${daysText(n)}`,
-        chip: `${n}d`,
+        short: `Overdue ${daysText(n)}`,
         count: null,
         detail: `Was due ${formatDateKey(due)} \u00b7 ${open.length} ${open.length === 1 ? 'item' : 'items'} open`,
         // The Stories list below already shows the open items.
@@ -1493,8 +1493,8 @@ export function deriveRisks(args: {
       warnings.push({
         key: 'late',
         severity: 'warning',
-        text: `Finishes ${daysText(n)} after due date`,
-        chip: `+${n}d`,
+        text: `Finishes ${daysText(n)} late`,
+        short: `${daysText(n)} late`,
         count: null,
         detail: `Due ${formatDateKey(due)} \u00b7 forecast ${formatDateKey(finish.likely)}`,
         issues: [],
@@ -1509,7 +1509,7 @@ export function deriveRisks(args: {
       key: 'stalled',
       severity: 'warning',
       text: 'Stalled',
-      chip: null,
+      short: 'Stalled',
       count: null,
       detail: noPeriod(stalled.forecast.explanation),
       issues: [],
@@ -1533,7 +1533,7 @@ export function deriveRisks(args: {
         key: 'scope',
         severity: 'warning',
         text: 'Scope growing',
-        chip: null,
+        short: 'Scope growing',
         count: null,
         detail: detailFor() ?? '',
         issues: [],
@@ -1549,7 +1549,7 @@ export function deriveRisks(args: {
         key: 'scope',
         severity: 'info',
         text: 'Scope growing',
-        chip: null,
+        short: 'Scope growing',
         count: null,
         detail: detailFor() ?? '',
         issues: [],
@@ -1564,7 +1564,7 @@ export function deriveRisks(args: {
       key: 'unestimated',
       severity: 'info',
       text: `${unestimated.length} unestimated`,
-      chip: `${unestimated.length}`,
+      short: `${unestimated.length} unestimated`,
       count: unestimated.length,
       detail: 'Open items with no points or time estimate',
       ...issuesOf(unestimated),
@@ -1577,7 +1577,7 @@ export function deriveRisks(args: {
       key: 'unassigned',
       severity: 'info',
       text: `${unassigned.length} unassigned`,
-      chip: `${unassigned.length}`,
+      short: `${unassigned.length} unassigned`,
       count: unassigned.length,
       detail: 'Open items with no assignee',
       ...issuesOf(unassigned),
