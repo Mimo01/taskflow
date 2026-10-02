@@ -3,7 +3,6 @@ import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@
 import {
   addCalendarDays,
   addWorkingDays,
-  axisTicks,
   chartAxisStart,
   chartDomain,
   clampRange,
@@ -31,7 +30,6 @@ import {
   padToDomain,
   presetRange,
   projectionCap,
-  rangeIndexes,
   averageForecasts,
   buildStatusCategoryLookup,
   buildWorkCalendar,
@@ -1705,7 +1703,7 @@ describe('261001-sqm lib', () => {
     });
   });
 
-  describe('chartDomain / padToDomain / axisTicks', () => {
+  describe('chartDomain / padToDomain', () => {
     it('extends to the latest forecast date for an ok finish', () => {
       const d = chartDomain('2026-09-01', T, mkFinish({ state: 'ok', pessimistic: '2026-10-20' }));
       expect(d).toEqual({ from: '2026-09-01', to: '2026-10-20', clippedAfter: null });
@@ -1728,20 +1726,9 @@ describe('261001-sqm lib', () => {
       expect(out[1]).toMatchObject({ date: '2026-10-05', v: null, label: 'Oct 5' });
       expect(padToDomain(pts, '2026-09-30')).toBe(pts);
     });
-    it('axisTicks are day-aligned, include from, stay within range and max', () => {
-      const t = axisTicks('2026-01-01', '2026-10-01');
-      expect(t[0]).toBe(dateKeyMs('2026-01-01'));
-      expect(t.length).toBeLessThanOrEqual(6);
-      for (const x of t) {
-        expect(x).toBeLessThanOrEqual(dateKeyMs('2026-10-01'));
-        expect(x % 86_400_000).toBe(0);
-      }
-      expect(axisTicks('2026-09-29', T)).toHaveLength(3);
-      expect(axisTicks(T, T)).toEqual([dateKeyMs(T)]);
-    });
   });
 
-  describe('presetRange / clampRange / rangeIndexes', () => {
+  describe('presetRange / clampRange', () => {
     const domain = { from: '2026-03-01', to: '2026-11-01' };
     it('1m and 3m end today; short domains clamp', () => {
       expect(presetRange('1m', domain, T)).toEqual({ from: '2026-09-01', to: T });
@@ -1760,26 +1747,6 @@ describe('261001-sqm lib', () => {
     it('clampRange clamps and falls back to the domain', () => {
       expect(clampRange({ from: '2025-01-01', to: '2030-01-01' }, domain)).toEqual(domain);
       expect(clampRange({ from: '2026-05-01', to: '2026-05-01' }, domain)).toEqual(domain);
-    });
-    it('rangeIndexes maps from to the last <= index and to to the first >= index', () => {
-      const pts = ['2026-09-01', '2026-09-04', '2026-09-07', '2026-09-10'].map((date) => ({
-        date,
-      }));
-      expect(rangeIndexes(pts, { from: '2026-09-05', to: '2026-09-08' })).toEqual({
-        startIndex: 1,
-        endIndex: 3,
-      });
-      expect(rangeIndexes(pts, { from: '2026-08-01', to: '2027-01-01' })).toEqual({
-        startIndex: 0,
-        endIndex: 3,
-      });
-    });
-    it('rangeIndexes keeps start < end for degenerate ranges', () => {
-      const pts = ['2026-09-01', '2026-09-02', '2026-09-03'].map((date) => ({ date }));
-      const r = rangeIndexes(pts, { from: '2026-09-02', to: '2026-09-02' });
-      expect(r.startIndex).toBeLessThan(r.endIndex);
-      const r2 = rangeIndexes(pts, { from: '2026-09-03', to: '2026-09-03' });
-      expect(r2.startIndex).toBeLessThan(r2.endIndex);
     });
   });
 

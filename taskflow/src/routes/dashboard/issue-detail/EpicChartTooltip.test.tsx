@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import { averageForecasts, type EpicForecast, formatFinishDate } from '@/lib/epic-progress';
@@ -18,16 +18,17 @@ const history: ChartDatum = {
 };
 
 describe('EpicChartTooltip', () => {
-  it('renders a history datum with a full-date title and fixed-order CFD rows', () => {
+  it('renders a history datum with a year-less title (current year) and fixed-order CFD rows', () => {
     const { container, getByText } = render(
       <EpicChartTooltip
         active
         payload={[{ payload: history }]}
         metric="count"
         rows={cfdRows('count')}
+        today="2026-09-30"
       />,
     );
-    expect(getByText('Sep 15, 2026')).toBeInTheDocument();
+    expect(getByText('Sep 15')).toBeInTheDocument();
     const rows = rowsOf(container);
     expect(rows.map((r) => r.textContent)).toEqual([
       'Completed3',
@@ -39,6 +40,33 @@ describe('EpicChartTooltip', () => {
     expect(swatch(0)).toBe(STATUS_CATEGORY_COLOR.done);
     expect(swatch(1)).toBe(STATUS_CATEGORY_COLOR.indeterminate);
     expect(swatch(2)).toBe(STATUS_CATEGORY_COLOR.new);
+  });
+
+  it("adds the year to the title when it differs from today's year", () => {
+    const { getByText } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: history }]}
+        metric="count"
+        rows={cfdRows('count')}
+        today="2027-01-10"
+      />,
+    );
+    expect(getByText('Sep 15, 2026')).toBeInTheDocument();
+  });
+
+  it("a history datum on today's date has no Forecast row", () => {
+    const onToday: ChartDatum = { ...history, forecast: 3, band: [3, 3] };
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: onToday }]}
+        metric="count"
+        rows={cfdRows('count')}
+        today="2026-09-15"
+      />,
+    );
+    expect(rowsOf(container).some((r) => r.textContent?.startsWith('Forecast'))).toBe(false);
   });
 
   it('formats values in the active metric (SP)', () => {
@@ -118,7 +146,7 @@ describe('EpicChartTooltip', () => {
     expect(rows[0].children[0]).not.toHaveClass('h-0.5');
   });
 
-  it('notes a clipped pessimistic bound on future points', () => {
+  it('notes a clipped latest bound on future points', () => {
     const future: ChartDatum = {
       date: '2026-11-29',
       t: Date.UTC(2026, 10, 29),
@@ -135,7 +163,7 @@ describe('EpicChartTooltip', () => {
         clippedAfter="2026-11-29"
       />,
     );
-    expect(getByText('pessimistic after Nov 29')).toBeInTheDocument();
+    expect(getByText('Latest falls after Nov 29')).toBeInTheDocument();
   });
 
   it('time rows format hours via the supplied formatter', () => {
@@ -265,13 +293,13 @@ describe('EpicChartTooltip', () => {
     };
     const TODAY = '2026-09-30';
     const finish = averageForecasts([{ metric: 'count', forecast: f }], TODAY);
-    it('adds Likely / Earliest / Latest rows with the Finish tooltip text', () => {
+    it('merges the key-date label into the title and adds no key-date rows', () => {
       const cases = [
-        ['Likely', finish.likely, '5 working days'],
-        ['Earliest', finish.optimistic, '4 working days'],
-        ['Latest', finish.pessimistic, '8 working days'],
+        ['Likely', finish.likely],
+        ['Earliest', finish.optimistic],
+        ['Latest', finish.pessimistic],
       ] as const;
-      for (const [label, date, sub] of cases) {
+      for (const [label, date] of cases) {
         const d: ChartDatum = {
           date: date as string,
           t: 0,
@@ -279,21 +307,22 @@ describe('EpicChartTooltip', () => {
           forecast: 0,
           band: [0, 0],
         };
-        const rows = rowsOf(
-          render(
-            <EpicChartTooltip
-              active
-              payload={[{ payload: d }]}
-              metric="count"
-              rows={cfdRows('count')}
-              finish={finish}
-              today={TODAY}
-            />,
-          ).container,
+        const { container, getByText } = render(
+          <EpicChartTooltip
+            active
+            payload={[{ payload: d }]}
+            metric="count"
+            rows={cfdRows('count')}
+            finish={finish}
+            today={TODAY}
+          />,
         );
-        const row = rows.find((r) => r.textContent?.startsWith(label));
-        expect(row?.textContent).toBe(`${label}${formatFinishDate(date as string, TODAY)}${sub}`);
-        expect(row?.children[0]).toHaveAttribute('data-marker', 'icon');
+        expect(
+          getByText(`${formatFinishDate(date as string, TODAY)} \u00b7 ${label} finish`),
+        ).toBeInTheDocument();
+        const rows = rowsOf(container);
+        expect(rows.map((r) => r.textContent?.slice(0, 5))).toEqual(['Forec', 'Range']);
+        cleanup();
       }
     });
   });
@@ -320,7 +349,8 @@ describe('ForecastLegend review fixes (261001-rtw)', () => {
     const finish = averageForecasts([{ metric: 'count', forecast: f }], '2026-09-30');
     const { container } = render(<ForecastLegend finish={finish} hasProjection={false} />);
     expect(container.textContent).toContain('Forecast:');
-    expect(container.textContent).toContain('nothing left in this view');
+    expect(container.textContent).toContain('Forecast: Oct 7');
+    expect(container.textContent).not.toContain('nothing left');
   });
 });
 
@@ -352,7 +382,7 @@ describe('EpicChartTooltip confidence and blank rows (261001-sqm)', () => {
     workingDay: true,
   };
 
-  it('a future datum shows a Confidence meter row and no reason', () => {
+  it('a future datum shows no Confidence row and no reason', () => {
     const { container } = render(
       <EpicChartTooltip
         active
@@ -363,11 +393,8 @@ describe('EpicChartTooltip confidence and blank rows (261001-sqm)', () => {
         today="2026-09-30"
       />,
     );
-    const row = rowsOf(container).find((r) => r.textContent?.startsWith('Confidence'));
-    expect(row?.querySelector('[data-testid="confidence-meter"]')).toHaveAttribute(
-      'data-level',
-      'medium',
-    );
+    expect(rowsOf(container).some((r) => r.textContent?.startsWith('Confidence'))).toBe(false);
+    expect(container.querySelector('[data-testid="confidence-meter"]')).toBeNull();
     expect(container.textContent).not.toContain('Only 14 working days of history');
   });
 
@@ -418,5 +445,50 @@ describe('EpicChartTooltip confidence and blank rows (261001-sqm)', () => {
       />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('chart tooltip budget (261002-0xf)', () => {
+  const words = (t: string) => t.trim().split(/\s+/).length;
+  const noteOf = (c: HTMLElement) => c.querySelector('[data-slot="tooltip-note"]');
+
+  it('a history datum has at most 4 rows and no note', () => {
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: history }]}
+        metric="count"
+        rows={cfdRows('count')}
+        today="2026-09-30"
+      />,
+    );
+    expect(rowsOf(container).length).toBeLessThanOrEqual(4);
+    expect(noteOf(container)).toBeNull();
+  });
+
+  it('a future datum has at most 4 rows and a note of at most 8 words', () => {
+    const future: ChartDatum = {
+      date: '2026-11-29',
+      t: Date.UTC(2026, 10, 29),
+      remaining: null,
+      forecast: 4,
+      band: [0, 6],
+      wd: 5,
+      workingDay: false,
+    };
+    const { container } = render(
+      <EpicChartTooltip
+        active
+        payload={[{ payload: future }]}
+        metric="count"
+        rows={cfdRows('count')}
+        clippedAfter="2026-11-29"
+        today="2026-09-30"
+      />,
+    );
+    expect(rowsOf(container).length).toBeLessThanOrEqual(4);
+    const note = noteOf(container);
+    expect(note).not.toBeNull();
+    expect(words(note?.textContent ?? '')).toBeLessThanOrEqual(8);
   });
 });

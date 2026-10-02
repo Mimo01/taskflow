@@ -1621,7 +1621,7 @@ export function chartDomain(
   return { from: start < to ? start : to, to, clippedAfter };
 }
 
-/** Append one blank row at `to` so the data (and its brush strip) spans the whole domain. */
+/** Append one blank row at `to` so the data spans the whole domain. */
 export function padToDomain<T extends { date: string; t: number }>(points: T[], to: string): T[] {
   if (points.length === 0) return points;
   const template = points[points.length - 1];
@@ -1636,15 +1636,6 @@ export function padToDomain<T extends { date: string; t: number }>(points: T[], 
       ...('label' in template ? { label: labelOf(to) } : {}),
     },
   ];
-}
-
-/** Day-aligned UTC ms ticks from `from`: every day for short spans, else even steps (<= max ticks). */
-export function axisTicks(from: string, to: string, max = 6): number[] {
-  const span = Math.max(0, diffDays(from, to));
-  const step = span <= max - 1 ? 1 : Math.ceil(span / (max - 1));
-  const out: number[] = [];
-  for (let d = 0; d <= span; d += step) out.push(toMs(from) + d * DAY_MS);
-  return out;
 }
 
 export type ZoomPreset = 'all' | '6m' | '3m' | '1m' | '2w' | 'forecast';
@@ -1915,35 +1906,6 @@ export function formatDateRange(a: string, b: string, today: string): string {
   const end = ay === by && am === bm ? `${bd}` : `${MONTHS[bm - 1]} ${bd}`;
   const suffix = String(by) !== today.slice(0, 4) ? ` '${String(by).slice(2)}` : '';
   return `${labelOf(a)} \u2013 ${end}${suffix}`;
-}
-
-/**
- * Brush indexes for a date range: `from` maps to the LAST index with date <= from and `to` to
- * the FIRST index with date >= to, so lines start at the axis edge. startIndex < endIndex
- * whenever there are two or more points.
- */
-export function rangeIndexes(
-  points: { date: string }[],
-  range: ChartRange,
-): { startIndex: number; endIndex: number } {
-  const last = Math.max(0, points.length - 1);
-  let startIndex = 0;
-  for (let i = 0; i < points.length; i++) {
-    if (points[i].date <= range.from) startIndex = i;
-    else break;
-  }
-  let endIndex = last;
-  for (let i = 0; i < points.length; i++) {
-    if (points[i].date >= range.to) {
-      endIndex = i;
-      break;
-    }
-  }
-  if (points.length >= 2 && startIndex >= endIndex) {
-    if (startIndex < last) endIndex = startIndex + 1;
-    else startIndex = Math.max(0, endIndex - 1);
-  }
-  return { startIndex, endIndex };
 }
 
 // ── Confidence reason ────────────────────────────────────────────────────────

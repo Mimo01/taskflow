@@ -9,17 +9,17 @@
  * dots only on hover). The worklog query and the averaged finish are owned by the section.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Area, Brush, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { useMemo, useRef } from 'react';
+import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   type AveragedForecast,
-  axisTicks,
   dateKeyMs,
   deriveTimeBurnup,
   padToDomain,
   projectFinish,
-  rangeIndexes,
+  timeTicks,
   type WorkCalendar,
   withProjection,
 } from '@/lib/epic-progress';
@@ -28,15 +28,18 @@ import { formatDuration } from '@/services/jira/duration';
 import { ForecastLegend, LegendItem, SourceFlag, tickLabel } from './EpicCfdChart';
 import { EpicChartTooltip, timeRows } from './EpicChartTooltip';
 import {
-  BRUSH_STYLE,
-  brushUsable,
-  CHART_HEIGHT,
   type ChartZoom,
   chartHeight,
   PLOT_HEIGHT,
+  useChartView,
+  useElementWidth,
+  useLiveRange,
   visibleRange,
+  Y_AXIS_WIDTH,
   ZoomPresets,
+  zoomUsable,
 } from './EpicChartZoom';
+import { EpicRangeNavigator } from './EpicRangeNavigator';
 import { SERIES } from './epic-markers';
 
 const HOUR = 3600;
@@ -73,7 +76,43 @@ export function EpicTimeBurnup({
   zoom,
 }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
-  const loadingHeight = zoom?.enabled ? CHART_HEIGHT : PLOT_HEIGHT;
+  const loadingHeight = chartHeight(zoom);
+  const domainFrom = zoom?.domain.from;
+  const domainTo = zoom?.domain.to;
+
+  // Hooks run before the early returns below. The derivation is memoised so a drag (which only
+  // changes the live range) never recomputes it.
+  const derived = useMemo(() => {
+    if (!data) return null;
+    const points = deriveTimeBurnup(stories, data, epicCreated, today);
+    const base = points.map((p) => ({
+      ...p,
+      t: dateKeyMs(p.date),
+      estimate: p.estimate / HOUR,
+      logged: p.logged / HOUR,
+      remaining: Math.max(p.estimate - p.logged, 0) / HOUR,
+    }));
+    // One forecast: the shared averaged finish, projected from this chart's own remaining (hours).
+    const todayRemainingHours = base.length > 0 ? base[base.length - 1].remaining : 0;
+    const projection = projectFinish(
+      finish,
+      todayRemainingHours,
+      today,
+      domainFrom ?? (base.length > 0 ? base[0].date : null),
+      calendar,
+    );
+    const projected = withProjection(base, projection);
+    const chartData = domainTo ? padToDomain(projected, domainTo) : projected;
+    return { points, projection, chartData };
+  }, [data, stories, epicCreated, today, finish, calendar, domainFrom, domainTo]);
+  const chartData = derived?.chartData;
+  const { range, onLive, onCommit } = useLiveRange(
+    zoom,
+    chartData ? visibleRange(null, chartData) : null,
+  );
+  const plotRef = useRef<HTMLDivElement>(null);
+  const width = useElementWidth(plotRef);
+  const { view, overview } = useChartView(chartData, zoom, range, finish, today);
 
   if (isError) {
     return (
@@ -106,7 +145,7 @@ export function EpicTimeBurnup({
     );
   }
 
-  if (!data) {
+  if (!data || !derived) {
     return (
       <Skeleton
         data-testid="epic-time-burnup-loading"
@@ -116,29 +155,9 @@ export function EpicTimeBurnup({
     );
   }
 
-  const points = deriveTimeBurnup(stories, data, epicCreated, today);
-  const base = points.map((p) => ({
-    ...p,
-    t: dateKeyMs(p.date),
-    estimate: p.estimate / HOUR,
-    logged: p.logged / HOUR,
-    remaining: Math.max(p.estimate - p.logged, 0) / HOUR,
-  }));
-
-  // One forecast: the shared averaged finish, projected from this chart's own remaining (hours).
-  const todayRemainingHours = base.length > 0 ? base[base.length - 1].remaining : 0;
-  const projection = projectFinish(
-    finish,
-    todayRemainingHours,
-    today,
-    zoom?.domain.from ?? (base.length > 0 ? base[0].date : null),
-    calendar,
-  );
-  const projected = withProjection(base, projection);
-  const chartData = zoom ? padToDomain(projected, zoom.domain.to) : projected;
-  const range = visibleRange(zoom, chartData);
-  const brush = rangeIndexes(chartData, range ?? { from: '', to: '' });
+  const { points, projection } = derived;
   const hasProjection = projection.points.length > 0;
+  const ticks = range ? timeTicks(range.from, range.to, width) : [];
 
   return (
     <div>
@@ -147,124 +166,125 @@ export function EpicTimeBurnup({
         data-x-from={range?.from}
         data-x-to={range?.to}
         data-domain-to={zoom?.domain.to ?? range?.to}
-        data-zoomable={String(brushUsable(zoom, chartData))}
-        style={{ height: chartHeight(zoom, chartData) }}
+        data-zoomable={String(zoomUsable(zoom))}
+        style={{ height: chartHeight(zoom) }}
       >
         {points.length === 0 || !range ? (
           <p className="text-sm text-muted-foreground italic">No timeline data</p>
         ) : (
-          <ChartContainer
-            config={{}}
-            className="aspect-auto h-full w-full"
-            aria-label="Epic time burnup chart"
-          >
-            <ComposedChart
-              data={chartData}
-              responsive
-              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-            >
-              <XAxis
-                type="number"
-                dataKey="t"
-                scale="time"
-                domain={[dateKeyMs(range.from), dateKeyMs(range.to)]}
-                allowDataOverflow
-                ticks={axisTicks(range.from, range.to)}
-                tickFormatter={tickLabel}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                allowDecimals={false}
-                tickLine={false}
-                axisLine={false}
-                width={40}
-                tickFormatter={(v) => `${v}h`}
-              />
-              <ChartTooltip
-                cursor={BAR_CURSOR}
-                content={(p) => (
-                  <EpicChartTooltip
-                    active={p.active}
-                    payload={p.payload}
-                    metric="time"
-                    formatValue={hoursLabel}
-                    clippedAfter={projection.clippedAfter}
-                    rows={timeRows(hoursLabel)}
-                    finish={finish}
-                    today={today}
+          <>
+            <div ref={plotRef} style={{ height: PLOT_HEIGHT }}>
+              <ChartContainer
+                config={{}}
+                className="aspect-auto h-full w-full"
+                aria-label="Epic time burnup chart"
+              >
+                <ComposedChart
+                  data={view}
+                  responsive
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <XAxis
+                    type="number"
+                    dataKey="t"
+                    scale="time"
+                    domain={[dateKeyMs(range.from), dateKeyMs(range.to)]}
+                    allowDataOverflow
+                    ticks={ticks.map((x) => x.t)}
+                    tickFormatter={(v) =>
+                      ticks.find((x) => x.t === Number(v))?.label ?? tickLabel(v)
+                    }
+                    tickLine={false}
+                    axisLine={false}
                   />
-                )}
+                  <YAxis
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    width={Y_AXIS_WIDTH}
+                    tickFormatter={(v) => `${v}h`}
+                  />
+                  <ChartTooltip
+                    cursor={BAR_CURSOR}
+                    content={(p) => (
+                      <EpicChartTooltip
+                        active={p.active}
+                        payload={p.payload}
+                        metric="time"
+                        formatValue={hoursLabel}
+                        clippedAfter={projection.clippedAfter}
+                        rows={timeRows(hoursLabel)}
+                        finish={finish}
+                        today={today}
+                      />
+                    )}
+                  />
+                  <Area
+                    dataKey="estimate"
+                    type="stepAfter"
+                    stroke={SERIES.estimate.stroke}
+                    strokeWidth={SERIES.estimate.strokeWidth}
+                    fill={SERIES.estimate.fill}
+                    fillOpacity={SERIES.estimate.fillOpacity}
+                    isAnimationActive={false}
+                  />
+                  {/* Range band: a NON-stacked Area whose value is [low, high]. */}
+                  <Area
+                    dataKey="band"
+                    type="linear"
+                    stroke="none"
+                    fill={SERIES.band.fill}
+                    fillOpacity={SERIES.band.fillOpacity}
+                    isAnimationActive={false}
+                    activeDot={false}
+                  />
+                  <Line
+                    dataKey="logged"
+                    type="stepAfter"
+                    stroke={SERIES.logged.stroke}
+                    strokeWidth={SERIES.logged.strokeWidth}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    dataKey="remaining"
+                    type="stepAfter"
+                    stroke={SERIES.remaining.stroke}
+                    strokeWidth={SERIES.remaining.strokeWidth}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    dataKey="forecast"
+                    type="linear"
+                    stroke={SERIES.forecast.stroke}
+                    strokeWidth={SERIES.forecast.strokeWidth}
+                    strokeDasharray={SERIES.forecast.strokeDasharray}
+                    connectNulls
+                    dot={false}
+                    activeDot={{
+                      r: 3,
+                      fill: SERIES.forecast.stroke,
+                      stroke: 'var(--color-background)',
+                      strokeWidth: 1,
+                    }}
+                    isAnimationActive={false}
+                  />
+                </ComposedChart>
+              </ChartContainer>
+            </div>
+            {zoomUsable(zoom) ? (
+              <EpicRangeNavigator
+                domain={zoom.domain}
+                range={range}
+                today={today}
+                overview={overview}
+                onLive={onLive}
+                onCommit={onCommit}
+                onReset={() => zoom.onPreset('all')}
               />
-              <Area
-                dataKey="estimate"
-                type="stepAfter"
-                stroke={SERIES.estimate.stroke}
-                strokeWidth={SERIES.estimate.strokeWidth}
-                fill={SERIES.estimate.fill}
-                fillOpacity={SERIES.estimate.fillOpacity}
-                isAnimationActive={false}
-              />
-              {/* Range band: a NON-stacked Area whose value is [low, high]. */}
-              <Area
-                dataKey="band"
-                type="linear"
-                stroke="none"
-                fill={SERIES.band.fill}
-                fillOpacity={SERIES.band.fillOpacity}
-                isAnimationActive={false}
-                activeDot={false}
-              />
-              <Line
-                dataKey="logged"
-                type="stepAfter"
-                stroke={SERIES.logged.stroke}
-                strokeWidth={SERIES.logged.strokeWidth}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Line
-                dataKey="remaining"
-                type="stepAfter"
-                stroke={SERIES.remaining.stroke}
-                strokeWidth={SERIES.remaining.strokeWidth}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Line
-                dataKey="forecast"
-                type="linear"
-                stroke={SERIES.forecast.stroke}
-                strokeWidth={SERIES.forecast.strokeWidth}
-                strokeDasharray={SERIES.forecast.strokeDasharray}
-                connectNulls
-                dot={false}
-                activeDot={{
-                  r: 3,
-                  fill: SERIES.forecast.stroke,
-                  stroke: 'var(--color-background)',
-                  strokeWidth: 1,
-                }}
-                isAnimationActive={false}
-              />
-              {brushUsable(zoom, chartData) ? (
-                <Brush
-                  key={`${zoom.epoch}:${zoom.domain.from}:${zoom.domain.to}`}
-                  dataKey="t"
-                  {...BRUSH_STYLE}
-                  tickFormatter={tickLabel}
-                  startIndex={brush.startIndex}
-                  endIndex={brush.endIndex}
-                  onChange={(r) => {
-                    if (r.startIndex === brush.startIndex && r.endIndex === brush.endIndex) return;
-                    const a = chartData[r.startIndex];
-                    const b = chartData[r.endIndex];
-                    if (a && b) zoom.onRange({ from: a.date, to: b.date });
-                  }}
-                />
-              ) : null}
-            </ComposedChart>
-          </ChartContainer>
+            ) : null}
+          </>
         )}
       </div>
       <div className="mt-1 flex items-start justify-between gap-4">

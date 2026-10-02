@@ -1673,6 +1673,87 @@ describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
     expect(chart.style.height).toBe(`${CHART_HEIGHT}px`);
   });
 
+  it('a start-thumb keyboard move shifts the range, unpresses presets and survives the Time tab', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList()));
+    expect(screen.getByTestId('epic-range-navigator')).toBeInTheDocument();
+    const start = screen.getByRole('slider', { name: 'Range start' });
+    fireEvent.keyDown(start, { key: 'ArrowRight' });
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-x-from', '2026-01-02');
+    expect(pressed()).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    const time = await screen.findByTestId('epic-time-burnup');
+    expect(time).toHaveAttribute('data-x-from', '2026-01-02');
+    expect(pressed()).toEqual([]);
+  });
+
+  it('zoom resets to All when the epic changes', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrap = (ui: ReactElement) => <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+    const { rerender } = render(wrap(section(okList())));
+    fireEvent.click(within(screen.getByTestId('epic-zoom-presets')).getByText('1M'));
+    expect(pressed()).toEqual(['1M']);
+    rerender(
+      wrap(
+        <EpicProgressSection
+          epicKey="E-2"
+          stories={okList()}
+          storyPointsFieldKey={SP}
+          epicCreated="2026-01-01"
+        />,
+      ),
+    );
+    expect(pressed()).toEqual(['All']);
+    expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-x-from', '2026-01-01');
+  });
+
+  it('the navigator sliders are not remounted when the data changes', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrap = (ui: ReactElement) => <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+    const { rerender } = render(wrap(section(okList())));
+    const before = screen.getAllByRole('slider');
+    expect(before).toHaveLength(2);
+    rerender(
+      wrap(
+        section([
+          ...okList(),
+          story('S-900', { cat: 'new', status: 'To Do', assignee: 'Amy', created: '2026-01-01' }),
+        ]),
+      ),
+    );
+    const after = screen.getAllByRole('slider');
+    expect(after[0]).toBe(before[0]);
+    expect(after[1]).toBe(before[1]);
+  });
+
+  it('a short domain renders no navigator', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={stories}
+        storyPointsFieldKey={SP}
+        epicCreated={daysAgo(12)}
+      />,
+    );
+    expect(screen.queryByTestId('epic-range-navigator')).toBeNull();
+  });
+
+  it('the empty-estimate block reserves the same height as the chart', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    renderSection(section(okList()));
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    const empty = screen.getByTestId('epic-empty-estimate');
+    expect(empty.style.minHeight).toBe(`${CHART_HEIGHT}px`);
+  });
+
   it('stored zoom resets to All when the domain drops below the threshold', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
