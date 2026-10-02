@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-02 - Completed quick task 261002-0xf: epic progress polish (UAT pending)
+Last activity: 2026-10-02 - Completed quick task 261002-enj: confidence in hover, readable risks, spacing, no chart legend (UAT pending)
 
 ## Performance Metrics
 
@@ -161,7 +161,8 @@ None yet.
 | 261001-rtw | Epic progress iteration 6: one shared forecast in every chart, colour reserved for statuses (neutral markers/series), legend spacing root-cause fix, unified Count/SP/Time bands (Time person bars match chips) | 2026-10-01 | c164967e | Iterated → 261001-sqm | [261001-rtw-epic-progress-one-forecast-neutral-marke](./quick/261001-rtw-epic-progress-one-forecast-neutral-marke/) |
 | 261001-sqm | Epic progress iteration 7: Risks popover with clickable issue keys, data sources in hero tooltip, one shared chart date range, brush + preset zoom shared across tabs, confidence meter + reason, Time chart coloured by status meaning | 2026-10-02 | c3e7d163 | Iterated → 261002-0et | [261001-sqm-epic-progress-risks-notes-shared-axis-zo](./quick/261001-sqm-epic-progress-risks-notes-shared-axis-zo/) |
 | 261002-0et | Epic progress iteration 8: confidence as meter + word (reason once, Finish tooltip), zoom only for ranges > 6 weeks, simplified Risks (one-line risks → popover of clickable issues) | 2026-10-02 | ea489b36 | Iterated → 261002-0xf | [261002-0et-epic-progress-simpler-confidence-conditi](./quick/261002-0et-epic-progress-simpler-confidence-conditi/) |
-| 261002-0xf | Epic progress polish: date navigator replaces the zoom brush (daily data, calendar ticks, adaptive presets, from 4 weeks), fixed identical top cards, concise tooltips, decluttered tab-independent risks | 2026-10-02 | 3fb9284d | Needs Review | [261002-0xf-epic-progress-polish-zoom-slider-consist](./quick/261002-0xf-epic-progress-polish-zoom-slider-consist/) |
+| 261002-0xf | Epic progress polish: date navigator replaces the zoom brush (daily data, calendar ticks, adaptive presets, from 4 weeks), fixed identical top cards, concise tooltips, decluttered tab-independent risks | 2026-10-02 | 3fb9284d | Iterated → 261002-enj | [261002-0xf-epic-progress-polish-zoom-slider-consist](./quick/261002-0xf-epic-progress-polish-zoom-slider-consist/) |
+| 261002-enj | Epic progress: confidence only in hover, readable + hoverable risks, narrower Completed bar, card→chart spacing, chart legends removed (toolbar above chart) | 2026-10-02 | f5655088 | Needs Review | [261002-enj-epic-progress-confidence-in-hover-readab](./quick/261002-enj-epic-progress-confidence-in-hover-readab/) |
 
 ## Deferred Items
 
