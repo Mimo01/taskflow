@@ -2049,3 +2049,27 @@ describe('EpicProgressSection readable risks and card spacing (261002-enj)', () 
     }
   });
 });
+
+describe('EpicProgressSection skeleton height prediction', () => {
+  const skeletonHeight = (epicCreated: string | undefined) => {
+    const { unmount } = renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={undefined}
+        storyPointsFieldKey={SP}
+        epicCreated={epicCreated}
+      />,
+    );
+    const h = Number.parseInt(screen.getByTestId('epic-skeleton-chart').style.height, 10);
+    unmount();
+    return h;
+  };
+
+  it('reserves the zoomable chart height for epics older than the zoom threshold', () => {
+    const old = skeletonHeight(daysAgo(60));
+    const fresh = skeletonHeight(daysAgo(5));
+    const unknown = skeletonHeight(undefined);
+    expect(old - fresh).toBe(CHART_HEIGHT - PLOT_HEIGHT);
+    expect(unknown).toBe(fresh);
+  });
+});
