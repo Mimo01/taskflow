@@ -337,7 +337,7 @@ export function EpicProgressSection({
         today={today}
       />
 
-      <div className="flex flex-col">
+      <div data-testid="epic-chart-block" className="flex flex-col pt-3">
         {(metric === 'sp' && summary.total === 0) || (timeMode && time.estimated === 0) ? (
           <div
             data-testid="epic-empty-estimate"

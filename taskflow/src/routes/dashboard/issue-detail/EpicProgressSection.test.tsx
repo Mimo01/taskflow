@@ -592,7 +592,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1 of 10 SP');
   });
 
-  it('Finish shows a date, range and confidence for an ok forecast', () => {
+  it('Finish shows a date and range, confidence only in the tooltip', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     const list = [
@@ -624,8 +624,9 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     );
     const finish = screen.getAllByTestId('epic-stat-tile')[0];
     expect(finish.textContent).toContain('Oct 7');
-    expect(within(finish).getByTestId('confidence-meter')).toHaveAttribute('data-level', 'medium');
-    expect(finish.textContent).toContain('Medium');
+    // 261002-enj: confidence is only in the tooltip, never on the card.
+    expect(within(finish).queryByTestId('confidence-meter')).toBeNull();
+    expect(finish.textContent).not.toContain('Medium');
   });
 
   it('Finish shows the state text for too-early and done', () => {
@@ -1038,18 +1039,12 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     );
     const finishTile = () => screen.getAllByTestId('epic-stat-tile')[0];
     expect(finishTile().textContent).toContain('Oct 7');
-    expect(within(finishTile()).getByTestId('confidence-meter')).toHaveAttribute(
-      'data-level',
-      'medium',
-    );
-    expect(finishTile().textContent).toContain('Medium');
+    expect(within(finishTile()).queryByTestId('confidence-meter')).toBeNull();
+    expect(finishTile().textContent).not.toContain('Medium');
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
     expect(finishTile().textContent).toContain('Oct 7');
-    expect(within(finishTile()).getByTestId('confidence-meter')).toHaveAttribute(
-      'data-level',
-      'medium',
-    );
-    expect(finishTile().textContent).toContain('Medium');
+    expect(within(finishTile()).queryByTestId('confidence-meter')).toBeNull();
+    expect(finishTile().textContent).not.toContain('Medium');
     await user.hover(finishTile());
     // 261002-0xf: an ok Finish lists which views it is based on, not one row per view.
     await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Based on'))).toBe(true));
@@ -1437,13 +1432,13 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     expect(screen.getByTestId('epic-source-flag').tagName).toBe('BUTTON');
   });
 
-  it('Finish pairs the range with a confidence meter; the tooltip adds a Confidence row and reason', async () => {
+  it('Finish card has no confidence meter; the tooltip adds a Confidence row and reason', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     const user = userEvent.setup();
     renderSection(sectionOf(okList()));
     const finish = screen.getAllByTestId('epic-stat-tile')[0];
-    expect(within(finish).getByTestId('confidence-meter')).toHaveAttribute('data-level', 'medium');
+    expect(within(finish).queryByTestId('confidence-meter')).toBeNull();
     await user.hover(finish);
     await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Confidence'))).toBe(true));
     expect(rowTexts().some((t) => t?.startsWith('Confidence') && t.includes('Medium'))).toBe(true);
@@ -1457,9 +1452,9 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     expect(rowTexts().some((t) => t?.startsWith('Based on'))).toBe(true);
     const tip = document.querySelector('[data-slot="tooltip-content"]') as HTMLElement;
     expect(tip.querySelectorAll('[data-testid="confidence-meter"]')).toHaveLength(1);
-    // The tile sub-line keeps the range and meter on one non-wrapping row.
-    const meter = within(finish).getByTestId('confidence-meter');
-    expect(meter.parentElement?.className).toContain('whitespace-nowrap');
+    // The tile sub-line keeps the range on one non-wrapping row.
+    const range = finish.querySelector('[class*="whitespace-nowrap"] > span') as HTMLElement;
+    expect(range.textContent).toMatch(/\d/);
   });
 
   it('Risks popover: rows are buttons that open the issue (click, arrows, Enter, Escape)', async () => {
@@ -1521,7 +1516,7 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     const items = screen.getAllByTestId('epic-risk-item');
     // 261002-0xf: chips show a short token; the full text is the accessible name.
     expect(items[0]).toHaveAccessibleName('Overdue 3 days');
-    expect(items[0].textContent).toBe('3d');
+    expect(items[0].textContent).toBe('Overdue 3 days');
     await user.click(screen.getByRole('button', { name: '10 unassigned' }));
     const popover = await screen.findByTestId('epic-risk-popover');
     expect(within(popover).getAllByTestId('epic-risk-issue')).toHaveLength(10);
@@ -1932,5 +1927,79 @@ describe('EpicProgressSection polish contracts (261002-0xf)', () => {
     expect(names()).toEqual(count);
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     expect(names()).toEqual(count);
+  });
+});
+
+describe('EpicProgressSection readable risks and card spacing (261002-enj)', () => {
+  const three = () => [
+    story('K-1', { cat: 'new', status: 'To Do', assignee: null }),
+    story('K-2', { cat: 'new', status: 'To Do', sp: 1, assignee: 'Amy' }),
+  ];
+  const sectionOf = (list: JiraIssue[], extra: Record<string, unknown> = {}) => (
+    <EpicProgressSection
+      epicKey="E-1"
+      stories={list}
+      storyPointsFieldKey={SP}
+      epicCreated="2026-01-01"
+      {...extra}
+    />
+  );
+  const tipEl = () => document.querySelector('[data-slot="tooltip-content"]') as HTMLElement | null;
+
+  it('shows each risk as a readable label and folds the rest into +N', () => {
+    renderSection(sectionOf(three(), { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
+    const items = screen.getAllByTestId('epic-risk-item');
+    expect(items).toHaveLength(2);
+    expect(items[0].textContent).toBe('Overdue 3 days');
+    expect(items[1].textContent).toBe('1 unestimated');
+    expect(items[1]).toHaveAttribute('data-severity', 'info');
+    expect(items[1]).toHaveAccessibleName('1 unestimated');
+    const more = screen.getByTestId('epic-risk-more');
+    expect(more.textContent).toBe('+1');
+    expect(screen.getAllByTestId('epic-stat-tile')[2].textContent).toContain('3 risks');
+  });
+
+  it('shows a short tooltip on hover and closes it when the popover opens', async () => {
+    const user = userEvent.setup();
+    renderSection(sectionOf(three(), { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
+    const item = screen.getAllByTestId('epic-risk-item')[1];
+    await user.hover(item);
+    await waitFor(() => expect(tipEl()).not.toBeNull());
+    expect(tipEl()?.textContent).toContain('Open items with no points or time estimate');
+    expect(tipEl()?.textContent).not.toContain('K-1');
+    await user.click(item);
+    const popover = await screen.findByTestId('epic-risk-popover');
+    expect(within(popover).getAllByTestId('epic-risk-issue')).toHaveLength(1);
+    await waitFor(() => expect(tipEl()).toBeNull());
+  });
+
+  it('opens the hidden risks from +N', async () => {
+    const user = userEvent.setup();
+    renderSection(sectionOf(three(), { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
+    await user.click(screen.getByTestId('epic-risk-more'));
+    const popover = await screen.findByTestId('epic-risk-popover');
+    expect(popover.textContent).toContain('1 unassigned');
+    expect(popover.textContent).toContain('Open items with no assignee');
+    expect(within(popover).getAllByTestId('epic-risk-issue')).toHaveLength(1);
+  });
+
+  it('caps the hero bar in every tab and pads the chart block', () => {
+    renderSection(sectionOf(three()));
+    const check = () => {
+      const cls = screen.getByTestId('epic-hero-bar').className;
+      expect(cls).toContain('w-3/4');
+      expect(cls).toContain('max-w-40');
+      expect(cls).toContain('h-2');
+    };
+    check();
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    check();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    check();
+    const block = screen.getByTestId('epic-chart-block');
+    expect(block.className).toContain('pt-3');
+    for (const el of [block, ...Array.from(block.querySelectorAll('*'))]) {
+      expect(String(el.getAttribute('class') ?? '')).not.toMatch(/(^|\s)-m/);
+    }
   });
 });

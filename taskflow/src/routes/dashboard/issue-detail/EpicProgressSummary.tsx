@@ -4,7 +4,8 @@
  * (quick 261001-ilq). Tooltip triggers contain spans only (valid inside a <button>).
  * Four fixed 72px cards (EpicStatCard) in a container-query grid (261002-0xf); the hero
  * tooltip carries at most one short data-source note; the Risks card is a count plus up to
- * four icon chips, each opening a popover.
+ * two readable icon labels (+N for the rest), each with a hover tooltip and a click popover.
+ * Confidence shows only in the Finish tooltip, never on the card.
  *
  * Text-collision rule (EpicDetailSheet.test): no visible text node equals exactly
  * "Done" / "In Progress" and none says "Stories" — every sentence here is a single
@@ -19,7 +20,14 @@ import {
   TrendingUp,
   UserX,
 } from 'lucide-react';
-import { type KeyboardEvent, type ReactNode, useRef, useState } from 'react';
+import {
+  Fragment,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useRef,
+  useState,
+} from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
@@ -140,7 +148,7 @@ function Hero({
               </span>
             </>
           }
-          sub={<BandBar bands={bands} className="h-2" testId="epic-hero-bar" />}
+          sub={<BandBar bands={bands} className="h-2 w-3/4 max-w-40" testId="epic-hero-bar" />}
         />
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
@@ -211,12 +219,7 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
         ? formatDateRange(finish.optimistic, finish.pessimistic, today)
         : null;
     if (range) {
-      sub = (
-        <>
-          <span className="min-w-0 truncate">{range}</span>
-          <ConfidenceMeter level={finish.confidence ?? 'low'} className="flex-none" />
-        </>
-      );
+      sub = <span className="min-w-0 truncate">{range}</span>;
     }
     const reason = confidenceReason(finish);
     const included = finish.parts.filter((p) => p.included).map((p) => METRIC_LABEL[p.metric]);
@@ -258,6 +261,153 @@ function FinishTile({ finish, today }: { finish: AveragedForecast; today: string
   return <Tile label="Finish" value={value} sub={sub} tip={tip} />;
 }
 
+const ROW_LAYOUT = 'flex w-full min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left';
+const VISIBLE_RISKS = 2;
+
+function riskIconClass(risk: EpicRisk): string {
+  return cn(
+    'size-3 shrink-0',
+    risk.severity === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground',
+  );
+}
+
+function onListKeyDown(e: KeyboardEvent<HTMLElement>) {
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+  const rows = [
+    ...e.currentTarget.querySelectorAll<HTMLButtonElement>('button[data-testid="epic-risk-issue"]'),
+  ];
+  if (rows.length === 0) return;
+  const at = rows.indexOf(document.activeElement as HTMLButtonElement);
+  const next =
+    e.key === 'Home'
+      ? 0
+      : e.key === 'End'
+        ? rows.length - 1
+        : e.key === 'ArrowDown'
+          ? Math.min(at + 1, rows.length - 1)
+          : Math.max(at - 1, 0);
+  rows[next].focus();
+  e.preventDefault();
+}
+
+/** Popover body for one risk: header, detail and the affected-issue list. */
+function RiskPanel({
+  risk,
+  onOpenIssue,
+  firstRow,
+  onPick,
+  separated,
+}: {
+  risk: EpicRisk;
+  onOpenIssue?: (key: string) => void;
+  firstRow?: RefObject<HTMLButtonElement | null>;
+  onPick: () => void;
+  separated?: boolean;
+}) {
+  const Icon = RISK_ICON[risk.key];
+  return (
+    <div className={cn(separated && 'mt-2 border-t border-border/50 pt-2')}>
+      <div className="flex items-center gap-2 font-medium text-foreground">
+        <Icon aria-hidden="true" className={riskIconClass(risk)} />
+        <span className="min-w-0 truncate">{risk.text}</span>
+      </div>
+      <div className="text-muted-foreground">{risk.detail}</div>
+      {risk.issues.length > 0 ? (
+        <ul
+          data-testid="epic-risk-issues"
+          className="mt-1.5 grid max-h-48 overflow-y-auto"
+          onKeyDown={onListKeyDown}
+        >
+          {risk.issues.map((issue, i) => (
+            <li key={issue.key} className="min-w-0">
+              {onOpenIssue ? (
+                <button
+                  ref={i === 0 ? firstRow : undefined}
+                  type="button"
+                  data-testid="epic-risk-issue"
+                  className={cn(
+                    ROW_LAYOUT,
+                    'cursor-pointer hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
+                  )}
+                  onClick={() => {
+                    onPick();
+                    onOpenIssue(issue.key);
+                  }}
+                >
+                  <span className="flex-none font-mono text-xs text-muted-foreground">
+                    {issue.key}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{issue.summary}</span>
+                </button>
+              ) : (
+                <div data-testid="epic-risk-issue" className={ROW_LAYOUT}>
+                  <span className="flex-none font-mono text-xs text-muted-foreground">
+                    {issue.key}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{issue.summary}</span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One button that is both the hover tooltip trigger and the click popover trigger.
+ * The tooltip is suppressed while the popover is open so the two never fight.
+ */
+function TipPopover({
+  tip,
+  triggerProps,
+  triggerClass,
+  trigger,
+  initialFocus,
+  children,
+}: {
+  tip: ReactNode;
+  triggerProps: Record<string, string>;
+  triggerClass: string;
+  trigger: ReactNode;
+  initialFocus: RefObject<HTMLElement | null> | boolean;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
+  return (
+    <Tooltip open={tipOpen && !open} onOpenChange={setTipOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (next) setTipOpen(false);
+        }}
+      >
+        <TooltipTrigger
+          render={<PopoverTrigger type="button" className={triggerClass} {...triggerProps} />}
+        >
+          {trigger}
+        </TooltipTrigger>
+        <PopoverContent
+          data-testid="epic-risk-popover"
+          initialFocus={initialFocus}
+          className={cn(TOOLTIP_SURFACE, 'w-72 border-0 p-2.5 shadow-xl')}
+        >
+          {children(() => setOpen(false))}
+        </PopoverContent>
+      </Popover>
+      <TooltipContent>{tip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+const RISK_TRIGGER_CLASS = cn(
+  'inline-flex h-4 min-w-0 cursor-pointer items-center gap-1 rounded-sm px-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+  CHIP_TEXT,
+);
+
 function RiskItem({
   risk,
   onOpenIssue,
@@ -266,102 +416,79 @@ function RiskItem({
   /** Absent when the host can't open issues; rows then render as plain text, not dead buttons. */
   onOpenIssue?: (key: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const firstRow = useRef<HTMLButtonElement>(null);
   const Icon = RISK_ICON[risk.key];
-  const iconClass = cn(
-    'size-3 shrink-0',
-    risk.severity === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground',
-  );
-  const rowLayout = 'flex w-full min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left';
-
-  const onListKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
-    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
-    const rows = [
-      ...e.currentTarget.querySelectorAll<HTMLButtonElement>(
-        'button[data-testid="epic-risk-issue"]',
-      ),
-    ];
-    if (rows.length === 0) return;
-    const at = rows.indexOf(document.activeElement as HTMLButtonElement);
-    const next =
-      e.key === 'Home'
-        ? 0
-        : e.key === 'End'
-          ? rows.length - 1
-          : e.key === 'ArrowDown'
-            ? Math.min(at + 1, rows.length - 1)
-            : Math.max(at - 1, 0);
-    rows[next].focus();
-    e.preventDefault();
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        type="button"
-        data-testid="epic-risk-item"
-        data-severity={risk.severity}
-        aria-label={risk.text}
-        className={cn(
-          'inline-flex h-4 flex-none cursor-pointer items-center gap-1 rounded-sm px-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-          CHIP_TEXT,
-        )}
-      >
-        <Icon aria-hidden="true" className={iconClass} />
-        {risk.chip ? <span className="tabular-nums">{risk.chip}</span> : null}
-      </PopoverTrigger>
-      <PopoverContent
-        data-testid="epic-risk-popover"
-        initialFocus={onOpenIssue && risk.issues.length > 0 ? firstRow : true}
-        className={cn(TOOLTIP_SURFACE, 'w-72 border-0 p-2.5 shadow-xl')}
-      >
-        <div className="flex items-center gap-2 font-medium text-foreground">
-          <Icon aria-hidden="true" className={iconClass} />
-          <span className="min-w-0 truncate">{risk.text}</span>
-        </div>
-        <div className="text-muted-foreground">{risk.detail}</div>
-        {risk.issues.length > 0 ? (
-          <ul
-            data-testid="epic-risk-issues"
-            className="mt-1.5 grid max-h-48 overflow-y-auto"
-            onKeyDown={onListKeyDown}
-          >
-            {risk.issues.map((issue, i) => (
-              <li key={issue.key} className="min-w-0">
-                {onOpenIssue ? (
-                  <button
-                    ref={i === 0 ? firstRow : undefined}
-                    type="button"
-                    data-testid="epic-risk-issue"
-                    className={cn(
-                      rowLayout,
-                      'cursor-pointer hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
-                    )}
-                    onClick={() => {
-                      setOpen(false);
-                      onOpenIssue(issue.key);
-                    }}
-                  >
-                    <span className="flex-none font-mono text-xs text-muted-foreground">
-                      {issue.key}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">{issue.summary}</span>
-                  </button>
-                ) : (
-                  <div data-testid="epic-risk-issue" className={rowLayout}>
-                    <span className="flex-none font-mono text-xs text-muted-foreground">
-                      {issue.key}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">{issue.summary}</span>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </PopoverContent>
-    </Popover>
+    <TipPopover
+      tip={
+        <TooltipBody>
+          <span className="text-muted-foreground">{risk.detail}</span>
+        </TooltipBody>
+      }
+      triggerProps={{
+        'data-testid': 'epic-risk-item',
+        'data-severity': risk.severity,
+        'aria-label': risk.text,
+      }}
+      triggerClass={RISK_TRIGGER_CLASS}
+      trigger={
+        <>
+          <Icon aria-hidden="true" className={riskIconClass(risk)} />
+          <span className="min-w-0 truncate">{risk.short}</span>
+        </>
+      }
+      initialFocus={onOpenIssue && risk.issues.length > 0 ? firstRow : true}
+    >
+      {(close) => (
+        <RiskPanel risk={risk} onOpenIssue={onOpenIssue} firstRow={firstRow} onPick={close} />
+      )}
+    </TipPopover>
+  );
+}
+
+function RiskOverflow({
+  hidden,
+  onOpenIssue,
+}: {
+  hidden: EpicRisk[];
+  onOpenIssue?: (key: string) => void;
+}) {
+  const firstRow = useRef<HTMLButtonElement>(null);
+  const withRows = onOpenIssue !== undefined && hidden[0].issues.length > 0;
+  return (
+    <TipPopover
+      tip={
+        <TooltipBody>
+          {hidden.map((r) => (
+            <span key={`${r.key}-${r.severity}`} className="block">
+              {r.text}
+            </span>
+          ))}
+        </TooltipBody>
+      }
+      triggerProps={{
+        'data-testid': 'epic-risk-more',
+        'aria-label': `${hidden.length} more risks`,
+      }}
+      triggerClass={cn(RISK_TRIGGER_CLASS, 'flex-none tabular-nums')}
+      trigger={`+${hidden.length}`}
+      initialFocus={withRows ? firstRow : true}
+    >
+      {(close) => (
+        <>
+          {hidden.map((r, i) => (
+            <RiskPanel
+              key={`${r.key}-${r.severity}`}
+              risk={r}
+              onOpenIssue={onOpenIssue}
+              firstRow={i === 0 ? firstRow : undefined}
+              onPick={close}
+              separated={i > 0}
+            />
+          ))}
+        </>
+      )}
+    </TipPopover>
   );
 }
 
@@ -381,15 +508,27 @@ function RisksTile({
     ) : (
       <span className={VALUE_CLASS}>{plural(risks.length, 'risk', 'risks')}</span>
     );
+  const shown = risks.slice(0, VISIBLE_RISKS);
+  const hidden = risks.slice(VISIBLE_RISKS);
   return (
     <div data-testid="epic-stat-tile" data-stat-card="" className={STAT_CARD_CLASS}>
       <StatCardBody
         label="Risks"
         value={value}
         sub={
-          risks.length > 0
-            ? risks.map((r) => <RiskItem key={r.key} risk={r} onOpenIssue={onOpenIssue} />)
-            : undefined
+          risks.length > 0 ? (
+            <>
+              {shown.map((r, i) => (
+                <Fragment key={`${r.key}-${r.severity}`}>
+                  {i > 0 ? <span aria-hidden="true">{'·'}</span> : null}
+                  <RiskItem risk={r} onOpenIssue={onOpenIssue} />
+                </Fragment>
+              ))}
+              {hidden.length > 0 ? (
+                <RiskOverflow hidden={hidden} onOpenIssue={onOpenIssue} />
+              ) : null}
+            </>
+          ) : undefined
         }
       />
     </div>
