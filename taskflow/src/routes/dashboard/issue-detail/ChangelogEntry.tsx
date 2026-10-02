@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { type ComponentType, useMemo, useState } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import { CHIP_TONE_CLASS, statusPillClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import type { ChangelogHistory } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { relativeTime } from '../IssueDetailContent';
@@ -78,9 +78,6 @@ function fieldLabel(field: string): string {
 }
 
 const EMPTY = <span className="italic text-muted-foreground pr-0.5">None</span>;
-
-const CHIP =
-  'inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap';
 
 function formatValue(kind: MergedItem['kind'], v: string | null): string | null {
   if (v == null || v === '') return null;
@@ -150,28 +147,12 @@ function StatusChangeValue({ item }: { item: MergedItem }) {
   );
 }
 
+/** Multi-value fields read like any other change: removed values → added values. */
 function MultiValueChange({ item }: { item: MergedItem }) {
   if (item.added.length === 0 && item.removed.length === 0) return <ShortChange item={item} />;
-  const summary = [...item.added.map((t) => `+${t}`), ...item.removed.map((t) => `−${t}`)].join(
-    ', ',
-  );
-  return (
-    <div className="flex items-center gap-1 min-w-0 overflow-hidden" title={summary}>
-      {item.added.map((t) => (
-        <span key={`a-${t}`} className={`${CHIP} ${CHIP_TONE_CLASS.green}`}>
-          +{t}
-        </span>
-      ))}
-      {item.removed.map((t) => (
-        <span
-          key={`r-${t}`}
-          className={`${CHIP} ${CHIP_TONE_CLASS.red} line-through decoration-red-500/40`}
-        >
-          −{t}
-        </span>
-      ))}
-    </div>
-  );
+  const from = item.removed.join(', ') || null;
+  const to = item.added.join(', ') || null;
+  return <ShortChange item={{ ...item, kind: 'short', from, to }} />;
 }
 
 function FieldLabel({ field }: { field: string }) {
