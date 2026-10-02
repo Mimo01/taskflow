@@ -777,6 +777,37 @@ describe('jira service', () => {
       expect(call2Url).toContain('startAt=200');
     });
 
+    it('pages by the number of issues returned when Jira caps maxResults below PAGE_SIZE', async () => {
+      // Jira instances often cap maxResults (e.g. 100); stepping by PAGE_SIZE skipped issues 100-199.
+      const page = (from: number, n: number) =>
+        Array.from({ length: n }, (_, i) => makeParent(`P-${from + i}`));
+      const res = (issues: unknown[], startAt: number) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues, total: 250, startAt, maxResults: 100 }),
+        }) as Response;
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(res(page(0, 100), 0))
+        .mockResolvedValueOnce(res(page(100, 100), 100))
+        .mockResolvedValueOnce(res(page(200, 50), 200))
+        .mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 100 }),
+        } as Response);
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      expect(result).toHaveLength(250);
+      expect(new Set(result.map((r) => r.key)).size).toBe(250);
+      const urls = vi
+        .mocked(mockFetch)
+        .mock.calls.slice(0, 3)
+        .map((c) => c[0] as string);
+      expect(urls[1]).toContain('startAt=100');
+      expect(urls[2]).toContain('startAt=200');
+    });
+
     it('stops paging when total is exactly one page (no second request needed)', async () => {
       const issues = Array.from({ length: 50 }, (_, i) => makeParent(`P-${i}`));
 
