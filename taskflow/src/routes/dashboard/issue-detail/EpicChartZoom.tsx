@@ -42,6 +42,8 @@ export const TOOLBAR_HEIGHT = 24;
 export const CHART_HEIGHT = PLOT_HEIGHT + NAVIGATOR_HEIGHT;
 /** Both charts use the same Y axis width so switching tabs never shifts the plot. */
 export const Y_AXIS_WIDTH = 40;
+/** Shared recharts margin; the range navigator insets by the same amounts to line up with the plot. */
+export const PLOT_MARGIN = { top: 8, right: 8, left: 0, bottom: 0 };
 
 /**
  * The visible x range for a chart. Without shared zoom state (no valid axis start, e.g. a
