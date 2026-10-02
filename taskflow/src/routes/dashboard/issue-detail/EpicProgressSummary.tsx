@@ -52,7 +52,7 @@ import { formatDuration, formatDurationCompact } from '@/services/jira/duration'
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { BandBar, BandBreakdown } from './EpicBands';
 import {
-  CHIP_TEXT,
+  SMALL_TEXT,
   STAT_CARD_CLASS,
   STAT_CARD_FOCUS,
   STAT_CONTAINER_CLASS,
@@ -376,16 +376,32 @@ function TipPopover({
 }) {
   const [open, setOpen] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
+  // Closing the popover returns focus to the trigger, which would re-open the tooltip at once
+  // (tooltip and popover flashing back-to-back). Ignore tooltip opens until the pointer leaves
+  // or focus moves away.
+  const suppressTip = useRef(false);
+  const release = () => {
+    suppressTip.current = false;
+  };
   return (
-    <Tooltip open={tipOpen && !open} onOpenChange={setTipOpen}>
+    <Tooltip
+      open={tipOpen && !open}
+      onOpenChange={(next) => {
+        if (next && suppressTip.current) return;
+        setTipOpen(next);
+      }}
+    >
       <Popover
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
-          if (next) setTipOpen(false);
+          setTipOpen(false);
+          if (!next) suppressTip.current = true;
         }}
       >
         <TooltipTrigger
+          onPointerLeave={release}
+          onBlur={release}
           render={<PopoverTrigger type="button" className={triggerClass} {...triggerProps} />}
         >
           {trigger}
@@ -404,8 +420,8 @@ function TipPopover({
 }
 
 const RISK_TRIGGER_CLASS = cn(
-  'inline-flex h-4 min-w-0 cursor-pointer items-center gap-1 rounded-sm px-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-  CHIP_TEXT,
+  'inline-flex h-4 min-w-0 cursor-pointer items-center gap-1 rounded-sm px-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+  SMALL_TEXT,
 );
 
 function RiskItem({
@@ -454,7 +470,9 @@ function RiskOverflow({
   onOpenIssue?: (key: string) => void;
 }) {
   const firstRow = useRef<HTMLButtonElement>(null);
-  const withRows = onOpenIssue !== undefined && hidden[0].issues.length > 0;
+  // Focus the first row of the first hidden risk that HAS rows (not just hidden[0]).
+  const firstWith = hidden.findIndex((r) => r.issues.length > 0);
+  const withRows = onOpenIssue !== undefined && firstWith >= 0;
   return (
     <TipPopover
       tip={
@@ -468,7 +486,7 @@ function RiskOverflow({
       }
       triggerProps={{
         'data-testid': 'epic-risk-more',
-        'aria-label': `${hidden.length} more risks`,
+        'aria-label': `${hidden.length} more ${hidden.length === 1 ? 'risk' : 'risks'}`,
       }}
       triggerClass={cn(RISK_TRIGGER_CLASS, 'flex-none tabular-nums')}
       trigger={`+${hidden.length}`}
@@ -481,7 +499,7 @@ function RiskOverflow({
               key={`${r.key}-${r.severity}`}
               risk={r}
               onOpenIssue={onOpenIssue}
-              firstRow={i === 0 ? firstRow : undefined}
+              firstRow={i === firstWith ? firstRow : undefined}
               onPick={close}
               separated={i > 0}
             />

@@ -14,8 +14,8 @@ export const STAT_CARD_CLASS =
   'grid h-[72px] w-full min-w-0 grid-rows-[1rem_2rem_1rem] gap-1 self-start text-left';
 export const STAT_CARD_FOCUS =
   'cursor-default rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
-/** The one small chip text size used in the cards and band chips. */
-export const CHIP_TEXT = 'text-[11px]';
+/** The one small text size used for risk labels and band chips. */
+export const SMALL_TEXT = 'text-[11px]';
 
 export function StatCardBody({
   label,
