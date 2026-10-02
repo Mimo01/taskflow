@@ -2149,7 +2149,8 @@ describe('zoom range matrix (261002-0xf)', () => {
       expect(formatDateRange('2026-10-09', '2026-11-02', T)).toBe('Oct 9 – Nov 2');
     });
     it('next-year suffix', () => {
-      expect(formatDateRange('2026-12-20', '2027-01-05', T)).toBe("Dec 20 – Jan 5 '27");
+      // 261002-0xf review WR-04: a range across years names both years.
+      expect(formatDateRange('2026-12-20', '2027-01-05', T)).toBe("Dec 20 '26 – Jan 5 '27");
     });
     it('formatMonthYear', () => {
       expect(formatMonthYear('2026-03-14')).toBe('Mar 2026');

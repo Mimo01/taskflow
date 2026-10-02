@@ -94,6 +94,15 @@ export function useLiveRange(zoom: ChartZoom | null, fallback: ChartRange | null
     pending.current = null;
   }, []);
   useEffect(() => cancel, [cancel]);
+  // Drop any drag-local range once the shared range changes (preset, reset, rebase), so a drag that
+  // ends without a commit (blur, Escape, cancelled pointer) can't leave the chart stuck on it.
+  const sharedFrom = zoom?.range.from;
+  const sharedTo = zoom?.range.to;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset keyed on the shared range only
+  useEffect(() => {
+    cancel();
+    setLive(null);
+  }, [sharedFrom, sharedTo, cancel]);
   const onLive = useCallback((r: ChartRange) => {
     pending.current = r;
     if (frame.current !== null) return;
