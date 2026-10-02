@@ -346,7 +346,9 @@ async function fetchAllSearchPages(
     allIssues.push(...issues);
 
     const total: number = data.total ?? 0;
-    startAt += PAGE_SIZE;
+    // Advance by what Jira actually returned: instances may cap maxResults below PAGE_SIZE,
+    // and stepping by PAGE_SIZE silently skipped the issues in between.
+    startAt += issues.length;
     if (startAt >= total || issues.length === 0) break;
   }
 
@@ -463,7 +465,8 @@ async function fetchAllWorklogPages<T = JiraWorklog>(
     allWorklogs.push(...worklogs);
 
     const total: number = data.total ?? 0;
-    startAt += PAGE_SIZE;
+    // Same as search: step by what was returned, not by the requested page size.
+    startAt += worklogs.length;
     if (startAt >= total || worklogs.length === 0) break;
   }
 
