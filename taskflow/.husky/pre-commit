@@ -1,3 +1,7 @@
 cd taskflow
-biome check --staged ./src && tsc --noEmit
+# One check per line: husky runs this with `sh -e`, which ignores a failure in any
+# non-final command of an `a && b` list — that let lint errors through for months.
+# --no-errors-on-unmatched keeps docs-only commits (no staged src files) passing.
+biome check --staged --no-errors-on-unmatched ./src
+tsc --noEmit
 npm run test
