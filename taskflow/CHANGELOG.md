@@ -2,6 +2,32 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.5] — 2026-10-02
+
+### Added
+
+- **Epic progress section on epic detail** — epics now show a progress section above their stories list, in both the side sheet and the full view:
+  - **Hero forecast:** one shared forecast of the finish date, averaged and aware of working days and Tempo holidays. Confidence shows on hover.
+  - **Stat cards:** fixed cards with a Count / Story Points / Time toggle that stays the same across tabs.
+  - **Charts:** a cumulative flow diagram and a worklog-based time burnup with remaining work and a forecast band. Both use a shared, status-coloured axis.
+  - **Range navigator:** epics with longer histories get a two-thumb date navigator with a sparkline, panning, keyboard control, double-click reset and zoom presets. It replaces the old brush.
+  - **Status and assignee bars:** a status bar plus Jira-like per-assignee rows, with short tooltips.
+  - **Risks:** shown as compact icon pills. Hover a risk to see the issues behind it, and click any issue key to open it.
+
+### Changed
+
+- **Issue detail — redesigned Changes tab:**
+  - **Grouping:** quick edits to the same issue by the same person are grouped into one entry.
+  - **Entry header:** matches Worklogs, with avatar, author, a "changed N fields" summary and the time.
+  - **Short fields:** shown as plain old → new, with the old value muted and struck through and the new value bold. This includes multi-value fields like Labels, Components, Fix Version and Sprint.
+  - **Long text:** fields like Description get a "Show changes +N −M" toggle that opens a full-height side-by-side Before/After word diff.
+  - **Reverted edits:** fields that were changed and then changed back within one group (A → B → A) are left out.
+
+### Fixed
+
+- **Jira results silently truncated on instances with a lower page cap** — search and worklog pagination moved forward by a fixed 200 per page. On Jira servers that return fewer results per page (often 50 or 100), the issues in between were skipped. Pagination now moves forward by the number of results actually returned.
+- **Epic progress skeleton jumped when the chart loaded** — the loading placeholder now reserves the right height for epics whose chart includes the range navigator.
+
 ## [1.14.4] — 2026-09-29
 
 ### Added
