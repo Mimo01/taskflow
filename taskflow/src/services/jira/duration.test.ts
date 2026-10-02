@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, parseDuration } from './duration';
+import { formatDuration, formatDurationCompact, parseDuration } from './duration';
+
+describe('formatDurationCompact', () => {
+  it('keeps the full form below 10h', () => {
+    expect(formatDurationCompact(0)).toBe('0m');
+    expect(formatDurationCompact(45 * 60)).toBe('45m');
+    expect(formatDurationCompact(4.5 * 3600)).toBe('4h 30m');
+    expect(formatDurationCompact(9 * 3600 + 59 * 60)).toBe('9h 59m');
+  });
+
+  it('drops minutes from 10h up', () => {
+    expect(formatDurationCompact(10 * 3600)).toBe('10h');
+    expect(formatDurationCompact(312.5 * 3600)).toBe('313h');
+  });
+});
 
 describe('parseDuration', () => {
   it('parses hours and minutes', () => {

@@ -67,3 +67,13 @@ export function formatDuration(totalSeconds: number): string {
   if (hours > 0) return `${hours}h`;
   return `${minutes}m`;
 }
+
+/**
+ * Compact duration for tight UI slots: 10h and above drop minutes ("312h"), below that
+ * the full formatDuration form ("4h 30m").
+ */
+export function formatDurationCompact(totalSeconds: number): string {
+  const hours = totalSeconds / 3600;
+  if (hours >= 10) return `${Math.round(hours)}h`;
+  return formatDuration(totalSeconds);
+}

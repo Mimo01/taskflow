@@ -1,6 +1,6 @@
 import { toLocalDateString } from '@/lib/local-date';
 import type { EpicStatusHistory, EpicWorklogDay, JiraIssue, JiraStatus } from '@/services/jira';
-import { formatDuration } from '@/services/jira/duration';
+import { formatDuration, formatDurationCompact } from '@/services/jira/duration';
 
 export type Metric = 'count' | 'sp' | 'time';
 export type Cat = 'new' | 'indeterminate' | 'done';
@@ -99,10 +99,6 @@ function secOf(s: JiraIssue, key: SecKey): number | null {
   const v = s.fields[key];
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
 }
-
-/** Single source for the estimate-formula tooltip copy. */
-export const ESTIMATE_FORMULA_NOTE =
-  'Per story: sum of its subtask estimates; stories without estimated subtasks use their own estimate.';
 
 /**
  * Per-story estimate (seconds): the sum of its subtasks' original estimates
@@ -305,7 +301,7 @@ export function formatMetric(n: number, metric: Metric): string {
 // ── Working days ─────────────────────────────────────────────────────────────
 
 export const CAT_LABEL: Record<Cat, string> = {
-  done: 'Done',
+  done: 'Completed',
   indeterminate: 'In progress',
   new: 'To do',
 };
@@ -518,7 +514,7 @@ export function forecastFromThroughput(
       nOpt: 0,
       nPess: 0,
       confidence: 'low',
-      explanation: 'Remaining work is unestimated, so no rate-based date can be projected.',
+      explanation: 'Remaining work is unestimated',
     };
   }
   if (input.firstActivity === null) {
@@ -595,7 +591,7 @@ export function forecastFromThroughput(
     return {
       ...common,
       state: 'too-early',
-      explanation: 'Needs a little more completed work to project a date.',
+      explanation: 'Needs more completed work',
     };
   }
 
@@ -613,7 +609,7 @@ export function forecastFromThroughput(
     return {
       ...common,
       state: 'too-early',
-      explanation: 'Nothing has been completed yet, so there is no pace to project from.',
+      explanation: 'Nothing completed yet',
     };
   }
 
@@ -649,10 +645,10 @@ export function forecastFromThroughput(
     nOpt,
     nPess,
     confidence,
-    explanation: `Based on the last ${W} working days (recent days weigh more): ${fmtUnit(
-      muD * 5,
+    explanation: `Last ${W} working days: ${fmtUnit(muD * 5, unit)}/wk done, +${fmtUnit(
+      muS * 5,
       unit,
-    )} done/wk, scope +${fmtUnit(muS * 5, unit)}/wk.`,
+    )}/wk scope`,
   };
 }
 
@@ -843,7 +839,7 @@ export function summaryBands(s: EpicSummary): Bands {
 
 /** Chip text: duration for time, plain integer / 1-decimal number otherwise. */
 export function formatChip(n: number, metric: Metric): string {
-  if (metric === 'time') return formatDuration(n);
+  if (metric === 'time') return formatDurationCompact(n);
   return String(Number.isInteger(n) ? n : Math.round(n * 10) / 10);
 }
 
@@ -1210,7 +1206,7 @@ export function projectFinish(
 
 export const METRIC_LABEL: Record<Metric, string> = {
   count: 'Items',
-  sp: 'Story points',
+  sp: 'SP',
   time: 'Time',
 };
 
@@ -1259,19 +1255,18 @@ function isUsable(f: EpicForecast | null): f is EpicForecast {
 function exclusionReason(part: ForecastPart): string {
   const f = part.forecast;
   if (f === null) {
-    if (part.pending === 'loading') return 'loading worklogs';
-    if (part.pending === 'error') return 'worklogs unavailable';
+    if (part.pending === 'loading') return 'loading';
     return 'unavailable';
   }
   switch (f.state) {
     case 'ok':
       return 'no estimates';
     case 'too-early':
-      return part.metric === 'time' && f.completions === 0 ? 'no logged time' : 'too early to tell';
+      return part.metric === 'time' && f.completions === 0 ? 'no logged time' : 'too early';
     case 'stalled':
       return 'stalled';
     case 'not-converging':
-      return 'not converging';
+      return 'no end date';
     case 'done':
       return 'complete';
   }
@@ -1326,7 +1321,7 @@ export function averageForecasts(
     return {
       ...empty,
       state: 'too-early',
-      explanation: 'No metric has enough data to project a date.',
+      explanation: 'Not enough data yet',
     };
   }
 
@@ -1355,18 +1350,35 @@ export function averageForecasts(
     confidence: CONF_ORDER[level],
     disagree,
     parts: rows,
-    explanation: `Average of ${joinLabels(labels)} forecasts.${
-      disagree ? ' They disagree widely, so confidence is lowered.' : ''
-    }`,
+    explanation: `Average of ${joinLabels(labels)} forecasts.`,
   };
 }
 
 export const FINISH_STATE_TEXT: Record<Exclude<ForecastState, 'ok'>, string> = {
   done: 'Complete',
-  'too-early': 'Too early to tell',
+  'too-early': 'Too early',
   stalled: 'Stalled',
-  'not-converging': 'Not converging',
+  'not-converging': 'No end date',
 };
+
+/** Short reason shown under a non-ok Finish value; null when the forecast is ok. */
+export function finishStateSub(finish: AveragedForecast): string | null {
+  switch (finish.state) {
+    case 'ok':
+      return null;
+    case 'done':
+      return 'All work done';
+    case 'too-early':
+      return 'Needs more completed work';
+    case 'not-converging':
+      return 'Scope grows faster than done';
+    case 'stalled': {
+      const part = finish.parts.find((p) => p.forecast?.state === 'stalled');
+      const text = part?.forecast?.explanation.replace(/\.$/, '');
+      return text || 'No recent progress';
+    }
+  }
+}
 
 /** Month-day, plus the year when it differs from today's. */
 export function formatFinishDate(key: string, today: string): string {
@@ -1406,13 +1418,13 @@ export type RiskKey = 'overdue' | 'late' | 'stalled' | 'scope' | 'unestimated' |
 export interface EpicRisk {
   key: RiskKey;
   severity: 'warning' | 'info';
-  /** Tooltip name. */
-  label: string;
-  /** Visible one-line text (e.g. '3 unestimated', 'Overdue 4 days'). */
+  /** Full text: the chip's aria-label and the popover header (e.g. '3 unestimated'). */
   text: string;
+  /** Short chip token (<= 4 chars, e.g. '4d', '+6d', '3'); null = icon only. */
+  chip: string | null;
   count: number | null;
   detail: string;
-  /** Every affected issue (from the loaded stories), numerically sorted by key. */
+  /** Affected issues (unestimated / unassigned only), numerically sorted by key. */
   issues: RiskIssue[];
 }
 
@@ -1440,15 +1452,24 @@ function daysText(n: number): string {
   return `${n} ${n === 1 ? 'day' : 'days'}`;
 }
 
+/** Drop a trailing period so a forecast explanation reads as a popover detail line. */
+function noPeriod(text: string): string {
+  return text.replace(/\.$/, '');
+}
+
+/**
+ * Risks are tab-independent. Stalled / Scope duplicate the Finish card, so they appear only
+ * when Finish is not already saying it; at most 4 risks result by construction
+ * (overdue|late, stalled|scope, unestimated, unassigned).
+ */
 export function deriveRisks(args: {
   stories: JiraIssue[];
-  metric: Metric;
   spKey: string;
   finish: AveragedForecast;
   dueDate: string | null | undefined;
   today: string;
 }): EpicRisk[] {
-  const { stories, metric, spKey, finish, today } = args;
+  const { stories, spKey, finish, today } = args;
   const open = stories.filter((s) => catOf(s) !== 'done');
   const warnings: EpicRisk[] = [];
   const infos: EpicRisk[] = [];
@@ -1456,88 +1477,96 @@ export function deriveRisks(args: {
 
   if (due !== null && open.length > 0) {
     if (due < today) {
+      const n = diffDays(due, today);
       warnings.push({
         key: 'overdue',
         severity: 'warning',
-        label: 'Overdue',
-        text: `Overdue ${daysText(diffDays(due, today))}`,
+        text: `Overdue ${daysText(n)}`,
+        chip: `${n}d`,
         count: null,
-        detail: `Due ${formatDateKey(due)} with ${open.length} open items.`,
-        // The open items are what's overdue — list them like the other count-based risks.
-        ...issuesOf(open),
+        detail: `Was due ${formatDateKey(due)} \u00b7 ${open.length} ${open.length === 1 ? 'item' : 'items'} open`,
+        // The Stories list below already shows the open items.
+        issues: [],
       });
     } else if (finish.state === 'ok' && finish.likely !== null && finish.likely > due) {
+      const n = diffDays(due, finish.likely);
       warnings.push({
         key: 'late',
         severity: 'warning',
-        label: 'Finish after due date',
-        text: `Late by ${daysText(diffDays(due, finish.likely))}`,
+        text: `Finishes ${daysText(n)} after due date`,
+        chip: `+${n}d`,
         count: null,
-        detail: `Due ${formatDateKey(due)}, forecast ${formatDateKey(finish.likely)}.`,
+        detail: `Due ${formatDateKey(due)} \u00b7 forecast ${formatDateKey(finish.likely)}`,
         issues: [],
       });
     }
   }
 
-  const stalled = finish.parts.find((p) => p.forecast?.state === 'stalled');
+  const stalled =
+    finish.state === 'ok' ? finish.parts.find((p) => p.forecast?.state === 'stalled') : undefined;
   if (stalled?.forecast) {
     warnings.push({
       key: 'stalled',
       severity: 'warning',
-      label: 'Stalled',
       text: 'Stalled',
+      chip: null,
       count: null,
-      detail: stalled.forecast.explanation,
-      issues: [],
-    });
-  }
-
-  const diverging = finish.parts.find((p) => p.forecast?.state === 'not-converging');
-  if (diverging?.forecast) {
-    warnings.push({
-      key: 'scope',
-      severity: 'warning',
-      label: 'Scope growing',
-      text: 'Scope growing',
-      count: null,
-      detail: diverging.forecast.explanation,
+      detail: noPeriod(stalled.forecast.explanation),
       issues: [],
     });
   } else {
-    const c = finish.parts.find((p) => p.metric === 'count')?.forecast;
-    if (
-      c &&
-      c.state === 'ok' &&
-      c.scopeRatePerWeek > 0 &&
-      c.scopeRatePerWeek >= RISK_SCOPE_RATIO * c.ratePerWeek
+    const countPart = finish.parts.find((p) => p.metric === 'count')?.forecast;
+    const diverging = finish.parts.find((p) => p.forecast?.state === 'not-converging');
+    const detailFor = (): string | null => {
+      if (
+        countPart &&
+        countPart.state === 'ok' &&
+        countPart.ratePerWeek !== undefined &&
+        countPart.scopeRatePerWeek > 0
+      ) {
+        return `+${round1(countPart.scopeRatePerWeek)} items/wk added vs ${round1(countPart.ratePerWeek)}/wk done`;
+      }
+      return diverging?.forecast ? noPeriod(diverging.forecast.explanation) : null;
+    };
+    if (diverging?.forecast && finish.state !== 'not-converging') {
+      warnings.push({
+        key: 'scope',
+        severity: 'warning',
+        text: 'Scope growing',
+        chip: null,
+        count: null,
+        detail: detailFor() ?? '',
+        issues: [],
+      });
+    } else if (
+      !diverging &&
+      countPart &&
+      countPart.state === 'ok' &&
+      countPart.scopeRatePerWeek > 0 &&
+      countPart.scopeRatePerWeek >= RISK_SCOPE_RATIO * countPart.ratePerWeek
     ) {
       infos.push({
         key: 'scope',
         severity: 'info',
-        label: 'Scope growing',
         text: 'Scope growing',
+        chip: null,
         count: null,
-        detail: `+${round1(c.scopeRatePerWeek)} items/wk added vs ${round1(c.ratePerWeek)}/wk done.`,
+        detail: detailFor() ?? '',
         issues: [],
       });
     }
   }
 
-  const unestimated =
-    metric === 'time'
-      ? open.filter((s) => estimateOf(s) === 0)
-      : open.filter((s) => spOf(s, spKey) === null);
+  // Neither story points nor a time estimate (same in every tab).
+  const unestimated = open.filter((s) => spOf(s, spKey) === null && estimateOf(s) === 0);
   if (unestimated.length > 0) {
     infos.push({
       key: 'unestimated',
       severity: 'info',
-      label: 'Unestimated',
       text: `${unestimated.length} unestimated`,
+      chip: `${unestimated.length}`,
       count: unestimated.length,
-      detail:
-        metric === 'time'
-          ? 'Open items without a time estimate.'
-          : 'Open items without story points.',
+      detail: 'Open items with no points or time estimate',
       ...issuesOf(unestimated),
     });
   }
@@ -1547,10 +1576,10 @@ export function deriveRisks(args: {
     infos.push({
       key: 'unassigned',
       severity: 'info',
-      label: 'Unassigned',
       text: `${unassigned.length} unassigned`,
+      chip: `${unassigned.length}`,
       count: unassigned.length,
-      detail: 'Open items with no assignee.',
+      detail: 'Open items with no assignee',
       ...issuesOf(unassigned),
     });
   }
@@ -1946,8 +1975,7 @@ export function confidenceReason(finish: AveragedForecast): string | null {
   if (!f) return null;
   const W = f.windowDays;
   const c = f.completions;
-  const noun =
-    weakest.metric === 'time' ? 'days with logged work' : c === 1 ? 'completion' : 'completions';
+  const noun = weakest.metric === 'time' ? 'logged days' : c === 1 ? 'completion' : 'completions';
   const shortHistory = `Only ${W} working days of history`;
   const fewEvents = `Only ${c} ${noun} in ${W} working days`;
   switch (f.confidence) {
@@ -1972,65 +2000,33 @@ export type WorklogSource = 'loaded' | 'loading' | 'unavailable';
 export const HISTORY_SOURCE_TEXT: Record<HistorySource, string> = {
   real: 'From Jira status history',
   partial: 'Approximate for some items',
-  loading: 'Approximate — loading status history',
-  unavailable: 'Approximate — status history unavailable',
+  loading: 'Approximate: status history loading',
+  unavailable: 'Approximate: no status history',
 };
 
-export interface SourceLine {
-  key: 'history' | 'scope' | 'worklogs' | 'estimate' | 'collapse' | 'calendar';
-  text: string;
-  approximate: boolean;
-}
-
-/** Look-back for the holiday count in the calendar note (about the 30-working-day max window). */
-const HOLIDAY_NOTE_LOOKBACK_DAYS = 42;
-
-export function calendarNote(cal: WorkCalendar, today: string, until: string | null): string {
-  if (cal.source !== 'tempo') return 'Excludes weekends (holidays unavailable)';
-  const n = holidaysBetween(cal, addDays(today, -HOLIDAY_NOTE_LOOKBACK_DAYS), until ?? today);
-  return `Excludes weekends and ${n} ${n === 1 ? 'holiday' : 'holidays'} (Tempo)`;
-}
-
-const WORKLOG_SOURCE_TEXT: Record<WorklogSource, string> = {
-  loaded: 'Logged from Jira worklogs',
-  loading: 'Approximate — loading worklogs',
+export const WORKLOG_SOURCE_TEXT: Record<WorklogSource, string> = {
+  loaded: 'From Jira worklogs',
+  loading: 'Approximate: worklogs loading',
   unavailable: 'Worklogs unavailable',
 };
 
-/** Provenance lines in a fixed slot order per metric (history/worklogs, rules, calendar). */
-export function dataSourceLines(args: {
+/**
+ * One short hero-tooltip note (at most 2 tokens) naming only non-default / approximate data
+ * sources; null when everything is real.
+ */
+export function sourceNote(args: {
   metric: Metric;
   history: HistorySource;
   worklogs: WorklogSource;
-  calendarLine: string;
-}): SourceLine[] {
-  const calendar: SourceLine = { key: 'calendar', text: args.calendarLine, approximate: false };
+  calendar: WorkCalendar;
+}): string | null {
+  const tokens: string[] = [];
   if (args.metric === 'time') {
-    return [
-      {
-        key: 'worklogs',
-        text: WORKLOG_SOURCE_TEXT[args.worklogs],
-        approximate: args.worklogs !== 'loaded',
-      },
-      { key: 'estimate', text: ESTIMATE_FORMULA_NOTE, approximate: false },
-      { key: 'collapse', text: 'Done stories collapse to their logged time.', approximate: false },
-      calendar,
-    ];
-  }
-  return [
-    {
-      key: 'history',
-      text: HISTORY_SOURCE_TEXT[args.history],
-      approximate: args.history !== 'real',
-    },
-    {
-      key: 'scope',
-      text:
-        args.history === 'real'
-          ? 'Scope from when each item joined the epic'
-          : 'Scope by story creation date',
-      approximate: args.history !== 'real',
-    },
-    calendar,
-  ];
+    if (args.worklogs === 'loading') tokens.push('Worklogs loading');
+    else if (args.worklogs === 'unavailable') tokens.push('Worklogs unavailable');
+  } else if (args.history === 'partial') tokens.push('Partial status history');
+  else if (args.history === 'loading') tokens.push('Status history loading');
+  else if (args.history === 'unavailable') tokens.push('No status history');
+  if (args.calendar.source !== 'tempo') tokens.push('No holiday calendar');
+  return tokens.length > 0 ? tokens.join(' \u00b7 ') : null;
 }

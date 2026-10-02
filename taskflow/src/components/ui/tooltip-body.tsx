@@ -22,7 +22,12 @@ export function TooltipBody({
       {title ? <div className="font-medium">{title}</div> : null}
       {children}
       {note ? (
-        <div className="mt-0.5 border-t border-border/50 pt-1 text-muted-foreground">{note}</div>
+        <div
+          data-slot="tooltip-note"
+          className="mt-0.5 border-t border-border/50 pt-1 text-muted-foreground"
+        >
+          {note}
+        </div>
       ) : null}
     </div>
   );

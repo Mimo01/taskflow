@@ -2,24 +2,20 @@
  * EpicProgressSummary — the hero (big %, segmented status bar, "X of Y done") plus a
  * 3-cell stat strip (Finish / Remaining / Risks) at the top of the epic progress section
  * (quick 261001-ilq). Tooltip triggers contain spans only (valid inside a <button>).
- * The hero tooltip carries the one "Data sources" block (261001-sqm); the Risks tile lists
- * one-line risk buttons, each opening a popover of affected issues (261002-0et).
+ * Four fixed 72px cards (EpicStatCard) in a container-query grid (261002-0xf); the hero
+ * tooltip carries at most one short data-source note; the Risks card is a count plus up to
+ * four icon chips, each opening a popover.
  *
  * Text-collision rule (EpicDetailSheet.test): no visible text node equals exactly
  * "Done" / "In Progress" and none says "Stories" — every sentence here is a single
  * lowercase template-literal node.
  */
 import {
-  CalendarDays,
   CalendarX,
   CircleCheck,
   CircleDashed,
   CirclePause,
-  Clock,
   Gauge,
-  History,
-  ListPlus,
-  Timer,
   TrendingUp,
   UserX,
 } from 'lucide-react';
@@ -33,21 +29,28 @@ import {
   type EpicRisk,
   type EpicSummary,
   FINISH_STATE_TEXT,
-  finishDateRows,
-  formatDateKey,
+  finishStateSub,
+  formatDateRange,
   formatFinishDate,
   formatMetric,
   METRIC_LABEL,
   type Metric,
   type RiskKey,
-  type SourceLine,
   summaryBands,
   type TimeTotals,
 } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
-import { formatDuration } from '@/services/jira/duration';
+import { formatDuration, formatDurationCompact } from '@/services/jira/duration';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { BandBar, BandBreakdown } from './EpicBands';
+import {
+  CHIP_TEXT,
+  STAT_CARD_CLASS,
+  STAT_CARD_FOCUS,
+  STAT_CONTAINER_CLASS,
+  STAT_GRID_CLASS,
+  StatCardBody,
+} from './EpicStatCard';
 import { MARKER_ICON, METRIC_ICON } from './epic-markers';
 
 const RISK_ICON: Record<RiskKey, typeof CalendarX> = {
@@ -59,15 +62,6 @@ const RISK_ICON: Record<RiskKey, typeof CalendarX> = {
   unassigned: UserX,
 };
 
-const SOURCE_ICON: Record<SourceLine['key'], typeof History> = {
-  history: History,
-  scope: ListPlus,
-  worklogs: Clock,
-  estimate: Timer,
-  collapse: CircleCheck,
-  calendar: CalendarDays,
-};
-
 interface EpicProgressSummaryProps {
   metric: Metric;
   summary: EpicSummary;
@@ -75,110 +69,52 @@ interface EpicProgressSummaryProps {
   /** Average of the Count / SP / Time forecasts (independent of the metric toggle). */
   finish: AveragedForecast;
   risks: EpicRisk[];
-  /** Provenance lines for the hero tooltip's Data sources block. */
-  sources: SourceLine[];
+  /** One short note for the hero tooltip, only when a data source is approximate / default. */
+  sourceNote: string | null;
   /** Opens an issue (same handler as the Stories rows); risk keys call it. */
   onOpenIssue?: (key: string) => void;
   today: string;
 }
 
-const TILE_CLASS = 'min-w-0 cursor-default text-left';
-
-function Tile({
-  label,
-  value,
-  sub,
-  tip,
-  children,
-}: {
-  label: string;
-  value?: string;
-  sub?: ReactNode;
-  tip: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger type="button" data-testid="epic-stat-tile" className={TILE_CLASS}>
-        <span className="block truncate text-xs text-muted-foreground">{label}</span>
-        {value !== undefined ? (
-          <span className="block truncate text-lg font-semibold leading-tight">{value}</span>
-        ) : null}
-        {children}
-        {typeof sub === 'string' ? (
-          <span className="block truncate text-xs text-muted-foreground">{sub}</span>
-        ) : sub ? (
-          <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
-            {sub}
-          </span>
-        ) : null}
-      </TooltipTrigger>
-      <TooltipContent>{tip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-const REMAINING_NOTE =
-  "Time: open items' estimate minus logged, never below 0. Replaces Jira's remaining estimate so it matches the Time chart.";
+const REMAINING_NOTE = 'Open items \u00b7 Time = estimate \u2212 logged';
 
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-/** The single provenance block, same slot order in every tab (lib dataSourceLines). */
-function DataSources({ sources }: { sources: SourceLine[] }) {
-  return (
-    <div className="grid gap-1">
-      <div className="font-medium text-foreground">Data sources</div>
-      {sources.map((s) => {
-        const Icon = SOURCE_ICON[s.key];
-        return (
-          <div
-            key={s.key}
-            data-slot="tooltip-source"
-            data-approximate={s.approximate}
-            className="flex items-start gap-2"
-          >
-            <Icon aria-hidden="true" className="mt-px size-3 shrink-0 text-muted-foreground" />
-            <span className="max-w-64">{s.text}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
+/** Compact "done of total" caption for the hero value row. */
+function heroCaption(metric: Metric, summary: EpicSummary, done: number): string {
+  if (metric === 'count') return `${done} of ${summary.total}`;
+  if (metric === 'sp')
+    return `${formatMetric(done, 'sp').replace(' SP', '')} of ${formatMetric(summary.total, 'sp')}`;
+  return `${formatDurationCompact(done)} of ${formatDurationCompact(summary.total)}`;
 }
 
 function Hero({
   metric,
   summary,
   time,
-  sources,
+  sourceNote,
 }: {
   metric: Metric;
   summary: EpicSummary;
   time: TimeTotals;
-  sources: SourceLine[];
+  sourceNote: string | null;
 }) {
   // One model for every tab: done / in progress / to do weighted by the active metric.
   const bands = summaryBands(summary);
-  const bigText = summary.total === 0 ? '—' : `${summary.pctDone}%`;
-  const line = `${formatMetric(bands.done, metric)} of ${formatMetric(summary.total, metric)} done · ${formatMetric(bands.inProgress, metric)} in progress`;
+  const bigText = summary.total === 0 ? '\u2014' : `${summary.pctDone}%`;
   const tip = (
-    <TooltipBody note={<DataSources sources={sources} />}>
+    <TooltipBody
+      note={sourceNote ? <span data-testid="hero-source-note">{sourceNote}</span> : undefined}
+    >
       <BandBreakdown bands={bands} metric={metric} share />
       {metric === 'time' ? (
-        <>
-          <TooltipRow
-            icon={<MARKER_ICON.logged className="size-3" />}
-            label="Logged"
-            value={formatDuration(time.logged)}
-          />
-          <TooltipRow
-            icon={<MARKER_ICON.estimate className="size-3" />}
-            label="Estimate"
-            value={formatDuration(time.estimated)}
-          />
-        </>
+        <TooltipRow
+          icon={<MARKER_ICON.logged className="size-3" />}
+          label="Logged"
+          value={formatDuration(time.logged)}
+        />
       ) : null}
     </TooltipBody>
   );
@@ -188,16 +124,57 @@ function Hero({
       <TooltipTrigger
         type="button"
         data-testid="epic-hero"
-        className="flex min-w-0 cursor-default flex-col gap-1.5 text-left"
+        data-stat-card=""
+        className={cn(STAT_CARD_CLASS, STAT_CARD_FOCUS)}
       >
-        <span className="text-3xl font-semibold leading-none tabular-nums">{bigText}</span>
-        <BandBar bands={bands} className="h-2" testId="epic-hero-bar" />
-        <span
-          data-testid="epic-hero-caption"
-          className="mt-1.5 block truncate text-xs text-muted-foreground"
-        >
-          {line}
-        </span>
+        <StatCardBody
+          label="Completed"
+          value={
+            <>
+              <span className="text-3xl font-semibold leading-none tabular-nums">{bigText}</span>
+              <span
+                data-testid="epic-hero-caption"
+                className="min-w-0 truncate text-xs text-muted-foreground"
+              >
+                {heroCaption(metric, summary, bands.done)}
+              </span>
+            </>
+          }
+          sub={<BandBar bands={bands} className="h-2" testId="epic-hero-bar" />}
+        />
+      </TooltipTrigger>
+      <TooltipContent>{tip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+const VALUE_CLASS = 'truncate text-lg font-semibold leading-none';
+
+/** A tile card: label / value / sub with its tooltip. */
+function Tile({
+  label,
+  value,
+  sub,
+  tip,
+}: {
+  label: string;
+  value: string;
+  sub?: ReactNode;
+  tip: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        type="button"
+        data-testid="epic-stat-tile"
+        data-stat-card=""
+        className={cn(STAT_CARD_CLASS, STAT_CARD_FOCUS)}
+      >
+        <StatCardBody
+          label={label}
+          value={<span className={VALUE_CLASS}>{value}</span>}
+          sub={sub}
+        />
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
@@ -207,68 +184,78 @@ function Hero({
 function FinishTile({ finish, today }: { finish: AveragedForecast; today: string }) {
   let value: string;
   let sub: ReactNode;
+  let tip: ReactNode;
   if (finish.state !== 'ok') {
     value = FINISH_STATE_TEXT[finish.state];
+    const reason = finishStateSub(finish);
+    sub = reason ? <span className="min-w-0 truncate">{reason}</span> : undefined;
+    tip = (
+      <TooltipBody>
+        {finish.parts.map((p) => {
+          const Icon = METRIC_ICON[p.metric];
+          return (
+            <TooltipRow
+              key={p.metric}
+              icon={<Icon className="size-3" />}
+              label={METRIC_LABEL[p.metric]}
+              value={p.included ? 'included' : (p.reason ?? '')}
+            />
+          );
+        })}
+      </TooltipBody>
+    );
   } else {
-    value = finish.likely ? formatFinishDate(finish.likely, today) : '—';
-    if (finish.optimistic && finish.pessimistic) {
+    value = finish.likely ? formatFinishDate(finish.likely, today) : '\u2014';
+    const range =
+      finish.optimistic && finish.pessimistic
+        ? formatDateRange(finish.optimistic, finish.pessimistic, today)
+        : null;
+    if (range) {
       sub = (
         <>
-          <span className="min-w-0 truncate">{`${formatDateKey(finish.optimistic)}–${formatDateKey(finish.pessimistic)}`}</span>
+          <span className="min-w-0 truncate">{range}</span>
           <ConfidenceMeter level={finish.confidence ?? 'low'} className="flex-none" />
         </>
       );
     }
+    const reason = confidenceReason(finish);
+    const included = finish.parts.filter((p) => p.included).map((p) => METRIC_LABEL[p.metric]);
+    tip = (
+      <TooltipBody
+        note={reason ? <span data-testid="confidence-reason">{reason}</span> : undefined}
+      >
+        {finish.likely ? (
+          <TooltipRow
+            icon={<MARKER_ICON.date className="size-3" />}
+            label="Likely"
+            value={formatFinishDate(finish.likely, today)}
+            sub={
+              finish.nLikely !== null
+                ? `${finish.nLikely} working day${finish.nLikely === 1 ? '' : 's'}`
+                : undefined
+            }
+          />
+        ) : null}
+        {range ? (
+          <TooltipRow icon={<MARKER_ICON.date className="size-3" />} label="Range" value={range} />
+        ) : null}
+        {finish.confidence !== null ? (
+          <TooltipRow
+            icon={<Gauge className="size-3" />}
+            label="Confidence"
+            value={<ConfidenceMeter level={finish.confidence} />}
+          />
+        ) : null}
+        <TooltipRow
+          icon={<MARKER_ICON.date className="size-3" />}
+          label="Based on"
+          value={included.join(' \u00b7 ')}
+        />
+      </TooltipBody>
+    );
   }
 
-  const reason = confidenceReason(finish);
-  return (
-    <Tile
-      label="Finish"
-      value={value}
-      sub={sub}
-      tip={
-        <TooltipBody title="Projected finish" note={finish.explanation || undefined}>
-          {finishDateRows(finish).map((r) => (
-            <TooltipRow
-              key={r.key}
-              icon={<MARKER_ICON.date className="size-3" />}
-              label={r.label}
-              value={formatFinishDate(r.date, today)}
-              sub={`${r.n} working day${r.n === 1 ? '' : 's'}`}
-            />
-          ))}
-          {finish.state === 'ok' && finish.confidence !== null ? (
-            <TooltipRow
-              icon={<Gauge className="size-3" />}
-              label="Confidence"
-              value={<ConfidenceMeter level={finish.confidence} />}
-            />
-          ) : null}
-          {reason ? (
-            <div data-testid="confidence-reason" className="max-w-64 pl-5 text-muted-foreground">
-              {reason}
-            </div>
-          ) : null}
-          {finish.parts.map((p) => {
-            const Icon = METRIC_ICON[p.metric];
-            return (
-              <TooltipRow
-                key={p.metric}
-                icon={<Icon className="size-3" />}
-                label={METRIC_LABEL[p.metric]}
-                value={
-                  p.included && p.forecast?.likely
-                    ? formatFinishDate(p.forecast.likely, today)
-                    : p.reason
-                }
-              />
-            );
-          })}
-        </TooltipBody>
-      }
-    />
-  );
+  return <Tile label="Finish" value={value} sub={sub} tip={tip} />;
 }
 
 function RiskItem({
@@ -315,21 +302,23 @@ function RiskItem({
         type="button"
         data-testid="epic-risk-item"
         data-severity={risk.severity}
-        className="flex w-full min-w-0 cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        aria-label={risk.text}
+        className={cn(
+          'inline-flex h-4 flex-none cursor-pointer items-center gap-1 rounded-sm px-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+          CHIP_TEXT,
+        )}
       >
         <Icon aria-hidden="true" className={iconClass} />
-        <span className="min-w-0 truncate">{risk.text}</span>
+        {risk.chip ? <span className="tabular-nums">{risk.chip}</span> : null}
       </PopoverTrigger>
       <PopoverContent
         data-testid="epic-risk-popover"
         initialFocus={onOpenIssue && risk.issues.length > 0 ? firstRow : true}
-        className={cn(TOOLTIP_SURFACE, 'w-80 border-0 p-2.5 shadow-xl')}
+        className={cn(TOOLTIP_SURFACE, 'w-72 border-0 p-2.5 shadow-xl')}
       >
         <div className="flex items-center gap-2 font-medium text-foreground">
           <Icon aria-hidden="true" className={iconClass} />
-          <span className="min-w-0 truncate">
-            {risk.count !== null ? `${risk.label} · ${risk.count}` : risk.label}
-          </span>
+          <span className="min-w-0 truncate">{risk.text}</span>
         </div>
         <div className="text-muted-foreground">{risk.detail}</div>
         {risk.issues.length > 0 ? (
@@ -354,14 +343,14 @@ function RiskItem({
                       onOpenIssue(issue.key);
                     }}
                   >
-                    <span className="flex-none font-mono text-[11px] text-muted-foreground">
+                    <span className="flex-none font-mono text-xs text-muted-foreground">
                       {issue.key}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{issue.summary}</span>
                   </button>
                 ) : (
                   <div data-testid="epic-risk-issue" className={rowLayout}>
-                    <span className="flex-none font-mono text-[11px] text-muted-foreground">
+                    <span className="flex-none font-mono text-xs text-muted-foreground">
                       {issue.key}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{issue.summary}</span>
@@ -383,23 +372,26 @@ function RisksTile({
   risks: EpicRisk[];
   onOpenIssue?: (key: string) => void;
 }) {
+  const value =
+    risks.length === 0 ? (
+      <span className="flex items-center gap-1.5 text-lg font-semibold leading-none text-muted-foreground">
+        <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+        No risks
+      </span>
+    ) : (
+      <span className={VALUE_CLASS}>{plural(risks.length, 'risk', 'risks')}</span>
+    );
   return (
-    <div data-testid="epic-stat-tile" className={TILE_CLASS}>
-      <span className="block truncate text-xs text-muted-foreground">Risks</span>
-      {risks.length === 0 ? (
-        <span className="flex items-center gap-1.5 text-lg font-semibold leading-tight text-muted-foreground">
-          <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
-          No risks
-        </span>
-      ) : (
-        <ul className="mt-0.5 grid gap-0.5">
-          {risks.map((r) => (
-            <li key={r.key} className="min-w-0">
-              <RiskItem risk={r} onOpenIssue={onOpenIssue} />
-            </li>
-          ))}
-        </ul>
-      )}
+    <div data-testid="epic-stat-tile" data-stat-card="" className={STAT_CARD_CLASS}>
+      <StatCardBody
+        label="Risks"
+        value={value}
+        sub={
+          risks.length > 0
+            ? risks.map((r) => <RiskItem key={r.key} risk={r} onOpenIssue={onOpenIssue} />)
+            : undefined
+        }
+      />
     </div>
   );
 }
@@ -410,57 +402,33 @@ export function EpicProgressSummary({
   time,
   finish,
   risks,
-  sources,
+  sourceNote,
   onOpenIssue,
   today,
 }: EpicProgressSummaryProps) {
-  const remainingPrimary =
-    metric === 'count'
-      ? plural(summary.remainingCount, 'item', 'items')
-      : metric === 'sp'
-        ? formatMetric(summary.remainingSp, 'sp')
-        : formatDuration(summary.remainingSeconds);
   const remainingParts = {
     count: plural(summary.remainingCount, 'item', 'items'),
     sp: formatMetric(summary.remainingSp, 'sp'),
-    time: formatDuration(summary.remainingSeconds),
+    time: formatDurationCompact(summary.remainingSeconds),
   };
   const others = (['count', 'sp', 'time'] as const)
     .filter((m) => m !== metric)
     .map((m) => remainingParts[m])
-    .join(' · ');
+    .join(' \u00b7 ');
 
   return (
-    <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
-      <div className="min-w-0 sm:col-span-3 lg:col-span-1">
-        <Hero metric={metric} summary={summary} time={time} sources={sources} />
+    <div className={STAT_CONTAINER_CLASS}>
+      <div className={STAT_GRID_CLASS}>
+        <Hero metric={metric} summary={summary} time={time} sourceNote={sourceNote} />
+        <FinishTile finish={finish} today={today} />
+        <Tile
+          label="Remaining"
+          value={remainingParts[metric]}
+          sub={<span className="min-w-0 truncate">{others}</span>}
+          tip={<TooltipBody>{REMAINING_NOTE}</TooltipBody>}
+        />
+        <RisksTile risks={risks} onOpenIssue={onOpenIssue} />
       </div>
-      <FinishTile finish={finish} today={today} />
-      <Tile
-        label="Remaining"
-        value={remainingPrimary}
-        sub={others}
-        tip={
-          <TooltipBody note={REMAINING_NOTE}>
-            <TooltipRow
-              icon={<METRIC_ICON.count className="size-3" />}
-              label="Items"
-              value={remainingParts.count}
-            />
-            <TooltipRow
-              icon={<METRIC_ICON.sp className="size-3" />}
-              label="Story points"
-              value={remainingParts.sp}
-            />
-            <TooltipRow
-              icon={<METRIC_ICON.time className="size-3" />}
-              label="Time"
-              value={remainingParts.time}
-            />
-          </TooltipBody>
-        }
-      />
-      <RisksTile risks={risks} onOpenIssue={onOpenIssue} />
     </div>
   );
 }

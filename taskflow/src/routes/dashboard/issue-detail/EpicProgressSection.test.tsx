@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ESTIMATE_FORMULA_NOTE } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
 import { SERIES } from './epic-markers';
 import { toLocalDateString } from '@/lib/local-date';
@@ -184,7 +183,7 @@ describe('EpicProgressSection', () => {
         epicCreated={daysAgo(12)}
       />,
     );
-    expect(screen.getByText('Too early to tell')).toBeInTheDocument();
+    expect(screen.getByText('Too early')).toBeInTheDocument();
   });
 
   it('shows Complete and no projected date at 100%', () => {
@@ -233,10 +232,16 @@ describe('EpicProgressSection review fixes (261001-fmk)', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
-    expect(screen.getByText(/No story points estimated/)).toBeTruthy();
-    expect(screen.queryByTestId('epic-status-bar')).toBeNull();
+    // 261002-0xf: a calm in-place message keeps the chart slot; the status block still renders.
+    const empty = screen.getByTestId('epic-empty-estimate');
+    expect(within(empty).getByText(/No story points estimated/)).toBeTruthy();
+    expect(screen.getByTestId('epic-status-bar')).toBeInTheDocument();
+    fireEvent.click(within(empty).getByRole('button', { name: 'Switch to Count' }));
+    expect(screen.getByRole('button', { name: 'Count' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+const ASSIGNEE_TIME_ROWS = ['Completed33%', 'In progress0%', 'To do67%', 'Logged1h 30m'];
 
 describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () => {
   const timed = [
@@ -315,7 +320,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const hero = screen.getByTestId('epic-hero');
     expect(hero.textContent).toContain('33%');
-    expect(within(hero).getByText('1h of 3h done · 0m in progress')).toBeInTheDocument();
+    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1h of 3h');
     const tiles = screen.getAllByTestId('epic-stat-tile');
     expect(tiles).toHaveLength(3);
     expect(tiles[0].textContent).toMatch(/^Finish/);
@@ -328,7 +333,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
-    expect(within(row).getByLabelText('done 1h')).toBeInTheDocument();
+    expect(within(row).getByLabelText('completed 1h')).toBeInTheDocument();
     expect(within(row).getByLabelText('in progress 0m')).toBeInTheDocument();
     expect(within(row).getByLabelText('to do 2h')).toBeInTheDocument();
     expect(within(row).queryByLabelText('logged 1h 30m')).toBeNull();
@@ -337,8 +342,9 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
   it('Time mode with no estimates explains instead of drawing bars', () => {
     renderTimed([story('N-1', { cat: 'new', status: 'To Do', created: daysAgo(3) })]);
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
-    expect(screen.getByText(/No time estimated/)).toBeTruthy();
-    expect(screen.queryByTestId('epic-status-bar')).toBeNull();
+    const empty = screen.getByTestId('epic-empty-estimate');
+    expect(within(empty).getByText(/No time estimated/)).toBeTruthy();
+    expect(screen.getByTestId('epic-status-bar')).toBeInTheDocument();
   });
 
   it('hovering the whole status bar shows every non-zero status with value and percent', async () => {
@@ -359,7 +365,9 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     await user.tab(); // Time
     await user.tab(); // hero
     expect(document.activeElement).toBe(screen.getByTestId('epic-hero'));
-    await waitFor(() => expect(rowTexts()).toEqual(['Done150%', 'In progress00%', 'To do150%']));
+    await waitFor(() =>
+      expect(rowTexts()).toEqual(['Completed150%', 'In progress00%', 'To do150%']),
+    );
   });
 
   it('hovering the assignee bar shows the breakdown in the active metric', async () => {
@@ -375,13 +383,8 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
       return el;
     });
     expect(within(tip).getByText('Amy')).toBeInTheDocument();
-    expect(rowTexts()).toEqual([
-      'Done1h',
-      'In progress0m',
-      'To do2h',
-      'Logged1h 30m',
-      'Estimate3h',
-    ]);
+    // 261002-0xf: shares only (chips already show values), Logged for Time, no Estimate row.
+    expect(rowTexts()).toEqual(ASSIGNEE_TIME_ROWS);
   });
 
   it('hovering the assignee name or chips opens the row tooltip', async () => {
@@ -389,7 +392,7 @@ describe('EpicProgressSection time metric, card and tooltips (261001-g5q)', () =
     renderTimed();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const row = screen.getByTestId('epic-assignee-row');
-    const expected = ['Done1h', 'In progress0m', 'To do2h', 'Logged1h 30m', 'Estimate3h'];
+    const expected = ASSIGNEE_TIME_ROWS;
     await user.hover(within(row).getByText('Amy'));
     await waitFor(() => expect(rowTexts()).toEqual(expected));
     await user.unhover(within(row).getByText('Amy'));
@@ -514,23 +517,21 @@ describe('EpicProgressSection time burnup, formulas (261001-hsz)', () => {
     expect(await screen.findByTestId('epic-time-burnup')).toBeInTheDocument();
   });
 
-  it('hero uses the subtask-sum estimate and its tooltip explains the formula', async () => {
-    const user = userEvent.setup();
+  it('hero uses the subtask-sum estimate (no formula note in the tooltip)', () => {
     renderIt();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     const hero = screen.getByTestId('epic-hero');
     // T-1: no subtask estimates -> own 1h; T-2: subtasks 3h - 1h own... agg 3h, own 1h -> 2h. Total 3h.
-    expect(hero.textContent).toContain('1h of 3h done');
-    await user.hover(hero);
-    expect(await screen.findByText(ESTIMATE_FORMULA_NOTE)).toBeInTheDocument();
+    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1h of 3h');
   });
 
-  it('Remaining tile tooltip says it replaces the Jira remaining estimate', async () => {
+  it('Remaining tile tooltip is a single explanatory line', async () => {
     const user = userEvent.setup();
     renderIt();
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     await user.hover(screen.getAllByTestId('epic-stat-tile')[1]);
-    expect(await screen.findByText(/Replaces Jira's remaining estimate/)).toBeInTheDocument();
+    expect(await screen.findByText('Open items · Time = estimate − logged')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-slot="tooltip-row"]')).toHaveLength(0);
   });
 
   it('legend items are plain non-focusable text', () => {
@@ -570,7 +571,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     );
     const hero = screen.getByTestId('epic-hero');
     expect(within(hero).getByText('25%')).toBeInTheDocument();
-    expect(within(hero).getByText('1 of 4 done · 1 in progress')).toBeInTheDocument();
+    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1 of 4');
     const bar = within(hero).getByTestId('epic-hero-bar');
     expect(bar.querySelectorAll('[data-segment]')).toHaveLength(3);
     expect(hero.querySelector('p, div')).toBeNull();
@@ -588,7 +589,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     fireEvent.click(screen.getByRole('button', { name: 'SP' }));
     const hero = screen.getByTestId('epic-hero');
     expect(within(hero).getByText('10%')).toBeInTheDocument();
-    expect(within(hero).getByText('1 SP of 10 SP done · 5 SP in progress')).toBeInTheDocument();
+    expect(within(hero).getByTestId('epic-hero-caption').textContent).toBe('1 of 10 SP');
   });
 
   it('Finish shows a date, range and confidence for an ok forecast', () => {
@@ -636,7 +637,9 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
         epicCreated={daysAgo(12)}
       />,
     );
-    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toBe('FinishToo early to tell');
+    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toBe(
+      'FinishToo earlyNeeds more completed work',
+    );
     unmount();
     renderSection(
       <EpicProgressSection
@@ -648,7 +651,9 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
         epicCreated={undefined}
       />,
     );
-    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toBe('FinishComplete');
+    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toBe(
+      'FinishCompleteAll work done',
+    );
   });
 
   it('Remaining shows the active metric with the other metrics as a muted sub line', () => {
@@ -675,8 +680,9 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
       />,
     );
     const risks = screen.getAllByTestId('epic-stat-tile')[2];
-    expect(within(risks).getByText('1 unestimated')).toBeInTheDocument();
-    expect(within(risks).getByText('1 unassigned')).toBeInTheDocument();
+    // 261002-0xf: chips carry the full text as their accessible name.
+    expect(within(risks).getByRole('button', { name: '1 unestimated' })).toBeInTheDocument();
+    expect(within(risks).getByRole('button', { name: '1 unassigned' })).toBeInTheDocument();
     for (const chip of within(risks).getAllByTestId('epic-risk-item')) {
       expect(chip).toHaveAttribute('data-severity', 'info');
     }
@@ -719,7 +725,7 @@ describe('EpicProgressSection hero, strip and assignee rows (261001-ilq)', () =>
     const chips = within(bob).getAllByTestId('epic-assignee-chip');
     expect(chips.map((c) => c.getAttribute('data-cat'))).toEqual(['done', 'indeterminate', 'new']);
     expect(chips.map((c) => c.textContent)).toEqual(['0', '1', '1']);
-    expect(within(bob).getByLabelText('done 0').className).toContain('opacity-40');
+    expect(within(bob).getByLabelText('completed 0').className).toContain('opacity-40');
     expect(within(bob).getByLabelText('in progress 1').className).not.toContain('opacity-40');
     expect(within(bob).getByLabelText('to do 1')).toBeInTheDocument();
     const unassigned = rows.find((r) => within(r).queryByRole('img', { name: 'Unassigned' }));
@@ -824,7 +830,7 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'approx');
     expect(screen.getByTestId('epic-source-flag')).toHaveAttribute(
       'aria-label',
-      'Approximate — loading status history',
+      'Approximate: status history loading',
     );
     pending.unmount();
 
@@ -835,7 +841,7 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     await waitFor(() =>
       expect(screen.getByTestId('epic-source-flag')).toHaveAttribute(
         'aria-label',
-        'Approximate — status history unavailable',
+        'Approximate: no status history',
       ),
     );
     expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'approx');
@@ -853,10 +859,12 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     expect(screen.queryByTestId('epic-source-flag')).toBeNull();
     const realUser = userEvent.setup();
     await realUser.hover(screen.getByTestId('epic-hero'));
+    // 261002-0xf: the hero note names only non-default sources — real history adds nothing.
     await waitFor(() =>
-      expect(
-        [...document.querySelectorAll('[data-slot="tooltip-source"]')].map((r) => r.textContent),
-      ).toContain('From Jira status history'),
+      expect(document.querySelector('[data-slot="tooltip-content"]')).not.toBeNull(),
+    );
+    expect(screen.queryByTestId('hero-source-note')?.textContent ?? '').not.toMatch(
+      /status history/,
     );
     real.unmount();
 
@@ -977,7 +985,7 @@ describe('EpicProgressSection review fixes (261001-ilq)', () => {
     expect(finish?.textContent).toBe(countText);
     await user.hover(finish as HTMLElement);
     await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
-    expect(rowTexts()).toContain('Story pointsno estimates');
+    expect(rowTexts()).toContain('SPno estimates');
   });
 });
 
@@ -1043,15 +1051,14 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
     );
     expect(finishTile().textContent).toContain('Medium');
     await user.hover(finishTile());
-    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Items'))).toBe(true));
-    const rows = rowTexts();
-    expect(rows.some((t) => t?.startsWith('Story points') && t.includes('no estimates'))).toBe(
-      true,
-    );
-    expect(rows.some((t) => t?.startsWith('Time'))).toBe(true);
+    // 261002-0xf: an ok Finish lists which views it is based on, not one row per view.
+    await waitFor(() => expect(rowTexts().some((t) => t?.startsWith('Based on'))).toBe(true));
+    expect(rowTexts().find((t) => t?.startsWith('Based on'))).toContain('Items');
+    await user.unhover(finishTile());
     await user.hover(screen.getByTestId('epic-hero'));
+    // No Tempo calendar -> the hero note says so (one short token).
     await waitFor(() =>
-      expect(document.body.textContent).toContain('Excludes weekends (holidays unavailable)'),
+      expect(screen.getByTestId('hero-source-note').textContent).toContain('No holiday calendar'),
     );
   });
 
@@ -1065,7 +1072,7 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         epicDueDate={daysAgo(3)}
       />,
     );
-    const chip = screen.getByText('Overdue 3 days').closest('[data-testid="epic-risk-item"]');
+    const chip = screen.getByRole('button', { name: 'Overdue 3 days' });
     expect(chip).toHaveAttribute('data-severity', 'warning');
   });
 
@@ -1083,7 +1090,7 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         onOpenIssue={vi.fn()}
       />,
     );
-    await user.click(screen.getByText('1 unassigned'));
+    await user.click(screen.getByRole('button', { name: '1 unassigned' }));
     const rows = await screen.findAllByTestId('epic-risk-issue');
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain('A-4');
@@ -1098,7 +1105,6 @@ describe('EpicProgressSection averaged Finish and risks (261001-qvu)', () => {
         epicCreated={undefined}
       />,
     );
-    expect(screen.getByTestId('epic-hero-caption').className).toContain('mt-1.5');
     const block = screen.getByTestId('epic-status-block');
     expect(block.className).toContain('flex-col');
     expect(block.className).toContain('gap-1.5');
@@ -1183,10 +1189,8 @@ describe('EpicProgressSection one forecast (261001-rtw)', () => {
     );
     const legend = within(screen.getByTestId('epic-cfd-legend'));
     expect(legend.queryByText('Forecast')).toBeNull();
-    expect(screen.getByTestId('epic-forecast-state').textContent).toBe(
-      'Forecast: Too early to tell',
-    );
-    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Too early to tell');
+    expect(screen.getByTestId('epic-forecast-state').textContent).toBe('Forecast: Too early');
+    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Too early');
   });
 });
 
@@ -1243,38 +1247,46 @@ describe('EpicProgressSection unified tabs (261001-rtw)', () => {
     expect(within(row).queryByLabelText(/^logged/)).toBeNull();
   });
 
-  it('Time hero tooltip lists the three bands in hours with share, then Logged / Estimate icons', async () => {
+  it('Time hero tooltip lists the three bands in hours with share, then a Logged icon row', async () => {
     const user = userEvent.setup();
     renderSection(timedSection());
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     await user.hover(screen.getByTestId('epic-hero'));
-    await screen.findByText(ESTIMATE_FORMULA_NOTE);
-    expect(rowTexts()).toEqual([
-      'Done1h33%',
-      'In progress0m0%',
-      'To do2h67%',
-      'Logged1h 30m',
-      'Estimate3h',
-    ]);
-    expect(markers()).toEqual(['status', 'status', 'status', 'icon', 'icon']);
+    // 261002-0xf: no Estimate row (caption shows it) and no formula note.
+    await waitFor(() =>
+      expect(rowTexts()).toEqual([
+        'Completed1h33%',
+        'In progress0m0%',
+        'To do2h67%',
+        'Logged1h 30m',
+      ]),
+    );
+    expect(markers()).toEqual(['status', 'status', 'status', 'icon']);
   });
 
   it('Count hero tooltip keeps the three band rows', async () => {
     const user = userEvent.setup();
     renderSection(timedSection());
     await user.hover(screen.getByTestId('epic-hero'));
-    await waitFor(() => expect(rowTexts()).toEqual(['Done150%', 'In progress00%', 'To do150%']));
+    await waitFor(() =>
+      expect(rowTexts()).toEqual(['Completed150%', 'In progress00%', 'To do150%']),
+    );
   });
 
-  it('the Remaining tooltip has the same rows and note in every tab', async () => {
+  it('the Remaining tooltip is the same single line in every tab', async () => {
     const user = userEvent.setup();
     renderSection(timedSection());
     const tile = () => screen.getAllByTestId('epic-stat-tile')[1];
-    await user.hover(tile());
-    await waitFor(() => expect(rowTexts()).toHaveLength(3));
-    expect(rowTexts()).toEqual(['Items1 item', 'Story points0 SP', 'Time2h']);
-    expect(markers()).toEqual(['icon', 'icon', 'icon']);
-    expect(document.body.textContent).toContain("Replaces Jira's remaining estimate");
+    for (const tab of ['Count', 'SP', 'Time']) {
+      fireEvent.click(screen.getByRole('button', { name: tab }));
+      await user.hover(tile());
+      expect(await screen.findByText('Open items · Time = estimate − logged')).toBeInTheDocument();
+      expect(rowTexts()).toHaveLength(0);
+      await user.unhover(tile());
+      await waitFor(() =>
+        expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull(),
+      );
+    }
   });
 
   it('Finish and Risks tooltip rows use icon markers with no inline colour', async () => {
@@ -1387,10 +1399,8 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
       {...extra}
     />
   );
-  const sourceTexts = () =>
-    [...document.querySelectorAll('[data-slot="tooltip-source"]')].map((r) => r.textContent);
 
-  it('hero tooltip lists Data sources in the same slots per tab, and no chart notes remain', async () => {
+  it('hero tooltip names only non-default data sources in one short note, and no chart notes remain', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     mockHistory.mockResolvedValue(
@@ -1398,27 +1408,26 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     );
     const user = userEvent.setup();
     renderSection(sectionOf(okList()));
+    // Real history + no Tempo calendar -> only the calendar token.
+    await waitFor(() =>
+      expect(screen.getByTestId('epic-burnup')).toHaveAttribute('data-history', 'real'),
+    );
     await user.hover(screen.getByTestId('epic-hero'));
-    await waitFor(() => expect(sourceTexts().length).toBe(3));
-    expect(document.body.textContent).toContain('Data sources');
-    expect(sourceTexts()).toEqual([
-      'From Jira status history',
-      'Scope from when each item joined the epic',
-      'Excludes weekends (holidays unavailable)',
-    ]);
+    await waitFor(() =>
+      expect(screen.getByTestId('hero-source-note').textContent).toBe('No holiday calendar'),
+    );
     await user.unhover(screen.getByTestId('epic-hero'));
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     expect(screen.queryByTestId('epic-cfd-note')).toBeNull();
     expect(screen.queryByText(/Done stories collapse/)).toBeNull();
     await user.hover(screen.getByTestId('epic-hero'));
+    // Time never mentions status history; the note stays within the 8-word budget.
     await waitFor(() =>
-      expect(sourceTexts()).toEqual([
-        'Logged from Jira worklogs',
-        ESTIMATE_FORMULA_NOTE,
-        'Done stories collapse to their logged time.',
-        'Excludes weekends (holidays unavailable)',
-      ]),
+      expect(screen.getByTestId('hero-source-note').textContent).toContain('No holiday calendar'),
     );
+    const note = screen.getByTestId('hero-source-note').textContent ?? '';
+    expect(note).not.toMatch(/status history/);
+    expect(note.split(/\s+/).filter((w) => /\w/.test(w)).length).toBeLessThanOrEqual(8);
   });
 
   it('shows the source flag only while history is approximate', async () => {
@@ -1444,8 +1453,8 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
       /Only \d+ (working days|completions)|Wide range|Steady|disagree/,
     );
     expect((reasons[0].textContent ?? '').length).toBeLessThanOrEqual(60);
-    expect(reasons[0].previousElementSibling?.textContent).toMatch(/^Confidence/);
-    expect(reasons[0].previousElementSibling).toHaveAttribute('data-slot', 'tooltip-row');
+    // 261002-0xf: the reason is the tooltip note; ok Finish also says which views it's based on.
+    expect(rowTexts().some((t) => t?.startsWith('Based on'))).toBe(true);
     const tip = document.querySelector('[data-slot="tooltip-content"]') as HTMLElement;
     expect(tip.querySelectorAll('[data-testid="confidence-meter"]')).toHaveLength(1);
     // The tile sub-line keeps the range and meter on one non-wrapping row.
@@ -1467,12 +1476,12 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
       ),
     );
     expect(screen.queryByText('A-4')).toBeNull();
-    await user.click(screen.getByText('2 unassigned'));
+    await user.click(screen.getByRole('button', { name: '2 unassigned' }));
     await user.click(await screen.findByRole('button', { name: /^A-4/ }));
     expect(onOpenIssue).toHaveBeenCalledWith('A-4');
     await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
 
-    await user.click(screen.getByText('2 unassigned'));
+    await user.click(screen.getByRole('button', { name: '2 unassigned' }));
     const rows = await screen.findAllByTestId('epic-risk-issue');
     rows[0].focus();
     await user.keyboard('{ArrowDown}');
@@ -1481,7 +1490,7 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     expect(onOpenIssue).toHaveBeenCalledWith('A-5');
     await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
 
-    await user.click(screen.getByText('2 unassigned'));
+    await user.click(screen.getByRole('button', { name: '2 unassigned' }));
     await screen.findByTestId('epic-risk-popover');
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
@@ -1498,7 +1507,7 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
         { onOpenIssue: vi.fn() },
       ),
     );
-    await user.click(screen.getByText('2 unassigned'));
+    await user.click(screen.getByRole('button', { name: '2 unassigned' }));
     const rows = await screen.findAllByTestId('epic-risk-issue');
     await waitFor(() => expect(document.activeElement).toBe(rows[0]));
   });
@@ -1510,8 +1519,10 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     );
     renderSection(sectionOf(ten, { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
     const items = screen.getAllByTestId('epic-risk-item');
-    expect(items[0].textContent).toMatch(/^Overdue/);
-    await user.click(screen.getByText('10 unassigned'));
+    // 261002-0xf: chips show a short token; the full text is the accessible name.
+    expect(items[0]).toHaveAccessibleName('Overdue 3 days');
+    expect(items[0].textContent).toBe('3d');
+    await user.click(screen.getByRole('button', { name: '10 unassigned' }));
     const popover = await screen.findByTestId('epic-risk-popover');
     expect(within(popover).getAllByTestId('epic-risk-issue')).toHaveLength(10);
     const list = within(popover).getByTestId('epic-risk-issues');
@@ -1522,9 +1533,9 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
     await user.click(items[0]);
     const overdue = await screen.findByTestId('epic-risk-popover');
-    // 261002-0et review WR-01: overdue lists its open items like the other count-based risks.
-    expect(within(overdue).getByTestId('epic-risk-issues')).toBeInTheDocument();
-    expect(overdue.textContent).toContain('open items');
+    // 261002-0xf: overdue explains only (the Stories list shows open items); supersedes 0et WR-01.
+    expect(within(overdue).queryByTestId('epic-risk-issues')).toBeNull();
+    expect(overdue.textContent).toContain('items open');
   });
 });
 
@@ -1735,5 +1746,110 @@ describe('Risks keys without an issue opener (261001-sqm review WR-01)', () => {
     await user.click(screen.getAllByTestId('epic-risk-item')[0]);
     expect((await screen.findByTestId('epic-risk-issue')).textContent).toContain('N-4');
     expect(screen.queryByRole('button', { name: /^N-4/ })).toBeNull();
+  });
+});
+
+describe('EpicProgressSection polish contracts (261002-0xf)', () => {
+  const states: Array<[string, JiraIssue[], Record<string, unknown>]> = [
+    ['too-early', stories, { epicCreated: daysAgo(12) }],
+    [
+      'no risks',
+      [story('C-1', { cat: 'done', status: 'Done', sp: 2, assignee: 'Amy', res: daysAgo(1) })],
+      {},
+    ],
+    [
+      'three risks',
+      [
+        story('R-1', { cat: 'new', status: 'To Do', sp: null, assignee: null }),
+        story('R-2', { cat: 'new', status: 'To Do', sp: 1, assignee: 'Amy' }),
+      ],
+      { epicDueDate: daysAgo(3) },
+    ],
+  ];
+  const render = (list: JiraIssue[], extra: Record<string, unknown>) =>
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={list}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+        {...extra}
+      />,
+    );
+  const cards = () => [...document.querySelectorAll<HTMLElement>('[data-stat-card]')];
+  const noteWords = () =>
+    [...document.querySelectorAll('[data-slot="tooltip-note"]')].map(
+      (n) => (n.textContent ?? '').split(/\s+/).filter((w) => /\w/.test(w)).length,
+    );
+
+  it('the four cards share one fixed three-slot shape in every tab and state', () => {
+    for (const [, list, extra] of states) {
+      const { unmount } = render(list, extra);
+      for (const tab of ['Count', 'SP', 'Time']) {
+        fireEvent.click(screen.getByRole('button', { name: tab }));
+        const all = cards();
+        expect(all).toHaveLength(4);
+        for (const c of all) {
+          for (const cls of ['h-[72px]', 'w-full', 'grid-rows-[1rem_2rem_1rem]']) {
+            expect(c.className).toContain(cls);
+          }
+          expect(c.children).toHaveLength(3);
+        }
+        const grid = all[0].parentElement as HTMLElement;
+        expect(grid.className).toContain('@2xl/epic:grid-cols-4');
+        expect(grid.className).not.toMatch(/(^|\s)(sm|lg):/);
+      }
+      unmount();
+    }
+  });
+
+  it('the loading skeleton has four cards of the same height', () => {
+    renderSection(
+      <EpicProgressSection
+        epicKey="E-1"
+        stories={undefined}
+        storyPointsFieldKey={SP}
+        epicCreated={undefined}
+      />,
+    );
+    const sk = screen.getByTestId('epic-progress-skeleton');
+    expect(sk.querySelectorAll('.h-\\[72px\\]')).toHaveLength(4);
+  });
+
+  it('section tooltips stay within 4 rows and an 8-word note', async () => {
+    const user = userEvent.setup();
+    render(stories, { epicCreated: daysAgo(12) });
+    const check = async (el: HTMLElement) => {
+      await user.hover(el);
+      await waitFor(() =>
+        expect(document.querySelector('[data-slot="tooltip-content"]')).not.toBeNull(),
+      );
+      expect(rowTexts().length).toBeLessThanOrEqual(4);
+      for (const n of noteWords()) expect(n).toBeLessThanOrEqual(8);
+      await user.unhover(el);
+      await waitFor(() =>
+        expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull(),
+      );
+    };
+    for (const tab of ['Count', 'Time']) {
+      fireEvent.click(screen.getByRole('button', { name: tab }));
+      const [, finish, remaining] = cards();
+      await check(screen.getByTestId('epic-hero'));
+      await check(finish);
+      await check(remaining);
+      await check(screen.getAllByTestId('epic-assignee-trigger')[0]);
+    }
+  });
+
+  it('shows the same risks in Count, SP and Time', () => {
+    render(states[2][1], states[2][2]);
+    const names = () =>
+      screen.getAllByTestId('epic-risk-item').map((c) => c.getAttribute('aria-label'));
+    const count = names();
+    expect(count.length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    expect(names()).toEqual(count);
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    expect(names()).toEqual(count);
   });
 });
