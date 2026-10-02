@@ -149,9 +149,8 @@ describe('EpicProgressSection', () => {
     expect(screen.getAllByTestId('epic-stat-tile')).toHaveLength(3);
     expect(screen.getByTestId('epic-hero')).toBeInTheDocument();
     expect(screen.queryByTestId('epic-cfd-note')).toBeNull();
-    expect(
-      within(screen.getByTestId('epic-cfd-legend')).getByText('Completed'),
-    ).toBeInTheDocument();
+    // 261002-enj: no legend row under the chart.
+    expect(screen.queryByTestId('epic-cfd-legend')).toBeNull();
     expect(screen.getByText('In Review · 1')).toBeInTheDocument();
   });
 
@@ -883,14 +882,12 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     );
   });
 
-  it('legend lists Completed / In progress / To do / Remaining, plus Forecast only when ok', () => {
+  it('has no legend row and no Forecast state text (ok and too-early)', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     const ok = renderSection(sectionFor(okFixture(), '2026-01-01'));
-    const legend = within(screen.getByTestId('epic-cfd-legend'));
-    for (const label of ['Completed', 'In progress', 'To do', 'Remaining', 'Forecast']) {
-      expect(legend.getByText(label)).toBeInTheDocument();
-    }
+    expect(screen.queryByTestId('epic-cfd-legend')).toBeNull();
+    expect(screen.queryByText(/^Forecast: /)).toBeNull();
     ok.unmount();
 
     // too early: a single completion on a brand-new epic
@@ -908,9 +905,8 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
         '2026-09-30',
       ),
     );
-    const tooEarly = within(screen.getByTestId('epic-cfd-legend'));
-    expect(tooEarly.getByText('Remaining')).toBeInTheDocument();
-    expect(tooEarly.queryByText('Forecast')).toBeNull();
+    expect(screen.queryByTestId('epic-cfd-legend')).toBeNull();
+    expect(screen.queryByText(/^Forecast: /)).toBeNull();
   });
 
   it('shows "No timeline data" for the CFD with no dates, without a skeleton', () => {
@@ -919,7 +915,7 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     expect(screen.getByText('No timeline data')).toBeInTheDocument();
   });
 
-  it('Time mode renders the chart with Estimate / Logged / Remaining in its legend', async () => {
+  it('Time mode renders the chart without a legend row', async () => {
     renderSection(
       sectionFor(
         [
@@ -948,10 +944,7 @@ describe('EpicProgressSection cumulative flow + time chart (261001-ilq)', () => 
     );
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
     expect(await screen.findByTestId('epic-time-burnup')).toBeInTheDocument();
-    const legend = within(screen.getByTestId('epic-time-legend'));
-    for (const label of ['Estimate', 'Logged', 'Remaining']) {
-      expect(legend.getByText(label)).toBeInTheDocument();
-    }
+    expect(screen.queryByTestId('epic-time-legend')).toBeNull();
   });
 });
 
@@ -1159,15 +1152,17 @@ describe('EpicProgressSection one forecast (261001-rtw)', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     renderSection(section(okList(), '2026-01-01'));
-    expect(within(screen.getByTestId('epic-cfd-legend')).getByText('Forecast')).toBeInTheDocument();
+    expect(screen.queryByTestId('epic-cfd-legend')).toBeNull();
     expect(screen.queryByTestId('epic-forecast-state')).toBeNull();
+    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Oct 7');
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
-    const legend = await screen.findByTestId('epic-time-legend');
-    expect(within(legend).getByText('Forecast')).toBeInTheDocument();
+    await screen.findByTestId('epic-time-burnup');
+    expect(screen.queryByTestId('epic-time-legend')).toBeNull();
     expect(screen.queryByTestId('epic-forecast-state')).toBeNull();
+    expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Oct 7');
   });
 
-  it('shows the same state text in the legend and Finish tile when not ok', () => {
+  it('shows the state only in the Finish tile when not ok', () => {
     renderSection(
       section(
         [
@@ -1182,9 +1177,8 @@ describe('EpicProgressSection one forecast (261001-rtw)', () => {
         daysAgo(1),
       ),
     );
-    const legend = within(screen.getByTestId('epic-cfd-legend'));
-    expect(legend.queryByText('Forecast')).toBeNull();
-    expect(screen.getByTestId('epic-forecast-state').textContent).toBe('Forecast: Too early');
+    expect(screen.queryByText(/Forecast: /)).toBeNull();
+    expect(screen.queryByTestId('epic-forecast-state')).toBeNull();
     expect(screen.getAllByTestId('epic-stat-tile')[0].textContent).toContain('Too early');
   });
 });
@@ -1773,11 +1767,16 @@ describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
     expect(pressed()).toEqual(['All']);
   });
 
-  it('presets sit outside the legend container', () => {
-    renderSection(section(stories));
-    expect(
-      within(screen.getByTestId('epic-cfd-legend')).queryByTestId('epic-zoom-presets'),
-    ).toBeNull();
+  it('presets and source flag sit in the toolbar above the chart', () => {
+    renderSection(section(okList()));
+    const toolbar = screen.getByTestId('epic-chart-toolbar');
+    expect(within(toolbar).getByTestId('epic-zoom-presets')).toBeInTheDocument();
+    expect(toolbar.className).toContain('h-6');
+    expect(toolbar.className).toContain('justify-end');
+    const chart = screen.getByTestId('epic-burnup');
+    expect(toolbar.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const flag = screen.queryByTestId('epic-source-flag');
+    if (flag) expect(toolbar.contains(flag)).toBe(true);
   });
 
   it('SERIES uses status colours by meaning, forecast and band stay neutral', () => {
@@ -1788,23 +1787,41 @@ describe('EpicProgressSection shared axis and zoom (261001-sqm)', () => {
     expect(SERIES.band.fill).toBe('var(--color-muted-foreground)');
   });
 
-  it('legend markers carry the status colours in both charts and the forecast meter appears', async () => {
+  it('shows no confidence meter outside tooltips in either tab', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T12:00:00'));
+    const { container } = renderSection(section(okList()));
+    expect(container.querySelectorAll('[data-testid="confidence-meter"]')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    await screen.findByTestId('epic-time-burnup');
+    expect(container.querySelectorAll('[data-testid="confidence-meter"]')).toHaveLength(0);
+  });
+
+  it('renders the toolbar for the empty-estimate and Time loading states', () => {
+    mockWorklogs.mockReturnValue(new Promise(() => {}));
+    renderSection(
+      section([
+        story('E-1', { cat: 'new', status: 'To Do', assignee: 'Amy', created: daysAgo(3) }),
+      ]),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    expect(screen.getByTestId('epic-empty-estimate')).toBeInTheDocument();
+    expect(screen.getByTestId('epic-chart-toolbar').className).toContain('h-6');
+    expect(screen.queryByTestId('epic-source-flag')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    expect(screen.getByTestId('epic-chart-toolbar').className).toContain('h-6');
+  });
+
+  it('keeps the toolbar slot in every state and the navigator spaced', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-30T12:00:00'));
     renderSection(section(okList()));
-    const marker = (legend: HTMLElement, label: string) =>
-      within(legend).getByText(label).previousElementSibling as HTMLElement | null as HTMLElement;
-    const cfd = screen.getByTestId('epic-cfd-legend');
-    expect(marker(cfd, 'Remaining')).toHaveAttribute('data-marker', 'status-line');
-    expect(marker(cfd, 'Remaining').style.background).toBe(STATUS_CATEGORY_COLOR.indeterminate);
-    expect(within(cfd).getByTestId('confidence-meter')).toBeInTheDocument();
+    expect(screen.getByTestId('epic-chart-toolbar').className).toContain('h-6');
+    expect(screen.getByTestId('epic-range-navigator').className).toContain('mt-2');
     fireEvent.click(screen.getByRole('button', { name: 'Time' }));
-    const legend = await screen.findByTestId('epic-time-legend');
-    expect(marker(legend, 'Estimate')).toHaveAttribute('data-marker', 'status-area');
-    expect(marker(legend, 'Estimate').style.background).toBe(STATUS_CATEGORY_COLOR.new);
-    expect(marker(legend, 'Logged')).toHaveAttribute('data-marker', 'status-line');
-    expect(marker(legend, 'Logged').style.background).toBe(STATUS_CATEGORY_COLOR.done);
-    expect(marker(legend, 'Remaining').style.background).toBe(STATUS_CATEGORY_COLOR.indeterminate);
+    expect(screen.getByTestId('epic-chart-toolbar').className).toContain('h-6');
+    fireEvent.click(screen.getByRole('button', { name: 'SP' }));
+    expect(screen.getByTestId('epic-chart-toolbar').className).toContain('h-6');
   });
 });
 

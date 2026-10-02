@@ -5,7 +5,9 @@
  * (EpicRangeNavigator) replaces the old index-based recharts Brush.
  */
 
+import { Info } from 'lucide-react';
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   type AveragedForecast,
   type ChartRange,
@@ -32,8 +34,10 @@ export interface ChartZoom {
 
 /** Plot height without the navigator (short domains). */
 export const PLOT_HEIGHT = 232;
-/** Navigator: 28px track + 4px gap (mt-1) + 16px label row. */
-export const NAVIGATOR_HEIGHT = 48;
+/** Navigator: 8px gap (mt-2) + 28px track + 4px inner gap + 16px label row. */
+export const NAVIGATOR_HEIGHT = 56;
+/** Fixed toolbar row above the chart (source flag + zoom presets). */
+export const TOOLBAR_HEIGHT = 24;
 /** Plot height plus the navigator (zoomable domains). */
 export const CHART_HEIGHT = PLOT_HEIGHT + NAVIGATOR_HEIGHT;
 /** Both charts use the same Y axis width so switching tabs never shifts the plot. */
@@ -200,6 +204,44 @@ export function ZoomPresets({ zoom }: { zoom: ChartZoom }) {
           {p.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Neutral info icon in the toolbar when a data source is approximate or loading. */
+export function SourceFlag({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return (
+    // A real (button) tooltip trigger: keyboard-focusable without tabIndex on a non-interactive element.
+    <Tooltip>
+      <TooltipTrigger
+        delay={0}
+        data-testid="epic-source-flag"
+        aria-label={text}
+        className="inline-flex cursor-default items-center rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <Info aria-hidden="true" className="size-3 text-muted-foreground" />
+      </TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** One fixed-height row above the chart: source flag left of the zoom presets, right-aligned. */
+export function ChartToolbar({
+  zoom,
+  sourceFlag,
+}: {
+  zoom: ChartZoom | null;
+  sourceFlag?: string | null;
+}) {
+  return (
+    <div
+      data-testid="epic-chart-toolbar"
+      className="mb-2 flex h-6 flex-none items-center justify-end gap-3"
+    >
+      <SourceFlag text={sourceFlag} />
+      {zoom ? <ZoomPresets zoom={zoom} /> : null}
     </div>
   );
 }
