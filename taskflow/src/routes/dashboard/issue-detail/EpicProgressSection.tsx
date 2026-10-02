@@ -42,10 +42,12 @@ import {
   rebaseRange,
   type StatusBucket,
   sourceNote,
+  spanDays,
   visiblePresets,
   WORKLOG_SOURCE_TEXT,
   type WorklogSource,
   withProjection,
+  ZOOM_MIN_DAYS,
   ZOOM_MIN_SPAN_DAYS,
   type ZoomPreset,
 } from '@/lib/epic-progress';
@@ -57,6 +59,7 @@ import { formatDuration } from '@/services/jira/duration';
 import { BandBar, BandBreakdown, BandChips } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
 import {
+  CHART_HEIGHT,
   ChartToolbar,
   type ChartZoom,
   chartHeight,
@@ -129,7 +132,22 @@ function assigneeBands(a: AssigneeBucket): Bands {
   return { done: a.done, inProgress: a.inProgress, todo: a.todo };
 }
 
-function EpicProgressSkeleton() {
+/**
+ * Predict whether the loaded chart will be zoomable so the skeleton reserves the right height.
+ * The shared domain starts at the epic's created date and ends no earlier than today, so an epic
+ * created more than ZOOM_MIN_DAYS ago almost always gets the navigator.
+ */
+function skeletonChartHeight(epicCreated: string | undefined, today: string): number {
+  const created = epicCreated?.slice(0, 10);
+  const likelyZoom =
+    !!created &&
+    /^\d{4}-\d{2}-\d{2}$/.test(created) &&
+    created < today &&
+    spanDays({ from: created, to: today }) > ZOOM_MIN_DAYS;
+  return likelyZoom ? CHART_HEIGHT : PLOT_HEIGHT;
+}
+
+function EpicProgressSkeleton({ chartHeight: plotH }: { chartHeight: number }) {
   return (
     <div data-testid="epic-progress-skeleton" className={SECTION_CLASS}>
       <div className="flex items-center justify-between">
@@ -143,10 +161,13 @@ function EpicProgressSkeleton() {
           ))}
         </div>
       </div>
-      {/* The domain is unknown while loading: reserve the non-zoom plot height (a jump to the
-          taller zoomable chart is an accepted limitation). */}
+      {/* Height predicted from the epic's age (skeletonChartHeight), so the loaded chart doesn't jump. */}
       <div className="pt-3">
-        <Skeleton className="w-full" style={{ height: PLOT_HEIGHT + TOOLBAR_HEIGHT + 8 }} />
+        <Skeleton
+          data-testid="epic-skeleton-chart"
+          className="w-full"
+          style={{ height: plotH + TOOLBAR_HEIGHT + 8 }}
+        />
       </div>
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-4 w-2/3" />
@@ -189,7 +210,12 @@ export function EpicProgressSection({
   const history = useEpicStatusHistory(epicKey, storyKeys, !timeMode);
   const statusList = useJiraStatusList(!timeMode);
 
-  if (!stories) return <EpicProgressSkeleton />;
+  if (!stories)
+    return (
+      <EpicProgressSkeleton
+        chartHeight={skeletonChartHeight(epicCreated, toLocalDateString(new Date()))}
+      />
+    );
   if (stories.length === 0) return null;
 
   const statuses = deriveStatusBuckets(stories, metric, storyPointsFieldKey);
