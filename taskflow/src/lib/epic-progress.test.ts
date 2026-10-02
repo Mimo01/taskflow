@@ -1337,14 +1337,9 @@ describe('deriveRisks (261001-qvu)', () => {
     expect(r[0].issues).toEqual([{ key: 'A-4', summary: 'A-4' }]);
     expect(r[1].issues).toEqual([{ key: 'A-3', summary: 'A-3' }]);
   });
-  it('gives every risk a short label (<= 16 chars) contained in its text', () => {
+  it('gives every risk a compact pill token', () => {
     const r = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-20' });
     expect(r.map((x) => x.key)).toEqual(['overdue', 'unestimated', 'unassigned']);
-    for (const x of r) {
-      expect(x.short.length).toBeLessThanOrEqual(16);
-      expect(x.text.includes(x.short)).toBe(true);
-    }
-    expect(r.map((x) => x.short)).toEqual(['Overdue 10 days', '1 unestimated', '1 unassigned']);
     expect(r.map((x) => x.token)).toEqual(['10d', '1', '1']);
   });
   it('flags overdue first, and late when the forecast passes the due date', () => {
@@ -1356,7 +1351,7 @@ describe('deriveRisks (261001-qvu)', () => {
     });
     // 261002-0xf: overdue has no issue list (the Stories list already shows open items);
     // supersedes 261002-0et WR-01.
-    expect(over[0]).toMatchObject({ short: 'Overdue 10 days', issues: [] });
+    expect(over[0]).toMatchObject({ text: 'Overdue 10 days', issues: [] });
     const one = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-29' });
     expect(one[0].text).toBe('Overdue 1 day');
     const late = deriveRisks({
@@ -1368,7 +1363,6 @@ describe('deriveRisks (261001-qvu)', () => {
       key: 'late',
       severity: 'warning',
       text: 'Finishes 4 days late',
-      short: '4 days late',
       token: '+4d',
       issues: [],
     });

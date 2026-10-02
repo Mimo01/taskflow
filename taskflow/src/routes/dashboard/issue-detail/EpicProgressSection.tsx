@@ -442,7 +442,7 @@ export function EpicProgressSection({
         </div>
 
         <div data-testid="epic-assignee-block" className="mt-6 border-t pt-4">
-          <div className="text-xs font-medium text-muted-foreground">By person</div>
+          <h4 className="text-xs font-medium text-muted-foreground">By person</h4>
           <div className="mt-2 flex flex-col">
             {assignees.map((a) => (
               <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
