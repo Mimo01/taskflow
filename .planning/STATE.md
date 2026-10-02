@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-02 - Completed quick task 261002-fp7: risk tally pills, per-person separation (UAT pending)
+Last activity: 2026-10-02 - UAT approved: epic detail progress section (quick tasks 261001-fmk … 261002-fp7)
 
 ## Performance Metrics
 
@@ -163,7 +163,7 @@ None yet.
 | 261002-0et | Epic progress iteration 8: confidence as meter + word (reason once, Finish tooltip), zoom only for ranges > 6 weeks, simplified Risks (one-line risks → popover of clickable issues) | 2026-10-02 | ea489b36 | Iterated → 261002-0xf | [261002-0et-epic-progress-simpler-confidence-conditi](./quick/261002-0et-epic-progress-simpler-confidence-conditi/) |
 | 261002-0xf | Epic progress polish: date navigator replaces the zoom brush (daily data, calendar ticks, adaptive presets, from 4 weeks), fixed identical top cards, concise tooltips, decluttered tab-independent risks | 2026-10-02 | 3fb9284d | Iterated → 261002-enj | [261002-0xf-epic-progress-polish-zoom-slider-consist](./quick/261002-0xf-epic-progress-polish-zoom-slider-consist/) |
 | 261002-enj | Epic progress: confidence only in hover, readable + hoverable risks, narrower Completed bar, card→chart spacing, chart legends removed (toolbar above chart) | 2026-10-02 | f5655088 | Iterated → 261002-fp7 | [261002-enj-epic-progress-confidence-in-hover-readab](./quick/261002-enj-epic-progress-confidence-in-hover-readab/) |
-| 261002-fp7 | Epic progress: risks as an icon tally (one pill per risk, no +N), per-person breakdown separated (divider + heading) | 2026-10-02 | ce184e2f | Needs Review | [261002-fp7-epic-progress-risk-tally-pills-and-per-p](./quick/261002-fp7-epic-progress-risk-tally-pills-and-per-p/) |
+| 261002-fp7 | Epic progress: risks as an icon tally (one pill per risk, no +N), per-person breakdown separated (divider + heading) | 2026-10-02 | c56b733d | Verified | [261002-fp7-epic-progress-risk-tally-pills-and-per-p](./quick/261002-fp7-epic-progress-risk-tally-pills-and-per-p/) |
 
 ## Deferred Items
 
