@@ -4,15 +4,14 @@ import {
   addCalendarDays,
   addWorkingDays,
   axisTicks,
-  calendarNote,
   chartAxisStart,
   chartDomain,
   clampRange,
   CONFIDENCE_REASON_MAX,
   confidenceReason,
-  dataSourceLines,
+  finishStateSub,
   dateKeyMs,
-  ESTIMATE_FORMULA_NOTE,
+  sourceNote,
   HISTORY_SOURCE_TEXT,
   historyDates,
   viewSample,
@@ -1144,8 +1143,8 @@ describe('averageForecasts (261001-qvu)', () => {
     expect(r).toMatchObject({ state: 'ok', nLikely: 15, nOpt: 12, nPess: 22, disagree: true });
     expect(r.likely).toBe(addWorkingDays(WED, 15));
     expect(r.confidence).toBe('low');
-    expect(r.explanation).toContain('Items and Story points');
-    expect(r.explanation).toContain('disagree');
+    expect(r.explanation).toContain('Items and SP');
+    expect(r.explanation).not.toContain('disagree');
   });
   it('keeps the lowest confidence when contributors agree', () => {
     const r = averageForecasts(
@@ -1177,21 +1176,19 @@ describe('averageForecasts (261001-qvu)', () => {
     expect(r.parts.map((p) => [p.metric, p.included, p.reason])).toEqual([
       ['count', true, null],
       ['sp', false, 'no estimates'],
-      ['time', false, 'loading worklogs'],
+      ['time', false, 'loading'],
     ]);
     expect(r.explanation).toContain('Items');
-    expect(r.explanation).not.toContain('Story points');
+    expect(r.explanation).not.toContain('SP');
   });
   it('explains time exclusions', () => {
     const reasons = (part: { forecast: EpicForecast | null; pending?: 'loading' | 'error' }) =>
       averageForecasts([{ metric: 'time', ...part }], WED).parts[0].reason;
-    expect(reasons({ forecast: null, pending: 'error' })).toBe('worklogs unavailable');
+    expect(reasons({ forecast: null, pending: 'error' })).toBe('unavailable');
     expect(reasons({ forecast: stateForecast('too-early', { completions: 0 }) })).toBe(
       'no logged time',
     );
-    expect(reasons({ forecast: stateForecast('too-early', { completions: 3 }) })).toBe(
-      'too early to tell',
-    );
+    expect(reasons({ forecast: stateForecast('too-early', { completions: 3 }) })).toBe('too early');
   });
   it('falls back to state messaging when nothing contributes', () => {
     const stalledMix = averageForecasts(
@@ -1323,7 +1320,7 @@ describe('deriveRisks (261001-qvu)', () => {
       explanation: '',
       ...o,
     }) as AveragedForecast;
-  const base = { stories, metric: 'count' as const, spKey: SP, dueDate: null, today: WED };
+  const base = { stories, spKey: SP, dueDate: null, today: WED };
 
   it('unestimated risk counts open items only (done stories without SP are ignored)', () => {
     const withDone = [...stories, st('A-5', { cat: 'done', res: '2026-09-28T10:00:00.000+0000' })];
@@ -1349,8 +1346,9 @@ describe('deriveRisks (261001-qvu)', () => {
       severity: 'warning',
       text: 'Overdue 10 days',
     });
-    // 261002-0et review WR-01: overdue lists the open items (was an empty list).
-    expect(over[0].issues.length).toBeGreaterThan(0);
+    // 261002-0xf: overdue has no issue list (the Stories list already shows open items);
+    // supersedes 261002-0et WR-01.
+    expect(over[0]).toMatchObject({ chip: '10d', issues: [] });
     const one = deriveRisks({ ...base, finish: fin(), dueDate: '2026-09-29' });
     expect(one[0].text).toBe('Overdue 1 day');
     const late = deriveRisks({
@@ -1361,7 +1359,8 @@ describe('deriveRisks (261001-qvu)', () => {
     expect(late[0]).toMatchObject({
       key: 'late',
       severity: 'warning',
-      text: 'Late by 4 days',
+      text: 'Finishes 4 days after due date',
+      chip: '+4d',
       issues: [],
     });
     const done = deriveRisks({
@@ -1376,13 +1375,42 @@ describe('deriveRisks (261001-qvu)', () => {
     const parts = (f: EpicForecast) => [
       { metric: 'count' as const, forecast: f, included: false, reason: null },
     ];
-    const stalled = deriveRisks({ ...base, finish: fin(parts(stateForecast('stalled'))) });
+    // Finish already says "Stalled": no duplicate risk.
+    const finishStalled = deriveRisks({
+      ...base,
+      finish: fin(parts(stateForecast('stalled')), { state: 'stalled' }),
+    });
+    expect(finishStalled.find((x) => x.key === 'stalled')).toBeUndefined();
+    // Finish ok but a contributing view stalled: the risk shows, and scope is suppressed.
+    const okFin = { state: 'ok' as const, likely: '2026-10-20' };
+    const stalled = deriveRisks({
+      ...base,
+      finish: fin(
+        [
+          ...parts(stateForecast('stalled')),
+          {
+            metric: 'sp' as const,
+            forecast: stateForecast('not-converging'),
+            included: false,
+            reason: null,
+          },
+        ],
+        okFin,
+      ),
+    });
     expect(stalled.find((x) => x.key === 'stalled')).toMatchObject({
       severity: 'warning',
       detail: 'stalled-expl',
     });
-    const nc = deriveRisks({ ...base, finish: fin(parts(stateForecast('not-converging'))) });
+    expect(stalled.find((x) => x.key === 'scope')).toBeUndefined();
+    // A view not converging while Finish is ok -> scope warning; omitted when Finish says it.
+    const nc = deriveRisks({ ...base, finish: fin(parts(stateForecast('not-converging')), okFin) });
     expect(nc.find((x) => x.key === 'scope')?.severity).toBe('warning');
+    const ncFinish = deriveRisks({
+      ...base,
+      finish: fin(parts(stateForecast('not-converging')), { state: 'not-converging' }),
+    });
+    expect(ncFinish.find((x) => x.key === 'scope')).toBeUndefined();
     const growth = deriveRisks({
       ...base,
       finish: fin(parts(okForecast({ ratePerWeek: 4, scopeRatePerWeek: 2 }))),
@@ -1401,11 +1429,11 @@ describe('deriveRisks (261001-qvu)', () => {
     expect(r.find((x) => x.key === 'unassigned')?.issues[0].summary).toBe('(no summary)');
   });
 
-  it('orders warnings first; overdue lists its open issues', () => {
+  it('orders warnings first; overdue has no issues', () => {
     const many = Array.from({ length: 5 }, (_, i) => st(`M-${i + 1}`, { sp: 1 }));
     const r = deriveRisks({ ...base, stories: many, dueDate: '2026-09-01', finish: fin() });
     expect(r[0].key).toBe('overdue');
-    expect(r[0].issues.map((i) => i.key)).toEqual(['M-1', 'M-2', 'M-3', 'M-4', 'M-5']);
+    expect(r[0].issues).toEqual([]);
     expect(r.find((x) => x.key === 'unassigned')?.issues.map((i) => i.key)).toEqual([
       'M-1',
       'M-2',
@@ -1416,11 +1444,23 @@ describe('deriveRisks (261001-qvu)', () => {
     const sevs = r.map((x) => x.severity);
     expect(sevs).toEqual([...sevs].sort((a, b) => (a === b ? 0 : a === 'warning' ? -1 : 1)));
   });
-  it('time mode counts open stories without an estimate', () => {
-    const r = deriveRisks({ ...base, metric: 'time', finish: fin() });
+  it('risks are tab-independent: unestimated means neither points nor a time estimate', () => {
+    const mixed = [
+      st('U-1', { sp: 3 }), // points only -> estimated
+      st('U-2', { est: 3600 }), // time only -> estimated
+      st('U-3', {}), // neither -> unestimated
+    ];
+    const r = deriveRisks({ ...base, stories: mixed, finish: fin() });
     const u = r.find((x) => x.key === 'unestimated');
-    expect(u?.count).toBe(3);
-    expect(u?.detail).toBe('Open items without a time estimate.');
+    expect(u?.count).toBe(1);
+    expect(u?.issues.map((i) => i.key)).toEqual(['U-3']);
+    expect(u?.detail).toBe('Open items with no points or time estimate');
+  });
+
+  it('never returns more than 4 risks', () => {
+    const many = Array.from({ length: 6 }, (_, i) => st(`R-${i + 1}`, {}));
+    const r = deriveRisks({ ...base, stories: many, dueDate: '2026-09-01', finish: fin() });
+    expect(r.length).toBeLessThanOrEqual(4);
   });
 });
 
@@ -1567,9 +1607,9 @@ describe('finish helpers (261001-rtw)', () => {
   it('state text', () => {
     expect(FINISH_STATE_TEXT).toEqual({
       done: 'Complete',
-      'too-early': 'Too early to tell',
+      'too-early': 'Too early',
       stalled: 'Stalled',
-      'not-converging': 'Not converging',
+      'not-converging': 'No end date',
     });
   });
   it('formatFinishDate', () => {
@@ -1772,7 +1812,7 @@ describe('261001-sqm lib', () => {
         confidenceReason(
           okFinish([part('time', { confidence: 'low', windowDays: 12, completions: 3 })]),
         ),
-      ).toBe('Only 3 days with logged work in 12 working days');
+      ).toBe('Only 3 logged days in 12 working days');
     });
     it('medium: wide range once history and completions are sufficient', () => {
       const f = okFinish([
@@ -1862,33 +1902,67 @@ describe('261001-sqm lib', () => {
     });
   });
 
-  describe('dataSourceLines / calendarNote', () => {
-    const base = { history: 'real', worklogs: 'loaded', calendarLine: 'cal' } as const;
-    it('Count/SP slots', () => {
-      const l = dataSourceLines({ metric: 'count', ...base });
-      expect(l.map((x) => x.key)).toEqual(['history', 'scope', 'calendar']);
-      expect(l.map((x) => x.approximate)).toEqual([false, false, false]);
-      expect(l[0].text).toBe(HISTORY_SOURCE_TEXT.real);
-      const p = dataSourceLines({ metric: 'sp', ...base, history: 'partial' });
-      expect(p.map((x) => x.approximate)).toEqual([true, true, false]);
-      expect(p[1].text).toBe('Scope by story creation date');
-    });
-    it('Time slots', () => {
-      const l = dataSourceLines({ metric: 'time', ...base });
-      expect(l.map((x) => x.key)).toEqual(['worklogs', 'estimate', 'collapse', 'calendar']);
-      expect(l[1].text).toBe(ESTIMATE_FORMULA_NOTE);
-      expect(dataSourceLines({ metric: 'time', ...base, worklogs: 'loading' })[0]).toMatchObject({
-        text: 'Approximate — loading worklogs',
-        approximate: true,
-      });
-    });
-    it('calendarNote keeps the Tempo and default texts', () => {
-      expect(calendarNote(DEFAULT_CALENDAR, T, null)).toBe(
-        'Excludes weekends (holidays unavailable)',
+  describe('finishStateSub', () => {
+    it('gives a short sub-line per non-ok state and none when ok', () => {
+      expect(finishStateSub(mkFinish({ state: 'ok' }))).toBeNull();
+      expect(finishStateSub(mkFinish({ state: 'done' }))).toBe('All work done');
+      expect(finishStateSub(mkFinish({ state: 'too-early' }))).toBe('Needs more completed work');
+      expect(finishStateSub(mkFinish({ state: 'not-converging' }))).toBe(
+        'Scope grows faster than done',
       );
-      const cal = buildWorkCalendar(new Map([['2026-10-05', 'HOLIDAY']]));
-      expect(calendarNote(cal, T, '2026-10-20')).toBe('Excludes weekends and 1 holiday (Tempo)');
-      expect(calendarNote(cal, T, null)).toBe('Excludes weekends and 0 holidays (Tempo)');
+      expect(finishStateSub(mkFinish({ state: 'stalled' }))).toBe('No recent progress');
+      expect(
+        finishStateSub(
+          mkFinish({ state: 'stalled' }, [
+            part('count', { state: 'stalled', explanation: 'No progress in 12 working days.' }),
+          ]),
+        ),
+      ).toBe('No progress in 12 working days');
+    });
+  });
+
+  it('HISTORY_SOURCE_TEXT is short', () => {
+    for (const t of Object.values(HISTORY_SOURCE_TEXT)) {
+      expect(t.split(/\s+/).length).toBeLessThanOrEqual(5);
+    }
+  });
+
+  describe('sourceNote', () => {
+    const tempo = buildWorkCalendar(new Map([['2026-10-05', 'HOLIDAY']]));
+    const base = { history: 'real', worklogs: 'loaded', calendar: tempo } as const;
+    it('is null when every source is real', () => {
+      expect(sourceNote({ metric: 'count', ...base })).toBeNull();
+      expect(sourceNote({ metric: 'time', ...base })).toBeNull();
+    });
+    it('names history tokens on Count/SP and worklog tokens on Time', () => {
+      expect(sourceNote({ metric: 'sp', ...base, history: 'partial' })).toBe(
+        'Partial status history',
+      );
+      expect(sourceNote({ metric: 'count', ...base, history: 'loading' })).toBe(
+        'Status history loading',
+      );
+      expect(sourceNote({ metric: 'count', ...base, history: 'unavailable' })).toBe(
+        'No status history',
+      );
+      expect(sourceNote({ metric: 'time', ...base, worklogs: 'loading' })).toBe('Worklogs loading');
+      expect(sourceNote({ metric: 'time', ...base, worklogs: 'unavailable' })).toBe(
+        'Worklogs unavailable',
+      );
+      // History state is irrelevant on the Time tab.
+      expect(sourceNote({ metric: 'time', ...base, history: 'loading' })).toBeNull();
+    });
+    it('adds the calendar token, at most 2 tokens, within 8 words', () => {
+      expect(sourceNote({ metric: 'count', ...base, calendar: DEFAULT_CALENDAR })).toBe(
+        'No holiday calendar',
+      );
+      const both = sourceNote({
+        metric: 'count',
+        ...base,
+        history: 'partial',
+        calendar: DEFAULT_CALENDAR,
+      });
+      expect(both).toBe('Partial status history \u00b7 No holiday calendar');
+      expect((both ?? '').split(/\s+/).filter((w) => /\w/.test(w)).length).toBeLessThanOrEqual(8);
     });
   });
 
@@ -1896,7 +1970,6 @@ describe('261001-sqm lib', () => {
     const many = Array.from({ length: 7 }, (_, i) => st(`Z-${i + 1}`, { sp: 1 }));
     const r = deriveRisks({
       stories: many,
-      metric: 'count',
       spKey: SP,
       finish: mkFinish(),
       dueDate: '2026-09-01',

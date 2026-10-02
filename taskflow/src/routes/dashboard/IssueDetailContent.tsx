@@ -18,7 +18,7 @@ import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
-import { catOf, ESTIMATE_FORMULA_NOTE, estimateOf, loggedOf } from '@/lib/epic-progress';
+import { catOf, estimateOf, loggedOf } from '@/lib/epic-progress';
 import { openExternal } from '@/lib/openExternal';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -380,17 +380,14 @@ export function IssueDetailContent({
                             <span
                               className={cn(
                                 'h-full',
-                                overrun ? 'bg-red-500' : 'bg-muted-foreground',
+                                overrun ? 'bg-destructive' : 'bg-muted-foreground',
                               )}
                               style={{ width: `${Math.min(logged / est, 1) * 100}%` }}
                             />
                           ) : null}
                         </TooltipTrigger>
                         <TooltipContent>
-                          <TooltipBody
-                            title={est > 0 ? undefined : 'No estimate'}
-                            note={ESTIMATE_FORMULA_NOTE}
-                          >
+                          <TooltipBody note={est > 0 ? undefined : 'No estimate'}>
                             {est > 0 ? (
                               <TooltipRow
                                 icon={<MARKER_ICON.estimate className="size-3" />}
@@ -403,7 +400,7 @@ export function IssueDetailContent({
                               label="Logged"
                               value={formatDuration(logged)}
                             />
-                            {est > 0 ? (
+                            {est > 0 && !overrun ? (
                               <TooltipRow
                                 icon={<MARKER_ICON.remaining className="size-3" />}
                                 label="Remaining"
@@ -413,7 +410,7 @@ export function IssueDetailContent({
                             {overrun ? (
                               <TooltipRow
                                 icon={<TriangleAlert className="size-3" />}
-                                label="Over estimate"
+                                label="Over by"
                                 value={formatDuration(logged - est)}
                               />
                             ) : null}

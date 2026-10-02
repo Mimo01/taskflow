@@ -21,11 +21,9 @@ import {
   type Bands,
   buildStatusCategoryLookup,
   type ChartRange,
-  calendarNote,
   chartAxisStart,
   chartDomain,
   clampRange,
-  dataSourceLines,
   deriveAdaptiveForecast,
   deriveAssigneeBuckets,
   deriveCfd,
@@ -42,7 +40,9 @@ import {
   presetRange,
   projectFinish,
   type StatusBucket,
+  sourceNote,
   visiblePresets,
+  WORKLOG_SOURCE_TEXT,
   type WorklogSource,
   withProjection,
   type ZoomPreset,
@@ -54,8 +54,9 @@ import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { BandBar, BandBreakdown, BandChips } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
-import type { ChartZoom } from './EpicChartZoom';
+import { type ChartZoom, PLOT_HEIGHT, slotHeight } from './EpicChartZoom';
 import { EpicProgressSummary } from './EpicProgressSummary';
+import { STAT_CONTAINER_CLASS, STAT_GRID_CLASS } from './EpicStatCard';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
 import { MARKER_ICON } from './epic-markers';
 import {
@@ -83,7 +84,7 @@ const METRICS = [
   ['time', 'Time'],
 ] as const;
 
-function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Metric): ReactNode {
+function statusBarTip(statuses: StatusBucket[], statusTotal: number): ReactNode {
   return (
     <TooltipBody>
       {statuses
@@ -93,8 +94,7 @@ function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Met
             key={b.id}
             color={statusCategoryColor(b.cat)}
             label={b.name}
-            value={formatMetric(b.value, metric)}
-            sub={`${statusTotal > 0 ? Math.round((b.value / statusTotal) * 100) : 0}%`}
+            value={`${statusTotal > 0 ? Math.round((b.value / statusTotal) * 100) : 0}%`}
           />
         ))}
     </TooltipBody>
@@ -104,20 +104,13 @@ function statusBarTip(statuses: StatusBucket[], statusTotal: number, metric: Met
 function assigneeTip(a: AssigneeBucket, metric: Metric): ReactNode {
   return (
     <TooltipBody title={a.name}>
-      <BandBreakdown bands={assigneeBands(a)} metric={metric} />
+      <BandBreakdown bands={assigneeBands(a)} metric={metric} valueAs="share" />
       {metric === 'time' ? (
-        <>
-          <TooltipRow
-            icon={<MARKER_ICON.logged className="size-3" />}
-            label="Logged"
-            value={formatDuration(a.logged)}
-          />
-          <TooltipRow
-            icon={<MARKER_ICON.estimate className="size-3" />}
-            label="Estimate"
-            value={formatDuration(a.estimate)}
-          />
-        </>
+        <TooltipRow
+          icon={<MARKER_ICON.logged className="size-3" />}
+          label="Logged"
+          value={formatDuration(a.logged)}
+        />
       ) : null}
     </TooltipBody>
   );
@@ -133,15 +126,18 @@ function EpicProgressSkeleton() {
     <div data-testid="epic-progress-skeleton" className={SECTION_CLASS}>
       <div className="flex items-center justify-between">
         <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-5 w-32" />
       </div>
-      <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
-        <Skeleton className="h-16 sm:col-span-3 lg:col-span-1" />
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-12" />
-        ))}
+      <div className={STAT_CONTAINER_CLASS}>
+        <div className={STAT_GRID_CLASS}>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[72px]" />
+          ))}
+        </div>
       </div>
-      <Skeleton className="h-[252px] w-full" />
+      {/* The domain is unknown while loading: reserve the non-zoom plot height (a jump to the
+          taller zoomable chart is an accepted limitation). */}
+      <Skeleton className="w-full" style={{ height: PLOT_HEIGHT }} />
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-4 w-2/3" />
       {[0, 1, 2].map((i) => (
@@ -221,7 +217,6 @@ export function EpicProgressSection({
   );
   const risks = deriveRisks({
     stories,
-    metric,
     spKey: storyPointsFieldKey,
     finish,
     dueDate: epicDueDate,
@@ -293,11 +288,11 @@ export function EpicProgressSection({
     : timePending === 'error'
       ? 'unavailable'
       : 'loading';
-  const sources = dataSourceLines({
+  const heroSourceNote = sourceNote({
     metric,
     history: historySource,
     worklogs: worklogSource,
-    calendarLine: calendarNote(calendar, today, finish.pessimistic),
+    calendar,
   });
 
   return (
@@ -322,123 +317,128 @@ export function EpicProgressSection({
           ))}
         </div>
       </div>
-      <div className="space-y-5">
-        <EpicProgressSummary
-          metric={metric}
-          summary={summary}
-          time={time}
-          finish={finish}
-          risks={risks}
-          sources={sources}
-          onOpenIssue={onOpenIssue}
-          today={today}
-        />
+      <EpicProgressSummary
+        metric={metric}
+        summary={summary}
+        time={time}
+        finish={finish}
+        risks={risks}
+        sourceNote={heroSourceNote}
+        onOpenIssue={onOpenIssue}
+        today={today}
+      />
 
-        {metric === 'sp' && summary.total === 0 ? (
-          <p className="text-sm text-muted-foreground italic pr-0.5">
-            No story points estimated — switch to Count
-          </p>
-        ) : timeMode && time.estimated === 0 ? (
-          <p className="text-sm text-muted-foreground italic pr-0.5">
-            No time estimated — switch to Count
-          </p>
+      <div className="flex flex-col">
+        {(metric === 'sp' && summary.total === 0) || (timeMode && time.estimated === 0) ? (
+          <div
+            data-testid="epic-empty-estimate"
+            style={{ minHeight: slotHeight(chartZoom) }}
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+          >
+            <span className="italic pr-0.5">
+              {metric === 'sp' ? 'No story points estimated' : 'No time estimated'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMetric('count')}
+              className="cursor-pointer text-foreground underline underline-offset-2 hover:no-underline"
+            >
+              Switch to Count
+            </button>
+          </div>
+        ) : timeMode ? (
+          <EpicTimeBurnup
+            query={worklogs}
+            stories={stories}
+            epicCreated={epicCreated}
+            today={today}
+            finish={finish}
+            calendar={calendar}
+            sourceFlag={worklogSource === 'loaded' ? null : WORKLOG_SOURCE_TEXT[worklogSource]}
+            zoom={chartZoom}
+          />
         ) : (
-          <div className="flex flex-col">
-            {timeMode ? (
-              <EpicTimeBurnup
-                query={worklogs}
-                stories={stories}
-                epicCreated={epicCreated}
-                today={today}
-                finish={finish}
-                calendar={calendar}
-                sourceFlag={null}
-                zoom={chartZoom}
-              />
-            ) : (
-              <EpicCfdChart
-                data={cfdData}
-                metric={metric}
-                history={history.data && !approximate ? 'real' : 'approx'}
-                sourceFlag={historySource === 'real' ? null : HISTORY_SOURCE_TEXT[historySource]}
-                hasProjection={projection.points.length > 0}
-                clippedAfter={projection.clippedAfter}
-                finish={finish}
-                today={today}
-                zoom={chartZoom}
-              />
-            )}
-            <div data-testid="epic-status-block" className="mt-3.5 flex flex-col gap-1.5">
+          <EpicCfdChart
+            data={cfdData}
+            metric={metric}
+            history={history.data && !approximate ? 'real' : 'approx'}
+            sourceFlag={historySource === 'real' ? null : HISTORY_SOURCE_TEXT[historySource]}
+            hasProjection={projection.points.length > 0}
+            clippedAfter={projection.clippedAfter}
+            finish={finish}
+            today={today}
+            zoom={chartZoom}
+          />
+        )}
+        <div data-testid="epic-status-block" className="mt-4 flex flex-col gap-1.5">
+          <Tooltip trackCursorAxis="x">
+            <TooltipTrigger
+              delay={0}
+              render={<div />}
+              data-testid="epic-status-bar"
+              role="img"
+              tabIndex={0}
+              aria-label={`Status breakdown: ${statuses
+                .filter((b) => b.value > 0)
+                .map((b) => `${b.name} ${formatMetric(b.value, metric)}`)
+                .join(', ')}`}
+              className="py-1.5"
+            >
+              <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
+                {statuses
+                  .filter((b) => b.value > 0)
+                  .map((b) => (
+                    <div
+                      key={b.id}
+                      data-testid="epic-status-segment"
+                      className={cn('h-full', statusCategoryDotClass(b.cat))}
+                      style={{
+                        width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%`,
+                      }}
+                    />
+                  ))}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>{statusBarTip(statuses, statusTotal)}</TooltipContent>
+          </Tooltip>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {statuses.map((b) => (
+              <span key={b.id} className="inline-flex items-center gap-1.5">
+                <span className={cn('size-2 rounded-[2px]', statusCategoryDotClass(b.cat))} />
+                <span>{`${b.name} · ${formatMetric(b.value, metric)}`}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col">
+          {assignees.map((a) => (
+            <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
               <Tooltip trackCursorAxis="x">
                 <TooltipTrigger
                   delay={0}
                   render={<div />}
-                  data-testid="epic-status-bar"
-                  role="img"
+                  data-testid="epic-assignee-trigger"
+                  // group, not img: its avatar and chips are role="img" children (no nested img roles).
+                  role="group"
                   tabIndex={0}
-                  aria-label={`Status breakdown: ${statuses
-                    .filter((b) => b.value > 0)
-                    .map((b) => `${b.name} ${formatMetric(b.value, metric)}`)
-                    .join(', ')}`}
-                  className="py-1.5"
+                  aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
+                  className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <div className="flex h-3 w-full gap-px overflow-hidden rounded bg-muted">
-                    {statuses
-                      .filter((b) => b.value > 0)
-                      .map((b) => (
-                        <div
-                          key={b.id}
-                          data-testid="epic-status-segment"
-                          className={cn('h-full', statusCategoryDotClass(b.cat))}
-                          style={{
-                            width: `${statusTotal > 0 ? (b.value / statusTotal) * 100 : 0}%`,
-                          }}
-                        />
-                      ))}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>{statusBarTip(statuses, statusTotal, metric)}</TooltipContent>
-              </Tooltip>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                {statuses.map((b) => (
-                  <span key={b.id} className="inline-flex items-center gap-1.5">
-                    <span className={cn('size-2 rounded-[2px]', statusCategoryDotClass(b.cat))} />
-                    <span>{`${b.name} · ${formatMetric(b.value, metric)}`}</span>
+                  <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
+                    <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
+                    <span className="truncate pr-0.5">{a.name}</span>
                   </span>
-                ))}
-              </div>
+                  <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
+                    <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
+                  </div>
+                  <BandChips bands={assigneeBands(a)} metric={metric} />
+                </TooltipTrigger>
+                <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
+              </Tooltip>
             </div>
-
-            <div className="mt-4.5 flex flex-col">
-              {assignees.map((a) => (
-                <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
-                  <Tooltip trackCursorAxis="x">
-                    <TooltipTrigger
-                      delay={0}
-                      render={<div />}
-                      data-testid="epic-assignee-trigger"
-                      // group, not img: its avatar and chips are role="img" children (no nested img roles).
-                      role="group"
-                      tabIndex={0}
-                      aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
-                      className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
-                        <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
-                        <span className="truncate pr-0.5">{a.name}</span>
-                      </span>
-                      <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
-                        <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
-                      </div>
-                      <BandChips bands={assigneeBands(a)} metric={metric} />
-                    </TooltipTrigger>
-                    <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
-                  </Tooltip>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -21,6 +21,7 @@ import {
   statusCategoryDotClass,
 } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
+import { CHIP_TEXT } from './EpicStatCard';
 
 /** Segmented bar. Height comes from className; widths are value / (scale ?? total). */
 export function BandBar({
@@ -65,8 +66,9 @@ export function BandChips({ bands, metric }: { bands: Bands; metric: Metric }) {
           data-cat={cat}
           aria-label={`${CAT_LABEL[cat].toLowerCase()} ${formatChip(bands[key], metric)}`}
           className={cn(
-            'rounded px-1 text-center text-[11px] tabular-nums whitespace-nowrap',
-            metric === 'time' ? 'min-w-[3.5rem]' : 'min-w-[2.25rem]',
+            'truncate rounded px-1 text-center tabular-nums whitespace-nowrap',
+            CHIP_TEXT,
+            metric === 'time' ? 'w-12' : 'w-9',
             statusCategoryBadgeClass(cat),
             bands[key] === 0 && 'opacity-40',
           )}
@@ -83,10 +85,13 @@ export function BandBreakdown({
   bands,
   metric,
   share,
+  valueAs = 'value',
 }: {
   bands: Bands;
   metric: Metric;
   share?: boolean;
+  /** 'share' shows the percentage as the value (no sub), e.g. the assignee tooltip. */
+  valueAs?: 'value' | 'share';
 }) {
   return (
     <>
@@ -96,8 +101,8 @@ export function BandBreakdown({
           marker="status"
           color={STATUS_CATEGORY_COLOR[cat]}
           label={CAT_LABEL[cat]}
-          value={formatMetric(bands[key], metric)}
-          sub={share ? `${bandPct(bands, key)}%` : undefined}
+          value={valueAs === 'share' ? `${bandPct(bands, key)}%` : formatMetric(bands[key], metric)}
+          sub={share && valueAs === 'value' ? `${bandPct(bands, key)}%` : undefined}
         />
       ))}
     </>

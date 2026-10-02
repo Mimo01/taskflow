@@ -52,6 +52,15 @@ export function brushUsable(zoom: ChartZoom | null, data: unknown[]): zoom is Ch
   return zoom?.enabled === true && data.length >= 3 && zoom.domain.from < zoom.domain.to;
 }
 
+/**
+ * The chart slot height from the shared zoom state alone (no data): used by the skeleton /
+ * empty states so they reserve the same height as the final chart. Task 3 swaps in the
+ * navigator height here; chartHeight() below adds the data-length guard.
+ */
+export function slotHeight(zoom: ChartZoom | null): number {
+  return zoom?.enabled === true && zoom.domain.from < zoom.domain.to ? CHART_HEIGHT : PLOT_HEIGHT;
+}
+
 /** Chart container height: taller only when the Brush strip is rendered. */
 export function chartHeight(zoom: ChartZoom | null, data: unknown[]): number {
   return brushUsable(zoom, data) ? CHART_HEIGHT : PLOT_HEIGHT;

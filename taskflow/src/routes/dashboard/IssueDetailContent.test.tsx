@@ -60,11 +60,10 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 // --- Imports ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ESTIMATE_FORMULA_NOTE } from '@/lib/epic-progress';
 import { IssueDetailContent } from './IssueDetailContent';
 
 // --- Fixture helpers ---
@@ -282,14 +281,16 @@ describe('IssueDetailContent', () => {
       expect(bar).toHaveAttribute('data-overrun', 'true');
       const fill = bar.firstElementChild as HTMLElement;
       expect(fill.style.width).toBe('100%');
-      expect(fill.className).toContain('bg-red-500');
+      expect(fill.className).toContain('bg-destructive');
     });
 
     it('names the overrun in the tooltip, not only by colour', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'new', { est: 3600, spent: 7200 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
-      expect(await screen.findByText('Over estimate')).toBeInTheDocument();
+      expect(await screen.findByText('Over by')).toBeInTheDocument();
+      // Over by replaces Remaining (never both).
+      expect(rowTexts()).toEqual(['Estimate1h', 'Logged2h', 'Over by1h']);
     });
 
     it('renders an empty muted track when there is no estimate', async () => {
@@ -303,13 +304,13 @@ describe('IssueDetailContent', () => {
       expect(rowTexts()).toEqual(['Logged30m']);
     });
 
-    it('tooltip shows estimate, logged, remaining and the formula note', async () => {
+    it('tooltip shows estimate, logged and remaining, with no formula note', async () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'indeterminate', { est: 7200, spent: 1800 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
-      await screen.findAllByText(ESTIMATE_FORMULA_NOTE);
+      await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       expect(rowTexts()).toEqual(['Estimate2h', 'Logged30m', 'Remaining1h 30m']);
-      expect(screen.getAllByText(ESTIMATE_FORMULA_NOTE).length).toBeGreaterThan(0);
+      expect(document.querySelector('[data-slot="tooltip-note"]')).toBeNull();
     });
 
     it('uses a neutral fill (not a status colour) and icon markers in the tooltip', async () => {
@@ -320,7 +321,7 @@ describe('IssueDetailContent', () => {
       expect(fill.className).toContain('bg-muted-foreground');
       expect(fill.className).not.toMatch(/bg-(green|blue|gray)/);
       await user.hover(bar);
-      await screen.findAllByText(ESTIMATE_FORMULA_NOTE);
+      await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       const markers = [...document.querySelectorAll('[data-slot="tooltip-row"]')].map((r) =>
         r.children[0].getAttribute('data-marker'),
       );
@@ -331,7 +332,7 @@ describe('IssueDetailContent', () => {
       const user = userEvent.setup();
       renderEpic([epicStory('S-1', 'done', { est: 7200, spent: 3600 })]);
       await user.hover(screen.getByTestId('story-time-bar'));
-      await screen.findAllByText(ESTIMATE_FORMULA_NOTE);
+      await waitFor(() => expect(rowTexts().length).toBeGreaterThan(0));
       expect(rowTexts()).toContain('Remaining0m');
     });
   });
