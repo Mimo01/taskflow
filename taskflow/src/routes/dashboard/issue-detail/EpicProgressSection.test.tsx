@@ -1984,6 +1984,8 @@ describe('EpicProgressSection readable risks and card spacing (261002-enj)', () 
     renderSection(sectionOf(three()));
     const block = screen.getByTestId('epic-assignee-block');
     expect(block.className).toContain('border-t');
+    // Distinct from the solid section border: a lighter dashed sub-divider.
+    expect(block.className).toContain('border-dashed');
     expect(block.textContent).toContain('By person');
     expect(within(block).getAllByTestId('epic-assignee-row').length).toBeGreaterThan(0);
     const hero = screen.getByTestId('epic-hero');
