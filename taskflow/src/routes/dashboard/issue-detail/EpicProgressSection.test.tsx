@@ -1510,7 +1510,7 @@ describe('EpicProgressSection risks, sources, confidence (261001-sqm)', () => {
     const items = screen.getAllByTestId('epic-risk-item');
     // 261002-0xf: chips show a short token; the full text is the accessible name.
     expect(items[0]).toHaveAccessibleName('Overdue 3 days');
-    expect(items[0].textContent).toBe('Overdue 3 days');
+    expect(items[0].textContent).toBe('3d');
     await user.click(screen.getByRole('button', { name: '10 unassigned' }));
     const popover = await screen.findByTestId('epic-risk-popover');
     expect(within(popover).getAllByTestId('epic-risk-issue')).toHaveLength(10);
@@ -1963,19 +1963,31 @@ describe('EpicProgressSection readable risks and card spacing (261002-enj)', () 
   );
   const tipEl = () => document.querySelector('[data-slot="tooltip-content"]') as HTMLElement | null;
 
-  it('shows each risk as a readable label and folds the rest into +N', () => {
+  it('shows every risk as its own icon + token pill with no +N overflow', () => {
     renderSection(sectionOf(three(), { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
     const items = screen.getAllByTestId('epic-risk-item');
-    expect(items).toHaveLength(2);
-    expect(items[0].textContent).toBe('Overdue 3 days');
-    expect(items[1].textContent).toBe('1 unestimated');
+    expect(items).toHaveLength(3);
+    expect(items.map((i) => i.textContent)).toEqual(['3d', '1', '1']);
+    expect(items[0]).toHaveAttribute('data-severity', 'warning');
+    expect(items[0]).toHaveAccessibleName('Overdue 3 days');
+    expect(items[0].querySelector('svg')).not.toBeNull();
     expect(items[1]).toHaveAttribute('data-severity', 'info');
     expect(items[1]).toHaveAccessibleName('1 unestimated');
-    const more = screen.getByTestId('epic-risk-more');
-    expect(more.textContent).toBe('+1');
-    // 261002-enj review WR-01: singular when one risk is hidden.
-    expect(more).toHaveAccessibleName('1 more risk');
+    expect(items[2]).toHaveAccessibleName('1 unassigned');
+    expect(screen.queryByTestId('epic-risk-more')).toBeNull();
     expect(screen.getAllByTestId('epic-stat-tile')[2].textContent).toContain('3 risks');
+    for (const c of screen.getAllByTestId('epic-stat-tile'))
+      expect(c.className).toContain('h-[72px]');
+  });
+
+  it('separates the per-person breakdown with a divider and heading', () => {
+    renderSection(sectionOf(three()));
+    const block = screen.getByTestId('epic-assignee-block');
+    expect(block.className).toContain('border-t');
+    expect(block.textContent).toContain('By person');
+    expect(within(block).getAllByTestId('epic-assignee-row').length).toBeGreaterThan(0);
+    const hero = screen.getByTestId('epic-hero');
+    expect(hero.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('does not flash the tooltip back after the popover closes with Escape', async () => {
@@ -2005,10 +2017,10 @@ describe('EpicProgressSection readable risks and card spacing (261002-enj)', () 
     await waitFor(() => expect(tipEl()).toBeNull());
   });
 
-  it('opens the hidden risks from +N', async () => {
+  it('every risk is its own pill and opens its own popover', async () => {
     const user = userEvent.setup();
     renderSection(sectionOf(three(), { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
-    await user.click(screen.getByTestId('epic-risk-more'));
+    await user.click(screen.getByRole('button', { name: '1 unassigned' }));
     const popover = await screen.findByTestId('epic-risk-popover');
     expect(popover.textContent).toContain('1 unassigned');
     expect(popover.textContent).toContain('Open items with no assignee');

@@ -441,33 +441,36 @@ export function EpicProgressSection({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col">
-          {assignees.map((a) => (
-            <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
-              <Tooltip trackCursorAxis="x">
-                <TooltipTrigger
-                  delay={0}
-                  render={<div />}
-                  data-testid="epic-assignee-trigger"
-                  // group, not img: its avatar and chips are role="img" children (no nested img roles).
-                  role="group"
-                  tabIndex={0}
-                  aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
-                  className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
-                    <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
-                    <span className="truncate pr-0.5">{a.name}</span>
-                  </span>
-                  <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
-                    <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
-                  </div>
-                  <BandChips bands={assigneeBands(a)} metric={metric} />
-                </TooltipTrigger>
-                <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
-              </Tooltip>
-            </div>
-          ))}
+        <div data-testid="epic-assignee-block" className="mt-6 border-t pt-4">
+          <div className="text-xs font-medium text-muted-foreground">By person</div>
+          <div className="mt-2 flex flex-col">
+            {assignees.map((a) => (
+              <div key={a.id} data-testid="epic-assignee-row" className="text-xs">
+                <Tooltip trackCursorAxis="x">
+                  <TooltipTrigger
+                    delay={0}
+                    render={<div />}
+                    data-testid="epic-assignee-trigger"
+                    // group, not img: its avatar and chips are role="img" children (no nested img roles).
+                    role="group"
+                    tabIndex={0}
+                    aria-label={`${a.name}: done ${formatMetric(a.done, metric)}, in progress ${formatMetric(a.inProgress, metric)}, to do ${formatMetric(a.todo, metric)}`}
+                    className="flex items-center gap-2 rounded-sm py-0.5 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <span className="flex w-40 min-w-0 flex-none items-center gap-1.5">
+                      <CachedAvatar url={a.avatarUrl} name={a.name} size={20} />
+                      <span className="truncate pr-0.5">{a.name}</span>
+                    </span>
+                    <div data-testid="epic-assignee-bar" className="min-w-0 flex-1">
+                      <BandBar bands={assigneeBands(a)} scale={maxAssignee} className="h-3" />
+                    </div>
+                    <BandChips bands={assigneeBands(a)} metric={metric} />
+                  </TooltipTrigger>
+                  <TooltipContent>{assigneeTip(a, metric)}</TooltipContent>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
