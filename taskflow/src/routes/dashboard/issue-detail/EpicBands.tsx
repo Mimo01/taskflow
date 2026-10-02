@@ -21,7 +21,7 @@ import {
   statusCategoryDotClass,
 } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import { CHIP_TEXT } from './EpicStatCard';
+import { SMALL_TEXT } from './EpicStatCard';
 
 /** Segmented bar. Height comes from className; widths are value / (scale ?? total). */
 export function BandBar({
@@ -67,7 +67,7 @@ export function BandChips({ bands, metric }: { bands: Bands; metric: Metric }) {
           aria-label={`${CAT_LABEL[cat].toLowerCase()} ${formatChip(bands[key], metric)}`}
           className={cn(
             'truncate rounded px-1 text-center tabular-nums whitespace-nowrap',
-            CHIP_TEXT,
+            SMALL_TEXT,
             metric === 'time' ? 'w-12' : 'w-9',
             statusCategoryBadgeClass(cat),
             bands[key] === 0 && 'opacity-40',

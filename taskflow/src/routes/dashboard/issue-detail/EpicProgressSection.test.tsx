@@ -1973,7 +1973,22 @@ describe('EpicProgressSection readable risks and card spacing (261002-enj)', () 
     expect(items[1]).toHaveAccessibleName('1 unestimated');
     const more = screen.getByTestId('epic-risk-more');
     expect(more.textContent).toBe('+1');
+    // 261002-enj review WR-01: singular when one risk is hidden.
+    expect(more).toHaveAccessibleName('1 more risk');
     expect(screen.getAllByTestId('epic-stat-tile')[2].textContent).toContain('3 risks');
+  });
+
+  it('does not flash the tooltip back after the popover closes with Escape', async () => {
+    const user = userEvent.setup();
+    renderSection(sectionOf(three(), { epicDueDate: daysAgo(3), onOpenIssue: vi.fn() }));
+    const item = screen.getAllByTestId('epic-risk-item')[1];
+    await user.click(item);
+    await screen.findByTestId('epic-risk-popover');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('epic-risk-popover')).toBeNull());
+    // Focus returns to the trigger; the tooltip must stay closed (261002-enj review WR-03).
+    await new Promise((r) => setTimeout(r, 50));
+    expect(tipEl()).toBeNull();
   });
 
   it('shows a short tooltip on hover and closes it when the popover opens', async () => {

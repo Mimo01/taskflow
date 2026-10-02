@@ -1420,7 +1420,7 @@ export interface EpicRisk {
   severity: 'warning' | 'info';
   /** Full text: the card button's aria-label and the popover header (e.g. '3 unestimated'). */
   text: string;
-  /** Readable card label, <= 16 chars, a substring of text. */
+  /** Readable card label, ~16 chars (CSS truncates longer, e.g. 'Overdue 1000 days'), a substring of text. */
   short: string;
   count: number | null;
   detail: string;
