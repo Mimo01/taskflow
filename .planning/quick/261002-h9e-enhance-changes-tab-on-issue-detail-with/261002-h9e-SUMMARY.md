@@ -19,3 +19,14 @@ User approved `diff` (jsdiff) install; installed as runtime dependency.
 Full vitest (3199 passed), tsc clean, biome clean on touched files, no dangerouslySetInnerHTML in ChangelogEntry.tsx. Manual in-app check not performed.
 
 ## Self-Check: PASSED
+
+## Post-execution follow-ups (orchestrator, UAT with user)
+
+| Commit | Change |
+|--------|--------|
+| 1fe95769 | Review fixes: burst window anchored to first edit (WR-01), header uses latest history (WR-02), missing author → "Unknown" (WR-03), reverted A→B→A fields dropped (IN-01) |
+| b211fb7e | Polish: avatar header + "changed N fields", rail under avatar, readable field labels, "None" for empty, chip geometry, framed Before/After panel |
+| cb90e34b | Description diff shows full height (no inner scroll); collapsed preview removed (often just wiki markup like `*`) |
+| 0ff2acf2 | Multi-value fields render as plain removed → added (no green/red chips); status pills and description diff highlights kept by user choice |
+
+UAT: approved by user 2026-10-02.
