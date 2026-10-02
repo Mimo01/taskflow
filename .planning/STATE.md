@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-02 - Follow-up fixes after epic progress UAT: pre-commit lint gate (c234f1bf), Jira pagination step (040b778d), skeleton height prediction (efcc698b), zoom pinned-to-end flag (96a622ee)
+Last activity: 2026-10-02 - Completed quick task 261002-h9e: Changes tab side-by-side diffs, chips, burst grouping
 
 ## Performance Metrics
 
@@ -164,6 +164,7 @@ None yet.
 | 261002-0xf | Epic progress polish: date navigator replaces the zoom brush (daily data, calendar ticks, adaptive presets, from 4 weeks), fixed identical top cards, concise tooltips, decluttered tab-independent risks | 2026-10-02 | 3fb9284d | Iterated → 261002-enj | [261002-0xf-epic-progress-polish-zoom-slider-consist](./quick/261002-0xf-epic-progress-polish-zoom-slider-consist/) |
 | 261002-enj | Epic progress: confidence only in hover, readable + hoverable risks, narrower Completed bar, card→chart spacing, chart legends removed (toolbar above chart) | 2026-10-02 | f5655088 | Iterated → 261002-fp7 | [261002-enj-epic-progress-confidence-in-hover-readab](./quick/261002-enj-epic-progress-confidence-in-hover-readab/) |
 | 261002-fp7 | Epic progress: risks as an icon tally (one pill per risk, no +N), per-person breakdown separated (divider + heading) | 2026-10-02 | c56b733d | Verified | [261002-fp7-epic-progress-risk-tally-pills-and-per-p](./quick/261002-fp7-epic-progress-risk-tally-pills-and-per-p/) |
+| 261002-h9e | Changes tab: side-by-side word diff for long text, old→new chips (status pills), +/− tokens for multi-value fields, burst grouping, field icon column (+ review fixes) | 2026-10-02 | 1fe95769 | Needs Review | [261002-h9e-enhance-changes-tab-on-issue-detail-with](./quick/261002-h9e-enhance-changes-tab-on-issue-detail-with/) |
 
 ## Deferred Items
 
