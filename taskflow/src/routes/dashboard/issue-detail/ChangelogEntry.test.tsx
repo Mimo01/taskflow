@@ -151,4 +151,36 @@ describe('ChangelogEntry', () => {
     expect(screen.getByText('Weird Field')).toBeInTheDocument();
     expect(screen.getByText('43')).toBeInTheDocument();
   });
+
+  it('shows the latest edit time regardless of sort order', () => {
+    const older = hist(
+      '1',
+      [{ field: 'priority', fromString: 'A', toString: 'B' }],
+      '2026-01-01T10:00:00.000Z',
+    );
+    const newer = hist(
+      '2',
+      [{ field: 'assignee', fromString: null, toString: 'Bob' }],
+      '2026-01-01T10:03:00.000Z',
+    );
+    const expected = new Date(newer.created).toLocaleString();
+    for (const order of [
+      [older, newer],
+      [newer, older],
+    ]) {
+      const { unmount } = render(<ChangelogEntry histories={order} />);
+      expect(screen.getByText('2m ago')).toHaveAttribute('title', expected);
+      unmount();
+    }
+  });
+
+  it('renders Unknown instead of crashing when the author is missing', () => {
+    const anon = {
+      id: '9',
+      created: '2026-01-01T10:00:00.000Z',
+      items: [{ field: 'priority', fromString: 'A', toString: 'B' }],
+    } as never;
+    render(<ChangelogEntry histories={[anon]} />);
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
 });

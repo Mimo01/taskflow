@@ -3,6 +3,7 @@ import type { ChangelogHistory, TimelineEntry } from '@/services/jira';
 import {
   classifyField,
   groupChangeBursts,
+  latestHistory,
   mergeGroupItems,
   tokenSetDiff,
   wordDiff,
@@ -119,10 +120,15 @@ describe('groupChangeBursts', () => {
     ).toHaveLength(2);
     expect(groupChangeBursts([change(hist('1', T(0))), change(hist('2', T(6)))])).toHaveLength(2);
   });
-  it('chains by adjacent gap, in either order', () => {
+  it('anchors the window to the first edit, in either order', () => {
     const list = [change(hist('1', T(0))), change(hist('2', T(4))), change(hist('3', T(8)))];
-    expect(groupChangeBursts(list)).toHaveLength(1);
-    expect(groupChangeBursts([...list].reverse())).toHaveLength(1);
+    expect(groupChangeBursts(list)).toHaveLength(2);
+    expect(groupChangeBursts([...list].reverse())).toHaveLength(2);
+  });
+  it('never merges histories without an author', () => {
+    const anon = (id: string, created: string) =>
+      ({ id, created, items: [] }) as unknown as ChangelogHistory;
+    expect(groupChangeBursts([change(anon('1', T(0))), change(anon('2', T(1)))])).toHaveLength(2);
   });
   it('never merges invalid timestamps', () => {
     const r = groupChangeBursts([change(hist('1', 'bad')), change(hist('2', 'bad'))]);
@@ -159,5 +165,32 @@ describe('mergeGroupItems', () => {
     const r = mergeGroupItems([h]);
     expect(r.map((x) => x.field)).toEqual(['priority', 'assignee']);
     expect(new Set(r.map((x) => x.key)).size).toBe(2);
+  });
+  it('drops fields a burst reverted, but keeps single no-op items', () => {
+    const r = mergeGroupItems([
+      hist('1', T(0), 'alice', [
+        { field: 'priority', fromString: 'A', toString: 'B' },
+        { field: 'labels', fromString: 'x', toString: 'x y' },
+      ]),
+      hist('2', T(1), 'alice', [
+        { field: 'priority', fromString: 'B', toString: 'A' },
+        { field: 'labels', fromString: 'x y', toString: 'x' },
+      ]),
+    ]);
+    expect(r).toEqual([]);
+    const single = mergeGroupItems([
+      hist('3', T(0), 'alice', [{ field: 'Weird', fromString: null, toString: null }]),
+    ]);
+    expect(single).toHaveLength(1);
+  });
+});
+
+describe('latestHistory', () => {
+  it('returns the newest history regardless of order', () => {
+    const a = hist('1', T(0));
+    const b = hist('2', T(3));
+    expect(latestHistory([a, b])).toBe(b);
+    expect(latestHistory([b, a])).toBe(b);
+    expect(latestHistory([])).toBeUndefined();
   });
 });

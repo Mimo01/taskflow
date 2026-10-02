@@ -31,7 +31,7 @@ import { CHIP_TONE_CLASS, statusPillClass } from '@/lib/statusStyles';
 import type { ChangelogHistory } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { relativeTime } from '../IssueDetailContent';
-import { type MergedItem, mergeGroupItems, wordDiff } from './changelogDiff';
+import { latestHistory, type MergedItem, mergeGroupItems, wordDiff } from './changelogDiff';
 import { useJiraStatusList } from './useEpicProgressQueries';
 
 interface ChangelogEntryProps {
@@ -250,21 +250,21 @@ function ItemRow({ item }: { item: MergedItem }) {
 }
 
 export function ChangelogEntry({ histories }: ChangelogEntryProps) {
-  const first = histories[0];
+  const latest = latestHistory(histories);
   const items = useMemo(() => mergeGroupItems(histories), [histories]);
-  if (!first) return null;
+  if (!latest) return null;
 
   return (
     <div className="flex items-start gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5">
       <GitCommit className="size-4 text-muted-foreground shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0 space-y-1">
         <div className="text-sm text-muted-foreground">
-          <span className="font-medium">{first.author.displayName}</span>{' '}
+          <span className="font-medium">{latest.author?.displayName ?? 'Unknown'}</span>{' '}
           <span
             className="text-xs text-muted-foreground"
-            title={new Date(first.created).toLocaleString()}
+            title={new Date(latest.created).toLocaleString()}
           >
-            {relativeTime(first.created)}
+            {relativeTime(latest.created)}
           </span>
         </div>
         {items.map((item) => (

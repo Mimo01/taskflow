@@ -149,8 +149,18 @@ export type ChangeGroup = {
 
 export type DisplayEntry = Exclude<TimelineEntry, { type: 'change' }> | ChangeGroup;
 
-function authorKey(h: ChangelogHistory): string {
-  return h.author?.name ?? h.author?.displayName ?? '';
+/** Null when the author is missing (anonymous/system) — such histories never merge. */
+function authorKey(h: ChangelogHistory): string | null {
+  return h.author?.name ?? h.author?.displayName ?? null;
+}
+
+/** The most recent history in a group, independent of the timeline sort order. */
+export function latestHistory(histories: ChangelogHistory[]): ChangelogHistory | undefined {
+  let latest: ChangelogHistory | undefined;
+  for (const h of histories) {
+    if (!latest || Date.parse(h.created) > Date.parse(latest.created)) latest = h;
+  }
+  return latest;
 }
 
 export function groupChangeBursts(entries: TimelineEntry[], windowMs = 5 * 60_000): DisplayEntry[] {
@@ -162,9 +172,12 @@ export function groupChangeBursts(entries: TimelineEntry[], windowMs = 5 * 60_00
     }
     const prev = out[out.length - 1];
     if (prev && prev.type === 'change-group') {
-      const last = prev.histories[prev.histories.length - 1];
-      const gap = Math.abs(Date.parse(entry.data.created) - Date.parse(last.created));
-      if (authorKey(last) === authorKey(entry.data) && Number.isFinite(gap) && gap <= windowMs) {
+      // Anchor the window to the group's first edit so a steady stream of edits
+      // can't chain into one unbounded group.
+      const anchor = prev.histories[0];
+      const gap = Math.abs(Date.parse(entry.data.created) - Date.parse(anchor.created));
+      const key = authorKey(entry.data);
+      if (key !== null && authorKey(anchor) === key && Number.isFinite(gap) && gap <= windowMs) {
         prev.histories.push(entry.data);
         continue;
       }
@@ -184,6 +197,8 @@ export interface MergedItem {
   toId: string | null;
   added: string[];
   removed: string[];
+  /** True once a later history in the burst touched the same field. */
+  merged: boolean;
 }
 
 export function mergeGroupItems(histories: ChangelogHistory[]): MergedItem[] {
@@ -206,9 +221,21 @@ export function mergeGroupItems(histories: ChangelogHistory[]): MergedItem[] {
       if (!existing) {
         const kind = classifyField(field, from, to);
         const { added, removed } = tokenSetDiff(field, from, to);
-        map.set(lower, { key: '', field, kind, from, to, fromId, toId, added, removed });
+        map.set(lower, {
+          key: '',
+          field,
+          kind,
+          from,
+          to,
+          fromId,
+          toId,
+          added,
+          removed,
+          merged: false,
+        });
         continue;
       }
+      existing.merged = true;
       if (existing.kind === 'multi' || classifyField(field, from, to) === 'multi') {
         const d = tokenSetDiff(field, from, to);
         // A token added then removed (or vice versa) within the burst cancels out.
@@ -231,5 +258,13 @@ export function mergeGroupItems(histories: ChangelogHistory[]): MergedItem[] {
       }
     }
   }
-  return [...map.values()].map((m, i) => ({ ...m, key: `${m.field}-${i}` }));
+  // Drop fields an edit burst reverted (A → B → A); a single history is always shown as-is.
+  const net = [...map.values()].filter((m) =>
+    !m.merged
+      ? true
+      : m.kind === 'multi'
+        ? m.added.length > 0 || m.removed.length > 0
+        : m.from !== m.to,
+  );
+  return net.map((m, i) => ({ ...m, key: `${m.field}-${i}` }));
 }
