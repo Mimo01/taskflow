@@ -441,7 +441,11 @@ export function EpicProgressSection({
           </div>
         </div>
 
-        <div data-testid="epic-assignee-block" className="mt-6 border-t pt-4">
+        {/* Sub-divider: lighter + dashed so it never reads as the solid section border (border-t border-b). */}
+        <div
+          data-testid="epic-assignee-block"
+          className="mt-6 border-t border-dashed border-foreground/10 pt-4"
+        >
           <h4 className="text-xs font-medium text-muted-foreground">By person</h4>
           <div className="mt-2 flex flex-col">
             {assignees.map((a) => (
