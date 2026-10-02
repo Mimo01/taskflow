@@ -25,7 +25,7 @@ import {
 } from '@/lib/epic-progress';
 import type { EpicWorklogDay, JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
-import { ForecastLegend, LegendItem, SourceFlag, tickLabel } from './EpicCfdChart';
+import { tickLabel } from './EpicCfdChart';
 import { EpicChartTooltip, timeRows } from './EpicChartTooltip';
 import {
   type ChartZoom,
@@ -36,7 +36,6 @@ import {
   useLiveRange,
   visibleRange,
   Y_AXIS_WIDTH,
-  ZoomPresets,
   zoomUsable,
 } from './EpicChartZoom';
 import { EpicRangeNavigator } from './EpicRangeNavigator';
@@ -57,8 +56,6 @@ interface EpicTimeBurnupProps {
   /** The one shared averaged forecast (same result as the Finish tile). */
   finish: AveragedForecast;
   calendar: WorkCalendar;
-  /** Small neutral info flag text (see EpicCfdChart). */
-  sourceFlag?: string | null;
   /** Shared zoom state (null without a valid axis start). */
   zoom: ChartZoom | null;
 }
@@ -72,7 +69,6 @@ export function EpicTimeBurnup({
   today,
   finish,
   calendar,
-  sourceFlag,
   zoom,
 }: EpicTimeBurnupProps) {
   const { data, isFetching, isError, refetch } = query;
@@ -156,7 +152,6 @@ export function EpicTimeBurnup({
   }
 
   const { points, projection } = derived;
-  const hasProjection = projection.points.length > 0;
   const ticks = range ? timeTicks(range.from, range.to, width) : [];
 
   return (
@@ -286,27 +281,6 @@ export function EpicTimeBurnup({
             ) : null}
           </>
         )}
-      </div>
-      <div className="mt-1 flex items-start justify-between gap-4">
-        <div
-          data-testid="epic-time-legend"
-          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"
-        >
-          <LegendItem
-            marker={SERIES.estimate.marker}
-            color={SERIES.estimate.color}
-            label="Estimate"
-          />
-          <LegendItem marker={SERIES.logged.marker} color={SERIES.logged.color} label="Logged" />
-          <LegendItem
-            marker={SERIES.remaining.marker}
-            color={SERIES.remaining.color}
-            label="Remaining"
-          />
-          <ForecastLegend finish={finish} hasProjection={hasProjection} />
-          <SourceFlag text={sourceFlag} />
-        </div>
-        {zoom ? <ZoomPresets zoom={zoom} /> : null}
       </div>
     </div>
   );

@@ -8,26 +8,21 @@
  * day (flat on non-working days); its dots are hidden until hover (activeDot only).
  *
  * Recharts conventions shared with the other charts: 'use no memo' + explicit-height
- * wrapper + isAnimationActive={false}. No recharts <Legend>: it renders text in jsdom and
- * would collide with the EpicDetailSheet text assertions, so the legend is custom.
+ * wrapper + isAnimationActive={false}. No legend (261002-enj): series meaning lives in the
+ * hover tooltip; the source flag and zoom presets sit in the toolbar above the chart.
  */
-import { Info } from 'lucide-react';
 import { useRef } from 'react';
 import { Area, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { MarkerGlyph, type MarkerTone, type TooltipMarker } from '@/components/ui/tooltip-body';
 import {
   type AveragedForecast,
   type CfdPoint,
   dateKeyMs,
-  FINISH_STATE_TEXT,
   formatDateKey,
   type Metric,
   timeTicks,
 } from '@/lib/epic-progress';
 import { STATUS_CATEGORY_COLOR } from '@/lib/statusStyles';
-import { ConfidenceMeter } from './ConfidenceMeter';
 import { cfdRows, EpicChartTooltip } from './EpicChartTooltip';
 import {
   type ChartZoom,
@@ -38,7 +33,6 @@ import {
   useLiveRange,
   visibleRange,
   Y_AXIS_WIDTH,
-  ZoomPresets,
   zoomUsable,
 } from './EpicChartZoom';
 import { EpicRangeNavigator } from './EpicRangeNavigator';
@@ -59,9 +53,6 @@ interface EpicCfdChartProps {
   metric: Metric;
   /** Whether the series comes from real status history (vs the current-state approximation). */
   history: 'real' | 'approx';
-  /** Small neutral info flag text when the data source is approximate or loading. */
-  sourceFlag?: string | null;
-  hasProjection: boolean;
   clippedAfter: string | null;
   /** The one shared forecast (same result as the Finish tile). */
   finish: AveragedForecast;
@@ -74,78 +65,10 @@ export function tickLabel(v: unknown): string {
   return formatDateKey(new Date(Number(v)).toISOString().slice(0, 10));
 }
 
-export function LegendItem({
-  label,
-  marker,
-  color,
-  tone,
-}: {
-  label: string;
-  marker: TooltipMarker;
-  /** Status colour (marker 'status' only). */
-  color?: string;
-  tone?: MarkerTone;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <MarkerGlyph marker={marker} color={color} tone={tone} />
-      <span>{label}</span>
-    </span>
-  );
-}
-
-/** Legend entry for the shared forecast: the dashed item, or the state text when none is drawn. */
-export function ForecastLegend({
-  finish,
-  hasProjection,
-}: {
-  finish: AveragedForecast;
-  hasProjection: boolean;
-}) {
-  if (hasProjection) {
-    return (
-      <>
-        <LegendItem marker={SERIES.forecast.marker} tone={SERIES.forecast.tone} label="Forecast" />
-        <ConfidenceMeter level={finish.confidence} />
-      </>
-    );
-  }
-  if (finish.state === 'ok') {
-    // Shared forecast exists but this view has nothing left to project (e.g. all estimates logged).
-    return finish.likely ? (
-      <span data-testid="epic-forecast-state">{`Forecast: ${formatDateKey(finish.likely)}`}</span>
-    ) : null;
-  }
-  return (
-    <span data-testid="epic-forecast-state">{`Forecast: ${FINISH_STATE_TEXT[finish.state]}`}</span>
-  );
-}
-
-/** Neutral info icon in the legend row when a data source is approximate or loading. */
-export function SourceFlag({ text }: { text?: string | null }) {
-  if (!text) return null;
-  return (
-    // A real (button) tooltip trigger: keyboard-focusable without tabIndex on a non-interactive element.
-    <Tooltip>
-      <TooltipTrigger
-        delay={0}
-        data-testid="epic-source-flag"
-        aria-label={text}
-        className="inline-flex cursor-default items-center rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      >
-        <Info aria-hidden="true" className="size-3 text-muted-foreground" />
-      </TooltipTrigger>
-      <TooltipContent>{text}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 export function EpicCfdChart({
   data,
   metric,
   history,
-  sourceFlag,
-  hasProjection,
   clippedAfter,
   finish,
   today,
@@ -292,28 +215,6 @@ export function EpicCfdChart({
             ) : null}
           </>
         )}
-      </div>
-      <div className="mt-1 flex items-start justify-between gap-4">
-        <div
-          data-testid="epic-cfd-legend"
-          className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"
-        >
-          <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.done} label="Completed" />
-          <LegendItem
-            marker="status"
-            color={STATUS_CATEGORY_COLOR.indeterminate}
-            label="In progress"
-          />
-          <LegendItem marker="status" color={STATUS_CATEGORY_COLOR.new} label="To do" />
-          <LegendItem
-            marker={SERIES.remaining.marker}
-            color={SERIES.remaining.color}
-            label="Remaining"
-          />
-          <ForecastLegend finish={finish} hasProjection={hasProjection} />
-          <SourceFlag text={sourceFlag} />
-        </div>
-        {zoom ? <ZoomPresets zoom={zoom} /> : null}
       </div>
     </div>
   );

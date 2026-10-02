@@ -56,7 +56,13 @@ import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import { BandBar, BandBreakdown, BandChips } from './EpicBands';
 import { EpicCfdChart } from './EpicCfdChart';
-import { type ChartZoom, chartHeight, PLOT_HEIGHT } from './EpicChartZoom';
+import {
+  ChartToolbar,
+  type ChartZoom,
+  chartHeight,
+  PLOT_HEIGHT,
+  TOOLBAR_HEIGHT,
+} from './EpicChartZoom';
 import { EpicProgressSummary } from './EpicProgressSummary';
 import { STAT_CONTAINER_CLASS, STAT_GRID_CLASS } from './EpicStatCard';
 import { EpicTimeBurnup } from './EpicTimeBurnup';
@@ -139,7 +145,9 @@ function EpicProgressSkeleton() {
       </div>
       {/* The domain is unknown while loading: reserve the non-zoom plot height (a jump to the
           taller zoomable chart is an accepted limitation). */}
-      <Skeleton className="w-full" style={{ height: PLOT_HEIGHT }} />
+      <div className="pt-3">
+        <Skeleton className="w-full" style={{ height: PLOT_HEIGHT + TOOLBAR_HEIGHT + 8 }} />
+      </div>
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-4 w-2/3" />
       {[0, 1, 2].map((i) => (
@@ -297,6 +305,8 @@ export function EpicProgressSection({
     : timePending === 'error'
       ? 'unavailable'
       : 'loading';
+  const emptyEstimate =
+    (metric === 'sp' && summary.total === 0) || (timeMode && time.estimated === 0);
   const heroSourceNote = sourceNote({
     metric,
     history: historySource,
@@ -338,7 +348,21 @@ export function EpicProgressSection({
       />
 
       <div data-testid="epic-chart-block" className="flex flex-col pt-3">
-        {(metric === 'sp' && summary.total === 0) || (timeMode && time.estimated === 0) ? (
+        <ChartToolbar
+          zoom={emptyEstimate ? null : chartZoom}
+          sourceFlag={
+            emptyEstimate
+              ? null
+              : timeMode
+                ? worklogSource === 'loaded'
+                  ? null
+                  : WORKLOG_SOURCE_TEXT[worklogSource]
+                : historySource === 'real'
+                  ? null
+                  : HISTORY_SOURCE_TEXT[historySource]
+          }
+        />
+        {emptyEstimate ? (
           <div
             data-testid="epic-empty-estimate"
             style={{ minHeight: chartHeight(chartZoom) }}
@@ -363,7 +387,6 @@ export function EpicProgressSection({
             today={today}
             finish={finish}
             calendar={calendar}
-            sourceFlag={worklogSource === 'loaded' ? null : WORKLOG_SOURCE_TEXT[worklogSource]}
             zoom={chartZoom}
           />
         ) : (
@@ -371,8 +394,6 @@ export function EpicProgressSection({
             data={cfdData}
             metric={metric}
             history={history.data && !approximate ? 'real' : 'approx'}
-            sourceFlag={historySource === 'real' ? null : HISTORY_SOURCE_TEXT[historySource]}
-            hasProjection={projection.points.length > 0}
             clippedAfter={projection.clippedAfter}
             finish={finish}
             today={today}

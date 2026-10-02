@@ -132,7 +132,7 @@ export function EpicRangeNavigator({
       role="group"
       aria-label="Visible dates"
       data-testid="epic-range-navigator"
-      className="mt-1 flex flex-col gap-1"
+      className="mt-2 flex flex-col gap-1"
     >
       <div className="relative h-7">
         <svg
