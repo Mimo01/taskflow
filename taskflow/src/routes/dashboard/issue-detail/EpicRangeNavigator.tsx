@@ -118,7 +118,9 @@ export function EpicRangeNavigator({
   const onPanEnd = () => {
     const p = pan.current;
     pan.current = null;
-    if (p) onCommit(p.last);
+    // A click without movement (or the first half of a double-click) is not a zoom change:
+    // committing it would clear the active preset.
+    if (p && (p.last.from !== p.range.from || p.last.to !== p.range.to)) onCommit(p.last);
   };
 
   const remainingPath = sparklinePath(overview, domain, 'remaining');

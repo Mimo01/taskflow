@@ -110,6 +110,17 @@ describe('EpicRangeNavigator', () => {
     expect(last && addCalendarDays(last.from, 8)).toBe(last?.to);
   });
 
+  it('a click on the selection without movement does not commit (keeps the active preset)', () => {
+    const { onCommit } = setup();
+    const handle = screen
+      .getByTestId('epic-range-navigator')
+      .querySelector<HTMLElement>('.cursor-grab') as HTMLElement;
+    // jsdom has zero geometry, so the pointer delta is 0 days — a pure click.
+    fireEvent.pointerDown(handle, { clientX: 50, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 50, pointerId: 1 });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('double-clicking the selection resets', () => {
     const { onReset } = setup();
     // the Indicator is the only element with the grab cursor class

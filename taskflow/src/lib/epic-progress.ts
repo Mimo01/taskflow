@@ -1903,7 +1903,10 @@ export function formatMonthYear(key: string): string {
 export function formatDateRange(a: string, b: string, today: string): string {
   const [ay, am] = a.split('-').map(Number);
   const [by, bm, bd] = b.split('-').map(Number);
-  const end = ay === by && am === bm ? `${bd}` : `${MONTHS[bm - 1]} ${bd}`;
+  const yy = (y: number) => ` '${String(y).slice(2)}`;
+  // A range across years names both years ("Dec 28 '26 – Jan 3 '27").
+  if (ay !== by) return `${labelOf(a)}${yy(ay)} \u2013 ${MONTHS[bm - 1]} ${bd}${yy(by)}`;
+  const end = am === bm ? `${bd}` : `${MONTHS[bm - 1]} ${bd}`;
   const suffix = String(by) !== today.slice(0, 4) ? ` '${String(by).slice(2)}` : '';
   return `${labelOf(a)} \u2013 ${end}${suffix}`;
 }
