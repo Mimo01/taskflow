@@ -35,13 +35,13 @@ beforeEach(() => {
 });
 
 describe('ChangelogEntry', () => {
-  it('renders empty old side as ∅ and strikes through old values', () => {
+  it('renders empty old side as None and strikes through old values', () => {
     render(
       <ChangelogEntry
         histories={[hist('1', [{ field: 'assignee', fromString: null, toString: 'Bob' }])]}
       />,
     );
-    expect(screen.getByText('∅')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
 
     render(
