@@ -2124,16 +2124,29 @@ describe('zoom range matrix (261002-0xf)', () => {
         }
       }
     });
-    it('rebaseRange follows a new domain end only when pinned to the old one', () => {
+    it('rebaseRange follows a new domain end only when pinned to the end', () => {
       const next = { from: '2026-09-01', to: '2026-10-10' };
-      expect(
-        rebaseRange({ from: '2026-09-15', to: '2026-10-01' }, '2026-10-01', next, MIN),
-      ).toEqual({ from: '2026-09-15', to: '2026-10-10' });
-      expect(
-        rebaseRange({ from: '2026-09-05', to: '2026-09-20' }, '2026-10-01', next, MIN),
-      ).toEqual({ from: '2026-09-05', to: '2026-09-20' });
-      const tiny = rebaseRange({ from: '2026-09-09', to: '2026-09-10' }, '2026-10-01', next, MIN);
+      expect(rebaseRange({ from: '2026-09-15', to: '2026-10-01' }, true, next, MIN)).toEqual({
+        from: '2026-09-15',
+        to: '2026-10-10',
+      });
+      expect(rebaseRange({ from: '2026-09-05', to: '2026-09-20' }, false, next, MIN)).toEqual({
+        from: '2026-09-05',
+        to: '2026-09-20',
+      });
+      const tiny = rebaseRange({ from: '2026-09-09', to: '2026-09-10' }, false, next, MIN);
       expect(spanDays(tiny)).toBeGreaterThanOrEqual(MIN);
+    });
+    it('a pinned window keeps following the end when the domain shrinks and grows again', () => {
+      const committed = { from: '2026-09-15', to: '2026-10-20' }; // pinned at commit time
+      const shrunk = rebaseRange(committed, true, { from: '2026-09-01', to: '2026-10-05' }, MIN);
+      expect(shrunk.to).toBe('2026-10-05');
+      const regrown = rebaseRange(committed, true, { from: '2026-09-01', to: '2026-11-02' }, MIN);
+      expect(regrown).toEqual({ from: '2026-09-15', to: '2026-11-02' });
+    });
+    it('an unpinned window whose end equals a later domain end is not pinned by coincidence', () => {
+      const past = { from: '2026-09-01', to: '2026-09-30' };
+      expect(rebaseRange(past, false, { from: '2026-08-01', to: '2026-10-30' }, MIN)).toEqual(past);
     });
     it('panning a minimum-span range never shrinks it', () => {
       const r = { from: '2026-09-10', to: '2026-09-17' };
