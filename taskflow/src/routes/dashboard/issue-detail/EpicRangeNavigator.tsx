@@ -20,6 +20,7 @@ import {
   spanDays,
   ZOOM_MIN_SPAN_DAYS,
 } from '@/lib/epic-progress';
+import { PLOT_MARGIN, Y_AXIS_WIDTH } from './EpicChartZoom';
 
 export interface OverviewPoint {
   t: number;
@@ -132,6 +133,8 @@ export function EpicRangeNavigator({
       role="group"
       aria-label="Visible dates"
       data-testid="epic-range-navigator"
+      // Inset to the plot area (Y axis on the left, chart margin on the right) so the slider spans the same width.
+      style={{ paddingLeft: Y_AXIS_WIDTH, paddingRight: PLOT_MARGIN.right }}
       className="mt-2 flex flex-col gap-1"
     >
       <div className="relative h-7">

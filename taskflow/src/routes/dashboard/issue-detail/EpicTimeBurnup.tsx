@@ -31,6 +31,7 @@ import {
   type ChartZoom,
   chartHeight,
   PLOT_HEIGHT,
+  PLOT_MARGIN,
   useChartView,
   useElementWidth,
   useLiveRange,
@@ -174,11 +175,7 @@ export function EpicTimeBurnup({
                 className="aspect-auto h-full w-full"
                 aria-label="Epic time burnup chart"
               >
-                <ComposedChart
-                  data={view}
-                  responsive
-                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                >
+                <ComposedChart data={view} responsive margin={PLOT_MARGIN}>
                   <XAxis
                     type="number"
                     dataKey="t"
