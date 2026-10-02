@@ -2,17 +2,18 @@
  * ActivityTimeline -- unified activity feed merging comments, changelog entries,
  * and worklog entries.
  *
- * Uses mergeTimeline / filterTimeline / countByType from the jira-changelog
+ * Uses mergeTimeline / countByType from the jira-changelog
  * service for data processing.
  */
 import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChangelogHistory, JiraComment, TimelineFilter } from '@/services/jira';
-import { countByType, filterTimeline, mergeTimeline } from '@/services/jira';
+import { countByType, mergeTimeline } from '@/services/jira';
 import type { JiraWorklog } from '@/services/jira/types';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { AttachmentMap, UserMap } from '../WikiRenderer';
 import { ChangelogEntry } from './ChangelogEntry';
+import { groupChangeBursts } from './changelogDiff';
 import { TimelineFilterChips } from './TimelineFilterChips';
 import { WorklogEntry } from './WorklogEntry';
 
@@ -128,7 +129,13 @@ export function ActivityTimeline({
   const sortedEntries = commentSortOrder === 'oldest' ? [...allEntries].reverse() : allEntries;
 
   const counts = countByType(allEntries);
-  const visibleEntries = filterTimeline(sortedEntries, filter);
+  // Group on the UNFILTERED list so a comment between two edits still splits a burst.
+  const displayEntries = groupChangeBursts(sortedEntries);
+  const visibleEntries = displayEntries.filter((e) => {
+    if (filter === 'all') return true;
+    if (filter === 'change') return e.type === 'change-group';
+    return e.type === filter;
+  });
 
   const noActivity = allEntries.length === 0;
   const filteredEmpty = !noActivity && visibleEntries.length === 0;
@@ -167,10 +174,10 @@ export function ActivityTimeline({
       ) : (
         <ol className="space-y-3 density-compact:space-y-2 density-comfortable:space-y-4">
           {visibleEntries.map((entry) => {
-            if (entry.type === 'change') {
+            if (entry.type === 'change-group') {
               return (
-                <li key={`change-${entry.data.id}`}>
-                  <ChangelogEntry history={entry.data} />
+                <li key={`change-${entry.histories[0].id}`}>
+                  <ChangelogEntry histories={entry.histories} />
                 </li>
               );
             }
