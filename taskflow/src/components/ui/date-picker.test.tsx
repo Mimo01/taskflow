@@ -2,6 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DatePicker } from './date-picker';
 
+// The trigger label follows the runtime locale (Intl with `undefined`), so derive
+// the expected text the same way instead of hardcoding en-US "Sep 1, 2026".
+const label = (y: number, m: number, d: number) =>
+  new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' }).format(
+    new Date(y, m - 1, d),
+  );
+
 describe('DatePicker', () => {
   it('renders placeholder text when value is empty', () => {
     render(<DatePicker value="" onChange={vi.fn()} placeholder="Pick a date" />);
@@ -10,7 +17,7 @@ describe('DatePicker', () => {
 
   it('renders the formatted date when value is set', () => {
     render(<DatePicker value="2026-09-22" onChange={vi.fn()} />);
-    expect(screen.getByText(/Sep 22, 2026/)).toBeTruthy();
+    expect(screen.getByText(label(2026, 9, 22))).toBeTruthy();
   });
 
   it('opens a calendar grid when the trigger is clicked', async () => {
@@ -22,7 +29,7 @@ describe('DatePicker', () => {
   it('calls onChange with the clicked day and closes the popover', async () => {
     const onChange = vi.fn();
     render(<DatePicker value="2026-09-01" onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: /Sep 1, 2026/ }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(label(2026, 9, 1)) }));
     await screen.findByRole('grid');
 
     const dayButton = await screen.findByRole('button', { name: /September 22nd, 2026/i });
@@ -33,7 +40,7 @@ describe('DatePicker', () => {
 
   it('starts the week on Monday', async () => {
     render(<DatePicker value="2026-09-01" onChange={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /Sep 1, 2026/ }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(label(2026, 9, 1)) }));
     const grid = await screen.findByRole('grid');
     const headers = Array.from(grid.querySelectorAll('thead th'));
     expect(headers.length).toBe(7);
@@ -59,7 +66,7 @@ describe('DatePicker', () => {
   it('round-trips the clicked day to the same YYYY-MM-DD string (TZ regression)', async () => {
     const onChange = vi.fn();
     render(<DatePicker value="2026-09-01" onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: /Sep 1, 2026/ }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(label(2026, 9, 1)) }));
     await screen.findByRole('grid');
 
     const dayButton = await screen.findByRole('button', { name: /September 15th, 2026/i });
