@@ -2,6 +2,13 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.6] — 2026-10-05
+
+### Fixed
+
+- **Wiki rendering — underscores inside words stay literal** — identifiers like `VOYO_STD_VAS` in descriptions and comments no longer turn into italics (`VOYO*STD*VAS`); italic `_text_` now only applies at word boundaries.
+- **Wiki rendering — no stray backticks around monospace text** — `{{monospace}}` spans no longer show literal backtick characters around them.
+
 ## [1.14.5] — 2026-10-02
 
 ### Added
