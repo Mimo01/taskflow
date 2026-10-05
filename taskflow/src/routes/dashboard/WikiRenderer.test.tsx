@@ -2586,4 +2586,39 @@ After quote`;
       expect(del?.textContent).toBe('text');
     });
   });
+  describe('wiki-underscore-tt-strike: intra-word underscores, tt inside strike, list items', () => {
+    const raw =
+      'Vytvoriť novú TO (tarifnú opciu) pre službu VOYO v eshope.\n * Názov TO: VOYO_STD_VAS -{{VOYO_STD}}-\n * {{AS_ID}} = 3520';
+
+    it('keeps intra-word underscores literal (no italics)', () => {
+      const { container } = render(<WikiRenderer wikiText={raw} />);
+      expect(container.querySelector('em')).toBeNull();
+      const items = container.querySelectorAll('li');
+      expect(items[0]?.textContent).toContain('VOYO_STD_VAS');
+    });
+
+    it('renders {{x}} inside -strike- as del > code without literal backticks', () => {
+      const { container } = render(<WikiRenderer wikiText={raw} />);
+      const code = container.querySelector('li del code');
+      expect(code?.textContent).toBe('VOYO_STD');
+      expect(container.textContent).not.toContain('`');
+      // Tailwind typography injects ::before/::after backticks on <code> by default.
+      const cls = container.querySelector('article')?.className ?? '';
+      expect(cls).toContain('prose-code:before:content-none');
+      expect(cls).toContain('prose-code:after:content-none');
+    });
+
+    it('renders both bullets, including the {{AS_ID}} = 3520 item', () => {
+      const { container } = render(<WikiRenderer wikiText={raw} />);
+      const items = container.querySelectorAll('ul > li');
+      expect(items.length).toBe(2);
+      expect(items[1]?.querySelector('code')?.textContent).toBe('AS_ID');
+      expect(items[1]?.textContent).toBe('AS_ID = 3520');
+    });
+
+    it('still italicises word-bounded _text_', () => {
+      const { container } = render(<WikiRenderer wikiText="a _word_ here" />);
+      expect(container.querySelector('em')?.textContent).toBe('word');
+    });
+  });
 });

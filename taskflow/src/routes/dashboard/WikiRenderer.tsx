@@ -600,7 +600,9 @@ function convertInlineBoldItalic(segment: string): string {
   // the rehype-sanitize default schema.
   c = c.replace(/(?<!\*)\*(\S[^*\n]*?\S|\S)\*(?!\*)/g, '<strong>$1</strong>');
   // Italic: _text_ → <em>text</em>
-  c = c.replace(/(?<!_)_(\S[^_\n]*?\S|\S)_(?!_)/g, '<em>$1</em>');
+  // wiki-underscore-intraword: Jira only treats `_` as a delimiter at a word
+  // boundary, so intra-word underscores (VOYO_STD_VAS) must stay literal.
+  c = c.replace(/(?<![_\p{L}\p{N}])_(\S[^_\n]*?\S|\S)_(?![_\p{L}\p{N}])/gu, '<em>$1</em>');
   // Restore link placeholders
   // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is intentionally used as a unique sentinel delimiter — it cannot appear in wiki markup text, making false-positive matches impossible
   return c.replace(/\x00LINK(\d+)\x00/g, (_, i) => linkPlaceholders[parseInt(i, 10)]);
@@ -1099,6 +1101,14 @@ export function preprocessJiraMarkup(
   // reintroduced by a later step; it is restored to `_` by
   // `fixMarkdownLinkUnderscores` after jira2md and link extraction complete.
   result = result.replace(/\[([^\]\n]*)\]/g, (match) => match.replace(/_/g, '\x00USCORE\x00'));
+
+  // wiki-underscore-intraword: real Jira only treats `_` as an italic delimiter
+  // at a word boundary, so identifiers like VOYO_STD_VAS or AS_ID are literal
+  // text. jira2md's italic regex has no such boundary rule and turns the
+  // underscores into `*...*` emphasis (VOYO<em>STD</em>VAS). Protect any `_`
+  // flanked by letters/digits on both sides with the same placeholder used for
+  // link brackets; fixMarkdownLinkUnderscores restores it after jira2md runs.
+  result = result.replace(/(?<=[\p{L}\p{N}])_(?=[\p{L}\p{N}])/gu, '\x00USCORE\x00');
 
   // wiki-strikethrough-dashes: Jira strikethrough markup `-text-` wrapping a
   // named-link display label — `[-text-|url]` — never renders struck-through.
@@ -1688,6 +1698,9 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
     <article
       className={cn(
         'prose prose-sm dark:prose-invert max-w-none break-words',
+        // @tailwindcss/typography wraps <code> in literal ::before/::after backticks;
+        // wiki {{mono}} spans are not markdown, so suppress them.
+        'prose-code:before:content-none prose-code:after:content-none',
         // Default tier is set explicitly rather than inherited from prose-sm, so all
         // three density tiers sit on one monotonic scale. prose-sm's own defaults
         // (p my-4, leading 1.714) read looser than we want as the neutral baseline.
