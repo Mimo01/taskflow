@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuthBlob } from './issue-detail/useAuthBlob';
 
 interface AuthImageProps {
@@ -5,6 +6,8 @@ interface AuthImageProps {
   alt?: string;
   className?: string;
   onClick?: () => void;
+  /** Used when `src` fails to fetch or decode (e.g. Jira thumbnail missing/unrenderable). */
+  fallbackSrc?: string;
 }
 
 /**
@@ -12,8 +15,16 @@ interface AuthImageProps {
  * Sources blob/loading/error state from the shared `useAuthBlob` hook so
  * there is one auth-fetch implementation shared with AttachmentPreviewModal.
  */
-export function AuthImage({ src, alt, className, onClick }: AuthImageProps) {
-  const { blobUrl, loading, error } = useAuthBlob(src);
+export function AuthImage({ src, alt, className, onClick, fallbackSrc }: AuthImageProps) {
+  const [decodeFailed, setDecodeFailed] = useState(false);
+  const [fetchFailedSrc, setFetchFailedSrc] = useState<string | null>(null);
+  const canFallback = !!fallbackSrc && fallbackSrc !== src;
+  const useFallback = canFallback && (decodeFailed || fetchFailedSrc === src);
+  const activeSrc = useFallback ? (fallbackSrc as string) : src;
+  const { blobUrl, loading, error } = useAuthBlob(activeSrc);
+  if (error && canFallback && !useFallback && fetchFailedSrc !== src) {
+    setFetchFailedSrc(src);
+  }
 
   const handleKeyDown = onClick
     ? (e: React.KeyboardEvent<HTMLImageElement>) => {
@@ -42,6 +53,9 @@ export function AuthImage({ src, alt, className, onClick }: AuthImageProps) {
       alt={alt ?? ''}
       className={className}
       onClick={onClick}
+      onError={() => {
+        if (canFallback && !useFallback) setDecodeFailed(true);
+      }}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={handleKeyDown}

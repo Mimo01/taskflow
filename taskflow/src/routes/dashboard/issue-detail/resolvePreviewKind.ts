@@ -31,6 +31,7 @@ const CODE_EXTENSIONS = new Set(Object.keys(CODE_EXTENSION_LANGUAGE_MAP));
 
 const TEXT_EXTENSIONS = new Set(['md', 'log', 'csv', 'txt']);
 
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg']);
 const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov']);
 const AUDIO_EXTENSIONS = new Set(['mp3', 'wav']);
 
@@ -58,6 +59,7 @@ export function resolvePreviewKind(attachment: JiraAttachment): PreviewKind {
   const isTextMime = mimeType.startsWith('text/');
 
   if (isGenericMime || isTextMime) {
+    if (IMAGE_EXTENSIONS.has(ext)) return 'image';
     if (CODE_EXTENSIONS.has(ext)) return 'code';
     if (TEXT_EXTENSIONS.has(ext)) return 'text';
     if (VIDEO_EXTENSIONS.has(ext)) return 'video';
