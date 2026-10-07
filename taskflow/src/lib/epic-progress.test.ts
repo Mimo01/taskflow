@@ -1144,6 +1144,29 @@ describe('averageForecasts (261001-qvu)', () => {
     expect(r.explanation).toContain('Items and SP');
     expect(r.explanation).not.toContain('disagree');
   });
+  it('weights time above Items/SP and takes confidence from time', () => {
+    const r = averageForecasts(
+      [
+        {
+          metric: 'count',
+          forecast: okForecast({ nLikely: 20, nOpt: 15, nPess: 30, confidence: 'low' }),
+        },
+        {
+          metric: 'sp',
+          forecast: okForecast({ nLikely: 20, nOpt: 15, nPess: 30, confidence: 'low' }),
+        },
+        {
+          metric: 'time',
+          forecast: okForecast({ nLikely: 10, nOpt: 8, nPess: 14, confidence: 'high' }),
+        },
+      ],
+      WED,
+    );
+    // (20 + 20 + 4*10) / 6 = 13.33 -> 13 (an unweighted mean would be 16.67 -> 17)
+    expect(r.nLikely).toBe(13);
+    expect(r.confidence).toBe('medium'); // time's 'high', lowered one notch for disagreement
+    expect(r.explanation).toContain('Time-led');
+  });
   it('keeps the lowest confidence when contributors agree', () => {
     const r = averageForecasts(
       [
