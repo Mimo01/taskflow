@@ -1210,6 +1210,13 @@ export const METRIC_LABEL: Record<Metric, string> = {
   time: 'Time',
 };
 
+/**
+ * Time leads the averaged finish: logged time moves while a story is still in progress,
+ * whereas Items/SP only move when a story flips to done. Time counts this many times as
+ * much as each other metric; Items/SP are steadying inputs (and the fallback without time).
+ */
+export const TIME_FORECAST_WEIGHT = 4;
+
 /** Contributors disagree when their likely spread exceeds this share of the mean likely. */
 export const AVERAGE_DISAGREE_SPREAD = 0.5;
 
@@ -1326,17 +1333,30 @@ export function averageForecasts(
   }
 
   const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const metricWeight = (r: (typeof used)[number]) =>
+    r.metric === 'time' ? TIME_FORECAST_WEIGHT : 1;
+  const wMean = (pick: (f: EpicForecast) => number | null) => {
+    let sum = 0;
+    let wSum = 0;
+    for (const r of used) {
+      const w = metricWeight(r);
+      sum += w * (r.forecast ? (pick(r.forecast) ?? 0) : 0);
+      wSum += w;
+    }
+    return sum / wSum;
+  };
   const likelies = used.map((r) => r.forecast?.nLikely ?? 0);
-  const nLikely = Math.max(1, Math.round(mean(likelies)));
-  const nOpt = Math.min(
-    nLikely,
-    Math.max(1, Math.round(mean(used.map((r) => r.forecast?.nOpt ?? 0)))),
-  );
-  const nPess = Math.max(nLikely, Math.round(mean(used.map((r) => r.forecast?.nPess ?? 0))));
+  const nLikely = Math.max(1, Math.round(wMean((f) => f.nLikely)));
+  const nOpt = Math.min(nLikely, Math.max(1, Math.round(wMean((f) => f.nOpt))));
+  const nPess = Math.max(nLikely, Math.round(wMean((f) => f.nPess)));
   const disagree =
     used.length >= 2 &&
     Math.max(...likelies) - Math.min(...likelies) > AVERAGE_DISAGREE_SPREAD * mean(likelies);
-  let level = Math.min(...used.map((r) => CONF_ORDER.indexOf(r.forecast?.confidence ?? 'low')));
+  // Confidence follows the leading metric: a weak Items/SP read must not drag down a solid time read.
+  const timeRow = used.find((r) => r.metric === 'time');
+  let level = timeRow
+    ? CONF_ORDER.indexOf(timeRow.forecast?.confidence ?? 'low')
+    : Math.min(...used.map((r) => CONF_ORDER.indexOf(r.forecast?.confidence ?? 'low')));
   if (disagree) level = Math.max(0, level - 1);
   const labels = used.map((r) => METRIC_LABEL[r.metric]);
   return {
@@ -1350,7 +1370,9 @@ export function averageForecasts(
     confidence: CONF_ORDER[level],
     disagree,
     parts: rows,
-    explanation: `Average of ${joinLabels(labels)} forecasts.`,
+    explanation: timeRow
+      ? `Time-led average of ${joinLabels(labels)} forecasts.`
+      : `Average of ${joinLabels(labels)} forecasts.`,
   };
 }
 
