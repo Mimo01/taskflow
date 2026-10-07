@@ -19,7 +19,7 @@ vi.mock('@/services/jira', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/jira')>();
   return {
     ...actual,
-    searchJira: vi.fn().mockResolvedValue([
+    searchJiraForLink: vi.fn().mockResolvedValue([
       { key: 'PROJ-1', fields: { summary: 'First issue' } },
       { key: 'PROJ-2', fields: { summary: 'Second issue' } },
     ]),
@@ -60,7 +60,7 @@ describe('IssueLinkRow', () => {
       { wrapper },
     );
     // Select trigger should exist for link type
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(2); // link type + issue search
   });
 
   it('renders issue search input', () => {
@@ -73,7 +73,7 @@ describe('IssueLinkRow', () => {
       />,
       { wrapper },
     );
-    expect(screen.getByPlaceholderText(/search issue/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search by key/i)).toBeInTheDocument();
   });
 
   it('renders remove button', () => {
@@ -113,7 +113,7 @@ describe('IssueLinkRow', () => {
       />,
       { wrapper },
     );
-    const input = screen.getByPlaceholderText(/search issue/i);
+    const input = screen.getByPlaceholderText(/search by key/i);
     fireEvent.change(input, { target: { value: 'first' } });
     // Wait for debounce + query to resolve
     await waitFor(
@@ -134,7 +134,7 @@ describe('IssueLinkRow', () => {
       />,
       { wrapper },
     );
-    const input = screen.getByPlaceholderText(/search issue/i);
+    const input = screen.getByPlaceholderText(/search by key/i);
     fireEvent.change(input, { target: { value: 'first' } });
     await waitFor(
       () => {

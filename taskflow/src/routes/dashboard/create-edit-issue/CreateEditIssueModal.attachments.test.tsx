@@ -30,7 +30,7 @@ vi.mock('@/services/jira', async (importOriginal) => {
     ...actual,
     fetchCreatemeta: vi.fn().mockResolvedValue([]),
     fetchIssueLinkTypes: vi.fn().mockResolvedValue([]),
-    searchJira: vi.fn().mockResolvedValue([]),
+    searchJiraForLink: vi.fn().mockResolvedValue([]),
     createIssue: vi.fn().mockResolvedValue({ id: '1', key: 'PROJ-9' }),
     bulkUpdateIssue: vi.fn().mockResolvedValue(undefined),
     createIssueLink: vi.fn().mockResolvedValue(undefined),
