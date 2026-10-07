@@ -1,7 +1,7 @@
 /**
  * SubtaskTemplatesSection — Settings section for managing subtask templates.
  *
- * Supports full template CRUD (create, rename, reorder, delete) with an
+ * Supports full template CRUD (create, rename, reorder, duplicate, delete) with an
  * inline row editor per template. Row editor includes subtask-type selector
  * (filtered by issuetype.subtask === true flag per D-05), per-row editing
  * via SubtaskTemplateRow, and dnd-kit row reorder.
@@ -23,7 +23,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery } from '@tanstack/react-query';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Copy, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -288,6 +288,7 @@ interface SortableTemplateCardProps {
   isOpen: boolean;
   onToggleEdit: () => void;
   onRemove: () => void;
+  onDuplicate: () => void;
   onRename: (name: string) => void;
   onRowsChange: (rows: RowType[]) => void;
   onSubtaskTypeChange: (typeId: string, typeName: string) => void;
@@ -298,6 +299,7 @@ function SortableTemplateCard({
   isOpen,
   onToggleEdit,
   onRemove,
+  onDuplicate,
   onRename,
   onRowsChange,
   onSubtaskTypeChange,
@@ -365,6 +367,19 @@ function SortableTemplateCard({
           {isOpen ? 'Done' : 'Edit Rows'}
         </Button>
 
+        {/* Duplicate button */}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          className="text-muted-foreground hover:text-foreground shrink-0"
+          onClick={onDuplicate}
+          aria-label={`Duplicate template ${template.name}`}
+          title="Duplicate template"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+
         {/* Delete button */}
         <Button
           variant="ghost"
@@ -393,8 +408,15 @@ function SortableTemplateCard({
 // ── Main section ──────────────────────────────────────────────────────────────
 
 export default function SubtaskTemplatesSection() {
-  const { templates, addTemplate, removeTemplate, renameTemplate, moveTemplate, updateTemplate } =
-    useSubtaskTemplatesStore();
+  const {
+    templates,
+    addTemplate,
+    removeTemplate,
+    duplicateTemplate,
+    renameTemplate,
+    moveTemplate,
+    updateTemplate,
+  } = useSubtaskTemplatesStore();
 
   const [openTemplateId, setOpenTemplateId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -480,6 +502,10 @@ export default function SubtaskTemplatesSection() {
                     onRemove={() => {
                       removeTemplate(template.id);
                       if (openTemplateId === template.id) setOpenTemplateId(null);
+                    }}
+                    onDuplicate={() => {
+                      const newId = duplicateTemplate(template.id);
+                      if (newId) setOpenTemplateId(newId);
                     }}
                     onRename={(name) => renameTemplate(template.id, name)}
                     onRowsChange={(rows) => updateTemplate(template.id, { rows })}
