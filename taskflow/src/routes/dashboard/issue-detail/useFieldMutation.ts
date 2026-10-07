@@ -1,8 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import type { JiraIssueDetail } from '@/services/jira';
-import { invalidateGhAllData, invalidateGhBacklogData, updateIssueField } from '@/services/jira';
+import {
+  invalidateGhAllData,
+  invalidateGhBacklogData,
+  setIssueFlagged,
+  updateIssueField,
+} from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { useSettingsStore } from '@/stores/settings.store';
 
 /**
  * Shared mutation hook implementing Pattern 4 from RESEARCH.md.
@@ -21,6 +27,12 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
     mutationFn: async ({ fieldName, value }: { fieldName: string; value: unknown }) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
+      // Flagged can't be set via a field PUT (not on the edit screen) — use the
+      // GreenHopper flag endpoint, same as the backlog/board flag actions.
+      const flaggedFieldKey = useSettingsStore.getState().flaggedFieldKey;
+      if (fieldName === flaggedFieldKey) {
+        return setIssueFlagged(jiraBaseUrl, token, issueKey, value != null, flaggedFieldKey);
+      }
       return updateIssueField(jiraBaseUrl, token, issueKey, fieldName, value);
     },
     onMutate: async ({ fieldName, value }) => {
