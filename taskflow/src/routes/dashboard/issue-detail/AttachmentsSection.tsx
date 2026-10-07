@@ -39,9 +39,9 @@ export function AttachmentsSection({
   const downloadFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
-  const images = attachments.filter((a) => (a.mimeType ?? '').startsWith('image/'));
-  const nonImages = attachments.filter((a) => !(a.mimeType ?? '').startsWith('image/'));
   const previewKinds = new Map(attachments.map((a) => [a.id, resolvePreviewKind(a)]));
+  const images = attachments.filter((a) => previewKinds.get(a.id) === 'image');
+  const nonImages = attachments.filter((a) => previewKinds.get(a.id) !== 'image');
   const previewable = attachments.filter((a) => previewKinds.get(a.id) !== 'other');
 
   // Mutation for drag-drop uploads
