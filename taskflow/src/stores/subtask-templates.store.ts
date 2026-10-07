@@ -30,11 +30,12 @@ interface SubtaskTemplatesState {
   renameTemplate: (id: string, name: string) => void;
   updateTemplate: (id: string, patch: Partial<SubtaskTemplate>) => void;
   moveTemplate: (id: string, direction: 'up' | 'down' | 'front' | 'back') => void;
+  duplicateTemplate: (id: string) => string | null;
 }
 
 export const useSubtaskTemplatesStore = create<SubtaskTemplatesState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       templates: [],
       addTemplate: (t) => set((s) => ({ templates: [...s.templates, t] })),
       removeTemplate: (id) => set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
@@ -58,6 +59,30 @@ export const useSubtaskTemplatesStore = create<SubtaskTemplatesState>()(
           else arr.push(item);
           return { templates: arr };
         }),
+      duplicateTemplate: (id) => {
+        const source = get().templates.find((t) => t.id === id);
+        if (!source) return null;
+        const copy: SubtaskTemplate = {
+          id: crypto.randomUUID(),
+          name: `${source.name} (copy)`,
+          subtaskIssueTypeId: source.subtaskIssueTypeId,
+          subtaskIssueTypeName: source.subtaskIssueTypeName,
+          rows: source.rows.map((r) => ({
+            ...r,
+            id: crypto.randomUUID(),
+            labels: [...r.labels],
+            components: [...r.components],
+            customFieldValues: { ...r.customFieldValues },
+          })),
+        };
+        set((s) => {
+          const idx = s.templates.findIndex((t) => t.id === id);
+          const arr = [...s.templates];
+          arr.splice(idx + 1, 0, copy);
+          return { templates: arr };
+        });
+        return copy.id;
+      },
     }),
     {
       name: 'subtask-templates-store',
