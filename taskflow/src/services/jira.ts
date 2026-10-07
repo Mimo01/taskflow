@@ -1513,6 +1513,47 @@ export async function searchJira(
 }
 
 /**
+ * Issue picker search for the issue-link row (key-aware, richer fields than searchJira).
+ *
+ * - A full key ("ABC-123") or bare number ("123", resolved against `projectKey`) matches by key,
+ *   in any project, so a pasted key from another project still resolves.
+ * - Anything else is a free-text search within `projectKey`.
+ *
+ * @returns up to 15 issues; empty array on error
+ */
+export async function searchJiraForLink(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  query: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const q = query.trim();
+  const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const keyMatch = /^([A-Za-z][A-Za-z0-9_]*)-(\d+)$/.exec(q);
+  const numMatch = /^\d+$/.test(q);
+  const clauses = [`(project = "${esc(projectKey)}" AND text ~ "${esc(q)}")`];
+  if (keyMatch) clauses.unshift(`key = "${keyMatch[1].toUpperCase()}-${keyMatch[2]}"`);
+  else if (numMatch) clauses.unshift(`key = "${esc(projectKey)}-${q}"`);
+  const jql = `${clauses.join(' OR ')} ORDER BY updated DESC`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,issuetype,assignee&maxResults=15`;
+
+  try {
+    const response = await apiFetch(
+      'jira',
+      url,
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+      'Search Issues For Link',
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data.issues ?? []) as JiraIssue[];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Search for closed (Done) Jira issues matching a free-text query.
  *
  * Uses statusCategory = Done to explicitly target completed issues, which Jira's

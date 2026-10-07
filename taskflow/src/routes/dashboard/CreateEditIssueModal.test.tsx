@@ -33,7 +33,7 @@ vi.mock('@/services/jira', async (importOriginal) => {
       .mockResolvedValue([
         { id: '10000', name: 'Blocks', inward: 'is blocked by', outward: 'blocks' },
       ]),
-    searchJira: vi.fn().mockResolvedValue([]),
+    searchJiraForLink: vi.fn().mockResolvedValue([]),
     createIssue: vi.fn().mockResolvedValue({ id: '1', key: 'PROJ-1' }),
     bulkUpdateIssue: vi.fn().mockResolvedValue(undefined),
     createIssueLink: vi.fn().mockResolvedValue(undefined),
@@ -194,11 +194,11 @@ describe('CreateEditIssueModal', () => {
       });
       fireEvent.click(addLinkBtn);
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/search issue/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/search by key/i)).toBeInTheDocument();
       });
       // link type select trigger should appear (base-ui Select renders as button)
       // The IssueLinkRow renders a Select trigger for link type
-      expect(screen.getByPlaceholderText(/search issue/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/search by key/i)).toBeInTheDocument();
     });
 
     it('multiple link rows can be added', async () => {
@@ -211,7 +211,7 @@ describe('CreateEditIssueModal', () => {
       fireEvent.click(addLinkBtn);
       fireEvent.click(addLinkBtn);
       await waitFor(() => {
-        expect(screen.getAllByPlaceholderText(/search issue/i)).toHaveLength(2);
+        expect(screen.getAllByPlaceholderText(/search by key/i)).toHaveLength(2);
       });
     });
   });
