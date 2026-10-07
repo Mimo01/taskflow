@@ -2,6 +2,24 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.7] — 2026-10-07
+
+### Added
+
+- **Duplicate subtask template** — each subtask template card now has a Duplicate button. The copy is inserted right after the original with its own rows, so you can tweak it without touching the source.
+- **Attachments — drag and drop in the desktop app** — dropping files onto an issue now works in the Taskflow app. Images with a generic file type are recognised by their extension, and thumbnails fall back gracefully when a preview can't load.
+
+### Changed
+
+- **Epic forecast leads with logged time** — the averaged finish date now weights logged time 4× over item count and story points, and its confidence comes from time too. Time keeps moving while a story is in progress, whereas items and points only change on completion.
+- **Issue link search** — searching for an issue to link now understands issue keys. Results show the type icon, key, title, status and assignee avatar, with keyboard navigation, loading and empty states, and a chip for the chosen issue.
+
+### Fixed
+
+- **Issue link dialog overflow** — the link type select grows to fit its labels and shows the label rather than its id. The issue autocomplete flips and stays within the viewport instead of being clipped.
+- **Flagging from the issue sidebar** — the Flagged toggle in the sidebar now works. Jira rejected the previous request, so it now uses the same flag endpoint as the rest of the app.
+- **Backlog — title no longer squeezed by release and epic** — when a row is tight, the title keeps priority. The release badge truncates only under pressure, and the epic/release cell uses spare room before cropping while keeping a visible minimum.
+
 ## [1.14.6] — 2026-10-05
 
 ### Fixed
