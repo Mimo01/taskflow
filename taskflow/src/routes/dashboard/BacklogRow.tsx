@@ -145,7 +145,15 @@ function RowCells({
       </div>
 
       {/* Epic + fix version cell — shrinks first (title has priority), floored so it never fully collapses */}
-      <div className="flex-[0_100_auto] min-w-[min(8rem,max-content)] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
+      <div
+        className={cn(
+          'flex-[0_100_auto] min-w-0 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right',
+          // Visibility floor (fixed length: min(…, max-content) is invalid in WebKit and disables shrinking)
+          (epicKey ||
+            ((issue.fields.fixVersions as unknown[] | null | undefined)?.length ?? 0) > 0) &&
+            'min-w-40',
+        )}
+      >
         <div className="flex items-center justify-end gap-1 overflow-hidden">
           {(() => {
             const fixVersions =
