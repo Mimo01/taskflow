@@ -144,8 +144,8 @@ function RowCells({
         </span>
       </div>
 
-      {/* Epic + fix version cell — shrinkable but floored at 20rem, so it only crops when the title needs the room */}
-      <div className="flex-[0_1_auto] min-w-[min(20rem,max-content)] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
+      {/* Epic + fix version cell — shrinks first (title has priority), floored so it never fully collapses */}
+      <div className="flex-[0_100_auto] min-w-[min(8rem,max-content)] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1 overflow-hidden">
           {(() => {
             const fixVersions =
