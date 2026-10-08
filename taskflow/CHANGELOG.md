@@ -2,6 +2,14 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.8] — 2026-10-08
+
+### Fixed
+
+- **Pasted tokens with stray whitespace no longer fail with 401** — Jira and GitLab personal access tokens are now trimmed before they are sent, stored or read back, in Settings, the token section and the onboarding steps. A trailing space or newline from copy-paste can't break authentication any more.
+- **Test connection uses the token you typed** — in Settings, Test connection (Jira and GitLab) and Jira board loading now use the token currently in the field and fall back to the stored one only when the field is empty. Previously they always tested the old saved token, so a corrected token still appeared to fail.
+- **Save stores the typed token** — saving a Jira or GitLab connection now writes the token you entered to the secure keychain, and shows an error if it can't be stored instead of silently keeping the old one.
+
 ## [1.14.7] — 2026-10-07
 
 ### Added
