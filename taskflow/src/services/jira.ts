@@ -59,7 +59,8 @@ export interface JiraProject {
  * @returns Resolved user info on success
  * @throws Exact error strings per locked UX decisions in CONTEXT.md
  */
-export async function validateJira(baseUrl: string, token: string): Promise<JiraUser> {
+export async function validateJira(baseUrl: string, rawToken: string): Promise<JiraUser> {
+  const token = rawToken.trim();
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/myself`;
 
   let response: Response;

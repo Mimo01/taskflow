@@ -76,6 +76,13 @@ describe('stronghold service', () => {
     expect(result).toBe('my-token-abc');
   });
 
+  it('storeSecret trims whitespace/newlines before persisting', async () => {
+    const { storeSecret, readSecret } = await import('./stronghold');
+    await storeSecret('jira-pat', '  my-token-abc\n');
+    expect(MockVault.get('jira-pat')).toEqual(Array.from(new TextEncoder().encode('my-token-abc')));
+    expect(await readSecret('jira-pat')).toBe('my-token-abc');
+  });
+
   it('readSecret returns correct value for multiple keys', async () => {
     const { storeSecret, readSecret } = await import('./stronghold');
     await storeSecret('jira-pat', 'jira-secret');

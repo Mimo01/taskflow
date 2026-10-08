@@ -44,6 +44,18 @@ describe('gitlab service', () => {
   });
 
   describe('validateGitLab', () => {
+    it('trims whitespace/newlines from the token before sending it', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 1, name: 'J', username: 'j', email: 'j@e.com' }),
+      } as Response);
+
+      await validateGitLab('https://gitlab.example.com', 'my-token\n ');
+      const init = vi.mocked(mockFetch).mock.calls[0][1] as { headers: Record<string, string> };
+      expect(init.headers['PRIVATE-TOKEN']).toBe('my-token');
+    });
+
     it('AUTH-02: validateGitLab returns user data on 200 response', async () => {
       const mockUser = {
         id: 42,

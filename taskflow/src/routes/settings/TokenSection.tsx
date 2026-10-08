@@ -229,7 +229,8 @@ export default function TokenSection() {
 
   // Jira token update mutation
   const jiraMutation = useMutation({
-    mutationFn: async (newToken: string) => {
+    mutationFn: async (rawToken: string) => {
+      const newToken = rawToken.trim();
       const user = await validateJira(jiraUrl, newToken);
       await storeSecret('jira-pat', newToken);
       return { url: jiraUrl, user };
@@ -264,7 +265,8 @@ export default function TokenSection() {
 
   // GitLab token update mutation
   const gitlabMutation = useMutation({
-    mutationFn: async (newToken: string) => {
+    mutationFn: async (rawToken: string) => {
+      const newToken = rawToken.trim();
       const user = await validateGitLab(gitlabUrl, newToken);
       await storeSecret('gitlab-pat', newToken);
       return {

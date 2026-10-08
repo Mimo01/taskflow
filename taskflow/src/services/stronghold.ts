@@ -66,7 +66,7 @@ async function getStore(): Promise<ReturnType<Client['getStore']>> {
  */
 export async function storeSecret(key: string, value: string): Promise<void> {
   const store = await getStore();
-  const data = Array.from(new TextEncoder().encode(value));
+  const data = Array.from(new TextEncoder().encode(value.trim()));
   await store.insert(key, data);
   await _stronghold?.save();
 }
@@ -79,7 +79,8 @@ export async function readSecret(key: string): Promise<string> {
   const store = await getStore();
   const data = await store.get(key);
   if (data === null) throw new Error(`Secret not found: ${key}`);
-  return new TextDecoder().decode(new Uint8Array(data));
+  // trim: tokens stored before storeSecret trimmed may carry a trailing newline
+  return new TextDecoder().decode(new Uint8Array(data)).trim();
 }
 
 /**
