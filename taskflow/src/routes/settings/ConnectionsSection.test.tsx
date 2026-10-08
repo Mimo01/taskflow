@@ -221,4 +221,30 @@ describe('ConnectionsSection', () => {
 
     expect(screen.queryByText(/connected/i)).not.toBeInTheDocument();
   });
+
+  it('Jira test uses the typed token, not the stored one', async () => {
+    render(<ConnectionsSection />);
+    fireEvent.change(screen.getByLabelText(/jira token/i), { target: { value: '  typed-jira  ' } });
+    fireEvent.click(screen.getAllByRole('button', { name: /test connection/i })[0]);
+
+    await waitFor(() => expect(mockValidateJira).toHaveBeenCalled());
+    expect(mockValidateJira.mock.calls[0][1]).toBe('typed-jira');
+  });
+
+  it('Jira test falls back to the stored token when nothing is typed', async () => {
+    render(<ConnectionsSection />);
+    fireEvent.click(screen.getAllByRole('button', { name: /test connection/i })[0]);
+
+    await waitFor(() => expect(mockValidateJira).toHaveBeenCalled());
+    expect(mockValidateJira.mock.calls[0][1]).toBe('fake-secret-token');
+  });
+
+  it('GitLab test uses the typed token, not the stored one', async () => {
+    render(<ConnectionsSection />);
+    fireEvent.change(screen.getByLabelText(/gitlab token/i), { target: { value: 'typed-gl' } });
+    fireEvent.click(screen.getAllByRole('button', { name: /test connection/i })[1]);
+
+    await waitFor(() => expect(mockValidateGitLab).toHaveBeenCalled());
+    expect(mockValidateGitLab.mock.calls[0][1]).toBe('typed-gl');
+  });
 });
