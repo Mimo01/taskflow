@@ -69,6 +69,18 @@ describe('jira service', () => {
       });
     });
 
+    it('trims whitespace/newlines from the token before sending it', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ displayName: 'J', emailAddress: 'j@e.com', name: 'j' }),
+      } as Response);
+
+      await validateJira(BASE, '  my-token\n');
+      const init = vi.mocked(mockFetch).mock.calls[0][1] as { headers: Record<string, string> };
+      expect(init.headers.Authorization).toBe('Bearer my-token');
+    });
+
     it('AUTH-01: validateJira throws "Invalid token or token has expired" on 401', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: false,

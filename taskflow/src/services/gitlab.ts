@@ -46,7 +46,8 @@ export interface GitLabProject {
  * @returns Resolved user info on success
  * @throws Exact error strings per locked UX decisions in CONTEXT.md
  */
-export async function validateGitLab(baseUrl: string, token: string): Promise<GitLabUser> {
+export async function validateGitLab(baseUrl: string, rawToken: string): Promise<GitLabUser> {
+  const token = rawToken.trim();
   const url = `${baseUrl.replace(/\/$/, '')}/api/v4/user`;
 
   let response: Response;

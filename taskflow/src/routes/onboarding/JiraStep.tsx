@@ -69,10 +69,10 @@ export default function JiraStep() {
         log.push(`[${new Date().toISOString()}] Starting Jira connection`);
         log.push(`  URL: ${jiraUrl}`);
         log.push('[step 1] Validating credentials...');
-        const user = await validateJira(jiraUrl, jiraToken);
+        const user = await validateJira(jiraUrl, jiraToken.trim());
         log.push(`  OK — authenticated as ${user.displayName} (${user.name})`);
         log.push('[step 2] Loading projects...');
-        const projectList = await listJiraProjects(jiraUrl, jiraToken);
+        const projectList = await listJiraProjects(jiraUrl, jiraToken.trim());
         log.push(`  OK — found ${projectList.length} project(s)`);
         return { user, projectList };
       } catch (err) {
@@ -86,7 +86,7 @@ export default function JiraStep() {
     },
     onSuccess: async ({ projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
-      await storeSecret('jira-pat', jiraToken);
+      await storeSecret('jira-pat', jiraToken.trim());
       set({ jiraProjects: projectList });
     },
   });

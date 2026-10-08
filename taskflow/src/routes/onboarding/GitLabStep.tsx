@@ -45,10 +45,10 @@ export default function GitLabStep() {
         log.push(`[${new Date().toISOString()}] Starting GitLab connection`);
         log.push(`  URL: ${gitlabUrl}`);
         log.push('[step 1] Validating credentials...');
-        const user = await validateGitLab(gitlabUrl, gitlabToken);
+        const user = await validateGitLab(gitlabUrl, gitlabToken.trim());
         log.push(`  OK — authenticated as ${user.name} (@${user.username})`);
         log.push('[step 2] Loading projects...');
-        const projectList = await listGitLabProjects(gitlabUrl, gitlabToken);
+        const projectList = await listGitLabProjects(gitlabUrl, gitlabToken.trim());
         log.push(`  OK — found ${projectList.length} project(s)`);
         return { user, projectList };
       } catch (err) {
@@ -62,7 +62,7 @@ export default function GitLabStep() {
     },
     onSuccess: async ({ user, projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
-      await storeSecret('gitlab-pat', gitlabToken);
+      await storeSecret('gitlab-pat', gitlabToken.trim());
       // Persist user ID and username for MR filtering and @mention detection
       setGitlabUserId(user.id);
       setGitlabUsername(user.username);
