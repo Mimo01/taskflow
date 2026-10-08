@@ -3,7 +3,7 @@
  * and project selection.
  *
  * Each card shows the service URL and a password token field. Test Connection
- * calls readSecret then validateFn with inline feedback. On success, a project
+ * uses the typed token (falling back to readSecret) then validateFn with inline feedback. On success, a project
  * list is fetched and an inline project picker appears — mirroring the onboarding
  * step pattern.
  *
@@ -86,7 +86,7 @@ function JiraConnectionCard({
     setBoardsError(null);
     (async () => {
       try {
-        const token = await readSecret('jira-pat');
+        const token = draftToken.trim() || (await readSecret('jira-pat'));
         const list = await listProjectBoards(draftUrl || initialBaseUrl, token, selectedProject);
         if (!cancelled) setBoards(list);
       } catch (err) {
@@ -103,7 +103,7 @@ function JiraConnectionCard({
     return () => {
       cancelled = true;
     };
-  }, [testStatus, selectedProject, draftUrl, initialBaseUrl, boardsReloadKey]);
+  }, [testStatus, selectedProject, draftUrl, draftToken, initialBaseUrl, boardsReloadKey]);
 
   const handleUrlChange = (value: string) => {
     setDraftUrl(value);
@@ -126,7 +126,7 @@ function JiraConnectionCard({
     setProjects([]);
     setSaved(false);
     try {
-      const token = await readSecret('jira-pat');
+      const token = draftToken.trim() || (await readSecret('jira-pat'));
       await validateJira(draftUrl || initialBaseUrl, token);
       const projectList = await listJiraProjects(draftUrl || initialBaseUrl, token);
       setProjects(projectList);
@@ -341,7 +341,7 @@ function GitLabConnectionCard({
     setProjects([]);
     setSaved(false);
     try {
-      const token = await readSecret('gitlab-pat');
+      const token = draftToken.trim() || (await readSecret('gitlab-pat'));
       await validateGitLab(draftUrl || initialBaseUrl, token);
       const projectList = await listGitLabProjects(draftUrl || initialBaseUrl, token);
       setProjects(projectList);
