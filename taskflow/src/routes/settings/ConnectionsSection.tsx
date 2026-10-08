@@ -25,7 +25,7 @@ import { listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import type { JiraProject } from '@/services/jira';
 import { listJiraProjects, validateJira } from '@/services/jira';
 import { type JiraBoard, listProjectBoards } from '@/services/jira/sprints';
-import { readSecret } from '@/services/stronghold';
+import { readSecret, storeSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 
 type TestStatus = 'idle' | 'pending' | 'success' | 'error';
@@ -115,7 +115,18 @@ function JiraConnectionCard({
     resetTestStatus();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const typed = draftToken.trim();
+    if (typed) {
+      try {
+        await storeSecret('jira-pat', typed);
+      } catch (err) {
+        setTestStatus('error');
+        setTestError((err as Error)?.message ?? 'Could not store token');
+        return;
+      }
+      setDraftToken('');
+    }
     onConnected(draftUrl);
     setSaved(true);
   };
@@ -330,7 +341,18 @@ function GitLabConnectionCard({
     resetTestStatus();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const typed = draftToken.trim();
+    if (typed) {
+      try {
+        await storeSecret('gitlab-pat', typed);
+      } catch (err) {
+        setTestStatus('error');
+        setTestError((err as Error)?.message ?? 'Could not store token');
+        return;
+      }
+      setDraftToken('');
+    }
     onConnected(draftUrl);
     setSaved(true);
   };
