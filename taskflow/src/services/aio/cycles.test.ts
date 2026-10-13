@@ -4,6 +4,7 @@ vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from '../../lib/apiFetch';
 import {
+  fetchAioCycleDetail,
   fetchAioCycleSummaries,
   fetchAioCycles,
   fetchAioCyclesInFolders,
@@ -13,6 +14,7 @@ import {
   fetchAioFolderTree,
   fetchAioProjectConfig,
   fetchAioUngroupedCycles,
+  normalizeCustomFields,
 } from './cycles';
 
 const mockedApiFetch = vi.mocked(apiFetch);
@@ -583,5 +585,150 @@ describe('fetchAioCyclesInFolders', () => {
     await fetchAioCyclesInFolders(BASE, TOKEN, PROJECT_ID, [1, 2, 3, 4, 5], 2);
     expect(peak).toBe(2);
     expect(mockedApiFetch).toHaveBeenCalledTimes(5);
+  });
+});
+
+// Fixtures below mirror the LIVE probe shapes in 261013-mnc-PROBE-RESULTS.md (P1/P2).
+describe('fetchAioCycleDetail — live P1 /detail shape (normalizeCycle)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const P1_FIXTURE = {
+    ID: 1011,
+    key: 'ESHOP-CY-1011',
+    title: 'Regression 4.2',
+    ownedByID: 'ext94772',
+    startDate: 1777759200000,
+    endDate: 1778450400000,
+    createdDate: 1777700000000,
+    updatedDate: 1778000000000,
+    closedDate: 1778100000000,
+    closedByID: 'ext11111',
+    isClosed: true,
+    folder: { ID: 10763, name: 'Releases', parentID: 10700 },
+    jiraProjectID: 10001,
+    jiraReleaseID: 5,
+    jiraReleaseIDs: [5],
+    jiraTaskIDs: ['186227', '186228'],
+    customFields: [
+      { ID: 1, name: 'Cycle-Device_Type', value: { ID: 1, value: 'Web' } },
+      {
+        ID: 2,
+        name: 'Cycle-Browser',
+        value: [
+          { ID: 2, value: 'Chrome' },
+          { ID: 3, value: 'Firefox' },
+        ],
+      },
+      { ID: 3, name: 'Cycle-Environment', value: [] },
+    ],
+  };
+
+  it('maps owner, epoch-ms dates, ids and normalised custom fields', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => P1_FIXTURE,
+    } as unknown as Response);
+    const cycle = await fetchAioCycleDetail(BASE, TOKEN, 'ESHOP', 'ESHOP-CY-1011');
+    expect(cycle.ownedByID).toBe('ext94772');
+    expect(cycle.startDate).toBe(1777759200000);
+    expect(cycle.endDate).toBe(1778450400000);
+    expect(cycle.createdDate).toBe(1777700000000);
+    expect(cycle.updatedDate).toBe(1778000000000);
+    expect(cycle.closedDate).toBe(1778100000000);
+    expect(cycle.closedByID).toBe('ext11111');
+    expect(cycle.jiraProjectID).toBe(10001);
+    expect(cycle.jiraTaskIDs).toEqual(['186227', '186228']);
+    expect(cycle.jiraReleaseIDs).toEqual([5]);
+    expect(cycle.status).toBe('Closed');
+    expect(cycle.folder).toBe('Releases');
+    expect(cycle.customFields).toEqual([
+      { name: 'Device_Type', value: 'Web' },
+      { name: 'Browser', value: 'Chrome, Firefox' },
+    ]);
+  });
+});
+
+describe('normalizeCustomFields', () => {
+  it('handles object, array and empty value shapes without String(object)', () => {
+    expect(
+      normalizeCustomFields([
+        { name: 'A', value: { ID: 1, value: 'x' } },
+        {
+          name: 'B',
+          value: [
+            { ID: 1, value: 'y' },
+            { ID: 2, value: 'z' },
+          ],
+        },
+        { name: 'C', value: [] },
+        { name: 'D', value: null },
+        { name: 'E', value: '' },
+        { name: 'F', value: 'plain' },
+      ]),
+    ).toEqual([
+      { name: 'A', value: 'x' },
+      { name: 'B', value: 'y, z' },
+      { name: 'F', value: 'plain' },
+    ]);
+  });
+
+  it('returns [] for non-array input', () => {
+    expect(normalizeCustomFields(undefined)).toEqual([]);
+  });
+});
+
+describe('fetchAioCycleTestCasesWithRuns — live P2 shape', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('maps executedByID, createdDate and assignmentDate; executedDate is ISO of latestTestRun.updatedDate', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            ID: 7,
+            assignedToID: 'ext94772',
+            assignmentDate: 1777800000000,
+            runCount: 3,
+            rankOrder: 1,
+            latestTestRun: {
+              ID: 555,
+              createdDate: 1777900000000,
+              updatedDate: 1778000000000,
+              executedByID: 'ext11111',
+              testRunStatusID: 901,
+              allDefects: [186300],
+              jiraProjectID: 10001,
+            },
+            test: { ID: 9, detail: { key: 'ESHOP-TC-5', title: 'Login', ownedByID: 'ext1' } },
+          },
+          {
+            ID: 8,
+            test: { detail: { key: 'ESHOP-TC-6', title: 'No run yet' } },
+          },
+        ],
+      }),
+    } as unknown as Response);
+    const [withRun, withoutRun] = await fetchAioCycleTestCasesWithRuns(
+      BASE,
+      TOKEN,
+      10001,
+      42,
+      'ESHOP-CY-1011',
+    );
+    expect(withRun.id).toBe('555');
+    expect(withRun.status).toBe('PASS');
+    expect(withRun.executedDate).toBe(new Date(1778000000000).toISOString());
+    expect(withRun.createdDate).toBe(new Date(1777900000000).toISOString());
+    expect(withRun.assignmentDate).toBe(new Date(1777800000000).toISOString());
+    expect(withRun.executedByID).toBe('ext11111');
+    expect(withoutRun.id).toBe('');
+    expect(withoutRun.executedDate).toBeUndefined();
   });
 });
