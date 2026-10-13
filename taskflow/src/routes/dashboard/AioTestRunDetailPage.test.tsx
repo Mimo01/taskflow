@@ -435,7 +435,7 @@ describe('AioTestRunDetailPage', () => {
       await waitFor(() => {
         expect(row.textContent).toContain('Checkout crashes');
       });
-      expect(row.textContent).toContain('Step 1');
+      expect(within(row).getByTestId('aio-run-defect-steps').textContent).toBe('1');
       expect(row.textContent).toContain('Jana Nova');
       expect(row.textContent).toContain('Open');
 
