@@ -244,7 +244,7 @@ describe('AioProjectOverviewPage — folder tree', () => {
     expect(screen.getByText('No folders match')).toBeDefined();
   });
 
-  it('a parent folder fetches each subfolder that holds cycles', async () => {
+  it('a parent folder fetches each subfolder that holds cycles and is marked as a parent', async () => {
     await setupStandardMocks();
     const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesInFolders } = await import(
       '@/services/aio'
@@ -270,6 +270,22 @@ describe('AioProjectOverviewPage — folder tree', () => {
       expect(calls[calls.length - 1][3]).toEqual([103]);
     });
     await screen.findByText('Cycle Alpha');
+    expect(screen.getByTestId('parent-folder-badge').textContent).toContain(
+      'Parent folder · 2 subfolders',
+    );
+  });
+
+  it('a leaf folder and All cycles show no parent-folder badge', async () => {
+    await setupStandardMocks();
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByTestId('folder-node-101')).toBeDefined());
+    fireEvent.click(screen.getByTestId('folder-node-101'));
+    await screen.findByText('Cycle Alpha');
+    expect(screen.queryByTestId('parent-folder-badge')).toBeNull();
+    fireEvent.click(screen.getByTestId('folder-node-all'));
+    await screen.findByText('Cycle Alpha');
+    expect(screen.queryByTestId('parent-folder-badge')).toBeNull();
   });
 
   it('selecting All cycles fetches with an empty folder list', async () => {
