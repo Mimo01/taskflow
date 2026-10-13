@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-07 - Completed quick task 261007-hv0: Duplicate a subtask template in Settings
+Last activity: 2026-10-13 - Completed quick task 261013-jl3: Redesign AIO Cycles page (pending live AIO check)
 
 ## Performance Metrics
 
@@ -129,6 +129,7 @@ None yet.
 |---|-------------|------|--------|--------|-----------|
 | 261007-hmj | Time-led epic forecast (time weighted 4x, confidence from time) | 2026-10-07 | 62956e7b | Verified (inline) | [261007-hmj-epic-forecast-time-led](./quick/261007-hmj-epic-forecast-time-led/) |
 | 261007-hv0 | Duplicate a subtask template in Settings | 2026-10-07 | 7dab588d | Verified (UAT by user) | [261007-hv0-in-settings-subtask-templates-i-want-to-](./quick/261007-hv0-in-settings-subtask-templates-i-want-to-/) |
+| 261013-jl3 | Redesign AIO Cycles page: polished folder selector (All cycles, filter, aggregated counts), Open\|All filter, status/dates/pass %/effort columns, paginated cycle fetch | 2026-10-13 | 04f7e2cd | Needs Review (live AIO check) | [261013-jl3-redesign-aio-tests-tab-cycle-selector](./quick/261013-jl3-redesign-aio-tests-tab-cycle-selector/) |
 | 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
 | 260812-mry | Add compactness and font size settings to Appearance section | 2026-08-12 | 5566e8ff | Verified | [260812-mry-add-compactness-and-font-size-settings-t](./quick/260812-mry-add-compactness-and-font-size-settings-t/) |
 | 260827-eaj | Add a settings option to open links in a user-selectable browser (covers 'open in browser' links and links inside descriptions/comments) | 2026-08-27 | 794aaa41 | Verified | [260827-eaj-add-a-settings-option-to-open-links-in-a](./quick/260827-eaj-add-a-settings-option-to-open-links-in-a/) |
