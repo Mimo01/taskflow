@@ -308,6 +308,8 @@ export interface CycleScope {
     passPct: number | null;
     executed: number;
     withSummary: number;
+    /** Cycles with at least one run in each status (same set as the counts). */
+    cyclesWithStatus: Record<StatusKey, number>;
   };
   owners: OwnerStat[];
   othersCount: number;
@@ -338,6 +340,13 @@ export function aggregateCycleScope(
   };
   let execTotal = 0;
   let withSummary = 0;
+  const cyclesWithStatus: Record<StatusKey, number> = {
+    pass: 0,
+    fail: 0,
+    blocked: 0,
+    notRun: 0,
+    inProgress: 0,
+  };
   let openCount = 0;
   let noEndDate = 0;
   const overdueList: { key: string; daysLate: number }[] = [];
@@ -383,7 +392,10 @@ export function aggregateCycleScope(
       if (progress) {
         withSummary++;
         execTotal += progress.total;
-        for (const k of Object.keys(execCounts) as StatusKey[]) execCounts[k] += progress.counts[k];
+        for (const k of Object.keys(execCounts) as StatusKey[]) {
+          execCounts[k] += progress.counts[k];
+          if (progress.counts[k] > 0) cyclesWithStatus[k]++;
+        }
       }
       if (d.ownedByID) {
         let o = ownerMap.get(d.ownedByID);
@@ -458,6 +470,7 @@ export function aggregateCycleScope(
       passPct: execTotal > 0 ? Math.round((execCounts.pass / execTotal) * 100) : null,
       executed: execTotal - execCounts.notRun,
       withSummary,
+      cyclesWithStatus,
     },
     owners: allOwners.slice(0, TOP_OWNERS),
     othersCount: Math.max(0, allOwners.length - TOP_OWNERS),
