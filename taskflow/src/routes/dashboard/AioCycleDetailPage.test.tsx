@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,6 +40,9 @@ vi.mock('@/services/jira', () => ({
 }));
 vi.mock('@/services/jira/projects', () => ({
   fetchJiraProjectNumericId: vi.fn(),
+}));
+vi.mock('@/services/jira/users', () => ({
+  fetchJiraUserByUsername: vi.fn().mockResolvedValue(null),
 }));
 
 let mockPinnedKeys: string[] = [];
@@ -177,9 +180,13 @@ describe('AioCycleDetailPage', () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/Pass: 1/)).toBeDefined();
-        expect(screen.getByText(/Fail: 1/)).toBeDefined();
-        expect(screen.getByText(/Not Run: 1/)).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/33%/);
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/1 passed/);
+        expect(screen.getByTestId('kpi-failing').textContent).toMatch(/Failing \/ Blocked1/);
+        expect(screen.getByTestId('progress-seg-pass')).toBeDefined();
+        expect(screen.getByTestId('progress-seg-fail')).toBeDefined();
+        expect(screen.getByTestId('progress-seg-notRun')).toBeDefined();
+        expect(screen.queryByTestId('progress-seg-blocked')).toBeNull();
       });
     });
 
@@ -257,8 +264,11 @@ describe('AioCycleDetailPage', () => {
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText(/Pass: 2 \(50%\)/)).toBeDefined();
-        expect(screen.getByText(/Fail: 2 \(50%\)/)).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/2 passed/);
+        expect(screen.getByTestId('kpi-failing').textContent).toMatch(/Failing \/ Blocked2/);
+        expect(screen.getByTestId('progress-seg-pass').style.width).toBe('50%');
+        expect(screen.getByTestId('progress-seg-fail').style.width).toBe('50%');
       });
     });
 
@@ -283,7 +293,8 @@ describe('AioCycleDetailPage', () => {
       renderPage();
       // Progress bar must be visible even though runs never resolved
       await waitFor(() => {
-        expect(screen.getByText(/Pass:/)).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate')).toBeDefined();
+        expect(screen.getByTestId('progress-seg-pass')).toBeDefined();
       });
       // runs-table-skeleton should be present since runsQuery is still loading
       await waitFor(() => {
@@ -302,9 +313,9 @@ describe('AioCycleDetailPage', () => {
       renderPage();
       // Falls back to runs-derived counts: 1 pass, 1 fail, 1 not-run
       await waitFor(() => {
-        expect(screen.getByText(/Pass: 1/)).toBeDefined();
-        expect(screen.getByText(/Fail: 1/)).toBeDefined();
-        expect(screen.getByText(/Not Run: 1/)).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/1 passed/);
+        expect(screen.getByTestId('kpi-failing').textContent).toMatch(/Failing \/ Blocked1/);
+        expect(screen.getByTestId('progress-seg-notRun')).toBeDefined();
       });
     });
 
@@ -371,58 +382,251 @@ describe('AioCycleDetailPage', () => {
 
       renderPage();
 
-      // Without the component-side init the bar would read "Not Run: 3 (100%)". With the fix the
-      // component populates the map and the distribution resolves to its true buckets.
+      // Without the component-side init every segment would be Not Run (0% pass). With the fix
+      // the component populates the map and the distribution resolves to its true buckets.
       await waitFor(() => {
-        expect(screen.getByText(/Pass: 1/)).toBeDefined();
-        expect(screen.getByText(/Fail: 1/)).toBeDefined();
-        expect(screen.getByText(/Not Run: 1/)).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/33%/);
+        expect(screen.getByTestId('progress-seg-pass')).toBeDefined();
+        expect(screen.getByTestId('progress-seg-fail')).toBeDefined();
+        expect(screen.getByTestId('progress-seg-notRun')).toBeDefined();
       });
     });
   });
 
-  describe('filter chips', () => {
-    it('all four chips are active by default', async () => {
+  describe('executions toolbar', () => {
+    it('All is selected by default with every run visible and counts on the chips', async () => {
       await setupDefaultMocks();
       renderPage();
-      await waitFor(() => {
-        const chips = screen.getAllByRole('switch');
-        expect(chips).toHaveLength(4);
-        chips.forEach((chip) => {
-          expect(chip.getAttribute('aria-checked')).toBe('true');
-        });
-      });
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      expect(screen.getByRole('radiogroup', { name: 'Filter by status' })).toBeDefined();
+      const all = screen.getByRole('radio', { name: 'All 3' });
+      expect(all.getAttribute('aria-checked')).toBe('true');
+      expect(screen.getByRole('radio', { name: 'Pass 1' }).getAttribute('aria-checked')).toBe(
+        'false',
+      );
+      expect(screen.getByRole('radio', { name: 'Fail 1' })).toBeDefined();
+      expect(screen.getByRole('radio', { name: 'Blocked 0' })).toBeDefined();
+      expect(screen.getByRole('radio', { name: 'Not run 1' })).toBeDefined();
+      // In progress chip only appears when there are in-progress runs
+      expect(screen.queryByRole('radio', { name: /In progress/ })).toBeNull();
+      expect(screen.getByText('Login test')).toBeDefined();
+      expect(screen.getByText('Checkout test')).toBeDefined();
+      expect(screen.getByText('Signup test')).toBeDefined();
     });
 
-    it('toggling Fail chip off hides Fail-status rows from the run list', async () => {
+    it('selecting Fail shows only FAIL rows', async () => {
       const user = userEvent.setup();
       await setupDefaultMocks();
       renderPage();
-      // wait for data to load
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      await user.click(screen.getByRole('radio', { name: 'Fail 1' }));
       await waitFor(() => {
-        expect(screen.getByText('Checkout test')).toBeDefined();
+        expect(screen.queryByText('Login test')).toBeNull();
+        expect(screen.queryByText('Signup test')).toBeNull();
       });
-      const failChip = screen.getByRole('switch', { name: 'Fail' });
-      await user.click(failChip);
+      expect(screen.getByText('Checkout test')).toBeDefined();
+      expect(screen.getByRole('radio', { name: 'Fail 1' }).getAttribute('aria-checked')).toBe(
+        'true',
+      );
+      expect(screen.getByRole('radio', { name: 'All 3' }).getAttribute('aria-checked')).toBe(
+        'false',
+      );
+    });
+
+    it('arrow keys move the selection between chips', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      const all = screen.getByRole('radio', { name: 'All 3' });
+      all.focus();
+      await user.keyboard('{ArrowRight}');
+      expect(screen.getByRole('radio', { name: 'Pass 1' }).getAttribute('aria-checked')).toBe(
+        'true',
+      );
       await waitFor(() => {
         expect(screen.queryByText('Checkout test')).toBeNull();
       });
     });
 
-    it('shows "No runs match the selected filters" when all chips toggled off', async () => {
+    it('shows an In progress chip only when a run is in progress', async () => {
+      const { fetchAioCycleTestCasesWithRuns } = await import('@/services/aio');
+      await setupDefaultMocks();
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue([
+        ...mockRuns,
+        {
+          id: 'run-4',
+          status: 'IN_PROGRESS',
+          testCaseKey: 'PROJ-TC-4',
+          cycleKey: 'PROJ-CY-2',
+          testCase: { title: 'Search test', updatedDate: '2024-01-04' },
+          defects: [],
+          jiraDefectIDs: [],
+        },
+      ]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByRole('radio', { name: 'In progress 1' })).toBeDefined();
+      });
+    });
+
+    it('search filters on test case key and on title, case-insensitively', async () => {
       const user = userEvent.setup();
       await setupDefaultMocks();
       renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      const search = screen.getByLabelText('Search test cases');
+
+      await user.type(search, 'proj-tc-3');
       await waitFor(() => {
-        expect(screen.getAllByRole('switch')).toHaveLength(4);
+        expect(screen.queryByText('Login test')).toBeNull();
+        expect(screen.queryByText('Checkout test')).toBeNull();
       });
-      const chips = screen.getAllByRole('switch');
-      for (const chip of chips) {
-        await user.click(chip);
-      }
+      expect(screen.getByText('Signup test')).toBeDefined();
+
+      await user.clear(search);
+      await user.type(search, 'CHECKOUT');
+      await waitFor(() => expect(screen.queryByText('Signup test')).toBeNull());
+      expect(screen.getByText('Checkout test')).toBeDefined();
+    });
+
+    it('shows "No runs match the selected filters" when the search matches nothing', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      await user.type(screen.getByLabelText('Search test cases'), 'zzz-nothing');
       await waitFor(() => {
         expect(screen.getByText(/No runs match the selected filters/)).toBeDefined();
       });
+    });
+
+    it('sort buttons cycle asc, desc, then back to server order', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      const order = () =>
+        screen.getAllByTestId(/^run-row-/).map((r) => r.getAttribute('data-testid'));
+      expect(order()).toEqual(['run-row-run-1', 'run-row-run-2', 'run-row-run-3']);
+
+      await user.click(screen.getByTestId('executions-sort-key'));
+      expect(screen.getByTestId('executions-sort-indicator-key')).toBeDefined();
+      expect(order()).toEqual(['run-row-run-1', 'run-row-run-2', 'run-row-run-3']);
+
+      await user.click(screen.getByTestId('executions-sort-key'));
+      expect(order()).toEqual(['run-row-run-3', 'run-row-run-2', 'run-row-run-1']);
+
+      await user.click(screen.getByTestId('executions-sort-key'));
+      expect(screen.queryByTestId('executions-sort-indicator-key')).toBeNull();
+      expect(order()).toEqual(['run-row-run-1', 'run-row-run-2', 'run-row-run-3']);
+    });
+
+    it('status sort puts failing runs first', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      await user.click(screen.getByTestId('executions-sort-status'));
+      const rows = screen.getAllByTestId(/^run-row-/).map((r) => r.getAttribute('data-testid'));
+      expect(rows[0]).toBe('run-row-run-2'); // FAIL
+      expect(rows[rows.length - 1]).toBe('run-row-run-1'); // PASS
+    });
+
+    it('a row without a run id has no open button and is muted', async () => {
+      const { fetchAioCycleTestCasesWithRuns } = await import('@/services/aio');
+      await setupDefaultMocks();
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue([
+        ...mockRuns,
+        {
+          id: '',
+          status: 'NOT_EXECUTED',
+          testCaseKey: 'PROJ-TC-9',
+          cycleKey: 'PROJ-CY-2',
+          testCase: { title: 'Never run test', updatedDate: '2024-01-09' },
+          defects: [],
+          jiraDefectIDs: [],
+        },
+      ]);
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Never run test')).toBeDefined());
+      expect(screen.getByRole('button', { name: /Open run for PROJ-TC-1/ })).toBeDefined();
+      expect(screen.queryByRole('button', { name: /Open run for PROJ-TC-9/ })).toBeNull();
+      expect(screen.getByTestId('run-row-').className).toContain('opacity-70');
+    });
+  });
+
+  describe('header metadata', () => {
+    const richCycle = {
+      ...mockCycle,
+      ownedByID: 'ext94772',
+      folder: 'Checkout',
+      startDate: new Date('2026-10-01T10:00:00').getTime(),
+      endDate: new Date('2026-10-28T10:00:00').getTime(),
+      updatedDate: Date.now() - 3 * 86_400_000,
+      customFields: [
+        { name: 'Device_Type', value: 'Web' },
+        { name: 'Browser', value: 'Chrome, Firefox' },
+      ],
+    };
+
+    it('renders owner, folder, dates, updated and custom fields', async () => {
+      const { fetchAioCycleDetail } = await import('@/services/aio');
+      const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+      await setupDefaultMocks();
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(richCycle);
+      (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue({
+        displayName: 'Olivia Owner',
+        avatarUrls: { '48x48': '' },
+      });
+      renderPage();
+      await waitFor(() => {
+        expect(
+          within(screen.getByTestId('cycle-meta-owner')).getByText('Olivia Owner'),
+        ).toBeDefined();
+      });
+      expect(screen.getByTestId('cycle-meta-folder').textContent).toBe('Checkout');
+      expect(screen.getByTestId('cycle-meta-dates').textContent).toMatch(/Oct/);
+      expect(screen.getByTestId('cycle-meta-updated').textContent).toMatch(/^Updated /);
+      const fields = screen.getAllByTestId('cycle-meta-field').map((f) => f.textContent);
+      expect(fields).toEqual(['Device_Type:Web', 'Browser:Chrome, Firefox']);
+    });
+
+    it('shows Closed {date} instead of Updated for a closed cycle', async () => {
+      const { fetchAioCycleDetail } = await import('@/services/aio');
+      await setupDefaultMocks();
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ...richCycle,
+        status: 'Closed',
+        closedDate: new Date('2026-10-09T10:00:00').getTime(),
+      });
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('cycle-meta-closed').textContent).toBe('Closed Oct 9');
+      });
+      expect(screen.queryByTestId('cycle-meta-updated')).toBeNull();
+    });
+
+    it('renders no owner element and no stray separator when the fields are absent', async () => {
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      expect(screen.queryByTestId('cycle-meta-owner')).toBeNull();
+      expect(screen.queryByTestId('cycle-meta-folder')).toBeNull();
+      expect(screen.queryByTestId('cycle-meta-dates')).toBeNull();
+      expect(screen.queryByTestId('cycle-meta')?.textContent ?? '').not.toMatch(/^·|·$|··|—/);
+    });
+  });
+
+  describe('KPI tiles', () => {
+    it('renders the four tiles with sub-lines', async () => {
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('kpi-open-defects')).toBeDefined());
+      expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/Pass rate/);
+      expect(screen.getByTestId('kpi-executed').textContent).toMatch(/2\/3/);
+      // run-2 FAIL has a linked defect, so nothing is failing without one
+      expect(screen.getByTestId('kpi-failing').textContent).toMatch(/all linked to defects/);
     });
   });
 
@@ -661,9 +865,8 @@ describe('AioCycleDetailPage', () => {
       // Falls back to raw numeric ID (may appear in both key cell and title cell when issue is null)
       await waitFor(() => expect(screen.getAllByText('186227').length).toBeGreaterThan(0));
 
-      // Table has 8 column headers (Key, Title, Status, Assignee, Reporter, Priority, Severity, Triggered By)
-      const headers = screen.getAllByRole('columnheader');
-      expect(headers.length).toBe(8);
+      // Falling back to the numeric id leaves the row non-interactive (nothing to open)
+      expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
     });
 
     it('AIOC-03: Defects tab shows Reporter, Priority, Severity column headers', async () => {
@@ -674,14 +877,18 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
       // All 8 column headers present
-      expect(screen.getByRole('columnheader', { name: 'Key' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Title' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Status' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Assignee' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Reporter' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Priority' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Severity' })).toBeDefined();
-      expect(screen.getByRole('columnheader', { name: 'Triggered By' })).toBeDefined();
+      for (const name of [
+        'Key',
+        'Title',
+        'Status',
+        'Assignee',
+        'Reporter',
+        'Priority',
+        'Severity',
+        'Triggered By',
+      ]) {
+        expect(screen.getAllByText(name).length).toBeGreaterThan(0);
+      }
     });
 
     it('AIOC-03: renders reporter displayName, priority name, and severity value when populated', async () => {
@@ -768,11 +975,9 @@ describe('AioCycleDetailPage', () => {
       // Skeleton visible → still loading
       await waitFor(() => expect(screen.getByTestId('defect-title-loading-186227')).toBeDefined());
 
-      const row = screen.getByTestId('defect-row-186227');
-      // Must not have role="button" while loading
-      expect(row.getAttribute('role')).not.toBe('button');
-      // Must not have cursor-pointer class while loading
-      expect(row.className).not.toContain('cursor-pointer');
+      // No overlay open-button while loading
+      expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
+      expect(screen.getByTestId('defect-row-186227').className).not.toContain('cursor-pointer');
     });
 
     // Test B: resolved + click — row navigates when clicked anywhere
@@ -801,15 +1006,11 @@ describe('AioCycleDetailPage', () => {
       // Wait for issue to resolve
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
 
-      const row = screen.getByTestId('defect-row-186227');
-      // Must have role="button" and cursor-pointer once resolved
-      expect(row.getAttribute('role')).toBe('button');
-      expect(row.className).toContain('cursor-pointer');
-
-      // Click the Title cell (not the NavLink) — simulates clicking the row body.
+      // The full-row click target is an overlay button (sibling of the key link)
+      const overlay = screen.getByRole('button', { name: 'Open PROJ-1234' });
+      expect(overlay.className).toContain('cursor-pointer');
       // The row now opens the side peek preview instead of navigating.
-      const titleCell = screen.getByText('Login broken');
-      await user.click(titleCell);
+      await user.click(overlay);
 
       expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1234');
       // Row click does NOT navigate to the full issue route.
@@ -836,9 +1037,8 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
 
-      const row = screen.getByTestId('defect-row-186227');
-      row.focus();
-      fireEvent.keyDown(row, { key: 'Enter' });
+      screen.getByRole('button', { name: 'Open PROJ-1234' }).focus();
+      await user.keyboard('{Enter}');
       await waitFor(() => expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1234'));
     });
 
@@ -861,9 +1061,8 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
 
-      const row = screen.getByTestId('defect-row-186227');
-      row.focus();
-      fireEvent.keyDown(row, { key: ' ' });
+      screen.getByRole('button', { name: 'Open PROJ-1234' }).focus();
+      await user.keyboard(' ');
       await waitFor(() => expect(onOpenIssue).toHaveBeenCalledWith('PROJ-1234'));
     });
 
@@ -899,6 +1098,75 @@ describe('AioCycleDetailPage', () => {
         path: '/aio-cycle/PROJ/PROJ-CY-2',
       });
       await waitFor(() => expect(screen.getByTestId('issue-detail-route-bc')).toBeDefined());
+    });
+  });
+
+  describe('Defects tab — summary strip and triggered-by chips', () => {
+    it('summary strip shows counts by status category and by severity', async () => {
+      const user = userEvent.setup();
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      await setupDefaultMocks();
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: '186227',
+        key: 'PROJ-1234',
+        fields: {
+          summary: 'Login broken',
+          status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: null,
+          issuetype: { name: 'Bug', subtask: false },
+          priority: { name: 'High' },
+          customfield_13415: { value: 'Critical' },
+        },
+      });
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByTestId('defects-summary')).toBeDefined());
+      const strip = screen.getByTestId('defects-summary');
+      expect(within(strip).getByText('1 In Progress')).toBeDefined();
+      // categories with no defects are omitted
+      expect(within(strip).queryByText(/To Do/)).toBeNull();
+      expect(within(strip).queryByText(/Done/)).toBeNull();
+      expect(within(strip).getByText('Sev: Critical 1')).toBeDefined();
+    });
+
+    it('triggered-by chip pushes the cycle breadcrumb and opens that run', async () => {
+      const user = userEvent.setup();
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      await setupDefaultMocks();
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: '186227',
+        key: 'PROJ-1234',
+        fields: {
+          summary: 'Login broken',
+          status: { name: 'Open', statusCategory: { key: 'new' } },
+          issuetype: { name: 'Bug', subtask: false },
+        },
+      });
+      mockBreadcrumbPush.mockReset();
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              <Route
+                path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
+                element={<div data-testid="run-detail-route">Run Detail</div>}
+              />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      const chip = await screen.findByTestId('defect-trigger-186227-run-2');
+      expect(chip.textContent).toBe('PROJ-TC-2');
+      await user.click(chip);
+      await waitFor(() => expect(screen.getByTestId('run-detail-route')).toBeDefined());
+      expect(mockBreadcrumbPush).toHaveBeenCalledWith({
+        label: 'Sprint 2',
+        path: '/aio-cycle/PROJ/PROJ-CY-2',
+      });
     });
   });
 
@@ -1027,7 +1295,7 @@ describe('Executions tab — clickable rows', () => {
     await waitFor(() => {
       expect(screen.getByText('Login test')).toBeDefined();
     });
-    await user.click(screen.getByTestId('run-row-run-1'));
+    await user.click(screen.getByRole('button', { name: /Open run for PROJ-TC-1/ }));
     await waitFor(() => {
       expect(screen.getByTestId('run-detail-route')).toBeDefined();
     });
@@ -1038,6 +1306,7 @@ describe('Executions tab — clickable rows', () => {
   });
 
   it('D-09: Enter key on focused run row navigates same as click', async () => {
+    const user = userEvent.setup();
     await setupDefaultMocks();
     render(
       <QueryClientProvider client={makeClient()}>
@@ -1055,15 +1324,15 @@ describe('Executions tab — clickable rows', () => {
     await waitFor(() => {
       expect(screen.getByText('Login test')).toBeDefined();
     });
-    const row = screen.getByTestId('run-row-run-1');
-    row.focus();
-    fireEvent.keyDown(row, { key: 'Enter' });
+    screen.getByRole('button', { name: /Open run for PROJ-TC-1/ }).focus();
+    await user.keyboard('{Enter}');
     await waitFor(() => {
       expect(screen.getByTestId('run-detail-route')).toBeDefined();
     });
   });
 
   it('D-09: Space key on focused run row navigates same as click', async () => {
+    const user = userEvent.setup();
     await setupDefaultMocks();
     render(
       <QueryClientProvider client={makeClient()}>
@@ -1081,9 +1350,8 @@ describe('Executions tab — clickable rows', () => {
     await waitFor(() => {
       expect(screen.getByText('Login test')).toBeDefined();
     });
-    const row = screen.getByTestId('run-row-run-1');
-    row.focus();
-    fireEvent.keyDown(row, { key: ' ' });
+    screen.getByRole('button', { name: /Open run for PROJ-TC-1/ }).focus();
+    await user.keyboard(' ');
     await waitFor(() => {
       expect(screen.getByTestId('run-detail-route')).toBeDefined();
     });
