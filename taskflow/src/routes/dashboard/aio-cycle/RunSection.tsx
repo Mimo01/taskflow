@@ -17,7 +17,7 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <div className={cn('mb-2 flex min-w-0 items-center justify-between gap-3', className)}>
+    <div className={cn('mb-3 flex min-w-0 items-center justify-between gap-3', className)}>
       <h3 className="text-sm font-medium text-muted-foreground">
         {title}
         {count != null ? ` (${count})` : ''}

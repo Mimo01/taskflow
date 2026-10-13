@@ -316,7 +316,7 @@ export default function AioTestRunDetailPage() {
               style={{ '--run-sidebar-w': `${sidebarWidth}px` } as CSSProperties}
             >
               <div
-                className="min-w-0 flex-1 space-y-6 p-6 density-compact:space-y-4 density-comfortable:space-y-8 @[900px]:overflow-y-auto"
+                className="min-w-0 flex-1 space-y-10 p-6 density-compact:space-y-6 density-comfortable:space-y-12 @[900px]:overflow-y-auto"
                 data-testid="aio-run-main-scroll"
               >
                 {description && (

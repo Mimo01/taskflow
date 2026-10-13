@@ -29,7 +29,7 @@ export function RunStepList({ children }: { children: ReactNode }) {
       <div
         aria-hidden
         className={cn(
-          'hidden gap-x-4 border-b bg-muted/10 px-3 py-2 text-xs font-medium text-muted-foreground density-compact:py-1 density-comfortable:py-3 @[720px]:grid',
+          'hidden gap-x-6 border-b bg-muted/10 px-4 py-2.5 text-xs font-medium text-muted-foreground density-compact:py-1.5 density-comfortable:py-3 @[720px]:grid',
           GRID,
         )}
       >
@@ -164,7 +164,7 @@ export function RunStepCard({
       data-testid={`run-step-${index}`}
       data-highlight={highlight ? 'true' : undefined}
       className={cn(
-        'relative grid items-start gap-x-4 gap-y-1.5 px-3 py-2.5 density-compact:py-1.5 density-comfortable:py-3.5',
+        'relative grid items-start gap-x-6 gap-y-2 px-4 py-3.5 leading-relaxed density-compact:py-2 density-comfortable:py-4.5',
         GRID,
         key === 'fail' && 'bg-red-500/[0.04]',
         key === 'blocked' && 'bg-orange-500/[0.05]',
@@ -210,7 +210,7 @@ export function RunStepCard({
 
       {defects.length > 0 && (
         <ul
-          className="col-start-2 col-end-[-1] space-y-1"
+          className="col-start-2 col-end-[-1] mt-1 space-y-1.5"
           data-testid={`run-step-defects-${index}`}
         >
           {defects.map((id) => (
