@@ -19,7 +19,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioRunDetailSkeleton } from './AioCycleDetailSkeleton';
 import { RunSidebar } from './aio-cycle/RunSidebar';
-import { RunStepCard } from './aio-cycle/RunStepCard';
+import { RunStepCard, RunStepList } from './aio-cycle/RunStepCard';
 import { useAioCycleData } from './aio-cycle/useAioCycleData';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -311,7 +311,7 @@ export default function AioTestRunDetailPage() {
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-3" data-testid="aio-run-detail-step-table">
+                    <RunStepList>
                       {steps.map((step, i) => (
                         <RunStepCard
                           key={step.id ?? i}
@@ -319,9 +319,10 @@ export default function AioTestRunDetailPage() {
                           index={i}
                           jiraBaseUrl={jiraBaseUrl}
                           token={token}
+                          onOpenDefect={openDefect}
                         />
                       ))}
-                    </div>
+                    </RunStepList>
                   </>
                 )}
               </div>
