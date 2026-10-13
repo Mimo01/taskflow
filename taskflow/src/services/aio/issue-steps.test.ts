@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from '../../lib/apiFetch';
-import { fetchAioTestCasesForIssue, fetchAioTestRunSteps } from './issue-steps';
+import {
+  fetchAioTestCasesForIssue,
+  fetchAioTestRunDetail,
+  fetchAioTestRunSteps,
+} from './issue-steps';
 
 const mockedApiFetch = vi.mocked(apiFetch);
 const BASE = 'https://jira.example.com';
@@ -164,5 +168,119 @@ describe('fetchAioTestRunSteps', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].actualResult).toBeUndefined();
+  });
+});
+
+// Fixture mirrors LIVE P3 (261013-mnc-PROBE-RESULTS.md): no testCase, no testData,
+// stepOrder present (out of order here), per-step jiraDefectIDs, status IDs.
+describe('fetchAioTestRunDetail — live P3 shape', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const P3 = (statusID: number, statusName: string) => ({
+    ID: 555,
+    createdDate: 1777900000000,
+    updatedDate: 1778000000000,
+    executedByID: 'ext11111',
+    jiraDefectIDs: [186300],
+    testRunStatus: { ID: statusID, name: statusName, description: '' },
+    testRunSteps: [
+      {
+        ID: 2,
+        stepID: 20,
+        stepOrder: 1,
+        step: 'Second',
+        expectedResult: 'B',
+        actualResult: 'b',
+        jiraDefectIDs: [186300],
+        testStepType: 'TEXT',
+        testRunStepStatus: { ID: 3, name: 'Failed', description: '' },
+      },
+      {
+        ID: 1,
+        stepID: 10,
+        stepOrder: 0,
+        step: 'First',
+        expectedResult: 'A',
+        jiraDefectIDs: [],
+        testStepType: 'TEXT',
+        testRunStepStatus: { ID: 1, name: 'Not Run', description: '' },
+      },
+    ],
+  });
+
+  const load = async (statusID: number, statusName: string) => {
+    mockedApiFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => P3(statusID, statusName),
+    } as unknown as Response);
+    return fetchAioTestRunDetail(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY, RUN_ID);
+  };
+
+  it('maps run fields, sorts steps by stepOrder and reads no testCase', async () => {
+    const result = await load(52, 'In Progress');
+    expect(result).not.toBeNull();
+    const run = result?.run;
+    const steps = result?.steps ?? [];
+    expect(run?.id).toBe('555');
+    expect(run?.testCaseKey).toBe('');
+    expect(run?.testCase).toBeUndefined();
+    expect(run?.executedByID).toBe('ext11111');
+    expect(run?.createdDate).toBe(new Date(1777900000000).toISOString());
+    expect(run?.executedDate).toBe(new Date(1778000000000).toISOString());
+    expect(run?.jiraDefectIDs).toEqual([186300]);
+    expect(steps.map((s) => s.step)).toEqual(['First', 'Second']);
+    expect(steps[1].jiraDefectIDs).toEqual([186300]);
+    expect(steps[1].stepOrder).toBe(1);
+    expect(steps[1].testStepType).toBe('TEXT');
+    expect(steps[1]).not.toHaveProperty('testData');
+  });
+
+  it('maps status via testRunStatus.ID: 52 → IN_PROGRESS, 901 → PASS', async () => {
+    expect((await load(52, 'In Progress'))?.run.status).toBe('IN_PROGRESS');
+    expect((await load(901, 'N/A'))?.run.status).toBe('PASS');
+  });
+
+  it('prefers the ID over a conflicting name', async () => {
+    expect((await load(54, 'Passed'))?.run.status).toBe('FAIL');
+  });
+
+  it('falls back to the name only when the ID is absent', async () => {
+    mockedApiFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ ID: 1, testRunStatus: { name: 'In Progress' }, testRunSteps: [] }),
+    } as unknown as Response);
+    const r = await fetchAioTestRunDetail(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY, RUN_ID);
+    expect(r?.run.status).toBe('IN_PROGRESS');
+  });
+
+  it('optional-field: includes testData only when a non-empty string', async () => {
+    mockedApiFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ID: 1,
+        testRunStatus: { ID: 53, name: 'Passed' },
+        testRunSteps: [
+          { ID: 1, stepOrder: 0, step: 'S', testData: 'user=admin' },
+          { ID: 2, stepOrder: 1, step: 'T', testData: '' },
+        ],
+      }),
+    } as unknown as Response);
+    const r = await fetchAioTestRunDetail(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY, RUN_ID);
+    expect(r?.steps[0].testData).toBe('user=admin');
+    expect(r?.steps[1]).not.toHaveProperty('testData');
+  });
+
+  it('404 → null, 401 → ApiError', async () => {
+    mockedApiFetch.mockResolvedValueOnce({ ok: false, status: 404 } as unknown as Response);
+    expect(await fetchAioTestRunDetail(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY, RUN_ID)).toBeNull();
+    mockedApiFetch.mockResolvedValueOnce({ ok: false, status: 401 } as unknown as Response);
+    await expect(
+      fetchAioTestRunDetail(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY, RUN_ID),
+    ).rejects.toMatchObject({ status: 401 });
   });
 });

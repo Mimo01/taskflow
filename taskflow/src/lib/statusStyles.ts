@@ -59,6 +59,7 @@ const AIO_RUN_BADGE_STYLES: Record<string, string> = {
   PASS: 'bg-green-500/15 text-green-600 dark:text-green-400',
   FAIL: 'bg-red-500/15 text-red-600 dark:text-red-400',
   BLOCKED: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+  IN_PROGRESS: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
   NOT_EXECUTED: 'bg-muted text-muted-foreground',
 };
 

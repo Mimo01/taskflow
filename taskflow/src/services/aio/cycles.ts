@@ -10,6 +10,7 @@
 import { ApiError } from '../../lib/api-error';
 import { AIO_PROJECTS_API_PATH, aioFetch } from './client';
 import type {
+  AioCustomField,
   AioCycle,
   AioCycleDetailItem,
   AioCycleDetailPagedResponse,
@@ -35,7 +36,54 @@ type RawCycle = {
   testSet?: AioStringOrObject; // confirmed object { ID, name } from live AIO
   folderName?: AioStringOrObject;
   testSetKey?: AioStringOrObject;
+  // live P1 CONFIRMED (/detail)
+  ownedByID?: string;
+  closedByID?: string;
+  startDate?: number | string | null;
+  endDate?: number | string | null;
+  createdDate?: number | string | null;
+  updatedDate?: number | string | null;
+  closedDate?: number | string | null;
+  jiraProjectID?: number;
+  jiraTaskIDs?: string[];
+  jiraReleaseIDs?: number[];
+  customFields?: { ID?: number; name?: string; value?: unknown }[];
 };
+
+function customValueToString(v: unknown): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v.trim();
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) {
+    return v
+      .map(customValueToString)
+      .filter((x) => x !== '')
+      .join(', ');
+  }
+  if (typeof v === 'object') {
+    const o = v as { value?: unknown; name?: unknown };
+    return customValueToString(o.value ?? o.name);
+  }
+  return '';
+}
+
+/**
+ * Normalise AIO customFields[]. `value` is polymorphic (live P1/P4): an object
+ * `{ID, value}`, an array `[{ID, value}]`, or empty. Entries with an empty value are dropped.
+ */
+export function normalizeCustomFields(raw: unknown, stripPrefix?: string): AioCustomField[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AioCustomField[] = [];
+  for (const f of raw as { name?: string; value?: unknown }[]) {
+    const value = customValueToString(f?.value);
+    if (!value) continue;
+    let name = f?.name ?? '';
+    if (stripPrefix && name.startsWith(stripPrefix)) name = name.slice(stripPrefix.length);
+    if (!name) continue;
+    out.push({ name, value });
+  }
+  return out;
+}
 
 // Extract a plain string from a field that AIO may return as { ID, name } or a plain string.
 function toStr(v: AioStringOrObject | undefined): string | undefined {
@@ -60,6 +108,19 @@ function normalizeCycle(raw: RawCycle, fallbackProjectKey?: string): AioCycle {
     status,
     projectKey: raw.projectKey ?? fallbackProjectKey ?? '',
     folder: resolveRawFolder(raw) ?? status,
+    ownedByID: raw.ownedByID,
+    closedByID: raw.closedByID,
+    startDate: raw.startDate,
+    endDate: raw.endDate,
+    createdDate: raw.createdDate,
+    updatedDate: raw.updatedDate,
+    closedDate: raw.closedDate,
+    jiraProjectID: raw.jiraProjectID,
+    jiraTaskIDs: raw.jiraTaskIDs,
+    jiraReleaseIDs: raw.jiraReleaseIDs,
+    customFields: Array.isArray(raw.customFields)
+      ? normalizeCustomFields(raw.customFields, 'Cycle-')
+      : undefined,
   };
 }
 
@@ -434,8 +495,11 @@ type RawTestCaseWithRun = {
     testRunStatusID?: number;
     allDefects?: number[];
     updatedDate?: number;
+    createdDate?: number;
+    executedByID?: string;
   };
   assignedToID?: string;
+  assignmentDate?: number;
   runCount?: number;
 };
 
@@ -449,7 +513,7 @@ const TESTCASE_STATUS_MAP: Record<number, string> = {
   55: 'BLOCKED',
 };
 
-function chipStatusFromId(id: number | undefined): string {
+export function chipStatusFromId(id: number | undefined): string {
   return TESTCASE_STATUS_MAP[id ?? 0] ?? 'NOT_EXECUTED';
 }
 
@@ -509,6 +573,8 @@ export async function fetchAioCycleTestCasesWithRuns(
     return (data.items ?? []).map((item) => {
       const updatedDate = item.latestTestRun?.updatedDate;
       const isoDate = updatedDate != null ? new Date(updatedDate).toISOString() : undefined;
+      const createdRaw = item.latestTestRun?.createdDate;
+      const assignedRaw = item.assignmentDate;
       return {
         id: String(item.latestTestRun?.ID ?? ''),
         status: chipStatusFromId(item.latestTestRun?.testRunStatusID),
@@ -523,6 +589,9 @@ export async function fetchAioCycleTestCasesWithRuns(
         executedDate: isoDate,
         assignedToID: item.assignedToID,
         runCount: item.runCount,
+        executedByID: item.latestTestRun?.executedByID,
+        createdDate: createdRaw != null ? new Date(createdRaw).toISOString() : undefined,
+        assignmentDate: assignedRaw != null ? new Date(assignedRaw).toISOString() : undefined,
       };
     });
   }

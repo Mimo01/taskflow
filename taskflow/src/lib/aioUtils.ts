@@ -12,9 +12,11 @@ import { fetchAioProjectConfig } from '@/services/aio/cycles';
  * Maps a raw AIO test run status string to the canonical four-value union
  * used for progress-bar counting and filter chips.
  *
- * PASS → 'pass', FAIL → 'fail', BLOCKED → 'blocked', anything else → 'notRun'
+ * PASS → 'pass', FAIL → 'fail', BLOCKED → 'blocked', IN_PROGRESS → 'inProgress', anything else → 'notRun'
  */
-export function normalizeStatus(raw: string | undefined): 'pass' | 'fail' | 'blocked' | 'notRun' {
+export function normalizeStatus(
+  raw: string | undefined,
+): 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress' {
   switch ((raw ?? '').toUpperCase()) {
     case 'PASS':
       return 'pass';
@@ -22,6 +24,8 @@ export function normalizeStatus(raw: string | undefined): 'pass' | 'fail' | 'blo
       return 'fail';
     case 'BLOCKED':
       return 'blocked';
+    case 'IN_PROGRESS':
+      return 'inProgress';
     default:
       return 'notRun';
   }
@@ -42,6 +46,8 @@ export function normalizeStatusLabel(raw: string | undefined): string {
       return 'Fail';
     case 'BLOCKED':
       return 'Blocked';
+    case 'IN_PROGRESS':
+      return 'In progress';
     case 'NOT_EXECUTED':
       return 'Not Run';
     default:

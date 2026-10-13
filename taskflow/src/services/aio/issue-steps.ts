@@ -16,6 +16,7 @@
 
 import { ApiError } from '../../lib/api-error';
 import { aioFetch } from './client';
+import { chipStatusFromId } from './cycles';
 import type { AioPage, AioTestCase, AioTestRun, AioTestRunStep } from './types';
 
 // Raw API shape for a test case before normalization — all fields optional (defensive)
@@ -82,6 +83,10 @@ function normalizeStep(raw: RawStep): AioTestRunStep {
     expectedResult: raw.expectedResult,
     actualResult: raw.actualResult,
     status: toStepStatus(raw.testRunStepStatus),
+    jiraDefectIDs: raw.jiraDefectIDs,
+    stepOrder: raw.stepOrder,
+    testStepType: raw.testStepType,
+    ...(typeof raw.testData === 'string' && raw.testData !== '' ? { testData: raw.testData } : {}),
   };
 }
 
@@ -199,7 +204,9 @@ export async function fetchAioTestRunSteps(
 type RawRunDetail = {
   ID?: number;
   testRunStatus?: { ID?: number; name?: string };
-  testCase?: { key?: string; title?: string; name?: string; updatedDate?: string };
+  // No testCase on run detail (live P3) — title/key come from the cycle runs list
+  executedByID?: string;
+  createdDate?: number | string;
   jiraDefectIDs?: number[];
   updatedDate?: number | string;
   executedDate?: number | string;
@@ -216,6 +223,10 @@ function toRunChipStatus(name: string | undefined): string {
       return 'FAIL';
     case 'blocked':
       return 'BLOCKED';
+    case 'in progress':
+      return 'IN_PROGRESS';
+    case 'n/a':
+      return 'PASS';
     default:
       return 'NOT_EXECUTED';
   }
@@ -257,22 +268,24 @@ export async function fetchAioTestRunDetail(
   }
   if (response.ok) {
     const data = (await response.json()) as RawRunDetail;
-    const steps = (data.testRunSteps ?? []).map(normalizeStep);
+    const steps = (data.testRunSteps ?? [])
+      .map((s) => ({ raw: s, step: normalizeStep(s) }))
+      .sort((a, b) => (a.raw.stepOrder ?? 0) - (b.raw.stepOrder ?? 0))
+      .map((x) => x.step);
     const executedDate = normalizeRunDate(data.updatedDate ?? data.executedDate);
     const run: AioTestRun = {
       id: String(data.ID ?? runId),
-      status: toRunChipStatus(data.testRunStatus?.name),
-      testCaseKey: data.testCase?.key ?? '',
+      status:
+        typeof data.testRunStatus?.ID === 'number'
+          ? chipStatusFromId(data.testRunStatus.ID)
+          : toRunChipStatus(data.testRunStatus?.name),
+      testCaseKey: '',
       cycleKey,
-      testCase: data.testCase
-        ? {
-            title: data.testCase.title ?? data.testCase.name ?? '',
-            updatedDate: data.testCase.updatedDate,
-          }
-        : undefined,
       defects: [],
       jiraDefectIDs: data.jiraDefectIDs ?? [],
       executedDate,
+      executedByID: data.executedByID,
+      createdDate: normalizeRunDate(data.createdDate),
     };
     return { run, steps };
   }

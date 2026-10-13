@@ -9,4 +9,5 @@ export * from './cycles';
 export * from './issue-runs';
 export * from './issue-steps';
 export * from './projects';
+export * from './testcases';
 export * from './types';

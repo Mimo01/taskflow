@@ -33,6 +33,10 @@ describe('normalizeStatus', () => {
     expect(normalizeStatus('NOT_EXECUTED')).toBe('notRun');
   });
 
+  it("returns 'inProgress' for IN_PROGRESS", () => {
+    expect(normalizeStatus('IN_PROGRESS')).toBe('inProgress');
+  });
+
   it("returns 'notRun' for undefined", () => {
     expect(normalizeStatus(undefined)).toBe('notRun');
   });
@@ -57,6 +61,10 @@ describe('normalizeStatusLabel', () => {
 
   it("returns original raw for unknown non-empty input (e.g. 'CUSTOM' → 'CUSTOM')", () => {
     expect(normalizeStatusLabel('CUSTOM')).toBe('CUSTOM');
+  });
+
+  it("returns 'In progress' for IN_PROGRESS", () => {
+    expect(normalizeStatusLabel('IN_PROGRESS')).toBe('In progress');
   });
 
   it("returns 'Not Run' for undefined", () => {

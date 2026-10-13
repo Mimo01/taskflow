@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { STATUS_CATEGORY_COLOR, statusCategoryColor, statusCategoryDotClass } from './statusStyles';
+import {
+  aioRunStatusPillClass,
+  STATUS_CATEGORY_COLOR,
+  statusCategoryColor,
+  statusCategoryDotClass,
+} from './statusStyles';
 
 describe('STATUS_CATEGORY_COLOR', () => {
   it.each(['new', 'indeterminate', 'done'] as const)('matches the dot class colour for %s', (k) => {
@@ -12,5 +17,11 @@ describe('STATUS_CATEGORY_COLOR', () => {
     expect(statusCategoryColor(undefined)).toBe(STATUS_CATEGORY_COLOR.new);
     expect(statusCategoryColor('bogus')).toBe(STATUS_CATEGORY_COLOR.new);
     expect(statusCategoryColor('done')).toBe(STATUS_CATEGORY_COLOR.done);
+  });
+});
+
+describe('aioRunStatusPillClass', () => {
+  it('colours IN_PROGRESS blue', () => {
+    expect(aioRunStatusPillClass('IN_PROGRESS')).toContain('text-blue-600');
   });
 });

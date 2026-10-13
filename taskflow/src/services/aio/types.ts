@@ -33,6 +33,23 @@ export interface AioCycle {
   status: string; // Cycle status, e.g. "Active", "Closed"
   projectKey: string; // Owning Jira project key
   folder?: string; // Folder/test-set grouping name. Mapped from raw.folder ?? raw.testSet ?? raw.folderName ?? raw.testSetKey ?? raw.status (Plan 56-06 probe — see normalizeCycle in cycles.ts)
+  ownedByID?: string; // live P1 CONFIRMED (/detail) — Jira username of the cycle owner
+  closedByID?: string; // live P1 CONFIRMED
+  startDate?: number | string | null; // live P1 CONFIRMED — epoch ms
+  endDate?: number | string | null; // live P1 CONFIRMED — epoch ms
+  createdDate?: number | string | null; // live P1 CONFIRMED — epoch ms
+  updatedDate?: number | string | null; // live P1 CONFIRMED — epoch ms
+  closedDate?: number | string | null; // live P1 CONFIRMED — epoch ms
+  jiraProjectID?: number; // live P1 CONFIRMED
+  jiraTaskIDs?: string[]; // live P1 CONFIRMED — strings
+  jiraReleaseIDs?: number[]; // live P1 CONFIRMED
+  customFields?: AioCustomField[]; // live P1 CONFIRMED — normalised from polymorphic value shapes
+}
+
+/** A normalised AIO custom field: polymorphic raw value (object / array / empty) flattened to a string. */
+export interface AioCustomField {
+  name: string;
+  value: string;
 }
 
 /**
@@ -42,8 +59,7 @@ export interface AioCycle {
  * NOTE (D-15): There is no GET /testrun?issueKey= endpoint. Test runs are scoped to cycles.
  *
  * NOTE: testCase.title and defects field names confirmed from AIO REST API docs (D-10, D-14).
- * executedDate field name is unverified from public docs — executor must confirm against live endpoint.
- * Use run.executedDate ?? run.testCase?.updatedDate as defensive date fallback.
+ * The API has no executedDate field (live P2/P3) — executedDate here is the ISO of updatedDate.
  */
 export interface AioTestRun {
   id: string; // Test run ID
@@ -51,13 +67,16 @@ export interface AioTestRun {
   testCaseKey: string; // Associated test case key, e.g. "PROJ-TC-5"
   cycleKey: string; // Owning cycle key, e.g. "PROJ-CY-2"
   testCase?: {
-    // Nested object — verify field names against live endpoint (D-10)
+    // Present only from the testcasewithrun list, never on run detail (live P3)
     title: string; // Test case display name for run list
     updatedDate?: string; // ISO date fallback if executedDate absent
   };
   defects?: string[]; // Resolved Jira issue keys (e.g. ['PROJ-42']). Populated by resolving jiraDefectIDs from the latest run execution via Jira REST API (Plan 56-05 fix).
   jiraDefectIDs?: number[]; // Numeric Jira issue IDs from jiraDefectIDs on latest execution (probe B confirmed)
-  executedDate?: string; // Run-level date — NOTE: field name unverified against live endpoint (A2)
+  executedDate?: string; // ISO of latestTestRun.updatedDate / run updatedDate — the API has no executedDate (live P2/P3)
+  executedByID?: string; // Jira username of the executor (live P2/P3 CONFIRMED)
+  createdDate?: string; // ISO of the run's createdDate (live P2/P3 CONFIRMED)
+  assignmentDate?: string; // ISO of the test case assignment date in the cycle (live P2 CONFIRMED)
   assignedToID?: string; // User ID assigned to this test case in the cycle (from testcasewithrun/paged)
   runCount?: number; // Total number of times this test case has been run in the cycle
 }
@@ -102,6 +121,27 @@ export interface AioTestRunStep {
   expectedResult?: string; // Expected result text (confirmed field name: 'expectedResult')
   actualResult?: string; // Actual result text; absent when step not yet executed (confirmed field name: 'actualResult')
   status?: string; // Normalized step status: "PASS" | "FAIL" | "BLOCKED" | "NOT_EXECUTED" (from testRunStepStatus.name)
+  jiraDefectIDs?: number[]; // Per-step defect IDs (live P3 CONFIRMED)
+  stepOrder?: number; // Display order (live P3 CONFIRMED)
+  testStepType?: string; // e.g. "TEXT" (live P3 CONFIRMED)
+  testData?: string; // Optional — not seen live; rendered only when present
+}
+
+/**
+ * Test case detail from GET /project/{pk}/testcase/{tcKey}/detail (live P4 CONFIRMED).
+ * There is no precondition or priority on this endpoint.
+ */
+export interface AioTestCaseDetail {
+  key: string;
+  title: string;
+  description?: string;
+  statusName?: string;
+  typeName?: string;
+  folderName?: string;
+  ownedByID?: string;
+  createdDate?: string; // ISO (raw is epoch ms)
+  version?: string;
+  customFields: AioCustomField[];
 }
 
 /**

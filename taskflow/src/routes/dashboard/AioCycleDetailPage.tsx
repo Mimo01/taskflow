@@ -1,4 +1,4 @@
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   BookOpen,
@@ -21,33 +21,22 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import {
-  initializeAioStatusMap,
-  normalizeStatus,
-  normalizeStatusById,
-  normalizeStatusLabel,
-} from '@/lib/aioUtils';
+import { priorityRank } from '@/lib/aio-defect-sort';
+import { normalizeStatusLabel } from '@/lib/aioUtils';
 import {
   aioCycleStatusPillClass,
   aioRunStatusPillClass,
   statusPillClass,
 } from '@/lib/statusStyles';
-import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
-import {
-  fetchAioCycleDetail,
-  fetchAioCycleSummaries,
-  fetchAioCycleTestCasesWithRuns,
-} from '@/services/aio';
-import { fetchJiraIssueByKey } from '@/services/jira';
-import { fetchJiraProjectNumericId } from '@/services/jira/projects';
+import type { AioTestRun } from '@/services/aio';
 import type { JiraAssignableUser, JiraIssue } from '@/services/jira/types';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
-import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
+import { useAioCycleData } from './aio-cycle/useAioCycleData';
+import { useCycleDefects } from './aio-cycle/useCycleDefects';
 
 function AssigneeCell({
   assignedToID,
@@ -102,15 +91,6 @@ const CHIPS = [
   { status: 'FAIL', label: 'Fail' },
   { status: 'BLOCKED', label: 'Blocked' },
 ] as const;
-
-// Priority rank map for sort order (lower = higher priority)
-const PRIORITY_RANK: Record<string, number> = {
-  Highest: 0,
-  High: 1,
-  Medium: 2,
-  Low: 3,
-  Lowest: 4,
-};
 
 type DefectSortKey = 'key' | 'status' | 'priority' | 'severity' | 'assignee' | null;
 
@@ -234,7 +214,7 @@ function DefectRow({
   defectIdOrKey: string;
   issue: JiraIssue | null;
   isLoading: boolean;
-  triggeredBy: string;
+  triggeredBy: AioTestRun[];
   onOpen: (resolvedKey: string) => void;
   onKeyClick?: () => void;
 }) {
@@ -361,7 +341,10 @@ function DefectRow({
         )}
       </td>
       <td className="px-3 py-3 density-compact:py-1.5 density-comfortable:py-4 text-xs text-muted-foreground">
-        {triggeredBy || '—'}
+        {triggeredBy
+          .map((r) => r.testCaseKey)
+          .filter(Boolean)
+          .join(', ') || '—'}
       </td>
     </tr>
   );
@@ -373,8 +356,19 @@ export default function AioCycleDetailPage() {
   const location = useLocation();
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
-  const { jiraBaseUrl } = useAuthStore();
-  const { token, isLoading: tokenLoading } = useAioCredentials();
+  const {
+    cycleQuery,
+    runsQuery,
+    summaryQuery,
+    aioStatusMapReady,
+    runs,
+    counts,
+    total,
+    hasSummaryData,
+    token,
+    tokenLoading,
+    jiraBaseUrl,
+  } = useAioCycleData(projectKey, cycleKey);
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -387,74 +381,6 @@ export default function AioCycleDetailPage() {
   };
 
   const queryClient = useQueryClient();
-
-  // Credential gate — must include !tokenLoading to prevent first-load 401 flash (Pitfall 6)
-  const credGate = !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey;
-
-  const cycleQuery = useQuery<AioCycle>({
-    queryKey: ['aio', jiraBaseUrl, 'cycle-detail', projectKey, cycleKey],
-    queryFn: () =>
-      fetchAioCycleDetail(jiraBaseUrl ?? '', token ?? '', projectKey ?? '', cycleKey ?? ''),
-    enabled: credGate,
-  });
-
-  // Resolve numeric Jira project ID — required for fetchAioCycleSummaries (AIO paged endpoint)
-  // Mirrors AioProjectOverviewPage.tsx lines 281-288.
-  const jiraProjectIdQuery = useQuery({
-    queryKey: ['jira', jiraBaseUrl, 'project-numeric-id', projectKey],
-    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl ?? '', token ?? '', projectKey ?? ''),
-    enabled: credGate,
-    staleTime: 60 * 60 * 1000,
-  });
-  const jiraProjectId = jiraProjectIdQuery.data ?? null;
-
-  // aioGate requires the numeric jiraProjectId to be resolved
-  const aioGate = credGate && !!jiraProjectId;
-
-  // Populate the module-level runtime AIO status map (used by normalizeStatusById).
-  // AioProjectOverviewPage also does this, but direct pinned-tab navigation with a
-  // fresh cache never mounts the overview — without this, every status ID falls back
-  // to 'notRun' and the progress bar shows all test cases as Not Run. Modelled as a
-  // query (not a fire-and-forget effect) so completion re-renders and summaryCounts
-  // recomputes with the populated map. /config response is React-Query cached.
-  const aioStatusMapQuery = useQuery({
-    queryKey: ['aio', jiraBaseUrl, 'status-map-init', projectKey],
-    queryFn: async () => {
-      await initializeAioStatusMap(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0);
-      return true;
-    },
-    enabled: aioGate,
-    staleTime: 60 * 60 * 1000,
-  });
-  const aioStatusMapReady = aioStatusMapQuery.data === true;
-
-  // CYCLE_NUMERIC_ID_DECISION: USE-DETAIL-ID — AioCycle.ID populated by normalizeCycle from /detail response
-  const cycleNumericId = cycleQuery.data?.ID ?? null;
-
-  // Summary query — drives progress bar independently of runsQuery (Pattern 2)
-  // Key matches AioProjectOverviewPage convention for shared cache.
-  const summaryQuery = useQuery<AioCycleSummaryItem[]>({
-    queryKey: ['aio', jiraBaseUrl, 'cycle-summaries', projectKey, String(cycleNumericId)],
-    queryFn: () =>
-      fetchAioCycleSummaries(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0, [
-        cycleNumericId ?? 0,
-      ]),
-    enabled: aioGate && !!cycleNumericId && !tokenLoading,
-  });
-
-  // Runs query — uses fast POST paged endpoint (numeric IDs required, gated on aioGate + cycleNumericId)
-  const runsQuery = useQuery<AioTestRun[]>({
-    queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
-    queryFn: () =>
-      fetchAioCycleTestCasesWithRuns(
-        jiraBaseUrl ?? '',
-        token ?? '',
-        jiraProjectId ?? 0,
-        cycleNumericId ?? 0,
-        cycleKey ?? '',
-      ),
-    enabled: aioGate && !!cycleNumericId,
-  });
 
   // Full-page skeleton gates only on cycleQuery (not runsQuery) — progress bar decoupled
   const showSkeleton = useDelayedLoading(cycleQuery.isLoading);
@@ -470,91 +396,16 @@ export default function AioCycleDetailPage() {
   );
   const chipRefs = useRef<(HTMLElement | null)[]>([]);
 
-  const runs = runsQuery.data;
-  const runsTotal = runs?.length ?? 0;
-
-  // Runs-derived counts — kept as graceful degradation fallback when summaryQuery errors
-  const runsCounts = (runs ?? []).reduce(
-    (acc, run) => {
-      const norm = normalizeStatus(run.status);
-      acc[norm] = (acc[norm] ?? 0) + 1;
-      return acc;
-    },
-    { pass: 0, fail: 0, blocked: 0, notRun: 0, inProgress: 0 },
-  );
-
-  // Summary-derived counts — primary source (fast path, independent of full run list)
-  // Pitfall 5: testRunDistribution keys are JSON strings — ALWAYS Number(idStr) before lookup
-  const summaryDistribution = summaryQuery.data?.[0]?.summary.testRunDistribution;
-  const summaryTotal = summaryQuery.data?.[0]?.summary.totalTests ?? 0;
-  const summaryCounts = summaryDistribution
-    ? Object.entries(summaryDistribution).reduce(
-        (acc, [idStr, count]) => {
-          const statusKey = normalizeStatusById(Number(idStr));
-          acc[statusKey] = (acc[statusKey] ?? 0) + count;
-          return acc;
-        },
-        { pass: 0, fail: 0, blocked: 0, notRun: 0, inProgress: 0 },
-      )
-    : null;
-
-  // Final counts/total resolution:
-  // 1. summaryQuery resolved with data → use summaryCounts + summaryTotal
-  // 2. summaryQuery errored but runs available → graceful degradation to runsCounts
-  // 3. Both loading or no data → use runsCounts (may be zeros initially)
-  const counts =
-    summaryQuery.data && summaryTotal > 0
-      ? (summaryCounts ?? runsCounts)
-      : summaryQuery.isError && runs
-        ? runsCounts
-        : runsCounts;
-  const total =
-    summaryQuery.data && summaryTotal > 0
-      ? summaryTotal
-      : summaryQuery.isError && runs
-        ? runsTotal
-        : runsTotal;
-
   const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
   const filteredRuns = (runs ?? []).filter((r) => activeStatuses.has(r.status));
 
-  // DefectRow data source — switched from r.defects (service-resolved) to r.jiraDefectIDs (raw numeric IDs as strings)
-  const allDefects = [
-    ...new Set((runs ?? []).flatMap((r) => (r.jiraDefectIDs ?? []).map(String)).filter(Boolean)),
-  ];
-
-  const defectsWithTriggers = allDefects.map((defectKey) => ({
-    defectKey,
-    triggeredBy: (runs ?? [])
-      .filter((r) => (r.jiraDefectIDs ?? []).map(String).includes(defectKey))
-      .map((r) => r.testCaseKey)
-      .filter(Boolean)
-      .join(', '),
-  }));
-
-  // Parent-owned issue queries — all defect issues resolved in one place via useQueries
-  // so the parent has access to all JiraIssue objects for sorting and filtering
-  const issueQueries = useQueries({
-    queries: defectsWithTriggers.map((d) => ({
-      queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', d.defectKey],
-      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl ?? '', token ?? '', d.defectKey),
-      enabled: !!jiraBaseUrl && !!token && !tokenLoading,
-    })),
+  const { defects: resolvedDefects } = useCycleDefects({
+    runs,
+    jiraBaseUrl,
+    token,
+    tokenLoading,
   });
-
-  // Build resolved defects array: { defectKey, triggeredBy, issue, isLoading }
-  const resolvedDefects = useMemo(
-    () =>
-      defectsWithTriggers.map((d, i) => ({
-        defectKey: d.defectKey,
-        triggeredBy: d.triggeredBy,
-        issue: (issueQueries[i]?.data ?? null) as JiraIssue | null,
-        isLoading: issueQueries[i]?.isLoading ?? false,
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [defectsWithTriggers, issueQueries],
-  );
 
   // ── Defect sort + filter state ──────────────────────────────────────────────
   const [defectSortKey, setDefectSortKey] = useState<DefectSortKey>(null);
@@ -658,8 +509,8 @@ export default function AioCycleDetailPage() {
           case 'status':
             return d.issue.fields.status?.name ?? null;
           case 'priority': {
-            const name = d.issue.fields.priority?.name ?? null;
-            return name !== null ? (PRIORITY_RANK[name] ?? Number.POSITIVE_INFINITY) : null;
+            const priority = d.issue.fields.priority ?? null;
+            return priority !== null ? priorityRank(priority) : null;
           }
           case 'severity':
             return (
@@ -774,7 +625,6 @@ export default function AioCycleDetailPage() {
 
   // Determine whether progress bar should be visible
   // Show when summaryQuery has data OR runs are available — do NOT wait for both
-  const hasSummaryData = !!summaryQuery.data && summaryTotal > 0;
   const hasRunsData = !!runs;
   const showProgressBar = hasSummaryData || hasRunsData;
   // Use isPending (not isLoading) so skeleton shows even when summaryQuery is disabled
@@ -1135,7 +985,7 @@ export default function AioCycleDetailPage() {
           </TabsContent>
 
           <TabsContent value="defects" className="flex-1 overflow-auto">
-            {allDefects.length === 0 ? (
+            {resolvedDefects.length === 0 ? (
               <EmptyState
                 icon={FlaskConical}
                 title="No defects"
@@ -1272,13 +1122,13 @@ export default function AioCycleDetailPage() {
                       </thead>
                       <tbody>
                         {sortedDefects.map(
-                          ({ defectKey, triggeredBy, issue, isLoading: defectLoading }) => (
+                          ({ defectKey, triggeredByRuns, issue, isLoading: defectLoading }) => (
                             <DefectRow
                               key={defectKey}
                               defectIdOrKey={defectKey}
                               issue={issue}
                               isLoading={defectLoading}
-                              triggeredBy={triggeredBy}
+                              triggeredBy={triggeredByRuns}
                               onOpen={onOpenIssue ?? (() => {})}
                               onKeyClick={() =>
                                 useBreadcrumbStore
