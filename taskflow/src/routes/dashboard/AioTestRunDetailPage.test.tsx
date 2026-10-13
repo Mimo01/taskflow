@@ -264,14 +264,25 @@ describe('AioTestRunDetailPage', () => {
     });
   });
 
-  it('omits the breadcrumb header when the trail is empty (direct URL access)', async () => {
+  it('renders cycle / test case breadcrumb when the trail is empty (direct URL access)', async () => {
     await setup();
     renderAt(RUN_PATH);
 
     await waitFor(() => {
       expect(screen.getByTestId('aio-run-detail-status-chip')).toBeTruthy();
     });
-    expect(screen.queryByTestId('aio-run-detail-breadcrumb')).toBeNull();
+    expect(screen.getByTestId('aio-run-detail-breadcrumb')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Back to cycle/ }).textContent).toBe('ESHOP-CY-1011');
+  });
+
+  it('does not repeat the cycle when the trail already ends at it', async () => {
+    await setup();
+    useBreadcrumbStore.setState({
+      trail: [{ label: 'Cycle', path: '/aio-cycle/ESHOP/ESHOP-CY-1011' }],
+    });
+    renderAt(RUN_PATH);
+    await screen.findByRole('button', { name: 'Cycle' });
+    expect(screen.queryByRole('link', { name: /Back to cycle/ })).toBeNull();
   });
 
   it('uses the projectKey/cycleKey/runId from the URL (cross-project routing)', async () => {
@@ -464,7 +475,7 @@ describe('AioTestRunDetailPage', () => {
       expect(link.getAttribute('href')).toBe('/aio-cycle/ESHOP/ESHOP-CY-1011');
     });
 
-    it('back-to-cycle consumes the cycle breadcrumb entry instead of stacking', async () => {
+    it('the cycle breadcrumb segment consumes its entry instead of stacking', async () => {
       await setup();
       useBreadcrumbStore.setState({
         trail: [
@@ -473,7 +484,7 @@ describe('AioTestRunDetailPage', () => {
         ],
       });
       renderAt(RUN_PATH);
-      await userEvent.click(await screen.findByRole('link', { name: /Back to cycle/ }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Cycle' }));
       expect(useBreadcrumbStore.getState().trail.map((e) => e.path)).toEqual(['/aio/ESHOP']);
     });
   });
