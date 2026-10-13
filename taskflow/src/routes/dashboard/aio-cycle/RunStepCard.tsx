@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Ban, CircleCheck, CircleDashed, CircleDot, CircleX, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
+import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
 import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass, statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { AioTestRunStep } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
@@ -14,26 +14,11 @@ import { WikiRenderer } from '../WikiRenderer';
 
 /**
  * Steps render as one bordered list. At ≥720px container width each step is a single grid
- * row (# · Step · Expected · Actual; the # column carries a status icon) under a shared header; below that the three
+ * row (# · Step · Expected · Actual · Status) under a shared header; below that the three
  * texts stack with their own labels. The `contents` wrapper lets the same markup serve both.
  */
-const GRID = 'grid-cols-[2.5rem_minmax(0,1fr)] @[720px]:grid-cols-[2.5rem_repeat(3,minmax(0,1fr))]';
-
-const STEP_ICON: Record<
-  ReturnType<typeof normalizeStatus>,
-  { Icon: LucideIcon; className: string }
-> = {
-  pass: { Icon: CircleCheck, className: 'text-green-600 dark:text-green-400' },
-  fail: { Icon: CircleX, className: 'text-red-600 dark:text-red-400' },
-  blocked: { Icon: Ban, className: 'text-orange-600 dark:text-orange-400' },
-  inProgress: { Icon: CircleDot, className: 'text-blue-600 dark:text-blue-400' },
-  notRun: { Icon: CircleDashed, className: 'text-muted-foreground' },
-};
-
-function StepStatusIcon({ status }: { status: ReturnType<typeof normalizeStatus> }) {
-  const { Icon, className } = STEP_ICON[status] ?? STEP_ICON.notRun;
-  return <Icon aria-hidden className={cn('size-4 flex-none', className)} />;
-}
+const GRID =
+  'grid-cols-[1.75rem_minmax(0,1fr)_auto] @[720px]:grid-cols-[1.75rem_repeat(3,minmax(0,1fr))_6.5rem]';
 
 export function RunStepList({ children }: { children: ReactNode }) {
   return (
@@ -52,6 +37,7 @@ export function RunStepList({ children }: { children: ReactNode }) {
         <span>Step</span>
         <span>Expected</span>
         <span>Actual</span>
+        <span>Status</span>
       </div>
       <div className="divide-y divide-border">{children}</div>
     </div>
@@ -184,19 +170,11 @@ export function RunStepCard({
         key === 'blocked' && 'bg-orange-500/[0.05]',
       )}
     >
-      {/* Step number + status icon (status name on hover / for screen readers). */}
       <span
-        data-testid={`step-status-${index}`}
-        role="img"
-        aria-label={`Step ${index + 1}: ${normalizeStatusLabel(status)}`}
-        title={normalizeStatusLabel(status)}
-        className="flex items-center gap-1.5 pt-0.5"
-      >
-        <span className="w-4 text-right font-mono text-xs tabular-nums text-muted-foreground">
-          {index + 1}
-        </span>
-        <StepStatusIcon status={key} />
-      </span>
+        aria-hidden
+        className={cn('absolute inset-y-0 left-0 w-0.5', PROGRESS_SEGMENT_CLASS[key])}
+      />
+      <span className="pt-1 font-mono text-xs tabular-nums text-muted-foreground">{index + 1}</span>
 
       <div className="min-w-0 space-y-2 @[720px]:contents">
         <Cell label="Step">
@@ -222,6 +200,10 @@ export function RunStepCard({
         ) : (
           <div className="hidden text-sm text-muted-foreground @[720px]:block">—</div>
         )}
+      </div>
+
+      <div className="flex justify-end @[720px]:justify-start">
+        <span className={aioRunStatusPillClass(status)}>{normalizeStatusLabel(status)}</span>
       </div>
 
       {defects.length > 0 && (

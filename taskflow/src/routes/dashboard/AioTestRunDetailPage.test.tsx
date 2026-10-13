@@ -367,10 +367,6 @@ describe('AioTestRunDetailPage', () => {
       });
       expect(screen.getByTestId('run-step-1').getAttribute('data-highlight')).toBe('true');
       expect(screen.getByTestId('run-step-0').getAttribute('data-highlight')).toBeNull();
-      // The step number badge carries the step status (no separate Status column)
-      const badge = screen.getByTestId('step-status-1');
-      expect(badge.textContent).toBe('2');
-      expect(badge.getAttribute('aria-label')).toBe('Step 2: Fail');
     });
 
     it('shows Actual only when present and no Test data label without testData', async () => {
