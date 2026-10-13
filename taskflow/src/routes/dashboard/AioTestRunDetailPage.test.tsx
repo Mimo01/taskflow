@@ -463,6 +463,19 @@ describe('AioTestRunDetailPage', () => {
       const link = await screen.findByRole('link', { name: /Back to cycle/ });
       expect(link.getAttribute('href')).toBe('/aio-cycle/ESHOP/ESHOP-CY-1011');
     });
+
+    it('back-to-cycle consumes the cycle breadcrumb entry instead of stacking', async () => {
+      await setup();
+      useBreadcrumbStore.setState({
+        trail: [
+          { label: 'Cycles', path: '/aio/ESHOP' },
+          { label: 'Cycle', path: '/aio-cycle/ESHOP/ESHOP-CY-1011' },
+        ],
+      });
+      renderAt(RUN_PATH);
+      await userEvent.click(await screen.findByRole('link', { name: /Back to cycle/ }));
+      expect(useBreadcrumbStore.getState().trail.map((e) => e.path)).toEqual(['/aio/ESHOP']);
+    });
   });
 
   it('renders the IN_PROGRESS status as "In progress"', async () => {

@@ -398,7 +398,7 @@ export function ExecutionsList({
         </p>
       ) : (
         <div>
-          <div className="flex w-full items-center border-b bg-muted/10">
+          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]">
             <SortHeader
               sortKey="key"
               label="Key"

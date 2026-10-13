@@ -56,7 +56,7 @@ export function CycleKpiTiles({
   const segments = SEGMENT_ORDER.filter((k) => counts[k] > 0 && total > 0);
 
   return (
-    <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 py-4')}>
+    <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 pt-1 pb-3')}>
       <div className={STAT_GRID_CLASS}>
         {countsLoading ? (
           <>
@@ -163,7 +163,7 @@ export function CycleKpiTiles({
         )}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         {countsLoading ? (
           <div className="h-2.5 w-full animate-pulse rounded-full bg-muted" />
         ) : total === 0 ? (

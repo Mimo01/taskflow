@@ -146,83 +146,92 @@ export default function AioCycleDetailPage() {
         </div>
       )}
 
-      <CycleHeader
-        cycle={cycleQuery.data}
-        cycleKey={cycleKey ?? ''}
-        ownerID={ownerID}
-        lastExecuted={lastExecuted}
-        pinned={pinned}
-        onTogglePin={onTogglePin}
-        jiraBaseUrl={jiraBaseUrl}
-        token={token}
-      />
+      {/* Single page scroll: header + KPI tiles scroll away; the tab bar and the
+          list column headers stick (offset via --aio-sticky-top = tab bar height). */}
+      <div
+        className="min-h-0 flex-1 overflow-auto [--aio-sticky-top:2.75rem]"
+        data-testid="aio-cycle-scroll"
+      >
+        <CycleHeader
+          cycle={cycleQuery.data}
+          cycleKey={cycleKey ?? ''}
+          ownerID={ownerID}
+          lastExecuted={lastExecuted}
+          pinned={pinned}
+          onTogglePin={onTogglePin}
+          jiraBaseUrl={jiraBaseUrl}
+          token={token}
+        />
 
-      {hasError && !cycleQuery.data && !runsQuery.data && (
-        <div className="flex-1 overflow-auto">
-          <div className="p-4">
-            <ErrorState
-              error={cycleQuery.error ?? runsQuery.error}
-              onRetry={() => {
-                void queryClient.invalidateQueries({
-                  queryKey: ['aio', jiraBaseUrl, 'cycle-detail', projectKey, cycleKey],
-                });
-                void queryClient.invalidateQueries({
-                  queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
-                });
-              }}
-              viewName="cycle detail"
-            />
+        {hasError && !cycleQuery.data && !runsQuery.data && (
+          <div>
+            <div className="p-4">
+              <ErrorState
+                error={cycleQuery.error ?? runsQuery.error}
+                onRetry={() => {
+                  void queryClient.invalidateQueries({
+                    queryKey: ['aio', jiraBaseUrl, 'cycle-detail', projectKey, cycleKey],
+                  });
+                  void queryClient.invalidateQueries({
+                    queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
+                  });
+                }}
+                viewName="cycle detail"
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!hasError && (showSkeleton || cycleQuery.isLoading) ? (
-        <div className="flex-1 overflow-auto">
-          <AioCycleDetailSkeleton />
-        </div>
-      ) : !hasError && !!cycleQuery.data ? (
-        <>
-          <CycleKpiTiles
-            counts={counts}
-            total={total}
-            runs={runs}
-            countsLoading={countsLoading}
-            openDefects={openCount}
-            totalDefects={defects.length}
-            defectsLoading={!runs || defectsResolving}
-            lastExecuted={lastExecuted}
-          />
-          <Tabs defaultValue="executions" className="flex-1 flex flex-col min-h-0">
-            <TabsList className="mx-6 my-1.5">
-              <TabsTrigger value="executions">Executions</TabsTrigger>
-              <TabsTrigger value="defects">Defects</TabsTrigger>
-            </TabsList>
+        {!hasError && (showSkeleton || cycleQuery.isLoading) ? (
+          <div>
+            <AioCycleDetailSkeleton />
+          </div>
+        ) : !hasError && !!cycleQuery.data ? (
+          <>
+            <CycleKpiTiles
+              counts={counts}
+              total={total}
+              runs={runs}
+              countsLoading={countsLoading}
+              openDefects={openCount}
+              totalDefects={defects.length}
+              defectsLoading={!runs || defectsResolving}
+              lastExecuted={lastExecuted}
+            />
+            <Tabs defaultValue="executions" className="gap-0">
+              <div className="sticky top-0 z-20 flex h-11 items-center bg-background px-6">
+                <TabsList>
+                  <TabsTrigger value="executions">Executions</TabsTrigger>
+                  <TabsTrigger value="defects">Defects</TabsTrigger>
+                </TabsList>
+              </div>
 
-            <TabsContent value="executions" className="flex-1 overflow-auto">
-              <ExecutionsList
-                runs={runs}
-                isLoading={runsQuery.isLoading}
-                isError={runsQuery.isError}
-                error={runsQuery.error}
-                onRetry={() => void runsQuery.refetch()}
-                onOpenRun={openRun}
-                jiraBaseUrl={jiraBaseUrl}
-                token={token}
-              />
-            </TabsContent>
+              <TabsContent value="executions">
+                <ExecutionsList
+                  runs={runs}
+                  isLoading={runsQuery.isLoading}
+                  isError={runsQuery.isError}
+                  error={runsQuery.error}
+                  onRetry={() => void runsQuery.refetch()}
+                  onOpenRun={openRun}
+                  jiraBaseUrl={jiraBaseUrl}
+                  token={token}
+                />
+              </TabsContent>
 
-            <TabsContent value="defects" className="flex-1 overflow-auto">
-              <DefectsList
-                defects={defects}
-                isLoading={runsQuery.isLoading}
-                onOpenIssue={onOpenIssue ?? (() => {})}
-                onOpenRun={openRun}
-                cycleName={cycleName}
-              />
-            </TabsContent>
-          </Tabs>
-        </>
-      ) : null}
+              <TabsContent value="defects">
+                <DefectsList
+                  defects={defects}
+                  isLoading={runsQuery.isLoading}
+                  onOpenIssue={onOpenIssue ?? (() => {})}
+                  onOpenRun={openRun}
+                  cycleName={cycleName}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
