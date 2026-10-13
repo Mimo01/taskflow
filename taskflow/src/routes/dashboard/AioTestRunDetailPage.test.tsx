@@ -440,7 +440,10 @@ describe('AioTestRunDetailPage', () => {
       expect(row.textContent).toContain('Open');
 
       const stepDefects = screen.getByTestId('run-step-defects-0');
-      expect(stepDefects.textContent).not.toContain('Checkout crashes');
+      // Step chip carries the key, summary, status and assignee too
+      expect(stepDefects.textContent).toContain('Checkout crashes');
+      expect(stepDefects.textContent).toContain('Open');
+      expect(within(stepDefects).getByTitle('Assignee: Jana Nova')).toBeTruthy();
       await userEvent.click(
         within(stepDefects).getByRole('button', { name: 'Open defect QAT-186227' }),
       );

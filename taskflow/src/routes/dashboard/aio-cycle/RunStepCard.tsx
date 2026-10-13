@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { PriorityIcon } from '@/components/ui/priority-icon';
 import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
 import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioRunStatusPillClass, statusCategoryDotClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass, statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { AioTestRunStep } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
@@ -62,42 +64,60 @@ function StepDefect({
   // run's Defects section; here it only marks which defect a step raised.
   const label = issue?.key ?? defectId;
   const statusName = issue?.fields.status?.name;
+  const summary = issue?.fields.summary;
+  const assignee = issue?.fields.assignee;
+  // One-line mini card: type · key · summary · priority · status · assignee.
   const chip = (
     <>
       {issue?.fields.issuetype?.name ? (
-        <IssueTypeIcon typeName={issue.fields.issuetype.name} className="size-3 shrink-0" />
+        <IssueTypeIcon typeName={issue.fields.issuetype.name} className="size-3.5 shrink-0" />
       ) : null}
-      <span className="font-mono">{label}</span>
+      <span className="flex-none font-mono">{label}</span>
+      {summary ? (
+        <span className="min-w-0 flex-1 truncate text-left text-foreground/80">{summary}</span>
+      ) : isLoading ? (
+        <span className="h-3 w-32 flex-none rounded bg-muted" />
+      ) : null}
+      <PriorityIcon priority={issue?.fields.priority} className="size-3.5 shrink-0" />
       {statusName && (
         <span
-          aria-hidden
           className={cn(
-            'size-1.5 flex-none rounded-full',
-            statusCategoryDotClass(issue?.fields.status?.statusCategory?.key),
+            'flex-none whitespace-nowrap rounded px-1.5 py-px text-[10px] font-medium',
+            statusCategoryBadgeClass(issue?.fields.status?.statusCategory?.key),
           )}
-        />
+        >
+          {statusName}
+        </span>
+      )}
+      {assignee && (
+        <span className="flex flex-none" title={`Assignee: ${assignee.displayName}`}>
+          <CachedAvatar
+            url={assignee.avatarUrls?.['48x48']}
+            name={assignee.displayName}
+            size={16}
+          />
+        </span>
       )}
     </>
   );
   const chipClass =
-    'inline-flex h-6 max-w-full items-center gap-1.5 rounded-full bg-background px-2 text-xs ring-1 ring-border';
+    'flex h-7 w-full min-w-0 items-center gap-2 rounded-md bg-background pl-2 pr-1.5 text-xs ring-1 ring-border';
   if (!issue || !onOpenDefect) {
     return (
-      <li className={cn(chipClass, 'text-muted-foreground', isLoading && 'animate-pulse')}>
+      <li className={cn(chipClass, 'max-w-md text-muted-foreground', isLoading && 'animate-pulse')}>
         {chip}
       </li>
     );
   }
-  const summary = issue.fields.summary;
   return (
-    <li className="max-w-full">
+    <li className="min-w-0 max-w-md">
       <button
         type="button"
         aria-label={`Open defect ${issue.key}`}
         title={[issue.key, statusName, summary].filter(Boolean).join(' · ')}
         className={cn(
           chipClass,
-          'cursor-pointer transition-colors hover:bg-muted hover:ring-foreground/20 focus-visible:outline-2 focus-visible:outline-ring',
+          'cursor-pointer transition-colors hover:bg-muted/60 hover:ring-foreground/20 focus-visible:outline-2 focus-visible:outline-ring',
         )}
         onClick={() => onOpenDefect(issue.key)}
       >
@@ -189,7 +209,7 @@ export function RunStepCard({
 
       {defects.length > 0 && (
         <ul
-          className="col-start-2 col-end-[-1] flex flex-wrap gap-1.5"
+          className="col-start-2 col-end-[-1] grid grid-cols-[repeat(auto-fill,minmax(min(16rem,100%),28rem))] gap-1.5"
           data-testid={`run-step-defects-${index}`}
         >
           {defects.map((id) => (
