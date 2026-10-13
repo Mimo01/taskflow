@@ -28,7 +28,7 @@ export function RunDefectsSection({
   if (defects.length === 0) return null;
   return (
     <RunSection title="Defects" count={defects.length} testId="aio-run-defects-section">
-      <ul className="-mx-2 space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
+      <ul className="space-y-1.5 density-compact:space-y-1 density-comfortable:space-y-2">
         {defects.map((d) => {
           const key = d.issue?.key ?? d.id;
           const clickable = !d.isLoading && !!d.issue;
@@ -37,13 +37,13 @@ export function RunDefectsSection({
             <li
               key={d.id}
               data-testid={`aio-run-defect-${d.id}`}
-              className="relative flex min-w-0 items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent density-compact:py-1 density-comfortable:py-2.5"
+              className="relative flex min-w-0 items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm transition-colors hover:bg-accent density-compact:py-1.5 density-comfortable:py-3"
             >
               {clickable && (
                 <button
                   type="button"
                   aria-label={`Open defect ${key}`}
-                  className="absolute inset-0 cursor-pointer rounded"
+                  className="absolute inset-0 cursor-pointer rounded-md"
                   onClick={() => onOpenDefect(key)}
                 />
               )}
