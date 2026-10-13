@@ -54,6 +54,7 @@ const initialSettings = {
   peekPanelWidth: null as number | null,
   mrDetailPanelWidth: 288,
   releaseDetailPanelWidth: 288,
+  aioRunDetailPanelWidth: 320,
   aioEnabled: false,
   tempoEnabled: false,
   selectedAioProjectKey: null as string | null,
@@ -157,6 +158,8 @@ interface SettingsState {
   /** Release detail right panel width in px. Default: 288 (w-72). */
   releaseDetailPanelWidth: number;
   setReleaseDetailPanelWidth: (w: number) => void;
+  aioRunDetailPanelWidth: number;
+  setAioRunDetailPanelWidth: (w: number) => void;
   /** Enable AIO Test Management integration. Default: false. Gates all AIO API calls. */
   aioEnabled: boolean;
   setAioEnabled: (v: boolean) => void;
@@ -265,6 +268,7 @@ export const useSettingsStore = create<SettingsState>()(
       setPeekPanelWidth: (w) => set({ peekPanelWidth: w }),
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
       setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
+      setAioRunDetailPanelWidth: (w) => set({ aioRunDetailPanelWidth: w }),
       setAioEnabled: (v) => set({ aioEnabled: v }),
       setTempoEnabled: (v) => set({ tempoEnabled: v }),
       setSelectedAioProjectKey: (key) => set({ selectedAioProjectKey: key }),

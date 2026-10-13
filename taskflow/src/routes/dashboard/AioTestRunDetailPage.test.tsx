@@ -523,6 +523,14 @@ describe('AioTestRunDetailPage', () => {
     });
   });
 
+  it('renders a drag handle on the sidebar sized from the persisted width', async () => {
+    await setup();
+    renderAt(RUN_PATH);
+    expect(await screen.findByTestId('aio-run-sidebar-resize')).toBeTruthy();
+    const panel = screen.getByTestId('aio-run-sidebar-panel');
+    expect(panel.parentElement?.getAttribute('style')).toMatch(/--run-sidebar-w: \d+px/);
+  });
+
   it('renders the IN_PROGRESS status as "In progress"', async () => {
     await setup({ detail: runDetail({ status: 'IN_PROGRESS' }) });
     renderAt(RUN_PATH);

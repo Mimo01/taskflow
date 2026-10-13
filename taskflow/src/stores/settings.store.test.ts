@@ -92,6 +92,13 @@ describe('settings.store — resize panel widths (Phase 50)', () => {
     expect(useSettingsStore.getState().issueDetailPanelWidth).toBeNull();
   });
 
+  it('aioRunDetailPanelWidth defaults to 320 and is settable', () => {
+    expect(useSettingsStore.getState().aioRunDetailPanelWidth).toBe(320);
+    act(() => useSettingsStore.getState().setAioRunDetailPanelWidth(400));
+    expect(useSettingsStore.getState().aioRunDetailPanelWidth).toBe(400);
+    act(() => useSettingsStore.getState().setAioRunDetailPanelWidth(320));
+  });
+
   it('mrDetailPanelWidth defaults to 288', () => {
     expect(useSettingsStore.getState().mrDetailPanelWidth).toBe(288);
   });
