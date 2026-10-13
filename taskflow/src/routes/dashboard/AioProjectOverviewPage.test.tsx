@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
+import { useSyncExternalStore } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,15 +19,42 @@ const mockClearSelectedFolder = vi.fn((key: string) => {
   delete SelectionStore.byProjectKey[key];
 });
 
+// Reactive status-filter slice so clicking Open | All re-renders the page.
+const FilterStore = { statusFilter: 'open' as 'open' | 'all', listeners: new Set<() => void>() };
+const mockSetStatusFilter = vi.fn((v: 'open' | 'all') => {
+  FilterStore.statusFilter = v;
+  for (const l of FilterStore.listeners) l();
+});
+
 vi.mock('@/stores/aio-cycles-selection.store', () => ({
   useAioCyclesSelectionStore: (selector: (s: unknown) => unknown) => {
+    const statusFilter = useSyncExternalStore(
+      (cb) => {
+        FilterStore.listeners.add(cb);
+        return () => FilterStore.listeners.delete(cb);
+      },
+      () => FilterStore.statusFilter,
+    );
     const state = {
       getSelectedFolder: mockGetSelectedFolder,
       setSelectedFolder: mockSetSelectedFolder,
       clearSelectedFolder: mockClearSelectedFolder,
+      statusFilter,
+      setStatusFilter: mockSetStatusFilter,
     };
     return selector ? selector(state) : state;
   },
+}));
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+const mockPushBreadcrumb = vi.fn();
+vi.mock('@/stores/breadcrumb.store', () => ({
+  useBreadcrumbStore: { getState: () => ({ push: mockPushBreadcrumb }) },
 }));
 
 vi.mock('@/hooks/useAioCredentials', () => ({
@@ -53,7 +81,9 @@ vi.mock('@/hooks/useDelayedLoading', () => ({
   useDelayedLoading: (v: boolean) => v,
 }));
 
-// REMOVED: Show closed toggle tests — toggle was deleted from UI
+beforeEach(() => {
+  FilterStore.statusFilter = 'open';
+});
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -170,8 +200,72 @@ describe('AioProjectOverviewPage — folder tree', () => {
     await waitFor(() => {
       expect(screen.getByTestId('folder-node-101')).toBeDefined();
       expect(screen.getByText('Sprint 2025')).toBeDefined();
-      expect(screen.getByText('3')).toBeDefined();
+      expect(within(screen.getByTestId('folder-node-101')).getByText('3')).toBeDefined();
     });
+  });
+
+  it('shows the aggregate count (own + descendants) on a parent folder', async () => {
+    await setupStandardMocks();
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts } = await import('@/services/aio');
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { ...FOLDER_A, children: [{ ...FOLDER_B, ID: 103, name: 'Child', parentID: 101 }] },
+    ]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      '101': 1,
+      '103': 2,
+    });
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => {
+      expect(within(screen.getByTestId('folder-node-101')).getByText('3')).toBeDefined();
+    });
+    // All cycles total = sum of root aggregates
+    expect(within(screen.getByTestId('folder-node-all')).getByText('3')).toBeDefined();
+  });
+
+  it('filters folders by name and shows "No folders match" when nothing matches', async () => {
+    await setupStandardMocks();
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts } = await import('@/services/aio');
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A, FOLDER_B]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      '101': 1,
+      '102': 1,
+    });
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByTestId('folder-node-102')).toBeDefined());
+    const input = screen.getByPlaceholderText('Filter folders…');
+    fireEvent.change(input, { target: { value: '2026' } });
+    expect(screen.queryByTestId('folder-node-101')).toBeNull();
+    expect(screen.getByTestId('folder-node-102')).toBeDefined();
+    fireEvent.change(input, { target: { value: 'zzz' } });
+    expect(screen.getByText('No folders match')).toBeDefined();
+  });
+
+  it('selecting All cycles fetches with an empty folder list', async () => {
+    await setupStandardMocks();
+    const { fetchAioCyclesWithDetail } = await import('@/services/aio');
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByTestId('folder-node-all')).toBeDefined());
+    fireEvent.click(screen.getByTestId('folder-node-all'));
+    await waitFor(() => {
+      const calls = (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[calls.length - 1][3]).toEqual([]);
+    });
+    expect(mockSetSelectedFolder).toHaveBeenCalledWith('PROJ', 0);
+  });
+
+  it('restores a stored All cycles selection (0 is valid)', async () => {
+    SelectionStore.byProjectKey.PROJ = 0;
+    await setupStandardMocks();
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => {
+      expect(screen.getByTestId('folder-node-all').getAttribute('aria-current')).toBe('page');
+    });
+    expect(mockClearSelectedFolder).not.toHaveBeenCalled();
+    SelectionStore.byProjectKey = {};
   });
 });
 
@@ -257,6 +351,139 @@ describe('AioProjectOverviewPage — cycle list', () => {
   });
 });
 
+const pad = (n: number) => String(n).padStart(2, '0');
+const dayOffset = (days: number) => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, 12);
+};
+const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+const CLOSED_CYCLE: AioCycleDetailItem = {
+  ...CYCLE_1,
+  ID: 1003,
+  detail: { ...CYCLE_1.detail, key: 'PROJ-CY-3', title: 'Cycle Closed', isClosed: true },
+};
+
+async function mockCycles(items: AioCycleDetailItem[], summaries: AioCycleSummaryItem[] = []) {
+  await setupStandardMocks();
+  const { fetchAioCyclesWithDetail, fetchAioCycleSummaries } = await import('@/services/aio');
+  (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+    items,
+    allIDs: items.map((i) => i.ID),
+    startAt: 0,
+    maxResults: 20,
+    isLast: true,
+  });
+  (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(summaries);
+}
+
+describe('AioProjectOverviewPage — redesigned cycle list', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    SelectionStore.byProjectKey = {};
+  });
+
+  it('hides closed cycles by default and shows them (sorted last) under All', async () => {
+    await mockCycles([CLOSED_CYCLE, CYCLE_1], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByText('Cycle Alpha')).toBeDefined());
+    expect(screen.queryByText('Cycle Closed')).toBeNull();
+    expect(screen.getByText('1 open · 1 closed')).toBeDefined();
+
+    const allBtn = screen.getByRole('button', { name: 'All' });
+    expect(allBtn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(allBtn);
+    await waitFor(() => expect(screen.getByText('Cycle Closed')).toBeDefined());
+    expect(screen.getByText('Closed')).toBeDefined();
+    const rows = screen.getAllByTestId(/^cycle-row-/);
+    expect(rows[0].getAttribute('data-testid')).toBe('cycle-row-1001');
+    expect(rows[1].getAttribute('data-testid')).toBe('cycle-row-1003');
+  });
+
+  it('shows an all-closed notice with a Show them action', async () => {
+    await mockCycles([CLOSED_CYCLE]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() =>
+      expect(screen.getByText('All 1 cycles in this folder are closed')).toBeDefined(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Show them' }));
+    expect(mockSetStatusFilter).toHaveBeenCalledWith('all');
+    await waitFor(() => expect(screen.getByText('Cycle Closed')).toBeDefined());
+  });
+
+  it.each([
+    ['an ISO string', isoDay(dayOffset(-5))],
+    ['an epoch-ms number', dayOffset(-5).getTime()],
+  ])('flags an open cycle with a past end date (%s) as Overdue', async (_label, endDate) => {
+    await mockCycles([
+      {
+        ...CYCLE_1,
+        detail: { ...CYCLE_1.detail, startDate: isoDay(dayOffset(-20)), endDate },
+      },
+    ]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByText('Overdue')).toBeDefined());
+    expect(screen.getByText('Dates')).toBeDefined();
+  });
+
+  it('shows an Open pill for a current open cycle', async () => {
+    await mockCycles([CYCLE_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByText('Open', { selector: 'span' })).toBeDefined());
+  });
+
+  it('omits the Dates and Effort columns when no cycle has that data', async () => {
+    await mockCycles([CYCLE_1], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByText('Cycle Alpha')).toBeDefined());
+    expect(screen.queryByText('Dates')).toBeNull();
+    expect(screen.queryByText('Effort')).toBeNull();
+  });
+
+  it('shows the Effort column when a summary carries effort', async () => {
+    await mockCycles(
+      [CYCLE_1],
+      [
+        {
+          ...SUMMARY_1,
+          summary: { ...SUMMARY_1.summary, actualEffort: 4980, estimatedEffort: 7200 },
+        },
+      ],
+    );
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByText('Effort')).toBeDefined());
+    expect(screen.getByText('1h 23m / 2h')).toBeDefined();
+  });
+
+  it('renders pass percentage without a letter legend', async () => {
+    await mockCycles([CYCLE_1], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    // 60 (N/A = PASSED) + 20 (Passed) of 100
+    await waitFor(() => expect(screen.getByText('80%')).toBeDefined());
+    expect(screen.queryByText(/\d+P\b/)).toBeNull();
+  });
+
+  it('clicking the row overlay pushes the breadcrumb and navigates', async () => {
+    await mockCycles([CYCLE_1], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    const btn = await screen.findByRole('button', { name: 'Open PROJ-CY-1 Cycle Alpha' });
+    fireEvent.click(btn);
+    expect(mockPushBreadcrumb).toHaveBeenCalledWith({
+      label: 'AIO Cycles',
+      path: '/aio-project/PROJ',
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('/aio-cycle/PROJ/PROJ-CY-1');
+  });
+});
+
 describe('AioProjectOverviewPage — persisted folder selection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -309,14 +536,14 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
 
     await waitFor(() => {
       const folder102 = screen.getByTestId('folder-node-102');
-      expect(folder102.className).toContain('bg-primary');
+      expect(folder102.getAttribute('aria-current')).toBe('page');
     });
     // folder 101 should NOT be selected
     const folder101 = screen.getByTestId('folder-node-101');
-    expect(folder101.className).not.toContain('bg-primary');
+    expect(folder101.getAttribute('aria-current')).toBeNull();
   });
 
-  it('falls back to first non-empty when persisted ID is stale', async () => {
+  it('falls back to All cycles when persisted ID is stale', async () => {
     // Pre-load a stale folder ID that does not exist in the tree
     SelectionStore.byProjectKey.PROJ = 999;
 
@@ -347,8 +574,7 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
     wrap(Page);
 
     await waitFor(() => {
-      const folder101 = screen.getByTestId('folder-node-101');
-      expect(folder101.className).toContain('bg-primary');
+      expect(screen.getByTestId('folder-node-all').getAttribute('aria-current')).toBe('page');
     });
     // Stale entry should be cleared
     await waitFor(() => {
