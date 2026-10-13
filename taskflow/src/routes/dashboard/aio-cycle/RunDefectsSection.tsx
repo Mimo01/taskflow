@@ -4,6 +4,7 @@ import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { JiraIssue } from '@/services/jira/types';
+import { RunSection } from './RunSection';
 
 export interface RunDefect {
   id: string;
@@ -26,11 +27,8 @@ export function RunDefectsSection({
 }) {
   if (defects.length === 0) return null;
   return (
-    <section className="space-y-2" data-testid="aio-run-defects-section">
-      <h2 className="text-sm font-medium">
-        Defects <span className="text-muted-foreground tabular-nums">{defects.length}</span>
-      </h2>
-      <ul className="divide-y divide-border overflow-hidden rounded-xl ring-1 ring-border">
+    <RunSection title="Defects" meta={defects.length} testId="aio-run-defects-section" bare>
+      <ul className="divide-y divide-border">
         {defects.map((d) => {
           const key = d.issue?.key ?? d.id;
           const clickable = !d.isLoading && !!d.issue;
@@ -39,7 +37,7 @@ export function RunDefectsSection({
             <li
               key={d.id}
               data-testid={`aio-run-defect-${d.id}`}
-              className="relative flex min-w-0 items-center gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+              className="relative flex min-w-0 items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-muted/40"
             >
               {clickable && (
                 <button
@@ -93,6 +91,6 @@ export function RunDefectsSection({
           );
         })}
       </ul>
-    </section>
+    </RunSection>
   );
 }

@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
 import { relativeTime } from '@/lib/relative-time';
 import { aioRunStatusPillClass, STATUS_PILL_LAYOUT_CLASS, tonePillClass } from '@/lib/statusStyles';
+import { cn } from '@/lib/utils';
 import type { AioTestCaseDetail, AioTestRun } from '@/services/aio';
+import { RUN_PANEL_CLASS, SectionHeading } from './RunSection';
 import { UserChip } from './UserChip';
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -24,11 +26,9 @@ function Group({
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-2" data-testid={testId}>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </h2>
-      <dl className="space-y-1.5">{children}</dl>
+    <section className="space-y-2.5 px-4 py-3" data-testid={testId}>
+      <SectionHeading title={title} />
+      <dl className="space-y-2">{children}</dl>
     </section>
   );
 }
@@ -56,7 +56,10 @@ export function RunSidebar({
   const created = absDate(run.createdDate);
 
   return (
-    <aside className="min-w-0 space-y-5" data-testid="aio-run-sidebar">
+    <aside
+      className={cn(RUN_PANEL_CLASS, 'min-w-0 self-start divide-y divide-border')}
+      data-testid="aio-run-sidebar"
+    >
       <Group title="Run">
         <Row label="Status">
           <span className={aioRunStatusPillClass(run.status)}>
