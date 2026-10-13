@@ -1,378 +1,525 @@
-/**
- * Read-only summary of the cycles in the selected folder, styled like the home Dashboard
- * cards (MyIssuesCard / UpcomingReleasesTimeline): uppercase muted title, faint ambient
- * icon top-right, a big headline number, one segmented bar and a single-line legend.
- */
-import { Archive, CalendarClock, CheckCircle2, Folder, type LucideIcon, Timer } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import { type ReactNode, useId } from 'react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   type CycleScope,
-  type CycleStage,
-  DEADLINE_LABEL,
-  type DeadlineKey,
-  STAGE_LABEL,
+  DUE_SOON_DAYS,
+  type OwnerStat,
+  PROGRESS_SEGMENT_CLASS,
+  progressTooltipRows,
+  type ScheduleBucket,
   type StatusKey,
   statusLabel,
 } from '@/lib/aio-cycle-list';
+import { formatDateKey } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
+import { fetchJiraUserByUsername } from '@/services/jira/users';
+import { SMALL_TEXT, STAT_CARD_CLASS, StatCardBody } from './issue-detail/EpicStatCard';
 
-/** "To do" grey of the home dashboard's MyIssuesCard. */
-const TODO_CLASS = 'bg-slate-400 dark:bg-slate-500';
-
-const STATUS_CLASS: Record<StatusKey, string> = {
-  pass: 'bg-green-500',
-  fail: 'bg-red-500',
-  blocked: 'bg-orange-400',
-  inProgress: 'bg-blue-500',
-  notRun: TODO_CLASS,
-};
 const STATUS_ORDER: StatusKey[] = ['pass', 'fail', 'blocked', 'inProgress', 'notRun'];
 
-const STAGE_CLASS: Record<CycleStage, string> = {
-  notStarted: TODO_CLASS,
-  inProgress: 'bg-blue-500',
-  done: 'bg-green-500',
-  noTests: 'bg-muted-foreground/25',
-};
-const STAGE_ORDER: CycleStage[] = ['notStarted', 'inProgress', 'done', 'noTests'];
+/** Fixed body height shared by the three chart cards in every state (data, skeleton, empty). */
+const CHART_BODY_CLASS = 'h-[184px] overflow-hidden';
+/** Pixel height of the tallest schedule column. */
+const SCHEDULE_BAR_MAX_PX = 84;
 
-/** Urgency: red (late) → amber (soon) → blue (planned) → grey (no date). */
-const DEADLINE_CLASS: Record<DeadlineKey, string> = {
-  overdue: 'bg-red-500',
-  week: 'bg-amber-500',
-  next: 'bg-amber-300',
-  month: 'bg-blue-400',
-  later: 'bg-blue-300',
-  none: TODO_CLASS,
-};
-const DEADLINE_ORDER: DeadlineKey[] = ['overdue', 'week', 'next', 'month', 'later', 'none'];
+/** Read-only rows: hover shows the tooltip, nothing is clickable. */
+const HOVER_ROW_CLASS = 'rounded-sm hover:bg-accent/40';
 
-interface Segment {
-  key: string;
-  label: string;
-  count: number;
-  className: string;
-}
+// ─── KPI tiles ───────────────────────────────────────────────────────────────
 
-// ─── card shell ──────────────────────────────────────────────────────────────
-
-function SummaryCard({
-  title,
-  icon: Icon,
-  iconClass,
-  testId,
-  children,
-}: {
-  title: string;
-  icon: LucideIcon;
-  /** Ambient icon tint, e.g. 'text-green-500/[0.07] dark:text-green-400/10'. */
-  iconClass: string;
-  testId: string;
-  children: ReactNode;
-}) {
+function TileShell({ children }: { children: ReactNode }) {
   return (
-    <Card
-      size="sm"
-      role="region"
-      aria-label={title}
-      data-testid={testId}
-      className="relative overflow-hidden"
-    >
-      <Icon
-        className={cn('pointer-events-none absolute -top-3 -right-2 size-16', iconClass)}
-        aria-hidden
-      />
-      <CardHeader>
-        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2.5">{children}</CardContent>
+    <Card size="sm">
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
 
-/** Headline: big number + muted phrase on one baseline (MyIssuesCard "3 of 8 done"). */
-function Headline({
+function TileSkeleton({ testId }: { testId: string }) {
+  return (
+    <TileShell>
+      <div data-testid={testId} className={cn(STAT_CARD_CLASS, 'items-center')}>
+        <Skeleton className="h-3.5 w-16" />
+        <Skeleton className="h-7 w-14 self-center" />
+        <Skeleton className="h-3.5 w-24" />
+      </div>
+    </TileShell>
+  );
+}
+
+function Tile({
+  testId,
+  label,
   value,
-  valueClass,
-  children,
+  sub,
+  tip,
 }: {
+  testId: string;
+  label: string;
   value: ReactNode;
-  valueClass?: string;
-  children: ReactNode;
+  sub: ReactNode;
+  tip: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 items-baseline gap-1.5">
-      <span
-        className={cn(
-          'text-xl font-semibold leading-7 tracking-tight tabular-nums text-foreground',
-          valueClass,
-        )}
-      >
-        {value}
-      </span>
-      <span className="truncate text-xs text-muted-foreground">{children}</span>
+    <TileShell>
+      <Tooltip>
+        <TooltipTrigger delay={0} render={<div />} data-testid={testId} className={STAT_CARD_CLASS}>
+          <StatCardBody label={label} value={value} sub={sub} />
+        </TooltipTrigger>
+        <TooltipContent>{tip}</TooltipContent>
+      </Tooltip>
+    </TileShell>
+  );
+}
+
+const VALUE_CLASS = 'truncate text-lg font-semibold leading-none tabular-nums';
+
+function MiniStatusBar({ scope }: { scope: CycleScope }) {
+  const { counts, total } = scope.exec;
+  return (
+    <span className="flex h-1.5 w-16 flex-none overflow-hidden rounded-full bg-muted" aria-hidden>
+      {STATUS_ORDER.filter((k) => counts[k] > 0 && total > 0).map((k) => (
+        <span
+          key={k}
+          className={cn('h-full', PROGRESS_SEGMENT_CLASS[k])}
+          style={{ width: `${(counts[k] / total) * 100}%` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+// ─── chart cards ─────────────────────────────────────────────────────────────
+
+function ChartCard({
+  title,
+  testId,
+  children,
+}: {
+  title: string;
+  testId: string;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <Card size="sm" role="region" aria-labelledby={id} data-testid={testId}>
+      <CardHeader>
+        <CardTitle id={id} role="heading" aria-level={2}>
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className={CHART_BODY_CLASS}>{children}</CardContent>
+    </Card>
+  );
+}
+
+function EmptyBody({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+      {children}
     </div>
   );
 }
 
-/** Segmented bar + one-line legend of the non-zero segments. Hover a segment for its count. */
-function SegmentBar({ label, segments }: { label: string; segments: Segment[] }) {
-  const total = segments.reduce((a, s) => a + s.count, 0);
-  const shown = segments.filter((s) => s.count > 0);
+function ExecutionMixBody({ scope }: { scope: CycleScope }) {
+  const { exec } = scope;
+  if (exec.total === 0) return <EmptyBody>No test runs</EmptyBody>;
+  const rows = STATUS_ORDER.filter((k) => exec.counts[k] > 0);
   return (
-    <>
-      <div
-        role="img"
-        aria-label={`${label}: ${shown.map((s) => `${s.count} ${s.label}`).join(', ') || 'none'}`}
-        className="flex h-2 overflow-hidden rounded-full bg-muted"
-      >
-        {shown.map((s) => (
-          <Tooltip key={s.key}>
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex h-3 w-full flex-none overflow-hidden rounded-full bg-muted">
+        {rows.map((k) => (
+          <div
+            key={k}
+            className={cn('h-full', PROGRESS_SEGMENT_CLASS[k])}
+            style={{ width: `${(exec.counts[k] / exec.total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-col">
+        {rows.map((k) => {
+          const pct = Math.round((exec.counts[k] / exec.total) * 100);
+          return (
+            <Tooltip key={k}>
+              <TooltipTrigger
+                delay={0}
+                render={<div />}
+                data-testid={`exec-row-${k}`}
+                className={cn('flex h-6 w-full items-center gap-2 px-1 text-xs', HOVER_ROW_CLASS)}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    'size-2 flex-none rounded-[2px] ring-1 ring-inset ring-foreground/10',
+                    PROGRESS_SEGMENT_CLASS[k],
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate pr-0.5 text-left">{statusLabel(k)}</span>
+                <span className="tabular-nums">{exec.counts[k]}</span>
+                <span className="w-9 text-right tabular-nums text-muted-foreground">{pct}%</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody title={statusLabel(k)}>
+                  <TooltipRow label="Test runs" value={exec.counts[k]} />
+                  <TooltipRow label="Of all runs" value={`${pct}%`} />
+                  <TooltipRow label="Cycles" value={exec.cyclesWithStatus[k]} />
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function OwnersBody({
+  scope,
+  names,
+}: {
+  scope: CycleScope;
+  names: Map<string, { name: string; avatar: string | null }>;
+}) {
+  if (scope.owners.length === 0) return <EmptyBody>No owners</EmptyBody>;
+  const max = Math.max(...scope.owners.map((o) => o.count), 1);
+  const resolve = (o: OwnerStat) => names.get(o.ownerId) ?? { name: o.ownerId, avatar: null };
+  return (
+    <div className="flex h-full flex-col">
+      {scope.owners.map((o) => {
+        const { name, avatar } = resolve(o);
+        const passPct = o.runTotal > 0 ? `${Math.round((o.pass / o.runTotal) * 100)}%` : '—';
+        return (
+          <Tooltip key={o.ownerId}>
             <TooltipTrigger
               delay={0}
               render={<div />}
-              className={cn('h-full', s.className)}
-              style={{ width: `${(s.count / total) * 100}%` }}
-            />
+              data-testid={`owner-row-${o.ownerId}`}
+              className={cn(
+                'flex h-6 w-full flex-none items-center gap-2 px-1 text-xs',
+                HOVER_ROW_CLASS,
+              )}
+            >
+              <span className="flex w-32 min-w-0 flex-none items-center gap-1.5">
+                <CachedAvatar url={avatar} name={name} size={20} />
+                <span className="truncate pr-0.5 text-left">{name}</span>
+              </span>
+              <span className="flex h-2 min-w-0 flex-1" aria-hidden>
+                <span
+                  className="flex h-full overflow-hidden rounded-full bg-muted/50"
+                  style={{ width: `${(o.count / max) * 100}%` }}
+                >
+                  <span
+                    className="h-full bg-foreground/20"
+                    style={{ width: `${((o.count - o.overdue) / o.count) * 100}%` }}
+                  />
+                  <span
+                    className="h-full bg-red-500"
+                    style={{ width: `${(o.overdue / o.count) * 100}%` }}
+                  />
+                </span>
+              </span>
+              <span className="w-6 flex-none text-right tabular-nums">{o.count}</span>
+            </TooltipTrigger>
             <TooltipContent>
-              {s.label}: {s.count} ({Math.round((s.count / total) * 100)}%)
+              <TooltipBody title={name}>
+                <TooltipRow label="Open" value={o.open} />
+                <TooltipRow label="Closed" value={o.closed} />
+                <TooltipRow label="Overdue" value={o.overdue} />
+                <TooltipRow label="Pass rate" value={passPct} />
+              </TooltipBody>
             </TooltipContent>
           </Tooltip>
-        ))}
-      </div>
-      <div className="flex min-h-4 flex-wrap items-center gap-x-3.5 gap-y-1">
-        {shown.length === 0 ? (
-          <span className="text-xs text-muted-foreground">—</span>
-        ) : (
-          shown.map((s) => (
-            <span
-              key={s.key}
-              data-testid={`legend-${s.key}`}
-              className="flex flex-none items-center gap-1.5 whitespace-nowrap"
-            >
-              <span className={cn('size-2 rounded-[2px]', s.className)} aria-hidden />
-              <span className="text-xs text-muted-foreground">
-                {s.label}{' '}
-                <span className="font-medium tabular-nums text-foreground">{s.count}</span>
-              </span>
-            </span>
-          ))
-        )}
-      </div>
-    </>
-  );
-}
-
-function CardSkeleton() {
-  return (
-    <div aria-busy="true" className="flex flex-col gap-2.5">
-      <Skeleton className="h-7 w-1/3" />
-      <Skeleton className="h-2 w-full" />
-      <Skeleton className="h-4 w-2/3" />
+        );
+      })}
+      {scope.othersCount > 0 && (
+        <span className="px-1 pt-1 text-[11px] leading-4 text-muted-foreground">
+          +{scope.othersCount} others
+        </span>
+      )}
     </div>
   );
 }
 
-// ─── cards ───────────────────────────────────────────────────────────────────
-
-function TestResultsCard({ scope }: { scope: CycleScope | null }) {
-  const exec = scope?.exec;
-  return (
-    <SummaryCard
-      title="Test results"
-      icon={CheckCircle2}
-      iconClass="text-green-500/[0.07] dark:text-green-400/10"
-      testId="card-exec"
-    >
-      {!exec ? (
-        <CardSkeleton />
-      ) : (
-        <>
-          <Headline value={exec.passPct === null ? '—' : `${exec.passPct}%`}>
-            {exec.total === 0
-              ? 'no test runs'
-              : `passed · ${exec.executed} of ${exec.total} runs executed`}
-          </Headline>
-          <SegmentBar
-            label="Test runs"
-            segments={STATUS_ORDER.map((k) => ({
-              key: k,
-              label: statusLabel(k),
-              count: exec.counts[k],
-              className: STATUS_CLASS[k],
-            }))}
-          />
-        </>
-      )}
-    </SummaryCard>
-  );
+function bucketLabel(b: ScheduleBucket): string {
+  if (b.kind === 'overdue') return 'Late';
+  if (b.kind === 'later') return '8w+';
+  return b.weekStart ? String(Number(b.weekStart.slice(8))) : '';
 }
 
-function CycleProgressCard({ scope }: { scope: CycleScope | null }) {
+function ScheduleBody({ scope }: { scope: CycleScope }) {
+  const max = Math.max(...scope.weeks.map((w) => w.count), 1);
   return (
-    <SummaryCard
-      title="Cycle progress"
-      icon={Timer}
-      iconClass="text-blue-500/[0.07] dark:text-blue-400/10"
-      testId="card-stages"
-    >
-      {!scope ? (
-        <CardSkeleton />
+    <div className="flex h-full flex-col">
+      {scope.hasEndDates ? (
+        <div className="flex h-[148px] flex-none items-end gap-1">
+          {scope.weeks.map((b, i) => {
+            const height =
+              b.count > 0 ? Math.max(2, Math.round((b.count / max) * SCHEDULE_BAR_MAX_PX)) : 0;
+            const prev = scope.weeks[i - 1];
+            const monthLabel =
+              b.kind === 'week' &&
+              b.weekStart &&
+              (i === 1 || prev?.weekStart?.slice(5, 7) !== b.weekStart.slice(5, 7))
+                ? formatDateKey(b.weekStart).split(' ')[0]
+                : null;
+            const title =
+              b.kind === 'overdue'
+                ? 'Overdue'
+                : b.kind === 'later'
+                  ? 'Later'
+                  : `${formatDateKey(b.weekStart ?? '')} – ${formatDateKey(b.weekEnd ?? '')}`;
+            return (
+              <Tooltip key={`${b.kind}-${b.weekStart ?? ''}`}>
+                <TooltipTrigger
+                  delay={0}
+                  render={<div />}
+                  data-testid={`schedule-col-${b.kind === 'week' ? b.weekStart : b.kind}`}
+                  aria-label={`${title}: ${b.count} cycles`}
+                  className={cn(
+                    'flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5',
+                    HOVER_ROW_CLASS,
+                  )}
+                >
+                  <span className={cn(SMALL_TEXT, 'h-4 leading-4 tabular-nums')}>
+                    {b.count > 0 ? b.count : ''}
+                  </span>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'w-full rounded-sm',
+                      b.kind === 'overdue'
+                        ? 'bg-red-500'
+                        : b.kind === 'later'
+                          ? 'bg-foreground/15'
+                          : i === 1
+                            ? 'bg-foreground/45'
+                            : 'bg-foreground/25',
+                    )}
+                    style={{ height }}
+                  />
+                  <span
+                    className={cn(
+                      'flex h-7 flex-col items-center text-[10px] leading-3.5 tabular-nums text-muted-foreground',
+                    )}
+                  >
+                    <span>{bucketLabel(b)}</span>
+                    <span>{monthLabel ?? ''}</span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <TooltipBody
+                    title={title}
+                    note={b.keys.length > 0 ? b.keys.join(', ') : undefined}
+                  >
+                    <TooltipRow label="Cycles" value={b.count} />
+                  </TooltipBody>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
       ) : (
-        <>
-          <Headline value={scope.stages.done}>
-            of {scope.exec.withSummary} {scope.exec.withSummary === 1 ? 'cycle' : 'cycles'}{' '}
-            completed
-          </Headline>
-          <SegmentBar
-            label="Cycles"
-            segments={STAGE_ORDER.map((k) => ({
-              key: k,
-              label: STAGE_LABEL[k],
-              count: scope.stages[k],
-              className: STAGE_CLASS[k],
-            }))}
-          />
-        </>
+        <div className="h-[148px] flex-none">
+          <EmptyBody>No end dates set</EmptyBody>
+        </div>
       )}
-    </SummaryCard>
-  );
-}
-
-function DueDatesCard({ scope }: { scope: CycleScope | null }) {
-  const overdue = scope?.overdue.count ?? 0;
-  return (
-    <SummaryCard
-      title="Due dates"
-      icon={CalendarClock}
-      iconClass="text-amber-500/[0.07] dark:text-amber-400/10"
-      testId="card-due"
-    >
-      {!scope ? (
-        <CardSkeleton />
-      ) : (
-        <>
-          <Headline
-            value={overdue}
-            valueClass={overdue > 0 ? 'text-red-600 dark:text-red-400' : undefined}
+      <div className="flex h-6 flex-none items-center">
+        {scope.noEndDate > 0 && (
+          <span
+            data-testid="schedule-no-dates"
+            className="px-1 text-[11px] leading-4 text-muted-foreground"
           >
-            {scope.openCount === 0
-              ? 'no open cycles'
-              : overdue > 0
-                ? `overdue · oldest ${scope.overdue.oldestDaysLate} days late`
-                : 'overdue · all open cycles on schedule'}
-          </Headline>
-          <SegmentBar
-            label="Open cycles by due date"
-            segments={DEADLINE_ORDER.map((k) => ({
-              key: k,
-              label: DEADLINE_LABEL[k],
-              count: scope.deadlines[k],
-              className: DEADLINE_CLASS[k],
-            }))}
-          />
-        </>
-      )}
-    </SummaryCard>
-  );
-}
-
-// ─── subfolders ──────────────────────────────────────────────────────────────
-
-export interface SubfolderStat {
-  id: number;
-  name: string;
-  /** Cycles in the folder and everything below it. */
-  count: number;
-}
-
-function SubfoldersStrip({ folders }: { folders: SubfolderStat[] }) {
-  return (
-    <div data-testid="subfolders" className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Subfolders
-      </span>
-      {folders.map((f) => (
-        <span
-          key={f.id}
-          data-testid={`subfolder-${f.id}`}
-          className="flex min-w-0 items-center gap-1.5 text-xs"
-        >
-          <Folder className="size-3.5 flex-none text-muted-foreground" aria-hidden />
-          <span className="max-w-48 truncate pr-0.5">{f.name}</span>
-          <span className="tabular-nums text-muted-foreground">{f.count}</span>
-        </span>
-      ))}
+            {scope.noEndDate} without end date
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── dashboard ───────────────────────────────────────────────────────────────
 
-function Notice({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
-  return (
-    <div
-      data-testid="dashboard-notice"
-      className="flex items-center gap-2.5 text-sm text-muted-foreground"
-    >
-      <Icon className="size-4 flex-none" aria-hidden />
-      <span className="min-w-0">{children}</span>
-    </div>
-  );
-}
-
 export function AioCyclesDashboard({
   scope,
   loading,
   summariesLoading,
-  statusFilter,
-  subfolders,
+  token,
+  jiraBaseUrl,
 }: {
   scope: CycleScope | null;
-  /** Cycles still pending: every card is a skeleton. */
+  /** Cycles still pending: every tile and card is a skeleton. */
   loading: boolean;
-  /** Summaries still loading: Test results and Cycle progress are skeletons. */
+  /** Summaries still loading: only the Pass rate tile and Execution mix are skeletons. */
   summariesLoading: boolean;
-  statusFilter: 'open' | 'all';
-  /** Direct children of the selected folder (roots for All cycles); empty for a leaf. */
-  subfolders: SubfolderStat[];
+  token: string | null;
+  jiraBaseUrl: string | undefined;
 }) {
-  const ready = !loading && scope !== null;
-  const strip = subfolders.length > 0 ? <SubfoldersStrip folders={subfolders} /> : null;
+  // Same key, queryFn and staleTime as the list's OwnerCell, so the cache is shared.
+  const ownerQueries = useQueries({
+    queries: (scope?.owners ?? []).map((o) => ({
+      queryKey: ['jira', jiraBaseUrl, 'user-by-username', o.ownerId],
+      queryFn: () => fetchJiraUserByUsername(jiraBaseUrl ?? '', token ?? '', o.ownerId),
+      enabled: !!jiraBaseUrl && !!token && !!o.ownerId,
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const names = new Map<string, { name: string; avatar: string | null }>();
+  (scope?.owners ?? []).forEach((o, i) => {
+    const user = ownerQueries[i]?.data;
+    if (user)
+      names.set(o.ownerId, { name: user.displayName, avatar: user.avatarUrls?.['48x48'] ?? null });
+  });
 
-  // A folder with no cycles anywhere below it: say so instead of three empty cards.
-  if (ready && scope.total === 0) {
-    return (
-      <div className="space-y-3">
-        <Notice icon={Folder}>
-          No test cycles in this folder{subfolders.length > 0 ? ' or its subfolders' : ''}.
-        </Notice>
-        {strip}
-      </div>
-    );
-  }
-
-  const allClosed = ready && statusFilter === 'open' && scope.openCount === 0;
+  const showSkeleton = loading || !scope;
+  const execSkeleton = showSkeleton || summariesLoading;
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-4 @3xl:grid-cols-3">
-        <TestResultsCard scope={ready && !summariesLoading ? scope : null} />
-        <CycleProgressCard scope={ready && !summariesLoading ? scope : null} />
-        <DueDatesCard scope={ready ? scope : null} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
+        {showSkeleton || !scope ? (
+          <>
+            <TileSkeleton testId="tile-skeleton-open" />
+            <TileSkeleton testId="tile-skeleton-overdue" />
+            <TileSkeleton testId="tile-skeleton-due" />
+            <TileSkeleton testId="tile-skeleton-pass" />
+          </>
+        ) : (
+          <>
+            <Tile
+              testId="tile-open"
+              label="Open cycles"
+              value={<span className={VALUE_CLASS}>{scope.openCount}</span>}
+              sub={<span className="truncate">of {scope.total} in scope</span>}
+              tip={
+                <TooltipBody title="Open cycles">
+                  <TooltipRow label="Open" value={scope.openCount} />
+                  <TooltipRow label="Overdue" value={scope.overdue.count} />
+                  <TooltipRow label={`Due in ${DUE_SOON_DAYS} days`} value={scope.dueSoon.count} />
+                  <TooltipRow label="No end date" value={scope.noEndDate} />
+                </TooltipBody>
+              }
+            />
+            <Tile
+              testId="tile-overdue"
+              label="Overdue"
+              value={
+                <span
+                  className={cn(
+                    VALUE_CLASS,
+                    scope.overdue.count > 0 && 'text-red-600 dark:text-red-400',
+                  )}
+                >
+                  {scope.overdue.count}
+                </span>
+              }
+              sub={
+                scope.overdue.oldestDaysLate === null ? (
+                  <span>—</span>
+                ) : (
+                  <span className="truncate">oldest {scope.overdue.oldestDaysLate}d late</span>
+                )
+              }
+              tip={
+                <TooltipBody
+                  title="Overdue"
+                  note={scope.overdue.count > 3 ? `+${scope.overdue.count - 3} more` : undefined}
+                >
+                  {scope.overdue.top.length === 0 ? (
+                    <TooltipRow label="Nothing overdue" value="—" />
+                  ) : (
+                    scope.overdue.top.map((t) => (
+                      <TooltipRow key={t.key} label={t.key} value={`${t.daysLate}d late`} />
+                    ))
+                  )}
+                </TooltipBody>
+              }
+            />
+            <Tile
+              testId="tile-due"
+              label={`Due in ${DUE_SOON_DAYS} days`}
+              value={<span className={VALUE_CLASS}>{scope.dueSoon.count}</span>}
+              sub={
+                scope.dueSoon.nextDate ? (
+                  <span className="truncate">next: {formatDateKey(scope.dueSoon.nextDate)}</span>
+                ) : (
+                  <span>—</span>
+                )
+              }
+              tip={
+                <TooltipBody
+                  title={`Due in ${DUE_SOON_DAYS} days`}
+                  note={scope.dueSoon.count > 4 ? `+${scope.dueSoon.count - 4} more` : undefined}
+                >
+                  {scope.dueSoon.top.length === 0 ? (
+                    <TooltipRow label="Nothing due" value="—" />
+                  ) : (
+                    scope.dueSoon.top.map((t) => (
+                      <TooltipRow key={t.key} label={t.key} value={formatDateKey(t.date)} />
+                    ))
+                  )}
+                </TooltipBody>
+              }
+            />
+            {summariesLoading ? (
+              <TileSkeleton testId="tile-skeleton-pass" />
+            ) : (
+              <Tile
+                testId="tile-pass"
+                label="Pass rate"
+                value={
+                  <span className={VALUE_CLASS}>
+                    {scope.exec.passPct === null ? '—' : `${scope.exec.passPct}%`}
+                  </span>
+                }
+                sub={
+                  <>
+                    <MiniStatusBar scope={scope} />
+                    <span className="truncate tabular-nums">
+                      {scope.exec.executed}/{scope.exec.total} run
+                    </span>
+                  </>
+                }
+                tip={
+                  <TooltipBody title={`${scope.exec.total} test runs`}>
+                    {progressTooltipRows(scope.exec.counts).map((r) => (
+                      <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
+                    ))}
+                  </TooltipBody>
+                }
+              />
+            )}
+          </>
+        )}
       </div>
-      {allClosed && (
-        <Notice icon={Archive}>
-          All {scope.total} {scope.total === 1 ? 'cycle' : 'cycles'} here are closed. Switch to All
-          to include their results.
-        </Notice>
-      )}
-      {strip}
+
+      <div className="grid gap-4 @4xl:grid-cols-3">
+        <ChartCard title="Execution mix" testId="card-exec">
+          {execSkeleton || !scope ? (
+            <Skeleton data-testid="card-skeleton-exec" className="h-full w-full" />
+          ) : (
+            <ExecutionMixBody scope={scope} />
+          )}
+        </ChartCard>
+        <ChartCard title="By owner" testId="card-owners">
+          {showSkeleton || !scope ? (
+            <Skeleton data-testid="card-skeleton-owners" className="h-full w-full" />
+          ) : (
+            <OwnersBody scope={scope} names={names} />
+          )}
+        </ChartCard>
+        <ChartCard title="Schedule" testId="card-schedule">
+          {showSkeleton || !scope ? (
+            <Skeleton data-testid="card-skeleton-schedule" className="h-full w-full" />
+          ) : (
+            <ScheduleBody scope={scope} />
+          )}
+        </ChartCard>
+      </div>
     </div>
   );
 }

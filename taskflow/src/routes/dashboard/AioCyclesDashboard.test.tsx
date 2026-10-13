@@ -1,5 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { aggregateCycleScope, type CycleScope } from '@/lib/aio-cycle-list';
 import type {
   AioCycleDetailItem,
@@ -7,6 +8,10 @@ import type {
   AioTestRunStatusConfig,
 } from '@/services/aio/types';
 import { AioCyclesDashboard } from './AioCyclesDashboard';
+
+vi.mock('@/services/jira/users', () => ({
+  fetchJiraUserByUsername: vi.fn().mockResolvedValue(null),
+}));
 
 const TODAY = '2026-10-13';
 
@@ -51,7 +56,7 @@ function buildScope(items: AioCycleDetailItem[], withSummaries = true): CycleSco
 
 const ITEMS = [
   cycle(1, 'alice', '2026-10-01'), // overdue
-  cycle(2, 'alice', '2026-10-15'), // due this week
+  cycle(2, 'alice', '2026-10-15'), // due soon
   cycle(3, 'bob', null), // no end date
 ];
 
@@ -60,101 +65,90 @@ function renderDashboard(
   scope: CycleScope | null = buildScope(ITEMS),
 ) {
   return render(
-    <AioCyclesDashboard
-      scope={scope}
-      loading={false}
-      summariesLoading={false}
-      statusFilter="open"
-      subfolders={[]}
-      {...over}
-    />,
+    <QueryClientProvider client={new QueryClient()}>
+      <AioCyclesDashboard
+        scope={scope}
+        loading={false}
+        summariesLoading={false}
+        token="t"
+        jiraBaseUrl="https://jira.example.com"
+        {...over}
+      />
+    </QueryClientProvider>,
   );
 }
 
 describe('AioCyclesDashboard', () => {
-  it('Test results: pass rate headline, executed count and a status legend', () => {
+  it('renders the four tiles with values from the scope', () => {
     renderDashboard();
-    const card = screen.getByTestId('card-exec');
-    // pass 3 of 6 total runs; 4 executed
-    expect(card.textContent).toContain('50%');
-    expect(card.textContent).toContain('passed · 4 of 6 runs executed');
-    expect(screen.getByTestId('legend-pass').textContent).toBe('Passed 3');
-    expect(screen.getByTestId('legend-notRun').textContent).toBe('Not run 2');
-    expect(screen.queryByTestId('legend-blocked')).toBeNull();
-  });
-
-  it('Test results reads "no test runs" without summaries', () => {
-    renderDashboard({}, buildScope(ITEMS, false));
-    expect(screen.getByTestId('card-exec').textContent).toContain('no test runs');
-  });
-
-  it('Cycle progress: completed headline and a stage legend', () => {
-    renderDashboard();
-    const card = screen.getByTestId('card-stages');
-    // cycle 1: all 4 runs executed -> done; cycle 2: 2 not run -> not started
-    expect(card.textContent).toContain('1of 2 cycles completed');
-    expect(screen.getByTestId('legend-done').textContent).toBe('Completed 1');
-    expect(screen.getByTestId('legend-notStarted').textContent).toBe('Not started 1');
-  });
-
-  it('Due dates: overdue headline and urgency legend', () => {
-    renderDashboard();
-    const card = screen.getByTestId('card-due');
-    expect(card.textContent).toContain('overdue · oldest 12 days late');
-    expect(screen.getByTestId('legend-overdue').textContent).toBe('Overdue 1');
-    expect(screen.getByTestId('legend-week').textContent).toBe('This week 1');
-    expect(screen.getByTestId('legend-none').textContent).toBe('No due date 1');
-  });
-
-  it('Due dates says all on schedule when nothing is late', () => {
-    renderDashboard({}, buildScope([cycle(3, 'bob', null)]));
-    expect(screen.getByTestId('card-due').textContent).toContain('all open cycles on schedule');
+    expect(screen.getByTestId('tile-open').textContent).toContain('3');
+    expect(screen.getByTestId('tile-open').textContent).toContain('of 3 in scope');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('1');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 12d late');
+    expect(screen.getByTestId('tile-due').textContent).toContain('1');
+    // pass 3 of 6 total runs
+    expect(screen.getByTestId('tile-pass').textContent).toContain('50%');
+    expect(screen.getByTestId('tile-pass').textContent).toContain('4/6 run');
   });
 
   it('is read-only: no buttons anywhere', () => {
-    renderDashboard({ subfolders: [{ id: 7, name: 'Sprint 1', count: 4 }] });
+    renderDashboard();
     expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getByTestId('tile-overdue').hasAttribute('aria-pressed')).toBe(false);
   });
 
-  it('lists subfolders with their cycle counts', () => {
-    renderDashboard({
-      subfolders: [
-        { id: 7, name: 'Sprint 1', count: 4 },
-        { id: 8, name: 'Sprint 2', count: 0 },
-      ],
-    });
-    expect(screen.getByTestId('subfolder-7').textContent).toBe('Sprint 14');
-    expect(screen.getByTestId('subfolder-8').textContent).toBe('Sprint 20');
+  it('Execution mix renders a row per non-zero status', () => {
+    renderDashboard();
+    expect(screen.getByTestId('exec-row-pass')).toBeTruthy();
+    expect(screen.getByTestId('exec-row-fail')).toBeTruthy();
+    expect(screen.getByTestId('exec-row-notRun')).toBeTruthy();
+    expect(screen.queryByTestId('exec-row-blocked')).toBeNull();
   });
 
-  it('a folder with no cycles shows a notice and the subfolders, no cards', () => {
-    renderDashboard({ subfolders: [{ id: 7, name: 'Sprint 1', count: 4 }] }, buildScope([]));
-    expect(screen.getByTestId('dashboard-notice').textContent).toContain(
-      'No test cycles in this folder or its subfolders',
-    );
-    expect(screen.getByTestId('subfolder-7')).toBeTruthy();
-    expect(screen.queryByTestId('card-exec')).toBeNull();
+  it('shows "No test runs" when there are no runs', () => {
+    renderDashboard({}, buildScope(ITEMS, false));
+    expect(screen.getByText('No test runs')).toBeTruthy();
   });
 
-  it('notes when every cycle in scope is closed under Open', () => {
-    renderDashboard({}, buildScope([cycle(9, 'bob', null, true)]));
-    expect(screen.getByTestId('dashboard-notice').textContent).toContain(
-      'All 1 cycle here are closed',
-    );
+  it('By owner falls back to the owner id', () => {
+    renderDashboard();
+    expect(screen.getByTestId('owner-row-alice').textContent).toContain('alice');
   });
 
-  it('summariesLoading skeletons Test results and Cycle progress only', () => {
+  it('By owner shows at most 6 rows plus a "+N others" line', () => {
+    const many = Array.from({ length: 9 }, (_, i) => cycle(100 + i, `user${i}`, null));
+    renderDashboard({}, buildScope(many));
+    expect(screen.getAllByTestId(/^owner-row-/)).toHaveLength(6);
+    expect(screen.getByText('+3 others')).toBeTruthy();
+  });
+
+  it('Schedule renders 10 columns and the no-end-date count', () => {
+    renderDashboard();
+    expect(screen.getAllByTestId(/^schedule-col-/)).toHaveLength(10);
+    expect(screen.getByText('1 without end date')).toBeTruthy();
+  });
+
+  it('Schedule shows "No end dates set" when no open cycle has an end date', () => {
+    renderDashboard({}, buildScope([cycle(1, 'alice', null)]));
+    expect(screen.getByText('No end dates set')).toBeTruthy();
+    expect(screen.queryAllByTestId(/^schedule-col-/)).toHaveLength(0);
+  });
+
+  it('summariesLoading skeletons only the Pass rate tile and Execution mix', () => {
     renderDashboard({ summariesLoading: true });
-    expect(screen.getByTestId('card-exec').querySelector('[aria-busy]')).toBeTruthy();
-    expect(screen.getByTestId('card-stages').querySelector('[aria-busy]')).toBeTruthy();
-    expect(screen.getByTestId('card-due').querySelector('[aria-busy]')).toBeNull();
+    expect(screen.getByTestId('tile-skeleton-pass')).toBeTruthy();
+    expect(screen.getByTestId('card-skeleton-exec')).toBeTruthy();
+    expect(screen.getByTestId('tile-open').textContent).toContain('3');
+    expect(screen.queryByTestId('card-skeleton-owners')).toBeNull();
+    expect(screen.queryByTestId('card-skeleton-schedule')).toBeNull();
   });
 
-  it('loading skeletons all three cards inside the same shells', () => {
+  it('loading skeletons every tile and card inside the same shells', () => {
     renderDashboard({ loading: true });
+    expect(screen.getAllByTestId(/^tile-skeleton-/)).toHaveLength(4);
     expect(screen.getAllByRole('region')).toHaveLength(3);
-    for (const id of ['exec', 'stages', 'due']) {
-      expect(screen.getByTestId(`card-${id}`).querySelector('[aria-busy]')).toBeTruthy();
-    }
+    expect(screen.getByTestId('card-skeleton-exec')).toBeTruthy();
+    expect(screen.getByTestId('card-skeleton-owners')).toBeTruthy();
+    expect(screen.getByTestId('card-skeleton-schedule')).toBeTruthy();
   });
 });

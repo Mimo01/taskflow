@@ -20,7 +20,7 @@ import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { AioCycleList } from './AioCycleList';
-import { AioCyclesDashboard, type SubfolderStat } from './AioCyclesDashboard';
+import { AioCyclesDashboard } from './AioCyclesDashboard';
 import { AioCyclesScopeBar } from './AioCyclesScopeBar';
 import { AioFolderPanel, ALL_CYCLES_ID, UNGROUPED_ID } from './AioFolderPanel';
 
@@ -65,15 +65,6 @@ function findAncestorPath(tree: AioFolder[], targetID: number): number[] {
     }
   }
   return [];
-}
-
-function findFolder(tree: AioFolder[], targetID: number): AioFolder | null {
-  for (const node of tree) {
-    if (node.ID === targetID) return node;
-    const found = findFolder(node.children, targetID);
-    if (found) return found;
-  }
-  return null;
 }
 
 /** Folder name path "A / B / C" for the selected folder; null when not found. */
@@ -323,21 +314,6 @@ export default function AioProjectOverviewPage() {
         : (folderPath?.[folderPath.length - 1] ?? '');
   const folderTitle = folderPath ? folderPath.join(' / ') : folderLabel;
 
-  // Direct children of the selection (the roots for All cycles) for the Subfolders card.
-  const subfolders = useMemo((): SubfolderStat[] => {
-    const children =
-      selectedFolderID === ALL_CYCLES_ID
-        ? folderTree
-        : selectedFolderID !== null && selectedFolderID > 0
-          ? (findFolder(folderTree, selectedFolderID)?.children ?? [])
-          : [];
-    return children.map((f) => ({
-      id: f.ID,
-      name: f.name,
-      count: agg[f.ID] ?? 0,
-    }));
-  }, [selectedFolderID, folderTree, agg]);
-
   // ── render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -380,8 +356,8 @@ export default function AioProjectOverviewPage() {
                 scope={scope}
                 loading={showCycleSkeleton || cyclesPending}
                 summariesLoading={cycleSummariesQuery.isLoading}
-                statusFilter={statusFilter}
-                subfolders={subfolders}
+                token={token}
+                jiraBaseUrl={jiraBaseUrl ?? undefined}
               />
             )}
             {/* Section divider (the list's own sub-dividers are lighter). */}

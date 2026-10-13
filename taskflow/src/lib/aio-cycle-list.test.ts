@@ -11,8 +11,6 @@ import {
   aggregateFolderCounts,
   buildStatusLookup,
   cycleProgress,
-  cycleStage,
-  deadlineOf,
   filterFolderTree,
   formatCycleDates,
   formatEffort,
@@ -20,6 +18,7 @@ import {
   progressTooltipRows,
   sortCycles,
   toDateKey,
+  weekStartOf,
 } from './aio-cycle-list';
 import { toLocalDateString } from './local-date';
 
@@ -190,7 +189,12 @@ describe('sortCycles', () => {
   });
 });
 
-describe('addDaysKey', () => {
+describe('weekStartOf / addDaysKey', () => {
+  it('returns the Monday of the week', () => {
+    expect(weekStartOf('2026-10-15')).toBe('2026-10-12');
+    expect(weekStartOf('2026-10-12')).toBe('2026-10-12');
+    expect(weekStartOf('2026-10-18')).toBe('2026-10-12'); // Sunday belongs to the previous Monday
+  });
   it('adds days across month and DST boundaries without drift', () => {
     expect(addDaysKey('2026-10-30', 3)).toBe('2026-11-02');
     expect(addDaysKey('2026-10-24', 2)).toBe('2026-10-26');
@@ -236,11 +240,11 @@ const sum = (ID: number, dist: Record<string, number>, totalTests: number) =>
 const SCOPE_ITEMS = [
   scoped(1, { owner: 'A', end: '2026-10-01' }), // 12 days late
   scoped(2, { owner: 'A', end: TODAY }), // due today, not overdue
-  scoped(3, { owner: 'B', end: '2026-10-19' }), // today + 6: last day of "this week"
-  scoped(4, { owner: 'B', end: '2026-10-20' }), // today + 7: next week
+  scoped(3, { owner: 'B', end: '2026-10-20' }), // today + 7
+  scoped(4, { owner: 'B', end: '2026-10-21' }), // today + 8
   scoped(5, { owner: 'A' }), // no end date
   scoped(6, { owner: 'C', closed: true, end: '2026-09-01' }),
-  scoped(7, { owner: 'C', end: '2026-12-31' }), // later (4+ weeks out)
+  scoped(7, { owner: 'C', end: '2026-12-31' }), // beyond the 8 weeks
 ];
 const SCOPE_SUMMARIES = Object.fromEntries([
   sum(1, { '53': 2, '54': 1 }, 3),
@@ -260,15 +264,23 @@ describe('aggregateCycleScope', () => {
   });
 
   it('treats an end date equal to today as not overdue', () => {
-    expect(open.overdue).toEqual({ count: 1, oldestDaysLate: 12 });
+    expect(open.overdue.count).toBe(1);
+    expect(open.overdue.oldestDaysLate).toBe(12);
+    expect(open.overdue.top).toEqual([{ key: 'P-CY-1', daysLate: 12 }]);
   });
 
-  it('buckets open cycles by due date, ignoring the status filter', () => {
-    expect(open.deadlines).toEqual({ overdue: 1, week: 2, next: 1, month: 0, later: 1, none: 1 });
-    expect(all.deadlines).toEqual(open.deadlines);
+  it('due soon is inclusive of today and today+7 but not today+8', () => {
+    expect(open.dueSoon.count).toBe(2);
+    expect(open.dueSoon.nextDate).toBe(TODAY);
+    expect(open.dueSoon.top.map((d) => d.key)).toEqual(['P-CY-2', 'P-CY-3']);
   });
 
-  it('test results follow the status filter', () => {
+  it('counts open cycles without an end date', () => {
+    expect(open.noEndDate).toBe(1);
+    expect(open.hasEndDates).toBe(true);
+  });
+
+  it('execution mix follows the status filter', () => {
     expect(open.exec.total).toBe(3);
     expect(open.exec.passPct).toBe(67);
     expect(open.exec.counts.fail).toBe(1);
@@ -276,7 +288,8 @@ describe('aggregateCycleScope', () => {
     expect(all.exec.passPct).toBe(86);
     expect(all.exec.executed).toBe(7);
     expect(all.exec.withSummary).toBe(2);
-    expect(open.exec.withSummary).toBe(1);
+    expect(all.exec.cyclesWithStatus.pass).toBe(2);
+    expect(open.exec.cyclesWithStatus.pass).toBe(1);
   });
 
   it('passPct is null with no runs', () => {
@@ -285,48 +298,50 @@ describe('aggregateCycleScope', () => {
     expect(s.exec.total).toBe(0);
   });
 
-  it('counts cycle stages, following the status filter', () => {
-    const s = aggregateCycleScope(
-      [scoped(1, {}), scoped(2, {}), scoped(3, {}), scoped(4, {}), scoped(5, { closed: true })],
-      Object.fromEntries([
-        sum(1, { '51': 3 }, 3), // nothing executed
-        sum(2, { '53': 1, '51': 2 }, 3), // partly executed
-        sum(3, { '53': 2, '54': 1 }, 3), // all executed
-        sum(4, {}, 0), // no tests
-        sum(5, { '53': 1 }, 1), // closed, done
-      ]),
-      STATUSES,
-      TODAY,
-      'open',
-    );
-    expect(s.stages).toEqual({ notStarted: 1, inProgress: 1, done: 1, noTests: 1 });
+  it('ranks owners by count then id and follows the status filter', () => {
+    expect(open.owners.map((o) => [o.ownerId, o.count])).toEqual([
+      ['A', 3],
+      ['B', 2],
+      ['C', 1],
+    ]);
+    expect(all.owners.find((o) => o.ownerId === 'C')).toMatchObject({
+      count: 2,
+      open: 1,
+      closed: 1,
+    });
+    expect(open.owners[0]).toMatchObject({ overdue: 1, pass: 2, runTotal: 3 });
   });
-});
 
-describe('deadlineOf', () => {
-  it('maps days until the end date to a bucket', () => {
-    expect(deadlineOf(null, TODAY)).toBe('none');
-    expect(deadlineOf('2026-10-12', TODAY)).toBe('overdue');
-    expect(deadlineOf(TODAY, TODAY)).toBe('week');
-    expect(deadlineOf('2026-10-19', TODAY)).toBe('week'); // +6
-    expect(deadlineOf('2026-10-20', TODAY)).toBe('next'); // +7
-    expect(deadlineOf('2026-10-26', TODAY)).toBe('next'); // +13
-    expect(deadlineOf('2026-10-27', TODAY)).toBe('month'); // +14
-    expect(deadlineOf('2026-11-09', TODAY)).toBe('month'); // +27
-    expect(deadlineOf('2026-11-10', TODAY)).toBe('later'); // +28
+  it('returns the top 6 owners and counts the rest as others', () => {
+    const many = Array.from({ length: 9 }, (_, i) => scoped(100 + i, { owner: `U${i}` }));
+    const s = aggregateCycleScope(many, {}, STATUSES, TODAY, 'open');
+    expect(s.owners).toHaveLength(6);
+    expect(s.othersCount).toBe(3);
   });
-});
 
-describe('cycleStage', () => {
-  const p = (counts: Partial<Record<'pass' | 'notRun', number>>, total: number) => ({
-    counts: { pass: 0, fail: 0, blocked: 0, inProgress: 0, notRun: 0, ...counts },
-    total,
-    passPct: null,
+  it('skips cycles without an owner', () => {
+    const s = aggregateCycleScope([scoped(1, {})], {}, STATUSES, TODAY, 'open');
+    expect(s.owners).toEqual([]);
   });
-  it('classifies by how many runs were executed', () => {
-    expect(cycleStage(p({}, 0))).toBe('noTests');
-    expect(cycleStage(p({ notRun: 3 }, 3))).toBe('notStarted');
-    expect(cycleStage(p({ pass: 1, notRun: 2 }, 3))).toBe('inProgress');
-    expect(cycleStage(p({ pass: 3 }, 3))).toBe('done');
+
+  it('builds 10 schedule buckets over open cycles only', () => {
+    expect(open.weeks).toHaveLength(10);
+    expect(open.weeks[0]).toMatchObject({ kind: 'overdue', count: 1, keys: ['P-CY-1'] });
+    expect(open.weeks[1]).toMatchObject({
+      kind: 'week',
+      weekStart: '2026-10-12',
+      weekEnd: '2026-10-18',
+      count: 1,
+    });
+    expect(open.weeks[2]).toMatchObject({ weekStart: '2026-10-19', count: 2 });
+    expect(open.weeks[2].keys).toEqual(['P-CY-3', 'P-CY-4']);
+    expect(open.weeks[9]).toMatchObject({ kind: 'later', count: 1, keys: ['P-CY-7'] });
+    // identical regardless of the status filter
+    expect(all.weeks).toEqual(open.weeks);
+  });
+
+  it('hasEndDates is false when no open cycle has an end date', () => {
+    const s = aggregateCycleScope([scoped(1, {})], {}, STATUSES, TODAY, 'open');
+    expect(s.hasEndDates).toBe(false);
   });
 });
