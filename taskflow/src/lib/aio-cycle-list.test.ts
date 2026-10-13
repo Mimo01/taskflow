@@ -312,11 +312,11 @@ describe('aggregateCycleScope', () => {
     expect(open.owners[0]).toMatchObject({ overdue: 1, pass: 2, runTotal: 3 });
   });
 
-  it('returns the top 6 owners and counts the rest as others', () => {
+  it('returns the top 5 owners and counts the rest as others', () => {
     const many = Array.from({ length: 9 }, (_, i) => scoped(100 + i, { owner: `U${i}` }));
     const s = aggregateCycleScope(many, {}, STATUSES, TODAY, 'open');
-    expect(s.owners).toHaveLength(6);
-    expect(s.othersCount).toBe(3);
+    expect(s.owners).toHaveLength(5);
+    expect(s.othersCount).toBe(4);
   });
 
   it('skips cycles without an owner', () => {

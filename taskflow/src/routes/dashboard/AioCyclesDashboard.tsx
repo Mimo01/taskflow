@@ -2,6 +2,7 @@ import { useQueries } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CalendarClock,
+  CalendarDays,
   CheckCircle2,
   FlaskConical,
   ListChecks,
@@ -32,9 +33,9 @@ import { SMALL_TEXT, STAT_CARD_CLASS, StatCardBody } from './issue-detail/EpicSt
 const STATUS_ORDER: StatusKey[] = ['pass', 'fail', 'blocked', 'inProgress', 'notRun'];
 
 /** Fixed body height shared by the three chart cards in every state (data, skeleton, empty). */
-const CHART_BODY_CLASS = 'h-[184px] overflow-hidden';
+const CHART_BODY_CLASS = 'relative h-[144px] overflow-hidden';
 /** Pixel height of the tallest schedule column. */
-const SCHEDULE_BAR_MAX_PX = 84;
+const SCHEDULE_BAR_MAX_PX = 64;
 
 /** Read-only rows: hover shows the tooltip, nothing is clickable. */
 const HOVER_ROW_CLASS = 'rounded-sm hover:bg-accent/40';
@@ -69,7 +70,7 @@ function TileShell({
   return (
     <Card size="sm" className="relative overflow-hidden">
       <Icon className={cn(AMBIENT_CLASS, 'size-12', AMBIENT_TINT[tint])} aria-hidden />
-      <CardContent>{children}</CardContent>
+      <CardContent className="relative">{children}</CardContent>
     </Card>
   );
 }
@@ -165,7 +166,7 @@ function ChartCard({
       data-testid={testId}
       className="relative overflow-hidden"
     >
-      <Icon className={cn(AMBIENT_CLASS, 'size-16', AMBIENT_TINT[tint])} aria-hidden />
+      <Icon className={cn(AMBIENT_CLASS, 'size-12', AMBIENT_TINT[tint])} aria-hidden />
       <CardHeader>
         <CardTitle id={id} role="heading" aria-level={2} className={TITLE_CLASS}>
           {title}
@@ -190,7 +191,7 @@ function ExecutionMixBody({ scope }: { scope: CycleScope }) {
   if (exec.total === 0) return <EmptyBody icon={FlaskConical}>No test runs</EmptyBody>;
   const rows = STATUS_ORDER.filter((k) => exec.counts[k] > 0);
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex h-full flex-col gap-2.5">
       <div className="flex h-2.5 w-full flex-none overflow-hidden rounded-full bg-muted">
         {rows.map((k) => (
           <div
@@ -314,7 +315,7 @@ function ScheduleBody({ scope }: { scope: CycleScope }) {
   return (
     <div className="flex h-full flex-col">
       {scope.hasEndDates ? (
-        <div className="flex h-[148px] flex-none items-end gap-1">
+        <div className="flex h-[116px] flex-none items-end gap-1">
           {scope.weeks.map((b, i) => {
             const height =
               b.count > 0 ? Math.max(2, Math.round((b.count / max) * SCHEDULE_BAR_MAX_PX)) : 0;
@@ -382,11 +383,11 @@ function ScheduleBody({ scope }: { scope: CycleScope }) {
           })}
         </div>
       ) : (
-        <div className="h-[148px] flex-none">
-          <EmptyBody icon={CalendarClock}>No end dates set</EmptyBody>
+        <div className="h-[116px] flex-none">
+          <EmptyBody icon={CalendarDays}>No end dates set</EmptyBody>
         </div>
       )}
-      <div className="flex h-6 flex-none items-center">
+      <div className="flex h-5 flex-none items-center">
         {scope.noEndDate > 0 && (
           <span
             data-testid="schedule-no-dates"
@@ -578,7 +579,7 @@ export function AioCyclesDashboard({
             <OwnersBody scope={scope} names={names} />
           )}
         </ChartCard>
-        <ChartCard title="Schedule" testId="card-schedule" icon={CalendarClock} tint="amber">
+        <ChartCard title="Schedule" testId="card-schedule" icon={CalendarDays} tint="amber">
           {showSkeleton || !scope ? (
             <Skeleton data-testid="card-skeleton-schedule" className="h-full w-full" />
           ) : (

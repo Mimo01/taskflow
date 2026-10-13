@@ -232,7 +232,7 @@ export function sortCycles(items: AioCycleDetailItem[]): AioCycleDetailItem[] {
 
 export const DUE_SOON_DAYS = 7;
 export const SCHEDULE_WEEKS = 8;
-const TOP_OWNERS = 6;
+const TOP_OWNERS = 5;
 
 const DAY_MS = 86_400_000;
 
