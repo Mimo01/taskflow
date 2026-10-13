@@ -122,10 +122,18 @@ describe('AioCyclesDashboard', () => {
     expect(screen.getByText('+4 more owners')).toBeTruthy();
   });
 
-  it('Schedule renders 10 columns and the no-end-date count', () => {
+  it('Schedule renders 8 columns and the no-end-date count', () => {
     renderDashboard();
-    expect(screen.getAllByTestId(/^schedule-col-/)).toHaveLength(10);
+    expect(screen.getAllByTestId(/^schedule-col-/)).toHaveLength(8);
     expect(screen.getByText('1 without end date')).toBeTruthy();
+  });
+
+  it('Schedule labels each column on one line: Late, week start dates, Later', () => {
+    renderDashboard();
+    expect(screen.getByTestId('schedule-col-overdue').textContent).toContain('Late');
+    expect(screen.getByTestId('schedule-col-2026-10-12').textContent).toContain('Oct 12');
+    expect(screen.getByTestId('schedule-col-2026-10-19').textContent).toContain('Oct 19');
+    expect(screen.getByTestId('schedule-col-later').textContent).toContain('Later');
   });
 
   it('Schedule shows "No end dates set" when no open cycle has an end date', () => {

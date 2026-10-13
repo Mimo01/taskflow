@@ -33,14 +33,14 @@ import { SMALL_TEXT, STAT_CARD_CLASS, StatCardBody } from './issue-detail/EpicSt
 const STATUS_ORDER: StatusKey[] = ['pass', 'fail', 'blocked', 'inProgress', 'notRun'];
 
 /** Fixed body height shared by the three chart cards in every state (data, skeleton, empty). */
-const CHART_BODY_CLASS = 'relative h-[144px] overflow-hidden';
+const CHART_BODY_CLASS = 'relative h-[124px] overflow-hidden';
 /** Pixel height of the tallest schedule column. */
 const SCHEDULE_BAR_MAX_PX = 64;
 
 /** Read-only rows: hover shows the tooltip, nothing is clickable. */
 const HOVER_ROW_CLASS = 'rounded-sm hover:bg-accent/40';
 /** One chart row: same height, padding and gap in every card. */
-const ROW_CLASS = 'flex h-6 w-full flex-none items-center gap-2 px-1 text-xs';
+const ROW_CLASS = 'flex h-5 w-full flex-none items-center gap-2 px-1 text-xs';
 /** Right-aligned row count (same column width in every card). */
 const COUNT_CLASS = 'w-8 flex-none text-right font-medium tabular-nums';
 /** Home-dashboard card title, at the lighter weight used on work pages. */
@@ -191,7 +191,7 @@ function ExecutionMixBody({ scope }: { scope: CycleScope }) {
   if (exec.total === 0) return <EmptyBody icon={FlaskConical}>No test runs</EmptyBody>;
   const rows = STATUS_ORDER.filter((k) => exec.counts[k] > 0);
   return (
-    <div className="flex h-full flex-col gap-2.5">
+    <div className="flex h-full flex-col gap-2">
       <div className="flex h-2.5 w-full flex-none overflow-hidden rounded-full bg-muted">
         {rows.map((k) => (
           <div
@@ -264,7 +264,7 @@ function OwnersBody({
               className={cn(ROW_CLASS, HOVER_ROW_CLASS)}
             >
               <span className="flex w-32 min-w-0 flex-none items-center gap-1.5">
-                <CachedAvatar url={avatar} name={name} size={20} />
+                <CachedAvatar url={avatar} name={name} size={16} />
                 <span className="truncate pr-0.5 text-left">{name}</span>
               </span>
               <span className="flex h-2 min-w-0 flex-1" aria-hidden>
@@ -304,10 +304,11 @@ function OwnersBody({
   );
 }
 
+/** One-line axis label: "Late", the week's start date ("Oct 13"), or "Later". */
 function bucketLabel(b: ScheduleBucket): string {
   if (b.kind === 'overdue') return 'Late';
-  if (b.kind === 'later') return '8w+';
-  return b.weekStart ? String(Number(b.weekStart.slice(8))) : '';
+  if (b.kind === 'later') return 'Later';
+  return b.weekStart ? formatDateKey(b.weekStart) : '';
 }
 
 function ScheduleBody({ scope }: { scope: CycleScope }) {
@@ -315,17 +316,10 @@ function ScheduleBody({ scope }: { scope: CycleScope }) {
   return (
     <div className="flex h-full flex-col">
       {scope.hasEndDates ? (
-        <div className="flex h-[116px] flex-none items-end gap-1">
+        <div className="flex h-[104px] flex-none items-end gap-1.5">
           {scope.weeks.map((b, i) => {
             const height =
               b.count > 0 ? Math.max(2, Math.round((b.count / max) * SCHEDULE_BAR_MAX_PX)) : 0;
-            const prev = scope.weeks[i - 1];
-            const monthLabel =
-              b.kind === 'week' &&
-              b.weekStart &&
-              (i === 1 || prev?.weekStart?.slice(5, 7) !== b.weekStart.slice(5, 7))
-                ? formatDateKey(b.weekStart).split(' ')[0]
-                : null;
             const title =
               b.kind === 'overdue'
                 ? 'Overdue'
@@ -363,11 +357,11 @@ function ScheduleBody({ scope }: { scope: CycleScope }) {
                   />
                   <span
                     className={cn(
-                      'flex h-7 flex-col items-center text-[10px] leading-3.5 tabular-nums text-muted-foreground',
+                      'h-4 max-w-full truncate whitespace-nowrap text-[10px] leading-4 tabular-nums',
+                      i === 1 ? 'font-medium text-foreground' : 'text-muted-foreground',
                     )}
                   >
-                    <span>{bucketLabel(b)}</span>
-                    <span>{monthLabel ?? ''}</span>
+                    {bucketLabel(b)}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -383,7 +377,7 @@ function ScheduleBody({ scope }: { scope: CycleScope }) {
           })}
         </div>
       ) : (
-        <div className="h-[116px] flex-none">
+        <div className="h-[104px] flex-none">
           <EmptyBody icon={CalendarDays}>No end dates set</EmptyBody>
         </div>
       )}
