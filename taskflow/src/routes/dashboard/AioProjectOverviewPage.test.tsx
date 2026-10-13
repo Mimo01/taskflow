@@ -681,7 +681,7 @@ describe('AioProjectOverviewPage — dashboard', () => {
     wrap(Page);
     await waitFor(() => expect(screen.getByTestId('tile-overdue').textContent).toContain('1'));
     expect(screen.getByTestId('tile-open').textContent).toContain('2');
-    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 5d late');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 5 days late');
   });
 
   it('is read-only: the cards have no buttons and the list is never filtered by them', async () => {

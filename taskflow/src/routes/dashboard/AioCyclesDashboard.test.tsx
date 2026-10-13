@@ -84,11 +84,11 @@ describe('AioCyclesDashboard', () => {
     expect(screen.getByTestId('tile-open').textContent).toContain('3');
     expect(screen.getByTestId('tile-open').textContent).toContain('of 3 in scope');
     expect(screen.getByTestId('tile-overdue').textContent).toContain('1');
-    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 12d late');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 12 days late');
     expect(screen.getByTestId('tile-due').textContent).toContain('1');
     // pass 3 of 6 total runs
     expect(screen.getByTestId('tile-pass').textContent).toContain('50%');
-    expect(screen.getByTestId('tile-pass').textContent).toContain('4/6 run');
+    expect(screen.getByTestId('tile-pass').textContent).toContain('4/6 executed');
   });
 
   it('is read-only: no buttons anywhere', () => {
@@ -119,7 +119,7 @@ describe('AioCyclesDashboard', () => {
     const many = Array.from({ length: 9 }, (_, i) => cycle(100 + i, `user${i}`, null));
     renderDashboard({}, buildScope(many));
     expect(screen.getAllByTestId(/^owner-row-/)).toHaveLength(6);
-    expect(screen.getByText('+3 others')).toBeTruthy();
+    expect(screen.getByText('+3 more owners')).toBeTruthy();
   });
 
   it('Schedule renders 10 columns and the no-end-date count', () => {
