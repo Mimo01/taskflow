@@ -620,7 +620,7 @@ export function DefectsList({
         </p>
       ) : (
         <div>
-          <div className="flex w-full items-center border-b bg-muted/10 pr-2">
+          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))] pr-2">
             <SortableHeader
               sortKey="key"
               label="Key"

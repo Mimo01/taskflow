@@ -1,6 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -61,7 +59,6 @@ export function RunSidebar({
   testCase,
   defects,
   onOpenDefect,
-  cycleHref,
   jiraBaseUrl,
   token,
 }: {
@@ -70,7 +67,6 @@ export function RunSidebar({
   testCase: AioTestCaseDetail | undefined;
   defects: SidebarDefect[];
   onOpenDefect: (key: string) => void;
-  cycleHref: string;
   jiraBaseUrl: string | null | undefined;
   token: string | null | undefined;
 }) {
@@ -162,15 +158,6 @@ export function RunSidebar({
           ))}
         </Group>
       )}
-
-      <NavLink
-        to={cycleHref}
-        replace
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-3.5" aria-hidden />
-        Back to cycle
-      </NavLink>
 
       {defects.length > 0 && (
         <section className="space-y-2" data-testid="aio-run-defects-section">

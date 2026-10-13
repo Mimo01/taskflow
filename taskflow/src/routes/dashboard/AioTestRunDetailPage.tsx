@@ -1,7 +1,7 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronLeft, ChevronRight, FileQuestion, FlaskConical } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, FileQuestion } from 'lucide-react';
 import { useEffect } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -92,6 +92,8 @@ export default function AioTestRunDetailPage() {
   });
   const testCase = testCaseQuery.data ?? undefined;
 
+  const cycleHref = `/aio-cycle/${projectKey}/${cycleKey}`;
+
   const goToRun = (target: AioTestRun | undefined) => {
     if (!target) return;
     // replace: stepping through runs must not grow the history or the breadcrumb trail
@@ -181,7 +183,20 @@ export default function AioTestRunDetailPage() {
         </div>
       )}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border flex-shrink-0 min-w-0">
-        <FlaskConical className="size-4 flex-none text-muted-foreground" />
+        <NavLink
+          to={cycleHref}
+          replace
+          onClick={() => {
+            // Returning to the cycle consumes its breadcrumb entry instead of stacking a new one.
+            if (trail[trail.length - 1]?.path === cycleHref) breadcrumbPop();
+          }}
+          aria-label="Back to cycle"
+          title="Back to cycle"
+          className="inline-flex h-7 flex-none items-center gap-1 rounded-md border border-border px-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden />
+          {cycleKey}
+        </NavLink>
         <h1
           className="min-w-0 flex-1 truncate text-base font-semibold"
           data-testid="aio-run-detail-title"
@@ -321,7 +336,6 @@ export default function AioTestRunDetailPage() {
                   isLoading: issueQueries[i]?.isLoading ?? false,
                 }))}
                 onOpenDefect={openDefect}
-                cycleHref={`/aio-cycle/${projectKey}/${cycleKey}`}
                 jiraBaseUrl={jiraBaseUrl}
                 token={token}
               />
