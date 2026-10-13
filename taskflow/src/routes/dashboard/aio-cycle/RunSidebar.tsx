@@ -2,16 +2,15 @@ import type { ReactNode } from 'react';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
 import { relativeTime } from '@/lib/relative-time';
 import { aioRunStatusPillClass, STATUS_PILL_LAYOUT_CLASS, tonePillClass } from '@/lib/statusStyles';
-import { cn } from '@/lib/utils';
 import type { AioTestCaseDetail, AioTestRun } from '@/services/aio';
-import { RUN_PANEL_CLASS, SectionHeading } from './RunSection';
 import { UserChip } from './UserChip';
 
+/** Label/value row — same geometry as the issue/release detail MetaRow (w-28 muted label). */
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <dt className="flex-none text-xs text-muted-foreground">{label}</dt>
-      <dd className="flex min-w-0 items-center justify-end text-right">{children}</dd>
+    <div className="flex items-center gap-2 text-sm">
+      <dt className="w-28 shrink-0 text-xs text-muted-foreground">{label}</dt>
+      <dd className="flex min-w-0 flex-1 items-center">{children}</dd>
     </div>
   );
 }
@@ -26,9 +25,11 @@ function Group({
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-2.5 px-4 py-3" data-testid={testId}>
-      <SectionHeading title={title} />
-      <dl className="space-y-2">{children}</dl>
+    <section data-testid={testId}>
+      <h3 className="mb-2 text-sm font-medium">{title}</h3>
+      <dl className="space-y-2 density-compact:space-y-1 density-comfortable:space-y-3">
+        {children}
+      </dl>
     </section>
   );
 }
@@ -57,7 +58,7 @@ export function RunSidebar({
 
   return (
     <aside
-      className={cn(RUN_PANEL_CLASS, 'min-w-0 self-start divide-y divide-border')}
+      className="min-w-0 space-y-6 density-compact:space-y-4 density-comfortable:space-y-8"
       data-testid="aio-run-sidebar"
     >
       <Group title="Run">

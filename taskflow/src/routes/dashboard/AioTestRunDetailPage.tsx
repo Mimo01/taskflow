@@ -289,9 +289,10 @@ export default function AioTestRunDetailPage() {
             />
           </div>
         ) : detailQuery.data ? (
-          <div className="@container px-6 py-4">
-            <div className="grid gap-6 @[900px]:grid-cols-[minmax(0,1fr)_280px]">
-              <div className="min-w-0 space-y-6">
+          <div className="@container min-h-full">
+            {/* Same two-column shape as the issue detail page: content + border-l sidebar. */}
+            <div className="flex min-h-full flex-col @[900px]:flex-row">
+              <div className="min-w-0 flex-1 space-y-6 p-6 density-compact:space-y-4 density-comfortable:space-y-8">
                 {description && (
                   <RunSection title="Description">
                     <div data-testid="aio-run-testcase-description" className="min-w-0 text-sm">
@@ -319,7 +320,7 @@ export default function AioTestRunDetailPage() {
                 ) : (
                   <RunSection
                     title="Steps"
-                    bare
+                    count={steps.length}
                     meta={
                       <div className="flex items-center gap-2" data-testid="aio-run-step-summary">
                         <div className="flex h-1.5 w-24 gap-px overflow-hidden rounded-full bg-muted">
@@ -355,13 +356,15 @@ export default function AioTestRunDetailPage() {
                 )}
               </div>
 
-              <RunSidebar
-                run={detailQuery.data.run}
-                listRun={listRun}
-                testCase={testCase}
-                jiraBaseUrl={jiraBaseUrl}
-                token={token}
-              />
+              <div className="border-t p-4 @[900px]:w-80 @[900px]:flex-none @[900px]:border-t-0 @[900px]:border-l">
+                <RunSidebar
+                  run={detailQuery.data.run}
+                  listRun={listRun}
+                  testCase={testCase}
+                  jiraBaseUrl={jiraBaseUrl}
+                  token={token}
+                />
+              </div>
             </div>
           </div>
         ) : null}

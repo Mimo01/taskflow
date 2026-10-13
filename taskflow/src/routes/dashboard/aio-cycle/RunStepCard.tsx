@@ -22,11 +22,11 @@ const GRID =
 
 export function RunStepList({ children }: { children: ReactNode }) {
   return (
-    <div className="@container" data-testid="aio-run-detail-step-table">
+    <div className="@container border-t" data-testid="aio-run-detail-step-table">
       <div
         aria-hidden
         className={cn(
-          'hidden gap-x-4 border-b bg-muted/30 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground @[720px]:grid',
+          'hidden gap-x-4 border-b bg-muted/10 px-3 py-2 text-xs font-medium text-muted-foreground density-compact:py-1 density-comfortable:py-3 @[720px]:grid',
           GRID,
         )}
       >
@@ -36,7 +36,7 @@ export function RunStepList({ children }: { children: ReactNode }) {
         <span>Actual</span>
         <span>Status</span>
       </div>
-      <div className="divide-y divide-border">{children}</div>
+      <div className="divide-y divide-border border-b">{children}</div>
     </div>
   );
 }
@@ -72,9 +72,9 @@ function StepDefect({
       {issue?.fields.issuetype?.name ? (
         <IssueTypeIcon typeName={issue.fields.issuetype.name} className="size-3.5 shrink-0" />
       ) : null}
-      <span className="flex-none font-mono">{label}</span>
+      <span className="flex-none font-mono text-muted-foreground">{label}</span>
       {summary ? (
-        <span className="min-w-0 flex-1 truncate text-left text-foreground/80">{summary}</span>
+        <span className="min-w-0 flex-1 truncate text-foreground">{summary}</span>
       ) : isLoading ? (
         <span className="h-3 w-32 flex-none rounded bg-muted" />
       ) : null}
@@ -100,24 +100,23 @@ function StepDefect({
       )}
     </>
   );
-  const chipClass =
-    'flex h-7 w-full min-w-0 items-center gap-2 rounded-md bg-background pl-2 pr-1.5 text-xs ring-1 ring-border';
+  const chipClass = 'flex w-full min-w-0 items-center gap-2 rounded px-1.5 py-1 text-xs';
   if (!issue || !onOpenDefect) {
     return (
-      <li className={cn(chipClass, 'max-w-md text-muted-foreground', isLoading && 'animate-pulse')}>
+      <li className={cn(chipClass, 'text-muted-foreground', isLoading && 'animate-pulse')}>
         {chip}
       </li>
     );
   }
   return (
-    <li className="min-w-0 max-w-md">
+    <li className="min-w-0">
       <button
         type="button"
         aria-label={`Open defect ${issue.key}`}
         title={[issue.key, statusName, summary].filter(Boolean).join(' · ')}
         className={cn(
           chipClass,
-          'cursor-pointer transition-colors hover:bg-muted/60 hover:ring-foreground/20 focus-visible:outline-2 focus-visible:outline-ring',
+          'cursor-pointer text-left hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
         )}
         onClick={() => onOpenDefect(issue.key)}
       >
@@ -130,9 +129,7 @@ function StepDefect({
 function Cell({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0 text-sm">
-      <div className="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground @[720px]:hidden">
-        {label}
-      </div>
+      <div className="mb-0.5 text-xs text-muted-foreground @[720px]:hidden">{label}</div>
       {children}
     </div>
   );
@@ -163,7 +160,7 @@ export function RunStepCard({
       data-testid={`run-step-${index}`}
       data-highlight={highlight ? 'true' : undefined}
       className={cn(
-        'relative grid items-start gap-x-4 gap-y-1.5 px-4 py-2.5',
+        'relative grid items-start gap-x-4 gap-y-1.5 px-3 py-2.5 density-compact:py-1.5 density-comfortable:py-3.5',
         GRID,
         key === 'fail' && 'bg-red-500/[0.04]',
         key === 'blocked' && 'bg-orange-500/[0.05]',
@@ -209,7 +206,7 @@ export function RunStepCard({
 
       {defects.length > 0 && (
         <ul
-          className="col-start-2 col-end-[-1] grid grid-cols-[repeat(auto-fill,minmax(min(16rem,100%),28rem))] gap-1.5"
+          className="col-start-2 col-end-[-1] -mx-1.5 space-y-0.5"
           data-testid={`run-step-defects-${index}`}
         >
           {defects.map((id) => (
