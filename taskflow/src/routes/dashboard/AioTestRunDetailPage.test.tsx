@@ -370,8 +370,8 @@ describe('AioTestRunDetailPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('run-step-1')).toBeTruthy();
       });
-      expect(screen.getByTestId('run-step-1').className).toContain('ring-red-500/40');
-      expect(screen.getByTestId('run-step-0').className).not.toContain('ring-red-500/40');
+      expect(screen.getByTestId('run-step-1').getAttribute('data-highlight')).toBe('true');
+      expect(screen.getByTestId('run-step-0').getAttribute('data-highlight')).toBeNull();
     });
 
     it('shows Actual only when present and no Test data label without testData', async () => {
@@ -415,6 +415,35 @@ describe('AioTestRunDetailPage', () => {
       renderAt(RUN_PATH);
       await waitFor(() => {
         expect(screen.getByTestId('run-step-defects-0').textContent).toContain('QAT-186227');
+      });
+    });
+
+    it('per-step defects show summary + status and open the issue on click', async () => {
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
+        key: 'QAT-186227',
+        fields: {
+          summary: 'Checkout crashes',
+          status: { name: 'Open', statusCategory: { key: 'new' } },
+          issuetype: { name: 'Bug' },
+        },
+      } as never);
+      await setup({
+        detail: runDetail({}, [
+          { id: 1, step: 'Do it', status: 'FAIL', actualResult: 'bad', jiraDefectIDs: [186227] },
+        ]),
+      });
+      renderAt(RUN_PATH);
+      const stepDefects = await screen.findByTestId('run-step-defects-0');
+      await waitFor(() => {
+        expect(stepDefects.textContent).toContain('Checkout crashes');
+      });
+      expect(stepDefects.textContent).toContain('Open');
+      await userEvent.click(
+        within(stepDefects).getByRole('button', { name: 'Open defect QAT-186227' }),
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('probe-path').textContent).toBe('/issue/QAT-186227');
       });
     });
   });
