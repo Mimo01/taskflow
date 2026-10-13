@@ -11,6 +11,7 @@ import {
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
   fetchAioProjectConfig,
+  fetchAioUngroupedCycles,
 } from '@/services/aio';
 import type { AioCycleSummaryItem, AioFolder } from '@/services/aio/types';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
@@ -27,6 +28,10 @@ function searchSubtree(nodes: AioFolder[], targetID: number): boolean {
     if (searchSubtree(node.children, targetID)) return true;
   }
   return false;
+}
+
+function collectAllFolderIDs(tree: AioFolder[]): number[] {
+  return tree.flatMap((n) => [n.ID, ...collectAllFolderIDs(n.children)]);
 }
 
 function collectSubtreeIDs(tree: AioFolder[], rootID: number): number[] {
@@ -133,7 +138,7 @@ export default function AioProjectOverviewPage() {
   // otherwise the selected folder + all its descendants.
   const activeFolderIds = useMemo(() => {
     if (selectedFolderID === null || selectedFolderID === ALL_CYCLES_ID) return [];
-    if (selectedFolderID === UNGROUPED_ID) return [UNGROUPED_ID];
+    if (selectedFolderID === UNGROUPED_ID) return [];
     return collectSubtreeIDs(foldersQuery.data ?? [], selectedFolderID);
   }, [selectedFolderID, foldersQuery.data]);
 
@@ -141,8 +146,24 @@ export default function AioProjectOverviewPage() {
   const cyclesWithDetailQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
     queryFn: () =>
-      fetchAioCyclesWithDetail(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0, activeFolderIds),
-    enabled: aioGate && selectedFolderID !== null,
+      selectedFolderID === UNGROUPED_ID
+        ? fetchAioUngroupedCycles(
+            jiraBaseUrl ?? '',
+            token ?? '',
+            jiraProjectId ?? 0,
+            collectAllFolderIDs(foldersQuery.data ?? []),
+          )
+        : fetchAioCyclesWithDetail(
+            jiraBaseUrl ?? '',
+            token ?? '',
+            jiraProjectId ?? 0,
+            activeFolderIds,
+          ),
+    // Ungrouped is computed against the full folder tree, so it waits for it.
+    enabled:
+      aioGate &&
+      selectedFolderID !== null &&
+      (selectedFolderID !== UNGROUPED_ID || foldersQuery.isSuccess),
   });
 
   // Summaries — fired when we have cycle IDs

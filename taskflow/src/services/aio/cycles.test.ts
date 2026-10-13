@@ -11,6 +11,7 @@ import {
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
   fetchAioProjectConfig,
+  fetchAioUngroupedCycles,
 } from './cycles';
 
 const mockedApiFetch = vi.mocked(apiFetch);
@@ -463,5 +464,60 @@ describe('fetchAioCycleTestCasesWithRuns — TESTCASE_STATUS_MAP (CLEAN-06)', ()
 
   it('falls back to NOT_EXECUTED for an unmapped/absent status id', async () => {
     expect(await runWithStatusId(undefined)).toBe('NOT_EXECUTED');
+  });
+});
+
+describe('fetchAioUngroupedCycles', () => {
+  const item = (ID: number) => ({
+    ID,
+    jiraProjectID: PROJECT_ID,
+    detail: {
+      key: `PROJ-CY-${ID}`,
+      title: `C${ID}`,
+      ownedByID: 'u',
+      folder: null,
+      isClosed: false,
+      startDate: null,
+      endDate: null,
+    },
+    summary: null,
+  });
+  const page = (ids: number[]) =>
+    ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: ids.map(item),
+        allIDs: ids,
+        startAt: 0,
+        maxResults: 500,
+        isLast: true,
+      }),
+    }) as unknown as Response;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns cycles not in any folder (never sends folderID -1)', async () => {
+    mockedApiFetch.mockImplementation(async (...args: unknown[]) => {
+      const body = JSON.parse((args[2] as { body: string }).body);
+      return body.folderID ? page([1, 2]) : page([1, 2, 3, 4]);
+    });
+    const result = await fetchAioUngroupedCycles(BASE, TOKEN, PROJECT_ID, [101, 102]);
+    expect(result.items.map((c) => c.ID)).toEqual([3, 4]);
+    expect(result.allIDs).toEqual([3, 4]);
+    const bodies = mockedApiFetch.mock.calls.map((c) =>
+      JSON.parse((c[2] as { body: string }).body),
+    );
+    expect(bodies.some((b) => b.folderID?.list?.includes(-1))).toBe(false);
+    expect(bodies.find((b) => b.folderID)?.folderID.list).toEqual([101, 102]);
+  });
+
+  it('returns every cycle when the project has no folders', async () => {
+    mockedApiFetch.mockResolvedValue(page([1, 2]));
+    const result = await fetchAioUngroupedCycles(BASE, TOKEN, PROJECT_ID, []);
+    expect(result.items.map((c) => c.ID)).toEqual([1, 2]);
+    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
   });
 });
