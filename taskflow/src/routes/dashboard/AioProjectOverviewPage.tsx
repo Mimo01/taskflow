@@ -207,9 +207,12 @@ export default function AioProjectOverviewPage() {
   const showFolderSkeleton = useDelayedLoading(
     foldersQuery.isLoading || jiraProjectIdQuery.isLoading,
   );
-  const showCycleSkeleton = useDelayedLoading(
-    cyclesWithDetailQuery.isLoading || selectedFolderID === null,
-  );
+  // isPending (no data yet) rather than isLoading: a disabled query (credentials or
+  // project id still resolving) is not "loading" but must not read as an empty folder.
+  const cyclesPending =
+    selectedFolderID === null ||
+    (cyclesWithDetailQuery.isPending && !cyclesWithDetailQuery.isError);
+  const showCycleSkeleton = useDelayedLoading(cyclesPending);
 
   const toggleFolder = (id: number) => {
     setExpandedIDs((prev) => {
@@ -281,6 +284,7 @@ export default function AioProjectOverviewPage() {
           folderTitle={folderTitle}
           items={cyclesWithDetailQuery.data?.items ?? []}
           isLoading={showCycleSkeleton}
+          isPending={cyclesPending}
           error={cyclesWithDetailQuery.isError ? cyclesWithDetailQuery.error : null}
           onRetry={() =>
             queryClient.invalidateQueries({

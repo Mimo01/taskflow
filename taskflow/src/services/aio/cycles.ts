@@ -217,15 +217,6 @@ export async function fetchAioFolderCycleCounts(
   throw new Error(`AIO request failed with status ${response.status}`);
 }
 
-/**
- * Fetch paged cycle list with detail for a project.
- * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/paged?c_pId={id}&t={ts}
- * Live UAT: folderID param causes 500; t (timestamp) is required — omitting it causes 405.
- * Real AIO web UI always sends c_pId and t together.
- * @returns AioCycleDetailPagedResponse; empty paged envelope on 404
- * @throws ApiError 401 on auth failure
- * @throws Error on network failure
- */
 const PAGED_COLUMNS = [
   'key',
   'title',
@@ -244,6 +235,17 @@ const PAGED_SORTING = {
   customFieldType: null,
 };
 
+/**
+ * Fetch paged cycle list with detail for a project.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/paged?c_pId={id}&t={ts}
+ * Live UAT: a folderID *query* param causes 500 — the folder filter goes in the POST body
+ * (folderID: { comparisonType: 'IN', list }). t (timestamp) is required — omitting it causes 405.
+ * Pages through every result (loops until isLast), so large projects are not capped at 500.
+ * Real AIO web UI always sends c_pId and t together.
+ * @returns AioCycleDetailPagedResponse; empty paged envelope on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
 export async function fetchAioCyclesWithDetail(
   baseUrl: string,
   token: string,

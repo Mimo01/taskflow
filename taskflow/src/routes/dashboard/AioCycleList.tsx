@@ -191,6 +191,7 @@ export function AioCycleList({
   folderTitle,
   items,
   isLoading,
+  isPending,
   error,
   onRetry,
   summaryByID,
@@ -203,7 +204,10 @@ export function AioCycleList({
   folderLabel: string;
   folderTitle: string;
   items: AioCycleDetailItem[];
+  /** Delayed skeleton flag — true only after the 200ms grace period. */
   isLoading: boolean;
+  /** No data yet; renders nothing during the grace period instead of the empty state. */
+  isPending: boolean;
   error: unknown;
   onRetry: () => void;
   summaryByID: Record<number, AioCycleSummaryItem>;
@@ -242,6 +246,8 @@ export function AioCycleList({
   let body: ReactNode;
   if (isLoading) {
     body = <SkeletonRows />;
+  } else if (isPending && !error) {
+    body = null;
   } else if (error) {
     body = (
       <div className="p-4">

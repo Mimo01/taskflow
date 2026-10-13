@@ -109,7 +109,10 @@ export function cycleProgress(
     const key = (Number.isNaN(id) ? undefined : byId.get(id)) ?? byName.get(k.toLowerCase());
     counts[key ?? 'notRun'] += n;
   }
-  const total = summary.totalTests;
+  // Guard against totalTests disagreeing with the distribution so segment widths
+  // and percentages never exceed 100%.
+  const distributed = Object.values(counts).reduce((a, b) => a + b, 0);
+  const total = Math.max(summary.totalTests ?? 0, distributed);
   return {
     counts,
     total,
@@ -184,8 +187,12 @@ export function filterFolderTree(
     const out: AioFolder[] = [];
     for (const n of nodes) {
       const kids = walk(n.children);
-      if (n.name.toLowerCase().includes(q) || kids.length > 0) {
+      if (n.name.toLowerCase().includes(q)) {
+        // A matching folder keeps its whole subtree so it can still be expanded.
         if (kids.length > 0) expandIds.add(n.ID);
+        out.push(n);
+      } else if (kids.length > 0) {
+        expandIds.add(n.ID);
         out.push({ ...n, children: kids });
       }
     }
