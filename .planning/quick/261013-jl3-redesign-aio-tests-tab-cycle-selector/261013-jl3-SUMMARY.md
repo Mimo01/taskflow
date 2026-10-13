@@ -70,3 +70,13 @@ None.
 
 ## Self-Check: PASSED
 Created files exist; commits 9c551659 and ad7ca188 exist.
+
+## UAT (2026-10-13) — approved by user
+
+Fixes applied after review/UAT:
+- 04f7e2cd — review findings: no empty-state flash during skeleton grace period, folder filter keeps matching folder's subtree, progress clamped to 100%, JSDoc corrected
+- 41212278 — keys clickable (key cell under the row overlay), owner column spacing, Ungrouped computed as all cycles minus cycles in any folder (paged endpoint returns nothing for folderID -1)
+- 93633849 — Owner column widened to 240px
+- 64e568f4 — list virtualized above 100 rows (@tanstack/react-virtual); "All cycles" (~1,300) no longer struggles
+
+Still unconfirmed live: effort unit (assumed seconds), date format, whether folder counts already include descendants.
