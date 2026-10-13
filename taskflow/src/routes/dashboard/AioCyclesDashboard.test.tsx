@@ -115,11 +115,11 @@ describe('AioCyclesDashboard', () => {
     expect(screen.getByTestId('owner-row-alice').textContent).toContain('alice');
   });
 
-  it('By owner shows at most 6 rows plus a "+N others" line', () => {
+  it('By owner shows at most 5 rows plus a "+N others" line', () => {
     const many = Array.from({ length: 9 }, (_, i) => cycle(100 + i, `user${i}`, null));
     renderDashboard({}, buildScope(many));
-    expect(screen.getAllByTestId(/^owner-row-/)).toHaveLength(6);
-    expect(screen.getByText('+3 more owners')).toBeTruthy();
+    expect(screen.getAllByTestId(/^owner-row-/)).toHaveLength(5);
+    expect(screen.getByText('+4 more owners')).toBeTruthy();
   });
 
   it('Schedule renders 10 columns and the no-end-date count', () => {
