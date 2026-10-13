@@ -1,3 +1,7 @@
+import { FolderTree } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 
@@ -11,6 +15,7 @@ export function AioCyclesScopeBar({
   openCount,
   closedCount,
   loading,
+  subfolders = [],
 }: {
   folderLabel: string;
   folderTitle: string;
@@ -18,6 +23,8 @@ export function AioCyclesScopeBar({
   closedCount: number;
   /** Cycles not loaded yet: hide the counts rather than show 0 · 0. */
   loading: boolean;
+  /** Names of the selected folder's direct subfolders; non-empty marks a parent folder. */
+  subfolders?: string[];
 }) {
   const statusFilter = useAioCyclesSelectionStore((s) => s.statusFilter);
   const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
@@ -27,6 +34,32 @@ export function AioCyclesScopeBar({
       <h2 className="truncate text-base font-semibold" title={folderTitle}>
         {folderLabel}
       </h2>
+      {subfolders.length > 0 && (
+        <Tooltip>
+          <TooltipTrigger
+            delay={0}
+            render={<Badge tone="blue" />}
+            data-testid="parent-folder-badge"
+            className="cursor-default"
+          >
+            <FolderTree aria-hidden />
+            Parent folder · {subfolders.length}{' '}
+            {subfolders.length === 1 ? 'subfolder' : 'subfolders'}
+          </TooltipTrigger>
+          <TooltipContent>
+            <TooltipBody
+              title="Includes every cycle in"
+              note={subfolders.length > 4 ? `+${subfolders.length - 4} more` : undefined}
+            >
+              {subfolders.slice(0, 4).map((name) => (
+                <div key={name} className="truncate">
+                  {name}
+                </div>
+              ))}
+            </TooltipBody>
+          </TooltipContent>
+        </Tooltip>
+      )}
       {!loading && (
         <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
           {openCount} open · {closedCount} closed

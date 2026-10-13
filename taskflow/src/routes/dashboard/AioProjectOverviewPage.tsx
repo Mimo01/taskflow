@@ -67,6 +67,15 @@ function findAncestorPath(tree: AioFolder[], targetID: number): number[] {
   return [];
 }
 
+function findFolder(tree: AioFolder[], targetID: number): AioFolder | null {
+  for (const node of tree) {
+    if (node.ID === targetID) return node;
+    const found = findFolder(node.children, targetID);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** Folder name path "A / B / C" for the selected folder; null when not found. */
 function folderPathNames(tree: AioFolder[], targetID: number): string[] | null {
   for (const node of tree) {
@@ -313,6 +322,11 @@ export default function AioProjectOverviewPage() {
         ? 'Ungrouped'
         : (folderPath?.[folderPath.length - 1] ?? '');
   const folderTitle = folderPath ? folderPath.join(' / ') : folderLabel;
+  // A real folder with children is a parent: its scope spans every subfolder.
+  const subfolderNames =
+    selectedFolderID !== null && selectedFolderID > 0
+      ? (findFolder(folderTree, selectedFolderID)?.children.map((f) => f.name) ?? [])
+      : [];
 
   // ── render ─────────────────────────────────────────────────────────────────
 
@@ -350,6 +364,7 @@ export default function AioProjectOverviewPage() {
               openCount={scope.openCount}
               closedCount={scope.closedCount}
               loading={cyclesPending}
+              subfolders={subfolderNames}
             />
             {!cyclesWithDetailQuery.isError && (
               <AioCyclesDashboard
