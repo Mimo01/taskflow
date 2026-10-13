@@ -50,3 +50,30 @@ _Note: per-task executor note files were lost during assembly (orchestrator shel
 - RunSidebar: run status, assignee, executed by (if differs), last updated, created, runs ×N, test case meta (type, neutral status pill, folder, owner, version, custom fields), back-to-cycle link, compact defects.
 - Tests rewritten (24), fixtures mirror probe shapes. Full suite 3343 passed. Grep for objective|isArchived|isAutomated|precondition in UI files: none.
 - Kept defect-click breadcrumb label `Run {runId}` (existing test depends on it).
+
+## UAT polish rounds (2026-10-13) — APPROVED by user
+
+Inline fixes after execution, each its own commit (all through the full pre-commit suite):
+
+| Commit | Change |
+|---|---|
+| ce553061 | Cycle page: single-page scroll (header/tiles scroll away), sticky tab bar + column headers; tighter header/tiles |
+| 04ced79a | Run detail: back-to-cycle lives in the always-rendered breadcrumb (no duplicate header link); breadcrumb consumes the cycle entry (WR-01) |
+| 66768ffb | Steps as one compact list; per-step defects clickable |
+| dd0d4528 | Run + step defects consolidated into one main-column Defects section (assignee, linked steps) |
+| 84f9fb9a / 85eba620 | Consistency pass; step defects as one-line strips with summary/priority/status/assignee |
+| 587fccc6 → e28de22f | Dropped custom card panels for app detail-page conventions (h3 headings, border-l sidebar, MetaRow geometry), then middle ground: app's rounded-lg border frames + bg-muted/40 strips |
+| 529172ce | Resizable sidebar (useResizable, persisted `settings.aioRunDetailPanelWidth`, default 320) |
+| b8b0be86 | Main column and sidebar scroll independently (sidebar stays put) |
+| bc7c1507 / e57d638d | Defects as a framed table (Key/Summary/Steps/Priority/Assignee/Status); roomier spacing |
+| 17b1bb33 | Polish: '—' for missing Expected, aligned step number, wider Priority column, focus rings |
+| 1a26b0e1 | Coloured AIO test case status pills (`aioTestCaseStatusTone`) |
+| d796b282 → 56934ec2 | Tried full-width step layout — reverted at user request |
+| 2408ce84, b893b109 → 27ef80ad | Tried merging # and Status (badge, then icon) — reverted; separate columns kept |
+
+Final approved state: commit 27ef80ad.
+
+## Open follow-ups (from 261013-mnc-REVIEW.md, not fixed)
+- CR-01 cycle page blank when only runsQuery errors (pre-existing gating).
+- CR-02 status-map init failure cached as success for 1h (pre-existing, 6efe14b7).
+- WR-02..WR-07 (arrow-key modifiers, project-id error state, defect link on unresolved rows, vanished In-progress chip, unknown status-ID fallback / N/A→PASS decision, epoch date guards).
