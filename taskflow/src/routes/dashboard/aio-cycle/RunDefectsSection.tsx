@@ -27,8 +27,8 @@ export function RunDefectsSection({
 }) {
   if (defects.length === 0) return null;
   return (
-    <RunSection title="Defects" meta={defects.length} testId="aio-run-defects-section" bare>
-      <ul className="divide-y divide-border">
+    <RunSection title="Defects" count={defects.length} testId="aio-run-defects-section">
+      <ul className="-mx-2 space-y-1 density-compact:space-y-0.5 density-comfortable:space-y-2">
         {defects.map((d) => {
           const key = d.issue?.key ?? d.id;
           const clickable = !d.isLoading && !!d.issue;
@@ -37,13 +37,13 @@ export function RunDefectsSection({
             <li
               key={d.id}
               data-testid={`aio-run-defect-${d.id}`}
-              className="relative flex min-w-0 items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-muted/40"
+              className="relative flex min-w-0 items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent density-compact:py-1 density-comfortable:py-2.5"
             >
               {clickable && (
                 <button
                   type="button"
                   aria-label={`Open defect ${key}`}
-                  className="absolute inset-0 cursor-pointer"
+                  className="absolute inset-0 cursor-pointer rounded"
                   onClick={() => onOpenDefect(key)}
                 />
               )}
@@ -51,7 +51,7 @@ export function RunDefectsSection({
                 {d.issue?.fields.issuetype?.name ? (
                   <IssueTypeIcon typeName={d.issue.fields.issuetype.name} />
                 ) : null}
-                <span className="flex-none font-mono text-xs">{key}</span>
+                <span className="flex-none font-mono text-xs text-muted-foreground">{key}</span>
                 {d.isLoading ? (
                   <Skeleton className="h-4 w-48" />
                 ) : (
@@ -72,7 +72,7 @@ export function RunDefectsSection({
                     <CachedAvatar
                       url={assignee.avatarUrls?.['48x48']}
                       name={assignee.displayName}
-                      size={18}
+                      size={20}
                     />
                     <span className="truncate">{assignee.displayName}</span>
                   </>

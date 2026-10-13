@@ -1,24 +1,27 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-/** Shared surface for every block on the run detail page (description, defects, steps, sidebar). */
-export const RUN_PANEL_CLASS = 'overflow-hidden rounded-xl ring-1 ring-border bg-background';
-
-/** One heading style for all run-page sections: small caps label + optional trailing meta. */
+/**
+ * Section heading in the app's detail-page convention (IssueDetailContent / release detail):
+ * `text-sm font-medium text-muted-foreground`, optional "(n)" count, optional trailing meta.
+ */
 export function SectionHeading({
   title,
+  count,
   meta,
   className,
 }: {
   title: string;
+  count?: number;
   meta?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn('flex min-w-0 items-center justify-between gap-3', className)}>
-      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className={cn('mb-2 flex min-w-0 items-center justify-between gap-3', className)}>
+      <h3 className="text-sm font-medium text-muted-foreground">
         {title}
-      </h2>
+        {count != null ? ` (${count})` : ''}
+      </h3>
       {meta != null && (
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground tabular-nums">
           {meta}
@@ -28,24 +31,24 @@ export function SectionHeading({
   );
 }
 
-/** Heading + panel. `bare` skips the panel padding for lists that draw their own rows. */
+/** Plain section — heading + content, no surrounding panel (matches the issue detail page). */
 export function RunSection({
   title,
+  count,
   meta,
   children,
   testId,
-  bare = false,
 }: {
   title: string;
+  count?: number;
   meta?: ReactNode;
   children: ReactNode;
   testId?: string;
-  bare?: boolean;
 }) {
   return (
-    <section className="min-w-0 space-y-2" data-testid={testId}>
-      <SectionHeading title={title} meta={meta} />
-      <div className={cn(RUN_PANEL_CLASS, !bare && 'px-4 py-3')}>{children}</div>
+    <section className="min-w-0" data-testid={testId}>
+      <SectionHeading title={title} count={count} meta={meta} />
+      {children}
     </section>
   );
 }
