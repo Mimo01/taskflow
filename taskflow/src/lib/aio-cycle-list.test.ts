@@ -291,6 +291,8 @@ describe('aggregateCycleScope', () => {
     expect(all.exec.passPct).toBe(86);
     expect(all.exec.executed).toBe(7);
     expect(all.exec.withSummary).toBe(2);
+    expect(all.exec.cyclesWithStatus.pass).toBe(2);
+    expect(open.exec.cyclesWithStatus.pass).toBe(1);
   });
 
   it('passPct is null with no runs', () => {
