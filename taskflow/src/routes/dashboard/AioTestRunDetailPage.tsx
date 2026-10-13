@@ -19,6 +19,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioRunDetailSkeleton } from './AioCycleDetailSkeleton';
 import { RunDefectsSection } from './aio-cycle/RunDefectsSection';
+import { RunSection } from './aio-cycle/RunSection';
 import { RunSidebar } from './aio-cycle/RunSidebar';
 import { RunStepCard, RunStepList } from './aio-cycle/RunStepCard';
 import { useAioCycleData } from './aio-cycle/useAioCycleData';
@@ -206,32 +207,32 @@ export default function AioTestRunDetailPage() {
           </span>
         </div>
       }
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-border flex-shrink-0 min-w-0">
-        <h1
-          className="min-w-0 flex-1 truncate text-base font-semibold"
-          data-testid="aio-run-detail-title"
-        >
-          {headerKey ? (
-            <>
-              <span className="font-mono">{headerKey}</span>
-              {title ? ` ${title}` : ''}
-            </>
-          ) : runsPending ? (
-            <Skeleton className="h-5 w-64" />
-          ) : (
-            `Run ${runId}`
-          )}
-        </h1>
-        {detailQuery.data && (
-          <div className="flex flex-none">
+      <div className="flex min-w-0 flex-shrink-0 items-center gap-3 border-b border-border px-6 py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <h1 className="min-w-0 truncate text-lg font-semibold" data-testid="aio-run-detail-title">
+            {title ||
+              headerKey ||
+              (runsPending ? <Skeleton className="h-5 w-64" /> : `Run ${runId}`)}
+          </h1>
+          {headerKey && title && (
             <span
-              data-testid="aio-run-detail-status-chip"
-              className={aioRunStatusPillClass(detailQuery.data.run.status)}
+              className="flex-none font-mono text-xs text-muted-foreground"
+              data-testid="aio-run-detail-key"
             >
-              {normalizeStatusLabel(detailQuery.data.run.status)}
+              {headerKey}
             </span>
-          </div>
-        )}
+          )}
+          {detailQuery.data && (
+            <div className="flex flex-none">
+              <span
+                data-testid="aio-run-detail-status-chip"
+                className={aioRunStatusPillClass(detailQuery.data.run.status)}
+              >
+                {normalizeStatusLabel(detailQuery.data.run.status)}
+              </span>
+            </div>
+          )}
+        </div>
         {idx >= 0 && (
           <div className="flex flex-none items-center gap-1">
             <button
@@ -290,11 +291,13 @@ export default function AioTestRunDetailPage() {
         ) : detailQuery.data ? (
           <div className="@container px-6 py-4">
             <div className="grid gap-6 @[900px]:grid-cols-[minmax(0,1fr)_280px]">
-              <div className="min-w-0 space-y-4">
+              <div className="min-w-0 space-y-6">
                 {description && (
-                  <section data-testid="aio-run-testcase-description" className="min-w-0 text-sm">
-                    <WikiRenderer wikiText={description} />
-                  </section>
+                  <RunSection title="Description">
+                    <div data-testid="aio-run-testcase-description" className="min-w-0 text-sm">
+                      <WikiRenderer wikiText={description} />
+                    </div>
+                  </RunSection>
                 )}
 
                 <RunDefectsSection
@@ -314,23 +317,28 @@ export default function AioTestRunDetailPage() {
                     subtitle="This run has no step content."
                   />
                 ) : (
-                  <>
-                    <div className="space-y-1.5" data-testid="aio-run-step-summary">
-                      <div className="text-sm font-medium">
-                        Steps {passedSteps}/{steps.length} passed
+                  <RunSection
+                    title="Steps"
+                    bare
+                    meta={
+                      <div className="flex items-center gap-2" data-testid="aio-run-step-summary">
+                        <div className="flex h-1.5 w-24 gap-px overflow-hidden rounded-full bg-muted">
+                          {steps.map((s, i) => (
+                            <span
+                              key={s.id ?? i}
+                              className={cn(
+                                'h-full flex-1',
+                                PROGRESS_SEGMENT_CLASS[normalizeStatus(s.status)],
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span>
+                          {passedSteps}/{steps.length} passed
+                        </span>
                       </div>
-                      <div className="flex h-1.5 gap-px overflow-hidden rounded-full bg-muted">
-                        {steps.map((s, i) => (
-                          <span
-                            key={s.id ?? i}
-                            className={cn(
-                              'h-full flex-1',
-                              PROGRESS_SEGMENT_CLASS[normalizeStatus(s.status)],
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                    }
+                  >
                     <RunStepList>
                       {steps.map((step, i) => (
                         <RunStepCard
@@ -343,7 +351,7 @@ export default function AioTestRunDetailPage() {
                         />
                       ))}
                     </RunStepList>
-                  </>
+                  </RunSection>
                 )}
               </div>
 

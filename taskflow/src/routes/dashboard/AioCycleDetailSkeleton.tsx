@@ -54,15 +54,15 @@ export function AioCycleDetailSkeleton() {
  */
 export function AioRunDetailSkeleton() {
   return (
-    <div className="@container p-4" data-testid="aio-run-detail-skeleton">
-      <div className="grid gap-4 @[900px]:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <Skeleton className="h-5 w-48" />
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-xl" />
-          ))}
+    <div className="@container px-6 py-4" data-testid="aio-run-detail-skeleton">
+      <div className="grid gap-6 @[900px]:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="mt-4 h-3 w-16" />
+          <Skeleton className="h-56 w-full rounded-xl" />
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 rounded-xl p-4 ring-1 ring-border">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex items-center justify-between gap-3">
               <Skeleton className="h-3.5 w-20" />

@@ -194,21 +194,17 @@ describe('AioTestRunDetailPage', () => {
       expect(screen.getByTestId('aio-run-detail-status-chip')).toBeTruthy();
     });
     await waitFor(() => {
-      expect(screen.getByTestId('aio-run-detail-title').textContent).toBe(
-        'ESHOP-TC-8477 Login flow happy path',
-      );
+      expect(screen.getByTestId('aio-run-detail-title').textContent).toBe('Login flow happy path');
     });
-    // The key is rendered monospaced
-    expect(
-      screen.getByTestId('aio-run-detail-title').querySelector('span.font-mono')?.textContent,
-    ).toBe('ESHOP-TC-8477');
+    // The key sits next to the title, monospaced
+    expect(screen.getByTestId('aio-run-detail-key').textContent).toBe('ESHOP-TC-8477');
     expect(screen.getByTestId('aio-run-detail-status-chip').textContent).toBe('Fail');
     const container = screen.getByTestId('aio-run-detail-step-table');
     expect(container.querySelectorAll('[data-testid^="run-step-"]').length).toBe(3);
     const wikiStubs = screen.getAllByTestId('wiki-stub');
     expect(wikiStubs.some((n) => n.textContent === 'Open page')).toBe(true);
     // Step summary counts passed steps
-    expect(screen.getByTestId('aio-run-step-summary').textContent).toMatch(/Steps 1\/3 passed/);
+    expect(screen.getByTestId('aio-run-step-summary').textContent).toMatch(/1\/3 passed/);
   });
 
   it('falls back to the test case detail title when the list title is empty', async () => {
@@ -217,10 +213,9 @@ describe('AioTestRunDetailPage', () => {
     });
     renderAt(RUN_PATH);
     await waitFor(() => {
-      expect(screen.getByTestId('aio-run-detail-title').textContent).toBe(
-        'ESHOP-TC-8477 Login flow happy path',
-      );
+      expect(screen.getByTestId('aio-run-detail-title').textContent).toBe('Login flow happy path');
     });
+    expect(screen.getByTestId('aio-run-detail-key').textContent).toBe('ESHOP-TC-8477');
   });
 
   it('falls back to "Run {id}" when the run is absent from the cycle runs list', async () => {
@@ -494,7 +489,7 @@ describe('AioTestRunDetailPage', () => {
       });
       // Title still comes from the runs list
       await waitFor(() => {
-        expect(screen.getByTestId('aio-run-detail-title').textContent).toContain('ESHOP-TC-8477');
+        expect(screen.getByTestId('aio-run-detail-key').textContent).toBe('ESHOP-TC-8477');
       });
       const { fetchAioTestCaseDetail } = await import('@/services/aio');
       await waitFor(() => {
