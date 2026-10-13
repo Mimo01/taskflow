@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
-import { FlaskConical, X } from 'lucide-react';
+import { FlaskConical } from 'lucide-react';
 import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,14 +11,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
-  type CycleFilter,
-  type CycleProgress,
-  cycleFilterLabel,
   cycleProgress,
   formatCycleDates,
   formatEffort,
   isOverdue,
-  matchesCycleFilter,
   PROGRESS_SEGMENT_CLASS,
   progressTooltipRows,
   sortCycles,
@@ -204,10 +200,7 @@ export function AioCycleList({
   token,
   jiraBaseUrl,
   scrollElement,
-  filter,
-  onClearFilter,
   today,
-  progressByID,
 }: {
   projectKey: string | undefined;
   items: AioCycleDetailItem[];
@@ -228,33 +221,18 @@ export function AioCycleList({
    * owns its own scroll container.
    */
   scrollElement?: HTMLElement | null;
-  /** Active cross-filter from the dashboard (null = none). */
-  filter: CycleFilter | null;
-  onClearFilter: () => void;
   /** Shared with the dashboard so both agree on what is overdue. */
   today: string;
-  progressByID: Map<number, CycleProgress>;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const statusFilter = useAioCyclesSelectionStore((s) => s.statusFilter);
   const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
 
-  // Open|All first, then the dashboard cross-filter.
-  const scoped = useMemo(
-    () => (statusFilter === 'open' ? items.filter((c) => !c.detail.isClosed) : items),
+  const visible = useMemo(
+    () => sortCycles(statusFilter === 'open' ? items.filter((c) => !c.detail.isClosed) : items),
     [items, statusFilter],
   );
-  const visible = useMemo(
-    () =>
-      sortCycles(
-        filter
-          ? scoped.filter((c) => matchesCycleFilter(c, progressByID.get(c.ID), filter, today))
-          : scoped,
-      ),
-    [scoped, filter, progressByID, today],
-  );
-  const filterLabel = filter ? cycleFilterLabel(filter) : null;
 
   const hasDates = visible.some(
     (c) => toDateKey(c.detail.startDate) !== null || toDateKey(c.detail.endDate) !== null,
@@ -419,19 +397,6 @@ export function AioCycleList({
         subtitle="This folder has no test cycles yet."
       />
     );
-  } else if (visible.length === 0 && filter && scoped.length > 0) {
-    // The cross-filter (not Open|All) emptied the list.
-    body = (
-      <EmptyState
-        icon={FlaskConical}
-        title={`No cycles match ${filterLabel}`}
-        action={
-          <Button variant="outline" size="sm" onClick={onClearFilter}>
-            Clear
-          </Button>
-        }
-      />
-    );
   } else if (visible.length === 0) {
     body = (
       <EmptyState
@@ -466,7 +431,7 @@ export function AioCycleList({
   const loaded = !isLoading && !isPending && !error;
   const showColumns = loaded && visible.length > 0;
 
-  // One sticky block: list header (label, count, filter chip) + column header, so the
+  // One sticky block: list header (label, count) + column header, so the
   // virtualized rows line up under it and neither scrolls away.
   const header = (
     <div className="sticky top-0 z-20 bg-background">
@@ -484,22 +449,6 @@ export function AioCycleList({
             className="text-xs tabular-nums text-muted-foreground"
           >
             {visible.length}
-          </span>
-        )}
-        {filterLabel && (
-          <span
-            data-testid="cycle-filter-chip"
-            className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pl-2.5 pr-1 text-xs"
-          >
-            <span className="truncate pr-0.5">{filterLabel}</span>
-            <button
-              type="button"
-              aria-label="Clear filter"
-              onClick={onClearFilter}
-              className="flex size-4 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <X className="size-3" />
-            </button>
           </span>
         )}
       </div>
