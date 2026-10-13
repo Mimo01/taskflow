@@ -1,7 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
-import { FlaskConical } from 'lucide-react';
-import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { FlaskConical, X } from 'lucide-react';
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -11,16 +19,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
+  type CycleFilter,
+  type CycleProgress,
+  cycleFilterLabel,
   cycleProgress,
   formatCycleDates,
   formatEffort,
   isOverdue,
+  matchesCycleFilter,
   PROGRESS_SEGMENT_CLASS,
   progressTooltipRows,
   sortCycles,
   toDateKey,
 } from '@/lib/aio-cycle-list';
-import { toLocalDateString } from '@/lib/local-date';
 import {
   aioCycleStatusPillClass,
   STATUS_PILL_LAYOUT_CLASS,
@@ -190,8 +201,6 @@ function SkeletonRows() {
 
 export function AioCycleList({
   projectKey,
-  folderLabel,
-  folderTitle,
   items,
   isLoading,
   isPending,
@@ -202,10 +211,13 @@ export function AioCycleList({
   statusConfig,
   token,
   jiraBaseUrl,
+  scrollElementRef,
+  filter,
+  onClearFilter,
+  today,
+  progressByID,
 }: {
   projectKey: string | undefined;
-  folderLabel: string;
-  folderTitle: string;
   items: AioCycleDetailItem[];
   /** Delayed skeleton flag — true only after the 200ms grace period. */
   isLoading: boolean;
@@ -218,20 +230,38 @@ export function AioCycleList({
   statusConfig: AioTestRunStatusConfig[];
   token: string | null;
   jiraBaseUrl: string | undefined;
+  /**
+   * The page pane that scrolls. When given, the list flows in the page and the virtualizer
+   * scrolls that element; when omitted the list owns its own scroll container.
+   */
+  scrollElementRef?: RefObject<HTMLElement | null>;
+  /** Active cross-filter from the dashboard (null = none). */
+  filter: CycleFilter | null;
+  onClearFilter: () => void;
+  /** Shared with the dashboard so both agree on what is overdue. */
+  today: string;
+  progressByID: Map<number, CycleProgress>;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const statusFilter = useAioCyclesSelectionStore((s) => s.statusFilter);
   const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
-  const today = toLocalDateString(new Date());
 
-  const closedCount = items.filter((c) => c.detail.isClosed).length;
-  const openCount = items.length - closedCount;
-
-  const visible = useMemo(
-    () => sortCycles(statusFilter === 'open' ? items.filter((c) => !c.detail.isClosed) : items),
+  // Open|All first, then the dashboard cross-filter.
+  const scoped = useMemo(
+    () => (statusFilter === 'open' ? items.filter((c) => !c.detail.isClosed) : items),
     [items, statusFilter],
   );
+  const visible = useMemo(
+    () =>
+      sortCycles(
+        filter
+          ? scoped.filter((c) => matchesCycleFilter(c, progressByID.get(c.ID), filter, today))
+          : scoped,
+      ),
+    [scoped, filter, progressByID, today],
+  );
+  const filterLabel = filter ? cycleFilterLabel(filter) : null;
 
   const hasDates = visible.some(
     (c) => toDateKey(c.detail.startDate) !== null || toDateKey(c.detail.endDate) !== null,
@@ -252,13 +282,34 @@ export function AioCycleList({
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
   const [rowsOffset, setRowsOffset] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the list mode changes
+  const getScrollEl = useCallback(
+    () => (scrollElementRef ? scrollElementRef.current : scrollRef.current),
+    [scrollElementRef],
+  );
+  // Rows' distance from the top of the scroll content. Rect-based so a positioned wrapper
+  // between the rows and the scroll element can't change offsetTop's reference frame.
+  const measureOffset = useCallback(() => {
+    const scrollEl = getScrollEl();
+    const rows = rowsRef.current;
+    if (!scrollEl || !rows) return;
+    const offset = Math.round(
+      rows.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top + scrollEl.scrollTop,
+    );
+    setRowsOffset((prev) => (prev === offset ? prev : offset));
+  }, [getScrollEl]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the list mode or the content above it changes
   useLayoutEffect(() => {
-    setRowsOffset(rowsRef.current?.offsetTop ?? 0);
-  }, [virtualize, isLoading, isPending]);
+    measureOffset();
+    const scrollEl = getScrollEl();
+    if (!scrollEl || typeof ResizeObserver === 'undefined') return;
+    // The dashboard above the list changes height (breakpoint flips, loading -> loaded).
+    const ro = new ResizeObserver(measureOffset);
+    ro.observe(scrollEl.firstElementChild ?? scrollEl);
+    return () => ro.disconnect();
+  }, [measureOffset, getScrollEl, virtualize, isLoading, isPending, visible.length]);
   const rowVirtualizer = useVirtualizer({
     count: virtualize ? visible.length : 0,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: getScrollEl,
     estimateSize: () => 41,
     overscan: 12,
     scrollMargin: rowsOffset,
@@ -375,6 +426,19 @@ export function AioCycleList({
         subtitle="This folder has no test cycles yet."
       />
     );
+  } else if (visible.length === 0 && filter && scoped.length > 0) {
+    // The cross-filter (not Open|All) emptied the list.
+    body = (
+      <EmptyState
+        icon={FlaskConical}
+        title={`No cycles match ${filterLabel}`}
+        action={
+          <Button variant="outline" size="sm" onClick={onClearFilter}>
+            Clear
+          </Button>
+        }
+      />
+    );
   } else if (visible.length === 0) {
     body = (
       <EmptyState
@@ -390,15 +454,6 @@ export function AioCycleList({
   } else {
     body = (
       <div>
-        <div className="sticky top-0 z-20 flex w-full items-center border-b border-border bg-background text-xs font-medium text-muted-foreground">
-          <div className={cn(COL.key, CELL_PADDING)}>Key</div>
-          <div className={cn(COL.name, CELL_PADDING)}>Name</div>
-          <div className={cn(COL.status, CELL_PADDING)}>Status</div>
-          <div className={cn(COL.progress, CELL_PADDING)}>Progress</div>
-          {hasDates && <div className={cn(COL.dates, CELL_PADDING)}>Dates</div>}
-          <div className={cn(COL.owner, CELL_PADDING)}>Owner</div>
-          {hasEffort && <div className={cn(COL.effort, CELL_PADDING)}>Effort</div>}
-        </div>
         <div
           ref={rowsRef}
           style={
@@ -415,41 +470,72 @@ export function AioCycleList({
     );
   }
 
+  const loaded = !isLoading && !isPending && !error;
+  const showColumns = loaded && visible.length > 0;
+
+  // One sticky block: list header (label, count, filter chip) + column header, so the
+  // virtualized rows line up under it and neither scrolls away.
+  const header = (
+    <div className="sticky top-0 z-20 bg-background">
+      <div
+        className={cn(
+          'flex min-h-9 items-center gap-2 px-4 py-1.5',
+          // Lighter than the section border: this is a sub-divider.
+          !showColumns && 'border-b border-border/50',
+        )}
+      >
+        <span className="text-sm font-medium">Cycles</span>
+        {loaded && (
+          <span
+            data-testid="cycle-visible-count"
+            className="text-xs tabular-nums text-muted-foreground"
+          >
+            {visible.length}
+          </span>
+        )}
+        {filterLabel && (
+          <span
+            data-testid="cycle-filter-chip"
+            className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pl-2.5 pr-1 text-xs"
+          >
+            <span className="truncate pr-0.5">{filterLabel}</span>
+            <button
+              type="button"
+              aria-label="Clear filter"
+              onClick={onClearFilter}
+              className="flex size-4 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        )}
+      </div>
+      {showColumns && (
+        <div className="flex w-full items-center border-b border-border text-xs font-medium text-muted-foreground">
+          <div className={cn(COL.key, CELL_PADDING)}>Key</div>
+          <div className={cn(COL.name, CELL_PADDING)}>Name</div>
+          <div className={cn(COL.status, CELL_PADDING)}>Status</div>
+          <div className={cn(COL.progress, CELL_PADDING)}>Progress</div>
+          {hasDates && <div className={cn(COL.dates, CELL_PADDING)}>Dates</div>}
+          <div className={cn(COL.owner, CELL_PADDING)}>Owner</div>
+          {hasEffort && <div className={cn(COL.effort, CELL_PADDING)}>Effort</div>}
+        </div>
+      )}
+    </div>
+  );
+
+  if (scrollElementRef) {
+    return (
+      <div className="@container min-w-0">
+        {header}
+        {body}
+      </div>
+    );
+  }
   return (
     <div className="@container flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-border px-4 py-2">
-        <span className="truncate text-sm font-medium" title={folderTitle}>
-          {folderLabel}
-        </span>
-        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-          {openCount} open · {closedCount} closed
-        </span>
-        <fieldset className="m-0 ml-auto inline-flex rounded-lg border-0 bg-muted p-0.5">
-          <legend className="sr-only">Cycle status</legend>
-          {(
-            [
-              { value: 'open', label: 'Open' },
-              { value: 'all', label: 'All' },
-            ] as const
-          ).map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={statusFilter === value}
-              onClick={() => setStatusFilter(value)}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                statusFilter === value
-                  ? 'bg-foreground text-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </fieldset>
-      </div>
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto">
+        {header}
         {body}
       </div>
     </div>
