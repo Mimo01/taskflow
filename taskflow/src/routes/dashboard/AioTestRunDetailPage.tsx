@@ -1,186 +1,32 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  BookOpen,
-  Bug,
-  CheckSquare,
-  CornerDownRight,
-  FileQuestion,
-  FlaskConical,
-} from 'lucide-react';
-import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { ArrowLeft, ChevronLeft, ChevronRight, FileQuestion, FlaskConical } from 'lucide-react';
+import { useEffect } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioRunStatusPillClass, statusPillClass } from '@/lib/statusStyles';
-import type { AioTestRun, AioTestRunStep } from '@/services/aio';
-import { fetchAioTestRunDetail } from '@/services/aio';
+import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
+import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
+import { aioRunStatusPillClass } from '@/lib/statusStyles';
+import { cn } from '@/lib/utils';
+import type { AioTestCaseDetail, AioTestRun, AioTestRunStep } from '@/services/aio';
+import { fetchAioTestCaseDetail, fetchAioTestRunDetail } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
 import type { JiraIssue } from '@/services/jira/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
-import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
+import { AioRunDetailSkeleton } from './AioCycleDetailSkeleton';
+import { RunSidebar } from './aio-cycle/RunSidebar';
+import { RunStepCard } from './aio-cycle/RunStepCard';
+import { useAioCycleData } from './aio-cycle/useAioCycleData';
 import { WikiRenderer } from './WikiRenderer';
 
-function formatDate(iso: string | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-function IssueTypeIcon({ typeName }: { typeName: string }) {
-  const cls = 'w-3.5 h-3.5 shrink-0';
-  switch (typeName) {
-    case 'Bug':
-      return <Bug className={`${cls} text-red-500`} />;
-    case 'Story':
-      return <BookOpen className={`${cls} text-green-600`} />;
-    case 'Subtask':
-    case 'Sub-task':
-      return <CornerDownRight className={`${cls} text-blue-500`} />;
-    case 'Epic':
-      return <BookOpen className={`${cls} text-purple-500`} />;
-    default:
-      return <CheckSquare className={`${cls} text-blue-500`} />;
-  }
-}
-
-function DefectRow({
-  defectId,
-  issue,
-  isLoading,
-  onOpen,
-}: {
-  defectId: string;
-  issue: JiraIssue | null;
-  isLoading: boolean;
-  onOpen: (resolvedKey: string) => void;
-}) {
-  const displayKey = issue?.key ?? defectId;
-  const linkTarget = `/issue/${displayKey}`;
-  const resolvedKey = issue?.key ?? null;
-  const isClickable = !isLoading && !!resolvedKey;
-
-  const severityValue =
-    issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
-
-  return (
-    <tr
-      className={`border-t border-border align-top hover:bg-muted/30 transition-colors${isClickable ? ' cursor-pointer' : ''}`}
-      {...(isClickable
-        ? {
-            role: 'button' as const,
-            tabIndex: 0,
-            'aria-label': `Open defect ${resolvedKey}`,
-            onClick: () => onOpen(resolvedKey ?? ''),
-            onKeyDown: (e: React.KeyboardEvent) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onOpen(resolvedKey ?? '');
-              }
-            },
-          }
-        : {})}
-    >
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 font-mono text-sm whitespace-nowrap">
-        <div className="flex items-center gap-1.5">
-          {issue?.fields.issuetype?.name !== undefined && (
-            <IssueTypeIcon typeName={issue.fields.issuetype.name} />
-          )}
-          <NavLink to={linkTarget} className="hover:underline" onClick={(e) => e.stopPropagation()}>
-            {displayKey}
-          </NavLink>
-        </div>
-      </td>
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-sm">
-        {isLoading ? (
-          <Skeleton className="h-4 w-32" />
-        ) : (
-          <span>{issue?.fields.summary ?? displayKey}</span>
-        )}
-      </td>
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3">
-        {issue?.fields.status ? (
-          <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-            {issue.fields.status.name}
-          </span>
-        ) : isLoading ? (
-          <Skeleton className="h-4 w-16" />
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
-        {isLoading ? (
-          <Skeleton className="h-4 w-20" />
-        ) : issue?.fields.assignee ? (
-          <div className="flex items-center gap-1.5">
-            <CachedAvatar
-              url={issue.fields.assignee.avatarUrls['48x48']}
-              name={issue.fields.assignee.displayName}
-              size={20}
-            />
-            <span className="truncate max-w-[120px]">{issue.fields.assignee.displayName}</span>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
-        {isLoading ? (
-          <Skeleton className="h-4 w-20" />
-        ) : issue?.fields.reporter ? (
-          <div className="flex items-center gap-1.5">
-            <CachedAvatar
-              url={issue.fields.reporter.avatarUrls['48x48']}
-              name={issue.fields.reporter.displayName}
-              size={20}
-            />
-            <span className="truncate max-w-[120px]">{issue.fields.reporter.displayName}</span>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
-        {isLoading ? (
-          <Skeleton className="h-4 w-16" />
-        ) : issue?.fields.priority ? (
-          <div className="flex items-center gap-1.5">
-            {issue.fields.priority.iconUrl && (
-              <img src={issue.fields.priority.iconUrl} alt="" className="w-3.5 h-3.5 shrink-0" />
-            )}
-            <span>{issue.fields.priority.name}</span>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground">
-        {isLoading ? (
-          <Skeleton className="h-4 w-16" />
-        ) : severityValue ? (
-          <span>{severityValue}</span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-    </tr>
-  );
-}
-
 /**
- * Plan 54-11: in-app detail view for a single AIO test run. Linked from the
- * Impacted Executions list on the issue detail page. URL params: projectKey,
- * cycleKey, runId. Reuses the same fetchAioTestRunDetail call as
- * AioTestRunsSection so the same data flows here.
+ * In-app detail view for a single AIO test run. URL params: projectKey, cycleKey, runId.
+ * The test case key/title come from the cycle's runs list (run detail carries no test case,
+ * live P3), with the test case detail as fallback and as the description/metadata source.
  */
 export default function AioTestRunDetailPage() {
   const { projectKey, cycleKey, runId } = useParams<{
@@ -212,6 +58,10 @@ export default function AioTestRunDetailPage() {
 
   const queryClient = useQueryClient();
 
+  // Cycle runs (server/rank order): source of the test case key/title and of Prev/Next.
+  // Fetches what it needs itself, so it works on a cold-cache deep link.
+  const { runsQuery, navigableRuns } = useAioCycleData(projectKey, cycleKey);
+
   const detailQuery = useQuery<{ run: AioTestRun; steps: AioTestRunStep[] } | null>({
     queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
     queryFn: () =>
@@ -227,10 +77,44 @@ export default function AioTestRunDetailPage() {
 
   const showSkeleton = useDelayedLoading(detailQuery.isLoading);
 
+  const idx = navigableRuns.findIndex((r) => r.id === runId);
+  const listRun = idx >= 0 ? navigableRuns[idx] : undefined;
+  const prevRun = idx > 0 ? navigableRuns[idx - 1] : undefined;
+  const nextRun = idx >= 0 && idx < navigableRuns.length - 1 ? navigableRuns[idx + 1] : undefined;
+  const tcKey = listRun?.testCaseKey ?? '';
+
+  // Enabled only once the key is known. A failure never blocks the page: its sections are omitted.
+  const testCaseQuery = useQuery<AioTestCaseDetail | null>({
+    queryKey: ['aio', jiraBaseUrl, 'testcase-detail', projectKey, tcKey],
+    queryFn: () => fetchAioTestCaseDetail(jiraBaseUrl ?? '', token ?? '', projectKey ?? '', tcKey),
+    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!tcKey,
+    staleTime: 5 * 60 * 1000,
+  });
+  const testCase = testCaseQuery.data ?? undefined;
+
+  const goToRun = (target: AioTestRun | undefined) => {
+    if (!target) return;
+    // replace: stepping through runs must not grow the history or the breadcrumb trail
+    navigate(`/aio-cycle/${projectKey}/${cycleKey}/run/${target.id}`, { replace: true });
+  };
+
+  // ArrowLeft / ArrowRight step through runs (ignored while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return;
+      if (e.key === 'ArrowLeft' && prevRun) goToRun(prevRun);
+      else if (e.key === 'ArrowRight' && nextRun) goToRun(nextRun);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   // Derive defect IDs as strings from the run data
   const defectIds = (detailQuery.data?.run.jiraDefectIDs ?? []).map(String);
 
-  // Per-defect issue resolution via useQueries — same pattern as AioCycleDetailPage
+  // Per-defect issue resolution via useQueries — same key as the cycle page
   const issueQueries = useQueries({
     queries: defectIds.map((defectId) => ({
       queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectId],
@@ -251,11 +135,17 @@ export default function AioTestRunDetailPage() {
     );
   }
 
+  const title = listRun?.testCase?.title || testCase?.title || '';
+  const headerKey = tcKey || undefined;
+  const runsPending = !runsQuery.data && !runsQuery.isError;
+  const steps = detailQuery.data?.steps ?? [];
+  const passedSteps = steps.filter((s) => normalizeStatus(s.status) === 'pass').length;
+  const description = testCase?.description?.trim() ? testCase.description : null;
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Shared breadcrumb header — only rendered when there's a trail
-          (matches IssueDetailPage / ReleaseDetailPage convention). The
-          current page identifier (`Run {runId}`) is the final segment. */}
+          (matches IssueDetailPage / ReleaseDetailPage convention). */}
       {trail.length > 0 && (
         <div
           className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
@@ -286,24 +176,64 @@ export default function AioTestRunDetailPage() {
           ))}
           <span className="text-muted-foreground">/</span>
           <span className="font-medium" data-testid="aio-run-detail-breadcrumb-current">
-            Run {runId}
+            {headerKey ?? `Run ${runId}`}
           </span>
         </div>
       )}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border flex-shrink-0 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <FlaskConical className="size-4 text-muted-foreground shrink-0" />
-          <h1 className="text-base font-semibold truncate" data-testid="aio-run-detail-title">
-            Run {runId}
-          </h1>
-        </div>
+        <FlaskConical className="size-4 flex-none text-muted-foreground" />
+        <h1
+          className="min-w-0 flex-1 truncate text-base font-semibold"
+          data-testid="aio-run-detail-title"
+        >
+          {headerKey ? (
+            <>
+              <span className="font-mono">{headerKey}</span>
+              {title ? ` ${title}` : ''}
+            </>
+          ) : runsPending ? (
+            <Skeleton className="h-5 w-64" />
+          ) : (
+            `Run ${runId}`
+          )}
+        </h1>
         {detailQuery.data && (
-          <span
-            data-testid="aio-run-detail-status-chip"
-            className={aioRunStatusPillClass(detailQuery.data.run.status)}
-          >
-            {normalizeStatusLabel(detailQuery.data.run.status)}
-          </span>
+          <div className="flex flex-none">
+            <span
+              data-testid="aio-run-detail-status-chip"
+              className={aioRunStatusPillClass(detailQuery.data.run.status)}
+            >
+              {normalizeStatusLabel(detailQuery.data.run.status)}
+            </span>
+          </div>
+        )}
+        {idx >= 0 && (
+          <div className="flex flex-none items-center gap-1">
+            <button
+              type="button"
+              aria-label="Previous run"
+              disabled={!prevRun}
+              onClick={() => goToRun(prevRun)}
+              className="inline-flex size-7 items-center justify-center rounded hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span
+              className="min-w-10 text-center text-xs tabular-nums text-muted-foreground"
+              data-testid="aio-run-detail-position"
+            >
+              {idx + 1}/{navigableRuns.length}
+            </span>
+            <button
+              type="button"
+              aria-label="Next run"
+              disabled={!nextRun}
+              onClick={() => goToRun(nextRun)}
+              className="inline-flex size-7 items-center justify-center rounded hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -323,9 +253,7 @@ export default function AioTestRunDetailPage() {
         )}
 
         {showSkeleton || detailQuery.isLoading ? (
-          <div className="p-4">
-            <AioCycleDetailSkeleton />
-          </div>
+          <AioRunDetailSkeleton />
         ) : detailQuery.data === null ? (
           <div className="p-6">
             <EmptyState
@@ -335,134 +263,69 @@ export default function AioTestRunDetailPage() {
             />
           </div>
         ) : detailQuery.data ? (
-          <div className="px-6 py-4 space-y-4">
-            {/* Run metadata */}
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              {detailQuery.data.run.testCase?.title && (
-                <div>
-                  <span className="font-semibold">Test case:</span>{' '}
-                  <span className="font-mono">{detailQuery.data.run.testCaseKey}</span>
-                  {detailQuery.data.run.testCase.title && (
-                    <span> — {detailQuery.data.run.testCase.title}</span>
-                  )}
-                </div>
-              )}
-              <div>
-                <span className="font-semibold">Executed:</span>{' '}
-                {formatDate(detailQuery.data.run.executedDate)}
-              </div>
-            </div>
+          <div className="@container px-6 py-4">
+            <div className="grid gap-6 @[900px]:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="min-w-0 space-y-4">
+                {description && (
+                  <section data-testid="aio-run-testcase-description" className="min-w-0 text-sm">
+                    <WikiRenderer wikiText={description} />
+                  </section>
+                )}
 
-            {/* Step table */}
-            {detailQuery.data.steps.length === 0 ? (
-              <EmptyState
-                icon={FileQuestion}
-                title="No steps"
-                subtitle="This run has no step content."
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table
-                  className="w-full text-sm border border-border rounded-md"
-                  aria-label="Test run steps"
-                  data-testid="aio-run-detail-step-table"
-                >
-                  <thead className="bg-muted/30">
-                    <tr>
-                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold w-12">
-                        #
-                      </th>
-                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold">
-                        Step
-                      </th>
-                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold">
-                        Expected
-                      </th>
-                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold">
-                        Actual
-                      </th>
-                      <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left font-semibold w-24">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detailQuery.data.steps.map((step, idx) => (
-                      <tr key={step.id ?? idx} className="border-t border-border align-top">
-                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 font-mono text-xs text-muted-foreground">
-                          {idx + 1}
-                        </td>
-                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 min-w-0">
-                          <WikiRenderer wikiText={step.step} />
-                        </td>
-                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 min-w-0">
-                          <WikiRenderer wikiText={step.expectedResult} />
-                        </td>
-                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 min-w-0">
-                          {step.status === 'NOT_EXECUTED' || !step.actualResult ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            <WikiRenderer wikiText={step.actualResult} />
-                          )}
-                        </td>
-                        <td className="px-3 py-2 density-compact:py-1 density-comfortable:py-3">
-                          <span className={aioRunStatusPillClass(step.status ?? 'NOT_EXECUTED')}>
-                            {normalizeStatusLabel(step.status)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Defects section — only rendered when this run has linked defect IDs */}
-            {defectIds.length > 0 && (
-              <div data-testid="aio-run-defects-section">
-                <h2 className="text-sm font-semibold mb-2">Defects</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border border-border rounded-md">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Key
-                        </th>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Title
-                        </th>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Status
-                        </th>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Assignee
-                        </th>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Reporter
-                        </th>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Priority
-                        </th>
-                        <th className="px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-left text-xs font-medium text-muted-foreground">
-                          Severity
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {defectIds.map((defectId, i) => (
-                        <DefectRow
-                          key={defectId}
-                          defectId={defectId}
-                          issue={(issueQueries[i]?.data ?? null) as JiraIssue | null}
-                          isLoading={issueQueries[i]?.isLoading ?? false}
-                          onOpen={openDefect}
+                {steps.length === 0 ? (
+                  <EmptyState
+                    icon={FileQuestion}
+                    title="No steps"
+                    subtitle="This run has no step content."
+                  />
+                ) : (
+                  <>
+                    <div className="space-y-1.5" data-testid="aio-run-step-summary">
+                      <div className="text-sm font-medium">
+                        Steps {passedSteps}/{steps.length} passed
+                      </div>
+                      <div className="flex h-1.5 gap-px overflow-hidden rounded-full bg-muted">
+                        {steps.map((s, i) => (
+                          <span
+                            key={s.id ?? i}
+                            className={cn(
+                              'h-full flex-1',
+                              PROGRESS_SEGMENT_CLASS[normalizeStatus(s.status)],
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3" data-testid="aio-run-detail-step-table">
+                      {steps.map((step, i) => (
+                        <RunStepCard
+                          key={step.id ?? i}
+                          step={step}
+                          index={i}
+                          jiraBaseUrl={jiraBaseUrl}
+                          token={token}
                         />
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                  </>
+                )}
               </div>
-            )}
+
+              <RunSidebar
+                run={detailQuery.data.run}
+                listRun={listRun}
+                testCase={testCase}
+                defects={defectIds.map((id, i) => ({
+                  id,
+                  issue: (issueQueries[i]?.data ?? null) as JiraIssue | null,
+                  isLoading: issueQueries[i]?.isLoading ?? false,
+                }))}
+                onOpenDefect={openDefect}
+                cycleHref={`/aio-cycle/${projectKey}/${cycleKey}`}
+                jiraBaseUrl={jiraBaseUrl}
+                token={token}
+              />
+            </div>
           </div>
         ) : null}
       </div>
