@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-13 - Completed quick task 261013-l97: AIO Cycles page dashboard (UAT approved)
+Last activity: 2026-10-13 - Completed quick task 261013-mnc: AIO cycle detail + run detail UX rework (needs UAT)
 
 ## Performance Metrics
 
@@ -131,6 +131,7 @@ None yet.
 | 261007-hv0 | Duplicate a subtask template in Settings | 2026-10-07 | 7dab588d | Verified (UAT by user) | [261007-hv0-in-settings-subtask-templates-i-want-to-](./quick/261007-hv0-in-settings-subtask-templates-i-want-to-/) |
 | 261013-jl3 | Redesign AIO Cycles page: polished folder selector (All cycles, filter, aggregated counts), Open\|All filter, status/dates/pass %/effort columns, paginated cycle fetch | 2026-10-13 | 64e568f4 | Verified (UAT by user) | [261013-jl3-redesign-aio-tests-tab-cycle-selector](./quick/261013-jl3-redesign-aio-tests-tab-cycle-selector/) |
 | 261013-l97 | AIO Cycles page dashboard: KPI tiles + Execution mix / By owner / Schedule cards (read-only), per-subfolder fetch and badge for parent folders, single page scroll | 2026-10-13 | 949f290e | Verified (UAT by user) | [261013-l97-aio-cycles-dashboard](./quick/261013-l97-aio-cycles-dashboard/) |
+| 261013-mnc | AIO cycle detail + run detail UX rework: header metadata (owner/dates/custom fields), KPI tiles + bar, Executions search/count chips/flex rows, Defects summary strip + trigger chips, run detail key+title, Prev/Next, step cards + sidebar w/ test case meta | 2026-10-13 | 3d8e3986 | Needs Review | [261013-mnc-enhance-aio-cycle-detail-page-and-testca](./quick/261013-mnc-enhance-aio-cycle-detail-page-and-testca/) |
 | 260812-l6f | On release detail, move the descrition/descriptions from the main content into the sidebar. All other functionality should stay the same | 2026-08-12 | 507a83b1 | | [260812-l6f-on-release-detail-move-the-descrition-de](./quick/260812-l6f-on-release-detail-move-the-descrition-de/) |
 | 260812-mry | Add compactness and font size settings to Appearance section | 2026-08-12 | 5566e8ff | Verified | [260812-mry-add-compactness-and-font-size-settings-t](./quick/260812-mry-add-compactness-and-font-size-settings-t/) |
 | 260827-eaj | Add a settings option to open links in a user-selectable browser (covers 'open in browser' links and links inside descriptions/comments) | 2026-08-27 | 794aaa41 | Verified | [260827-eaj-add-a-settings-option-to-open-links-in-a](./quick/260827-eaj-add-a-settings-option-to-open-links-in-a/) |
