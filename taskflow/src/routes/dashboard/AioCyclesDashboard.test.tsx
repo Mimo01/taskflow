@@ -56,7 +56,7 @@ function buildScope(items: AioCycleDetailItem[], withSummaries = true): CycleSco
 
 const ITEMS = [
   cycle(1, 'alice', '2026-10-01'), // overdue
-  cycle(2, 'alice', '2026-10-15'), // due soon
+  cycle(2, 'alice', '2026-10-15'), // due this week
   cycle(3, 'bob', null), // no end date
 ];
 
@@ -66,60 +66,62 @@ function renderDashboard(
 ) {
   const onFilter = vi.fn<(f: CycleFilter | null) => void>();
   const onShowOpen = vi.fn();
-  const utils = render(
+  const onShowAll = vi.fn();
+  const onOpenFolder = vi.fn<(id: number) => void>();
+  const props: React.ComponentProps<typeof AioCyclesDashboard> = {
+    scope,
+    filter: null,
+    onFilter,
+    loading: false,
+    summariesLoading: false,
+    statusFilter: 'open',
+    onShowOpen,
+    onShowAll,
+    subfolders: [],
+    onOpenFolder,
+    today: TODAY,
+    token: 't',
+    jiraBaseUrl: 'https://jira.example.com',
+    ...over,
+  };
+  const ui = (p: React.ComponentProps<typeof AioCyclesDashboard>) => (
     <QueryClientProvider client={new QueryClient()}>
-      <AioCyclesDashboard
-        scope={scope}
-        filter={null}
-        onFilter={onFilter}
-        loading={false}
-        summariesLoading={false}
-        statusFilter="open"
-        onShowOpen={onShowOpen}
-        token="t"
-        jiraBaseUrl="https://jira.example.com"
-        {...over}
-      />
-    </QueryClientProvider>,
+      <AioCyclesDashboard {...p} />
+    </QueryClientProvider>
   );
-  return { ...utils, onFilter, onShowOpen };
+  const utils = render(ui(props));
+  const rerenderWith = (more: Partial<React.ComponentProps<typeof AioCyclesDashboard>>) =>
+    utils.rerender(ui({ ...props, ...more }));
+  return { ...utils, rerenderWith, onFilter, onShowOpen, onShowAll, onOpenFolder };
 }
 
 describe('AioCyclesDashboard', () => {
   it('renders the four tiles with values from the scope', () => {
     renderDashboard();
     expect(screen.getByTestId('tile-open').textContent).toContain('3');
-    expect(screen.getByTestId('tile-open').textContent).toContain('of 3 in scope');
+    expect(screen.getByTestId('tile-open').textContent).toContain('of 3 in this folder');
     expect(screen.getByTestId('tile-overdue').textContent).toContain('1');
-    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 12d late');
-    expect(screen.getByTestId('tile-due').textContent).toContain('1');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 12 days late');
+    expect(screen.getByTestId('tile-due').textContent).toContain('Due this week');
+    expect(screen.getByTestId('tile-due').textContent).toContain('next on Oct 15');
     // pass 3 of 6 total runs
     expect(screen.getByTestId('tile-pass').textContent).toContain('50%');
-    expect(screen.getByTestId('tile-pass').textContent).toContain('4/6 run');
+    expect(screen.getByTestId('tile-pass').textContent).toContain('4 of 6 runs executed');
+  });
+
+  it('Overdue tile reads "all on schedule" when nothing is late', () => {
+    renderDashboard({}, buildScope([cycle(3, 'bob', null)]));
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('all on schedule');
   });
 
   it('Overdue tile filters, shows pressed, and toggles off', () => {
-    const { onFilter, rerender } = renderDashboard();
+    const { onFilter, rerenderWith } = renderDashboard();
     fireEvent.click(screen.getByTestId('tile-overdue'));
     expect(onFilter).toHaveBeenCalledWith({ kind: 'overdue' });
     expect(screen.getByTestId('tile-overdue').getAttribute('aria-pressed')).toBe('false');
 
     onFilter.mockClear();
-    rerender(
-      <QueryClientProvider client={new QueryClient()}>
-        <AioCyclesDashboard
-          scope={buildScope(ITEMS)}
-          filter={{ kind: 'overdue' }}
-          onFilter={onFilter}
-          loading={false}
-          summariesLoading={false}
-          statusFilter="open"
-          onShowOpen={() => {}}
-          token="t"
-          jiraBaseUrl="https://jira.example.com"
-        />
-      </QueryClientProvider>,
-    );
+    rerenderWith({ filter: { kind: 'overdue' } });
     expect(screen.getByTestId('tile-overdue').getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByTestId('tile-overdue'));
     expect(onFilter).toHaveBeenCalledWith(null);
@@ -131,22 +133,62 @@ describe('AioCyclesDashboard', () => {
     expect(onShowOpen).toHaveBeenCalled();
   });
 
-  it('Execution mix renders a button per non-zero status and filters', () => {
+  it('Test results renders a row per non-zero status and filters', () => {
     const { onFilter } = renderDashboard();
     expect(screen.getByTestId('exec-row-pass')).toBeTruthy();
     expect(screen.getByTestId('exec-row-fail')).toBeTruthy();
     expect(screen.getByTestId('exec-row-notRun')).toBeTruthy();
     expect(screen.queryByTestId('exec-row-blocked')).toBeNull();
+    expect(screen.getByTestId('card-exec').textContent).toContain('67%executed');
     fireEvent.click(screen.getByTestId('exec-row-pass'));
     expect(onFilter).toHaveBeenCalledWith({ kind: 'status', status: 'pass' });
   });
 
-  it('shows "No test runs" when there are no runs', () => {
+  it('Test results shows "No test runs" when there are no runs', () => {
     renderDashboard({}, buildScope(ITEMS, false));
     expect(screen.getByText('No test runs')).toBeTruthy();
   });
 
-  it('By owner falls back to the owner id and filters by owner', () => {
+  it('Test results shows "Not started yet" when nothing has been executed', () => {
+    const scope = aggregateCycleScope(
+      [cycle(2, 'alice', null)],
+      Object.fromEntries([summary(2, { '51': 2 }, 2)]),
+      STATUSES,
+      TODAY,
+      'open',
+    );
+    renderDashboard({}, scope);
+    expect(screen.getByText('Not started yet')).toBeTruthy();
+    expect(screen.getByTestId('card-exec').textContent).toContain('2 test runs are waiting');
+    expect(screen.queryByTestId('exec-row-notRun')).toBeNull();
+  });
+
+  it('Cycle progress counts stages and filters by stage', () => {
+    const { onFilter } = renderDashboard();
+    // cycle 1: 4 runs all executed -> done; cycle 2: 2 not run -> not started
+    expect(screen.getByTestId('stage-row-done').textContent).toContain('1');
+    expect(screen.getByTestId('stage-row-notStarted').textContent).toContain('1');
+    expect(screen.queryByTestId('stage-row-noTests')).toBeNull();
+    fireEvent.click(screen.getByTestId('stage-row-notStarted'));
+    expect(onFilter).toHaveBeenCalledWith({ kind: 'stage', stage: 'notStarted' });
+  });
+
+  it('Due dates always shows six labelled buckets and filters non-empty ones', () => {
+    const { onFilter } = renderDashboard();
+    expect(screen.getAllByTestId(/^due-row-/)).toHaveLength(6);
+    expect(screen.getByTestId('due-row-week').textContent).toContain('This week');
+    fireEvent.click(screen.getByTestId('due-row-overdue'));
+    expect(onFilter).toHaveBeenCalledWith({ kind: 'overdue' });
+    fireEvent.click(screen.getByTestId('due-row-week'));
+    expect(onFilter).toHaveBeenCalledWith({ kind: 'dueSoon' });
+    fireEvent.click(screen.getByTestId('due-row-none'));
+    expect(onFilter).toHaveBeenCalledWith({ kind: 'noDates' });
+    onFilter.mockClear();
+    fireEvent.click(screen.getByTestId('due-row-later')); // empty
+    expect(onFilter).not.toHaveBeenCalled();
+  });
+
+  it('Owners falls back to the owner id and filters by owner', () => {
     const { onFilter } = renderDashboard();
     const row = screen.getByTestId('owner-row-alice');
     expect(row.textContent).toContain('alice');
@@ -154,46 +196,62 @@ describe('AioCyclesDashboard', () => {
     expect(onFilter).toHaveBeenCalledWith({ kind: 'owner', ownerId: 'alice', label: 'alice' });
   });
 
-  it('By owner shows at most 6 rows plus a "+N others" line', () => {
+  it('Owners shows at most 6 rows plus a "+N more owners" line', () => {
     const many = Array.from({ length: 9 }, (_, i) => cycle(100 + i, `user${i}`, null));
     renderDashboard({}, buildScope(many));
     expect(screen.getAllByTestId(/^owner-row-/)).toHaveLength(6);
-    expect(screen.getByText('+3 others')).toBeTruthy();
+    expect(screen.getByText('+3 more owners')).toBeTruthy();
   });
 
-  it('Schedule renders 10 columns and filters by week and overdue', () => {
-    const { onFilter } = renderDashboard();
-    expect(screen.getAllByTestId(/^schedule-col-/)).toHaveLength(10);
-    fireEvent.click(screen.getByTestId('schedule-col-2026-10-12'));
-    expect(onFilter).toHaveBeenCalledWith({ kind: 'endWeek', weekStart: '2026-10-12' });
-    fireEvent.click(screen.getByTestId('schedule-col-overdue'));
-    expect(onFilter).toHaveBeenCalledWith({ kind: 'overdue' });
-    fireEvent.click(screen.getByTestId('schedule-no-dates'));
-    expect(onFilter).toHaveBeenCalledWith({ kind: 'noDates' });
-    expect(screen.getByText('1 without end date')).toBeTruthy();
+  it('Subfolders card lists children and opens one on click', () => {
+    const { onOpenFolder } = renderDashboard({
+      subfolders: [
+        { id: 7, name: 'Sprint 1', count: 4, hasChildren: false },
+        { id: 8, name: 'Sprint 2', count: 0, hasChildren: true },
+      ],
+    });
+    expect(screen.getByTestId('card-subfolders').textContent).toContain('2 folders · 4 cycles');
+    fireEvent.click(screen.getByTestId('subfolder-7'));
+    expect(onOpenFolder).toHaveBeenCalledWith(7);
   });
 
-  it('Schedule shows "No end dates set" when no open cycle has an end date', () => {
-    renderDashboard({}, buildScope([cycle(1, 'alice', null)]));
-    expect(screen.getByText('No end dates set')).toBeTruthy();
-    expect(screen.queryAllByTestId(/^schedule-col-/)).toHaveLength(0);
+  it('a folder with no cycles shows a notice and only the subfolders', () => {
+    renderDashboard(
+      { subfolders: [{ id: 7, name: 'Sprint 1', count: 4, hasChildren: false }] },
+      buildScope([]),
+    );
+    expect(screen.getByTestId('dashboard-notice').textContent).toContain(
+      'No test cycles in this folder',
+    );
+    expect(screen.getByTestId('subfolder-7')).toBeTruthy();
+    expect(screen.queryByTestId('tile-open')).toBeNull();
   });
 
-  it('summariesLoading skeletons only the Pass rate tile and Execution mix', () => {
+  it('all-closed scope under Open shows a notice that switches to All', () => {
+    const { onShowAll } = renderDashboard({}, buildScope([cycle(9, 'bob', null, true)]));
+    expect(screen.getByTestId('dashboard-notice').textContent).toContain(
+      'All 1 cycle here are closed',
+    );
+    fireEvent.click(screen.getByTestId('dashboard-show-all'));
+    expect(onShowAll).toHaveBeenCalled();
+  });
+
+  it('summariesLoading skeletons only the Pass rate tile, Test results and Cycle progress', () => {
     renderDashboard({ summariesLoading: true });
     expect(screen.getByTestId('tile-skeleton-pass')).toBeTruthy();
     expect(screen.getByTestId('card-skeleton-exec')).toBeTruthy();
+    expect(screen.getByTestId('card-skeleton-stages')).toBeTruthy();
     expect(screen.getByTestId('tile-open').textContent).toContain('3');
     expect(screen.queryByTestId('card-skeleton-owners')).toBeNull();
-    expect(screen.queryByTestId('card-skeleton-schedule')).toBeNull();
+    expect(screen.queryByTestId('card-skeleton-due')).toBeNull();
   });
 
   it('loading skeletons every tile and card inside the same shells', () => {
     renderDashboard({ loading: true });
     expect(screen.getAllByTestId(/^tile-skeleton-/)).toHaveLength(4);
-    expect(screen.getAllByRole('region')).toHaveLength(3);
-    expect(screen.getByTestId('card-skeleton-exec')).toBeTruthy();
-    expect(screen.getByTestId('card-skeleton-owners')).toBeTruthy();
-    expect(screen.getByTestId('card-skeleton-schedule')).toBeTruthy();
+    expect(screen.getAllByRole('region')).toHaveLength(4);
+    for (const id of ['exec', 'stages', 'due', 'owners']) {
+      expect(screen.getByTestId(`card-skeleton-${id}`)).toBeTruthy();
+    }
   });
 });

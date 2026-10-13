@@ -315,6 +315,49 @@ export async function fetchAioCyclesWithDetail(
 }
 
 /**
+ * Cycles in several folders (a parent folder's subtree), one paged request per folder,
+ * merged and de-duplicated. A single multi-ID `folderID IN [...]` filter returned nothing
+ * for parent folders live (UAT 261013-l97), so each folder is queried on its own — the
+ * same single-folder request a leaf folder uses. At most `concurrency` requests in flight.
+ */
+export async function fetchAioCyclesInFolders(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+  folderIds: number[],
+  concurrency = 6,
+): Promise<AioCycleDetailPagedResponse> {
+  const pages: AioCycleDetailPagedResponse[] = new Array(folderIds.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < folderIds.length) {
+      const i = next++;
+      pages[i] = await fetchAioCyclesWithDetail(baseUrl, token, jiraProjectId, [folderIds[i]]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, folderIds.length) }, () => worker()),
+  );
+  const seen = new Set<number>();
+  const items: AioCycleDetailItem[] = [];
+  for (const page of pages) {
+    for (const item of page.items) {
+      if (!seen.has(item.ID)) {
+        seen.add(item.ID);
+        items.push(item);
+      }
+    }
+  }
+  return {
+    items,
+    allIDs: items.map((c) => c.ID),
+    startAt: 0,
+    maxResults: items.length,
+    isLast: true,
+  };
+}
+
+/**
  * Cycles that belong to no folder ("Ungrouped" — key -1 in the folder count map).
  * The paged endpoint's folderID filter does not accept -1 (live: returns nothing), so
  * fetch every cycle plus every cycle inside a known folder and keep the difference.

@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/apiFetch';
 import {
   fetchAioCycleSummaries,
   fetchAioCycles,
+  fetchAioCyclesInFolders,
   fetchAioCyclesWithDetail,
   fetchAioCycleTestCasesWithRuns,
   fetchAioFolderCycleCounts,
@@ -519,5 +520,68 @@ describe('fetchAioUngroupedCycles', () => {
     const result = await fetchAioUngroupedCycles(BASE, TOKEN, PROJECT_ID, []);
     expect(result.items.map((c) => c.ID)).toEqual([1, 2]);
     expect(mockedApiFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('fetchAioCyclesInFolders', () => {
+  const item = (ID: number) => ({
+    ID,
+    jiraProjectID: PROJECT_ID,
+    detail: {
+      key: `PROJ-CY-${ID}`,
+      title: `C${ID}`,
+      ownedByID: 'u',
+      folder: null,
+      isClosed: false,
+      startDate: null,
+      endDate: null,
+    },
+    summary: null,
+  });
+  const page = (ids: number[]) =>
+    ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: ids.map(item),
+        allIDs: ids,
+        startAt: 0,
+        maxResults: 500,
+        isLast: true,
+      }),
+    }) as unknown as Response;
+  const byFolder: Record<number, number[]> = { 101: [1, 2], 102: [3], 103: [2, 4] };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedApiFetch.mockImplementation(async (...args: unknown[]) => {
+      const body = JSON.parse((args[2] as { body: string }).body);
+      return page(byFolder[body.folderID.list[0]] ?? []);
+    });
+  });
+
+  it('queries each folder on its own and merges without duplicates', async () => {
+    const result = await fetchAioCyclesInFolders(BASE, TOKEN, PROJECT_ID, [101, 102, 103]);
+    expect(result.items.map((c) => c.ID)).toEqual([1, 2, 3, 4]);
+    expect(result.allIDs).toEqual([1, 2, 3, 4]);
+    const lists = mockedApiFetch.mock.calls.map(
+      (c) => JSON.parse((c[2] as { body: string }).body).folderID.list,
+    );
+    expect(lists).toEqual([[101], [102], [103]]);
+  });
+
+  it('caps requests in flight at the concurrency limit', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    mockedApiFetch.mockImplementation(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 1));
+      inFlight--;
+      return page([]);
+    });
+    await fetchAioCyclesInFolders(BASE, TOKEN, PROJECT_ID, [1, 2, 3, 4, 5], 2);
+    expect(peak).toBe(2);
+    expect(mockedApiFetch).toHaveBeenCalledTimes(5);
   });
 });

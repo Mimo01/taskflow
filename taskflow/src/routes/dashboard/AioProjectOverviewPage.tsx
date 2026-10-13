@@ -8,6 +8,7 @@ import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { toLocalDateString } from '@/lib/local-date';
 import {
   fetchAioCycleSummaries,
+  fetchAioCyclesInFolders,
   fetchAioCyclesWithDetail,
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
@@ -19,7 +20,7 @@ import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { AioCycleList } from './AioCycleList';
-import { AioCyclesDashboard } from './AioCyclesDashboard';
+import { AioCyclesDashboard, type SubfolderStat } from './AioCyclesDashboard';
 import { AioCyclesScopeBar } from './AioCyclesScopeBar';
 import { AioFolderPanel, ALL_CYCLES_ID, UNGROUPED_ID } from './AioFolderPanel';
 
@@ -64,6 +65,15 @@ function findAncestorPath(tree: AioFolder[], targetID: number): number[] {
     }
   }
   return [];
+}
+
+function findFolder(tree: AioFolder[], targetID: number): AioFolder | null {
+  for (const node of tree) {
+    if (node.ID === targetID) return node;
+    const found = findFolder(node.children, targetID);
+    if (found) return found;
+  }
+  return null;
 }
 
 /** Folder name path "A / B / C" for the selected folder; null when not found. */
@@ -158,20 +168,37 @@ export default function AioProjectOverviewPage() {
   // Cycle list — re-fetches whenever the selected folder changes.
   const cyclesWithDetailQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
-    queryFn: () =>
-      selectedFolderID === UNGROUPED_ID
-        ? fetchAioUngroupedCycles(
-            jiraBaseUrl ?? '',
-            token ?? '',
-            jiraProjectId ?? 0,
-            collectAllFolderIDs(foldersQuery.data ?? []),
-          )
-        : fetchAioCyclesWithDetail(
-            jiraBaseUrl ?? '',
-            token ?? '',
-            jiraProjectId ?? 0,
-            activeFolderIds,
-          ),
+    queryFn: () => {
+      if (selectedFolderID === UNGROUPED_ID) {
+        return fetchAioUngroupedCycles(
+          jiraBaseUrl ?? '',
+          token ?? '',
+          jiraProjectId ?? 0,
+          collectAllFolderIDs(foldersQuery.data ?? []),
+        );
+      }
+      // A parent folder: one request per folder in its subtree that holds cycles
+      // (multi-ID folderID filters came back empty live).
+      if (activeFolderIds.length > 1) {
+        // The count map lists only folders that hold cycles; without it, query them all.
+        const counts = countMapQuery.data;
+        const withCycles = counts
+          ? activeFolderIds.filter((id) => (counts[String(id)] ?? 0) > 0)
+          : activeFolderIds;
+        return fetchAioCyclesInFolders(
+          jiraBaseUrl ?? '',
+          token ?? '',
+          jiraProjectId ?? 0,
+          withCycles,
+        );
+      }
+      return fetchAioCyclesWithDetail(
+        jiraBaseUrl ?? '',
+        token ?? '',
+        jiraProjectId ?? 0,
+        activeFolderIds,
+      );
+    },
     // Ungrouped is computed against the full folder tree, so it waits for it.
     enabled:
       aioGate &&
@@ -301,6 +328,22 @@ export default function AioProjectOverviewPage() {
         : (folderPath?.[folderPath.length - 1] ?? '');
   const folderTitle = folderPath ? folderPath.join(' / ') : folderLabel;
 
+  // Direct children of the selection (the roots for All cycles) for the Subfolders card.
+  const subfolders = useMemo((): SubfolderStat[] => {
+    const children =
+      selectedFolderID === ALL_CYCLES_ID
+        ? folderTree
+        : selectedFolderID !== null && selectedFolderID > 0
+          ? (findFolder(folderTree, selectedFolderID)?.children ?? [])
+          : [];
+    return children.map((f) => ({
+      id: f.ID,
+      name: f.name,
+      count: agg[f.ID] ?? 0,
+      hasChildren: f.children.length > 0,
+    }));
+  }, [selectedFolderID, folderTree, agg]);
+
   // ── render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -350,6 +393,15 @@ export default function AioProjectOverviewPage() {
                   setStatusFilter('open');
                   setCycleFilter(null);
                 }}
+                onShowAll={() => setStatusFilter('all')}
+                subfolders={subfolders}
+                onOpenFolder={(id) => {
+                  selectFolder(id);
+                  // Reveal the opened folder in the tree.
+                  const path = findAncestorPath(folderTree, id);
+                  setExpandedIDs((prev) => new Set([...prev, ...path, id]));
+                }}
+                today={today}
                 token={token}
                 jiraBaseUrl={jiraBaseUrl ?? undefined}
               />
