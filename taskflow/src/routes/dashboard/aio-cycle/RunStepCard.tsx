@@ -22,7 +22,10 @@ const GRID =
 
 export function RunStepList({ children }: { children: ReactNode }) {
   return (
-    <div className="@container border-t" data-testid="aio-run-detail-step-table">
+    <div
+      className="@container overflow-hidden rounded-lg border border-border"
+      data-testid="aio-run-detail-step-table"
+    >
       <div
         aria-hidden
         className={cn(
@@ -36,7 +39,7 @@ export function RunStepList({ children }: { children: ReactNode }) {
         <span>Actual</span>
         <span>Status</span>
       </div>
-      <div className="divide-y divide-border border-b">{children}</div>
+      <div className="divide-y divide-border">{children}</div>
     </div>
   );
 }
@@ -100,7 +103,8 @@ function StepDefect({
       )}
     </>
   );
-  const chipClass = 'flex w-full min-w-0 items-center gap-2 rounded px-1.5 py-1 text-xs';
+  const chipClass =
+    'flex w-full min-w-0 items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs';
   if (!issue || !onOpenDefect) {
     return (
       <li className={cn(chipClass, 'text-muted-foreground', isLoading && 'animate-pulse')}>
@@ -116,7 +120,7 @@ function StepDefect({
         title={[issue.key, statusName, summary].filter(Boolean).join(' · ')}
         className={cn(
           chipClass,
-          'cursor-pointer text-left hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
+          'cursor-pointer text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
         )}
         onClick={() => onOpenDefect(issue.key)}
       >
@@ -206,7 +210,7 @@ export function RunStepCard({
 
       {defects.length > 0 && (
         <ul
-          className="col-start-2 col-end-[-1] -mx-1.5 space-y-0.5"
+          className="col-start-2 col-end-[-1] space-y-1"
           data-testid={`run-step-defects-${index}`}
         >
           {defects.map((id) => (
