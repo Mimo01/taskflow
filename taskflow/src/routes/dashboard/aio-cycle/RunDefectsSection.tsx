@@ -42,7 +42,7 @@ export function RunDefectsSection({
       <div className="@container overflow-hidden rounded-lg border border-border">
         <div
           aria-hidden
-          className="flex items-center gap-3 border-b bg-muted/10 px-3 py-2 density-compact:py-1 density-comfortable:py-3"
+          className="flex items-center gap-4 border-b bg-muted/10 px-4 py-2.5 density-compact:py-1.5 density-comfortable:py-3"
         >
           <span className={`${COL.key} ${HEADER_CELL}`}>Key</span>
           <span className={`${COL.summary} ${HEADER_CELL}`}>Summary</span>
@@ -61,7 +61,7 @@ export function RunDefectsSection({
               <li
                 key={d.id}
                 data-testid={`aio-run-defect-${d.id}`}
-                className="relative flex min-w-0 items-center gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/30 density-compact:py-1.5 density-comfortable:py-3"
+                className="relative flex min-w-0 items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/30 density-compact:py-2 density-comfortable:py-4"
               >
                 {clickable && (
                   <button
