@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 import { FlaskConical } from 'lucide-react';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -34,6 +35,8 @@ import type {
 import { fetchJiraUserByUsername } from '@/services/jira/users';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+
+const VIRTUALIZE_THRESHOLD = 100;
 
 const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 
@@ -243,6 +246,116 @@ export function AioCycleList({
     navigate(`/aio-cycle/${projectKey}/${key}`);
   };
 
+  // ~1,300 cycles under "All cycles": render only the rows in view. Small folders keep
+  // plain rendering (and stay testable in jsdom, which has no layout).
+  const virtualize = visible.length > VIRTUALIZE_THRESHOLD;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const [rowsOffset, setRowsOffset] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the list mode changes
+  useLayoutEffect(() => {
+    setRowsOffset(rowsRef.current?.offsetTop ?? 0);
+  }, [virtualize, isLoading, isPending]);
+  const rowVirtualizer = useVirtualizer({
+    count: virtualize ? visible.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 41,
+    overscan: 12,
+    scrollMargin: rowsOffset,
+    getItemKey: (index) => visible[index]?.ID ?? index,
+  });
+
+  const renderRow = (cycle: AioCycleDetailItem, virtual?: VirtualItem) => {
+    const d = cycle.detail;
+    const summary = summaryByID[cycle.ID]?.summary;
+    const overdue = isOverdue(d, today);
+    const dates = formatCycleDates(d.startDate, d.endDate, today);
+    const actual = formatEffort(summary?.actualEffort);
+    const estimated = formatEffort(summary?.estimatedEffort);
+    return (
+      <div
+        key={cycle.ID}
+        ref={virtual ? rowVirtualizer.measureElement : undefined}
+        data-index={virtual?.index}
+        data-testid={`cycle-row-${cycle.ID}`}
+        style={
+          virtual
+            ? {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transform: `translateY(${virtual.start - rowVirtualizer.options.scrollMargin}px)`,
+              }
+            : undefined
+        }
+        className={cn(
+          'group/row relative flex w-full items-center border-b border-border transition-colors hover:bg-muted/30',
+          d.isClosed && 'text-muted-foreground',
+        )}
+      >
+        <button
+          type="button"
+          aria-label={`Open ${d.key} ${d.title}`}
+          className="absolute inset-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => openCycle(d.key)}
+        />
+        <div
+          className={cn(
+            COL.key,
+            CELL_PADDING,
+            'pointer-events-none relative whitespace-nowrap font-mono text-xs text-muted-foreground',
+          )}
+        >
+          {d.key}
+        </div>
+        <div
+          className={cn(COL.name, CELL_PADDING, 'pointer-events-none relative truncate text-sm')}
+          title={d.title}
+        >
+          {d.title}
+        </div>
+        <div className={cn(COL.status, CELL_PADDING, 'pointer-events-none relative')}>
+          <div className="flex">
+            {d.isClosed ? (
+              <span className={aioCycleStatusPillClass('Closed')}>Closed</span>
+            ) : overdue ? (
+              <span className={`${STATUS_PILL_LAYOUT_CLASS} ${tonePillClass('red')}`}>Overdue</span>
+            ) : (
+              <span className={aioCycleStatusPillClass('Active')}>Open</span>
+            )}
+          </div>
+        </div>
+        <ProgressCell summary={summary} isLoading={summariesLoading} statusConfig={statusConfig} />
+        {hasDates && (
+          <div
+            className={cn(
+              COL.dates,
+              CELL_PADDING,
+              'pointer-events-none relative whitespace-nowrap text-xs tabular-nums text-muted-foreground',
+              overdue && 'text-red-600 dark:text-red-400',
+            )}
+          >
+            {dates ?? '—'}
+          </div>
+        )}
+        <div className={cn(COL.owner, CELL_PADDING, 'pointer-events-none relative')}>
+          <OwnerCell ownedByID={d.ownedByID} token={token} jiraBaseUrl={jiraBaseUrl} />
+        </div>
+        {hasEffort && (
+          <div
+            className={cn(
+              COL.effort,
+              CELL_PADDING,
+              'pointer-events-none relative whitespace-nowrap text-xs tabular-nums text-muted-foreground',
+            )}
+          >
+            {actual ?? '—'} / {estimated ?? '—'}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   let body: ReactNode;
   if (isLoading) {
     body = <SkeletonRows />;
@@ -286,100 +399,24 @@ export function AioCycleList({
           <div className={cn(COL.owner, CELL_PADDING)}>Owner</div>
           {hasEffort && <div className={cn(COL.effort, CELL_PADDING)}>Effort</div>}
         </div>
-        {visible.map((cycle) => {
-          const d = cycle.detail;
-          const summary = summaryByID[cycle.ID]?.summary;
-          const overdue = isOverdue(d, today);
-          const dates = formatCycleDates(d.startDate, d.endDate, today);
-          const actual = formatEffort(summary?.actualEffort);
-          const estimated = formatEffort(summary?.estimatedEffort);
-          return (
-            <div
-              key={cycle.ID}
-              data-testid={`cycle-row-${cycle.ID}`}
-              className={cn(
-                'group/row relative flex w-full items-center border-b border-border transition-colors hover:bg-muted/30',
-                d.isClosed && 'text-muted-foreground',
-              )}
-            >
-              <button
-                type="button"
-                aria-label={`Open ${d.key} ${d.title}`}
-                className="absolute inset-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => openCycle(d.key)}
-              />
-              <div
-                className={cn(
-                  COL.key,
-                  CELL_PADDING,
-                  'pointer-events-none relative whitespace-nowrap font-mono text-xs text-muted-foreground',
-                )}
-              >
-                {d.key}
-              </div>
-              <div
-                className={cn(
-                  COL.name,
-                  CELL_PADDING,
-                  'pointer-events-none relative truncate text-sm',
-                )}
-                title={d.title}
-              >
-                {d.title}
-              </div>
-              <div className={cn(COL.status, CELL_PADDING, 'pointer-events-none relative')}>
-                <div className="flex">
-                  {d.isClosed ? (
-                    <span className={aioCycleStatusPillClass('Closed')}>Closed</span>
-                  ) : overdue ? (
-                    <span className={`${STATUS_PILL_LAYOUT_CLASS} ${tonePillClass('red')}`}>
-                      Overdue
-                    </span>
-                  ) : (
-                    <span className={aioCycleStatusPillClass('Active')}>Open</span>
-                  )}
-                </div>
-              </div>
-              <ProgressCell
-                summary={summary}
-                isLoading={summariesLoading}
-                statusConfig={statusConfig}
-              />
-              {hasDates && (
-                <div
-                  className={cn(
-                    COL.dates,
-                    CELL_PADDING,
-                    'pointer-events-none relative whitespace-nowrap text-xs tabular-nums text-muted-foreground',
-                    overdue && 'text-red-600 dark:text-red-400',
-                  )}
-                >
-                  {dates ?? '—'}
-                </div>
-              )}
-              <div className={cn(COL.owner, CELL_PADDING, 'pointer-events-none relative')}>
-                <OwnerCell ownedByID={d.ownedByID} token={token} jiraBaseUrl={jiraBaseUrl} />
-              </div>
-              {hasEffort && (
-                <div
-                  className={cn(
-                    COL.effort,
-                    CELL_PADDING,
-                    'pointer-events-none relative whitespace-nowrap text-xs tabular-nums text-muted-foreground',
-                  )}
-                >
-                  {actual ?? '—'} / {estimated ?? '—'}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <div
+          ref={rowsRef}
+          style={
+            virtualize
+              ? { height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }
+              : undefined
+          }
+        >
+          {virtualize
+            ? rowVirtualizer.getVirtualItems().map((v) => renderRow(visible[v.index], v))
+            : visible.map((cycle) => renderRow(cycle))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="@container flex min-w-0 flex-1 flex-col overflow-auto">
+    <div className="@container flex min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex items-center gap-3 border-b border-border px-4 py-2">
         <span className="truncate text-sm font-medium" title={folderTitle}>
           {folderLabel}
@@ -412,7 +449,9 @@ export function AioCycleList({
           ))}
         </fieldset>
       </div>
-      {body}
+      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto">
+        {body}
+      </div>
     </div>
   );
 }
