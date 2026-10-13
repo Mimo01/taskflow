@@ -1,12 +1,13 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronLeft, ChevronRight, FileQuestion } from 'lucide-react';
-import { useEffect } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { useResizable } from '@/hooks/useResizable';
 import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
 import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioRunStatusPillClass } from '@/lib/statusStyles';
@@ -17,6 +18,7 @@ import { fetchJiraIssueByKey } from '@/services/jira';
 import type { JiraIssue } from '@/services/jira/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { AioRunDetailSkeleton } from './AioCycleDetailSkeleton';
 import { RunDefectsSection } from './aio-cycle/RunDefectsSection';
 import { RunSection } from './aio-cycle/RunSection';
@@ -135,6 +137,23 @@ export default function AioTestRunDetailPage() {
       enabled: !!jiraBaseUrl && !!token && !tokenLoading,
     })),
   });
+
+  // Drag-to-resize sidebar — same hook/handle/bounds as the release detail sidebar.
+  const panelWidth = useSettingsStore((s) => s.aioRunDetailPanelWidth);
+  const setPanelWidth = useSettingsStore((s) => s.setAioRunDetailPanelWidth);
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const {
+    width: sidebarWidth,
+    isDragging,
+    handleMouseDown,
+  } = useResizable({
+    initialWidth: panelWidth,
+    min: 240,
+    max: () => (layoutRef.current?.offsetWidth ?? 800) * 0.5,
+    onCommit: setPanelWidth,
+    direction: 'left',
+  });
+  const [handleHovered, setHandleHovered] = useState(false);
 
   if (!projectKey || !cycleKey || !runId) {
     return (
@@ -291,7 +310,11 @@ export default function AioTestRunDetailPage() {
         ) : detailQuery.data ? (
           <div className="@container min-h-full">
             {/* Same two-column shape as the issue detail page: content + border-l sidebar. */}
-            <div className="flex min-h-full flex-col @[900px]:flex-row">
+            <div
+              ref={layoutRef}
+              className="flex min-h-full flex-col @[900px]:flex-row"
+              style={{ '--run-sidebar-w': `${sidebarWidth}px` } as CSSProperties}
+            >
               <div className="min-w-0 flex-1 space-y-6 p-6 density-compact:space-y-4 density-comfortable:space-y-8">
                 {description && (
                   <RunSection title="Description">
@@ -356,7 +379,25 @@ export default function AioTestRunDetailPage() {
                 )}
               </div>
 
-              <div className="border-t p-4 @[900px]:w-80 @[900px]:flex-none @[900px]:border-t-0 @[900px]:border-l">
+              <div
+                className={cn(
+                  'relative border-t p-4 @[900px]:w-(--run-sidebar-w) @[900px]:flex-none @[900px]:border-t-0 @[900px]:border-l',
+                  !isDragging && 'transition-[width] duration-200',
+                )}
+                data-testid="aio-run-sidebar-panel"
+              >
+                {/* Resize handle — mirrors IssueDetailView / ReleaseDetailSidebar. */}
+                <div
+                  aria-hidden="true"
+                  data-testid="aio-run-sidebar-resize"
+                  onMouseDown={handleMouseDown}
+                  onMouseEnter={() => setHandleHovered(true)}
+                  onMouseLeave={() => setHandleHovered(false)}
+                  style={{
+                    borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined,
+                  }}
+                  className="absolute top-0 left-0 z-20 hidden h-full w-3 cursor-ew-resize border-l border-border transition-colors duration-100 @[900px]:block"
+                />
                 <RunSidebar
                   run={detailQuery.data.run}
                   listRun={listRun}
