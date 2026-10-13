@@ -230,8 +230,8 @@ export function sortCycles(items: AioCycleDetailItem[]): AioCycleDetailItem[] {
 
 // ─── scope aggregation + cross-filter ────────────────────────────────────────
 
+/** "Due in 7 days" = today through today + 6 (the "This week" due-date bucket). */
 export const DUE_SOON_DAYS = 7;
-export const SCHEDULE_WEEKS = 8;
 const TOP_OWNERS = 6;
 
 const DAY_MS = 86_400_000;
@@ -257,20 +257,54 @@ export function addDaysKey(dateKey: string, n: number): string {
   return utcToKey(keyToUtc(dateKey) + n * DAY_MS);
 }
 
-/** Monday of the week containing `dateKey`. */
-export function weekStartOf(dateKey: string): string {
-  const dow = new Date(keyToUtc(dateKey)).getUTCDay(); // 0 = Sunday
-  return addDaysKey(dateKey, -((dow + 6) % 7));
-}
-
 export type CycleFilter =
   | { kind: 'overdue' }
   | { kind: 'dueSoon' }
   | { kind: 'noDates' }
   | { kind: 'owner'; ownerId: string; label: string }
   | { kind: 'status'; status: StatusKey }
-  | { kind: 'endWeek'; weekStart: string }
-  | { kind: 'endLater'; after: string };
+  | { kind: 'due'; bucket: 'next' | 'month' | 'later' }
+  | { kind: 'stage'; stage: CycleStage };
+
+/** How far a cycle has got: derived from its run distribution. */
+export type CycleStage = 'notStarted' | 'inProgress' | 'done' | 'noTests';
+
+export function cycleStage(progress: CycleProgress): CycleStage {
+  if (progress.total === 0) return 'noTests';
+  const executed = progress.total - progress.counts.notRun;
+  if (executed === 0) return 'notStarted';
+  return executed >= progress.total ? 'done' : 'inProgress';
+}
+
+export type DeadlineKey = 'overdue' | 'week' | 'next' | 'month' | 'later' | 'none';
+
+/** Days-until-due windows for the open cycles; `none` = no end date. */
+const DEADLINE_WINDOWS: { key: DeadlineKey; from: number; to: number }[] = [
+  { key: 'week', from: 0, to: DUE_SOON_DAYS - 1 },
+  { key: 'next', from: DUE_SOON_DAYS, to: 13 },
+  { key: 'month', from: 14, to: 27 },
+  { key: 'later', from: 28, to: Number.POSITIVE_INFINITY },
+];
+
+function deadlineOf(end: string | null, today: string): DeadlineKey {
+  if (end === null) return 'none';
+  const days = daysBetween(today, end);
+  if (days < 0) return 'overdue';
+  return DEADLINE_WINDOWS.find((w) => days <= w.to)?.key ?? 'later';
+}
+
+export function deadlineFilter(key: DeadlineKey): CycleFilter {
+  switch (key) {
+    case 'overdue':
+      return { kind: 'overdue' };
+    case 'week':
+      return { kind: 'dueSoon' };
+    case 'none':
+      return { kind: 'noDates' };
+    default:
+      return { kind: 'due', bucket: key };
+  }
+}
 
 export interface OwnerStat {
   ownerId: string;
@@ -282,12 +316,10 @@ export interface OwnerStat {
   runTotal: number;
 }
 
-export interface ScheduleBucket {
-  kind: 'overdue' | 'week' | 'later';
-  weekStart?: string;
-  weekEnd?: string;
+export interface DeadlineBucket {
+  key: DeadlineKey;
   count: number;
-  /** Keys of the two earliest-ending cycles in the bucket. */
+  /** Keys of the three earliest-ending cycles in the bucket. */
   keys: string[];
 }
 
@@ -313,14 +345,16 @@ export interface CycleScope {
   };
   owners: OwnerStat[];
   othersCount: number;
-  weeks: ScheduleBucket[];
-  hasEndDates: boolean;
+  /** Open cycles by due date, in display order (overdue … none). */
+  deadlines: DeadlineBucket[];
+  /** Cycles (with a summary) per stage; follows `statusFilter`. */
+  stages: Record<CycleStage, number>;
   progressByID: Map<number, CycleProgress>;
 }
 
 /**
- * One memoizable pass over the cycles in the folder scope. Count tiles and the schedule
- * describe open cycles and ignore `statusFilter`; the execution mix and owners follow it.
+ * One memoizable pass over the cycles in the folder scope. Count tiles and due dates
+ * describe open cycles and ignore `statusFilter`; execution, stages and owners follow it.
  */
 export function aggregateCycleScope(
   items: AioCycleDetailItem[],
@@ -353,14 +387,15 @@ export function aggregateCycleScope(
   const dueList: { key: string; date: string }[] = [];
   const ownerMap = new Map<string, OwnerStat>();
 
-  const weekStart0 = weekStartOf(today);
-  const weekBuckets: { key: string; end: string }[][] = Array.from(
-    { length: SCHEDULE_WEEKS },
-    () => [],
-  );
-  const overdueBucket: { key: string; end: string }[] = [];
-  const laterBucket: { key: string; end: string }[] = [];
-  const dueLimit = addDaysKey(today, DUE_SOON_DAYS);
+  const deadlineLists: Record<DeadlineKey, { key: string; end: string }[]> = {
+    overdue: [],
+    week: [],
+    next: [],
+    month: [],
+    later: [],
+    none: [],
+  };
+  const stages: Record<CycleStage, number> = { notStarted: 0, inProgress: 0, done: 0, noTests: 0 };
 
   for (const c of items) {
     const d = c.detail;
@@ -375,22 +410,18 @@ export function aggregateCycleScope(
 
     if (!d.isClosed) {
       openCount++;
-      if (end === null) {
-        noEndDate++;
-      } else if (late) {
+      const deadline = deadlineOf(end, today);
+      deadlineLists[deadline].push({ key: d.key, end: end ?? '' });
+      if (deadline === 'none') noEndDate++;
+      else if (deadline === 'overdue' && end !== null)
         overdueList.push({ key: d.key, daysLate: daysBetween(end, today) });
-        overdueBucket.push({ key: d.key, end });
-      } else {
-        if (end <= dueLimit) dueList.push({ key: d.key, date: end });
-        const idx = Math.floor(daysBetween(weekStart0, end) / 7);
-        if (idx < SCHEDULE_WEEKS) weekBuckets[idx].push({ key: d.key, end });
-        else laterBucket.push({ key: d.key, end });
-      }
+      else if (deadline === 'week' && end !== null) dueList.push({ key: d.key, date: end });
     }
 
     if (statusFilter === 'all' || !d.isClosed) {
       if (progress) {
         withSummary++;
+        stages[cycleStage(progress)]++;
         execTotal += progress.total;
         for (const k of Object.keys(execCounts) as StatusKey[]) {
           execCounts[k] += progress.counts[k];
@@ -429,25 +460,14 @@ export function aggregateCycleScope(
     (a, b) => b.count - a.count || a.ownerId.localeCompare(b.ownerId),
   );
 
-  const bucket = (
-    kind: ScheduleBucket['kind'],
-    list: { key: string; end: string }[],
-    weekStart?: string,
-  ): ScheduleBucket => ({
-    kind,
-    weekStart,
-    weekEnd: weekStart ? addDaysKey(weekStart, 6) : undefined,
-    count: list.length,
-    keys: [...list]
-      .sort((a, b) => a.end.localeCompare(b.end) || a.key.localeCompare(b.key))
-      .slice(0, 2)
+  const deadlines: DeadlineBucket[] = (Object.keys(deadlineLists) as DeadlineKey[]).map((key) => ({
+    key,
+    count: deadlineLists[key].length,
+    keys: [...deadlineLists[key]]
+      .sort((a, b) => a.end.localeCompare(b.end) || keyNumber(a.key) - keyNumber(b.key))
+      .slice(0, 3)
       .map((x) => x.key),
-  });
-  const weeks: ScheduleBucket[] = [
-    bucket('overdue', overdueBucket),
-    ...weekBuckets.map((list, i) => bucket('week', list, addDaysKey(weekStart0, i * 7))),
-    bucket('later', laterBucket),
-  ];
+  }));
 
   return {
     total: items.length,
@@ -474,8 +494,8 @@ export function aggregateCycleScope(
     },
     owners: allOwners.slice(0, TOP_OWNERS),
     othersCount: Math.max(0, allOwners.length - TOP_OWNERS),
-    weeks,
-    hasEndDates: openCount - noEndDate > 0,
+    deadlines,
+    stages,
     progressByID,
   };
 }
@@ -492,23 +512,17 @@ export function matchesCycleFilter(
     case 'overdue':
       return isOverdue(d, today);
     case 'dueSoon':
-      return !d.isClosed && end !== null && end >= today && end <= addDaysKey(today, DUE_SOON_DAYS);
+      return !d.isClosed && deadlineOf(end, today) === 'week';
     case 'noDates':
       return !d.isClosed && end === null;
+    case 'due':
+      return !d.isClosed && deadlineOf(end, today) === filter.bucket;
+    case 'stage':
+      return progress !== undefined && cycleStage(progress) === filter.stage;
     case 'owner':
       return d.ownedByID === filter.ownerId;
     case 'status':
       return progress !== undefined && progress.counts[filter.status] > 0;
-    case 'endWeek':
-      return (
-        !d.isClosed &&
-        end !== null &&
-        end >= today &&
-        end >= filter.weekStart &&
-        end <= addDaysKey(filter.weekStart, 6)
-      );
-    case 'endLater':
-      return !d.isClosed && end !== null && end > filter.after;
   }
 }
 
@@ -524,22 +538,38 @@ export function statusLabel(status: StatusKey): string {
   return STATUS_LABEL[status];
 }
 
+export const STAGE_LABEL: Record<CycleStage, string> = {
+  notStarted: 'Not started',
+  inProgress: 'In progress',
+  done: 'Completed',
+  noTests: 'No tests',
+};
+
+export const DEADLINE_LABEL: Record<DeadlineKey, string> = {
+  overdue: 'Overdue',
+  week: 'This week',
+  next: 'Next week',
+  month: 'In 2–4 weeks',
+  later: 'Later',
+  none: 'No due date',
+};
+
 /** Chip text for the active cross-filter. */
 export function cycleFilterLabel(filter: CycleFilter): string {
   switch (filter.kind) {
     case 'overdue':
       return 'Overdue';
     case 'dueSoon':
-      return `Due in ${DUE_SOON_DAYS} days`;
+      return 'Due this week';
     case 'noDates':
-      return 'No end date';
+      return 'No due date';
     case 'owner':
       return `Owner: ${filter.label}`;
     case 'status':
       return `Status: ${STATUS_LABEL[filter.status]}`;
-    case 'endWeek':
-      return `Ends week of ${formatDateKey(filter.weekStart)}`;
-    case 'endLater':
-      return `Ends after ${formatDateKey(filter.after)}`;
+    case 'due':
+      return `Due ${DEADLINE_LABEL[filter.bucket].toLowerCase()}`;
+    case 'stage':
+      return STAGE_LABEL[filter.stage];
   }
 }

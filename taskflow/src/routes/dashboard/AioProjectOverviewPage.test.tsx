@@ -65,6 +65,7 @@ vi.mock('@/services/aio', () => ({
   fetchAioFolderTree: vi.fn(),
   fetchAioFolderCycleCounts: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
+  fetchAioCyclesInFolders: vi.fn(),
   fetchAioUngroupedCycles: vi.fn(),
   fetchAioCycleSummaries: vi.fn(),
   fetchAioProjectConfig: vi.fn(),
@@ -241,6 +242,40 @@ describe('AioProjectOverviewPage — folder tree', () => {
     expect(screen.getByTestId('folder-node-102')).toBeDefined();
     fireEvent.change(input, { target: { value: 'zzz' } });
     expect(screen.getByText('No folders match')).toBeDefined();
+  });
+
+  it('a parent folder fetches each subfolder holding cycles and lists them as Subfolders', async () => {
+    await setupStandardMocks();
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesInFolders } = await import(
+      '@/services/aio'
+    );
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        ...FOLDER_A,
+        children: [
+          { ...FOLDER_B, ID: 103, name: 'Child with cycles', parentID: 101 },
+          { ...FOLDER_B, ID: 104, name: 'Empty child', parentID: 101 },
+        ],
+      },
+    ]);
+    // Parent 101 holds no cycles itself; 104 is empty.
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '103': 1 });
+    (fetchAioCyclesInFolders as ReturnType<typeof vi.fn>).mockResolvedValue(PAGED_RESPONSE);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByTestId('folder-node-101')).toBeDefined());
+    fireEvent.click(screen.getByTestId('folder-node-101'));
+    await waitFor(() => {
+      const calls = (fetchAioCyclesInFolders as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[calls.length - 1][3]).toEqual([103]);
+    });
+    await waitFor(() => expect(screen.getByTestId('card-subfolders')).toBeDefined());
+    expect(screen.getByTestId('subfolder-103').textContent).toContain('Child with cycles');
+    expect(screen.getByTestId('subfolder-104').textContent).toContain('0');
+    fireEvent.click(screen.getByTestId('subfolder-103'));
+    await waitFor(() =>
+      expect(screen.getByTestId('folder-node-103').getAttribute('aria-current')).toBe('page'),
+    );
   });
 
   it('selecting All cycles fetches with an empty folder list', async () => {
@@ -652,7 +687,7 @@ describe('AioProjectOverviewPage — dashboard cross-filter', () => {
     wrap(Page);
     await waitFor(() => expect(screen.getByTestId('tile-overdue').textContent).toContain('1'));
     expect(screen.getByTestId('tile-open').textContent).toContain('2');
-    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 5d late');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 5 days late');
   });
 
   it('clicking the Overdue tile filters the list; the chip clears it', async () => {
@@ -720,7 +755,7 @@ describe('AioProjectOverviewPage — dashboard cross-filter', () => {
     wrap(Page);
     await screen.findByText('Cycle Alpha');
     fireEvent.click(screen.getByTestId('tile-due'));
-    await waitFor(() => expect(screen.getByText('No cycles match Due in 7 days')).toBeDefined());
+    await waitFor(() => expect(screen.getByText('No cycles match Due this week')).toBeDefined());
     expect(screen.queryByText(/cycles in this folder are closed/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
