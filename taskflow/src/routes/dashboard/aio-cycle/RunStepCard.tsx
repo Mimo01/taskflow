@@ -174,15 +174,13 @@ export function RunStepCard({
         aria-hidden
         className={cn('absolute inset-y-0 left-0 w-0.5', PROGRESS_SEGMENT_CLASS[key])}
       />
-      <span className="pt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-        {index + 1}
-      </span>
+      <span className="pt-1 font-mono text-xs tabular-nums text-muted-foreground">{index + 1}</span>
 
       <div className="min-w-0 space-y-2 @[720px]:contents">
         <Cell label="Step">
           <WikiRenderer wikiText={step.step} />
           {step.testData ? (
-            <div className="mt-1 rounded-md bg-muted/50 px-2 py-1 text-xs">
+            <div className="mt-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs">
               <span className="mr-1 font-medium text-muted-foreground">Test data</span>
               <WikiRenderer wikiText={step.testData} />
             </div>
@@ -193,7 +191,7 @@ export function RunStepCard({
             <WikiRenderer wikiText={step.expectedResult} />
           </Cell>
         ) : (
-          <div className="hidden @[720px]:block" />
+          <div className="hidden text-sm text-muted-foreground @[720px]:block">—</div>
         )}
         {executed ? (
           <Cell label="Actual">

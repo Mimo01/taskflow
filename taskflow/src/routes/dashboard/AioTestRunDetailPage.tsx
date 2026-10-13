@@ -179,53 +179,51 @@ export default function AioTestRunDetailPage() {
       {/* Breadcrumb: the shared trail, then the owning cycle (unless the trail already
           ends there), then the test case. Always rendered so the way back to the cycle
           lives in one place, including on a direct link / pinned tab with no trail. */}
-      {
-        <div
-          className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
-          data-testid="aio-run-detail-breadcrumb"
+      <div
+        className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
+        data-testid="aio-run-detail-breadcrumb"
+      >
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
+          aria-label="Back"
         >
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-            aria-label="Back"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          {trail.map((entry, i) => (
-            <span key={entry.path} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted-foreground">/</span>}
-              <button
-                type="button"
-                onClick={() => {
-                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
-                  navigate(entry.path, { replace: true });
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {entry.label}
-              </button>
-            </span>
-          ))}
-          {trail[trail.length - 1]?.path !== cycleHref && (
-            <span className="flex items-center gap-2">
-              {trail.length > 0 && <span className="text-muted-foreground">/</span>}
-              <NavLink
-                to={cycleHref}
-                replace
-                aria-label={`Back to cycle ${cycleKey}`}
-                className="font-mono text-muted-foreground hover:text-foreground"
-              >
-                {cycleKey}
-              </NavLink>
-            </span>
-          )}
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium" data-testid="aio-run-detail-breadcrumb-current">
-            {headerKey ?? `Run ${runId}`}
+          <ArrowLeft className="size-4" />
+        </button>
+        {trail.map((entry, i) => (
+          <span key={entry.path} className="flex items-center gap-2">
+            {i > 0 && <span className="text-muted-foreground">/</span>}
+            <button
+              type="button"
+              onClick={() => {
+                useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
+                navigate(entry.path, { replace: true });
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {entry.label}
+            </button>
           </span>
-        </div>
-      }
+        ))}
+        {trail[trail.length - 1]?.path !== cycleHref && (
+          <span className="flex items-center gap-2">
+            {trail.length > 0 && <span className="text-muted-foreground">/</span>}
+            <NavLink
+              to={cycleHref}
+              replace
+              aria-label={`Back to cycle ${cycleKey}`}
+              className="font-mono text-muted-foreground hover:text-foreground"
+            >
+              {cycleKey}
+            </NavLink>
+          </span>
+        )}
+        <span className="text-muted-foreground">/</span>
+        <span className="font-medium" data-testid="aio-run-detail-breadcrumb-current">
+          {headerKey ?? `Run ${runId}`}
+        </span>
+      </div>
       <div className="flex min-w-0 flex-shrink-0 items-center gap-3 border-b border-border px-6 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <h1 className="min-w-0 truncate text-lg font-semibold" data-testid="aio-run-detail-title">
