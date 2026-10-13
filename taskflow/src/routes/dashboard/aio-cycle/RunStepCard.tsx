@@ -13,16 +13,32 @@ import type { JiraIssue } from '@/services/jira/types';
 import { WikiRenderer } from '../WikiRenderer';
 
 /**
- * Steps render as one framed list. Each step: number · full-width step text · status, then
- * Expected | Actual side by side (≥640px container) or stacked, then any linked defects.
- * Long step content gets the full row width instead of a third of it.
+ * Steps render as one bordered list. At ≥720px container width each step is a single grid
+ * row (# · Step · Expected · Actual · Status) under a shared header; below that the three
+ * texts stack with their own labels. The `contents` wrapper lets the same markup serve both.
  */
+const GRID =
+  'grid-cols-[1.75rem_minmax(0,1fr)_auto] @[720px]:grid-cols-[1.75rem_repeat(3,minmax(0,1fr))_6.5rem]';
+
 export function RunStepList({ children }: { children: ReactNode }) {
   return (
     <div
       className="@container overflow-hidden rounded-lg border border-border"
       data-testid="aio-run-detail-step-table"
     >
+      <div
+        aria-hidden
+        className={cn(
+          'hidden gap-x-6 border-b bg-muted/10 px-4 py-2.5 text-xs font-medium text-muted-foreground density-compact:py-1.5 density-comfortable:py-3 @[720px]:grid',
+          GRID,
+        )}
+      >
+        <span>#</span>
+        <span>Step</span>
+        <span>Expected</span>
+        <span>Actual</span>
+        <span>Status</span>
+      </div>
       <div className="divide-y divide-border">{children}</div>
     </div>
   );
@@ -114,10 +130,10 @@ function StepDefect({
   );
 }
 
-function Block({ label, children }: { label: string; children: ReactNode }) {
+function Cell({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0 text-sm">
-      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
+      <div className="mb-0.5 text-xs text-muted-foreground @[720px]:hidden">{label}</div>
       {children}
     </div>
   );
@@ -148,7 +164,8 @@ export function RunStepCard({
       data-testid={`run-step-${index}`}
       data-highlight={highlight ? 'true' : undefined}
       className={cn(
-        'relative grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 px-4 py-4 leading-relaxed density-compact:gap-y-2 density-compact:py-2.5 density-comfortable:py-5',
+        'relative grid items-start gap-x-6 gap-y-2 px-4 py-3.5 leading-relaxed density-compact:py-2 density-comfortable:py-4.5',
+        GRID,
         key === 'fail' && 'bg-red-500/[0.04]',
         key === 'blocked' && 'bg-orange-500/[0.05]',
       )}
@@ -157,47 +174,41 @@ export function RunStepCard({
         aria-hidden
         className={cn('absolute inset-y-0 left-0 w-0.5', PROGRESS_SEGMENT_CLASS[key])}
       />
-      <span className="pt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-        {index + 1}
-      </span>
+      <span className="pt-1 font-mono text-xs tabular-nums text-muted-foreground">{index + 1}</span>
 
-      <div className="min-w-0 text-sm">
-        <WikiRenderer wikiText={step.step} />
-        {step.testData ? (
-          <div className="mt-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs">
-            <span className="mr-1 font-medium text-muted-foreground">Test data</span>
-            <WikiRenderer wikiText={step.testData} />
-          </div>
-        ) : null}
+      <div className="min-w-0 space-y-2 @[720px]:contents">
+        <Cell label="Step">
+          <WikiRenderer wikiText={step.step} />
+          {step.testData ? (
+            <div className="mt-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs">
+              <span className="mr-1 font-medium text-muted-foreground">Test data</span>
+              <WikiRenderer wikiText={step.testData} />
+            </div>
+          ) : null}
+        </Cell>
+        {step.expectedResult ? (
+          <Cell label="Expected">
+            <WikiRenderer wikiText={step.expectedResult} />
+          </Cell>
+        ) : (
+          <div className="hidden text-sm text-muted-foreground @[720px]:block">—</div>
+        )}
+        {executed ? (
+          <Cell label="Actual">
+            <WikiRenderer wikiText={step.actualResult ?? ''} />
+          </Cell>
+        ) : (
+          <div className="hidden text-sm text-muted-foreground @[720px]:block">—</div>
+        )}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end @[720px]:justify-start">
         <span className={aioRunStatusPillClass(status)}>{normalizeStatusLabel(status)}</span>
       </div>
 
-      {(step.expectedResult || executed) && (
-        <div
-          className={cn(
-            'col-start-2 col-end-[-1] grid gap-x-6 gap-y-3',
-            step.expectedResult && executed && '@[640px]:grid-cols-2',
-          )}
-        >
-          {step.expectedResult ? (
-            <Block label="Expected">
-              <WikiRenderer wikiText={step.expectedResult} />
-            </Block>
-          ) : null}
-          {executed ? (
-            <Block label="Actual">
-              <WikiRenderer wikiText={step.actualResult ?? ''} />
-            </Block>
-          ) : null}
-        </div>
-      )}
-
       {defects.length > 0 && (
         <ul
-          className="col-start-2 col-end-[-1] space-y-1.5"
+          className="col-start-2 col-end-[-1] mt-1 space-y-1.5"
           data-testid={`run-step-defects-${index}`}
         >
           {defects.map((id) => (
