@@ -282,7 +282,7 @@ export default function AioTestRunDetailPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         {detailQuery.isError && !detailQuery.data && (
           <div className="p-4">
             <ErrorState
@@ -308,14 +308,17 @@ export default function AioTestRunDetailPage() {
             />
           </div>
         ) : detailQuery.data ? (
-          <div className="@container min-h-full">
+          <div className="@container h-full">
             {/* Same two-column shape as the issue detail page: content + border-l sidebar. */}
             <div
               ref={layoutRef}
-              className="flex min-h-full flex-col @[900px]:flex-row"
+              className="flex min-h-full flex-col @[900px]:h-full @[900px]:flex-row"
               style={{ '--run-sidebar-w': `${sidebarWidth}px` } as CSSProperties}
             >
-              <div className="min-w-0 flex-1 space-y-6 p-6 density-compact:space-y-4 density-comfortable:space-y-8">
+              <div
+                className="min-w-0 flex-1 space-y-6 p-6 density-compact:space-y-4 density-comfortable:space-y-8 @[900px]:overflow-y-auto"
+                data-testid="aio-run-main-scroll"
+              >
                 {description && (
                   <RunSection title="Description">
                     <div data-testid="aio-run-testcase-description" className="min-w-0 text-sm">
@@ -381,7 +384,8 @@ export default function AioTestRunDetailPage() {
 
               <div
                 className={cn(
-                  'relative border-t p-4 @[900px]:w-(--run-sidebar-w) @[900px]:flex-none @[900px]:border-t-0 @[900px]:border-l',
+                  // Two columns scroll independently (sidebar stays put), as on issue detail.
+                  'relative border-t p-4 @[900px]:w-(--run-sidebar-w) @[900px]:flex-none @[900px]:overflow-y-auto @[900px]:border-t-0 @[900px]:border-l',
                   !isDragging && 'transition-[width] duration-200',
                 )}
                 data-testid="aio-run-sidebar-panel"
