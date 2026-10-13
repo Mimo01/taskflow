@@ -18,6 +18,7 @@ import type { JiraIssue } from '@/services/jira/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioRunDetailSkeleton } from './AioCycleDetailSkeleton';
+import { RunDefectsSection } from './aio-cycle/RunDefectsSection';
 import { RunSidebar } from './aio-cycle/RunSidebar';
 import { RunStepCard, RunStepList } from './aio-cycle/RunStepCard';
 import { useAioCycleData } from './aio-cycle/useAioCycleData';
@@ -113,8 +114,17 @@ export default function AioTestRunDetailPage() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  // Derive defect IDs as strings from the run data
-  const defectIds = (detailQuery.data?.run.jiraDefectIDs ?? []).map(String);
+  // All defects of the run, de-duplicated: run-level first, then any step-only ones,
+  // each with the steps it is linked to.
+  const defectSteps = new Map<string, number[]>();
+  for (const id of detailQuery.data?.run.jiraDefectIDs ?? []) defectSteps.set(String(id), []);
+  (detailQuery.data?.steps ?? []).forEach((step, i) => {
+    for (const raw of step.jiraDefectIDs ?? []) {
+      const id = String(raw);
+      defectSteps.set(id, [...(defectSteps.get(id) ?? []), i]);
+    }
+  });
+  const defectIds = [...defectSteps.keys()];
 
   // Per-defect issue resolution via useQueries — same key as the cycle page
   const issueQueries = useQueries({
@@ -287,6 +297,16 @@ export default function AioTestRunDetailPage() {
                   </section>
                 )}
 
+                <RunDefectsSection
+                  defects={defectIds.map((id, i) => ({
+                    id,
+                    issue: (issueQueries[i]?.data ?? null) as JiraIssue | null,
+                    isLoading: issueQueries[i]?.isLoading ?? false,
+                    steps: defectSteps.get(id) ?? [],
+                  }))}
+                  onOpenDefect={openDefect}
+                />
+
                 {steps.length === 0 ? (
                   <EmptyState
                     icon={FileQuestion}
@@ -331,12 +351,6 @@ export default function AioTestRunDetailPage() {
                 run={detailQuery.data.run}
                 listRun={listRun}
                 testCase={testCase}
-                defects={defectIds.map((id, i) => ({
-                  id,
-                  issue: (issueQueries[i]?.data ?? null) as JiraIssue | null,
-                  isLoading: issueQueries[i]?.isLoading ?? false,
-                }))}
-                onOpenDefect={openDefect}
                 jiraBaseUrl={jiraBaseUrl}
                 token={token}
               />
