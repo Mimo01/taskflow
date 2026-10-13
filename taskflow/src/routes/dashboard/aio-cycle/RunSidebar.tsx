@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
 import { relativeTime } from '@/lib/relative-time';
-import { aioRunStatusPillClass, STATUS_PILL_LAYOUT_CLASS, tonePillClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass, aioTestCaseStatusPillClass } from '@/lib/statusStyles';
 import type { AioTestCaseDetail, AioTestRun } from '@/services/aio';
 import { UserChip } from './UserChip';
 
@@ -106,7 +106,7 @@ export function RunSidebar({
           {testCase.statusName && (
             <Row label="Status">
               <div className="flex">
-                <span className={`${STATUS_PILL_LAYOUT_CLASS} ${tonePillClass('muted')}`}>
+                <span className={aioTestCaseStatusPillClass(testCase.statusName)}>
                   {testCase.statusName}
                 </span>
               </div>

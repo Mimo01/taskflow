@@ -144,3 +144,21 @@ export const CHIP_TONE_CLASS: Record<ChipTone, string> = {
 export function tonePillClass(tone: ChipTone): string {
   return CHIP_TONE_CLASS[tone];
 }
+
+/**
+ * Tone for an AIO test case lifecycle status (e.g. "Published", live probe P4). Matched by
+ * name since status IDs are per-instance; unknown names fall back to muted.
+ */
+export function aioTestCaseStatusTone(name: string | undefined): ChipTone {
+  const n = (name ?? '').trim().toLowerCase();
+  if (/publish|approv|ready|active|final/.test(n)) return 'green';
+  if (/review|pending|waiting/.test(n)) return 'amber';
+  if (/draft|new|progress|work/.test(n)) return 'blue';
+  if (/deprecat|obsolete|reject/.test(n)) return 'orange';
+  return 'muted';
+}
+
+/** Full className for an AIO test case status pill (layout + color). */
+export function aioTestCaseStatusPillClass(name: string | undefined): string {
+  return `${STATUS_PILL_LAYOUT_CLASS} ${CHIP_TONE_CLASS[aioTestCaseStatusTone(name)]}`;
+}
