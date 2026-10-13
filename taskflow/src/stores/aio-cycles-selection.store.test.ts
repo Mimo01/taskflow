@@ -17,7 +17,7 @@ import { useAioCyclesSelectionStore } from './aio-cycles-selection.store';
 describe('aio-cycles-selection.store', () => {
   beforeEach(() => {
     act(() => {
-      useAioCyclesSelectionStore.setState({ byProjectKey: {} });
+      useAioCyclesSelectionStore.setState({ byProjectKey: {}, statusFilter: 'open' });
     });
   });
 
@@ -59,5 +59,13 @@ describe('aio-cycles-selection.store', () => {
       useAioCyclesSelectionStore.getState().setSelectedFolder('PROJ', -1);
     });
     expect(useAioCyclesSelectionStore.getState().getSelectedFolder('PROJ')).toBe(-1);
+  });
+
+  it('statusFilter defaults to open and round-trips', () => {
+    expect(useAioCyclesSelectionStore.getState().statusFilter).toBe('open');
+    act(() => {
+      useAioCyclesSelectionStore.getState().setStatusFilter('all');
+    });
+    expect(useAioCyclesSelectionStore.getState().statusFilter).toBe('all');
   });
 });

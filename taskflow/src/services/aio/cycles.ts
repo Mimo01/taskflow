@@ -11,6 +11,7 @@ import { ApiError } from '../../lib/api-error';
 import { AIO_PROJECTS_API_PATH, aioFetch } from './client';
 import type {
   AioCycle,
+  AioCycleDetailItem,
   AioCycleDetailPagedResponse,
   AioCycleSummaryItem,
   AioFolder,
@@ -225,7 +226,15 @@ export async function fetchAioFolderCycleCounts(
  * @throws ApiError 401 on auth failure
  * @throws Error on network failure
  */
-const PAGED_COLUMNS = ['key', 'title', 'ownedByID', 'caseProgress', 'jiraComponentID'];
+const PAGED_COLUMNS = [
+  'key',
+  'title',
+  'ownedByID',
+  'caseProgress',
+  'jiraComponentID',
+  'startDate',
+  'endDate',
+];
 const PAGED_SORTING = {
   sortColumn: 'key',
   sortOrder: 'ASC',
@@ -241,39 +250,66 @@ export async function fetchAioCyclesWithDetail(
   jiraProjectId: number,
   folderIds?: number[],
 ): Promise<AioCycleDetailPagedResponse> {
-  const path = `/project/${jiraProjectId}/testcycle/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
-  const bodyObj: Record<string, unknown> = {
-    startAt: 0,
-    maxResults: 500,
-    columns: PAGED_COLUMNS,
-    customFields: [],
-    runCustomFields: [],
-    sortingData: PAGED_SORTING,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  };
-  if (folderIds && folderIds.length > 0) {
-    bodyObj.folderID = { comparisonType: 'IN', list: folderIds };
+  const items: AioCycleDetailItem[] = [];
+  const seen = new Set<number>();
+  let firstAllIDs: number[] = [];
+  let startAt = 0;
+  let isFirst = true;
+
+  // Page until isLast. Advance by the items actually returned (the server may cap below
+  // maxResults) and stop on an empty page or a page that adds no new IDs (a server that
+  // ignores startAt would otherwise loop forever).
+  for (;;) {
+    const path = `/project/${jiraProjectId}/testcycle/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
+    const bodyObj: Record<string, unknown> = {
+      startAt,
+      maxResults: 500,
+      columns: PAGED_COLUMNS,
+      customFields: [],
+      runCustomFields: [],
+      sortingData: PAGED_SORTING,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+    if (folderIds && folderIds.length > 0) {
+      bodyObj.folderID = { comparisonType: 'IN', list: folderIds };
+    }
+    let response: Response;
+    try {
+      response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, {
+        method: 'POST',
+        body: JSON.stringify(bodyObj),
+      });
+    } catch {
+      throw new Error(`Cannot reach AIO at ${baseUrl}`);
+    }
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new ApiError('Invalid token or token has expired', 401, 'jira');
+      }
+      if (response.status === 404) {
+        if (isFirst) return { items: [], allIDs: [], startAt: 0, maxResults: 0, isLast: true };
+        break;
+      }
+      throw new Error(`AIO request failed with status ${response.status}`);
+    }
+    const page = (await response.json()) as AioCycleDetailPagedResponse;
+    if (isFirst) {
+      firstAllIDs = page.allIDs ?? [];
+      isFirst = false;
+    }
+    let added = 0;
+    for (const item of page.items ?? []) {
+      if (!seen.has(item.ID)) {
+        seen.add(item.ID);
+        items.push(item);
+        added++;
+      }
+    }
+    if (page.isLast !== false || (page.items ?? []).length === 0 || added === 0) break;
+    startAt += page.items.length;
   }
-  const body = JSON.stringify(bodyObj);
-  let response: Response;
-  try {
-    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, {
-      method: 'POST',
-      body,
-    });
-  } catch {
-    throw new Error(`Cannot reach AIO at ${baseUrl}`);
-  }
-  if (response.ok) {
-    return (await response.json()) as AioCycleDetailPagedResponse;
-  }
-  if (response.status === 401) {
-    throw new ApiError('Invalid token or token has expired', 401, 'jira');
-  }
-  if (response.status === 404) {
-    return { items: [], allIDs: [], startAt: 0, maxResults: 0, isLast: true };
-  }
-  throw new Error(`AIO request failed with status ${response.status}`);
+
+  return { items, allIDs: firstAllIDs, startAt: 0, maxResults: items.length, isLast: true };
 }
 
 /**

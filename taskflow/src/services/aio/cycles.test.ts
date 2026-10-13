@@ -208,6 +208,89 @@ describe('fetchAioCyclesWithDetail', () => {
     expect(result.isLast).toBe(true);
   });
 
+  const mkItem = (ID: number) => ({
+    ID,
+    jiraProjectID: PROJECT_ID,
+    detail: { key: `PROJ-CY-${ID}`, title: 'c', ownedByID: 'u', folder: null, isClosed: false },
+    summary: null,
+  });
+
+  it('pages until isLast, advancing startAt by the items returned', async () => {
+    mockedApiFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [mkItem(1), mkItem(2)],
+          allIDs: [1, 2, 3],
+          startAt: 0,
+          maxResults: 500,
+          isLast: false,
+        }),
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [mkItem(3)],
+          allIDs: [9],
+          startAt: 2,
+          maxResults: 500,
+          isLast: true,
+        }),
+      } as unknown as Response);
+    const result = await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID);
+    expect(result.items).toHaveLength(3);
+    expect(result.allIDs).toEqual([1, 2, 3]);
+    expect(result.isLast).toBe(true);
+    expect(mockedApiFetch).toHaveBeenCalledTimes(2);
+    const secondBody = JSON.parse(
+      (vi.mocked(apiFetch).mock.calls[1][2] as { body: string }).body,
+    ) as { startAt: number };
+    expect(secondBody.startAt).toBe(2);
+  });
+
+  it('stops when a page adds no new IDs (server ignoring startAt)', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [mkItem(1)],
+        allIDs: [1],
+        startAt: 0,
+        maxResults: 500,
+        isLast: false,
+      }),
+    } as unknown as Response);
+    const result = await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID);
+    expect(result.items).toHaveLength(1);
+    expect(mockedApiFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops on an empty page', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], allIDs: [], startAt: 0, maxResults: 500, isLast: false }),
+    } as unknown as Response);
+    const result = await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID);
+    expect(result.items).toEqual([]);
+    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('requests startDate and endDate columns', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], allIDs: [], startAt: 0, maxResults: 0, isLast: true }),
+    } as unknown as Response);
+    await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID);
+    const body = JSON.parse((vi.mocked(apiFetch).mock.calls[0][2] as { body: string }).body) as {
+      columns: string[];
+    };
+    expect(body.columns).toEqual(expect.arrayContaining(['startDate', 'endDate']));
+  });
+
   it('includes c_pId query param in URL', async () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
