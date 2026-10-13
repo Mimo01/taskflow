@@ -68,28 +68,29 @@ function SummaryCard({
 }: {
   title: string;
   icon: LucideIcon;
-  /** Ambient icon tint, e.g. 'text-green-500/10 dark:text-green-400/15'. */
+  /** Ambient icon tint, e.g. 'text-green-500/[0.07] dark:text-green-400/10'. */
   iconClass: string;
   testId: string;
   children: ReactNode;
 }) {
   return (
     <Card
+      size="sm"
       role="region"
       aria-label={title}
       data-testid={testId}
       className="relative overflow-hidden"
     >
       <Icon
-        className={cn('pointer-events-none absolute -top-4 -right-3 size-22', iconClass)}
+        className={cn('pointer-events-none absolute -top-3 -right-2 size-16', iconClass)}
         aria-hidden
       />
       <CardHeader>
-        <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground/70">
+        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">{children}</CardContent>
+      <CardContent className="flex flex-col gap-2.5">{children}</CardContent>
     </Card>
   );
 }
@@ -106,10 +107,15 @@ function Headline({
 }) {
   return (
     <div className="flex min-w-0 items-baseline gap-1.5">
-      <span className={cn('text-3xl font-semibold tabular-nums text-foreground', valueClass)}>
+      <span
+        className={cn(
+          'text-xl font-semibold leading-7 tracking-tight tabular-nums text-foreground',
+          valueClass,
+        )}
+      >
         {value}
       </span>
-      <span className="truncate text-sm text-muted-foreground">{children}</span>
+      <span className="truncate text-xs text-muted-foreground">{children}</span>
     </div>
   );
 }
@@ -123,7 +129,7 @@ function SegmentBar({ label, segments }: { label: string; segments: Segment[] })
       <div
         role="img"
         aria-label={`${label}: ${shown.map((s) => `${s.count} ${s.label}`).join(', ') || 'none'}`}
-        className="flex h-3 overflow-hidden rounded-full bg-muted"
+        className="flex h-2 overflow-hidden rounded-full bg-muted"
       >
         {shown.map((s) => (
           <Tooltip key={s.key}>
@@ -139,9 +145,9 @@ function SegmentBar({ label, segments }: { label: string; segments: Segment[] })
           </Tooltip>
         ))}
       </div>
-      <div className="flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1">
+      <div className="flex min-h-4 flex-wrap items-center gap-x-3.5 gap-y-1">
         {shown.length === 0 ? (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">—</span>
         ) : (
           shown.map((s) => (
             <span
@@ -149,9 +155,10 @@ function SegmentBar({ label, segments }: { label: string; segments: Segment[] })
               data-testid={`legend-${s.key}`}
               className="flex flex-none items-center gap-1.5 whitespace-nowrap"
             >
-              <span className={cn('size-2.5 rounded-[2px]', s.className)} aria-hidden />
-              <span className="text-sm font-semibold text-muted-foreground">
-                {s.label} {s.count}
+              <span className={cn('size-2 rounded-[2px]', s.className)} aria-hidden />
+              <span className="text-xs text-muted-foreground">
+                {s.label}{' '}
+                <span className="font-medium tabular-nums text-foreground">{s.count}</span>
               </span>
             </span>
           ))
@@ -163,10 +170,10 @@ function SegmentBar({ label, segments }: { label: string; segments: Segment[] })
 
 function CardSkeleton() {
   return (
-    <div aria-busy="true" className="flex flex-col gap-3">
-      <Skeleton className="h-9 w-1/3" />
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-5 w-2/3" />
+    <div aria-busy="true" className="flex flex-col gap-2.5">
+      <Skeleton className="h-7 w-1/3" />
+      <Skeleton className="h-2 w-full" />
+      <Skeleton className="h-4 w-2/3" />
     </div>
   );
 }
@@ -179,7 +186,7 @@ function TestResultsCard({ scope }: { scope: CycleScope | null }) {
     <SummaryCard
       title="Test results"
       icon={CheckCircle2}
-      iconClass="text-green-500/10 dark:text-green-400/15"
+      iconClass="text-green-500/[0.07] dark:text-green-400/10"
       testId="card-exec"
     >
       {!exec ? (
@@ -211,7 +218,7 @@ function CycleProgressCard({ scope }: { scope: CycleScope | null }) {
     <SummaryCard
       title="Cycle progress"
       icon={Timer}
-      iconClass="text-blue-500/10 dark:text-blue-400/15"
+      iconClass="text-blue-500/[0.07] dark:text-blue-400/10"
       testId="card-stages"
     >
       {!scope ? (
@@ -243,7 +250,7 @@ function DueDatesCard({ scope }: { scope: CycleScope | null }) {
     <SummaryCard
       title="Due dates"
       icon={CalendarClock}
-      iconClass="text-amber-500/10 dark:text-amber-400/15"
+      iconClass="text-amber-500/[0.07] dark:text-amber-400/10"
       testId="card-due"
     >
       {!scope ? (
@@ -287,14 +294,14 @@ export interface SubfolderStat {
 function SubfoldersStrip({ folders }: { folders: SubfolderStat[] }) {
   return (
     <div data-testid="subfolders" className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground/70">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Subfolders
       </span>
       {folders.map((f) => (
         <span
           key={f.id}
           data-testid={`subfolder-${f.id}`}
-          className="flex min-w-0 items-center gap-1.5 text-sm"
+          className="flex min-w-0 items-center gap-1.5 text-xs"
         >
           <Folder className="size-3.5 flex-none text-muted-foreground" aria-hidden />
           <span className="max-w-48 truncate pr-0.5">{f.name}</span>
