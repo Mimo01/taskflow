@@ -244,7 +244,7 @@ const SCOPE_ITEMS = [
   scoped(4, { owner: 'B', end: '2026-10-21' }), // today + 8
   scoped(5, { owner: 'A' }), // no end date
   scoped(6, { owner: 'C', closed: true, end: '2026-09-01' }),
-  scoped(7, { owner: 'C', end: '2026-12-31' }), // beyond the 8 weeks
+  scoped(7, { owner: 'C', end: '2026-12-31' }), // beyond the 6 weeks
 ];
 const SCOPE_SUMMARIES = Object.fromEntries([
   sum(1, { '53': 2, '54': 1 }, 3),
@@ -324,8 +324,8 @@ describe('aggregateCycleScope', () => {
     expect(s.owners).toEqual([]);
   });
 
-  it('builds 10 schedule buckets over open cycles only', () => {
-    expect(open.weeks).toHaveLength(10);
+  it('builds 8 schedule buckets (late, 6 weeks, later) over open cycles only', () => {
+    expect(open.weeks).toHaveLength(8);
     expect(open.weeks[0]).toMatchObject({ kind: 'overdue', count: 1, keys: ['P-CY-1'] });
     expect(open.weeks[1]).toMatchObject({
       kind: 'week',
@@ -335,7 +335,7 @@ describe('aggregateCycleScope', () => {
     });
     expect(open.weeks[2]).toMatchObject({ weekStart: '2026-10-19', count: 2 });
     expect(open.weeks[2].keys).toEqual(['P-CY-3', 'P-CY-4']);
-    expect(open.weeks[9]).toMatchObject({ kind: 'later', count: 1, keys: ['P-CY-7'] });
+    expect(open.weeks[7]).toMatchObject({ kind: 'later', count: 1, keys: ['P-CY-7'] });
     // identical regardless of the status filter
     expect(all.weeks).toEqual(open.weeks);
   });
