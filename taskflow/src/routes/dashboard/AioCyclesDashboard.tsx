@@ -28,9 +28,7 @@ const CHART_BODY_CLASS = 'h-[184px] overflow-hidden';
 /** Pixel height of the tallest schedule column. */
 const SCHEDULE_BAR_MAX_PX = 84;
 
-const TILE_BUTTON_CLASS =
-  'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
-const ROW_BUTTON_CLASS =
+const FOCUS_RING_CLASS =
   'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
 
 export function sameFilter(a: CycleFilter | null, b: CycleFilter | null): boolean {
@@ -100,7 +98,7 @@ function Tile({
           onClick={onClick}
           className={cn(
             STAT_CARD_CLASS,
-            TILE_BUTTON_CLASS,
+            FOCUS_RING_CLASS,
             onClick ? 'cursor-pointer' : 'cursor-default',
           )}
         >
@@ -198,7 +196,7 @@ function ExecutionMixBody({
                 onClick={() => toggle({ kind: 'status', status: k })}
                 className={cn(
                   'flex h-6 w-full items-center gap-2 px-1 text-xs hover:bg-accent/40',
-                  ROW_BUTTON_CLASS,
+                  FOCUS_RING_CLASS,
                   active && 'bg-accent/60',
                 )}
               >
@@ -258,7 +256,7 @@ function OwnersBody({
               onClick={() => toggle({ kind: 'owner', ownerId: o.ownerId, label: name })}
               className={cn(
                 'flex h-6 w-full flex-none items-center gap-2 px-1 text-xs hover:bg-accent/40',
-                ROW_BUTTON_CLASS,
+                FOCUS_RING_CLASS,
                 active && 'bg-accent/60',
               )}
             >
@@ -359,10 +357,12 @@ function ScheduleBody({
                   data-testid={`schedule-col-${b.kind === 'week' ? b.weekStart : b.kind}`}
                   aria-pressed={active}
                   aria-label={`${title}: ${b.count} cycles`}
-                  onClick={() => toggle(f)}
+                  // Empty weeks stay hoverable but can't filter the list down to nothing.
+                  onClick={b.count > 0 ? () => toggle(f) : undefined}
                   className={cn(
-                    'flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5 hover:bg-accent/40',
-                    ROW_BUTTON_CLASS,
+                    'flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5',
+                    b.count > 0 ? 'hover:bg-accent/40' : 'cursor-default',
+                    FOCUS_RING_CLASS,
                     active && 'bg-accent/60',
                   )}
                 >
@@ -418,7 +418,7 @@ function ScheduleBody({
             onClick={() => toggle({ kind: 'noDates' })}
             className={cn(
               'rounded-sm px-1 text-[11px] leading-4 text-muted-foreground hover:text-foreground',
-              ROW_BUTTON_CLASS,
+              FOCUS_RING_CLASS,
               noDatesActive && 'bg-accent/60 text-foreground',
             )}
           >

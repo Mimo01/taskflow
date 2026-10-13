@@ -91,7 +91,9 @@ export default function AioProjectOverviewPage() {
   const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
 
   // The right pane scrolls as one; the list's virtualizer uses it as its scroll element.
-  const paneRef = useRef<HTMLDivElement>(null);
+  // State (callback ref), not useRef: a parent's ref attaches after the child's layout
+  // effects, so the list must re-render once the element exists.
+  const [paneEl, setPaneEl] = useState<HTMLDivElement | null>(null);
   // Cross-filter from the dashboard tiles/charts. Ephemeral: resets on folder/project change.
   const [cycleFilter, setCycleFilter] = useState<CycleFilter | null>(null);
   const today = toLocalDateString(new Date());
@@ -273,7 +275,7 @@ export default function AioProjectOverviewPage() {
   const selectFolder = (id: number) => {
     setSelectedFolderID(id);
     setCycleFilter(null);
-    if (paneRef.current) paneRef.current.scrollTop = 0;
+    if (paneEl) paneEl.scrollTop = 0;
     if (projectKey) setSelectedFolder(projectKey, id);
     if (id > 0) {
       setExpandedIDs((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
@@ -326,7 +328,7 @@ export default function AioProjectOverviewPage() {
             })
           }
         />
-        <div ref={paneRef} className="@container relative min-w-0 flex-1 overflow-y-auto">
+        <div ref={setPaneEl} className="@container relative min-w-0 flex-1 overflow-y-auto">
           {/* ResizeObserver target of the list's virtualizer: tracks the dashboard's height. */}
           <div className="space-y-6 px-6 py-5">
             <AioCyclesScopeBar
@@ -334,6 +336,7 @@ export default function AioProjectOverviewPage() {
               folderTitle={folderTitle}
               openCount={scope.openCount}
               closedCount={scope.closedCount}
+              loading={cyclesPending}
             />
             {!cyclesWithDetailQuery.isError && (
               <AioCyclesDashboard
@@ -369,7 +372,7 @@ export default function AioProjectOverviewPage() {
                 statusConfig={statusConfig}
                 token={token}
                 jiraBaseUrl={jiraBaseUrl ?? undefined}
-                scrollElementRef={paneRef}
+                scrollElement={paneEl}
                 filter={cycleFilter}
                 onClearFilter={() => setCycleFilter(null)}
                 today={today}
