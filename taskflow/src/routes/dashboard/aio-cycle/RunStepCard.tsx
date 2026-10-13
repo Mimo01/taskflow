@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
-import { PriorityIcon } from '@/components/ui/priority-icon';
-import { Skeleton } from '@/components/ui/skeleton';
 import { PROGRESS_SEGMENT_CLASS } from '@/lib/aio-cycle-list';
 import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioRunStatusPillClass, statusPillClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { AioTestRunStep } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
@@ -63,43 +61,37 @@ function StepDefect({
     enabled: !!jiraBaseUrl && !!token,
   });
 
-  const body = (
+  // Compact chip — the full detail (summary, assignee, priority, status) lives in the
+  // run's Defects section; here it only marks which defect a step raised.
+  const label = issue?.key ?? defectId;
+  const chip = (
     <>
       {issue?.fields.issuetype?.name ? (
-        <IssueTypeIcon typeName={issue.fields.issuetype.name} />
+        <IssueTypeIcon typeName={issue.fields.issuetype.name} className="size-3 shrink-0" />
       ) : null}
-      <span className="flex-none font-mono text-xs">{issue?.key ?? defectId}</span>
-      {isLoading ? (
-        <Skeleton className="h-3.5 w-32" />
-      ) : (
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          {issue?.fields.summary ?? ''}
-        </span>
-      )}
-      <PriorityIcon priority={issue?.fields.priority} />
+      <span className="font-mono">{label}</span>
       {issue?.fields.status && (
-        <div className="flex flex-none">
-          <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-            {issue.fields.status.name}
-          </span>
-        </div>
+        <span className="text-muted-foreground">· {issue.fields.status.name}</span>
       )}
     </>
   );
-
-  const rowClass = 'flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left';
+  const chipClass =
+    'inline-flex max-w-full items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-xs';
   if (!issue || !onOpenDefect) {
-    return <li className={rowClass}>{body}</li>;
+    return (
+      <li className={cn(chipClass, isLoading && 'animate-pulse text-muted-foreground')}>{chip}</li>
+    );
   }
   return (
-    <li>
+    <li className="max-w-full">
       <button
         type="button"
         aria-label={`Open defect ${issue.key}`}
-        className={cn(rowClass, 'cursor-pointer transition-colors hover:bg-muted')}
+        title={issue.fields.summary ?? undefined}
+        className={cn(chipClass, 'cursor-pointer transition-colors hover:bg-muted')}
         onClick={() => onOpenDefect(issue.key)}
       >
-        {body}
+        {chip}
       </button>
     </li>
   );
@@ -187,7 +179,7 @@ export function RunStepCard({
 
       {defects.length > 0 && (
         <ul
-          className="col-start-2 col-end-[-1] -mx-2 space-y-0.5"
+          className="col-start-2 col-end-[-1] flex flex-wrap gap-1.5"
           data-testid={`run-step-defects-${index}`}
         >
           {defects.map((id) => (

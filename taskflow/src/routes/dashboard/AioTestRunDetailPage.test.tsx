@@ -418,7 +418,7 @@ describe('AioTestRunDetailPage', () => {
       });
     });
 
-    it('per-step defects show summary + status and open the issue on click', async () => {
+    it('consolidates step defects into the Defects section with steps + assignee; step chip opens the issue', async () => {
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
         key: 'QAT-186227',
@@ -426,19 +426,26 @@ describe('AioTestRunDetailPage', () => {
           summary: 'Checkout crashes',
           status: { name: 'Open', statusCategory: { key: 'new' } },
           issuetype: { name: 'Bug' },
+          assignee: { displayName: 'Jana Nova', avatarUrls: { '48x48': '' } },
         },
       } as never);
+      // Step-only defect (run-level jiraDefectIDs empty) must still be listed.
       await setup({
-        detail: runDetail({}, [
+        detail: runDetail({ jiraDefectIDs: [] }, [
           { id: 1, step: 'Do it', status: 'FAIL', actualResult: 'bad', jiraDefectIDs: [186227] },
         ]),
       });
       renderAt(RUN_PATH);
-      const stepDefects = await screen.findByTestId('run-step-defects-0');
+      const row = await screen.findByTestId('aio-run-defect-186227');
       await waitFor(() => {
-        expect(stepDefects.textContent).toContain('Checkout crashes');
+        expect(row.textContent).toContain('Checkout crashes');
       });
-      expect(stepDefects.textContent).toContain('Open');
+      expect(row.textContent).toContain('Step 1');
+      expect(row.textContent).toContain('Jana Nova');
+      expect(row.textContent).toContain('Open');
+
+      const stepDefects = screen.getByTestId('run-step-defects-0');
+      expect(stepDefects.textContent).not.toContain('Checkout crashes');
       await userEvent.click(
         within(stepDefects).getByRole('button', { name: 'Open defect QAT-186227' }),
       );

@@ -1,24 +1,9 @@
 import type { ReactNode } from 'react';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
-import { PriorityIcon } from '@/components/ui/priority-icon';
-import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
 import { relativeTime } from '@/lib/relative-time';
-import {
-  aioRunStatusPillClass,
-  STATUS_PILL_LAYOUT_CLASS,
-  statusPillClass,
-  tonePillClass,
-} from '@/lib/statusStyles';
+import { aioRunStatusPillClass, STATUS_PILL_LAYOUT_CLASS, tonePillClass } from '@/lib/statusStyles';
 import type { AioTestCaseDetail, AioTestRun } from '@/services/aio';
-import type { JiraIssue } from '@/services/jira/types';
 import { UserChip } from './UserChip';
-
-export interface SidebarDefect {
-  id: string;
-  issue: JiraIssue | null;
-  isLoading: boolean;
-}
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -57,16 +42,12 @@ export function RunSidebar({
   run,
   listRun,
   testCase,
-  defects,
-  onOpenDefect,
   jiraBaseUrl,
   token,
 }: {
   run: AioTestRun;
   listRun: AioTestRun | undefined;
   testCase: AioTestCaseDetail | undefined;
-  defects: SidebarDefect[];
-  onOpenDefect: (key: string) => void;
   jiraBaseUrl: string | null | undefined;
   token: string | null | undefined;
 }) {
@@ -157,54 +138,6 @@ export function RunSidebar({
             </Row>
           ))}
         </Group>
-      )}
-
-      {defects.length > 0 && (
-        <section className="space-y-2" data-testid="aio-run-defects-section">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Defects
-          </h2>
-          <ul className="space-y-1">
-            {defects.map((d) => {
-              const key = d.issue?.key ?? d.id;
-              const clickable = !d.isLoading && !!d.issue;
-              return (
-                <li
-                  key={d.id}
-                  className="relative flex items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-muted/40"
-                >
-                  {clickable && (
-                    <button
-                      type="button"
-                      aria-label={`Open defect ${key}`}
-                      className="absolute inset-0 cursor-pointer rounded-md"
-                      onClick={() => onOpenDefect(key)}
-                    />
-                  )}
-                  {d.issue?.fields.issuetype?.name && (
-                    <IssueTypeIcon typeName={d.issue.fields.issuetype.name} />
-                  )}
-                  <span className="flex-none font-mono text-xs">{key}</span>
-                  {d.isLoading ? (
-                    <Skeleton className="h-3.5 w-24" />
-                  ) : (
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                      {d.issue?.fields.summary ?? ''}
-                    </span>
-                  )}
-                  <PriorityIcon priority={d.issue?.fields.priority} />
-                  {d.issue?.fields.status && (
-                    <div className="flex flex-none">
-                      <span className={statusPillClass(d.issue.fields.status.statusCategory?.key)}>
-                        {d.issue.fields.status.name}
-                      </span>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
       )}
     </aside>
   );
