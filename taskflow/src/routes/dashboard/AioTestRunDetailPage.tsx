@@ -146,9 +146,10 @@ export default function AioTestRunDetailPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Shared breadcrumb header — only rendered when there's a trail
-          (matches IssueDetailPage / ReleaseDetailPage convention). */}
-      {trail.length > 0 && (
+      {/* Breadcrumb: the shared trail, then the owning cycle (unless the trail already
+          ends there), then the test case. Always rendered so the way back to the cycle
+          lives in one place, including on a direct link / pinned tab with no trail. */}
+      {
         <div
           className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
           data-testid="aio-run-detail-breadcrumb"
@@ -176,27 +177,26 @@ export default function AioTestRunDetailPage() {
               </button>
             </span>
           ))}
+          {trail[trail.length - 1]?.path !== cycleHref && (
+            <span className="flex items-center gap-2">
+              {trail.length > 0 && <span className="text-muted-foreground">/</span>}
+              <NavLink
+                to={cycleHref}
+                replace
+                aria-label={`Back to cycle ${cycleKey}`}
+                className="font-mono text-muted-foreground hover:text-foreground"
+              >
+                {cycleKey}
+              </NavLink>
+            </span>
+          )}
           <span className="text-muted-foreground">/</span>
           <span className="font-medium" data-testid="aio-run-detail-breadcrumb-current">
             {headerKey ?? `Run ${runId}`}
           </span>
         </div>
-      )}
+      }
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border flex-shrink-0 min-w-0">
-        <NavLink
-          to={cycleHref}
-          replace
-          onClick={() => {
-            // Returning to the cycle consumes its breadcrumb entry instead of stacking a new one.
-            if (trail[trail.length - 1]?.path === cycleHref) breadcrumbPop();
-          }}
-          aria-label="Back to cycle"
-          title="Back to cycle"
-          className="inline-flex h-7 flex-none items-center gap-1 rounded-md border border-border px-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          {cycleKey}
-        </NavLink>
         <h1
           className="min-w-0 flex-1 truncate text-base font-semibold"
           data-testid="aio-run-detail-title"
