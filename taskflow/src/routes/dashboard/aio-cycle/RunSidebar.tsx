@@ -58,7 +58,7 @@ export function RunSidebar({
 
   return (
     <aside
-      className="min-w-0 space-y-6 density-compact:space-y-4 density-comfortable:space-y-8"
+      className="min-w-0 divide-y divide-border [&>section]:py-4 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0"
       data-testid="aio-run-sidebar"
     >
       <Group title="Run">
