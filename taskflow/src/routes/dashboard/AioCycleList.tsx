@@ -1,15 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 import { FlaskConical, X } from 'lucide-react';
-import {
-  type ReactNode,
-  type RefObject,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -211,7 +203,7 @@ export function AioCycleList({
   statusConfig,
   token,
   jiraBaseUrl,
-  scrollElementRef,
+  scrollElement,
   filter,
   onClearFilter,
   today,
@@ -231,10 +223,11 @@ export function AioCycleList({
   token: string | null;
   jiraBaseUrl: string | undefined;
   /**
-   * The page pane that scrolls. When given, the list flows in the page and the virtualizer
-   * scrolls that element; when omitted the list owns its own scroll container.
+   * The page pane that scrolls. When given (null until the pane mounts), the list flows in
+   * the page and the virtualizer scrolls that element; when omitted (undefined) the list
+   * owns its own scroll container.
    */
-  scrollElementRef?: RefObject<HTMLElement | null>;
+  scrollElement?: HTMLElement | null;
   /** Active cross-filter from the dashboard (null = none). */
   filter: CycleFilter | null;
   onClearFilter: () => void;
@@ -283,8 +276,8 @@ export function AioCycleList({
   const rowsRef = useRef<HTMLDivElement>(null);
   const [rowsOffset, setRowsOffset] = useState(0);
   const getScrollEl = useCallback(
-    () => (scrollElementRef ? scrollElementRef.current : scrollRef.current),
-    [scrollElementRef],
+    () => (scrollElement !== undefined ? scrollElement : scrollRef.current),
+    [scrollElement],
   );
   // Rows' distance from the top of the scroll content. Rect-based so a positioned wrapper
   // between the rows and the scroll element can't change offsetTop's reference frame.
@@ -524,7 +517,7 @@ export function AioCycleList({
     </div>
   );
 
-  if (scrollElementRef) {
+  if (scrollElement !== undefined) {
     return (
       <div className="@container min-w-0">
         {header}

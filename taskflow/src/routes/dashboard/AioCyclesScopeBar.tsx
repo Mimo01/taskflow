@@ -10,13 +10,14 @@ export function AioCyclesScopeBar({
   folderTitle,
   openCount,
   closedCount,
-  onStatusChange,
+  loading,
 }: {
   folderLabel: string;
   folderTitle: string;
   openCount: number;
   closedCount: number;
-  onStatusChange?: (value: 'open' | 'all') => void;
+  /** Cycles not loaded yet: hide the counts rather than show 0 · 0. */
+  loading: boolean;
 }) {
   const statusFilter = useAioCyclesSelectionStore((s) => s.statusFilter);
   const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
@@ -26,9 +27,11 @@ export function AioCyclesScopeBar({
       <h2 className="truncate text-base font-semibold" title={folderTitle}>
         {folderLabel}
       </h2>
-      <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-        {openCount} open · {closedCount} closed
-      </span>
+      {!loading && (
+        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+          {openCount} open · {closedCount} closed
+        </span>
+      )}
       <fieldset className="m-0 ml-auto inline-flex rounded-lg border-0 bg-muted p-0.5">
         <legend className="sr-only">Cycle status</legend>
         {(
@@ -41,10 +44,7 @@ export function AioCyclesScopeBar({
             key={value}
             type="button"
             aria-pressed={statusFilter === value}
-            onClick={() => {
-              setStatusFilter(value);
-              onStatusChange?.(value);
-            }}
+            onClick={() => setStatusFilter(value)}
             className={cn(
               'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
               statusFilter === value
