@@ -175,8 +175,8 @@ export interface AioCycleDetailItem {
     ownedByID: string;
     folder: number | null;
     isClosed: boolean;
-    startDate: string | null;
-    endDate: string | null;
+    startDate: string | number | null;
+    endDate: string | number | null;
     objective?: string | null;
   };
   summary: null;
