@@ -426,7 +426,8 @@ describe('AioProjectOverviewPage — redesigned cycle list', () => {
     ]);
     const Page = await importPage();
     wrap(Page);
-    await waitFor(() => expect(screen.getByText('Overdue')).toBeDefined());
+    const row = await screen.findByTestId('cycle-row-1001');
+    expect(within(row).getByText('Overdue')).toBeDefined();
     expect(screen.getByText('Dates')).toBeDefined();
   });
 
@@ -467,7 +468,8 @@ describe('AioProjectOverviewPage — redesigned cycle list', () => {
     const Page = await importPage();
     wrap(Page);
     // 60 (N/A = PASSED) + 20 (Passed) of 100
-    await waitFor(() => expect(screen.getByText('80%')).toBeDefined());
+    const row = await screen.findByTestId('cycle-row-1001');
+    await waitFor(() => expect(within(row).getByText('80%')).toBeDefined());
     expect(screen.queryByText(/\d+P\b/)).toBeNull();
   });
 
@@ -624,6 +626,105 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
     await waitFor(() => {
       expect(mockSetSelectedFolder).toHaveBeenCalledWith('PROJ', 101);
     });
+  });
+});
+
+describe('AioProjectOverviewPage — dashboard cross-filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    SelectionStore.byProjectKey = {};
+  });
+
+  const OVERDUE_CYCLE: AioCycleDetailItem = {
+    ...CYCLE_1,
+    ID: 1004,
+    detail: {
+      ...CYCLE_1.detail,
+      key: 'PROJ-CY-4',
+      title: 'Cycle Late',
+      endDate: isoDay(dayOffset(-5)),
+    },
+  };
+
+  it('shows scope counts in the KPI tiles', async () => {
+    await mockCycles([CYCLE_1, OVERDUE_CYCLE], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByTestId('tile-overdue').textContent).toContain('1'));
+    expect(screen.getByTestId('tile-open').textContent).toContain('2');
+    expect(screen.getByTestId('tile-overdue').textContent).toContain('oldest 5d late');
+  });
+
+  it('clicking the Overdue tile filters the list; the chip clears it', async () => {
+    await mockCycles([CYCLE_1, OVERDUE_CYCLE], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await screen.findByText('Cycle Alpha');
+    fireEvent.click(screen.getByTestId('tile-overdue'));
+
+    const chip = await screen.findByTestId('cycle-filter-chip');
+    expect(chip.textContent).toContain('Overdue');
+    expect(screen.queryByText('Cycle Alpha')).toBeNull();
+    expect(screen.getByText('Cycle Late')).toBeDefined();
+    expect(screen.getByTestId('tile-overdue').getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(within(chip).getByRole('button', { name: 'Clear filter' }));
+    await waitFor(() => expect(screen.getByText('Cycle Alpha')).toBeDefined());
+    expect(screen.queryByTestId('cycle-filter-chip')).toBeNull();
+  });
+
+  it('clicking the active Overdue tile again clears the filter', async () => {
+    await mockCycles([CYCLE_1, OVERDUE_CYCLE], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await screen.findByText('Cycle Alpha');
+    fireEvent.click(screen.getByTestId('tile-overdue'));
+    await screen.findByTestId('cycle-filter-chip');
+    fireEvent.click(screen.getByTestId('tile-overdue'));
+    await waitFor(() => expect(screen.queryByTestId('cycle-filter-chip')).toBeNull());
+    expect(screen.getByText('Cycle Alpha')).toBeDefined();
+  });
+
+  it('selecting another folder clears the active filter', async () => {
+    await mockCycles([CYCLE_1, OVERDUE_CYCLE], [SUMMARY_1]);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts } = await import('@/services/aio');
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A, FOLDER_B]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      '101': 1,
+      '102': 1,
+    });
+    const Page = await importPage();
+    wrap(Page);
+    await screen.findByText('Cycle Alpha');
+    fireEvent.click(screen.getByTestId('tile-overdue'));
+    await screen.findByTestId('cycle-filter-chip');
+
+    fireEvent.click(screen.getByTestId('folder-node-102'));
+    await waitFor(() => expect(screen.queryByTestId('cycle-filter-chip')).toBeNull());
+  });
+
+  it('skeletons only the Pass rate tile while summaries are pending', async () => {
+    await mockCycles([CYCLE_1]);
+    const { fetchAioCycleSummaries } = await import('@/services/aio');
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => expect(screen.getByTestId('tile-open').textContent).toContain('1'));
+    expect(screen.getByTestId('tile-skeleton-pass')).toBeDefined();
+    expect(screen.queryByTestId('tile-pass')).toBeNull();
+  });
+
+  it('shows "No cycles match" (not the all-closed notice) when the cross-filter empties the list', async () => {
+    await mockCycles([CYCLE_1], [SUMMARY_1]);
+    const Page = await importPage();
+    wrap(Page);
+    await screen.findByText('Cycle Alpha');
+    fireEvent.click(screen.getByTestId('tile-due'));
+    await waitFor(() => expect(screen.getByText('No cycles match Due in 7 days')).toBeDefined());
+    expect(screen.queryByText(/cycles in this folder are closed/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await waitFor(() => expect(screen.getByText('Cycle Alpha')).toBeDefined());
   });
 });
 

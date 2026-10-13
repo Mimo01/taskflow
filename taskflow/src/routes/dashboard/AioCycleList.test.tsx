@@ -29,8 +29,6 @@ function renderList(props: {
       <MemoryRouter>
         <AioCycleList
           projectKey="PROJ"
-          folderLabel="All cycles"
-          folderTitle="All cycles"
           items={props.items ?? []}
           error={null}
           onRetry={() => {}}
@@ -39,6 +37,10 @@ function renderList(props: {
           statusConfig={[]}
           token={null}
           jiraBaseUrl={undefined}
+          filter={null}
+          onClearFilter={() => {}}
+          today="2026-10-13"
+          progressByID={new Map()}
           {...props}
         />
       </MemoryRouter>

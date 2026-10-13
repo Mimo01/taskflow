@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { aggregateFolderCounts } from '@/lib/aio-cycle-list';
+import { aggregateCycleScope, aggregateFolderCounts, type CycleFilter } from '@/lib/aio-cycle-list';
 import { initializeAioStatusMap } from '@/lib/aioUtils';
+import { toLocalDateString } from '@/lib/local-date';
 import {
   fetchAioCycleSummaries,
   fetchAioCyclesWithDetail,
@@ -18,6 +19,8 @@ import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { AioCycleList } from './AioCycleList';
+import { AioCyclesDashboard } from './AioCyclesDashboard';
+import { AioCyclesScopeBar } from './AioCyclesScopeBar';
 import { AioFolderPanel, ALL_CYCLES_ID, UNGROUPED_ID } from './AioFolderPanel';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -84,6 +87,14 @@ export default function AioProjectOverviewPage() {
   const getSelectedFolder = useAioCyclesSelectionStore((s) => s.getSelectedFolder);
   const setSelectedFolder = useAioCyclesSelectionStore((s) => s.setSelectedFolder);
   const clearSelectedFolder = useAioCyclesSelectionStore((s) => s.clearSelectedFolder);
+  const statusFilter = useAioCyclesSelectionStore((s) => s.statusFilter);
+  const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
+
+  // The right pane scrolls as one; the list's virtualizer uses it as its scroll element.
+  const paneRef = useRef<HTMLDivElement>(null);
+  // Cross-filter from the dashboard tiles/charts. Ephemeral: resets on folder/project change.
+  const [cycleFilter, setCycleFilter] = useState<CycleFilter | null>(null);
+  const today = toLocalDateString(new Date());
 
   // null = pre-hydration only; 0 = All cycles; -1 = Ungrouped; otherwise a folder ID.
   const [selectedFolderID, setSelectedFolderID] = useState<number | null>(null);
@@ -185,6 +196,19 @@ export default function AioProjectOverviewPage() {
     [cycleSummariesQuery.data],
   );
 
+  // Stable references so the scope memo below only reruns when the data really changes.
+  const cycleItems = useMemo(
+    () => cyclesWithDetailQuery.data?.items ?? [],
+    [cyclesWithDetailQuery.data],
+  );
+  const statusConfig = useMemo(() => configQuery.data ?? [], [configQuery.data]);
+
+  // One pass over every cycle in the folder scope feeds the KPI tiles, charts and list filter.
+  const scope = useMemo(
+    () => aggregateCycleScope(cycleItems, summaryByID, statusConfig, today, statusFilter),
+    [cycleItems, summaryByID, statusConfig, today, statusFilter],
+  );
+
   // Auto-select the persisted folder (or All cycles) once per projectKey.
   const autoExpandedRef = useRef(false);
 
@@ -192,6 +216,7 @@ export default function AioProjectOverviewPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: projectKey is the intentional trigger dep; the effect body only mutates a ref (correct pattern)
   useEffect(() => {
     autoExpandedRef.current = false;
+    setCycleFilter(null);
   }, [projectKey]);
 
   useEffect(() => {
@@ -247,6 +272,8 @@ export default function AioProjectOverviewPage() {
   // Selecting a folder expands it but never collapses it.
   const selectFolder = (id: number) => {
     setSelectedFolderID(id);
+    setCycleFilter(null);
+    if (paneRef.current) paneRef.current.scrollTop = 0;
     if (projectKey) setSelectedFolder(projectKey, id);
     if (id > 0) {
       setExpandedIDs((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
@@ -299,25 +326,58 @@ export default function AioProjectOverviewPage() {
             })
           }
         />
-        <AioCycleList
-          projectKey={projectKey}
-          folderLabel={folderLabel}
-          folderTitle={folderTitle}
-          items={cyclesWithDetailQuery.data?.items ?? []}
-          isLoading={showCycleSkeleton}
-          isPending={cyclesPending}
-          error={cyclesWithDetailQuery.isError ? cyclesWithDetailQuery.error : null}
-          onRetry={() =>
-            queryClient.invalidateQueries({
-              queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
-            })
-          }
-          summaryByID={summaryByID}
-          summariesLoading={cycleSummariesQuery.isLoading}
-          statusConfig={configQuery.data ?? []}
-          token={token}
-          jiraBaseUrl={jiraBaseUrl ?? undefined}
-        />
+        <div ref={paneRef} className="@container relative min-w-0 flex-1 overflow-y-auto">
+          {/* ResizeObserver target of the list's virtualizer: tracks the dashboard's height. */}
+          <div className="space-y-6 px-6 py-5">
+            <AioCyclesScopeBar
+              folderLabel={folderLabel}
+              folderTitle={folderTitle}
+              openCount={scope.openCount}
+              closedCount={scope.closedCount}
+            />
+            {!cyclesWithDetailQuery.isError && (
+              <AioCyclesDashboard
+                scope={scope}
+                filter={cycleFilter}
+                onFilter={setCycleFilter}
+                loading={showCycleSkeleton || cyclesPending}
+                summariesLoading={cycleSummariesQuery.isLoading}
+                statusFilter={statusFilter}
+                onShowOpen={() => {
+                  setStatusFilter('open');
+                  setCycleFilter(null);
+                }}
+                token={token}
+                jiraBaseUrl={jiraBaseUrl ?? undefined}
+              />
+            )}
+            {/* Section divider (the list's own sub-dividers are lighter). */}
+            <div className="border-t border-border pt-2">
+              <AioCycleList
+                projectKey={projectKey}
+                items={cycleItems}
+                isLoading={showCycleSkeleton}
+                isPending={cyclesPending}
+                error={cyclesWithDetailQuery.isError ? cyclesWithDetailQuery.error : null}
+                onRetry={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
+                  })
+                }
+                summaryByID={summaryByID}
+                summariesLoading={cycleSummariesQuery.isLoading}
+                statusConfig={statusConfig}
+                token={token}
+                jiraBaseUrl={jiraBaseUrl ?? undefined}
+                scrollElementRef={paneRef}
+                filter={cycleFilter}
+                onClearFilter={() => setCycleFilter(null)}
+                today={today}
+                progressByID={scope.progressByID}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
