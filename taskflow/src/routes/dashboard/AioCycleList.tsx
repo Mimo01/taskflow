@@ -44,7 +44,7 @@ const COL = {
   status: 'flex-none w-28 px-2',
   progress: 'flex-none w-36 px-2 flex items-center gap-2',
   dates: 'flex-none w-32 px-2 hidden @[720px]:flex items-center',
-  owner: 'flex-none w-48 pl-3 pr-4 hidden @[880px]:flex items-center gap-1.5',
+  owner: 'flex-none w-60 pl-3 pr-4 hidden @[880px]:flex items-center gap-2',
   effort: 'flex-none w-28 pl-2 pr-4 hidden @[1040px]:flex items-center justify-end',
 } as const;
 
