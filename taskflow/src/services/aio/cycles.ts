@@ -315,6 +315,33 @@ export async function fetchAioCyclesWithDetail(
 }
 
 /**
+ * Cycles that belong to no folder ("Ungrouped" — key -1 in the folder count map).
+ * The paged endpoint's folderID filter does not accept -1 (live: returns nothing), so
+ * fetch every cycle plus every cycle inside a known folder and keep the difference.
+ * Also catches cycles whose folder no longer exists in the tree.
+ */
+export async function fetchAioUngroupedCycles(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+  allFolderIds: number[],
+): Promise<AioCycleDetailPagedResponse> {
+  const all = await fetchAioCyclesWithDetail(baseUrl, token, jiraProjectId);
+  // An empty folder list would mean "no filter" and exclude everything.
+  if (allFolderIds.length === 0) return all;
+  const inFolders = await fetchAioCyclesWithDetail(baseUrl, token, jiraProjectId, allFolderIds);
+  const foldered = new Set(inFolders.items.map((c) => c.ID));
+  const items = all.items.filter((c) => !foldered.has(c.ID));
+  return {
+    items,
+    allIDs: items.map((c) => c.ID),
+    startAt: 0,
+    maxResults: items.length,
+    isLast: true,
+  };
+}
+
+/**
  * Fetch all cycle summaries (including testRunDistribution) for a project.
  * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/summary/paged (probe A3)
  * A3 confirmed: single GET returns all summaries — no ids param needed.

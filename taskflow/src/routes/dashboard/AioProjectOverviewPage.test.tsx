@@ -65,6 +65,7 @@ vi.mock('@/services/aio', () => ({
   fetchAioFolderTree: vi.fn(),
   fetchAioFolderCycleCounts: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
+  fetchAioUngroupedCycles: vi.fn(),
   fetchAioCycleSummaries: vi.fn(),
   fetchAioProjectConfig: vi.fn(),
 }));
