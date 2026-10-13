@@ -1,4 +1,13 @@
 import { useQueries } from '@tanstack/react-query';
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  FlaskConical,
+  ListChecks,
+  type LucideIcon,
+  Users,
+} from 'lucide-react';
 import { type ReactNode, useId } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,20 +38,49 @@ const SCHEDULE_BAR_MAX_PX = 84;
 
 /** Read-only rows: hover shows the tooltip, nothing is clickable. */
 const HOVER_ROW_CLASS = 'rounded-sm hover:bg-accent/40';
+/** One chart row: same height, padding and gap in every card. */
+const ROW_CLASS = 'flex h-6 w-full flex-none items-center gap-2 px-1 text-xs';
+/** Right-aligned row count (same column width in every card). */
+const COUNT_CLASS = 'w-8 flex-none text-right font-medium tabular-nums';
+/** Home-dashboard card title, at the lighter weight used on work pages. */
+const TITLE_CLASS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+/** Faint ambient icon top-right (home-dashboard MyIssuesCard pattern, quieter). */
+const AMBIENT_CLASS = 'pointer-events-none absolute -top-3 -right-2';
+
+const AMBIENT_TINT = {
+  blue: 'text-blue-500/[0.07] dark:text-blue-400/10',
+  red: 'text-red-500/[0.07] dark:text-red-400/10',
+  amber: 'text-amber-500/[0.07] dark:text-amber-400/10',
+  green: 'text-green-500/[0.07] dark:text-green-400/10',
+} as const;
+type Tint = keyof typeof AMBIENT_TINT;
 
 // ─── KPI tiles ───────────────────────────────────────────────────────────────
 
-function TileShell({ children }: { children: ReactNode }) {
+function TileShell({
+  icon: Icon,
+  tint,
+  children,
+}: {
+  icon: LucideIcon;
+  tint: Tint;
+  children: ReactNode;
+}) {
   return (
-    <Card size="sm">
+    <Card size="sm" className="relative overflow-hidden">
+      <Icon className={cn(AMBIENT_CLASS, 'size-12', AMBIENT_TINT[tint])} aria-hidden />
       <CardContent>{children}</CardContent>
     </Card>
   );
 }
 
-function TileSkeleton({ testId }: { testId: string }) {
+function TileLabel({ children }: { children: ReactNode }) {
+  return <span className={TITLE_CLASS}>{children}</span>;
+}
+
+function TileSkeleton({ testId, icon, tint }: { testId: string; icon: LucideIcon; tint: Tint }) {
   return (
-    <TileShell>
+    <TileShell icon={icon} tint={tint}>
       <div data-testid={testId} className={cn(STAT_CARD_CLASS, 'items-center')}>
         <Skeleton className="h-3.5 w-16" />
         <Skeleton className="h-7 w-14 self-center" />
@@ -58,18 +96,27 @@ function Tile({
   value,
   sub,
   tip,
+  icon,
+  tint,
 }: {
   testId: string;
   label: string;
   value: ReactNode;
   sub: ReactNode;
   tip: ReactNode;
+  icon: LucideIcon;
+  tint: Tint;
 }) {
   return (
-    <TileShell>
+    <TileShell icon={icon} tint={tint}>
       <Tooltip>
-        <TooltipTrigger delay={0} render={<div />} data-testid={testId} className={STAT_CARD_CLASS}>
-          <StatCardBody label={label} value={value} sub={sub} />
+        <TooltipTrigger
+          delay={0}
+          render={<div />}
+          data-testid={testId}
+          className={cn(STAT_CARD_CLASS, 'relative')}
+        >
+          <StatCardBody label={<TileLabel>{label}</TileLabel>} value={value} sub={sub} />
         </TooltipTrigger>
         <TooltipContent>{tip}</TooltipContent>
       </Tooltip>
@@ -77,7 +124,7 @@ function Tile({
   );
 }
 
-const VALUE_CLASS = 'truncate text-lg font-semibold leading-none tabular-nums';
+const VALUE_CLASS = 'truncate text-xl font-semibold leading-none tracking-tight tabular-nums';
 
 function MiniStatusBar({ scope }: { scope: CycleScope }) {
   const { counts, total } = scope.exec;
@@ -99,17 +146,28 @@ function MiniStatusBar({ scope }: { scope: CycleScope }) {
 function ChartCard({
   title,
   testId,
+  icon: Icon,
+  tint,
   children,
 }: {
   title: string;
   testId: string;
+  icon: LucideIcon;
+  tint: Tint;
   children: ReactNode;
 }) {
   const id = useId();
   return (
-    <Card size="sm" role="region" aria-labelledby={id} data-testid={testId}>
+    <Card
+      size="sm"
+      role="region"
+      aria-labelledby={id}
+      data-testid={testId}
+      className="relative overflow-hidden"
+    >
+      <Icon className={cn(AMBIENT_CLASS, 'size-16', AMBIENT_TINT[tint])} aria-hidden />
       <CardHeader>
-        <CardTitle id={id} role="heading" aria-level={2}>
+        <CardTitle id={id} role="heading" aria-level={2} className={TITLE_CLASS}>
           {title}
         </CardTitle>
       </CardHeader>
@@ -118,9 +176,10 @@ function ChartCard({
   );
 }
 
-function EmptyBody({ children }: { children: ReactNode }) {
+function EmptyBody({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
   return (
-    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+      <Icon className="size-5 opacity-60" aria-hidden />
       {children}
     </div>
   );
@@ -128,11 +187,11 @@ function EmptyBody({ children }: { children: ReactNode }) {
 
 function ExecutionMixBody({ scope }: { scope: CycleScope }) {
   const { exec } = scope;
-  if (exec.total === 0) return <EmptyBody>No test runs</EmptyBody>;
+  if (exec.total === 0) return <EmptyBody icon={FlaskConical}>No test runs</EmptyBody>;
   const rows = STATUS_ORDER.filter((k) => exec.counts[k] > 0);
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex h-3 w-full flex-none overflow-hidden rounded-full bg-muted">
+      <div className="flex h-2.5 w-full flex-none overflow-hidden rounded-full bg-muted">
         {rows.map((k) => (
           <div
             key={k}
@@ -150,18 +209,20 @@ function ExecutionMixBody({ scope }: { scope: CycleScope }) {
                 delay={0}
                 render={<div />}
                 data-testid={`exec-row-${k}`}
-                className={cn('flex h-6 w-full items-center gap-2 px-1 text-xs', HOVER_ROW_CLASS)}
+                className={cn(ROW_CLASS, HOVER_ROW_CLASS)}
               >
                 <span
                   aria-hidden
                   className={cn(
-                    'size-2 flex-none rounded-[2px] ring-1 ring-inset ring-foreground/10',
+                    'size-2.5 flex-none rounded-[2px] ring-1 ring-inset ring-foreground/10',
                     PROGRESS_SEGMENT_CLASS[k],
                   )}
                 />
                 <span className="min-w-0 flex-1 truncate pr-0.5 text-left">{statusLabel(k)}</span>
-                <span className="tabular-nums">{exec.counts[k]}</span>
-                <span className="w-9 text-right tabular-nums text-muted-foreground">{pct}%</span>
+                <span className={COUNT_CLASS}>{exec.counts[k]}</span>
+                <span className="w-10 flex-none text-right tabular-nums text-muted-foreground">
+                  {pct}%
+                </span>
               </TooltipTrigger>
               <TooltipContent>
                 <TooltipBody title={statusLabel(k)}>
@@ -185,7 +246,7 @@ function OwnersBody({
   scope: CycleScope;
   names: Map<string, { name: string; avatar: string | null }>;
 }) {
-  if (scope.owners.length === 0) return <EmptyBody>No owners</EmptyBody>;
+  if (scope.owners.length === 0) return <EmptyBody icon={Users}>No owners</EmptyBody>;
   const max = Math.max(...scope.owners.map((o) => o.count), 1);
   const resolve = (o: OwnerStat) => names.get(o.ownerId) ?? { name: o.ownerId, avatar: null };
   return (
@@ -199,10 +260,7 @@ function OwnersBody({
               delay={0}
               render={<div />}
               data-testid={`owner-row-${o.ownerId}`}
-              className={cn(
-                'flex h-6 w-full flex-none items-center gap-2 px-1 text-xs',
-                HOVER_ROW_CLASS,
-              )}
+              className={cn(ROW_CLASS, HOVER_ROW_CLASS)}
             >
               <span className="flex w-32 min-w-0 flex-none items-center gap-1.5">
                 <CachedAvatar url={avatar} name={name} size={20} />
@@ -210,7 +268,7 @@ function OwnersBody({
               </span>
               <span className="flex h-2 min-w-0 flex-1" aria-hidden>
                 <span
-                  className="flex h-full overflow-hidden rounded-full bg-muted/50"
+                  className="flex h-full overflow-hidden rounded-full"
                   style={{ width: `${(o.count / max) * 100}%` }}
                 >
                   <span
@@ -223,7 +281,7 @@ function OwnersBody({
                   />
                 </span>
               </span>
-              <span className="w-6 flex-none text-right tabular-nums">{o.count}</span>
+              <span className={COUNT_CLASS}>{o.count}</span>
             </TooltipTrigger>
             <TooltipContent>
               <TooltipBody title={name}>
@@ -237,8 +295,8 @@ function OwnersBody({
         );
       })}
       {scope.othersCount > 0 && (
-        <span className="px-1 pt-1 text-[11px] leading-4 text-muted-foreground">
-          +{scope.othersCount} others
+        <span className="mt-auto px-1 text-[11px] leading-4 text-muted-foreground">
+          +{scope.othersCount} more {scope.othersCount === 1 ? 'owner' : 'owners'}
         </span>
       )}
     </div>
@@ -325,7 +383,7 @@ function ScheduleBody({ scope }: { scope: CycleScope }) {
         </div>
       ) : (
         <div className="h-[148px] flex-none">
-          <EmptyBody>No end dates set</EmptyBody>
+          <EmptyBody icon={CalendarClock}>No end dates set</EmptyBody>
         </div>
       )}
       <div className="flex h-6 flex-none items-center">
@@ -383,15 +441,17 @@ export function AioCyclesDashboard({
       <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
         {showSkeleton || !scope ? (
           <>
-            <TileSkeleton testId="tile-skeleton-open" />
-            <TileSkeleton testId="tile-skeleton-overdue" />
-            <TileSkeleton testId="tile-skeleton-due" />
-            <TileSkeleton testId="tile-skeleton-pass" />
+            <TileSkeleton testId="tile-skeleton-open" icon={ListChecks} tint="blue" />
+            <TileSkeleton testId="tile-skeleton-overdue" icon={AlertTriangle} tint="red" />
+            <TileSkeleton testId="tile-skeleton-due" icon={CalendarClock} tint="amber" />
+            <TileSkeleton testId="tile-skeleton-pass" icon={CheckCircle2} tint="green" />
           </>
         ) : (
           <>
             <Tile
               testId="tile-open"
+              icon={ListChecks}
+              tint="blue"
               label="Open cycles"
               value={<span className={VALUE_CLASS}>{scope.openCount}</span>}
               sub={<span className="truncate">of {scope.total} in scope</span>}
@@ -406,6 +466,8 @@ export function AioCyclesDashboard({
             />
             <Tile
               testId="tile-overdue"
+              icon={AlertTriangle}
+              tint="red"
               label="Overdue"
               value={
                 <span
@@ -421,7 +483,7 @@ export function AioCyclesDashboard({
                 scope.overdue.oldestDaysLate === null ? (
                   <span>—</span>
                 ) : (
-                  <span className="truncate">oldest {scope.overdue.oldestDaysLate}d late</span>
+                  <span className="truncate">oldest {scope.overdue.oldestDaysLate} days late</span>
                 )
               }
               tip={
@@ -441,11 +503,13 @@ export function AioCyclesDashboard({
             />
             <Tile
               testId="tile-due"
+              icon={CalendarClock}
+              tint="amber"
               label={`Due in ${DUE_SOON_DAYS} days`}
               value={<span className={VALUE_CLASS}>{scope.dueSoon.count}</span>}
               sub={
                 scope.dueSoon.nextDate ? (
-                  <span className="truncate">next: {formatDateKey(scope.dueSoon.nextDate)}</span>
+                  <span className="truncate">next on {formatDateKey(scope.dueSoon.nextDate)}</span>
                 ) : (
                   <span>—</span>
                 )
@@ -466,10 +530,12 @@ export function AioCyclesDashboard({
               }
             />
             {summariesLoading ? (
-              <TileSkeleton testId="tile-skeleton-pass" />
+              <TileSkeleton testId="tile-skeleton-pass" icon={CheckCircle2} tint="green" />
             ) : (
               <Tile
                 testId="tile-pass"
+                icon={CheckCircle2}
+                tint="green"
                 label="Pass rate"
                 value={
                   <span className={VALUE_CLASS}>
@@ -480,7 +546,7 @@ export function AioCyclesDashboard({
                   <>
                     <MiniStatusBar scope={scope} />
                     <span className="truncate tabular-nums">
-                      {scope.exec.executed}/{scope.exec.total} run
+                      {scope.exec.executed}/{scope.exec.total} executed
                     </span>
                   </>
                 }
@@ -498,21 +564,21 @@ export function AioCyclesDashboard({
       </div>
 
       <div className="grid gap-4 @4xl:grid-cols-3">
-        <ChartCard title="Execution mix" testId="card-exec">
+        <ChartCard title="Execution mix" testId="card-exec" icon={FlaskConical} tint="green">
           {execSkeleton || !scope ? (
             <Skeleton data-testid="card-skeleton-exec" className="h-full w-full" />
           ) : (
             <ExecutionMixBody scope={scope} />
           )}
         </ChartCard>
-        <ChartCard title="By owner" testId="card-owners">
+        <ChartCard title="By owner" testId="card-owners" icon={Users} tint="blue">
           {showSkeleton || !scope ? (
             <Skeleton data-testid="card-skeleton-owners" className="h-full w-full" />
           ) : (
             <OwnersBody scope={scope} names={names} />
           )}
         </ChartCard>
-        <ChartCard title="Schedule" testId="card-schedule">
+        <ChartCard title="Schedule" testId="card-schedule" icon={CalendarClock} tint="amber">
           {showSkeleton || !scope ? (
             <Skeleton data-testid="card-skeleton-schedule" className="h-full w-full" />
           ) : (
