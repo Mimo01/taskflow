@@ -23,7 +23,7 @@ const COL = {
   key: 'w-32 flex-none',
   summary: 'min-w-0 flex-1',
   steps: 'hidden w-20 flex-none @[640px]:block',
-  priority: 'w-16 flex-none',
+  priority: 'w-24 flex-none',
   assignee: 'hidden w-40 flex-none @[560px]:flex',
   status: 'flex w-28 flex-none justify-end',
 };
@@ -67,7 +67,7 @@ export function RunDefectsSection({
                   <button
                     type="button"
                     aria-label={`Open defect ${key}`}
-                    className="absolute inset-0 cursor-pointer"
+                    className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                     onClick={() => onOpenDefect(key)}
                   />
                 )}
