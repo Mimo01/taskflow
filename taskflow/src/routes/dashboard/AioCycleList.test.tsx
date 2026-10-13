@@ -37,10 +37,7 @@ function renderList(props: {
           statusConfig={[]}
           token={null}
           jiraBaseUrl={undefined}
-          filter={null}
-          onClearFilter={() => {}}
           today="2026-10-13"
-          progressByID={new Map()}
           {...props}
         />
       </MemoryRouter>

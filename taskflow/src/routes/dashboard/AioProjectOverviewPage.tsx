@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { aggregateCycleScope, aggregateFolderCounts, type CycleFilter } from '@/lib/aio-cycle-list';
+import { aggregateCycleScope, aggregateFolderCounts } from '@/lib/aio-cycle-list';
 import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { toLocalDateString } from '@/lib/local-date';
 import {
@@ -98,14 +98,11 @@ export default function AioProjectOverviewPage() {
   const setSelectedFolder = useAioCyclesSelectionStore((s) => s.setSelectedFolder);
   const clearSelectedFolder = useAioCyclesSelectionStore((s) => s.clearSelectedFolder);
   const statusFilter = useAioCyclesSelectionStore((s) => s.statusFilter);
-  const setStatusFilter = useAioCyclesSelectionStore((s) => s.setStatusFilter);
 
   // The right pane scrolls as one; the list's virtualizer uses it as its scroll element.
   // State (callback ref), not useRef: a parent's ref attaches after the child's layout
   // effects, so the list must re-render once the element exists.
   const [paneEl, setPaneEl] = useState<HTMLDivElement | null>(null);
-  // Cross-filter from the dashboard tiles/charts. Ephemeral: resets on folder/project change.
-  const [cycleFilter, setCycleFilter] = useState<CycleFilter | null>(null);
   const today = toLocalDateString(new Date());
 
   // null = pre-hydration only; 0 = All cycles; -1 = Ungrouped; otherwise a folder ID.
@@ -245,7 +242,6 @@ export default function AioProjectOverviewPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: projectKey is the intentional trigger dep; the effect body only mutates a ref (correct pattern)
   useEffect(() => {
     autoExpandedRef.current = false;
-    setCycleFilter(null);
   }, [projectKey]);
 
   useEffect(() => {
@@ -301,7 +297,6 @@ export default function AioProjectOverviewPage() {
   // Selecting a folder expands it but never collapses it.
   const selectFolder = (id: number) => {
     setSelectedFolderID(id);
-    setCycleFilter(null);
     if (paneEl) paneEl.scrollTop = 0;
     if (projectKey) setSelectedFolder(projectKey, id);
     if (id > 0) {
@@ -340,7 +335,6 @@ export default function AioProjectOverviewPage() {
       id: f.ID,
       name: f.name,
       count: agg[f.ID] ?? 0,
-      hasChildren: f.children.length > 0,
     }));
   }, [selectedFolderID, folderTree, agg]);
 
@@ -373,7 +367,7 @@ export default function AioProjectOverviewPage() {
         />
         <div ref={setPaneEl} className="@container relative min-w-0 flex-1 overflow-y-auto">
           {/* ResizeObserver target of the list's virtualizer: tracks the dashboard's height. */}
-          <div className="space-y-6 px-6 py-5">
+          <div className="space-y-4 px-6 py-4">
             <AioCyclesScopeBar
               folderLabel={folderLabel}
               folderTitle={folderTitle}
@@ -384,26 +378,10 @@ export default function AioProjectOverviewPage() {
             {!cyclesWithDetailQuery.isError && (
               <AioCyclesDashboard
                 scope={scope}
-                filter={cycleFilter}
-                onFilter={setCycleFilter}
                 loading={showCycleSkeleton || cyclesPending}
                 summariesLoading={cycleSummariesQuery.isLoading}
                 statusFilter={statusFilter}
-                onShowOpen={() => {
-                  setStatusFilter('open');
-                  setCycleFilter(null);
-                }}
-                onShowAll={() => setStatusFilter('all')}
                 subfolders={subfolders}
-                onOpenFolder={(id) => {
-                  selectFolder(id);
-                  // Reveal the opened folder in the tree.
-                  const path = findAncestorPath(folderTree, id);
-                  setExpandedIDs((prev) => new Set([...prev, ...path, id]));
-                }}
-                today={today}
-                token={token}
-                jiraBaseUrl={jiraBaseUrl ?? undefined}
               />
             )}
             {/* Section divider (the list's own sub-dividers are lighter). */}
@@ -425,10 +403,7 @@ export default function AioProjectOverviewPage() {
                 token={token}
                 jiraBaseUrl={jiraBaseUrl ?? undefined}
                 scrollElement={paneEl}
-                filter={cycleFilter}
-                onClearFilter={() => setCycleFilter(null)}
                 today={today}
-                progressByID={scope.progressByID}
               />
             </div>
           </div>
