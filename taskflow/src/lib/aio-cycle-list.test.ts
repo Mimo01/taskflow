@@ -111,6 +111,11 @@ describe('cycleProgress', () => {
     const p = cycleProgress({ totalTests: 2, testRunDistribution: { Failed: 2 } }, STATUSES);
     expect(p.counts.fail).toBe(2);
   });
+  it('never exceeds 100% when totalTests undercounts the distribution', () => {
+    const p = cycleProgress({ totalTests: 2, testRunDistribution: { '53': 3, '54': 1 } }, STATUSES);
+    expect(p.total).toBe(4);
+    expect(p.passPct).toBe(75);
+  });
   it('passPct is null with no tests', () => {
     expect(cycleProgress({ totalTests: 0, testRunDistribution: {} }, STATUSES).passPct).toBeNull();
   });
@@ -146,6 +151,11 @@ describe('filterFolderTree', () => {
     expect(out.map((n) => n.ID)).toEqual([1]);
     expect(out[0].children.map((n) => n.ID)).toEqual([2]);
     expect(expandIds.has(1)).toBe(true);
+  });
+  it('keeps the whole subtree of a matching folder', () => {
+    const t = [folder(1, 'Release', [folder(2, 'Sprint 1'), folder(4, 'Sprint 2')])];
+    const { tree: out } = filterFolderTree(t, 'release');
+    expect(out[0].children.map((n) => n.ID)).toEqual([2, 4]);
   });
   it('keeps ancestors of a deep match', () => {
     const { tree: out } = filterFolderTree(tree, 'review');
