@@ -622,12 +622,30 @@ describe('AioCycleDetailPage', () => {
     it('renders the four tiles with sub-lines', async () => {
       await setupDefaultMocks();
       renderPage();
-      await waitFor(() => expect(screen.getByTestId('kpi-open-defects')).toBeDefined());
+      await waitFor(() => expect(screen.getByTestId('kpi-retest')).toBeDefined());
       expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/Pass rate/);
       expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
       expect(screen.getByTestId('kpi-reruns')).toBeDefined();
       // run-2 FAIL has a linked defect, so nothing is failing without one
       expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/0of 1 failing/);
+    });
+
+    it('Ready to retest counts failing cases whose linked defects are all Done', async () => {
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      await setupDefaultMocks();
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: '186227',
+        key: 'PROJ-1234',
+        fields: {
+          summary: 'Login broken',
+          status: { name: 'Done', statusCategory: { key: 'done' } },
+          issuetype: { name: 'Bug', subtask: false },
+        },
+      });
+      renderPage();
+      await waitFor(() =>
+        expect(screen.getByTestId('kpi-retest').textContent).toMatch(/1of 1 failing/),
+      );
     });
   });
 

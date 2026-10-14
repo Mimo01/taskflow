@@ -37,11 +37,12 @@ export default function AioCycleDetailPage() {
     tokenLoading,
     jiraBaseUrl,
   } = useAioCycleData(projectKey, cycleKey);
-  const {
-    defects,
-    openCount,
-    isResolving: defectsResolving,
-  } = useCycleDefects({ runs, jiraBaseUrl, token, tokenLoading });
+  const { defects, isResolving: defectsResolving } = useCycleDefects({
+    runs,
+    jiraBaseUrl,
+    token,
+    tokenLoading,
+  });
   const { onOpenIssue } = useOutletContext<{ onOpenIssue?: (issueKey: string) => void }>() ?? {};
 
   const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
@@ -193,8 +194,6 @@ export default function AioCycleDetailPage() {
               total={total}
               runs={runs}
               countsLoading={countsLoading}
-              openDefects={openCount}
-              totalDefects={defects.length}
               defectsLoading={!runs || defectsResolving}
               defects={defects}
             />
