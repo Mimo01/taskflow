@@ -30,7 +30,10 @@ export function TileShell({
 }) {
   return (
     <Card size="sm" className="relative overflow-hidden">
-      <Icon className={cn(AMBIENT_CLASS, 'size-12', AMBIENT_TINT[tint])} aria-hidden />
+      <Icon
+        className={cn(AMBIENT_CLASS, '-top-4 -right-3 size-[4.5rem]', AMBIENT_TINT[tint])}
+        aria-hidden
+      />
       <CardContent className="relative">{children}</CardContent>
     </Card>
   );
