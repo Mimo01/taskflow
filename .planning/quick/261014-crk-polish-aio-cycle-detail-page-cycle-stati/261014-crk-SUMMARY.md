@@ -35,7 +35,7 @@ Full vitest suite (3370 passed), tsc clean, biome clean on touched files (pre-co
 
 ## UAT polish rounds (2026-10-14) — APPROVED by user
 
-Planned work (3 tasks, fe8f16f9..c1a55f97) was reworked inline over UAT; final approved state: 48292131.
+Planned work (3 tasks, fe8f16f9..c1a55f97) was reworked inline over UAT; final approved state: 48292131, plus review follow-ups e7b65d59 (approved).
 
 | Commit(s) | Change |
 |---|---|
