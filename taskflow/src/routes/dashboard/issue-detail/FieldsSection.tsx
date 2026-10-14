@@ -1104,17 +1104,27 @@ export function FieldsSection({
       <MetaRow label="Deployment package">
         {(() => {
           const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
-          const rmSummary = deploymentPackageValue
-            ? rmChildToWeek
-                .get(deploymentPackageValue)
-                ?.children.find((c) => c.key === deploymentPackageValue)?.summary
+          const rmWeek = deploymentPackageValue
+            ? rmChildToWeek.get(deploymentPackageValue)
             : undefined;
+          const rmSummary = rmWeek?.children.find((c) => c.key === deploymentPackageValue)?.summary;
           return deploymentPackageValue ? (
-            <span data-testid="deployment-package-value" className="flex min-w-0 gap-1.5">
-              <span className="shrink-0">{deploymentPackageValue}</span>
-              {rmSummary && (
-                <span className="truncate text-muted-foreground" title={rmSummary}>
-                  {rmSummary}
+            <span data-testid="deployment-package-value" className="flex min-w-0 flex-col">
+              <span className="flex min-w-0 gap-1.5">
+                <span className="shrink-0">{deploymentPackageValue}</span>
+                {rmSummary && (
+                  <span className="truncate text-muted-foreground" title={rmSummary}>
+                    {rmSummary}
+                  </span>
+                )}
+              </span>
+              {rmWeek && (
+                <span
+                  className="truncate text-xs text-muted-foreground"
+                  title={`${rmWeek.key} ${rmWeek.summary}`}
+                  data-testid="deployment-package-week"
+                >
+                  {rmWeek.summary}
                 </span>
               )}
             </span>
