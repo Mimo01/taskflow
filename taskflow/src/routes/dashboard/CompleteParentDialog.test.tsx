@@ -27,6 +27,11 @@ const PROMPT = {
   parentSummary: 'The story',
   parentStatusId: '3',
   parentStatusName: 'In Progress',
+  parentStatusCategory: 'indeterminate',
+  parentIssueType: 'Story',
+  parentPriority: 'Must',
+  parentAssignee: 'Ada L',
+  subtaskCount: 3,
 };
 const GOOD: ParentCheckArgs = {
   issueKey: 'S-1',
@@ -90,6 +95,10 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     expect(await screen.findByText('All subtasks of P-1 are done')).toBeTruthy();
     expect(checkParentCompletion).toHaveBeenCalledWith(BASE, 'tok', 'S-1', 'P-1');
     expect(screen.getByText('The story')).toBeTruthy();
+    expect(screen.getByText('Story')).toBeTruthy();
+    expect(screen.getByText('Ada L')).toBeTruthy();
+    expect(screen.getByText('Must')).toBeTruthy();
+    expect(screen.getByText('3 of 3 done')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Move story/ })).toBeTruthy();
   });
@@ -131,9 +140,9 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     const user = setup();
     await user.click(screen.getByText('run-check'));
     await user.click(await screen.findByRole('button', { name: /Move story/ }));
-    expect(await screen.findByRole('button', { name: 'Done' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /In Progress\s*Done/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Doing' })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Done' }));
+    await user.click(screen.getByRole('button', { name: /In Progress\s*Done/ }));
     await waitFor(() => expect(postTransition).toHaveBeenCalledWith(BASE, 'tok', 'P-1', '11'));
     expect(vi.mocked(postTransition).mock.calls[0]).toHaveLength(4);
     expect(invalidateAfterTransition).toHaveBeenCalledWith(expect.anything(), 'P-1', BASE, 5);
@@ -158,7 +167,7 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     const user = setup();
     await user.click(screen.getByText('run-check'));
     await user.click(await screen.findByRole('button', { name: /Move story/ }));
-    await user.click(await screen.findByRole('button', { name: 'Done' }));
+    await user.click(await screen.findByRole('button', { name: /In Progress\s*Done/ }));
     expect(await screen.findByText('Set a resolution')).toBeTruthy();
     expect(postTransition).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: /Fixed/ }));
@@ -180,7 +189,7 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     const user = setup();
     await user.click(screen.getByText('run-check'));
     await user.click(await screen.findByRole('button', { name: /Move story/ }));
-    await user.click(await screen.findByRole('button', { name: 'Done' }));
+    await user.click(await screen.findByRole('button', { name: /In Progress\s*Done/ }));
     await user.click(await screen.findByRole('button', { name: /Unresolved/ }));
     await user.click(screen.getByRole('button', { name: 'Confirm move' }));
     await waitFor(() =>
@@ -195,7 +204,7 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     const user = setup();
     await user.click(screen.getByText('run-check'));
     await user.click(await screen.findByRole('button', { name: /Move story/ }));
-    await user.click(await screen.findByRole('button', { name: 'Done' }));
+    await user.click(await screen.findByRole('button', { name: /In Progress\s*Done/ }));
     expect(
       await screen.findByText('This transition requires a resolution but none are available'),
     ).toBeTruthy();
@@ -208,7 +217,7 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     const user = setup();
     await user.click(screen.getByText('run-check'));
     await user.click(await screen.findByRole('button', { name: /Move story/ }));
-    await user.click(await screen.findByRole('button', { name: 'Done' }));
+    await user.click(await screen.findByRole('button', { name: /In Progress\s*Done/ }));
     expect(await screen.findByText('Jira said no')).toBeTruthy();
     expect(screen.getByText('All subtasks of P-1 are done')).toBeTruthy();
     expect(invalidateAfterTransition).not.toHaveBeenCalled();

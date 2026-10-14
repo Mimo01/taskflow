@@ -117,7 +117,17 @@ export function CompleteParentDialog({
   onClose,
 }: CompleteParentDialogProps) {
   const queryClient = useQueryClient();
-  const { parentKey, parentSummary, parentStatusId, parentStatusName } = prompt;
+  const {
+    parentKey,
+    parentSummary,
+    parentStatusId,
+    parentStatusName,
+    parentStatusCategory,
+    parentIssueType,
+    parentPriority,
+    parentAssignee,
+    subtaskCount,
+  } = prompt;
   const [step, setStep] = useState<Step>('ask');
   const [transitions, setTransitions] = useState<JiraTransitionWithFields[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -202,13 +212,38 @@ export function CompleteParentDialog({
           <DialogHeader>
             <DialogTitle>All subtasks of {parentKey} are done</DialogTitle>
             <DialogDescription>
-              {parentSummary ? <span className="text-foreground">{parentSummary}</span> : null}
-              {parentSummary ? ' — ' : ''}
               {step === 'ask'
                 ? 'Move the story to done as well?'
-                : `Pick a done status to move it to (currently ${parentStatusName}).`}
+                : 'Pick the done status to move the story to.'}
             </DialogDescription>
           </DialogHeader>
+          <div className="flex flex-col gap-2 rounded-md border p-3 text-sm">
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-xs text-muted-foreground">{parentKey}</span>
+              {parentIssueType && (
+                <span className="text-xs text-muted-foreground">{parentIssueType}</span>
+              )}
+            </div>
+            {parentSummary && <p className="font-medium text-foreground">{parentSummary}</p>}
+            <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1">
+              <dt className="text-muted-foreground">Status</dt>
+              <dd className="flex">
+                <span className={statusPillClass(parentStatusCategory)}>{parentStatusName}</span>
+              </dd>
+              <dt className="text-muted-foreground">Assignee</dt>
+              <dd>{parentAssignee || 'Unassigned'}</dd>
+              {parentPriority && (
+                <>
+                  <dt className="text-muted-foreground">Priority</dt>
+                  <dd>{parentPriority}</dd>
+                </>
+              )}
+              <dt className="text-muted-foreground">Subtasks</dt>
+              <dd>
+                {subtaskCount} of {subtaskCount} done
+              </dd>
+            </dl>
+          </div>
           {step === 'pick' && (
             <div className="flex flex-col gap-1">
               {loading && <p className="text-sm text-muted-foreground">Loading transitions…</p>}
@@ -224,9 +259,20 @@ export function CompleteParentDialog({
                     type="button"
                     disabled={pending}
                     onClick={() => handlePick(t)}
-                    className="flex w-full items-center rounded-md border border-transparent px-3 py-2 text-left transition-colors hover:bg-accent disabled:opacity-50"
+                    className="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent disabled:opacity-50"
                   >
-                    <span className={statusPillClass('done')}>{t.to.name}</span>
+                    <span className="flex items-center gap-2">
+                      <span className={statusPillClass(parentStatusCategory)}>
+                        {parentStatusName}
+                      </span>
+                      <span aria-hidden="true" className="text-muted-foreground">
+                        →
+                      </span>
+                      <span className={statusPillClass('done')}>{t.to.name}</span>
+                    </span>
+                    {t.name && t.name !== t.to.name && (
+                      <span className="text-xs text-muted-foreground">{t.name}</span>
+                    )}
                   </button>
                 ))}
             </div>
@@ -240,7 +286,7 @@ export function CompleteParentDialog({
             <DialogClose render={<Button variant="outline" disabled={pending} />}>
               {step === 'ask' ? 'Not now' : 'Cancel'}
             </DialogClose>
-            {step === 'ask' && <Button onClick={() => void handleMove()}>Move story…</Button>}
+            {step === 'ask' && <Button onClick={() => void handleMove()}>Move story</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

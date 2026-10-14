@@ -20,6 +20,9 @@ function parent(
   return {
     fields: {
       summary: 'Story sum',
+      issuetype: { name: 'Story' },
+      priority: { name: 'Must' },
+      assignee: { displayName: 'Ada L' },
       status: { id: '3', name: 'In Progress', statusCategory: { key: cat } },
       subtasks: subtasks.map((s) => ({
         key: s.key,
@@ -54,9 +57,14 @@ describe('checkParentCompletion', () => {
       parentSummary: 'Story sum',
       parentStatusId: '3',
       parentStatusName: 'In Progress',
+      parentStatusCategory: 'indeterminate',
+      parentIssueType: 'Story',
+      parentPriority: 'Must',
+      parentAssignee: 'Ada L',
+      subtaskCount: 2,
     });
     expect(mocked.mock.calls[0][1]).toBe(
-      'https://j.example.com/rest/api/2/issue/P-1?fields=status,summary,subtasks',
+      'https://j.example.com/rest/api/2/issue/P-1?fields=status,summary,subtasks,issuetype,priority,assignee',
     );
   });
 

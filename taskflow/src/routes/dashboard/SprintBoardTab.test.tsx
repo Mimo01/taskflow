@@ -829,6 +829,11 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
         parentSummary: 'Parent Story',
         parentStatusId: '3',
         parentStatusName: 'In Progress',
+        parentStatusCategory: 'indeterminate',
+        parentIssueType: 'Story',
+        parentPriority: 'Medium',
+        parentAssignee: '',
+        subtaskCount: 1,
       });
       await moveToDone([story(), sub()], 'Closing Subtask');
       expect(await screen.findByText('All subtasks of PROJ-1 are done')).toBeTruthy();
