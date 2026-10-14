@@ -574,6 +574,21 @@ export function FieldsSection({
     ? ((epicIssue.fields[epicNameFieldKey] as string | null) ?? epicIssue.fields.summary)
     : null;
 
+  const deploymentPackageSet = !!extractDeploymentPackage(f.customfield_15725);
+  const packageWarning = (embedded: boolean) => (
+    <DeploymentPackageWarning
+      issueKey={issueKey}
+      issueTypeName={f.issuetype.name}
+      projectKey={f.project?.key}
+      projectName={f.project?.name}
+      pkgField={f.customfield_15725}
+      fixVersions={f.fixVersions}
+      mutation={mutation}
+      jiraBaseUrl={jiraBaseUrl}
+      embedded={embedded}
+    />
+  );
+
   return (
     <>
       <MetaRow label="Status">
@@ -1129,26 +1144,20 @@ export function FieldsSection({
               </span>
             </span>
           ) : (
-            <span
-              data-testid="deployment-package-value"
-              className="text-muted-foreground"
-              title={editNote}
-            >
-              &mdash;
+            <span className="flex min-w-0 flex-col">
+              <span
+                data-testid="deployment-package-value"
+                className="text-muted-foreground"
+                title={editNote}
+              >
+                &mdash;
+              </span>
+              {packageWarning(true)}
             </span>
           );
         })()}
       </MetaRow>
-      <DeploymentPackageWarning
-        issueKey={issueKey}
-        issueTypeName={f.issuetype.name}
-        projectKey={f.project?.key}
-        projectName={f.project?.name}
-        pkgField={f.customfield_15725}
-        fixVersions={f.fixVersions}
-        mutation={mutation}
-        jiraBaseUrl={jiraBaseUrl}
-      />
+      {deploymentPackageSet && packageWarning(false)}
 
       {/* Flagged -- toggle impediment flag */}
       {(() => {

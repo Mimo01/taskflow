@@ -31,6 +31,8 @@ interface DeploymentPackageWarningProps {
   fixVersions: Array<{ id: string; name: string; releaseDate?: string }>;
   mutation: UseMutationResult<unknown, Error, { fieldName: string; value: unknown }>;
   jiraBaseUrl: string;
+  /** Render inside the Deployment package value cell (no label gutter of its own). */
+  embedded?: boolean;
 }
 
 const FIX_BUTTON_CLASS = 'h-auto min-h-6 max-w-full whitespace-normal break-words py-0.5 text-left';
@@ -50,6 +52,7 @@ export function DeploymentPackageWarning({
   fixVersions,
   mutation,
   jiraBaseUrl,
+  embedded = false,
 }: DeploymentPackageWarningProps) {
   const { enabled: rmEnabled } = useRmWeekIndex();
   const active = rmEnabled && issueTypeName === 'Story';
@@ -121,18 +124,20 @@ export function DeploymentPackageWarning({
     });
   };
 
-  return (
-    <div className="flex items-start gap-2">
-      {/* Same label gutter as MetaRow, so the warning sits inside the value column. */}
-      <span className="w-28 shrink-0" aria-hidden="true" />
-      <div
-        data-testid="deployment-package-warning"
-        className="flex min-w-0 flex-1 flex-col gap-1.5 border-l-2 border-amber-500/60 pl-2 text-xs"
-      >
-        <div className="flex min-w-0 items-start gap-1.5 text-amber-700 dark:text-amber-400">
-          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-          <span className="min-w-0 break-words">{result.hint}</span>
-        </div>
+  const body = (
+    <div
+      data-testid="deployment-package-warning"
+      className="flex min-w-0 flex-1 items-start gap-1.5 text-xs"
+    >
+      <AlertTriangle
+        className="mt-px size-3.5 shrink-0 text-amber-700 dark:text-amber-400"
+        aria-hidden="true"
+      />
+      {/* Message, detail and actions share one column so they line up beside the icon. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="min-w-0 break-words text-amber-700 dark:text-amber-400">
+          {result.hint}
+        </span>
         {result.detail && (
           <p className="min-w-0 break-words text-muted-foreground">{result.detail}</p>
         )}
@@ -187,6 +192,15 @@ export function DeploymentPackageWarning({
           </div>
         )}
       </div>
+    </div>
+  );
+
+  if (embedded) return <div className="mt-1 flex min-w-0">{body}</div>;
+  return (
+    <div className="flex items-start gap-2">
+      {/* Same label gutter as MetaRow, so the warning sits inside the value column. */}
+      <span className="w-28 shrink-0" aria-hidden="true" />
+      {body}
     </div>
   );
 }
