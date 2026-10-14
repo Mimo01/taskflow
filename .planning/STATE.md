@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-14 - Completed quick task 261014-s2e: evenly spaced burndown date labels
+Last activity: 2026-10-14 - Completed quick task 261014-lgn: unassign assignee in Edit Issue modal
 
 ## Performance Metrics
 
@@ -136,6 +136,7 @@ None yet.
 | 261014-p5z | AIO burndown: flat polish, no card | 2026-10-14 | 7b4bf28e | Verified (inline) | direct commits, no plan dir |
 | 261014-r8w | AIO burndown: nice y scale, local-time x labels | 2026-10-14 | 36ec6a7a | Verified (inline) | direct commits, no plan dir |
 | 261014-s2e | AIO burndown: evenly spaced x labels (+ headroom 5ad7c8de) | 2026-10-14 | 580cbf93 | Verified (inline) | direct commits, no plan dir |
+| 261014-lgn | Issue detail: unassign assignee via explicit 'Unassigned' option (PUT /issue/{key}/assignee {name:null}); stale-null enrichment fix | 2026-10-14 | 92a7dc17 | Needs Review (live Jira unassign untested) | [261014-lgn-issue-detail-unassign-assignee](./quick/261014-lgn-issue-detail-unassign-assignee/) |
 | 261007-hv0 | Duplicate a subtask template in Settings | 2026-10-07 | 7dab588d | Verified (UAT by user) | [261007-hv0-in-settings-subtask-templates-i-want-to-](./quick/261007-hv0-in-settings-subtask-templates-i-want-to-/) |
 | 261013-jl3 | Redesign AIO Cycles page: polished folder selector (All cycles, filter, aggregated counts), Open\|All filter, status/dates/pass %/effort columns, paginated cycle fetch | 2026-10-13 | 64e568f4 | Verified (UAT by user) | [261013-jl3-redesign-aio-tests-tab-cycle-selector](./quick/261013-jl3-redesign-aio-tests-tab-cycle-selector/) |
 | 261013-l97 | AIO Cycles page dashboard: KPI tiles + Execution mix / By owner / Schedule cards (read-only), per-subfolder fetch and badge for parent folders, single page scroll | 2026-10-13 | 949f290e | Verified (UAT by user) | [261013-l97-aio-cycles-dashboard](./quick/261013-l97-aio-cycles-dashboard/) |
