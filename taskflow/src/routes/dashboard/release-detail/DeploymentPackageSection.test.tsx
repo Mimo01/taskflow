@@ -100,12 +100,13 @@ describe('DeploymentPackageSection', () => {
     expect(await screen.findByText('Summary S-1')).toBeInTheDocument();
     expect(screen.queryByText('Summary S-2')).toBeNull();
     expect(screen.queryByText('Summary E-1')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /set deployment package to RM-21/i }));
+    fireEvent.click(screen.getByRole('button', { name: /set deployment package to .*RM-21/i }));
     await waitFor(() =>
       expect(applyFix).toHaveBeenCalledWith(expect.objectContaining({ key: 'S-1' }), {
         kind: 'set-package',
         childKey: 'RM-21',
         childSummary: 'Core deployment',
+        weekSummary: 'WEEK44 (26.10.2026 - 01.11.2026)',
       }),
     );
   });

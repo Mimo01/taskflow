@@ -34,7 +34,7 @@ export type PackageSyncState = 'none' | 'ok' | 'pkg-only' | 'fv-only' | 'mismatc
 
 export type PackageFix =
   | { kind: 'set-fix-version'; versionId: string; versionName: string }
-  | { kind: 'set-package'; childKey: string; childSummary: string };
+  | { kind: 'set-package'; childKey: string; childSummary: string; weekSummary?: string };
 
 export interface PackageFixVersion {
   id: string;
@@ -271,7 +271,14 @@ function setPackageFix(
         : 'No tasks found under that week.',
     };
   }
-  return { fix: { kind: 'set-package', childKey: child.key, childSummary: child.summary } };
+  return {
+    fix: {
+      kind: 'set-package',
+      childKey: child.key,
+      childSummary: child.summary,
+      weekSummary: w.summary,
+    },
+  };
 }
 
 export function evaluatePackageSync(input: {
@@ -405,4 +412,12 @@ export function planBulkSync(
     });
   }
   return plan;
+}
+
+/** Button label for a fix: names the actual target (week + dates), not just an issue key. */
+export function packageFixLabel(fix: PackageFix): string {
+  if (fix.kind === 'set-fix-version') return `Set fix version to ${fix.versionName}`;
+  return fix.weekSummary
+    ? `Set deployment package to ${formatWeekLabel(fix.weekSummary)} (${fix.childKey})`
+    : `Set deployment package to ${fix.childKey}`;
 }

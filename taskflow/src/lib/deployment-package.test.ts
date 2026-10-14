@@ -11,6 +11,7 @@ import {
   indexChildToWeek,
   isDateInWeek,
   mergeWeek,
+  packageFixLabel,
   parseWeekRange,
   planBulkSync,
   type RmWeek,
@@ -151,7 +152,12 @@ describe('evaluatePackageSync', () => {
     const r = evaluatePackageSync({ ...base, pkgKey: null, fixVersions: [v44] });
     expect(r.state).toBe('fv-only');
     expect(r.fixes).toEqual([
-      { kind: 'set-package', childKey: 'RM-21', childSummary: 'Core deployment' },
+      {
+        kind: 'set-package',
+        childKey: 'RM-21',
+        childSummary: 'Core deployment',
+        weekSummary: 'WEEK44 (26.10.2026 - 01.11.2026)',
+      },
     ]);
   });
   it('fv-only explains why no package could be derived', () => {
@@ -320,5 +326,24 @@ describe('mergeWeek', () => {
     expect(merged).toHaveLength(1);
     expect(merged[0].children.map((c) => c.key)).toEqual(['RM-11', 'RM-12']);
     expect(mergeWeek(merged, week43)).toBe(merged);
+  });
+});
+
+describe('packageFixLabel', () => {
+  it('names the target week for package fixes and the version for fix-version fixes', () => {
+    expect(
+      packageFixLabel({
+        kind: 'set-package',
+        childKey: 'RM-21',
+        childSummary: 'Core',
+        weekSummary: 'WEEK45 (2.11.2026 - 8.11.2026) STANDARD',
+      }),
+    ).toBe('Set deployment package to Week 45 (2.11.2026 – 8.11.2026) Standard (RM-21)');
+    expect(packageFixLabel({ kind: 'set-package', childKey: 'RM-21', childSummary: 'Core' })).toBe(
+      'Set deployment package to RM-21',
+    );
+    expect(packageFixLabel({ kind: 'set-fix-version', versionId: '1', versionName: 'R-43' })).toBe(
+      'Set fix version to R-43',
+    );
   });
 });

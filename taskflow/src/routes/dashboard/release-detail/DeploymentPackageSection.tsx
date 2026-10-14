@@ -9,6 +9,7 @@ import {
   type PackageFix,
   type PackageSyncResult,
   type PackageSyncState,
+  packageFixLabel,
 } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions } from '@/services/jira';
@@ -170,9 +171,7 @@ export function DeploymentPackageSection({
                     disabled={pending === issue.key}
                     onClick={() => onFix(issue, fix)}
                   >
-                    {fix.kind === 'set-fix-version'
-                      ? `Set fix version to ${fix.versionName}`
-                      : `Set deployment package to ${fix.childKey}`}
+                    {packageFixLabel(fix)}
                   </Button>
                 ))}
               </div>
