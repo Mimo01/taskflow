@@ -271,3 +271,118 @@ export function defectSeveritySlices(defects: DefectLike[]): ChartSlice[] {
       };
     });
 }
+
+/** Colour token for a burndown execution marker (same tokens as the execution donut). */
+export function burndownMarkerColor(marker: StatusKey): string {
+  return EXECUTION_COLOR[marker];
+}
+
+/** Epoch ms from an AIO date (epoch number, all-digit string or ISO string); null if unparseable. */
+export function aioDateMs(raw: unknown): number | null {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
+  if (typeof raw !== 'string') return null;
+  const s = raw.trim();
+  if (s === '') return null;
+  const ms = /^\d+$/.test(s) ? Number(s) : Date.parse(s);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+export interface BurndownPoint {
+  /** Epoch ms. */
+  t: number;
+  /** Cases not yet passed/failed/blocked; null after "now" so the step line stops there. */
+  remaining: number | null;
+  /** Straight line from total at the start to 0 at the end; null when the span is empty. */
+  ideal: number | null;
+  /** Cases executed at exactly this timestamp. */
+  executed: number;
+  /** Worst status executed at this timestamp (fail > blocked > pass); null for non-execution points. */
+  marker: StatusKey | null;
+}
+
+export interface BurndownSeries {
+  points: BurndownPoint[];
+  total: number;
+  from: number;
+  to: number;
+}
+
+// Mirrors normalizeStatus in aioUtils (not imported: that module pulls in services).
+function burndownStatus(raw: string): StatusKey {
+  switch (raw.toUpperCase()) {
+    case 'PASS':
+      return 'pass';
+    case 'FAIL':
+      return 'fail';
+    case 'BLOCKED':
+      return 'blocked';
+    case 'IN_PROGRESS':
+      return 'inProgress';
+    default:
+      return 'notRun';
+  }
+}
+
+const MARKER_SEVERITY: Partial<Record<StatusKey, number>> = { pass: 0, blocked: 1, fail: 2 };
+
+/**
+ * Burndown of remaining cases (Not Run + In Progress) over time: one point per execution
+ * timestamp, a start point at the total, and a trailing/end point. Null when nothing was
+ * executed (nothing to draw).
+ */
+export function cycleBurndownSeries(
+  runs: { status: string; executedDate?: string }[],
+  cycle: { startDate?: unknown; endDate?: unknown } | undefined,
+  now: number,
+): BurndownSeries | null {
+  const total = runs.length;
+  if (total === 0) return null;
+
+  const groups = new Map<number, { count: number; marker: StatusKey }>();
+  for (const r of runs) {
+    const status = burndownStatus(r.status);
+    if (status !== 'pass' && status !== 'fail' && status !== 'blocked') continue;
+    const t = aioDateMs(r.executedDate);
+    if (t === null) continue;
+    const g = groups.get(t);
+    if (!g) groups.set(t, { count: 1, marker: status });
+    else {
+      g.count++;
+      if ((MARKER_SEVERITY[status] ?? 0) > (MARKER_SEVERITY[g.marker] ?? 0)) g.marker = status;
+    }
+  }
+  if (groups.size === 0) return null;
+
+  const times = [...groups.keys()].sort((a, b) => a - b);
+  const firstExec = times[0];
+  const lastExec = times[times.length - 1];
+  const from = Math.min(aioDateMs(cycle?.startDate) ?? firstExec, firstExec);
+  const to = Math.max(aioDateMs(cycle?.endDate) ?? lastExec, lastExec);
+
+  const blank = { executed: 0, marker: null } as const;
+  const points: BurndownPoint[] = [{ t: from, remaining: total, ideal: null, ...blank }];
+  let done = 0;
+  for (const t of times) {
+    const g = groups.get(t) as { count: number; marker: StatusKey };
+    done += g.count;
+    points.push({ t, remaining: total - done, ideal: null, executed: g.count, marker: g.marker });
+  }
+  const tail = Math.min(now, to);
+  if (tail > lastExec) {
+    points.push({ t: tail, remaining: total - done, ideal: null, ...blank });
+  }
+  if (!points.some((p) => p.t === to)) {
+    points.push({ t: to, remaining: null, ideal: null, ...blank });
+  }
+
+  const span = to - from;
+  for (const p of points) {
+    p.ideal =
+      span > 0
+        ? Math.round(Math.min(total, Math.max(0, total * (1 - (p.t - from) / span))) * 10) / 10
+        : null;
+  }
+  points.sort((a, b) => a.t - b.t);
+  if (points.length < 2) return null;
+  return { points, total, from, to };
+}
