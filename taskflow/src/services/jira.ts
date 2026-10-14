@@ -2405,13 +2405,13 @@ const linkFieldIdCache = new Map<string, Promise<string[]>>();
 /**
  * Parent-style link fields are instance-specific: discover the Epic Link and
  * Advanced Roadmaps "Parent Link" field ids via /field (cached per base URL).
- * Falls back to the default Epic Link id when discovery fails.
+ * Falls back to the default Epic Link id only when discovery fails or finds nothing.
  */
 function discoverLinkFieldIds(base: string, token: string): Promise<string[]> {
   const cached = linkFieldIdCache.get(base);
   if (cached) return cached;
+  const fallback = ['customfield_10014'];
   const p = (async () => {
-    const ids = new Set<string>(['customfield_10014']);
     try {
       const fr = await apiFetch(
         'jira',
@@ -2421,23 +2421,27 @@ function discoverLinkFieldIds(base: string, token: string): Promise<string[]> {
       );
       if (!fr.ok) {
         linkFieldIdCache.delete(base);
-        return [...ids];
+        return fallback;
       }
       const all: Array<{ id: string; name?: string; schema?: { custom?: string } }> =
         await fr.json();
-      for (const f of all) {
-        const custom = f.schema?.custom ?? '';
-        if (
-          custom === 'com.pyxis.greenhopper.jira:gh-epic-link' ||
-          custom.endsWith('jpo-custom-field-parent') ||
-          f.name === 'Parent Link'
-        )
-          ids.add(f.id);
-      }
+      // Only fields that really exist on this instance: a guessed id makes JQL like
+      // cf[10014] fail with "field does not exist".
+      const ids = all
+        .filter((f) => {
+          const custom = f.schema?.custom ?? '';
+          return (
+            custom === 'com.pyxis.greenhopper.jira:gh-epic-link' ||
+            custom.endsWith('jpo-custom-field-parent') ||
+            f.name === 'Parent Link'
+          );
+        })
+        .map((f) => f.id);
+      return ids.length > 0 ? ids : fallback;
     } catch {
       linkFieldIdCache.delete(base);
+      return fallback;
     }
-    return [...ids];
   })();
   linkFieldIdCache.set(base, p);
   return p;
