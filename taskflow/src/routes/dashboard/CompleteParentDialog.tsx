@@ -8,7 +8,7 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,11 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { statusPillClass } from '@/lib/statusStyles';
-import {
-  checkParentCompletion,
-  invalidateAfterTransition,
-  type ParentCompletionResult,
-} from '@/services/jira/parentCompletion';
+import { checkParentCompletion, invalidateAfterTransition } from '@/services/jira/parentCompletion';
 import {
   fetchIssueTransitionsWithFields,
   postTransition,
@@ -33,9 +29,13 @@ import {
 } from '@/services/jira/transitions';
 import type { JiraTransitionWithFields } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
+import {
+  type ParentCompletionPrompt,
+  useParentCompletionStore,
+} from '@/stores/parent-completion.store';
 import { BoardResolutionDialog } from './BoardResolutionDialog';
 
-type Prompt = Extract<ParentCompletionResult, { shouldPrompt: true }>;
+type Prompt = ParentCompletionPrompt;
 
 export interface ParentCheckArgs {
   issueKey: string;
@@ -50,53 +50,59 @@ interface HookOptions {
   boardId?: number | null;
 }
 
+// Parents with a check currently in flight (module-level so two entry points
+// closing siblings of the same story can't both prompt).
+const inFlight = new Set<string>();
+
 export function useParentCompletionPrompt({ jiraBaseUrl, boardId }: HookOptions): {
   check: (args: ParentCheckArgs) => Promise<void>;
-  dialog: ReactNode;
 } {
-  const [prompt, setPrompt] = useState<Prompt | null>(null);
-  const promptOpenRef = useRef(false);
-  const inFlightRef = useRef(false);
-
   const check = useCallback(
     async ({ issueKey, parentKey, isSubtask, fromCategory, toCategory }: ParentCheckArgs) => {
       if (!isSubtask || !parentKey || toCategory !== 'done' || fromCategory === 'done') return;
-      if (promptOpenRef.current || inFlightRef.current) return;
-      inFlightRef.current = true;
+      if (!jiraBaseUrl) return;
+      const queued = () =>
+        useParentCompletionStore.getState().queue.some((e) => e.prompt.parentKey === parentKey);
+      if (inFlight.has(parentKey) || queued()) return;
+      inFlight.add(parentKey);
       try {
         const token = await readSecret('jira-pat').catch(() => null);
         if (!token) return;
         const result = await checkParentCompletion(jiraBaseUrl, token, issueKey, parentKey);
-        if (result.shouldPrompt && !promptOpenRef.current) {
-          promptOpenRef.current = true;
-          setPrompt(result);
+        if (result.shouldPrompt) {
+          useParentCompletionStore.getState().enqueue({ prompt: result, jiraBaseUrl, boardId });
         }
       } catch {
         // never throws: a failed check just means no prompt
       } finally {
-        inFlightRef.current = false;
+        inFlight.delete(parentKey);
       }
     },
-    [jiraBaseUrl],
+    [jiraBaseUrl, boardId],
   );
 
-  const handleClose = useCallback(() => {
-    promptOpenRef.current = false;
-    setPrompt(null);
-  }, []);
+  return { check };
+}
 
-  const dialog = prompt ? (
+/**
+ * Mounted once at the app root so a prompt survives the component that
+ * triggered it unmounting (e.g. the detail panel closing), and prompts for
+ * different stories queue instead of being dropped.
+ */
+export function ParentCompletionHost() {
+  const entry = useParentCompletionStore((s) => s.queue[0]);
+  const dismiss = useParentCompletionStore((s) => s.dismiss);
+  if (!entry) return null;
+  return (
     <CompleteParentDialog
-      key={prompt.parentKey}
+      key={entry.prompt.parentKey}
       open
-      prompt={prompt}
-      jiraBaseUrl={jiraBaseUrl}
-      boardId={boardId}
-      onClose={handleClose}
+      prompt={entry.prompt}
+      jiraBaseUrl={entry.jiraBaseUrl}
+      boardId={entry.boardId}
+      onClose={dismiss}
     />
-  ) : null;
-
-  return { check, dialog };
+  );
 }
 
 type Step = 'ask' | 'pick' | 'resolution';
@@ -169,11 +175,7 @@ export function CompleteParentDialog({
     setError(null);
     try {
       const token = await getToken();
-      if (fields === undefined) {
-        await postTransition(jiraBaseUrl, token, parentKey, transitionId);
-      } else {
-        await postTransition(jiraBaseUrl, token, parentKey, transitionId, fields);
-      }
+      await postTransition(jiraBaseUrl, token, parentKey, transitionId, fields);
       invalidateAfterTransition(queryClient, parentKey, jiraBaseUrl, boardId);
       onClose();
     } catch (e) {
@@ -187,6 +189,7 @@ export function CompleteParentDialog({
   }
 
   function handlePick(transition: JiraTransitionWithFields) {
+    setError(null);
     const decision = resolveDropResolution(transition);
     if (decision.kind === 'block') {
       setError('This transition requires a resolution but none are available');
@@ -287,6 +290,11 @@ export function CompleteParentDialog({
               {step === 'ask' ? 'Not now' : 'Cancel'}
             </DialogClose>
             {step === 'ask' && <Button onClick={() => void handleMove()}>Move story</Button>}
+            {step === 'pick' && !loading && transitions?.length === 0 && error && (
+              <Button disabled={pending} onClick={() => void handleMove()}>
+                Retry
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

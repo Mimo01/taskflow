@@ -17,8 +17,9 @@ vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn().mockResolvedValue(
 import { checkParentCompletion, invalidateAfterTransition } from '@/services/jira/parentCompletion';
 import { fetchIssueTransitionsWithFields, postTransition } from '@/services/jira/transitions';
 import type { JiraTransitionFieldMeta } from '@/services/jira/types';
+import { useParentCompletionStore } from '@/stores/parent-completion.store';
 import type { ParentCheckArgs } from './CompleteParentDialog';
-import { useParentCompletionPrompt } from './CompleteParentDialog';
+import { ParentCompletionHost, useParentCompletionPrompt } from './CompleteParentDialog';
 
 const BASE = 'https://j.example.com';
 const PROMPT = {
@@ -41,14 +42,20 @@ const GOOD: ParentCheckArgs = {
   toCategory: 'done',
 };
 
+function Trigger({ args, label = 'run-check' }: { args: ParentCheckArgs; label?: string }) {
+  const { check } = useParentCompletionPrompt({ jiraBaseUrl: BASE, boardId: 5 });
+  return (
+    <button type="button" onClick={() => void check(args)}>
+      {label}
+    </button>
+  );
+}
+
 function Harness({ args }: { args: ParentCheckArgs }) {
-  const { check, dialog } = useParentCompletionPrompt({ jiraBaseUrl: BASE, boardId: 5 });
   return (
     <>
-      <button type="button" onClick={() => void check(args)}>
-        run-check
-      </button>
-      {dialog}
+      <Trigger args={args} />
+      <ParentCompletionHost />
     </>
   );
 }
@@ -73,6 +80,7 @@ const doneT = (id: string, name: string, fields?: Record<string, JiraTransitionF
 describe('useParentCompletionPrompt + CompleteParentDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useParentCompletionStore.setState({ queue: [] });
     vi.mocked(checkParentCompletion).mockResolvedValue(PROMPT);
   });
 
@@ -143,8 +151,9 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     expect(await screen.findByRole('button', { name: /In Progress\s*Done/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Doing' })).toBeNull();
     await user.click(screen.getByRole('button', { name: /In Progress\s*Done/ }));
-    await waitFor(() => expect(postTransition).toHaveBeenCalledWith(BASE, 'tok', 'P-1', '11'));
-    expect(vi.mocked(postTransition).mock.calls[0]).toHaveLength(4);
+    await waitFor(() =>
+      expect(postTransition).toHaveBeenCalledWith(BASE, 'tok', 'P-1', '11', undefined),
+    );
     expect(invalidateAfterTransition).toHaveBeenCalledWith(expect.anything(), 'P-1', BASE, 5);
     await waitFor(() => expect(screen.queryByText(/All subtasks of/)).toBeNull());
   });
@@ -221,5 +230,76 @@ describe('useParentCompletionPrompt + CompleteParentDialog', () => {
     expect(await screen.findByText('Jira said no')).toBeTruthy();
     expect(screen.getByText('All subtasks of P-1 are done')).toBeTruthy();
     expect(invalidateAfterTransition).not.toHaveBeenCalled();
+  });
+
+  it('queues a second story prompt instead of dropping it', async () => {
+    const user = setup();
+    await user.click(screen.getByText('run-check'));
+    expect(await screen.findByText('All subtasks of P-1 are done')).toBeTruthy();
+    vi.mocked(checkParentCompletion).mockResolvedValue({
+      ...PROMPT,
+      parentKey: 'P-2',
+      parentSummary: 'Other story',
+    });
+    useParentCompletionStore.getState().enqueue({
+      prompt: { ...PROMPT, parentKey: 'P-2', parentSummary: 'Other story' },
+      jiraBaseUrl: BASE,
+    });
+    expect(screen.getByText('All subtasks of P-1 are done')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(await screen.findByText('All subtasks of P-2 are done')).toBeTruthy();
+  });
+
+  it('keeps the prompt when the triggering component unmounts mid-check', async () => {
+    let resolveCheck: (v: typeof PROMPT) => void = () => {};
+    vi.mocked(checkParentCompletion).mockReturnValue(
+      new Promise((r) => {
+        resolveCheck = r;
+      }),
+    );
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <QueryClientProvider client={qc}>
+        <Trigger args={GOOD} />
+        <ParentCompletionHost />
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByText('run-check'));
+    view.rerender(
+      <QueryClientProvider client={qc}>
+        <ParentCompletionHost />
+      </QueryClientProvider>,
+    );
+    resolveCheck(PROMPT);
+    expect(await screen.findByText('All subtasks of P-1 are done')).toBeTruthy();
+  });
+
+  it('offers Retry when loading transitions fails', async () => {
+    vi.mocked(fetchIssueTransitionsWithFields)
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce([doneT('11', 'Done')]);
+    const user = setup();
+    await user.click(screen.getByText('run-check'));
+    await user.click(await screen.findByRole('button', { name: /Move story/ }));
+    expect(await screen.findByText('boom')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('button', { name: /In Progress\s*Done/ })).toBeTruthy();
+    expect(screen.queryByText('boom')).toBeNull();
+  });
+
+  it('clears a stale error when another transition is picked', async () => {
+    const needsRes = doneT('11', 'Done', {
+      resolution: { required: true, allowedValues: [] } as unknown as JiraTransitionFieldMeta,
+    });
+    vi.mocked(fetchIssueTransitionsWithFields).mockResolvedValue([needsRes, doneT('12', 'Closed')]);
+    vi.mocked(postTransition).mockResolvedValue(undefined);
+    const user = setup();
+    await user.click(screen.getByText('run-check'));
+    await user.click(await screen.findByRole('button', { name: /Move story/ }));
+    await user.click(await screen.findByRole('button', { name: /In Progress\s*Done/ }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /In Progress\s*Closed/ }));
+    await waitFor(() => expect(postTransition).toHaveBeenCalled());
   });
 });

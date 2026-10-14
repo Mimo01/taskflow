@@ -1882,7 +1882,6 @@ export default function SprintBoardTab() {
        * open iff a resolution-capable drop is pending; cancel/close clears it with NO
        * transition (the card never moved), confirm executes the dragged transition
        * with fields.resolution. */}
-      {parentPrompt.dialog}
       {pendingResolution && (
         <BoardResolutionDialog
           // CR-02: key by issue so the dialog's internal selectedId state fully

@@ -617,7 +617,6 @@ export function FieldsSection({
 
   return (
     <>
-      {parentPrompt.dialog}
       <MetaRow label="Status">
         <StatusPopover
           projectId={Number(f.project?.id ?? 0)}
