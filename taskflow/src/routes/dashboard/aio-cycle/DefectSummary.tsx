@@ -15,53 +15,25 @@ function describe(slices: { label: string; value: number }[]): string {
   return slices.map((s) => `${s.value} ${s.label}`).join(', ');
 }
 
-/**
- * Defect Summary: Status (by Jira category) and Priority (by icon severity) donuts plus a
- * plain-text severity line. No centre counts: the open-defect count lives only in the
- * "Open defects" tile. The cycle's defects are already latest-run only, so there is no
- * "latest run" toggle.
- */
+/** Severity breakdown line for the Defects tab; the donuts live in the cycle stats block. */
 export function DefectSummary({ defects }: { defects: ResolvedDefect[] }) {
-  const { statusSlices, prioritySlices, bySeverity } = useMemo(() => {
+  const bySeverity = useMemo(() => {
     const sev = new Map<string, number>();
     for (const d of defects) {
       const s = severityOf(d.issue);
       if (s) sev.set(s, (sev.get(s) ?? 0) + 1);
     }
-    return {
-      statusSlices: defectStatusSlices(defects),
-      prioritySlices: defectPrioritySlices(defects),
-      bySeverity: [...sev.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])),
-    };
+    return [...sev.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [defects]);
 
-  if (statusSlices.length === 0) return null;
+  if (bySeverity.length === 0) return null;
 
   return (
     <div
       data-testid="defects-summary"
-      className="grid gap-2 border-b px-4 py-2 density-compact:py-1.5 density-comfortable:py-3"
+      className="border-b px-4 py-2 text-xs text-muted-foreground density-compact:py-1.5 density-comfortable:py-3"
     >
-      <span className={TITLE_CLASS}>Defect Summary</span>
-      <div className="flex flex-wrap items-center gap-x-12 gap-y-4">
-        <DonutBlock
-          title="Status"
-          testId="defect-status-donut"
-          label="Defects by status"
-          slices={statusSlices}
-        />
-        <DonutBlock
-          title="Priority"
-          testId="defect-priority-donut"
-          label="Defects by priority"
-          slices={prioritySlices}
-        />
-        {bySeverity.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {`Sev: ${bySeverity.map(([name, n]) => `${name} ${n}`).join(' · ')}`}
-          </span>
-        )}
-      </div>
+      {`Sev: ${bySeverity.map(([name, n]) => `${name} ${n}`).join(' · ')}`}
     </div>
   );
 }
