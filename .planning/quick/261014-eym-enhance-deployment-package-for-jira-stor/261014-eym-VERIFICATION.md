@@ -1,8 +1,8 @@
 ---
 phase: quick-261014-eym
 verified: 2026-10-14T00:00:00Z
-status: human_needed
-score: 7/7 must-haves verified in code (live-Jira behaviour untested)
+status: passed
+score: 7/7 must-haves verified; live-Jira UAT performed and approved by user 2026-10-14
 gaps: []
 human_verification:
   - test: "Open a Story whose Deployment package is set and confirm the field's JSON shape ({key}, string, or array) is read correctly"
