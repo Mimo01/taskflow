@@ -1,11 +1,16 @@
 'use no memo';
 
 /**
- * Compact AIO-style cycle burndown: neutral step line of remaining cases with a status-coloured
- * diamond per execution, plus a thin dashed straight ideal line. No legend; colour = status only.
+ * AIO-style cycle burndown on its own Card surface: a 2px neutral step line of remaining cases
+ * over a faint area fill, a status-coloured diamond per execution, and a dashed working-day ideal
+ * line. Non-working days are shaded when each day is wide enough to read. No legend; the only
+ * status colour is on the diamonds.
+ *
+ * The Card is absolutely positioned: its parent supplies the height, so the chart adds none.
  */
 import { useRef } from 'react';
-import { ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, XAxis, YAxis } from 'recharts';
+import { Card } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
@@ -18,7 +23,10 @@ import { toDateKey } from '@/lib/aio-cycle-list';
 import { formatDateKey, timeTicks } from '@/lib/epic-progress';
 import { PLOT_MARGIN, useElementWidth, Y_AXIS_WIDTH } from '../issue-detail/EpicChartZoom';
 
-const PLOT_H = 140;
+/** Shade non-working days only when each day is at least this many px wide. */
+const MIN_BAND_DAY_PX = 4;
+const DAY_MS = 86_400_000;
+const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 const TOOLTIP_WRAPPER = { zIndex: 50 };
 
@@ -102,11 +110,7 @@ export function CycleBurndown({
 
   if (loading) {
     return (
-      <Skeleton
-        data-testid="cycle-burndown-skeleton"
-        className="w-full"
-        style={{ height: PLOT_H }}
-      />
+      <Skeleton data-testid="cycle-burndown-skeleton" className="absolute inset-0 rounded-xl" />
     );
   }
   if (!series) return null;
@@ -114,16 +118,36 @@ export function CycleBurndown({
   const fromKey = toDateKey(series.from);
   const toKey = toDateKey(series.to);
   const ticks = fromKey && toKey ? timeTicks(fromKey, toKey, width) : [];
+  const spanDays = (series.to - series.from) / DAY_MS;
+  const showBands = spanDays > 0 && width / spanDays >= MIN_BAND_DAY_PX;
 
   return (
-    <div data-testid="cycle-burndown" className="w-full min-w-0">
-      <div ref={plotRef} style={{ height: PLOT_H }}>
+    <Card
+      size="sm"
+      data-testid="cycle-burndown"
+      className="absolute inset-0 gap-0 overflow-visible p-2"
+    >
+      <div ref={plotRef} className="h-full w-full min-w-0">
         <ChartContainer
           config={{}}
           className="aspect-auto h-full w-full"
           aria-label="Cycle burndown chart"
         >
           <ComposedChart data={series.points} responsive margin={PLOT_MARGIN}>
+            <CartesianGrid vertical={false} stroke="var(--color-border)" />
+            {showBands
+              ? series.nonWorking.map((r) => (
+                  <ReferenceArea
+                    key={`nw-${r.from}`}
+                    x1={r.from}
+                    x2={r.to}
+                    fill="var(--color-muted-foreground)"
+                    fillOpacity={0.08}
+                    stroke="none"
+                    ifOverflow="hidden"
+                  />
+                ))
+              : null}
             <XAxis
               type="number"
               dataKey="t"
@@ -134,12 +158,15 @@ export function CycleBurndown({
               tickFormatter={(v) =>
                 ticks.find((x) => x.t === Number(v))?.label ?? dayLabel(Number(v))
               }
+              tick={TICK}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
               domain={[0, series.total]}
               allowDecimals={false}
+              tickCount={4}
+              tick={TICK}
               tickLine={false}
               axisLine={false}
               width={Y_AXIS_WIDTH}
@@ -158,20 +185,20 @@ export function CycleBurndown({
               dataKey="ideal"
               type="linear"
               stroke="var(--color-muted-foreground)"
-              strokeOpacity={0.6}
-              strokeWidth={1}
-              strokeDasharray="4 3"
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
               dot={false}
               activeDot={false}
               connectNulls
               isAnimationActive={false}
             />
-            <Line
+            <Area
               dataKey="remaining"
               type="stepAfter"
               stroke="var(--color-foreground)"
-              strokeOpacity={0.7}
-              strokeWidth={1.5}
+              strokeWidth={2}
+              fill="var(--color-foreground)"
+              fillOpacity={0.06}
               connectNulls={false}
               dot={renderDot}
               activeDot={renderActiveDot}
@@ -180,6 +207,6 @@ export function CycleBurndown({
           </ComposedChart>
         </ChartContainer>
       </div>
-    </div>
+    </Card>
   );
 }

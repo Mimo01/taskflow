@@ -2,7 +2,7 @@ import { BugOff, CircleCheck, FlaskConical, Redo2 } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cycleBurndownSeries } from '@/lib/aio-cycle-charts';
-import { DEFAULT_CALENDAR } from '@/lib/epic-progress';
+import type { WorkCalendar } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
 import type { AioCycle, AioTestRun } from '@/services/aio';
 import { STAT_CONTAINER_CLASS } from '../issue-detail/EpicStatCard';
@@ -24,12 +24,15 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  * tab chips carry the counts), the header carries the last run date, so the tiles show only
  * what those cannot (pass rate of executed, re-runs, unlinked failures, open defects).
  *
- * A Burndown strip (remaining cases over time, 140px plot) sits below the row; it is hidden when
- * nothing has been executed.
+ * A Burndown column (remaining cases over time against a working-day ideal) is part of the
+ * block; it is hidden when nothing has been executed. The plot is absolutely positioned inside
+ * its section, so it never adds height: the sibling columns set the row height and it fills it.
  *
  * Three layouts on the block's own container width:
- *  - narrow: everything stacked, tiles 2x2;
- *  - >= 896px (@4xl): tiles 2x2 | Execution | Defect Summary (Status on top, Priority | Severity below) in one row.
+ *  - < 896px: everything stacked, tiles 2x2, plot 140px;
+ *  - 896-1407px (@4xl): two rows, [tiles | Burndown] then [Execution | Defect Summary];
+ *  - >= 1408px (88rem): one row of four, tiles | Burndown | Execution | Defect Summary
+ *    (Defect Summary: Status on top, Priority | Severity below).
  */
 export function CycleKpiTiles({
   counts,
@@ -39,6 +42,7 @@ export function CycleKpiTiles({
   defectsLoading,
   defects,
   cycle,
+  calendar,
 }: {
   counts: AioStatusCounts;
   total: number;
@@ -47,11 +51,15 @@ export function CycleKpiTiles({
   defectsLoading: boolean;
   defects: ResolvedDefect[];
   cycle: Pick<AioCycle, 'startDate' | 'endDate'> | undefined;
+  calendar: WorkCalendar;
 }) {
+  // buildWorkCalendar returns a new object every render, so key the memo on its content.
+  const { isWorkingDay, source } = calendar;
+  const holidayKey = calendar.holidays.join(',');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isWorkingDay is a new closure per render; source + holidayKey capture its content
   const burndown = useMemo(
-    () =>
-      runs ? cycleBurndownSeries(runs, cycle, Date.now(), DEFAULT_CALENDAR.isWorkingDay) : null,
-    [runs, cycle],
+    () => (runs ? cycleBurndownSeries(runs, cycle, Date.now(), isWorkingDay) : null),
+    [runs, cycle, source, holidayKey],
   );
   const executed = counts.pass + counts.fail + counts.blocked;
   const passPct = pctOf(counts.pass, executed);
@@ -84,8 +92,8 @@ export function CycleKpiTiles({
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8">
+      <div className="flex flex-col gap-6 @min-[88rem]/epic:flex-row @min-[88rem]/epic:gap-8">
+        <div className="flex min-w-0 flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8 @min-[88rem]/epic:flex-1">
           <Section title="Cycle Statistics" className="min-w-0 flex-1">
             <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
               {countsLoading ? (
@@ -187,9 +195,22 @@ export function CycleKpiTiles({
               )}
             </div>
           </Section>
-
-          {/* One row when wide (rules with 24px each side); stacked with hairlines when narrow. */}
-          <Section title="Execution Distribution" className={DIVIDED_CLASS}>
+          {!runs || burndown ? (
+            <Section
+              title="Burndown"
+              className="min-w-0 flex-1 border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-8"
+              bodyClassName="relative min-h-[140px] items-stretch"
+            >
+              <CycleBurndown series={burndown} loading={!runs} />
+            </Section>
+          ) : null}
+        </div>
+        <div className="flex flex-none flex-col gap-6 border-t border-border pt-6 @4xl/epic:flex-row @4xl/epic:gap-8 @min-[88rem]/epic:border-t-0 @min-[88rem]/epic:pt-0">
+          {/* Rules sit 24px from each side when side by side; hairlines when stacked. */}
+          <Section
+            title="Execution Distribution"
+            className="flex-none @min-[88rem]/epic:border-l @min-[88rem]/epic:pl-8"
+          >
             <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
           </Section>
           <Section
@@ -199,11 +220,6 @@ export function CycleKpiTiles({
             <CycleDefectDonuts defects={defects} loading={defectsLoading} />
           </Section>
         </div>
-        {!runs || burndown ? (
-          <Section title="Burndown" className="border-t border-border pt-4">
-            <CycleBurndown series={burndown} loading={!runs} />
-          </Section>
-        ) : null}
       </div>
     </div>
   );
@@ -216,16 +232,18 @@ const DIVIDED_CLASS =
 function Section({
   title,
   className,
+  bodyClassName,
   children,
 }: {
   title: string;
   className?: string;
+  bodyClassName?: string;
   children: ReactNode;
 }) {
   return (
     <section className={cn('flex flex-col gap-3', className)}>
       <h3 className={HEADING_CLASS}>{title}</h3>
-      <div className="flex min-w-0 flex-1 items-center">{children}</div>
+      <div className={cn('flex min-w-0 flex-1 items-center', bodyClassName)}>{children}</div>
     </section>
   );
 }
