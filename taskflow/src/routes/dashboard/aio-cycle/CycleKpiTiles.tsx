@@ -176,7 +176,7 @@ export function CycleKpiTiles({
         </Section>
         <Section
           title="Defect Summary"
-          className={cn(DIVIDED_CLASS, '@4xl/epic:w-104 @4xl/epic:pr-4')}
+          className={cn(DIVIDED_CLASS, '@4xl/epic:w-112 @4xl/epic:pr-4')}
         >
           <CycleDefectDonuts defects={defects} loading={defectsLoading} />
         </Section>
