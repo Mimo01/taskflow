@@ -77,6 +77,7 @@ export function DeploymentPackageSection({
         fixVersions: issue.fields.fixVersions ?? [],
         weeks,
         projectName: issue.fields.project?.name ?? issue.fields.project?.key ?? '',
+        projectKey: issue.fields.project?.key,
         projectVersions,
       });
       if (result.state !== 'ok' && result.state !== 'none') out.push({ issue, result });

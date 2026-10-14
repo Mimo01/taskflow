@@ -324,7 +324,9 @@ export default function ReleasesTab() {
     if (!rmEnabled || !releaseDate || rmWeeks.length === 0) return null;
     const week = findWeekForDate(rmWeeks, releaseDate);
     if (!week) return null;
-    const child = activeProjectName ? findChildForProject(week, activeProjectName) : null;
+    const child = activeProjectName
+      ? findChildForProject(week, activeProjectName, activeJiraProject ?? undefined)
+      : null;
     return { week, child };
   };
 

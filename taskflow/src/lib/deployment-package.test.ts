@@ -153,6 +153,28 @@ describe('evaluatePackageSync', () => {
       { kind: 'set-package', childKey: 'RM-21', childSummary: 'Core deployment' },
     ]);
   });
+  it('fv-only explains why no package could be derived', () => {
+    const noChild = evaluatePackageSync({
+      ...base,
+      pkgKey: null,
+      fixVersions: [v43],
+      projectName: 'Billing',
+    });
+    expect(noChild.fixes).toEqual([]);
+    expect(noChild.hint).toContain('No task for "Billing"');
+    expect(noChild.hint).toContain('Week 43');
+    expect(noChild.hint).toContain('Core deployment');
+
+    const noWeek = evaluatePackageSync({
+      ...base,
+      pkgKey: null,
+      fixVersions: [{ id: '9', name: 'R-99', releaseDate: '2027-01-01' }],
+    });
+    expect(noWeek.hint).toContain('No Release Management week covers R-99');
+
+    const many = evaluatePackageSync({ ...base, pkgKey: null, fixVersions: [v43, v44] });
+    expect(many.hint).toContain('Several fix versions');
+  });
   it('mismatch offers both fixes', () => {
     const r = evaluatePackageSync({ ...base, pkgKey: 'RM-11', fixVersions: [v44] });
     expect(r.state).toBe('mismatch');
@@ -250,5 +272,24 @@ describe('formatWeekLabel', () => {
       'Week 43 (19.10.2026 – 25.10.2026)',
     );
     expect(formatWeekLabel('Something else')).toBe('Something else');
+  });
+});
+
+describe('findChildForProject (app-name tasks)', () => {
+  const week: RmWeek = {
+    ...week43,
+    children: [
+      { key: 'RM-31', summary: 'Mobile Banking' },
+      { key: 'RM-32', summary: 'Web Shop' },
+    ],
+  };
+  it('matches when the Jira project name contains the task (app) name', () => {
+    expect(findChildForProject(week, 'Mobile Banking Platform')?.key).toBe('RM-31');
+  });
+  it('falls back to the project key as a whole word', () => {
+    expect(findChildForProject(week, 'Internal platform', 'WEB')?.key).toBe('RM-32');
+  });
+  it('returns null when nothing or several match', () => {
+    expect(findChildForProject(week, 'Billing', 'BIL')).toBeNull();
   });
 });
