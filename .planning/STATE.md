@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-14 - Completed quick task 261014-j3s: AIO cycle defect summary layout
+Last activity: 2026-10-14 - Completed quick task 261014-jes: AIO cycle priority/severity chart colours
 
 ## Performance Metrics
 
@@ -128,6 +128,7 @@ None yet.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 261007-hmj | Time-led epic forecast (time weighted 4x, confidence from time) | 2026-10-07 | 62956e7b | Verified (inline) | [261007-hmj-epic-forecast-time-led](./quick/261007-hmj-epic-forecast-time-led/) |
+| 261014-jes | AIO cycle priority/severity chart colours (one colour per level) | 2026-10-14 | f3f7cac1 | Verified (inline) | [261014-jes-aio-cycle-priority-severity-chart-colors](./quick/261014-jes-aio-cycle-priority-severity-chart-colors/) |
 | 261007-hv0 | Duplicate a subtask template in Settings | 2026-10-07 | 7dab588d | Verified (UAT by user) | [261007-hv0-in-settings-subtask-templates-i-want-to-](./quick/261007-hv0-in-settings-subtask-templates-i-want-to-/) |
 | 261013-jl3 | Redesign AIO Cycles page: polished folder selector (All cycles, filter, aggregated counts), Open\|All filter, status/dates/pass %/effort columns, paginated cycle fetch | 2026-10-13 | 64e568f4 | Verified (UAT by user) | [261013-jl3-redesign-aio-tests-tab-cycle-selector](./quick/261013-jl3-redesign-aio-tests-tab-cycle-selector/) |
 | 261013-l97 | AIO Cycles page dashboard: KPI tiles + Execution mix / By owner / Schedule cards (read-only), per-subfolder fetch and badge for parent folders, single page scroll | 2026-10-13 | 949f290e | Verified (UAT by user) | [261013-l97-aio-cycles-dashboard](./quick/261013-l97-aio-cycles-dashboard/) |
