@@ -36,7 +36,7 @@ describe('CycleBurndown', () => {
     const el = screen.getByTestId('cycle-burndown-skeleton');
     expect(el.className).toContain('absolute');
     expect(el.className).toContain('inset-0');
-    expect(el.className).toContain('rounded-xl');
+    expect(el.className).not.toContain('rounded-xl');
     expect(el.style.height).toBe('');
   });
 
@@ -49,7 +49,9 @@ describe('CycleBurndown', () => {
     );
     render(<CycleBurndown series={series} loading={false} />);
     const el = screen.getByTestId('cycle-burndown');
-    expect(el.getAttribute('data-slot')).toBe('card');
+    // Flat on the page: no Card surface (ring/border/rounded box/padding).
+    expect(el.getAttribute('data-slot')).toBeNull();
+    expect(el.className).not.toMatch(/ring|border|rounded|\bp-\d/);
     expect(el.className).toContain('absolute');
     expect(el.className).toContain('inset-0');
   });
