@@ -51,7 +51,7 @@ export function AioDonut({
       data-testid={testId}
       role="img"
       aria-label={ariaLabel}
-      className="relative flex-none"
+      className="relative flex-none hover:z-50"
       style={{ width: size, height: size }}
     >
       <PieChart width={size} height={size}>
