@@ -1,4 +1,4 @@
-import { Layers, ListChecks, Unlink, Wrench } from 'lucide-react';
+import { ListRestart, Repeat, ShieldCheck, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -73,11 +73,11 @@ export function CycleKpiTiles({
         <Section title="Cycle Statistics" className="min-w-0 flex-1">
           <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
             {countsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-pass" icon={ListChecks} tint="green" />
+              <TileSkeleton testId="kpi-skeleton-pass" icon={ShieldCheck} tint="green" />
             ) : (
               <Tile
                 testId="kpi-pass-rate"
-                icon={ListChecks}
+                icon={ShieldCheck}
                 tint="green"
                 label="Pass rate"
                 value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
@@ -96,11 +96,11 @@ export function CycleKpiTiles({
               />
             )}
             {!runs || defectsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-retest" icon={Wrench} tint="blue" />
+              <TileSkeleton testId="kpi-skeleton-retest" icon={ListRestart} tint="blue" />
             ) : (
               <Tile
                 testId="kpi-retest"
-                icon={Wrench}
+                icon={ListRestart}
                 tint="blue"
                 label="Ready to retest"
                 value={<span className={VALUE_CLASS}>{retest.length}</span>}
@@ -157,11 +157,11 @@ export function CycleKpiTiles({
               />
             )}
             {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-reruns" icon={Layers} tint="amber" />
+              <TileSkeleton testId="kpi-skeleton-reruns" icon={Repeat} tint="amber" />
             ) : (
               <Tile
                 testId="kpi-reruns"
-                icon={Layers}
+                icon={Repeat}
                 tint="amber"
                 label="Re-runs"
                 value={<span className={VALUE_CLASS}>{reRuns}</span>}
