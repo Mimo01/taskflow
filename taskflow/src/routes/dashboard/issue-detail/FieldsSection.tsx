@@ -825,17 +825,23 @@ export function FieldsSection({
               </p>
             )}
             {f.assignee && 'unassigned'.includes(assigneeQuery.trim().toLowerCase()) && (
-              <button
-                data-testid="assignee-unassign"
-                type="button"
-                onClick={handleUnassign}
-                className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
-                  <UserX className="size-3" aria-hidden="true" />
-                </span>
-                Unassigned
-              </button>
+              <>
+                <button
+                  data-testid="assignee-unassign"
+                  type="button"
+                  onClick={handleUnassign}
+                  className="w-full text-left px-2 py-1.5 text-xs rounded-md flex items-center gap-2 border border-dashed border-border bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive transition-colors cursor-pointer"
+                >
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed border-current">
+                    <UserX className="size-3" aria-hidden="true" />
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="font-medium">Unassign</span>
+                    <span className="text-[11px] opacity-70">Remove {f.assignee.displayName}</span>
+                  </span>
+                </button>
+                <div className="border-b border-border/40 my-2" />
+              </>
             )}
             {filteredAssignees.map((user) => (
               <button
