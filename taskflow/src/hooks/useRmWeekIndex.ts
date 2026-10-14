@@ -1,42 +1,129 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { indexChildToWeek, type PackageEditShape, type RmWeek } from '@/lib/deployment-package';
-import { fetchDeploymentPackageEditShape, fetchRmPackage, fetchRmWeekIndex } from '@/services/jira';
+import {
+  findWeekForDate,
+  indexChildToWeek,
+  mergeWeek,
+  type PackageEditShape,
+  type RmWeek,
+} from '@/lib/deployment-package';
+import {
+  fetchDeploymentPackageEditShape,
+  fetchRmPackage,
+  fetchRmWeekChildren,
+  fetchRmWeekList,
+} from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 const EMPTY_WEEKS: RmWeek[] = [];
+const STALE = 30 * 60_000;
+const MAX_DIRECT_PACKAGE_LOOKUPS = 30;
+
+async function requireToken(baseUrl: string | null | undefined): Promise<string> {
+  const token = await readSecret('jira-pat').catch(() => null);
+  if (!token || !baseUrl) throw new Error('No credentials');
+  return token;
+}
 
 /**
- * Shared Release Management week index (quick 261014-eym). One query for the
- * whole app; disabled (and every deployment-package feature silently off) when
- * no RM project is configured in Settings > Integrations.
+ * Release Management weeks (quick 261014-eym), loaded lazily so it stays fast:
+ *  1. a light list of WEEK parents (summary only), shared app-wide;
+ *  2. children (per-application tasks) only for the weeks covering `dates`;
+ *  3. packages in `pkgKeys` that still aren't covered are resolved directly
+ *     (one issue + parent each, cached under the same key as useRmPackage).
+ * The returned `weeks` have children populated only for those weeks. Disabled
+ * (every deployment-package feature silently off) when no RM project is set in
+ * Settings > Integrations.
  */
-export function useRmWeekIndex() {
+export function useRmWeekIndex(
+  opts: {
+    dates?: readonly (string | null | undefined)[];
+    pkgKeys?: readonly (string | null)[];
+  } = {},
+) {
   const rmProject = useSettingsStore((s) => s.releaseManagementProjectKey);
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const enabled = !!rmProject && !!jiraBaseUrl;
 
-  const query = useQuery({
-    queryKey: ['rm-week-index', rmProject, jiraBaseUrl],
+  const listQuery = useQuery({
+    queryKey: ['rm-week-list', rmProject, jiraBaseUrl],
     queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !rmProject) throw new Error('No credentials');
-      return fetchRmWeekIndex(jiraBaseUrl, token, rmProject);
+      const token = await requireToken(jiraBaseUrl);
+      if (!rmProject) throw new Error('No RM project');
+      return fetchRmWeekList(jiraBaseUrl as string, token, rmProject);
     },
-    staleTime: 5 * 60_000,
+    staleTime: STALE,
     enabled,
   });
+  const lightWeeks = listQuery.data ?? EMPTY_WEEKS;
 
-  const weeks = query.data ?? EMPTY_WEEKS;
+  const dateKey = [...new Set((opts.dates ?? []).filter((d): d is string => !!d))].sort().join(',');
+  const neededKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const d of dateKey ? dateKey.split(',') : []) {
+      const w = findWeekForDate(lightWeeks, d);
+      if (w) keys.add(w.key);
+    }
+    return [...keys];
+  }, [lightWeeks, dateKey]);
+
+  const children = useQueries({
+    queries: neededKeys.map((weekKey) => ({
+      queryKey: ['rm-week-children', weekKey, jiraBaseUrl],
+      queryFn: async () =>
+        fetchRmWeekChildren(jiraBaseUrl as string, await requireToken(jiraBaseUrl), weekKey),
+      staleTime: STALE,
+      enabled,
+    })),
+    combine: (results) => ({
+      data: results.map((r) => r.data),
+      isLoading: results.some((r) => r.isLoading),
+    }),
+  });
+
+  const withChildren = useMemo(
+    () =>
+      lightWeeks.map((w) => {
+        const data = children.data[neededKeys.indexOf(w.key)];
+        return data ? { ...w, children: data } : w;
+      }),
+    [lightWeeks, neededKeys, children],
+  );
+
+  const pkgKeyList = [...new Set((opts.pkgKeys ?? []).filter((k): k is string => !!k))];
+  const covered = useMemo(() => indexChildToWeek(withChildren), [withChildren]);
+  const missing =
+    enabled && listQuery.isSuccess && !children.isLoading
+      ? pkgKeyList.filter((k) => !covered.has(k)).slice(0, MAX_DIRECT_PACKAGE_LOOKUPS)
+      : [];
+  const packages = useQueries({
+    queries: missing.map((key) => ({
+      queryKey: ['rm-package', key, jiraBaseUrl],
+      queryFn: async () =>
+        fetchRmPackage(jiraBaseUrl as string, await requireToken(jiraBaseUrl), key),
+      staleTime: STALE,
+    })),
+    combine: (results) => ({
+      weeks: results.map((r) => r.data?.week ?? null),
+      isLoading: results.some((r) => r.isLoading),
+    }),
+  });
+
+  const weeks = useMemo(() => {
+    let out = withChildren;
+    for (const w of packages.weeks) if (w) out = mergeWeek(out, w);
+    return out;
+  }, [withChildren, packages]);
   const childToWeek = useMemo(() => indexChildToWeek(weeks), [weeks]);
+
   return {
     weeks,
     childToWeek,
     enabled,
-    isLoading: query.isLoading,
-    isError: query.isError,
+    isLoading: listQuery.isLoading || children.isLoading || packages.isLoading,
+    isError: listQuery.isError,
   };
 }
 

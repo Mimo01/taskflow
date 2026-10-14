@@ -24,6 +24,7 @@ import {
   extractLinkedIssueKey,
   type PackageEditShape,
   parseWeekRange,
+  type RmChild,
   type RmWeek,
 } from '../lib/deployment-package';
 import {
@@ -2514,16 +2515,13 @@ export async function fetchRmPackage(
 }
 
 /**
- * Fetch the Release Management week index (261014-eym): every WEEK parent in
- * the RM project (summary parsed by parseWeekRange) with its children.
- *
- * How children hang off a parent is instance-specific, so ONE fully paginated
- * query over the RM project (bounded to the last ~2 years) collects them from
- * every mechanism and dedupes by key: sub-tasks, `parent` links, Epic Link
- * and Advanced Roadmaps Parent Link (field ids discovered via /field) and issue links
- * (either direction).
+ * Light list of Release Management WEEK parents (summary only, no children).
+ * First tries a prefix text search on the summary so only WEEK issues come back;
+ * if that errors or finds no parseable week, falls back to a summary-only scan of
+ * the whole (bounded) RM project. Children are loaded lazily per week
+ * (fetchRmWeekChildren), which keeps this cheap.
  */
-export async function fetchRmWeekIndex(
+export async function fetchRmWeekList(
   baseUrl: string,
   token: string,
   rmProjectKey: string,
@@ -2533,60 +2531,73 @@ export async function fetchRmWeekIndex(
   }
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  const jql = `project = "${rmProjectKey}" AND created >= startOfYear(-1) ORDER BY created DESC`;
+  const run = async (jql: string): Promise<RmWeek[]> => {
+    const issues = await fetchAllSearchPagesConcurrent(
+      `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary`,
+      headers,
+    );
+    const weeks: RmWeek[] = [];
+    for (const issue of issues) {
+      const range = parseWeekRange(issue.fields.summary ?? '');
+      if (range)
+        weeks.push({ key: issue.key, summary: issue.fields.summary, ...range, children: [] });
+    }
+    return weeks;
+  };
+  const scope = `project = "${rmProjectKey}" AND created >= startOfYear(-1)`;
+  try {
+    const weeks = await run(`${scope} AND summary ~ "WEEK*" ORDER BY created DESC`);
+    if (weeks.length > 0) return weeks;
+  } catch {
+    // text search unsupported/invalid: fall through to the plain scan
+  }
+  return run(`${scope} ORDER BY created DESC`);
+}
+
+/**
+ * Children (the per-application tasks) of ONE WEEK parent. How they hang off the
+ * parent is instance-specific, so the JQL ORs every mechanism: sub-task parent,
+ * the discovered Epic Link / Parent Link fields and issue links. If the combined
+ * query is rejected (e.g. a field isn't searchable) each clause runs on its own
+ * and the results are merged.
+ */
+export async function fetchRmWeekChildren(
+  baseUrl: string,
+  token: string,
+  weekKey: string,
+): Promise<RmChild[]> {
+  if (!ISSUE_KEY_RE_STRICT.test(weekKey)) throw new Error(`Invalid issue key: ${weekKey}`);
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const linkFieldIds = await discoverLinkFieldIds(base, token);
-  const fields = ['summary', 'parent', 'subtasks', 'issuelinks', ...linkFieldIds].join(',');
-  const issues = await fetchAllSearchPages(
-    `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,
-    headers,
-  );
-
-  const parents = new Map<string, RmWeek>();
-  for (const issue of issues) {
-    const range = parseWeekRange(issue.fields.summary ?? '');
-    if (!range) continue;
-    parents.set(issue.key, {
-      key: issue.key,
-      summary: issue.fields.summary,
-      ...range,
-      children: [],
-    });
+  const clauses = [
+    `parent = "${weekKey}"`,
+    ...linkFieldIds
+      .map((id) => /^customfield_(\d+)$/.exec(id)?.[1])
+      .filter((n): n is string => !!n)
+      .map((n) => `cf[${n}] = "${weekKey}"`),
+    `issue in linkedIssues("${weekKey}")`,
+  ];
+  const search = (jql: string) =>
+    fetchAllSearchPages(
+      `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary`,
+      headers,
+    );
+  let issues: JiraIssue[];
+  try {
+    issues = await search(clauses.join(' OR '));
+  } catch {
+    const parts = await Promise.all(clauses.map((c) => search(c).catch(() => [] as JiraIssue[])));
+    issues = parts.flat();
   }
-
-  const summaries = new Map(issues.map((i) => [i.key, i.fields.summary ?? '']));
   const seen = new Set<string>();
-  const addChild = (parentKey: string, childKey: string, childSummary?: string) => {
-    const parent = parents.get(parentKey);
-    if (!parent || parents.has(childKey) || childKey === parentKey) return;
-    const dedupe = `${parentKey}>${childKey}`;
-    if (seen.has(dedupe)) return;
-    seen.add(dedupe);
-    parent.children.push({ key: childKey, summary: childSummary ?? summaries.get(childKey) ?? '' });
-  };
-
-  type LinkLike = {
-    inwardIssue?: { key: string; fields?: { summary?: string } };
-    outwardIssue?: { key: string; fields?: { summary?: string } };
-  };
-  for (const issue of issues) {
-    const f = issue.fields as Record<string, unknown>;
-    for (const sub of issue.fields.subtasks ?? [])
-      addChild(issue.key, sub.key, sub.fields?.summary);
-    if (issue.fields.parent?.key)
-      addChild(issue.fields.parent.key, issue.key, issue.fields.summary);
-    for (const id of linkFieldIds) {
-      const target = extractLinkedIssueKey(f[id]);
-      if (target) addChild(target, issue.key, issue.fields.summary);
-    }
-    const links = Array.isArray(f.issuelinks) ? (f.issuelinks as LinkLike[]) : [];
-    for (const l of links) {
-      const other = l.inwardIssue ?? l.outwardIssue;
-      // Links are symmetric: the WEEK parent may sit on either end.
-      if (other && parents.has(other.key)) addChild(other.key, issue.key, issue.fields.summary);
-      if (other && parents.has(issue.key)) addChild(issue.key, other.key, other.fields?.summary);
-    }
+  const children: RmChild[] = [];
+  for (const i of issues) {
+    if (i.key === weekKey || seen.has(i.key)) continue;
+    seen.add(i.key);
+    children.push({ key: i.key, summary: i.fields.summary ?? '' });
   }
-  return [...parents.values()];
+  return children;
 }
 
 /**

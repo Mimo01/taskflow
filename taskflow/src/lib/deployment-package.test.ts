@@ -10,6 +10,7 @@ import {
   formatWeekLabel,
   indexChildToWeek,
   isDateInWeek,
+  mergeWeek,
   parseWeekRange,
   planBulkSync,
   type RmWeek,
@@ -308,5 +309,16 @@ describe('week parsing with non-padded dates', () => {
     expect(formatWeekLabel('WEEK45 (2.11.2026 - 8.11.2026) STANDARD')).toBe(
       'Week 45 (2.11.2026 – 8.11.2026) Standard',
     );
+  });
+});
+
+describe('mergeWeek', () => {
+  it('appends an unknown week and unions children of a known one', () => {
+    const light: RmWeek = { ...week43, children: [] };
+    expect(mergeWeek([light], week44)).toHaveLength(2);
+    const merged = mergeWeek([light], week43);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].children.map((c) => c.key)).toEqual(['RM-11', 'RM-12']);
+    expect(mergeWeek(merged, week43)).toBe(merged);
   });
 });

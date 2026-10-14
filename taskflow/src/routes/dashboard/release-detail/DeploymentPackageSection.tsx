@@ -48,7 +48,7 @@ export function DeploymentPackageSection({
   activeJiraProject,
   onOpenIssue,
 }: DeploymentPackageSectionProps) {
-  const { weeks, enabled } = useRmWeekIndex();
+  const { enabled } = useRmWeekIndex();
 
   const versionsQuery = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject],
@@ -68,8 +68,30 @@ export function DeploymentPackageSection({
   );
   const { applyFix } = useDeploymentPackageSync({ version, stories: onlyStories, projectVersions });
 
+  // Children are loaded lazily: only for the weeks of the stories' fix versions, and packages
+  // outside those weeks are resolved directly per key.
+  const weekDates = useMemo(
+    () => [
+      version?.releaseDate,
+      ...onlyStories.flatMap((s) =>
+        (s.fields.fixVersions ?? []).map(
+          (v) => v.releaseDate ?? projectVersions.find((p) => p.id === v.id)?.releaseDate,
+        ),
+      ),
+    ],
+    [version, onlyStories, projectVersions],
+  );
+  const packageKeys = useMemo(
+    () => onlyStories.map((s) => extractDeploymentPackageKey(s.fields.customfield_15725)),
+    [onlyStories],
+  );
+  const { weeks, isLoading: weeksLoading } = useRmWeekIndex({
+    dates: weekDates,
+    pkgKeys: packageKeys,
+  });
+
   const rows = useMemo(() => {
-    if (!enabled || weeks.length === 0) return [];
+    if (!enabled || weeks.length === 0 || weeksLoading) return [];
     const out: Array<{ issue: JiraIssue; result: PackageSyncResult }> = [];
     for (const issue of onlyStories) {
       const result = evaluatePackageSync({
@@ -83,7 +105,7 @@ export function DeploymentPackageSection({
       if (result.state !== 'ok' && result.state !== 'none') out.push({ issue, result });
     }
     return out;
-  }, [enabled, weeks, onlyStories, projectVersions]);
+  }, [enabled, weeks, weeksLoading, onlyStories, projectVersions]);
 
   const [pending, setPending] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});

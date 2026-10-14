@@ -99,7 +99,11 @@ export function useDeploymentPackageSync(input: {
   const { version, stories, projectVersions } = input;
   const queryClient = useQueryClient();
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
-  const { weeks, childToWeek } = useRmWeekIndex();
+  const pkgKeys = useMemo(
+    () => stories.map((s) => extractDeploymentPackageKey(s.fields[DEPLOYMENT_PACKAGE_FIELD])),
+    [stories],
+  );
+  const { weeks, childToWeek } = useRmWeekIndex({ dates: [version?.releaseDate], pkgKeys });
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<PackageSyncItemResult[]>([]);
   const [blockedReason, setBlockedReason] = useState<string | null>(null);

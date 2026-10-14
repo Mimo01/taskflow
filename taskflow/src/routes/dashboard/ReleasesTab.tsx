@@ -110,7 +110,7 @@ export default function ReleasesTab() {
   // Deployment package (quick 261014-eym): ONE shared RM week index for all rows. Everything
   // below is inert (no queries, no UI) while no Release Management project is configured.
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
-  const { weeks: rmWeeks, enabled: rmEnabled } = useRmWeekIndex();
+  const { enabled: rmEnabled } = useRmWeekIndex();
   const [syncBusyId, setSyncBusyId] = useState<string | null>(null);
   const [syncPrompt, setSyncPrompt] = useState<{
     version: JiraFixVersion;
@@ -317,6 +317,13 @@ export default function ReleasesTab() {
 
     return { undatedVersions: undated, unreleasedVersions: unreleased, releasedVersions: released };
   })();
+
+  // Children (per-application tasks) are loaded lazily, only for the weeks of the rows shown.
+  const { weeks: rmWeeks } = useRmWeekIndex({
+    dates: [...unreleasedVersions, ...releasedVersions.slice(0, releasedVisible)].map(
+      (m) => m.version.releaseDate,
+    ),
+  });
 
   // Derived deployment package for a release row: the RM child of the WEEK containing the
   // version's release date. Display only; drift counts live on the detail page.

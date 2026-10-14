@@ -14,6 +14,7 @@ import {
   evaluatePackageSync,
   extractDeploymentPackageKey,
   indexChildToWeek,
+  mergeWeek,
   type PackageFix,
 } from '@/lib/deployment-package';
 import { openExternal } from '@/lib/openExternal';
@@ -50,7 +51,7 @@ export function DeploymentPackageWarning({
   mutation,
   jiraBaseUrl,
 }: DeploymentPackageWarningProps) {
-  const { weeks: indexWeeks, enabled: rmEnabled } = useRmWeekIndex();
+  const { enabled: rmEnabled } = useRmWeekIndex();
   const active = rmEnabled && issueTypeName === 'Story';
 
   const versionsQuery = useQuery({
@@ -65,11 +66,21 @@ export function DeploymentPackageWarning({
   const projectVersions = versionsQuery.data;
 
   const pkgKey = extractDeploymentPackageKey(pkgField);
-  // Fast path: resolve just this story's package week directly; the full index (slower)
-  // takes over once loaded, which also enables deriving a package from the fix version.
+  // Children are loaded lazily, only for the week(s) of this story's fix versions. The story's
+  // own package week is resolved directly (fast) and merged in.
+  const fixVersionDates = useMemo(
+    () =>
+      fixVersions.map(
+        (v) => v.releaseDate ?? projectVersions?.find((p) => p.id === v.id)?.releaseDate,
+      ),
+    [fixVersions, projectVersions],
+  );
+  const { weeks: indexWeeks, isLoading: weeksLoading } = useRmWeekIndex({
+    dates: active ? fixVersionDates : [],
+  });
   const direct = useRmPackage(active ? pkgKey : null);
   const weeks = useMemo(
-    () => (indexWeeks.length > 0 ? indexWeeks : direct.week ? [direct.week] : indexWeeks),
+    () => (direct.week ? mergeWeek(indexWeeks, direct.week) : indexWeeks),
     [indexWeeks, direct.week],
   );
   const childToWeek = useMemo(() => indexChildToWeek(weeks), [weeks]);
@@ -91,7 +102,7 @@ export function DeploymentPackageWarning({
 
   if (!active || result.state === 'ok' || result.state === 'none') return null;
   // Don't flash a "package not found" warning while the index / versions are still loading.
-  if (weeks.length === 0 || versionsQuery.isLoading) return null;
+  if (weeks.length === 0 || versionsQuery.isLoading || weeksLoading) return null;
 
   const applyFix = (fix: PackageFix) => {
     if (fix.kind === 'set-package') {
