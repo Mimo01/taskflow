@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-14 - Completed quick task 261014-m6e: prompt to move story to Done when last subtask closed
+Last activity: 2026-10-14 - Completed quick task 261014-myz: merge AIO burndown executions within one hour
 
 ## Performance Metrics
 
@@ -181,6 +181,7 @@ None yet.
 | 261002-fp7 | Epic progress: risks as an icon tally (one pill per risk, no +N), per-person breakdown separated (divider + heading) | 2026-10-02 | c56b733d | Verified | [261002-fp7-epic-progress-risk-tally-pills-and-per-p](./quick/261002-fp7-epic-progress-risk-tally-pills-and-per-p/) |
 | 261002-h9e | Changes tab: side-by-side word diff for long text (full-height, no preview), plain old→new rows for short + multi-value fields (status keeps pills), burst grouping, field icon column, review fixes + UAT polish | 2026-10-02 | 0ff2acf2 | Verified | [261002-h9e-enhance-changes-tab-on-issue-detail-with](./quick/261002-h9e-enhance-changes-tab-on-issue-detail-with/) |
 | 261014-m6e | Prompt to move story to Done when last open subtask is closed (board + sidebar) | 2026-10-14 | d1d4ec27 | Verified (UAT by user) | [261014-m6e-when-i-close-the-last-opened-subtask-in-](./quick/261014-m6e-when-i-close-the-last-opened-subtask-in-/) |
+| 261014-myz | Merge AIO cycle burndown executions within one hour into one point | 2026-10-14 | f4d5f3a0 | Needs UAT | [261014-myz-merge-close-burndown-datapoints-aio-cycl](./quick/261014-myz-merge-close-burndown-datapoints-aio-cycl/) |
 
 ## Deferred Items
 
