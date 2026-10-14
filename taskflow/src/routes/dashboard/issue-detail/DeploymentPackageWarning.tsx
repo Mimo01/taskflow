@@ -185,7 +185,7 @@ export function DeploymentPackageWarning({
                 disabled={mutation.isPending || !shape}
                 onClick={() => applyFix(fix)}
               >
-                Set deployment package to {fix.childKey}
+                {packageFixLabel(fix)}
               </Button>
             );
           })}
