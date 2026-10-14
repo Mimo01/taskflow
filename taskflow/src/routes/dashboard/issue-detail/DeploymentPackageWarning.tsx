@@ -17,6 +17,7 @@ import {
   indexChildToWeek,
   mergeWeek,
   type PackageFix,
+  packageFixLabel,
 } from '@/lib/deployment-package';
 import { openExternal } from '@/lib/openExternal';
 import { fetchFixVersions } from '@/services/jira/versions';
@@ -154,7 +155,7 @@ export function DeploymentPackageWarning({
                   disabled={mutation.isPending}
                   onClick={() => applyFix(fix)}
                 >
-                  Set fix version to {fix.versionName}
+                  {packageFixLabel(fix)}
                 </Button>
               );
             }
