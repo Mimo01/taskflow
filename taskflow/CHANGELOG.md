@@ -2,6 +2,29 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.9] — 2026-10-14
+
+### Added
+
+- **Deployment package sync** — the issue sidebar now shows the RM week (name and dates) that a story's deployment package maps to, and warns when the package is missing or doesn't match the fix version, with a one-click fix that names the target week. The release detail gets a package drift section, and stories with a package of the release week but no fix version are listed too.
+- **Unassign from issue detail** — the Edit Issue modal and the sidebar assignee popover now have an Unassign action, so an assignee can be cleared without picking someone else.
+- **Move story to Done prompt** — closing the last open subtask from the board or the sidebar now offers to move the parent story to Done, with a summary of the story and its status change.
+- **AIO cycle dashboard** — the AIO Cycles page is redesigned as a read-only dashboard with scope bar, KPI tiles, charts and a cross-filter, an Open | All filter, parent folder markers, and a virtualized list for large folders.
+- **AIO cycle burndown** — the cycle detail has a burndown chart with a working-day ideal line, non-working days shaded and evenly spaced date labels. Executions within one hour are merged into a single point.
+- **AIO cycle statistics** — a single stats block combines Pass rate, Ready to retest, Unlinked failures and Re-runs tiles with an execution distribution donut and Status, Priority and Severity defect donuts. Priority and severity use distinct colours matching the Jira icons, and severity is shown by its label only (Major rather than 2-Major).
+
+### Changed
+
+- **AIO cycle and run detail** — redesigned to follow the app's detail-page conventions: key and title header, Prev/Next between runs, a resizable sidebar, compact step lists with clickable step defects, status-coloured test case pills and sticky tabs. Back-to-cycle lives in the breadcrumb.
+- **Smaller screens** — the cycle stats block tightens up on narrow widths: Priority and Severity keys hide below 896px with captions above the donuts, and donut tooltips show the colour swatch and any legend entries hidden behind "+N more".
+- **Epic and subtask detail** — Fix Versions and Deployment package are no longer shown there, since they only apply to stories.
+
+### Fixed
+
+- **Sidebar navigation labels** — labels stay visible at narrow widths.
+- **Wiki rendering** — underscores stay literal inside `{{monospace}}` spans.
+- **Deployment package lookups** — week titles with non-padded dates (2.11.2026) are parsed, and RM week lookups only query discovered link fields and load lazily, so opening an issue is faster.
+
 ## [1.14.8] — 2026-10-08
 
 ### Fixed
