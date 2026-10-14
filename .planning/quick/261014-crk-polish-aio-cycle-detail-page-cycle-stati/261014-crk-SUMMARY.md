@@ -32,3 +32,23 @@ None.
 Full vitest suite (3370 passed), tsc clean, biome clean on touched files (pre-commit ran on each commit).
 
 ## Self-Check: PASSED
+
+## UAT polish rounds (2026-10-14) — APPROVED by user
+
+Planned work (3 tasks, fe8f16f9..c1a55f97) was reworked inline over UAT; final approved state: 48292131.
+
+| Commit(s) | Change |
+|---|---|
+| 794ffc7a | Layout bug: the container-query flex-row was on the container element itself (cannot restyle itself) so the donut never went beside the tiles; moved to an inner wrapper. Defect donuts in one row with a name/count key. |
+| 076efa0e, 2cf8dd33 | Defect donuts moved into the stats block (not duplicated in the Defects tab). |
+| 2dc86f1d, fde6492b | Tooltip hidden behind the donut centre label: explicit tooltip z-index above the overlay. |
+| b447c979, 79289cd9 (Fable design review) | Three headed sections (Cycle Statistics / Execution Distribution / Defect Summary); shared h3 heading style, donut sizing, reflow, skeletons. Critique in 261014-crk-DESIGN-REVIEW.md. |
+| fbb4858a, dff63c79, b68b1d83, 5bd69220 | Single row: tiles \| large execution donut \| stacked defect donuts; sizes/spacing/key width. |
+| 3487eaae | Tiles now Pass rate, Ready to retest (failing cases whose defects are all Done), Unlinked failures, Re-runs. Open defects dropped (derivable from the status donut): no figure shown twice. |
+| 94634d58 .. ed802efc, 7d741cf7, 6f5b207c, 5e87f3f3, 606c7d9e, da9046ba | Larger ambient icons (72px), distinct icon + tint per card chosen by rendering them cropped (top-right is clipped); neutral value colour; restored the "Unlinked failures" label clobbered by an icon find-and-replace (label assertions added). |
+| 8205dbd8, 321ee975, 5b31047e, 48292131 | Severity donut + removed the "Sev:" line from the Defects tab (column kept); severity shown as the label only ('Major', not '2-Major'), ordered by the number; key shows up to 5 entries (4 + "+N more"); defect donuts 76px. |
+
+Notes
+- Pass rate is passed/executed (was passed/total).
+- "Show only latest run" toggle omitted: cycle defects are already latest-run only.
+- Open review items (advisory, not fixed): unknown Jira status categories are counted but not charted (WR-01/02); custom priority levels (e.g. Must) fall to grey (WR-03); defect donuts have no loading skeleton for the severity block; "of N failing" can disagree with the unlinked count (different sources).
