@@ -72,6 +72,29 @@ function toYmd(dd: string, mm: string, yyyy: string): string | null {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/**
+ * Display label for a WEEK summary: `WEEK43 (19.10.2026 - 25.10.2026) LETNA AKCIA`
+ * -> `Week 43 (19.10.2026 – 25.10.2026) Letna Akcia`. The trailing name is only
+ * re-cased when it is entirely uppercase; words of <= 3 letters stay as-is (acronyms).
+ * Falls back to the raw summary when it doesn't parse.
+ */
+export function formatWeekLabel(summary: string): string {
+  const m = WEEK_RE.exec(summary);
+  if (!m) return summary;
+  const tail = summary
+    .slice(m.index + m[0].length)
+    .trim()
+    .replace(/^[-–:]\s*/, '');
+  const name =
+    tail && tail === tail.toUpperCase()
+      ? tail.replace(/\p{L}+/gu, (w) =>
+          w.length <= 3 ? w : w[0].toUpperCase() + w.slice(1).toLowerCase(),
+        )
+      : tail;
+  const base = `Week ${Number(m[1])} (${m[2]}.${m[3]}.${m[4]} – ${m[5]}.${m[6]}.${m[7]})`;
+  return name ? `${base} ${name}` : base;
+}
+
 /** Parse `WEEK43 (19.10.2026 - 25.10.2026) ...` into a normalised range, or null. */
 export function parseWeekRange(
   summary: string,

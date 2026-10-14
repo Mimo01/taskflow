@@ -7,6 +7,7 @@ import {
   extractLinkedIssueKey,
   findChildForProject,
   findWeekForDate,
+  formatWeekLabel,
   indexChildToWeek,
   isDateInWeek,
   parseWeekRange,
@@ -227,5 +228,27 @@ describe('extractLinkedIssueKey', () => {
     expect(extractLinkedIssueKey('not a key')).toBeNull();
     expect(extractLinkedIssueKey(['RM-1', 'RM-2'])).toBeNull();
     expect(extractLinkedIssueKey({})).toBeNull();
+  });
+});
+
+describe('formatWeekLabel', () => {
+  it('title-cases an all-caps name and normalises the week prefix and dash', () => {
+    expect(formatWeekLabel('WEEK43 (19.10.2026 - 25.10.2026) LETNA AKCIA')).toBe(
+      'Week 43 (19.10.2026 – 25.10.2026) Letna Akcia',
+    );
+  });
+  it('keeps short words (acronyms) and already mixed-case names', () => {
+    expect(formatWeekLabel('WEEK5 (26.01.2026 - 01.02.2026) SAP RELEASE')).toBe(
+      'Week 5 (26.01.2026 – 01.02.2026) SAP Release',
+    );
+    expect(formatWeekLabel('WEEK6 (02.02.2026 - 08.02.2026) Regular')).toBe(
+      'Week 6 (02.02.2026 – 08.02.2026) Regular',
+    );
+  });
+  it('works without a trailing name and passes unparseable input through', () => {
+    expect(formatWeekLabel('WEEK43 (19.10.2026 - 25.10.2026)')).toBe(
+      'Week 43 (19.10.2026 – 25.10.2026)',
+    );
+    expect(formatWeekLabel('Something else')).toBe('Something else');
   });
 });

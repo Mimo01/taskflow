@@ -28,6 +28,7 @@ import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useRmPackage } from '@/hooks/useRmWeekIndex';
 import { apiFetch } from '@/lib/apiFetch';
+import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
 import {
@@ -1114,7 +1115,7 @@ export function FieldsSection({
                   title={`${rmWeek.key} ${rmWeek.summary}`}
                   data-testid="deployment-package-week"
                 >
-                  {rmWeek.summary}
+                  {formatWeekLabel(rmWeek.summary)}
                 </span>
               )}
               <span className="break-words text-xs text-muted-foreground">
