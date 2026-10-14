@@ -9,7 +9,7 @@ import {
   severityLabel,
 } from '@/lib/aio-cycle-charts';
 import type { JiraIssue } from '@/services/jira/types';
-import { AioDonut, AioDonutSkeleton } from './AioDonut';
+import { AioDonut, AioDonutSkeleton, DONUT_SIZE } from './AioDonut';
 import type { ResolvedDefect } from './useCycleDefects';
 
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
@@ -17,6 +17,11 @@ const KEY_CLASS = 'grid gap-0.5 text-xs leading-4';
 /** Key rows shown; beyond this the last row becomes '+N more' (the donut tooltips still list all). */
 const KEY_MAX = 3;
 const KEY_TITLE_CLASS = 'font-medium';
+/** Status is the headline defect split, so its donut is larger than Priority / Severity. */
+const STATUS_DONUT_SIZE = 120;
+/** Status on top, Priority and Severity side by side below. */
+const LAYOUT_CLASS = 'grid w-full min-w-0 gap-4';
+const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-4';
 
 /** Raw severity value ('2-Major'): the number is the order, so sort on this. */
 export function severityRaw(issue: JiraIssue | null): string | null {
@@ -44,28 +49,31 @@ export function DefectDonuts({
   severitySlices: ChartSlice[];
 }) {
   return (
-    <>
+    <div className={LAYOUT_CLASS}>
       <DonutBlock
         title="Status"
         testId="defect-status-donut"
         label="Defects by status"
         slices={statusSlices}
+        size={STATUS_DONUT_SIZE}
       />
-      <DonutBlock
-        title="Priority"
-        testId="defect-priority-donut"
-        label="Defects by priority"
-        slices={prioritySlices}
-      />
-      {severitySlices.length > 0 && (
+      <div className={PAIR_CLASS}>
         <DonutBlock
-          title="Severity"
-          testId="defect-severity-donut"
-          label="Defects by severity"
-          slices={severitySlices}
+          title="Priority"
+          testId="defect-priority-donut"
+          label="Defects by priority"
+          slices={prioritySlices}
         />
-      )}
-    </>
+        {severitySlices.length > 0 && (
+          <DonutBlock
+            title="Severity"
+            testId="defect-severity-donut"
+            label="Defects by severity"
+            slices={severitySlices}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -85,11 +93,13 @@ export function CycleDefectDonuts({
   const severitySlices = useMemo(() => defectSeveritySlices(defects), [defects]);
   if (loading) {
     return (
-      <>
-        <DonutBlockSkeleton testId="defect-status-skeleton" />
-        <DonutBlockSkeleton testId="defect-priority-skeleton" />
-        <DonutBlockSkeleton testId="defect-severity-skeleton" />
-      </>
+      <div className={LAYOUT_CLASS}>
+        <DonutBlockSkeleton testId="defect-status-skeleton" size={STATUS_DONUT_SIZE} />
+        <div className={PAIR_CLASS}>
+          <DonutBlockSkeleton testId="defect-priority-skeleton" />
+          <DonutBlockSkeleton testId="defect-severity-skeleton" />
+        </div>
+      </div>
     );
   }
   if (statusSlices.length === 0) {
@@ -108,10 +118,10 @@ export function CycleDefectDonuts({
   );
 }
 
-function DonutBlockSkeleton({ testId }: { testId: string }) {
+function DonutBlockSkeleton({ testId, size = DONUT_SIZE }: { testId: string; size?: number }) {
   return (
     <div className="flex items-center gap-4">
-      <AioDonutSkeleton testId={testId} />
+      <AioDonutSkeleton testId={testId} size={size} />
       <div className={KEY_CLASS}>
         <Skeleton className="h-3.5 w-12" />
         <Skeleton className="h-3.5 w-24" />
@@ -130,15 +140,22 @@ function DonutBlock({
   testId,
   label,
   slices,
+  size = DONUT_SIZE,
 }: {
   title: string;
   testId: string;
   label: string;
   slices: ChartSlice[];
+  size?: number;
 }) {
   return (
     <div data-testid="defect-donut-block" className="flex items-center gap-4">
-      <AioDonut slices={slices} testId={testId} ariaLabel={`${label}: ${describe(slices)}`} />
+      <AioDonut
+        slices={slices}
+        size={size}
+        testId={testId}
+        ariaLabel={`${label}: ${describe(slices)}`}
+      />
       <div className={KEY_CLASS}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
         {(slices.length > KEY_MAX ? slices.slice(0, KEY_MAX - 1) : slices).map((s) => (
