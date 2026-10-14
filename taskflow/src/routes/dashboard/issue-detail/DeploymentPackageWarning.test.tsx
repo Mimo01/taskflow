@@ -118,12 +118,14 @@ describe('DeploymentPackageWarning', () => {
     expect(mutate).toHaveBeenCalledWith({ fieldName: 'customfield_15725', value: 'RM-21' });
   });
 
-  it('names the target week in the package button, not just the issue key', async () => {
+  it('shows the target week as text next to a compact button', async () => {
     setup({ fixVersions: [v44] });
     const btn = await screen.findByRole('button', { name: /set deployment package/i });
-    expect(btn.textContent).toBe(
+    expect(btn.textContent).toBe('Apply');
+    expect(btn.getAttribute('aria-label')).toBe(
       'Set deployment package to Week 44 (26.10.2026 – 01.11.2026) (RM-21)',
     );
+    expect(screen.getByText('Package: Week 44 (26.10.2026 – 01.11.2026) (RM-21)')).toBeTruthy();
   });
 
   it('pkg-only: sets the fix version', async () => {

@@ -2,7 +2,6 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo } from 'react';
-import { Button } from '@/components/ui/button';
 import {
   useDeploymentPackageEditShape,
   useRmPackage,
@@ -17,11 +16,11 @@ import {
   indexChildToWeek,
   mergeWeek,
   type PackageFix,
-  packageFixLabel,
 } from '@/lib/deployment-package';
 import { openExternal } from '@/lib/openExternal';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
+import { PackageFixAction } from '../PackageFixAction';
 
 interface DeploymentPackageWarningProps {
   issueKey: string;
@@ -37,8 +36,6 @@ interface DeploymentPackageWarningProps {
   /** Embedded mode only: rendered instead of the warning whenever there is nothing to warn about. */
   fallback?: React.ReactNode;
 }
-
-const FIX_BUTTON_CLASS = 'h-auto min-h-6 max-w-full whitespace-normal break-words py-0.5 text-left';
 
 /**
  * Sidebar warning for a Story whose fix version and Deployment package
@@ -142,51 +139,29 @@ export function DeploymentPackageWarning({
         <p className="min-w-0 break-words text-muted-foreground">{result.detail}</p>
       )}
       {result.fixes.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
           {result.fixes.map((fix) => {
-            if (fix.kind === 'set-fix-version') {
+            const key =
+              fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`;
+            if (fix.kind === 'set-package' && shape === 'not-editable') {
               return (
-                <Button
-                  key={`fv-${fix.versionId}`}
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  className={FIX_BUTTON_CLASS}
-                  disabled={mutation.isPending}
-                  onClick={() => applyFix(fix)}
-                >
-                  {packageFixLabel(fix)}
-                </Button>
-              );
-            }
-            if (shape === 'not-editable') {
-              return (
-                <Button
-                  key={`pkg-${fix.childKey}`}
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  className={FIX_BUTTON_CLASS}
-                  onClick={() =>
+                <PackageFixAction
+                  key={key}
+                  fix={fix}
+                  actionLabel="Open in Jira"
+                  onApply={() =>
                     openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)
                   }
-                >
-                  Open in Jira
-                </Button>
+                />
               );
             }
             return (
-              <Button
-                key={`pkg-${fix.childKey}`}
-                type="button"
-                variant="outline"
-                size="xs"
-                className={FIX_BUTTON_CLASS}
-                disabled={mutation.isPending || !shape}
-                onClick={() => applyFix(fix)}
-              >
-                {packageFixLabel(fix)}
-              </Button>
+              <PackageFixAction
+                key={key}
+                fix={fix}
+                disabled={mutation.isPending || (fix.kind === 'set-package' && !shape)}
+                onApply={() => applyFix(fix)}
+              />
             );
           })}
         </div>

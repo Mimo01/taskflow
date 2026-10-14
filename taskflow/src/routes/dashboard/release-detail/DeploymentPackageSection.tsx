@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   evaluatePackageSync,
@@ -9,11 +8,11 @@ import {
   type PackageFix,
   type PackageSyncResult,
   type PackageSyncState,
-  packageFixLabel,
 } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { PackageFixAction } from '../PackageFixAction';
 import { useDeploymentPackageSync } from './useDeploymentPackageSync';
 
 interface DeploymentPackageSectionProps {
@@ -158,21 +157,16 @@ export function DeploymentPackageSection({
               {result.detail ? ` ${result.detail}` : ''}
             </p>
             {result.fixes.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5 text-xs">
                 {result.fixes.map((fix) => (
-                  <Button
+                  <PackageFixAction
                     key={
                       fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`
                     }
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    className="h-auto min-h-6 max-w-full whitespace-normal break-words py-0.5 text-left"
+                    fix={fix}
                     disabled={pending === issue.key}
-                    onClick={() => onFix(issue, fix)}
-                  >
-                    {packageFixLabel(fix)}
-                  </Button>
+                    onApply={() => onFix(issue, fix)}
+                  />
                 ))}
               </div>
             )}
