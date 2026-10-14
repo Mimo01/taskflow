@@ -5,7 +5,7 @@ import type { ChartSlice } from '@/lib/aio-cycle-charts';
 import { cn } from '@/lib/utils';
 
 /** Every donut in the cycle stats block shares one diameter and one ring thickness. */
-export const DONUT_SIZE = 64;
+export const DONUT_SIZE = 76;
 /** Hero donut (Execution Distribution). */
 export const HERO_DONUT_SIZE = 192;
 const INNER = 0.36;
