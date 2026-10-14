@@ -136,10 +136,10 @@ export function DeploymentPackageWarning({
         <span className="min-w-0 break-words">{result.hint}</span>
       </div>
       {result.detail && (
-        <p className="min-w-0 break-words text-muted-foreground">{result.detail}</p>
+        <p className="min-w-0 break-words pl-5 text-muted-foreground">{result.detail}</p>
       )}
       {result.fixes.length > 0 && (
-        <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-2 pl-5">
           {result.fixes.map((fix) => {
             const key =
               fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`;

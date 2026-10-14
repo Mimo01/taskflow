@@ -1,4 +1,3 @@
-import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatWeekLabel, type PackageFix, packageFixLabel } from '@/lib/deployment-package';
 
@@ -17,41 +16,26 @@ interface PackageFixActionProps {
 }
 
 /**
- * One suggested fix: "→ target" as wrapping text plus a small check icon button.
+ * One suggested fix: "→ target" as wrapping text with an "Apply" button below it.
  * The full sentence stays as the button's accessible name.
  */
 export function PackageFixAction({ fix, onApply, disabled, actionLabel }: PackageFixActionProps) {
   return (
-    <div className="flex min-w-0 items-start gap-2">
-      <span className="min-w-0 flex-1 break-words pt-0.5 text-muted-foreground">
+    <div className="flex min-w-0 flex-col items-start gap-1">
+      <span className="min-w-0 break-words text-muted-foreground">
         <span aria-hidden="true">→ </span>
         {packageFixTarget(fix)}
       </span>
-      {actionLabel ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          className="shrink-0"
-          disabled={disabled}
-          onClick={onApply}
-        >
-          {actionLabel}
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-xs"
-          className="shrink-0"
-          disabled={disabled}
-          title="Apply"
-          aria-label={packageFixLabel(fix)}
-          onClick={onApply}
-        >
-          <Check aria-hidden="true" />
-        </Button>
-      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="xs"
+        disabled={disabled}
+        aria-label={actionLabel ?? packageFixLabel(fix)}
+        onClick={onApply}
+      >
+        {actionLabel ?? 'Apply'}
+      </Button>
     </div>
   );
 }
