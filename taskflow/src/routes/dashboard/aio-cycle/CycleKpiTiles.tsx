@@ -57,7 +57,7 @@ export function CycleKpiTiles({
   const failing = counts.fail + counts.blocked;
 
   return (
-    <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 py-4')}>
+    <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
       <div className="flex flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8">
         <Section title="Cycle Statistics" className="min-w-0 flex-1">
           <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
@@ -162,7 +162,10 @@ export function CycleKpiTiles({
         <Section title="Execution Distribution" className={DIVIDED_CLASS}>
           <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
         </Section>
-        <Section title="Defect Summary" className={DIVIDED_CLASS}>
+        <Section
+          title="Defect Summary"
+          className={cn(DIVIDED_CLASS, '@4xl/epic:min-w-72 @4xl/epic:pr-4')}
+        >
           <div className="grid w-full min-w-0 gap-5">
             <CycleDefectDonuts defects={defects} loading={defectsLoading} />
           </div>
