@@ -23,8 +23,7 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  *
  * Three layouts on the block's own container width:
  *  - narrow: everything stacked, tiles 2x2;
- *  - >= 768px (@3xl): tiles 4-across, then Execution | Defect Summary on one row;
- *  - >= 1280px (@7xl): tiles 2x2 | Execution | Defect Summary on one row.
+ *  - >= 896px (@4xl): tiles 2x2 | Execution | Defect Summary (two donuts stacked) in one row.
  */
 export function CycleKpiTiles({
   counts,
@@ -59,9 +58,9 @@ export function CycleKpiTiles({
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 py-4')}>
-      <div className="flex flex-col gap-6 @7xl/epic:flex-row">
+      <div className="flex flex-col gap-6 @4xl/epic:flex-row">
         <Section title="Cycle Statistics" className="min-w-0 flex-1">
-          <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4 @3xl/epic:grid-cols-4 @7xl/epic:grid-cols-2">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
             {countsLoading ? (
               <TileSkeleton testId="kpi-skeleton-pass" icon={CheckCircle2} tint="green" />
             ) : (
@@ -159,25 +158,22 @@ export function CycleKpiTiles({
           </div>
         </Section>
 
-        {/* Charts: a hairline below the tiles, a vertical rule beside them when everything fits
-            in one row. Rules always get 24px on both sides. */}
-        <div className="flex flex-col gap-6 border-t border-border pt-6 @3xl/epic:flex-row @7xl/epic:border-t-0 @7xl/epic:border-l @7xl/epic:pt-0 @7xl/epic:pl-6">
-          <Section title="Execution Distribution" className="flex-none">
-            <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
-          </Section>
-          <Section
-            title="Defect Summary"
-            className="min-w-0 flex-1 @3xl/epic:border-l @3xl/epic:border-border @3xl/epic:pl-6"
-          >
-            <div className="flex w-full min-w-0 flex-wrap items-center gap-x-8 gap-y-4">
-              <CycleDefectDonuts defects={defects} loading={defectsLoading} />
-            </div>
-          </Section>
-        </div>
+        {/* One row when wide (rules with 24px each side); stacked with hairlines when narrow. */}
+        <Section title="Execution Distribution" className={DIVIDED_CLASS}>
+          <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+        </Section>
+        <Section title="Defect Summary" className={DIVIDED_CLASS}>
+          <div className="grid w-full min-w-0 gap-4">
+            <CycleDefectDonuts defects={defects} loading={defectsLoading} />
+          </div>
+        </Section>
       </div>
     </div>
   );
 }
+
+const DIVIDED_CLASS =
+  'flex-none border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-6';
 
 /** Headed block: heading on the shared top line, body vertically centred in the leftover height. */
 function Section({

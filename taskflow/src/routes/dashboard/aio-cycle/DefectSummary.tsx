@@ -131,7 +131,7 @@ function DonutBlock({
       <AioDonut slices={slices} testId={testId} ariaLabel={`${label}: ${describe(slices)}`} />
       <div className={KEY_CLASS}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
-        {slices.slice(0, 5).map((s) => (
+        {slices.slice(0, 4).map((s) => (
           <span key={s.label} className="flex min-w-0 items-center gap-2">
             <MarkerGlyph marker="status" color={s.color} />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">{s.label}</span>

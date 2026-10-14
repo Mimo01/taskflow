@@ -1,5 +1,5 @@
 import { executionSlices } from '@/lib/aio-cycle-charts';
-import { AioDonut, AioDonutSkeleton } from './AioDonut';
+import { AioDonut, AioDonutSkeleton, HERO_DONUT_SIZE } from './AioDonut';
 import { VALUE_CLASS } from './AioTile';
 import type { AioStatusCounts } from './useAioCycleData';
 
@@ -17,10 +17,10 @@ export function ExecutionDonut({
   total: number;
   loading: boolean;
 }) {
-  if (loading) return <AioDonutSkeleton testId="exec-donut-skeleton" />;
+  if (loading) return <AioDonutSkeleton size={HERO_DONUT_SIZE} testId="exec-donut-skeleton" />;
   if (total === 0) {
     return (
-      <AioDonutSkeleton testId="exec-donut-empty" pulse={false}>
+      <AioDonutSkeleton size={HERO_DONUT_SIZE} testId="exec-donut-empty" pulse={false}>
         No runs recorded
       </AioDonutSkeleton>
     );
@@ -30,6 +30,7 @@ export function ExecutionDonut({
   return (
     <AioDonut
       slices={executionSlices(counts)}
+      size={HERO_DONUT_SIZE}
       testId="exec-donut"
       ariaLabel={label}
       center={
