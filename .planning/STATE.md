@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-14 - Completed quick task 261014-myz: merge AIO burndown executions within one hour
+Last activity: 2026-10-14 - Completed quick task 261014-n5a: optimize AIO cycle detail for smaller screens
 
 ## Performance Metrics
 
@@ -203,6 +203,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | tech_debt | Phase 91.2 WR-06/07/08, IN-04/05: progress cell `w-32` tight at 3 digits, assignee `w-10` narrower than avatar, duplicated count types, duplicate retry controls, sub-pixel segment slivers | cosmetic |
 | 261014-eym | Deployment package ↔ fix version sync (RM week child, sidebar + release detail warnings/fixes, Releases tab sync, RM project setting) | 2026-10-14 | ade56b58 | Verified (live UAT approved; review warnings fixed) | [261014-eym-enhance-deployment-package-for-jira-stor](./quick/261014-eym-enhance-deployment-package-for-jira-stor/) |
 | 261014-j3s | AIO cycle defect summary: larger Status donut + legend, Priority\|Severity side by side below, wider block | 2026-10-14 | 7f0b35a7 | Verified (UAT by user) | [261014-j3s-aio-cycle-defect-summary-layout](./quick/261014-j3s-aio-cycle-defect-summary-layout/) |
+| 261014-n5a | Optimize AIO cycle detail for smaller screens (4 tiles in a row, Execution beside Defects, no h-dividers, captioned donuts) | 2026-10-14 | 2bf3f234 | Verified (user UAT) | [261014-n5a-optimize-aio-cycle-detail-for-smaller-sc](./quick/261014-n5a-optimize-aio-cycle-detail-for-smaller-sc/) |
 
 ## Session Continuity
 
