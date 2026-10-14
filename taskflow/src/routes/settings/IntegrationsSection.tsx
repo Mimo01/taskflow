@@ -1,4 +1,5 @@
 import AioBlock from '@/components/integrations/AioBlock';
+import ReleaseManagementBlock from '@/components/integrations/ReleaseManagementBlock';
 import { useSettingsStore } from '../../stores/settings.store';
 
 export default function IntegrationsSection() {
@@ -11,6 +12,7 @@ export default function IntegrationsSection() {
     <div data-testid="section-integrations" className="flex flex-col gap-8">
       <h2 className="text-lg font-semibold">Integrations</h2>
       <AioBlock />
+      <ReleaseManagementBlock />
       <div className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Tempo Timesheets

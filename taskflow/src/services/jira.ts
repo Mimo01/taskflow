@@ -20,6 +20,7 @@
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
+import { type PackageEditShape, parseWeekRange, type RmWeek } from '../lib/deployment-package';
 import {
   fetchAllSearchPages as fetchAllSearchPagesClient,
   isResponseLikeError,
@@ -172,7 +173,9 @@ export interface JiraIssue {
      * Optional in the type because legacy callers may not request the `project`
      * field; sprint board / transitions consumers MUST include it in fields=.
      */
-    project?: { id: string; key: string };
+    project?: { id: string; key: string; name?: string };
+    /** Fix versions (requested by fetchFixVersionIssues for deployment-package sync). */
+    fixVersions?: Array<{ id: string; name: string; releaseDate?: string }>;
     description?: string | null;
     /** Epic progress (261001-fmk): requested by fetchEpicStories only; optional elsewhere. */
     created?: string;
@@ -1351,6 +1354,10 @@ export async function fetchFixVersionIssues(
     'assignee',
     'issuetype',
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+    // Deployment-package sync (261014-eym): additive fields only, JQL/order unchanged.
+    'customfield_15725',
+    'fixVersions',
+    'project',
   ].join(',');
   const maxResults = 200;
   let startAt = 0;
@@ -1742,7 +1749,7 @@ export interface JiraIssueDetail {
     description: string | null;
     status: { id: string; name: string; statusCategory?: { key: string } };
     issuetype: { id?: string; name: string; subtask: boolean };
-    project?: { id: string; key: string };
+    project?: { id: string; key: string; name?: string };
     priority: { name: string; iconUrl?: string } | null;
     resolution: { id: string; name: string; description?: string } | null;
     assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
@@ -2382,6 +2389,107 @@ export async function fetchIssuePriorityOptions(
   const data = await resp.json();
   const allowed = data?.fields?.priority?.allowedValues;
   return Array.isArray(allowed) ? allowed : [];
+}
+
+const RM_PROJECT_KEY_RE = /^[A-Z][A-Z0-9_]+$/;
+const ISSUE_KEY_RE_STRICT = /^[A-Z][A-Z0-9_]+-\d+$/;
+
+/**
+ * Fetch the Release Management week index (261014-eym): every WEEK parent in
+ * the RM project (summary parsed by parseWeekRange) with its children.
+ *
+ * How children hang off a parent is instance-specific, so ONE fully paginated
+ * query over the RM project (bounded to the last ~2 years) collects them from
+ * every mechanism and dedupes by key: sub-tasks, `parent` links, Epic Link
+ * (customfield_10014) and issue links (either direction).
+ */
+export async function fetchRmWeekIndex(
+  baseUrl: string,
+  token: string,
+  rmProjectKey: string,
+): Promise<RmWeek[]> {
+  if (!RM_PROJECT_KEY_RE.test(rmProjectKey)) {
+    throw new Error(`Invalid Release Management project key: ${rmProjectKey}`);
+  }
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const jql = `project = "${rmProjectKey}" AND created >= startOfYear(-1) ORDER BY created DESC`;
+  const fields = 'summary,parent,subtasks,issuelinks,customfield_10014';
+  const issues = await fetchAllSearchPages(
+    `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,
+    headers,
+  );
+
+  const parents = new Map<string, RmWeek>();
+  for (const issue of issues) {
+    const range = parseWeekRange(issue.fields.summary ?? '');
+    if (!range) continue;
+    parents.set(issue.key, {
+      key: issue.key,
+      summary: issue.fields.summary,
+      ...range,
+      children: [],
+    });
+  }
+
+  const summaries = new Map(issues.map((i) => [i.key, i.fields.summary ?? '']));
+  const seen = new Set<string>();
+  const addChild = (parentKey: string, childKey: string, childSummary?: string) => {
+    const parent = parents.get(parentKey);
+    if (!parent || parents.has(childKey) || childKey === parentKey) return;
+    const dedupe = `${parentKey}>${childKey}`;
+    if (seen.has(dedupe)) return;
+    seen.add(dedupe);
+    parent.children.push({ key: childKey, summary: childSummary ?? summaries.get(childKey) ?? '' });
+  };
+
+  type LinkLike = {
+    inwardIssue?: { key: string; fields?: { summary?: string } };
+    outwardIssue?: { key: string; fields?: { summary?: string } };
+  };
+  for (const issue of issues) {
+    const f = issue.fields as Record<string, unknown>;
+    for (const sub of issue.fields.subtasks ?? [])
+      addChild(issue.key, sub.key, sub.fields?.summary);
+    if (issue.fields.parent?.key)
+      addChild(issue.fields.parent.key, issue.key, issue.fields.summary);
+    const epicLink = f.customfield_10014;
+    if (typeof epicLink === 'string') addChild(epicLink, issue.key, issue.fields.summary);
+    const links = Array.isArray(f.issuelinks) ? (f.issuelinks as LinkLike[]) : [];
+    for (const l of links) {
+      const other = l.inwardIssue ?? l.outwardIssue;
+      // Links are symmetric: the WEEK parent may sit on either end.
+      if (other && parents.has(other.key)) addChild(other.key, issue.key, issue.fields.summary);
+      if (other && parents.has(issue.key)) addChild(issue.key, other.key, other.fields?.summary);
+    }
+  }
+  return [...parents.values()];
+}
+
+/**
+ * Inspect editmeta for the Deployment package field (customfield_15725).
+ * Absent from the edit screen => 'not-editable' (a PUT would 400). Otherwise
+ * the write shape follows the field schema: array => [key], else bare key.
+ * Any non-ok response also yields 'not-editable' so we never blind-PUT.
+ */
+export async function fetchDeploymentPackageEditShape(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<PackageEditShape> {
+  if (!ISSUE_KEY_RE_STRICT.test(issueKey)) throw new Error(`Invalid issue key: ${issueKey}`);
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/editmeta`;
+  const resp = await apiFetch(
+    'jira',
+    url,
+    { headers: { Authorization: `Bearer ${token}` } },
+    'Load Edit Metadata',
+  );
+  if (!resp.ok) return 'not-editable';
+  const data = await resp.json();
+  const meta = data?.fields?.customfield_15725;
+  if (!meta) return 'not-editable';
+  return meta?.schema?.type === 'array' ? 'array' : 'single';
 }
 
 /**
