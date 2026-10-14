@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  aioDateMs,
   type DefectLike,
+  cycleBurndownSeries,
   defectPrioritySlices,
   defectSeveritySlices,
   defectStatusSlices,
@@ -186,5 +188,125 @@ describe('priorityChartColor', () => {
     [undefined, 'var(--color-gray-300)'],
   ])('%s', (url, color) => {
     expect(priorityChartColor({ iconUrl: url })).toBe(color);
+  });
+});
+
+describe('aioDateMs', () => {
+  it('parses numbers, digit strings and ISO strings', () => {
+    expect(aioDateMs(1759312800000)).toBe(1759312800000);
+    expect(aioDateMs('1759312800000')).toBe(1759312800000);
+    expect(aioDateMs('2026-10-01T10:00:00Z')).toBe(Date.parse('2026-10-01T10:00:00Z'));
+  });
+  it('returns null for junk', () => {
+    expect(aioDateMs(null)).toBeNull();
+    expect(aioDateMs(undefined)).toBeNull();
+    expect(aioDateMs('garbage')).toBeNull();
+    expect(aioDateMs(Number.NaN)).toBeNull();
+  });
+});
+
+describe('cycleBurndownSeries', () => {
+  const D = 86_400_000;
+  const s = 1_000 * D;
+  const t1 = s + 2 * D;
+  const t2 = s + 4 * D;
+  const e = s + 10 * D;
+  const run = (status: string, ms?: number) => ({
+    status,
+    executedDate: ms === undefined ? undefined : new Date(ms).toISOString(),
+  });
+
+  it('returns null with no runs or no executions', () => {
+    expect(cycleBurndownSeries([], undefined, e)).toBeNull();
+    expect(cycleBurndownSeries([run('NOT_EXECUTED')], undefined, e)).toBeNull();
+    expect(
+      cycleBurndownSeries([run('IN_PROGRESS', t1)], { startDate: s, endDate: e }, e),
+    ).toBeNull();
+  });
+
+  it('builds start, execution and end points', () => {
+    const r = cycleBurndownSeries(
+      [run('PASS', t1), run('PASS', t1), run('FAIL', t2), run('NOT_EXECUTED')],
+      { startDate: s, endDate: e },
+      e + D,
+    );
+    expect(r?.total).toBe(4);
+    expect(r?.from).toBe(s);
+    expect(r?.to).toBe(e);
+    expect(r?.points.map((p) => [p.t, p.remaining, p.marker])).toEqual([
+      [s, 4, null],
+      [t1, 2, 'pass'],
+      [t2, 1, 'fail'],
+      [e, 1, null],
+    ]);
+    expect(r?.points[0].ideal).toBe(4);
+    expect(r?.points[3].ideal).toBe(0);
+    expect(r?.points[1].executed).toBe(2);
+  });
+
+  it('uses the worst status for a shared timestamp', () => {
+    const r = cycleBurndownSeries(
+      [run('PASS', t1), run('FAIL', t1), run('BLOCKED', t1)],
+      { startDate: s, endDate: e },
+      e,
+    );
+    const p = r?.points.find((x) => x.t === t1);
+    expect(p?.executed).toBe(3);
+    expect(p?.marker).toBe('fail');
+  });
+
+  it('adds a trailing point at now and a null-remaining end for an active cycle', () => {
+    const now = s + 6 * D;
+    const r = cycleBurndownSeries(
+      [run('PASS', t1), run('FAIL', t2), run('NOT_EXECUTED')],
+      { startDate: s, endDate: e },
+      now,
+    );
+    const pts = r?.points ?? [];
+    expect(pts.map((p) => [p.t, p.remaining])).toEqual([
+      [s, 3],
+      [t1, 2],
+      [t2, 1],
+      [now, 1],
+      [e, null],
+    ]);
+    expect(pts[4].ideal).toBe(0);
+  });
+
+  it('falls back to first/last execution when start and end are missing', () => {
+    const r = cycleBurndownSeries([run('PASS', t1), run('PASS', t2)], undefined, t2);
+    expect(r?.from).toBe(t1);
+    expect(r?.to).toBe(t2);
+    expect(r?.points.map((p) => [p.t, p.remaining])).toEqual([
+      [t1, 2],
+      [t1, 1],
+      [t2, 0],
+    ]);
+    expect(r?.points[0].ideal).toBe(2);
+    expect(r?.points[2].ideal).toBe(0);
+  });
+
+  it('widens the span for executions outside the cycle dates', () => {
+    const r = cycleBurndownSeries(
+      [run('PASS', s - D), run('PASS', e + D)],
+      { startDate: s, endDate: e },
+      e + 2 * D,
+    );
+    expect(r?.from).toBe(s - D);
+    expect(r?.to).toBe(e + D);
+  });
+
+  it('computes a linear one-decimal ideal', () => {
+    const r = cycleBurndownSeries(
+      [run('PASS', t1), run('NOT_EXECUTED'), run('NOT_EXECUTED')],
+      { startDate: s, endDate: e },
+      e,
+    );
+    expect(r?.points.find((p) => p.t === t1)?.ideal).toBe(2.4);
+  });
+
+  it('has null ideal everywhere when the span is empty', () => {
+    const r = cycleBurndownSeries([run('PASS', t1), run('PASS', t1)], undefined, t1);
+    expect(r?.points.every((p) => p.ideal === null)).toBe(true);
   });
 });
