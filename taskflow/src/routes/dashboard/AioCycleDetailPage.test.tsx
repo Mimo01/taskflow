@@ -147,9 +147,9 @@ function renderPage() {
 // This is the expected RED state for Wave 0.
 import AioCycleDetailPage from './AioCycleDetailPage';
 
-/** Text match outside the Defect Summary key (which repeats status/priority labels). */
+/** Text match outside the defect donut keys (which repeats status/priority labels). */
 const inDefectList = (text: string) =>
-  screen.getAllByText(text).find((el) => !el.closest('[data-testid="defects-summary"]'));
+  screen.getAllByText(text).find((el) => !el.closest('[data-testid="defect-donut-block"]'));
 
 describe('AioCycleDetailPage', () => {
   beforeEach(async () => {

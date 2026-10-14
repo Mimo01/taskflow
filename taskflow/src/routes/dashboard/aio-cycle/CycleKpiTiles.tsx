@@ -4,8 +4,10 @@ import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
 import { STAT_CONTAINER_CLASS } from '../issue-detail/EpicStatCard';
 import { Tile, TileSkeleton, VALUE_CLASS } from './AioTile';
+import { CycleDefectDonuts } from './DefectSummary';
 import { ExecutionDonut } from './ExecutionDonut';
 import type { AioStatusCounts } from './useAioCycleData';
+import type { ResolvedDefect } from './useCycleDefects';
 
 const pctOf = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
@@ -24,6 +26,7 @@ export function CycleKpiTiles({
   openDefects,
   totalDefects,
   defectsLoading,
+  defects,
 }: {
   counts: AioStatusCounts;
   total: number;
@@ -32,6 +35,7 @@ export function CycleKpiTiles({
   openDefects: number;
   totalDefects: number;
   defectsLoading: boolean;
+  defects: ResolvedDefect[];
 }) {
   const executed = counts.pass + counts.fail + counts.blocked;
   const passPct = pctOf(counts.pass, executed);
@@ -144,8 +148,9 @@ export function CycleKpiTiles({
             />
           )}
         </div>
-        <div className="flex-none self-center @3xl/epic:px-8">
+        <div className="flex flex-none flex-wrap items-center gap-x-10 gap-y-4 self-center @3xl/epic:px-6">
           <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+          {defectsLoading ? null : <CycleDefectDonuts defects={defects} />}
         </div>
       </div>
     </div>

@@ -66,6 +66,40 @@ export function DefectSummary({ defects }: { defects: ResolvedDefect[] }) {
   );
 }
 
+/** Status + Priority donut pair (shared by the Defects tab and the cycle stats block). */
+export function DefectDonuts({
+  statusSlices,
+  prioritySlices,
+}: {
+  statusSlices: ChartSlice[];
+  prioritySlices: ChartSlice[];
+}) {
+  return (
+    <>
+      <DonutBlock
+        title="Status"
+        testId="defect-status-donut"
+        label="Defects by status"
+        slices={statusSlices}
+      />
+      <DonutBlock
+        title="Priority"
+        testId="defect-priority-donut"
+        label="Defects by priority"
+        slices={prioritySlices}
+      />
+    </>
+  );
+}
+
+/** Defect donuts computed straight from the resolved defects (null while none charted). */
+export function CycleDefectDonuts({ defects }: { defects: ResolvedDefect[] }) {
+  const statusSlices = useMemo(() => defectStatusSlices(defects), [defects]);
+  const prioritySlices = useMemo(() => defectPrioritySlices(defects), [defects]);
+  if (statusSlices.length === 0) return null;
+  return <DefectDonuts statusSlices={statusSlices} prioritySlices={prioritySlices} />;
+}
+
 /** Donut with a compact name/count key beside it (a bare ring says nothing without one). */
 function DonutBlock({
   title,
@@ -79,7 +113,7 @@ function DonutBlock({
   slices: ChartSlice[];
 }) {
   return (
-    <div className="flex items-center gap-4">
+    <div data-testid="defect-donut-block" className="flex items-center gap-4">
       <AioDonut
         slices={slices}
         size={DONUT_SIZE}
