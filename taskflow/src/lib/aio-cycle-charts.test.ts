@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type DefectLike,
   defectPrioritySlices,
+  defectSeveritySlices,
   defectStatusSlices,
   executionSliceTooltipRows,
   executionSlices,
@@ -67,6 +68,36 @@ describe('defectPrioritySlices', () => {
     expect(s.map((x) => x.label)).toEqual(['Blocker', 'Low', 'None']);
     expect(s[0].color).toBe('var(--color-red-600)');
     expect(s[2].color).toBe('var(--color-gray-300)');
+  });
+});
+
+const sev = (value?: string): DefectLike => ({
+  issue: {
+    fields: { customfield_13415: value ? { value } : null },
+  },
+});
+
+describe('defectSeveritySlices', () => {
+  it('orders by level, colours by level and groups missing as None last', () => {
+    const s = defectSeveritySlices([
+      sev('4-Cosmetic'),
+      sev('1-Critical'),
+      sev('2-Major'),
+      sev('2-Major'),
+      sev(),
+    ]);
+    expect(s.map((x) => x.label)).toEqual(['1-Critical', '2-Major', '4-Cosmetic', 'None']);
+    expect(s.map((x) => x.value)).toEqual([1, 2, 1, 1]);
+    expect(s[0].color).toBe('var(--color-red-600)');
+    expect(s[1].color).toBe('var(--color-orange-500)');
+    expect(s[2].color).toBe('var(--color-gray-400)');
+    expect(s[3].color).toBe('var(--color-gray-300)');
+    expect(s[1].share).toBe(40);
+  });
+
+  it('returns nothing when no defect has a severity', () => {
+    expect(defectSeveritySlices([sev(), sev()])).toEqual([]);
+    expect(defectSeveritySlices([])).toEqual([]);
   });
 });
 
