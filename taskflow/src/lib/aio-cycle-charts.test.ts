@@ -253,6 +253,22 @@ describe('cycleBurndownSeries', () => {
     expect(keep(r)[1].executed).toBe(2);
   });
 
+  it('merges executions within one hour into a single point at the last execution', () => {
+    const m = (n: number) => day(2, 9) + n * 60_000;
+    const r = cycleBurndownSeries(
+      [run('PASS', m(0)), run('FAIL', m(20)), run('PASS', m(59)), run('PASS', m(61))],
+      { startDate: s, endDate: e },
+      e,
+      allDays,
+    );
+    expect(keep(r).map((p) => [p.t, p.remaining, p.executed, p.marker])).toEqual([
+      [s, 4, 0, null],
+      [m(59), 1, 3, 'fail'],
+      [m(61), 0, 1, 'pass'],
+      [e, 0, 0, null],
+    ]);
+  });
+
   it('uses the worst status for a shared timestamp', () => {
     const r = cycleBurndownSeries(
       [run('PASS', t1), run('FAIL', t1), run('BLOCKED', t1)],
