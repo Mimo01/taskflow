@@ -1110,23 +1110,23 @@ export function FieldsSection({
           const rmSummary = rmWeek?.children.find((c) => c.key === deploymentPackageValue)?.summary;
           return deploymentPackageValue ? (
             <span data-testid="deployment-package-value" className="flex min-w-0 flex-col">
-              <span className="flex min-w-0 gap-1.5">
-                <span className="shrink-0">{deploymentPackageValue}</span>
-                {rmSummary && (
-                  <span className="truncate text-muted-foreground" title={rmSummary}>
-                    {rmSummary}
-                  </span>
-                )}
-              </span>
               {rmWeek && (
                 <span
-                  className="truncate text-xs text-muted-foreground"
+                  className="truncate"
                   title={`${rmWeek.key} ${rmWeek.summary}`}
                   data-testid="deployment-package-week"
                 >
                   {rmWeek.summary}
                 </span>
               )}
+              <span className="flex min-w-0 gap-1.5 text-xs text-muted-foreground">
+                <span className="shrink-0">{deploymentPackageValue}</span>
+                {rmSummary && (
+                  <span className="truncate" title={rmSummary}>
+                    {rmSummary}
+                  </span>
+                )}
+              </span>
             </span>
           ) : (
             <span data-testid="deployment-package-value" className="text-muted-foreground">
