@@ -628,6 +628,10 @@ describe('AioCycleDetailPage', () => {
       expect(screen.getByTestId('kpi-reruns')).toBeDefined();
       // run-2 FAIL has a linked defect, so nothing is failing without one
       expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/0of 1 failing/);
+      // labels are user-facing copy: assert them so an icon/label mix-up can't slip through
+      expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/Unlinked failures/);
+      expect(screen.getByTestId('kpi-retest').textContent).toMatch(/Ready to retest/);
+      expect(screen.getByTestId('kpi-reruns').textContent).toMatch(/Re-runs/);
     });
 
     it('Ready to retest counts failing cases whose linked defects are all Done', async () => {

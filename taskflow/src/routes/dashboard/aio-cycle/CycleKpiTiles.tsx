@@ -128,7 +128,7 @@ export function CycleKpiTiles({
                 testId="kpi-unlinked"
                 icon={BugOff}
                 tint="red"
-                label="BugOffed failures"
+                label="Unlinked failures"
                 value={
                   <span
                     className={cn(
@@ -141,7 +141,7 @@ export function CycleKpiTiles({
                 }
                 sub={<span className="truncate">{`of ${failing} failing`}</span>}
                 tip={
-                  <TooltipBody title="BugOffed failures">
+                  <TooltipBody title="Unlinked failures">
                     <TooltipRow
                       label="Failed w/o defect"
                       value={failedNoDefect}
