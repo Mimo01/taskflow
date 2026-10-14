@@ -63,13 +63,13 @@ export const DEPLOYMENT_PACKAGE_FIELD = 'customfield_15725';
 
 const ISSUE_KEY_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
 const WEEK_RE =
-  /WEEK\s*(\d+)\s*\(\s*(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})\s*\)/i;
+  /WEEK\s*(\d+)\s*\(\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s*\)/i;
 
 function toYmd(dd: string, mm: string, yyyy: string): string | null {
   const d = Number(dd);
   const m = Number(mm);
   if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-  return `${yyyy}-${mm}-${dd}`;
+  return `${yyyy}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 /**
