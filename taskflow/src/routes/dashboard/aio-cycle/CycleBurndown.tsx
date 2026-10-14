@@ -22,13 +22,14 @@ import {
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
+import { burndownXTicks, niceYScale } from '@/lib/aio-burndown-axis';
 import {
   type BurndownPoint,
   type BurndownSeries,
   burndownMarkerColor,
 } from '@/lib/aio-cycle-charts';
 import { toDateKey } from '@/lib/aio-cycle-list';
-import { formatDateKey, timeTicks } from '@/lib/epic-progress';
+import { formatDateKey } from '@/lib/epic-progress';
 import { useElementWidth } from '../issue-detail/EpicChartZoom';
 
 /** Shade non-working days only when each day is at least this many px wide. */
@@ -39,8 +40,6 @@ const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const PLOT_MARGIN = { top: 6, right: 0, left: 0, bottom: 0 };
 /** Approximate width of one 11px digit, to size the y-axis to its widest label. */
 const DIGIT_PX = 6.5;
-/** Minimum distance between the last x tick and the one before it. */
-const MIN_LABEL_GAP_PX = 48;
 const CURSOR = {
   stroke: 'var(--color-muted-foreground)',
   strokeDasharray: '3 3',
@@ -133,29 +132,13 @@ export function CycleBurndown({
   }
   if (!series) return null;
 
-  const fromKey = toDateKey(series.from);
-  const toKey = toDateKey(series.to);
-  // Denser than the epic charts (one label per ~45px); start and end are always labelled.
-  const allTicks = fromKey && toKey ? timeTicks(fromKey, toKey, width * 1.6) : [];
   const spanDays = (series.to - series.from) / DAY_MS;
   const showBands = spanDays > 0 && width / spanDays >= MIN_BAND_DAY_PX;
-  const yTicks = [0, ...(series.total >= 4 ? [Math.round(series.total / 2)] : []), series.total];
-  // Headroom above the largest value so the line does not hug the top of the plot.
-  const yMax = series.total + Math.max(1, Math.ceil(series.total * 0.12));
-  const yWidth = Math.ceil(String(series.total).length * DIGIT_PX) + 4;
+  // Round y scale with headroom above the total so the line does not hug the top of the plot.
+  const yScale = niceYScale(series.total);
+  const yWidth = Math.ceil(String(yScale.max).length * DIGIT_PX) + 4;
   const now = Date.now();
-  const pxPerMs = series.to > series.from ? (width - yWidth) / (series.to - series.from) : 0;
-  const ticks = [
-    { t: series.from, label: dayLabel(series.from) },
-    ...allTicks.filter(
-      (x) =>
-        (x.t - series.from) * pxPerMs >= MIN_LABEL_GAP_PX &&
-        (series.to - x.t) * pxPerMs >= MIN_LABEL_GAP_PX,
-    ),
-    { t: series.to, label: dayLabel(series.to) },
-  ];
-  const firstTick = series.from;
-  const lastTick = series.to;
+  const ticks = burndownXTicks(series.from, series.to, Math.max(0, width - yWidth));
 
   return (
     <div data-testid="cycle-burndown" className="absolute inset-0 overflow-visible">
@@ -166,7 +149,7 @@ export function CycleBurndown({
           aria-label="Cycle burndown chart"
         >
           <ComposedChart data={series.points} responsive margin={PLOT_MARGIN}>
-            <CartesianGrid vertical={false} stroke="var(--color-border)" strokeOpacity={0.7} />
+            <CartesianGrid vertical={false} stroke="var(--color-border)" strokeOpacity={0.45} />
             {showBands
               ? series.nonWorking.map((r) => (
                   <ReferenceArea
@@ -187,34 +170,30 @@ export function CycleBurndown({
               domain={[series.from, series.to]}
               allowDataOverflow
               ticks={ticks.map((x) => x.t)}
-              tick={(p) => (
-                <text
-                  x={p.x}
-                  y={p.y}
-                  dy={10}
-                  fontSize={TICK.fontSize}
-                  fill={TICK.fill}
-                  textAnchor={
-                    p.payload?.value === lastTick
-                      ? 'end'
-                      : p.payload?.value === firstTick
-                        ? 'start'
-                        : 'middle'
-                  }
-                >
-                  {p.payload?.value === undefined
-                    ? ''
-                    : (ticks.find((x) => x.t === Number(p.payload.value))?.label ??
-                      dayLabel(Number(p.payload.value)))}
-                </text>
-              )}
+              interval={0}
+              tick={(p) => {
+                const tk = ticks.find((x) => x.t === Number(p.payload?.value));
+                return (
+                  <text
+                    x={p.x}
+                    y={p.y}
+                    dy={10}
+                    fontSize={TICK.fontSize}
+                    fill={TICK.fill}
+                    textAnchor={tk?.anchor ?? 'middle'}
+                  >
+                    {tk?.label ?? ''}
+                  </text>
+                );
+              }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              domain={[0, yMax]}
+              domain={[0, yScale.max]}
               allowDecimals={false}
-              ticks={yTicks}
+              ticks={yScale.ticks}
+              interval={0}
               tick={TICK}
               tickLine={false}
               axisLine={false}
