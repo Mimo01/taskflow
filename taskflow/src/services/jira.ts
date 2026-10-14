@@ -1772,7 +1772,7 @@ export interface JiraIssueDetail {
     comment: { comments: JiraComment[] };
     attachment?: JiraAttachment[];
     labels: string[];
-    fixVersions: Array<{ id: string; name: string }>;
+    fixVersions: Array<{ id: string; name: string; releaseDate?: string }>;
     parent?: {
       id: string;
       key: string;

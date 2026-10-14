@@ -231,6 +231,18 @@ describe('extractDeploymentPackage', () => {
     expect(extractDeploymentPackage([{ value: 'A' }, { name: 'B' }])).toBe('A, B');
   });
 
+  it('reads an issue-picker {key} object', () => {
+    expect(extractDeploymentPackage({ key: 'RM-5' })).toBe('RM-5');
+  });
+
+  it('reads an array of {key} objects', () => {
+    expect(extractDeploymentPackage([{ key: 'RM-5' }])).toBe('RM-5');
+  });
+
+  it('prefers .key over .value', () => {
+    expect(extractDeploymentPackage({ key: 'RM-5', value: 'x' })).toBe('RM-5');
+  });
+
   it('joins plain string array entries with ", "', () => {
     expect(extractDeploymentPackage(['A', 'B'])).toBe('A, B');
   });
