@@ -293,3 +293,20 @@ describe('findChildForProject (app-name tasks)', () => {
     expect(findChildForProject(week, 'Billing', 'BIL')).toBeNull();
   });
 });
+
+describe('week parsing with non-padded dates', () => {
+  it('parses d.M.yyyy and pads to YYYY-MM-DD', () => {
+    expect(parseWeekRange('WEEK45 (2.11.2026 - 8.11.2026) STANDARD')).toEqual({
+      weekNo: 45,
+      start: '2026-11-02',
+      end: '2026-11-08',
+    });
+  });
+  it('finds the week for a date and formats the label without losing the unpadded form', () => {
+    const w = parseWeekRange('WEEK45 (2.11.2026 - 8.11.2026) STANDARD');
+    expect(w && isDateInWeek('2026-11-03', w)).toBe(true);
+    expect(formatWeekLabel('WEEK45 (2.11.2026 - 8.11.2026) STANDARD')).toBe(
+      'Week 45 (2.11.2026 – 8.11.2026) Standard',
+    );
+  });
+});
