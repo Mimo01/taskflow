@@ -64,6 +64,7 @@ export function CreateEditIssueModal({
   // ── Description attachments (Task 2: create-mode staging + edit-mode immediate upload) ──
   const descriptionRef = useRef<DescriptionEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const assigneeBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [uploadingName, setUploadingName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -509,12 +510,19 @@ export function CreateEditIssueModal({
                   dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true });
                 }}
                 onFocus={() => {
+                  if (assigneeBlurTimer.current) clearTimeout(assigneeBlurTimer.current);
                   // Clear only the visible text so the full list shows; the committed
                   // selection is untouched so blur without a pick is a no-op.
                   dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: '' });
                   dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true });
                 }}
-                onBlur={() => setTimeout(() => dispatch({ type: 'ASSIGNEE_BLUR' }), 150)}
+                onBlur={() => {
+                  // Deferred so an option's onMouseDown pick lands first; cancelled on refocus.
+                  assigneeBlurTimer.current = setTimeout(
+                    () => dispatch({ type: 'ASSIGNEE_BLUR', clearWhenEmpty: mode === 'create' }),
+                    150,
+                  );
+                }}
                 placeholder="Search assignee..."
                 disabled={isPending}
               />
