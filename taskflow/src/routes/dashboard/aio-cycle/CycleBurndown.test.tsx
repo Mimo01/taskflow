@@ -91,7 +91,7 @@ describe('CycleKpiTiles burndown layout', () => {
     const burndown = screen.getByText('Burndown').closest('section');
     expect(stats?.parentElement).toBe(burndown?.parentElement);
     const donuts = screen.getByText('Execution Distribution').closest('section');
-    expect(donuts?.parentElement).toBe(stats?.parentElement?.parentElement);
+    expect(donuts?.parentElement?.parentElement).toBe(stats?.parentElement?.parentElement);
   });
 
   it('hides the left column headings visually from 896px, with a minimum plot height', () => {

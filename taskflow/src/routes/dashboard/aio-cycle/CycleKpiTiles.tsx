@@ -29,7 +29,7 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  * its section, so it never adds height: the sibling columns set the row height and it fills it.
  *
  * Two layouts on the block's own container width (content box, so the page is 56px wider):
- *  - < 896px: everything stacked, tiles 2x2, headed sections, plot 140px;
+ *  - < 896px: stacked, tiles 4 across, then Execution | Defect Summary side by side, then plot 140px;
  *  - >= 896px: one row, [left column | Execution | Defect Summary]. The left column holds the
  *    tiles on top and the Burndown below, filling whatever height the donuts leave (min 110px),
  *    so a wider left column means a wider chart. The left column's headings go screen-reader-only
@@ -101,7 +101,7 @@ export function CycleKpiTiles({
             className="min-w-0"
             headingClassName={SIDE_HEADING_CLASS}
           >
-            <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4 @4xl/epic:gap-x-3 @4xl/epic:@min-[30rem]/left:grid-cols-4">
+            <div className="grid w-full min-w-0 grid-cols-4 gap-x-3 gap-y-4 @4xl/epic:@max-[30rem]/left:grid-cols-2">
               {countsLoading ? (
                 <TileSkeleton testId="kpi-skeleton-pass" icon={CircleCheck} tint="green" />
               ) : (
@@ -212,29 +212,33 @@ export function CycleKpiTiles({
             </Section>
           ) : null}
         </div>
-        <Section
-          title="Execution Distribution"
-          className={cn(DIVIDED_CLASS, '@min-[88rem]/epic:pl-8')}
-        >
-          <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
-        </Section>
-        <Section
-          title="Defect Summary"
-          className={cn(
-            DIVIDED_CLASS,
-            '@min-[88rem]/epic:w-112 @min-[88rem]/epic:pl-8 @min-[88rem]/epic:pr-4',
-          )}
-        >
-          <CycleDefectDonuts defects={defects} loading={defectsLoading} />
-        </Section>
+        <div className="flex min-w-0 gap-6 border-t border-border pt-6 @4xl/epic:contents">
+          <Section
+            title="Execution Distribution"
+            className={cn(
+              DIVIDED_CLASS,
+              'min-w-0 flex-1 @4xl/epic:flex-none @min-[88rem]/epic:pl-8',
+            )}
+          >
+            <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+          </Section>
+          <Section
+            title="Defect Summary"
+            className={cn(
+              DIVIDED_CLASS,
+              'min-w-0 flex-1 border-l pl-6 @4xl/epic:flex-none @min-[88rem]/epic:w-112 @min-[88rem]/epic:pl-8 @min-[88rem]/epic:pr-4',
+            )}
+          >
+            <CycleDefectDonuts defects={defects} loading={defectsLoading} />
+          </Section>
+        </div>
       </div>
     </div>
   );
 }
 
 /** Side-by-side columns are divided by a left rule, stacked ones by a top hairline. */
-const DIVIDED_CLASS =
-  'flex-none border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-6';
+const DIVIDED_CLASS = '@4xl/epic:border-l @4xl/epic:border-border @4xl/epic:pl-6';
 
 /** The left column's headings are visually hidden from 896px (screen readers keep them): no height to spare. */
 const SIDE_HEADING_CLASS = '@4xl/epic:sr-only';
