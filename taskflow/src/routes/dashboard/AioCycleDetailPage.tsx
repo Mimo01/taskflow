@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useOutletContext, useParams } from 'react-rou
 import { ErrorState } from '@/components/ui/error-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { toLocalDateString } from '@/lib/local-date';
 import type { AioTestRun } from '@/services/aio';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
@@ -15,6 +16,7 @@ import { DefectsList } from './aio-cycle/DefectsList';
 import { ExecutionsList } from './aio-cycle/ExecutionsList';
 import { useAioCycleData } from './aio-cycle/useAioCycleData';
 import { useCycleDefects } from './aio-cycle/useCycleDefects';
+import { useEpicWorkCalendar } from './issue-detail/useEpicProgressQueries';
 
 export default function AioCycleDetailPage() {
   const { projectKey, cycleKey } = useParams<{ projectKey: string; cycleKey: string }>();
@@ -43,6 +45,7 @@ export default function AioCycleDetailPage() {
     token,
     tokenLoading,
   });
+  const { calendar } = useEpicWorkCalendar(toLocalDateString(new Date()));
   const { onOpenIssue } = useOutletContext<{ onOpenIssue?: (issueKey: string) => void }>() ?? {};
 
   const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
@@ -197,6 +200,7 @@ export default function AioCycleDetailPage() {
               defectsLoading={!runs || defectsResolving}
               defects={defects}
               cycle={cycleQuery.data}
+              calendar={calendar}
             />
             <Tabs defaultValue="executions" className="gap-0">
               <div className="sticky top-0 z-20 flex h-11 items-center bg-background px-6">
