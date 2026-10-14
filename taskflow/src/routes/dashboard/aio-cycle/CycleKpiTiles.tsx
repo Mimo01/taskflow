@@ -1,4 +1,4 @@
-import { BugOff, CircleCheck, FlaskConical, Repeat } from 'lucide-react';
+import { BugOff, CircleCheck, FlaskConical, History } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -148,11 +148,11 @@ export function CycleKpiTiles({
               />
             )}
             {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-reruns" icon={Repeat} tint="amber" />
+              <TileSkeleton testId="kpi-skeleton-reruns" icon={History} tint="amber" />
             ) : (
               <Tile
                 testId="kpi-reruns"
-                icon={Repeat}
+                icon={History}
                 tint="amber"
                 label="Re-runs"
                 value={<span className={VALUE_CLASS}>{reRuns}</span>}
