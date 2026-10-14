@@ -8,6 +8,7 @@ import {
   defectStatusSlices,
   severityLabel,
 } from '@/lib/aio-cycle-charts';
+import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira/types';
 import { AioDonut, AioDonutSkeleton, DONUT_SIZE } from './AioDonut';
 import { VALUE_CLASS } from './AioTile';
@@ -25,7 +26,8 @@ const KEY_MAX_LARGE = 6;
 const STATUS_DONUT_SIZE = 104;
 /** Status on top, Priority and Severity side by side below. */
 const LAYOUT_CLASS = 'grid w-full min-w-0 gap-4';
-const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-3 border-t border-border pt-4';
+const PAIR_CLASS =
+  'grid min-w-0 grid-cols-2 gap-x-3 @4xl/epic:border-t @4xl/epic:border-border @4xl/epic:pt-4';
 
 /** Raw severity value ('2-Major'): the number is the order, so sort on this. */
 export function severityRaw(issue: JiraIssue | null): string | null {
@@ -170,7 +172,7 @@ function DonutBlock({
           ) : undefined
         }
       />
-      <div className={large ? KEY_CLASS_LARGE : KEY_CLASS}>
+      <div className={cn(large ? KEY_CLASS_LARGE : KEY_CLASS, !large && 'hidden @4xl/epic:grid')}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
         {(slices.length > keyMax ? slices.slice(0, keyMax - 1) : slices).map((s) => (
           <span key={s.label} className="flex min-w-0 items-center gap-2">
