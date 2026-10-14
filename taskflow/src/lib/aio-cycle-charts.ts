@@ -336,6 +336,8 @@ const MARKER_SEVERITY: Partial<Record<StatusKey, number>> = { pass: 0, blocked: 
  * (nothing to draw).
  */
 const DAY_MS = 86_400_000;
+/** Executions closer together than this merge into one burndown point. */
+const MERGE_WINDOW_MS = 3_600_000;
 /** Longer spans (corrupt dates) skip the day walk and use the linear ideal. */
 const MAX_WALK_DAYS = 731;
 
@@ -376,12 +378,29 @@ export function cycleBurndownSeries(
   const total = runs.length;
   if (total === 0) return null;
 
+  // Executions within MERGE_WINDOW_MS of the first one in a cluster collapse into a single point
+  // (at the cluster's last execution), so bursts do not draw as overlapping diamonds.
+  const execTimes = runs
+    .filter((r) => ['pass', 'fail', 'blocked'].includes(burndownStatus(r.status)))
+    .map((r) => aioDateMs(r.executedDate))
+    .filter((t): t is number => t !== null)
+    .sort((a, b) => a - b);
+  const anchorOf = new Map<number, number>();
+  for (let i = 0; i < execTimes.length; ) {
+    let j = i;
+    while (j + 1 < execTimes.length && execTimes[j + 1] - execTimes[i] < MERGE_WINDOW_MS) j++;
+    for (let k = i; k <= j; k++) anchorOf.set(execTimes[k], execTimes[j]);
+    i = j + 1;
+  }
+  const mergeAnchor = (t: number) => anchorOf.get(t) ?? t;
+
   const groups = new Map<number, { count: number; marker: StatusKey }>();
   for (const r of runs) {
     const status = burndownStatus(r.status);
     if (status !== 'pass' && status !== 'fail' && status !== 'blocked') continue;
-    const t = aioDateMs(r.executedDate);
-    if (t === null) continue;
+    const t0 = aioDateMs(r.executedDate);
+    if (t0 === null) continue;
+    const t = mergeAnchor(t0);
     const g = groups.get(t);
     if (!g) groups.set(t, { count: 1, marker: status });
     else {
