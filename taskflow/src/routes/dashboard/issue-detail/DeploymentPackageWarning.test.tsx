@@ -139,6 +139,23 @@ describe('DeploymentPackageWarning', () => {
     expect(mutate).toHaveBeenCalledWith({ fieldName: 'fixVersions', value: [{ id: '1' }] });
   });
 
+  it('embedded: the fallback is replaced by the warning when there is something to warn about', async () => {
+    setup({ pkgField: 'RM-11', fixVersions: [], embedded: true, fallback: <span>FALLBACK</span> });
+    await screen.findByTestId('deployment-package-warning');
+    expect(screen.queryByText('FALLBACK')).toBeNull();
+  });
+
+  it('embedded: shows the fallback when there is nothing to warn about', async () => {
+    setup({
+      pkgField: 'RM-11',
+      fixVersions: [v43],
+      embedded: true,
+      fallback: <span>FALLBACK</span>,
+    });
+    expect(await screen.findByText('FALLBACK')).toBeTruthy();
+    expect(screen.queryByTestId('deployment-package-warning')).toBeNull();
+  });
+
   it('unresolved: shows only the hint', async () => {
     setup({ pkgField: 'RM-999', fixVersions: [v43] });
     await waitFor(() => expect(screen.getByTestId('deployment-package-warning')).toBeTruthy());
