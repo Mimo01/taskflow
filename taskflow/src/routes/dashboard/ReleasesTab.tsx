@@ -12,25 +12,53 @@
  */
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, GitBranch, RefreshCw, Rocket } from 'lucide-react';
+import { AlertTriangle, GitBranch, Package, RefreshCw, Rocket } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
+import {
+  findChildForProject,
+  findWeekForDate,
+  type PackageStoryLike,
+  planBulkSync,
+} from '@/lib/deployment-package';
 import type { GitLabMilestone } from '@/services/gitlab';
 import { fetchProjectBranches, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
-import { fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
+import {
+  fetchFixVersionIssues,
+  fetchFixVersions,
+  fetchVersionIssueCounts,
+  listJiraProjects,
+} from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
 import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
+import {
+  executeDeploymentPackageSync,
+  NOT_EDITABLE_REASON,
+  resolvePackageEditShape,
+} from './release-detail/useDeploymentPackageSync';
 
 interface MatchedVersion {
   version: JiraFixVersion;
@@ -78,6 +106,21 @@ export default function ReleasesTab() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const loadMoreReleased = () => setReleasedVisible((n) => n + RELEASED_LOAD_MORE);
 
+  // Deployment package (quick 261014-eym): ONE shared RM week index for all rows. Everything
+  // below is inert (no queries, no UI) while no Release Management project is configured.
+  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
+  const { weeks: rmWeeks, enabled: rmEnabled } = useRmWeekIndex();
+  const [syncBusyId, setSyncBusyId] = useState<string | null>(null);
+  const [syncPrompt, setSyncPrompt] = useState<{
+    version: JiraFixVersion;
+    stories: PackageStoryLike[];
+    count: number;
+  } | null>(null);
+  const [syncRunning, setSyncRunning] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{ tone: 'info' | 'error'; text: string } | null>(
+    null,
+  );
+
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
@@ -93,6 +136,15 @@ export default function ReleasesTab() {
         .catch(() => setGitlabToken(null));
     }
   }, [gitlabBaseUrl]);
+
+  // Active project's display name, used to pick the RM child ("summary contains project name").
+  const { data: jiraProjects } = useQuery({
+    queryKey: ['jira-projects-rm', jiraBaseUrl],
+    queryFn: () => listJiraProjects(jiraBaseUrl ?? '', jiraToken ?? ''),
+    enabled: rmEnabled && !!jiraBaseUrl && !!jiraToken,
+    staleTime: 10 * 60_000,
+  });
+  const activeProjectName = jiraProjects?.find((p) => p.key === activeJiraProject)?.name ?? null;
 
   // Fetch fix versions
   const {
@@ -265,6 +317,94 @@ export default function ReleasesTab() {
     return { undatedVersions: undated, unreleasedVersions: unreleased, releasedVersions: released };
   })();
 
+  // Derived deployment package for a release row: the RM child of the WEEK containing the
+  // version's release date. Display only; drift counts live on the detail page.
+  const derivePackage = (releaseDate: string | undefined) => {
+    if (!rmEnabled || !releaseDate || rmWeeks.length === 0) return null;
+    const week = findWeekForDate(rmWeeks, releaseDate);
+    if (!week) return null;
+    const child = activeProjectName ? findChildForProject(week, activeProjectName) : null;
+    return { week, child };
+  };
+
+  const handleSyncClick = async (version: JiraFixVersion) => {
+    if (!jiraBaseUrl || !jiraToken) return;
+    setSyncStatus(null);
+    setSyncBusyId(version.id);
+    try {
+      const stories = (await queryClient.fetchQuery({
+        queryKey: ['jira-fixversion-issues', version.id, storyPointsFieldKey],
+        queryFn: () =>
+          fetchFixVersionIssues(jiraBaseUrl, jiraToken, version.id, storyPointsFieldKey),
+        staleTime: 5 * 60_000,
+      })) as PackageStoryLike[];
+      const candidates = planBulkSync(stories, version, rmWeeks, 'single');
+      if (candidates.length === 0) {
+        setSyncStatus({
+          tone: 'info',
+          text: `${version.name}: deployment packages already in sync`,
+        });
+        return;
+      }
+      const shape = await resolvePackageEditShape(
+        queryClient,
+        jiraBaseUrl,
+        jiraToken,
+        candidates[0].key,
+      );
+      if (shape === 'not-editable') {
+        setSyncStatus({ tone: 'error', text: `${version.name}: ${NOT_EDITABLE_REASON}` });
+        return;
+      }
+      setSyncPrompt({ version, stories, count: candidates.length });
+    } catch (e) {
+      setSyncStatus({
+        tone: 'error',
+        text: `${version.name}: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    } finally {
+      setSyncBusyId(null);
+    }
+  };
+
+  const handleSyncConfirm = async () => {
+    if (!syncPrompt || !jiraBaseUrl || !jiraToken) return;
+    const { version, stories } = syncPrompt;
+    setSyncRunning(true);
+    try {
+      const outcome = await executeDeploymentPackageSync({
+        queryClient,
+        jiraBaseUrl,
+        token: jiraToken,
+        stories,
+        version,
+        weeks: rmWeeks,
+      });
+      if (outcome.blocked) {
+        setSyncStatus({ tone: 'error', text: `${version.name}: ${NOT_EDITABLE_REASON}` });
+      } else {
+        const failed = outcome.results.filter((r) => !r.ok);
+        const updated = outcome.results.length - failed.length;
+        const failedText =
+          failed.length > 0
+            ? `, ${failed.length} failed (${failed.map((f) => `${f.key}: ${f.error ?? 'error'}`).join('; ')})`
+            : '';
+        setSyncStatus({
+          tone: failed.length > 0 ? 'error' : 'info',
+          text: `${version.name}: ${updated} updated${failedText}`,
+        });
+      }
+    } catch (e) {
+      setSyncStatus({
+        tone: 'error',
+        text: `${version.name}: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    } finally {
+      setSyncRunning(false);
+      setSyncPrompt(null);
+    }
+  };
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never';
@@ -318,6 +458,20 @@ export default function ReleasesTab() {
           Refresh
         </button>
       </div>
+
+      {syncStatus && (
+        <p
+          role="status"
+          data-testid="package-sync-status"
+          className={
+            syncStatus.tone === 'error'
+              ? 'text-xs text-destructive'
+              : 'text-xs text-muted-foreground'
+          }
+        >
+          {syncStatus.text}
+        </p>
+      )}
 
       {/* Loading skeleton */}
       {showSkeleton && <ReleasesSkeleton />}
@@ -376,184 +530,228 @@ export default function ReleasesTab() {
                 branchName,
                 milestoneMissing,
               }) => (
-                <button
-                  key={version.id}
-                  type="button"
-                  data-testid="release-row"
-                  onClick={() => handleReleaseClick(version.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleReleaseClick(version.id);
-                  }}
-                  className="flex items-center justify-between rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted/50 gap-3 cursor-pointer w-full text-left"
-                >
-                  {/* Version name + badges */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-sm font-medium truncate">{version.name}</span>
-                    {/* Status badge — Released or Unreleased + timing */}
-                    {(() => {
-                      const timing = getReleaseTimingLabel(version.releaseDate, version.released);
-                      if (version.released) {
+                <div key={version.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    data-testid="release-row"
+                    onClick={() => handleReleaseClick(version.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleReleaseClick(version.id);
+                    }}
+                    className="flex items-center justify-between rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted/50 gap-3 cursor-pointer w-full min-w-0 flex-1 text-left"
+                  >
+                    {/* Version name + badges */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-sm font-medium truncate">{version.name}</span>
+                      {/* Status badge — Released or Unreleased + timing */}
+                      {(() => {
+                        const timing = getReleaseTimingLabel(version.releaseDate, version.released);
+                        if (version.released) {
+                          return (
+                            <Badge tone="green" className="shrink-0">
+                              Released
+                            </Badge>
+                          );
+                        }
+                        if (timing === 'overdue') {
+                          return (
+                            <>
+                              <Badge tone="red" className="shrink-0">
+                                Unreleased
+                              </Badge>
+                              <Badge tone="red" className="shrink-0">
+                                Overdue
+                              </Badge>
+                            </>
+                          );
+                        }
+                        if (timing === 'due-today') {
+                          return (
+                            <>
+                              <Badge tone="blue" className="shrink-0">
+                                Unreleased
+                              </Badge>
+                              <Badge tone="blue" className="shrink-0">
+                                Due today
+                              </Badge>
+                            </>
+                          );
+                        }
+                        if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
+                          return (
+                            <>
+                              <Badge tone="amber" className="shrink-0">
+                                Unreleased
+                              </Badge>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                In {timing.daysUntil} days
+                              </span>
+                            </>
+                          );
+                        }
+                        // Unreleased with no date
                         return (
-                          <Badge tone="green" className="shrink-0">
-                            Released
+                          <Badge tone="amber" className="shrink-0">
+                            Unreleased
                           </Badge>
                         );
-                      }
-                      if (timing === 'overdue') {
-                        return (
-                          <>
-                            <Badge tone="red" className="shrink-0">
-                              Unreleased
-                            </Badge>
-                            <Badge tone="red" className="shrink-0">
-                              Overdue
-                            </Badge>
-                          </>
-                        );
-                      }
-                      if (timing === 'due-today') {
-                        return (
-                          <>
-                            <Badge tone="blue" className="shrink-0">
-                              Unreleased
-                            </Badge>
-                            <Badge tone="blue" className="shrink-0">
-                              Due today
-                            </Badge>
-                          </>
-                        );
-                      }
-                      if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
-                        return (
-                          <>
-                            <Badge tone="amber" className="shrink-0">
-                              Unreleased
-                            </Badge>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              In {timing.daysUntil} days
-                            </span>
-                          </>
-                        );
-                      }
-                      // Unreleased with no date
-                      return (
-                        <Badge tone="amber" className="shrink-0">
-                          Unreleased
+                      })()}
+                      {/* No date warning — solid badge after status, only for undated unreleased */}
+                      {!version.releaseDate && !version.released && (
+                        <Badge tone="orange" className="shrink-0">
+                          ⚠ No date set
                         </Badge>
-                      );
-                    })()}
-                    {/* No date warning — solid badge after status, only for undated unreleased */}
-                    {!version.releaseDate && !version.released && (
-                      <Badge tone="orange" className="shrink-0">
-                        ⚠ No date set
-                      </Badge>
-                    )}
-                    {version.releaseDate && (
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {version.releaseDate}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* GitLab match indicator */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    {match.type === 'exact' ? (
-                      match.candidateUrl ? (
-                        <a
-                          href={match.candidateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline truncate max-w-[150px]"
-                          data-testid="gitlab-link-exact"
-                        >
-                          {match.candidateName}
-                        </a>
-                      ) : (
-                        <span
-                          className="text-xs text-foreground truncate max-w-[150px]"
-                          data-testid="gitlab-link-exact"
-                        >
-                          {match.candidateName}
+                      )}
+                      {version.releaseDate && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {version.releaseDate}
                         </span>
-                      )
-                    ) : match.type === 'fuzzy' ? (
-                      match.candidateUrl ? (
-                        <a
-                          href={match.candidateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
-                          title={`Fuzzy match: ${match.candidateName}`}
-                          data-testid="gitlab-link-fuzzy"
-                        >
-                          {match.candidateName}
-                        </a>
-                      ) : (
-                        <span
-                          className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
-                          title={`Fuzzy match: ${match.candidateName}`}
-                          data-testid="gitlab-link-fuzzy"
-                        >
-                          {match.candidateName}
-                        </span>
-                      )
-                    ) : (
-                      // The no-match state IS the missing-milestone warning —
-                      // rendering a muted "No GitLab link" next to a separate
-                      // orange triangle said the same thing twice. When the
-                      // absence is worth flagging (dated + unreleased) this
-                      // carries the warning styling; otherwise it stays muted,
-                      // because a closed historical release legitimately has no
-                      // milestone and colouring that orange is noise.
-                      <span
-                        className={
-                          milestoneMissing
-                            ? 'inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400'
-                            : 'text-muted-foreground text-xs'
-                        }
-                        title={milestoneMissing ? 'No GitLab milestone' : undefined}
-                        data-testid={
-                          milestoneMissing ? 'row-missing-milestone' : 'gitlab-link-none'
-                        }
-                      >
-                        {milestoneMissing && (
-                          <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
-                        )}
-                        No GitLab milestone
-                      </span>
-                    )}
+                      )}
+                    </div>
 
-                    {/* Drift indicators (D-17/D-18/D-19) — placed before the task-count
+                    {/* GitLab match indicator */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      {match.type === 'exact' ? (
+                        match.candidateUrl ? (
+                          <a
+                            href={match.candidateUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline truncate max-w-[150px]"
+                            data-testid="gitlab-link-exact"
+                          >
+                            {match.candidateName}
+                          </a>
+                        ) : (
+                          <span
+                            className="text-xs text-foreground truncate max-w-[150px]"
+                            data-testid="gitlab-link-exact"
+                          >
+                            {match.candidateName}
+                          </span>
+                        )
+                      ) : match.type === 'fuzzy' ? (
+                        match.candidateUrl ? (
+                          <a
+                            href={match.candidateUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
+                            title={`Fuzzy match: ${match.candidateName}`}
+                            data-testid="gitlab-link-fuzzy"
+                          >
+                            {match.candidateName}
+                          </a>
+                        ) : (
+                          <span
+                            className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
+                            title={`Fuzzy match: ${match.candidateName}`}
+                            data-testid="gitlab-link-fuzzy"
+                          >
+                            {match.candidateName}
+                          </span>
+                        )
+                      ) : (
+                        // The no-match state IS the missing-milestone warning —
+                        // rendering a muted "No GitLab link" next to a separate
+                        // orange triangle said the same thing twice. When the
+                        // absence is worth flagging (dated + unreleased) this
+                        // carries the warning styling; otherwise it stays muted,
+                        // because a closed historical release legitimately has no
+                        // milestone and colouring that orange is noise.
+                        <span
+                          className={
+                            milestoneMissing
+                              ? 'inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400'
+                              : 'text-muted-foreground text-xs'
+                          }
+                          title={milestoneMissing ? 'No GitLab milestone' : undefined}
+                          data-testid={
+                            milestoneMissing ? 'row-missing-milestone' : 'gitlab-link-none'
+                          }
+                        >
+                          {milestoneMissing && (
+                            <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
+                          )}
+                          No GitLab milestone
+                        </span>
+                      )}
+
+                      {/* Drift indicators (D-17/D-18/D-19) — placed before the task-count
                       span so a future Phase 89 aggregate drift count can append
                       after them without a redesign.
                       Branch indicators only render when a milestone matched: the
                       branch name is derived from the milestone title, so with no
                       milestone there is no branch to have an opinion about. */}
-                    {branchPresent && (
-                      <span title={`Release branch ${branchName}`} data-testid="row-branch-present">
-                        <GitBranch
-                          aria-hidden="true"
-                          className="size-3 shrink-0 text-green-600 dark:text-green-400"
-                        />
-                        <span className="sr-only">Release branch exists</span>
-                      </span>
-                    )}
-                    {branchMissing && (
-                      <span title="No release branch" data-testid="row-missing-branch">
-                        <AlertTriangle
-                          aria-hidden="true"
-                          className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
-                        />
-                        <span className="sr-only">No release branch</span>
-                      </span>
-                    )}
+                      {branchPresent && (
+                        <span
+                          title={`Release branch ${branchName}`}
+                          data-testid="row-branch-present"
+                        >
+                          <GitBranch
+                            aria-hidden="true"
+                            className="size-3 shrink-0 text-green-600 dark:text-green-400"
+                          />
+                          <span className="sr-only">Release branch exists</span>
+                        </span>
+                      )}
+                      {branchMissing && (
+                        <span title="No release branch" data-testid="row-missing-branch">
+                          <AlertTriangle
+                            aria-hidden="true"
+                            className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
+                          />
+                          <span className="sr-only">No release branch</span>
+                        </span>
+                      )}
 
-                    {/* Task count */}
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {issuesFixed} / {issuesTotal} done
-                    </span>
-                  </div>
-                </button>
+                      {/* Derived deployment package (RM child of the release-date week) */}
+                      {(() => {
+                        const pkg = derivePackage(version.releaseDate);
+                        if (!pkg) return null;
+                        return pkg.child ? (
+                          <span
+                            className="text-xs font-mono text-muted-foreground shrink-0"
+                            title={`${pkg.child.summary} (${pkg.week.summary})`}
+                            data-testid="row-deployment-package"
+                          >
+                            {pkg.child.key}
+                          </span>
+                        ) : (
+                          <span
+                            className="text-xs text-muted-foreground shrink-0"
+                            title={`${pkg.week.summary} (no matching package)`}
+                            data-testid="row-deployment-package"
+                          >
+                            WEEK{pkg.week.weekNo}
+                          </span>
+                        );
+                      })()}
+
+                      {/* Task count */}
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {issuesFixed} / {issuesTotal} done
+                      </span>
+                    </div>
+                  </button>
+                  {rmEnabled && (
+                    <button
+                      type="button"
+                      data-testid="row-sync-packages"
+                      aria-label={`Sync deployment packages for ${version.name}`}
+                      title={
+                        version.releaseDate
+                          ? 'Sync deployment packages'
+                          : 'Sync deployment packages (set a release date first)'
+                      }
+                      disabled={!version.releaseDate || rmWeeks.length === 0 || syncBusyId !== null}
+                      onClick={() => handleSyncClick(version)}
+                      className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
+                    >
+                      <Package className="size-3.5" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
               ),
             )}
 
@@ -570,6 +768,25 @@ export default function ReleasesTab() {
             )}
           </div>
         ))}
+
+      <Dialog open={syncPrompt !== null} onOpenChange={(open) => !open && setSyncPrompt(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Sync deployment packages</DialogTitle>
+            <DialogDescription>
+              {syncPrompt?.count} {syncPrompt?.count === 1 ? 'story' : 'stories'} in{' '}
+              <span className="font-medium text-foreground">{syncPrompt?.version.name}</span> will
+              be updated to the deployment package of the release week.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button onClick={handleSyncConfirm} disabled={syncRunning}>
+              {syncRunning ? 'Updating...' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
