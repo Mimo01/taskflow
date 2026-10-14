@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-14 - Completed quick task 261014-eym: deployment package ↔ fix version sync (live UAT approved)
+Last activity: 2026-10-14 - Completed quick task 261014-j3s: AIO cycle defect summary layout
 
 ## Performance Metrics
 
@@ -191,6 +191,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | tech_debt | Phase 91 WR-01: releaseBranch.ts:120-123 doc comment overstates that `tagChannel` is type-enforced required | doc-accuracy only |
 | tech_debt | Phase 91.2 WR-06/07/08, IN-04/05: progress cell `w-32` tight at 3 digits, assignee `w-10` narrower than avatar, duplicated count types, duplicate retry controls, sub-pixel segment slivers | cosmetic |
 | 261014-eym | Deployment package ↔ fix version sync (RM week child, sidebar + release detail warnings/fixes, Releases tab sync, RM project setting) | 2026-10-14 | ade56b58 | Verified (live UAT approved; review warnings fixed) | [261014-eym-enhance-deployment-package-for-jira-stor](./quick/261014-eym-enhance-deployment-package-for-jira-stor/) |
+| 261014-j3s | AIO cycle defect summary: larger Status donut + legend, Priority\|Severity side by side below, wider block | 2026-10-14 | a83547a6 | Verified (inline, no visual check) | [261014-j3s-aio-cycle-defect-summary-layout](./quick/261014-j3s-aio-cycle-defect-summary-layout/) |
 
 ## Session Continuity
 
