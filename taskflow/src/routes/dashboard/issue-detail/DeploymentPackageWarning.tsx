@@ -33,7 +33,7 @@ interface DeploymentPackageWarningProps {
   jiraBaseUrl: string;
 }
 
-const FIX_BUTTON_CLASS = 'h-auto min-h-6 whitespace-normal py-0.5 text-left';
+const FIX_BUTTON_CLASS = 'h-auto min-h-6 max-w-full whitespace-normal break-words py-0.5 text-left';
 
 /**
  * Sidebar warning for a Story whose fix version and Deployment package
@@ -124,7 +124,7 @@ export function DeploymentPackageWarning({
   return (
     <div
       data-testid="deployment-package-warning"
-      className="ml-[7.5rem] flex min-w-0 flex-col gap-1.5 border-l-2 border-amber-500/60 pl-2.5 text-xs"
+      className="flex w-full min-w-0 flex-col gap-1.5 border-l-2 border-amber-500/60 pl-2 text-xs"
     >
       <div className="flex min-w-0 items-start gap-1.5 text-amber-700 dark:text-amber-400">
         <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
