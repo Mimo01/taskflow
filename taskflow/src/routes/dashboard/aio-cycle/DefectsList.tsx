@@ -8,13 +8,14 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
+import { severityLabel } from '@/lib/aio-cycle-charts';
 import { compareDefectPriority } from '@/lib/aio-defect-sort';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
-import { severityOf } from './DefectSummary';
+import { severityOf, severityRaw } from './DefectSummary';
 import type { ResolvedDefect } from './useCycleDefects';
 
 type DefectSortKey = 'key' | 'status' | 'priority' | 'severity' | 'assignee' | null;
@@ -355,7 +356,11 @@ export function DefectsList({
     () => optionsOf(defects, (i) => i.fields.priority?.name),
     [defects],
   );
-  const severityOptions = useMemo(() => optionsOf(defects, severityOf), [defects]);
+  // Labels shown without the order number, but ordered by it ('1-Critical' before '2-Major').
+  const severityOptions = useMemo(
+    () => [...new Set(optionsOf(defects, severityRaw).map(severityLabel))],
+    [defects],
+  );
   const assigneeOptions = useMemo(
     () => optionsOf(defects, (i) => i.fields.assignee?.displayName),
     [defects],
@@ -397,7 +402,7 @@ export function DefectsList({
           case 'status':
             return d.issue.fields.status?.name ?? null;
           case 'severity':
-            return severityOf(d.issue);
+            return severityRaw(d.issue);
           case 'assignee':
             return d.issue.fields.assignee?.displayName ?? null;
           default:

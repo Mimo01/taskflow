@@ -166,6 +166,9 @@ export function defectPrioritySlices(defects: DefectLike[]): ChartSlice[] {
     });
 }
 
+/** Severity values look like '2-Major': the number is only the sort order, show just the label. */
+export const severityLabel = (raw: string): string => raw.replace(/^\s*\d+\s*-\s*/, '');
+
 /** Severity labels start with their level ('1-Critical', '2-Major', ...): colour by that level. */
 const SEVERITY_COLOR: Record<string, string> = {
   '1': 'var(--color-red-600)',
@@ -199,7 +202,7 @@ export function defectSeveritySlices(defects: DefectLike[]): ChartSlice[] {
       const share = pct(value, total);
       return {
         key: name,
-        label: name,
+        label: severityLabel(name),
         value,
         share,
         color: SEVERITY_COLOR[name.charAt(0)] ?? SEVERITY_NONE_COLOR,
