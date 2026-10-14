@@ -634,6 +634,25 @@ describe('AioCycleDetailPage', () => {
       expect(screen.getByTestId('kpi-reruns').textContent).toMatch(/Re-runs/);
     });
 
+    it('failing denominators come from the runs list, not the (possibly different) cycle summary', async () => {
+      const { fetchAioCycleSummaries } = await import('@/services/aio');
+      await setupDefaultMocks();
+      // The summary claims 5 failed; the runs list only has one failing case.
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          ID: 10134,
+          jiraProjectID: 10134,
+          detail: null,
+          summary: { totalTests: 7, testRunDistribution: { '901': 1, '54': 5, '51': 1 } },
+        },
+      ]);
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 1 failing/);
+        expect(screen.getByTestId('kpi-retest').textContent).toMatch(/of 1 failing/);
+      });
+    });
+
     it('Ready to retest counts failing cases whose linked defects are all Done', async () => {
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       await setupDefaultMocks();

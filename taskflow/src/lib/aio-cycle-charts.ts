@@ -80,7 +80,9 @@ export function defectStatusSlices(defects: DefectLike[]): ChartSlice[] {
   let total = 0;
   for (const d of defects) {
     if (!d.issue) continue;
-    const cat = d.issue.fields.status?.statusCategory?.key ?? 'new';
+    const rawCat = d.issue.fields.status?.statusCategory?.key;
+    // Unknown / 'undefined' (No Category) fall back to To Do, as statusCategoryColor does app-wide.
+    const cat = CATEGORY_ORDER.some((c) => c.key === rawCat) ? (rawCat as string) : 'new';
     const name = d.issue.fields.status?.name ?? 'Unknown';
     const names = byCat.get(cat) ?? new Map<string, number>();
     names.set(name, (names.get(name) ?? 0) + 1);
@@ -113,13 +115,40 @@ export function defectStatusSlices(defects: DefectLike[]): ChartSlice[] {
   return slices;
 }
 
+/** Scheme level -> rank (0 = highest), derived from priorityRank so the order has one source. */
+const PRIORITY_LEVEL_RANK: Record<string, number> = Object.fromEntries(
+  [
+    'Blocker',
+    'Must',
+    'Critical',
+    'Highest',
+    'Should',
+    'High',
+    'Medium',
+    'Low',
+    'Lowest',
+    'Minor',
+  ].map((name) => [name.toLowerCase(), priorityRank({ name })]),
+);
 const PRIORITY_RED = ['blocker', 'critical', 'highest', 'major'];
 const PRIORITY_GRAY = ['low', 'minor', 'lowest', 'trivial'];
 
-/** Colour by the icon filename token (e.g. ".../major.svg"). Unknown -> gray-300. */
+/**
+ * Colour by the custom scheme's level first (Blocker/Must/Critical/Highest red, Should/High
+ * orange, Medium yellow, Low/Lowest/Minor gray: same order as priorityRank), so levels whose
+ * icon filename says nothing ('Must', 'Should') still get their colour. Unknown names fall back
+ * to the icon filename token (e.g. ".../major.svg"); no match -> gray-300.
+ */
 export function priorityChartColor(
   priority: { name?: string; iconUrl?: string } | null | undefined,
 ): string {
+  const rank = priority?.name ? PRIORITY_LEVEL_RANK[priority.name.toLowerCase()] : undefined;
+  if (rank !== undefined) {
+    if (rank <= 3) return 'var(--color-red-600)';
+    if (rank <= 5) return 'var(--color-orange-500)';
+    if (rank === 6) return 'var(--color-yellow-500)';
+    return 'var(--color-gray-400)';
+  }
   const m = /([a-z]+)\.(?:svg|png|gif)(?:\?.*)?$/i.exec(priority?.iconUrl ?? '');
   const token = m?.[1].toLowerCase();
   if (!token) return 'var(--color-gray-300)';
