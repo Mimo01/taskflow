@@ -1107,12 +1107,17 @@ export function FieldsSection({
           const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
           const rmWeek = rmPackage.week;
           const rmSummary = rmPackage.child?.summary;
+          const editNote = 'Edited by adjusting the fix version';
           return deploymentPackageValue ? (
-            <span data-testid="deployment-package-value" className="flex min-w-0 flex-col">
+            <span
+              data-testid="deployment-package-value"
+              className="flex min-w-0 flex-col"
+              title={editNote}
+            >
               {rmWeek && (
                 <span
                   className="break-words"
-                  title={`${rmWeek.key} ${rmWeek.summary}`}
+                  title={`${rmWeek.key} ${rmWeek.summary}\n${editNote}`}
                   data-testid="deployment-package-week"
                 >
                   {formatWeekLabel(rmWeek.summary)}
@@ -1124,7 +1129,11 @@ export function FieldsSection({
               </span>
             </span>
           ) : (
-            <span data-testid="deployment-package-value" className="text-muted-foreground">
+            <span
+              data-testid="deployment-package-value"
+              className="text-muted-foreground"
+              title={editNote}
+            >
               &mdash;
             </span>
           );
