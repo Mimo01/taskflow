@@ -50,7 +50,9 @@ export function CycleKpiTiles({
   );
   const failedNoDefect = unlinked.filter((r) => r.status === 'FAIL').length;
   const blockedNoDefect = unlinked.filter((r) => r.status === 'BLOCKED').length;
-  const failing = counts.fail + counts.blocked;
+  // Same source (the runs list) as the unlinked / retest numerators, so "N of M failing"
+  // can never read N > M even when the cycle summary and the runs list disagree.
+  const failing = (runs ?? []).filter((r) => r.status === 'FAIL' || r.status === 'BLOCKED').length;
   // Failing cases whose linked defects are all Done: the fix is in, the case needs another run.
   const doneDefects = new Set(
     defects

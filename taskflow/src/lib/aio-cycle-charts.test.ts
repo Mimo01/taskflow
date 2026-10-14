@@ -116,6 +116,48 @@ describe('severityLabel', () => {
   });
 });
 
+describe('defectStatusSlices unknown categories', () => {
+  it('counts an unrecognised category as To Do so the shares sum to the total', () => {
+    const s = defectStatusSlices([
+      def('Open', 'new'),
+      def('Weird', 'undefined'),
+      def('Done', 'done'),
+      def('NoCat', ''),
+    ]);
+    expect(s.map((x) => [x.label, x.value])).toEqual([
+      ['To Do', 3],
+      ['Done', 1],
+    ]);
+    expect(s.reduce((n, x) => n + x.share, 0)).toBe(100);
+  });
+
+  it('charts a lone unknown-category defect instead of dropping it', () => {
+    expect(defectStatusSlices([def('Weird', 'undefined')])).toHaveLength(1);
+  });
+});
+
+describe('priorityChartColor by scheme level', () => {
+  it.each([
+    ['Blocker', 'var(--color-red-600)'],
+    ['Must', 'var(--color-red-600)'],
+    ['Critical', 'var(--color-red-600)'],
+    ['Should', 'var(--color-orange-500)'],
+    ['High', 'var(--color-orange-500)'],
+    ['Medium', 'var(--color-yellow-500)'],
+    ['Low', 'var(--color-gray-400)'],
+    ['Minor', 'var(--color-gray-400)'],
+  ])('%s ignores a meaningless icon', (name, color) => {
+    expect(priorityChartColor({ name, iconUrl: 'http://x/icon-123.svg' })).toBe(color);
+  });
+
+  it('keeps the icon fallback for names outside the scheme', () => {
+    expect(priorityChartColor({ name: 'Urgent', iconUrl: 'http://x/major.svg' })).toBe(
+      'var(--color-red-600)',
+    );
+    expect(priorityChartColor({ name: 'Urgent' })).toBe('var(--color-gray-300)');
+  });
+});
+
 describe('priorityChartColor', () => {
   it.each([
     ['http://x/MAJOR.svg', 'var(--color-red-600)'],
