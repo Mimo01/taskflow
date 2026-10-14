@@ -12,5 +12,6 @@
 | WR-08 | Other rows' sync buttons usable while prompt open | Disabled while `syncPrompt`/`syncRunning` |
 | IN-03 | Invalid key retried 3x | `retry: false` on `useRmPackage` |
 | IN-04 | Duplicate key regex | `ISSUE_KEY_RE` exported from lib, reused in jira.ts |
-| IN-01 | Unused plan/run computed in Section | not changed (cheap) |
-| IN-02 | "Open in Jira" not disabled while pending | not changed (harmless) |
+| IN-01 | Unused plan/run computed in Section | Removed the dead `plan`/`run`/`results`/`isRunning`/`blockedReason` from `useDeploymentPackageSync` (only `applyFix` was used); bulk sync stays in `executeDeploymentPackageSync` |
+| IN-02 | "Open in Jira" not disabled while pending | Disabled while a write is pending |
+| — | Raw Jira text on a failed single fix | `describeWriteError`: 401/403 and edit-screen errors become plain sentences (single and bulk writes) |

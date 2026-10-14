@@ -153,13 +153,12 @@ describe('useDeploymentPackageSync', () => {
     <QueryClientProvider client={makeClient()}>{children}</QueryClientProvider>
   );
 
-  it('exposes the plan and applies a set-package fix with the editmeta shape', async () => {
+  it('applies a set-package fix with the editmeta shape', async () => {
     const stories = [story('S-1'), story('S-2', 'RM-11')];
     const { result } = renderHook(
       () => useDeploymentPackageSync({ version, stories, projectVersions: [] }),
       { wrapper },
     );
-    expect(result.current.plan.map((p) => p.key)).toEqual(['S-1']);
     await act(() =>
       result.current.applyFix(stories[0], {
         kind: 'set-package',
@@ -190,6 +189,26 @@ describe('useDeploymentPackageSync', () => {
     expect(bulkUpdateIssue).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'S-3', {
       fixVersions: [{ id: '1' }],
     });
+  });
+
+  it('turns a 403 on a single fix into a readable message', async () => {
+    vi.mocked(bulkUpdateIssue).mockRejectedValue(
+      Object.assign(new Error('Failed to update S-1'), { status: 403 }),
+    );
+    const stories = [story('S-1')];
+    const { result } = renderHook(
+      () => useDeploymentPackageSync({ version, stories, projectVersions: [] }),
+      { wrapper },
+    );
+    await expect(
+      act(() =>
+        result.current.applyFix(stories[0], {
+          kind: 'set-package',
+          childKey: 'RM-11',
+          childSummary: 'Core deployment',
+        }),
+      ),
+    ).rejects.toThrow("You don't have permission to edit S-1.");
   });
 
   it('rejects a set-package fix when the field is not editable', async () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPackageFieldValue,
   computeFixVersionsForFix,
+  describeWriteError,
   evaluatePackageSync,
   extractDeploymentPackageKey,
   extractLinkedIssueKey,
@@ -404,5 +405,24 @@ describe('review hardening (WR-01/02/03/06)', () => {
       'single',
     );
     expect(plan.map((p) => p.key)).toEqual(['S-3']);
+  });
+});
+
+describe('describeWriteError', () => {
+  it('maps auth and edit-screen failures to plain language, keeps other messages', () => {
+    expect(describeWriteError(Object.assign(new Error('x'), { status: 403 }), 'S-1')).toBe(
+      "You don't have permission to edit S-1.",
+    );
+    expect(describeWriteError(Object.assign(new Error('x'), { status: 401 }), 'S-1')).toMatch(
+      /session expired/,
+    );
+    expect(
+      describeWriteError(
+        new Error("Field 'customfield_15725' cannot be set. It is not on the appropriate screen."),
+        'S-1',
+      ),
+    ).toBe("The field can't be edited on S-1 (it is not on its Jira edit screen).");
+    expect(describeWriteError(new Error('Something odd'), 'S-1')).toBe('Something odd');
+    expect(describeWriteError('boom', 'S-1')).toBe('boom');
   });
 });

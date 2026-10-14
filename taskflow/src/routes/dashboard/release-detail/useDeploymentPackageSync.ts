@@ -1,10 +1,11 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   buildPackageFieldValue,
   computeFixVersionsForFix,
   DEPLOYMENT_PACKAGE_FIELD,
+  describeWriteError,
   extractDeploymentPackageKey,
   type PackageEditShape,
   type PackageFix,
@@ -128,7 +129,7 @@ export async function executeDeploymentPackageSync(input: {
         results.push({
           key: item.key,
           ok: false,
-          error: e instanceof Error ? e.message : String(e),
+          error: describeWriteError(e, item.key),
         });
       }
     }
@@ -138,8 +139,8 @@ export async function executeDeploymentPackageSync(input: {
 }
 
 /**
- * Release-detail data layer for Deployment package sync: the bulk plan, a
- * runnable bulk sync and per-row single fixes (both directions).
+ * Release-detail data layer for Deployment package sync: per-row single fixes
+ * (both directions). Bulk sync lives in executeDeploymentPackageSync.
  */
 export function useDeploymentPackageSync(input: {
   version: { releaseDate?: string } | null;
@@ -156,15 +157,7 @@ export function useDeploymentPackageSync(input: {
     () => stories.map((s) => extractDeploymentPackageKey(s.fields[DEPLOYMENT_PACKAGE_FIELD])),
     [stories],
   );
-  const { weeks, childToWeek } = useRmWeekIndex({ dates: [version?.releaseDate], pkgKeys });
-  const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<PackageSyncItemResult[]>([]);
-  const [blockedReason, setBlockedReason] = useState<string | null>(null);
-
-  const plan = useMemo(
-    () => (version ? planBulkSync(stories, version, weeks, 'single') : []),
-    [stories, version, weeks],
-  );
+  const { childToWeek } = useRmWeekIndex({ dates: [version?.releaseDate], pkgKeys });
 
   const getToken = useCallback(async () => {
     const token = await readSecret('jira-pat').catch(() => null);
@@ -172,43 +165,26 @@ export function useDeploymentPackageSync(input: {
     return { token, baseUrl: jiraBaseUrl };
   }, [jiraBaseUrl]);
 
-  const run = useCallback(async (): Promise<PackageSyncRun> => {
-    if (!version) return { blocked: false, results: [] };
-    setIsRunning(true);
-    setBlockedReason(null);
-    try {
-      const { token, baseUrl } = await getToken();
-      const outcome = await executeDeploymentPackageSync({
-        queryClient,
-        jiraBaseUrl: baseUrl,
-        token,
-        stories,
-        version,
-        weeks,
-      });
-      if (outcome.blocked) setBlockedReason(NOT_EDITABLE_REASON);
-      setResults(outcome.results);
-      return outcome;
-    } finally {
-      setIsRunning(false);
-    }
-  }, [version, getToken, queryClient, stories, weeks]);
-
   /** Single-row fix. Throws with Jira's message on failure so the caller can show it. */
   const applyFix = useCallback(
     async (story: PackageStoryLike, fix: PackageFix): Promise<void> => {
       const { token, baseUrl } = await getToken();
+      const write = async (fields: Record<string, unknown>) => {
+        try {
+          await bulkUpdateIssue(baseUrl, token, story.key, fields);
+        } catch (e) {
+          throw new Error(describeWriteError(e, story.key));
+        }
+      };
       if (fix.kind === 'set-package') {
         const shape = await resolvePackageEditShape(queryClient, baseUrl, token, story.key);
         if (shape === 'not-editable') throw new Error(NOT_EDITABLE_REASON);
-        await bulkUpdateIssue(baseUrl, token, story.key, {
-          [DEPLOYMENT_PACKAGE_FIELD]: buildPackageFieldValue(fix.childKey, shape),
-        });
+        await write({ [DEPLOYMENT_PACKAGE_FIELD]: buildPackageFieldValue(fix.childKey, shape) });
       } else {
         const pkgKey = extractDeploymentPackageKey(story.fields[DEPLOYMENT_PACKAGE_FIELD]);
         const week = pkgKey ? childToWeek.get(pkgKey) : undefined;
         if (!week) throw new Error('The deployment package week is unknown.');
-        await bulkUpdateIssue(baseUrl, token, story.key, {
+        await write({
           fixVersions: computeFixVersionsForFix(
             story.fields.fixVersions ?? [],
             fix.versionId,
@@ -222,5 +198,5 @@ export function useDeploymentPackageSync(input: {
     [getToken, queryClient, childToWeek, projectVersions, versionsByProject],
   );
 
-  return { plan, run, applyFix, isRunning, results, blockedReason };
+  return { applyFix };
 }

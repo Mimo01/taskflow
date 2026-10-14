@@ -151,6 +151,7 @@ export function DeploymentPackageWarning({
                   key={key}
                   fix={fix}
                   actionLabel="Open in Jira"
+                  disabled={mutation.isPending}
                   onApply={() =>
                     openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)
                   }
