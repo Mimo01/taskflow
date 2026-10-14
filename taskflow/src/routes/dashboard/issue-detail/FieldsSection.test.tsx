@@ -5,7 +5,7 @@
  * and a minimal render test for the React output.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -153,7 +153,32 @@ vi.mock('@/components/ui/select', async () => {
 });
 
 vi.mock('../StatusPopover', () => ({
-  default: ({ currentStatus }: { currentStatus: string }) => <span>{currentStatus}</span>,
+  default: ({
+    currentStatus,
+    onSelect,
+  }: {
+    currentStatus: string;
+    onSelect: (id: string, name: string, opts?: undefined, cat?: string) => void;
+  }) => (
+    <>
+      <span>{currentStatus}</span>
+      <button
+        type="button"
+        data-testid="sp-done"
+        onClick={() => onSelect('t-done', 'Done', undefined, 'done')}
+      />
+      <button
+        type="button"
+        data-testid="sp-wip"
+        onClick={() => onSelect('t-wip', 'Doing', undefined, 'indeterminate')}
+      />
+    </>
+  ),
+}));
+
+vi.mock('@/services/jira/parentCompletion', () => ({
+  checkParentCompletion: vi.fn().mockResolvedValue({ shouldPrompt: false }),
+  invalidateAfterTransition: vi.fn(),
 }));
 
 vi.mock('./WatcherToggle', () => ({
@@ -684,5 +709,92 @@ describe('FieldsSection', () => {
       // And the normal allowedValues are still present.
       expect(screen.getByRole('option', { name: 'Done' })).toBeTruthy();
     });
+  });
+});
+
+describe('Parent completion prompt (subtask -> done)', () => {
+  async function renderSubtask(issue: JiraIssueDetail) {
+    const { FieldsSection } = await import('./FieldsSection');
+    const mutation = {
+      isPending: false,
+      isError: false,
+      mutate: vi.fn(),
+      variables: undefined,
+      data: undefined,
+    };
+    render(
+      <FieldsSection
+        issue={issue}
+        issueKey={issue.key}
+        jiraBaseUrl="https://jira.example.com"
+        storyPointsFieldKey="customfield_10016"
+        epicLinkFieldKey="customfield_10014"
+        epicNameFieldKey="customfield_10015"
+        sprintFieldKey="customfield_10020"
+        epicColorFieldKey="customfield_10013"
+        mutation={mutation as any}
+        epicIssue={null}
+      />,
+      { wrapper },
+    );
+  }
+
+  const subtask = () =>
+    makeIssue({
+      issuetype: { name: 'Sub-task', subtask: true },
+      parent: { id: '9', key: 'PROJ-9', fields: { summary: 'Parent' } },
+    } as any);
+
+  it('checks the parent after a successful transition into done', async () => {
+    const { postTransition } = await import('@/services/jira/transitions');
+    const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+    vi.mocked(checkParentCompletion).mockClear();
+    vi.mocked(postTransition).mockResolvedValue(undefined);
+    await renderSubtask(subtask());
+    fireEvent.click(screen.getByTestId('sp-done'));
+    await waitFor(() =>
+      expect(checkParentCompletion).toHaveBeenCalledWith(
+        'https://jira.example.com',
+        'test-token',
+        'PROJ-1',
+        'PROJ-9',
+      ),
+    );
+  });
+
+  it('does not check when the target category is not done', async () => {
+    const { postTransition } = await import('@/services/jira/transitions');
+    const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+    vi.mocked(checkParentCompletion).mockClear();
+    vi.mocked(postTransition).mockResolvedValue(undefined);
+    await renderSubtask(subtask());
+    fireEvent.click(screen.getByTestId('sp-wip'));
+    await waitFor(() => expect(postTransition).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(checkParentCompletion).not.toHaveBeenCalled();
+  });
+
+  it('does not check when the transition fails', async () => {
+    const { postTransition } = await import('@/services/jira/transitions');
+    const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+    vi.mocked(checkParentCompletion).mockClear();
+    vi.mocked(postTransition).mockRejectedValue(new Error('nope'));
+    await renderSubtask(subtask());
+    fireEvent.click(screen.getByTestId('sp-done'));
+    await waitFor(() => expect(postTransition).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(checkParentCompletion).not.toHaveBeenCalled();
+  });
+
+  it('does not check for a non-subtask', async () => {
+    const { postTransition } = await import('@/services/jira/transitions');
+    const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+    vi.mocked(checkParentCompletion).mockClear();
+    vi.mocked(postTransition).mockResolvedValue(undefined);
+    await renderSubtask(makeIssue());
+    fireEvent.click(screen.getByTestId('sp-done'));
+    await waitFor(() => expect(postTransition).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(checkParentCompletion).not.toHaveBeenCalled();
   });
 });

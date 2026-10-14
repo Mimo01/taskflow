@@ -70,6 +70,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BoardResolutionDialog } from './BoardResolutionDialog';
+import { useParentCompletionPrompt } from './CompleteParentDialog';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintBoardHeader, SprintBoardHeaderSkeleton } from './SprintBoardHeader';
 import { SprintBoardSkeleton } from './SprintBoardSkeleton';
@@ -796,6 +797,8 @@ export default function SprintBoardTab() {
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
+  // Offer to move the parent story to done when its last open subtask is closed.
+  const parentPrompt = useParentCompletionPrompt({ jiraBaseUrl: jiraBaseUrl ?? '', boardId });
   const { onIssueClick: setSelectedIssueKey, onOpenIssue } = useOutletContext<{
     onIssueClick: (key: string) => void;
     onOpenIssue: (key: string) => void;
@@ -1388,6 +1391,15 @@ export default function SprintBoardTab() {
       // jira-parent-detail is used by subtask peek panels to show the parent's status.
       // Invalidate for this issue so sibling subtask views see fresh parent status.
       queryClient.invalidateQueries({ queryKey: ['jira-parent-detail', issueKey] });
+      // Fire-and-forget (never blocks the board): last open subtask closed -> offer to
+      // also move the parent story to done. Only reached on a successful transition.
+      void parentPrompt.check({
+        issueKey,
+        parentKey: originalIssue.fields.parent?.key,
+        isSubtask: !!originalIssue.fields.issuetype?.subtask,
+        fromCategory: originalIssue.fields.status.statusCategory?.key,
+        toCategory: toStatusCategoryKey,
+      });
     } catch {
       // Rollback to original status
       setLocalIssues((prev) =>
@@ -1870,6 +1882,7 @@ export default function SprintBoardTab() {
        * open iff a resolution-capable drop is pending; cancel/close clears it with NO
        * transition (the card never moved), confirm executes the dragged transition
        * with fields.resolution. */}
+      {parentPrompt.dialog}
       {pendingResolution && (
         <BoardResolutionDialog
           // CR-02: key by issue so the dialog's internal selectedId state fully

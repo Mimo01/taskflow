@@ -43,6 +43,7 @@ interface StatusPopoverProps {
     transitionId: string,
     toStatusName: string,
     opts?: { resolution: { id: string } | null },
+    toCategoryKey?: string,
   ) => void;
   disabled?: boolean;
   statusCategoryKey?: string;
@@ -76,6 +77,7 @@ export default function StatusPopover({
   const [pendingResolutionTransition, setPendingResolutionTransition] = useState<{
     id: string;
     toName: string;
+    toCategoryKey?: string;
     allowedValues: Array<{ id: string; name: string }>;
   } | null>(null);
   // WR-05: set when a transition declares resolution as required but exposes no
@@ -118,7 +120,7 @@ export default function StatusPopover({
     }
   }
 
-  function handleSelect(transitionId: string, toStatusName: string) {
+  function handleSelect(transitionId: string, toStatusName: string, toCategoryKey?: string) {
     // If the matching REST transition is resolution-capable, close the popover
     // and open the BoardResolutionDialog instead. Using a proper Dialog avoids
     // the inline Positioner/Popup stretching to full viewport width. If the REST
@@ -128,7 +130,12 @@ export default function StatusPopover({
     if (allowedValues && allowedValues.length > 0) {
       setResolutionUnavailable(false);
       setOpen(false);
-      setPendingResolutionTransition({ id: transitionId, toName: toStatusName, allowedValues });
+      setPendingResolutionTransition({
+        id: transitionId,
+        toName: toStatusName,
+        toCategoryKey,
+        allowedValues,
+      });
       return;
     }
     // WR-05: resolution is required but no allowedValues were returned. Firing
@@ -138,13 +145,18 @@ export default function StatusPopover({
       setResolutionUnavailable(true);
       return;
     }
-    onSelect(transitionId, toStatusName);
+    onSelect(transitionId, toStatusName, undefined, toCategoryKey);
     setOpen(false);
   }
 
   function handleResolutionConfirm(resolution: { id: string } | null) {
     if (!pendingResolutionTransition) return;
-    onSelect(pendingResolutionTransition.id, pendingResolutionTransition.toName, { resolution });
+    onSelect(
+      pendingResolutionTransition.id,
+      pendingResolutionTransition.toName,
+      { resolution },
+      pendingResolutionTransition.toCategoryKey,
+    );
     setPendingResolutionTransition(null);
   }
 
@@ -185,7 +197,9 @@ export default function StatusPopover({
               <button
                 key={transition.id}
                 type="button"
-                onClick={() => handleSelect(transition.id, transition.to.name)}
+                onClick={() =>
+                  handleSelect(transition.id, transition.to.name, transition.to.statusCategory?.key)
+                }
                 className="w-full text-left px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-accent rounded flex items-center gap-2"
               >
                 <span className="text-muted-foreground">→</span>

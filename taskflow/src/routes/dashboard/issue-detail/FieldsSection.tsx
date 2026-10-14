@@ -48,6 +48,7 @@ import {
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useParentCompletionPrompt } from '../CompleteParentDialog';
 import StatusPopover from '../StatusPopover';
 import { DeploymentPackageWarning } from './DeploymentPackageWarning';
 import { MetaRow } from './MetaRow';
@@ -333,6 +334,8 @@ export function FieldsSection({
   // Status transition state
   const queryClient = useQueryClient();
 
+  const parentPrompt = useParentCompletionPrompt({ jiraBaseUrl, boardId });
+
   const transitionMutation = useMutation({
     mutationFn: async ({
       transitionId,
@@ -341,6 +344,8 @@ export function FieldsSection({
       transitionId: string;
       toName: string;
       fields?: Record<string, unknown>;
+      fromCategory?: string;
+      toCategory?: string;
     }) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
@@ -369,6 +374,16 @@ export function FieldsSection({
       if (context?.previous) {
         queryClient.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], context.previous);
       }
+    },
+    onSuccess: (_data, vars) => {
+      // Last open subtask closed? Offer to move the parent story to done too.
+      void parentPrompt.check({
+        issueKey,
+        parentKey: issue.fields.parent?.key,
+        isSubtask: !!isSubtask,
+        fromCategory: vars.fromCategory,
+        toCategory: vars.toCategory,
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
@@ -417,10 +432,14 @@ export function FieldsSection({
     transitionId: string,
     toStatusName: string,
     opts?: { resolution: { id: string } | null },
+    toCategoryKey?: string,
   ) {
     transitionMutation.mutate({
       transitionId,
       toName: toStatusName,
+      // Captured BEFORE mutate: the optimistic update must not affect the done->done gate.
+      fromCategory: f.status.statusCategory?.key,
+      toCategory: toCategoryKey,
       // Forward a resolution chosen during a status change (StatusPopover flow).
       ...(opts ? { fields: { resolution: opts.resolution } } : {}),
     });
@@ -598,6 +617,7 @@ export function FieldsSection({
 
   return (
     <>
+      {parentPrompt.dialog}
       <MetaRow label="Status">
         <StatusPopover
           projectId={Number(f.project?.id ?? 0)}
