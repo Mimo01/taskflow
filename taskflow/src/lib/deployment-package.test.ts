@@ -4,6 +4,7 @@ import {
   computeFixVersionsForFix,
   evaluatePackageSync,
   extractDeploymentPackageKey,
+  extractLinkedIssueKey,
   findChildForProject,
   findWeekForDate,
   indexChildToWeek,
@@ -211,5 +212,20 @@ describe('planBulkSync', () => {
     });
     expect(planBulkSync([story('S-1', null)], version, weeks, 'not-editable')).toEqual([]);
     expect(planBulkSync([story('S-1', null)], {}, weeks, 'array')).toEqual([]);
+  });
+});
+
+describe('extractLinkedIssueKey', () => {
+  it('reads string, {key}, {data:{key}} and single-element arrays', () => {
+    expect(extractLinkedIssueKey('RM-12')).toBe('RM-12');
+    expect(extractLinkedIssueKey({ key: 'RM-12' })).toBe('RM-12');
+    expect(extractLinkedIssueKey({ hasEpicLink: false, data: { key: 'RM-12' } })).toBe('RM-12');
+    expect(extractLinkedIssueKey(['RM-12'])).toBe('RM-12');
+  });
+  it('returns null for anything else', () => {
+    expect(extractLinkedIssueKey(null)).toBeNull();
+    expect(extractLinkedIssueKey('not a key')).toBeNull();
+    expect(extractLinkedIssueKey(['RM-1', 'RM-2'])).toBeNull();
+    expect(extractLinkedIssueKey({})).toBeNull();
   });
 });
