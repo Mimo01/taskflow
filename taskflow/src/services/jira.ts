@@ -2399,6 +2399,120 @@ export async function fetchIssuePriorityOptions(
 const RM_PROJECT_KEY_RE = /^[A-Z][A-Z0-9_]+$/;
 const ISSUE_KEY_RE_STRICT = /^[A-Z][A-Z0-9_]+-\d+$/;
 
+const linkFieldIdCache = new Map<string, Promise<string[]>>();
+
+/**
+ * Parent-style link fields are instance-specific: discover the Epic Link and
+ * Advanced Roadmaps "Parent Link" field ids via /field (cached per base URL).
+ * Falls back to the default Epic Link id when discovery fails.
+ */
+function discoverLinkFieldIds(base: string, token: string): Promise<string[]> {
+  const cached = linkFieldIdCache.get(base);
+  if (cached) return cached;
+  const p = (async () => {
+    const ids = new Set<string>(['customfield_10014']);
+    try {
+      const fr = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/field`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Load Fields',
+      );
+      if (!fr.ok) {
+        linkFieldIdCache.delete(base);
+        return [...ids];
+      }
+      const all: Array<{ id: string; name?: string; schema?: { custom?: string } }> =
+        await fr.json();
+      for (const f of all) {
+        const custom = f.schema?.custom ?? '';
+        if (
+          custom === 'com.pyxis.greenhopper.jira:gh-epic-link' ||
+          custom.endsWith('jpo-custom-field-parent') ||
+          f.name === 'Parent Link'
+        )
+          ids.add(f.id);
+      }
+    } catch {
+      linkFieldIdCache.delete(base);
+    }
+    return [...ids];
+  })();
+  linkFieldIdCache.set(base, p);
+  return p;
+}
+
+/**
+ * Direct lookup (no index scan) of a story's RM package: the RM task itself
+ * plus its WEEK parent, found via sub-task parent, Parent Link / Epic Link, or
+ * an issue link whose summary parses as a WEEK range. Costs 1 issue GET + at
+ * most one parallel GET per candidate parent. `week.children` holds just this task.
+ */
+export async function fetchRmPackage(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<{ child: { key: string; summary: string }; week: RmWeek | null }> {
+  if (!ISSUE_KEY_RE_STRICT.test(issueKey)) throw new Error(`Invalid issue key: ${issueKey}`);
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}` };
+  const linkFieldIds = await discoverLinkFieldIds(base, token);
+
+  const getIssue = async (key: string, fields: string) => {
+    const resp = await apiFetch(
+      'jira',
+      `${base}/rest/api/2/issue/${key}?fields=${fields}`,
+      { headers },
+      'Load RM Issue',
+    );
+    if (!resp.ok) return null;
+    return (await resp.json()) as { key: string; fields: Record<string, unknown> };
+  };
+
+  const issue = await getIssue(
+    issueKey,
+    ['summary', 'parent', 'issuelinks', ...linkFieldIds].join(','),
+  );
+  if (!issue) throw new Error(`Could not load ${issueKey}`);
+  const f = issue.fields;
+  const child = { key: issue.key, summary: String(f.summary ?? '') };
+
+  const toWeek = (key: string, summary: string): RmWeek | null => {
+    const range = parseWeekRange(summary);
+    return range ? { key, summary, ...range, children: [child] } : null;
+  };
+
+  // Summaries already in the payload (sub-task parent, issue links) need no extra GET.
+  const parentObj = f.parent as { key?: string; fields?: { summary?: string } } | undefined;
+  if (parentObj?.key && parentObj.fields?.summary) {
+    const w = toWeek(parentObj.key, parentObj.fields.summary);
+    if (w) return { child, week: w };
+  }
+  type LinkLike = { inwardIssue?: Linked; outwardIssue?: Linked };
+  type Linked = { key: string; fields?: { summary?: string } };
+  for (const l of Array.isArray(f.issuelinks) ? (f.issuelinks as LinkLike[]) : []) {
+    const other = l.inwardIssue ?? l.outwardIssue;
+    if (other?.fields?.summary) {
+      const w = toWeek(other.key, other.fields.summary);
+      if (w) return { child, week: w };
+    }
+  }
+
+  const candidates = new Set<string>();
+  if (parentObj?.key) candidates.add(parentObj.key);
+  for (const id of linkFieldIds) {
+    const k = extractLinkedIssueKey(f[id]);
+    if (k) candidates.add(k);
+  }
+  const loaded = await Promise.all([...candidates].map((k) => getIssue(k, 'summary')));
+  for (const c of loaded) {
+    if (!c) continue;
+    const w = toWeek(c.key, String(c.fields.summary ?? ''));
+    if (w) return { child, week: w };
+  }
+  return { child, week: null };
+}
+
 /**
  * Fetch the Release Management week index (261014-eym): every WEEK parent in
  * the RM project (summary parsed by parseWeekRange) with its children.
@@ -2420,32 +2534,7 @@ export async function fetchRmWeekIndex(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const jql = `project = "${rmProjectKey}" AND created >= startOfYear(-1) ORDER BY created DESC`;
-  // Parent-style link fields are instance-specific: discover the Epic Link and
-  // Advanced Roadmaps "Parent Link" field ids instead of assuming them.
-  const linkFieldIds = new Set<string>(['customfield_10014']);
-  try {
-    const fr = await apiFetch(
-      'jira',
-      `${base}/rest/api/2/field`,
-      { headers: { Authorization: `Bearer ${token}` } },
-      'Load Fields',
-    );
-    if (fr.ok) {
-      const all: Array<{ id: string; name?: string; schema?: { custom?: string } }> =
-        await fr.json();
-      for (const f of all) {
-        const custom = f.schema?.custom ?? '';
-        if (
-          custom === 'com.pyxis.greenhopper.jira:gh-epic-link' ||
-          custom.endsWith('jpo-custom-field-parent') ||
-          f.name === 'Parent Link'
-        )
-          linkFieldIds.add(f.id);
-      }
-    }
-  } catch {
-    // fall back to the default Epic Link id
-  }
+  const linkFieldIds = await discoverLinkFieldIds(base, token);
   const fields = ['summary', 'parent', 'subtasks', 'issuelinks', ...linkFieldIds].join(',');
   const issues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,

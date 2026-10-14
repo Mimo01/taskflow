@@ -30,9 +30,15 @@ const rm = {
   isError: false,
 };
 let editShape: PackageEditShape | undefined = 'array';
+let direct: { child: undefined; week: RmWeek | null; isLoading: boolean } = {
+  child: undefined,
+  week: null,
+  isLoading: false,
+};
 
 vi.mock('@/hooks/useRmWeekIndex', () => ({
   useRmWeekIndex: () => rm,
+  useRmPackage: () => direct,
   useDeploymentPackageEditShape: () => ({ shape: editShape, isLoading: false }),
 }));
 vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn().mockResolvedValue('tok') }));
@@ -76,6 +82,8 @@ function setup(
 describe('DeploymentPackageWarning', () => {
   beforeEach(() => {
     editShape = 'array';
+    direct = { child: undefined, week: null, isLoading: false };
+    rm.weeks = [week43, week44];
     vi.mocked(openExternal).mockClear();
   });
 
@@ -120,6 +128,14 @@ describe('DeploymentPackageWarning', () => {
     const { mutate } = setup({ pkgField: ['RM-11'], fixVersions: [v44] });
     expect(await screen.findByRole('button', { name: /set deployment package/i })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /set fix version to R-43/i }));
+    expect(mutate).toHaveBeenCalledWith({ fieldName: 'fixVersions', value: [{ id: '1' }] });
+  });
+
+  it('fast path: resolves the package week directly while the week index is still empty', async () => {
+    rm.weeks = [];
+    direct = { child: undefined, week: week43, isLoading: false };
+    const { mutate } = setup({ pkgField: 'RM-11', fixVersions: [] });
+    fireEvent.click(await screen.findByRole('button', { name: /set fix version to R-43/i }));
     expect(mutate).toHaveBeenCalledWith({ fieldName: 'fixVersions', value: [{ id: '1' }] });
   });
 

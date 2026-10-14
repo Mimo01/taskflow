@@ -2,13 +2,18 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo } from 'react';
-import { useDeploymentPackageEditShape, useRmWeekIndex } from '@/hooks/useRmWeekIndex';
+import {
+  useDeploymentPackageEditShape,
+  useRmPackage,
+  useRmWeekIndex,
+} from '@/hooks/useRmWeekIndex';
 import {
   buildPackageFieldValue,
   computeFixVersionsForFix,
   DEPLOYMENT_PACKAGE_FIELD,
   evaluatePackageSync,
   extractDeploymentPackageKey,
+  indexChildToWeek,
   type PackageFix,
 } from '@/lib/deployment-package';
 import { openExternal } from '@/lib/openExternal';
@@ -45,7 +50,7 @@ export function DeploymentPackageWarning({
   mutation,
   jiraBaseUrl,
 }: DeploymentPackageWarningProps) {
-  const { weeks, childToWeek, enabled: rmEnabled } = useRmWeekIndex();
+  const { weeks: indexWeeks, enabled: rmEnabled } = useRmWeekIndex();
   const active = rmEnabled && issueTypeName === 'Story';
 
   const versionsQuery = useQuery({
@@ -60,6 +65,14 @@ export function DeploymentPackageWarning({
   const projectVersions = versionsQuery.data;
 
   const pkgKey = extractDeploymentPackageKey(pkgField);
+  // Fast path: resolve just this story's package week directly; the full index (slower)
+  // takes over once loaded, which also enables deriving a package from the fix version.
+  const direct = useRmPackage(active ? pkgKey : null);
+  const weeks = useMemo(
+    () => (indexWeeks.length > 0 ? indexWeeks : direct.week ? [direct.week] : indexWeeks),
+    [indexWeeks, direct.week],
+  );
+  const childToWeek = useMemo(() => indexChildToWeek(weeks), [weeks]);
   const result = useMemo(
     () =>
       evaluatePackageSync({

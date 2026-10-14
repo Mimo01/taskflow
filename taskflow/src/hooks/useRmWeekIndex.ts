@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { indexChildToWeek, type PackageEditShape, type RmWeek } from '@/lib/deployment-package';
-import { fetchDeploymentPackageEditShape, fetchRmWeekIndex } from '@/services/jira';
+import { fetchDeploymentPackageEditShape, fetchRmPackage, fetchRmWeekIndex } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -57,4 +57,23 @@ export function useDeploymentPackageEditShape(issueKey: string | undefined, acti
     enabled: active && !!jiraBaseUrl && !!issueKey,
   });
   return { shape: query.data, isLoading: query.isLoading };
+}
+
+/**
+ * Direct (fast) lookup of one story's RM package + its WEEK parent, without
+ * waiting for the full week index. Independent of the RM project setting.
+ */
+export function useRmPackage(pkgKey: string | null | undefined) {
+  const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
+  const query = useQuery({
+    queryKey: ['rm-package', pkgKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !pkgKey) throw new Error('No credentials');
+      return fetchRmPackage(jiraBaseUrl, token, pkgKey);
+    },
+    staleTime: 30 * 60_000,
+    enabled: !!pkgKey && !!jiraBaseUrl,
+  });
+  return { child: query.data?.child, week: query.data?.week ?? null, isLoading: query.isLoading };
 }
