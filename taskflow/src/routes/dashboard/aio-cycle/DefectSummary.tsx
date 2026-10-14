@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { defectPrioritySlices, defectStatusSlices } from '@/lib/aio-cycle-charts';
+import { type ChartSlice, defectPrioritySlices, defectStatusSlices } from '@/lib/aio-cycle-charts';
 import type { JiraIssue } from '@/services/jira/types';
 import { AioDonut } from './AioDonut';
 import { TITLE_CLASS } from './AioTile';
 import type { ResolvedDefect } from './useCycleDefects';
 
-const DONUT_SIZE = 128;
+const DONUT_SIZE = 112;
 
 export function severityOf(issue: JiraIssue | null): string | null {
   return issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
@@ -44,35 +43,59 @@ export function DefectSummary({ defects }: { defects: ResolvedDefect[] }) {
       className="grid gap-2 border-b px-4 py-2 density-compact:py-1.5 density-comfortable:py-3"
     >
       <span className={TITLE_CLASS}>Defect Summary</span>
-      <div className="flex flex-wrap gap-4">
-        <Card size="sm">
-          <CardContent className="grid justify-items-center gap-1">
-            <span className={TITLE_CLASS}>Status</span>
-            <AioDonut
-              slices={statusSlices}
-              size={DONUT_SIZE}
-              testId="defect-status-donut"
-              ariaLabel={`Defects by status: ${describe(statusSlices)}`}
-            />
-          </CardContent>
-        </Card>
-        <Card size="sm">
-          <CardContent className="grid justify-items-center gap-1">
-            <span className={TITLE_CLASS}>Priority</span>
-            <AioDonut
-              slices={prioritySlices}
-              size={DONUT_SIZE}
-              testId="defect-priority-donut"
-              ariaLabel={`Defects by priority: ${describe(prioritySlices)}`}
-            />
-          </CardContent>
-        </Card>
+      <div className="flex flex-wrap items-center gap-x-12 gap-y-4">
+        <DonutBlock
+          title="Status"
+          testId="defect-status-donut"
+          label="Defects by status"
+          slices={statusSlices}
+        />
+        <DonutBlock
+          title="Priority"
+          testId="defect-priority-donut"
+          label="Defects by priority"
+          slices={prioritySlices}
+        />
+        {bySeverity.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {`Sev: ${bySeverity.map(([name, n]) => `${name} ${n}`).join(' · ')}`}
+          </span>
+        )}
       </div>
-      {bySeverity.length > 0 && (
-        <span className="text-xs text-muted-foreground">
-          {`Sev: ${bySeverity.map(([name, n]) => `${name} ${n}`).join(' · ')}`}
-        </span>
-      )}
+    </div>
+  );
+}
+
+/** Donut with a compact name/count key beside it (a bare ring says nothing without one). */
+function DonutBlock({
+  title,
+  testId,
+  label,
+  slices,
+}: {
+  title: string;
+  testId: string;
+  label: string;
+  slices: ChartSlice[];
+}) {
+  return (
+    <div className="flex items-center gap-4">
+      <AioDonut
+        slices={slices}
+        size={DONUT_SIZE}
+        testId={testId}
+        ariaLabel={`${label}: ${describe(slices)}`}
+      />
+      <div className="grid gap-1 text-xs">
+        <span className={TITLE_CLASS}>{title}</span>
+        {slices.slice(0, 5).map((s) => (
+          <span key={s.label} className="flex items-center gap-1.5">
+            <span className="size-2 flex-none rounded-full" style={{ background: s.color }} />
+            <span className="truncate">{s.label}</span>
+            <span className="tabular-nums text-muted-foreground">{s.value}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
