@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_CALENDAR } from '@/lib/epic-progress';
 import {
   aioDateMs,
   type DefectLike,
@@ -207,20 +208,27 @@ describe('aioDateMs', () => {
 
 describe('cycleBurndownSeries', () => {
   const D = 86_400_000;
-  const s = 1_000 * D;
-  const t1 = s + 2 * D;
-  const t2 = s + 4 * D;
-  const e = s + 10 * D;
+  // Local-time fixtures (never UTC ISO strings) so results do not depend on the timezone.
+  const day = (n: number, h = 0) => new Date(2026, 9, 1 + n, h).getTime();
+  const s = day(0);
+  const t1 = day(2);
+  const t2 = day(4);
+  const e = day(10);
+  const allDays = () => true;
+  const keep = (r: ReturnType<typeof cycleBurndownSeries>, ...extra: number[]) =>
+    (r?.points ?? []).filter(
+      (p) => p.executed > 0 || p.t === r?.from || p.t === r?.to || extra.includes(p.t),
+    );
   const run = (status: string, ms?: number) => ({
     status,
     executedDate: ms === undefined ? undefined : new Date(ms).toISOString(),
   });
 
   it('returns null with no runs or no executions', () => {
-    expect(cycleBurndownSeries([], undefined, e)).toBeNull();
-    expect(cycleBurndownSeries([run('NOT_EXECUTED')], undefined, e)).toBeNull();
+    expect(cycleBurndownSeries([], undefined, e, allDays)).toBeNull();
+    expect(cycleBurndownSeries([run('NOT_EXECUTED')], undefined, e, allDays)).toBeNull();
     expect(
-      cycleBurndownSeries([run('IN_PROGRESS', t1)], { startDate: s, endDate: e }, e),
+      cycleBurndownSeries([run('IN_PROGRESS', t1)], { startDate: s, endDate: e }, e, allDays),
     ).toBeNull();
   });
 
@@ -229,19 +237,20 @@ describe('cycleBurndownSeries', () => {
       [run('PASS', t1), run('PASS', t1), run('FAIL', t2), run('NOT_EXECUTED')],
       { startDate: s, endDate: e },
       e + D,
+      allDays,
     );
     expect(r?.total).toBe(4);
     expect(r?.from).toBe(s);
     expect(r?.to).toBe(e);
-    expect(r?.points.map((p) => [p.t, p.remaining, p.marker])).toEqual([
+    expect(keep(r).map((p) => [p.t, p.remaining, p.marker])).toEqual([
       [s, 4, null],
       [t1, 2, 'pass'],
       [t2, 1, 'fail'],
       [e, 1, null],
     ]);
-    expect(r?.points[0].ideal).toBe(4);
-    expect(r?.points[3].ideal).toBe(0);
-    expect(r?.points[1].executed).toBe(2);
+    expect(keep(r)[0].ideal).toBe(4);
+    expect(keep(r)[3].ideal).toBe(0);
+    expect(keep(r)[1].executed).toBe(2);
   });
 
   it('uses the worst status for a shared timestamp', () => {
@@ -249,6 +258,7 @@ describe('cycleBurndownSeries', () => {
       [run('PASS', t1), run('FAIL', t1), run('BLOCKED', t1)],
       { startDate: s, endDate: e },
       e,
+      allDays,
     );
     const p = r?.points.find((x) => x.t === t1);
     expect(p?.executed).toBe(3);
@@ -261,8 +271,9 @@ describe('cycleBurndownSeries', () => {
       [run('PASS', t1), run('FAIL', t2), run('NOT_EXECUTED')],
       { startDate: s, endDate: e },
       now,
+      allDays,
     );
-    const pts = r?.points ?? [];
+    const pts = keep(r, now);
     expect(pts.map((p) => [p.t, p.remaining])).toEqual([
       [s, 3],
       [t1, 2],
@@ -274,16 +285,16 @@ describe('cycleBurndownSeries', () => {
   });
 
   it('falls back to first/last execution when start and end are missing', () => {
-    const r = cycleBurndownSeries([run('PASS', t1), run('PASS', t2)], undefined, t2);
+    const r = cycleBurndownSeries([run('PASS', t1), run('PASS', t2)], undefined, t2, allDays);
     expect(r?.from).toBe(t1);
     expect(r?.to).toBe(t2);
-    expect(r?.points.map((p) => [p.t, p.remaining])).toEqual([
+    expect(keep(r).map((p) => [p.t, p.remaining])).toEqual([
       [t1, 2],
       [t1, 1],
       [t2, 0],
     ]);
-    expect(r?.points[0].ideal).toBe(2);
-    expect(r?.points[2].ideal).toBe(0);
+    expect(keep(r)[0].ideal).toBe(2);
+    expect(keep(r)[2].ideal).toBe(0);
   });
 
   it('widens the span for executions outside the cycle dates', () => {
@@ -291,6 +302,7 @@ describe('cycleBurndownSeries', () => {
       [run('PASS', s - D), run('PASS', e + D)],
       { startDate: s, endDate: e },
       e + 2 * D,
+      allDays,
     );
     expect(r?.from).toBe(s - D);
     expect(r?.to).toBe(e + D);
@@ -301,12 +313,108 @@ describe('cycleBurndownSeries', () => {
       [run('PASS', t1), run('NOT_EXECUTED'), run('NOT_EXECUTED')],
       { startDate: s, endDate: e },
       e,
+      allDays,
     );
     expect(r?.points.find((p) => p.t === t1)?.ideal).toBe(2.4);
   });
 
   it('has null ideal everywhere when the span is empty', () => {
-    const r = cycleBurndownSeries([run('PASS', t1), run('PASS', t1)], undefined, t1);
+    const r = cycleBurndownSeries([run('PASS', t1), run('PASS', t1)], undefined, t1, allDays);
     expect(r?.points.every((p) => p.ideal === null)).toBe(true);
+  });
+
+  describe('working-day ideal', () => {
+    const fri = new Date(2026, 9, 9).getTime(); // Fri
+    const sat = new Date(2026, 9, 10).getTime();
+    const sun = new Date(2026, 9, 11).getTime();
+    const mon = new Date(2026, 9, 12).getTime();
+    const tue = new Date(2026, 9, 13).getTime();
+    const cal = DEFAULT_CALENDAR.isWorkingDay;
+    const fixture = (isWorking: (k: string) => boolean, now = tue) =>
+      cycleBurndownSeries(
+        [run('PASS', fri + 3_600_000), ...Array.from({ length: 9 }, () => run('NOT_EXECUTED'))],
+        { startDate: fri, endDate: tue },
+        now,
+        isWorking,
+      );
+    const idealAt = (r: ReturnType<typeof cycleBurndownSeries>, t: number) =>
+      r?.points.find((p) => p.t === t)?.ideal;
+
+    it('matches the straight line when every day works', () => {
+      const r = fixture(allDays);
+      expect(idealAt(r, sat)).toBe(7.5);
+      expect(idealAt(r, mon)).toBe(2.5);
+    });
+
+    it('stays flat across the weekend', () => {
+      const r = fixture(cal);
+      expect([fri, sat, sun, mon, tue].map((t) => idealAt(r, t))).toEqual([10, 5, 5, 5, 0]);
+    });
+
+    it('adds midnight boundary points once, sorted, merged with executions', () => {
+      const r = cycleBurndownSeries(
+        [run('PASS', sat), run('NOT_EXECUTED')],
+        { startDate: fri, endDate: tue },
+        tue,
+        cal,
+      );
+      const ts = (r?.points ?? []).map((p) => p.t);
+      expect(ts).toEqual([...ts].sort((a, b) => a - b));
+      expect(new Set(ts).size).toBe(ts.length);
+      expect(ts).toEqual([fri, sat, sun, mon, tue]);
+      // execution on a non-working day is plotted at its real timestamp with its marker
+      expect(r?.points.find((p) => p.t === sat)).toMatchObject({ marker: 'pass', executed: 1 });
+    });
+
+    it('carries the step value up to the tail and null after it', () => {
+      const r = fixture(cal, sun + 3_600_000);
+      const at = (t: number) => r?.points.find((p) => p.t === t);
+      expect(at(sat)).toMatchObject({ remaining: 9, executed: 0, marker: null });
+      expect(at(sun)).toMatchObject({ remaining: 9 });
+      expect(at(mon)?.remaining).toBeNull();
+      expect(at(tue)?.remaining).toBeNull();
+    });
+
+    it('merges consecutive non-working days into one clipped band', () => {
+      const isWorking = (k: string) => cal(k) && k !== '2026-10-12';
+      const r = fixture(isWorking);
+      expect(r?.nonWorking).toEqual([{ from: sat, to: tue }]);
+      expect(fixture(allDays)?.nonWorking).toEqual([]);
+    });
+
+    it('clips bands to the cycle range', () => {
+      const r = cycleBurndownSeries(
+        [run('PASS', sat + 3_600_000), run('NOT_EXECUTED')],
+        { startDate: sat + 6 * 3_600_000, endDate: mon + 6 * 3_600_000 },
+        mon,
+        cal,
+      );
+      expect(r?.nonWorking).toEqual([{ from: r?.from, to: mon }]);
+    });
+
+    it('falls back to the linear ideal when the whole span is non-working', () => {
+      const r = cycleBurndownSeries(
+        [run('PASS', sat + 3_600_000), run('NOT_EXECUTED')],
+        { startDate: sat, endDate: mon },
+        mon,
+        cal,
+      );
+      expect(idealAt(r, sat)).toBe(2);
+      expect(idealAt(r, sun)).toBe(1);
+      expect(idealAt(r, mon)).toBe(0);
+      expect(r?.nonWorking).toEqual([{ from: sat, to: mon }]);
+    });
+
+    it('skips the day walk for absurdly long spans', () => {
+      const r = cycleBurndownSeries(
+        [run('PASS', fri), run('NOT_EXECUTED')],
+        { startDate: fri, endDate: fri + 800 * D },
+        fri,
+        cal,
+      );
+      expect(r?.nonWorking).toEqual([]);
+      expect(r?.points.length).toBeLessThanOrEqual(3);
+      expect(r?.points[0].ideal).toBe(2);
+    });
   });
 });
