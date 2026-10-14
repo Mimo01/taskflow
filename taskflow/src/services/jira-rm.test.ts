@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchRmPackage, fetchRmWeekChildren, fetchRmWeekList } from './jira';
+import {
+  fetchRmPackage,
+  fetchRmWeekChildren,
+  fetchRmWeekList,
+  fetchStoriesWithPackageNoFixVersion,
+} from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({ fetch: vi.fn() }));
 import { fetch as mockFetch } from '@tauri-apps/plugin-http';
@@ -166,5 +171,29 @@ describe('Release Management lookups', () => {
       return ok({ key: 'RM-11', fields: { summary: 'Core' } });
     }) as never);
     expect((await fetchRmPackage(base, TOKEN, 'RM-11')).week).toBeNull();
+  });
+  it('fetchStoriesWithPackageNoFixVersion: queries stories without a fix version for the given tasks', async () => {
+    const base = nextBase();
+    vi.mocked(mockFetch).mockResolvedValue(
+      ok({ total: 1, issues: [{ key: 'S-9', fields: { summary: 'x' } }] }),
+    );
+    const r = await fetchStoriesWithPackageNoFixVersion(base, TOKEN, 'PROJ', [
+      'RM-21',
+      'RM-22',
+      'RM-21',
+    ]);
+    expect(r.map((i) => i.key)).toEqual(['S-9']);
+    const jql = jqlOf(vi.mocked(mockFetch).mock.calls[0][0] as string);
+    expect(jql).toContain('project = "PROJ"');
+    expect(jql).toContain('fixVersion is EMPTY');
+    expect(jql).toContain('cf[15725] in ("RM-21", "RM-22")');
+  });
+
+  it('fetchStoriesWithPackageNoFixVersion: returns [] for no keys or when the query is rejected', async () => {
+    const base = nextBase();
+    expect(await fetchStoriesWithPackageNoFixVersion(base, TOKEN, 'PROJ', [])).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
+    vi.mocked(mockFetch).mockResolvedValue(bad());
+    expect(await fetchStoriesWithPackageNoFixVersion(base, TOKEN, 'PROJ', ['RM-21'])).toEqual([]);
   });
 });

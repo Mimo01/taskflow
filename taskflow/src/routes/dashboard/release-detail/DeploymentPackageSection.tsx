@@ -5,12 +5,13 @@ import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   evaluatePackageSync,
   extractDeploymentPackageKey,
+  findWeekForDate,
   type PackageFix,
   type PackageSyncResult,
   type PackageSyncState,
 } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
-import { fetchFixVersions } from '@/services/jira';
+import { fetchFixVersions, fetchStoriesWithPackageNoFixVersion } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { PackageFixAction } from '../PackageFixAction';
 import { useDeploymentPackageSync } from './useDeploymentPackageSync';
@@ -88,10 +89,41 @@ export function DeploymentPackageSection({
     pkgKeys: packageKeys,
   });
 
+  // Stories whose package belongs to this release's week but that have NO fix version never
+  // show up in the release's "fixVersion = X" issue list, so they are fetched separately.
+  const releaseWeek = useMemo(
+    () => (version?.releaseDate ? findWeekForDate(weeks, version.releaseDate) : null),
+    [weeks, version],
+  );
+  const weekChildKeys = useMemo(
+    () => (releaseWeek?.children ?? []).map((c) => c.key),
+    [releaseWeek],
+  );
+  const orphansQuery = useQuery({
+    queryKey: ['jira-package-no-fixversion', activeJiraProject, jiraBaseUrl, weekChildKeys],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !activeJiraProject) return [];
+      return fetchStoriesWithPackageNoFixVersion(
+        jiraBaseUrl,
+        token,
+        activeJiraProject,
+        weekChildKeys,
+      );
+    },
+    enabled:
+      enabled && !weeksLoading && !!jiraBaseUrl && !!activeJiraProject && weekChildKeys.length > 0,
+    staleTime: 60_000,
+  });
+  const allStories = useMemo(() => {
+    const have = new Set(onlyStories.map((s) => s.key));
+    return [...onlyStories, ...(orphansQuery.data ?? []).filter((s) => !have.has(s.key))];
+  }, [onlyStories, orphansQuery.data]);
+
   const rows = useMemo(() => {
     if (!enabled || weeks.length === 0 || weeksLoading) return [];
     const out: Array<{ issue: JiraIssue; result: PackageSyncResult }> = [];
-    for (const issue of onlyStories) {
+    for (const issue of allStories) {
       const result = evaluatePackageSync({
         pkgKey: extractDeploymentPackageKey(issue.fields.customfield_15725),
         fixVersions: issue.fields.fixVersions ?? [],
@@ -103,7 +135,7 @@ export function DeploymentPackageSection({
       if (result.state !== 'ok' && result.state !== 'none') out.push({ issue, result });
     }
     return out;
-  }, [enabled, weeks, weeksLoading, onlyStories, projectVersions]);
+  }, [enabled, weeks, weeksLoading, allStories, projectVersions]);
 
   const [pending, setPending] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});

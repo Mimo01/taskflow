@@ -35,7 +35,9 @@ vi.mock('./useDeploymentPackageSync', () => ({
   useDeploymentPackageSync: () => ({ applyFix }),
 }));
 vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn().mockResolvedValue('tok') }));
+const orphans = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock('@/services/jira', () => ({
+  fetchStoriesWithPackageNoFixVersion: orphans.fetch,
   fetchFixVersions: vi.fn().mockResolvedValue([
     { id: '1', name: 'R-43', releaseDate: '2026-10-22', released: false },
     { id: '2', name: 'R-44', releaseDate: '2026-10-29', released: false },
@@ -77,6 +79,7 @@ describe('DeploymentPackageSection', () => {
   beforeEach(() => {
     rm.enabled = true;
     applyFix.mockReset().mockResolvedValue(undefined);
+    orphans.fetch.mockReset().mockResolvedValue([]);
   });
 
   it('renders nothing without an RM project', () => {
@@ -116,5 +119,22 @@ describe('DeploymentPackageSection', () => {
     renderSection([issue('S-1', 'Story', null, [v44])]);
     fireEvent.click(await screen.findByRole('button', { name: /set deployment package/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Field not on screen');
+  });
+  it('lists a story that has a package of the release week but no fix version', async () => {
+    orphans.fetch.mockResolvedValue([issue('S-9', 'Story', 'RM-21', [])]);
+    renderSection([]);
+    expect(await screen.findByText('Summary S-9')).toBeInTheDocument();
+    expect(screen.getByText('No fix version')).toBeInTheDocument();
+    expect(orphans.fetch).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'PROJ', [
+      'RM-21',
+    ]);
+    expect(screen.getByRole('button', { name: /set fix version to R-44/i })).toBeInTheDocument();
+  });
+
+  it('does not duplicate a story already in the release list', async () => {
+    orphans.fetch.mockResolvedValue([issue('S-1', 'Story', 'RM-21', [])]);
+    renderSection([issue('S-1', 'Story', 'RM-21', [])]);
+    await screen.findByText('Summary S-1');
+    expect(screen.getAllByText('Summary S-1')).toHaveLength(1);
   });
 });

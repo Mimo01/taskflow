@@ -2605,6 +2605,36 @@ export async function fetchRmWeekChildren(
 }
 
 /**
+ * Stories of a project that carry one of the given Deployment package tasks but have NO fix
+ * version. These never appear in a release's "fixVersion = X" issue list, so the release
+ * detail page fetches them separately to flag them. Returns [] on any failure (e.g. the
+ * package field is not JQL-searchable) so the page degrades to the fixVersion-based list.
+ */
+export async function fetchStoriesWithPackageNoFixVersion(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  packageKeys: readonly string[],
+): Promise<JiraIssue[]> {
+  const keys = [...new Set(packageKeys)].filter((k) => ISSUE_KEY_RE_STRICT.test(k)).slice(0, 100);
+  if (keys.length === 0 || !RM_PROJECT_KEY_RE.test(projectKey)) return [];
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const jql =
+    `project = "${projectKey}" AND issuetype = Story AND fixVersion is EMPTY ` +
+    `AND cf[15725] in (${keys.map((k) => `"${k}"`).join(', ')})`;
+  const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725';
+  try {
+    return await fetchAllSearchPagesConcurrent(
+      `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,
+      headers,
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Inspect editmeta for the Deployment package field (customfield_15725).
  * Absent from the edit screen => 'not-editable' (a PUT would 400). Otherwise
  * the write shape follows the field schema: array => [key], else bare key.
