@@ -51,4 +51,5 @@ Planned work (3 tasks, fe8f16f9..c1a55f97) was reworked inline over UAT; final a
 Notes
 - Pass rate is passed/executed (was passed/total).
 - "Show only latest run" toggle omitted: cycle defects are already latest-run only.
-- Open review items (advisory, not fixed): unknown Jira status categories are counted but not charted (WR-01/02); custom priority levels (e.g. Must) fall to grey (WR-03); defect donuts have no loading skeleton for the severity block; "of N failing" can disagree with the unlinked count (different sources).
+- Review follow-ups FIXED after approval (tests proven to fail pre-fix): unknown/missing Jira status category now counts as To Do in the status donut (WR-01/02); priority colour keys off the scheme level name first (Must/Should no longer grey), icon filename only as fallback (WR-03); "of N failing" on the Ready-to-retest / Unlinked tiles is derived from the runs list, the same source as their numerators (IN-03).
+- Still open (minor): defect donuts have no loading skeleton for the severity block; defect key/tooltip row-key collision when a status is literally named "Other" (IN-02).
