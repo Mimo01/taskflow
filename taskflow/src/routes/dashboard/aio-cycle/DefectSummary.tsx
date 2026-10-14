@@ -157,7 +157,13 @@ function DonutBlock({
   const large = size > DONUT_SIZE;
   const keyMax = large ? KEY_MAX_LARGE : KEY_MAX;
   return (
-    <div data-testid="defect-donut-block" className="flex items-center gap-4">
+    <div
+      data-testid="defect-donut-block"
+      className={cn(
+        'flex items-center gap-4',
+        !large && 'flex-col gap-1 @4xl/epic:flex-row @4xl/epic:gap-4',
+      )}
+    >
       <AioDonut
         slices={slices}
         size={size}
@@ -172,6 +178,11 @@ function DonutBlock({
           ) : undefined
         }
       />
+      {!large && (
+        <span className="text-xs font-medium leading-4 text-muted-foreground @4xl/epic:hidden">
+          {title}
+        </span>
+      )}
       <div className={cn(large ? KEY_CLASS_LARGE : KEY_CLASS, !large && 'hidden @4xl/epic:grid')}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
         {(slices.length > keyMax ? slices.slice(0, keyMax - 1) : slices).map((s) => (
