@@ -88,6 +88,7 @@ export function CycleDefectDonuts({
       <>
         <DonutBlockSkeleton testId="defect-status-skeleton" />
         <DonutBlockSkeleton testId="defect-priority-skeleton" />
+        <DonutBlockSkeleton testId="defect-severity-skeleton" />
       </>
     );
   }
