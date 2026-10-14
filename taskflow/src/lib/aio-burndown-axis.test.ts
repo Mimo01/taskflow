@@ -32,27 +32,21 @@ describe('niceYScale', () => {
 describe('burndownXTicks', () => {
   const now = at(2026, 10, 14);
 
-  it('always has start and end anchored, interior at local midnight', () => {
+  it('anchors start and end and spaces everything between them evenly', () => {
     const from = at(2026, 10, 5, 9);
-    const to = at(2026, 10, 26, 17);
+    const to = at(2026, 10, 26, 9);
     const ticks = burndownXTicks(from, to, 800, now);
     expect(ticks[0]).toMatchObject({ t: from, label: 'Oct 5', anchor: 'start' });
     expect(ticks[ticks.length - 1]).toMatchObject({ t: to, label: 'Oct 26', anchor: 'end' });
-    const inner = ticks.slice(1, -1);
-    expect(inner.length).toBeGreaterThan(0);
-    for (const x of inner) {
-      const d = new Date(x.t);
-      expect([d.getHours(), d.getMinutes()]).toEqual([0, 0]);
-      expect(x.anchor).toBe('middle');
-      expect(x.label).toBe(`${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}`);
-    }
+    expect(ticks.length).toBeGreaterThan(2);
+    const gaps = ticks.slice(1).map((x, i) => x.t - ticks[i].t);
+    for (const g of gaps) expect(Math.abs(g - gaps[0])).toBeLessThan(1);
+    for (const x of ticks.slice(1, -1)) expect(x.anchor).toBe('middle');
   });
 
   it('keeps labels apart on a narrow plot', () => {
-    const ticks = burndownXTicks(at(2026, 10, 5), at(2026, 10, 10), 300, now);
-    for (let i = 1; i < ticks.length; i++) expect(ticks[i].t).toBeGreaterThan(ticks[i - 1].t);
-    expect(ticks[0].label).toBe('Oct 5');
-    expect(ticks[ticks.length - 1].label).toBe('Oct 10');
+    const ticks = burndownXTicks(at(2026, 10, 5), at(2026, 10, 10), 120, now);
+    expect(ticks.map((x) => x.label)).toEqual(['Oct 5', 'Oct 10']);
   });
 
   it('adds the year to every label only when crossing years or not the current year', () => {
