@@ -34,6 +34,7 @@ import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
+import { ParentCompletionHost } from './routes/dashboard/CompleteParentDialog';
 import {
   CreateEditIssueModal,
   type EditInitialValues,
@@ -608,6 +609,7 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <ParentCompletionHost />
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar

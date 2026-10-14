@@ -43,6 +43,8 @@ interface ParentResponse {
 }
 
 const NO_PROMPT: ParentCompletionResult = { shouldPrompt: false };
+const ISSUE_KEY_RE = /^[A-Z][A-Z0-9_]*-\d+$/;
+const SEARCH_CHUNK = 50;
 
 export async function checkParentCompletion(
   baseUrl: string,
@@ -55,7 +57,7 @@ export async function checkParentCompletion(
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const response = await apiFetch(
       'jira',
-      `${base}/rest/api/2/issue/${parentKey}?fields=status,summary,subtasks,issuetype,priority,assignee`,
+      `${base}/rest/api/2/issue/${encodeURIComponent(parentKey)}?fields=status,summary,subtasks,issuetype,priority,assignee`,
       { headers },
       'Check Parent Completion',
     );
@@ -71,11 +73,14 @@ export async function checkParentCompletion(
     for (const s of others) categories.set(s.key, s.fields?.status?.statusCategory?.key);
 
     const missing = others.filter((s) => !categories.get(s.key)).map((s) => s.key);
-    if (missing.length > 0) {
-      const jql = encodeURIComponent(`key in (${missing.join(',')})`);
+    if (missing.some((k) => !ISSUE_KEY_RE.test(k))) return NO_PROMPT;
+    // Chunked so a big sibling set never exceeds the search page cap.
+    for (let i = 0; i < missing.length; i += SEARCH_CHUNK) {
+      const chunk = missing.slice(i, i + SEARCH_CHUNK);
+      const jql = encodeURIComponent(`key in (${chunk.join(',')})`);
       const res = await apiFetch(
         'jira',
-        `${base}/rest/api/2/search?jql=${jql}&fields=status&maxResults=${missing.length}`,
+        `${base}/rest/api/2/search?jql=${jql}&fields=status&maxResults=${chunk.length}`,
         { headers },
         'Check Parent Completion Siblings',
       );
@@ -125,10 +130,8 @@ export function invalidateAfterTransition(
   qc.invalidateQueries({ queryKey: ['jira-parent-detail', issueKey] });
   qc.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] });
   qc.invalidateQueries({ queryKey: ['jira-epic-stories'] });
-  if (boardId) invalidateGhAllData(qc, boardId);
-  else invalidateGhAllData(qc);
-  if (boardId) invalidateGhBacklogData(qc, boardId);
-  else invalidateGhBacklogData(qc);
+  invalidateGhAllData(qc, boardId ?? undefined);
+  invalidateGhBacklogData(qc, boardId ?? undefined);
   qc.invalidateQueries({ queryKey: ['jira-epics-basic'] });
   qc.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
   qc.invalidateQueries({ queryKey: ['jira-version-counts'] });

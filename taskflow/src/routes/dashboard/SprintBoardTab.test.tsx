@@ -26,6 +26,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useParentCompletionStore } from '@/stores/parent-completion.store';
 
 // Shared mock for onIssueClick — tests that need to assert on it can reference this variable.
 let onIssueClickShared = vi.fn();
@@ -822,6 +823,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
 
     it('checks the parent and shows the dialog after a subtask moves to done', async () => {
       const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+      useParentCompletionStore.setState({ queue: [] });
       vi.mocked(checkParentCompletion).mockClear();
       vi.mocked(checkParentCompletion).mockResolvedValueOnce({
         shouldPrompt: true,
@@ -836,7 +838,9 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
         subtaskCount: 1,
       });
       await moveToDone([story(), sub()], 'Closing Subtask');
-      expect(await screen.findByText('All subtasks of PROJ-1 are done')).toBeTruthy();
+      await waitFor(() =>
+        expect(useParentCompletionStore.getState().queue[0]?.prompt.parentKey).toBe('PROJ-1'),
+      );
       expect(checkParentCompletion).toHaveBeenCalledWith(
         expect.anything(),
         'test-jira-token',

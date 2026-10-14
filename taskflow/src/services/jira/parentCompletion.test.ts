@@ -35,6 +35,39 @@ function parent(
 const run = () => checkParentCompletion('https://j.example.com/', 'tok', 'S-1', 'P-1');
 
 describe('checkParentCompletion', () => {
+  it('url-encodes the parent key in the request path', async () => {
+    mocked.mockResolvedValue(ok(parent('done', [])));
+    await checkParentCompletion('https://j.example.com', 'tok', 'S-1', 'P 1/x');
+    expect(mocked.mock.calls[0][1]).toContain('/issue/P%201%2Fx?');
+  });
+
+  it('does not prompt (and does not search) when a sibling key is malformed', async () => {
+    mocked.mockResolvedValue(ok(parent('indeterminate', [{ key: 'bad key") OR (1=1' }])));
+    expect(await run()).toEqual({ shouldPrompt: false });
+    expect(mocked).toHaveBeenCalledTimes(1);
+  });
+
+  it('searches missing sibling categories in chunks of 50', async () => {
+    const subs = Array.from({ length: 120 }, (_, i) => ({ key: `S-${i + 10}` }));
+    mocked.mockImplementation(async (_s, url) => {
+      if (String(url).includes('/search')) {
+        const keys = decodeURIComponent(String(url).split('jql=')[1].split('&')[0])
+          .replace(/^key in \(|\)$/g, '')
+          .split(',');
+        return ok({
+          issues: keys.map((key) => ({
+            key,
+            fields: { status: { statusCategory: { key: 'done' } } },
+          })),
+        });
+      }
+      return ok(parent('indeterminate', subs));
+    });
+    const res = await run();
+    expect(res.shouldPrompt).toBe(true);
+    expect(mocked).toHaveBeenCalledTimes(1 + 3);
+  });
+
   beforeEach(() => vi.resetAllMocks());
 
   it('does not prompt when the parent is already done', async () => {
