@@ -196,7 +196,6 @@ export default function AioCycleDetailPage() {
               openDefects={openCount}
               totalDefects={defects.length}
               defectsLoading={!runs || defectsResolving}
-              lastExecuted={lastExecuted}
             />
             <Tabs defaultValue="executions" className="gap-0">
               <div className="sticky top-0 z-20 flex h-11 items-center bg-background px-6">
