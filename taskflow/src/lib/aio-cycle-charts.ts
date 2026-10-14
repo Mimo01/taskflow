@@ -116,23 +116,28 @@ export function defectStatusSlices(defects: DefectLike[]): ChartSlice[] {
 }
 
 const PRIORITY_RED = ['blocker', 'critical', 'highest', 'major'];
-const PRIORITY_GRAY = ['low', 'minor', 'lowest', 'trivial'];
+const PRIORITY_LOW = ['low', 'minor', 'lowest', 'trivial'];
 
 /**
- * One distinct colour per scheme level, a muted red-to-slate ramp in priorityRank order (red = most
- * urgent, slate = least). Deep shades only, no green or pastels, so every level incl. Low / Lowest / Minor stays distinct.
+ * Four tiers matching the Jira priority icons (red arrows, orange high, amber medium, blue
+ * low), so a slice reads the same as the icon beside the defect.
  */
+const TIER_HIGHEST = 'var(--color-red-600)';
+const TIER_HIGH = 'var(--color-orange-500)';
+const TIER_MEDIUM = 'var(--color-amber-400)';
+const TIER_LOW = 'var(--color-blue-500)';
+
 const PRIORITY_LEVEL_COLOR: Record<string, string> = {
-  blocker: 'var(--color-red-900)',
-  must: 'var(--color-red-700)',
-  critical: 'var(--color-red-500)',
-  highest: 'var(--color-orange-700)',
-  should: 'var(--color-orange-500)',
-  high: 'var(--color-amber-500)',
-  medium: 'var(--color-yellow-500)',
-  low: 'var(--color-blue-700)',
-  lowest: 'var(--color-blue-500)',
-  minor: 'var(--color-slate-400)',
+  blocker: TIER_HIGHEST,
+  must: TIER_HIGHEST,
+  critical: TIER_HIGHEST,
+  highest: TIER_HIGH,
+  should: TIER_HIGH,
+  high: TIER_HIGH,
+  medium: TIER_MEDIUM,
+  low: TIER_LOW,
+  lowest: TIER_LOW,
+  minor: TIER_LOW,
 };
 
 /**
@@ -148,10 +153,10 @@ export function priorityChartColor(
   const m = /([a-z]+)\.(?:svg|png|gif)(?:\?.*)?$/i.exec(priority?.iconUrl ?? '');
   const token = m?.[1].toLowerCase();
   if (!token) return 'var(--color-gray-300)';
-  if (PRIORITY_RED.includes(token)) return 'var(--color-red-600)';
-  if (token === 'high') return 'var(--color-orange-500)';
-  if (token === 'medium') return 'var(--color-yellow-500)';
-  if (PRIORITY_GRAY.includes(token)) return 'var(--color-slate-400)';
+  if (PRIORITY_RED.includes(token)) return TIER_HIGHEST;
+  if (token === 'high') return TIER_HIGH;
+  if (token === 'medium') return TIER_MEDIUM;
+  if (PRIORITY_LOW.includes(token)) return TIER_LOW;
   return 'var(--color-gray-300)';
 }
 
@@ -199,19 +204,19 @@ export const severityLabel = (raw: string): string => raw.replace(/^\s*\d+\s*-\s
  * number, falling back to the label so '5-Cosmetic' and unnumbered values still get a colour.
  */
 const SEVERITY_COLOR: Record<string, string> = {
-  '1': 'var(--color-red-600)',
-  '2': 'var(--color-orange-600)',
-  '3': 'var(--color-yellow-500)',
-  '4': 'var(--color-blue-600)',
-  '5': 'var(--color-slate-400)',
+  '1': TIER_HIGHEST,
+  '2': TIER_HIGH,
+  '3': TIER_MEDIUM,
+  '4': TIER_LOW,
+  '5': TIER_LOW,
 };
 const SEVERITY_LABEL_COLOR: Record<string, string> = {
-  blocker: SEVERITY_COLOR['1'],
-  critical: SEVERITY_COLOR['1'],
-  major: SEVERITY_COLOR['2'],
-  minor: SEVERITY_COLOR['3'],
-  cosmetic: SEVERITY_COLOR['4'],
-  trivial: SEVERITY_COLOR['5'],
+  blocker: TIER_HIGHEST,
+  critical: TIER_HIGHEST,
+  major: TIER_HIGH,
+  minor: TIER_MEDIUM,
+  cosmetic: TIER_LOW,
+  trivial: TIER_LOW,
 };
 export function severityChartColor(raw: string): string {
   const num = /^\s*(\d+)\s*-/.exec(raw)?.[1];
