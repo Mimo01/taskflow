@@ -124,16 +124,16 @@ const PRIORITY_LOW = ['low', 'minor', 'lowest', 'trivial'];
  * against the card shrinks with criticality: the more critical a level, the louder it is, and
  * the least critical fade towards neutral.
  */
-const LEVEL_BLOCKER = 'oklch(0.5 0.24 27)';
-const LEVEL_MUST = 'oklch(0.6 0.25 27)';
-const LEVEL_CRITICAL = 'oklch(0.66 0.21 35)';
-const LEVEL_HIGHEST = 'oklch(0.7 0.19 50)';
-const LEVEL_SHOULD = 'oklch(0.75 0.17 62)';
-const LEVEL_HIGH = 'oklch(0.79 0.16 75)';
-const LEVEL_MEDIUM = 'oklch(0.84 0.15 92)';
+const LEVEL_BLOCKER = 'oklch(0.46 0.23 25)';
+const LEVEL_MUST = 'oklch(0.58 0.25 27)';
+const LEVEL_CRITICAL = 'oklch(0.66 0.23 38)';
+const LEVEL_HIGHEST = 'oklch(0.72 0.2 52)';
+const LEVEL_SHOULD = 'oklch(0.78 0.18 68)';
+const LEVEL_HIGH = 'oklch(0.83 0.17 82)';
+const LEVEL_MEDIUM = 'oklch(0.86 0.16 100)';
 const LEVEL_LOW = 'oklch(0.68 0.12 250)';
-const LEVEL_LOWEST = 'oklch(0.75 0.08 245)';
-const LEVEL_MINOR = 'oklch(0.81 0.05 240)';
+const LEVEL_LOWEST = 'oklch(0.76 0.08 245)';
+const LEVEL_MINOR = 'oklch(0.83 0.04 240)';
 
 const PRIORITY_LEVEL_COLOR: Record<string, string> = {
   blocker: LEVEL_BLOCKER,

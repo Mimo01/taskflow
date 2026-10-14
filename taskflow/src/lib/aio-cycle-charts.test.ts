@@ -68,7 +68,7 @@ describe('defectPrioritySlices', () => {
       def('x', 'new'),
     ]);
     expect(s.map((x) => x.label)).toEqual(['Blocker', 'Low', 'None']);
-    expect(s[0].color).toBe('oklch(0.5 0.24 27)');
+    expect(s[0].color).toBe('oklch(0.46 0.23 25)');
     expect(s[1].color).toBe('oklch(0.68 0.12 250)');
     expect(s[2].color).toBe('var(--color-gray-300)');
   });
@@ -82,9 +82,9 @@ const sev = (value?: string): DefectLike => ({
 
 describe('severityChartColor', () => {
   it.each([
-    ['1-Critical', 'oklch(0.6 0.25 27)'],
-    ['2-Major', 'oklch(0.7 0.19 50)'],
-    ['3-Minor', 'oklch(0.84 0.15 92)'],
+    ['1-Critical', 'oklch(0.58 0.25 27)'],
+    ['2-Major', 'oklch(0.72 0.2 52)'],
+    ['3-Minor', 'oklch(0.86 0.16 100)'],
     ['4-Cosmetic', 'oklch(0.68 0.12 250)'],
     ['Cosmetic', 'oklch(0.68 0.12 250)'],
     ['9-Odd', 'var(--color-gray-300)'],
@@ -106,8 +106,8 @@ describe('defectSeveritySlices', () => {
     expect(s.map((x) => x.label)).toEqual(['Critical', 'Major', 'Cosmetic', 'None']);
     expect(s.map((x) => x.key)).toEqual(['1-Critical', '2-Major', '4-Cosmetic', 'None']);
     expect(s.map((x) => x.value)).toEqual([1, 2, 1, 1]);
-    expect(s[0].color).toBe('oklch(0.6 0.25 27)');
-    expect(s[1].color).toBe('oklch(0.7 0.19 50)');
+    expect(s[0].color).toBe('oklch(0.58 0.25 27)');
+    expect(s[1].color).toBe('oklch(0.72 0.2 52)');
     expect(s[2].color).toBe('oklch(0.68 0.12 250)');
     expect(s[3].color).toBe('var(--color-gray-300)');
     expect(s[1].share).toBe(40);
@@ -153,23 +153,23 @@ describe('defectStatusSlices unknown categories', () => {
 
 describe('priorityChartColor by scheme level', () => {
   it.each([
-    ['Blocker', 'oklch(0.5 0.24 27)'],
-    ['Must', 'oklch(0.6 0.25 27)'],
-    ['Critical', 'oklch(0.66 0.21 35)'],
-    ['Highest', 'oklch(0.7 0.19 50)'],
-    ['Should', 'oklch(0.75 0.17 62)'],
-    ['High', 'oklch(0.79 0.16 75)'],
-    ['Medium', 'oklch(0.84 0.15 92)'],
+    ['Blocker', 'oklch(0.46 0.23 25)'],
+    ['Must', 'oklch(0.58 0.25 27)'],
+    ['Critical', 'oklch(0.66 0.23 38)'],
+    ['Highest', 'oklch(0.72 0.2 52)'],
+    ['Should', 'oklch(0.78 0.18 68)'],
+    ['High', 'oklch(0.83 0.17 82)'],
+    ['Medium', 'oklch(0.86 0.16 100)'],
     ['Low', 'oklch(0.68 0.12 250)'],
-    ['Lowest', 'oklch(0.75 0.08 245)'],
-    ['Minor', 'oklch(0.81 0.05 240)'],
+    ['Lowest', 'oklch(0.76 0.08 245)'],
+    ['Minor', 'oklch(0.83 0.04 240)'],
   ])('%s ignores a meaningless icon', (name, color) => {
     expect(priorityChartColor({ name, iconUrl: 'http://x/icon-123.svg' })).toBe(color);
   });
 
   it('keeps the icon fallback for names outside the scheme', () => {
     expect(priorityChartColor({ name: 'Urgent', iconUrl: 'http://x/major.svg' })).toBe(
-      'oklch(0.6 0.25 27)',
+      'oklch(0.58 0.25 27)',
     );
     expect(priorityChartColor({ name: 'Urgent' })).toBe('var(--color-gray-300)');
   });
@@ -177,11 +177,11 @@ describe('priorityChartColor by scheme level', () => {
 
 describe('priorityChartColor', () => {
   it.each([
-    ['http://x/MAJOR.svg', 'oklch(0.6 0.25 27)'],
-    ['http://x/highest.svg', 'oklch(0.6 0.25 27)'],
-    ['http://x/high.svg', 'oklch(0.79 0.16 75)'],
-    ['http://x/medium.svg', 'oklch(0.84 0.15 92)'],
-    ['http://x/trivial.svg', 'oklch(0.75 0.08 245)'],
+    ['http://x/MAJOR.svg', 'oklch(0.58 0.25 27)'],
+    ['http://x/highest.svg', 'oklch(0.58 0.25 27)'],
+    ['http://x/high.svg', 'oklch(0.83 0.17 82)'],
+    ['http://x/medium.svg', 'oklch(0.86 0.16 100)'],
+    ['http://x/trivial.svg', 'oklch(0.76 0.08 245)'],
     ['http://x/weird.svg', 'var(--color-gray-300)'],
     [undefined, 'var(--color-gray-300)'],
   ])('%s', (url, color) => {
