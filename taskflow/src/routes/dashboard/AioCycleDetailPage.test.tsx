@@ -147,6 +147,10 @@ function renderPage() {
 // This is the expected RED state for Wave 0.
 import AioCycleDetailPage from './AioCycleDetailPage';
 
+/** Text match outside the Defect Summary key (which repeats status/priority labels). */
+const inDefectList = (text: string) =>
+  screen.getAllByText(text).find((el) => !el.closest('[data-testid="defects-summary"]'));
+
 describe('AioCycleDetailPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -655,7 +659,7 @@ describe('AioCycleDetailPage', () => {
         // resolved Jira key rendered, not the raw numeric ID
         expect(screen.getByText('PROJ-1234')).toBeDefined();
         expect(screen.getByText('Login broken')).toBeDefined();
-        expect(screen.getByText('In Progress')).toBeDefined();
+        expect(inDefectList('In Progress')).toBeDefined();
       });
     });
 
@@ -834,7 +838,7 @@ describe('AioCycleDetailPage', () => {
       );
 
       // Status pill carries color class from statusPillClass('indeterminate')
-      const statusEl = screen.getByText('In Progress');
+      const statusEl = inDefectList('In Progress') as HTMLElement;
       expect(statusEl).toBeDefined();
       expect(statusEl.className).toContain('bg-blue-500/15');
 
@@ -915,7 +919,7 @@ describe('AioCycleDetailPage', () => {
       await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByText('Alice Reporter')).toBeDefined());
-      expect(screen.getByText('High')).toBeDefined();
+      expect(inDefectList('High')).toBeDefined();
       expect(screen.getByText('Major')).toBeDefined();
     });
 
