@@ -6,7 +6,9 @@
 // EPIC-01, EPIC-03: Phase 13 epic service functions
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  assignIssue,
   bulkUpdateIssue,
+  fetchEnrichedSubtasks,
   createIssue,
   createIssueLink,
   fetchAllAssignedHierarchy,
@@ -1421,6 +1423,84 @@ describe('jira service', () => {
       await expect(
         bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', { summary: 'x' }),
       ).rejects.toThrow('Failed to update PROJ-5: 400');
+    });
+  });
+
+  describe('assignIssue', () => {
+    it('PUTs {"name":null} to the /assignee endpoint to unassign', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 204 } as Response);
+      await assignIssue('https://jira.x/', 'tok', 'PROJ-5', null);
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toBe('https://jira.x/rest/api/2/issue/PROJ-5/assignee');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('PUT');
+      expect(options.body).toBe('{"name":null}');
+      const headers = options.headers as Record<string, string>;
+      expect(headers.Authorization).toBe('Bearer tok');
+      expect(headers['Content-Type']).toBe('application/json');
+    });
+
+    it('sends the user name when assigning', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 204 } as Response);
+      await assignIssue('https://jira.x', 'tok', 'PROJ-5', 'jdoe');
+      const options = vi.mocked(mockFetch).mock.calls[0][1] as RequestInit;
+      expect(options.body).toBe('{"name":"jdoe"}');
+    });
+
+    it('rejects with ApiError status on 403', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 403 } as Response);
+      await expect(assignIssue('https://jira.x', 'tok', 'PROJ-5', null)).rejects.toMatchObject({
+        status: 403,
+      });
+    });
+
+    it('rejects with the flattened Jira message on 400', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ errorMessages: ['User cannot be assigned'] }),
+      } as Response);
+      await expect(assignIssue('https://jira.x', 'tok', 'PROJ-5', 'x')).rejects.toThrow(
+        'User cannot be assigned',
+      );
+    });
+  });
+
+  describe('fetchEnrichedSubtasks assignee', () => {
+    const user = { displayName: 'A', accountId: 'a', name: 'a', avatarUrls: {} };
+    const sub = (key: string) =>
+      ({
+        key,
+        fields: {
+          summary: 's',
+          status: { name: 'To Do', statusCategory: {} },
+          assignee: user,
+        },
+      }) as unknown as Parameters<typeof fetchEnrichedSubtasks>[2][number];
+
+    it('uses a fresh null assignee instead of the stale cached one', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          issues: [
+            {
+              key: 'P-1',
+              fields: { assignee: null, status: { name: 'To Do', statusCategory: {} } },
+            },
+          ],
+        }),
+      } as Response);
+      const result = await fetchEnrichedSubtasks('https://jira.x', 'tok', [sub('P-1')]);
+      expect(result[0].fields.assignee).toBeNull();
+    });
+
+    it('keeps the cached assignee when there is no fresh entry', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({ issues: [] }),
+      } as Response);
+      const result = await fetchEnrichedSubtasks('https://jira.x', 'tok', [sub('P-2')]);
+      expect(result[0].fields.assignee).toEqual(user);
     });
   });
 

@@ -1937,7 +1937,8 @@ export async function fetchEnrichedSubtasks(
       ...sub,
       fields: {
         ...sub.fields,
-        assignee: fresh?.assignee ?? sub.fields.assignee,
+        // A fresh null means Unassigned; only fall back when no fresh entry exists.
+        assignee: fresh ? (fresh.assignee ?? null) : sub.fields.assignee,
         // Use fresh status from server so status pills reflect the latest
         // transition even when the parent's issue-detail cache is stale.
         status: fresh?.status ?? sub.fields.status,
@@ -2774,6 +2775,37 @@ export async function bulkUpdateIssue(
     }
     const body = await response.json().catch(() => ({}));
     throw new Error(flattenJiraError(body) ?? `Failed to update ${issueKey}: ${response.status}`);
+  }
+}
+
+/**
+ * Assign (or unassign) an issue via the dedicated Jira Server/DC endpoint.
+ * name === null means Unassigned. Never send "-1" (assigns the project default)
+ * or "Unassigned" (400 not assignable).
+ */
+export async function assignIssue(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  name: string | null,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/assignee`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    },
+    'Create/Edit Issue',
+  );
+  if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to assign ${issueKey}`, response.status, 'jira');
+    }
+    const body = await response.json().catch(() => ({}));
+    throw new Error(flattenJiraError(body) ?? `Failed to assign ${issueKey}: ${response.status}`);
   }
 }
 
