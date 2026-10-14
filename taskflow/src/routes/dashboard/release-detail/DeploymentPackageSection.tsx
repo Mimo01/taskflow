@@ -166,7 +166,7 @@ export function DeploymentPackageSection({
                     type="button"
                     variant="outline"
                     size="xs"
-                    className="h-auto min-h-6 whitespace-normal py-0.5 text-left"
+                    className="h-auto min-h-6 max-w-full whitespace-normal break-words py-0.5 text-left"
                     disabled={pending === issue.key}
                     onClick={() => onFix(issue, fix)}
                   >
