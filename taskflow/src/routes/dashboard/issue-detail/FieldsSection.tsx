@@ -1,6 +1,6 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Flag } from 'lucide-react';
+import { Flag, UserX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -540,6 +540,12 @@ export function FieldsSection({
     mutation.mutate({ fieldName: 'assignee', value: { name: user.name } });
   }
 
+  function handleUnassign() {
+    setAssigneeOpen(false);
+    setAssigneeQuery('');
+    mutation.mutate({ fieldName: 'assignee', value: null });
+  }
+
   function handleAssignToMe() {
     if (!jiraUsername) return;
     setAssigneeOpen(false);
@@ -817,6 +823,19 @@ export function FieldsSection({
               <p className="text-xs text-muted-foreground px-1">
                 {assigneeQuery.trim() ? 'No users match' : 'No assignable users found'}
               </p>
+            )}
+            {f.assignee && 'unassigned'.includes(assigneeQuery.trim().toLowerCase()) && (
+              <button
+                data-testid="assignee-unassign"
+                type="button"
+                onClick={handleUnassign}
+                className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50">
+                  <UserX className="size-3" aria-hidden="true" />
+                </span>
+                Unassigned
+              </button>
             )}
             {filteredAssignees.map((user) => (
               <button
