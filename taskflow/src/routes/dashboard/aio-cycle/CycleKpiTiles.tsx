@@ -1,4 +1,4 @@
-import { CheckCircle2, RefreshCw, RotateCcw, XCircle } from 'lucide-react';
+import { Layers, ListChecks, Unlink, Wrench } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -73,11 +73,11 @@ export function CycleKpiTiles({
         <Section title="Cycle Statistics" className="min-w-0 flex-1">
           <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
             {countsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-pass" icon={CheckCircle2} tint="green" />
+              <TileSkeleton testId="kpi-skeleton-pass" icon={ListChecks} tint="green" />
             ) : (
               <Tile
                 testId="kpi-pass-rate"
-                icon={CheckCircle2}
+                icon={ListChecks}
                 tint="green"
                 label="Pass rate"
                 value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
@@ -96,12 +96,12 @@ export function CycleKpiTiles({
               />
             )}
             {!runs || defectsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-retest" icon={RefreshCw} tint="green" />
+              <TileSkeleton testId="kpi-skeleton-retest" icon={Wrench} tint="blue" />
             ) : (
               <Tile
                 testId="kpi-retest"
-                icon={RefreshCw}
-                tint="green"
+                icon={Wrench}
+                tint="blue"
                 label="Ready to retest"
                 value={<span className={VALUE_CLASS}>{retest.length}</span>}
                 sub={<span className="truncate">{`of ${failing} failing`}</span>}
@@ -122,11 +122,11 @@ export function CycleKpiTiles({
               />
             )}
             {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-unlinked" icon={XCircle} tint="red" />
+              <TileSkeleton testId="kpi-skeleton-unlinked" icon={Unlink} tint="red" />
             ) : (
               <Tile
                 testId="kpi-unlinked"
-                icon={XCircle}
+                icon={Unlink}
                 tint="red"
                 label="Unlinked failures"
                 value={
@@ -157,12 +157,12 @@ export function CycleKpiTiles({
               />
             )}
             {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-reruns" icon={RotateCcw} tint="blue" />
+              <TileSkeleton testId="kpi-skeleton-reruns" icon={Layers} tint="amber" />
             ) : (
               <Tile
                 testId="kpi-reruns"
-                icon={RotateCcw}
-                tint="blue"
+                icon={Layers}
+                tint="amber"
                 label="Re-runs"
                 value={<span className={VALUE_CLASS}>{reRuns}</span>}
                 sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
