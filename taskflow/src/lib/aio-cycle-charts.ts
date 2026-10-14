@@ -115,47 +115,43 @@ export function defectStatusSlices(defects: DefectLike[]): ChartSlice[] {
   return slices;
 }
 
-/** Scheme level -> rank (0 = highest), derived from priorityRank so the order has one source. */
-const PRIORITY_LEVEL_RANK: Record<string, number> = Object.fromEntries(
-  [
-    'Blocker',
-    'Must',
-    'Critical',
-    'Highest',
-    'Should',
-    'High',
-    'Medium',
-    'Low',
-    'Lowest',
-    'Minor',
-  ].map((name) => [name.toLowerCase(), priorityRank({ name })]),
-);
 const PRIORITY_RED = ['blocker', 'critical', 'highest', 'major'];
 const PRIORITY_GRAY = ['low', 'minor', 'lowest', 'trivial'];
 
 /**
- * Colour by the custom scheme's level first (Blocker/Must/Critical/Highest red, Should/High
- * orange, Medium yellow, Low/Lowest/Minor gray: same order as priorityRank), so levels whose
- * icon filename says nothing ('Must', 'Should') still get their colour. Unknown names fall back
- * to the icon filename token (e.g. ".../major.svg"); no match -> gray-300.
+ * One distinct colour per scheme level, a warm-to-cool ramp in priorityRank order (red = most
+ * urgent, slate = least) so every level, including Low / Lowest / Minor, is told apart.
+ */
+const PRIORITY_LEVEL_COLOR: Record<string, string> = {
+  blocker: 'var(--color-red-800)',
+  must: 'var(--color-red-600)',
+  critical: 'var(--color-orange-600)',
+  highest: 'var(--color-orange-400)',
+  should: 'var(--color-amber-500)',
+  high: 'var(--color-yellow-400)',
+  medium: 'var(--color-lime-500)',
+  low: 'var(--color-teal-500)',
+  lowest: 'var(--color-sky-500)',
+  minor: 'var(--color-slate-400)',
+};
+
+/**
+ * Colour by the custom scheme's level first, so levels whose icon filename says nothing
+ * ('Must', 'Should') still get their colour. Unknown names fall back to the icon filename token
+ * (e.g. ".../major.svg"); no match -> gray-300.
  */
 export function priorityChartColor(
   priority: { name?: string; iconUrl?: string } | null | undefined,
 ): string {
-  const rank = priority?.name ? PRIORITY_LEVEL_RANK[priority.name.toLowerCase()] : undefined;
-  if (rank !== undefined) {
-    if (rank <= 3) return 'var(--color-red-600)';
-    if (rank <= 5) return 'var(--color-orange-500)';
-    if (rank === 6) return 'var(--color-yellow-500)';
-    return 'var(--color-gray-400)';
-  }
+  const level = priority?.name ? PRIORITY_LEVEL_COLOR[priority.name.toLowerCase()] : undefined;
+  if (level) return level;
   const m = /([a-z]+)\.(?:svg|png|gif)(?:\?.*)?$/i.exec(priority?.iconUrl ?? '');
   const token = m?.[1].toLowerCase();
   if (!token) return 'var(--color-gray-300)';
   if (PRIORITY_RED.includes(token)) return 'var(--color-red-600)';
   if (token === 'high') return 'var(--color-orange-500)';
   if (token === 'medium') return 'var(--color-yellow-500)';
-  if (PRIORITY_GRAY.includes(token)) return 'var(--color-gray-400)';
+  if (PRIORITY_GRAY.includes(token)) return 'var(--color-slate-400)';
   return 'var(--color-gray-300)';
 }
 
@@ -198,13 +194,33 @@ export function defectPrioritySlices(defects: DefectLike[]): ChartSlice[] {
 /** Severity values look like '2-Major': the number is only the sort order, show just the label. */
 export const severityLabel = (raw: string): string => raw.replace(/^\s*\d+\s*-\s*/, '');
 
-/** Severity labels start with their level ('1-Critical', '2-Major', ...): colour by that level. */
+/**
+ * Severity labels start with their level ('1-Critical', '2-Major', ...). Colour by the level
+ * number, falling back to the label so '5-Cosmetic' and unnumbered values still get a colour.
+ */
 const SEVERITY_COLOR: Record<string, string> = {
   '1': 'var(--color-red-600)',
   '2': 'var(--color-orange-500)',
-  '3': 'var(--color-yellow-500)',
-  '4': 'var(--color-gray-400)',
+  '3': 'var(--color-yellow-400)',
+  '4': 'var(--color-sky-500)',
+  '5': 'var(--color-slate-400)',
 };
+const SEVERITY_LABEL_COLOR: Record<string, string> = {
+  blocker: SEVERITY_COLOR['1'],
+  critical: SEVERITY_COLOR['1'],
+  major: SEVERITY_COLOR['2'],
+  minor: SEVERITY_COLOR['3'],
+  cosmetic: SEVERITY_COLOR['4'],
+  trivial: SEVERITY_COLOR['5'],
+};
+export function severityChartColor(raw: string): string {
+  const num = /^\s*(\d+)\s*-/.exec(raw)?.[1];
+  return (
+    SEVERITY_LABEL_COLOR[severityLabel(raw).trim().toLowerCase()] ??
+    (num && SEVERITY_COLOR[num]) ??
+    SEVERITY_NONE_COLOR
+  );
+}
 const SEVERITY_NONE_COLOR = 'var(--color-gray-300)';
 
 /**
@@ -234,7 +250,7 @@ export function defectSeveritySlices(defects: DefectLike[]): ChartSlice[] {
         label: severityLabel(name),
         value,
         share,
-        color: SEVERITY_COLOR[name.charAt(0)] ?? SEVERITY_NONE_COLOR,
+        color: name === 'None' ? SEVERITY_NONE_COLOR : severityChartColor(name),
         rows: [
           { label: 'Defects', value },
           { label: 'Share', value: `${share}%` },

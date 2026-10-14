@@ -7,6 +7,7 @@ import {
   executionSliceTooltipRows,
   executionSlices,
   priorityChartColor,
+  severityChartColor,
   severityLabel,
 } from './aio-cycle-charts';
 
@@ -67,7 +68,8 @@ describe('defectPrioritySlices', () => {
       def('x', 'new'),
     ]);
     expect(s.map((x) => x.label)).toEqual(['Blocker', 'Low', 'None']);
-    expect(s[0].color).toBe('var(--color-red-600)');
+    expect(s[0].color).toBe('var(--color-red-800)');
+    expect(s[1].color).toBe('var(--color-teal-500)');
     expect(s[2].color).toBe('var(--color-gray-300)');
   });
 });
@@ -76,6 +78,19 @@ const sev = (value?: string): DefectLike => ({
   issue: {
     fields: { customfield_13415: value ? { value } : null },
   },
+});
+
+describe('severityChartColor', () => {
+  it.each([
+    ['1-Critical', 'var(--color-red-600)'],
+    ['2-Major', 'var(--color-orange-500)'],
+    ['3-Minor', 'var(--color-yellow-400)'],
+    ['4-Cosmetic', 'var(--color-sky-500)'],
+    ['Cosmetic', 'var(--color-sky-500)'],
+    ['9-Odd', 'var(--color-gray-300)'],
+  ])('%s', (raw, color) => {
+    expect(severityChartColor(raw)).toBe(color);
+  });
 });
 
 describe('defectSeveritySlices', () => {
@@ -93,7 +108,7 @@ describe('defectSeveritySlices', () => {
     expect(s.map((x) => x.value)).toEqual([1, 2, 1, 1]);
     expect(s[0].color).toBe('var(--color-red-600)');
     expect(s[1].color).toBe('var(--color-orange-500)');
-    expect(s[2].color).toBe('var(--color-gray-400)');
+    expect(s[2].color).toBe('var(--color-sky-500)');
     expect(s[3].color).toBe('var(--color-gray-300)');
     expect(s[1].share).toBe(40);
   });
@@ -138,14 +153,16 @@ describe('defectStatusSlices unknown categories', () => {
 
 describe('priorityChartColor by scheme level', () => {
   it.each([
-    ['Blocker', 'var(--color-red-600)'],
+    ['Blocker', 'var(--color-red-800)'],
     ['Must', 'var(--color-red-600)'],
-    ['Critical', 'var(--color-red-600)'],
-    ['Should', 'var(--color-orange-500)'],
-    ['High', 'var(--color-orange-500)'],
-    ['Medium', 'var(--color-yellow-500)'],
-    ['Low', 'var(--color-gray-400)'],
-    ['Minor', 'var(--color-gray-400)'],
+    ['Critical', 'var(--color-orange-600)'],
+    ['Highest', 'var(--color-orange-400)'],
+    ['Should', 'var(--color-amber-500)'],
+    ['High', 'var(--color-yellow-400)'],
+    ['Medium', 'var(--color-lime-500)'],
+    ['Low', 'var(--color-teal-500)'],
+    ['Lowest', 'var(--color-sky-500)'],
+    ['Minor', 'var(--color-slate-400)'],
   ])('%s ignores a meaningless icon', (name, color) => {
     expect(priorityChartColor({ name, iconUrl: 'http://x/icon-123.svg' })).toBe(color);
   });
@@ -164,7 +181,7 @@ describe('priorityChartColor', () => {
     ['http://x/highest.svg', 'var(--color-red-600)'],
     ['http://x/high.svg', 'var(--color-orange-500)'],
     ['http://x/medium.svg', 'var(--color-yellow-500)'],
-    ['http://x/trivial.svg', 'var(--color-gray-400)'],
+    ['http://x/trivial.svg', 'var(--color-slate-400)'],
     ['http://x/weird.svg', 'var(--color-gray-300)'],
     [undefined, 'var(--color-gray-300)'],
   ])('%s', (url, color) => {
