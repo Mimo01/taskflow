@@ -66,7 +66,7 @@ export function AioDonut({
           isAnimationActive={false}
           shape={SliceShape}
         />
-        <Tooltip content={SliceTooltip} />
+        <Tooltip content={SliceTooltip} wrapperStyle={{ zIndex: 50 }} />
       </PieChart>
       {center ? (
         <div className="pointer-events-none absolute inset-0 grid place-content-center text-center">
