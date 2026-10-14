@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: Milestone v1.14 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-14 - Completed quick task 261014-crk: AIO cycle detail polish (donuts, de-duplicated tiles, severity donut; UAT approved)
+Last activity: 2026-10-14 - Completed quick task 261014-eym: deployment package ↔ fix version sync (needs live Jira UAT)
 
 ## Performance Metrics
 
@@ -190,6 +190,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | tech_debt | Biome baseline: 4 lint errors (chart.tsx noArrayIndexKey x2, BacklogRow.tsx noStaticElementInteractions/useKeyWithClickEvents x4) — pre-existing from Phases 81/82, need human judgment | accepted |
 | tech_debt | Phase 91 WR-01: releaseBranch.ts:120-123 doc comment overstates that `tagChannel` is type-enforced required | doc-accuracy only |
 | tech_debt | Phase 91.2 WR-06/07/08, IN-04/05: progress cell `w-32` tight at 3 digits, assignee `w-10` narrower than avatar, duplicated count types, duplicate retry controls, sub-pixel segment slivers | cosmetic |
+| 261014-eym | Deployment package ↔ fix version sync (RM week child, sidebar + release detail warnings/fixes, Releases tab sync, RM project setting) | 2026-10-14 | a57b9417 | Needs Review (live Jira UAT) | [261014-eym-enhance-deployment-package-for-jira-stor](./quick/261014-eym-enhance-deployment-package-for-jira-stor/) |
 
 ## Session Continuity
 

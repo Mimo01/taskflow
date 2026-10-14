@@ -1,0 +1,3 @@
+# Review 261014-eym (advisory, quick depth) — no blockers
+Warnings: WR-01 auto-fix drops other dated fix versions outside the package week (label doesn't say so); WR-02 bulk sync can overwrite package on multi-version stories; WR-03 unparseable package shape treated as "no package" (offers overwrite); WR-04 release-detail section loads fix versions for active project only; WR-05 bulk sync editmeta shape taken from first story only; WR-06 toYmd accepts impossible dates; WR-07 week index limited to created >= startOfYear(-1); WR-08 other rows' sync buttons not disabled while prompt open.
+Info: IN-01 plan/run computed unused in DeploymentPackageSection; IN-02 Open-in-Jira not disabled while pending; IN-03 retry:false for invalid key; IN-04 duplicate ISSUE_KEY_RE.
