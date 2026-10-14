@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
-import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
+import { useRmPackage } from '@/hooks/useRmWeekIndex';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
@@ -137,7 +137,7 @@ export function FieldsSection({
   onOpenIssue,
 }: FieldsSectionProps) {
   const f = issue.fields;
-  const { childToWeek: rmChildToWeek } = useRmWeekIndex();
+  const rmPackage = useRmPackage(extractDeploymentPackage(f.customfield_15725));
   const isEpic = f.issuetype.name === 'Epic';
   const isSubtask = f.issuetype.subtask;
   const isStory = !isEpic && !isSubtask;
@@ -1104,28 +1104,22 @@ export function FieldsSection({
       <MetaRow label="Deployment package">
         {(() => {
           const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
-          const rmWeek = deploymentPackageValue
-            ? rmChildToWeek.get(deploymentPackageValue)
-            : undefined;
-          const rmSummary = rmWeek?.children.find((c) => c.key === deploymentPackageValue)?.summary;
+          const rmWeek = rmPackage.week;
+          const rmSummary = rmPackage.child?.summary;
           return deploymentPackageValue ? (
             <span data-testid="deployment-package-value" className="flex min-w-0 flex-col">
               {rmWeek && (
                 <span
-                  className="truncate"
+                  className="break-words"
                   title={`${rmWeek.key} ${rmWeek.summary}`}
                   data-testid="deployment-package-week"
                 >
                   {rmWeek.summary}
                 </span>
               )}
-              <span className="flex min-w-0 gap-1.5 text-xs text-muted-foreground">
-                <span className="shrink-0">{deploymentPackageValue}</span>
-                {rmSummary && (
-                  <span className="truncate" title={rmSummary}>
-                    {rmSummary}
-                  </span>
-                )}
+              <span className="break-words text-xs text-muted-foreground">
+                <span className="font-mono">{deploymentPackageValue}</span>
+                {rmSummary && <> {rmSummary}</>}
               </span>
             </span>
           ) : (
