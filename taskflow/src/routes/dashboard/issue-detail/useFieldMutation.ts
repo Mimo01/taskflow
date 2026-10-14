@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import type { JiraIssueDetail } from '@/services/jira';
 import {
+  assignIssue,
   invalidateGhAllData,
   invalidateGhBacklogData,
   setIssueFlagged,
@@ -32,6 +33,12 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
       const flaggedFieldKey = useSettingsStore.getState().flaggedFieldKey;
       if (fieldName === flaggedFieldKey) {
         return setIssueFlagged(jiraBaseUrl, token, issueKey, value != null, flaggedFieldKey);
+      }
+      // Assignee has its own endpoint: a field PUT with `assignee: null` doesn't
+      // reliably unassign on Jira Server/DC; PUT /issue/{key}/assignee {name:null} does.
+      if (fieldName === 'assignee') {
+        const name = (value as { name?: string } | null)?.name ?? null;
+        return assignIssue(jiraBaseUrl, token, issueKey, name);
       }
       return updateIssueField(jiraBaseUrl, token, issueKey, fieldName, value);
     },

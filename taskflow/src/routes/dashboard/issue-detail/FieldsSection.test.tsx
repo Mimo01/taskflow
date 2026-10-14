@@ -5,7 +5,7 @@
  * and a minimal render test for the React output.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -328,9 +328,26 @@ async function renderFieldsSection(issue: JiraIssueDetail) {
     />,
     { wrapper },
   );
+  return mutation;
 }
 
 describe('FieldsSection', () => {
+  describe('Assignee unassign', () => {
+    it('Unassign button clears the assignee via the field mutation', async () => {
+      const mutation = await renderFieldsSection(makeIssue());
+      fireEvent.click(screen.getByTestId('assignee-edit'));
+      fireEvent.click(await screen.findByTestId('assignee-unassign'));
+      expect(mutation.mutate).toHaveBeenCalledWith({ fieldName: 'assignee', value: null });
+    });
+
+    it('hides Unassign when the issue is already unassigned', async () => {
+      await renderFieldsSection(makeIssue({ assignee: null }));
+      fireEvent.click(screen.getByTestId('assignee-edit'));
+      await screen.findByPlaceholderText('Filter users...');
+      expect(screen.queryByTestId('assignee-unassign')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Priority row', () => {
     it('renders priority icon img when iconUrl is present', async () => {
       const issue = makeIssue({
