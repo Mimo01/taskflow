@@ -18,6 +18,7 @@ import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
 import { CreateMilestoneDialog } from './release-detail/CreateMilestoneDialog';
+import { DeploymentPackageSection } from './release-detail/DeploymentPackageSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
@@ -239,6 +240,16 @@ export default function ReleaseDetailPage() {
               <LabelSummarySection
                 milestoneMRsLoaded={!!milestoneMRs}
                 labelSummary={labelSummary}
+              />
+
+              {/* Stories whose fix version and Deployment package disagree (quick
+                  261014-eym). Separate from MR drift; renders nothing without an RM project. */}
+              <DeploymentPackageSection
+                stories={releaseIssues}
+                version={version}
+                jiraBaseUrl={jiraBaseUrl}
+                activeJiraProject={activeJiraProject}
+                onOpenIssue={resolvedOnOpenIssue}
               />
 
               {/* Unified task table (criterion 1): one Jira-task-keyed table with
