@@ -7,6 +7,7 @@ import {
   executionSliceTooltipRows,
   executionSlices,
   priorityChartColor,
+  severityLabel,
 } from './aio-cycle-charts';
 
 const def = (status: string, cat: string, priority?: string, iconUrl?: string): DefectLike => ({
@@ -86,7 +87,9 @@ describe('defectSeveritySlices', () => {
       sev('2-Major'),
       sev(),
     ]);
-    expect(s.map((x) => x.label)).toEqual(['1-Critical', '2-Major', '4-Cosmetic', 'None']);
+    // ordered by the raw level number, shown without it
+    expect(s.map((x) => x.label)).toEqual(['Critical', 'Major', 'Cosmetic', 'None']);
+    expect(s.map((x) => x.key)).toEqual(['1-Critical', '2-Major', '4-Cosmetic', 'None']);
     expect(s.map((x) => x.value)).toEqual([1, 2, 1, 1]);
     expect(s[0].color).toBe('var(--color-red-600)');
     expect(s[1].color).toBe('var(--color-orange-500)');
@@ -98,6 +101,18 @@ describe('defectSeveritySlices', () => {
   it('returns nothing when no defect has a severity', () => {
     expect(defectSeveritySlices([sev(), sev()])).toEqual([]);
     expect(defectSeveritySlices([])).toEqual([]);
+  });
+});
+
+describe('severityLabel', () => {
+  it.each([
+    ['2-Major', 'Major'],
+    ['4-Cosmetic', 'Cosmetic'],
+    ['10 - Blocker', 'Blocker'],
+    ['Major', 'Major'],
+    ['None', 'None'],
+  ])('%s -> %s', (raw, label) => {
+    expect(severityLabel(raw)).toBe(label);
   });
 });
 

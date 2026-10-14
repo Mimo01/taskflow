@@ -6,6 +6,7 @@ import {
   defectPrioritySlices,
   defectSeveritySlices,
   defectStatusSlices,
+  severityLabel,
 } from '@/lib/aio-cycle-charts';
 import type { JiraIssue } from '@/services/jira/types';
 import { AioDonut, AioDonutSkeleton } from './AioDonut';
@@ -15,8 +16,15 @@ import type { ResolvedDefect } from './useCycleDefects';
 const KEY_CLASS = 'grid gap-0.5 text-xs leading-4';
 const KEY_TITLE_CLASS = 'font-medium';
 
-export function severityOf(issue: JiraIssue | null): string | null {
+/** Raw severity value ('2-Major'): the number is the order, so sort on this. */
+export function severityRaw(issue: JiraIssue | null): string | null {
   return issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
+}
+
+/** Severity as shown to the user: just the label ('Major'). */
+export function severityOf(issue: JiraIssue | null): string | null {
+  const raw = severityRaw(issue);
+  return raw ? severityLabel(raw) : null;
 }
 
 function describe(slices: { label: string; value: number }[]): string {

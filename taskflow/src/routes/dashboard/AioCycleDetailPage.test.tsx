@@ -1151,7 +1151,7 @@ describe('AioCycleDetailPage', () => {
         'Defects by status: 1 In Progress',
       );
       expect(screen.getByTestId('defect-severity-donut').getAttribute('aria-label')).toBe(
-        'Defects by severity: 1 1-Critical',
+        'Defects by severity: 1 Critical',
       );
       // the old text breakdown is gone (the Severity column stays)
       expect(screen.queryByTestId('defects-summary')).toBeNull();
