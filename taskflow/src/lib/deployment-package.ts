@@ -133,6 +133,25 @@ export function extractDeploymentPackageKey(field: unknown): string | null {
   return ISSUE_KEY_RE.test(t) ? t : null;
 }
 
+/**
+ * Read the target issue key out of a parent-style link field (Epic Link,
+ * Advanced Roadmaps "Parent Link"). Tolerates 'ABC-1', {key}, {data:{key}}
+ * and a one-element array of those; anything else yields null.
+ */
+export function extractLinkedIssueKey(value: unknown): string | null {
+  if (Array.isArray(value)) return value.length === 1 ? extractLinkedIssueKey(value[0]) : null;
+  if (typeof value === 'string') {
+    const k = value.trim();
+    return ISSUE_KEY_RE.test(k) ? k : null;
+  }
+  if (value && typeof value === 'object') {
+    const o = value as { key?: unknown; data?: unknown };
+    if (typeof o.key === 'string' && ISSUE_KEY_RE.test(o.key)) return o.key;
+    if (o.data && typeof o.data === 'object') return extractLinkedIssueKey(o.data);
+  }
+  return null;
+}
+
 /** Build the PUT value for the package field in the shape editmeta reported. */
 export function buildPackageFieldValue(key: string, shape: 'array' | 'single'): string | string[] {
   return shape === 'array' ? [key] : key;

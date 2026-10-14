@@ -20,7 +20,12 @@
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
-import { type PackageEditShape, parseWeekRange, type RmWeek } from '../lib/deployment-package';
+import {
+  extractLinkedIssueKey,
+  type PackageEditShape,
+  parseWeekRange,
+  type RmWeek,
+} from '../lib/deployment-package';
 import {
   fetchAllSearchPages as fetchAllSearchPagesClient,
   isResponseLikeError,
@@ -2401,7 +2406,8 @@ const ISSUE_KEY_RE_STRICT = /^[A-Z][A-Z0-9_]+-\d+$/;
  * How children hang off a parent is instance-specific, so ONE fully paginated
  * query over the RM project (bounded to the last ~2 years) collects them from
  * every mechanism and dedupes by key: sub-tasks, `parent` links, Epic Link
- * (customfield_10014) and issue links (either direction).
+ * and Advanced Roadmaps Parent Link (field ids discovered via /field) and issue links
+ * (either direction).
  */
 export async function fetchRmWeekIndex(
   baseUrl: string,
@@ -2414,7 +2420,33 @@ export async function fetchRmWeekIndex(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const jql = `project = "${rmProjectKey}" AND created >= startOfYear(-1) ORDER BY created DESC`;
-  const fields = 'summary,parent,subtasks,issuelinks,customfield_10014';
+  // Parent-style link fields are instance-specific: discover the Epic Link and
+  // Advanced Roadmaps "Parent Link" field ids instead of assuming them.
+  const linkFieldIds = new Set<string>(['customfield_10014']);
+  try {
+    const fr = await apiFetch(
+      'jira',
+      `${base}/rest/api/2/field`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      'Load Fields',
+    );
+    if (fr.ok) {
+      const all: Array<{ id: string; name?: string; schema?: { custom?: string } }> =
+        await fr.json();
+      for (const f of all) {
+        const custom = f.schema?.custom ?? '';
+        if (
+          custom === 'com.pyxis.greenhopper.jira:gh-epic-link' ||
+          custom.endsWith('jpo-custom-field-parent') ||
+          f.name === 'Parent Link'
+        )
+          linkFieldIds.add(f.id);
+      }
+    }
+  } catch {
+    // fall back to the default Epic Link id
+  }
+  const fields = ['summary', 'parent', 'subtasks', 'issuelinks', ...linkFieldIds].join(',');
   const issues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,
     headers,
@@ -2453,8 +2485,10 @@ export async function fetchRmWeekIndex(
       addChild(issue.key, sub.key, sub.fields?.summary);
     if (issue.fields.parent?.key)
       addChild(issue.fields.parent.key, issue.key, issue.fields.summary);
-    const epicLink = f.customfield_10014;
-    if (typeof epicLink === 'string') addChild(epicLink, issue.key, issue.fields.summary);
+    for (const id of linkFieldIds) {
+      const target = extractLinkedIssueKey(f[id]);
+      if (target) addChild(target, issue.key, issue.fields.summary);
+    }
     const links = Array.isArray(f.issuelinks) ? (f.issuelinks as LinkLike[]) : [];
     for (const l of links) {
       const other = l.inwardIssue ?? l.outwardIssue;
