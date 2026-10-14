@@ -30,6 +30,36 @@ describe('Release Management lookups', () => {
     vi.resetAllMocks();
   });
 
+  it('fetchRmWeekChildren: never queries a link field that does not exist on the instance', async () => {
+    const base = nextBase();
+    const real = [
+      {
+        id: 'customfield_10101',
+        name: 'Epic Link',
+        schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-link' },
+      },
+      {
+        id: 'customfield_12700',
+        name: 'Parent Link',
+        schema: { custom: 'com.atlassian.jpo:jpo-custom-field-parent' },
+      },
+    ];
+    vi.mocked(mockFetch).mockImplementation((async (url: string) => {
+      if (url.includes('/rest/api/2/field')) return ok(real);
+      return ok({ total: 0, issues: [] });
+    }) as never);
+    await fetchRmWeekChildren(base, TOKEN, 'RM-1');
+    const jql = jqlOf(
+      vi
+        .mocked(mockFetch)
+        .mock.calls.map((c) => c[0] as string)
+        .find((u) => u.includes('/search')) as string,
+    );
+    expect(jql).toContain('cf[10101]');
+    expect(jql).toContain('cf[12700]');
+    expect(jql).not.toContain('cf[10014]');
+  });
+
   it('fetchRmWeekList: prefix search, summary only, non-padded dates parsed', async () => {
     const base = nextBase();
     vi.mocked(mockFetch).mockResolvedValue(
