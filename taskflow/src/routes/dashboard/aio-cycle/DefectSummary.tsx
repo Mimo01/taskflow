@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MarkerGlyph } from '@/components/ui/tooltip-body';
 import {
   type ChartSlice,
@@ -194,7 +195,25 @@ function DonutBlock({
           </span>
         ))}
         {slices.length > keyMax && (
-          <span className="text-muted-foreground">{`+${slices.length - (keyMax - 1)} more`}</span>
+          <Tooltip>
+            <TooltipTrigger
+              delay={0}
+              render={<span />}
+              data-testid="defect-key-more"
+              className="w-fit cursor-default text-muted-foreground"
+            >{`+${slices.length - (keyMax - 1)} more`}</TooltipTrigger>
+            <TooltipContent>
+              <div className="grid gap-0.5">
+                {slices.slice(keyMax - 1).map((s) => (
+                  <span key={s.label} className="flex items-center gap-2">
+                    <MarkerGlyph marker="status" color={s.color} />
+                    <span>{s.label}</span>
+                    <span className="ml-auto pl-2 tabular-nums">{s.value}</span>
+                  </span>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
     </div>
