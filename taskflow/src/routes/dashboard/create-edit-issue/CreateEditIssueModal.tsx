@@ -506,79 +506,76 @@ export function CreateEditIssueModal({
                     field: 'assigneeInputValue',
                     value: e.target.value,
                   });
-                  dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: null });
                   dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true });
                 }}
                 onFocus={() => {
-                  if (state.selectedAssigneeName) {
-                    dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: '' });
-                    dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: null });
-                  }
+                  // Clear only the visible text so the full list shows; the committed
+                  // selection is untouched so blur without a pick is a no-op.
+                  dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: '' });
                   dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true });
                 }}
-                onBlur={() =>
-                  setTimeout(
-                    () =>
-                      dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: false }),
-                    150,
-                  )
-                }
+                onBlur={() => setTimeout(() => dispatch({ type: 'ASSIGNEE_BLUR' }), 150)}
                 placeholder="Search assignee..."
                 disabled={isPending}
               />
-              {state.showAssigneeResults && (assigneeLoading || allAssignees.length > 0) && (
-                <div
-                  id="assignee-listbox"
-                  role="listbox"
-                  className="mt-1 rounded-lg border bg-popover shadow-md"
-                >
-                  {assigneeLoading && (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
-                  )}
-                  {allAssignees
-                    .filter((user) => {
-                      const q = state.assigneeInputValue.toLowerCase();
-                      if (!q) return true;
-                      const fuzzy = (str: string) => {
-                        let i = 0;
-                        for (const ch of str.toLowerCase()) {
-                          if (ch === q[i]) i++;
-                          if (i === q.length) return true;
-                        }
-                        return false;
-                      };
-                      return fuzzy(user.displayName) || fuzzy(user.name);
-                    })
-                    .map((user) => (
+              {state.showAssigneeResults &&
+                (mode === 'edit' || assigneeLoading || allAssignees.length > 0) && (
+                  <div
+                    id="assignee-listbox"
+                    role="listbox"
+                    className="mt-1 rounded-lg border bg-popover shadow-md"
+                  >
+                    {mode === 'edit' && (
                       <button
-                        key={user.name}
                         type="button"
                         role="option"
-                        aria-selected={state.selectedAssigneeName === user.name}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                        onMouseDown={() => {
-                          dispatch({
-                            type: 'SET_FIELD',
-                            field: 'selectedAssigneeName',
-                            value: user.name,
-                          });
-                          dispatch({
-                            type: 'SET_FIELD',
-                            field: 'assigneeInputValue',
-                            value: user.displayName,
-                          });
-                          dispatch({
-                            type: 'SET_FIELD',
-                            field: 'showAssigneeResults',
-                            value: false,
-                          });
-                        }}
+                        aria-selected={
+                          state.assigneeUnassignPicked ||
+                          (!state.selectedAssigneeName && !initialValues?.assigneeName)
+                        }
+                        className="w-full px-3 py-2 pr-3.5 text-left text-sm italic text-muted-foreground hover:bg-accent"
+                        onMouseDown={() => dispatch({ type: 'ASSIGNEE_PICK_UNASSIGNED' })}
                       >
-                        {user.displayName} ({user.name})
+                        Unassigned
                       </button>
-                    ))}
-                </div>
-              )}
+                    )}
+                    {assigneeLoading && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+                    )}
+                    {allAssignees
+                      .filter((user) => {
+                        const q = state.assigneeInputValue.toLowerCase();
+                        if (!q) return true;
+                        const fuzzy = (str: string) => {
+                          let i = 0;
+                          for (const ch of str.toLowerCase()) {
+                            if (ch === q[i]) i++;
+                            if (i === q.length) return true;
+                          }
+                          return false;
+                        };
+                        return fuzzy(user.displayName) || fuzzy(user.name);
+                      })
+                      .map((user) => (
+                        <button
+                          key={user.name}
+                          type="button"
+                          role="option"
+                          aria-selected={state.selectedAssigneeName === user.name}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                          onMouseDown={() =>
+                            dispatch({
+                              type: 'ASSIGNEE_PICK',
+                              name: user.name,
+                              label: user.displayName,
+                            })
+                          }
+                        >
+                          {user.displayName} ({user.name})
+                        </button>
+                      ))}
+                  </div>
+                )}
             </div>
 
             <div className="flex flex-col gap-1">

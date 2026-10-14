@@ -37,6 +37,10 @@ export interface FormState {
   description: string;
   assigneeInputValue: string;
   selectedAssigneeName: string | null;
+  /** True only after the user explicitly picked the "Unassigned" option (edit mode). */
+  assigneeUnassignPicked: boolean;
+  /** Label restored into the input on blur when nothing new was picked. */
+  assigneeCommittedLabel: string;
   showAssigneeResults: boolean;
   timeEstimate: string;
   priority: string | null;
@@ -61,6 +65,9 @@ export type FormAction =
       defaultParentKey?: string | null;
       initialValues?: EditInitialValues;
     }
+  | { type: 'ASSIGNEE_PICK'; name: string; label: string }
+  | { type: 'ASSIGNEE_PICK_UNASSIGNED' }
+  | { type: 'ASSIGNEE_BLUR' }
   | { type: 'SET_ISSUE_TYPE'; issueType: IssueType }
   | { type: 'SET_CUSTOM_FIELD_VALUE'; fieldId: string; value: string }
   | { type: 'SET_CUSTOM_FIELD_INPUT'; fieldId: string; value: string }
@@ -122,6 +129,8 @@ function buildInitialState(
     description: initialValues?.description ?? '',
     assigneeInputValue: initialValues?.assigneeName ?? '',
     selectedAssigneeName: initialValues?.assigneeName ?? null,
+    assigneeUnassignPicked: false,
+    assigneeCommittedLabel: initialValues?.assigneeName ?? '',
     showAssigneeResults: false,
     timeEstimate: '',
     priority: initialValues?.priority ?? null,
@@ -152,6 +161,33 @@ function formReducer(state: FormState, action: FormAction): FormState {
         action.defaultParentKey,
         action.initialValues,
       );
+
+    case 'ASSIGNEE_PICK':
+      return {
+        ...state,
+        selectedAssigneeName: action.name,
+        assigneeInputValue: action.label,
+        assigneeCommittedLabel: action.label,
+        assigneeUnassignPicked: false,
+        showAssigneeResults: false,
+      };
+
+    case 'ASSIGNEE_PICK_UNASSIGNED':
+      return {
+        ...state,
+        selectedAssigneeName: null,
+        assigneeInputValue: 'Unassigned',
+        assigneeCommittedLabel: 'Unassigned',
+        assigneeUnassignPicked: true,
+        showAssigneeResults: false,
+      };
+
+    case 'ASSIGNEE_BLUR':
+      return {
+        ...state,
+        assigneeInputValue: state.assigneeCommittedLabel,
+        showAssigneeResults: false,
+      };
 
     case 'SET_ISSUE_TYPE':
       return {

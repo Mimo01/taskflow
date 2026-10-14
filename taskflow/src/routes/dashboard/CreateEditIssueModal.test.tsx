@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as apiFetchModule from '@/lib/apiFetch';
 import * as jiraService from '@/services/jira';
 import { CreateEditIssueModal } from './CreateEditIssueModal';
@@ -36,6 +36,7 @@ vi.mock('@/services/jira', async (importOriginal) => {
     searchJiraForLink: vi.fn().mockResolvedValue([]),
     createIssue: vi.fn().mockResolvedValue({ id: '1', key: 'PROJ-1' }),
     bulkUpdateIssue: vi.fn().mockResolvedValue(undefined),
+    assignIssue: vi.fn().mockResolvedValue(undefined),
     createIssueLink: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -176,6 +177,146 @@ describe('CreateEditIssueModal', () => {
 
       // Edit mode shows "Save" button, not "Create"
       expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Assignee: explicit Unassigned option', () => {
+    const editValues = {
+      issueKey: 'PROJ-42',
+      summary: 'Some summary',
+      description: '',
+      assigneeName: 'janesmith',
+      priority: null,
+      storyPoints: null,
+      epicLinkKey: null,
+    };
+    const users = [
+      { name: 'janesmith', displayName: 'Jane Smith', accountId: 'j' },
+      { name: 'bobby', displayName: 'Bob Brown', accountId: 'b' },
+    ];
+
+    function mockAssignable(list: unknown[]) {
+      vi.mocked(apiFetchModule.apiFetch).mockImplementation(async (_service, url: string) => {
+        if ((url as string).includes('/user/assignable/search')) {
+          return { ok: true, json: async () => list } as Response;
+        }
+        return { ok: true, json: async () => ({ values: [] }) } as Response;
+      });
+    }
+
+    function renderEdit(
+      values:
+        | typeof editValues
+        | (Omit<typeof editValues, 'assigneeName'> & { assigneeName: null }) = editValues,
+    ) {
+      return render(
+        <CreateEditIssueModal
+          open={true}
+          onClose={vi.fn()}
+          mode="edit"
+          initialValues={values as never}
+        />,
+        { wrapper },
+      );
+    }
+
+    async function save() {
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+      await waitFor(() => expect(jiraService.bulkUpdateIssue).toHaveBeenCalled());
+    }
+
+    const assigneeInput = () =>
+      screen.getByPlaceholderText('Search assignee...') as HTMLInputElement;
+
+    beforeEach(() => {
+      vi.mocked(jiraService.bulkUpdateIssue).mockClear();
+      vi.mocked(jiraService.assignIssue).mockClear();
+      mockAssignable(users);
+    });
+
+    afterEach(() => {
+      vi.mocked(apiFetchModule.apiFetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({ values: [] }),
+      } as Response);
+    });
+
+    it('(a) shows Unassigned as the first option, even with an empty list or a typed query', async () => {
+      mockAssignable([]);
+      renderEdit();
+      fireEvent.focus(assigneeInput());
+      let options = await screen.findAllByRole('option');
+      expect(options[0]).toHaveTextContent('Unassigned');
+      fireEvent.change(assigneeInput(), { target: { value: 'zzz' } });
+      options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('Unassigned');
+    });
+
+    it('(b) picking Unassigned then Save calls assignIssue(null) and sends no fields.assignee', async () => {
+      renderEdit();
+      fireEvent.focus(assigneeInput());
+      const opt = (await screen.findAllByRole('option'))[0];
+      fireEvent.mouseDown(opt);
+      expect(assigneeInput().value).toBe('Unassigned');
+      await save();
+      await waitFor(() =>
+        expect(jiraService.assignIssue).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'test-pat',
+          'PROJ-42',
+          null,
+        ),
+      );
+      const fields = vi.mocked(jiraService.bulkUpdateIssue).mock.calls[0][3];
+      expect(fields).not.toHaveProperty('assignee');
+    });
+
+    it('(c) focus/blur or typing without a pick keeps the assignee and restores the label', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        renderEdit();
+        fireEvent.focus(assigneeInput());
+        fireEvent.change(assigneeInput(), { target: { value: 'xyz' } });
+        fireEvent.blur(assigneeInput());
+        await vi.advanceTimersByTimeAsync(200);
+        expect(assigneeInput().value).toBe('janesmith');
+      } finally {
+        vi.useRealTimers();
+      }
+      await save();
+      const fields = vi.mocked(jiraService.bulkUpdateIssue).mock.calls[0][3];
+      expect(fields).not.toHaveProperty('assignee');
+      expect(jiraService.assignIssue).not.toHaveBeenCalled();
+    });
+
+    it('(d) picking a different user reassigns via fields.assignee', async () => {
+      renderEdit();
+      fireEvent.focus(assigneeInput());
+      const bob = await screen.findByRole('option', { name: /Bob Brown/ });
+      fireEvent.mouseDown(bob);
+      await save();
+      const fields = vi.mocked(jiraService.bulkUpdateIssue).mock.calls[0][3];
+      expect(fields.assignee).toEqual({ name: 'bobby' });
+      expect(jiraService.assignIssue).not.toHaveBeenCalled();
+    });
+
+    it('(e) create mode renders no Unassigned option', async () => {
+      render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+      fireEvent.focus(assigneeInput());
+      await screen.findByRole('option', { name: /Bob Brown/ });
+      expect(screen.queryByRole('option', { name: 'Unassigned' })).not.toBeInTheDocument();
+    });
+
+    it('(f) already-unassigned issue: Unassigned is selected and picking it sends nothing', async () => {
+      renderEdit({ ...editValues, assigneeName: null });
+      fireEvent.focus(assigneeInput());
+      const opt = (await screen.findAllByRole('option'))[0];
+      expect(opt).toHaveAttribute('aria-selected', 'true');
+      fireEvent.mouseDown(opt);
+      await save();
+      const fields = vi.mocked(jiraService.bulkUpdateIssue).mock.calls[0][3];
+      expect(fields).not.toHaveProperty('assignee');
+      expect(jiraService.assignIssue).not.toHaveBeenCalled();
     });
   });
 
