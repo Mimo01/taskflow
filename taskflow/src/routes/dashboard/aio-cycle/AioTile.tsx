@@ -36,10 +36,7 @@ export function TileShell({
   );
 }
 
-export function TileLabel({ children }: { children: ReactNode }) {
-  return <span className={TITLE_CLASS}>{children}</span>;
-}
-
+/** Same three-row geometry and left alignment as the live tile, so nothing shifts on load. */
 export function TileSkeleton({
   testId,
   icon,
@@ -51,15 +48,16 @@ export function TileSkeleton({
 }) {
   return (
     <TileShell icon={icon} tint={tint}>
-      <div data-testid={testId} className={cn(STAT_CARD_CLASS, 'items-center')}>
+      <div data-testid={testId} className={cn(STAT_CARD_CLASS, 'justify-items-start')}>
         <Skeleton className="h-3.5 w-16" />
-        <Skeleton className="h-7 w-14 self-center" />
+        <Skeleton className="h-7 w-14" />
         <Skeleton className="h-3.5 w-24" />
       </div>
     </TileShell>
   );
 }
 
+/** KPI tile: plain muted label (the section heading above carries the hierarchy), value, sub. */
 export function Tile({
   testId,
   label,
@@ -86,7 +84,7 @@ export function Tile({
           data-testid={testId}
           className={cn(STAT_CARD_CLASS, 'relative')}
         >
-          <StatCardBody label={<TileLabel>{label}</TileLabel>} value={value} sub={sub} />
+          <StatCardBody label={label} value={value} sub={sub} />
         </TooltipTrigger>
         <TooltipContent>{tip}</TooltipContent>
       </Tooltip>

@@ -4,7 +4,7 @@ import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
 import { STAT_CONTAINER_CLASS } from '../issue-detail/EpicStatCard';
-import { TITLE_CLASS, Tile, TileSkeleton, VALUE_CLASS } from './AioTile';
+import { Tile, TileSkeleton, VALUE_CLASS } from './AioTile';
 import { CycleDefectDonuts } from './DefectSummary';
 import { ExecutionDonut } from './ExecutionDonut';
 import type { AioStatusCounts } from './useAioCycleData';
@@ -12,12 +12,19 @@ import type { ResolvedDefect } from './useCycleDefects';
 
 const pctOf = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
+/** Detail-page section heading (same as Progress / Activity / run sections). */
+const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
+
 /**
- * Cycle statistics: a 2x2 tile grid beside the Execution Distribution donut (stacks below
- * when the container is narrow). Every figure appears once: the donut carries the
- * per-status counts and executed/total, the header carries the last run date, so the
- * tiles show only what those cannot (pass rate of executed, re-runs, unlinked failures,
- * open defects).
+ * Cycle stats block: Cycle Statistics tiles | Execution Distribution donut | Defect Summary
+ * donuts. Every figure appears once: the donut carries the per-status split (the Executions
+ * tab chips carry the counts), the header carries the last run date, so the tiles show only
+ * what those cannot (pass rate of executed, re-runs, unlinked failures, open defects).
+ *
+ * Three layouts on the block's own container width:
+ *  - narrow: everything stacked, tiles 2x2;
+ *  - >= 768px (@3xl): tiles 4-across, then Execution | Defect Summary on one row;
+ *  - >= 1280px (@7xl): tiles 2x2 | Execution | Defect Summary on one row.
  */
 export function CycleKpiTiles({
   counts,
@@ -51,10 +58,10 @@ export function CycleKpiTiles({
   const failing = counts.fail + counts.blocked;
 
   return (
-    <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 pt-1 pb-3')}>
-      <div className="flex flex-col gap-6 @3xl/epic:flex-row">
-        <Section title="Cycle Statistics" className="min-w-0 flex-1 @3xl/epic:pr-6">
-          <div className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-4">
+    <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 py-4')}>
+      <div className="flex flex-col gap-6 @7xl/epic:flex-row">
+        <Section title="Cycle Statistics" className="min-w-0 flex-1">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4 @3xl/epic:grid-cols-4 @7xl/epic:grid-cols-2">
             {countsLoading ? (
               <TileSkeleton testId="kpi-skeleton-pass" icon={CheckCircle2} tint="green" />
             ) : (
@@ -87,7 +94,7 @@ export function CycleKpiTiles({
                 tint="blue"
                 label="Re-runs"
                 value={<span className={VALUE_CLASS}>{reRuns}</span>}
-                sub={<span className="truncate">{`(${pctOf(reRuns, total)}%)`}</span>}
+                sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
                 tip={
                   <TooltipBody title="Re-runs">
                     <TooltipRow label="Re-run cases" value={reRuns} />
@@ -151,43 +158,41 @@ export function CycleKpiTiles({
             )}
           </div>
         </Section>
-        <Section title="Execution Distribution" divided>
-          <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
-        </Section>
-        {defectsLoading ? null : (
-          <Section title="Defect Summary" divided>
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-              <CycleDefectDonuts defects={defects} />
+
+        {/* Charts: a hairline below the tiles, a vertical rule beside them when everything fits
+            in one row. Rules always get 24px on both sides. */}
+        <div className="flex flex-col gap-6 border-t border-border pt-6 @3xl/epic:flex-row @7xl/epic:border-t-0 @7xl/epic:border-l @7xl/epic:pt-0 @7xl/epic:pl-6">
+          <Section title="Execution Distribution" className="flex-none">
+            <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+          </Section>
+          <Section
+            title="Defect Summary"
+            className="min-w-0 flex-1 @3xl/epic:border-l @3xl/epic:border-border @3xl/epic:pl-6"
+          >
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-x-8 gap-y-4">
+              <CycleDefectDonuts defects={defects} loading={defectsLoading} />
             </div>
           </Section>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Headed block of the stats row; `divided` adds the vertical rule between blocks when wide. */
+/** Headed block: heading on the shared top line, body vertically centred in the leftover height. */
 function Section({
   title,
-  divided,
   className,
   children,
 }: {
   title: string;
-  divided?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <section
-      className={cn(
-        'grid flex-none content-start gap-3',
-        divided && '@3xl/epic:border-l @3xl/epic:border-border @3xl/epic:pl-6 @3xl/epic:pr-2',
-        className,
-      )}
-    >
-      <h3 className={TITLE_CLASS}>{title}</h3>
-      {children}
+    <section className={cn('flex flex-col gap-3', className)}>
+      <h3 className={HEADING_CLASS}>{title}</h3>
+      <div className="flex min-w-0 flex-1 items-center">{children}</div>
     </section>
   );
 }
