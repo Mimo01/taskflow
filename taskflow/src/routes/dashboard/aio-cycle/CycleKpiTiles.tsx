@@ -23,7 +23,7 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  *
  * Three layouts on the block's own container width:
  *  - narrow: everything stacked, tiles 2x2;
- *  - >= 896px (@4xl): tiles 2x2 | Execution | Defect Summary (two donuts stacked) in one row.
+ *  - >= 896px (@4xl): tiles 2x2 | Execution | Defect Summary (Status on top, Priority | Severity below) in one row.
  */
 export function CycleKpiTiles({
   counts,
@@ -176,11 +176,9 @@ export function CycleKpiTiles({
         </Section>
         <Section
           title="Defect Summary"
-          className={cn(DIVIDED_CLASS, '@4xl/epic:min-w-72 @4xl/epic:pr-4')}
+          className={cn(DIVIDED_CLASS, '@4xl/epic:w-104 @4xl/epic:pr-4')}
         >
-          <div className="grid w-full min-w-0 gap-2">
-            <CycleDefectDonuts defects={defects} loading={defectsLoading} />
-          </div>
+          <CycleDefectDonuts defects={defects} loading={defectsLoading} />
         </Section>
       </div>
     </div>
