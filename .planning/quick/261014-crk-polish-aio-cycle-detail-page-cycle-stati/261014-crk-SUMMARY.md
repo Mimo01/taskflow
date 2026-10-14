@@ -35,7 +35,7 @@ Full vitest suite (3370 passed), tsc clean, biome clean on touched files (pre-co
 
 ## UAT polish rounds (2026-10-14) — APPROVED by user
 
-Planned work (3 tasks, fe8f16f9..c1a55f97) was reworked inline over UAT; final approved state: 48292131, plus review follow-ups e7b65d59 (approved).
+Planned work (3 tasks, fe8f16f9..c1a55f97) was reworked inline over UAT; final approved state: 48292131, plus review follow-ups e7b65d59 and final sizing/legend tweaks through 025a5fd8 (approved).
 
 | Commit(s) | Change |
 |---|---|
@@ -53,3 +53,5 @@ Notes
 - "Show only latest run" toggle omitted: cycle defects are already latest-run only.
 - Review follow-ups FIXED after approval (tests proven to fail pre-fix): unknown/missing Jira status category now counts as To Do in the status donut (WR-01/02); priority colour keys off the scheme level name first (Must/Should no longer grey), icon filename only as fallback (WR-03); "of N failing" on the Ready-to-retest / Unlinked tiles is derived from the runs list, the same source as their numerators (IN-03).
 - Still open (minor): defect donuts have no loading skeleton for the severity block; defect key/tooltip row-key collision when a status is literally named "Other" (IN-02).
+- Final sizing (025a5fd8): execution donut 192px, defect donuts 68px stacked (Status, Priority, Severity); key capped at 3 rows (2 + "+N more", the 5-row experiment was reverted as too tall); loading skeleton shows all three defect donuts.
+- The earlier "no loading skeleton for the severity block" open item is resolved.
