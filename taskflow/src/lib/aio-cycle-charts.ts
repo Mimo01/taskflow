@@ -119,25 +119,33 @@ const PRIORITY_RED = ['blocker', 'critical', 'highest', 'major'];
 const PRIORITY_LOW = ['low', 'minor', 'lowest', 'trivial'];
 
 /**
- * Each level has its own colour, shaded within the hue of its Jira priority icon (red arrows,
- * orange high, amber medium, blue low) so neighbouring levels never share a colour.
+ * Each level has its own colour, in the hue of its Jira priority icon (red arrows, orange high,
+ * amber medium, blue low). Chroma falls and lightness rises with every step down, so contrast
+ * against the card shrinks with criticality: the more critical a level, the louder it is, and
+ * the least critical fade towards neutral.
  */
-const TIER_HIGHEST = 'var(--color-red-600)';
-const TIER_HIGH = 'var(--color-orange-500)';
-const TIER_MEDIUM = 'var(--color-amber-400)';
-const TIER_LOW = 'var(--color-blue-500)';
+const LEVEL_BLOCKER = 'oklch(0.45 0.2 27)';
+const LEVEL_MUST = 'oklch(0.55 0.22 27)';
+const LEVEL_CRITICAL = 'oklch(0.62 0.19 33)';
+const LEVEL_HIGHEST = 'oklch(0.67 0.17 50)';
+const LEVEL_SHOULD = 'oklch(0.71 0.14 60)';
+const LEVEL_HIGH = 'oklch(0.75 0.12 70)';
+const LEVEL_MEDIUM = 'oklch(0.8 0.11 90)';
+const LEVEL_LOW = 'oklch(0.74 0.06 250)';
+const LEVEL_LOWEST = 'oklch(0.79 0.04 250)';
+const LEVEL_MINOR = 'oklch(0.84 0.02 250)';
 
 const PRIORITY_LEVEL_COLOR: Record<string, string> = {
-  blocker: 'var(--color-red-800)',
-  must: TIER_HIGHEST,
-  critical: 'var(--color-red-400)',
-  highest: 'var(--color-orange-700)',
-  should: TIER_HIGH,
-  high: 'var(--color-orange-400)',
-  medium: TIER_MEDIUM,
-  low: 'var(--color-blue-700)',
-  lowest: TIER_LOW,
-  minor: 'var(--color-sky-400)',
+  blocker: LEVEL_BLOCKER,
+  must: LEVEL_MUST,
+  critical: LEVEL_CRITICAL,
+  highest: LEVEL_HIGHEST,
+  should: LEVEL_SHOULD,
+  high: LEVEL_HIGH,
+  medium: LEVEL_MEDIUM,
+  low: LEVEL_LOW,
+  lowest: LEVEL_LOWEST,
+  minor: LEVEL_MINOR,
 };
 
 /**
@@ -153,10 +161,10 @@ export function priorityChartColor(
   const m = /([a-z]+)\.(?:svg|png|gif)(?:\?.*)?$/i.exec(priority?.iconUrl ?? '');
   const token = m?.[1].toLowerCase();
   if (!token) return 'var(--color-gray-300)';
-  if (PRIORITY_RED.includes(token)) return TIER_HIGHEST;
-  if (token === 'high') return TIER_HIGH;
-  if (token === 'medium') return TIER_MEDIUM;
-  if (PRIORITY_LOW.includes(token)) return TIER_LOW;
+  if (PRIORITY_RED.includes(token)) return LEVEL_MUST;
+  if (token === 'high') return LEVEL_HIGH;
+  if (token === 'medium') return LEVEL_MEDIUM;
+  if (PRIORITY_LOW.includes(token)) return LEVEL_LOWEST;
   return 'var(--color-gray-300)';
 }
 
@@ -204,19 +212,19 @@ export const severityLabel = (raw: string): string => raw.replace(/^\s*\d+\s*-\s
  * number, falling back to the label so '5-Cosmetic' and unnumbered values still get a colour.
  */
 const SEVERITY_COLOR: Record<string, string> = {
-  '1': TIER_HIGHEST,
-  '2': TIER_HIGH,
-  '3': TIER_MEDIUM,
-  '4': TIER_LOW,
-  '5': TIER_LOW,
+  '1': LEVEL_MUST,
+  '2': LEVEL_HIGHEST,
+  '3': LEVEL_MEDIUM,
+  '4': LEVEL_LOW,
+  '5': LEVEL_MINOR,
 };
 const SEVERITY_LABEL_COLOR: Record<string, string> = {
-  blocker: TIER_HIGHEST,
-  critical: TIER_HIGHEST,
-  major: TIER_HIGH,
-  minor: TIER_MEDIUM,
-  cosmetic: TIER_LOW,
-  trivial: TIER_LOW,
+  blocker: LEVEL_MUST,
+  critical: LEVEL_MUST,
+  major: LEVEL_HIGHEST,
+  minor: LEVEL_MEDIUM,
+  cosmetic: LEVEL_LOW,
+  trivial: LEVEL_MINOR,
 };
 export function severityChartColor(raw: string): string {
   const num = /^\s*(\d+)\s*-/.exec(raw)?.[1];
