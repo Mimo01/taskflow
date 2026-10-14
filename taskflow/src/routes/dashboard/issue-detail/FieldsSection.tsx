@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
+import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
@@ -47,6 +48,7 @@ import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import StatusPopover from '../StatusPopover';
+import { DeploymentPackageWarning } from './DeploymentPackageWarning';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
@@ -68,7 +70,7 @@ export function extractSeverity(
  * Extract the deployment package display string from customfield_15725.
  * Shape is unconfirmed (project-specific custom field), so this accepts
  * `unknown` and tolerates a plain string, a single option object
- * (`.value` wins over `.name`), or an array of either -- joined with ', '.
+ * (`.key` wins over `.value`, which wins over `.name`), or an array of either -- joined with ', '.
  * Returns null for every non-representable input rather than throwing.
  * Exported for unit testing.
  */
@@ -79,7 +81,10 @@ export function extractDeploymentPackage(field: unknown): string | null {
       return trimmed.length > 0 ? trimmed : null;
     }
     if (entry && typeof entry === 'object') {
-      const obj = entry as { value?: unknown; name?: unknown };
+      const obj = entry as { key?: unknown; value?: unknown; name?: unknown };
+      // Issue-picker shape ({key}) wins: the field points at an RM issue (261014-eym).
+      const key = typeof obj.key === 'string' ? obj.key.trim() : '';
+      if (key.length > 0) return key;
       const value = typeof obj.value === 'string' ? obj.value.trim() : '';
       if (value.length > 0) return value;
       const name = typeof obj.name === 'string' ? obj.name.trim() : '';
@@ -132,6 +137,7 @@ export function FieldsSection({
   onOpenIssue,
 }: FieldsSectionProps) {
   const f = issue.fields;
+  const { childToWeek: rmChildToWeek } = useRmWeekIndex();
   const isEpic = f.issuetype.name === 'Epic';
   const isSubtask = f.issuetype.subtask;
   const isStory = !isEpic && !isSubtask;
@@ -1098,8 +1104,20 @@ export function FieldsSection({
       <MetaRow label="Deployment package">
         {(() => {
           const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
+          const rmSummary = deploymentPackageValue
+            ? rmChildToWeek
+                .get(deploymentPackageValue)
+                ?.children.find((c) => c.key === deploymentPackageValue)?.summary
+            : undefined;
           return deploymentPackageValue ? (
-            <span data-testid="deployment-package-value">{deploymentPackageValue}</span>
+            <span data-testid="deployment-package-value" className="flex min-w-0 gap-1.5">
+              <span className="shrink-0">{deploymentPackageValue}</span>
+              {rmSummary && (
+                <span className="truncate text-muted-foreground" title={rmSummary}>
+                  {rmSummary}
+                </span>
+              )}
+            </span>
           ) : (
             <span data-testid="deployment-package-value" className="text-muted-foreground">
               &mdash;
@@ -1107,6 +1125,16 @@ export function FieldsSection({
           );
         })()}
       </MetaRow>
+      <DeploymentPackageWarning
+        issueKey={issueKey}
+        issueTypeName={f.issuetype.name}
+        projectKey={f.project?.key}
+        projectName={f.project?.name}
+        pkgField={f.customfield_15725}
+        fixVersions={f.fixVersions}
+        mutation={mutation}
+        jiraBaseUrl={jiraBaseUrl}
+      />
 
       {/* Flagged -- toggle impediment flag */}
       {(() => {
