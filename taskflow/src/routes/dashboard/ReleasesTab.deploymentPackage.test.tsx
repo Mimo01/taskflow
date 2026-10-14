@@ -114,6 +114,8 @@ describe('ReleasesTab deployment package', () => {
     await waitFor(() => expect(screen.getByTestId('row-sync-packages')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('row-sync-packages'));
     expect(await screen.findByText(/2 stories/)).toBeInTheDocument();
+    // WR-08: no second sync can be started while the confirm prompt is open
+    expect(screen.getByTestId('row-sync-packages')).toBeDisabled();
     expect(bulkUpdateIssue).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     const status = await screen.findByTestId('package-sync-status');

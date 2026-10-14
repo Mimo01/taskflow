@@ -76,6 +76,35 @@ describe('executeDeploymentPackageSync', () => {
     };
   };
 
+  it('WR-05: resolves the edit shape per project; a non-editable project is reported, not written', async () => {
+    const inProject = (key: string, project: string) => ({
+      key,
+      fields: {
+        issuetype: { name: 'Story' },
+        project: { key: project, name: 'Core' },
+        customfield_15725: null,
+      },
+    });
+    vi.mocked(fetchDeploymentPackageEditShape).mockImplementation(
+      async (_b: string, _t: string, issueKey: string) =>
+        issueKey.startsWith('B') ? 'not-editable' : 'array',
+    );
+    const out = await executeDeploymentPackageSync({
+      queryClient: makeClient(),
+      jiraBaseUrl: 'https://jira.example.com',
+      token: 'tok',
+      stories: [inProject('A-1', 'AAA'), inProject('B-1', 'BBB')],
+      version,
+      weeks,
+    });
+    expect(out.blocked).toBe(false);
+    expect(bulkUpdateIssue).toHaveBeenCalledTimes(1);
+    expect(bulkUpdateIssue).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'A-1', {
+      customfield_15725: ['RM-11'],
+    });
+    expect(out.results.find((r) => r.key === 'B-1')).toMatchObject({ ok: false });
+  });
+
   it('blocks without writing when the field is not editable', async () => {
     const { promise } = run('not-editable');
     expect(await promise).toEqual({ blocked: true, results: [] });

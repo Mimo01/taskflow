@@ -59,7 +59,7 @@ import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail
 import {
   executeDeploymentPackageSync,
   NOT_EDITABLE_REASON,
-  resolvePackageEditShape,
+  resolveShapesForCandidates,
 } from './release-detail/useDeploymentPackageSync';
 
 interface MatchedVersion {
@@ -359,13 +359,14 @@ export default function ReleasesTab() {
         });
         return;
       }
-      const shape = await resolvePackageEditShape(
+      const shapes = await resolveShapesForCandidates(
         queryClient,
         jiraBaseUrl,
         jiraToken,
-        candidates[0].key,
+        stories,
+        candidates,
       );
-      if (shape === 'not-editable') {
+      if ([...shapes.values()].every((sh) => sh === 'not-editable')) {
         setSyncStatus({ tone: 'error', text: `${version.name}: ${NOT_EDITABLE_REASON}` });
         return;
       }
@@ -773,7 +774,13 @@ export default function ReleasesTab() {
                           ? 'Sync deployment packages'
                           : 'Sync deployment packages (set a release date first)'
                       }
-                      disabled={!version.releaseDate || rmWeeks.length === 0 || syncBusyId !== null}
+                      disabled={
+                        !version.releaseDate ||
+                        rmWeeks.length === 0 ||
+                        syncBusyId !== null ||
+                        syncPrompt !== null ||
+                        syncRunning
+                      }
                       onClick={() => handleSyncClick(version)}
                       className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-40"
                     >

@@ -10,6 +10,7 @@ import {
   formatWeekLabel,
   indexChildToWeek,
   isDateInWeek,
+  isPackageFieldUnreadable,
   mergeWeek,
   packageFixLabel,
   parseWeekRange,
@@ -345,5 +346,63 @@ describe('packageFixLabel', () => {
     expect(packageFixLabel({ kind: 'set-fix-version', versionId: '1', versionName: 'R-43' })).toBe(
       'Set fix version to R-43',
     );
+  });
+});
+
+describe('review hardening (WR-01/02/03/06)', () => {
+  const v43 = { id: '1', name: 'R-43', releaseDate: '2026-10-22' };
+  const v44 = { id: '2', name: 'R-44', releaseDate: '2026-10-29' };
+  const base = { weeks, projectName: 'Core', projectVersions: [v43, v44] };
+
+  it('WR-06: rejects impossible calendar dates in a WEEK title', () => {
+    expect(parseWeekRange('WEEK9 (31.02.2026 - 07.03.2026) X')).toBeNull();
+    expect(parseWeekRange('WEEK9 (29.02.2028 - 06.03.2028) X')?.start).toBe('2028-02-29');
+    expect(parseWeekRange('WEEK9 (29.02.2027 - 06.03.2027) X')).toBeNull();
+  });
+
+  it('WR-01: a fix-version fix says which stale versions it replaces', () => {
+    const r = evaluatePackageSync({ ...base, pkgKey: 'RM-11', fixVersions: [v44] });
+    const fix = r.fixes.find((f) => f.kind === 'set-fix-version');
+    expect(fix).toMatchObject({ versionName: 'R-43', removes: ['R-44'] });
+    expect(packageFixLabel(fix as never)).toBe('Set fix version to R-43 (replaces R-44)');
+    const clean = evaluatePackageSync({ ...base, pkgKey: 'RM-11', fixVersions: [] });
+    expect(clean.fixes[0]).not.toHaveProperty('removes');
+  });
+
+  it('WR-03: an unreadable package is reported, never offered for overwrite', () => {
+    expect(isPackageFieldUnreadable(['RM-1', 'RM-2'])).toBe(true);
+    expect(isPackageFieldUnreadable('not a key')).toBe(true);
+    expect(isPackageFieldUnreadable(null)).toBe(false);
+    expect(isPackageFieldUnreadable([])).toBe(false);
+    expect(isPackageFieldUnreadable('')).toBe(false);
+    expect(isPackageFieldUnreadable('RM-1')).toBe(false);
+    const r = evaluatePackageSync({
+      ...base,
+      pkgKey: null,
+      pkgUnreadable: true,
+      fixVersions: [v43],
+    });
+    expect(r.state).toBe('unresolved');
+    expect(r.fixes).toEqual([]);
+  });
+
+  it('WR-03/02: bulk sync skips unreadable packages and multi-version stories already consistent', () => {
+    const mk = (key: string, pkg: unknown, fixVersions: (typeof v43)[] = []) => ({
+      key,
+      fields: {
+        issuetype: { name: 'Story' },
+        project: { name: 'Core' },
+        customfield_15725: pkg,
+        fixVersions,
+      },
+    });
+    // release = week 43 (2026-10-22). S-2's package is in week 44 AND it also has a week-44 version.
+    const plan = planBulkSync(
+      [mk('S-1', ['RM-11', 'RM-21']), mk('S-2', 'RM-21', [v43, v44]), mk('S-3', 'RM-21', [v43])],
+      { releaseDate: '2026-10-22' },
+      weeks,
+      'single',
+    );
+    expect(plan.map((p) => p.key)).toEqual(['S-3']);
   });
 });
