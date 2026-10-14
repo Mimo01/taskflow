@@ -46,6 +46,13 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
+// Quick 261014-m6e: parent-completion gate. Default = no prompt so existing assertions
+// are unaffected; the integration tests below override per case.
+vi.mock('@/services/jira/parentCompletion', () => ({
+  checkParentCompletion: vi.fn().mockResolvedValue({ shouldPrompt: false }),
+  invalidateAfterTransition: vi.fn(),
+}));
+
 // WR-04: capture the real onDragStart/onDragEnd handlers SprintBoardTab wires
 // into DndContext so tests can drive the drag-end path directly. jsdom cannot
 // simulate dnd-kit's PointerSensor (150ms delay + 5px tolerance), so we mock the
@@ -776,6 +783,77 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       await waitFor(() => {
         expect(invalidateGhAllData).toHaveBeenCalledWith(expect.anything(), 163);
       });
+    });
+  });
+
+  describe('261014-m6e: parent completion prompt', () => {
+    async function moveToDone(
+      issues: ReturnType<typeof makeIssue>[],
+      cardLabel: string,
+      reject = false,
+    ) {
+      await seedAllData(issues);
+      const { postTransition, peekGhTransitions, filterTransitionsForStatus } = await import(
+        '@/services/jira'
+      );
+      if (reject) vi.mocked(postTransition).mockRejectedValueOnce(new Error('Forbidden'));
+      else vi.mocked(postTransition).mockResolvedValueOnce(undefined);
+      const txn = [
+        {
+          id: 'T2',
+          name: 'Done',
+          to: { id: '4', name: 'Done', statusCategory: { id: 3, key: 'done', name: 'Done' } },
+        },
+      ];
+      vi.mocked(peekGhTransitions).mockReturnValue(txn as never);
+      vi.mocked(filterTransitionsForStatus).mockReturnValue(txn as never);
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+      fireEvent.contextMenu((await screen.findAllByText(cardLabel))[0]);
+      await waitFor(() => {
+        const item = screen.queryAllByText('Done').find((el) => el.closest('[role="menuitem"]'));
+        if (item) fireEvent.click(item);
+        expect(postTransition).toHaveBeenCalled();
+      });
+    }
+
+    const story = () => makeIssue('PROJ-1', 'Parent Story', false);
+    const sub = () => makeIssue('PROJ-2', 'Closing Subtask', true, 'PROJ-1');
+
+    it('checks the parent and shows the dialog after a subtask moves to done', async () => {
+      const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+      vi.mocked(checkParentCompletion).mockClear();
+      vi.mocked(checkParentCompletion).mockResolvedValueOnce({
+        shouldPrompt: true,
+        parentKey: 'PROJ-1',
+        parentSummary: 'Parent Story',
+        parentStatusId: '3',
+        parentStatusName: 'In Progress',
+      });
+      await moveToDone([story(), sub()], 'Closing Subtask');
+      expect(await screen.findByText('All subtasks of PROJ-1 are done')).toBeTruthy();
+      expect(checkParentCompletion).toHaveBeenCalledWith(
+        expect.anything(),
+        'test-jira-token',
+        'PROJ-2',
+        'PROJ-1',
+      );
+    });
+
+    it('does not check for a non-subtask done move', async () => {
+      const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+      vi.mocked(checkParentCompletion).mockClear();
+      await moveToDone([makeIssue('PROJ-5', 'Lone Story', false)], 'Lone Story');
+      await new Promise((r) => setTimeout(r, 20));
+      expect(checkParentCompletion).not.toHaveBeenCalled();
+    });
+
+    it('does not check when postTransition rejects', async () => {
+      const { checkParentCompletion } = await import('@/services/jira/parentCompletion');
+      vi.mocked(checkParentCompletion).mockClear();
+      await moveToDone([story(), sub()], 'Closing Subtask', true);
+      await new Promise((r) => setTimeout(r, 20));
+      expect(checkParentCompletion).not.toHaveBeenCalled();
     });
   });
 

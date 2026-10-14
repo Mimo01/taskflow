@@ -145,13 +145,23 @@ describe('StatusPopover', () => {
       fireEvent.click(screen.getByRole('button', { name: /To Do/i }));
       fireEvent.click(await screen.findByText('Start Progress'));
 
-      expect(onSelect).toHaveBeenCalledWith('11', 'In Progress');
+      expect(onSelect).toHaveBeenCalledWith('11', 'In Progress', undefined, undefined);
     });
 
     it('shows a resolution step and forwards the chosen resolution for a capable transition', async () => {
       mockedUseGhTransitions.mockReturnValue(
         hookResult({
-          data: [{ id: '21', name: 'Resolve', to: { id: '6', name: 'Resolved' } }],
+          data: [
+            {
+              id: '21',
+              name: 'Resolve',
+              to: {
+                id: '6',
+                name: 'Resolved',
+                statusCategory: { id: 3, key: 'done', name: 'Done' },
+              },
+            },
+          ],
         }),
       );
       mockedFetchTransitions.mockResolvedValue([
@@ -197,7 +207,7 @@ describe('StatusPopover', () => {
       // explicit "Confirm move" to forward the chosen resolution.
       fireEvent.click(doneBtn);
       fireEvent.click(screen.getByText('Confirm move'));
-      expect(onSelect).toHaveBeenCalledWith('21', 'Resolved', { resolution: { id: '1' } });
+      expect(onSelect).toHaveBeenCalledWith('21', 'Resolved', { resolution: { id: '1' } }, 'done');
     });
 
     // WR-05: resolution required but allowedValues empty → do NOT fire the
