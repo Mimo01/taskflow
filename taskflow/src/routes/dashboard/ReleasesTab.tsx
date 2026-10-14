@@ -34,6 +34,7 @@ import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   findChildForProject,
   findWeekForDate,
+  formatWeekLabel,
   type PackageStoryLike,
   planBulkSync,
 } from '@/lib/deployment-package';
@@ -715,7 +716,7 @@ export default function ReleasesTab() {
                             title={`${pkg.week.summary} (${pkg.child.key} ${pkg.child.summary})`}
                             data-testid="row-deployment-package"
                           >
-                            {pkg.week.summary}{' '}
+                            {formatWeekLabel(pkg.week.summary)}{' '}
                             <span className="font-mono text-muted-foreground">{pkg.child.key}</span>
                           </span>
                         ) : (
@@ -724,7 +725,7 @@ export default function ReleasesTab() {
                             title={`${pkg.week.summary} (no matching package)`}
                             data-testid="row-deployment-package"
                           >
-                            {pkg.week.summary}
+                            {formatWeekLabel(pkg.week.summary)}
                           </span>
                         );
                       })()}
