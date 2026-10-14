@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
 import { Pie, PieChart, type PieSectorShapeProps, Sector, Tooltip } from 'recharts';
-import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
+import {
+  MarkerGlyph,
+  TOOLTIP_SURFACE,
+  TooltipBody,
+  TooltipRow,
+} from '@/components/ui/tooltip-body';
 import type { ChartSlice } from '@/lib/aio-cycle-charts';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +32,14 @@ function SliceTooltip({
   if (!slice) return null;
   return (
     <div className={TOOLTIP_SURFACE}>
-      <TooltipBody title={slice.label}>
+      <TooltipBody
+        title={
+          <span className="flex items-center gap-2">
+            <MarkerGlyph marker="status" color={slice.color} />
+            {slice.label}
+          </span>
+        }
+      >
         {slice.rows.slice(0, 4).map((r) => (
           <TooltipRow key={r.label} label={r.label} value={r.value} color={r.color} />
         ))}
