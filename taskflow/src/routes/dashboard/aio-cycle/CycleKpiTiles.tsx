@@ -1,4 +1,4 @@
-import { CircleCheck, ListRestart, Repeat, Unlink } from 'lucide-react';
+import { BugOff, CircleCheck, FlaskConical, Repeat } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -96,11 +96,11 @@ export function CycleKpiTiles({
               />
             )}
             {!runs || defectsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-retest" icon={ListRestart} tint="blue" />
+              <TileSkeleton testId="kpi-skeleton-retest" icon={FlaskConical} tint="blue" />
             ) : (
               <Tile
                 testId="kpi-retest"
-                icon={ListRestart}
+                icon={FlaskConical}
                 tint="blue"
                 label="Ready to retest"
                 value={<span className={VALUE_CLASS}>{retest.length}</span>}
@@ -122,13 +122,13 @@ export function CycleKpiTiles({
               />
             )}
             {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-unlinked" icon={Unlink} tint="red" />
+              <TileSkeleton testId="kpi-skeleton-unlinked" icon={BugOff} tint="red" />
             ) : (
               <Tile
                 testId="kpi-unlinked"
-                icon={Unlink}
+                icon={BugOff}
                 tint="red"
-                label="Unlinked failures"
+                label="BugOffed failures"
                 value={
                   <span
                     className={cn(
@@ -141,7 +141,7 @@ export function CycleKpiTiles({
                 }
                 sub={<span className="truncate">{`of ${failing} failing`}</span>}
                 tip={
-                  <TooltipBody title="Unlinked failures">
+                  <TooltipBody title="BugOffed failures">
                     <TooltipRow
                       label="Failed w/o defect"
                       value={failedNoDefect}
