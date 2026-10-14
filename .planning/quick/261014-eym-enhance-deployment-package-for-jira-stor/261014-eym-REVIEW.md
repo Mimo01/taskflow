@@ -1,3 +1,16 @@
-# Review 261014-eym (advisory, quick depth) — no blockers
-Warnings: WR-01 auto-fix drops other dated fix versions outside the package week (label doesn't say so); WR-02 bulk sync can overwrite package on multi-version stories; WR-03 unparseable package shape treated as "no package" (offers overwrite); WR-04 release-detail section loads fix versions for active project only; WR-05 bulk sync editmeta shape taken from first story only; WR-06 toYmd accepts impossible dates; WR-07 week index limited to created >= startOfYear(-1); WR-08 other rows' sync buttons not disabled while prompt open.
-Info: IN-01 plan/run computed unused in DeploymentPackageSection; IN-02 Open-in-Jira not disabled while pending; IN-03 retry:false for invalid key; IN-04 duplicate ISSUE_KEY_RE.
+# Review 261014-eym (advisory, quick depth) — no blockers; all warnings fixed
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| WR-01 | "Set fix version" silently dropped other dated fix versions | Fix carries `removes`; suggestion/label read "R-43 (replaces R-44)" |
+| WR-02 | Bulk sync overwrote package on multi-version stories | `planBulkSync` skips stories whose current package already matches another of their fix versions |
+| WR-03 | Unparseable package treated as "no package" (offered overwrite) | `isPackageFieldUnreadable` → state `unresolved`, no fixes; bulk sync skips them |
+| WR-04 | Release detail used only the active project's fix versions | Fix versions fetched per distinct story project; per-project list passed to evaluate and `applyFix` |
+| WR-05 | Bulk sync used one story's editmeta shape for all | Shape resolved per project; non-editable projects reported as failed items, blocked only if none editable |
+| WR-06 | `31.02.2026` accepted as a date | `toYmd` validates via `Date.UTC` round-trip |
+| WR-07 | Week index limited to `created >= startOfYear(-1)` | `summary ~ "WEEK*"` query unbounded; only the fallback full scan bounded (`startOfYear(-2)`) |
+| WR-08 | Other rows' sync buttons usable while prompt open | Disabled while `syncPrompt`/`syncRunning` |
+| IN-03 | Invalid key retried 3x | `retry: false` on `useRmPackage` |
+| IN-04 | Duplicate key regex | `ISSUE_KEY_RE` exported from lib, reused in jira.ts |
+| IN-01 | Unused plan/run computed in Section | not changed (cheap) |
+| IN-02 | "Open in Jira" not disabled while pending | not changed (harmless) |

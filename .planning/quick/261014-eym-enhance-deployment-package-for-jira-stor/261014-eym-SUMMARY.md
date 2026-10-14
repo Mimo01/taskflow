@@ -94,6 +94,6 @@ Live UAT surfaced instance specifics; all fixed on main (last commit e13892d7):
 - **Release detail** also fetches Stories whose package is a task of the release week but that have no fix version (`fetchStoriesWithPackageNoFixVersion`, `cf[15725] in (...)`), degrading to [] if the field is not JQL-searchable.
 - **Diagnostics:** the "no package" hint now says which step failed (no week for date / no task for project name + tasks present / several fix versions). Matching also accepts app-name-in-project-name and project key.
 - **UI:** week label is primary and normal-cased (`Week 45 (2.11.2026 – 8.11.2026) Standard`), RM task secondary; sidebar value wraps; tooltip says it is edited via fix version; warning sits in the value column (replaces the dash), suggestion `→ target` with an "Apply" button below (`PackageFixAction`); sync result is an Alert with one line per failed story.
-- Review advisories (REVIEW.md WR-01..08) were not acted on.
+- Review advisories WR-01..08 (+IN-03/04) fixed afterwards; see REVIEW.md.
 
 Process notes: one accidental `biome --write src` touched 2 unrelated files (reverted before commit); two scripted text replacements silently no-op'd (sidebar button label; ReleasesTab status block corrupted file) and were caught by tests/tsc.
