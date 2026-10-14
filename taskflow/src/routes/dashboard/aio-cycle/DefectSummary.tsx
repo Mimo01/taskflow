@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MarkerGlyph } from '@/components/ui/tooltip-body';
 import { type ChartSlice, defectPrioritySlices, defectStatusSlices } from '@/lib/aio-cycle-charts';
 import type { JiraIssue } from '@/services/jira/types';
-import { AioDonut } from './AioDonut';
-import { TITLE_CLASS } from './AioTile';
+import { AioDonut, AioDonutSkeleton } from './AioDonut';
 import type { ResolvedDefect } from './useCycleDefects';
 
-const DONUT_SIZE = 112;
+/** Fixed key width so the Status and Priority keys (and their values) line up. */
+const KEY_CLASS = 'grid w-28 gap-1 text-xs leading-4';
+const KEY_TITLE_CLASS = 'font-medium';
 
 export function severityOf(issue: JiraIssue | null): string | null {
   return issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
@@ -38,7 +41,7 @@ export function DefectSummary({ defects }: { defects: ResolvedDefect[] }) {
   );
 }
 
-/** Status + Priority donut pair (shared by the Defects tab and the cycle stats block). */
+/** Status + Priority donut pair, each with its key. */
 export function DefectDonuts({
   statusSlices,
   prioritySlices,
@@ -64,15 +67,54 @@ export function DefectDonuts({
   );
 }
 
-/** Defect donuts computed straight from the resolved defects (null while none charted). */
-export function CycleDefectDonuts({ defects }: { defects: ResolvedDefect[] }) {
+/**
+ * Defect donuts computed straight from the resolved defects. Always renders something of the
+ * same height (skeleton rings, an empty ring, or the pair), so the block never jumps.
+ */
+export function CycleDefectDonuts({
+  defects,
+  loading,
+}: {
+  defects: ResolvedDefect[];
+  loading: boolean;
+}) {
   const statusSlices = useMemo(() => defectStatusSlices(defects), [defects]);
   const prioritySlices = useMemo(() => defectPrioritySlices(defects), [defects]);
-  if (statusSlices.length === 0) return null;
+  if (loading) {
+    return (
+      <>
+        <DonutBlockSkeleton testId="defect-status-skeleton" />
+        <DonutBlockSkeleton testId="defect-priority-skeleton" />
+      </>
+    );
+  }
+  if (statusSlices.length === 0) {
+    return (
+      <AioDonutSkeleton testId="defect-donut-empty" pulse={false}>
+        No linked defects
+      </AioDonutSkeleton>
+    );
+  }
   return <DefectDonuts statusSlices={statusSlices} prioritySlices={prioritySlices} />;
 }
 
-/** Donut with a compact name/count key beside it (a bare ring says nothing without one). */
+function DonutBlockSkeleton({ testId }: { testId: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <AioDonutSkeleton testId={testId} />
+      <div className={KEY_CLASS}>
+        <Skeleton className="h-3.5 w-12" />
+        <Skeleton className="h-3.5 w-24" />
+        <Skeleton className="h-3.5 w-20" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Donut with a compact key beside it (a bare ring says nothing without one). Key rows use the
+ * same status swatch as the tooltip rows that open on the slices.
+ */
 function DonutBlock({
   title,
   testId,
@@ -85,20 +127,15 @@ function DonutBlock({
   slices: ChartSlice[];
 }) {
   return (
-    <div data-testid="defect-donut-block" className="flex items-center gap-4">
-      <AioDonut
-        slices={slices}
-        size={DONUT_SIZE}
-        testId={testId}
-        ariaLabel={`${label}: ${describe(slices)}`}
-      />
-      <div className="grid gap-1 text-xs">
-        <span className={TITLE_CLASS}>{title}</span>
+    <div data-testid="defect-donut-block" className="flex items-center gap-3">
+      <AioDonut slices={slices} testId={testId} ariaLabel={`${label}: ${describe(slices)}`} />
+      <div className={KEY_CLASS}>
+        <span className={KEY_TITLE_CLASS}>{title}</span>
         {slices.slice(0, 5).map((s) => (
-          <span key={s.label} className="flex items-center gap-1.5">
-            <span className="size-2 flex-none rounded-full" style={{ background: s.color }} />
-            <span className="truncate">{s.label}</span>
-            <span className="tabular-nums text-muted-foreground">{s.value}</span>
+          <span key={s.label} className="flex min-w-0 items-center gap-2">
+            <MarkerGlyph marker="status" color={s.color} />
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">{s.label}</span>
+            <span className="tabular-nums">{s.value}</span>
           </span>
         ))}
       </div>

@@ -4,6 +4,11 @@ import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/toolti
 import type { ChartSlice } from '@/lib/aio-cycle-charts';
 import { cn } from '@/lib/utils';
 
+/** Every donut in the cycle stats block shares one diameter and one ring thickness. */
+export const DONUT_SIZE = 120;
+const INNER = 0.36;
+const OUTER = 0.48;
+
 function SliceShape(p: PieSectorShapeProps) {
   const { color } = p.payload as ChartSlice;
   return <Sector {...p} fill={color} />;
@@ -31,17 +36,18 @@ function SliceTooltip({
 
 /**
  * Fixed-size recharts donut (no ResponsiveContainer: avoids 0-size measurement in WebKit/Tauri).
- * No legend, no click handlers; hover tooltip per slice (at most 4 rows).
+ * No legend, no click handlers; hover tooltip per slice (at most 4 rows). The hovered donut
+ * stacks above its neighbours and the tooltip above the centre overlay.
  */
 export function AioDonut({
   slices,
-  size,
+  size = DONUT_SIZE,
   testId,
   ariaLabel,
   center,
 }: {
   slices: ChartSlice[];
-  size: number;
+  size?: number;
   testId: string;
   ariaLabel: string;
   center?: ReactNode;
@@ -59,8 +65,8 @@ export function AioDonut({
           data={slices}
           dataKey="value"
           nameKey="label"
-          innerRadius={size * 0.33}
-          outerRadius={size * 0.47}
+          innerRadius={size * INNER}
+          outerRadius={size * OUTER}
           paddingAngle={slices.length > 1 ? 1 : 0}
           stroke="none"
           isAnimationActive={false}
@@ -77,14 +83,17 @@ export function AioDonut({
   );
 }
 
-/** Same-size muted ring so geometry is identical while data loads. */
+/**
+ * Same-geometry muted ring: pulsing while data loads, still (with a short centred note) for
+ * an empty state, so the block keeps its shape in every state.
+ */
 export function AioDonutSkeleton({
-  size,
+  size = DONUT_SIZE,
   testId,
   children,
   pulse = true,
 }: {
-  size: number;
+  size?: number;
   testId: string;
   children?: ReactNode;
   pulse?: boolean;
@@ -93,10 +102,12 @@ export function AioDonutSkeleton({
     <div data-testid={testId} className="relative flex-none" style={{ width: size, height: size }}>
       <div
         className={cn('size-full rounded-full border-muted', pulse && 'animate-pulse')}
-        style={{ borderWidth: size * 0.14 }}
+        style={{ borderWidth: size * (OUTER - INNER) }}
       />
       {children ? (
-        <div className="absolute inset-0 grid place-content-center text-center">{children}</div>
+        <div className="absolute inset-0 grid place-content-center text-center">
+          <span className="max-w-20 text-xs leading-4 text-muted-foreground">{children}</span>
+        </div>
       ) : null}
     </div>
   );
