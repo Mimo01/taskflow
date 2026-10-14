@@ -161,7 +161,8 @@ function DonutBlock({
       data-testid="defect-donut-block"
       className={cn(
         'flex items-center gap-4',
-        !large && 'flex-col gap-1 @4xl/epic:flex-row @4xl/epic:gap-4',
+        !large &&
+          'flex-col items-start gap-1 @4xl/epic:flex-row @4xl/epic:items-center @4xl/epic:gap-4',
       )}
     >
       <AioDonut
