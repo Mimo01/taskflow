@@ -482,3 +482,19 @@ export function packageFixLabel(fix: PackageFix): string {
     ? `Set deployment package to ${formatWeekLabel(fix.weekSummary)} (${fix.childKey})`
     : `Set deployment package to ${fix.childKey}`;
 }
+
+/**
+ * Readable text for a failed Jira write on one story. Maps auth failures and the
+ * "field is not on the edit screen" family to plain language; anything else keeps
+ * Jira's own message.
+ */
+export function describeWriteError(err: unknown, issueKey: string): string {
+  const message = err instanceof Error ? err.message : String(err);
+  const status = (err as { status?: unknown } | null)?.status;
+  if (status === 401) return 'Your Jira session expired. Sign in again and retry.';
+  if (status === 403) return `You don't have permission to edit ${issueKey}.`;
+  if (/cannot be set|not on the appropriate screen|is not editable/i.test(message)) {
+    return `The field can't be edited on ${issueKey} (it is not on its Jira edit screen).`;
+  }
+  return message;
+}
