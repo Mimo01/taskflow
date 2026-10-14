@@ -12,9 +12,10 @@
  */
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, GitBranch, Package, RefreshCw, Rocket } from 'lucide-react';
+import { AlertTriangle, GitBranch, Package, RefreshCw, Rocket, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,9 +119,11 @@ export default function ReleasesTab() {
     count: number;
   } | null>(null);
   const [syncRunning, setSyncRunning] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<{ tone: 'info' | 'error'; text: string } | null>(
-    null,
-  );
+  const [syncStatus, setSyncStatus] = useState<{
+    tone: 'info' | 'error';
+    text: string;
+    details?: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -395,13 +398,10 @@ export default function ReleasesTab() {
       } else {
         const failed = outcome.results.filter((r) => !r.ok);
         const updated = outcome.results.length - failed.length;
-        const failedText =
-          failed.length > 0
-            ? `, ${failed.length} failed (${failed.map((f) => `${f.key}: ${f.error ?? 'error'}`).join('; ')})`
-            : '';
         setSyncStatus({
           tone: failed.length > 0 ? 'error' : 'info',
-          text: `${version.name}: ${updated} updated${failedText}`,
+          text: `${version.name}: ${updated} updated${failed.length > 0 ? `, ${failed.length} failed` : ''}`,
+          details: failed.map((f) => `${f.key}: ${f.error ?? 'error'}`),
         });
       }
     } catch (e) {
@@ -470,17 +470,35 @@ export default function ReleasesTab() {
       </div>
 
       {syncStatus && (
-        <p
-          role="status"
+        <Alert
+          variant={syncStatus.tone === 'error' ? 'destructive' : 'default'}
           data-testid="package-sync-status"
-          className={
-            syncStatus.tone === 'error'
-              ? 'text-xs text-destructive'
-              : 'text-xs text-muted-foreground'
-          }
+          className="py-1.5"
         >
-          {syncStatus.text}
-        </p>
+          {syncStatus.tone === 'error' && <AlertTriangle aria-hidden="true" />}
+          <AlertTitle className="flex min-w-0 items-center justify-between gap-2 text-xs">
+            <span className="min-w-0 break-words">{syncStatus.text}</span>
+            <button
+              type="button"
+              onClick={() => setSyncStatus(null)}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="size-3.5" aria-hidden="true" />
+            </button>
+          </AlertTitle>
+          {syncStatus.details && syncStatus.details.length > 0 && (
+            <AlertDescription className="text-xs">
+              <ul className="flex flex-col gap-0.5">
+                {syncStatus.details.map((d) => (
+                  <li key={d} className="min-w-0 break-words">
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          )}
+        </Alert>
       )}
 
       {/* Loading skeleton */}
