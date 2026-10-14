@@ -1,10 +1,12 @@
 import { BugOff, CircleCheck, FlaskConical, Redo2 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
+import { cycleBurndownSeries } from '@/lib/aio-cycle-charts';
 import { cn } from '@/lib/utils';
-import type { AioTestRun } from '@/services/aio';
+import type { AioCycle, AioTestRun } from '@/services/aio';
 import { STAT_CONTAINER_CLASS } from '../issue-detail/EpicStatCard';
 import { Tile, TileSkeleton, VALUE_CLASS } from './AioTile';
+import { CycleBurndown } from './CycleBurndown';
 import { CycleDefectDonuts } from './DefectSummary';
 import { ExecutionDonut } from './ExecutionDonut';
 import type { AioStatusCounts } from './useAioCycleData';
@@ -21,6 +23,9 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  * tab chips carry the counts), the header carries the last run date, so the tiles show only
  * what those cannot (pass rate of executed, re-runs, unlinked failures, open defects).
  *
+ * A Burndown strip (remaining cases over time, 140px plot) sits below the row; it is hidden when
+ * nothing has been executed.
+ *
  * Three layouts on the block's own container width:
  *  - narrow: everything stacked, tiles 2x2;
  *  - >= 896px (@4xl): tiles 2x2 | Execution | Defect Summary (Status on top, Priority | Severity below) in one row.
@@ -32,6 +37,7 @@ export function CycleKpiTiles({
   countsLoading,
   defectsLoading,
   defects,
+  cycle,
 }: {
   counts: AioStatusCounts;
   total: number;
@@ -39,7 +45,12 @@ export function CycleKpiTiles({
   countsLoading: boolean;
   defectsLoading: boolean;
   defects: ResolvedDefect[];
+  cycle: Pick<AioCycle, 'startDate' | 'endDate'> | undefined;
 }) {
+  const burndown = useMemo(
+    () => (runs ? cycleBurndownSeries(runs, cycle, Date.now()) : null),
+    [runs, cycle],
+  );
   const executed = counts.pass + counts.fail + counts.blocked;
   const passPct = pctOf(counts.pass, executed);
   const reRunList = (runs ?? []).filter((r) => (r.runCount ?? 0) > 1);
@@ -71,115 +82,126 @@ export function CycleKpiTiles({
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
-      <div className="flex flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8">
-        <Section title="Cycle Statistics" className="min-w-0 flex-1">
-          <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
-            {countsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-pass" icon={CircleCheck} tint="green" />
-            ) : (
-              <Tile
-                testId="kpi-pass-rate"
-                icon={CircleCheck}
-                tint="green"
-                label="Pass rate"
-                value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
-                sub={<span className="truncate">of executed</span>}
-                tip={
-                  <TooltipBody title="Pass rate">
-                    <TooltipRow label="Passed" value={counts.pass} color="var(--color-green-500)" />
-                    <TooltipRow label="Failed" value={counts.fail} color="var(--color-red-500)" />
-                    <TooltipRow
-                      label="Blocked"
-                      value={counts.blocked}
-                      color="var(--color-orange-400)"
-                    />
-                  </TooltipBody>
-                }
-              />
-            )}
-            {!runs || defectsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-retest" icon={FlaskConical} tint="blue" />
-            ) : (
-              <Tile
-                testId="kpi-retest"
-                icon={FlaskConical}
-                tint="blue"
-                label="Ready to retest"
-                value={<span className={VALUE_CLASS}>{retest.length}</span>}
-                sub={<span className="truncate">{`of ${failing} failing`}</span>}
-                tip={
-                  <TooltipBody title="Ready to retest">
-                    <TooltipRow
-                      label="Failed, defects done"
-                      value={retestFailed}
-                      color="var(--color-red-500)"
-                    />
-                    <TooltipRow
-                      label="Blocked, defects done"
-                      value={retest.length - retestFailed}
-                      color="var(--color-orange-400)"
-                    />
-                  </TooltipBody>
-                }
-              />
-            )}
-            {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-unlinked" icon={BugOff} tint="red" />
-            ) : (
-              <Tile
-                testId="kpi-unlinked"
-                icon={BugOff}
-                tint="red"
-                label="Unlinked failures"
-                value={<span className={VALUE_CLASS}>{unlinked.length}</span>}
-                sub={<span className="truncate">{`of ${failing} failing`}</span>}
-                tip={
-                  <TooltipBody title="Unlinked failures">
-                    <TooltipRow
-                      label="Failed w/o defect"
-                      value={failedNoDefect}
-                      color="var(--color-red-500)"
-                    />
-                    <TooltipRow
-                      label="Blocked w/o defect"
-                      value={blockedNoDefect}
-                      color="var(--color-orange-400)"
-                    />
-                  </TooltipBody>
-                }
-              />
-            )}
-            {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-reruns" icon={Redo2} tint="amber" />
-            ) : (
-              <Tile
-                testId="kpi-reruns"
-                icon={Redo2}
-                tint="amber"
-                label="Re-runs"
-                value={<span className={VALUE_CLASS}>{reRuns}</span>}
-                sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
-                tip={
-                  <TooltipBody title="Re-runs">
-                    <TooltipRow label="Re-run cases" value={reRuns} />
-                    <TooltipRow label="Max runs" value={maxRuns} />
-                  </TooltipBody>
-                }
-              />
-            )}
-          </div>
-        </Section>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8">
+          <Section title="Cycle Statistics" className="min-w-0 flex-1">
+            <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
+              {countsLoading ? (
+                <TileSkeleton testId="kpi-skeleton-pass" icon={CircleCheck} tint="green" />
+              ) : (
+                <Tile
+                  testId="kpi-pass-rate"
+                  icon={CircleCheck}
+                  tint="green"
+                  label="Pass rate"
+                  value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
+                  sub={<span className="truncate">of executed</span>}
+                  tip={
+                    <TooltipBody title="Pass rate">
+                      <TooltipRow
+                        label="Passed"
+                        value={counts.pass}
+                        color="var(--color-green-500)"
+                      />
+                      <TooltipRow label="Failed" value={counts.fail} color="var(--color-red-500)" />
+                      <TooltipRow
+                        label="Blocked"
+                        value={counts.blocked}
+                        color="var(--color-orange-400)"
+                      />
+                    </TooltipBody>
+                  }
+                />
+              )}
+              {!runs || defectsLoading ? (
+                <TileSkeleton testId="kpi-skeleton-retest" icon={FlaskConical} tint="blue" />
+              ) : (
+                <Tile
+                  testId="kpi-retest"
+                  icon={FlaskConical}
+                  tint="blue"
+                  label="Ready to retest"
+                  value={<span className={VALUE_CLASS}>{retest.length}</span>}
+                  sub={<span className="truncate">{`of ${failing} failing`}</span>}
+                  tip={
+                    <TooltipBody title="Ready to retest">
+                      <TooltipRow
+                        label="Failed, defects done"
+                        value={retestFailed}
+                        color="var(--color-red-500)"
+                      />
+                      <TooltipRow
+                        label="Blocked, defects done"
+                        value={retest.length - retestFailed}
+                        color="var(--color-orange-400)"
+                      />
+                    </TooltipBody>
+                  }
+                />
+              )}
+              {!runs ? (
+                <TileSkeleton testId="kpi-skeleton-unlinked" icon={BugOff} tint="red" />
+              ) : (
+                <Tile
+                  testId="kpi-unlinked"
+                  icon={BugOff}
+                  tint="red"
+                  label="Unlinked failures"
+                  value={<span className={VALUE_CLASS}>{unlinked.length}</span>}
+                  sub={<span className="truncate">{`of ${failing} failing`}</span>}
+                  tip={
+                    <TooltipBody title="Unlinked failures">
+                      <TooltipRow
+                        label="Failed w/o defect"
+                        value={failedNoDefect}
+                        color="var(--color-red-500)"
+                      />
+                      <TooltipRow
+                        label="Blocked w/o defect"
+                        value={blockedNoDefect}
+                        color="var(--color-orange-400)"
+                      />
+                    </TooltipBody>
+                  }
+                />
+              )}
+              {!runs ? (
+                <TileSkeleton testId="kpi-skeleton-reruns" icon={Redo2} tint="amber" />
+              ) : (
+                <Tile
+                  testId="kpi-reruns"
+                  icon={Redo2}
+                  tint="amber"
+                  label="Re-runs"
+                  value={<span className={VALUE_CLASS}>{reRuns}</span>}
+                  sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
+                  tip={
+                    <TooltipBody title="Re-runs">
+                      <TooltipRow label="Re-run cases" value={reRuns} />
+                      <TooltipRow label="Max runs" value={maxRuns} />
+                    </TooltipBody>
+                  }
+                />
+              )}
+            </div>
+          </Section>
 
-        {/* One row when wide (rules with 24px each side); stacked with hairlines when narrow. */}
-        <Section title="Execution Distribution" className={DIVIDED_CLASS}>
-          <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
-        </Section>
-        <Section
-          title="Defect Summary"
-          className={cn(DIVIDED_CLASS, '@4xl/epic:w-112 @4xl/epic:pr-4')}
-        >
-          <CycleDefectDonuts defects={defects} loading={defectsLoading} />
-        </Section>
+          {/* One row when wide (rules with 24px each side); stacked with hairlines when narrow. */}
+          <Section title="Execution Distribution" className={DIVIDED_CLASS}>
+            <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+          </Section>
+          <Section
+            title="Defect Summary"
+            className={cn(DIVIDED_CLASS, '@4xl/epic:w-112 @4xl/epic:pr-4')}
+          >
+            <CycleDefectDonuts defects={defects} loading={defectsLoading} />
+          </Section>
+        </div>
+        {!runs || burndown ? (
+          <Section title="Burndown" className="border-t border-border pt-4">
+            <CycleBurndown series={burndown} loading={!runs} />
+          </Section>
+        ) : null}
       </div>
     </div>
   );

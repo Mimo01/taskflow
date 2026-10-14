@@ -196,6 +196,7 @@ export default function AioCycleDetailPage() {
               countsLoading={countsLoading}
               defectsLoading={!runs || defectsResolving}
               defects={defects}
+              cycle={cycleQuery.data}
             />
             <Tabs defaultValue="executions" className="gap-0">
               <div className="sticky top-0 z-20 flex h-11 items-center bg-background px-6">
