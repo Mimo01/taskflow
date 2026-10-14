@@ -1,12 +1,11 @@
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatWeekLabel, type PackageFix, packageFixLabel } from '@/lib/deployment-package';
 
 /** What a fix will set, as readable text (the thing the user actually cares about). */
 export function packageFixTarget(fix: PackageFix): string {
-  if (fix.kind === 'set-fix-version') return `Fix version: ${fix.versionName}`;
-  return fix.weekSummary
-    ? `Package: ${formatWeekLabel(fix.weekSummary)} (${fix.childKey})`
-    : `Package: ${fix.childKey}`;
+  if (fix.kind === 'set-fix-version') return fix.versionName;
+  return fix.weekSummary ? `${formatWeekLabel(fix.weekSummary)} (${fix.childKey})` : fix.childKey;
 }
 
 interface PackageFixActionProps {
@@ -18,26 +17,41 @@ interface PackageFixActionProps {
 }
 
 /**
- * One suggested fix: the target as wrapping text plus a compact button. The
- * full sentence stays as the button's accessible name.
+ * One suggested fix: "→ target" as wrapping text plus a small check icon button.
+ * The full sentence stays as the button's accessible name.
  */
 export function PackageFixAction({ fix, onApply, disabled, actionLabel }: PackageFixActionProps) {
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="min-w-0 flex-1 basis-40 break-words text-muted-foreground">
+    <div className="flex min-w-0 items-start gap-2">
+      <span className="min-w-0 flex-1 break-words pt-0.5 text-muted-foreground">
+        <span aria-hidden="true">→ </span>
         {packageFixTarget(fix)}
       </span>
-      <Button
-        type="button"
-        variant="outline"
-        size="xs"
-        className="shrink-0"
-        disabled={disabled}
-        aria-label={actionLabel ?? packageFixLabel(fix)}
-        onClick={onApply}
-      >
-        {actionLabel ?? 'Apply'}
-      </Button>
+      {actionLabel ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          className="shrink-0"
+          disabled={disabled}
+          onClick={onApply}
+        >
+          {actionLabel}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-xs"
+          className="shrink-0"
+          disabled={disabled}
+          title="Apply"
+          aria-label={packageFixLabel(fix)}
+          onClick={onApply}
+        >
+          <Check aria-hidden="true" />
+        </Button>
+      )}
     </div>
   );
 }
