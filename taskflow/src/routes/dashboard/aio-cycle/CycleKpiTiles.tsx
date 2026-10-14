@@ -1,4 +1,4 @@
-import { ListRestart, Repeat, ShieldCheck, Unlink } from 'lucide-react';
+import { CircleCheck, ListRestart, Repeat, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -73,11 +73,11 @@ export function CycleKpiTiles({
         <Section title="Cycle Statistics" className="min-w-0 flex-1">
           <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
             {countsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-pass" icon={ShieldCheck} tint="green" />
+              <TileSkeleton testId="kpi-skeleton-pass" icon={CircleCheck} tint="green" />
             ) : (
               <Tile
                 testId="kpi-pass-rate"
-                icon={ShieldCheck}
+                icon={CircleCheck}
                 tint="green"
                 label="Pass rate"
                 value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
