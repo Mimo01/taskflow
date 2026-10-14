@@ -10,6 +10,7 @@ import {
 } from '@/lib/aio-cycle-charts';
 import type { JiraIssue } from '@/services/jira/types';
 import { AioDonut, AioDonutSkeleton, DONUT_SIZE } from './AioDonut';
+import { VALUE_CLASS } from './AioTile';
 import type { ResolvedDefect } from './useCycleDefects';
 
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
@@ -24,7 +25,7 @@ const KEY_MAX_LARGE = 5;
 const STATUS_DONUT_SIZE = 120;
 /** Status on top, Priority and Severity side by side below. */
 const LAYOUT_CLASS = 'grid w-full min-w-0 gap-4';
-const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-4';
+const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-4 border-t border-border pt-4';
 
 /** Raw severity value ('2-Major'): the number is the order, so sort on this. */
 export function severityRaw(issue: JiraIssue | null): string | null {
@@ -160,6 +161,14 @@ function DonutBlock({
         size={size}
         testId={testId}
         ariaLabel={`${label}: ${describe(slices)}`}
+        center={
+          large ? (
+            <>
+              <span className={VALUE_CLASS}>{slices.reduce((n, s) => n + s.value, 0)}</span>
+              <span className="text-xs leading-4 text-muted-foreground">defects</span>
+            </>
+          ) : undefined
+        }
       />
       <div className={large ? KEY_CLASS_LARGE : KEY_CLASS}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
