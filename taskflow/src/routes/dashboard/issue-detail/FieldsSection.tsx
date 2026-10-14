@@ -1117,7 +1117,7 @@ export function FieldsSection({
               {rmWeek && (
                 <span
                   className="break-words"
-                  title={`${rmWeek.key} ${rmWeek.summary}\n${editNote}`}
+                  title={editNote}
                   data-testid="deployment-package-week"
                 >
                   {formatWeekLabel(rmWeek.summary)}
