@@ -176,7 +176,7 @@ export function CycleKpiTiles({
           title="Defect Summary"
           className={cn(DIVIDED_CLASS, '@4xl/epic:min-w-72 @4xl/epic:pr-4')}
         >
-          <div className="grid w-full min-w-0 gap-5">
+          <div className="grid w-full min-w-0 gap-2">
             <CycleDefectDonuts defects={defects} loading={defectsLoading} />
           </div>
         </Section>

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
-import { DefectSummary, severityOf } from './DefectSummary';
+import { severityOf } from './DefectSummary';
 import type { ResolvedDefect } from './useCycleDefects';
 
 type DefectSortKey = 'key' | 'status' | 'priority' | 'severity' | 'assignee' | null;
@@ -499,8 +499,6 @@ export function DefectsList({
 
   return (
     <div className="@container flex flex-col">
-      <DefectSummary defects={defects} />
-
       <div
         role="toolbar"
         aria-label="Defects filters"

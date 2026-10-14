@@ -942,7 +942,7 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByText('Alice Reporter')).toBeDefined());
       expect(inDefectList('High')).toBeDefined();
-      expect(screen.getByText('Major')).toBeDefined();
+      expect(inDefectList('Major')).toBeDefined();
     });
 
     it('AIOC-03: renders em-dashes for Reporter, Priority, Severity when fields are null', async () => {
@@ -1125,7 +1125,7 @@ describe('AioCycleDetailPage', () => {
   });
 
   describe('Defects tab — summary strip and triggered-by chips', () => {
-    it('severity line on the Defects tab; status/priority donuts live in the stats block', async () => {
+    it('status/priority/severity donuts live in the stats block only; no Sev line in the tab', async () => {
       const user = userEvent.setup();
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       await setupDefaultMocks();
@@ -1138,22 +1138,24 @@ describe('AioCycleDetailPage', () => {
           assignee: null,
           issuetype: { name: 'Bug', subtask: false },
           priority: { name: 'High' },
-          customfield_13415: { value: 'Critical' },
+          customfield_13415: { value: '1-Critical' },
         },
       });
       renderPage();
       await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
-      await waitFor(() => expect(screen.getByTestId('defects-summary')).toBeDefined());
-      const strip = screen.getByTestId('defects-summary');
-      // donuts are in the stats block (once), not repeated in the Defects tab
-      expect(within(strip).queryByTestId('defect-status-donut')).toBeNull();
-      expect(screen.getAllByTestId('defect-status-donut')).toHaveLength(1);
+      await waitFor(() => expect(screen.getAllByTestId('defect-status-donut')).toHaveLength(1));
       expect(screen.getAllByTestId('defect-priority-donut')).toHaveLength(1);
+      expect(screen.getAllByTestId('defect-severity-donut')).toHaveLength(1);
       expect(screen.getByTestId('defect-status-donut').getAttribute('aria-label')).toBe(
         'Defects by status: 1 In Progress',
       );
-      expect(within(strip).getByText('Sev: Critical 1')).toBeDefined();
+      expect(screen.getByTestId('defect-severity-donut').getAttribute('aria-label')).toBe(
+        'Defects by severity: 1 1-Critical',
+      );
+      // the old text breakdown is gone (the Severity column stays)
+      expect(screen.queryByTestId('defects-summary')).toBeNull();
+      expect(screen.queryByText(/^Sev:/)).toBeNull();
     });
 
     it('triggered-by chip pushes the cycle breadcrumb and opens that run', async () => {

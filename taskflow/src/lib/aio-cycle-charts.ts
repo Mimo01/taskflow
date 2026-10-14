@@ -25,6 +25,8 @@ export interface DefectLike {
     fields: {
       status?: { name?: string; statusCategory?: { key?: string } } | null;
       priority?: { name?: string; iconUrl?: string } | null;
+      /** Severity custom field (e.g. '2-Major'). */
+      customfield_13415?: { value?: string; name?: string } | null;
     };
   } | null;
 }
@@ -158,6 +160,51 @@ export function defectPrioritySlices(defects: DefectLike[]): ChartSlice[] {
         color: priorityChartColor(g.priority),
         rows: [
           { label: 'Defects', value: g.value },
+          { label: 'Share', value: `${share}%` },
+        ],
+      };
+    });
+}
+
+/** Severity labels start with their level ('1-Critical', '2-Major', ...): colour by that level. */
+const SEVERITY_COLOR: Record<string, string> = {
+  '1': 'var(--color-red-600)',
+  '2': 'var(--color-orange-500)',
+  '3': 'var(--color-yellow-500)',
+  '4': 'var(--color-gray-400)',
+};
+const SEVERITY_NONE_COLOR = 'var(--color-gray-300)';
+
+/**
+ * Defects grouped by the severity custom field, ordered by level. Defects without a severity
+ * fall into "None"; when no defect has a severity at all there is nothing to chart.
+ */
+export function defectSeveritySlices(defects: DefectLike[]): ChartSlice[] {
+  const groups = new Map<string, number>();
+  let total = 0;
+  let withSeverity = 0;
+  for (const d of defects) {
+    if (!d.issue) continue;
+    const f = d.issue.fields.customfield_13415;
+    const name = f?.value ?? f?.name ?? 'None';
+    if (name !== 'None') withSeverity++;
+    groups.set(name, (groups.get(name) ?? 0) + 1);
+    total++;
+  }
+  if (withSeverity === 0) return [];
+  const rank = (name: string) => (name === 'None' ? 'z' : name);
+  return [...groups.entries()]
+    .sort((a, b) => rank(a[0]).localeCompare(rank(b[0])))
+    .map(([name, value]) => {
+      const share = pct(value, total);
+      return {
+        key: name,
+        label: name,
+        value,
+        share,
+        color: SEVERITY_COLOR[name.charAt(0)] ?? SEVERITY_NONE_COLOR,
+        rows: [
+          { label: 'Defects', value },
           { label: 'Share', value: `${share}%` },
         ],
       };
