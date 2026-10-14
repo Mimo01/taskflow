@@ -135,19 +135,27 @@ export function CycleBurndown({
 
   const fromKey = toDateKey(series.from);
   const toKey = toDateKey(series.to);
-  const allTicks = fromKey && toKey ? timeTicks(fromKey, toKey, width) : [];
+  // Denser than the epic charts (one label per ~45px); start and end are always labelled.
+  const allTicks = fromKey && toKey ? timeTicks(fromKey, toKey, width * 1.6) : [];
   const spanDays = (series.to - series.from) / DAY_MS;
   const showBands = spanDays > 0 && width / spanDays >= MIN_BAND_DAY_PX;
   const yTicks = [0, ...(series.total >= 4 ? [Math.round(series.total / 2)] : []), series.total];
+  // Headroom above the largest value so the line does not hug the top of the plot.
+  const yMax = series.total + Math.max(1, Math.ceil(series.total * 0.12));
   const yWidth = Math.ceil(String(series.total).length * DIGIT_PX) + 4;
   const now = Date.now();
-  // The axis always ends on `to`; drop an earlier tick whose label would collide with that one.
   const pxPerMs = series.to > series.from ? (width - yWidth) / (series.to - series.from) : 0;
-  const lastT = allTicks.length > 0 ? allTicks[allTicks.length - 1].t : null;
-  const ticks = allTicks.filter(
-    (x) => lastT === null || x.t === lastT || (lastT - x.t) * pxPerMs >= MIN_LABEL_GAP_PX,
-  );
-  const lastTick = ticks.length > 0 ? ticks[ticks.length - 1].t : null;
+  const ticks = [
+    { t: series.from, label: dayLabel(series.from) },
+    ...allTicks.filter(
+      (x) =>
+        (x.t - series.from) * pxPerMs >= MIN_LABEL_GAP_PX &&
+        (series.to - x.t) * pxPerMs >= MIN_LABEL_GAP_PX,
+    ),
+    { t: series.to, label: dayLabel(series.to) },
+  ];
+  const firstTick = series.from;
+  const lastTick = series.to;
 
   return (
     <div data-testid="cycle-burndown" className="absolute inset-0 overflow-visible">
@@ -186,7 +194,13 @@ export function CycleBurndown({
                   dy={10}
                   fontSize={TICK.fontSize}
                   fill={TICK.fill}
-                  textAnchor={p.payload?.value === lastTick ? 'end' : 'middle'}
+                  textAnchor={
+                    p.payload?.value === lastTick
+                      ? 'end'
+                      : p.payload?.value === firstTick
+                        ? 'start'
+                        : 'middle'
+                  }
                 >
                   {p.payload?.value === undefined
                     ? ''
@@ -198,7 +212,7 @@ export function CycleBurndown({
               axisLine={false}
             />
             <YAxis
-              domain={[0, series.total]}
+              domain={[0, yMax]}
               allowDecimals={false}
               ticks={yTicks}
               tick={TICK}
