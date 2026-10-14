@@ -784,6 +784,16 @@ export function preprocessJiraMarkup(
   // unaffected because it does not match the \{\{\[...\]\}\} pattern.
   result = result.replace(/\{\{(\[[^\]]*\])\}\}/g, '$1');
 
+  // Underscores inside {{monospace}}: jira2md applies its `_text_` → `*text*` italic rule
+  // inside the {{...}} span before emitting the backtick code span, so
+  // `{{HW_SALE_FIX}}` renders as `HW*SALE*FIX` (and the Jira escape `\_` leaves a stray
+  // backslash: `{{HW\_SALE\_FIX}}` → `HW\*SALE\*FIX`). Monospace content is literal, so
+  // unescape `\_` and hide every `_` behind the USCORE sentinel; fixMarkdownLinkUnderscores
+  // restores it after jira2md has run.
+  result = result.replace(/\{\{([^{}\n]+?)\}\}/g, (_m, inner: string) => {
+    return `{{${inner.replace(/\\?_/g, '\x00USCORE\x00')}}}`;
+  });
+
   // Jira backslash-escaped plus: \\+ is a Jira escape sequence meaning a literal `+`.
   // jira2md does not understand Jira escape sequences — it applies its `+text+` →
   // `<ins>text</ins>` underline rule globally, so a bare `+` left after stripping

@@ -2620,5 +2620,20 @@ After quote`;
       const { container } = render(<WikiRenderer wikiText="a _word_ here" />);
       expect(container.querySelector('em')?.textContent).toBe('word');
     });
+
+    it('wiki-mono-underscore: underscores (incl. `\\_` escapes) inside {{monospace}} stay literal', () => {
+      // jira2md's italic rule used to turn `_..._` inside {{...}} into `*...*`,
+      // rendering `HW\*SALE\*FIX` / `HW*SALE*FIX` instead of the literal text.
+      for (const [src, want] of [
+        ['{{HW\\_SALE\\_FIX}}', 'HW_SALE_FIX'],
+        ['{{HW_SALE_FIX}}', 'HW_SALE_FIX'],
+        ['{{_lead_}}', '_lead_'],
+      ]) {
+        const { container, unmount } = render(<WikiRenderer wikiText={src} />);
+        expect(container.querySelector('code')?.textContent).toBe(want);
+        expect(container.querySelector('em')).toBeNull();
+        unmount();
+      }
+    });
   });
 });
