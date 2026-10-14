@@ -247,7 +247,7 @@ export default function Sidebar() {
   }
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
-  const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block truncate';
+  const labelClass = sidebarCollapsed ? 'hidden' : 'block truncate';
 
   // Build lookup of visible item ids from store
   const visibleIds = new Set<string>();
@@ -304,7 +304,7 @@ export default function Sidebar() {
         {sidebarCollapsed ? (
           <AppIcon className="w-8 h-8" />
         ) : (
-          <div className="hidden md:flex items-center gap-1.5 select-none">
+          <div className="flex items-center gap-1.5 select-none">
             <AppIcon className="w-14 h-14 shrink-0" />
             <div className="flex flex-col leading-none">
               <span className="text-lg font-extrabold tracking-tight text-foreground">
@@ -323,7 +323,7 @@ export default function Sidebar() {
         {sectionedItems.map((section) => (
           <div key={section.id} className="flex flex-col gap-0.5">
             {!sidebarCollapsed && (
-              <span className="px-3 pt-3 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground/60 hidden md:block">
+              <span className="px-3 pt-3 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
                 {section.label}
               </span>
             )}
