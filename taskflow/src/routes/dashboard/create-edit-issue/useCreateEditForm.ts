@@ -67,7 +67,7 @@ export type FormAction =
     }
   | { type: 'ASSIGNEE_PICK'; name: string; label: string }
   | { type: 'ASSIGNEE_PICK_UNASSIGNED' }
-  | { type: 'ASSIGNEE_BLUR' }
+  | { type: 'ASSIGNEE_BLUR'; clearWhenEmpty?: boolean }
   | { type: 'SET_ISSUE_TYPE'; issueType: IssueType }
   | { type: 'SET_CUSTOM_FIELD_VALUE'; fieldId: string; value: string }
   | { type: 'SET_CUSTOM_FIELD_INPUT'; fieldId: string; value: string }
@@ -183,6 +183,15 @@ function formReducer(state: FormState, action: FormAction): FormState {
       };
 
     case 'ASSIGNEE_BLUR':
+      // Create mode has no "Unassigned" option, so an emptied field must clear the pick.
+      if (action.clearWhenEmpty && state.assigneeInputValue === '') {
+        return {
+          ...state,
+          selectedAssigneeName: null,
+          assigneeCommittedLabel: '',
+          showAssigneeResults: false,
+        };
+      }
       return {
         ...state,
         assigneeInputValue: state.assigneeCommittedLabel,

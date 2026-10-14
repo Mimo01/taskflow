@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as apiFetchModule from '@/lib/apiFetch';
 import * as jiraService from '@/services/jira';
@@ -305,6 +306,22 @@ describe('CreateEditIssueModal', () => {
       fireEvent.focus(assigneeInput());
       await screen.findByRole('option', { name: /Bob Brown/ });
       expect(screen.queryByRole('option', { name: 'Unassigned' })).not.toBeInTheDocument();
+    });
+
+    it('(g) create mode: emptying the field and blurring clears a picked assignee', async () => {
+      const user = userEvent.setup();
+      render(<CreateEditIssueModal open={true} onClose={vi.fn()} mode="create" />, { wrapper });
+      await user.click(assigneeInput());
+      await user.click(await screen.findByRole('option', { name: /Bob Brown/ }));
+      await waitFor(() => expect(assigneeInput().value).toBe('Bob Brown'));
+      await user.tab();
+      await new Promise((r) => setTimeout(r, 250));
+      expect(assigneeInput().value).toBe('Bob Brown');
+      await user.click(assigneeInput());
+      expect(assigneeInput().value).toBe('');
+      await user.tab();
+      await new Promise((r) => setTimeout(r, 250));
+      expect(assigneeInput().value).toBe('');
     });
 
     it('(f) already-unassigned issue: Unassigned is selected and picking it sends nothing', async () => {
