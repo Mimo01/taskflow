@@ -180,7 +180,7 @@ None yet.
 | 261002-enj | Epic progress: confidence only in hover, readable + hoverable risks, narrower Completed bar, card→chart spacing, chart legends removed (toolbar above chart) | 2026-10-02 | f5655088 | Iterated → 261002-fp7 | [261002-enj-epic-progress-confidence-in-hover-readab](./quick/261002-enj-epic-progress-confidence-in-hover-readab/) |
 | 261002-fp7 | Epic progress: risks as an icon tally (one pill per risk, no +N), per-person breakdown separated (divider + heading) | 2026-10-02 | c56b733d | Verified | [261002-fp7-epic-progress-risk-tally-pills-and-per-p](./quick/261002-fp7-epic-progress-risk-tally-pills-and-per-p/) |
 | 261002-h9e | Changes tab: side-by-side word diff for long text (full-height, no preview), plain old→new rows for short + multi-value fields (status keeps pills), burst grouping, field icon column, review fixes + UAT polish | 2026-10-02 | 0ff2acf2 | Verified | [261002-h9e-enhance-changes-tab-on-issue-detail-with](./quick/261002-h9e-enhance-changes-tab-on-issue-detail-with/) |
-| 261014-m6e | Prompt to move story to Done when last open subtask is closed (board + sidebar) | 2026-10-14 | 894ca466 | Needs Review (live Jira UAT) | [261014-m6e-when-i-close-the-last-opened-subtask-in-](./quick/261014-m6e-when-i-close-the-last-opened-subtask-in-/) |
+| 261014-m6e | Prompt to move story to Done when last open subtask is closed (board + sidebar) | 2026-10-14 | d1d4ec27 | Verified (UAT by user) | [261014-m6e-when-i-close-the-last-opened-subtask-in-](./quick/261014-m6e-when-i-close-the-last-opened-subtask-in-/) |
 
 ## Deferred Items
 
