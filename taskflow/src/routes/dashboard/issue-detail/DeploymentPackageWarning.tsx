@@ -14,6 +14,7 @@ import {
   evaluatePackageSync,
   extractDeploymentPackageKey,
   indexChildToWeek,
+  isPackageFieldUnreadable,
   mergeWeek,
   type PackageFix,
 } from '@/lib/deployment-package';
@@ -97,8 +98,9 @@ export function DeploymentPackageWarning({
         projectName: projectName ?? projectKey ?? '',
         projectKey,
         projectVersions: projectVersions ?? [],
+        pkgUnreadable: isPackageFieldUnreadable(pkgField),
       }),
-    [pkgKey, fixVersions, weeks, projectName, projectKey, projectVersions],
+    [pkgKey, pkgField, fixVersions, weeks, projectName, projectKey, projectVersions],
   );
 
   const needsPackageWrite = result.fixes.some((x) => x.kind === 'set-package');

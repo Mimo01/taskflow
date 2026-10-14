@@ -160,6 +160,7 @@ export function useRmPackage(pkgKey: string | null | undefined) {
       return fetchRmPackage(jiraBaseUrl, token, pkgKey);
     },
     staleTime: 30 * 60_000,
+    retry: false, // an invalid/unknown key won't fix itself; don't hammer Jira
     enabled: !!pkgKey && !!jiraBaseUrl,
   });
   return { child: query.data?.child, week: query.data?.week ?? null, isLoading: query.isLoading };

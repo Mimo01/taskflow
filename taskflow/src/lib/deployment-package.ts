@@ -33,7 +33,13 @@ export type PackageEditShape = 'array' | 'single' | 'not-editable';
 export type PackageSyncState = 'none' | 'ok' | 'pkg-only' | 'fv-only' | 'mismatch' | 'unresolved';
 
 export type PackageFix =
-  | { kind: 'set-fix-version'; versionId: string; versionName: string }
+  | {
+      kind: 'set-fix-version';
+      versionId: string;
+      versionName: string;
+      /** Names of current fix versions that applying this fix will drop (dated, outside the week). */
+      removes?: string[];
+    }
   | { kind: 'set-package'; childKey: string; childSummary: string; weekSummary?: string };
 
 export interface PackageFixVersion {
@@ -63,14 +69,17 @@ export interface PackageStoryLike {
 
 export const DEPLOYMENT_PACKAGE_FIELD = 'customfield_15725';
 
-const ISSUE_KEY_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
+export const ISSUE_KEY_RE = /^[A-Z][A-Z0-9_]+-\d+$/;
 const WEEK_RE =
   /WEEK\s*(\d+)\s*\(\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s*\)/i;
 
 function toYmd(dd: string, mm: string, yyyy: string): string | null {
+  const y = Number(yyyy);
   const d = Number(dd);
   const m = Number(mm);
-  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  // Round-trip through Date.UTC so impossible dates (31.02.2026) are rejected.
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
   return `${yyyy}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
@@ -188,6 +197,18 @@ export function extractDeploymentPackageKey(field: unknown): string | null {
 }
 
 /**
+ * True when the package field holds a value we cannot read as a single RM key
+ * (several packages, or an unknown format). Distinct from "empty": callers must
+ * not offer to overwrite such a value as if it were unset.
+ */
+export function isPackageFieldUnreadable(field: unknown): boolean {
+  if (field == null) return false;
+  if (typeof field === 'string' && field.trim() === '') return false;
+  if (Array.isArray(field) && field.length === 0) return false;
+  return extractDeploymentPackageKey(field) === null;
+}
+
+/**
  * Read the target issue key out of a parent-style link field (Epic Link,
  * Advanced Roadmaps "Parent Link"). Tolerates 'ABC-1', {key}, {data:{key}}
  * and a one-element array of those; anything else yields null.
@@ -240,11 +261,27 @@ function versionsInWeek(projectVersions: PackageFixVersion[], week: RmWeek): Pac
   return projectVersions.filter((v) => v.releaseDate && isDateInWeek(v.releaseDate, week));
 }
 
-function setFixVersionFix(projectVersions: PackageFixVersion[], week: RmWeek): PackageFix | null {
+function setFixVersionFix(
+  projectVersions: PackageFixVersion[],
+  week: RmWeek,
+  current: PackageFixVersion[],
+): PackageFix | null {
   const candidates = versionsInWeek(projectVersions, week);
-  return candidates.length === 1
-    ? { kind: 'set-fix-version', versionId: candidates[0].id, versionName: candidates[0].name }
-    : null;
+  if (candidates.length !== 1) return null;
+  const target = candidates[0];
+  const removes = current
+    .filter((v) => v.id !== target.id)
+    .filter((v) => {
+      const d = dateOfVersion(v, projectVersions);
+      return !!d && !isDateInWeek(d, week);
+    })
+    .map((v) => v.name);
+  return {
+    kind: 'set-fix-version',
+    versionId: target.id,
+    versionName: target.name,
+    ...(removes.length > 0 ? { removes } : {}),
+  };
 }
 
 function setPackageFix(
@@ -288,8 +325,17 @@ export function evaluatePackageSync(input: {
   projectName: string;
   projectKey?: string;
   projectVersions: PackageFixVersion[];
+  /** The package field holds a value we can't read (see isPackageFieldUnreadable). */
+  pkgUnreadable?: boolean;
 }): PackageSyncResult {
   const { pkgKey, fixVersions, weeks, projectName, projectKey, projectVersions } = input;
+  if (!pkgKey && input.pkgUnreadable) {
+    return {
+      state: 'unresolved',
+      hint: 'The deployment package has a value that cannot be read (several packages or an unknown format). Nothing was changed.',
+      fixes: [],
+    };
+  }
   const hasFv = fixVersions.length > 0;
   if (!pkgKey && !hasFv) return { state: 'none', hint: '', fixes: [] };
 
@@ -331,7 +377,7 @@ export function evaluatePackageSync(input: {
   }
 
   if (!hasFv) {
-    const fix = setFixVersionFix(projectVersions, pkgWeek);
+    const fix = setFixVersionFix(projectVersions, pkgWeek, fixVersions);
     return {
       state: 'pkg-only',
       hint: 'Deployment package is set but no fix version.',
@@ -350,7 +396,7 @@ export function evaluatePackageSync(input: {
     return { state: 'ok', hint: '', fixes: [] };
   }
   const fixes: PackageFix[] = [];
-  const fvFix = setFixVersionFix(projectVersions, pkgWeek);
+  const fvFix = setFixVersionFix(projectVersions, pkgWeek, fixVersions);
   if (fvFix) fixes.push(fvFix);
   const pkgFix = setPackageFix(dated, weeks, projectName, projectKey);
   if ('fix' in pkgFix) fixes.push(pkgFix.fix);
@@ -404,8 +450,19 @@ export function planBulkSync(
     const name = s.fields.project?.name ?? s.fields.project?.key ?? '';
     const child = findChildForProject(week, name, s.fields.project?.key);
     if (!child) continue;
-    const current = extractDeploymentPackageKey(s.fields[DEPLOYMENT_PACKAGE_FIELD]);
-    if (current && childToWeek.get(current)?.key === week.key) continue;
+    const raw = s.fields[DEPLOYMENT_PACKAGE_FIELD];
+    if (isPackageFieldUnreadable(raw)) continue; // never overwrite a value we can't read
+    const current = extractDeploymentPackageKey(raw);
+    const currentWeek = current ? childToWeek.get(current) : undefined;
+    if (currentWeek?.key === week.key) continue;
+    // Multi-version story: its package already matches another of its fix versions.
+    if (
+      currentWeek &&
+      (s.fields.fixVersions ?? []).some(
+        (v) => v.releaseDate && isDateInWeek(v.releaseDate, currentWeek),
+      )
+    )
+      continue;
     plan.push({
       key: s.key,
       fields: { [DEPLOYMENT_PACKAGE_FIELD]: buildPackageFieldValue(child.key, shape) },
@@ -416,7 +473,11 @@ export function planBulkSync(
 
 /** Button label for a fix: names the actual target (week + dates), not just an issue key. */
 export function packageFixLabel(fix: PackageFix): string {
-  if (fix.kind === 'set-fix-version') return `Set fix version to ${fix.versionName}`;
+  if (fix.kind === 'set-fix-version') {
+    return `Set fix version to ${fix.versionName}${
+      fix.removes?.length ? ` (replaces ${fix.removes.join(', ')})` : ''
+    }`;
+  }
   return fix.weekSummary
     ? `Set deployment package to ${formatWeekLabel(fix.weekSummary)} (${fix.childKey})`
     : `Set deployment package to ${fix.childKey}`;

@@ -51,11 +51,37 @@ function invalidateAfterWrite(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
 }
 
+const projectKeyOf = (s: PackageStoryLike) => s.fields.project?.key ?? '';
+
 /**
- * Bulk fix version -> package sync for one release. Fetches the edit shape
- * once (from the first planned story), refuses to write when the field is not
- * editable, then writes sequentially. A 400/403 on one story never aborts the
- * loop: every outcome is collected per item.
+ * Edit shape per project key for the stories that need a write. editmeta is
+ * per issue/project (edit screens differ), so it is resolved from the first
+ * candidate of each project instead of once for the whole release.
+ */
+export async function resolveShapesForCandidates(
+  queryClient: QueryClient,
+  jiraBaseUrl: string,
+  token: string,
+  stories: PackageStoryLike[],
+  candidates: { key: string }[],
+): Promise<Map<string, PackageEditShape>> {
+  const byKey = new Map(stories.map((s) => [s.key, s]));
+  const shapes = new Map<string, PackageEditShape>();
+  for (const c of candidates) {
+    const story = byKey.get(c.key);
+    const pk = story ? projectKeyOf(story) : '';
+    if (shapes.has(pk)) continue;
+    shapes.set(pk, await resolvePackageEditShape(queryClient, jiraBaseUrl, token, c.key));
+  }
+  return shapes;
+}
+
+/**
+ * Bulk fix version -> package sync for one release. Resolves the edit shape per
+ * project, refuses to write when the field is not editable anywhere, then writes
+ * sequentially. A 400/403 on one story never aborts the loop: every outcome is
+ * collected per item, and stories of a project where the field is not editable
+ * are reported as failed rather than silently skipped.
  */
 export async function executeDeploymentPackageSync(input: {
   queryClient: QueryClient;
@@ -70,17 +96,41 @@ export async function executeDeploymentPackageSync(input: {
   const candidates = planBulkSync(stories, version, weeks, 'single');
   if (candidates.length === 0) return { blocked: false, results: [] };
 
-  const shape = await resolvePackageEditShape(queryClient, jiraBaseUrl, token, candidates[0].key);
-  if (shape === 'not-editable') return { blocked: true, results: [] };
+  const shapes = await resolveShapesForCandidates(
+    queryClient,
+    jiraBaseUrl,
+    token,
+    stories,
+    candidates,
+  );
+  if ([...shapes.values()].every((sh) => sh === 'not-editable')) {
+    return { blocked: true, results: [] };
+  }
 
-  const plan = planBulkSync(stories, version, weeks, shape);
   const results: PackageSyncItemResult[] = [];
-  for (const item of plan) {
-    try {
-      await bulkUpdateIssue(jiraBaseUrl, token, item.key, item.fields);
-      results.push({ key: item.key, ok: true });
-    } catch (e) {
-      results.push({ key: item.key, ok: false, error: e instanceof Error ? e.message : String(e) });
+  for (const [pk, shape] of shapes) {
+    const projectStories = stories.filter((s) => projectKeyOf(s) === pk);
+    if (shape === 'not-editable') {
+      for (const c of planBulkSync(projectStories, version, weeks, 'single')) {
+        results.push({
+          key: c.key,
+          ok: false,
+          error: `Deployment package is not editable for project ${pk || 'unknown'}.`,
+        });
+      }
+      continue;
+    }
+    for (const item of planBulkSync(projectStories, version, weeks, shape)) {
+      try {
+        await bulkUpdateIssue(jiraBaseUrl, token, item.key, item.fields);
+        results.push({ key: item.key, ok: true });
+      } catch (e) {
+        results.push({
+          key: item.key,
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
     }
   }
   invalidateAfterWrite(queryClient);
@@ -94,9 +144,12 @@ export async function executeDeploymentPackageSync(input: {
 export function useDeploymentPackageSync(input: {
   version: { releaseDate?: string } | null;
   stories: PackageStoryLike[];
+  /** Fallback fix versions (the active project's). */
   projectVersions: PackageFixVersion[];
+  /** Fix versions per project key, for stories outside the active project. */
+  versionsByProject?: Record<string, PackageFixVersion[]>;
 }) {
-  const { version, stories, projectVersions } = input;
+  const { version, stories, projectVersions, versionsByProject } = input;
   const queryClient = useQueryClient();
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const pkgKeys = useMemo(
@@ -160,13 +213,13 @@ export function useDeploymentPackageSync(input: {
             story.fields.fixVersions ?? [],
             fix.versionId,
             week,
-            projectVersions,
+            versionsByProject?.[story.fields.project?.key ?? ''] ?? projectVersions,
           ),
         });
       }
       invalidateAfterWrite(queryClient);
     },
-    [getToken, queryClient, childToWeek, projectVersions],
+    [getToken, queryClient, childToWeek, projectVersions, versionsByProject],
   );
 
   return { plan, run, applyFix, isRunning, results, blockedReason };

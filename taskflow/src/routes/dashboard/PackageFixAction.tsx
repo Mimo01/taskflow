@@ -3,7 +3,11 @@ import { formatWeekLabel, type PackageFix, packageFixLabel } from '@/lib/deploym
 
 /** What a fix will set, as readable text (the thing the user actually cares about). */
 export function packageFixTarget(fix: PackageFix): string {
-  if (fix.kind === 'set-fix-version') return fix.versionName;
+  if (fix.kind === 'set-fix-version') {
+    return fix.removes?.length
+      ? `${fix.versionName} (replaces ${fix.removes.join(', ')})`
+      : fix.versionName;
+  }
   return fix.weekSummary ? `${formatWeekLabel(fix.weekSummary)} (${fix.childKey})` : fix.childKey;
 }
 

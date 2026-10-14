@@ -86,6 +86,8 @@ describe('Release Management lookups', () => {
     });
     const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
     expect(jqlOf(url)).toContain('summary ~ "WEEK*"');
+    // WR-07: the cheap prefix search is not date-bounded, so an old week is never missed
+    expect(jqlOf(url)).not.toContain('created >=');
     expect(new URL(url).searchParams.get('fields')).toBe('summary');
   });
 
@@ -101,7 +103,9 @@ describe('Release Management lookups', () => {
       );
     const weeks = await fetchRmWeekList(base, TOKEN, 'RM');
     expect(weeks.map((w) => w.key)).toEqual(['RM-1']);
-    expect(jqlOf(vi.mocked(mockFetch).mock.calls[1][0] as string)).not.toContain('WEEK*');
+    const fallbackJql = jqlOf(vi.mocked(mockFetch).mock.calls[1][0] as string);
+    expect(fallbackJql).not.toContain('WEEK*');
+    expect(fallbackJql).toContain('startOfYear(-2)');
   });
 
   it('fetchRmWeekChildren: ORs parent, discovered link fields and linked issues; skips the week itself', async () => {

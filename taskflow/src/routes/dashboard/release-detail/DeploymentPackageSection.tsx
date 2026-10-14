@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
@@ -6,7 +6,9 @@ import {
   evaluatePackageSync,
   extractDeploymentPackageKey,
   findWeekForDate,
+  isPackageFieldUnreadable,
   type PackageFix,
+  type PackageFixVersion,
   type PackageSyncResult,
   type PackageSyncState,
 } from '@/lib/deployment-package';
@@ -65,8 +67,6 @@ export function DeploymentPackageSection({
     () => stories.filter((s) => s.fields.issuetype?.name === 'Story'),
     [stories],
   );
-  const { applyFix } = useDeploymentPackageSync({ version, stories: onlyStories, projectVersions });
-
   // Children are loaded lazily: only for the weeks of the stories' fix versions, and packages
   // outside those weeks are resolved directly per key.
   const weekDates = useMemo(
@@ -120,8 +120,53 @@ export function DeploymentPackageSection({
     return [...onlyStories, ...(orphansQuery.data ?? []).filter((s) => !have.has(s.key))];
   }, [onlyStories, orphansQuery.data]);
 
+  // Stories can belong to other projects than the active one (shared versions): their fix
+  // versions must come from their own project. The active project's list is reused.
+  const otherProjectKeys = useMemo(
+    () => [
+      ...new Set(
+        allStories
+          .map((s) => s.fields.project?.key)
+          .filter((k): k is string => !!k && k !== activeJiraProject),
+      ),
+    ],
+    [allStories, activeJiraProject],
+  );
+  const otherVersions = useQueries({
+    queries: otherProjectKeys.map((projectKey) => ({
+      queryKey: ['jira-fix-versions', projectKey],
+      queryFn: async () => {
+        const token = await readSecret('jira-pat').catch(() => null);
+        if (!token || !jiraBaseUrl) throw new Error('No credentials');
+        return fetchFixVersions(jiraBaseUrl, token, projectKey);
+      },
+      enabled: enabled && !!jiraBaseUrl,
+      staleTime: 5 * 60_000,
+    })),
+    combine: (results) => ({
+      data: results.map((r) => r.data),
+      isLoading: results.some((r) => r.isLoading),
+    }),
+  });
+  const versionsByProject = useMemo(() => {
+    const out: Record<string, PackageFixVersion[]> = {};
+    otherProjectKeys.forEach((k, i) => {
+      const v = otherVersions.data[i];
+      if (v) out[k] = v;
+    });
+    if (activeJiraProject) out[activeJiraProject] = projectVersions;
+    return out;
+  }, [otherProjectKeys, otherVersions, activeJiraProject, projectVersions]);
+
+  const { applyFix } = useDeploymentPackageSync({
+    version,
+    stories: onlyStories,
+    projectVersions,
+    versionsByProject,
+  });
+
   const rows = useMemo(() => {
-    if (!enabled || weeks.length === 0 || weeksLoading) return [];
+    if (!enabled || weeks.length === 0 || weeksLoading || otherVersions.isLoading) return [];
     const out: Array<{ issue: JiraIssue; result: PackageSyncResult }> = [];
     for (const issue of allStories) {
       const result = evaluatePackageSync({
@@ -130,12 +175,21 @@ export function DeploymentPackageSection({
         weeks,
         projectName: issue.fields.project?.name ?? issue.fields.project?.key ?? '',
         projectKey: issue.fields.project?.key,
-        projectVersions,
+        projectVersions: versionsByProject[issue.fields.project?.key ?? ''] ?? projectVersions,
+        pkgUnreadable: isPackageFieldUnreadable(issue.fields.customfield_15725),
       });
       if (result.state !== 'ok' && result.state !== 'none') out.push({ issue, result });
     }
     return out;
-  }, [enabled, weeks, weeksLoading, allStories, projectVersions]);
+  }, [
+    enabled,
+    weeks,
+    weeksLoading,
+    otherVersions.isLoading,
+    allStories,
+    projectVersions,
+    versionsByProject,
+  ]);
 
   const [pending, setPending] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});

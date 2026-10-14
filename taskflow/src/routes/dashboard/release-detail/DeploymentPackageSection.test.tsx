@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { indexChildToWeek, type RmWeek } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
+import { fetchFixVersions } from '@/services/jira';
 import { DeploymentPackageSection } from './DeploymentPackageSection';
 
 const week43: RmWeek = {
@@ -136,5 +137,13 @@ describe('DeploymentPackageSection', () => {
     renderSection([issue('S-1', 'Story', 'RM-21', [])]);
     await screen.findByText('Summary S-1');
     expect(screen.getAllByText('Summary S-1')).toHaveLength(1);
+  });
+  it("WR-04: loads fix versions of a story's own project when it is not the active one", async () => {
+    const other = issue('S-7', 'Story', 'RM-21', [v44]);
+    (other.fields.project as { key: string }).key = 'OTH';
+    renderSection([other]);
+    await waitFor(() =>
+      expect(fetchFixVersions).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'OTH'),
+    );
   });
 });

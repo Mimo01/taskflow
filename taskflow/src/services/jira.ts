@@ -22,6 +22,7 @@ import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
 import {
   extractLinkedIssueKey,
+  ISSUE_KEY_RE,
   type PackageEditShape,
   parseWeekRange,
   type RmChild,
@@ -2398,7 +2399,6 @@ export async function fetchIssuePriorityOptions(
 }
 
 const RM_PROJECT_KEY_RE = /^[A-Z][A-Z0-9_]+$/;
-const ISSUE_KEY_RE_STRICT = /^[A-Z][A-Z0-9_]+-\d+$/;
 
 const linkFieldIdCache = new Map<string, Promise<string[]>>();
 
@@ -2458,7 +2458,7 @@ export async function fetchRmPackage(
   token: string,
   issueKey: string,
 ): Promise<{ child: { key: string; summary: string }; week: RmWeek | null }> {
-  if (!ISSUE_KEY_RE_STRICT.test(issueKey)) throw new Error(`Invalid issue key: ${issueKey}`);
+  if (!ISSUE_KEY_RE.test(issueKey)) throw new Error(`Invalid issue key: ${issueKey}`);
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}` };
   const linkFieldIds = await discoverLinkFieldIds(base, token);
@@ -2548,14 +2548,17 @@ export async function fetchRmWeekList(
     }
     return weeks;
   };
-  const scope = `project = "${rmProjectKey}" AND created >= startOfYear(-1)`;
+  // The prefix search only returns WEEK issues (~52/year), so it needs no date bound and never
+  // misses an old week. Only the fallback full scan is bounded, to keep it cheap.
   try {
-    const weeks = await run(`${scope} AND summary ~ "WEEK*" ORDER BY created DESC`);
+    const weeks = await run(
+      `project = "${rmProjectKey}" AND summary ~ "WEEK*" ORDER BY created DESC`,
+    );
     if (weeks.length > 0) return weeks;
   } catch {
     // text search unsupported/invalid: fall through to the plain scan
   }
-  return run(`${scope} ORDER BY created DESC`);
+  return run(`project = "${rmProjectKey}" AND created >= startOfYear(-2) ORDER BY created DESC`);
 }
 
 /**
@@ -2570,7 +2573,7 @@ export async function fetchRmWeekChildren(
   token: string,
   weekKey: string,
 ): Promise<RmChild[]> {
-  if (!ISSUE_KEY_RE_STRICT.test(weekKey)) throw new Error(`Invalid issue key: ${weekKey}`);
+  if (!ISSUE_KEY_RE.test(weekKey)) throw new Error(`Invalid issue key: ${weekKey}`);
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const linkFieldIds = await discoverLinkFieldIds(base, token);
@@ -2616,7 +2619,7 @@ export async function fetchStoriesWithPackageNoFixVersion(
   projectKey: string,
   packageKeys: readonly string[],
 ): Promise<JiraIssue[]> {
-  const keys = [...new Set(packageKeys)].filter((k) => ISSUE_KEY_RE_STRICT.test(k)).slice(0, 100);
+  const keys = [...new Set(packageKeys)].filter((k) => ISSUE_KEY_RE.test(k)).slice(0, 100);
   if (keys.length === 0 || !RM_PROJECT_KEY_RE.test(projectKey)) return [];
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -2645,7 +2648,7 @@ export async function fetchDeploymentPackageEditShape(
   token: string,
   issueKey: string,
 ): Promise<PackageEditShape> {
-  if (!ISSUE_KEY_RE_STRICT.test(issueKey)) throw new Error(`Invalid issue key: ${issueKey}`);
+  if (!ISSUE_KEY_RE.test(issueKey)) throw new Error(`Invalid issue key: ${issueKey}`);
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/editmeta`;
   const resp = await apiFetch(
     'jira',
