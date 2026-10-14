@@ -31,6 +31,13 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
+// The Release Management picker has its own tests (ReleaseManagementBlock.test.tsx). Stub it
+// here: it reuses the same Select stand-in below, which would collide on data-testid and on
+// the shared "Loading projects…" / "Retry" texts these AIO assertions query.
+vi.mock('@/components/integrations/ReleaseManagementBlock', () => ({
+  default: () => null,
+}));
+
 vi.mock('@/services/aio', () => ({
   fetchAioProjects: vi.fn(),
 }));

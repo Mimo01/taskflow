@@ -58,6 +58,7 @@ const initialSettings = {
   aioEnabled: false,
   tempoEnabled: false,
   selectedAioProjectKey: null as string | null,
+  releaseManagementProjectKey: null as string | null,
   quickFilters: [] as QuickFilter[],
   rankFieldKey: null as string | null,
   externalBrowser: null as string | null,
@@ -168,7 +169,9 @@ interface SettingsState {
   setTempoEnabled: (v: boolean) => void;
   /** Selected AIO project key. Null until user picks a project. */
   selectedAioProjectKey: string | null;
+  releaseManagementProjectKey: string | null;
   setSelectedAioProjectKey: (key: string | null) => void;
+  setReleaseManagementProjectKey: (key: string | null) => void;
   /** Saved quickfilter presets. Default: []. */
   quickFilters: QuickFilter[];
   addQuickFilter: (qf: QuickFilter) => void;
@@ -272,6 +275,7 @@ export const useSettingsStore = create<SettingsState>()(
       setAioEnabled: (v) => set({ aioEnabled: v }),
       setTempoEnabled: (v) => set({ tempoEnabled: v }),
       setSelectedAioProjectKey: (key) => set({ selectedAioProjectKey: key }),
+      setReleaseManagementProjectKey: (key) => set({ releaseManagementProjectKey: key }),
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) =>
         set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
@@ -368,7 +372,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 29,
+      version: 30,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -485,6 +489,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 29) {
           if (s.externalBrowser === undefined) s.externalBrowser = null;
+        }
+        if (version < 30) {
+          if (s.releaseManagementProjectKey === undefined) s.releaseManagementProjectKey = null;
         }
         return persisted as SettingsState;
       },
