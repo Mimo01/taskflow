@@ -1120,10 +1120,15 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByTestId('defects-summary')).toBeDefined());
       const strip = screen.getByTestId('defects-summary');
-      expect(within(strip).getByText('1 In Progress')).toBeDefined();
-      // categories with no defects are omitted
-      expect(within(strip).queryByText(/To Do/)).toBeNull();
-      expect(within(strip).queryByText(/Done/)).toBeNull();
+      expect(within(strip).getByTestId('defect-status-donut')).toBeDefined();
+      expect(within(strip).getByTestId('defect-priority-donut')).toBeDefined();
+      expect(within(strip).getByText('Status')).toBeDefined();
+      expect(within(strip).getByText('Priority')).toBeDefined();
+      // old status pills are gone
+      expect(within(strip).queryByText('1 In Progress')).toBeNull();
+      expect(within(strip).getByTestId('defect-status-donut').getAttribute('aria-label')).toBe(
+        'Defects by status: 1 In Progress',
+      );
       expect(within(strip).getByText('Sev: Critical 1')).toBeDefined();
     });
 

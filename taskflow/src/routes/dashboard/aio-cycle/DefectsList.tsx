@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { DefectSummary, severityOf } from './DefectSummary';
 import type { ResolvedDefect } from './useCycleDefects';
 
 type DefectSortKey = 'key' | 'status' | 'priority' | 'severity' | 'assignee' | null;
@@ -36,16 +37,6 @@ const COL = {
 } as const;
 
 const MAX_TRIGGER_CHIPS = 2;
-
-const CATEGORY_LABEL: { key: string; label: string }[] = [
-  { key: 'new', label: 'To Do' },
-  { key: 'indeterminate', label: 'In Progress' },
-  { key: 'done', label: 'Done' },
-];
-
-function severityOf(issue: JiraIssue | null): string | null {
-  return issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
-}
 
 function optionsOf(
   defects: ResolvedDefect[],
@@ -333,46 +324,6 @@ function DefectRow({
   );
 }
 
-/** Counts by Jira status category (pills) and by severity (plain text). */
-function SummaryStrip({ defects }: { defects: ResolvedDefect[] }) {
-  const { byCategory, bySeverity } = useMemo(() => {
-    const cat = new Map<string, number>();
-    const sev = new Map<string, number>();
-    for (const d of defects) {
-      if (!d.issue) continue;
-      const k = d.issue.fields.status?.statusCategory?.key;
-      if (k) cat.set(k, (cat.get(k) ?? 0) + 1);
-      const s = severityOf(d.issue);
-      if (s) sev.set(s, (sev.get(s) ?? 0) + 1);
-    }
-    return {
-      byCategory: cat,
-      bySeverity: [...sev.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])),
-    };
-  }, [defects]);
-
-  const pills = CATEGORY_LABEL.filter((c) => (byCategory.get(c.key) ?? 0) > 0);
-  if (pills.length === 0 && bySeverity.length === 0) return null;
-
-  return (
-    <div
-      data-testid="defects-summary"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-4 py-2 density-compact:py-1.5 density-comfortable:py-3"
-    >
-      {pills.map((c) => (
-        <span key={c.key} className={statusPillClass(c.key)}>
-          {`${byCategory.get(c.key)} ${c.label}`}
-        </span>
-      ))}
-      {bySeverity.length > 0 && (
-        <span className="text-xs text-muted-foreground">
-          {`Sev: ${bySeverity.map(([name, n]) => `${name} ${n}`).join(' · ')}`}
-        </span>
-      )}
-    </div>
-  );
-}
-
 /**
  * Defects tab: summary strip, sortable/filterable one-line flex rows, and triggered-by
  * chips that open the run. All sort + filter state lives here.
@@ -548,7 +499,7 @@ export function DefectsList({
 
   return (
     <div className="@container flex flex-col">
-      <SummaryStrip defects={defects} />
+      <DefectSummary defects={defects} />
 
       <div
         role="toolbar"
