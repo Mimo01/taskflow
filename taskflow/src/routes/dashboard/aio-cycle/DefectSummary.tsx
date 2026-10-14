@@ -14,6 +14,8 @@ import type { ResolvedDefect } from './useCycleDefects';
 
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
 const KEY_CLASS = 'grid gap-0.5 text-xs leading-4';
+/** Key rows shown; beyond this the last row becomes '+N more' (the donut tooltips still list all). */
+const KEY_MAX = 5;
 const KEY_TITLE_CLASS = 'font-medium';
 
 /** Raw severity value ('2-Major'): the number is the order, so sort on this. */
@@ -138,15 +140,15 @@ function DonutBlock({
       <AioDonut slices={slices} testId={testId} ariaLabel={`${label}: ${describe(slices)}`} />
       <div className={KEY_CLASS}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
-        {(slices.length > 3 ? slices.slice(0, 2) : slices).map((s) => (
+        {(slices.length > KEY_MAX ? slices.slice(0, KEY_MAX - 1) : slices).map((s) => (
           <span key={s.label} className="flex min-w-0 items-center gap-2">
             <MarkerGlyph marker="status" color={s.color} />
             <span className="min-w-0 max-w-40 truncate text-muted-foreground">{s.label}</span>
             <span className="tabular-nums">{s.value}</span>
           </span>
         ))}
-        {slices.length > 3 && (
-          <span className="text-muted-foreground">{`+${slices.length - 2} more`}</span>
+        {slices.length > KEY_MAX && (
+          <span className="text-muted-foreground">{`+${slices.length - (KEY_MAX - 1)} more`}</span>
         )}
       </div>
     </div>
