@@ -121,23 +121,52 @@ function escapeRegExp(s: string): string {
 }
 
 /**
- * Find the week's child whose summary contains the project name
- * (case-insensitive). When several match, narrow by word-boundary match, then
- * by exact (trimmed) equality; if still ambiguous or empty, return null so
- * callers never auto-fix a guess.
+ * Find the week's child for an application. Tries, in order, the first step that
+ * yields exactly one candidate: child summary contains the project name; project
+ * name contains the child summary (RM task is just the app name, >= 3 chars);
+ * child summary contains the project key as a whole word. Within a step an
+ * ambiguous result is narrowed by word-boundary then exact equality; if still
+ * ambiguous or empty the step is skipped, and null is returned so callers never
+ * auto-fix a guess.
  */
-export function findChildForProject(week: RmWeek, projectName: string): RmChild | null {
-  const needle = projectName.trim().toLowerCase();
-  if (!needle) return null;
-  const contains = week.children.filter((c) => c.summary.toLowerCase().includes(needle));
-  if (contains.length === 1) return contains[0];
-  if (contains.length === 0) return null;
-  const wb = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}($|[^\\p{L}\\p{N}])`, 'iu');
-  const boundary = contains.filter((c) => wb.test(c.summary));
-  if (boundary.length === 1) return boundary[0];
-  const pool = boundary.length > 0 ? boundary : contains;
-  const exact = pool.filter((c) => c.summary.trim().toLowerCase() === needle);
-  return exact.length === 1 ? exact[0] : null;
+export function findChildForProject(
+  week: RmWeek,
+  projectName: string,
+  projectKey?: string,
+): RmChild | null {
+  const name = projectName.trim().toLowerCase();
+  const key = (projectKey ?? '').trim().toLowerCase();
+  const wordRe = (needle: string) =>
+    new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}($|[^\\p{L}\\p{N}])`, 'iu');
+  const pick = (pool: RmChild[], needle: string): RmChild | null => {
+    if (pool.length === 1) return pool[0];
+    if (pool.length === 0) return null;
+    const re = wordRe(needle);
+    const boundary = pool.filter((c) => re.test(c.summary));
+    if (boundary.length === 1) return boundary[0];
+    const narrowed = boundary.length > 0 ? boundary : pool;
+    const exact = narrowed.filter((c) => c.summary.trim().toLowerCase() === needle);
+    return exact.length === 1 ? exact[0] : null;
+  };
+
+  if (name) {
+    const hit = pick(
+      week.children.filter((c) => c.summary.toLowerCase().includes(name)),
+      name,
+    );
+    if (hit) return hit;
+    const reverse = week.children.filter((c) => {
+      const cs = c.summary.trim().toLowerCase();
+      return cs.length >= 3 && name.includes(cs);
+    });
+    if (reverse.length === 1) return reverse[0];
+  }
+  if (key.length >= 2) {
+    const re = wordRe(key);
+    const hit = week.children.filter((c) => re.test(c.summary));
+    if (hit.length === 1) return hit[0];
+  }
+  return null;
 }
 
 /**
@@ -205,12 +234,29 @@ function setPackageFix(
   dated: Array<PackageFixVersion & { releaseDate: string }>,
   weeks: RmWeek[],
   projectName: string,
-): PackageFix | null {
-  if (dated.length !== 1) return null;
-  const w = findWeekForDate(weeks, dated[0].releaseDate);
-  if (!w) return null;
-  const child = findChildForProject(w, projectName);
-  return child ? { kind: 'set-package', childKey: child.key, childSummary: child.summary } : null;
+  projectKey?: string,
+): { fix: PackageFix } | { reason: string } {
+  if (dated.length > 1)
+    return { reason: 'Several fix versions are set, so the deployment package is ambiguous.' };
+  const v = dated[0];
+  const w = findWeekForDate(weeks, v.releaseDate);
+  if (!w)
+    return {
+      reason: `No Release Management week covers ${v.name} (${v.releaseDate}).`,
+    };
+  const child = findChildForProject(w, projectName, projectKey);
+  if (!child) {
+    const names = w.children
+      .slice(0, 6)
+      .map((c) => c.summary)
+      .join(', ');
+    return {
+      reason: `No task for "${projectName}" under ${formatWeekLabel(w.summary)}${
+        names ? ` (tasks: ${names}${w.children.length > 6 ? ', …' : ''})` : ' (no tasks found)'
+      }.`,
+    };
+  }
+  return { fix: { kind: 'set-package', childKey: child.key, childSummary: child.summary } };
 }
 
 export function evaluatePackageSync(input: {
@@ -218,9 +264,10 @@ export function evaluatePackageSync(input: {
   fixVersions: PackageFixVersion[];
   weeks: RmWeek[];
   projectName: string;
+  projectKey?: string;
   projectVersions: PackageFixVersion[];
 }): PackageSyncResult {
-  const { pkgKey, fixVersions, weeks, projectName, projectVersions } = input;
+  const { pkgKey, fixVersions, weeks, projectName, projectKey, projectVersions } = input;
   const hasFv = fixVersions.length > 0;
   if (!pkgKey && !hasFv) return { state: 'none', hint: '', fixes: [] };
 
@@ -229,22 +276,22 @@ export function evaluatePackageSync(input: {
     .filter((v): v is PackageFixVersion & { releaseDate: string } => !!v.releaseDate);
 
   if (!pkgKey) {
-    const fix = setPackageFix(dated, weeks, projectName);
-    if (fix && fix.kind === 'set-package') {
+    if (dated.length === 0) {
+      return {
+        state: 'unresolved',
+        hint: 'Fix version has no release date, so the deployment package cannot be derived.',
+        fixes: [],
+      };
+    }
+    const r = setPackageFix(dated, weeks, projectName, projectKey);
+    if ('fix' in r) {
       return {
         state: 'fv-only',
         hint: 'Fix version is set but no deployment package.',
-        fixes: [fix],
+        fixes: [r.fix],
       };
     }
-    return {
-      state: dated.length === 0 ? 'unresolved' : 'fv-only',
-      hint:
-        dated.length === 0
-          ? 'Fix version has no release date, so the deployment package cannot be derived.'
-          : 'No deployment package is set and none could be derived from the fix version.',
-      fixes: [],
-    };
+    return { state: 'fv-only', hint: `No deployment package is set. ${r.reason}`, fixes: [] };
   }
 
   const pkgWeek = indexChildToWeek(weeks).get(pkgKey) ?? null;
@@ -278,8 +325,8 @@ export function evaluatePackageSync(input: {
   const fixes: PackageFix[] = [];
   const fvFix = setFixVersionFix(projectVersions, pkgWeek);
   if (fvFix) fixes.push(fvFix);
-  const pkgFix = setPackageFix(dated, weeks, projectName);
-  if (pkgFix) fixes.push(pkgFix);
+  const pkgFix = setPackageFix(dated, weeks, projectName, projectKey);
+  if ('fix' in pkgFix) fixes.push(pkgFix.fix);
   return {
     state: 'mismatch',
     hint: `Fix version release date is outside the package week (${pkgWeek.start} to ${pkgWeek.end}).`,
@@ -328,7 +375,7 @@ export function planBulkSync(
   for (const s of stories) {
     if (s.fields.issuetype?.name !== 'Story') continue;
     const name = s.fields.project?.name ?? s.fields.project?.key ?? '';
-    const child = findChildForProject(week, name);
+    const child = findChildForProject(week, name, s.fields.project?.key);
     if (!child) continue;
     const current = extractDeploymentPackageKey(s.fields[DEPLOYMENT_PACKAGE_FIELD]);
     if (current && childToWeek.get(current)?.key === week.key) continue;

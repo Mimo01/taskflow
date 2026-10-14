@@ -80,6 +80,7 @@ export function DeploymentPackageWarning({
         fixVersions,
         weeks,
         projectName: projectName ?? projectKey ?? '',
+        projectKey,
         projectVersions: projectVersions ?? [],
       }),
     [pkgKey, fixVersions, weeks, projectName, projectKey, projectVersions],
