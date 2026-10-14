@@ -119,8 +119,8 @@ const PRIORITY_RED = ['blocker', 'critical', 'highest', 'major'];
 const PRIORITY_LOW = ['low', 'minor', 'lowest', 'trivial'];
 
 /**
- * Four tiers matching the Jira priority icons (red arrows, orange high, amber medium, blue
- * low), so a slice reads the same as the icon beside the defect.
+ * Each level has its own colour, shaded within the hue of its Jira priority icon (red arrows,
+ * orange high, amber medium, blue low) so neighbouring levels never share a colour.
  */
 const TIER_HIGHEST = 'var(--color-red-600)';
 const TIER_HIGH = 'var(--color-orange-500)';
@@ -128,16 +128,16 @@ const TIER_MEDIUM = 'var(--color-amber-400)';
 const TIER_LOW = 'var(--color-blue-500)';
 
 const PRIORITY_LEVEL_COLOR: Record<string, string> = {
-  blocker: TIER_HIGHEST,
+  blocker: 'var(--color-red-800)',
   must: TIER_HIGHEST,
-  critical: TIER_HIGHEST,
-  highest: TIER_HIGH,
+  critical: 'var(--color-red-400)',
+  highest: 'var(--color-orange-700)',
   should: TIER_HIGH,
-  high: TIER_HIGH,
+  high: 'var(--color-orange-400)',
   medium: TIER_MEDIUM,
-  low: TIER_LOW,
+  low: 'var(--color-blue-700)',
   lowest: TIER_LOW,
-  minor: TIER_LOW,
+  minor: 'var(--color-sky-400)',
 };
 
 /**
