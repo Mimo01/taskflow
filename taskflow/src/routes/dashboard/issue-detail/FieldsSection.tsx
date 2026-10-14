@@ -1103,107 +1103,111 @@ export function FieldsSection({
         </div>
       </MetaRow>
 
-      {/* Fix Versions -- editable popover */}
-      <MetaRow label="Fix Versions">
-        <Popover open={fixVersionOpen} onOpenChange={setFixVersionOpen}>
-          <PopoverTrigger
-            data-testid="fix-version-edit"
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm"
-            title="Click to edit fix versions"
-          >
-            {f.fixVersions.length > 0 ? f.fixVersions.map((v) => v.name).join(', ') : 'None'}
-          </PopoverTrigger>
-          <PopoverContent className="w-60 p-2">
-            {versionsQuery.isLoading && (
-              <p className="text-xs text-muted-foreground px-1">Loading versions...</p>
-            )}
-            {versionsQuery.isError && (
-              <p className="text-xs text-destructive px-1">Failed to load versions</p>
-            )}
-            {versionsQuery.data && versionsQuery.data.length === 0 && (
-              <p className="text-xs text-muted-foreground px-1">No versions found</p>
-            )}
-            {filteredVersions.length > 0 &&
-              filteredVersions.map((version) => {
-                const isSelected = f.fixVersions.some((v) => v.id === version.id);
-                return (
-                  <button
-                    key={version.id}
-                    type="button"
-                    onClick={() => handleFixVersionToggle(version.id)}
-                    className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
-                  >
-                    <span className="w-4 text-center">{isSelected ? '\u2713' : ''}</span>
-                    <span className="flex-1 truncate">{version.name}</span>
-                    {version.released && (
-                      <Badge
-                        variant="outline"
-                        className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 text-[9px] leading-none px-1 py-0 h-3.5"
-                      >
-                        released
-                      </Badge>
-                    )}
-                    {!version.released && !version.releaseDate && (
-                      <Badge
-                        variant="outline"
-                        className="text-muted-foreground border-muted-foreground/30 text-[9px] leading-none px-1 py-0 h-3.5"
-                      >
-                        no date
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })}
-            {mutation.isError && (
-              <p className="text-xs text-destructive mt-1">Save failed -- changes reverted</p>
-            )}
-          </PopoverContent>
-        </Popover>
-      </MetaRow>
-
-      {/* Deployment package -- read-only, sourced from customfield_15725 */}
-      <MetaRow label="Deployment package">
-        {(() => {
-          const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
-          const rmWeek = rmPackage.week;
-          const rmSummary = rmPackage.child?.summary;
-          const editNote = 'Edited by adjusting the fix version';
-          return deploymentPackageValue ? (
-            <span
-              data-testid="deployment-package-value"
-              className="flex min-w-0 flex-col"
-              title={editNote}
-            >
-              {rmWeek && (
-                <span
-                  className="break-words"
-                  title={editNote}
-                  data-testid="deployment-package-week"
-                >
-                  {formatWeekLabel(rmWeek.summary)}
-                </span>
-              )}
-              <span className="break-words text-xs text-muted-foreground">
-                <span className="font-mono">{deploymentPackageValue}</span>
-                {rmSummary && <> {rmSummary}</>}
-              </span>
-            </span>
-          ) : (
-            // No package: the warning (when there is one) replaces the dash entirely.
-            packageWarning(
-              true,
-              <span
-                data-testid="deployment-package-value"
-                className="text-muted-foreground"
-                title={editNote}
+      {/* Fix Versions + Deployment package -- stories only (epics/subtasks carry neither) */}
+      {isStory && (
+        <>
+          <MetaRow label="Fix Versions">
+            <Popover open={fixVersionOpen} onOpenChange={setFixVersionOpen}>
+              <PopoverTrigger
+                data-testid="fix-version-edit"
+                className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm"
+                title="Click to edit fix versions"
               >
-                &mdash;
-              </span>,
-            )
-          );
-        })()}
-      </MetaRow>
-      {deploymentPackageSet && packageWarning(false)}
+                {f.fixVersions.length > 0 ? f.fixVersions.map((v) => v.name).join(', ') : 'None'}
+              </PopoverTrigger>
+              <PopoverContent className="w-60 p-2">
+                {versionsQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground px-1">Loading versions...</p>
+                )}
+                {versionsQuery.isError && (
+                  <p className="text-xs text-destructive px-1">Failed to load versions</p>
+                )}
+                {versionsQuery.data && versionsQuery.data.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-1">No versions found</p>
+                )}
+                {filteredVersions.length > 0 &&
+                  filteredVersions.map((version) => {
+                    const isSelected = f.fixVersions.some((v) => v.id === version.id);
+                    return (
+                      <button
+                        key={version.id}
+                        type="button"
+                        onClick={() => handleFixVersionToggle(version.id)}
+                        className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
+                      >
+                        <span className="w-4 text-center">{isSelected ? '\u2713' : ''}</span>
+                        <span className="flex-1 truncate">{version.name}</span>
+                        {version.released && (
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 text-[9px] leading-none px-1 py-0 h-3.5"
+                          >
+                            released
+                          </Badge>
+                        )}
+                        {!version.released && !version.releaseDate && (
+                          <Badge
+                            variant="outline"
+                            className="text-muted-foreground border-muted-foreground/30 text-[9px] leading-none px-1 py-0 h-3.5"
+                          >
+                            no date
+                          </Badge>
+                        )}
+                      </button>
+                    );
+                  })}
+                {mutation.isError && (
+                  <p className="text-xs text-destructive mt-1">Save failed -- changes reverted</p>
+                )}
+              </PopoverContent>
+            </Popover>
+          </MetaRow>
+
+          {/* Deployment package -- read-only, sourced from customfield_15725 */}
+          <MetaRow label="Deployment package">
+            {(() => {
+              const deploymentPackageValue = extractDeploymentPackage(f.customfield_15725);
+              const rmWeek = rmPackage.week;
+              const rmSummary = rmPackage.child?.summary;
+              const editNote = 'Edited by adjusting the fix version';
+              return deploymentPackageValue ? (
+                <span
+                  data-testid="deployment-package-value"
+                  className="flex min-w-0 flex-col"
+                  title={editNote}
+                >
+                  {rmWeek && (
+                    <span
+                      className="break-words"
+                      title={editNote}
+                      data-testid="deployment-package-week"
+                    >
+                      {formatWeekLabel(rmWeek.summary)}
+                    </span>
+                  )}
+                  <span className="break-words text-xs text-muted-foreground">
+                    <span className="font-mono">{deploymentPackageValue}</span>
+                    {rmSummary && <> {rmSummary}</>}
+                  </span>
+                </span>
+              ) : (
+                // No package: the warning (when there is one) replaces the dash entirely.
+                packageWarning(
+                  true,
+                  <span
+                    data-testid="deployment-package-value"
+                    className="text-muted-foreground"
+                    title={editNote}
+                  >
+                    &mdash;
+                  </span>,
+                )
+              );
+            })()}
+          </MetaRow>
+          {deploymentPackageSet && packageWarning(false)}
+        </>
+      )}
 
       {/* Flagged -- toggle impediment flag */}
       {(() => {
