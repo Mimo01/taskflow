@@ -39,3 +39,12 @@ describe('defect donut key', () => {
     expect(priorityKey().getByText('+3 more')).toBeDefined();
   });
 });
+
+describe('defect donut loading skeleton', () => {
+  it('shows one placeholder per donut (status, priority, severity)', () => {
+    render(<CycleDefectDonuts defects={[]} loading />);
+    expect(screen.getByTestId('defect-status-skeleton')).toBeDefined();
+    expect(screen.getByTestId('defect-priority-skeleton')).toBeDefined();
+    expect(screen.getByTestId('defect-severity-skeleton')).toBeDefined();
+  });
+});
