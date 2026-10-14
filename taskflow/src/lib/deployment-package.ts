@@ -204,6 +204,21 @@ export function extractLinkedIssueKey(value: unknown): string | null {
   return null;
 }
 
+/**
+ * Add (or merge into) a week by key: children are unioned by key. Returns a new
+ * array; used to fold directly-resolved package weeks into the lazy week list.
+ */
+export function mergeWeek(weeks: RmWeek[], week: RmWeek): RmWeek[] {
+  const i = weeks.findIndex((w) => w.key === week.key);
+  if (i < 0) return [...weeks, week];
+  const have = new Set(weeks[i].children.map((c) => c.key));
+  const extra = week.children.filter((c) => !have.has(c.key));
+  if (extra.length === 0) return weeks;
+  const out = [...weeks];
+  out[i] = { ...weeks[i], children: [...weeks[i].children, ...extra] };
+  return out;
+}
+
 /** Build the PUT value for the package field in the shape editmeta reported. */
 export function buildPackageFieldValue(key: string, shape: 'array' | 'single'): string | string[] {
   return shape === 'array' ? [key] : key;
