@@ -17,6 +17,9 @@ const KEY_CLASS = 'grid gap-0.5 text-xs leading-4';
 /** Key rows shown; beyond this the last row becomes '+N more' (the donut tooltips still list all). */
 const KEY_MAX = 3;
 const KEY_TITLE_CLASS = 'font-medium';
+/** The large (Status) key scales with its donut: bigger text and more rows. */
+const KEY_CLASS_LARGE = 'grid gap-1 text-sm leading-5';
+const KEY_MAX_LARGE = 5;
 /** Status is the headline defect split, so its donut is larger than Priority / Severity. */
 const STATUS_DONUT_SIZE = 120;
 /** Status on top, Priority and Severity side by side below. */
@@ -148,6 +151,8 @@ function DonutBlock({
   slices: ChartSlice[];
   size?: number;
 }) {
+  const large = size > DONUT_SIZE;
+  const keyMax = large ? KEY_MAX_LARGE : KEY_MAX;
   return (
     <div data-testid="defect-donut-block" className="flex items-center gap-4">
       <AioDonut
@@ -156,17 +161,17 @@ function DonutBlock({
         testId={testId}
         ariaLabel={`${label}: ${describe(slices)}`}
       />
-      <div className={KEY_CLASS}>
+      <div className={large ? KEY_CLASS_LARGE : KEY_CLASS}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
-        {(slices.length > KEY_MAX ? slices.slice(0, KEY_MAX - 1) : slices).map((s) => (
+        {(slices.length > keyMax ? slices.slice(0, keyMax - 1) : slices).map((s) => (
           <span key={s.label} className="flex min-w-0 items-center gap-2">
             <MarkerGlyph marker="status" color={s.color} />
             <span className="min-w-0 max-w-40 truncate text-muted-foreground">{s.label}</span>
             <span className="tabular-nums">{s.value}</span>
           </span>
         ))}
-        {slices.length > KEY_MAX && (
-          <span className="text-muted-foreground">{`+${slices.length - (KEY_MAX - 1)} more`}</span>
+        {slices.length > keyMax && (
+          <span className="text-muted-foreground">{`+${slices.length - (keyMax - 1)} more`}</span>
         )}
       </div>
     </div>
