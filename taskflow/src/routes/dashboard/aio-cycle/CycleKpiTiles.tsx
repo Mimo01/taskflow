@@ -58,7 +58,7 @@ export function CycleKpiTiles({
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border px-6 py-4')}>
-      <div className="flex flex-col gap-6 @4xl/epic:flex-row">
+      <div className="flex flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8">
         <Section title="Cycle Statistics" className="min-w-0 flex-1">
           <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
             {countsLoading ? (
@@ -163,7 +163,7 @@ export function CycleKpiTiles({
           <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
         </Section>
         <Section title="Defect Summary" className={DIVIDED_CLASS}>
-          <div className="grid w-full min-w-0 gap-4">
+          <div className="grid w-full min-w-0 gap-5">
             <CycleDefectDonuts defects={defects} loading={defectsLoading} />
           </div>
         </Section>
@@ -173,7 +173,7 @@ export function CycleKpiTiles({
 }
 
 const DIVIDED_CLASS =
-  'flex-none border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-6';
+  'flex-none border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-8';
 
 /** Headed block: heading on the shared top line, body vertically centred in the leftover height. */
 function Section({

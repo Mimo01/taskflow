@@ -7,7 +7,7 @@ import { AioDonut, AioDonutSkeleton } from './AioDonut';
 import type { ResolvedDefect } from './useCycleDefects';
 
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
-const KEY_CLASS = 'grid w-28 gap-1 text-xs leading-4';
+const KEY_CLASS = 'grid w-32 gap-1 text-xs leading-4';
 const KEY_TITLE_CLASS = 'font-medium';
 
 export function severityOf(issue: JiraIssue | null): string | null {
@@ -100,7 +100,7 @@ export function CycleDefectDonuts({
 
 function DonutBlockSkeleton({ testId }: { testId: string }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-4">
       <AioDonutSkeleton testId={testId} />
       <div className={KEY_CLASS}>
         <Skeleton className="h-3.5 w-12" />
@@ -127,7 +127,7 @@ function DonutBlock({
   slices: ChartSlice[];
 }) {
   return (
-    <div data-testid="defect-donut-block" className="flex items-center gap-3">
+    <div data-testid="defect-donut-block" className="flex items-center gap-4">
       <AioDonut slices={slices} testId={testId} ariaLabel={`${label}: ${describe(slices)}`} />
       <div className={KEY_CLASS}>
         <span className={KEY_TITLE_CLASS}>{title}</span>
