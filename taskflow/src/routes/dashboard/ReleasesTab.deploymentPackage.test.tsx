@@ -117,9 +117,9 @@ describe('ReleasesTab deployment package', () => {
     expect(bulkUpdateIssue).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     const status = await screen.findByTestId('package-sync-status');
-    await waitFor(() =>
-      expect(status.textContent).toMatch(/1 updated, 1 failed \(S-1: 403 forbidden\)/),
-    );
+    await waitFor(() => expect(status.textContent).toMatch(/1 updated, 1 failed/));
+    // each failure on its own line, not a run-on sentence
+    expect(screen.getByText('S-1: 403 forbidden').tagName).toBe('LI');
   });
 
   it('says so when everything is already in sync', async () => {

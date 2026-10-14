@@ -45,6 +45,8 @@ export interface PackageFixVersion {
 export interface PackageSyncResult {
   state: PackageSyncState;
   hint: string;
+  /** Optional secondary line (e.g. which tasks exist under the week). */
+  detail?: string;
   fixes: PackageFix[];
 }
 
@@ -250,15 +252,12 @@ function setPackageFix(
   weeks: RmWeek[],
   projectName: string,
   projectKey?: string,
-): { fix: PackageFix } | { reason: string } {
+): { fix: PackageFix } | { reason: string; detail?: string } {
   if (dated.length > 1)
     return { reason: 'Several fix versions are set, so the deployment package is ambiguous.' };
   const v = dated[0];
   const w = findWeekForDate(weeks, v.releaseDate);
-  if (!w)
-    return {
-      reason: `No Release Management week covers ${v.name} (${v.releaseDate}).`,
-    };
+  if (!w) return { reason: `No Release Management week covers ${v.name} (${v.releaseDate}).` };
   const child = findChildForProject(w, projectName, projectKey);
   if (!child) {
     const names = w.children
@@ -266,9 +265,10 @@ function setPackageFix(
       .map((c) => c.summary)
       .join(', ');
     return {
-      reason: `No task for "${projectName}" under ${formatWeekLabel(w.summary)}${
-        names ? ` (tasks: ${names}${w.children.length > 6 ? ', …' : ''})` : ' (no tasks found)'
-      }.`,
+      reason: `No task for "${projectName}" under ${formatWeekLabel(w.summary)}.`,
+      detail: names
+        ? `Tasks there: ${names}${w.children.length > 6 ? ', …' : ''}`
+        : 'No tasks found under that week.',
     };
   }
   return { fix: { kind: 'set-package', childKey: child.key, childSummary: child.summary } };
@@ -306,7 +306,12 @@ export function evaluatePackageSync(input: {
         fixes: [r.fix],
       };
     }
-    return { state: 'fv-only', hint: `No deployment package is set. ${r.reason}`, fixes: [] };
+    return {
+      state: 'fv-only',
+      hint: `No deployment package is set. ${r.reason}`,
+      detail: r.detail,
+      fixes: [],
+    };
   }
 
   const pkgWeek = indexChildToWeek(weeks).get(pkgKey) ?? null;

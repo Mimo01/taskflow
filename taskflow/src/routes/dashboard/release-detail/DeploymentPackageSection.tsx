@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   evaluatePackageSync,
@@ -31,9 +32,6 @@ const STATE_LABEL: Record<PackageSyncState, string> = {
   mismatch: 'Mismatch',
   unresolved: 'Unresolved',
 };
-
-const FIX_BUTTON =
-  'shrink-0 rounded border px-1.5 py-0.5 text-xs hover:bg-accent disabled:opacity-50';
 
 /**
  * Stories of this release whose fix version and Deployment package
@@ -136,10 +134,10 @@ export function DeploymentPackageSection({
         <AlertTriangle className="size-3.5" />
         Deployment package ({rows.length})
       </h3>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col divide-y">
         {rows.map(({ issue, result }) => (
-          <div key={issue.key} className="flex flex-col">
-            <div className="flex items-center gap-2 text-sm min-w-0">
+          <div key={issue.key} className="flex min-w-0 flex-col gap-1 py-2 first:pt-0 last:pb-0">
+            <div className="flex min-w-0 items-center gap-2 text-sm">
               <button
                 type="button"
                 onClick={() => onOpenIssue(issue.key)}
@@ -147,41 +145,40 @@ export function DeploymentPackageSection({
               >
                 {issue.key}
               </button>
-              <span className="truncate min-w-0 flex-1" title={issue.fields.summary}>
+              <span className="min-w-0 flex-1 truncate" title={issue.fields.summary}>
                 {issue.fields.summary}
               </span>
-              <span
-                className="shrink-0 text-xs text-amber-600 dark:text-amber-400"
-                title={result.hint}
-              >
+              <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">
                 {STATE_LABEL[result.state]}
               </span>
-              {result.fixes.map((fix) =>
-                fix.kind === 'set-fix-version' ? (
-                  <button
-                    key={`fv-${fix.versionId}`}
-                    type="button"
-                    className={FIX_BUTTON}
-                    disabled={pending === issue.key}
-                    onClick={() => onFix(issue, fix)}
-                  >
-                    Set fix version to {fix.versionName}
-                  </button>
-                ) : (
-                  <button
-                    key={`pkg-${fix.childKey}`}
-                    type="button"
-                    className={FIX_BUTTON}
-                    disabled={pending === issue.key}
-                    onClick={() => onFix(issue, fix)}
-                  >
-                    Set deployment package to {fix.childKey}
-                  </button>
-                ),
-              )}
             </div>
+            <p className="min-w-0 break-words text-xs text-muted-foreground">
+              {result.hint}
+              {result.detail ? ` ${result.detail}` : ''}
+            </p>
+            {result.fixes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {result.fixes.map((fix) => (
+                  <Button
+                    key={
+                      fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`
+                    }
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="h-auto min-h-6 whitespace-normal py-0.5 text-left"
+                    disabled={pending === issue.key}
+                    onClick={() => onFix(issue, fix)}
+                  >
+                    {fix.kind === 'set-fix-version'
+                      ? `Set fix version to ${fix.versionName}`
+                      : `Set deployment package to ${fix.childKey}`}
+                  </Button>
+                ))}
+              </div>
+            )}
             {errors[issue.key] && (
-              <p className="text-xs text-destructive pl-1" role="alert">
+              <p className="break-words text-xs text-destructive" role="alert">
                 {errors[issue.key]}
               </p>
             )}

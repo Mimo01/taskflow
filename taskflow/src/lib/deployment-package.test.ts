@@ -164,7 +164,7 @@ describe('evaluatePackageSync', () => {
     expect(noChild.fixes).toEqual([]);
     expect(noChild.hint).toContain('No task for "Billing"');
     expect(noChild.hint).toContain('Week 43');
-    expect(noChild.hint).toContain('Core deployment');
+    expect(noChild.detail).toContain('Core deployment');
 
     const noWeek = evaluatePackageSync({
       ...base,
