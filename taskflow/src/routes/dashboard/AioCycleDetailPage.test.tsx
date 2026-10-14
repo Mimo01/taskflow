@@ -1103,7 +1103,7 @@ describe('AioCycleDetailPage', () => {
   });
 
   describe('Defects tab — summary strip and triggered-by chips', () => {
-    it('summary strip shows counts by status category and by severity', async () => {
+    it('severity line on the Defects tab; status/priority donuts live in the stats block', async () => {
       const user = userEvent.setup();
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       await setupDefaultMocks();
@@ -1124,13 +1124,11 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByTestId('defects-summary')).toBeDefined());
       const strip = screen.getByTestId('defects-summary');
-      expect(within(strip).getByTestId('defect-status-donut')).toBeDefined();
-      expect(within(strip).getByTestId('defect-priority-donut')).toBeDefined();
-      expect(within(strip).getByText('Status')).toBeDefined();
-      expect(within(strip).getByText('Priority')).toBeDefined();
-      // old status pills are gone
-      expect(within(strip).queryByText('1 In Progress')).toBeNull();
-      expect(within(strip).getByTestId('defect-status-donut').getAttribute('aria-label')).toBe(
+      // donuts are in the stats block (once), not repeated in the Defects tab
+      expect(within(strip).queryByTestId('defect-status-donut')).toBeNull();
+      expect(screen.getAllByTestId('defect-status-donut')).toHaveLength(1);
+      expect(screen.getAllByTestId('defect-priority-donut')).toHaveLength(1);
+      expect(screen.getByTestId('defect-status-donut').getAttribute('aria-label')).toBe(
         'Defects by status: 1 In Progress',
       );
       expect(within(strip).getByText('Sev: Critical 1')).toBeDefined();
