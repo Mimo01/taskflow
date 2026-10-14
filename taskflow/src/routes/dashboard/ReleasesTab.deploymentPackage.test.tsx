@@ -100,7 +100,7 @@ describe('ReleasesTab deployment package', () => {
     renderTab(<ReleasesTab />);
     await waitFor(() =>
       expect(screen.getByTestId('row-deployment-package').textContent).toBe(
-        'RM-11 WEEK43 (19.10.2026 - 25.10.2026)',
+        'WEEK43 (19.10.2026 - 25.10.2026) RM-11',
       ),
     );
   });

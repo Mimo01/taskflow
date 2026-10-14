@@ -711,15 +711,16 @@ export default function ReleasesTab() {
                         if (!pkg) return null;
                         return pkg.child ? (
                           <span
-                            className="text-xs text-muted-foreground truncate min-w-0"
-                            title={`${pkg.child.key} ${pkg.child.summary} (${pkg.week.summary})`}
+                            className="text-xs truncate min-w-0"
+                            title={`${pkg.week.summary} (${pkg.child.key} ${pkg.child.summary})`}
                             data-testid="row-deployment-package"
                           >
-                            <span className="font-mono">{pkg.child.key}</span> {pkg.week.summary}
+                            {pkg.week.summary}{' '}
+                            <span className="font-mono text-muted-foreground">{pkg.child.key}</span>
                           </span>
                         ) : (
                           <span
-                            className="text-xs text-muted-foreground truncate min-w-0"
+                            className="text-xs truncate min-w-0"
                             title={`${pkg.week.summary} (no matching package)`}
                             data-testid="row-deployment-package"
                           >
