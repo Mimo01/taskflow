@@ -119,19 +119,19 @@ const PRIORITY_RED = ['blocker', 'critical', 'highest', 'major'];
 const PRIORITY_GRAY = ['low', 'minor', 'lowest', 'trivial'];
 
 /**
- * One distinct colour per scheme level, a warm-to-cool ramp in priorityRank order (red = most
- * urgent, slate = least) so every level, including Low / Lowest / Minor, is told apart.
+ * One distinct colour per scheme level, a red-to-blue ramp in priorityRank order (red = most
+ * urgent, slate = least; lightness steps keep the reds apart, no green) so every level, including Low / Lowest / Minor, is told apart.
  */
 const PRIORITY_LEVEL_COLOR: Record<string, string> = {
   blocker: 'var(--color-red-800)',
   must: 'var(--color-red-600)',
-  critical: 'var(--color-orange-600)',
-  highest: 'var(--color-orange-400)',
-  should: 'var(--color-amber-500)',
-  high: 'var(--color-yellow-400)',
-  medium: 'var(--color-lime-500)',
-  low: 'var(--color-teal-500)',
-  lowest: 'var(--color-sky-500)',
+  critical: 'var(--color-red-400)',
+  highest: 'var(--color-orange-500)',
+  should: 'var(--color-orange-400)',
+  high: 'var(--color-amber-500)',
+  medium: 'var(--color-yellow-400)',
+  low: 'var(--color-sky-400)',
+  lowest: 'var(--color-indigo-400)',
   minor: 'var(--color-slate-400)',
 };
 
