@@ -106,7 +106,7 @@ describe('DeploymentPackageWarning', () => {
   it('fv-only: sets the deployment package in the editmeta shape', async () => {
     const { mutate } = setup({ fixVersions: [v44] });
     fireEvent.click(
-      await screen.findByRole('button', { name: /set deployment package to RM-21/i }),
+      await screen.findByRole('button', { name: /set deployment package to .*RM-21/i }),
     );
     expect(mutate).toHaveBeenCalledWith({ fieldName: 'customfield_15725', value: ['RM-21'] });
   });
@@ -116,6 +116,14 @@ describe('DeploymentPackageWarning', () => {
     const { mutate } = setup({ fixVersions: [v44] });
     fireEvent.click(await screen.findByRole('button', { name: /set deployment package/i }));
     expect(mutate).toHaveBeenCalledWith({ fieldName: 'customfield_15725', value: 'RM-21' });
+  });
+
+  it('names the target week in the package button, not just the issue key', async () => {
+    setup({ fixVersions: [v44] });
+    const btn = await screen.findByRole('button', { name: /set deployment package/i });
+    expect(btn.textContent).toBe(
+      'Set deployment package to Week 44 (26.10.2026 – 01.11.2026) (RM-21)',
+    );
   });
 
   it('pkg-only: sets the fix version', async () => {
