@@ -83,3 +83,17 @@ None beyond the plan's threat model (project/issue keys are regex-validated befo
 - Biome: no new files flagged (remaining findings are pre-existing: chart.tsx, BacklogRow.tsx, MyTasksPage.test.tsx).
 
 ## Self-Check: PASSED
+
+## Post-execution UAT follow-ups (live Jira, user-approved 2026-10-14)
+
+Live UAT surfaced instance specifics; all fixed on main (last commit e13892d7):
+
+- **RM children hang off the WEEK parent via Advanced Roadmaps "Parent Link"**, not `parent`/Epic Link. Link field ids are now discovered via `/field` (cached per base URL) and only discovered ids are queried; the guessed `cf[10014]` 404'd (Epic Link is `customfield_10101` here, Parent Link `customfield_12700`).
+- **WEEK titles use non-padded dates** (`WEEK45 (2.11.2026 - 8.11.2026) STANDARD`); the parser required 2-digit parts so those weeks were silently dropped. Now `\d{1,2}`, padded to YYYY-MM-DD; labels keep the original text.
+- **Performance:** the full RM index scan was replaced by a lazy path: light WEEK list (summary only, `summary ~ "WEEK*"` with plain-scan fallback) + children only for the weeks of the dates on screen + direct per-key package lookup (`fetchRmPackage`, 1 issue + parent).
+- **Release detail** also fetches Stories whose package is a task of the release week but that have no fix version (`fetchStoriesWithPackageNoFixVersion`, `cf[15725] in (...)`), degrading to [] if the field is not JQL-searchable.
+- **Diagnostics:** the "no package" hint now says which step failed (no week for date / no task for project name + tasks present / several fix versions). Matching also accepts app-name-in-project-name and project key.
+- **UI:** week label is primary and normal-cased (`Week 45 (2.11.2026 – 8.11.2026) Standard`), RM task secondary; sidebar value wraps; tooltip says it is edited via fix version; warning sits in the value column (replaces the dash), suggestion `→ target` with an "Apply" button below (`PackageFixAction`); sync result is an Alert with one line per failed story.
+- Review advisories (REVIEW.md WR-01..08) were not acted on.
+
+Process notes: one accidental `biome --write src` touched 2 unrelated files (reverted before commit); two scripted text replacements silently no-op'd (sidebar button label; ReleasesTab status block corrupted file) and were caught by tests/tsc.
