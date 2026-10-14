@@ -575,7 +575,7 @@ export function FieldsSection({
     : null;
 
   const deploymentPackageSet = !!extractDeploymentPackage(f.customfield_15725);
-  const packageWarning = (embedded: boolean) => (
+  const packageWarning = (embedded: boolean, fallback?: React.ReactNode) => (
     <DeploymentPackageWarning
       issueKey={issueKey}
       issueTypeName={f.issuetype.name}
@@ -586,6 +586,7 @@ export function FieldsSection({
       mutation={mutation}
       jiraBaseUrl={jiraBaseUrl}
       embedded={embedded}
+      fallback={fallback}
     />
   );
 
@@ -1144,16 +1145,17 @@ export function FieldsSection({
               </span>
             </span>
           ) : (
-            <span className="flex min-w-0 flex-col">
+            // No package: the warning (when there is one) replaces the dash entirely.
+            packageWarning(
+              true,
               <span
                 data-testid="deployment-package-value"
                 className="text-muted-foreground"
                 title={editNote}
               >
                 &mdash;
-              </span>
-              {packageWarning(true)}
-            </span>
+              </span>,
+            )
           );
         })()}
       </MetaRow>

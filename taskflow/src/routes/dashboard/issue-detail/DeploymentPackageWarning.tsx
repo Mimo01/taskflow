@@ -33,6 +33,8 @@ interface DeploymentPackageWarningProps {
   jiraBaseUrl: string;
   /** Render inside the Deployment package value cell (no label gutter of its own). */
   embedded?: boolean;
+  /** Embedded mode only: rendered instead of the warning whenever there is nothing to warn about. */
+  fallback?: React.ReactNode;
 }
 
 const FIX_BUTTON_CLASS = 'h-auto min-h-6 max-w-full whitespace-normal break-words py-0.5 text-left';
@@ -53,6 +55,7 @@ export function DeploymentPackageWarning({
   mutation,
   jiraBaseUrl,
   embedded = false,
+  fallback = null,
 }: DeploymentPackageWarningProps) {
   const { enabled: rmEnabled } = useRmWeekIndex();
   const active = rmEnabled && issueTypeName === 'Story';
@@ -103,9 +106,10 @@ export function DeploymentPackageWarning({
   const needsPackageWrite = result.fixes.some((x) => x.kind === 'set-package');
   const { shape } = useDeploymentPackageEditShape(issueKey, active && needsPackageWrite);
 
-  if (!active || result.state === 'ok' || result.state === 'none') return null;
+  const nothing = embedded ? fallback : null;
+  if (!active || result.state === 'ok' || result.state === 'none') return nothing;
   // Don't flash a "package not found" warning while the index / versions are still loading.
-  if (weeks.length === 0 || versionsQuery.isLoading || weeksLoading) return null;
+  if (weeks.length === 0 || versionsQuery.isLoading || weeksLoading) return nothing;
 
   const applyFix = (fix: PackageFix) => {
     if (fix.kind === 'set-package') {
@@ -195,7 +199,7 @@ export function DeploymentPackageWarning({
     </div>
   );
 
-  if (embedded) return <div className="mt-1 flex min-w-0">{body}</div>;
+  if (embedded) return <div className="flex min-w-0">{body}</div>;
   return (
     <div className="flex items-start gap-2">
       {/* Same label gutter as MetaRow, so the warning sits inside the value column. */}
