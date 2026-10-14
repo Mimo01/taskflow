@@ -69,7 +69,7 @@ describe('defectPrioritySlices', () => {
     ]);
     expect(s.map((x) => x.label)).toEqual(['Blocker', 'Low', 'None']);
     expect(s[0].color).toBe('var(--color-red-800)');
-    expect(s[1].color).toBe('var(--color-teal-500)');
+    expect(s[1].color).toBe('var(--color-sky-400)');
     expect(s[2].color).toBe('var(--color-gray-300)');
   });
 });
@@ -155,13 +155,13 @@ describe('priorityChartColor by scheme level', () => {
   it.each([
     ['Blocker', 'var(--color-red-800)'],
     ['Must', 'var(--color-red-600)'],
-    ['Critical', 'var(--color-orange-600)'],
-    ['Highest', 'var(--color-orange-400)'],
-    ['Should', 'var(--color-amber-500)'],
-    ['High', 'var(--color-yellow-400)'],
-    ['Medium', 'var(--color-lime-500)'],
-    ['Low', 'var(--color-teal-500)'],
-    ['Lowest', 'var(--color-sky-500)'],
+    ['Critical', 'var(--color-red-400)'],
+    ['Highest', 'var(--color-orange-500)'],
+    ['Should', 'var(--color-orange-400)'],
+    ['High', 'var(--color-amber-500)'],
+    ['Medium', 'var(--color-yellow-400)'],
+    ['Low', 'var(--color-sky-400)'],
+    ['Lowest', 'var(--color-indigo-400)'],
     ['Minor', 'var(--color-slate-400)'],
   ])('%s ignores a meaningless icon', (name, color) => {
     expect(priorityChartColor({ name, iconUrl: 'http://x/icon-123.svg' })).toBe(color);
