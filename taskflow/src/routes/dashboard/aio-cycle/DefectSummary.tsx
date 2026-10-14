@@ -7,7 +7,7 @@ import { AioDonut, AioDonutSkeleton } from './AioDonut';
 import type { ResolvedDefect } from './useCycleDefects';
 
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
-const KEY_CLASS = 'grid w-32 gap-1 text-xs leading-4';
+const KEY_CLASS = 'grid gap-1 text-xs leading-4';
 const KEY_TITLE_CLASS = 'font-medium';
 
 export function severityOf(issue: JiraIssue | null): string | null {
@@ -134,7 +134,7 @@ function DonutBlock({
         {slices.slice(0, 4).map((s) => (
           <span key={s.label} className="flex min-w-0 items-center gap-2">
             <MarkerGlyph marker="status" color={s.color} />
-            <span className="min-w-0 flex-1 truncate text-muted-foreground">{s.label}</span>
+            <span className="min-w-0 max-w-40 truncate text-muted-foreground">{s.label}</span>
             <span className="tabular-nums">{s.value}</span>
           </span>
         ))}
