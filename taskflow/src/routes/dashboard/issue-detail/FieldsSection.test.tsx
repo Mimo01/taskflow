@@ -357,6 +357,20 @@ async function renderFieldsSection(issue: JiraIssueDetail) {
 }
 
 describe('FieldsSection', () => {
+  describe('Story-only rows', () => {
+    it.each([
+      ['Story', { name: 'Story', subtask: false }, true],
+      ['Epic', { name: 'Epic', subtask: false }, false],
+      ['Sub-task', { name: 'Sub-task', subtask: true }, false],
+    ])('%s: Fix Versions / Deployment package visibility', async (_n, issuetype, shown) => {
+      await renderFieldsSection(makeIssue({ issuetype } as any));
+      expect(screen.queryByTestId('fix-version-edit') !== null).toBe(shown);
+      expect(screen.queryByTestId('deployment-package-value') !== null).toBe(shown);
+      expect(screen.queryByText('Fix Versions') !== null).toBe(shown);
+      expect(screen.queryByText('Deployment package') !== null).toBe(shown);
+    });
+  });
+
   describe('Assignee unassign', () => {
     it('Unassign button clears the assignee via the field mutation', async () => {
       const mutation = await renderFieldsSection(makeIssue());
