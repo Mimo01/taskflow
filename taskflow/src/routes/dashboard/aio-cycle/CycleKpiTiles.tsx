@@ -129,16 +129,7 @@ export function CycleKpiTiles({
                 icon={BugOff}
                 tint="red"
                 label="Unlinked failures"
-                value={
-                  <span
-                    className={cn(
-                      VALUE_CLASS,
-                      unlinked.length > 0 && 'text-red-600 dark:text-red-400',
-                    )}
-                  >
-                    {unlinked.length}
-                  </span>
-                }
+                value={<span className={VALUE_CLASS}>{unlinked.length}</span>}
                 sub={<span className="truncate">{`of ${failing} failing`}</span>}
                 tip={
                   <TooltipBody title="Unlinked failures">
