@@ -15,7 +15,7 @@ import type { ResolvedDefect } from './useCycleDefects';
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
 const KEY_CLASS = 'grid gap-0.5 text-xs leading-4';
 /** Key rows shown; beyond this the last row becomes '+N more' (the donut tooltips still list all). */
-const KEY_MAX = 5;
+const KEY_MAX = 3;
 const KEY_TITLE_CLASS = 'font-medium';
 
 /** Raw severity value ('2-Major'): the number is the order, so sort on this. */
