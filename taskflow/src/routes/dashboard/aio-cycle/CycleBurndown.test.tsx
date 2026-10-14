@@ -40,6 +40,7 @@ describe('CycleBurndown', () => {
       [run('PASS', s + D), run('NOT_EXECUTED')],
       undefined,
       s + 5 * D,
+      () => true,
     );
     render(<CycleBurndown series={series} loading={false} />);
     expect(screen.getByTestId('cycle-burndown')).toBeDefined();

@@ -1,5 +1,6 @@
 import { type StatusKey, statusLabel } from '@/lib/aio-cycle-list';
 import { priorityRank } from '@/lib/aio-defect-sort';
+import { toLocalDateString } from '@/lib/local-date';
 import { statusCategoryColor } from '@/lib/statusStyles';
 
 export interface ChartRow {
@@ -292,7 +293,7 @@ export interface BurndownPoint {
   t: number;
   /** Cases not yet passed/failed/blocked; null after "now" so the step line stops there. */
   remaining: number | null;
-  /** Straight line from total at the start to 0 at the end; null when the span is empty. */
+  /** Working-day ideal: total at the start falling to 0 at the end, flat on non-working days; null when the span is empty. */
   ideal: number | null;
   /** Cases executed at exactly this timestamp. */
   executed: number;
@@ -305,6 +306,8 @@ export interface BurndownSeries {
   total: number;
   from: number;
   to: number;
+  /** Merged ranges of consecutive non-working days, clipped to [from, to]. */
+  nonWorking: { from: number; to: number }[];
 }
 
 // Mirrors normalizeStatus in aioUtils (not imported: that module pulls in services).
@@ -327,13 +330,48 @@ const MARKER_SEVERITY: Partial<Record<StatusKey, number>> = { pass: 0, blocked: 
 
 /**
  * Burndown of remaining cases (Not Run + In Progress) over time: one point per execution
- * timestamp, a start point at the total, and a trailing/end point. Null when nothing was
- * executed (nothing to draw).
+ * timestamp, a start point at the total, and a trailing/end point. The ideal line is a
+ * working-day ideal: it only falls on days `isWorkingDay` accepts, with ideal-only points at
+ * every local midnight so weekends and holidays draw flat. Null when nothing was executed
+ * (nothing to draw).
  */
+const DAY_MS = 86_400_000;
+/** Longer spans (corrupt dates) skip the day walk and use the linear ideal. */
+const MAX_WALK_DAYS = 731;
+
+interface CalendarDay {
+  start: number;
+  end: number;
+  working: boolean;
+}
+
+/** Local days overlapping [from, to]; null when the span is too long to walk. */
+function walkDays(
+  from: number,
+  to: number,
+  isWorkingDay: (key: string) => boolean,
+): CalendarDay[] | null {
+  if (to - from > MAX_WALK_DAYS * DAY_MS) return null;
+  const first = new Date(from);
+  const days: CalendarDay[] = [];
+  let d = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+  while (d.getTime() < to) {
+    const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    days.push({
+      start: d.getTime(),
+      end: next.getTime(),
+      working: isWorkingDay(toLocalDateString(d)),
+    });
+    d = next;
+  }
+  return days;
+}
+
 export function cycleBurndownSeries(
   runs: { status: string; executedDate?: string }[],
   cycle: { startDate?: unknown; endDate?: unknown } | undefined,
   now: number,
+  isWorkingDay: (key: string) => boolean,
 ): BurndownSeries | null {
   const total = runs.length;
   if (total === 0) return null;
@@ -376,13 +414,59 @@ export function cycleBurndownSeries(
   }
 
   const span = to - from;
+  const days = span > 0 ? walkDays(from, to, isWorkingDay) : null;
+
+  // Working time elapsed in [from, t].
+  const workedUntil = (t: number) => {
+    let w = 0;
+    for (const d of days ?? []) {
+      if (!d.working) continue;
+      const overlap = Math.min(d.end, t) - Math.max(d.start, from);
+      if (overlap > 0) w += overlap;
+    }
+    return w;
+  };
+  const workTotal = days ? workedUntil(to) : 0;
+  const nonWorking: { from: number; to: number }[] = [];
+
+  if (days) {
+    // Ideal-only points at every local midnight, so non-working days draw flat.
+    const taken = new Set(points.map((p) => p.t));
+    const stepLimit = Math.max(tail, lastExec);
+    for (const d of days) {
+      if (d.start <= from || d.start >= to || taken.has(d.start)) continue;
+      let doneAt = 0;
+      for (const t of times) {
+        if (t > d.start) break;
+        doneAt += (groups.get(t) as { count: number }).count;
+      }
+      points.push({
+        t: d.start,
+        remaining: d.start <= stepLimit ? total - doneAt : null,
+        ideal: null,
+        ...blank,
+      });
+    }
+    for (const d of days) {
+      if (d.working) continue;
+      const a = Math.max(d.start, from);
+      const b = Math.min(d.end, to);
+      if (b <= a) continue;
+      const last = nonWorking[nonWorking.length - 1];
+      if (last && last.to === a) last.to = b;
+      else nonWorking.push({ from: a, to: b });
+    }
+  }
+
   for (const p of points) {
-    p.ideal =
-      span > 0
-        ? Math.round(Math.min(total, Math.max(0, total * (1 - (p.t - from) / span))) * 10) / 10
-        : null;
+    if (span <= 0) {
+      p.ideal = null;
+      continue;
+    }
+    const frac = workTotal > 0 ? workedUntil(p.t) / workTotal : (p.t - from) / span;
+    p.ideal = Math.round(Math.min(total, Math.max(0, total * (1 - frac))) * 10) / 10;
   }
   points.sort((a, b) => a.t - b.t);
   if (points.length < 2) return null;
-  return { points, total, from, to };
+  return { points, total, from, to, nonWorking };
 }

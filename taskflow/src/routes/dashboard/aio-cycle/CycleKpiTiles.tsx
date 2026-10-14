@@ -2,6 +2,7 @@ import { BugOff, CircleCheck, FlaskConical, Redo2 } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cycleBurndownSeries } from '@/lib/aio-cycle-charts';
+import { DEFAULT_CALENDAR } from '@/lib/epic-progress';
 import { cn } from '@/lib/utils';
 import type { AioCycle, AioTestRun } from '@/services/aio';
 import { STAT_CONTAINER_CLASS } from '../issue-detail/EpicStatCard';
@@ -48,7 +49,8 @@ export function CycleKpiTiles({
   cycle: Pick<AioCycle, 'startDate' | 'endDate'> | undefined;
 }) {
   const burndown = useMemo(
-    () => (runs ? cycleBurndownSeries(runs, cycle, Date.now()) : null),
+    () =>
+      runs ? cycleBurndownSeries(runs, cycle, Date.now(), DEFAULT_CALENDAR.isWorkingDay) : null,
     [runs, cycle],
   );
   const executed = counts.pass + counts.fail + counts.blocked;
