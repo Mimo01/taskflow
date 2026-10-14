@@ -180,13 +180,13 @@ describe('AioCycleDetailPage', () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => {
-        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/33%/);
-        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/1 passed/);
-        expect(screen.getByTestId('kpi-failing').textContent).toMatch(/Failing \/ Blocked1/);
-        expect(screen.getByTestId('progress-seg-pass')).toBeDefined();
-        expect(screen.getByTestId('progress-seg-fail')).toBeDefined();
-        expect(screen.getByTestId('progress-seg-notRun')).toBeDefined();
-        expect(screen.queryByTestId('progress-seg-blocked')).toBeNull();
+        // pass / executed: 1 pass of 2 executed
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/of executed/);
+        expect(screen.getByTestId('kpi-unlinked')).toBeDefined();
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/executed/);
+        expect(screen.queryByTestId('cycle-progress-bar')).toBeNull();
       });
     });
 
@@ -265,10 +265,8 @@ describe('AioCycleDetailPage', () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
-        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/2 passed/);
-        expect(screen.getByTestId('kpi-failing').textContent).toMatch(/Failing \/ Blocked2/);
-        expect(screen.getByTestId('progress-seg-pass').style.width).toBe('50%');
-        expect(screen.getByTestId('progress-seg-fail').style.width).toBe('50%');
+        expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 2 failing/);
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/4\/4/);
       });
     });
 
@@ -294,7 +292,7 @@ describe('AioCycleDetailPage', () => {
       // Progress bar must be visible even though runs never resolved
       await waitFor(() => {
         expect(screen.getByTestId('kpi-pass-rate')).toBeDefined();
-        expect(screen.getByTestId('progress-seg-pass')).toBeDefined();
+        expect(screen.getByTestId('exec-donut')).toBeDefined();
       });
       // runs-table-skeleton should be present since runsQuery is still loading
       await waitFor(() => {
@@ -313,9 +311,9 @@ describe('AioCycleDetailPage', () => {
       renderPage();
       // Falls back to runs-derived counts: 1 pass, 1 fail, 1 not-run
       await waitFor(() => {
-        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/1 passed/);
-        expect(screen.getByTestId('kpi-failing').textContent).toMatch(/Failing \/ Blocked1/);
-        expect(screen.getByTestId('progress-seg-notRun')).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
+        expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 1 failing/);
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
       });
     });
 
@@ -385,10 +383,8 @@ describe('AioCycleDetailPage', () => {
       // Without the component-side init every segment would be Not Run (0% pass). With the fix
       // the component populates the map and the distribution resolves to its true buckets.
       await waitFor(() => {
-        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/33%/);
-        expect(screen.getByTestId('progress-seg-pass')).toBeDefined();
-        expect(screen.getByTestId('progress-seg-fail')).toBeDefined();
-        expect(screen.getByTestId('progress-seg-notRun')).toBeDefined();
+        expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
       });
     });
   });
@@ -624,9 +620,10 @@ describe('AioCycleDetailPage', () => {
       renderPage();
       await waitFor(() => expect(screen.getByTestId('kpi-open-defects')).toBeDefined());
       expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/Pass rate/);
-      expect(screen.getByTestId('kpi-executed').textContent).toMatch(/2\/3/);
+      expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
+      expect(screen.getByTestId('kpi-reruns')).toBeDefined();
       // run-2 FAIL has a linked defect, so nothing is failing without one
-      expect(screen.getByTestId('kpi-failing').textContent).toMatch(/all linked to defects/);
+      expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/0of 1 failing/);
     });
   });
 
