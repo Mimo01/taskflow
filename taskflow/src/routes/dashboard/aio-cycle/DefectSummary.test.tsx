@@ -25,17 +25,17 @@ const priorityKey = () => {
 };
 
 describe('defect donut key', () => {
-  it('lists up to 3 entries in full', () => {
-    const names = ['Blocker', 'Must', 'High'];
+  it('lists up to 4 entries in full', () => {
+    const names = ['Blocker', 'Must', 'High', 'Medium'];
     render(<CycleDefectDonuts defects={names.map((n, i) => defect(i, n))} loading={false} />);
     for (const n of names) expect(priorityKey().getByText(n)).toBeDefined();
     expect(priorityKey().queryByText(/more/)).toBeNull();
   });
 
-  it('shows 2 entries and "+N more" beyond 3 (keeps the key short)', () => {
-    const names = ['Blocker', 'Must', 'High', 'Medium', 'Low'];
+  it('shows 3 entries and "+N more" beyond 4 (keeps the key short)', () => {
+    const names = ['Blocker', 'Must', 'High', 'Medium', 'Low', 'Minor'];
     render(<CycleDefectDonuts defects={names.map((n, i) => defect(i, n))} loading={false} />);
-    expect(priorityKey().getAllByText(/^(Blocker|Must|High|Medium|Low)$/)).toHaveLength(2);
+    expect(priorityKey().getAllByText(/^(Blocker|Must|High|Medium|Low|Minor)$/)).toHaveLength(3);
     expect(priorityKey().getByText('+3 more')).toBeDefined();
   });
 });

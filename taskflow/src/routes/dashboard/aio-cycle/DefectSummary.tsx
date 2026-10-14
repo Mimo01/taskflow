@@ -16,13 +16,13 @@ import type { ResolvedDefect } from './useCycleDefects';
 /** Fixed key width so the Status and Priority keys (and their values) line up. */
 const KEY_CLASS = 'grid gap-0.5 text-xs leading-4';
 /** Key rows shown; beyond this the last row becomes '+N more' (the donut tooltips still list all). */
-const KEY_MAX = 3;
+const KEY_MAX = 4;
 const KEY_TITLE_CLASS = 'font-medium';
 /** The large (Status) key scales with its donut: bigger text and more rows. */
 const KEY_CLASS_LARGE = 'grid gap-1 text-sm leading-5';
-const KEY_MAX_LARGE = 5;
+const KEY_MAX_LARGE = 6;
 /** Status is the headline defect split, so its donut is larger than Priority / Severity. */
-const STATUS_DONUT_SIZE = 120;
+const STATUS_DONUT_SIZE = 104;
 /** Status on top, Priority and Severity side by side below. */
 const LAYOUT_CLASS = 'grid w-full min-w-0 gap-4';
 const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-4 border-t border-border pt-4';
