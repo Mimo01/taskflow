@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  assignIssue,
   bulkUpdateIssue,
   createIssue,
   invalidateGhBacklogData,
@@ -170,8 +171,14 @@ export function useIssueMutations({
       if (state.description !== (initialValues.description ?? '')) {
         fields.description = state.description;
       }
-      if (state.selectedAssigneeName !== initialValues.assigneeName) {
-        fields.assignee = state.selectedAssigneeName ? { name: state.selectedAssigneeName } : null;
+      // Never send fields.assignee = null: unassign goes through assignIssue below,
+      // and only when the user explicitly picked "Unassigned".
+      if (
+        !state.assigneeUnassignPicked &&
+        state.selectedAssigneeName &&
+        state.selectedAssigneeName !== initialValues.assigneeName
+      ) {
+        fields.assignee = { name: state.selectedAssigneeName };
       }
       if (state.priority !== initialValues.priority) {
         fields.priority = state.priority ? { name: state.priority } : null;
@@ -198,6 +205,10 @@ export function useIssueMutations({
 
       await bulkUpdateIssue(jiraBaseUrl, token, initialValues.issueKey, fields);
 
+      if (state.assigneeUnassignPicked && initialValues.assigneeName) {
+        await assignIssue(jiraBaseUrl, token, initialValues.issueKey, null);
+      }
+
       // Post-update: create new issue links
       for (const row of state.linkRows) {
         if (!row.linkTypeId || !row.issueKey) continue;
@@ -221,6 +232,8 @@ export function useIssueMutations({
           queryKey: ['jira-issue-detail', initialValues.issueKey, jiraBaseUrl],
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-parent-detail'] });
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
       onSuccess();
