@@ -21,11 +21,19 @@ export type ParentCompletionResult =
       parentSummary: string;
       parentStatusId: string;
       parentStatusName: string;
+      parentStatusCategory: string;
+      parentIssueType: string;
+      parentPriority: string;
+      parentAssignee: string;
+      subtaskCount: number;
     };
 
 interface ParentResponse {
   fields?: {
     summary?: string;
+    issuetype?: { name?: string };
+    priority?: { name?: string };
+    assignee?: { displayName?: string } | null;
     status?: { id?: string; name?: string; statusCategory?: { key?: string } };
     subtasks?: Array<{
       key: string;
@@ -47,7 +55,7 @@ export async function checkParentCompletion(
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const response = await apiFetch(
       'jira',
-      `${base}/rest/api/2/issue/${parentKey}?fields=status,summary,subtasks`,
+      `${base}/rest/api/2/issue/${parentKey}?fields=status,summary,subtasks,issuetype,priority,assignee`,
       { headers },
       'Check Parent Completion',
     );
@@ -93,6 +101,11 @@ export async function checkParentCompletion(
       parentSummary: fields.summary ?? '',
       parentStatusId: fields.status.id ?? '',
       parentStatusName: fields.status.name ?? '',
+      parentStatusCategory: fields.status.statusCategory?.key ?? '',
+      parentIssueType: fields.issuetype?.name ?? '',
+      parentPriority: fields.priority?.name ?? '',
+      parentAssignee: fields.assignee?.displayName ?? '',
+      subtaskCount: (fields.subtasks ?? []).length,
     };
   } catch {
     return NO_PROMPT;
