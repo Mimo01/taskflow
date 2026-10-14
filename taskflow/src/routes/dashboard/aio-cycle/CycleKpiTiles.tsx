@@ -94,8 +94,8 @@ export function CycleKpiTiles({
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
-      <div className="flex flex-col gap-6 @4xl/epic:flex-row @min-[88rem]/epic:gap-8">
-        <div className="@container/left flex min-w-0 flex-col gap-6 @4xl/epic:flex-1 @4xl/epic:gap-3">
+      <div className="flex flex-col gap-4 @4xl/epic:flex-row @min-[88rem]/epic:gap-8">
+        <div className="@container/left flex min-w-0 flex-col gap-4 @4xl/epic:flex-1 @4xl/epic:gap-3">
           <Section
             title="Cycle Statistics"
             className="min-w-0"
@@ -212,7 +212,7 @@ export function CycleKpiTiles({
             </Section>
           ) : null}
         </div>
-        <div className="flex min-w-0 gap-6 border-t border-border pt-6 @4xl/epic:contents">
+        <div className="flex min-w-0 gap-6 @4xl/epic:contents">
           <Section
             title="Execution Distribution"
             className={cn(
@@ -237,15 +237,14 @@ export function CycleKpiTiles({
   );
 }
 
-/** Side-by-side columns are divided by a left rule, stacked ones by a top hairline. */
+/** Side-by-side columns are divided by a left rule, stacked ones by a left rule only. */
 const DIVIDED_CLASS = '@4xl/epic:border-l @4xl/epic:border-border @4xl/epic:pl-6';
 
 /** The left column's headings are visually hidden from 896px (screen readers keep them): no height to spare. */
 const SIDE_HEADING_CLASS = '@4xl/epic:sr-only';
 
-/** Burndown: below the tiles in the left column; stacked (< 896px) it has a top hairline. */
-const BURNDOWN_CLASS =
-  'min-w-0 flex-1 border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:pt-0';
+/** Burndown: below the tiles in the left column; stacked (< 896px) it has no divider. */
+const BURNDOWN_CLASS = 'min-w-0 flex-1';
 
 /** Headed block: heading on the shared top line, body vertically centred in the leftover height. */
 function Section({
