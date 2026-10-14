@@ -1,4 +1,4 @@
-import { Bug, CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
+import { CheckCircle2, RefreshCw, RotateCcw, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -30,8 +30,6 @@ export function CycleKpiTiles({
   total,
   runs,
   countsLoading,
-  openDefects,
-  totalDefects,
   defectsLoading,
   defects,
 }: {
@@ -39,8 +37,6 @@ export function CycleKpiTiles({
   total: number;
   runs: AioTestRun[] | undefined;
   countsLoading: boolean;
-  openDefects: number;
-  totalDefects: number;
   defectsLoading: boolean;
   defects: ResolvedDefect[];
 }) {
@@ -55,6 +51,21 @@ export function CycleKpiTiles({
   const failedNoDefect = unlinked.filter((r) => r.status === 'FAIL').length;
   const blockedNoDefect = unlinked.filter((r) => r.status === 'BLOCKED').length;
   const failing = counts.fail + counts.blocked;
+  // Failing cases whose linked defects are all Done: the fix is in, the case needs another run.
+  const doneDefects = new Set(
+    defects
+      .filter((d) => d.issue?.fields.status?.statusCategory?.key === 'done')
+      .map((d) => d.defectKey),
+  );
+  const retest = (runs ?? []).filter((r) => {
+    const ids = (r.jiraDefectIDs ?? []).map(String);
+    return (
+      (r.status === 'FAIL' || r.status === 'BLOCKED') &&
+      ids.length > 0 &&
+      ids.every((id) => doneDefects.has(id))
+    );
+  });
+  const retestFailed = retest.filter((r) => r.status === 'FAIL').length;
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
@@ -84,20 +95,28 @@ export function CycleKpiTiles({
                 }
               />
             )}
-            {!runs ? (
-              <TileSkeleton testId="kpi-skeleton-reruns" icon={RotateCcw} tint="blue" />
+            {!runs || defectsLoading ? (
+              <TileSkeleton testId="kpi-skeleton-retest" icon={RefreshCw} tint="green" />
             ) : (
               <Tile
-                testId="kpi-reruns"
-                icon={RotateCcw}
-                tint="blue"
-                label="Re-runs"
-                value={<span className={VALUE_CLASS}>{reRuns}</span>}
-                sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
+                testId="kpi-retest"
+                icon={RefreshCw}
+                tint="green"
+                label="Ready to retest"
+                value={<span className={VALUE_CLASS}>{retest.length}</span>}
+                sub={<span className="truncate">{`of ${failing} failing`}</span>}
                 tip={
-                  <TooltipBody title="Re-runs">
-                    <TooltipRow label="Re-run cases" value={reRuns} />
-                    <TooltipRow label="Max runs" value={maxRuns} />
+                  <TooltipBody title="Ready to retest">
+                    <TooltipRow
+                      label="Failed, defects done"
+                      value={retestFailed}
+                      color="var(--color-red-500)"
+                    />
+                    <TooltipRow
+                      label="Blocked, defects done"
+                      value={retest.length - retestFailed}
+                      color="var(--color-orange-400)"
+                    />
                   </TooltipBody>
                 }
               />
@@ -137,20 +156,20 @@ export function CycleKpiTiles({
                 }
               />
             )}
-            {defectsLoading ? (
-              <TileSkeleton testId="kpi-skeleton-defects" icon={Bug} tint="amber" />
+            {!runs ? (
+              <TileSkeleton testId="kpi-skeleton-reruns" icon={RotateCcw} tint="blue" />
             ) : (
               <Tile
-                testId="kpi-open-defects"
-                icon={Bug}
-                tint="amber"
-                label="Open defects"
-                value={<span className={VALUE_CLASS}>{openDefects}</span>}
-                sub={<span className="truncate">{`of ${totalDefects} linked`}</span>}
+                testId="kpi-reruns"
+                icon={RotateCcw}
+                tint="blue"
+                label="Re-runs"
+                value={<span className={VALUE_CLASS}>{reRuns}</span>}
+                sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
                 tip={
-                  <TooltipBody title="Open defects">
-                    <TooltipRow label="Open" value={openDefects} />
-                    <TooltipRow label="Done" value={Math.max(0, totalDefects - openDefects)} />
+                  <TooltipBody title="Re-runs">
+                    <TooltipRow label="Re-run cases" value={reRuns} />
+                    <TooltipRow label="Max runs" value={maxRuns} />
                   </TooltipBody>
                 }
               />
