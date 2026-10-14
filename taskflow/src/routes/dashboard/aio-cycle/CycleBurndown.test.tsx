@@ -73,7 +73,7 @@ describe('CycleKpiTiles burndown section', () => {
 });
 
 describe('CycleKpiTiles burndown layout', () => {
-  it('puts the Burndown heading inside the top row, second after Cycle Statistics', () => {
+  it('keeps the heading order: Cycle Statistics, Burndown, then the donuts', () => {
     tiles([run('PASS', s + D), run('NOT_EXECUTED')]);
     expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual([
       'Cycle Statistics',
@@ -83,9 +83,27 @@ describe('CycleKpiTiles burndown layout', () => {
     ]);
   });
 
-  it('no longer renders the bottom border-t strip for the Burndown', () => {
+  it('stacks the tiles and the Burndown in one left column', () => {
+    tiles([run('PASS', s + D), run('NOT_EXECUTED')]);
+    const stats = screen.getByText('Cycle Statistics').closest('section');
+    const burndown = screen.getByText('Burndown').closest('section');
+    expect(stats?.parentElement).toBe(burndown?.parentElement);
+    const donuts = screen.getByText('Execution Distribution').closest('section');
+    expect(donuts?.parentElement).toBe(stats?.parentElement?.parentElement);
+  });
+
+  it('hides the left column headings visually from 896px, with a minimum plot height', () => {
+    tiles([run('PASS', s + D), run('NOT_EXECUTED')]);
+    expect(screen.getByText('Burndown').className).toContain('@4xl/epic:sr-only');
+    expect(screen.getByText('Cycle Statistics').className).toContain('@4xl/epic:sr-only');
+    const body = screen.getByText('Burndown').nextElementSibling;
+    expect(body?.className).toContain('@4xl/epic:min-h-[110px]');
+  });
+
+  it('no longer uses the 1200px / 1408px special cases', () => {
     tiles([run('PASS', s + D), run('NOT_EXECUTED')]);
     const section = screen.getByText('Burndown').closest('section');
-    expect(section?.className).not.toContain('pt-4');
+    expect(section?.className).not.toContain('75rem');
+    expect(section?.className).not.toContain('order-last');
   });
 });
