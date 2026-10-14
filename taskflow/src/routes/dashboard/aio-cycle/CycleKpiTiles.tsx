@@ -28,11 +28,13 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  * block; it is hidden when nothing has been executed. The plot is absolutely positioned inside
  * its section, so it never adds height: the sibling columns set the row height and it fills it.
  *
- * Three layouts on the block's own container width:
+ * Three layouts on the block's own container width. The donuts always share the first row
+ * with the tiles from 896px up; only the Burndown moves:
  *  - < 896px: everything stacked, tiles 2x2, plot 140px;
- *  - 896-1407px (@4xl): two rows, [tiles | Burndown] then [Execution | Defect Summary];
- *  - >= 1408px (88rem): one row of four, tiles | Burndown | Execution | Defect Summary
- *    (Defect Summary: Status on top, Priority | Severity below).
+ *  - 896-1199px (@4xl): [tiles | Execution | Defect Summary], Burndown as a full-width row below;
+ *  - >= 1200px (75rem): one row of four, tiles | Burndown | Execution | Defect Summary
+ *    (Defect Summary: Status on top, Priority | Severity below); from 1408px (88rem) the gaps
+ *    widen and Defect Summary gets its fixed width.
  */
 export function CycleKpiTiles({
   counts,
@@ -92,141 +94,146 @@ export function CycleKpiTiles({
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
-      <div className="flex flex-col gap-6 @min-[88rem]/epic:flex-row @min-[88rem]/epic:gap-8">
-        <div className="flex min-w-0 flex-col gap-6 @4xl/epic:flex-row @4xl/epic:gap-8 @min-[88rem]/epic:flex-1">
-          <Section title="Cycle Statistics" className="min-w-0 flex-1">
-            <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
-              {countsLoading ? (
-                <TileSkeleton testId="kpi-skeleton-pass" icon={CircleCheck} tint="green" />
-              ) : (
-                <Tile
-                  testId="kpi-pass-rate"
-                  icon={CircleCheck}
-                  tint="green"
-                  label="Pass rate"
-                  value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
-                  sub={<span className="truncate">of executed</span>}
-                  tip={
-                    <TooltipBody title="Pass rate">
-                      <TooltipRow
-                        label="Passed"
-                        value={counts.pass}
-                        color="var(--color-green-500)"
-                      />
-                      <TooltipRow label="Failed" value={counts.fail} color="var(--color-red-500)" />
-                      <TooltipRow
-                        label="Blocked"
-                        value={counts.blocked}
-                        color="var(--color-orange-400)"
-                      />
-                    </TooltipBody>
-                  }
-                />
-              )}
-              {!runs || defectsLoading ? (
-                <TileSkeleton testId="kpi-skeleton-retest" icon={FlaskConical} tint="blue" />
-              ) : (
-                <Tile
-                  testId="kpi-retest"
-                  icon={FlaskConical}
-                  tint="blue"
-                  label="Ready to retest"
-                  value={<span className={VALUE_CLASS}>{retest.length}</span>}
-                  sub={<span className="truncate">{`of ${failing} failing`}</span>}
-                  tip={
-                    <TooltipBody title="Ready to retest">
-                      <TooltipRow
-                        label="Failed, defects done"
-                        value={retestFailed}
-                        color="var(--color-red-500)"
-                      />
-                      <TooltipRow
-                        label="Blocked, defects done"
-                        value={retest.length - retestFailed}
-                        color="var(--color-orange-400)"
-                      />
-                    </TooltipBody>
-                  }
-                />
-              )}
-              {!runs ? (
-                <TileSkeleton testId="kpi-skeleton-unlinked" icon={BugOff} tint="red" />
-              ) : (
-                <Tile
-                  testId="kpi-unlinked"
-                  icon={BugOff}
-                  tint="red"
-                  label="Unlinked failures"
-                  value={<span className={VALUE_CLASS}>{unlinked.length}</span>}
-                  sub={<span className="truncate">{`of ${failing} failing`}</span>}
-                  tip={
-                    <TooltipBody title="Unlinked failures">
-                      <TooltipRow
-                        label="Failed w/o defect"
-                        value={failedNoDefect}
-                        color="var(--color-red-500)"
-                      />
-                      <TooltipRow
-                        label="Blocked w/o defect"
-                        value={blockedNoDefect}
-                        color="var(--color-orange-400)"
-                      />
-                    </TooltipBody>
-                  }
-                />
-              )}
-              {!runs ? (
-                <TileSkeleton testId="kpi-skeleton-reruns" icon={Redo2} tint="amber" />
-              ) : (
-                <Tile
-                  testId="kpi-reruns"
-                  icon={Redo2}
-                  tint="amber"
-                  label="Re-runs"
-                  value={<span className={VALUE_CLASS}>{reRuns}</span>}
-                  sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
-                  tip={
-                    <TooltipBody title="Re-runs">
-                      <TooltipRow label="Re-run cases" value={reRuns} />
-                      <TooltipRow label="Max runs" value={maxRuns} />
-                    </TooltipBody>
-                  }
-                />
-              )}
-            </div>
-          </Section>
-          {!runs || burndown ? (
-            <Section
-              title="Burndown"
-              className="min-w-0 flex-1 border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-8"
-              bodyClassName="relative min-h-[140px] items-stretch"
-            >
-              <CycleBurndown series={burndown} loading={!runs} />
-            </Section>
-          ) : null}
-        </div>
-        <div className="flex flex-none flex-col gap-6 border-t border-border pt-6 @4xl/epic:flex-row @4xl/epic:gap-8 @min-[88rem]/epic:border-t-0 @min-[88rem]/epic:pt-0">
-          {/* Rules sit 24px from each side when side by side; hairlines when stacked. */}
+      <div className="flex flex-col gap-6 @4xl/epic:flex-row @4xl/epic:flex-wrap @min-[88rem]/epic:gap-8">
+        <Section
+          title="Cycle Statistics"
+          className="min-w-0 flex-1 @4xl/epic:min-w-48 @min-[75rem]/epic:min-w-72"
+        >
+          <div className="grid w-full min-w-0 grid-cols-2 gap-x-6 gap-y-4">
+            {countsLoading ? (
+              <TileSkeleton testId="kpi-skeleton-pass" icon={CircleCheck} tint="green" />
+            ) : (
+              <Tile
+                testId="kpi-pass-rate"
+                icon={CircleCheck}
+                tint="green"
+                label="Pass rate"
+                value={<span className={VALUE_CLASS}>{executed > 0 ? `${passPct}%` : '—'}</span>}
+                sub={<span className="truncate">of executed</span>}
+                tip={
+                  <TooltipBody title="Pass rate">
+                    <TooltipRow label="Passed" value={counts.pass} color="var(--color-green-500)" />
+                    <TooltipRow label="Failed" value={counts.fail} color="var(--color-red-500)" />
+                    <TooltipRow
+                      label="Blocked"
+                      value={counts.blocked}
+                      color="var(--color-orange-400)"
+                    />
+                  </TooltipBody>
+                }
+              />
+            )}
+            {!runs || defectsLoading ? (
+              <TileSkeleton testId="kpi-skeleton-retest" icon={FlaskConical} tint="blue" />
+            ) : (
+              <Tile
+                testId="kpi-retest"
+                icon={FlaskConical}
+                tint="blue"
+                label="Ready to retest"
+                value={<span className={VALUE_CLASS}>{retest.length}</span>}
+                sub={<span className="truncate">{`of ${failing} failing`}</span>}
+                tip={
+                  <TooltipBody title="Ready to retest">
+                    <TooltipRow
+                      label="Failed, defects done"
+                      value={retestFailed}
+                      color="var(--color-red-500)"
+                    />
+                    <TooltipRow
+                      label="Blocked, defects done"
+                      value={retest.length - retestFailed}
+                      color="var(--color-orange-400)"
+                    />
+                  </TooltipBody>
+                }
+              />
+            )}
+            {!runs ? (
+              <TileSkeleton testId="kpi-skeleton-unlinked" icon={BugOff} tint="red" />
+            ) : (
+              <Tile
+                testId="kpi-unlinked"
+                icon={BugOff}
+                tint="red"
+                label="Unlinked failures"
+                value={<span className={VALUE_CLASS}>{unlinked.length}</span>}
+                sub={<span className="truncate">{`of ${failing} failing`}</span>}
+                tip={
+                  <TooltipBody title="Unlinked failures">
+                    <TooltipRow
+                      label="Failed w/o defect"
+                      value={failedNoDefect}
+                      color="var(--color-red-500)"
+                    />
+                    <TooltipRow
+                      label="Blocked w/o defect"
+                      value={blockedNoDefect}
+                      color="var(--color-orange-400)"
+                    />
+                  </TooltipBody>
+                }
+              />
+            )}
+            {!runs ? (
+              <TileSkeleton testId="kpi-skeleton-reruns" icon={Redo2} tint="amber" />
+            ) : (
+              <Tile
+                testId="kpi-reruns"
+                icon={Redo2}
+                tint="amber"
+                label="Re-runs"
+                value={<span className={VALUE_CLASS}>{reRuns}</span>}
+                sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
+                tip={
+                  <TooltipBody title="Re-runs">
+                    <TooltipRow label="Re-run cases" value={reRuns} />
+                    <TooltipRow label="Max runs" value={maxRuns} />
+                  </TooltipBody>
+                }
+              />
+            )}
+          </div>
+        </Section>
+        {!runs || burndown ? (
           <Section
-            title="Execution Distribution"
-            className="flex-none @min-[88rem]/epic:border-l @min-[88rem]/epic:pl-8"
+            title="Burndown"
+            className={BURNDOWN_CLASS}
+            bodyClassName="relative min-h-[140px] items-stretch"
           >
-            <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+            <CycleBurndown series={burndown} loading={!runs} />
           </Section>
-          <Section
-            title="Defect Summary"
-            className={cn(DIVIDED_CLASS, '@4xl/epic:w-112 @4xl/epic:pr-4')}
-          >
-            <CycleDefectDonuts defects={defects} loading={defectsLoading} />
-          </Section>
-        </div>
+        ) : null}
+        <Section
+          title="Execution Distribution"
+          className={cn(DIVIDED_CLASS, '@min-[88rem]/epic:pl-8')}
+        >
+          <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+        </Section>
+        <Section
+          title="Defect Summary"
+          className={cn(
+            DIVIDED_CLASS,
+            '@min-[88rem]/epic:w-112 @min-[88rem]/epic:pl-8 @min-[88rem]/epic:pr-4',
+          )}
+        >
+          <CycleDefectDonuts defects={defects} loading={defectsLoading} />
+        </Section>
       </div>
     </div>
   );
 }
 
+/** Side-by-side columns are divided by a left rule, stacked ones by a top hairline. */
 const DIVIDED_CLASS =
-  'flex-none border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-8';
+  'flex-none border-t border-border pt-6 @4xl/epic:border-t-0 @4xl/epic:border-l @4xl/epic:pt-0 @4xl/epic:pl-6';
+
+/**
+ * Burndown placement: stacked (< 896px) and in the narrow band it is a full-width row (last);
+ * from 75rem it joins the single row, between the tiles and the donuts, and fills what is left.
+ */
+const BURNDOWN_CLASS =
+  'min-w-0 border-t border-border pt-6 @4xl/epic:order-last @4xl/epic:w-full @min-[75rem]/epic:order-none @min-[75rem]/epic:w-auto @min-[75rem]/epic:min-w-66 @min-[75rem]/epic:flex-1 @min-[75rem]/epic:border-t-0 @min-[75rem]/epic:border-l @min-[75rem]/epic:pt-0 @min-[75rem]/epic:pl-6 @min-[88rem]/epic:pl-8';
 
 /** Headed block: heading on the shared top line, body vertically centred in the leftover height. */
 function Section({

@@ -25,7 +25,7 @@ const KEY_MAX_LARGE = 6;
 const STATUS_DONUT_SIZE = 104;
 /** Status on top, Priority and Severity side by side below. */
 const LAYOUT_CLASS = 'grid w-full min-w-0 gap-4';
-const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-4 border-t border-border pt-4';
+const PAIR_CLASS = 'grid min-w-0 grid-cols-2 gap-x-3 border-t border-border pt-4';
 
 /** Raw severity value ('2-Major'): the number is the order, so sort on this. */
 export function severityRaw(issue: JiraIssue | null): string | null {
