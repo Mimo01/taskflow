@@ -122,36 +122,54 @@ export function DeploymentPackageWarning({
   };
 
   return (
-    <div
-      data-testid="deployment-package-warning"
-      className="flex w-full min-w-0 flex-col gap-1.5 border-l-2 border-amber-500/60 pl-2 text-xs"
-    >
-      <div className="flex min-w-0 items-start gap-1.5 text-amber-700 dark:text-amber-400">
-        <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-        <span className="min-w-0 break-words">{result.hint}</span>
-      </div>
-      {result.detail && (
-        <p className="min-w-0 break-words text-muted-foreground">{result.detail}</p>
-      )}
-      {result.fixes.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {result.fixes.map((fix) => {
-            if (fix.kind === 'set-fix-version') {
-              return (
-                <Button
-                  key={`fv-${fix.versionId}`}
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  className={FIX_BUTTON_CLASS}
-                  disabled={mutation.isPending}
-                  onClick={() => applyFix(fix)}
-                >
-                  Set fix version to {fix.versionName}
-                </Button>
-              );
-            }
-            if (shape === 'not-editable') {
+    <div className="flex items-start gap-2">
+      {/* Same label gutter as MetaRow, so the warning sits inside the value column. */}
+      <span className="w-28 shrink-0" aria-hidden="true" />
+      <div
+        data-testid="deployment-package-warning"
+        className="flex min-w-0 flex-1 flex-col gap-1.5 border-l-2 border-amber-500/60 pl-2 text-xs"
+      >
+        <div className="flex min-w-0 items-start gap-1.5 text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 break-words">{result.hint}</span>
+        </div>
+        {result.detail && (
+          <p className="min-w-0 break-words text-muted-foreground">{result.detail}</p>
+        )}
+        {result.fixes.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {result.fixes.map((fix) => {
+              if (fix.kind === 'set-fix-version') {
+                return (
+                  <Button
+                    key={`fv-${fix.versionId}`}
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className={FIX_BUTTON_CLASS}
+                    disabled={mutation.isPending}
+                    onClick={() => applyFix(fix)}
+                  >
+                    Set fix version to {fix.versionName}
+                  </Button>
+                );
+              }
+              if (shape === 'not-editable') {
+                return (
+                  <Button
+                    key={`pkg-${fix.childKey}`}
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className={FIX_BUTTON_CLASS}
+                    onClick={() =>
+                      openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)
+                    }
+                  >
+                    Open in Jira
+                  </Button>
+                );
+              }
               return (
                 <Button
                   key={`pkg-${fix.childKey}`}
@@ -159,30 +177,16 @@ export function DeploymentPackageWarning({
                   variant="outline"
                   size="xs"
                   className={FIX_BUTTON_CLASS}
-                  onClick={() =>
-                    openExternal(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`)
-                  }
+                  disabled={mutation.isPending || !shape}
+                  onClick={() => applyFix(fix)}
                 >
-                  Open in Jira
+                  Set deployment package to {fix.childKey}
                 </Button>
               );
-            }
-            return (
-              <Button
-                key={`pkg-${fix.childKey}`}
-                type="button"
-                variant="outline"
-                size="xs"
-                className={FIX_BUTTON_CLASS}
-                disabled={mutation.isPending || !shape}
-                onClick={() => applyFix(fix)}
-              >
-                Set deployment package to {fix.childKey}
-              </Button>
-            );
-          })}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
