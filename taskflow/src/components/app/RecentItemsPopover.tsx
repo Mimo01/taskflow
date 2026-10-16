@@ -145,8 +145,15 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
                   row={row}
                   divider={startsGroup(rows, i)}
                   queryClient={queryClient}
-                  onIssueClick={onIssueClick}
-                  onMRClick={onMRClick}
+                  // Close on select: navigating must not leave the popover over the new page.
+                  onIssueClick={(key) => {
+                    setOpen(false);
+                    onIssueClick?.(key);
+                  }}
+                  onMRClick={(id) => {
+                    setOpen(false);
+                    onMRClick?.(id);
+                  }}
                 />
               ))
             )}

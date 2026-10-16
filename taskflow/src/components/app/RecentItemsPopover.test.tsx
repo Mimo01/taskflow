@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RecentItem } from '../../stores/recent-items.store';
 import { useRecentItemsStore } from '../../stores/recent-items.store';
@@ -123,6 +123,8 @@ describe('RecentItemsPopover', () => {
     fireEvent.click(row.closest('button') as HTMLButtonElement);
 
     expect(onIssueClick).toHaveBeenCalledWith('PROJ-10');
+    // Selecting an item closes the popover (it must not stay over the new page).
+    await waitFor(() => expect(screen.queryByText('PROJ-10')).toBeNull());
   });
 
   it('RECENT-02: clicking GitLab item calls onMRClick', async () => {

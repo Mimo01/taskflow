@@ -59,12 +59,15 @@ export interface SearchIndex {
   epicsByKey: Map<string, { key: string; name: string; color: string }>;
 }
 
+/** Where a body (non-title) hit matched. */
+export type MatchTag = 'desc' | 'comment' | 'other';
+
 export interface ResultRow {
   entry: SearchEntry;
   field: FieldTier | null;
   titleRanges: HighlightRange[];
   snippet: { text: string; ranges: HighlightRange[] } | null;
-  tag: 'desc' | 'comment' | null;
+  tag: MatchTag | null;
   dimmed: boolean;
   indent: boolean;
 }
@@ -338,7 +341,7 @@ interface Hit {
   match: TextMatch | null;
   titleRanges: HighlightRange[];
   snippet: { text: string; ranges: HighlightRange[] } | null;
-  tag: 'desc' | 'comment' | null;
+  tag: MatchTag | null;
 }
 
 interface Group {
@@ -448,7 +451,8 @@ export function buildResultModel(input: {
         match: null,
         titleRanges: [],
         snippet: body.snippet,
-        tag: body.field === 1 ? 'desc' : 'comment',
+        // A body hit with neither description nor comment text matched another field.
+        tag: body.field === 1 ? 'desc' : body.snippet ? 'comment' : 'other',
       });
     }
   }
