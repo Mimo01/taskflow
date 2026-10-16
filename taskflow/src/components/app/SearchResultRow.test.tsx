@@ -35,8 +35,11 @@ describe('row', () => {
     const { container } = render(<SearchResultRow {...props()} />);
     expect(screen.getByRole('button', { name: 'PROJ-12' })).toBeInTheDocument();
     expect(screen.getByText('Fix the cart bug')).toBeInTheDocument();
-    const pill = screen.getByText('In Progress');
-    expect(pill.parentElement?.classList.contains('flex')).toBe(true);
+    // Compact fixed-width pill: inline-flex wrapper (geometry lives on it), truncating label.
+    const pill = screen.getByText('In Progress').parentElement;
+    expect(pill?.className).toContain('inline-flex');
+    expect(pill?.className).toContain('min-w-[4.75rem]');
+    expect(pill?.getAttribute('title')).toBe('In Progress');
     expect(container.querySelector('.flex-none.w-5')).not.toBeNull();
   });
 
@@ -80,19 +83,18 @@ describe('snippet', () => {
     );
     expect(container.textContent).toContain('broken cart total');
     expect(container.querySelector('mark')?.textContent).toBe('cart');
-    expect(screen.getByText('desc')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Matched in description' })).toBeInTheDocument();
     expect(container.querySelector('.italic')).toBeNull();
   });
 
   it('renders only the comment tag when snippet is null', () => {
     render(<SearchResultRow {...props({ snippet: null, matchTag: 'comment' })} />);
-    expect(screen.getByText('comment')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Matched in a comment' })).toBeInTheDocument();
   });
 
   it('renders no tag or snippet region without a match', () => {
     render(<SearchResultRow {...props()} />);
-    expect(screen.queryByText('desc')).toBeNull();
-    expect(screen.queryByText('comment')).toBeNull();
+    expect(screen.queryByRole('img', { name: /Matched in/ })).toBeNull();
   });
 });
 
@@ -141,7 +143,7 @@ describe('body match', () => {
         {...props({ matchTag: 'desc', snippet: { text: '…the cart is empty', ranges: [[5, 9]] } })}
       />,
     );
-    expect(screen.getByText('desc').getAttribute('title')).toBe(
+    expect(screen.getByRole('img', { name: 'Matched in description' }).getAttribute('title')).toBe(
       'Matched in description: …the cart is empty',
     );
   });

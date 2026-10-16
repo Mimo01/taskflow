@@ -730,7 +730,7 @@ describe('CommandPalette', () => {
         expect(document.querySelector('[cmdk-item][data-value="TEST-20"]')).not.toBeNull(),
       );
       const row = document.querySelector('[cmdk-item][data-value="TEST-20"]');
-      expect(row?.textContent).toContain('desc');
+      expect(row?.querySelector('[aria-label="Matched in description"]')).not.toBeNull();
     });
 
     it('does not request a body search for a key-like query', async () => {
