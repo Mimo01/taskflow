@@ -534,6 +534,9 @@ export function buildResultModel(input: {
 
   const sections: ResultSection[] = [];
   let totalShown = 0;
+  // Set once TOTAL_CAP hides a group: every later group (any tier) is hidden too, so a
+  // lower-ranked tier never shows rows while a higher-ranked group is cut.
+  let totalOverflowed = false;
   const orderedTiers = [...byTier.keys()].map(tierOf).sort((a, b) => a.rank - b.rank);
   for (const tier of orderedTiers) {
     const expanded = expandedTiers.has(tier.id);
@@ -563,11 +566,12 @@ export function buildResultModel(input: {
       }
       const n = groupRows.length;
       const fitsTier = expanded || rows.length === 0 || rows.length + n <= PER_TIER_CAP;
-      const fitsTotal = expanded || totalShown + n <= TOTAL_CAP;
+      const fitsTotal = expanded || (!totalOverflowed && totalShown + n <= TOTAL_CAP);
       if (!overflowed && fitsTier && fitsTotal) {
         rows.push(...groupRows);
         totalShown += n;
       } else {
+        if (!overflowed && fitsTier) totalOverflowed = true;
         overflowed = true;
         hidden += n;
       }
