@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
 import { buildSearchIndex, findIndexEntry } from '@/lib/global-search';
+import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import {
@@ -22,6 +23,7 @@ import {
   type RecentRowModel,
   recentMrIid,
 } from './RecentItemRow';
+import { GROUP_DIVIDER_CLASS, startsGroup } from './SearchResultRow';
 
 interface RecentItemsPopoverProps {
   onIssueClick?: (issueKey: string) => void;
@@ -47,11 +49,13 @@ function findGitLabMRInCache(
 
 function PopoverRecentRow({
   row,
+  divider,
   queryClient,
   onIssueClick,
   onMRClick,
 }: {
   row: RecentRowModel;
+  divider: boolean;
   queryClient: ReturnType<typeof useQueryClient>;
   onIssueClick?: (issueKey: string) => void;
   onMRClick?: (projectIdAndIid: string) => void;
@@ -73,7 +77,10 @@ function PopoverRecentRow({
   return (
     <button
       type="button"
-      className="w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted"
+      className={cn(
+        'w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted',
+        divider && GROUP_DIVIDER_CLASS,
+      )}
       onClick={handleClick}
     >
       <RecentItemRow
@@ -120,10 +127,11 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
               buildRecentRows(items, (key) => {
                 const entry = findIndexEntry(index, key);
                 return { entry, issue: entry ? null : findJiraIssueInCache(queryClient, key) };
-              }).map((row) => (
+              }).map((row, i, rows) => (
                 <PopoverRecentRow
                   key={row.rowKey}
                   row={row}
+                  divider={startsGroup(rows, i)}
                   queryClient={queryClient}
                   onIssueClick={onIssueClick}
                   onMRClick={onMRClick}

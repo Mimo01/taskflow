@@ -36,6 +36,19 @@ export interface SearchResultRowProps {
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
 }
 
+/**
+ * Subtle hairline above a row that starts a new story group (a story, or a dimmed
+ * parent + its subtasks). Pseudo-element so it never shifts layout or clashes
+ * with the item's selection background. Not applied to the first row of a list.
+ */
+export const GROUP_DIVIDER_CLASS =
+  'relative before:pointer-events-none before:absolute before:inset-x-2 before:top-0 before:h-px before:bg-border/60';
+
+/** True when `rows[i]` starts a new story group below another group. */
+export function startsGroup(rows: ReadonlyArray<{ indent: boolean }>, i: number): boolean {
+  return i > 0 && !rows[i].indent;
+}
+
 /** One-line search result row content; the palette wraps it in a CommandItem. */
 export function SearchResultRow({
   issueKey,
