@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Release Management
 status: Awaiting next milestone
-last_updated: "2026-08-13T08:42:18.923Z"
-last_activity: 2026-08-13 — Milestone v1.14 completed and archived
+last_updated: "2026-10-16T10:34:56.091Z"
+last_activity: "2026-10-14 - Completed quick task 261014-nkt: hide Fix Versions + Deployment package on epic/subtask detail"
 progress:
   total_phases: 23
   completed_phases: 7
@@ -72,6 +72,7 @@ Last activity: 2026-10-14 - Completed quick task 261014-nkt: hide Fix Versions +
 - v1.14 roadmap created 2026-08-10: 5 phases (87-91), continuing numbering from v1.13's Phase 86. Coarse granularity — reconciled the research's 6-slice build order into 5 phases by combining release-branch-create + milestone-create into one phase (88), since both share the "first write" cross-cutting concerns (permission gating, idempotent-mutation contract).
 - Phase 91.1 inserted after Phase 91: Unified Release Detail Task Table — one Jira-task table with inline MRs, secondary table for uncovered MRs (URGENT)
 - Phase 91.2 inserted after Phase 91: Epics Page Redesign — creation-order sort, quick-search, progress/points/priority/labels/child-status per row (URGENT)
+- Phase 92 added: Advanced Global Search — ranked, cache-backed, grouped results with highlighting
 
 ### Decisions
 
@@ -208,9 +209,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-08-12T22:28:23.494Z
-Stopped at: Completed 91.2-04-PLAN.md (phase 91.2 complete, ready for verification)
-Resume file: None
+Last session: 2026-10-16T10:34:56.087Z
+Stopped at: Phase 92 context gathered
+Resume file: .planning/milestones/v1.14-phases/92-advanced-global-search-prioritized-ranking-current-sprint-up/92-CONTEXT.md
 
 ## Operator Next Steps
 
