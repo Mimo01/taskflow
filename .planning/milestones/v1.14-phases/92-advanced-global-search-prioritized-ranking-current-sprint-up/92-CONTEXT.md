@@ -76,6 +76,20 @@ put minimal load on Jira. Dialog gets larger. No new search *capabilities* beyon
   at the top; resolve from the local index first, fetch from Jira only if not cached.
 - **D-18:** Default state (<2 chars) unchanged: Recent Items + Navigation.
 
+### Post-research decisions (2026-10-16, after 92-RESEARCH.md)
+- **D-19:** Subtask sourcing (amends D-02; user delegated to Claude). The backlog envelope contains
+  no subtasks. Instant subtask title hits come from a PASSIVE read of `['gh-all-data', boardId]`
+  when already cached (active-sprint subtasks; never triggers a fetch). All other subtasks surface
+  only via the debounced Jira body request. Title-tier sources are therefore `gh-backlog` + cached
+  `gh-all-data` subtasks, de-duplicated by key.
+- **D-20:** Done issues inside the ACTIVE sprint stay in the Current sprint tier (user choice,
+  refines D-01). Done issues anywhere else (future sprints/backlog/Jira results) appear only in the
+  Closed tier when "Include closed" is on.
+- **D-21:** D-03 mechanism: `useGhBacklogData` is route-gated to `/backlog`; the palette must fetch
+  the same `['gh-backlog', boardId]` key + fetcher independent of route (additive hook option or a
+  palette-owned `useQuery` on the same key), enabled only while open, with a long `staleTime`
+  (~5 min) so opening the palette does not refetch the whole backlog each time.
+
 ### Claude's Discretion
 - Exact hybrid mechanics (D-02): debounce length, JQL shape, fields list, maxResults, how cache
   vs. Jira results are merged/de-duplicated.
