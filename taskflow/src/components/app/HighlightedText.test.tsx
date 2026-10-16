@@ -60,17 +60,12 @@ describe('highlight', () => {
     expect(container.textContent).toBe(payload);
   });
 
-  it('applies the underline-only mark classes', () => {
+  it('marks matches with a soft background and full-strength text (no underline)', () => {
     const { container } = render(<HighlightedText text="abc" ranges={[[0, 1]]} />);
     const mark = container.querySelector('mark');
-    for (const c of [
-      'bg-transparent',
-      'text-inherit',
-      'underline',
-      'decoration-primary/60',
-      'underline-offset-2',
-    ]) {
+    for (const c of ['bg-amber-200/80', 'dark:bg-amber-400/25', 'text-foreground', 'font-medium']) {
       expect(mark?.classList.contains(c)).toBe(true);
     }
+    expect(mark?.classList.contains('underline')).toBe(false);
   });
 });

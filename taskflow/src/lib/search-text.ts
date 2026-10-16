@@ -147,14 +147,22 @@ export function buildSnippet(
   }
   if (pos === -1) return null;
 
-  let start = Math.max(0, pos - before);
-  // Don't open the snippet mid-word: skip forward to the next word start (never past the match).
-  if (start > 0 && /\S/.test(flat[start - 1] ?? '')) {
+  // Start from the beginning when it is only a little further back than the lead-in window.
+  let start = pos <= before * 1.5 ? 0 : pos - before;
+  // Prefer opening at the start of the match's sentence (no leading fragment of the previous one).
+  const lead = flat.slice(start, pos);
+  const sentence = Math.max(lead.lastIndexOf('. '), lead.lastIndexOf('! '), lead.lastIndexOf('? '));
+  let atSentence = start === 0;
+  if (sentence !== -1) {
+    start += sentence + 2;
+    atSentence = true;
+  } else if (start > 0 && /\S/.test(flat[start - 1] ?? '')) {
+    // Don't open the snippet mid-word: skip forward to the next word start (never past the match).
     const space = flat.indexOf(' ', start);
     if (space !== -1 && space < pos) start = space + 1;
   }
   const end = Math.min(flat.length, pos + len + radius);
-  const prefix = start > 0 ? '…' : '';
+  const prefix = start > 0 && !atSentence ? '…' : '';
   const suffix = end < flat.length ? '…' : '';
   const body = flat.slice(start, end);
   const lowerBody = lower.slice(start, end);
