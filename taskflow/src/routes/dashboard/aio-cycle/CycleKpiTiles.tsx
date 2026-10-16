@@ -220,7 +220,9 @@ export function CycleKpiTiles({
               'min-w-0 flex-1 @4xl/epic:flex-none @min-[88rem]/epic:pl-8',
             )}
           >
-            <ExecutionDonut counts={counts} total={total} loading={countsLoading} />
+            {/* Gate on runs like the burndown and defect charts so every graph reveals together,
+                even when the summary-driven counts are ready first. */}
+            <ExecutionDonut counts={counts} total={total} loading={countsLoading || !runs} />
           </Section>
           <Section
             title="Defect Summary"
