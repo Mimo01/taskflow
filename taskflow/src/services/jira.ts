@@ -1617,6 +1617,11 @@ export async function searchJiraClosed(
 
 export type BodySearchScope = 'open' | 'closed';
 
+/** `fields=` value: drops empty names (an unset setting) and encodes each one. */
+function fieldsParam(fields: string[]): string {
+  return fields.filter(Boolean).map(encodeURIComponent).join(',');
+}
+
 /**
  * Lucene's default English stopwords. Jira's analyser drops them, so an exact `text ~ "in"`
  * clause matches nothing and, ANDed with the others, would remove every body hit.
@@ -1702,7 +1707,7 @@ export async function searchJiraBody(
   const jql = buildBodySearchJql(opts.projectKey, opts.query, opts.scope);
   if (jql === null) return [];
   const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,issuetype,parent,description,comment,${opts.epicLinkFieldKey}&maxResults=${opts.maxResults ?? 50}`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fieldsParam(['summary', 'status', 'assignee', 'issuetype', 'parent', 'description', 'comment', opts.epicLinkFieldKey])}&maxResults=${opts.maxResults ?? 50}`;
   const response = await apiFetch(
     'jira',
     url,
@@ -1736,7 +1741,7 @@ export async function fetchIssuesByKeys(
   if (valid.length === 0) return [];
   const base = baseUrl.replace(/\/$/, '');
   const jql = `key in (${valid.join(',')})`;
-  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${['summary', 'status', 'assignee', 'issuetype', 'parent', ...extraFields].join(',')}&maxResults=${valid.length}&validateQuery=false`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fieldsParam(['summary', 'status', 'assignee', 'issuetype', 'parent', ...extraFields])}&maxResults=${valid.length}&validateQuery=false`;
   const response = await apiFetch(
     'jira',
     url,
