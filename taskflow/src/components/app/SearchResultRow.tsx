@@ -59,13 +59,7 @@ export function SearchResultRow({
   const epicColor = showEpic && epic ? epicColorToTailwind(epic.color, epic.key) : null;
   return (
     <div className="@container w-full min-w-0">
-      <div
-        className={cn(
-          'flex min-w-0 items-center gap-2 whitespace-nowrap',
-          indent && 'pl-6',
-          dimmed && 'opacity-50',
-        )}
-      >
+      <div className={cn('flex min-w-0 items-center gap-2 whitespace-nowrap', indent && 'pl-6')}>
         {icon ??
           (typeName !== undefined ? (
             <IssueTypeIcon typeName={typeName} className="size-3.5 shrink-0" />

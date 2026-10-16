@@ -96,7 +96,8 @@ describe('context header', () => {
     const { container } = render(
       <SearchResultRow {...props({ dimmed: true, titleRanges: [[0, 3]] })} />,
     );
-    expect(container.querySelector('.opacity-50')).not.toBeNull();
+    // Muted text only — no extra opacity, which made the parent unreadable (UAT).
+    expect(container.querySelector('.opacity-50')).toBeNull();
     expect(container.querySelectorAll('mark')).toHaveLength(0);
     expect(screen.getByText('Fix the cart bug').className).toContain('text-muted-foreground');
   });
