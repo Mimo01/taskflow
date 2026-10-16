@@ -198,3 +198,19 @@ describe('recent-items.store (Phase 20)', () => {
     expect(item.parentIssueType).toBeUndefined();
   });
 });
+
+describe('recent-items.store migration (IN-09)', () => {
+  it('drops legacy bare-iid MR entries, which cannot be routed or de-duplicated', () => {
+    const migrate = useRecentItemsStore.persist.getOptions().migrate;
+    expect(useRecentItemsStore.persist.getOptions().version).toBe(1);
+    const legacy = {
+      items: [
+        { type: 'gitlab', id: '12', title: 'Legacy MR', timestamp: 3 },
+        { type: 'gitlab', id: '5/12', title: 'Composite MR', timestamp: 2 },
+        { type: 'jira', id: 'PROJ-1', title: 'Issue', timestamp: 1 },
+      ],
+    };
+    const out = migrate?.(legacy, 0) as { items: Array<{ id: string }> };
+    expect(out.items.map((i) => i.id)).toEqual(['5/12', 'PROJ-1']);
+  });
+});

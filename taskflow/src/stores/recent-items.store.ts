@@ -4,7 +4,7 @@ import { createTauriStorage } from '../lib/tauri-storage';
 
 export interface RecentItem {
   type: 'jira' | 'gitlab';
-  id: string; // Issue key (PROJ-123) or MR iid string
+  id: string; // Issue key (PROJ-123) or MR "project_id/iid"
   url?: string; // For GitLab MRs -- browser open URL
   title?: string; // Cached display title so it survives across sessions
   issueType?: string; // Jira issue type name (Story/Bug/...) cached so the popover icon survives a cold react-query cache
@@ -60,8 +60,17 @@ export const useRecentItemsStore = create<RecentItemsState>()(
     {
       name: 'recent-items-store',
       storage: createTauriStorage('recent-items.json'),
-      version: 0,
-      migrate: (persisted, _version) => persisted as RecentItemsState,
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as RecentItemsState;
+        if (version >= 1) return state;
+        // v1: MR ids are "project_id/iid". Legacy bare-iid ids cannot be routed
+        // (/mr/:projectId/:iid) and never de-duplicate against composite pushes.
+        return {
+          ...state,
+          items: (state.items ?? []).filter((i) => i.type !== 'gitlab' || i.id.includes('/')),
+        };
+      },
     },
   ),
 );
