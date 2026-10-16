@@ -106,3 +106,24 @@ describe('wiki strip', () => {
     expect(out).not.toContain('[~');
   });
 });
+
+describe('buildSnippet lead-in', () => {
+  const text =
+    'As a customer I want correct totals. Currently when the cart is empty the provider returns a stale total.';
+
+  it('keeps only `before` chars ahead of the match so it stays visible when truncated', () => {
+    const snip = buildSnippet(text, 'cart empty', 64, 16);
+    expect(snip).not.toBeNull();
+    const firstMark = snip?.ranges[0]?.[0] ?? -1;
+    expect(firstMark).toBeGreaterThan(0);
+    expect(firstMark).toBeLessThanOrEqual(1 + 16);
+  });
+
+  it('never opens mid-word', () => {
+    const snip = buildSnippet(text, 'cart empty', 64, 16);
+    // "…" + a whole word: the char after the ellipsis starts a word.
+    expect(snip?.text.startsWith('…')).toBe(true);
+    const idx = text.indexOf(snip?.text.slice(1, 10) ?? '');
+    expect(idx === 0 || text[idx - 1] === ' ').toBe(true);
+  });
+});
