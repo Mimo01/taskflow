@@ -29,12 +29,15 @@ export interface SearchResultRowProps {
   avatarUrl?: string | null;
   snippet?: { text: string; ranges: ReadonlyArray<Range> } | null;
   matchTag?: 'desc' | 'comment' | null;
-  /** Context-only parent row: icon, key and title in small muted text; no status, avatar or epic. */
+  /** Context-only parent row: same layout and size as any row, only faded (opacity-40). */
   dimmed?: boolean;
   indent?: boolean;
   /** When omitted the key renders as plain text (e.g. inside a parent <button>). */
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
 }
+
+/** Key cell: min width so titles line up across rows with different key lengths. */
+const KEY_CLASS = 'min-w-[4.5rem] shrink-0 text-left font-mono text-xs text-muted-foreground';
 
 /**
  * Subtle hairline above a row that starts a new story group (a story, or a dimmed
@@ -72,7 +75,14 @@ export function SearchResultRow({
   const epicColor = showEpic && epic ? epicColorToTailwind(epic.color, epic.key) : null;
   return (
     <div className="@container w-full min-w-0">
-      <div className={cn('flex min-w-0 items-center gap-2 whitespace-nowrap', indent && 'pl-6')}>
+      {/* Fixed h-5 (= avatar / status pill height): every row is the same height. */}
+      <div
+        className={cn(
+          'flex h-5 min-w-0 items-center gap-2 whitespace-nowrap',
+          indent && 'pl-6',
+          dimmed && 'opacity-40',
+        )}
+      >
         {icon ??
           (typeName !== undefined ? (
             <IssueTypeIcon typeName={typeName} className="size-3.5 shrink-0" />
@@ -82,26 +92,20 @@ export function SearchResultRow({
         {onKeyClick ? (
           <button
             type="button"
-            className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
+            className={cn(KEY_CLASS, 'cursor-pointer hover:underline')}
             onClick={(e) => onKeyClick(e, issueKey)}
           >
             {keyLabel ?? issueKey}
           </button>
         ) : (
-          <span className="text-muted-foreground font-mono text-xs shrink-0">
-            {keyLabel ?? issueKey}
-          </span>
+          <span className={KEY_CLASS}>{keyLabel ?? issueKey}</span>
         )}
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
-          className={cn(
-            'truncate min-w-0 flex-[0_100_auto]',
-            dimmed ? 'text-xs text-muted-foreground' : 'text-sm',
-          )}
+          className="truncate text-sm min-w-0 flex-[0_100_auto]"
         />
-        {dimmed && <span className="flex-1" />}
-        {!dimmed && (snippet || matchTag) && (
+        {(snippet || matchTag) && (
           <span className="hidden @[560px]:flex min-w-24 flex-[0_1_auto] items-center gap-1">
             {snippet && (
               <HighlightedText
@@ -117,42 +121,34 @@ export function SearchResultRow({
             )}
           </span>
         )}
-        {!dimmed && (
-          <>
-            <span className="flex-1" />
-            {epic && epicColor && (
-              <span
-                className={cn(
-                  'hidden @[560px]:inline-flex min-w-14 shrink items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
-                  epicColor.className,
-                )}
-                style={epicColor.style}
-                title={`${epic.key}: ${epic.name}`}
-              >
-                <span className="truncate">{epic.name}</span>
-              </span>
+        <span className="flex-1" />
+        {epic && epicColor && (
+          <span
+            className={cn(
+              'hidden @[560px]:inline-flex min-w-14 shrink items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
+              epicColor.className,
             )}
-            {statusName && (
-              <div className="flex shrink-0">
-                <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
-              </div>
-            )}
-            {assigneeName === undefined ? (
-              <span className="flex-none w-5" aria-hidden="true" />
-            ) : (
-              <span
-                className="flex-none w-5"
-                title={assigneeName ?? 'Unassigned'}
-                aria-hidden="true"
-              >
-                <CachedAvatar
-                  url={avatarUrl ?? undefined}
-                  name={assigneeName || 'Unassigned'}
-                  size={20}
-                />
-              </span>
-            )}
-          </>
+            style={epicColor.style}
+            title={`${epic.key}: ${epic.name}`}
+          >
+            <span className="truncate">{epic.name}</span>
+          </span>
+        )}
+        {statusName && (
+          <div className="flex shrink-0">
+            <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
+          </div>
+        )}
+        {assigneeName === undefined ? (
+          <span className="flex-none w-5" aria-hidden="true" />
+        ) : (
+          <span className="flex-none w-5" title={assigneeName ?? 'Unassigned'} aria-hidden="true">
+            <CachedAvatar
+              url={avatarUrl ?? undefined}
+              name={assigneeName || 'Unassigned'}
+              size={20}
+            />
+          </span>
         )}
       </div>
     </div>

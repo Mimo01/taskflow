@@ -382,7 +382,7 @@ export default function CommandPalette({
         key={itemKey}
         value={e.key}
         onSelect={() => handleIssueSelect(e.key)}
-        className={cn('py-1 [&>svg:last-child]:hidden', divider && GROUP_DIVIDER_CLASS)}
+        className={cn('[&>svg:last-child]:hidden', divider && GROUP_DIVIDER_CLASS)}
       >
         <SearchResultRow
           issueKey={e.key}
@@ -439,7 +439,7 @@ export default function CommandPalette({
           loop
           value={selectedValue}
           onValueChange={setSelectedValue}
-          className="rounded-lg border shadow-lg bg-popover"
+          className="rounded-lg border shadow-lg bg-popover [&_[data-slot=command-item]]:h-8 [&_[data-slot=command-item]]:py-0"
         >
           <CommandInput
             placeholder="Search issues, MRs, and actions..."
@@ -481,7 +481,7 @@ export default function CommandPalette({
                         key={row.rowKey}
                         value={row.rowKey}
                         className={cn(
-                          'py-1 [&>svg:last-child]:hidden',
+                          '[&>svg:last-child]:hidden',
                           startsGroup(rows, i) && GROUP_DIVIDER_CLASS,
                         )}
                         keywords={[item.id]}
@@ -563,7 +563,7 @@ export default function CommandPalette({
                       <CommandItem
                         value={`more:${sec.tier.id}`}
                         onSelect={() => setExpandedTiers((prev) => new Set(prev).add(sec.tier.id))}
-                        className="py-1 text-xs text-muted-foreground"
+                        className="text-xs text-muted-foreground"
                       >
                         +{sec.hiddenCount} more in {sec.tier.label}
                       </CommandItem>
@@ -589,14 +589,17 @@ export default function CommandPalette({
 
                 {/* D-15: opt-in closed issues */}
                 {!includeClosed && (
-                  <CommandItem
-                    value="include-closed"
-                    onSelect={() => setIncludeClosed(true)}
-                    className="text-muted-foreground"
-                  >
-                    <Archive className="size-3.5" />
-                    Include closed issues
-                  </CommandItem>
+                  // Wrapped in a group so it aligns with the result rows (group padding).
+                  <CommandGroup>
+                    <CommandItem
+                      value="include-closed"
+                      onSelect={() => setIncludeClosed(true)}
+                      className="text-muted-foreground"
+                    >
+                      <Archive className="size-3.5" />
+                      Include closed issues
+                    </CommandItem>
+                  </CommandGroup>
                 )}
 
                 {/* D-16: Merge Requests below the issue tiers, query-filtered */}
@@ -607,10 +610,15 @@ export default function CommandPalette({
                         key={mr.iid}
                         value={`mr:${mr.project_id}/${mr.iid}`}
                         onSelect={() => handleMRSelect(mr)}
+                        className="[&>svg:last-child]:hidden"
                       >
-                        <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                        <span className="text-muted-foreground">!{mr.iid}</span>
-                        <span className="truncate">{mr.title}</span>
+                        <SearchResultRow
+                          issueKey={`${mr.project_id}/${mr.iid}`}
+                          keyLabel={`!${mr.iid}`}
+                          title={mr.title}
+                          icon={<GitMerge className="size-3.5 shrink-0 text-muted-foreground" />}
+                          showEpic={false}
+                        />
                       </CommandItem>
                     ))}
                   </CommandGroup>
