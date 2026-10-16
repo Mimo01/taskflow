@@ -2,6 +2,28 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.10] — 2026-10-16
+
+### Added
+
+- **Ranked global search** — the command palette now groups results into Current sprint, Backlog and Closed tiers, so issues you're working on come first. Title matches appear instantly from the local board index, and descriptions and comments are searched on Jira in the background, with a one-line excerpt that highlights the match.
+- **Direct match by key** — typing an issue key (or just its number) pins that issue at the top. It's found in the local index first and only fetched from Jira when it isn't there.
+- **Include closed issues** — an opt-in toggle extends the search to closed issues. Done issues outside the current sprint are always listed under Closed.
+- **Epics in search** — epics get their own section, and subtasks show under their parent story as a dimmed context row.
+
+### Changed
+
+- **Search and Recent Items rows** — compact one-line rows on a strict column grid with type icon, key, title, status and assignee. Done issues have a struck-through key, stories show their epic, and recent subtasks show under their parent story even before the board has loaded.
+- **Palette groups** — merge requests, navigation and actions are filtered by the query too, and once the total result cap is reached the remaining groups are hidden.
+
+### Fixed
+
+- **Search states** — "No results found" no longer flashes while you type, a failed description/comment search shows an error instead of an empty result, and a missing or unread token is reported clearly while the index loads.
+- **Search accuracy** — hyphenated and key-shaped terms search descriptions and comments correctly, punctuation and stopwords are ignored, project keys with digits or underscores are recognised, and highlights stay aligned on text whose length changes when lower-cased.
+- **Switching Jira instances** — the previous instance's token is never sent to a new Jira host, and key lookups are scoped to the current instance.
+- **Recent merge requests** — MRs are tracked by project and number, so MRs with the same number in different projects no longer collide. Old entries that can't be told apart are dropped.
+- **AIO execution distribution** — the cycle donut no longer shows 0 executions when the test case statuses arrive after the page has opened.
+
 ## [1.14.9] — 2026-10-14
 
 ### Added
