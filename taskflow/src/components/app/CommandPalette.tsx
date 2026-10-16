@@ -19,6 +19,7 @@ import {
   RecentItemRow,
   recentKeysToFetch,
   recentMrIid,
+  resolveRecentIssue,
 } from '@/components/app/RecentItemRow';
 import {
   GROUP_DIVIDER_CLASS,
@@ -473,17 +474,14 @@ export default function CommandPalette({
                 {recentItems.length === 0 ? (
                   <CommandItem disabled>No recent items</CommandItem>
                 ) : (
-                  buildRecentRows(recentItems, (key) => {
-                    const entry = findIndexEntry(index, key);
-                    return {
-                      entry,
-                      issue: entry
-                        ? null
-                        : (recentFetched.get(key) ??
-                          cachedIssuesMap.get(key) ??
-                          findJiraIssueInCache(queryClient, key)),
-                    };
-                  }).map((row, i, rows) => {
+                  buildRecentRows(recentItems, (key) =>
+                    resolveRecentIssue(
+                      key,
+                      index,
+                      recentFetched,
+                      (k) => cachedIssuesMap.get(k) ?? findJiraIssueInCache(queryClient, k),
+                    ),
+                  ).map((row, i, rows) => {
                     const { item } = row;
                     return (
                       <CommandItem

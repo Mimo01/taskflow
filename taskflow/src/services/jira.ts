@@ -1681,12 +1681,13 @@ export async function fetchIssuesByKeys(
   baseUrl: string,
   token: string,
   keys: string[],
+  extraFields: string[] = [],
 ): Promise<JiraIssue[]> {
   const valid = [...new Set(keys.map((k) => k.toUpperCase()))].filter((k) => ISSUE_KEY_RE.test(k));
   if (valid.length === 0) return [];
   const base = baseUrl.replace(/\/$/, '');
   const jql = `key in (${valid.join(',')})`;
-  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,issuetype,parent&maxResults=${valid.length}&validateQuery=false`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${['summary', 'status', 'assignee', 'issuetype', 'parent', ...extraFields].join(',')}&maxResults=${valid.length}&validateQuery=false`;
   const response = await apiFetch(
     'jira',
     url,

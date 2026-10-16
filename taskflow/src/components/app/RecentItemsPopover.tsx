@@ -24,6 +24,7 @@ import {
   type RecentRowModel,
   recentKeysToFetch,
   recentMrIid,
+  resolveRecentIssue,
 } from './RecentItemRow';
 import { GROUP_DIVIDER_CLASS, startsGroup } from './SearchResultRow';
 
@@ -118,7 +119,7 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
       >
         <Clock className="w-5 h-5" />
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[36rem] max-w-[calc(100vw-2rem)]">
+      <PopoverContent className="p-0 w-[40rem] max-w-[calc(100vw-2rem)]">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b">
@@ -132,15 +133,11 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
                 No recent items yet
               </div>
             ) : (
-              buildRecentRows(items, (key) => {
-                const entry = findIndexEntry(index, key);
-                return {
-                  entry,
-                  issue: entry
-                    ? null
-                    : (fetched.get(key) ?? findJiraIssueInCache(queryClient, key)),
-                };
-              }).map((row, i, rows) => (
+              buildRecentRows(items, (key) =>
+                resolveRecentIssue(key, index, fetched, (k) =>
+                  findJiraIssueInCache(queryClient, k),
+                ),
+              ).map((row, i, rows) => (
                 <PopoverRecentRow
                   key={row.rowKey}
                   row={row}
