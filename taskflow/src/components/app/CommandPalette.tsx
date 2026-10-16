@@ -374,9 +374,12 @@ export default function CommandPalette({
   const anyFetching = bodyFetching || closedFetching || keyFetching || bodyPending;
   const hasIssueRows = sections.some((sec) => sec.rows.length > 0);
   const closedError = includeClosed && closedQuery.isError;
+  // isError belongs to the last debounced query: ignore it once the user has typed past it.
+  const bodyError = bodyQuery.isError && debouncedQuery === trimmed;
   const showEmpty =
     !isDefaultState &&
     !closedError &&
+    !bodyError &&
     !directEntry &&
     !hasIssueRows &&
     visibleMRs.length === 0 &&
@@ -599,7 +602,7 @@ export default function CommandPalette({
                   </CommandGroup>
                 )}
 
-                {bodyQuery.isError && (
+                {bodyError && (
                   <div className="px-3 py-2 text-xs text-muted-foreground">
                     Couldn't search descriptions and comments. Showing title matches only.
                   </div>

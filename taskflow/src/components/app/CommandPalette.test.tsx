@@ -992,6 +992,19 @@ describe('CommandPalette', () => {
       expect(screen.queryByText('boom')).toBeNull();
     });
 
+    it('reports a failed body search instead of an empty state, for that query only (WR-05)', async () => {
+      seedIndex();
+      vi.mocked(searchJiraBody).mockRejectedValue(new Error('boom'));
+      renderPalette();
+      typeQuery('zzzzqq');
+      const notice = "Couldn't search descriptions and comments. Showing title matches only.";
+      expect(await screen.findByText(notice)).toBeInTheDocument();
+      expect(screen.queryByText('No results found')).toBeNull();
+      // A new query drops the previous query's error straight away.
+      typeQuery('yyyyqq');
+      expect(screen.queryByText(notice)).toBeNull();
+    });
+
     it('shows a thin loading bar only while the body request is in flight', async () => {
       seedIndex();
       const d = deferred<JiraIssue[]>();
