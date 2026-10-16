@@ -1,3 +1,4 @@
+import { Clock } from 'lucide-react';
 import type React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -10,29 +11,38 @@ type Range = readonly [number, number];
 
 export interface SearchResultRowProps {
   issueKey: string;
+  /** Display label for the key cell (e.g. "!67" for MRs); defaults to issueKey. */
+  keyLabel?: string;
   title: string;
   titleRanges?: ReadonlyArray<Range>;
-  typeName: string;
-  statusName: string;
+  /** Issue type for the leading icon; falls back to `icon`, then a clock glyph. */
+  typeName?: string;
+  icon?: React.ReactNode;
+  /** Omitted for rows without status data (MRs, uncached recents): pill is not rendered. */
+  statusName?: string;
   statusCategoryKey?: string;
   epic?: { key: string; name: string; color: string } | null;
   /** false for subtasks and epics (stories only). */
   showEpic: boolean;
+  /** undefined = no assignee data (empty, aligned slot); null = Unassigned. */
   assigneeName?: string | null;
   avatarUrl?: string | null;
   snippet?: { text: string; ranges: ReadonlyArray<Range> } | null;
   matchTag?: 'desc' | 'comment' | null;
   dimmed?: boolean;
   indent?: boolean;
-  onKeyClick: (e: React.MouseEvent, issueKey: string) => void;
+  /** When omitted the key renders as plain text (e.g. inside a parent <button>). */
+  onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
 }
 
 /** One-line search result row content; the palette wraps it in a CommandItem. */
 export function SearchResultRow({
   issueKey,
+  keyLabel,
   title,
   titleRanges,
   typeName,
+  icon,
   statusName,
   statusCategoryKey,
   epic,
@@ -55,15 +65,25 @@ export function SearchResultRow({
           dimmed && 'opacity-60',
         )}
       >
-        {indent && <span className="text-xs text-muted-foreground shrink-0">↳</span>}
-        <IssueTypeIcon typeName={typeName} className="size-3.5 shrink-0" />
-        <button
-          type="button"
-          className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-          onClick={(e) => onKeyClick(e, issueKey)}
-        >
-          {issueKey}
-        </button>
+        {icon ??
+          (typeName !== undefined ? (
+            <IssueTypeIcon typeName={typeName} className="size-3.5 shrink-0" />
+          ) : (
+            <Clock className="size-3.5 shrink-0 text-muted-foreground" />
+          ))}
+        {onKeyClick ? (
+          <button
+            type="button"
+            className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
+            onClick={(e) => onKeyClick(e, issueKey)}
+          >
+            {keyLabel ?? issueKey}
+          </button>
+        ) : (
+          <span className="text-muted-foreground font-mono text-xs shrink-0">
+            {keyLabel ?? issueKey}
+          </span>
+        )}
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
@@ -98,16 +118,22 @@ export function SearchResultRow({
             <span className="truncate">{epic.name}</span>
           </span>
         )}
-        <div className="flex shrink-0">
-          <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
-        </div>
-        <span className="flex-none w-5" title={assigneeName ?? 'Unassigned'} aria-hidden="true">
-          <CachedAvatar
-            url={avatarUrl ?? undefined}
-            name={assigneeName || 'Unassigned'}
-            size={20}
-          />
-        </span>
+        {statusName && (
+          <div className="flex shrink-0">
+            <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
+          </div>
+        )}
+        {assigneeName === undefined ? (
+          <span className="flex-none w-5" aria-hidden="true" />
+        ) : (
+          <span className="flex-none w-5" title={assigneeName ?? 'Unassigned'} aria-hidden="true">
+            <CachedAvatar
+              url={avatarUrl ?? undefined}
+              name={assigneeName || 'Unassigned'}
+              size={20}
+            />
+          </span>
+        )}
       </div>
     </div>
   );

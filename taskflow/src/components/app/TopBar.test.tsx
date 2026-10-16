@@ -9,6 +9,16 @@ import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import TopBar from './TopBar';
 
+vi.mock('@/hooks/useGlobalSearchSources', () => ({
+  useGlobalSearchSources: vi.fn(() => ({
+    boardId: null,
+    backlog: undefined,
+    allData: undefined,
+    isIndexLoading: false,
+    isIndexError: false,
+  })),
+}));
+
 function makeItem(id: string): NotificationItem {
   return {
     id,

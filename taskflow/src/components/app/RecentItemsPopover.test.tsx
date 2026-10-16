@@ -16,6 +16,47 @@ vi.mock('@tauri-apps/plugin-store', () => ({
   },
 }));
 
+const mockSources = vi.hoisted(() => ({
+  boardId: 1 as number | null,
+  backlog: undefined as unknown,
+  allData: undefined as unknown,
+  isIndexLoading: false,
+  isIndexError: false,
+}));
+vi.mock('@/hooks/useGlobalSearchSources', () => ({
+  useGlobalSearchSources: vi.fn(() => mockSources),
+}));
+
+/** Minimal GreenHopper backlog envelope with one in-progress story. */
+const BACKLOG = {
+  issues: [
+    {
+      id: 1,
+      key: 'PROJ-5',
+      hidden: false,
+      typeId: '1',
+      summary: 'Indexed story',
+      priorityId: '1',
+      done: false,
+      statusId: '2',
+      fixVersions: [],
+      projectId: 1,
+    },
+  ],
+  entityData: {
+    statuses: {
+      '2': {
+        statusName: 'In Progress',
+        status: { id: '2', name: 'In Progress', statusCategory: { id: '4', key: 'indeterminate' } },
+      },
+    },
+    priorities: {},
+    types: { '1': { typeName: 'Story' } },
+    epics: {},
+  },
+  sprints: [],
+};
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -30,6 +71,7 @@ function setStoreItems(items: RecentItem[]) {
 describe('RecentItemsPopover', () => {
   beforeEach(() => {
     useRecentItemsStore.setState({ items: [] });
+    mockSources.backlog = undefined;
   });
 
   it('RECENT-01: renders clock icon trigger with aria-label', () => {
@@ -88,5 +130,29 @@ describe('RecentItemsPopover', () => {
     renderWithQueryClient(<RecentItemsPopover />);
     fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
     expect(await screen.findByText('Recent Items')).toBeInTheDocument();
+  });
+
+  it('renders the shared row with status pill for an issue found in the search index', async () => {
+    mockSources.backlog = BACKLOG;
+    setStoreItems([{ type: 'jira', id: 'PROJ-5', title: 'Stale title', timestamp: Date.now() }]);
+
+    renderWithQueryClient(<RecentItemsPopover />);
+    fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
+
+    const title = await screen.findByText('Indexed story');
+    const row = title.closest('button') as HTMLButtonElement;
+    expect(row.textContent).toContain('PROJ-5');
+    expect(row.textContent).toContain('In Progress');
+    expect(screen.queryByText('Stale title')).toBeNull();
+  });
+
+  it('displays the bare iid for composite GitLab ids', async () => {
+    setStoreItems([{ type: 'gitlab', id: '12/67', title: 'Fix login', timestamp: Date.now() }]);
+
+    renderWithQueryClient(<RecentItemsPopover />);
+    fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
+
+    expect(await screen.findByText('!67')).toBeInTheDocument();
+    expect(screen.getByText('Fix login')).toBeInTheDocument();
   });
 });

@@ -100,9 +100,9 @@ describe('context header', () => {
     expect(container.querySelectorAll('mark')).toHaveLength(0);
   });
 
-  it('indent renders the arrow glyph and pl-6', () => {
+  it('indent renders pl-6 without an extra arrow glyph (the subtask type icon is the arrow)', () => {
     const { container } = render(<SearchResultRow {...props({ indent: true })} />);
-    expect(screen.getByText('↳')).toBeInTheDocument();
+    expect(screen.queryByText('↳')).toBeNull();
     expect(container.querySelector('.pl-6')).not.toBeNull();
   });
 
