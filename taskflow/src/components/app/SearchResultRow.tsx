@@ -165,17 +165,17 @@ export function SearchResultRow({
         )}
       </div>
       {matchTag && (
-        // Body match (description / comment): a second line under the title column with up to
-        // two lines of highlighted context, so you can see what actually matched.
+        // Body match (description / comment): one truncating line of highlighted context under
+        // the row's key column, so you can see what actually matched.
         <div
           data-match-line
-          className="mt-0.5 flex min-w-0 items-start gap-1.5 pl-[1.375rem] text-xs leading-4 text-muted-foreground"
+          className="mt-0.5 flex min-w-0 items-center gap-1.5 pl-[1.375rem] text-xs leading-4 text-muted-foreground"
         >
           <span
             role="img"
             aria-label={MATCH_LABEL[matchTag]}
             title={MATCH_LABEL[matchTag]}
-            className="mt-0.5 inline-flex shrink-0 text-muted-foreground/70"
+            className="inline-flex shrink-0 text-muted-foreground/70"
           >
             {matchTag === 'desc' ? (
               <FileText className="size-3" />
@@ -187,7 +187,7 @@ export function SearchResultRow({
             <HighlightedText
               text={snippet.text}
               ranges={snippet.ranges}
-              className="line-clamp-2 min-w-0 whitespace-normal break-words"
+              className="min-w-0 truncate"
             />
           ) : (
             <span className="italic pr-0.5">{MATCH_LABEL[matchTag]}</span>

@@ -150,6 +150,8 @@ describe('body match', () => {
     expect(line?.querySelector('[aria-label="Matched in description"]')).not.toBeNull();
     expect(line?.textContent).toContain('the cart is empty');
     expect(line?.querySelector('mark')?.textContent).toBe('cart');
+    // Exactly one line: the excerpt truncates instead of wrapping.
+    expect(line?.querySelector('mark')?.parentElement?.className).toContain('truncate');
     // The title line is untouched by the snippet: full truncating title, epic still shown.
     expect(screen.getByText('Fix the cart bug').closest('[data-match-line]')).toBeNull();
     expect(screen.getByText('Checkout')).toBeInTheDocument();
