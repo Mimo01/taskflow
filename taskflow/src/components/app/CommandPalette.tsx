@@ -1,35 +1,44 @@
 /**
- * CommandPalette -- full command palette overlay with fuzzy search, grouped results,
- * navigation/action items, live Jira search tail item, and recent items default state.
+ * CommandPalette -- full command palette overlay: ranked, tiered issue search from the local
+ * GreenHopper index (instant title hits), one debounced Jira body request, opt-in closed
+ * issues, pinned Direct match, query-filtered MR/Navigation/Action groups, and the
+ * Recent Items default state.
  *
- * Replaces SearchOverlay as the single search entry point.
- * Built with shadcn Command (cmdk) primitives -- NOT CommandDialog (Radix Dialog conflicts
- * with @base-ui/react).
- *
- * Groups:
- *   Default state (<2 chars): Recent Items, Navigation
- *   Search state (>=2 chars): Issues, Merge Requests, Navigation, Actions, + "Search Jira" tail
+ * Built with shadcn Command (cmdk) primitives in a custom overlay (the Radix dialog wrapper
+ * conflicts with @base-ui/react). cmdk filtering is disabled (shouldFilter={false}); ordering and
+ * filtering come from lib/global-search.ts.
  */
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, GitMerge, SearchX } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Archive, Clock, GitMerge, SearchX } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { SearchResultRow } from '@/components/app/SearchResultRow';
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
+import {
+  buildResultModel,
+  buildSearchIndex,
+  entryFromJiraIssue,
+  findIndexEntry,
+  isKeyLikeQuery,
+  matchesSecondary,
+  type ResultRow,
+  resolveKeyLookup,
+} from '@/lib/global-search';
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { fetchJiraIssueByKey, searchJira, searchJiraClosed } from '@/services/jira';
+import { fetchJiraIssueByKey, searchJiraBody } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
@@ -60,17 +69,23 @@ export default function CommandPalette({
   onOpenCreate,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
-  const [liveSearchTriggered, setLiveSearchTriggered] = useState(false);
-  const [closedSearchTriggered, setClosedSearchTriggered] = useState(false);
+  const [includeClosed, setIncludeClosed] = useState(false);
+  const [expandedTiers, setExpandedTiers] = useState<Set<string>>(new Set());
+  const [selectedValue, setSelectedValue] = useState('');
+  const listRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
-  const { storyPointsFieldKey, theme, setTheme } = useSettingsStore();
+  const { storyPointsFieldKey, theme, setTheme, epicLinkFieldKey } = useSettingsStore();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+
+  // D-03/D-21: index sources load from any route while open (hook must run before the early return)
+  const { backlog, allData, isIndexLoading, isIndexError } = useGlobalSearchSources(open);
+  const index = useMemo(() => buildSearchIndex(backlog, allData), [backlog, allData]);
 
   const trimmed = query.trim();
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  // Debounce: fire text search 300ms after user stops typing (>=2 chars)
+  // Debounce: fire body search 300ms after user stops typing (>=2 chars)
   useEffect(() => {
     if (trimmed.length < 2) {
       setDebouncedQuery('');
@@ -80,11 +95,16 @@ export default function CommandPalette({
     return () => clearTimeout(timer);
   }, [trimmed]);
 
-  const resolvedKeyLookup = /^[A-Za-z]+-\d+$/i.test(trimmed)
-    ? trimmed
-    : /^\d+$/.test(trimmed) && activeJiraProject
-      ? `${activeJiraProject}-${trimmed}`
-      : '';
+  // New query: collapse tiers, drop closed opt-in, reset selection and scroll (never on data change)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: trimmed is the intentional trigger
+  useEffect(() => {
+    setIncludeClosed(false);
+    setExpandedTiers(new Set());
+    setSelectedValue('');
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [trimmed]);
+
+  const resolvedKeyLookup = resolveKeyLookup(trimmed, activeJiraProject);
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const recentItems = useRecentItemsStore((s) => s.items);
 
@@ -97,8 +117,9 @@ export default function CommandPalette({
     if (!open) {
       setQuery('');
       setDebouncedQuery('');
-      setLiveSearchTriggered(false);
-      setClosedSearchTriggered(false);
+      setIncludeClosed(false);
+      setExpandedTiers(new Set());
+      setSelectedValue('');
     }
   }, [open]);
 
@@ -110,6 +131,8 @@ export default function CommandPalette({
     activeJiraProject,
     storyPointsFieldKey,
   ]);
+  const cachedIssuesMap = new Map<string, JiraIssue>();
+  for (const issue of cachedSprintBoard?.issues ?? []) cachedIssuesMap.set(issue.key, issue);
 
   // Flatten MRs: merge assigned + reviewRequested from all gitlab-mrs cache entries, deduplicate by iid
   const gitlabCacheEntries = queryClient.getQueriesData<{
@@ -129,70 +152,118 @@ export default function CommandPalette({
   }
   const allMRs = Array.from(mrsMap.values());
 
-  // ─── Live Jira search ──────────────────────────────────────────────────────
+  // ─── Jira body / closed search (one debounced request each, D-02 / D-15) ───
 
-  const { data: liveResults, isLoading: liveSearchLoading } = useQuery({
-    queryKey: ['search', 'live', query],
+  const searchEnabled =
+    open &&
+    debouncedQuery.length >= 2 &&
+    !isKeyLikeQuery(debouncedQuery) &&
+    !!jiraBaseUrl &&
+    !!activeJiraProject;
+
+  const bodyQuery = useQuery({
+    queryKey: ['search', 'body', debouncedQuery, activeJiraProject, 'open', epicLinkFieldKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return searchJira(jiraBaseUrl ?? '', token, activeJiraProject ?? '', query);
+      if (!token || !jiraBaseUrl || !activeJiraProject) return [] as JiraIssue[];
+      return searchJiraBody(jiraBaseUrl, token, {
+        projectKey: activeJiraProject,
+        query: debouncedQuery,
+        scope: 'open',
+        epicLinkFieldKey,
+      });
     },
-    enabled: query.length >= 2 && liveSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
-    staleTime: 30_000,
+    enabled: searchEnabled,
+    staleTime: 60_000,
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
-  // ─── Auto text search (debounced) ─────────────────────────────────────────
-
-  const { data: textSearchResults } = useQuery({
-    queryKey: ['search', 'text', debouncedQuery, activeJiraProject],
+  const closedQuery = useQuery({
+    queryKey: ['search', 'body', debouncedQuery, activeJiraProject, 'closed', epicLinkFieldKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return searchJira(jiraBaseUrl ?? '', token, activeJiraProject ?? '', debouncedQuery);
+      if (!token || !jiraBaseUrl || !activeJiraProject) return [] as JiraIssue[];
+      return searchJiraBody(jiraBaseUrl, token, {
+        projectKey: activeJiraProject,
+        query: debouncedQuery,
+        scope: 'closed',
+        epicLinkFieldKey,
+      });
     },
-    enabled: debouncedQuery.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
-    staleTime: 30_000,
+    enabled: searchEnabled && includeClosed,
+    staleTime: 60_000,
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
-  // Search mode: show text results only. No-query mode: show sprint board cache.
-  const issuesMap = new Map<string, JiraIssue>();
-  if (debouncedQuery.length >= 2) {
-    for (const issue of textSearchResults ?? []) {
-      issuesMap.set(issue.key, issue);
-    }
-  } else {
-    for (const issue of cachedSprintBoard?.issues ?? []) {
-      issuesMap.set(issue.key, issue);
-    }
-  }
-  const allIssues = Array.from(issuesMap.values());
+  // Hide stale previous-query rows (placeholder data and the 300 ms debounce gap)
+  const bodyFresh = debouncedQuery === trimmed && !bodyQuery.isPlaceholderData;
+  const closedFresh = debouncedQuery === trimmed && !closedQuery.isPlaceholderData;
+  const bodyData = bodyQuery.data;
+  const closedData = closedQuery.data;
+  const bodyIssues = useMemo(() => (bodyFresh ? (bodyData ?? []) : []), [bodyFresh, bodyData]);
+  const closedIssues = useMemo(
+    () => (includeClosed && closedFresh ? (closedData ?? []) : []),
+    [includeClosed, closedFresh, closedData],
+  );
 
-  // ─── Closed Jira search ────────────────────────────────────────────────────
+  // ─── Direct key lookup (D-17): local index first, network only on miss ─────
 
-  const { data: closedResults, isLoading: closedSearchLoading } = useQuery({
-    queryKey: ['search', 'closed', query],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat');
-      return searchJiraClosed(jiraBaseUrl ?? '', token, activeJiraProject ?? '', query);
-    },
-    enabled: query.length >= 2 && closedSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
-    staleTime: 30_000,
-    placeholderData: keepPreviousData,
-  });
-
-  // ─── Direct key lookup ─────────────────────────────────────────────────────
-
-  const { data: keyMatchResult } = useQuery({
+  const localDirect = resolvedKeyLookup ? findIndexEntry(index, resolvedKeyLookup) : null;
+  const keyQuery = useQuery({
     queryKey: ['search', 'key', resolvedKeyLookup],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
       return fetchJiraIssueByKey(jiraBaseUrl ?? '', token, resolvedKeyLookup);
     },
     enabled:
-      resolvedKeyLookup.length > 0 && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
+      open &&
+      resolvedKeyLookup.length > 0 &&
+      trimmed.length >= 2 &&
+      !localDirect &&
+      !isIndexLoading &&
+      !!jiraBaseUrl &&
+      !!activeJiraProject,
     staleTime: 30_000,
   });
+  const directEntry = useMemo(() => {
+    if (localDirect) return localDirect;
+    if (resolvedKeyLookup && keyQuery.data) {
+      return entryFromJiraIssue(keyQuery.data, index, epicLinkFieldKey, 'open');
+    }
+    return null;
+  }, [localDirect, resolvedKeyLookup, keyQuery.data, index, epicLinkFieldKey]);
+
+  // ─── Ranked result model ───────────────────────────────────────────────────
+
+  const sections = useMemo(() => {
+    const model = buildResultModel({
+      index,
+      query: trimmed,
+      bodyIssues,
+      closedIssues,
+      includeClosed,
+      expandedTiers,
+      epicLinkFieldKey,
+    });
+    const directKey = directEntry?.key;
+    return model
+      .map((sec) => ({
+        ...sec,
+        rows: directKey ? sec.rows.filter((r) => r.entry.key !== directKey) : sec.rows,
+      }))
+      .filter((sec) => sec.rows.length > 0 || sec.hiddenCount > 0);
+  }, [
+    index,
+    trimmed,
+    bodyIssues,
+    closedIssues,
+    includeClosed,
+    expandedTiers,
+    epicLinkFieldKey,
+    directEntry,
+  ]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -236,16 +307,12 @@ export default function CommandPalette({
     onClose();
   }
 
-  function handleLiveSearch() {
-    setLiveSearchTriggered(true);
-  }
-
   // ─── Helpers for recent items display ──────────────────────────────────────
 
   function getRecentItemLabel(item: { type: 'jira' | 'gitlab'; id: string; title?: string }) {
     if (item.type === 'jira') {
-      const cached = issuesMap.get(item.id);
-      const title = cached?.fields.summary ?? item.title;
+      const cached = findIndexEntry(index, item.id);
+      const title = cached?.summary ?? cachedIssuesMap.get(item.id)?.fields.summary ?? item.title;
       return title ? `${item.id} ${title}` : item.id;
     }
     // GitLab ids are stored as "project_id/iid" (composite). Split to get the bare iid for
@@ -259,7 +326,11 @@ export default function CommandPalette({
   /** Resolve the icon type name for a recent Jira item: sprint-board cache first, then the
    * persisted `issueType`, matching RecentItemsPopover.tsx's cache-then-persisted resolution. */
   function getRecentItemTypeName(item: { id: string; issueType?: string }) {
-    return issuesMap.get(item.id)?.fields.issuetype?.name ?? item.issueType;
+    return (
+      findIndexEntry(index, item.id)?.typeName ??
+      cachedIssuesMap.get(item.id)?.fields.issuetype?.name ??
+      item.issueType
+    );
   }
 
   // ─── Navigation action handlers (for action-based nav items like notifications) ─
@@ -275,6 +346,80 @@ export default function CommandPalette({
   if (!open) return null;
 
   const isDefaultState = query.length < 2;
+
+  const visibleMRs = isDefaultState
+    ? []
+    : allMRs.filter((mr) => matchesSecondary(trimmed, mr.title, `!${mr.iid}`));
+  const visibleNav = NAV_SHORTCUTS.filter(
+    (s) => isDefaultState || matchesSecondary(trimmed, s.navMeta.label),
+  );
+  const actionItems = [
+    {
+      value: 'action:create-issue',
+      label: 'Create issue',
+      keywords: ['new', 'add', 'create', 'issue', 'task', 'ticket'],
+      run: handleCreateIssue,
+    },
+    {
+      value: 'action:toggle-theme',
+      label: 'Toggle theme',
+      keywords: ['theme', 'dark', 'light', 'appearance'],
+      run: handleToggleTheme,
+    },
+    {
+      value: 'action:mark-read',
+      label: 'Mark all notifications read',
+      keywords: ['notification', 'unread', 'clear'],
+      run: handleMarkAllRead,
+    },
+  ].filter((a) => isDefaultState || matchesSecondary(trimmed, a.label, ...a.keywords));
+
+  const keyFetching = keyQuery.isFetching;
+  const bodyFetching = bodyQuery.isFetching;
+  const closedFetching = includeClosed && closedQuery.isFetching;
+  const anyFetching = bodyFetching || closedFetching || keyFetching;
+  const hasIssueRows = sections.some((sec) => sec.rows.length > 0);
+  const showEmpty =
+    !isDefaultState &&
+    !directEntry &&
+    !hasIssueRows &&
+    visibleMRs.length === 0 &&
+    visibleNav.length === 0 &&
+    actionItems.length === 0 &&
+    !anyFetching &&
+    !isIndexLoading &&
+    !isIndexError;
+  const hasClosedSection = sections.some((sec) => sec.tier.id === 'closed');
+
+  function renderIssueRow(row: ResultRow, itemKey: string) {
+    const e = row.entry;
+    return (
+      <CommandItem
+        key={itemKey}
+        value={e.key}
+        onSelect={() => handleIssueSelect(e.key)}
+        className="py-1 [&>svg:last-child]:hidden"
+      >
+        <SearchResultRow
+          issueKey={e.key}
+          title={e.summary}
+          titleRanges={row.titleRanges}
+          typeName={e.typeName}
+          statusName={e.statusName}
+          statusCategoryKey={e.statusCategoryKey}
+          epic={e.epic}
+          showEpic={!e.isSubtask && !e.isEpic}
+          assigneeName={e.assigneeName}
+          avatarUrl={e.avatarUrl}
+          snippet={row.snippet}
+          matchTag={row.tag}
+          dimmed={row.dimmed}
+          indent={row.indent}
+          onKeyClick={handleIssueKeyClick}
+        />
+      </CommandItem>
+    );
+  }
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: full-screen backdrop overlay; role=button is intentional for Escape/Enter dismiss
@@ -292,7 +437,7 @@ export default function CommandPalette({
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper for palette content panel */}
       <div
-        className="max-w-xl mt-16 mx-auto"
+        className="max-w-3xl mt-16 mx-4 sm:mx-auto"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
@@ -305,219 +450,170 @@ export default function CommandPalette({
           e.stopPropagation();
         }}
       >
-        <Command className="rounded-lg border shadow-lg bg-popover">
+        <Command
+          shouldFilter={false}
+          loop
+          value={selectedValue}
+          onValueChange={setSelectedValue}
+          className="rounded-lg border shadow-lg bg-popover"
+        >
           <CommandInput
             placeholder="Search issues, MRs, and actions..."
             value={query}
             onValueChange={setQuery}
             autoFocus
           />
-          <CommandList className="max-h-[300px]">
-            <CommandEmpty className="flex flex-col items-center justify-center py-6 text-center">
-              <SearchX className="size-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No results found</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Try a different search term or check your spelling
-              </p>
-            </CommandEmpty>
+          {(bodyFetching || closedFetching) && (
+            <div className="h-0.5 bg-primary/30 animate-pulse motion-reduce:animate-none" />
+          )}
+          <CommandList ref={listRef} className="max-h-[70vh] scroll-py-1">
+            {showEmpty && (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <SearchX className="size-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No results found</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Try a different term, a key like ESHOP-412, or include closed issues.
+                </p>
+              </div>
+            )}
 
             {isDefaultState ? (
-              <>
-                {/* Recent Items group -- only in default state */}
-                <CommandGroup heading="Recent Items">
-                  {recentItems.length === 0 ? (
-                    <CommandItem disabled>No recent items</CommandItem>
-                  ) : (
-                    recentItems.map((item) => {
-                      const resolvedTypeName =
-                        item.type === 'jira' ? getRecentItemTypeName(item) : undefined;
-                      return (
-                        <CommandItem
-                          key={`${item.type}-${item.id}`}
-                          value={`${item.type}-${item.id}`}
-                          keywords={[item.id]}
-                          onSelect={() => {
-                            if (item.type === 'jira') {
-                              handleIssueSelect(item.id);
-                            } else {
-                              pushRecentItem({ type: 'gitlab', id: item.id, title: item.title });
-                              onNavigate(`/mr/${item.id}`);
-                              onClose();
-                            }
-                          }}
-                        >
-                          {item.type === 'jira' ? (
-                            resolvedTypeName ? (
-                              <IssueTypeIcon
-                                typeName={resolvedTypeName}
-                                className="w-3.5 h-3.5 shrink-0"
-                              />
-                            ) : (
-                              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                            )
+              <CommandGroup heading="Recent Items">
+                {recentItems.length === 0 ? (
+                  <CommandItem disabled>No recent items</CommandItem>
+                ) : (
+                  recentItems.map((item) => {
+                    const resolvedTypeName =
+                      item.type === 'jira' ? getRecentItemTypeName(item) : undefined;
+                    return (
+                      <CommandItem
+                        key={`${item.type}-${item.id}`}
+                        value={`${item.type}-${item.id}`}
+                        keywords={[item.id]}
+                        onSelect={() => {
+                          if (item.type === 'jira') {
+                            handleIssueSelect(item.id);
+                          } else {
+                            pushRecentItem({ type: 'gitlab', id: item.id, title: item.title });
+                            onNavigate(`/mr/${item.id}`);
+                            onClose();
+                          }
+                        }}
+                      >
+                        {item.type === 'jira' ? (
+                          resolvedTypeName ? (
+                            <IssueTypeIcon
+                              typeName={resolvedTypeName}
+                              className="w-3.5 h-3.5 shrink-0"
+                            />
                           ) : (
-                            <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                          )}
-                          <span className="truncate">{getRecentItemLabel(item)}</span>
-                        </CommandItem>
-                      );
-                    })
-                  )}
-                </CommandGroup>
-              </>
+                            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                          )
+                        ) : (
+                          <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="truncate">{getRecentItemLabel(item)}</span>
+                      </CommandItem>
+                    );
+                  })
+                )}
+              </CommandGroup>
             ) : (
               <>
-                {/* Direct Match group -- shown when query matches a Jira issue key pattern */}
-                {resolvedKeyLookup && keyMatchResult && (
-                  <CommandGroup heading="Direct Match">
-                    <CommandItem
-                      key={`key-match-${keyMatchResult.key}`}
-                      value={`key-match-${keyMatchResult.key} ${keyMatchResult.fields.summary}`}
-                      onSelect={() => handleIssueSelect(keyMatchResult.key)}
-                    >
-                      <IssueTypeIcon
-                        typeName={keyMatchResult.fields.issuetype?.name ?? ''}
-                        className="w-3.5 h-3.5 shrink-0"
-                      />
-                      {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
-                      <button
-                        type="button"
-                        className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                        onClick={(e) => handleIssueKeyClick(e, keyMatchResult.key)}
-                      >
-                        {keyMatchResult.key}
-                      </button>
-                      <span className="truncate">{keyMatchResult.fields.summary}</span>
-                    </CommandItem>
+                {/* Direct match (D-17): pinned above the tiers */}
+                {directEntry ? (
+                  <CommandGroup heading="Direct match">
+                    {renderIssueRow(
+                      {
+                        entry: directEntry,
+                        field: 0,
+                        titleRanges: [],
+                        snippet: null,
+                        tag: null,
+                        dimmed: false,
+                        indent: false,
+                      },
+                      `direct-${directEntry.key}`,
+                    )}
                   </CommandGroup>
+                ) : (
+                  keyFetching && (
+                    <CommandGroup heading="Direct match">
+                      <Skeleton className="h-8 rounded" />
+                    </CommandGroup>
+                  )
                 )}
 
-                {/* Issues group -- only in search state */}
-                <CommandGroup heading="Issues">
-                  {allIssues.map((issue) => (
-                    <CommandItem
-                      key={issue.key}
-                      value={`${issue.key} ${issue.fields.summary}`}
-                      onSelect={() => handleIssueSelect(issue.key)}
-                    >
-                      <IssueTypeIcon
-                        typeName={issue.fields.issuetype?.name ?? ''}
-                        className="w-3.5 h-3.5 shrink-0"
-                      />
-                      {/* PEEK-05: key button → full-page; stopPropagation prevents onSelect → peek */}
-                      <button
-                        type="button"
-                        className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                        onClick={(e) => handleIssueKeyClick(e, issue.key)}
-                      >
-                        {issue.key}
-                      </button>
-                      <span className="truncate">{issue.fields.summary}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-
-                {/* Merge Requests group -- only in search state */}
-                <CommandGroup heading="Merge Requests">
-                  {allMRs.map((mr) => (
-                    <CommandItem
-                      key={mr.iid}
-                      value={`!${mr.iid} ${mr.title}`}
-                      onSelect={() => handleMRSelect(mr)}
-                    >
-                      <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                      <span className="text-muted-foreground">!{mr.iid}</span>
-                      <span className="truncate">{mr.title}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-
-                {/* Live search tail item -- only in search state */}
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem
-                    forceMount
-                    onSelect={handleLiveSearch}
-                    value="search-jira-live-query"
-                  >
-                    Search Jira for &ldquo;{query}&rdquo;
-                  </CommandItem>
-                </CommandGroup>
-
-                {/* Live search results -- only in search state */}
-                {liveSearchTriggered && liveSearchLoading && (
+                {isIndexLoading && (
                   <div className="flex flex-col gap-2 p-2">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-9 rounded bg-muted animate-pulse" />
+                    <p className="text-xs text-muted-foreground">Loading issues…</p>
+                    {[1, 2, 3, 4].map((i) => (
+                      <Skeleton key={i} className="h-6 rounded" />
                     ))}
                   </div>
                 )}
-                {liveSearchTriggered && liveResults && liveResults.length > 0 && (
-                  <CommandGroup heading="Jira Search Results">
-                    {liveResults.map((issue) => (
+                {isIndexError && !isIndexLoading && (
+                  <p className="p-2 text-xs text-muted-foreground">
+                    Couldn't load issues. Check your Jira connection and reopen search.
+                  </p>
+                )}
+
+                {/* Ranked tiers (D-06) */}
+                {sections.map((sec) => (
+                  <CommandGroup key={sec.tier.id} heading={sec.tier.label}>
+                    {sec.rows.map((row) => renderIssueRow(row, row.entry.key))}
+                    {sec.hiddenCount > 0 && (
                       <CommandItem
-                        key={`live-${issue.key}`}
-                        value={`live-${issue.key} ${issue.fields.summary}`}
-                        onSelect={() => handleIssueSelect(issue.key)}
+                        value={`more:${sec.tier.id}`}
+                        onSelect={() => setExpandedTiers((prev) => new Set(prev).add(sec.tier.id))}
+                        className="py-1 text-xs text-muted-foreground"
                       >
-                        <IssueTypeIcon
-                          typeName={issue.fields.issuetype?.name ?? ''}
-                          className="w-3.5 h-3.5 shrink-0"
-                        />
-                        {/* PEEK-05: key button → full-page */}
-                        <button
-                          type="button"
-                          className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                          onClick={(e) => handleIssueKeyClick(e, issue.key)}
-                        >
-                          {issue.key}
-                        </button>
-                        <span className="truncate">{issue.fields.summary}</span>
+                        +{sec.hiddenCount} more in {sec.tier.label}
                       </CommandItem>
-                    ))}
+                    )}
+                  </CommandGroup>
+                ))}
+
+                {closedFetching && !hasClosedSection && (
+                  <CommandGroup heading="Closed">
+                    <div className="flex flex-col gap-2 p-1">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-6 rounded" />
+                      ))}
+                    </div>
                   </CommandGroup>
                 )}
 
-                {/* Closed task search tail item -- only in search state */}
-                <CommandGroup>
-                  <CommandItem
-                    forceMount
-                    onSelect={() => setClosedSearchTriggered(true)}
-                    value="search-jira-closed-query"
-                  >
-                    Search closed tasks for &ldquo;{query}&rdquo;
-                  </CommandItem>
-                </CommandGroup>
-
-                {/* Closed search results -- only in search state */}
-                {closedSearchTriggered && closedSearchLoading && (
-                  <div className="flex flex-col gap-2 p-2">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-9 rounded bg-muted animate-pulse" />
-                    ))}
+                {bodyQuery.isError && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    Couldn't search descriptions and comments. Showing title matches only.
                   </div>
                 )}
-                {closedSearchTriggered && closedResults && closedResults.length > 0 && (
-                  <CommandGroup heading="Closed Jira Tasks">
-                    {closedResults.map((issue) => (
+
+                {/* D-15: opt-in closed issues */}
+                {!includeClosed && (
+                  <CommandItem
+                    value="include-closed"
+                    onSelect={() => setIncludeClosed(true)}
+                    className="text-muted-foreground"
+                  >
+                    <Archive className="size-3.5" />
+                    Include closed issues
+                  </CommandItem>
+                )}
+
+                {/* D-16: Merge Requests below the issue tiers, query-filtered */}
+                {visibleMRs.length > 0 && (
+                  <CommandGroup heading="Merge Requests">
+                    {visibleMRs.map((mr) => (
                       <CommandItem
-                        key={`closed-${issue.key}`}
-                        value={`closed-${issue.key} ${issue.fields.summary}`}
-                        onSelect={() => handleIssueSelect(issue.key)}
+                        key={mr.iid}
+                        value={`mr:${mr.project_id}/${mr.iid}`}
+                        onSelect={() => handleMRSelect(mr)}
                       >
-                        <IssueTypeIcon
-                          typeName={issue.fields.issuetype?.name ?? ''}
-                          className="w-3.5 h-3.5 shrink-0"
-                        />
-                        {/* PEEK-05: key button → full-page */}
-                        <button
-                          type="button"
-                          className="text-muted-foreground font-mono text-xs cursor-pointer hover:underline shrink-0"
-                          onClick={(e) => handleIssueKeyClick(e, issue.key)}
-                        >
-                          {issue.key}
-                        </button>
-                        <span className="truncate">{issue.fields.summary}</span>
+                        <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        <span className="text-muted-foreground">!{mr.iid}</span>
+                        <span className="truncate">{mr.title}</span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -526,51 +622,39 @@ export default function CommandPalette({
             )}
 
             {/* Navigation group -- dynamically derived from shortcuts registry (NAV_SHORTCUTS) */}
-            <CommandGroup heading="Navigation">
-              {NAV_SHORTCUTS.map((s) => (
-                <CommandItem
-                  key={s.id}
-                  onSelect={
-                    s.navMeta.route
-                      ? () => {
-                          onNavigate(s.navMeta.route ?? '');
-                          onClose();
-                        }
-                      : () => {
-                          navActionHandlers[s.navMeta.action ?? '']?.();
-                        }
-                  }
-                >
-                  {s.navMeta.label}
-                  <CommandShortcut>{s.defaultKey}</CommandShortcut>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {visibleNav.length > 0 && (
+              <CommandGroup heading="Navigation">
+                {visibleNav.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    value={`nav:${s.id}`}
+                    onSelect={
+                      s.navMeta.route
+                        ? () => {
+                            onNavigate(s.navMeta.route ?? '');
+                            onClose();
+                          }
+                        : () => {
+                            navActionHandlers[s.navMeta.action ?? '']?.();
+                          }
+                    }
+                  >
+                    {s.navMeta.label}
+                    <CommandShortcut>{s.defaultKey}</CommandShortcut>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-            {/* Actions group -- always rendered; only visible when cmdk matches keywords */}
-            <CommandGroup heading="Actions">
-              <CommandItem
-                value="create issue"
-                keywords={['new', 'add', 'create', 'issue', 'task', 'ticket']}
-                onSelect={handleCreateIssue}
-              >
-                Create issue
-              </CommandItem>
-              <CommandItem
-                value="toggle theme"
-                keywords={['theme', 'dark', 'light', 'appearance']}
-                onSelect={handleToggleTheme}
-              >
-                Toggle theme
-              </CommandItem>
-              <CommandItem
-                value="mark all notifications read"
-                keywords={['notification', 'unread', 'clear']}
-                onSelect={handleMarkAllRead}
-              >
-                Mark all notifications read
-              </CommandItem>
-            </CommandGroup>
+            {actionItems.length > 0 && (
+              <CommandGroup heading="Actions">
+                {actionItems.map((a) => (
+                  <CommandItem key={a.value} value={a.value} onSelect={a.run}>
+                    {a.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </div>
