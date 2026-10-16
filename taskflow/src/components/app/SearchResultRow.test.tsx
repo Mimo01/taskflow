@@ -97,21 +97,16 @@ describe('snippet', () => {
 });
 
 describe('context header', () => {
-  it('dimmed renders a muted context line and ignores title ranges', () => {
+  it('dimmed fades the whole row (same size) and ignores title ranges', () => {
     const { container } = render(
       <SearchResultRow {...props({ dimmed: true, titleRanges: [[0, 3]] })} />,
     );
-    // Muted text only — no extra opacity, which made the parent unreadable (UAT).
-    expect(container.querySelector('.opacity-50')).toBeNull();
+    expect(container.querySelector('.opacity-40')).not.toBeNull();
     expect(container.querySelectorAll('mark')).toHaveLength(0);
-    expect(screen.getByText('Fix the cart bug').className).toContain('text-muted-foreground');
-  });
-
-  it('dimmed omits status pill, epic badge and avatar', () => {
-    render(<SearchResultRow {...props({ dimmed: true })} />);
-    expect(screen.queryByText('In Progress')).toBeNull();
-    expect(screen.queryByText('Checkout')).toBeNull();
-    expect(screen.queryByTitle('Jane Doe')).toBeNull();
+    // Same size as any row: text-sm title, status pill and avatar still rendered.
+    expect(screen.getByText('Fix the cart bug').className).toContain('text-sm');
+    expect(screen.getByText('In Progress')).toBeInTheDocument();
+    expect(screen.getByTitle('Jane Doe')).toBeInTheDocument();
   });
 
   it('indent renders pl-6 without an extra arrow glyph (the subtask type icon is the arrow)', () => {
