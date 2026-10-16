@@ -20,6 +20,21 @@ export function tokenize(query: string): string[] {
   return query.toLowerCase().split(/\s+/).filter(Boolean);
 }
 
+/**
+ * Lower-case without changing the string length, so indexes found in the result line up
+ * with the original text. A character whose lower-case form is longer ('İ' -> 'i̇') is kept.
+ */
+function lowerSameLength(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.length === text.length) return lower;
+  let out = '';
+  for (const ch of text) {
+    const l = ch.toLowerCase();
+    out += l.length === ch.length ? l : ch;
+  }
+  return out;
+}
+
 function isWordBoundary(text: string, i: number): boolean {
   return i === 0 || !/[a-z0-9]/i.test(text[i - 1]);
 }
@@ -50,7 +65,7 @@ export function matchText(
 ): TextMatch | null {
   const tokens = tokenize(query);
   if (tokens.length === 0 || !target) return null;
-  const lower = target.toLowerCase();
+  const lower = lowerSameLength(target);
   const phrase = tokens.join(' ');
 
   const phraseAt = lower.indexOf(phrase);
@@ -133,7 +148,7 @@ export function buildSnippet(
   const tokens = tokenize(query);
   if (tokens.length === 0) return null;
   const flat = text.replace(/\s+/g, ' ').trim();
-  const lower = flat.toLowerCase();
+  const lower = lowerSameLength(flat);
 
   let pos = lower.indexOf(tokens.join(' '));
   let len = tokens.join(' ').length;

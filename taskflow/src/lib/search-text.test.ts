@@ -143,3 +143,18 @@ describe('buildSnippet sentence start', () => {
     );
   });
 });
+
+describe('case folding that changes length (IN-06)', () => {
+  // 'İ'.toLowerCase() is two code units, which used to shift every later index by one.
+  it('keeps match indexes aligned with the original title', () => {
+    const target = 'İstanbul cart';
+    const m = matchText('cart', target);
+    expect(m?.indexes.map((i) => target[i]).join('')).toBe('cart');
+  });
+
+  it('keeps snippet ranges aligned with the snippet text', () => {
+    const s = buildSnippet('İstanbul office: the cart is empty', 'cart');
+    const [[a, b]] = s?.ranges ?? [[0, 0]];
+    expect(s?.text.slice(a, b)).toBe('cart');
+  });
+});
