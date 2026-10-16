@@ -111,16 +111,18 @@ describe('context header', () => {
     expect(screen.getByTitle('Jane Doe')).toBeInTheDocument();
   });
 
-  it('indent renders pl-6 without an extra arrow glyph (the subtask type icon is the arrow)', () => {
+  it('subtask rows keep the strict column grid (no row shift, no extra arrow glyph)', () => {
     const { container } = render(<SearchResultRow {...props({ indent: true })} />);
     expect(screen.queryByText('↳')).toBeNull();
-    expect(container.querySelector('.pl-6')).not.toBeNull();
+    const row = container.querySelector('[data-indent]');
+    expect(row).not.toBeNull();
+    expect(row?.className).not.toMatch(/\bpl-/);
   });
 
   it('is not indented or dimmed by default', () => {
     const { container } = render(<SearchResultRow {...props()} />);
-    expect(container.querySelector('.pl-6')).toBeNull();
-    expect(container.querySelector('.opacity-60')).toBeNull();
+    expect(container.querySelector('[data-indent]')).toBeNull();
+    expect(container.querySelector('.opacity-40')).toBeNull();
   });
 });
 

@@ -38,7 +38,11 @@ export interface SearchResultRowProps {
 
 const MATCH_LABEL = { desc: 'Matched in description', comment: 'Matched in a comment' } as const;
 
-/** Key cell: min width so titles line up across rows with different key lengths. */
+/**
+ * Strict row grid: [icon 14px] gap 8 [key column] gap 8 [title …] … [status] [avatar].
+ * Subtasks use the same columns (no row shift — variable key lengths would break the
+ * alignment); nesting is shown by the subtask type icon (↳) under its dimmed parent.
+ */
 const KEY_CLASS =
   'min-w-[4.25rem] shrink-0 text-left font-mono text-[0.6875rem] text-muted-foreground';
 
@@ -80,9 +84,9 @@ export function SearchResultRow({
     <div className="@container w-full min-w-0">
       {/* Fixed 18px (= avatar / status pill height): every row is the same height. */}
       <div
+        data-indent={indent || undefined}
         className={cn(
           'flex h-[18px] min-w-0 items-center gap-2 whitespace-nowrap',
-          indent && 'pl-6',
           dimmed && 'opacity-40',
         )}
       >
