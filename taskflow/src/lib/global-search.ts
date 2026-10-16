@@ -274,14 +274,15 @@ export function entryFromJiraIssue(
   const epicFromField =
     typeof rawEpic === 'string' ? (index.epicsByKey.get(rawEpic) ?? null) : null;
 
+  const catKey = f.status?.statusCategory?.key ?? 'indeterminate';
   let tierId: string;
   if (existing) tierId = existing.tierId;
   else if (parentKey && findIndexEntry(index, parentKey)) {
     tierId = findIndexEntry(index, parentKey)?.tierId ?? BACKLOG_ID;
   } else if (scope === 'closed') tierId = CLOSED_ID;
   else tierId = isEpicType(f.issuetype?.name) ? EPICS_ID : BACKLOG_ID;
-
-  const catKey = f.status?.statusCategory?.key ?? 'indeterminate';
+  // Same rule as the index paths: done outside the current sprint -> Closed (D-15).
+  if (catKey === 'done' && tierId !== CURRENT_ID) tierId = CLOSED_ID;
   return {
     key: issue.key,
     summary: f.summary ?? existing?.summary ?? '',
