@@ -128,13 +128,13 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 **Goal:** Global search (CommandPalette) returns instant, ranked issue results from the cached backlog index — sprint tier first (current > upcoming > backlog > closed), then field (title > description > comment), subtasks grouped under their parent — with compact one-line rows (epic badge, status, assignee, highlights), one debounced Jira body request per query, and a larger dialog.
 **Requirements**: TBD (contract = 92-CONTEXT.md D-01..D-21)
 **Depends on:** Phase 91
-**Plans:** 6 plans
+**Plans:** 3/6 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 92-01-PLAN.md — fuzzysort legitimacy gate + install; pure text matching (fuzzy, highlight runs, snippets)
-- [ ] 92-02-PLAN.md — searchJiraBody (injection-safe JQL, throws) + route-independent backlog source hook
-- [ ] 92-03-PLAN.md — HighlightedText + compact one-line SearchResultRow
+- [x] 92-01-PLAN.md — fuzzysort legitimacy gate + install; pure text matching (fuzzy, highlight runs, snippets)
+- [x] 92-02-PLAN.md — searchJiraBody (injection-safe JQL, throws) + route-independent backlog source hook
+- [x] 92-03-PLAN.md — HighlightedText + compact one-line SearchResultRow
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
