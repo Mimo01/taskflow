@@ -168,12 +168,42 @@ export default function CommandPalette({
   }
   const allMRs = Array.from(mrsMap.values());
 
+  // ─── Direct key lookup (D-17): local index first, network only on miss ─────
+
+  const localDirect = resolvedKeyLookup ? findIndexEntry(index, resolvedKeyLookup) : null;
+  const keyQuery = useQuery({
+    queryKey: ['search', 'key', resolvedKeyLookup],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat');
+      return fetchJiraIssueByKey(jiraBaseUrl ?? '', token, resolvedKeyLookup);
+    },
+    enabled:
+      open &&
+      resolvedKeyLookup.length > 0 &&
+      trimmed.length >= 2 &&
+      !localDirect &&
+      !isIndexLoading &&
+      !!jiraBaseUrl &&
+      !!activeJiraProject,
+    staleTime: 30_000,
+  });
+  const directEntry = useMemo(() => {
+    if (localDirect) return localDirect;
+    if (resolvedKeyLookup && keyQuery.data) {
+      return entryFromJiraIssue(keyQuery.data, index, epicLinkFieldKey, 'open');
+    }
+    return null;
+  }, [localDirect, resolvedKeyLookup, keyQuery.data, index, epicLinkFieldKey]);
+
   // ─── Jira body / closed search (one debounced request each, D-02 / D-15) ───
 
+  // Key-shaped terms (utf-8, covid-19, sha-256) skip the body search only while they may be a
+  // real key: once the key lookup misses, search descriptions and comments as usual.
+  const keyMiss = !localDirect && keyQuery.isFetched && !keyQuery.isFetching && !keyQuery.data;
   const searchEnabled =
     open &&
     debouncedQuery.length >= 2 &&
-    !isKeyLikeQuery(debouncedQuery) &&
+    (!isKeyLikeQuery(debouncedQuery) || (debouncedQuery === trimmed && keyMiss)) &&
     !!jiraBaseUrl &&
     !!activeJiraProject;
 
@@ -223,33 +253,6 @@ export default function CommandPalette({
     () => (includeClosed && closedFresh ? (closedData ?? []) : []),
     [includeClosed, closedFresh, closedData],
   );
-
-  // ─── Direct key lookup (D-17): local index first, network only on miss ─────
-
-  const localDirect = resolvedKeyLookup ? findIndexEntry(index, resolvedKeyLookup) : null;
-  const keyQuery = useQuery({
-    queryKey: ['search', 'key', resolvedKeyLookup],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat');
-      return fetchJiraIssueByKey(jiraBaseUrl ?? '', token, resolvedKeyLookup);
-    },
-    enabled:
-      open &&
-      resolvedKeyLookup.length > 0 &&
-      trimmed.length >= 2 &&
-      !localDirect &&
-      !isIndexLoading &&
-      !!jiraBaseUrl &&
-      !!activeJiraProject,
-    staleTime: 30_000,
-  });
-  const directEntry = useMemo(() => {
-    if (localDirect) return localDirect;
-    if (resolvedKeyLookup && keyQuery.data) {
-      return entryFromJiraIssue(keyQuery.data, index, epicLinkFieldKey, 'open');
-    }
-    return null;
-  }, [localDirect, resolvedKeyLookup, keyQuery.data, index, epicLinkFieldKey]);
 
   // ─── Ranked result model ───────────────────────────────────────────────────
 
