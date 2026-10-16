@@ -163,6 +163,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Post-release merge-back check: advisory verdict over four fail-closed evidence channels, MR-state-preferred with `repository/compare` fallback, never blocking — v1.14 Phase 91
 - ✓ One unified task-keyed release detail table with inline BR/MS drift actions, click-to-filter warning badges, and a secondary table for uncovered MRs — v1.14 Phase 91.1
 - ✓ `/epics` as a single-line portfolio row (creation order, three-segment progress bar, `done/total SP`, priority, child-status breakdown) with fail-closed enrichment streaming behind first paint — v1.14 Phase 91.2
+- ✓ Ranked global search: instant title hits from the cached backlog index, ordered by sprint tier then field (title > description > comment), subtasks grouped under a faded parent, an Epics section, one debounced Jira body request (with highlighted description/comment excerpts on a second line), and Recent Items rows enriched with status/assignee/epic — Phase 92
 
 ### Active
 
@@ -185,6 +186,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit c5b19544); Log Work stays on the Worklogs page and issue detail
 
 ## Current State
+
+**Phase 92 complete 2026-10-16** (post-v1.14, standalone): the command palette became a ranked, cache-backed global search, and the top-bar Recent Items history was rebuilt on the same row component, which batch-enriches any recent issue missing from the index. The live UAT drove an extended polish loop (21 fix commits). The code review's two critical findings were fixed: hyphenated terms broke the body search, and direct-match subtasks were left without their parent. 9 advisory warnings remain in `92-REVIEW.md`.
 
 **v1.14 shipped 2026-08-13** — 7 phases (87-91.2, two inserted), 49 plans, 551 commits, 525 files changed (+68,011/−5,675 lines; `taskflow/src` alone 152 files, +21,865/−4,131). The Releases view became a working release-coordination surface: `ReleaseDetailPage.tsx` was first decomposed 1518 → 322 LOC into a 13-file `release-detail/` folder, then grew release-branch and GitLab-milestone existence detection with confirm-gated creation, three-channel MR discovery with drift flagging, per-MR retarget/assign-milestone corrective actions, and an advisory post-release merge-back verdict. Two inserted phases followed from live UAT: 91.1 collapsed the Issues and MR-Drift tables into one task-keyed table (reversing its own specified sub-line design after seeing it on real data), and 91.2 rebuilt `/epics` as a single-line portfolio row. 31/31 committed requirements satisfied; DRIFT-09 and MERGE-03 intentionally descoped by the user. Milestone audit `tech_debt`, 0 blockers. Run `release.sh` to cut the v1.14.x release.
 
@@ -393,4 +396,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-08-13 — after the v1.14 Release Management milestone*
+*Last updated: 2026-10-16 — after Phase 92 (Advanced Global Search)*
