@@ -24,7 +24,7 @@ import {
   RecentItemsSkeleton,
   type RecentRowModel,
   recentKeysToFetch,
-  recentMrIid,
+  recentMrMatches,
   resolveRecentIssue,
 } from './RecentItemRow';
 import { GROUP_DIVIDER_CLASS, startsGroup } from './SearchResultRow';
@@ -36,7 +36,7 @@ interface RecentItemsPopoverProps {
 
 function findGitLabMRInCache(
   queryClient: ReturnType<typeof useQueryClient>,
-  iid: string,
+  id: string,
 ): GitLabMR | undefined {
   const queries = queryClient.getQueriesData<{
     assigned: GitLabMR[];
@@ -44,8 +44,8 @@ function findGitLabMRInCache(
   }>({ queryKey: ['gitlab-mrs'] });
   for (const [, data] of queries) {
     const match =
-      data?.assigned?.find((mr) => String(mr.iid) === iid) ??
-      data?.reviewRequested?.find((mr) => String(mr.iid) === iid);
+      data?.assigned?.find((mr) => recentMrMatches(id, mr)) ??
+      data?.reviewRequested?.find((mr) => recentMrMatches(id, mr));
     if (match) return match;
   }
   return undefined;
@@ -66,9 +66,7 @@ function PopoverRecentRow({
 }) {
   const { item } = row;
   const isJira = item.type === 'jira';
-  const mrTitle = isJira
-    ? undefined
-    : findGitLabMRInCache(queryClient, recentMrIid(item.id))?.title;
+  const mrTitle = isJira ? undefined : findGitLabMRInCache(queryClient, item.id)?.title;
 
   function handleClick() {
     if (isJira) {

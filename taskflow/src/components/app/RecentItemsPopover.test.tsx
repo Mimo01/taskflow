@@ -172,6 +172,26 @@ describe('RecentItemsPopover', () => {
     expect(screen.getByText('Fix login')).toBeInTheDocument();
   });
 
+  it('resolves a recent MR title by project and iid, not iid alone (WR-08)', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['gitlab-mrs', 'assigned'], {
+      assigned: [
+        { iid: 12, project_id: 1, title: 'Login api' },
+        { iid: 12, project_id: 2, title: 'Login ui' },
+      ],
+      reviewRequested: [],
+    });
+    setStoreItems([{ type: 'gitlab', id: '2/12', title: 'Login ui', timestamp: Date.now() }]);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RecentItemsPopover />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
+    expect(await screen.findByText('Login ui')).toBeInTheDocument();
+    expect(screen.queryByText('Login api')).toBeNull();
+  });
+
   it('shows status and assignee for a recent issue outside the index (batch-fetched)', async () => {
     mockFetched.map = new Map([
       [

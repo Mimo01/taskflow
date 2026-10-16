@@ -19,7 +19,7 @@ import {
   RecentItemRow,
   RecentItemsSkeleton,
   recentKeysToFetch,
-  recentMrIid,
+  recentMrMatches,
   resolveRecentIssue,
 } from '@/components/app/RecentItemRow';
 import {
@@ -151,20 +151,19 @@ export default function CommandPalette({
   const cachedIssuesMap = new Map<string, JiraIssue>();
   for (const issue of cachedSprintBoard?.issues ?? []) cachedIssuesMap.set(issue.key, issue);
 
-  // Flatten MRs: merge assigned + reviewRequested from all gitlab-mrs cache entries, deduplicate by iid
+  // Flatten MRs: merge assigned + reviewRequested from all gitlab-mrs cache entries, deduplicate by
+  // project + iid (iids are only unique per project)
   const gitlabCacheEntries = queryClient.getQueriesData<{
     assigned: GitLabMR[];
     reviewRequested: GitLabMR[];
   }>({ queryKey: ['gitlab-mrs'] });
 
-  const mrsMap = new Map<number, GitLabMR>();
+  const mrsMap = new Map<string, GitLabMR>();
   for (const [, data] of gitlabCacheEntries) {
     if (!data) continue;
-    for (const mr of data.assigned ?? []) {
-      if (!mrsMap.has(mr.iid)) mrsMap.set(mr.iid, mr);
-    }
-    for (const mr of data.reviewRequested ?? []) {
-      if (!mrsMap.has(mr.iid)) mrsMap.set(mr.iid, mr);
+    for (const mr of [...(data.assigned ?? []), ...(data.reviewRequested ?? [])]) {
+      const id = `${mr.project_id}/${mr.iid}`;
+      if (!mrsMap.has(id)) mrsMap.set(id, mr);
     }
   }
   const allMRs = Array.from(mrsMap.values());
@@ -507,7 +506,7 @@ export default function CommandPalette({
                           issue={row.issue}
                           mrTitle={
                             item.type === 'gitlab'
-                              ? allMRs.find((mr) => String(mr.iid) === recentMrIid(item.id))?.title
+                              ? allMRs.find((mr) => recentMrMatches(item.id, mr))?.title
                               : undefined
                           }
                           dimmed={row.dimmed}
@@ -618,7 +617,7 @@ export default function CommandPalette({
                   <CommandGroup heading="Merge Requests">
                     {visibleMRs.map((mr) => (
                       <CommandItem
-                        key={mr.iid}
+                        key={`${mr.project_id}/${mr.iid}`}
                         value={`mr:${mr.project_id}/${mr.iid}`}
                         onSelect={() => handleMRSelect(mr)}
                         className="[&>svg:last-child]:hidden"

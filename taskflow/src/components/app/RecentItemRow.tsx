@@ -236,6 +236,14 @@ export function recentMrIid(id: string): string {
   return id.includes('/') ? (id.split('/').pop() ?? id) : id;
 }
 
+/**
+ * Does a recent MR id refer to this MR? iids are only unique per project, so composite
+ * "project_id/iid" ids must match both parts; legacy bare-iid ids can only match the iid.
+ */
+export function recentMrMatches(id: string, mr: { project_id: number; iid: number }): boolean {
+  return id.includes('/') ? id === `${mr.project_id}/${mr.iid}` : id === String(mr.iid);
+}
+
 export function RecentItemRow({
   item,
   entry,

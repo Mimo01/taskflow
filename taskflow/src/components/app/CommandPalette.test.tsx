@@ -840,6 +840,37 @@ describe('CommandPalette', () => {
       expect(h).not.toContain('Actions');
     });
 
+    it('keeps same-iid MRs from different projects apart (WR-08)', () => {
+      seedIndex();
+      const qc = makeQueryClient();
+      qc.setQueryData(['gitlab-mrs', 'assigned'], {
+        assigned: [
+          { iid: 12, project_id: 1, title: 'Login api' },
+          { iid: 12, project_id: 2, title: 'Login ui' },
+        ],
+        reviewRequested: [],
+      });
+      renderPalette({}, qc);
+      typeQuery('login');
+      expect(screen.getByText('Login api')).toBeInTheDocument();
+      expect(screen.getByText('Login ui')).toBeInTheDocument();
+    });
+
+    it('resolves a recent MR title by project and iid, not iid alone (WR-08)', () => {
+      const qc = makeQueryClient();
+      qc.setQueryData(['gitlab-mrs', 'assigned'], {
+        assigned: [
+          { iid: 12, project_id: 1, title: 'Login api' },
+          { iid: 12, project_id: 2, title: 'Login ui' },
+        ],
+        reviewRequested: [],
+      });
+      mockRecentItems = [{ type: 'gitlab', id: '2/12', title: 'Login ui', timestamp: Date.now() }];
+      renderPalette({}, qc);
+      expect(screen.getByText('Login ui')).toBeInTheDocument();
+      expect(screen.queryByText('Login api')).toBeNull();
+    });
+
     it('keeps matching Navigation and Actions items', () => {
       seedIndex();
       renderPalette();
