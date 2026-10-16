@@ -146,6 +146,7 @@ interface IssueSpec {
   summary: string;
   typeId?: string;
   done?: boolean;
+  parentKey?: string;
 }
 
 function ghIssue(s: IssueSpec) {
@@ -160,6 +161,7 @@ function ghIssue(s: IssueSpec) {
     statusId: s.done ? '3' : '1',
     fixVersions: [],
     projectId: 1,
+    parentKey: s.parentKey,
   };
 }
 
@@ -907,10 +909,31 @@ describe('CommandPalette', () => {
       renderPalette();
       typeQuery('18');
       expect(headings()).toContain('Direct match');
-      const direct = document.querySelector('[cmdk-item][data-value="TEST-18"]');
+      const direct = document.querySelector('[cmdk-item][data-value="direct:TEST-18"]');
       expect(direct).not.toBeNull();
       await new Promise((r) => setTimeout(r, 100));
       expect(fetchJiraIssueByKey).not.toHaveBeenCalled();
+    });
+
+    it('lets ArrowDown move past the Direct-match key kept as a context row (CR-01)', () => {
+      seedIndex([
+        ...BASE_ISSUES,
+        { id: 19, key: 'TEST-19', summary: 'Port 18 fix', parentKey: 'TEST-18' },
+      ]);
+      renderPalette();
+      typeQuery('18');
+      // Direct match TEST-18 also heads its matched subtask TEST-19 as a dimmed context row.
+      const input = screen.getByPlaceholderText(PLACEHOLDER);
+      const selectedCount = () =>
+        document.querySelectorAll('[cmdk-item][aria-selected="true"]').length;
+      expect(selectedCount()).toBe(1);
+      const seen: Array<string | null | undefined> = [];
+      for (let i = 0; i < 2; i++) {
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        expect(selectedCount()).toBe(1);
+        seen.push(selectedKey());
+      }
+      expect(seen).toContain('TEST-19');
     });
   });
 

@@ -378,12 +378,14 @@ export default function CommandPalette({
     !isIndexError;
   const hasClosedSection = sections.some((sec) => sec.tier.id === 'closed');
 
-  function renderIssueRow(row: ResultRow, itemKey: string, divider = false) {
+  // cmdk selects by value, so every row needs a unique one: the pinned Direct-match row gets a
+  // prefixed value because its key can also appear below as a dimmed group-context row.
+  function renderIssueRow(row: ResultRow, itemKey: string, divider = false, value = row.entry.key) {
     const e = row.entry;
     return (
       <CommandItem
         key={itemKey}
-        value={e.key}
+        value={value}
         onSelect={() => handleIssueSelect(e.key)}
         className={cn('[&>svg:last-child]:hidden', divider && GROUP_DIVIDER_CLASS)}
       >
@@ -534,6 +536,8 @@ export default function CommandPalette({
                         indent: false,
                       },
                       `direct-${directEntry.key}`,
+                      false,
+                      `direct:${directEntry.key}`,
                     )}
                   </CommandGroup>
                 ) : (
