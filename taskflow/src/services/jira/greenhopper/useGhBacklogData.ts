@@ -63,9 +63,11 @@ export function useGhBacklogData(
   },
 ): UseQueryResult<GhBacklogResponse> {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
-  const [token, setToken] = useState<string | null>(null);
+  const [secret, setSecret] = useState<{ baseUrl: string | null; token: string | null }>({
+    baseUrl: null,
+    token: null,
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: jiraBaseUrl is an intentional re-run trigger (WR-05) — the effect re-reads the secret on instance switch even though the body doesn't reference it.
   useEffect(() => {
     // WR-05 (Phase 71/73 carry-forward): re-read the secret whenever the
     // Jira instance changes (login rotation, instance switch). Empty deps
@@ -73,15 +75,18 @@ export function useGhBacklogData(
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
-        if (!cancelled) setToken(t);
+        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: t });
       })
       .catch(() => {
-        if (!cancelled) setToken(null);
+        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: null });
       });
     return () => {
       cancelled = true;
     };
   }, [jiraBaseUrl]);
+  // WR-06: only trust a PAT read for the current instance — on the render where jiraBaseUrl
+  // switches, the previous instance's token must not be sent to the new host.
+  const token = secret.baseUrl === jiraBaseUrl ? secret.token : null;
 
   const isActive = useIsActiveRoute('/backlog');
 

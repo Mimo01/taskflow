@@ -6,7 +6,7 @@
  * a recents list is open; 5-minute staleTime like the search index (D-21).
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { fetchIssuesByKeys, type JiraIssue } from '../services/jira';
 import { readSecret } from '../services/stronghold';
@@ -28,33 +28,14 @@ export interface RecentIssuesData {
 export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenRead, setTokenRead] = useState(false);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: jiraBaseUrl is an intentional re-run trigger — re-read the secret on instance switch.
-  useEffect(() => {
-    let cancelled = false;
-    readSecret('jira-pat')
-      .then((t) => {
-        if (!cancelled) setToken(t);
-      })
-      .catch(() => {
-        if (!cancelled) setToken(null);
-      })
-      .finally(() => {
-        if (!cancelled) setTokenRead(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [jiraBaseUrl]);
-
   const sortedKeys = useMemo(() => [...new Set(keys)].sort(), [keys]);
   const query = useQuery({
     queryKey: ['recent-issues', jiraBaseUrl, epicLinkFieldKey, sortedKeys],
+    // Read the PAT inside the fetch (WR-06): a token held in state could still belong to
+    // the previous instance on the render where jiraBaseUrl switches.
     queryFn: async () => {
       const base = jiraBaseUrl ?? '';
-      const tok = token ?? '';
+      const tok = await readSecret('jira-pat');
       const issues = await fetchIssuesByKeys(base, tok, sortedKeys, [epicLinkFieldKey]);
       const epicKeys = [
         ...new Set(
@@ -66,7 +47,7 @@ export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData
       const epics = epicKeys.length > 0 ? await fetchIssuesByKeys(base, tok, epicKeys) : [];
       return { issues, epics };
     },
-    enabled: open && !!jiraBaseUrl && !!token && sortedKeys.length > 0,
+    enabled: open && !!jiraBaseUrl && sortedKeys.length > 0,
     staleTime: RECENT_ISSUES_STALE_MS,
     refetchOnWindowFocus: false,
     retry: false,
@@ -75,7 +56,7 @@ export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData
   });
 
   const wanted = open && !!jiraBaseUrl && sortedKeys.length > 0;
-  const isLoading = wanted && (!tokenRead || (!!token && query.isPending));
+  const isLoading = wanted && query.isPending;
 
   return useMemo(() => {
     const issues = new Map<string, JiraIssue>();

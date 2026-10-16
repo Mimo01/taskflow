@@ -115,4 +115,26 @@ describe('useGlobalSearchSources', () => {
     });
     expect(fetchBacklogData).not.toHaveBeenCalled();
   });
+
+  it('never pairs the previous instance PAT with a new Jira host (WR-06)', async () => {
+    const B = 'https://jira-b.example.com';
+    let current = 'tok-a';
+    vi.mocked(readSecret).mockImplementation(async () => current);
+    vi.mocked(useBoardId).mockImplementation(
+      (base) => ({ boardId: base === B ? 8 : 7, isLoading: false }) as never,
+    );
+    const qc = newClient();
+    renderHook(() => useGlobalSearchSources(true), { wrapper: makeWrapper(qc) });
+    await waitFor(() => expect(fetchBacklogData).toHaveBeenCalledWith(BASE, 'tok-a', 7));
+
+    current = 'tok-b';
+    await act(async () => {
+      useAuthStore.setState({ jiraBaseUrl: B });
+    });
+    await waitFor(() => expect(fetchBacklogData).toHaveBeenCalledWith(B, 'tok-b', 8));
+    const boardCalls = vi.mocked(useBoardId).mock.calls.filter(([base]) => base === B);
+    expect(boardCalls.every(([, tok]) => tok === null || tok === 'tok-b')).toBe(true);
+    const backlogCalls = vi.mocked(fetchBacklogData).mock.calls.filter(([base]) => base === B);
+    expect(backlogCalls.every(([, tok]) => tok === 'tok-b')).toBe(true);
+  });
 });
