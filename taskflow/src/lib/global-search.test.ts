@@ -547,3 +547,39 @@ describe('secondary', () => {
     expect(matchesSecondary('zzz', 'Dashboard')).toBe(false);
   });
 });
+
+describe('epics', () => {
+  it('puts open epics from the backlog in their own Epics section after Backlog', () => {
+    const index = buildSearchIndex(
+      makeBacklog({
+        issues: [
+          { id: 1, key: 'P-1', summary: 'Payments story' },
+          { id: 2, key: 'P-2', summary: 'Payments epic', typeId: '2' },
+        ],
+      }),
+    );
+    const sections = model(index, 'payments');
+    expect(sections.map((s) => [s.tier.label, s.rows.map((r) => r.entry.key)])).toEqual([
+      ['Backlog', ['P-1']],
+      ['Epics', ['P-2']],
+    ]);
+  });
+
+  it('keeps done epics in Closed', () => {
+    const index = buildSearchIndex(
+      makeBacklog({
+        issues: [{ id: 2, key: 'P-2', summary: 'Old epic', typeId: '2', done: true }],
+      }),
+    );
+    expect(model(index, 'old epic')).toEqual([]);
+    expect(model(index, 'old epic', { includeClosed: true })[0].tier.label).toBe('Closed');
+  });
+
+  it('puts an open epic found only by the Jira search in Epics', () => {
+    const index = buildSearchIndex(makeBacklog({ issues: [] }));
+    const epic = jira('P-7', 'Loyalty programme');
+    (epic.fields as unknown as { issuetype: unknown }).issuetype = { name: 'Epic', subtask: false };
+    const sections = model(index, 'loyalty', { bodyIssues: [epic] });
+    expect(sections.map((s) => s.tier.label)).toEqual(['Epics']);
+  });
+});
