@@ -32,7 +32,8 @@ function normalizeRanges(ranges: ReadonlyArray<Range>, length: number): Array<[n
 }
 
 /**
- * Renders text with matched ranges wrapped in React <mark> elements (underline only).
+ * Renders text with matched ranges wrapped in React <mark> elements (soft amber background,
+ * full-strength text) so the match stands out in muted snippets too.
  * Never uses innerHTML: Jira text is user-controlled (T-92-02).
  */
 export function HighlightedText({ text, ranges, className }: HighlightedTextProps) {
@@ -44,7 +45,7 @@ export function HighlightedText({ text, ranges, className }: HighlightedTextProp
     nodes.push(
       <mark
         key={start}
-        className="bg-transparent text-inherit underline decoration-primary/60 underline-offset-2"
+        className="rounded-[3px] bg-amber-200/80 px-px font-medium text-foreground box-decoration-clone dark:bg-amber-400/25 dark:text-amber-50"
       >
         {text.slice(start, end)}
       </mark>,

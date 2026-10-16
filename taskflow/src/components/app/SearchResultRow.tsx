@@ -174,12 +174,12 @@ export function SearchResultRow({
             role="img"
             aria-label={MATCH_LABEL[matchTag]}
             title={MATCH_LABEL[matchTag]}
-            className="mt-px inline-flex shrink-0"
+            className="mt-0.5 inline-flex shrink-0 text-muted-foreground/70"
           >
             {matchTag === 'desc' ? (
-              <FileText className="size-3.5" />
+              <FileText className="size-3" />
             ) : (
-              <MessageSquare className="size-3.5" />
+              <MessageSquare className="size-3" />
             )}
           </span>
           {snippet ? (

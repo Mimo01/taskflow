@@ -127,3 +127,19 @@ describe('buildSnippet lead-in', () => {
     expect(idx === 0 || text[idx - 1] === ' ').toBe(true);
   });
 });
+
+describe('buildSnippet sentence start', () => {
+  it('opens at the start of the sentence containing the match, without a leading ellipsis', () => {
+    const text =
+      'First sentence about totals. Then the cart is empty after login and more text follows.';
+    const snip = buildSnippet(text, 'cart empty', 160, 40);
+    expect(snip?.text.startsWith('Then the cart is empty')).toBe(true);
+  });
+
+  it('starts from the beginning when the text start is just beyond the lead-in window', () => {
+    const text = 'Confirmed on staging after yesterday deploy: cart is empty but totals stay.';
+    expect(buildSnippet(text, 'cart empty', 160, 40)?.text.startsWith('Confirmed on staging')).toBe(
+      true,
+    );
+  });
+});
