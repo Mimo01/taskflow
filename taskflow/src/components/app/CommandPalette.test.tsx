@@ -951,6 +951,17 @@ describe('CommandPalette', () => {
       expect(screen.getByTitle('TEST-100: Checkout epic')).toBeInTheDocument();
     });
 
+    it('scopes the key lookup to the Jira instance and does not retry it (IN-08)', async () => {
+      seedIndex();
+      const qc = makeQueryClient();
+      renderPalette({}, qc);
+      typeQuery('TEST-999');
+      await waitFor(() => expect(fetchIssuesByKeys).toHaveBeenCalledTimes(1));
+      const [q] = qc.getQueryCache().findAll({ queryKey: ['search', 'key', 'https://jira.test'] });
+      expect(q).toBeDefined();
+      expect(q.options.retry).toBe(false);
+    });
+
     it('resolves a bare number to the active project key from the index', async () => {
       seedIndex();
       renderPalette();
