@@ -1,9 +1,9 @@
-import { Clock } from 'lucide-react';
+import { Clock, FileText, MessageSquare } from 'lucide-react';
 import type React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { epicColorToTailwind } from '@/lib/epicColors';
-import { statusPillClass } from '@/lib/statusStyles';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { HighlightedText } from './HighlightedText';
 
@@ -35,6 +35,8 @@ export interface SearchResultRowProps {
   /** When omitted the key renders as plain text (e.g. inside a parent <button>). */
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
 }
+
+const MATCH_LABEL = { desc: 'Matched in description', comment: 'Matched in a comment' } as const;
 
 /** Key cell: min width so titles line up across rows with different key lengths. */
 const KEY_CLASS = 'min-w-[4.5rem] shrink-0 text-left font-mono text-xs text-muted-foreground';
@@ -109,11 +111,18 @@ export function SearchResultRow({
           className="truncate text-sm min-w-0 flex-[0_1_auto]"
         />
         {matchTag && (
+          // Compact icon label (description / comment); the tooltip carries the matched text.
           <span
-            title={`Matched in ${matchTag === 'desc' ? 'description' : 'comment'}${snippet ? `: ${snippet.text}` : ''}`}
-            className="shrink-0 rounded border border-border bg-muted px-1 text-[0.6875rem] leading-4 font-medium text-muted-foreground"
+            role="img"
+            aria-label={MATCH_LABEL[matchTag]}
+            title={`${MATCH_LABEL[matchTag]}${snippet ? `: ${snippet.text}` : ''}`}
+            className="inline-flex shrink-0 text-muted-foreground"
           >
-            {matchTag}
+            {matchTag === 'desc' ? (
+              <FileText className="size-3.5" />
+            ) : (
+              <MessageSquare className="size-3.5" />
+            )}
           </span>
         )}
         {snippet ? (
@@ -128,7 +137,7 @@ export function SearchResultRow({
         {epic && epicColor && (
           <span
             className={cn(
-              'hidden @[560px]:inline-flex min-w-14 flex-[0_100_auto] items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
+              'hidden @[560px]:inline-flex min-w-14 max-w-28 flex-[0_100_auto] items-center overflow-hidden rounded border px-1 py-0.5 text-xs leading-4 font-medium',
               epicColor.className,
             )}
             style={epicColor.style}
@@ -138,9 +147,17 @@ export function SearchResultRow({
           </span>
         )}
         {statusName && (
-          <div className="flex shrink-0">
-            <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
-          </div>
+          // Compact pill (status colour only): short statuses share one width so they align,
+          // long ones grow up to max-w-28 instead of truncating.
+          <span
+            title={statusName}
+            className={cn(
+              'inline-flex min-w-[4.75rem] max-w-28 shrink-0 justify-center rounded px-1.5 py-0.5 text-xs leading-4 font-medium',
+              statusCategoryBadgeClass(statusCategoryKey),
+            )}
+          >
+            <span className="truncate">{statusName}</span>
+          </span>
         )}
         {assigneeName === undefined ? (
           <span className="flex-none w-5" aria-hidden="true" />
