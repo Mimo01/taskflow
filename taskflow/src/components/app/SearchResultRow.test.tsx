@@ -111,17 +111,17 @@ describe('context header', () => {
     expect(screen.getByTitle('Jane Doe')).toBeInTheDocument();
   });
 
-  it('subtask rows keep the strict column grid (no row shift, no extra arrow glyph)', () => {
+  it('subtask rows indent one fixed step (no extra arrow glyph)', () => {
     const { container } = render(<SearchResultRow {...props({ indent: true })} />);
     expect(screen.queryByText('↳')).toBeNull();
-    const row = container.querySelector('[data-indent]');
-    expect(row).not.toBeNull();
-    expect(row?.className).not.toMatch(/\bpl-/);
+    expect(container.querySelector('[data-indent]')).not.toBeNull();
+    expect((container.firstChild as HTMLElement).className).toContain('pl-3');
   });
 
   it('is not indented or dimmed by default', () => {
     const { container } = render(<SearchResultRow {...props()} />);
     expect(container.querySelector('[data-indent]')).toBeNull();
+    expect((container.firstChild as HTMLElement).className).not.toContain('pl-3');
     expect(container.querySelector('.opacity-40')).toBeNull();
   });
 });

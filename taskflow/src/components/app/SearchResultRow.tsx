@@ -40,9 +40,10 @@ export interface SearchResultRowProps {
 const MATCH_LABEL = { desc: 'Matched in description', comment: 'Matched in a comment' } as const;
 
 /**
- * Strict row grid: [icon 14px] gap 8 [key column] gap 8 [title …] … [status] [avatar].
- * Subtasks use the same columns (no row shift — variable key lengths would break the
- * alignment); nesting is shown by the subtask type icon (↳) under its dimmed parent.
+ * Row grid: [icon 14px] gap 8 [key column] gap 8 [title …] … [status] [avatar].
+ * Subtasks indent the whole row (both lines) by one fixed step (pl-3), so every subtask
+ * sits at the same level; right-hand cells stay aligned. The match line starts under the
+ * key column of its own row.
  */
 const KEY_CLASS =
   'min-w-[4.25rem] shrink-0 text-left font-mono text-[0.6875rem] text-muted-foreground';
@@ -84,7 +85,7 @@ export function SearchResultRow({
   // Done issues show a struck-through key, like TaskCard / StoryHeaderRow.
   const done = isDoneStatus(statusCategoryKey ? { key: statusCategoryKey } : null);
   return (
-    <div className="@container w-full min-w-0">
+    <div className={cn('@container w-full min-w-0', indent && 'pl-3')}>
       {/* Line 1 is a fixed 18px (= avatar / status pill height) on every row. */}
       <div
         data-indent={indent || undefined}
@@ -168,7 +169,7 @@ export function SearchResultRow({
         // two lines of highlighted context, so you can see what actually matched.
         <div
           data-match-line
-          className="mt-0.5 flex min-w-0 items-start gap-1.5 pl-[calc(0.875rem+0.5rem+4.25rem+0.5rem)] text-xs leading-4 text-muted-foreground"
+          className="mt-0.5 flex min-w-0 items-start gap-1.5 pl-[1.375rem] text-xs leading-4 text-muted-foreground"
         >
           <span
             role="img"
