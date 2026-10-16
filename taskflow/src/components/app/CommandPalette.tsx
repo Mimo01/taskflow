@@ -365,7 +365,13 @@ export default function CommandPalette({
   const keyFetching = keyQuery.isFetching;
   const bodyFetching = bodyQuery.isFetching;
   const closedFetching = includeClosed && closedQuery.isFetching;
-  const anyFetching = bodyFetching || closedFetching || keyFetching;
+  // The 300 ms debounce gap: the body search for this query will run but has not started yet.
+  const bodyPending =
+    debouncedQuery !== trimmed &&
+    (!isKeyLikeQuery(trimmed) || keyMiss) &&
+    !!jiraBaseUrl &&
+    !!activeJiraProject;
+  const anyFetching = bodyFetching || closedFetching || keyFetching || bodyPending;
   const hasIssueRows = sections.some((sec) => sec.rows.length > 0);
   const closedError = includeClosed && closedQuery.isError;
   const showEmpty =
