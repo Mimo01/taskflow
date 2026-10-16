@@ -21,6 +21,7 @@ import {
   buildSnippet,
   compareTextMatch,
   type HighlightRange,
+  KIND_RANK,
   matchText,
   runsFromIndexes,
   stripWikiMarkup,
@@ -355,8 +356,6 @@ interface Group {
   parentHit: Hit | null;
   children: Hit[];
 }
-
-const KIND_RANK = { exact: 0, 'word-start': 1, fuzzy: 2 } as const;
 
 function compareHits(a: Hit, b: Hit): number {
   if (a.field !== b.field) return a.field - b.field;

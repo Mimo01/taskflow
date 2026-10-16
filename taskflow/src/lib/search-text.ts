@@ -102,7 +102,8 @@ export function matchText(
   };
 }
 
-const KIND_RANK = { exact: 0, 'word-start': 1, fuzzy: 2 } as const;
+/** Match-kind order shared by every ranking comparison (lower ranks higher). */
+export const KIND_RANK = { exact: 0, 'word-start': 1, fuzzy: 2 } as const;
 
 /** Negative when `a` ranks higher than `b`. */
 export function compareTextMatch(a: TextMatch, b: TextMatch): number {
