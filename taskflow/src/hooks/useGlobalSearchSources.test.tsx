@@ -59,13 +59,42 @@ describe('useGlobalSearchSources', () => {
     expect(result.current.isIndexError).toBe(false);
   });
 
-  it('is not loading forever when the active project has no board', () => {
+  it('is not loading forever when the active project has no board', async () => {
     vi.mocked(useBoardId).mockReturnValue({ boardId: null, isLoading: false } as never);
     const qc = newClient();
     const { result } = renderHook(() => useGlobalSearchSources(true), { wrapper: makeWrapper(qc) });
     // The backlog query is disabled (isPending stays true) — must not read as loading.
-    expect(result.current.isIndexLoading).toBe(false);
+    await waitFor(() => expect(result.current.isIndexLoading).toBe(false));
     expect(fetchBacklogData).not.toHaveBeenCalled();
+  });
+
+  it('reports an index error instead of loading forever when the PAT cannot be read (WR-06)', async () => {
+    vi.mocked(readSecret).mockRejectedValue(new Error('no secret'));
+    // A stored board id: useBoardId returns it without needing a token.
+    vi.mocked(useBoardId).mockReturnValue({ boardId: 7, isLoading: false } as never);
+    const qc = newClient();
+    const { result } = renderHook(() => useGlobalSearchSources(true), { wrapper: makeWrapper(qc) });
+    await waitFor(() => expect(result.current.isIndexLoading).toBe(false));
+    expect(result.current.isIndexError).toBe(true);
+    expect(fetchBacklogData).not.toHaveBeenCalled();
+  });
+
+  it('counts the index as loading while the PAT is still being read (WR-06)', async () => {
+    let resolve!: (t: string) => void;
+    vi.mocked(readSecret).mockReturnValue(new Promise<string>((r) => (resolve = r)));
+    // No stored board id: discovery is disabled until a token exists.
+    vi.mocked(useBoardId).mockImplementation(
+      (_base, tok) => ({ boardId: tok ? 7 : null, isLoading: false }) as never,
+    );
+    const qc = newClient();
+    const { result } = renderHook(() => useGlobalSearchSources(true), { wrapper: makeWrapper(qc) });
+    expect(result.current.isIndexLoading).toBe(true);
+    expect(result.current.isIndexError).toBe(false);
+    await act(async () => {
+      resolve('tok');
+    });
+    await waitFor(() => expect(result.current.backlog).toBe(BACKLOG));
+    expect(result.current.isIndexLoading).toBe(false);
   });
 
   it('does not fetch when closed', async () => {
