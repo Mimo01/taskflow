@@ -133,3 +133,26 @@ describe('group divider', () => {
     expect(GROUP_DIVIDER_CLASS).toContain('before:absolute');
   });
 });
+
+describe('body match', () => {
+  it('labels the match with a tag whose tooltip carries the snippet', () => {
+    render(
+      <SearchResultRow
+        {...props({ matchTag: 'desc', snippet: { text: '…the cart is empty', ranges: [[5, 9]] } })}
+      />,
+    );
+    expect(screen.getByText('desc').getAttribute('title')).toBe(
+      'Matched in description: …the cart is empty',
+    );
+  });
+
+  it('gives the title shrink priority over the snippet (snippet fills leftover space)', () => {
+    render(
+      <SearchResultRow
+        {...props({ matchTag: 'comment', snippet: { text: 'snippet text', ranges: [] } })}
+      />,
+    );
+    expect(screen.getByText('Fix the cart bug').className).toContain('flex-[0_1_auto]');
+    expect(screen.getByText('snippet text').className).toContain('flex-[1_1_0%]');
+  });
+});

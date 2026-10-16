@@ -299,7 +299,8 @@ export function classifyBodyHit(
   const raw = issue.fields?.description;
   const text = stripWikiMarkup(typeof raw === 'string' ? raw : '');
   if (text && matchText(query, text, { fuzzy: false })) {
-    return { field: 1, snippet: buildSnippet(text, query) };
+    // Short lead-in so the matched words sit at the start of the (truncating) snippet.
+    return { field: 1, snippet: buildSnippet(text, query, 64, 16) };
   }
   return { field: 2, snippet: null };
 }

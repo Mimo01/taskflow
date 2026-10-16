@@ -126,6 +126,8 @@ export function buildSnippet(
   text: string,
   query: string,
   radius = 48,
+  /** Context kept before the match; smaller keeps the match visible when the row truncates the snippet. */
+  before = radius,
 ): { text: string; ranges: HighlightRange[] } | null {
   const tokens = tokenize(query);
   if (tokens.length === 0) return null;
@@ -145,7 +147,12 @@ export function buildSnippet(
   }
   if (pos === -1) return null;
 
-  const start = Math.max(0, pos - radius);
+  let start = Math.max(0, pos - before);
+  // Don't open the snippet mid-word: skip forward to the next word start (never past the match).
+  if (start > 0 && /\S/.test(flat[start - 1] ?? '')) {
+    const space = flat.indexOf(' ', start);
+    if (space !== -1 && space < pos) start = space + 1;
+  }
   const end = Math.min(flat.length, pos + len + radius);
   const prefix = start > 0 ? '…' : '';
   const suffix = end < flat.length ? '…' : '';

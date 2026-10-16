@@ -100,32 +100,35 @@ export function SearchResultRow({
         ) : (
           <span className={KEY_CLASS}>{keyLabel ?? issueKey}</span>
         )}
+        {/* The title has priority: the snippet starts at basis 0 and only fills leftover
+            space, so it can never squeeze the title. When space runs out the epic badge
+            gives way before the title. The tag stays so a body match is always labelled. */}
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
-          className="truncate text-sm min-w-0 flex-[0_100_auto]"
+          className="truncate text-sm min-w-0 flex-[0_1_auto]"
         />
-        {(snippet || matchTag) && (
-          <span className="hidden @[560px]:flex min-w-24 flex-[0_1_auto] items-center gap-1">
-            {snippet && (
-              <HighlightedText
-                text={snippet.text}
-                ranges={snippet.ranges}
-                className="truncate text-xs text-muted-foreground"
-              />
-            )}
-            {matchTag && (
-              <span className="shrink-0 rounded border border-border bg-muted px-1 py-0 text-xs font-medium text-muted-foreground">
-                {matchTag}
-              </span>
-            )}
+        {matchTag && (
+          <span
+            title={`Matched in ${matchTag === 'desc' ? 'description' : 'comment'}${snippet ? `: ${snippet.text}` : ''}`}
+            className="shrink-0 rounded border border-border bg-muted px-1 text-[0.6875rem] leading-4 font-medium text-muted-foreground"
+          >
+            {matchTag}
           </span>
         )}
-        <span className="flex-1" />
+        {snippet ? (
+          <HighlightedText
+            text={snippet.text}
+            ranges={snippet.ranges}
+            className="hidden @[560px]:block min-w-0 flex-[1_1_0%] truncate text-xs text-muted-foreground"
+          />
+        ) : null}
+        {/* Spacer; a visible snippet already fills the free space. */}
+        <span className={cn('flex-1', snippet && '@[560px]:hidden')} />
         {epic && epicColor && (
           <span
             className={cn(
-              'hidden @[560px]:inline-flex min-w-14 shrink items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
+              'hidden @[560px]:inline-flex min-w-14 flex-[0_100_auto] items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
               epicColor.className,
             )}
             style={epicColor.style}
