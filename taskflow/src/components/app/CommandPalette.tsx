@@ -17,6 +17,7 @@ import {
   buildRecentRows,
   findJiraIssueInCache,
   RecentItemRow,
+  RecentItemsSkeleton,
   recentKeysToFetch,
   recentMrIid,
   resolveRecentIssue,
@@ -120,10 +121,7 @@ export default function CommandPalette({
   const resolvedKeyLookup = resolveKeyLookup(trimmed, activeJiraProject);
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const recentItems = useRecentItemsStore((s) => s.items);
-  const recentFetchKeys = useMemo(
-    () => recentKeysToFetch(recentItems, (key) => !!findIndexEntry(index, key)),
-    [recentItems, index],
-  );
+  const recentFetchKeys = useMemo(() => recentKeysToFetch(recentItems), [recentItems]);
   const recentFetched = useRecentIssues(open, recentFetchKeys);
 
   // KEYS migration: all keyboard shortcuts use react-hotkeys-hook (no raw window listeners)
@@ -473,6 +471,9 @@ export default function CommandPalette({
               <CommandGroup heading="Recent Items">
                 {recentItems.length === 0 ? (
                   <CommandItem disabled>No recent items</CommandItem>
+                ) : isIndexLoading || recentFetched.isLoading ? (
+                  // Render once, complete: placeholders until index + enrichment settle.
+                  <RecentItemsSkeleton count={recentItems.length} className="px-2" />
                 ) : (
                   buildRecentRows(recentItems, (key) =>
                     resolveRecentIssue(

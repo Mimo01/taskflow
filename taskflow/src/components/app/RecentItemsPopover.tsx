@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
 import { useRecentIssues } from '@/hooks/useRecentIssues';
-import { buildSearchIndex, findIndexEntry } from '@/lib/global-search';
+import { buildSearchIndex } from '@/lib/global-search';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
@@ -21,6 +21,7 @@ import {
   buildRecentRows,
   findJiraIssueInCache,
   RecentItemRow,
+  RecentItemsSkeleton,
   type RecentRowModel,
   recentKeysToFetch,
   recentMrIid,
@@ -103,13 +104,12 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
   const { items } = useRecentItemsStore();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const { backlog, allData } = useGlobalSearchSources(open);
+  const { backlog, allData, isIndexLoading } = useGlobalSearchSources(open);
   const index = useMemo(() => buildSearchIndex(backlog, allData), [backlog, allData]);
-  const fetchKeys = useMemo(
-    () => recentKeysToFetch(items, (key) => !!findIndexEntry(index, key)),
-    [items, index],
-  );
+  const fetchKeys = useMemo(() => recentKeysToFetch(items), [items]);
   const fetched = useRecentIssues(open, fetchKeys);
+  // Render the list once, complete: placeholders until index + enrichment settle.
+  const loading = isIndexLoading || fetched.isLoading;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -132,6 +132,8 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
               <div className="p-6 text-center text-sm text-muted-foreground">
                 No recent items yet
               </div>
+            ) : loading ? (
+              <RecentItemsSkeleton count={items.length} className="px-3" />
             ) : (
               buildRecentRows(items, (key) =>
                 resolveRecentIssue(key, index, fetched, (k) =>

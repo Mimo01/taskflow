@@ -56,6 +56,15 @@ const mockSources = vi.hoisted(() => ({
   isIndexLoading: false,
   isIndexError: false,
 }));
+const mockRecentIssues = vi.hoisted(() => ({
+  issues: new Map(),
+  epicNames: new Map(),
+  epicLinkFieldKey: 'customfield_10014',
+  isLoading: false,
+}));
+vi.mock('@/hooks/useRecentIssues', () => ({
+  useRecentIssues: vi.fn(() => mockRecentIssues),
+}));
 vi.mock('@/hooks/useGlobalSearchSources', () => ({
   useGlobalSearchSources: vi.fn(() => mockSources),
 }));
@@ -274,6 +283,7 @@ describe('CommandPalette', () => {
     mockSources.allData = undefined;
     mockSources.isIndexLoading = false;
     mockSources.isIndexError = false;
+    mockRecentIssues.isLoading = false;
     vi.mocked(searchJiraBody).mockResolvedValue([]);
     vi.mocked(fetchJiraIssueByKey).mockResolvedValue(null);
   });
@@ -332,6 +342,14 @@ describe('CommandPalette', () => {
     renderPalette();
     expect(screen.getByText(/TEST-42/)).toBeInTheDocument();
     expect(screen.getByText(/!99/)).toBeInTheDocument();
+  });
+
+  it('shows placeholder rows instead of partial recents while data loads (no flash)', () => {
+    mockRecentItems = [{ type: 'jira', id: 'TEST-7', title: 'Fix crash', timestamp: Date.now() }];
+    mockRecentIssues.isLoading = true;
+    renderPalette();
+    expect(screen.getByTestId('recent-items-skeleton')).toBeInTheDocument();
+    expect(screen.queryByText('Fix crash')).toBeNull();
   });
 
   // Recent Items icon resolution: cache first, persisted issueType second, Clock fallback last

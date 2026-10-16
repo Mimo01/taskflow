@@ -5,7 +5,7 @@
  * fetched issues are fetched in the same queryFn (name = epic summary). Only runs while
  * a recents list is open; 5-minute staleTime like the search index (D-21).
  */
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
 import { fetchIssuesByKeys, type JiraIssue } from '../services/jira';
@@ -21,12 +21,15 @@ export interface RecentIssuesData {
   /** Epic key -> summary for epics referenced by the fetched issues. */
   epicNames: Map<string, string>;
   epicLinkFieldKey: string;
+  /** True until the first fetch for an open list settles (render once, no flash). */
+  isLoading: boolean;
 }
 
 export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
   const [token, setToken] = useState<string | null>(null);
+  const [tokenRead, setTokenRead] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: jiraBaseUrl is an intentional re-run trigger — re-read the secret on instance switch.
   useEffect(() => {
@@ -37,6 +40,9 @@ export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData
       })
       .catch(() => {
         if (!cancelled) setToken(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTokenRead(true);
       });
     return () => {
       cancelled = true;
@@ -64,13 +70,18 @@ export function useRecentIssues(open: boolean, keys: string[]): RecentIssuesData
     staleTime: RECENT_ISSUES_STALE_MS,
     refetchOnWindowFocus: false,
     retry: false,
+    // Keep showing the previous result while a changed key set refetches (no blink).
+    placeholderData: keepPreviousData,
   });
+
+  const wanted = open && !!jiraBaseUrl && sortedKeys.length > 0;
+  const isLoading = wanted && (!tokenRead || (!!token && query.isPending));
 
   return useMemo(() => {
     const issues = new Map<string, JiraIssue>();
     for (const issue of query.data?.issues ?? []) issues.set(issue.key, issue);
     const epicNames = new Map<string, string>();
     for (const e of query.data?.epics ?? []) epicNames.set(e.key, e.fields?.summary ?? e.key);
-    return { issues, epicNames, epicLinkFieldKey };
-  }, [query.data, epicLinkFieldKey]);
+    return { issues, epicNames, epicLinkFieldKey, isLoading };
+  }, [query.data, epicLinkFieldKey, isLoading]);
 }

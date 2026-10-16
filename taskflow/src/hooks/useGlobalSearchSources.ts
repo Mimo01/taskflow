@@ -62,7 +62,12 @@ export function useGlobalSearchSources(open: boolean): {
     boardId,
     backlog: backlogQuery.data,
     allData: allDataQuery.data,
-    isIndexLoading: open && !backlogQuery.data && (boardIdLoading || backlogQuery.isPending),
+    // A disabled query (no board for the active project) stays `isPending` forever in
+    // TanStack v5 — only count it as loading when there is a board to load.
+    isIndexLoading:
+      open &&
+      !backlogQuery.data &&
+      (boardIdLoading || (boardId !== null && backlogQuery.isPending)),
     isIndexError: backlogQuery.isError,
   };
 }

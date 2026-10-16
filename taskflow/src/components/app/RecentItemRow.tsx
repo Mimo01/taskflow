@@ -15,6 +15,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { GitMerge } from 'lucide-react';
 import type React from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { RecentIssuesData } from '@/hooks/useRecentIssues';
 import {
   entryFromJiraIssue,
@@ -22,6 +23,7 @@ import {
   type SearchEntry,
   type SearchIndex,
 } from '@/lib/global-search';
+import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import type { RecentItem } from '@/stores/recent-items.store';
 import { SearchResultRow } from './SearchResultRow';
@@ -196,20 +198,37 @@ export function resolveRecentIssue(
 }
 
 /**
- * Recent Jira keys (and persisted subtask parents) the search index does not cover —
- * fetched in one batch so every history row has status, assignee and type.
+ * Every recent Jira key plus persisted subtask parents, fetched in one batch. Deliberately
+ * independent of the search index: a key set that changed when the index loaded would
+ * restart the query and make rows blink back to their persisted titles.
  */
-export function recentKeysToFetch(
-  items: RecentItem[],
-  hasEntry: (issueKey: string) => boolean,
-): string[] {
+export function recentKeysToFetch(items: RecentItem[]): string[] {
   const keys = new Set<string>();
   for (const item of items) {
     if (item.type !== 'jira') continue;
-    if (!hasEntry(item.id)) keys.add(item.id);
-    if (item.parentKey && !hasEntry(item.parentKey)) keys.add(item.parentKey);
+    keys.add(item.id);
+    if (item.parentKey) keys.add(item.parentKey);
   }
   return [...keys];
+}
+
+/** Placeholder rows at the final row height, shown until recents data is ready (no flash). */
+export function RecentItemsSkeleton({ count, className }: { count: number; className?: string }) {
+  return (
+    <div aria-hidden="true" data-testid="recent-items-skeleton">
+      {Array.from({ length: Math.max(1, count) }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+        <div key={i} className={cn('flex h-7 items-center gap-2', className)}>
+          <Skeleton className="size-3.5 shrink-0 rounded-sm" />
+          <Skeleton className="h-3 w-[4.25rem] shrink-0" />
+          <Skeleton className="h-3 max-w-64 flex-1" />
+          <span className="flex-1" />
+          <Skeleton className="h-[18px] w-[4.25rem] shrink-0 rounded" />
+          <Skeleton className="size-[18px] shrink-0 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /** "project_id/iid" (composite) or bare iid -> bare iid. */
