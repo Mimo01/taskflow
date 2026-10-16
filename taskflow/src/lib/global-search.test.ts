@@ -558,6 +558,44 @@ describe('caps', () => {
     expect(shown).toBeLessThanOrEqual(TOTAL_CAP);
     expect(out.reduce((n, s) => n + s.rows.length + s.hiddenCount, 0)).toBe(48);
   });
+  it('once the total cap hides a group, later tiers are hidden too (IN-07)', () => {
+    // Four full future-sprint tiers (32 rows), then a 9-row group that overflows the
+    // total cap, then a 1-row tier that would still fit.
+    const filler = Array.from({ length: 32 }, (_, i) => ({
+      id: i + 1,
+      key: `F-${i + 1}`,
+      summary: `gadget ${i}`,
+    }));
+    const big = [
+      { id: 100, key: 'G-100', summary: 'gadget parent' },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        id: 101 + i,
+        key: `G-${101 + i}`,
+        summary: `gadget sub ${i}`,
+        parentKey: 'G-100',
+      })),
+    ];
+    const last = { id: 200, key: 'L-200', summary: 'gadget last' };
+    const sprints = [
+      ...Array.from({ length: 4 }, (_, t) =>
+        sprint(
+          t + 1,
+          `F${t}`,
+          'FUTURE',
+          Array.from({ length: 8 }, (_, k) => t * 8 + k + 1),
+        ),
+      ),
+      sprint(5, 'Big', 'FUTURE', [100]),
+      sprint(6, 'Last', 'FUTURE', [200]),
+    ];
+    const idx = buildSearchIndex(makeBacklog({ sprints, issues: [...filler, ...big, last] }));
+    const out = model(idx, 'gadget');
+    expect(allKeys(out)).not.toContain('G-100');
+    expect(allKeys(out)).not.toContain('L-200');
+    expect(out.find((s) => s.tier.id === 'sprint:6')?.hiddenCount).toBe(1);
+    expect(out.reduce((n, s) => n + s.rows.length + s.hiddenCount, 0)).toBe(42);
+  });
+
   it('never splits a group across the cap', () => {
     const subs = Array.from({ length: 7 }, (_, i) => ({
       id: 100 + i,
