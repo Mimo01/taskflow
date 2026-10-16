@@ -296,11 +296,11 @@ export function classifyBodyHit(
   query: string,
   issue: JiraIssue,
 ): { field: 1 | 2; snippet: { text: string; ranges: HighlightRange[] } | null } {
-  // Short lead-in so the matched words sit at the start of the (truncating) snippet.
+  // Enough context for the two-line excerpt under the title (~40 chars before, 160 after).
   const snippetOf = (raw: unknown) => {
     const text = stripWikiMarkup(typeof raw === 'string' ? raw : '');
     return text && matchText(query, text, { fuzzy: false })
-      ? buildSnippet(text, query, 64, 10)
+      ? buildSnippet(text, query, 160, 40)
       : null;
   };
   const desc = snippetOf(issue.fields?.description);
