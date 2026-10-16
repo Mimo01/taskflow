@@ -445,7 +445,7 @@ export default function CommandPalette({
           loop
           value={selectedValue}
           onValueChange={setSelectedValue}
-          className="rounded-lg border shadow-lg bg-popover [&_[data-slot=command-item]]:min-h-7 [&_[data-slot=command-item]]:py-0 [&_[data-slot=command-item]:has([data-match-line])]:py-1 [&_[data-slot=command-item]]:text-[0.8125rem]"
+          className="rounded-lg border shadow-lg bg-popover [&_[data-slot=command-item]]:min-h-8 [&_[data-slot=command-item]]:py-0 [&_[data-slot=command-item]:has([data-match-line])]:py-1.5 [&_[data-slot=command-item]]:text-sm"
         >
           <CommandInput
             placeholder="Search issues, MRs, and actions..."
@@ -551,7 +551,7 @@ export default function CommandPalette({
                   <div className="flex flex-col gap-2 p-2">
                     <p className="text-xs text-muted-foreground">Loading issues…</p>
                     {[1, 2, 3, 4].map((i) => (
-                      <Skeleton key={i} className="h-5 rounded" />
+                      <Skeleton key={i} className="h-6 rounded" />
                     ))}
                   </div>
                 )}
@@ -583,7 +583,7 @@ export default function CommandPalette({
                   <CommandGroup heading="Closed">
                     <div className="flex flex-col gap-2 p-1">
                       {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-5 rounded" />
+                        <Skeleton key={i} className="h-6 rounded" />
                       ))}
                     </div>
                   </CommandGroup>
