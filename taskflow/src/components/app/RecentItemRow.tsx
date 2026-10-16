@@ -218,13 +218,13 @@ export function RecentItemsSkeleton({ count, className }: { count: number; class
     <div aria-hidden="true" data-testid="recent-items-skeleton">
       {Array.from({ length: Math.max(1, count) }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
-        <div key={i} className={cn('flex h-7 items-center gap-2', className)}>
+        <div key={i} className={cn('flex h-8 items-center gap-2', className)}>
           <Skeleton className="size-3.5 shrink-0 rounded-sm" />
-          <Skeleton className="h-3 w-[4.25rem] shrink-0" />
+          <Skeleton className="h-3 w-[4.5rem] shrink-0" />
           <Skeleton className="h-3 max-w-64 flex-1" />
           <span className="flex-1" />
-          <Skeleton className="h-[18px] w-[4.25rem] shrink-0 rounded" />
-          <Skeleton className="size-[18px] shrink-0 rounded-full" />
+          <Skeleton className="h-5 w-[4.5rem] shrink-0 rounded" />
+          <Skeleton className="size-5 shrink-0 rounded-full" />
         </div>
       ))}
     </div>

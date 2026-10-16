@@ -82,8 +82,8 @@ function PopoverRecentRow({
     <button
       type="button"
       className={cn(
-        // Same 28px row as the palette (density adjusts height only); divider inset matches px-3.
-        'flex h-7 density-compact:h-6 density-comfortable:h-9 w-full items-center px-3 text-left hover:bg-muted',
+        // Same 32px row as the palette (density adjusts height only); divider inset matches px-3.
+        'flex h-8 density-compact:h-7 density-comfortable:h-10 w-full items-center px-3 text-left hover:bg-muted',
         divider && cn(GROUP_DIVIDER_CLASS, 'before:inset-x-3'),
       )}
       onClick={handleClick}

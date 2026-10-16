@@ -38,9 +38,9 @@ describe('row', () => {
     // Compact fixed-width pill: inline-flex wrapper (geometry lives on it), truncating label.
     const pill = screen.getByText('In Progress').parentElement;
     expect(pill?.className).toContain('inline-flex');
-    expect(pill?.className).toContain('min-w-[4.25rem]');
+    expect(pill?.className).toContain('min-w-[4.5rem]');
     expect(pill?.getAttribute('title')).toBe('In Progress');
-    expect(container.querySelector('.flex-none.w-\\[18px\\]')).not.toBeNull();
+    expect(container.querySelector('.flex-none.w-5')).not.toBeNull();
   });
 
   it('calls onKeyClick with the event and key', () => {
@@ -106,7 +106,7 @@ describe('context header', () => {
     expect(container.querySelector('.opacity-40')).not.toBeNull();
     expect(container.querySelectorAll('mark')).toHaveLength(0);
     // Same size as any row: text-sm title, status pill and avatar still rendered.
-    expect(screen.getByText('Fix the cart bug').className).toContain('text-[0.8125rem]');
+    expect(screen.getByText('Fix the cart bug').className).toContain('text-sm');
     expect(screen.getByText('In Progress')).toBeInTheDocument();
     expect(screen.getByTitle('Jane Doe')).toBeInTheDocument();
   });
