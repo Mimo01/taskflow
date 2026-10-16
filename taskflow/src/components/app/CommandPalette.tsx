@@ -17,6 +17,7 @@ import {
   buildRecentRows,
   findJiraIssueInCache,
   RecentItemRow,
+  recentKeysToFetch,
   recentMrIid,
 } from '@/components/app/RecentItemRow';
 import {
@@ -34,6 +35,7 @@ import {
 } from '@/components/ui/command';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
+import { useRecentIssues } from '@/hooks/useRecentIssues';
 import {
   buildResultModel,
   buildSearchIndex,
@@ -117,6 +119,11 @@ export default function CommandPalette({
   const resolvedKeyLookup = resolveKeyLookup(trimmed, activeJiraProject);
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const recentItems = useRecentItemsStore((s) => s.items);
+  const recentFetchKeys = useMemo(
+    () => recentKeysToFetch(recentItems, (key) => !!findIndexEntry(index, key)),
+    [recentItems, index],
+  );
+  const recentFetched = useRecentIssues(open, recentFetchKeys);
 
   // KEYS migration: all keyboard shortcuts use react-hotkeys-hook (no raw window listeners)
   // enableOnFormTags: true is intentional -- Escape must close the palette even while typing
@@ -472,7 +479,9 @@ export default function CommandPalette({
                       entry,
                       issue: entry
                         ? null
-                        : (cachedIssuesMap.get(key) ?? findJiraIssueInCache(queryClient, key)),
+                        : (recentFetched.get(key) ??
+                          cachedIssuesMap.get(key) ??
+                          findJiraIssueInCache(queryClient, key)),
                     };
                   }).map((row, i, rows) => {
                     const { item } = row;

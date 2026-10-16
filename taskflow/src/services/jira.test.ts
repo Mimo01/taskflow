@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assignIssue,
   buildBodySearchJql,
+  fetchIssuesByKeys,
   searchJiraBody,
   bulkUpdateIssue,
   fetchEnrichedSubtasks,
@@ -2693,5 +2694,42 @@ describe('searchJiraBody', () => {
     const res = await searchJiraBody(BASE, TOKEN, { ...baseOpts, query: '***' });
     expect(res).toEqual([]);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchIssuesByKeys', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('fetches valid keys in one key-in query, skipping invalid keys and duplicates', async () => {
+    vi.mocked(mockFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ issues: [{ key: 'AB-1' }] }),
+    } as unknown as Response);
+    const res = await fetchIssuesByKeys(BASE, TOKEN, [
+      'ab-1',
+      'AB-1',
+      'CD-22',
+      'x") OR 1=1',
+      'A-1',
+      '',
+    ]);
+    expect(res).toEqual([{ key: 'AB-1' }]);
+    const [url] = vi.mocked(mockFetch).mock.calls[0] as [string, RequestInit];
+    expect(decodeURIComponent(url)).toContain('jql=key in (AB-1,CD-22)');
+    expect(url).toContain('&fields=summary,status,assignee,issuetype,parent&maxResults=2');
+    expect(url).toContain('&validateQuery=false');
+  });
+
+  it('resolves [] without fetching when no key is valid', async () => {
+    expect(await fetchIssuesByKeys(BASE, TOKEN, ['not a key'])).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('throws on non-ok response', async () => {
+    vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 400 } as unknown as Response);
+    await expect(fetchIssuesByKeys(BASE, TOKEN, ['AB-1'])).rejects.toThrow('400');
   });
 });

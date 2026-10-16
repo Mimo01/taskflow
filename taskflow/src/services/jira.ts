@@ -1672,6 +1672,39 @@ export async function searchJiraBody(
   return (data.issues ?? []) as JiraIssue[];
 }
 
+/**
+ * Batch-fetch issues by key (Recent Items enrichment: status, assignee, type, parent).
+ * Keys are validated (injection-safe JQL); `validateQuery=false` so a deleted or
+ * inaccessible key is skipped instead of failing the whole request. Throws on HTTP error.
+ */
+export async function fetchIssuesByKeys(
+  baseUrl: string,
+  token: string,
+  keys: string[],
+): Promise<JiraIssue[]> {
+  const valid = [...new Set(keys.map((k) => k.toUpperCase()))].filter((k) => ISSUE_KEY_RE.test(k));
+  if (valid.length === 0) return [];
+  const base = baseUrl.replace(/\/$/, '');
+  const jql = `key in (${valid.join(',')})`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,issuetype,parent&maxResults=${valid.length}&validateQuery=false`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    },
+    'Fetch Recent Issues',
+  );
+  if (!response.ok) {
+    throw new Error(`Jira issue fetch failed: ${response.status}`);
+  }
+  const data = await response.json();
+  return (data.issues ?? []) as JiraIssue[];
+}
+
 // ─── Phase 8: Dashboard Enrichment ───────────────────────────────────────────
 
 export interface JiraActiveSprint {

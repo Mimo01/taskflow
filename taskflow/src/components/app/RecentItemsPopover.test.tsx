@@ -23,6 +23,10 @@ const mockSources = vi.hoisted(() => ({
   isIndexLoading: false,
   isIndexError: false,
 }));
+const mockFetched = vi.hoisted(() => ({ map: new Map<string, unknown>() }));
+vi.mock('@/hooks/useRecentIssues', () => ({
+  useRecentIssues: vi.fn(() => mockFetched.map),
+}));
 vi.mock('@/hooks/useGlobalSearchSources', () => ({
   useGlobalSearchSources: vi.fn(() => mockSources),
 }));
@@ -72,6 +76,7 @@ describe('RecentItemsPopover', () => {
   beforeEach(() => {
     useRecentItemsStore.setState({ items: [] });
     mockSources.backlog = undefined;
+    mockFetched.map = new Map();
   });
 
   it('RECENT-01: renders clock icon trigger with aria-label', () => {
@@ -154,5 +159,30 @@ describe('RecentItemsPopover', () => {
 
     expect(await screen.findByText('!67')).toBeInTheDocument();
     expect(screen.getByText('Fix login')).toBeInTheDocument();
+  });
+
+  it('shows status and assignee for a recent issue outside the index (batch-fetched)', async () => {
+    mockFetched.map = new Map([
+      [
+        'OLD-3',
+        {
+          key: 'OLD-3',
+          fields: {
+            summary: 'Closed last month',
+            status: { name: 'Done', statusCategory: { key: 'done' } },
+            assignee: { displayName: 'Ann Lee', avatarUrls: { '48x48': '' } },
+            issuetype: { name: 'Bug', subtask: false },
+          },
+        },
+      ],
+    ]);
+    setStoreItems([{ type: 'jira', id: 'OLD-3', title: 'Stale', timestamp: Date.now() }]);
+
+    renderWithQueryClient(<RecentItemsPopover />);
+    fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
+
+    expect(await screen.findByText('Closed last month')).toBeInTheDocument();
+    expect(screen.getByText('Done')).toBeInTheDocument();
+    expect(screen.getByTitle('Ann Lee')).toBeInTheDocument();
   });
 });
