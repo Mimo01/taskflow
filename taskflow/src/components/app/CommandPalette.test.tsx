@@ -761,6 +761,27 @@ describe('CommandPalette', () => {
       expect(searchJiraBody).not.toHaveBeenCalled();
     });
 
+    it('searches bodies for a key-shaped term once the key lookup misses (WR-01)', async () => {
+      seedIndex();
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue(null);
+      vi.mocked(searchJiraBody).mockResolvedValue([
+        bodyIssue('TEST-40', 'Encoding fix', { description: 'store names as utf-8 everywhere' }),
+      ]);
+      renderPalette();
+      typeQuery('utf-8');
+      await waitFor(() =>
+        expect(searchJiraBody).toHaveBeenCalledWith(
+          'https://jira.test',
+          'test-token',
+          expect.objectContaining({ query: 'utf-8', scope: 'open' }),
+        ),
+      );
+      expect(fetchJiraIssueByKey).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(document.querySelector('[cmdk-item][data-value="TEST-40"]')).not.toBeNull(),
+      );
+    });
+
     it('hides previous-query body rows during the debounce gap', async () => {
       seedIndex();
       vi.mocked(searchJiraBody).mockResolvedValue([
