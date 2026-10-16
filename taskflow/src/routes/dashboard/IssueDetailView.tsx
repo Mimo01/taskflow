@@ -212,11 +212,21 @@ export function IssueDetailView({
   // Track recent item when issue data is available
   useEffect(() => {
     if (issueKey && issue) {
+      const parent = issue.fields.parent;
       pushRecentItem({
         type: 'jira',
         id: issueKey,
         title: issue.fields.summary,
         issueType: issue.fields.issuetype?.name,
+        // Subtask parent, so Recent Items can show it under its story without a warm cache.
+        ...(parent?.key
+          ? {
+              parentKey: parent.key,
+              parentTitle: parent.fields?.summary,
+              parentIssueType: (parent.fields as { issuetype?: { name?: string } } | undefined)
+                ?.issuetype?.name,
+            }
+          : {}),
       });
     }
   }, [issueKey, issue?.fields.summary, issue?.fields.issuetype?.name, issue, pushRecentItem]);

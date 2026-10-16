@@ -129,4 +129,27 @@ describe('recent-items.store (Phase 20)', () => {
 
     expect(result.current.items[0].issueType).toBeUndefined();
   });
+
+  it('preserves subtask parent info when a later push omits it', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+    act(() => {
+      result.current.pushItem({
+        type: 'jira',
+        id: 'P-2',
+        parentKey: 'P-1',
+        parentTitle: 'Parent story',
+        parentIssueType: 'Story',
+      });
+    });
+    act(() => {
+      result.current.pushItem({ type: 'jira', id: 'P-2', title: 'Sub' });
+    });
+    expect(result.current.items[0]).toMatchObject({
+      id: 'P-2',
+      title: 'Sub',
+      parentKey: 'P-1',
+      parentTitle: 'Parent story',
+      parentIssueType: 'Story',
+    });
+  });
 });

@@ -14,47 +14,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
 import { buildSearchIndex, findIndexEntry } from '@/lib/global-search';
 import type { GitLabMR } from '@/services/gitlab';
-import type { JiraIssue } from '@/services/jira';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
-import { buildRecentRows, RecentItemRow, type RecentRowModel, recentMrIid } from './RecentItemRow';
+import {
+  buildRecentRows,
+  findJiraIssueInCache,
+  RecentItemRow,
+  type RecentRowModel,
+  recentMrIid,
+} from './RecentItemRow';
 
 interface RecentItemsPopoverProps {
   onIssueClick?: (issueKey: string) => void;
   onMRClick?: (projectIdAndIid: string) => void;
-}
-
-/**
- * Fallback for issues not in the global-search index: search the jira-issues
- * caches (sprint board = flat array, subtasks panel = { issues: [] }) and the
- * issue-detail cache for a full JiraIssue. Backlog (gh-backlog) hits are
- * covered by the index.
- */
-function findJiraIssueInCache(
-  queryClient: ReturnType<typeof useQueryClient>,
-  issueKey: string,
-): JiraIssue | undefined {
-  const queries = queryClient.getQueriesData<JiraIssue[] | { issues?: JiraIssue[] }>({
-    queryKey: ['jira-issues'],
-  });
-  for (const [, data] of queries) {
-    if (!data) continue;
-    if ('issues' in data && Array.isArray(data.issues)) {
-      const match = data.issues.find((issue) => issue.key === issueKey);
-      if (match) return match;
-    } else if (Array.isArray(data)) {
-      const match = data.find((issue) => issue.key === issueKey);
-      if (match) return match;
-    }
-  }
-
-  const detailQueries = queryClient.getQueriesData<JiraIssue>({
-    queryKey: ['jira-issue-detail', issueKey],
-  });
-  for (const [, data] of detailQueries) {
-    if (data?.fields?.summary) return data;
-  }
-
-  return undefined;
 }
 
 function findGitLabMRInCache(

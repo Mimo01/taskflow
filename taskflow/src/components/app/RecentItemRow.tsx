@@ -12,6 +12,7 @@
  * subtasks of one parent share a single parent row; a subtask directly after
  * its own (recent) parent nests under it without a duplicate dimmed row.
  */
+import type { QueryClient } from '@tanstack/react-query';
 import { GitMerge } from 'lucide-react';
 import type React from 'react';
 import type { SearchEntry } from '@/lib/global-search';
@@ -49,15 +50,23 @@ export interface RecentRowModel {
   indent: boolean;
 }
 
-function subtaskParent(src: RecentIssueSources): { key: string; summary?: string } | null {
+function subtaskParent(
+  item: RecentItem,
+  src: RecentIssueSources,
+): { key: string; summary?: string; typeName?: string } | null {
   if (src.entry) {
     return src.entry.isSubtask && src.entry.parentKey ? { key: src.entry.parentKey } : null;
   }
   const f = src.issue?.fields;
-  if (f?.issuetype?.subtask && f.parent?.key) {
-    return { key: f.parent.key, summary: f.parent.fields?.summary };
+  if (f) {
+    return f.issuetype?.subtask && f.parent?.key
+      ? { key: f.parent.key, summary: f.parent.fields?.summary }
+      : null;
   }
-  return null;
+  // Cold cache: fall back to the parent persisted when the subtask was opened.
+  return item.parentKey
+    ? { key: item.parentKey, summary: item.parentTitle, typeName: item.parentIssueType }
+    : null;
 }
 
 /** Flatten recent items into display rows, inserting a dimmed parent row above subtasks. */
@@ -82,7 +91,7 @@ export function buildRecentRows(
       continue;
     }
     const src = resolve(item.id);
-    const parent = subtaskParent(src);
+    const parent = subtaskParent(item, src);
     if (parent && headerKey !== parent.key) {
       const p = resolve(parent.key);
       rows.push({
@@ -91,6 +100,7 @@ export function buildRecentRows(
           type: 'jira',
           id: parent.key,
           title: parent.summary,
+          issueType: parent.typeName,
           timestamp: item.timestamp,
         },
         entry: p.entry,
@@ -114,6 +124,40 @@ export function buildRecentRows(
     });
   }
   return rows;
+}
+
+/**
+ * Fallback for issues not in the global-search index: search the jira-issues
+ * caches (sprint board = flat array, subtasks panel = { issues: [] }) and the
+ * issue-detail cache for a full JiraIssue. Backlog (gh-backlog) hits are
+ * covered by the index.
+ */
+export function findJiraIssueInCache(
+  queryClient: QueryClient,
+  issueKey: string,
+): JiraIssue | undefined {
+  const queries = queryClient.getQueriesData<JiraIssue[] | { issues?: JiraIssue[] }>({
+    queryKey: ['jira-issues'],
+  });
+  for (const [, data] of queries) {
+    if (!data) continue;
+    if ('issues' in data && Array.isArray(data.issues)) {
+      const match = data.issues.find((issue) => issue.key === issueKey);
+      if (match) return match;
+    } else if (Array.isArray(data)) {
+      const match = data.find((issue) => issue.key === issueKey);
+      if (match) return match;
+    }
+  }
+
+  const detailQueries = queryClient.getQueriesData<JiraIssue>({
+    queryKey: ['jira-issue-detail', issueKey],
+  });
+  for (const [, data] of detailQueries) {
+    if (data?.fields?.summary) return data;
+  }
+
+  return undefined;
 }
 
 /** "project_id/iid" (composite) or bare iid -> bare iid. */
