@@ -125,13 +125,13 @@ describe('buildRecentRows', () => {
 });
 
 describe('recentKeysToFetch', () => {
-  it('returns recent jira keys and persisted parents missing from the index', () => {
+  it('returns every recent jira key plus persisted parents (stable, index-independent)', () => {
     const items: RecentItem[] = [
       { type: 'jira', id: 'P-1', timestamp: 1 },
       { type: 'jira', id: 'X-9', timestamp: 1 },
       { type: 'jira', id: 'X-10', parentKey: 'X-2', timestamp: 1 },
       { type: 'gitlab', id: '1/5', timestamp: 1 },
     ];
-    expect(recentKeysToFetch(items, (k) => k === 'P-1')).toEqual(['X-9', 'X-10', 'X-2']);
+    expect(recentKeysToFetch(items)).toEqual(['P-1', 'X-9', 'X-10', 'X-2']);
   });
 });

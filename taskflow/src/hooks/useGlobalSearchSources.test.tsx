@@ -11,6 +11,7 @@ vi.mock('@/hooks/useBoardId', () => ({
   useBoardId: vi.fn(() => ({ boardId: 7, isLoading: false })),
 }));
 
+import { useBoardId } from '@/hooks/useBoardId';
 import { readSecret } from '@/services/stronghold';
 import { fetchAllData } from '../services/jira/greenhopper/allData';
 import { fetchBacklogData } from '../services/jira/greenhopper/data';
@@ -41,6 +42,7 @@ describe('useGlobalSearchSources', () => {
     useAuthStore.setState({ jiraBaseUrl: BASE, activeJiraProject: 'ESHOP' });
     vi.mocked(readSecret).mockResolvedValue('tok');
     vi.mocked(fetchBacklogData).mockResolvedValue(BACKLOG);
+    vi.mocked(useBoardId).mockReturnValue({ boardId: 7, isLoading: false } as never);
   });
 
   it('exports a 5 minute stale window', () => {
@@ -55,6 +57,15 @@ describe('useGlobalSearchSources', () => {
     expect(fetchBacklogData).toHaveBeenCalledWith(BASE, 'tok', 7);
     expect(result.current.isIndexLoading).toBe(false);
     expect(result.current.isIndexError).toBe(false);
+  });
+
+  it('is not loading forever when the active project has no board', () => {
+    vi.mocked(useBoardId).mockReturnValue({ boardId: null, isLoading: false } as never);
+    const qc = newClient();
+    const { result } = renderHook(() => useGlobalSearchSources(true), { wrapper: makeWrapper(qc) });
+    // The backlog query is disabled (isPending stays true) — must not read as loading.
+    expect(result.current.isIndexLoading).toBe(false);
+    expect(fetchBacklogData).not.toHaveBeenCalled();
   });
 
   it('does not fetch when closed', async () => {
