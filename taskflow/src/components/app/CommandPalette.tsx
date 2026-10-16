@@ -445,7 +445,7 @@ export default function CommandPalette({
           loop
           value={selectedValue}
           onValueChange={setSelectedValue}
-          className="rounded-lg border shadow-lg bg-popover [&_[data-slot=command-item]]:h-7 [&_[data-slot=command-item]]:py-0 [&_[data-slot=command-item]]:text-[0.8125rem]"
+          className="rounded-lg border shadow-lg bg-popover [&_[data-slot=command-item]]:min-h-7 [&_[data-slot=command-item]]:py-0 [&_[data-slot=command-item]:has([data-match-line])]:py-1 [&_[data-slot=command-item]]:text-[0.8125rem]"
         >
           <CommandInput
             placeholder="Search issues, MRs, and actions..."

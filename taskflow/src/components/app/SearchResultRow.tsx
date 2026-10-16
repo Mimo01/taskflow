@@ -85,7 +85,7 @@ export function SearchResultRow({
   const done = isDoneStatus(statusCategoryKey ? { key: statusCategoryKey } : null);
   return (
     <div className="@container w-full min-w-0">
-      {/* Fixed 18px (= avatar / status pill height): every row is the same height. */}
+      {/* Line 1 is a fixed 18px (= avatar / status pill height) on every row. */}
       <div
         data-indent={indent || undefined}
         className={cn(
@@ -116,44 +116,13 @@ export function SearchResultRow({
         ) : (
           <span className={cn(KEY_CLASS, done && 'line-through')}>{keyLabel ?? issueKey}</span>
         )}
-        {/* The title has priority: the snippet starts at basis 0 and only fills leftover
-            space, so it can never squeeze the title. When space runs out the epic badge
-            gives way before the title. The tag stays so a body match is always labelled. */}
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
-          className={cn(
-            'truncate text-[0.8125rem] min-w-0 flex-[0_1_auto]',
-            // Body match: title and snippet each keep a minimum so both stay readable.
-            snippet && 'min-w-[7rem] @[600px]:min-w-[10rem]',
-          )}
+          className="truncate text-[0.8125rem] min-w-0 flex-[0_1_auto]"
         />
-        {matchTag && (
-          // Compact icon label (description / comment); the tooltip carries the matched text.
-          <span
-            role="img"
-            aria-label={MATCH_LABEL[matchTag]}
-            title={`${MATCH_LABEL[matchTag]}${snippet ? `: ${snippet.text}` : ''}`}
-            className="inline-flex shrink-0 text-muted-foreground"
-          >
-            {matchTag === 'desc' ? (
-              <FileText className="size-3.5" />
-            ) : (
-              <MessageSquare className="size-3.5" />
-            )}
-          </span>
-        )}
-        {snippet ? (
-          <HighlightedText
-            text={snippet.text}
-            ranges={snippet.ranges}
-            className="min-w-[6rem] @[600px]:min-w-[8rem] flex-[1_1_0%] truncate text-xs text-muted-foreground"
-          />
-        ) : null}
-        {/* Spacer; a snippet already fills the free space. */}
-        {!snippet && <span className="flex-1" />}
-        {/* Body-match rows trade the epic badge for the matched snippet. */}
-        {epic && epicColor && !snippet && (
+        <span className="flex-1" />
+        {epic && epicColor && (
           <span
             className={cn(
               'hidden @[560px]:inline-flex min-w-14 max-w-28 flex-[0_100_auto] items-center overflow-hidden rounded border px-1 text-[0.6875rem] leading-4 font-medium',
@@ -194,6 +163,36 @@ export function SearchResultRow({
           </span>
         )}
       </div>
+      {matchTag && (
+        // Body match (description / comment): a second line under the title column with up to
+        // two lines of highlighted context, so you can see what actually matched.
+        <div
+          data-match-line
+          className="mt-0.5 flex min-w-0 items-start gap-1.5 pl-[calc(0.875rem+0.5rem+4.25rem+0.5rem)] text-xs leading-4 text-muted-foreground"
+        >
+          <span
+            role="img"
+            aria-label={MATCH_LABEL[matchTag]}
+            title={MATCH_LABEL[matchTag]}
+            className="mt-px inline-flex shrink-0"
+          >
+            {matchTag === 'desc' ? (
+              <FileText className="size-3.5" />
+            ) : (
+              <MessageSquare className="size-3.5" />
+            )}
+          </span>
+          {snippet ? (
+            <HighlightedText
+              text={snippet.text}
+              ranges={snippet.ranges}
+              className="line-clamp-2 min-w-0 whitespace-normal break-words"
+            />
+          ) : (
+            <span className="italic pr-0.5">{MATCH_LABEL[matchTag]}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

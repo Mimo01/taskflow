@@ -139,25 +139,32 @@ describe('group divider', () => {
 });
 
 describe('body match', () => {
-  it('labels the match with a tag whose tooltip carries the snippet', () => {
-    render(
+  it('renders the match on a second line (icon + highlighted snippet) under a full title', () => {
+    const { container } = render(
       <SearchResultRow
         {...props({ matchTag: 'desc', snippet: { text: '…the cart is empty', ranges: [[5, 9]] } })}
       />,
     );
-    expect(screen.getByRole('img', { name: 'Matched in description' }).getAttribute('title')).toBe(
-      'Matched in description: …the cart is empty',
+    const line = container.querySelector('[data-match-line]');
+    expect(line).not.toBeNull();
+    expect(line?.querySelector('[aria-label="Matched in description"]')).not.toBeNull();
+    expect(line?.textContent).toContain('the cart is empty');
+    expect(line?.querySelector('mark')?.textContent).toBe('cart');
+    // The title line is untouched by the snippet: full truncating title, epic still shown.
+    expect(screen.getByText('Fix the cart bug').closest('[data-match-line]')).toBeNull();
+    expect(screen.getByText('Checkout')).toBeInTheDocument();
+  });
+
+  it('shows a label when a comment matched but no snippet is available', () => {
+    const { container } = render(<SearchResultRow {...props({ matchTag: 'comment' })} />);
+    expect(container.querySelector('[data-match-line]')?.textContent).toContain(
+      'Matched in a comment',
     );
   });
 
-  it('gives the title shrink priority over the snippet (snippet fills leftover space)', () => {
-    render(
-      <SearchResultRow
-        {...props({ matchTag: 'comment', snippet: { text: 'snippet text', ranges: [] } })}
-      />,
-    );
-    expect(screen.getByText('Fix the cart bug').className).toContain('flex-[0_1_auto]');
-    expect(screen.getByText('snippet text').className).toContain('flex-[1_1_0%]');
+  it('has no second line for title-only matches', () => {
+    const { container } = render(<SearchResultRow {...props()} />);
+    expect(container.querySelector('[data-match-line]')).toBeNull();
   });
 });
 
