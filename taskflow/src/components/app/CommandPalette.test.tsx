@@ -804,6 +804,17 @@ describe('CommandPalette', () => {
       typeQuery('c');
       expect(screen.queryByText('Include closed issues')).toBeNull();
     });
+
+    it('treats a whitespace-padded 1-char query as the default state (WR-04)', () => {
+      seedIndex();
+      renderPalette();
+      typeQuery('c ');
+      expect(screen.queryByText('Include closed issues')).toBeNull();
+      expect(headings()).toContain('Recent Items');
+      typeQuery('  ');
+      expect(screen.queryByText('No results found')).toBeNull();
+      expect(headings()).toContain('Recent Items');
+    });
   });
 
   describe('filters MRs', () => {

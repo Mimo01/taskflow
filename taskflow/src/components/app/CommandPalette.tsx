@@ -330,7 +330,8 @@ export default function CommandPalette({
 
   if (!open) return null;
 
-  const isDefaultState = query.length < 2;
+  // Same threshold as the result model (trimmed), so "a " or blanks stay in Recent Items.
+  const isDefaultState = trimmed.length < 2;
 
   const visibleMRs = isDefaultState
     ? []
