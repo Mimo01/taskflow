@@ -640,6 +640,20 @@ describe('sprint-board subtasks (WR-09)', () => {
     expect(index.byKey.get('S-11')?.tierId).toBe('backlog');
     expect(index.byKey.get('S-12')?.tierId).toBe('current');
   });
+
+  it('routes a done Jira hit under an indexed parent the same way (WR-04)', () => {
+    const tierOf = (key: string, parent: string, done: boolean, scope: 'open' | 'closed') =>
+      entryFromJiraIssue(jira(key, 's', { parent, done }), index, EPIC_FIELD, scope).tierId;
+    expect(tierOf('S-20', 'S-2', true, 'closed')).toBe('closed');
+    expect(tierOf('S-21', 'S-1', true, 'closed')).toBe('current');
+    expect(tierOf('S-22', 'S-2', false, 'open')).toBe('backlog');
+  });
+
+  it('routes a done issue that has no indexed parent to Closed, whatever the scope', () => {
+    expect(
+      entryFromJiraIssue(jira('S-30', 's', { done: true }), index, EPIC_FIELD, 'open').tierId,
+    ).toBe('closed');
+  });
 });
 
 describe('stale local title (WR-05)', () => {
