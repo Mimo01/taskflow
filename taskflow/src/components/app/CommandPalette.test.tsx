@@ -42,10 +42,10 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
 }));
 
-// Mock jira searchJiraBody and fetchJiraIssueByKey
+// Mock jira searchJiraBody and fetchIssuesByKeys (Direct-match key lookup)
 vi.mock('@/services/jira', () => ({
   searchJiraBody: vi.fn().mockResolvedValue([]),
-  fetchJiraIssueByKey: vi.fn().mockResolvedValue(null),
+  fetchIssuesByKeys: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock the global-search index sources (mutable per test)
@@ -134,7 +134,7 @@ vi.mock('@/stores/recent-items.store', () => ({
 }));
 
 import type { JiraIssue } from '@/services/jira';
-import { fetchJiraIssueByKey, searchJiraBody } from '@/services/jira';
+import { fetchIssuesByKeys, searchJiraBody } from '@/services/jira';
 import type { GhBacklogResponse } from '@/services/jira/greenhopper/types';
 import CommandPalette from './CommandPalette';
 
@@ -286,7 +286,7 @@ describe('CommandPalette', () => {
     mockSources.isIndexError = false;
     mockRecentIssues.isLoading = false;
     vi.mocked(searchJiraBody).mockResolvedValue([]);
-    vi.mocked(fetchJiraIssueByKey).mockResolvedValue(null);
+    vi.mocked(fetchIssuesByKeys).mockResolvedValue([]);
   });
 
   // PALETTE-01: renders when open=true
@@ -498,17 +498,19 @@ describe('CommandPalette', () => {
     });
 
     it('shows Direct Match group when query matches issue key and fetch returns issue', async () => {
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
-        id: '999',
-        key: 'TEST-99',
-        fields: {
-          summary: 'Key match issue',
-          status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
-          assignee: null,
-          customfield_10016: null,
-          issuetype: { name: 'Story', subtask: false },
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([
+        {
+          id: '999',
+          key: 'TEST-99',
+          fields: {
+            summary: 'Key match issue',
+            status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
+            assignee: null,
+            customfield_10016: null,
+            issuetype: { name: 'Story', subtask: false },
+          },
         },
-      });
+      ]);
 
       renderPalette();
       const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
@@ -521,7 +523,7 @@ describe('CommandPalette', () => {
     });
 
     it('does not show Direct Match group when fetch returns null', async () => {
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue(null);
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([]);
 
       renderPalette();
       const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
@@ -541,21 +543,23 @@ describe('CommandPalette', () => {
       // Wait a tick
       await new Promise((r) => setTimeout(r, 50));
 
-      expect(vi.mocked(fetchJiraIssueByKey)).not.toHaveBeenCalled();
+      expect(vi.mocked(fetchIssuesByKeys)).not.toHaveBeenCalled();
     });
 
     it('shows Direct Match for bare number with active project set', async () => {
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
-        id: '12345',
-        key: 'TEST-12345',
-        fields: {
-          summary: 'Bare number match issue',
-          status: { id: '1', name: 'Open', statusCategory: { key: 'new' } },
-          assignee: null,
-          customfield_10016: null,
-          issuetype: { name: 'Bug', subtask: false },
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([
+        {
+          id: '12345',
+          key: 'TEST-12345',
+          fields: {
+            summary: 'Bare number match issue',
+            status: { id: '1', name: 'Open', statusCategory: { key: 'new' } },
+            assignee: null,
+            customfield_10016: null,
+            issuetype: { name: 'Bug', subtask: false },
+          },
         },
-      });
+      ]);
 
       renderPalette();
       const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
@@ -563,10 +567,11 @@ describe('CommandPalette', () => {
 
       expect(await screen.findByText('Bare number match issue')).toBeInTheDocument();
       expect(screen.getByText('Direct match')).toBeInTheDocument();
-      expect(vi.mocked(fetchJiraIssueByKey)).toHaveBeenCalledWith(
+      expect(vi.mocked(fetchIssuesByKeys)).toHaveBeenCalledWith(
         'https://jira.test',
         'test-token',
-        'TEST-12345',
+        ['TEST-12345'],
+        ['customfield_10014'],
       );
       expect(screen.getByText('TEST-12345')).toBeInTheDocument();
     });
@@ -593,17 +598,19 @@ describe('CommandPalette', () => {
     });
 
     it('renders the icon on the Direct Match row', async () => {
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
-        id: '999',
-        key: 'TEST-99',
-        fields: {
-          summary: 'Key match issue',
-          status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
-          assignee: null,
-          customfield_10016: null,
-          issuetype: { name: 'Story', subtask: false },
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([
+        {
+          id: '999',
+          key: 'TEST-99',
+          fields: {
+            summary: 'Key match issue',
+            status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
+            assignee: null,
+            customfield_10016: null,
+            issuetype: { name: 'Story', subtask: false },
+          },
         },
-      });
+      ]);
 
       renderPalette();
       const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
@@ -647,17 +654,19 @@ describe('CommandPalette', () => {
     });
 
     it('full key query still resolves correctly', async () => {
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
-        id: '42',
-        key: 'PROJ-42',
-        fields: {
-          summary: 'Full key match',
-          status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
-          assignee: null,
-          customfield_10016: null,
-          issuetype: { name: 'Task', subtask: false },
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([
+        {
+          id: '42',
+          key: 'PROJ-42',
+          fields: {
+            summary: 'Full key match',
+            status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
+            assignee: null,
+            customfield_10016: null,
+            issuetype: { name: 'Task', subtask: false },
+          },
         },
-      });
+      ]);
 
       renderPalette();
       const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
@@ -665,10 +674,11 @@ describe('CommandPalette', () => {
 
       const heading = await screen.findByText('Direct match');
       expect(heading).toBeInTheDocument();
-      expect(vi.mocked(fetchJiraIssueByKey)).toHaveBeenCalledWith(
+      expect(vi.mocked(fetchIssuesByKeys)).toHaveBeenCalledWith(
         'https://jira.test',
         'test-token',
-        'PROJ-42',
+        ['PROJ-42'],
+        ['customfield_10014'],
       );
     });
   });
@@ -760,7 +770,7 @@ describe('CommandPalette', () => {
 
     it('searches bodies for a key-shaped term once the key lookup misses (WR-01)', async () => {
       seedIndex();
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue(null);
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([]);
       vi.mocked(searchJiraBody).mockResolvedValue([
         bodyIssue('TEST-40', 'Encoding fix', { description: 'store names as utf-8 everywhere' }),
       ]);
@@ -773,7 +783,7 @@ describe('CommandPalette', () => {
           expect.objectContaining({ query: 'utf-8', scope: 'open' }),
         ),
       );
-      expect(fetchJiraIssueByKey).toHaveBeenCalledTimes(1);
+      expect(fetchIssuesByKeys).toHaveBeenCalledTimes(1);
       await waitFor(() =>
         expect(document.querySelector('[cmdk-item][data-value="TEST-40"]')).not.toBeNull(),
       );
@@ -909,17 +919,36 @@ describe('CommandPalette', () => {
       typeQuery('TEST-6');
       expect(headings()).toContain('Direct match');
       await new Promise((r) => setTimeout(r, 100));
-      expect(fetchJiraIssueByKey).not.toHaveBeenCalled();
+      expect(fetchIssuesByKeys).not.toHaveBeenCalled();
     });
 
     it('fetches once on an index miss and shows the row', async () => {
       seedIndex();
-      vi.mocked(fetchJiraIssueByKey).mockResolvedValue(bodyIssue('TEST-999', 'Fetched issue'));
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([bodyIssue('TEST-999', 'Fetched issue')]);
       renderPalette();
       typeQuery('TEST-999');
       await screen.findByText('Fetched issue');
-      expect(fetchJiraIssueByKey).toHaveBeenCalledTimes(1);
+      expect(fetchIssuesByKeys).toHaveBeenCalledTimes(1);
       expect(headings()).toContain('Direct match');
+    });
+
+    it('shows the epic pill on a network Direct match (IN-05)', async () => {
+      seedIndex();
+      (mockSources.backlog as GhBacklogResponse).entityData = {
+        ...entityData,
+        epics: {
+          '100': {
+            epicField: { epicKey: 'TEST-100', text: 'Checkout epic', epicColor: 'ghx-label-1' },
+          },
+        },
+      } as unknown as GhBacklogResponse['entityData'];
+      const fetched = bodyIssue('TEST-999', 'Fetched issue');
+      (fetched.fields as unknown as Record<string, unknown>).customfield_10014 = 'TEST-100';
+      vi.mocked(fetchIssuesByKeys).mockResolvedValue([fetched]);
+      renderPalette();
+      typeQuery('TEST-999');
+      await screen.findByText('Fetched issue');
+      expect(screen.getByTitle('TEST-100: Checkout epic')).toBeInTheDocument();
     });
 
     it('resolves a bare number to the active project key from the index', async () => {
@@ -930,7 +959,7 @@ describe('CommandPalette', () => {
       const direct = document.querySelector('[cmdk-item][data-value="direct:TEST-18"]');
       expect(direct).not.toBeNull();
       await new Promise((r) => setTimeout(r, 100));
-      expect(fetchJiraIssueByKey).not.toHaveBeenCalled();
+      expect(fetchIssuesByKeys).not.toHaveBeenCalled();
     });
 
     it('lets ArrowDown move past the Direct-match key kept as a context row (CR-01)', () => {
@@ -1075,14 +1104,14 @@ describe('CommandPalette', () => {
 
     it('shows a skeleton row on Direct match while the key fetch is in flight', async () => {
       seedIndex();
-      const d = deferred<JiraIssue | null>();
-      vi.mocked(fetchJiraIssueByKey).mockReturnValue(d.promise);
+      const d = deferred<JiraIssue[]>();
+      vi.mocked(fetchIssuesByKeys).mockReturnValue(d.promise);
       renderPalette();
       typeQuery('TEST-999');
       await waitFor(() => expect(document.querySelector('[data-slot="skeleton"]')).not.toBeNull());
       expect(headings()).toContain('Direct match');
       await act(async () => {
-        d.resolve(null);
+        d.resolve([]);
       });
     });
   });
