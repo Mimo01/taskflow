@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
-import { initializeAioStatusMap, normalizeStatus, normalizeStatusById } from '@/lib/aioUtils';
+import { initializeAioStatusMap, normalizeStatus } from '@/lib/aioUtils';
 import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
 import {
   fetchAioCycleDetail,
@@ -56,17 +56,21 @@ export function useAioCycleData(projectKey: string | undefined, cycleKey: string
   // AioProjectOverviewPage also does this, but direct pinned-tab navigation with a
   // fresh cache never mounts the overview — without this, every status ID falls back
   // to 'notRun'. Modelled as a query (not an effect) so completion re-renders and
-  // summaryCounts recomputes with the populated map.
+  // summaryCounts recomputes with the populated map. The map is the query data, read directly:
+  // React Compiler memoizes summaryCounts on its inputs, so a hidden module read
+  // (normalizeStatusById) kept the all-'notRun' result from before the map arrived ("0/N
+  // executed" on cold reload). A failed or empty map throws rather than counting as ready.
   const aioStatusMapQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'status-map-init', projectKey],
     queryFn: async () => {
-      await initializeAioStatusMap(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0);
-      return true;
+      const map = await initializeAioStatusMap(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0);
+      if (!map) throw new Error('AIO status config unavailable');
+      return map;
     },
     enabled: aioGate,
     staleTime: 60 * 60 * 1000,
   });
-  const aioStatusMapReady = aioStatusMapQuery.data === true;
+  const statusMap = aioStatusMapQuery.data;
 
   // USE-DETAIL-ID — AioCycle.ID populated by normalizeCycle from /detail response
   const cycleNumericId = cycleQuery.data?.ID ?? null;
@@ -112,19 +116,23 @@ export function useAioCycleData(projectKey: string | undefined, cycleKey: string
   // strings — ALWAYS Number(idStr) before lookup (Pitfall 5).
   const summaryDistribution = summaryQuery.data?.[0]?.summary.testRunDistribution;
   const summaryTotal = summaryQuery.data?.[0]?.summary.totalTests ?? 0;
-  const summaryCounts = summaryDistribution
-    ? Object.entries(summaryDistribution).reduce<AioStatusCounts>(
-        (acc, [idStr, count]) => {
-          const statusKey = normalizeStatusById(Number(idStr));
-          acc[statusKey] = (acc[statusKey] ?? 0) + count;
-          return acc;
-        },
-        { ...ZERO_COUNTS },
-      )
-    : null;
+  const summaryCounts =
+    summaryDistribution && statusMap
+      ? Object.entries(summaryDistribution).reduce<AioStatusCounts>(
+          (acc, [idStr, count]) => {
+            const statusKey = statusMap[Number(idStr)] ?? 'notRun';
+            acc[statusKey] = (acc[statusKey] ?? 0) + count;
+            return acc;
+          },
+          { ...ZERO_COUNTS },
+        )
+      : null;
 
   // Final counts/total resolution: summary when resolved with data, else runs-derived.
-  const hasSummaryData = !!summaryQuery.data && summaryTotal > 0;
+  // No summaryCounts without the status map, and an absent/empty distribution (AIO fills the
+  // summary lazily) yields all zeros: both fall back to the runs-derived counts.
+  const hasSummaryData =
+    summaryTotal > 0 && !!summaryCounts && Object.values(summaryCounts).some((n) => n > 0);
   const counts = hasSummaryData ? (summaryCounts ?? runsCounts) : runsCounts;
   const total = hasSummaryData ? summaryTotal : runsTotal;
 
@@ -135,7 +143,6 @@ export function useAioCycleData(projectKey: string | undefined, cycleKey: string
     cycleQuery,
     runsQuery,
     summaryQuery,
-    aioStatusMapReady,
     jiraProjectId,
     cycleNumericId,
     runs,

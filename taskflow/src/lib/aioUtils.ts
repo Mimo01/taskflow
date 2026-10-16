@@ -68,12 +68,16 @@ const STATUS_TYPE_MAP: Record<string, 'pass' | 'fail' | 'blocked' | 'notRun' | '
   IN_PROGRESS: 'inProgress',
 };
 
-let runtimeAioStatusMap: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> = {};
+export type AioStatusMap = Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'>;
+
+let runtimeAioStatusMap: AioStatusMap = {};
 
 /**
  * Initialize AIO status map from the live /config endpoint.
  * Call once when AIO integration activates (credentials confirmed, project selected).
  * Silently no-ops on failure — normalizeStatusById falls back to 'notRun' for all IDs.
+ * Returns the populated map (null when it failed or came back empty) so React consumers can
+ * hold it as data: normalizeStatusById is a hidden module read that React Compiler memoizes past.
  *
  * Reuses fetchAioProjectConfig from cycles.ts — does not duplicate the HTTP call.
  * React Query caches the /config response, so subsequent calls serve from cache.
@@ -82,15 +86,17 @@ export async function initializeAioStatusMap(
   baseUrl: string,
   token: string,
   jiraProjectId: number,
-): Promise<void> {
+): Promise<AioStatusMap | null> {
   try {
     const statuses = await fetchAioProjectConfig(baseUrl, token, jiraProjectId);
     runtimeAioStatusMap = Object.fromEntries(
       statuses.map((s) => [s.ID, STATUS_TYPE_MAP[s.statusType] ?? 'notRun']),
     );
+    return statuses.length > 0 ? runtimeAioStatusMap : null;
   } catch {
     // Fail silently — normalizeStatusById falls back to 'notRun' for all IDs
     runtimeAioStatusMap = {};
+    return null;
   }
 }
 

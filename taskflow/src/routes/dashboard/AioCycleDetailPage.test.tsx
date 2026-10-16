@@ -293,11 +293,13 @@ describe('AioCycleDetailPage', () => {
         new Promise(() => {}),
       );
       renderPage();
-      // Progress bar must be visible even though runs never resolved
+      // Progress bar must be visible even though runs never resolved; the donut waits for runs
+      // like the other charts
       await waitFor(() => {
         expect(screen.getByTestId('kpi-pass-rate')).toBeDefined();
-        expect(screen.getByTestId('exec-donut')).toBeDefined();
+        expect(screen.getByTestId('exec-donut-skeleton')).toBeDefined();
       });
+      expect(screen.queryByTestId('exec-donut')).toBeNull();
       // runs-table-skeleton should be present since runsQuery is still loading
       await waitFor(() => {
         expect(screen.getByTestId('runs-table-skeleton')).toBeDefined();
@@ -318,6 +320,135 @@ describe('AioCycleDetailPage', () => {
         expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
         expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 1 failing/);
         expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
+      });
+    });
+
+    it('falls back to runs-derived counts when the status map cannot load (not 0/N executed)', async () => {
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchAioProjectConfig } = await import('@/services/aio/cycles');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      // /config fails on a cold reload: the runtime map is left empty, so summary status IDs
+      // would all resolve to Not Run
+      (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'));
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
+      });
+    });
+
+    it('recomputes summary counts when the status map arrives after the summary (cold reload)', async () => {
+      // Under React Compiler summaryCounts is memoized on its inputs; reading the map through a
+      // module-level lookup kept the all-'notRun' result from before the map arrived (0/3).
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchAioProjectConfig } = await import('@/services/aio/cycles');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      const { initializeAioStatusMap } = await import('@/lib/aioUtils');
+      const configMock = fetchAioProjectConfig as ReturnType<typeof vi.fn>;
+      const statuses = await fetchAioProjectConfig('', '', 0);
+      // Start from an empty runtime map, as after a reload
+      configMock.mockRejectedValueOnce(new Error('reset'));
+      await initializeAioStatusMap('https://jira.example.com', 'fake-token', 10134);
+      let resolveConfig: (v: unknown) => void = () => {};
+      configMock.mockReturnValueOnce(
+        new Promise((r) => {
+          resolveConfig = r;
+        }),
+      );
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      // Runs all Not Run, so only correctly mapped summary counts give 2/3
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockRuns.map((r) => ({ ...r, status: 'NOT_EXECUTED' })),
+      );
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/0\/3/);
+      });
+      resolveConfig(statuses);
+      await waitFor(() => {
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
+      });
+    });
+
+    it('keeps the donut in skeleton while runs load when the summary has no data (empty summary)', async () => {
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockReturnValue(
+        new Promise(() => {}),
+      );
+      renderPage();
+      await waitFor(() => {
+        expect(fetchAioCycleSummaries).toHaveBeenCalled();
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('exec-donut-skeleton')).toBeDefined();
+      });
+      expect(screen.queryByTestId('exec-donut-empty')).toBeNull();
+    });
+
+    it('does not draw an empty donut when the summary has a total but no distribution yet', async () => {
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { ID: 10134, jiraProjectID: 10134, detail: null, summary: { totalTests: 3 } },
+      ]);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockReturnValue(
+        new Promise(() => {}),
+      );
+      renderPage();
+      await waitFor(() => {
+        expect(fetchAioCycleSummaries).toHaveBeenCalled();
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByTestId('exec-donut')).toBeNull();
+      expect(screen.getByTestId('exec-donut-skeleton')).toBeDefined();
+    });
+
+    it('does not draw an empty donut when the summary has a total but an empty distribution', async () => {
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          ID: 10134,
+          jiraProjectID: 10134,
+          detail: null,
+          summary: { totalTests: 3, testRunDistribution: {} },
+        },
+      ]);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      let resolveRuns: (v: unknown) => void = () => {};
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockReturnValue(
+        new Promise((r) => {
+          resolveRuns = r;
+        }),
+      );
+      renderPage();
+      await waitFor(() => {
+        expect(fetchAioCycleSummaries).toHaveBeenCalled();
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByTestId('exec-donut')).toBeNull();
+      expect(screen.getByTestId('exec-donut-skeleton')).toBeDefined();
+      resolveRuns(mockRuns);
+      await waitFor(() => {
+        expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
+        expect(screen.getByTestId('exec-donut').querySelectorAll('path').length).toBeGreaterThan(0);
       });
     });
 

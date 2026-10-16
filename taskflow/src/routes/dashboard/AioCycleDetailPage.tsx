@@ -29,7 +29,6 @@ export default function AioCycleDetailPage() {
     cycleQuery,
     runsQuery,
     summaryQuery,
-    aioStatusMapReady,
     runs,
     counts,
     total,
@@ -96,18 +95,13 @@ export default function AioCycleDetailPage() {
     return best?.iso ?? null;
   }, [runs]);
 
-  // Summary-driven counts can only be interpreted once the AIO status map is populated —
-  // otherwise normalizeStatusById resolves every ID to 'notRun' (the all-Not-Run bug on
-  // fresh-cache pinned-tab navigation). Hold the tiles in skeleton until it is ready.
-  // isPending (not isLoading): a disabled summaryQuery has fetchStatus 'idle' so isLoading
-  // is false even though no data has arrived yet.
+  // Tiles hold in skeleton until either the summary (which needs the AIO status map) or the
+  // runs fallback is usable. Waiting on runsQuery too keeps a summary that settled without
+  // data from flashing "No runs recorded". isPending (not isLoading): a disabled summaryQuery
+  // has fetchStatus 'idle' so isLoading is false even though no data has arrived yet.
   const hasRunsData = !!runs;
-  const waitingForStatusMap = hasSummaryData && !aioStatusMapReady;
   const countsLoading =
-    waitingForStatusMap ||
-    ((summaryQuery.isPending || (summaryQuery.isError && runsQuery.isPending)) &&
-      !hasSummaryData &&
-      !hasRunsData);
+    (summaryQuery.isPending || runsQuery.isPending) && !hasSummaryData && !hasRunsData;
 
   const hasError = cycleQuery.isError || runsQuery.isError;
 
