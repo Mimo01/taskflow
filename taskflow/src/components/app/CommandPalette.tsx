@@ -53,7 +53,7 @@ import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { fetchJiraIssueByKey, searchJiraBody } from '@/services/jira';
+import { fetchIssuesByKeys, searchJiraBody } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
@@ -170,10 +170,17 @@ export default function CommandPalette({
 
   const localDirect = resolvedKeyLookup ? findIndexEntry(index, resolvedKeyLookup) : null;
   const keyQuery = useQuery({
-    queryKey: ['search', 'key', resolvedKeyLookup],
+    queryKey: ['search', 'key', resolvedKeyLookup, epicLinkFieldKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return fetchJiraIssueByKey(jiraBaseUrl ?? '', token, resolvedKeyLookup);
+      // The batch fetch includes parent + epic link, so a network hit gets its group and pill.
+      const [issue] = await fetchIssuesByKeys(
+        jiraBaseUrl ?? '',
+        token,
+        [resolvedKeyLookup],
+        [epicLinkFieldKey],
+      );
+      return issue ?? null;
     },
     enabled:
       open &&
