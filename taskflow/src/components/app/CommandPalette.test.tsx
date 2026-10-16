@@ -1022,6 +1022,16 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument();
     });
 
+    it('does not flash the empty state during the debounce gap (WR-03)', async () => {
+      seedIndex();
+      renderPalette();
+      typeQuery('zzzzqq');
+      // The body search has not started yet: nothing is known to be empty.
+      expect(searchJiraBody).not.toHaveBeenCalled();
+      expect(screen.queryByText('No results found')).toBeNull();
+      expect(await screen.findByText('No results found')).toBeInTheDocument();
+    });
+
     it('shows closed skeleton rows while the closed request is in flight', async () => {
       seedIndex();
       const d = deferred<JiraIssue[]>();
