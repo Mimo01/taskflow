@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SearchEntry } from '@/lib/global-search';
 import type { RecentItem } from '@/stores/recent-items.store';
-import { buildRecentRows, type RecentIssueSources } from './RecentItemRow';
+import { buildRecentRows, type RecentIssueSources, recentKeysToFetch } from './RecentItemRow';
 
 function entry(key: string, parentKey: string | null = null): SearchEntry {
   return {
@@ -121,5 +121,17 @@ describe('buildRecentRows', () => {
       resolverFor([entry('P-9')]),
     );
     expect(shape(rows)).toEqual(['P-9']);
+  });
+});
+
+describe('recentKeysToFetch', () => {
+  it('returns recent jira keys and persisted parents missing from the index', () => {
+    const items: RecentItem[] = [
+      { type: 'jira', id: 'P-1', timestamp: 1 },
+      { type: 'jira', id: 'X-9', timestamp: 1 },
+      { type: 'jira', id: 'X-10', parentKey: 'X-2', timestamp: 1 },
+      { type: 'gitlab', id: '1/5', timestamp: 1 },
+    ];
+    expect(recentKeysToFetch(items, (k) => k === 'P-1')).toEqual(['X-9', 'X-10', 'X-2']);
   });
 });

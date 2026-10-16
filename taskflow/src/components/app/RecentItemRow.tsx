@@ -160,6 +160,23 @@ export function findJiraIssueInCache(
   return undefined;
 }
 
+/**
+ * Recent Jira keys (and persisted subtask parents) the search index does not cover —
+ * fetched in one batch so every history row has status, assignee and type.
+ */
+export function recentKeysToFetch(
+  items: RecentItem[],
+  hasEntry: (issueKey: string) => boolean,
+): string[] {
+  const keys = new Set<string>();
+  for (const item of items) {
+    if (item.type !== 'jira') continue;
+    if (!hasEntry(item.id)) keys.add(item.id);
+    if (item.parentKey && !hasEntry(item.parentKey)) keys.add(item.parentKey);
+  }
+  return [...keys];
+}
+
 /** "project_id/iid" (composite) or bare iid -> bare iid. */
 export function recentMrIid(id: string): string {
   return id.includes('/') ? (id.split('/').pop() ?? id) : id;

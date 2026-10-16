@@ -12,6 +12,7 @@ import { Clock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
+import { useRecentIssues } from '@/hooks/useRecentIssues';
 import { buildSearchIndex, findIndexEntry } from '@/lib/global-search';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
@@ -21,6 +22,7 @@ import {
   findJiraIssueInCache,
   RecentItemRow,
   type RecentRowModel,
+  recentKeysToFetch,
   recentMrIid,
 } from './RecentItemRow';
 import { GROUP_DIVIDER_CLASS, startsGroup } from './SearchResultRow';
@@ -102,6 +104,11 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
   const [open, setOpen] = useState(false);
   const { backlog, allData } = useGlobalSearchSources(open);
   const index = useMemo(() => buildSearchIndex(backlog, allData), [backlog, allData]);
+  const fetchKeys = useMemo(
+    () => recentKeysToFetch(items, (key) => !!findIndexEntry(index, key)),
+    [items, index],
+  );
+  const fetched = useRecentIssues(open, fetchKeys);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -127,7 +134,12 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
             ) : (
               buildRecentRows(items, (key) => {
                 const entry = findIndexEntry(index, key);
-                return { entry, issue: entry ? null : findJiraIssueInCache(queryClient, key) };
+                return {
+                  entry,
+                  issue: entry
+                    ? null
+                    : (fetched.get(key) ?? findJiraIssueInCache(queryClient, key)),
+                };
               }).map((row, i, rows) => (
                 <PopoverRecentRow
                   key={row.rowKey}
