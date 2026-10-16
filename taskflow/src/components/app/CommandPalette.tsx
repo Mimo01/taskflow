@@ -170,7 +170,8 @@ export default function CommandPalette({
 
   const localDirect = resolvedKeyLookup ? findIndexEntry(index, resolvedKeyLookup) : null;
   const keyQuery = useQuery({
-    queryKey: ['search', 'key', resolvedKeyLookup, epicLinkFieldKey],
+    // Instance-scoped so a cached issue from another Jira host is never shown as the match.
+    queryKey: ['search', 'key', jiraBaseUrl, resolvedKeyLookup, epicLinkFieldKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
       // The batch fetch includes parent + epic link, so a network hit gets its group and pill.
@@ -191,6 +192,8 @@ export default function CommandPalette({
       !!jiraBaseUrl &&
       !!activeJiraProject,
     staleTime: 30_000,
+    // Like the body searches: a credential/network failure settles at once (a miss).
+    retry: false,
   });
   const directEntry = useMemo(() => {
     if (localDirect) return localDirect;
