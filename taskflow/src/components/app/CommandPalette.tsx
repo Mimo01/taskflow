@@ -364,8 +364,10 @@ export default function CommandPalette({
   const closedFetching = includeClosed && closedQuery.isFetching;
   const anyFetching = bodyFetching || closedFetching || keyFetching;
   const hasIssueRows = sections.some((sec) => sec.rows.length > 0);
+  const closedError = includeClosed && closedQuery.isError;
   const showEmpty =
     !isDefaultState &&
+    !closedError &&
     !directEntry &&
     !hasIssueRows &&
     visibleMRs.length === 0 &&
@@ -587,6 +589,11 @@ export default function CommandPalette({
                 {bodyQuery.isError && (
                   <div className="px-3 py-2 text-xs text-muted-foreground">
                     Couldn't search descriptions and comments. Showing title matches only.
+                  </div>
+                )}
+                {closedError && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    Couldn't search closed issues.
                   </div>
                 )}
 

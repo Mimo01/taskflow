@@ -953,6 +953,20 @@ describe('CommandPalette', () => {
       });
     });
 
+    it('reports a failed closed-issues search instead of an empty state (WR-03)', async () => {
+      seedIndex();
+      vi.mocked(searchJiraBody).mockImplementation(async (_b, _t, opts) => {
+        if (opts.scope === 'closed') throw new Error('boom');
+        return [];
+      });
+      renderPalette();
+      typeQuery('zzzz');
+      await waitFor(() => expect(searchJiraBody).toHaveBeenCalledTimes(1));
+      fireEvent.click(screen.getByText('Include closed issues'));
+      expect(await screen.findByText("Couldn't search closed issues.")).toBeInTheDocument();
+      expect(screen.queryByText('No results found')).toBeNull();
+    });
+
     it('shows a skeleton row on Direct match while the key fetch is in flight', async () => {
       seedIndex();
       const d = deferred<JiraIssue | null>();
