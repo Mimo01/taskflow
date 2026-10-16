@@ -6,6 +6,11 @@
  * Resolution order for Jira items: global-search index entry (backlog +
  * sprint caches: status, assignee, epic) -> any cached full JiraIssue ->
  * the persisted title/issueType from the recent-items store.
+ *
+ * Subtasks are shown with their parent story (same treatment as search
+ * results, D-07): a dimmed parent row above the indented subtask. Consecutive
+ * subtasks of one parent share a single parent row; a subtask directly after
+ * its own (recent) parent nests under it without a duplicate dimmed row.
  */
 import { GitMerge } from 'lucide-react';
 import type React from 'react';
@@ -22,7 +27,93 @@ export interface RecentItemRowProps {
   issue?: JiraIssue | null;
   /** Cached MR title for GitLab items. */
   mrTitle?: string;
+  dimmed?: boolean;
+  indent?: boolean;
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
+}
+
+export interface RecentIssueSources {
+  entry: SearchEntry | null;
+  issue?: JiraIssue | null;
+}
+
+export interface RecentRowModel {
+  /** Unique per row (a parent can head several groups). */
+  rowKey: string;
+  /** The recent item, or a synthesized jira item for a parent row. */
+  item: RecentItem;
+  entry: SearchEntry | null;
+  issue?: JiraIssue | null;
+  isParent: boolean;
+  dimmed: boolean;
+  indent: boolean;
+}
+
+function subtaskParent(src: RecentIssueSources): { key: string; summary?: string } | null {
+  if (src.entry) {
+    return src.entry.isSubtask && src.entry.parentKey ? { key: src.entry.parentKey } : null;
+  }
+  const f = src.issue?.fields;
+  if (f?.issuetype?.subtask && f.parent?.key) {
+    return { key: f.parent.key, summary: f.parent.fields?.summary };
+  }
+  return null;
+}
+
+/** Flatten recent items into display rows, inserting a dimmed parent row above subtasks. */
+export function buildRecentRows(
+  items: RecentItem[],
+  resolve: (issueKey: string) => RecentIssueSources,
+): RecentRowModel[] {
+  const rows: RecentRowModel[] = [];
+  // Key of the row that a following subtask may nest under.
+  let headerKey: string | null = null;
+  for (const item of items) {
+    if (item.type !== 'jira') {
+      rows.push({
+        rowKey: `${item.type}-${item.id}`,
+        item,
+        entry: null,
+        isParent: false,
+        dimmed: false,
+        indent: false,
+      });
+      headerKey = null;
+      continue;
+    }
+    const src = resolve(item.id);
+    const parent = subtaskParent(src);
+    if (parent && headerKey !== parent.key) {
+      const p = resolve(parent.key);
+      rows.push({
+        rowKey: `parent-${parent.key}-${item.id}`,
+        item: {
+          type: 'jira',
+          id: parent.key,
+          title: parent.summary,
+          timestamp: item.timestamp,
+        },
+        entry: p.entry,
+        issue: p.issue,
+        isParent: true,
+        dimmed: true,
+        indent: false,
+      });
+      headerKey = parent.key;
+    } else if (!parent) {
+      headerKey = item.id;
+    }
+    rows.push({
+      rowKey: `jira-${item.id}`,
+      item,
+      entry: src.entry,
+      issue: src.issue,
+      isParent: false,
+      dimmed: false,
+      indent: !!parent,
+    });
+  }
+  return rows;
 }
 
 /** "project_id/iid" (composite) or bare iid -> bare iid. */
@@ -30,7 +121,15 @@ export function recentMrIid(id: string): string {
   return id.includes('/') ? (id.split('/').pop() ?? id) : id;
 }
 
-export function RecentItemRow({ item, entry, issue, mrTitle, onKeyClick }: RecentItemRowProps) {
+export function RecentItemRow({
+  item,
+  entry,
+  issue,
+  mrTitle,
+  dimmed,
+  indent,
+  onKeyClick,
+}: RecentItemRowProps) {
   if (item.type === 'gitlab') {
     const iid = recentMrIid(item.id);
     return (
@@ -56,6 +155,8 @@ export function RecentItemRow({ item, entry, issue, mrTitle, onKeyClick }: Recen
         showEpic={!entry.isSubtask && !entry.isEpic}
         assigneeName={entry.assigneeName}
         avatarUrl={entry.avatarUrl}
+        dimmed={dimmed}
+        indent={indent}
         onKeyClick={onKeyClick}
       />
     );
@@ -72,6 +173,8 @@ export function RecentItemRow({ item, entry, issue, mrTitle, onKeyClick }: Recen
       showEpic={false}
       assigneeName={f ? (f.assignee?.displayName ?? null) : undefined}
       avatarUrl={f?.assignee?.avatarUrls?.['48x48'] ?? null}
+      dimmed={dimmed}
+      indent={indent}
       onKeyClick={onKeyClick}
     />
   );

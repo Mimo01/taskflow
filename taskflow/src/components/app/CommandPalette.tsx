@@ -13,7 +13,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { Archive, GitMerge, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { RecentItemRow, recentMrIid } from '@/components/app/RecentItemRow';
+import { buildRecentRows, RecentItemRow, recentMrIid } from '@/components/app/RecentItemRow';
 import { SearchResultRow } from '@/components/app/SearchResultRow';
 import {
   Command,
@@ -456,11 +456,15 @@ export default function CommandPalette({
                 {recentItems.length === 0 ? (
                   <CommandItem disabled>No recent items</CommandItem>
                 ) : (
-                  recentItems.map((item) => {
+                  buildRecentRows(recentItems, (key) => ({
+                    entry: findIndexEntry(index, key),
+                    issue: cachedIssuesMap.get(key),
+                  })).map((row) => {
+                    const { item } = row;
                     return (
                       <CommandItem
-                        key={`${item.type}-${item.id}`}
-                        value={`${item.type}-${item.id}`}
+                        key={row.rowKey}
+                        value={row.rowKey}
                         className="py-1 [&>svg:last-child]:hidden"
                         keywords={[item.id]}
                         onSelect={() => {
@@ -475,13 +479,15 @@ export default function CommandPalette({
                       >
                         <RecentItemRow
                           item={item}
-                          entry={item.type === 'jira' ? findIndexEntry(index, item.id) : null}
-                          issue={item.type === 'jira' ? cachedIssuesMap.get(item.id) : null}
+                          entry={row.entry}
+                          issue={row.issue}
                           mrTitle={
                             item.type === 'gitlab'
                               ? allMRs.find((mr) => String(mr.iid) === recentMrIid(item.id))?.title
                               : undefined
                           }
+                          dimmed={row.dimmed}
+                          indent={row.indent}
                           onKeyClick={item.type === 'jira' ? handleIssueKeyClick : undefined}
                         />
                       </CommandItem>
