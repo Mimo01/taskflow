@@ -7,6 +7,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assignIssue,
+  buildBodySearchJql,
+  searchJiraBody,
   bulkUpdateIssue,
   fetchEnrichedSubtasks,
   createIssue,
@@ -2618,5 +2620,78 @@ describe('jira service', () => {
       } as Parameters<typeof wrapCustomFieldValue>[0];
       expect(wrapCustomFieldValue(field, 'production')).toBe('production');
     });
+  });
+});
+
+describe('buildBodySearchJql', () => {
+  it('builds open-scope JQL with prefix wildcard on last token only', () => {
+    expect(buildBodySearchJql('ESHOP', 'cart empty', 'open')).toBe(
+      'project = "ESHOP" AND statusCategory != Done AND text ~ "cart" AND text ~ "empty*" ORDER BY updated DESC',
+    );
+  });
+
+  it('uses statusCategory = Done for closed scope', () => {
+    expect(buildBodySearchJql('ESHOP', 'cart', 'closed')).toContain('statusCategory = Done');
+  });
+
+  it('strips reserved characters so input cannot escape quotes', () => {
+    const jql = buildBodySearchJql('ESHOP', 'foo" OR project = X', 'open') as string;
+    expect(jql).toBe(
+      'project = "ESHOP" AND statusCategory != Done AND text ~ "foo" AND text ~ "OR" AND text ~ "project" AND text ~ "=" AND text ~ "X*" ORDER BY updated DESC',
+    );
+    // every user-derived clause is a fully quoted token with no inner quotes
+    const userPart = jql.slice(jql.indexOf('text ~'), jql.indexOf(' ORDER BY'));
+    expect(userPart.replace(/text ~ "[^"\\]*"/g, '').replace(/ AND /g, '')).toBe('');
+  });
+
+  it('returns null when no usable tokens remain and never emits leading wildcards', () => {
+    expect(buildBodySearchJql('ESHOP', '  *  ?? ', 'open')).toBeNull();
+    expect(buildBodySearchJql('ESHOP', '*abc', 'open')).toContain('text ~ "abc*"');
+  });
+});
+
+describe('searchJiraBody', () => {
+  const baseOpts = {
+    projectKey: 'ESHOP',
+    query: 'cart',
+    scope: 'open' as const,
+    epicLinkFieldKey: 'customfield_10014',
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('issues one request with fields, maxResults and bearer token', async () => {
+    vi.mocked(mockFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ issues: [{ key: 'A-1' }] }),
+    } as unknown as Response);
+    const res = await searchJiraBody(BASE, TOKEN, baseOpts);
+    expect(res).toEqual([{ key: 'A-1' }]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = vi.mocked(mockFetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toContain(`${BASE}/rest/api/2/search?jql=`);
+    expect(url).toContain(
+      '&fields=summary,status,assignee,issuetype,parent,description,customfield_10014&maxResults=50',
+    );
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer my-token');
+  });
+
+  it('throws on non-ok response', async () => {
+    vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 500 } as unknown as Response);
+    await expect(searchJiraBody(BASE, TOKEN, baseOpts)).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.mocked(mockFetch).mockRejectedValue(new Error('network'));
+    await expect(searchJiraBody(BASE, TOKEN, { ...baseOpts, scope: 'closed' })).rejects.toThrow();
+  });
+
+  it('resolves [] without fetching when no usable tokens', async () => {
+    const res = await searchJiraBody(BASE, TOKEN, { ...baseOpts, query: '***' });
+    expect(res).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

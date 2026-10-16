@@ -22,6 +22,10 @@
  *   - `invalidateGhBacklogData(qc, boardId?)` — one board or all; used by
  *     the "Reload backlog" action (D-07) and by mutation handlers (D-06).
  *
+ * Phase 92 (D-03/D-21): optional second arg `{ ignoreRoute, enabled, staleTime,
+ * refetchOnWindowFocus }` lets the global-search palette share this cache from
+ * any route. Default (no opts) behaviour is unchanged for BacklogPage.
+ *
  * See Phase 74 CONTEXT.md D-01/D-02/D-03/D-07, RESEARCH §"Pattern 1", and
  * PATTERNS.md §"useGhBacklogData.ts".
  *
@@ -49,7 +53,15 @@ import type { GhBacklogResponse } from './types';
  * Does NOT poll — staleTime is the only freshness gate. BacklogPage adapts
  * the raw envelope in a `useMemo` chain per Phase 74 D-02 / Discretion.
  */
-export function useGhBacklogData(boardId: number | null): UseQueryResult<GhBacklogResponse> {
+export function useGhBacklogData(
+  boardId: number | null,
+  opts?: {
+    ignoreRoute?: boolean;
+    enabled?: boolean;
+    staleTime?: number;
+    refetchOnWindowFocus?: boolean;
+  },
+): UseQueryResult<GhBacklogResponse> {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const [token, setToken] = useState<string | null>(null);
 
@@ -73,11 +85,16 @@ export function useGhBacklogData(boardId: number | null): UseQueryResult<GhBackl
 
   const isActive = useIsActiveRoute('/backlog');
 
+  const routeOk = opts?.ignoreRoute ? true : isActive;
+
   return useQuery<GhBacklogResponse>({
     queryKey: ['gh-backlog', boardId],
     queryFn: () => fetchBacklogData(jiraBaseUrl as string, token as string, boardId as number),
-    staleTime: STALE_TIME_MS,
-    enabled: isActive && !!boardId && !!jiraBaseUrl && !!token,
+    staleTime: opts?.staleTime ?? STALE_TIME_MS,
+    enabled: routeOk && (opts?.enabled ?? true) && !!boardId && !!jiraBaseUrl && !!token,
+    ...(opts?.refetchOnWindowFocus !== undefined
+      ? { refetchOnWindowFocus: opts.refetchOnWindowFocus }
+      : {}),
   });
 }
 
