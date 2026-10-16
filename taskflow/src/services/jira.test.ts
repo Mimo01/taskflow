@@ -2674,7 +2674,7 @@ describe('searchJiraBody', () => {
     const [url, init] = vi.mocked(mockFetch).mock.calls[0] as [string, RequestInit];
     expect(url).toContain(`${BASE}/rest/api/2/search?jql=`);
     expect(url).toContain(
-      '&fields=summary,status,assignee,issuetype,parent,description,customfield_10014&maxResults=50',
+      '&fields=summary,status,assignee,issuetype,parent,description,comment,customfield_10014&maxResults=50',
     );
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer my-token');
   });

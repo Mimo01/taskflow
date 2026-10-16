@@ -1653,7 +1653,7 @@ export async function searchJiraBody(
   const jql = buildBodySearchJql(opts.projectKey, opts.query, opts.scope);
   if (jql === null) return [];
   const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,issuetype,parent,description,${opts.epicLinkFieldKey}&maxResults=${opts.maxResults ?? 50}`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,issuetype,parent,description,comment,${opts.epicLinkFieldKey}&maxResults=${opts.maxResults ?? 50}`;
   const response = await apiFetch(
     'jira',
     url,

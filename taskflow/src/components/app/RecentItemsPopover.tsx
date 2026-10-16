@@ -78,7 +78,7 @@ function PopoverRecentRow({
     <button
       type="button"
       className={cn(
-        'w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted',
+        'w-full text-left px-3 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted',
         divider && GROUP_DIVIDER_CLASS,
       )}
       onClick={handleClick}

@@ -39,7 +39,8 @@ export interface SearchResultRowProps {
 const MATCH_LABEL = { desc: 'Matched in description', comment: 'Matched in a comment' } as const;
 
 /** Key cell: min width so titles line up across rows with different key lengths. */
-const KEY_CLASS = 'min-w-[4.5rem] shrink-0 text-left font-mono text-xs text-muted-foreground';
+const KEY_CLASS =
+  'min-w-[4.25rem] shrink-0 text-left font-mono text-[0.6875rem] text-muted-foreground';
 
 /**
  * Subtle hairline above a row that starts a new story group (a story, or a dimmed
@@ -77,10 +78,10 @@ export function SearchResultRow({
   const epicColor = showEpic && epic ? epicColorToTailwind(epic.color, epic.key) : null;
   return (
     <div className="@container w-full min-w-0">
-      {/* Fixed h-5 (= avatar / status pill height): every row is the same height. */}
+      {/* Fixed 18px (= avatar / status pill height): every row is the same height. */}
       <div
         className={cn(
-          'flex h-5 min-w-0 items-center gap-2 whitespace-nowrap',
+          'flex h-[18px] min-w-0 items-center gap-2 whitespace-nowrap',
           indent && 'pl-6',
           dimmed && 'opacity-40',
         )}
@@ -108,7 +109,11 @@ export function SearchResultRow({
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
-          className="truncate text-sm min-w-0 flex-[0_1_auto]"
+          className={cn(
+            'truncate text-[0.8125rem] min-w-0 flex-[0_1_auto]',
+            // Body match: title and snippet each keep a minimum so both stay readable.
+            snippet && 'min-w-[7rem] @[600px]:min-w-[10rem]',
+          )}
         />
         {matchTag && (
           // Compact icon label (description / comment); the tooltip carries the matched text.
@@ -129,15 +134,16 @@ export function SearchResultRow({
           <HighlightedText
             text={snippet.text}
             ranges={snippet.ranges}
-            className="hidden @[560px]:block min-w-0 flex-[1_1_0%] truncate text-xs text-muted-foreground"
+            className="min-w-[6rem] @[600px]:min-w-[8rem] flex-[1_1_0%] truncate text-xs text-muted-foreground"
           />
         ) : null}
-        {/* Spacer; a visible snippet already fills the free space. */}
-        <span className={cn('flex-1', snippet && '@[560px]:hidden')} />
-        {epic && epicColor && (
+        {/* Spacer; a snippet already fills the free space. */}
+        {!snippet && <span className="flex-1" />}
+        {/* Body-match rows trade the epic badge for the matched snippet. */}
+        {epic && epicColor && !snippet && (
           <span
             className={cn(
-              'hidden @[560px]:inline-flex min-w-14 max-w-28 flex-[0_100_auto] items-center overflow-hidden rounded border px-1 py-0.5 text-xs leading-4 font-medium',
+              'hidden @[560px]:inline-flex min-w-14 max-w-28 flex-[0_100_auto] items-center overflow-hidden rounded border px-1 text-[0.6875rem] leading-4 font-medium',
               epicColor.className,
             )}
             style={epicColor.style}
@@ -152,7 +158,7 @@ export function SearchResultRow({
           <span
             title={statusName}
             className={cn(
-              'inline-flex min-w-[4.75rem] max-w-28 shrink-0 justify-center rounded px-1.5 py-0.5 text-xs leading-4 font-medium',
+              'inline-flex min-w-[4.25rem] max-w-28 shrink-0 justify-center rounded px-1.5 py-px text-[0.6875rem] leading-4 font-medium',
               statusCategoryBadgeClass(statusCategoryKey),
             )}
           >
@@ -160,13 +166,17 @@ export function SearchResultRow({
           </span>
         )}
         {assigneeName === undefined ? (
-          <span className="flex-none w-5" aria-hidden="true" />
+          <span className="flex-none w-[18px]" aria-hidden="true" />
         ) : (
-          <span className="flex-none w-5" title={assigneeName ?? 'Unassigned'} aria-hidden="true">
+          <span
+            className="flex-none w-[18px]"
+            title={assigneeName ?? 'Unassigned'}
+            aria-hidden="true"
+          >
             <CachedAvatar
               url={avatarUrl ?? undefined}
               name={assigneeName || 'Unassigned'}
-              size={20}
+              size={18}
             />
           </span>
         )}
