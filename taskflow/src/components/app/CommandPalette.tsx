@@ -13,7 +13,12 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { Archive, GitMerge, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { buildRecentRows, RecentItemRow, recentMrIid } from '@/components/app/RecentItemRow';
+import {
+  buildRecentRows,
+  findJiraIssueInCache,
+  RecentItemRow,
+  recentMrIid,
+} from '@/components/app/RecentItemRow';
 import { SearchResultRow } from '@/components/app/SearchResultRow';
 import {
   Command,
@@ -456,10 +461,15 @@ export default function CommandPalette({
                 {recentItems.length === 0 ? (
                   <CommandItem disabled>No recent items</CommandItem>
                 ) : (
-                  buildRecentRows(recentItems, (key) => ({
-                    entry: findIndexEntry(index, key),
-                    issue: cachedIssuesMap.get(key),
-                  })).map((row) => {
+                  buildRecentRows(recentItems, (key) => {
+                    const entry = findIndexEntry(index, key);
+                    return {
+                      entry,
+                      issue: entry
+                        ? null
+                        : (cachedIssuesMap.get(key) ?? findJiraIssueInCache(queryClient, key)),
+                    };
+                  }).map((row) => {
                     const { item } = row;
                     return (
                       <CommandItem

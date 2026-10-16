@@ -94,4 +94,32 @@ describe('buildRecentRows', () => {
     );
     expect(shape(rows)).toEqual(['P-1', '1/5', 'P-1 (dim)', '  P-2']);
   });
+
+  it('falls back to the persisted parent when the subtask is not in any cache', () => {
+    const rows = buildRecentRows(
+      [
+        {
+          type: 'jira',
+          id: 'C-2',
+          title: 'Cold subtask',
+          parentKey: 'C-1',
+          parentTitle: 'Cold story',
+          parentIssueType: 'Story',
+          timestamp: 1,
+        },
+      ],
+      () => ({ entry: null }),
+    );
+    expect(shape(rows)).toEqual(['C-1 (dim)', '  C-2']);
+    expect(rows[0].item.title).toBe('Cold story');
+    expect(rows[0].item.issueType).toBe('Story');
+  });
+
+  it('trusts an index entry over a stale persisted parent', () => {
+    const rows = buildRecentRows(
+      [{ type: 'jira', id: 'P-9', parentKey: 'P-1', timestamp: 1 }],
+      resolverFor([entry('P-9')]),
+    );
+    expect(shape(rows)).toEqual(['P-9']);
+  });
 });
