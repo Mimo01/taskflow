@@ -369,6 +369,23 @@ describe('field tier', () => {
     ).toBe(2);
   });
 
+  it('builds a snippet from the newest matching comment', () => {
+    const issue = jira('A-2', 'x', { description: 'unrelated' });
+    (issue.fields as unknown as { comment: unknown }).comment = {
+      comments: [
+        { body: 'old note: the cart is empty on staging' },
+        { body: 'nothing relevant' },
+        { body: 'Confirmed: cart is empty after the {code}deploy{code}' },
+      ],
+    };
+    const hit = classifyBodyHit('cart empty', issue);
+    expect(hit.field).toBe(2);
+    // Newest matching comment wins (not the older 'on staging' one).
+    expect(hit.snippet?.text).toContain('cart is empty after the deploy');
+    expect(hit.snippet?.text).not.toContain('staging');
+    expect(hit.snippet?.ranges.length).toBeGreaterThan(0);
+  });
+
   it('orders title < desc < comment within a tier; exact beats fuzzy', () => {
     const index = buildSearchIndex(
       makeBacklog({

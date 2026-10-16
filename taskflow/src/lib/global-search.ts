@@ -296,12 +296,24 @@ export function classifyBodyHit(
   query: string,
   issue: JiraIssue,
 ): { field: 1 | 2; snippet: { text: string; ranges: HighlightRange[] } | null } {
-  const raw = issue.fields?.description;
-  const text = stripWikiMarkup(typeof raw === 'string' ? raw : '');
-  if (text && matchText(query, text, { fuzzy: false })) {
-    // Short lead-in so the matched words sit at the start of the (truncating) snippet.
-    return { field: 1, snippet: buildSnippet(text, query, 64, 16) };
+  // Short lead-in so the matched words sit at the start of the (truncating) snippet.
+  const snippetOf = (raw: unknown) => {
+    const text = stripWikiMarkup(typeof raw === 'string' ? raw : '');
+    return text && matchText(query, text, { fuzzy: false })
+      ? buildSnippet(text, query, 64, 10)
+      : null;
+  };
+  const desc = snippetOf(issue.fields?.description);
+  if (desc) return { field: 1, snippet: desc };
+  // Comments come back with the body search (fields=comment); newest first.
+  const comments =
+    (issue.fields as { comment?: { comments?: Array<{ body?: unknown }> } } | undefined)?.comment
+      ?.comments ?? [];
+  for (let i = comments.length - 1; i >= 0; i--) {
+    const snip = snippetOf(comments[i]?.body);
+    if (snip) return { field: 2, snippet: snip };
   }
+  // Matched another text field (or a prefix the local matcher can't confirm): label only.
   return { field: 2, snippet: null };
 }
 
