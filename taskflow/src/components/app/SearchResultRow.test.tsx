@@ -164,6 +164,13 @@ describe('body match', () => {
     );
   });
 
+  it('labels a hit in another field', () => {
+    const { container } = render(<SearchResultRow {...props({ matchTag: 'other' })} />);
+    const line = container.querySelector('[data-match-line]');
+    expect(line?.querySelector('[aria-label="Matched in another field"]')).not.toBeNull();
+    expect(line?.textContent).toContain('Matched in another field');
+  });
+
   it('has no second line for title-only matches', () => {
     const { container } = render(<SearchResultRow {...props()} />);
     expect(container.querySelector('[data-match-line]')).toBeNull();

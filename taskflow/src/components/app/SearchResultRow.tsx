@@ -1,8 +1,9 @@
-import { Clock, FileText, MessageSquare } from 'lucide-react';
+import { Clock, FileText, MessageSquare, TextSearch } from 'lucide-react';
 import type React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import type { MatchTag } from '@/lib/global-search';
 import { isDoneStatus } from '@/lib/issueDisplayUtils';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,7 @@ export interface SearchResultRowProps {
   assigneeName?: string | null;
   avatarUrl?: string | null;
   snippet?: { text: string; ranges: ReadonlyArray<Range> } | null;
-  matchTag?: 'desc' | 'comment' | null;
+  matchTag?: MatchTag | null;
   /** Context-only parent row: same layout and size as any row, only faded (opacity-40). */
   dimmed?: boolean;
   indent?: boolean;
@@ -37,7 +38,17 @@ export interface SearchResultRowProps {
   onKeyClick?: (e: React.MouseEvent, issueKey: string) => void;
 }
 
-const MATCH_LABEL = { desc: 'Matched in description', comment: 'Matched in a comment' } as const;
+const MATCH_LABEL: Record<MatchTag, string> = {
+  desc: 'Matched in description',
+  comment: 'Matched in a comment',
+  other: 'Matched in another field',
+};
+
+const MATCH_ICON: Record<MatchTag, typeof FileText> = {
+  desc: FileText,
+  comment: MessageSquare,
+  other: TextSearch,
+};
 
 /**
  * Row grid: [icon 14px] gap 8 [key column] gap 8 [title …] … [status] [avatar].
@@ -83,6 +94,7 @@ export function SearchResultRow({
   const epicColor = showEpic && epic ? epicColorToTailwind(epic.color, epic.key) : null;
   // Done issues show a struck-through key, like TaskCard / StoryHeaderRow.
   const done = isDoneStatus(statusCategoryKey ? { key: statusCategoryKey } : null);
+  const MatchIcon = matchTag ? MATCH_ICON[matchTag] : null;
   return (
     <div className={cn('@container w-full min-w-0', indent && 'pl-3')}>
       {/* Line 1 is a fixed 20px (= avatar / status pill height) on every row. */}
@@ -172,11 +184,7 @@ export function SearchResultRow({
             title={MATCH_LABEL[matchTag]}
             className="inline-flex shrink-0 text-muted-foreground/70"
           >
-            {matchTag === 'desc' ? (
-              <FileText className="size-3" />
-            ) : (
-              <MessageSquare className="size-3" />
-            )}
+            {MatchIcon && <MatchIcon className="size-3" />}
           </span>
           {snippet ? (
             <HighlightedText

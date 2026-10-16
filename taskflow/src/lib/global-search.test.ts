@@ -155,6 +155,11 @@ function jira(
   } as unknown as JiraIssue;
 }
 
+function withComment(issue: JiraIssue, body: string): JiraIssue {
+  (issue.fields as unknown as { comment: unknown }).comment = { comments: [{ body }] };
+  return issue;
+}
+
 function model(
   index: ReturnType<typeof buildSearchIndex>,
   query: string,
@@ -353,6 +358,13 @@ describe('index sources', () => {
 });
 
 describe('field tier', () => {
+  it('tags a body hit with no description/comment text as "other"', () => {
+    const index = buildSearchIndex(makeBacklog({ issues: [] }));
+    const hit = jira('Z-1', 'unrelated title', { description: 'nothing here' });
+    const sections = model(index, 'cart empty', { bodyIssues: [hit] });
+    expect(sections[0].rows[0].tag).toBe('other');
+  });
+
   it('classifies description vs comment', () => {
     const d = classifyBodyHit(
       'cart empty',
@@ -398,7 +410,7 @@ describe('field tier', () => {
     const out = model(index, 'checkout', {
       bodyIssues: [
         jira('P-3', 'unrelated', { description: 'about checkout here' }),
-        jira('P-4', 'other', { description: 'zzz' }),
+        withComment(jira('P-4', 'other', { description: 'zzz' }), 'see checkout notes'),
       ],
     });
     expect(allKeys(out)).toEqual(['P-2', 'P-1', 'P-3', 'P-4']);
