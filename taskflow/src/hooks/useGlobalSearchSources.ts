@@ -26,22 +26,27 @@ export function useGlobalSearchSources(open: boolean): {
 } {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
-  const [token, setToken] = useState<string | null>(null);
+  const [secret, setSecret] = useState<{ baseUrl: string | null; token: string | null }>({
+    baseUrl: null,
+    token: null,
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: jiraBaseUrl is an intentional re-run trigger — re-read the secret on instance switch.
   useEffect(() => {
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
-        if (!cancelled) setToken(t);
+        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: t });
       })
       .catch(() => {
-        if (!cancelled) setToken(null);
+        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: null });
       });
     return () => {
       cancelled = true;
     };
   }, [jiraBaseUrl]);
+  // WR-06: only trust a PAT read for the current instance — on the render where jiraBaseUrl
+  // switches, the previous instance's token must not be sent to the new host.
+  const token = secret.baseUrl === jiraBaseUrl ? secret.token : null;
 
   const { boardId, isLoading: boardIdLoading } = useBoardId(jiraBaseUrl, token, activeJiraProject);
 
