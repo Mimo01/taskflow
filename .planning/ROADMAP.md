@@ -122,3 +122,18 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 | v1.0 MVP | 4 (1-4) | 20 | 2026-03-12 |
 
 **Next milestone:** not yet defined — run `/gsd-new-milestone`.
+
+### Phase 92: Advanced Global Search — prioritized ranking (current sprint > upcoming sprints, title > description > comments, story > subtask), cached-data index with minimal Jira load, larger search dialog, subtasks grouped under parent story, epic badges on stories, assignee display, match highlighting
+
+**Goal:** Global search (CommandPalette) returns instant, ranked issue results from the cached backlog index — sprint tier first (current > upcoming > backlog > closed), then field (title > description > comment), subtasks grouped under their parent — with compact one-line rows (epic badge, status, assignee, highlights), one debounced Jira body request per query, and a larger dialog.
+**Requirements**: TBD (contract = 92-CONTEXT.md D-01..D-21)
+**Depends on:** Phase 91
+**Plans:** 6 plans
+
+Plans:
+- [ ] 92-01-PLAN.md — fuzzysort legitimacy gate + install; pure text matching (fuzzy, highlight runs, snippets)
+- [ ] 92-02-PLAN.md — searchJiraBody (injection-safe JQL, throws) + route-independent backlog source hook
+- [ ] 92-03-PLAN.md — HighlightedText + compact one-line SearchResultRow
+- [ ] 92-04-PLAN.md — global-search lib: index, tiers, field tiers, grouping, ranking, caps
+- [ ] 92-05-PLAN.md — CommandPalette upgrade: ranked tiers, body/closed queries, direct match, states
+- [ ] 92-06-PLAN.md — phase gates, validation map, live-Jira + visual UAT
