@@ -12,12 +12,11 @@ import { Clock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
-import { buildSearchIndex, findIndexEntry, type SearchIndex } from '@/lib/global-search';
+import { buildSearchIndex, findIndexEntry } from '@/lib/global-search';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import type { RecentItem } from '@/stores/recent-items.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
-import { RecentItemRow, recentMrIid } from './RecentItemRow';
+import { buildRecentRows, RecentItemRow, type RecentRowModel, recentMrIid } from './RecentItemRow';
 
 interface RecentItemsPopoverProps {
   onIssueClick?: (issueKey: string) => void;
@@ -76,21 +75,18 @@ function findGitLabMRInCache(
 }
 
 function PopoverRecentRow({
-  item,
-  index,
+  row,
   queryClient,
   onIssueClick,
   onMRClick,
 }: {
-  item: RecentItem;
-  index: SearchIndex;
+  row: RecentRowModel;
   queryClient: ReturnType<typeof useQueryClient>;
   onIssueClick?: (issueKey: string) => void;
   onMRClick?: (projectIdAndIid: string) => void;
 }) {
+  const { item } = row;
   const isJira = item.type === 'jira';
-  const entry = isJira ? findIndexEntry(index, item.id) : null;
-  const issue = isJira && !entry ? findJiraIssueInCache(queryClient, item.id) : undefined;
   const mrTitle = isJira
     ? undefined
     : findGitLabMRInCache(queryClient, recentMrIid(item.id))?.title;
@@ -109,7 +105,14 @@ function PopoverRecentRow({
       className="w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted"
       onClick={handleClick}
     >
-      <RecentItemRow item={item} entry={entry} issue={issue} mrTitle={mrTitle} />
+      <RecentItemRow
+        item={item}
+        entry={row.entry}
+        issue={row.issue}
+        mrTitle={mrTitle}
+        dimmed={row.dimmed}
+        indent={row.indent}
+      />
     </button>
   );
 }
@@ -143,11 +146,13 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
                 No recent items yet
               </div>
             ) : (
-              items.map((item) => (
+              buildRecentRows(items, (key) => {
+                const entry = findIndexEntry(index, key);
+                return { entry, issue: entry ? null : findJiraIssueInCache(queryClient, key) };
+              }).map((row) => (
                 <PopoverRecentRow
-                  key={`${item.type}-${item.id}`}
-                  item={item}
-                  index={index}
+                  key={row.rowKey}
+                  row={row}
                   queryClient={queryClient}
                   onIssueClick={onIssueClick}
                   onMRClick={onMRClick}
