@@ -341,7 +341,7 @@ describe('CommandPalette', () => {
         { type: 'jira', id: 'TEST-7', issueType: 'Bug', title: 'Fix crash', timestamp: Date.now() },
       ];
       renderPalette();
-      const row = screen.getByText('TEST-7 Fix crash').closest('[cmdk-item]');
+      const row = screen.getByText('Fix crash').closest('[cmdk-item]');
       expect(row).not.toBeNull();
       expect(row?.querySelector('[class*="lucide-bug"]')).not.toBeNull();
     });
@@ -365,7 +365,7 @@ describe('CommandPalette', () => {
       });
       mockRecentItems = [{ type: 'jira', id: 'TEST-8', issueType: 'Bug', timestamp: Date.now() }];
       renderPalette({}, qc);
-      const row = screen.getByText('TEST-8 Cached story').closest('[cmdk-item]');
+      const row = screen.getByText('Cached story').closest('[cmdk-item]');
       expect(row).not.toBeNull();
       expect(row?.querySelector('[class*="lucide-book-open"]')).not.toBeNull();
       expect(row?.querySelector('[class*="lucide-bug"]')).toBeNull();
@@ -376,7 +376,7 @@ describe('CommandPalette', () => {
         { type: 'jira', id: 'TEST-9', title: 'No type here', timestamp: Date.now() },
       ];
       renderPalette();
-      const row = screen.getByText('TEST-9 No type here').closest('[cmdk-item]');
+      const row = screen.getByText('No type here').closest('[cmdk-item]');
       expect(row).not.toBeNull();
       expect(row?.querySelector('[class*="lucide-clock"]')).not.toBeNull();
     });
@@ -386,9 +386,11 @@ describe('CommandPalette', () => {
         { type: 'gitlab', id: '1/55', title: 'Add caching', timestamp: Date.now() },
       ];
       renderPalette();
-      const row = screen.getByText('!55 Add caching').closest('[cmdk-item]');
+      const row = screen.getByText('Add caching').closest('[cmdk-item]');
       expect(row).not.toBeNull();
       expect(row?.querySelector('[class*="lucide-git-merge"]')).not.toBeNull();
+      // Composite "project_id/iid" ids display the bare iid.
+      expect(row?.textContent).toContain('!55');
     });
   });
 

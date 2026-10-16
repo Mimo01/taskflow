@@ -10,9 +10,10 @@
  */
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Clock, GitMerge, SearchX } from 'lucide-react';
+import { Archive, GitMerge, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { RecentItemRow, recentMrIid } from '@/components/app/RecentItemRow';
 import { SearchResultRow } from '@/components/app/SearchResultRow';
 import {
   Command,
@@ -22,7 +23,6 @@ import {
   CommandList,
   CommandShortcut,
 } from '@/components/ui/command';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
 import {
@@ -307,32 +307,6 @@ export default function CommandPalette({
     onClose();
   }
 
-  // ─── Helpers for recent items display ──────────────────────────────────────
-
-  function getRecentItemLabel(item: { type: 'jira' | 'gitlab'; id: string; title?: string }) {
-    if (item.type === 'jira') {
-      const cached = findIndexEntry(index, item.id);
-      const title = cached?.summary ?? cachedIssuesMap.get(item.id)?.fields.summary ?? item.title;
-      return title ? `${item.id} ${title}` : item.id;
-    }
-    // GitLab ids are stored as "project_id/iid" (composite). Split to get the bare iid for
-    // display (e.g. "!67" instead of "!12345/67") and for cache lookup.
-    const iid = item.id.includes('/') ? item.id.split('/').pop() : item.id;
-    const cachedMR = allMRs.find((mr) => String(mr.iid) === iid);
-    const title = cachedMR?.title ?? item.title;
-    return title ? `!${iid} ${title}` : `!${iid}`;
-  }
-
-  /** Resolve the icon type name for a recent Jira item: sprint-board cache first, then the
-   * persisted `issueType`, matching RecentItemsPopover.tsx's cache-then-persisted resolution. */
-  function getRecentItemTypeName(item: { id: string; issueType?: string }) {
-    return (
-      findIndexEntry(index, item.id)?.typeName ??
-      cachedIssuesMap.get(item.id)?.fields.issuetype?.name ??
-      item.issueType
-    );
-  }
-
   // ─── Navigation action handlers (for action-based nav items like notifications) ─
   const navActionHandlers: Record<string, () => void> = {
     'open-notifications': () => {
@@ -483,12 +457,11 @@ export default function CommandPalette({
                   <CommandItem disabled>No recent items</CommandItem>
                 ) : (
                   recentItems.map((item) => {
-                    const resolvedTypeName =
-                      item.type === 'jira' ? getRecentItemTypeName(item) : undefined;
                     return (
                       <CommandItem
                         key={`${item.type}-${item.id}`}
                         value={`${item.type}-${item.id}`}
+                        className="py-1 [&>svg:last-child]:hidden"
                         keywords={[item.id]}
                         onSelect={() => {
                           if (item.type === 'jira') {
@@ -500,19 +473,17 @@ export default function CommandPalette({
                           }
                         }}
                       >
-                        {item.type === 'jira' ? (
-                          resolvedTypeName ? (
-                            <IssueTypeIcon
-                              typeName={resolvedTypeName}
-                              className="w-3.5 h-3.5 shrink-0"
-                            />
-                          ) : (
-                            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                          )
-                        ) : (
-                          <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                        )}
-                        <span className="truncate">{getRecentItemLabel(item)}</span>
+                        <RecentItemRow
+                          item={item}
+                          entry={item.type === 'jira' ? findIndexEntry(index, item.id) : null}
+                          issue={item.type === 'jira' ? cachedIssuesMap.get(item.id) : null}
+                          mrTitle={
+                            item.type === 'gitlab'
+                              ? allMRs.find((mr) => String(mr.iid) === recentMrIid(item.id))?.title
+                              : undefined
+                          }
+                          onKeyClick={item.type === 'jira' ? handleIssueKeyClick : undefined}
+                        />
                       </CommandItem>
                     );
                   })

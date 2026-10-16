@@ -1,20 +1,23 @@
 /**
  * RecentItemsPopover -- clock icon trigger with a popover listing the last 10
- * recently opened issues/MRs. Reads from useRecentItemsStore and resolves
- * display titles from the react-query cache when available. Each row leads
- * with the issue-type icon (Jira) or a merge icon (GitLab MRs) via the
- * shared IssueTypeIcon primitive, falling back to a clock glyph when no
- * type can be resolved from cache or the persisted item.
+ * recently opened issues/MRs. Rows render through the shared RecentItemRow
+ * (same one-line layout as the command palette's Recent Items: type icon,
+ * key, title, status pill, assignee), resolved from the global-search index
+ * (backlog + sprint caches, loaded while the popover is open), then any
+ * cached full issue, then the persisted title/issueType.
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { Clock, GitMerge } from 'lucide-react';
-import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { Clock } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useGlobalSearchSources } from '@/hooks/useGlobalSearchSources';
+import { buildSearchIndex, findIndexEntry, type SearchIndex } from '@/lib/global-search';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import type { RecentItem } from '@/stores/recent-items.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { RecentItemRow, recentMrIid } from './RecentItemRow';
 
 interface RecentItemsPopoverProps {
   onIssueClick?: (issueKey: string) => void;
@@ -22,30 +25,15 @@ interface RecentItemsPopoverProps {
 }
 
 /**
- * Narrow shape returned for gh-backlog hits — only `key` + `fields.summary`
- * are guaranteed (WR-02: the rest of `JiraIssue` is NOT present on
- * gh-backlog cache entries; an `as JiraIssue` cast would silently mislead
- * any future caller that touches `.fields.status`, `.fields.issuetype`,
- * etc.). Callers must check the discriminator before accessing other
- * fields. `typeName` is carried separately (also optional) so the popover
- * can render the correct IssueTypeIcon without widening the cast.
- */
-type RecentIssueLike =
-  | JiraIssue
-  | { key: string; fields: { summary: string }; isPartial: true; typeName?: string };
-
-/**
- * Search all react-query cache entries for a Jira issue by key.
- * Handles different cache shapes: sprint-board (flat JiraIssue[]),
- * subtasks panel ({ issues: JiraIssue[] }), and gh-backlog (narrow
- * { key, summary } — returned as a `isPartial` discriminated variant per
- * WR-02 so callers can't accidentally treat it as a full JiraIssue).
+ * Fallback for issues not in the global-search index: search the jira-issues
+ * caches (sprint board = flat array, subtasks panel = { issues: [] }) and the
+ * issue-detail cache for a full JiraIssue. Backlog (gh-backlog) hits are
+ * covered by the index.
  */
 function findJiraIssueInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   issueKey: string,
-): RecentIssueLike | undefined {
-  // 1. jira-issues caches (sprint-board = flat array, subtasks panel = { issues: [] })
+): JiraIssue | undefined {
   const queries = queryClient.getQueriesData<JiraIssue[] | { issues?: JiraIssue[] }>({
     queryKey: ['jira-issues'],
   });
@@ -60,32 +48,6 @@ function findJiraIssueInCache(
     }
   }
 
-  // Phase 74 GH-CUT-01: backlog data lives in ['gh-backlog', boardId] as a
-  // raw GhBacklogResponse envelope. The recent-items popover only needs the
-  // issue summary, so adapt the GH shape into a minimal JiraIssue-like object.
-  const ghBacklogQueries = queryClient.getQueriesData<{
-    issues?: Array<{ key: string; summary?: string; typeId?: string }>;
-    entityData?: { types?: Record<string, { typeName?: string }> };
-  }>({ queryKey: ['gh-backlog'] });
-  for (const [, data] of ghBacklogQueries) {
-    if (!data?.issues) continue;
-    const match = data.issues.find((issue) => issue.key === issueKey);
-    if (match) {
-      // WR-02: return a narrow `isPartial` variant rather than casting to
-      // JiraIssue. The recents row only reads `.fields.summary` and
-      // `.typeName`; any future caller that touches `.fields.status` etc.
-      // will be forced by the discriminated-union type to first check
-      // `'isPartial' in result`.
-      return {
-        key: match.key,
-        fields: { summary: match.summary ?? '' },
-        isPartial: true,
-        typeName: match.typeId ? data.entityData?.types?.[match.typeId]?.typeName : undefined,
-      };
-    }
-  }
-
-  // 3. Issue detail cache (single issue)
   const detailQueries = queryClient.getQueriesData<JiraIssue>({
     queryKey: ['jira-issue-detail', issueKey],
   });
@@ -113,36 +75,28 @@ function findGitLabMRInCache(
   return undefined;
 }
 
-function RecentItemRow({
+function PopoverRecentRow({
   item,
+  index,
   queryClient,
   onIssueClick,
   onMRClick,
 }: {
   item: RecentItem;
+  index: SearchIndex;
   queryClient: ReturnType<typeof useQueryClient>;
   onIssueClick?: (issueKey: string) => void;
   onMRClick?: (projectIdAndIid: string) => void;
 }) {
-  let label: string;
-  let title: string | undefined;
-  let resolvedTypeName: string | undefined;
-
-  if (item.type === 'jira') {
-    const cached = findJiraIssueInCache(queryClient, item.id);
-    label = item.id;
-    title = cached?.fields.summary ?? item.title;
-    const cachedTypeName =
-      cached && 'isPartial' in cached ? cached.typeName : cached?.fields.issuetype?.name;
-    resolvedTypeName = cachedTypeName ?? item.issueType;
-  } else {
-    const cached = findGitLabMRInCache(queryClient, item.id);
-    label = `!${item.id}`;
-    title = cached?.title ?? item.title;
-  }
+  const isJira = item.type === 'jira';
+  const entry = isJira ? findIndexEntry(index, item.id) : null;
+  const issue = isJira && !entry ? findJiraIssueInCache(queryClient, item.id) : undefined;
+  const mrTitle = isJira
+    ? undefined
+    : findGitLabMRInCache(queryClient, recentMrIid(item.id))?.title;
 
   function handleClick() {
-    if (item.type === 'jira') {
+    if (isJira) {
       onIssueClick?.(item.id);
     } else {
       onMRClick?.(item.id);
@@ -152,20 +106,10 @@ function RecentItemRow({
   return (
     <button
       type="button"
-      className="w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-sm hover:bg-muted flex gap-2 items-center"
+      className="w-full text-left px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted"
       onClick={handleClick}
     >
-      {item.type === 'jira' ? (
-        resolvedTypeName ? (
-          <IssueTypeIcon typeName={resolvedTypeName} className="w-3.5 h-3.5 shrink-0" />
-        ) : (
-          <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-        )
-      ) : (
-        <GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-      )}
-      <span className="font-mono text-muted-foreground flex-shrink-0">{label}</span>
-      <span className="truncate">{title ?? ''}</span>
+      <RecentItemRow item={item} entry={entry} issue={issue} mrTitle={mrTitle} />
     </button>
   );
 }
@@ -173,16 +117,19 @@ function RecentItemRow({
 export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentItemsPopoverProps) {
   const { items } = useRecentItemsStore();
   const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const { backlog, allData } = useGlobalSearchSources(open);
+  const index = useMemo(() => buildSearchIndex(backlog, allData), [backlog, allData]);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
         aria-label="Recent Items"
       >
         <Clock className="w-5 h-5" />
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[28rem]">
+      <PopoverContent className="p-0 w-[36rem] max-w-[calc(100vw-2rem)]">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b">
@@ -197,9 +144,10 @@ export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentIt
               </div>
             ) : (
               items.map((item) => (
-                <RecentItemRow
+                <PopoverRecentRow
                   key={`${item.type}-${item.id}`}
                   item={item}
+                  index={index}
                   queryClient={queryClient}
                   onIssueClick={onIssueClick}
                   onMRClick={onMRClick}
