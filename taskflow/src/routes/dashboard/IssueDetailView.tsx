@@ -219,9 +219,10 @@ export function IssueDetailView({
         title: issue.fields.summary,
         issueType: issue.fields.issuetype?.name,
         // Subtask parent, so Recent Items can show it under its story without a warm cache.
+        // Always sent (undefined when none): this push is authoritative and clears a stale parent.
+        parentKey: parent?.key,
         ...(parent?.key
           ? {
-              parentKey: parent.key,
               parentTitle: parent.fields?.summary,
               parentIssueType: (parent.fields as { issuetype?: { name?: string } } | undefined)
                 ?.issuetype?.name,

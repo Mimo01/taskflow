@@ -152,4 +152,49 @@ describe('recent-items.store (Phase 20)', () => {
       parentIssueType: 'Story',
     });
   });
+
+  it('clears parent info when an authoritative push sends parentKey: undefined (WR-07)', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+    act(() => {
+      result.current.pushItem({
+        type: 'jira',
+        id: 'P-2',
+        parentKey: 'P-1',
+        parentTitle: 'Parent story',
+        parentIssueType: 'Story',
+      });
+    });
+    act(() => {
+      result.current.pushItem({
+        type: 'jira',
+        id: 'P-2',
+        title: 'Now a story',
+        parentKey: undefined,
+      });
+    });
+    const item = result.current.items[0];
+    expect(item.parentKey).toBeUndefined();
+    expect(item.parentTitle).toBeUndefined();
+    expect(item.parentIssueType).toBeUndefined();
+  });
+
+  it('drops the old parent title when moved to a different parent (WR-07)', () => {
+    const { result } = renderHook(() => useRecentItemsStore());
+    act(() => {
+      result.current.pushItem({
+        type: 'jira',
+        id: 'P-2',
+        parentKey: 'P-1',
+        parentTitle: 'Parent story',
+        parentIssueType: 'Story',
+      });
+    });
+    act(() => {
+      result.current.pushItem({ type: 'jira', id: 'P-2', parentKey: 'P-9' });
+    });
+    const item = result.current.items[0];
+    expect(item.parentKey).toBe('P-9');
+    expect(item.parentTitle).toBeUndefined();
+    expect(item.parentIssueType).toBeUndefined();
+  });
 });

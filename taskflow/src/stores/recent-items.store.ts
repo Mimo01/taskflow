@@ -31,10 +31,16 @@ export const useRecentItemsStore = create<RecentItemsState>()(
           const title = item.title ?? existing?.title;
           // Preserve existing issueType if caller didn't provide one
           const issueType = item.issueType ?? existing?.issueType;
-          // Preserve existing parent info if caller didn't provide it
-          const parentKey = item.parentKey ?? existing?.parentKey;
-          const parentTitle = item.parentTitle ?? existing?.parentTitle;
-          const parentIssueType = item.parentIssueType ?? existing?.parentIssueType;
+          // Preserve existing parent info if caller didn't provide it. A push that carries the
+          // parentKey property (even undefined) is authoritative: it replaces or clears the
+          // stored parent, and the old parent's title/type only survive for the same parent.
+          const parentAuthoritative = 'parentKey' in item;
+          const parentKey = parentAuthoritative ? item.parentKey : existing?.parentKey;
+          const keepOldParent = !!parentKey && parentKey === existing?.parentKey;
+          const parentTitle =
+            item.parentTitle ?? (keepOldParent ? existing?.parentTitle : undefined);
+          const parentIssueType =
+            item.parentIssueType ?? (keepOldParent ? existing?.parentIssueType : undefined);
           return {
             items: [
               {
