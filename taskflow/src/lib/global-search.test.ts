@@ -620,6 +620,31 @@ describe('epics', () => {
   });
 });
 
+describe('stale local title (WR-05)', () => {
+  const index = buildSearchIndex(
+    makeBacklog({ issues: [{ id: 7, key: 'SHOP-7', summary: 'cart old title' }] }),
+  );
+  const rowOf = (secs: ResultSection[]) =>
+    secs.flatMap((s) => s.rows).find((r) => r.entry.key === 'SHOP-7');
+  const marked = (r: ReturnType<typeof rowOf>) =>
+    (r?.titleRanges ?? []).map(([a, b]) => r?.entry.summary.slice(a, b).toLowerCase());
+
+  it('re-highlights against the fresh Jira title when it was edited', () => {
+    const fresh = jira('SHOP-7', 'renamed: cart old title', { description: 'cart' });
+    const row = rowOf(model(index, 'cart', { bodyIssues: [fresh] }));
+    expect(row?.entry.summary).toBe('renamed: cart old title');
+    expect(marked(row)).toEqual(['cart']);
+  });
+
+  it('falls back to the body hit when the fresh title no longer matches', () => {
+    const fresh = jira('SHOP-7', 'totally different', { description: 'the cart is empty' });
+    const row = rowOf(model(index, 'cart', { bodyIssues: [fresh] }));
+    expect(row?.entry.summary).toBe('totally different');
+    expect(row?.titleRanges).toEqual([]);
+    expect(row?.tag).toBe('desc');
+  });
+});
+
 describe('withoutDirectMatch', () => {
   const index = buildSearchIndex(
     makeBacklog({

@@ -405,8 +405,23 @@ export function buildResultModel(input: {
 
   const consider = (hit: Hit) => {
     const prev = hits.get(hit.entry.key);
-    if (!prev || compareHits(hit, prev) < 0) hits.set(hit.entry.key, hit);
-    else hits.set(prev.entry.key, { ...prev, entry: hit.entry });
+    if (!prev || compareHits(hit, prev) < 0) {
+      hits.set(hit.entry.key, hit);
+      return;
+    }
+    // Keep the better-ranked hit but show the fresher (Jira) entry. A title hit's ranges
+    // were computed on the old summary, so re-match them on the new one when it changed.
+    if (prev.field !== 0 || prev.entry.summary === hit.entry.summary) {
+      hits.set(prev.entry.key, { ...prev, entry: hit.entry });
+      return;
+    }
+    const fresh = matchText(query, hit.entry.summary);
+    hits.set(
+      prev.entry.key,
+      fresh
+        ? { ...prev, entry: hit.entry, match: fresh, titleRanges: runsFromIndexes(fresh.indexes) }
+        : hit, // the title no longer matches: the Jira body hit is the real result
+    );
   };
 
   // 1. Title tier from the local index.
