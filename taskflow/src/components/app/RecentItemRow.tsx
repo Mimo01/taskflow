@@ -15,7 +15,13 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { GitMerge } from 'lucide-react';
 import type React from 'react';
-import type { SearchEntry } from '@/lib/global-search';
+import type { RecentIssuesData } from '@/hooks/useRecentIssues';
+import {
+  entryFromJiraIssue,
+  findIndexEntry,
+  type SearchEntry,
+  type SearchIndex,
+} from '@/lib/global-search';
 import type { JiraIssue } from '@/services/jira';
 import type { RecentItem } from '@/stores/recent-items.store';
 import { SearchResultRow } from './SearchResultRow';
@@ -158,6 +164,35 @@ export function findJiraIssueInCache(
   }
 
   return undefined;
+}
+
+/**
+ * Resolve one recent key: index entry first; otherwise a batch-fetched issue converted to
+ * a full entry (status, assignee, epic) the same way body-search hits are; otherwise any
+ * cached issue. Shared by the palette's Recent Items and the top-bar popover.
+ */
+export function resolveRecentIssue(
+  key: string,
+  index: SearchIndex,
+  fetched: RecentIssuesData,
+  cached: (key: string) => JiraIssue | undefined,
+): RecentIssueSources {
+  const indexed = findIndexEntry(index, key);
+  if (indexed) return { entry: indexed };
+  const issue = fetched.issues.get(key);
+  if (issue) {
+    const entry = entryFromJiraIssue(issue, index, fetched.epicLinkFieldKey, 'open');
+    if (!entry.epic) {
+      const epicKey = (issue.fields as unknown as Record<string, unknown>)[
+        fetched.epicLinkFieldKey
+      ];
+      const name = typeof epicKey === 'string' ? fetched.epicNames.get(epicKey) : undefined;
+      // Epic not in the board caches: summary as name, colour hashed from the key.
+      if (typeof epicKey === 'string' && name) entry.epic = { key: epicKey, name, color: '' };
+    }
+    return { entry };
+  }
+  return { entry: null, issue: cached(key) ?? null };
 }
 
 /**

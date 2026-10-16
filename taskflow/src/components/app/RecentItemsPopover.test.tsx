@@ -23,9 +23,16 @@ const mockSources = vi.hoisted(() => ({
   isIndexLoading: false,
   isIndexError: false,
 }));
-const mockFetched = vi.hoisted(() => ({ map: new Map<string, unknown>() }));
+const mockFetched = vi.hoisted(() => ({
+  map: new Map<string, unknown>(),
+  epicNames: new Map<string, string>(),
+}));
 vi.mock('@/hooks/useRecentIssues', () => ({
-  useRecentIssues: vi.fn(() => mockFetched.map),
+  useRecentIssues: vi.fn(() => ({
+    issues: mockFetched.map,
+    epicNames: mockFetched.epicNames,
+    epicLinkFieldKey: 'customfield_10014',
+  })),
 }));
 vi.mock('@/hooks/useGlobalSearchSources', () => ({
   useGlobalSearchSources: vi.fn(() => mockSources),
@@ -77,6 +84,7 @@ describe('RecentItemsPopover', () => {
     useRecentItemsStore.setState({ items: [] });
     mockSources.backlog = undefined;
     mockFetched.map = new Map();
+    mockFetched.epicNames = new Map();
   });
 
   it('RECENT-01: renders clock icon trigger with aria-label', () => {
@@ -184,5 +192,31 @@ describe('RecentItemsPopover', () => {
     expect(await screen.findByText('Closed last month')).toBeInTheDocument();
     expect(screen.getByText('Done')).toBeInTheDocument();
     expect(screen.getByTitle('Ann Lee')).toBeInTheDocument();
+  });
+
+  it('shows the epic badge for a fetched story whose epic is not in the board caches', async () => {
+    mockFetched.map = new Map([
+      [
+        'OLD-4',
+        {
+          key: 'OLD-4',
+          fields: {
+            summary: 'Old story',
+            status: { name: 'Done', statusCategory: { key: 'done' } },
+            assignee: null,
+            issuetype: { name: 'Story', subtask: false },
+            customfield_10014: 'OLD-1',
+          },
+        },
+      ],
+    ]);
+    mockFetched.epicNames = new Map([['OLD-1', 'Legacy checkout']]);
+    setStoreItems([{ type: 'jira', id: 'OLD-4', timestamp: Date.now() }]);
+
+    renderWithQueryClient(<RecentItemsPopover />);
+    fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
+
+    expect(await screen.findByText('Old story')).toBeInTheDocument();
+    expect(screen.getByTitle('OLD-1: Legacy checkout')).toBeInTheDocument();
   });
 });
