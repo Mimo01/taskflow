@@ -160,3 +160,24 @@ describe('body match', () => {
     expect(screen.getByText('snippet text').className).toContain('flex-[1_1_0%]');
   });
 });
+
+describe('done key', () => {
+  it('strikes through the key of a done issue (button and plain variants)', () => {
+    const { unmount } = render(
+      <SearchResultRow {...props({ statusName: 'Done', statusCategoryKey: 'done' })} />,
+    );
+    expect(screen.getByRole('button', { name: 'PROJ-12' }).className).toContain('line-through');
+    unmount();
+    render(
+      <SearchResultRow
+        {...props({ statusName: 'Done', statusCategoryKey: 'done', onKeyClick: undefined })}
+      />,
+    );
+    expect(screen.getByText('PROJ-12').className).toContain('line-through');
+  });
+
+  it('does not strike through open issues', () => {
+    render(<SearchResultRow {...props()} />);
+    expect(screen.getByRole('button', { name: 'PROJ-12' }).className).not.toContain('line-through');
+  });
+});
