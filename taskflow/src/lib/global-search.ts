@@ -81,8 +81,14 @@ export const TOTAL_CAP = 40;
 const CURRENT_ID = 'current';
 const BACKLOG_ID = 'backlog';
 const CLOSED_ID = 'closed';
+/** Open epics get their own section instead of mixing into Backlog as story rows. */
+const EPICS_ID = 'epics';
 
 type EpicInfo = { key: string; name: string; color: string };
+
+function isEpicType(typeName: string | undefined): boolean {
+  return (typeName ?? '').toLowerCase() === 'epic';
+}
 
 function upperKey(key: string): string {
   return key.toUpperCase();
@@ -134,6 +140,7 @@ export function buildSearchIndex(
     tiers.set(CURRENT_ID, { id: CURRENT_ID, label: 'Current sprint', rank: 0 });
   }
   tiers.set(BACKLOG_ID, { id: BACKLOG_ID, label: 'Backlog', rank: 1000 });
+  tiers.set(EPICS_ID, { id: EPICS_ID, label: 'Epics', rank: 1500 });
   tiers.set(CLOSED_ID, { id: CLOSED_ID, label: 'Closed', rank: 2000 });
 
   const index: SearchIndex = { entries, byKey, tiers, epicsByKey };
@@ -156,7 +163,7 @@ export function buildSearchIndex(
       summary: gh.summary,
       typeName: type.name,
       isSubtask: !!gh.parentKey,
-      isEpic: type.name.toLowerCase() === 'epic',
+      isEpic: isEpicType(type.name),
       statusName: status.name,
       statusCategoryKey: gh.done ? 'done' : status.statusCategory.key,
       done: gh.done,
@@ -179,6 +186,9 @@ export function buildSearchIndex(
     if (gh.parentKey) continue;
     let tierId = issueIdToTier.get(gh.id)?.id ?? BACKLOG_ID;
     if (gh.done && tierId !== CURRENT_ID) tierId = CLOSED_ID;
+    else if (tierId === BACKLOG_ID && isEpicType(resolveType(gh.typeId, maps).name)) {
+      tierId = EPICS_ID;
+    }
     add(build(gh, tierId));
   }
   for (const gh of backlog.issues) {
@@ -261,7 +271,8 @@ export function entryFromJiraIssue(
   if (existing) tierId = existing.tierId;
   else if (parentKey && findIndexEntry(index, parentKey)) {
     tierId = findIndexEntry(index, parentKey)?.tierId ?? BACKLOG_ID;
-  } else tierId = scope === 'closed' ? CLOSED_ID : BACKLOG_ID;
+  } else if (scope === 'closed') tierId = CLOSED_ID;
+  else tierId = isEpicType(f.issuetype?.name) ? EPICS_ID : BACKLOG_ID;
 
   const catKey = f.status?.statusCategory?.key ?? 'indeterminate';
   return {
@@ -269,7 +280,7 @@ export function entryFromJiraIssue(
     summary: f.summary ?? existing?.summary ?? '',
     typeName: f.issuetype?.name ?? existing?.typeName ?? '',
     isSubtask,
-    isEpic: (f.issuetype?.name ?? '').toLowerCase() === 'epic',
+    isEpic: isEpicType(f.issuetype?.name),
     statusName: f.status?.name ?? existing?.statusName ?? '',
     statusCategoryKey: catKey,
     done: catKey === 'done',

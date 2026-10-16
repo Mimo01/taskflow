@@ -29,6 +29,7 @@ export interface SearchResultRowProps {
   avatarUrl?: string | null;
   snippet?: { text: string; ranges: ReadonlyArray<Range> } | null;
   matchTag?: 'desc' | 'comment' | null;
+  /** Context-only parent row: icon, key and title in small muted text; no status, avatar or epic. */
   dimmed?: boolean;
   indent?: boolean;
   /** When omitted the key renders as plain text (e.g. inside a parent <button>). */
@@ -62,7 +63,7 @@ export function SearchResultRow({
         className={cn(
           'flex min-w-0 items-center gap-2 whitespace-nowrap',
           indent && 'pl-6',
-          dimmed && 'opacity-60',
+          dimmed && 'opacity-50',
         )}
       >
         {icon ??
@@ -87,9 +88,13 @@ export function SearchResultRow({
         <HighlightedText
           text={title}
           ranges={dimmed ? undefined : titleRanges}
-          className="truncate text-sm min-w-0 flex-[0_100_auto]"
+          className={cn(
+            'truncate min-w-0 flex-[0_100_auto]',
+            dimmed ? 'text-xs text-muted-foreground' : 'text-sm',
+          )}
         />
-        {(snippet || matchTag) && (
+        {dimmed && <span className="flex-1" />}
+        {!dimmed && (snippet || matchTag) && (
           <span className="hidden @[560px]:flex min-w-24 flex-[0_1_auto] items-center gap-1">
             {snippet && (
               <HighlightedText
@@ -105,34 +110,42 @@ export function SearchResultRow({
             )}
           </span>
         )}
-        <span className="flex-1" />
-        {epic && epicColor && (
-          <span
-            className={cn(
-              'hidden @[560px]:inline-flex min-w-14 shrink items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
-              epicColor.className,
+        {!dimmed && (
+          <>
+            <span className="flex-1" />
+            {epic && epicColor && (
+              <span
+                className={cn(
+                  'hidden @[560px]:inline-flex min-w-14 shrink items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium',
+                  epicColor.className,
+                )}
+                style={epicColor.style}
+                title={`${epic.key}: ${epic.name}`}
+              >
+                <span className="truncate">{epic.name}</span>
+              </span>
             )}
-            style={epicColor.style}
-            title={`${epic.key}: ${epic.name}`}
-          >
-            <span className="truncate">{epic.name}</span>
-          </span>
-        )}
-        {statusName && (
-          <div className="flex shrink-0">
-            <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
-          </div>
-        )}
-        {assigneeName === undefined ? (
-          <span className="flex-none w-5" aria-hidden="true" />
-        ) : (
-          <span className="flex-none w-5" title={assigneeName ?? 'Unassigned'} aria-hidden="true">
-            <CachedAvatar
-              url={avatarUrl ?? undefined}
-              name={assigneeName || 'Unassigned'}
-              size={20}
-            />
-          </span>
+            {statusName && (
+              <div className="flex shrink-0">
+                <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
+              </div>
+            )}
+            {assigneeName === undefined ? (
+              <span className="flex-none w-5" aria-hidden="true" />
+            ) : (
+              <span
+                className="flex-none w-5"
+                title={assigneeName ?? 'Unassigned'}
+                aria-hidden="true"
+              >
+                <CachedAvatar
+                  url={avatarUrl ?? undefined}
+                  name={assigneeName || 'Unassigned'}
+                  size={20}
+                />
+              </span>
+            )}
+          </>
         )}
       </div>
     </div>
