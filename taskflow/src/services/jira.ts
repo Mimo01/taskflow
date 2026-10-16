@@ -1615,6 +1615,63 @@ export async function searchJiraClosed(
   return (data.issues ?? []) as JiraIssue[];
 }
 
+export type BodySearchScope = 'open' | 'closed';
+
+/**
+ * Phase 92 (D-02): build an injection-safe JQL for the global-search body search.
+ * Tokenises the input, strips JQL/Lucene reserved characters, quotes each token as its
+ * own `text ~` clause. Returns null when no usable tokens remain.
+ */
+export function buildBodySearchJql(
+  projectKey: string,
+  query: string,
+  scope: BodySearchScope,
+): string | null {
+  const tokens = query
+    .split(/\s+/)
+    .map((t) => t.replace(/[+\-&|!(){}[\]^~*?:\\/#@"']/g, ''))
+    .filter((t) => t.length > 0);
+  if (tokens.length === 0) return null;
+  const clauses = tokens.map((t, i) => `text ~ "${i === tokens.length - 1 ? `${t}*` : t}"`);
+  const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const status = scope === 'open' ? 'statusCategory != Done' : 'statusCategory = Done';
+  return `project = "${esc(projectKey)}" AND ${status} AND ${clauses.join(' AND ')} ORDER BY updated DESC`;
+}
+
+/** Phase 92 (D-02): scoped body search. Unlike searchJira*, THROWS on failure. */
+export async function searchJiraBody(
+  baseUrl: string,
+  token: string,
+  opts: {
+    projectKey: string;
+    query: string;
+    scope: BodySearchScope;
+    epicLinkFieldKey: string;
+    maxResults?: number;
+  },
+): Promise<JiraIssue[]> {
+  const jql = buildBodySearchJql(opts.projectKey, opts.query, opts.scope);
+  if (jql === null) return [];
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,issuetype,parent,description,${opts.epicLinkFieldKey}&maxResults=${opts.maxResults ?? 50}`;
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    },
+    'Search Issue Bodies',
+  );
+  if (!response.ok) {
+    throw new Error(`Jira body search failed: ${response.status}`);
+  }
+  const data = await response.json();
+  return (data.issues ?? []) as JiraIssue[];
+}
+
 // ─── Phase 8: Dashboard Enrichment ───────────────────────────────────────────
 
 export interface JiraActiveSprint {
