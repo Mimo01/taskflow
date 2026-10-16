@@ -245,8 +245,9 @@ export function findIndexEntry(index: SearchIndex, key: string): SearchEntry | n
   return null;
 }
 
+/** Same shape Jira allows for project keys (letter first, then letters/digits/_), any case. */
 export function isKeyLikeQuery(trimmed: string): boolean {
-  return /^[A-Za-z]+-\d+$/i.test(trimmed);
+  return /^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(trimmed);
 }
 
 export function resolveKeyLookup(trimmed: string, activeProject: string | null): string {
