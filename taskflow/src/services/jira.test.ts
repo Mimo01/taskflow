@@ -2638,7 +2638,7 @@ describe('buildBodySearchJql', () => {
   it('strips reserved characters so input cannot escape quotes', () => {
     const jql = buildBodySearchJql('SHOP', 'foo" OR project = X', 'open') as string;
     expect(jql).toBe(
-      'project = "SHOP" AND statusCategory != Done AND text ~ "foo" AND text ~ "project" AND text ~ "=" AND text ~ "X*" ORDER BY updated DESC',
+      'project = "SHOP" AND statusCategory != Done AND text ~ "foo" AND text ~ "project" AND text ~ "X*" ORDER BY updated DESC',
     );
     // every user-derived clause is a fully quoted token with no inner quotes
     const userPart = jql.slice(jql.indexOf('text ~'), jql.indexOf(' ORDER BY'));
@@ -2647,7 +2647,7 @@ describe('buildBodySearchJql', () => {
 
   it('splits on reserved characters instead of merging words (sign-in, api/v2, emails)', () => {
     expect(buildBodySearchJql('SHOP', 'sign-in flow', 'open')).toContain(
-      'text ~ "sign" AND text ~ "in" AND text ~ "flow*"',
+      'text ~ "sign" AND text ~ "flow*"',
     );
     expect(buildBodySearchJql('SHOP', 'api/v2', 'open')).toContain(
       'text ~ "api" AND text ~ "v2*"',
@@ -2661,6 +2661,23 @@ describe('buildBodySearchJql', () => {
     const jql = buildBodySearchJql('SHOP', 'cart AND empty OR NOT x', 'open') as string;
     expect(jql).toContain('text ~ "cart" AND text ~ "empty" AND text ~ "x*"');
     expect(jql).not.toMatch(/text ~ "(AND|OR|NOT)/);
+  });
+
+  it('drops punctuation-only tokens and non-final stopwords Jira would analyse away (WR-02)', () => {
+    expect(buildBodySearchJql('SHOP', 'fix the login', 'open')).toContain(
+      'AND text ~ "fix" AND text ~ "login*" ORDER BY',
+    );
+    expect(buildBodySearchJql('SHOP', 'move to backlog', 'open')).toContain(
+      'AND text ~ "move" AND text ~ "backlog*" ORDER BY',
+    );
+    expect(buildBodySearchJql('SHOP', 'a = b', 'open')).toContain(
+      'statusCategory != Done AND text ~ "b*" ORDER BY',
+    );
+    // the final token keeps its stopword: the wildcard skips analysis
+    expect(buildBodySearchJql('SHOP', 'sign-in', 'open')).toContain(
+      'AND text ~ "sign" AND text ~ "in*" ORDER BY',
+    );
+    expect(buildBodySearchJql('SHOP', '= -- ==', 'open')).toBeNull();
   });
 
   it('returns null when no usable tokens remain and never emits leading wildcards', () => {

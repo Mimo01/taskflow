@@ -1618,6 +1618,46 @@ export async function searchJiraClosed(
 export type BodySearchScope = 'open' | 'closed';
 
 /**
+ * Lucene's default English stopwords. Jira's analyser drops them, so an exact `text ~ "in"`
+ * clause matches nothing and, ANDed with the others, would remove every body hit.
+ */
+const BODY_SEARCH_STOPWORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'but',
+  'by',
+  'for',
+  'if',
+  'in',
+  'into',
+  'is',
+  'it',
+  'no',
+  'not',
+  'of',
+  'on',
+  'or',
+  'such',
+  'that',
+  'the',
+  'their',
+  'then',
+  'there',
+  'these',
+  'they',
+  'this',
+  'to',
+  'was',
+  'will',
+  'with',
+]);
+
+/**
  * Phase 92 (D-02): build an injection-safe JQL for the global-search body search.
  * Tokenises the input (JQL/Lucene reserved characters split tokens), quotes each token as
  * its own `text ~` clause. Returns null when no usable tokens remain.
@@ -1630,10 +1670,16 @@ export function buildBodySearchJql(
   // Reserved characters become separators (not deletions): "sign-in" -> sign, in — deleting
   // them merged words ("signin") and the AND of clauses then dropped every body hit.
   // Bare boolean operators are dropped so Jira never parses them as query syntax.
-  const tokens = query
+  // Tokens without a letter or digit ("=") and stopwords are dropped too: the analyser removes
+  // them, so their clause could never match. The last token keeps a stopword because its `*`
+  // wildcard skips analysis ("to" -> to* still finds "today").
+  const words = query
     .replace(/[+\-&|!(){}[\]^~*?:\\/#@"']/g, ' ')
     .split(/\s+/)
-    .filter((t) => t.length > 0 && !/^(AND|OR|NOT)$/.test(t));
+    .filter((t) => /[\p{L}\p{N}]/u.test(t) && !/^(AND|OR|NOT)$/.test(t));
+  const tokens = words.filter(
+    (t, i) => i === words.length - 1 || !BODY_SEARCH_STOPWORDS.has(t.toLowerCase()),
+  );
   if (tokens.length === 0) return null;
   const clauses = tokens.map((t, i) => `text ~ "${i === tokens.length - 1 ? `${t}*` : t}"`);
   const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
