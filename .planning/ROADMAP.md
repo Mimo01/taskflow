@@ -128,7 +128,7 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 **Goal:** Global search (CommandPalette) returns instant, ranked issue results from the cached backlog index — sprint tier first (current > upcoming > backlog > closed), then field (title > description > comment), subtasks grouped under their parent — with compact one-line rows (epic badge, status, assignee, highlights), one debounced Jira body request per query, and a larger dialog.
 **Requirements**: TBD (contract = 92-CONTEXT.md D-01..D-21)
 **Depends on:** Phase 91
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 Plans:
 **Wave 1**
 
@@ -146,4 +146,4 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 92-06-PLAN.md — phase gates, validation map, live-Jira + visual UAT
+- [x] 92-06-PLAN.md — phase gates, validation map, live-Jira + visual UAT
