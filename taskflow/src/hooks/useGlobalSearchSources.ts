@@ -26,19 +26,20 @@ export function useGlobalSearchSources(open: boolean): {
 } {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
-  const [secret, setSecret] = useState<{ baseUrl: string | null; token: string | null }>({
-    baseUrl: null,
-    token: null,
-  });
+  const [secret, setSecret] = useState<{
+    baseUrl: string | null;
+    token: string | null;
+    read: boolean;
+  }>({ baseUrl: null, token: null, read: false });
 
   useEffect(() => {
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
-        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: t });
+        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: t, read: true });
       })
       .catch(() => {
-        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: null });
+        if (!cancelled) setSecret({ baseUrl: jiraBaseUrl, token: null, read: true });
       });
     return () => {
       cancelled = true;
@@ -47,6 +48,10 @@ export function useGlobalSearchSources(open: boolean): {
   // WR-06: only trust a PAT read for the current instance — on the render where jiraBaseUrl
   // switches, the previous instance's token must not be sent to the new host.
   const token = secret.baseUrl === jiraBaseUrl ? secret.token : null;
+  // `token` is null both before the read settles and after it failed; tell them apart so an
+  // unread PAT counts as loading and a missing one as an error (never a forever-pending query).
+  const secretRead = secret.baseUrl === jiraBaseUrl && secret.read;
+  const patMissing = secretRead && !token && !!jiraBaseUrl;
 
   const { boardId, isLoading: boardIdLoading } = useBoardId(jiraBaseUrl, token, activeJiraProject);
 
@@ -72,7 +77,8 @@ export function useGlobalSearchSources(open: boolean): {
     isIndexLoading:
       open &&
       !backlogQuery.data &&
-      (boardIdLoading || (boardId !== null && backlogQuery.isPending)),
-    isIndexError: backlogQuery.isError,
+      (!secretRead ||
+        (!!token && (boardIdLoading || (boardId !== null && backlogQuery.isPending)))),
+    isIndexError: backlogQuery.isError || patMissing,
   };
 }
