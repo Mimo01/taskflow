@@ -620,6 +620,28 @@ describe('epics', () => {
   });
 });
 
+describe('sprint-board subtasks (WR-09)', () => {
+  const backlog = makeBacklog({
+    sprints: [sprint(1, 'Sprint 42', 'ACTIVE', [1])],
+    issues: [
+      { id: 1, key: 'S-1', summary: 'current story' },
+      { id: 2, key: 'S-2', summary: 'backlog story' },
+    ],
+  });
+  const allData = makeAllData([
+    { id: 10, key: 'S-10', summary: 'done under backlog', parentKey: 'S-2', done: true },
+    { id: 11, key: 'S-11', summary: 'open under backlog', parentKey: 'S-2' },
+    { id: 12, key: 'S-12', summary: 'done under current', parentKey: 'S-1', done: true },
+  ]);
+  const index = buildSearchIndex(backlog, allData);
+
+  it('routes a done subtask outside the current sprint to Closed, like the backlog path', () => {
+    expect(index.byKey.get('S-10')?.tierId).toBe('closed');
+    expect(index.byKey.get('S-11')?.tierId).toBe('backlog');
+    expect(index.byKey.get('S-12')?.tierId).toBe('current');
+  });
+});
+
 describe('stale local title (WR-05)', () => {
   const index = buildSearchIndex(
     makeBacklog({ issues: [{ id: 7, key: 'ESHOP-7', summary: 'cart old title' }] }),

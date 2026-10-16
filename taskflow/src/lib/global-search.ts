@@ -215,6 +215,9 @@ function addSubtasks(index: SearchIndex, allData: GhAllDataResponse | undefined)
     const status = resolveStatus(gh.statusId, maps);
     const type = resolveType(gh.typeId, maps);
     const epic = resolveEpic(gh.epicId, maps);
+    // Same rule as the backlog subtask path: done outside the current sprint -> Closed (D-15).
+    let tierId = index.byKey.get(gh.parentKey)?.tierId ?? CURRENT_ID;
+    if (gh.done && tierId !== CURRENT_ID) tierId = CLOSED_ID;
     const entry: SearchEntry = {
       key: gh.key,
       summary: gh.summary,
@@ -228,7 +231,7 @@ function addSubtasks(index: SearchIndex, allData: GhAllDataResponse | undefined)
       avatarUrl: gh.avatarUrl ?? null,
       epic: epic ? { key: epic.key, name: epic.name, color: epic.color } : null,
       parentKey: gh.parentKey,
-      tierId: index.byKey.get(gh.parentKey)?.tierId ?? CURRENT_ID,
+      tierId,
     };
     index.entries.push(entry);
     index.byKey.set(entry.key, entry);
