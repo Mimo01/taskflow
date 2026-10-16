@@ -2715,6 +2715,19 @@ describe('searchJiraBody', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer my-token');
   });
 
+  it('encodes the epic-link field name and drops it when unset (IN-03)', async () => {
+    vi.mocked(mockFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ issues: [] }),
+    } as unknown as Response);
+    await searchJiraBody(BASE, TOKEN, { ...baseOpts, epicLinkFieldKey: 'cf&x=1#y' });
+    await searchJiraBody(BASE, TOKEN, { ...baseOpts, epicLinkFieldKey: '' });
+    const [encoded, empty] = vi.mocked(mockFetch).mock.calls.map(([u]) => u as string);
+    expect(encoded).toContain(',comment,cf%26x%3D1%23y&maxResults=50');
+    expect(empty).toContain(',description,comment&maxResults=50');
+  });
+
   it('throws on non-ok response', async () => {
     vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 500 } as unknown as Response);
     await expect(searchJiraBody(BASE, TOKEN, baseOpts)).rejects.toThrow('500');
