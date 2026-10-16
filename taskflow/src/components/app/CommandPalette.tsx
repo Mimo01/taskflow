@@ -208,8 +208,9 @@ export default function CommandPalette({
   const bodyQuery = useQuery({
     queryKey: ['search', 'body', debouncedQuery, activeJiraProject, 'open', epicLinkFieldKey],
     queryFn: async () => {
+      // readSecret throws on a missing PAT, so that surfaces as the search error notice.
       const token = await readSecret('jira-pat');
-      if (!token || !jiraBaseUrl || !activeJiraProject) return [] as JiraIssue[];
+      if (!jiraBaseUrl || !activeJiraProject) return [] as JiraIssue[];
       return searchJiraBody(jiraBaseUrl, token, {
         projectKey: activeJiraProject,
         query: debouncedQuery,
@@ -226,8 +227,9 @@ export default function CommandPalette({
   const closedQuery = useQuery({
     queryKey: ['search', 'body', debouncedQuery, activeJiraProject, 'closed', epicLinkFieldKey],
     queryFn: async () => {
+      // readSecret throws on a missing PAT, so that surfaces as the search error notice.
       const token = await readSecret('jira-pat');
-      if (!token || !jiraBaseUrl || !activeJiraProject) return [] as JiraIssue[];
+      if (!jiraBaseUrl || !activeJiraProject) return [] as JiraIssue[];
       return searchJiraBody(jiraBaseUrl, token, {
         projectKey: activeJiraProject,
         query: debouncedQuery,
