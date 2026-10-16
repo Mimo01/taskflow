@@ -1619,18 +1619,21 @@ export type BodySearchScope = 'open' | 'closed';
 
 /**
  * Phase 92 (D-02): build an injection-safe JQL for the global-search body search.
- * Tokenises the input, strips JQL/Lucene reserved characters, quotes each token as its
- * own `text ~` clause. Returns null when no usable tokens remain.
+ * Tokenises the input (JQL/Lucene reserved characters split tokens), quotes each token as
+ * its own `text ~` clause. Returns null when no usable tokens remain.
  */
 export function buildBodySearchJql(
   projectKey: string,
   query: string,
   scope: BodySearchScope,
 ): string | null {
+  // Reserved characters become separators (not deletions): "sign-in" -> sign, in — deleting
+  // them merged words ("signin") and the AND of clauses then dropped every body hit.
+  // Bare boolean operators are dropped so Jira never parses them as query syntax.
   const tokens = query
+    .replace(/[+\-&|!(){}[\]^~*?:\\/#@"']/g, ' ')
     .split(/\s+/)
-    .map((t) => t.replace(/[+\-&|!(){}[\]^~*?:\\/#@"']/g, ''))
-    .filter((t) => t.length > 0);
+    .filter((t) => t.length > 0 && !/^(AND|OR|NOT)$/.test(t));
   if (tokens.length === 0) return null;
   const clauses = tokens.map((t, i) => `text ~ "${i === tokens.length - 1 ? `${t}*` : t}"`);
   const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');

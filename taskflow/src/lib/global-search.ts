@@ -557,3 +557,25 @@ export function buildResultModel(input: {
   }
   return sections;
 }
+
+/**
+ * Remove the pinned Direct-match issue from the ranked sections. If that issue heads a
+ * group (its matched subtasks follow, indented), keep it as a dimmed context row instead
+ * so the subtasks never end up nested under the previous story.
+ */
+export function withoutDirectMatch(
+  sections: ResultSection[],
+  directKey: string | undefined,
+): ResultSection[] {
+  if (!directKey) return sections;
+  return sections
+    .map((sec) => ({
+      ...sec,
+      rows: sec.rows.flatMap((r, i): ResultRow[] => {
+        if (r.entry.key !== directKey) return [r];
+        if (!sec.rows[i + 1]?.indent) return [];
+        return [{ ...r, dimmed: true, titleRanges: [], snippet: null, tag: null }];
+      }),
+    }))
+    .filter((sec) => sec.rows.length > 0 || sec.hiddenCount > 0);
+}

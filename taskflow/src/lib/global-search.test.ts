@@ -9,6 +9,7 @@ import {
   buildResultModel,
   buildSearchIndex,
   classifyBodyHit,
+  withoutDirectMatch,
   entryFromJiraIssue,
   findIndexEntry,
   matchesSecondary,
@@ -610,5 +611,32 @@ describe('epics', () => {
     (epic.fields as unknown as { issuetype: unknown }).issuetype = { name: 'Epic', subtask: false };
     const sections = model(index, 'loyalty', { bodyIssues: [epic] });
     expect(sections.map((s) => s.tier.label)).toEqual(['Epics']);
+  });
+});
+
+describe('withoutDirectMatch', () => {
+  const index = buildSearchIndex(
+    makeBacklog({
+      issues: [
+        { id: 1, key: 'P-1', summary: 'cart story' },
+        { id: 2, key: 'P-2', summary: 'cart subtask', parentKey: 'P-1' },
+        { id: 3, key: 'P-3', summary: 'cart other' },
+      ],
+    }),
+  );
+  const shape = (secs: ResultSection[]) =>
+    secs.flatMap((s) =>
+      s.rows.map((r) => `${r.indent ? '  ' : ''}${r.entry.key}${r.dimmed ? '*' : ''}`),
+    );
+
+  it('keeps a direct-match parent as dimmed context when its subtasks matched', () => {
+    const secs = model(index, 'cart');
+    expect(shape(withoutDirectMatch(secs, 'P-1'))).toContain('P-1*');
+    expect(shape(withoutDirectMatch(secs, 'P-1'))).toContain('  P-2');
+  });
+
+  it('removes a direct-match row that has no subtasks', () => {
+    const secs = model(index, 'cart');
+    expect(shape(withoutDirectMatch(secs, 'P-3'))).not.toContain('P-3');
   });
 });

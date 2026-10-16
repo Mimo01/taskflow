@@ -2638,11 +2638,29 @@ describe('buildBodySearchJql', () => {
   it('strips reserved characters so input cannot escape quotes', () => {
     const jql = buildBodySearchJql('SHOP', 'foo" OR project = X', 'open') as string;
     expect(jql).toBe(
-      'project = "SHOP" AND statusCategory != Done AND text ~ "foo" AND text ~ "OR" AND text ~ "project" AND text ~ "=" AND text ~ "X*" ORDER BY updated DESC',
+      'project = "SHOP" AND statusCategory != Done AND text ~ "foo" AND text ~ "project" AND text ~ "=" AND text ~ "X*" ORDER BY updated DESC',
     );
     // every user-derived clause is a fully quoted token with no inner quotes
     const userPart = jql.slice(jql.indexOf('text ~'), jql.indexOf(' ORDER BY'));
     expect(userPart.replace(/text ~ "[^"\\]*"/g, '').replace(/ AND /g, '')).toBe('');
+  });
+
+  it('splits on reserved characters instead of merging words (sign-in, api/v2, emails)', () => {
+    expect(buildBodySearchJql('SHOP', 'sign-in flow', 'open')).toContain(
+      'text ~ "sign" AND text ~ "in" AND text ~ "flow*"',
+    );
+    expect(buildBodySearchJql('SHOP', 'api/v2', 'open')).toContain(
+      'text ~ "api" AND text ~ "v2*"',
+    );
+    expect(buildBodySearchJql('SHOP', 'user@example.com', 'open')).toContain(
+      'text ~ "user" AND text ~ "example.com*"',
+    );
+  });
+
+  it('drops bare boolean operators so Jira never parses them as syntax', () => {
+    const jql = buildBodySearchJql('SHOP', 'cart AND empty OR NOT x', 'open') as string;
+    expect(jql).toContain('text ~ "cart" AND text ~ "empty" AND text ~ "x*"');
+    expect(jql).not.toMatch(/text ~ "(AND|OR|NOT)/);
   });
 
   it('returns null when no usable tokens remain and never emits leading wildcards', () => {

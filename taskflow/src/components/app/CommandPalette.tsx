@@ -47,6 +47,7 @@ import {
   matchesSecondary,
   type ResultRow,
   resolveKeyLookup,
+  withoutDirectMatch,
 } from '@/lib/global-search';
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
@@ -263,13 +264,7 @@ export default function CommandPalette({
       expandedTiers,
       epicLinkFieldKey,
     });
-    const directKey = directEntry?.key;
-    return model
-      .map((sec) => ({
-        ...sec,
-        rows: directKey ? sec.rows.filter((r) => r.entry.key !== directKey) : sec.rows,
-      }))
-      .filter((sec) => sec.rows.length > 0 || sec.hiddenCount > 0);
+    return withoutDirectMatch(model, directEntry?.key);
   }, [
     index,
     trimmed,
