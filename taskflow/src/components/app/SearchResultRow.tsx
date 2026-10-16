@@ -3,6 +3,7 @@ import type React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { isDoneStatus } from '@/lib/issueDisplayUtils';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { HighlightedText } from './HighlightedText';
@@ -80,6 +81,8 @@ export function SearchResultRow({
   onKeyClick,
 }: SearchResultRowProps) {
   const epicColor = showEpic && epic ? epicColorToTailwind(epic.color, epic.key) : null;
+  // Done issues show a struck-through key, like TaskCard / StoryHeaderRow.
+  const done = isDoneStatus(statusCategoryKey ? { key: statusCategoryKey } : null);
   return (
     <div className="@container w-full min-w-0">
       {/* Fixed 18px (= avatar / status pill height): every row is the same height. */}
@@ -99,13 +102,19 @@ export function SearchResultRow({
         {onKeyClick ? (
           <button
             type="button"
-            className={cn(KEY_CLASS, 'cursor-pointer hover:underline')}
+            className={cn(
+              KEY_CLASS,
+              'cursor-pointer',
+              done
+                ? 'line-through hover:[text-decoration-line:underline_line-through]'
+                : 'hover:underline',
+            )}
             onClick={(e) => onKeyClick(e, issueKey)}
           >
             {keyLabel ?? issueKey}
           </button>
         ) : (
-          <span className={KEY_CLASS}>{keyLabel ?? issueKey}</span>
+          <span className={cn(KEY_CLASS, done && 'line-through')}>{keyLabel ?? issueKey}</span>
         )}
         {/* The title has priority: the snippet starts at basis 0 and only fills leftover
             space, so it can never squeeze the title. When space runs out the epic badge
