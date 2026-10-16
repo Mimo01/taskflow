@@ -340,7 +340,7 @@ function AppLayout() {
     return 'Home';
   }
 
-  // Open peek panel — called from CommandPalette, NotificationPopover, and outlet context surfaces
+  // Open peek panel — called from NotificationPopover and outlet context surfaces
   const handleOpenPeek = (issueKey: string) => setPeekIssueKey(issueKey);
 
   // Route-change close (D-07): close the peek on any pathname change.
@@ -691,10 +691,6 @@ function AppLayout() {
         onClose={() => setPaletteOpen(false)}
         onIssueClick={(key) => {
           handleIssueClick(key, true);
-          setPaletteOpen(false);
-        }}
-        onOpenIssue={(key) => {
-          handleOpenPeek(key);
           setPaletteOpen(false);
         }}
         onNavigate={handlePaletteNavigate}

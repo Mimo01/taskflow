@@ -66,10 +66,8 @@ const THEME_CYCLE: Theme[] = ['light', 'dark', 'system'];
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
-  /** Navigate to full-page issue detail (used by Plan 04 key-element click split). */
-  onIssueClick?: (issueKey: string) => void;
-  /** Open peek panel for body selection (used by this plan and Plan 04 body click). */
-  onOpenIssue: (issueKey: string) => void;
+  /** Navigate to full-page issue detail (row select and key click). */
+  onIssueClick: (issueKey: string) => void;
   onNavigate: (path: string) => void;
   onOpenNotifications: () => void;
   onOpenCreate: () => void;
@@ -280,19 +278,18 @@ export default function CommandPalette({
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
+  // Recent-item tracking happens downstream, never here: onIssueClick (handleIssueClick in
+  // main.tsx) pushes with a cache-resolved title, and IssueDetailView's effect makes the
+  // authoritative push once the issue loads. A push here would only race those two.
   function handleIssueSelect(issueKey: string) {
-    // Recent-item tracking is owned by IssueDetailView's effect once the full-page view loads.
-    // Pushing here would race with the authoritative push (which has the real title from the API).
-    onIssueClick?.(issueKey);
+    onIssueClick(issueKey);
     onClose();
   }
 
   /** clicking the issue key element also navigates full-page and closes the palette. */
   function handleIssueKeyClick(e: React.MouseEvent, issueKey: string) {
     e.stopPropagation();
-    // Recent-item tracking is owned by handleIssueClick in main.tsx (authoritative push with
-    // cache-resolved title). Pushing here would be a redundant, potentially lower-quality push.
-    onIssueClick?.(issueKey);
+    onIssueClick(issueKey);
     onClose();
   }
 

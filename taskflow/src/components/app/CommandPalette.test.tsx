@@ -262,7 +262,6 @@ const defaultProps = {
   open: true,
   onClose: vi.fn(),
   onIssueClick: vi.fn(),
-  onOpenIssue: vi.fn(),
   onNavigate: vi.fn(),
   onOpenNotifications: vi.fn(),
   onOpenCreate: vi.fn(),
@@ -445,22 +444,20 @@ describe('CommandPalette', () => {
     expect(true).toBe(true);
   });
 
-  // PALETTE-02: selecting a Jira issue body calls onIssueClick (full-page), not onOpenIssue (peek)
+  // PALETTE-02: selecting a Jira issue body calls onIssueClick (full-page)
   it('selecting a Jira issue body calls onIssueClick (full-page)', () => {
-    const onOpenIssue = vi.fn();
     const onClose = vi.fn();
     seedIndex();
 
     const onIssueClick = vi.fn();
-    renderPalette({ onOpenIssue, onClose, onIssueClick });
+    renderPalette({ onClose, onIssueClick });
     typeQuery('Fix login');
 
-    // clicking the row body calls onIssueClick (full-page), not onOpenIssue
+    // clicking the row body calls onIssueClick (full-page)
     const row = document.querySelector('[cmdk-item][data-value="TEST-1"]') as Element;
     expect(row).not.toBeNull();
     fireEvent.click(row);
     expect(onIssueClick).toHaveBeenCalledWith('TEST-1');
-    expect(onOpenIssue).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
 
