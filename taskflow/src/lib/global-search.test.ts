@@ -301,6 +301,12 @@ describe('direct match', () => {
     expect(resolveKeyLookup('412', null)).toBe('');
     expect(resolveKeyLookup('cart', 'SHOP')).toBe('');
   });
+  it('treats project keys with digits or underscores as keys (WR-02)', () => {
+    expect(resolveKeyLookup('ab2-12', null)).toBe('AB2-12');
+    expect(resolveKeyLookup('MY_PROJ-3', null)).toBe('MY_PROJ-3');
+    expect(resolveKeyLookup('2AB-12', null)).toBe('');
+    expect(resolveKeyLookup('sign-in', null)).toBe('');
+  });
 });
 
 describe('index sources', () => {
