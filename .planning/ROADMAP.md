@@ -129,11 +129,21 @@ Earlier milestones are collapsed. See per-milestone archives in `.planning/miles
 **Requirements**: TBD (contract = 92-CONTEXT.md D-01..D-21)
 **Depends on:** Phase 91
 **Plans:** 6 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 92-01-PLAN.md — fuzzysort legitimacy gate + install; pure text matching (fuzzy, highlight runs, snippets)
 - [ ] 92-02-PLAN.md — searchJiraBody (injection-safe JQL, throws) + route-independent backlog source hook
 - [ ] 92-03-PLAN.md — HighlightedText + compact one-line SearchResultRow
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 92-04-PLAN.md — global-search lib: index, tiers, field tiers, grouping, ranking, caps
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 92-05-PLAN.md — CommandPalette upgrade: ranked tiers, body/closed queries, direct match, states
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 92-06-PLAN.md — phase gates, validation map, live-Jira + visual UAT
