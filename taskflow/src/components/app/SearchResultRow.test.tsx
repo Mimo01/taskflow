@@ -7,7 +7,12 @@ vi.mock('@/services/avatarCache', () => ({
   evictAvatar: vi.fn(),
 }));
 
-import { SearchResultRow, type SearchResultRowProps } from './SearchResultRow';
+import {
+  GROUP_DIVIDER_CLASS,
+  SearchResultRow,
+  startsGroup,
+  type SearchResultRowProps,
+} from './SearchResultRow';
 
 function props(over: Partial<SearchResultRowProps> = {}): SearchResultRowProps {
   return {
@@ -119,5 +124,17 @@ describe('context header', () => {
     const { container } = render(<SearchResultRow {...props()} />);
     expect(container.querySelector('.pl-6')).toBeNull();
     expect(container.querySelector('.opacity-60')).toBeNull();
+  });
+});
+
+describe('group divider', () => {
+  it('starts a group at each non-indented row after the first', () => {
+    const rows = [{ indent: false }, { indent: true }, { indent: true }, { indent: false }];
+    expect(rows.map((_, i) => startsGroup(rows, i))).toEqual([false, false, false, true]);
+  });
+
+  it('is a non-layout hairline (pseudo-element)', () => {
+    expect(GROUP_DIVIDER_CLASS).toContain('before:h-px');
+    expect(GROUP_DIVIDER_CLASS).toContain('before:absolute');
   });
 });

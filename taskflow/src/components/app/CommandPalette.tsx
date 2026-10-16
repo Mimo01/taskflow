@@ -19,7 +19,11 @@ import {
   RecentItemRow,
   recentMrIid,
 } from '@/components/app/RecentItemRow';
-import { SearchResultRow } from '@/components/app/SearchResultRow';
+import {
+  GROUP_DIVIDER_CLASS,
+  SearchResultRow,
+  startsGroup,
+} from '@/components/app/SearchResultRow';
 import {
   Command,
   CommandGroup,
@@ -41,6 +45,7 @@ import {
   resolveKeyLookup,
 } from '@/lib/global-search';
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
+import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { fetchJiraIssueByKey, searchJiraBody } from '@/services/jira';
@@ -370,14 +375,14 @@ export default function CommandPalette({
     !isIndexError;
   const hasClosedSection = sections.some((sec) => sec.tier.id === 'closed');
 
-  function renderIssueRow(row: ResultRow, itemKey: string) {
+  function renderIssueRow(row: ResultRow, itemKey: string, divider = false) {
     const e = row.entry;
     return (
       <CommandItem
         key={itemKey}
         value={e.key}
         onSelect={() => handleIssueSelect(e.key)}
-        className="py-1 [&>svg:last-child]:hidden"
+        className={cn('py-1 [&>svg:last-child]:hidden', divider && GROUP_DIVIDER_CLASS)}
       >
         <SearchResultRow
           issueKey={e.key}
@@ -469,13 +474,16 @@ export default function CommandPalette({
                         ? null
                         : (cachedIssuesMap.get(key) ?? findJiraIssueInCache(queryClient, key)),
                     };
-                  }).map((row) => {
+                  }).map((row, i, rows) => {
                     const { item } = row;
                     return (
                       <CommandItem
                         key={row.rowKey}
                         value={row.rowKey}
-                        className="py-1 [&>svg:last-child]:hidden"
+                        className={cn(
+                          'py-1 [&>svg:last-child]:hidden',
+                          startsGroup(rows, i) && GROUP_DIVIDER_CLASS,
+                        )}
                         keywords={[item.id]}
                         onSelect={() => {
                           if (item.type === 'jira') {
@@ -548,7 +556,9 @@ export default function CommandPalette({
                 {/* Ranked tiers (D-06) */}
                 {sections.map((sec) => (
                   <CommandGroup key={sec.tier.id} heading={sec.tier.label}>
-                    {sec.rows.map((row) => renderIssueRow(row, row.entry.key))}
+                    {sec.rows.map((row, i) =>
+                      renderIssueRow(row, row.entry.key, startsGroup(sec.rows, i)),
+                    )}
                     {sec.hiddenCount > 0 && (
                       <CommandItem
                         value={`more:${sec.tier.id}`}
