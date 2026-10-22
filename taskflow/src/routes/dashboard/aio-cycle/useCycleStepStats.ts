@@ -5,13 +5,15 @@ import { type AioTestRun, fetchAioTestRunDetail } from '@/services/aio';
 
 // Dedicated AIO step limiter, deliberately NOT getJiraLimit(): a few hundred step
 // fetches queued on the shared Jira limiter would starve Jira calls (defect resolution etc.).
-const stepLimit = pLimit(4);
+// 16: a live probe served 20 parallel run details without throttling, ~15x faster than serial;
+// 4 left most of a cycle queued. testcasewithrun/paged has step fields but they are always null.
+const stepLimit = pLimit(16);
 
 export type CycleStepStats = StepStatsTotals & { loading: boolean };
 
 /**
  * Step-level totals for a cycle. No bulk/cycle-level step endpoint exists, so this
- * issues one run-detail query per run, throttled to 4 concurrent requests. The query
+ * issues one run-detail query per run, throttled to 16 concurrent requests. The query
  * key and fetcher match AioTestRunDetailPage so both share one cache entry; step data
  * therefore ages on the shared 5-min staleTime, independent of the runs list.
  * Only the step tiles wait on `loading`; case counts and charts never do.
