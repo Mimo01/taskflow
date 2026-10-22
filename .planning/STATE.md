@@ -184,7 +184,7 @@ None yet.
 | 261014-m6e | Prompt to move story to Done when last open subtask is closed (board + sidebar) | 2026-10-14 | 97141a9f | Verified (UAT by user) | [261014-m6e-when-i-close-the-last-opened-subtask-in-](./quick/261014-m6e-when-i-close-the-last-opened-subtask-in-/) |
 | 261014-myz | Merge AIO cycle burndown executions within one hour into one point | 2026-10-14 | 4d5bc2a2 | Verified (UAT by user) | [261014-myz-merge-close-burndown-datapoints-aio-cycl](./quick/261014-myz-merge-close-burndown-datapoints-aio-cycl/) |
 | 261022-h1q | Cmd+Shift+F opens global search; Cmd+F searches current page content only (custom find bar, accent/case-insensitive, live) | 2026-10-22 | 80214321 | Verified (UAT) | [261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se](./quick/261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se/) |
-| 261022-jzt | AIO cycle Defect Summary: friendly no-defects empty state (green BugOff badge + text) instead of empty grey ring | 2026-10-22 | 04f86c31 | Pending UAT | [261022-jzt-aio-tc-detail-defect-summary-empty-state](./quick/261022-jzt-aio-tc-detail-defect-summary-empty-state/) |
+| 261022-jzt | AIO cycle Defect Summary: friendly no-defects empty state (green BugOff badge + text) instead of empty grey ring | 2026-10-22 | 04f86c31 | Verified (UAT) | [261022-jzt-aio-tc-detail-defect-summary-empty-state](./quick/261022-jzt-aio-tc-detail-defect-summary-empty-state/) |
 
 ## Deferred Items
 
