@@ -680,7 +680,7 @@ export default function CommandPalette({
                     }
                   >
                     {s.navMeta.label}
-                    <CommandShortcut>{s.defaultKey}</CommandShortcut>
+                    <CommandShortcut>{(s.displayKeys ?? [s.defaultKey]).join('')}</CommandShortcut>
                   </CommandItem>
                 ))}
               </CommandGroup>

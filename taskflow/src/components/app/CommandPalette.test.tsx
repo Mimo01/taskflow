@@ -420,6 +420,9 @@ describe('CommandPalette', () => {
     expect(screen.getByText('⌘⇧S')).toBeInTheDocument();
     expect(screen.getByText('⌘⇧B')).toBeInTheDocument();
     expect(screen.getByText('⌘,')).toBeInTheDocument();
+    // Entries whose defaultKey is react-hotkeys-hook syntax still render glyphs
+    expect(screen.getByText('⌘⇧D')).toBeInTheDocument();
+    expect(screen.queryByText(/mod\+shift/)).toBeNull();
   });
 
   // PALETTE-04: actions group visible in both states (always rendered for stable cmdk refs)
