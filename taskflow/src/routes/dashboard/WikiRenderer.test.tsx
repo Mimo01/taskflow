@@ -389,8 +389,8 @@ describe('WikiRenderer', () => {
       expect(directBrs.length).toBe(0);
     });
 
-    it('inline panel containing an <ol> (table-cell variant) carries the universal margin-reset classes (regression: round-1 [&>p:…] selector missed the SHOP <ol> case shown in UAT)', () => {
-      // SHOP fixture from Plan 54-09: `{panel}` with a numbered image-link
+    it('inline panel containing an <ol> (table-cell variant) carries the universal margin-reset classes (regression: round-1 [&>p:…] selector missed the shop <ol> case shown in UAT)', () => {
+      // shop fixture from Plan 54-09: `{panel}` with a numbered image-link
       // list nested inside a table cell. The renderer emits this as
       // `<span data-callout="panel"><ol>…</ol></span>` — so the panel's only
       // direct child is <ol>, not <p>. Round-1 selector `[&>p:first-child]:mt-0`
@@ -481,7 +481,7 @@ After quote`;
     it('list item after {quote} block (closing tag on own line) renders outside the blockquote (wiki-renderer-list-in-quote)', () => {
       // Repro: {quote}text\n{quote}\n* item — closing {quote} on its own line produced
       // a trailing "> " empty blockquote line that absorbed the following list item.
-      const wiki = `{quote}Finálnu definíciu eventov je potrebné odkonzultovať s analytickým tímom pred implementáciou.
+      const wiki = `{quote}Finálnu verziu textu je potrebné skontrolovať pred zverejnením.
 {quote}
 * DA lead form: item`;
       const { container } = render(<WikiRenderer wikiText={wiki} />);
@@ -666,7 +666,7 @@ After quote`;
   // to inline `<span data-callout="panel">…</span>` so the panel content
   // renders INSIDE the table cell.
   //
-  // Verbatim SHOP fixture from 54-06-UAT-FINDINGS.md Finding 1 lines 14-25.
+  // Verbatim shop fixture from 54-06-UAT-FINDINGS.md Finding 1 lines 14-25.
   describe('Gap 3 — nested wiki inside table cells (Branch 3-A)', () => {
     const ATTACHMENT_URL =
       'https://jira.other.example/plugins/servlet/aio-tcms/bridge/tcms/browse?c_pId=100&page=run-details-attachment&params=%7B%22cycleId%22:1,%22caseId%22:2,%22runId%22:3,%22attachmentId%22:4,%22projectId%22:100%7D';
@@ -675,20 +675,20 @@ After quote`;
     // The distinctive token "Plati pre tarify" anchors the acceptance grep.
     const FINDING_1_FIXTURE = [
       '||*S.No.*||*Step*||*Expected Result*||*Actual Result*||',
-      '|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|',
+      '|1. |Nacitanie home page |Kontrola OK |Works as expected|',
       `|2. |{color:#d04437}*FAILED:*{color} Plati pre tarify S, M, L: \\\\ • 5 GB (1000001, 5,13 €) |Kontrola OK |V kosiku mam Tarif M a zariadenie na splatky...`,
       '{panel}',
       `# [img-a.png|${ATTACHMENT_URL}]`,
       '{panel}|',
     ].join('\n');
 
-    // Plan 54-09 — verbatim two-item SHOP fixture (extends FINDING_1_FIXTURE).
+    // Plan 54-09 — verbatim two-item shop fixture (extends FINDING_1_FIXTURE).
     // Round-2 evidence: both img-a.png AND img-b.png appear inside the SAME `{panel}`
     // block as numbered-list items. Source: .planning/debug/panel-still-breaks-table-round-2.md.
     const IMG_B_URL = 'https://jira.other.example/secure/attachment/124/img-b.png';
     const FINDING_1_TWO_ITEM_FIXTURE = [
       '||*S.No.*||*Step*||*Expected Result*||*Actual Result*||',
-      '|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|',
+      '|1. |Nacitanie home page |Kontrola OK |Works as expected|',
       `|2. |{color:#d04437}*FAILED:*{color} Plati pre tarify S, M, L: \\\\ • 5 GB (1000001, 5,13 €) |Kontrola OK |V kosiku mam Tarif M a zariadenie na splatky...`,
       '{panel}',
       `# [img-a.png|${ATTACHMENT_URL}]`,
@@ -696,7 +696,7 @@ After quote`;
       '{panel}|',
     ].join('\n');
 
-    it('renders nested {panel} block + embedded image link inside a table cell on the verbatim SHOP fixture', () => {
+    it('renders nested {panel} block + embedded image link inside a table cell on the verbatim shop fixture', () => {
       const { container } = render(<WikiRenderer wikiText={FINDING_1_FIXTURE} />);
 
       // The table did not break — exactly one wiki table is rendered.
@@ -727,7 +727,7 @@ After quote`;
     it('Plan 54-09 Concern A — mergeOpenTableRows consumes the full panel-bearing row with TWO numbered-list items', () => {
       const fixture = [
         '||*S.No.*||*Step*||*Expected Result*||*Actual Result*||',
-        '|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|',
+        '|1. |Nacitanie home page |Kontrola OK |Works as expected|',
         `|2. |FAILED step |Kontrola OK |Body before panel`,
         '{panel}',
         `# [img-a.png|https://jira.other.example/secure/attachment/123/img-a.png]`,
@@ -822,11 +822,11 @@ After quote`;
 
       // All anchors with these texts must be descendants of the rendered table.
       const allLinks = Array.from(container.querySelectorAll('a'));
-      const vasLinks = allLinks.filter((a) => a.textContent === 'img-a.png');
-      const kosikLinks = allLinks.filter((a) => a.textContent === 'img-b.png');
-      expect(vasLinks.length).toBeGreaterThanOrEqual(1);
-      expect(kosikLinks.length).toBeGreaterThanOrEqual(1);
-      for (const link of [...vasLinks, ...kosikLinks]) {
+      const imgALinks = allLinks.filter((a) => a.textContent === 'img-a.png');
+      const imgBLinks = allLinks.filter((a) => a.textContent === 'img-b.png');
+      expect(imgALinks.length).toBeGreaterThanOrEqual(1);
+      expect(imgBLinks.length).toBeGreaterThanOrEqual(1);
+      for (const link of [...imgALinks, ...imgBLinks]) {
         expect(table?.contains(link)).toBe(true);
       }
     });
@@ -838,17 +838,17 @@ After quote`;
       // No lightbox open before any click.
       expect(container.querySelector('[role="dialog"]')).toBeNull();
 
-      const vasLink = Array.from(container.querySelectorAll('a')).find(
+      const imgALink = Array.from(container.querySelectorAll('a')).find(
         (a) => a.textContent === 'img-a.png',
       );
-      expect(vasLink).toBeDefined();
-      fireEvent.click(vasLink as HTMLAnchorElement);
+      expect(imgALink).toBeDefined();
+      fireEvent.click(imgALink as HTMLAnchorElement);
       expect(openUrl).not.toHaveBeenCalled();
       expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('Plan 54-09 follow-up — `\\\\` hard-break immediately before `{panel}` (no space) renders panel on a new line', () => {
-      // Real Jira SHOP source from round-3 UAT feedback: the wiki body contains
+      // Real Jira shop source from round-3 UAT feedback: the wiki body contains
       // `text\\{panel}` (zero whitespace between the `\\` hard-break marker and
       // the `{panel}` open). Jira native render puts the panel block on a new
       // line below the preceding text. Without the fix, our parser leaves the
@@ -1910,7 +1910,7 @@ After quote`;
   describe('inline single-line table expansion (table-not-render-issue-detail)', () => {
     // Verbatim failing input from the bug report.
     const FAILING_FIXTURE =
-      '## Novy system sa bude nazyvat LST - Local Sales Tool | | | | | | | | | | | | | | | | | | | | | | |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---| |**Nazov systemu*|*Odkial ma data*|*Kto kalkuluje offer*|*Kto zobrazuje offer**| |Mpc|*Mpc_|_Noe_|_Noe*| |Ost|*Ost_|_Ost_|_Noe*| |Lst|*Noe_|_Noe_|_Noe*|';
+      '## Novy system sa bude nazyvat XYZ - Novy Nastroj | | | | | | | | | | | | | | | | | | | | | | |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---| |**Nazov systemu*|*Odkial ma data*|*Kto kalkuluje offer*|*Kto zobrazuje offer**| |Alfa|*Alfa_|_Gama_|_Gama*| |Beta|*Beta_|_Beta_|_Gama*| |Delta|*Gama_|_Gama_|_Gama*|';
 
     it('splitInlineSingleLineTables — splits the verbatim bug fixture into separate lines', () => {
       const result = splitInlineSingleLineTables(FAILING_FIXTURE);
@@ -1976,9 +1976,9 @@ After quote`;
 
       // Data rows contain cell content from the fixture.
       const allText = table?.textContent ?? '';
-      expect(allText).toContain('Mpc');
-      expect(allText).toContain('Ost');
-      expect(allText).toContain('Lst');
+      expect(allText).toContain('Alfa');
+      expect(allText).toContain('Beta');
+      expect(allText).toContain('Delta');
     });
 
     it('WikiRenderer — plain prose with a single |---| (regression: must not trigger split)', () => {
@@ -2002,7 +2002,7 @@ After quote`;
       'h1. Vysledok analyzy',
       'h2. Strucny popis aktualneho stavu',
       '',
-      'Mame 3 systemy v eshope: Mpc, Ost, Rework',
+      'Mame 3 systemy v obchode: Alfa, Beta, Epsilon',
       '',
       '!aktualny-stav.png|width=899,height=770!',
       'h2. Chceny stav',
@@ -2010,11 +2010,11 @@ After quote`;
       'Chceme novy system...',
       '',
       '!checkouty.png|width=851,height=718!',
-      'h2. Novy system sa bude nazyvat LST - Local Sales Tool',
+      'h2. Novy system sa bude nazyvat XYZ - Novy Nastroj',
       '|*Nazov systemu*|*Odkial ma data*|*Kto kalkuluje offer*|*Kto zobrazuje offer*|',
-      '|Mpc|_Mpc_|_Noe_|_Noe_|',
-      '|Ost|_Ost_|_Ost_|_Noe_|',
-      '|Lst|_Noe_|_Noe_|_Noe_|',
+      '|Alfa|_Alfa_|_Gama_|_Gama_|',
+      '|Beta|_Beta_|_Beta_|_Gama_|',
+      '|Delta|_Gama_|_Gama_|_Gama_|',
     ].join('\n');
 
     it('renders a Jira table with *bold* headers after image macros as an HTML table', () => {
@@ -2026,10 +2026,10 @@ After quote`;
 
       // All data rows must appear in the table.
       const allText = table?.textContent ?? '';
-      expect(allText).toContain('Mpc');
-      expect(allText).toContain('Ost');
-      expect(allText).toContain('Lst');
-      expect(allText).toContain('Noe');
+      expect(allText).toContain('Alfa');
+      expect(allText).toContain('Beta');
+      expect(allText).toContain('Delta');
+      expect(allText).toContain('Gama');
     });
 
     it('bold header row cells render as <strong> elements within table cells', () => {
@@ -2208,7 +2208,7 @@ After quote`;
       // Expected: 3 data rows, each with their step text intact, no extra rows.
       const fixture = [
         '||*S.No.*||*Step*||*Expected*||',
-        '|1. |Nacitanie eshop home page |Kontrola OK |',
+        '|1. |Nacitanie home page |Kontrola OK |',
         '|2. |Kontrola cien \\(karticky \\+ modal\\): \\\\ Tarif S = 17,89 € \\\\ Tarif M = 23,58 € |Kontrola OK |',
         '|3. |Kontrola cien \\(popis \\+ modal\\): \\\\ Tarif S = 17,89 € \\\\ Tarif M = 23,58 € |Kontrola OK |',
       ].join('\n');
@@ -2287,19 +2287,19 @@ After quote`;
 
     it('a {code} block with multiple "+" and numbered lines renders all lines literally, with no <ins> tags', () => {
       const fixture = [
-        '{code}1. Fix OST submit → vráti id → Manage Order submit HW s id z prvej objednávky.',
-        '2. Fix OST submit → vráti id → Manage Order submit HW zlyhá → CITT s HW + parameter z prvej objednávky.',
-        '3. Fix CITT submit (VULA, EDC, ...) + HW sale submit v jednom CITT.',
+        '{code}1. Step A submit → vráti id → Step B submit s id z prvej objednávky.',
+        '2. Step A submit → vráti id → Step B submit zlyhá → Step C + parameter z prvej objednávky.',
+        '3. Step C submit (X, Y, ...) + Step D submit v jednom kroku.',
         '{code}',
       ].join('\n');
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       const code = container.querySelector('pre code');
       const text = code?.textContent ?? '';
-      expect(text).toContain('1. Fix OST submit');
-      expect(text).toContain('2. Fix OST submit');
-      expect(text).toContain('3. Fix CITT submit');
-      expect(text).toContain('CITT s HW + parameter');
-      expect(text).toContain('(VULA, EDC, ...) + HW sale submit');
+      expect(text).toContain('1. Step A submit');
+      expect(text).toContain('2. Step A submit');
+      expect(text).toContain('3. Step C submit');
+      expect(text).toContain('Step C + parameter');
+      expect(text).toContain('(X, Y, ...) + Step D submit');
       expect(text).not.toContain('&#43;');
       expect(text).not.toContain('<ins>');
       expect(code?.querySelector('ins')).toBeNull();
@@ -2331,7 +2331,7 @@ After quote`;
   describe('consecutive exclamation marks (wiki-render-exclamation-split)', () => {
     it('verbatim bug fixture — triple exclamation mark renders as plain text, no broken image', () => {
       const fixture =
-        'pre XL extra a XXL nebude sa uplplatňovať geozónová ponuka!!! - iba zvýhodnená cena na 3 mesiace';
+        'pre veľkosť XL a XXL sa neuplatňuje špeciálna ponuka!!! - iba zvýhodnená cena na 2 týždne';
       const { container } = render(<WikiRenderer wikiText={fixture} />);
 
       // No <img> element — the !!! must not be treated as a Jira image macro.
@@ -2343,7 +2343,7 @@ After quote`;
       // All text must be present (the exclamation marks render as "!" characters).
       const text = container.textContent ?? '';
       expect(text).toContain('ponuka');
-      expect(text).toContain('iba zvýhodnená cena na 3 mesiace');
+      expect(text).toContain('iba zvýhodnená cena na 2 týždne');
       // The exclamation marks must appear as plain text characters in the output.
       expect(text).toContain('!');
     });
@@ -2613,13 +2613,13 @@ After quote`;
   });
   describe('wiki-underscore-tt-strike: intra-word underscores, tt inside strike, list items', () => {
     const raw =
-      'Vytvoriť novú TO (tarifnú opciu) pre službu DEMO v eshope.\n * Názov TO: DEMO_STD_VAS -{{DEMO_STD}}-\n * {{AS_ID}} = 3520';
+      'Vytvoriť novú opciu pre službu DEMO v aplikácii.\n * Názov: DEMO_STD_X -{{DEMO_STD}}-\n * {{SVC_ID}} = 1234';
 
     it('keeps intra-word underscores literal (no italics)', () => {
       const { container } = render(<WikiRenderer wikiText={raw} />);
       expect(container.querySelector('em')).toBeNull();
       const items = container.querySelectorAll('li');
-      expect(items[0]?.textContent).toContain('DEMO_STD_VAS');
+      expect(items[0]?.textContent).toContain('DEMO_STD_X');
     });
 
     it('renders {{x}} inside -strike- as del > code without literal backticks', () => {
@@ -2633,12 +2633,12 @@ After quote`;
       expect(cls).toContain('prose-code:after:content-none');
     });
 
-    it('renders both bullets, including the {{AS_ID}} = 3520 item', () => {
+    it('renders both bullets, including the {{SVC_ID}} = 1234 item', () => {
       const { container } = render(<WikiRenderer wikiText={raw} />);
       const items = container.querySelectorAll('ul > li');
       expect(items.length).toBe(2);
-      expect(items[1]?.querySelector('code')?.textContent).toBe('AS_ID');
-      expect(items[1]?.textContent).toBe('AS_ID = 3520');
+      expect(items[1]?.querySelector('code')?.textContent).toBe('SVC_ID');
+      expect(items[1]?.textContent).toBe('SVC_ID = 1234');
     });
 
     it('still italicises word-bounded _text_', () => {
