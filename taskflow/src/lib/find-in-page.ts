@@ -233,3 +233,75 @@ export function scrollRangeIntoView(range: Range): void {
     anc.scrollTop += r.top - a.top - (a.height - r.height) / 2;
   }
 }
+
+export interface MatchBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  current: boolean;
+}
+
+interface ClipRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+const CLIPPING = new Set(['hidden', 'auto', 'scroll', 'clip']);
+
+/**
+ * Viewport-space boxes for each match, clipped to every overflow-clipping
+ * ancestor so matches scrolled out of an inner container aren't drawn over
+ * its surroundings. Boxes fully clipped away are dropped.
+ */
+export function layoutMatchBoxes(ranges: Range[], currentIdx: number): MatchBox[] {
+  const memo = new Map<Element, ClipRect>();
+  const viewport: ClipRect = {
+    left: 0,
+    top: 0,
+    right: window.innerWidth,
+    bottom: window.innerHeight,
+  };
+  const clipFor = (el: Element | null): ClipRect => {
+    if (!el || el === document.documentElement) return viewport;
+    const cached = memo.get(el);
+    if (cached) return cached;
+    let clip = clipFor(el.parentElement);
+    const style = getComputedStyle(el);
+    const overflow = `${style.overflow} ${style.overflowX} ${style.overflowY}`.split(/\s+/);
+    if (overflow.some((v) => CLIPPING.has(v))) {
+      const r = el.getBoundingClientRect();
+      clip = {
+        left: Math.max(clip.left, r.left),
+        top: Math.max(clip.top, r.top),
+        right: Math.min(clip.right, r.right),
+        bottom: Math.min(clip.bottom, r.bottom),
+      };
+    }
+    memo.set(el, clip);
+    return clip;
+  };
+
+  const boxes: MatchBox[] = [];
+  ranges.forEach((range, i) => {
+    // Includes the text's own parent, so e.g. `truncate` cuts the box at the ellipsis.
+    const clip = clipFor(range.startContainer.parentElement);
+    for (const r of range.getClientRects()) {
+      const left = Math.max(r.left, clip.left);
+      const top = Math.max(r.top, clip.top);
+      const right = Math.min(r.right, clip.right);
+      const bottom = Math.min(r.bottom, clip.bottom);
+      if (right - left < 1 || bottom - top < 1) continue;
+      boxes.push({
+        left,
+        top,
+        width: right - left,
+        height: bottom - top,
+        current: i === currentIdx,
+      });
+    }
+  });
+  return boxes;
+}

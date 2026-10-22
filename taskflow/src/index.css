@@ -181,13 +181,23 @@
   );
 }
 
-/* Find-in-page (CSS Custom Highlight API). Own colours: chart tokens are both blue. */
-::highlight(find-all) {
-  background-color: oklch(0.85 0.17 90 / 0.5);
-  color: inherit;
+/* Find-in-page match boxes (overlay, see FindBar.tsx for why not ::highlight). */
+.find-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-::highlight(find-current) {
-  background-color: oklch(0.7 0.19 50);
-  color: oklch(0.15 0 0);
+.find-hl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 2px;
+  background-color: oklch(0.85 0.17 90 / 0.45);
+}
+
+.find-hl-current {
+  background-color: oklch(0.72 0.19 50 / 0.5);
+  outline: 2px solid oklch(0.68 0.2 45);
 }

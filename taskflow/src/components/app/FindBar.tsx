@@ -7,6 +7,7 @@ import {
   buildMatchRanges,
   collectRuns,
   type FindScopeKind,
+  layoutMatchBoxes,
   resolveFindScope,
   scrollRangeIntoView,
 } from '@/lib/find-in-page';
@@ -18,51 +19,31 @@ interface FindBarProps {
   onClose: () => void;
 }
 
-const HL_ALL = 'find-all';
-const HL_CURRENT = 'find-current';
-
-function highlightsSupported(): boolean {
-  return (
-    typeof Highlight !== 'undefined' &&
-    typeof CSS !== 'undefined' &&
-    (CSS as unknown as { highlights?: unknown }).highlights != null
-  );
+// Matches are drawn as boxes on a pointer-events-none overlay rather than with the
+// CSS Custom Highlight API: WKWebView doesn't paint ::highlight on text that is a
+// direct child of a flex/grid container, inside a <button>, or user-select:none —
+// i.e. most badges, pills, and field triggers in this app.
+function createOverlay(kind: FindScopeKind): HTMLDivElement {
+  const el = document.createElement('div');
+  // data-find-bar: excluded from matching and from the mutation observer
+  el.setAttribute('data-find-bar', '');
+  el.setAttribute('aria-hidden', 'true');
+  el.className = `find-overlay ${kind === 'modal' ? 'z-[60]' : 'z-30'}`;
+  document.body.append(el);
+  return el;
 }
 
-// WebKit only repaints ranges removed via the Highlight's own set API — replacing or
-// deleting a registry entry leaves stale paint behind. So mutate one Highlight per
-// name in place, and clear() it before deleting.
-function getHighlight(name: string, priority: number): Highlight {
-  let h = CSS.highlights.get(name);
-  if (!h) {
-    h = new Highlight();
-    h.priority = priority;
-    CSS.highlights.set(name, h);
-  }
-  return h;
-}
-
-function clearHighlights() {
-  if (!highlightsSupported()) return;
-  for (const name of [HL_ALL, HL_CURRENT]) {
-    CSS.highlights.get(name)?.clear();
-    CSS.highlights.delete(name);
-  }
-}
-
-function paint(ranges: Range[], idx: number) {
-  if (!highlightsSupported()) return;
-  if (ranges.length === 0) {
-    clearHighlights();
-    return;
-  }
-  const all = getHighlight(HL_ALL, 0);
-  all.clear();
-  for (const r of ranges) all.add(r);
-  const current = getHighlight(HL_CURRENT, 1);
-  current.clear();
-  const cur = ranges[idx];
-  if (cur) current.add(cur);
+function paintBoxes(overlay: HTMLDivElement, ranges: Range[], idx: number) {
+  const boxes = layoutMatchBoxes(ranges, idx);
+  while (overlay.childElementCount > boxes.length) overlay.lastElementChild?.remove();
+  while (overlay.childElementCount < boxes.length) overlay.append(document.createElement('div'));
+  boxes.forEach((b, i) => {
+    const el = overlay.children[i] as HTMLDivElement;
+    el.className = b.current ? 'find-hl find-hl-current' : 'find-hl';
+    el.style.transform = `translate(${b.left}px, ${b.top}px)`;
+    el.style.width = `${b.width}px`;
+    el.style.height = `${b.height}px`;
+  });
 }
 
 export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
@@ -74,12 +55,17 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const rangesRef = useRef<Range[]>([]);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const idxRef = useRef(0);
   const queryRef = useRef('');
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  const paint = () => {
+    if (overlayRef.current) paintBoxes(overlayRef.current, rangesRef.current, idxRef.current);
+  };
 
   // Recompute matches. `scroll` = bring current match into view (query change only).
   const recompute = (q: string, mode: 'query' | 'mutation') => {
@@ -100,11 +86,11 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
     }
     rangesRef.current = ranges;
     idxRef.current = idx;
-    paint(ranges, idx);
     setTotal(ranges.length);
     setCapped(cap);
     setCurrent(idx);
     if (mode === 'query' && ranges[idx]) scrollRangeIntoView(ranges[idx]);
+    paint();
   };
 
   const step = (delta: 1 | -1) => {
@@ -112,10 +98,39 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
     if (n === 0) return;
     const idx = (idxRef.current + delta + n) % n;
     idxRef.current = idx;
-    paint(rangesRef.current, idx);
     setCurrent(idx);
     scrollRangeIntoView(rangesRef.current[idx]);
+    paint();
   };
+
+  // Overlay for match boxes; repainted (rAF-throttled) on any scroll or resize,
+  // since boxes are in viewport coordinates. Declared before the query effect so
+  // the overlay exists for the first paint.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: paint reads refs only
+  useEffect(() => {
+    const overlay = createOverlay(kind);
+    overlayRef.current = overlay;
+    let frame = 0;
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        paint();
+      });
+    };
+    window.addEventListener('scroll', schedule, { capture: true, passive: true });
+    window.addEventListener('resize', schedule);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
+    ro?.observe(scope);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule, { capture: true });
+      window.removeEventListener('resize', schedule);
+      ro?.disconnect();
+      overlay.remove();
+      overlayRef.current = null;
+    };
+  }, [scope, kind]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: recompute is stable in behaviour; keyed on query/scope
   useEffect(() => {
@@ -135,9 +150,13 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
         onCloseRef.current();
         return;
       }
+      const isOwn = (n: Node) => n instanceof Element && n.hasAttribute('data-find-bar');
       const relevant = records.some((r) => {
         const el = r.target instanceof Element ? r.target : r.target.parentElement;
-        return !el?.closest('[data-find-bar]');
+        if (el?.closest('[data-find-bar]')) return false;
+        // Mounting/unmounting our own overlay or bar portal on <body>
+        const changed = [...r.addedNodes, ...r.removedNodes];
+        return !(changed.length > 0 && changed.every(isOwn));
       });
       if (!relevant || timer) return;
       timer = setTimeout(() => {
@@ -154,7 +173,6 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
     return () => {
       mo.disconnect();
       clearTimeout(timer);
-      clearHighlights();
     };
   }, [scope]);
 

@@ -2,19 +2,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FindBar } from './FindBar';
 
-class FakeHighlight extends Set<Range> {
-  priority = 0;
-  constructor(...ranges: Range[]) {
-    super(ranges);
-  }
-  get ranges() {
-    return [...this];
-  }
-}
-
 let scope: HTMLElement;
 let scrollSpy: ReturnType<typeof vi.fn>;
-const g = globalThis as unknown as Record<string, unknown>;
+let rectsSpy: ReturnType<typeof vi.fn>;
+const rangeProto = Range.prototype as unknown as Record<string, unknown>;
 const proto = Element.prototype as unknown as Record<string, unknown>;
 
 function renderBar(extra: Partial<React.ComponentProps<typeof FindBar>> = {}) {
@@ -29,8 +20,12 @@ function type(value: string) {
   fireEvent.change(screen.getByLabelText('Find in page'), { target: { value } });
 }
 
-function hl(name: string) {
-  return (CSS as unknown as { highlights: Map<string, FakeHighlight> }).highlights.get(name);
+function boxes() {
+  return [...document.querySelectorAll('.find-overlay .find-hl')];
+}
+
+function currentBoxes() {
+  return [...document.querySelectorAll('.find-overlay .find-hl-current')];
 }
 
 beforeEach(() => {
@@ -38,8 +33,9 @@ beforeEach(() => {
   scope.innerHTML = '<p>Café one</p><p>café two</p>';
   scope.setAttribute('data-find-scope', 'main');
   document.body.append(scope);
-  g.Highlight = FakeHighlight;
-  (CSS as unknown as { highlights: Map<string, FakeHighlight> }).highlights = new Map();
+  // jsdom has no layout: give every match one on-screen rect
+  rectsSpy = vi.fn(() => [new DOMRect(10, 10, 30, 12)]);
+  rangeProto.getClientRects = rectsSpy;
   scrollSpy = vi.fn();
   proto.scrollIntoView = scrollSpy;
   proto.checkVisibility = () => true;
@@ -47,8 +43,7 @@ beforeEach(() => {
 
 afterEach(() => {
   scope.remove();
-  delete g.Highlight;
-  delete (CSS as unknown as Record<string, unknown>).highlights;
+  delete rangeProto.getClientRects;
   delete proto.scrollIntoView;
   delete proto.checkVisibility;
   vi.useRealTimers();
@@ -59,8 +54,8 @@ describe('FindBar', () => {
     renderBar();
     type('cafe');
     expect(screen.getByText('1/2')).toBeTruthy();
-    expect(hl('find-all')?.ranges).toHaveLength(2);
-    expect(hl('find-current')?.ranges).toHaveLength(1);
+    expect(boxes()).toHaveLength(2);
+    expect(currentBoxes()).toHaveLength(1);
   });
 
   it('navigates with Enter / Shift+Enter and wraps', () => {
@@ -89,18 +84,24 @@ describe('FindBar', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('narrowing the query updates the same Highlight in place (WebKit repaint)', () => {
+  it('narrowing the query removes boxes of the shorter query', () => {
     scope.innerHTML = '<p>cafe</p><p>caf</p>';
     renderBar();
     type('caf');
-    const all = hl('find-all');
-    const current = hl('find-current');
-    expect(all?.ranges).toHaveLength(2);
+    expect(boxes()).toHaveLength(2);
     type('cafe');
-    expect(hl('find-all')).toBe(all);
-    expect(hl('find-current')).toBe(current);
-    expect(all?.ranges).toHaveLength(1);
-    expect(all?.ranges[0].toString()).toBe('cafe');
+    expect(boxes()).toHaveLength(1);
+    expect(currentBoxes()).toHaveLength(1);
+  });
+
+  it('clips boxes to overflow-clipping ancestors', () => {
+    scope.innerHTML = '<div id="clip" style="overflow: hidden"><p>cafe</p></div>';
+    (scope.querySelector('#clip') as HTMLElement).getBoundingClientRect = () =>
+      new DOMRect(0, 100, 200, 50); // match rect (y=10) is above the clip box
+    renderBar();
+    type('cafe');
+    expect(screen.getByText('1/1')).toBeTruthy();
+    expect(boxes()).toHaveLength(0);
   });
 
   it('shows No results and clears on empty query', () => {
@@ -109,12 +110,11 @@ describe('FindBar', () => {
     expect(screen.getByText('No results')).toBeTruthy();
     type('cafe');
     type('');
-    expect(hl('find-all')).toBeUndefined();
-    expect(hl('find-current')).toBeUndefined();
+    expect(boxes()).toHaveLength(0);
     expect(screen.queryByText(/\d\/\d/)).toBeNull();
   });
 
-  it('Escape closes without propagating and unmount clears highlights', () => {
+  it('Escape closes without propagating and unmount removes the overlay', () => {
     const docListener = vi.fn();
     document.addEventListener('keydown', docListener);
     const { onClose, unmount } = renderBar();
@@ -124,8 +124,7 @@ describe('FindBar', () => {
     expect(docListener).not.toHaveBeenCalled();
     document.removeEventListener('keydown', docListener);
     unmount();
-    expect(hl('find-all')).toBeUndefined();
-    expect(hl('find-current')).toBeUndefined();
+    expect(document.querySelector('.find-overlay')).toBeNull();
   });
 
   it('recomputes live on DOM mutation without scrolling', async () => {
@@ -153,13 +152,14 @@ describe('FindBar', () => {
       type('cafe'); // counter text mutates inside [data-find-bar] within scope
       await Promise.resolve();
     });
-    const before = hl('find-all');
-    expect(before).toBeDefined();
+    expect(boxes()).toHaveLength(2);
+    rectsSpy.mockClear();
     await act(async () => {
       await Promise.resolve();
       vi.advanceTimersByTime(300);
     });
-    expect(hl('find-all')).toBe(before);
+    expect(rectsSpy).not.toHaveBeenCalled(); // no recompute/repaint
+    expect(boxes()).toHaveLength(2);
   });
 
   it('re-focuses and selects on focusSignal change', () => {
@@ -173,11 +173,10 @@ describe('FindBar', () => {
     expect(input.selectionEnd).toBe(4);
   });
 
-  it('works without the Highlight API', () => {
-    delete g.Highlight;
-    delete (CSS as unknown as Record<string, unknown>).highlights;
+  it('excludes its own overlay from matching', () => {
     renderBar();
     type('cafe');
     expect(screen.getByText('1/2')).toBeTruthy();
+    expect(document.querySelector('.find-overlay')?.hasAttribute('data-find-bar')).toBe(true);
   });
 });
