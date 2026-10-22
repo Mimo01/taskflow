@@ -180,3 +180,14 @@
     hsl(var(--muted)) 8px
   );
 }
+
+/* Find-in-page (CSS Custom Highlight API). Own colours: chart tokens are both blue. */
+::highlight(find-all) {
+  background-color: oklch(0.85 0.17 90 / 0.5);
+  color: inherit;
+}
+
+::highlight(find-current) {
+  background-color: oklch(0.7 0.19 50);
+  color: oklch(0.15 0 0);
+}
