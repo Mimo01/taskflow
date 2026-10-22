@@ -25,3 +25,11 @@ Cmd+Shift+F now opens the command palette. Cmd+F opens a custom find bar that se
 - Virtualized off-screen rows are not rendered, so they are not searched.
 - Matches that span inline element boundaries (`foo <strong>bar</strong>`) are not found. Only sibling text nodes are joined.
 - Manual verification in `tauri dev` is still pending (the native menu accelerators need a Rust rebuild).
+
+## Post-execution fixes (UAT, 2026-10-22)
+
+- `2987f608` — code review hardening (scope removal closes bar, re-target on Cmd+F, whitespace runs, trailing throttle, `e.key` matching). See 261022-h1q-REVIEW.md.
+- `aa844c94` — stale highlights when narrowing the query (superseded by next fix).
+- `80214321` — **switched from CSS Custom Highlight API to overlay boxes.** WKWebView does not paint `::highlight` on text that is a direct child of a flex/grid container, inside a `<button>`, or `user-select:none` (verified with a Swift WKWebView snapshot probe) — badges, pills, assignee/field triggers were never highlighted. Matches are now drawn as boxes on a pointer-events-none fixed overlay from `range.getClientRects()`, clipped to overflow-clipping ancestors (`layoutMatchBoxes` in `src/lib/find-in-page.ts`), repainted on scroll/resize/mutation.
+
+UAT: approved by user 2026-10-22.

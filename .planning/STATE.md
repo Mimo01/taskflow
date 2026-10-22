@@ -183,7 +183,7 @@ None yet.
 | 261002-h9e | Changes tab: side-by-side word diff for long text (full-height, no preview), plain old→new rows for short + multi-value fields (status keeps pills), burst grouping, field icon column, review fixes + UAT polish | 2026-10-02 | 262ba357 | Verified | [261002-h9e-enhance-changes-tab-on-issue-detail-with](./quick/261002-h9e-enhance-changes-tab-on-issue-detail-with/) |
 | 261014-m6e | Prompt to move story to Done when last open subtask is closed (board + sidebar) | 2026-10-14 | 97141a9f | Verified (UAT by user) | [261014-m6e-when-i-close-the-last-opened-subtask-in-](./quick/261014-m6e-when-i-close-the-last-opened-subtask-in-/) |
 | 261014-myz | Merge AIO cycle burndown executions within one hour into one point | 2026-10-14 | 4d5bc2a2 | Verified (UAT by user) | [261014-myz-merge-close-burndown-datapoints-aio-cycl](./quick/261014-myz-merge-close-burndown-datapoints-aio-cycl/) |
-| 261022-h1q | Cmd+Shift+F opens global search; Cmd+F searches current page content only (custom find bar, accent/case-insensitive, live) | 2026-10-22 | 2987f608 | Needs Review | [261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se](./quick/261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se/) |
+| 261022-h1q | Cmd+Shift+F opens global search; Cmd+F searches current page content only (custom find bar, accent/case-insensitive, live) | 2026-10-22 | 80214321 | Verified (UAT) | [261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se](./quick/261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se/) |
 
 ## Deferred Items
 
