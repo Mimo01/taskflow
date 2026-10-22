@@ -153,7 +153,7 @@ No gaps. All 5 success criteria are verified against the actual codebase. All 10
 ## Verification Notes
 
 - The ROADMAP success criterion says "all 4 stores" but 5 stores were actually using the duplicated LazyStore adapter. All 5 were fixed — this exceeds the criterion.
-- Commits `bd441f8`, `e575881` (plan 01), `7efa009`, `5272523` (plan 02), `59cadd2`, `8f1ebc8` (plan 03), `0b25bea`, `0b2bc34` (plan 04), `add6224`, `d72154b` (plan 05) all confirmed in git log.
+- Commits `8b57821c`, `236109f0` (plan 01), `712c82df`, `e6b59cdd` (plan 02), `64e7dcea`, `401b069d` (plan 03), `a7ceff64`, `9f75357d` (plan 04), `6ff9e7d1`, `72751d12` (plan 05) all confirmed in git log.
 - Test run: 489 passed / 4 todo / 1 skipped file — identical count to pre-phase baseline (489 tests).
 
 ---

@@ -69,9 +69,9 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Install react-hotkeys-hook** - `c72c4d2` (feat)
-2. **Task 2: Write KeyboardShortcutsPanel test scaffold (RED)** - `48bd5f4` (test)
-3. **Task 3: Add keyboardOverrides test cases to settings.store.test.ts** - `0aadbb0` (test)
+1. **Task 1: Install react-hotkeys-hook** - `687cc718` (feat)
+2. **Task 2: Write KeyboardShortcutsPanel test scaffold (RED)** - `f151edec` (test)
+3. **Task 3: Add keyboardOverrides test cases to settings.store.test.ts** - `d6f9cbd1` (test)
 
 ## Files Created/Modified
 - `taskflow/package.json` - Added react-hotkeys-hook@^5.2.4 to dependencies

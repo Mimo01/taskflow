@@ -35,7 +35,7 @@ human_verification:
 | 1 | Yesterday issue rows render with the same row treatment as Today's IssueRow (px-2 py-2 padding, monospace key, right-aligned time chip, no bold header) | VERIFIED | IssueActivityGroup.tsx line 83: `px-2 py-2` on button header; line 86: `font-mono` on key span; line 89: `shrink-0 rounded bg-muted px-2 py-1` chip; no `font-semibold` or `-mx-1` remaining |
 | 2 | Yesterday sub-items render as indented rows matching Today's nested rows (pl-6 border-l border-border ml-2, size-4 icons) | VERIFIED | IssueActivityGroup.tsx line 97: `pl-6 border-l border-border ml-2 divide-y divide-border`; line 102: `py-2 px-2` item div; line 103: `size-4` icons |
 | 3 | Standalone MR groups and Other commits groups visually match Today's MR row style (py-2 px-2, monospace iid, no font-semibold/italic) | VERIFIED | StandaloneMrGroup.tsx line 27: `flex items-center gap-2 py-2 px-2` header; line 29: `font-mono shrink-0`; OtherCommitsGroup.tsx line 21: `flex items-center gap-2 py-2 px-2`; grep of all three files returns zero matches for `font-semibold` or `italic` |
-| 4 | The Yesterday stat line, compact empty notices, loading skeletons, and column shell remain unchanged | VERIFIED | Commit `4c687c86` touched only 3 files (IssueActivityGroup.tsx, StandaloneMrGroup.tsx, OtherCommitsGroup.tsx); YesterdayColumn.tsx is unmodified and still contains all stat line / LoadingSkeletons / CompactEmptyNotice code |
+| 4 | The Yesterday stat line, compact empty notices, loading skeletons, and column shell remain unchanged | VERIFIED | Commit `cc311c34` touched only 3 files (IssueActivityGroup.tsx, StandaloneMrGroup.tsx, OtherCommitsGroup.tsx); YesterdayColumn.tsx is unmodified and still contains all stat line / LoadingSkeletons / CompactEmptyNotice code |
 | 5 | No data model, props, or markdown export behavior changes — restyle is className-only | VERIFIED | IssueActivityGroupProps, SubItem, SubItemKind, StandaloneMrGroupProps, OtherCommitsGroupProps all unchanged; subItemIcon mapping intact; generateMarkdown() in YesterdayColumn.tsx unmodified; onClick wiring preserved |
 
 **Score:** 5/5 truths verified
@@ -71,8 +71,8 @@ Not applicable — this phase is a className-only restyle. No data model or fetc
 | Vitest standup-notes suite | `npx vitest run src/routes/standup-notes/` | 60/60 tests pass | PASS |
 | Biome lint on 3 files | `npx biome check` on 3 files | Checked 3 files, no fixes applied | PASS |
 | tsc on 3 files | `npx tsc --noEmit` filtered for 3 files | Zero errors | PASS |
-| Commit exists | `git log --oneline \| grep 4c687c86` | `feat(quick-260525-kfi): unify Yesterday column rows` | PASS |
-| Only 3 files in commit | `git show 4c687c86 --stat` | 3 files changed, 36 ins / 34 del | PASS |
+| Commit exists | `git log --oneline \| grep cc311c34` | `feat(quick-260525-kfi): unify Yesterday column rows` | PASS |
+| Only 3 files in commit | `git show cc311c34 --stat` | 3 files changed, 36 ins / 34 del | PASS |
 
 ### Requirements Coverage
 

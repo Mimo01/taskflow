@@ -62,9 +62,9 @@ completed: 2026-08-11
 
 ## Task Commits
 
-1. **Task 1: TagChannelHealth discriminant on BranchState/resolveBranchState** - `fe4e2ee6` (feat)
-2. **Task 2: Suppress negative tag claim unless tagChannel resolved** - `af2612ad` (feat)
-3. **Task 3: Thread tagChannel into useReleaseDetail.ts + phase gates** - `dc26b23d` (feat)
+1. **Task 1: TagChannelHealth discriminant on BranchState/resolveBranchState** - `52a645ff` (feat)
+2. **Task 2: Suppress negative tag claim unless tagChannel resolved** - `be41afe8` (feat)
+3. **Task 3: Thread tagChannel into useReleaseDetail.ts + phase gates** - `a877d071` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/release-detail/releaseBranch.ts` - `TagChannelHealth` type, widened `released` variant, `tagChannel` param on `resolveBranchState`
@@ -98,4 +98,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 5 modified files and the summary file exist on disk; all 4 commit hashes (fe4e2ee6, af2612ad, dc26b23d, 5dc1ce32) found in git log.
+All 5 modified files and the summary file exist on disk; all 4 commit hashes (52a645ff, be41afe8, a877d071, 148ce3d2) found in git log.

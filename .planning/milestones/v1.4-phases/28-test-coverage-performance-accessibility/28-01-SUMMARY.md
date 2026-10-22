@@ -62,8 +62,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Unit tests for comments, transitions, versions modules** - `5da81de` (test)
-2. **Task 2: Unit tests for worklogs, links, projects modules** - `9fa812d` (test)
+1. **Task 1: Unit tests for comments, transitions, versions modules** - `fd556c4a` (test)
+2. **Task 2: Unit tests for worklogs, links, projects modules** - `6847d3f7` (test)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/comments.test.ts` - Tests for all 4 comment CRUD operations

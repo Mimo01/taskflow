@@ -53,8 +53,8 @@ metrics:
 
 | Gate | Commit | Status |
 |------|--------|--------|
-| RED — `test(82-02)` | dd454c66 | PASS — 7 tests failed (module not found) |
-| GREEN — `feat(82-02)` | 94032848 | PASS — 7/7 tests passing |
+| RED — `test(82-02)` | 06bb7e72 | PASS — 7 tests failed (module not found) |
+| GREEN — `feat(82-02)` | e6cc2fce | PASS — 7/7 tests passing |
 
 ## Deviations from Plan
 
@@ -92,5 +92,5 @@ None — store persists only two enum strings (groupingMode, scope). No issue da
 
 - [x] `taskflow/src/stores/my-tasks.store.ts` — FOUND
 - [x] `taskflow/src/stores/my-tasks.store.test.ts` — FOUND
-- [x] Commit dd454c66 (RED) — verified in git log
-- [x] Commit 94032848 (GREEN) — verified in git log
+- [x] Commit 06bb7e72 (RED) — verified in git log
+- [x] Commit e6cc2fce (GREEN) — verified in git log

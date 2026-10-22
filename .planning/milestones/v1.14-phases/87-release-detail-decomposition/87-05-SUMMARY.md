@@ -56,8 +56,8 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 1: Extract ReleaseDetailSidebar.tsx** - `1c38c137` (feat)
-2. **Task 2: Extract useEditRelease.ts (edit state, diff builders, combined save)** - `a952d00c` (feat)
+1. **Task 1: Extract ReleaseDetailSidebar.tsx** - `799db409` (feat)
+2. **Task 2: Extract useEditRelease.ts (edit state, diff builders, combined save)** - `30f1f6e5` (feat)
 
 **Plan metadata:** (this commit, docs: complete plan)
 
@@ -84,7 +84,7 @@ Each task was committed atomically:
 - **Fix:** Dropped `setEditing` from the page's destructure of `useEditRelease()`'s return (still returned by the hook itself, satisfying the plan's required return-object shape) and removed the orphaned `queryClient` declaration line.
 - **Files modified:** `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx`
 - **Verification:** `npx tsc --noEmit -p .` exits clean; `npm run check` at the pre-existing 2-error baseline (unrelated `BacklogPage.tsx`/`BacklogRow.tsx`).
-- **Commit:** `a952d00c`
+- **Commit:** `30f1f6e5`
 
 ### Documented plan-text imprecision (not a code issue)
 
@@ -112,8 +112,8 @@ No blockers.
 - `taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.tsx` - FOUND
 - `taskflow/src/routes/dashboard/release-detail/useEditRelease.ts` - FOUND
 - `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` - FOUND (473 lines)
-- Commit `1c38c137` - FOUND
-- Commit `a952d00c` - FOUND
+- Commit `799db409` - FOUND
+- Commit `30f1f6e5` - FOUND
 
 ## Self-Check: PASSED
 

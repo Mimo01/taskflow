@@ -75,8 +75,8 @@ MR detail page with two-column layout (description/commits/linked-Jira left, sta
 
 | # | Hash | Message |
 |---|------|---------|
-| 1 | 56ccde0 | feat(quick-260317-tdr): add MR detail page, MR list page, and fetchMRDetail API |
-| 2 | 4a21d91 | feat(quick-260317-tdr): wire MR routes, sidebar nav link, and breadcrumb integration |
+| 1 | f3d47adf | feat(quick-260317-tdr): add MR detail page, MR list page, and fetchMRDetail API |
+| 2 | cbca812b | feat(quick-260317-tdr): wire MR routes, sidebar nav link, and breadcrumb integration |
 
 ## Verification
 

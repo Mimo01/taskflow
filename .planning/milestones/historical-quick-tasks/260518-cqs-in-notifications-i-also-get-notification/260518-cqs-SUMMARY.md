@@ -55,17 +55,17 @@ Inside the `for (const entry of approvedBy)` loop, after the cursor check, `if (
 
 ## TDD Gate Compliance
 
-- RED commit: `07d972c` (Jira tests), `6104e38` (GitLab tests)
-- GREEN commit: `6d25647` (Jira implementation), `aaab65f` (GitLab implementation)
+- RED commit: `7254b99b` (Jira tests), `310fc035` (GitLab tests)
+- GREEN commit: `56e736d7` (Jira implementation), `1a66d984` (GitLab implementation)
 
 ## Commits
 
 | Hash | Type | Description |
 |------|------|-------------|
-| `07d972c` | test | RED — 6 Jira self-author filter failing tests |
-| `6d25647` | feat | GREEN — Query A and Query C self-author filters |
-| `6104e38` | test | RED — 2 GitLab self-approval failing tests |
-| `aaab65f` | feat | GREEN — GitLab approvals self-filter |
+| `7254b99b` | test | RED — 6 Jira self-author filter failing tests |
+| `56e736d7` | feat | GREEN — Query A and Query C self-author filters |
+| `310fc035` | test | RED — 2 GitLab self-approval failing tests |
+| `1a66d984` | feat | GREEN — GitLab approvals self-filter |
 
 ## Deviations from Plan
 
@@ -83,8 +83,8 @@ None — changes are purely client-side filter logic with no new network surface
 
 - `taskflow/src/services/notifications.ts` — modified, exists
 - `taskflow/src/services/notifications.test.ts` — modified, exists
-- Commit `07d972c` — verified
-- Commit `6d25647` — verified
-- Commit `6104e38` — verified
-- Commit `aaab65f` — verified
+- Commit `7254b99b` — verified
+- Commit `56e736d7` — verified
+- Commit `310fc035` — verified
+- Commit `1a66d984` — verified
 - 23 tests green

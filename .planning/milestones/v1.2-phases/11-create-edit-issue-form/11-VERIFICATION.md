@@ -35,7 +35,7 @@ re_verification: false
 Source: `11-05-SUMMARY.md` — Human verification checkpoint completed 2026-03-14 against the live Client Jira instance.
 
 **Approval received:** Human tester approved all four CREATE requirements.
-**7 bugs fixed during UAT:** f05aa9f, c93d4e2, 0eee239, ecedbfa, 3a8c5ee, 88e332b, e5c5096 — all committed to main.
+**7 bugs fixed during UAT:** 293b2cd8, 40fa4cb6, 33fb8b58, 92035775, fd070314, 48e9f39a, 9bbc5d26 — all committed to main.
 **No `requirements-completed` frontmatter in SUMMARY:** Omitted at time of execution; this VERIFICATION.md serves as the formal requirements-completed record.
 
 ---

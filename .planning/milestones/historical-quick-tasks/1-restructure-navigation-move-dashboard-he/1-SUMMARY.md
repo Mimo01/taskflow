@@ -69,8 +69,8 @@ metrics:
 
 | Task | Commit  | Message                                                  |
 |------|---------|----------------------------------------------------------|
-| 1    | 9486199 | feat(quick-1-01): add 6 flat routes and role-aware sidebar nav |
-| 2    | a0b690d | feat(quick-1-02): replace Dashboard tabs with role-aware overview summary cards |
+| 1    | 0c35f4f3 | feat(quick-1-01): add 6 flat routes and role-aware sidebar nav |
+| 2    | b4a148b9 | feat(quick-1-02): replace Dashboard tabs with role-aware overview summary cards |
 
 ## Deviations from Plan
 
@@ -82,7 +82,7 @@ TypeScript compilation (`npx tsc --noEmit`) passes with zero new errors. The 3 p
 
 ## Self-Check: PASSED
 
-- taskflow/src/main.tsx — modified, committed in 9486199
-- taskflow/src/components/app/Sidebar.tsx — modified, committed in 9486199
-- taskflow/src/routes/dashboard/index.tsx — modified, committed in a0b690d
-- taskflow/src/stores/dashboard.store.ts — deleted, committed in 9486199
+- taskflow/src/main.tsx — modified, committed in 0c35f4f3
+- taskflow/src/components/app/Sidebar.tsx — modified, committed in 0c35f4f3
+- taskflow/src/routes/dashboard/index.tsx — modified, committed in b4a148b9
+- taskflow/src/stores/dashboard.store.ts — deleted, committed in 0c35f4f3

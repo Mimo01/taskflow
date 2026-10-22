@@ -30,7 +30,7 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add debounced text search query and merge results into Issues group | 99d55ab5 | taskflow/src/components/app/CommandPalette.tsx |
+| 1 | Add debounced text search query and merge results into Issues group | 7defc520 | taskflow/src/components/app/CommandPalette.tsx |
 
 ## What Was Built
 
@@ -58,6 +58,6 @@ None — T-e3z-02 (project scoping) and T-e3z-03 (debounce DoS protection) are b
 
 ## Self-Check: PASSED
 
-- [x] `taskflow/src/components/app/CommandPalette.tsx` modified and committed at 99d55ab5
+- [x] `taskflow/src/components/app/CommandPalette.tsx` modified and committed at 7defc520
 - [x] `npm run check` exits with 0 errors (17 pre-existing biome warnings + 2 pre-existing TS6133 errors in unrelated `MyTaskRow.tsx` — confirmed present at base HEAD before this change)
 - [x] Component contains `debouncedQuery` state, useQuery with key `['search', 'text', debouncedQuery, activeJiraProject]`, and issuesMap populated from both cache and `textSearchResults`

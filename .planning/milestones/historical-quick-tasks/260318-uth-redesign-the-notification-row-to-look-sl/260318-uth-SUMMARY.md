@@ -64,9 +64,9 @@ completed: 2026-03-18
 
 Each task was committed atomically:
 
-1. **Task 1: Initial NotificationRow redesign** - `80acb37` (feat)
-2. **Task 2: Update tests for redesigned layout** - `de8d79d` (test)
-3. **Checkpoint feedback: Premium redesign v2 with action tray** - `266fa61` (feat)
+1. **Task 1: Initial NotificationRow redesign** - `720d0a15` (feat)
+2. **Task 2: Update tests for redesigned layout** - `9e6b957f` (test)
+3. **Checkpoint feedback: Premium redesign v2 with action tray** - `4ec319e0` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/notifications/NotificationRow.tsx` - Complete redesign: hero title layout, metadata strip, action tray overlay
@@ -88,7 +88,7 @@ User approved the initial redesign as "way better" but requested further iterati
 1. Making the row even more sleek and modern
 2. Completely rethinking the action button UX
 
-This resulted in a v2 redesign (commit `266fa61`) that:
+This resulted in a v2 redesign (commit `4ec319e0`) that:
 - Restructured layout to hero-title-first instead of metadata-first
 - Replaced icon-only hover-swap actions with a labeled action tray overlay
 - Moved timestamp to always-visible position

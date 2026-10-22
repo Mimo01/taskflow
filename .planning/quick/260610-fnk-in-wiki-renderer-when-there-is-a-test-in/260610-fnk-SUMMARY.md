@@ -53,21 +53,21 @@ Bare active-project Jira issue keys (e.g. `PROD-123`) in wiki prose now render a
 - **Issue:** The plan's RESEARCH assumed react-markdown invokes a `text` component override for prose text nodes. react-markdown **10.1.0** (this project's version) removed `text` from the components map — text nodes render directly, so the override never fired.
 - **Fix:** Replaced the `text` override with a `rehypeIssueKeys` rehype plugin (`unist-util-visit`) that transforms the hast tree before sanitize, emitting an allowlisted `<issuekeylink>` element rendered by the components map. This preserves every planned behavior and decision (D-02/D-04/D-05) — only the integration mechanism changed. The `a`-override single-ownership design (D-05) is unaffected and still makes nested `<a>` structurally impossible (text under `<a>` is SKIPped by the plugin).
 - **Files modified:** taskflow/src/routes/dashboard/WikiRenderer.tsx
-- **Commits:** bf45fb6b (initial text-override attempt, superseded), 49bae135 (rehype plugin fix)
+- **Commits:** c00ea8f0 (initial text-override attempt, superseded), dbfa2b58 (rehype plugin fix)
 
 **2. [Rule 1 - Bug] Two pre-existing browse-URL tests broke after the `a`-override change**
 - **Found during:** Task 3.
 - **Issue:** The `a` override now renders `IssueKeyLink` (which calls `useQuery`) for `browse/KEY` URLs. Two existing tests rendered `WikiRenderer` for such a URL without a `QueryClientProvider`, so they threw "No QueryClient set".
 - **Fix:** Routed those two tests through the new `renderWiki` helper (QueryClientProvider + MemoryRouter). Navigation/breadcrumb behavior is preserved by `IssueKeyLink`'s own click handler, so the original assertions still hold.
 - **Files modified:** taskflow/src/routes/dashboard/WikiRenderer.test.tsx
-- **Commit:** 6e2dcaaa
+- **Commit:** 1c64b61c
 
 **3. [Rule 1 - Test fixture] Test C fixture used the wrong code form**
 - **Found during:** Task 3.
 - **Issue:** `{code}PROD-9{code}` (single line, no newline) makes jira2md treat `PROD-9` as the fenced-block *language* (`<code class="language-PROD-9">` with empty body), so asserting the key text inside `<code>` failed.
 - **Fix:** Switched Test C to an inline code span (`{{PROD-9}}` → `<code>PROD-9</code>`), which is a cleaner test of the D-04 requirement (key inside code stays literal, no anchor). The behavior under test — no linkification inside code — is identical.
 - **Files modified:** taskflow/src/routes/dashboard/WikiRenderer.test.tsx
-- **Commit:** 6e2dcaaa
+- **Commit:** 1c64b61c
 
 ## Tests
 
@@ -100,7 +100,7 @@ None.
 
 - FOUND: taskflow/src/routes/dashboard/WikiRenderer.tsx
 - FOUND: taskflow/src/routes/dashboard/WikiRenderer.test.tsx
-- FOUND commit 78f4d105 (Task 1: isKnownPrefix + IssueKeyLink)
-- FOUND commit bf45fb6b (Task 2: text override + a-override single-ownership)
-- FOUND commit 49bae135 (Rule 3 fix: rehype plugin)
-- FOUND commit 6e2dcaaa (Task 3: tests)
+- FOUND commit 11990366 (Task 1: isKnownPrefix + IssueKeyLink)
+- FOUND commit c00ea8f0 (Task 2: text override + a-override single-ownership)
+- FOUND commit dbfa2b58 (Rule 3 fix: rehype plugin)
+- FOUND commit 1c64b61c (Task 3: tests)

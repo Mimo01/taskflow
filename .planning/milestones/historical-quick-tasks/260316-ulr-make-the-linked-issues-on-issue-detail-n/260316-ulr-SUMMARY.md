@@ -37,7 +37,7 @@ completed: 2026-03-16
 
 ## Task Commits
 
-1. **Task 1: Make linked issues clickable in IssueDetailSidebar** - `a013ec2` (feat)
+1. **Task 1: Make linked issues clickable in IssueDetailSidebar** - `d093f6f7` (feat)
 
 ## Files Modified
 - `taskflow/src/routes/dashboard/IssueDetailSidebar.tsx` - Linked issues section converted from plain spans to clickable buttons with status badges

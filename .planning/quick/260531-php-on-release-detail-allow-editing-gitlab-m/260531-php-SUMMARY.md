@@ -45,7 +45,7 @@ Replaced the release detail sidebar edit form with a centered Base UI modal and 
 ### Task 1: `updateMilestone()` service fn + tests (TDD)
 - Added `updateMilestone(baseUrl, token, projectId, milestoneId, fields)` to `gitlab.ts`, placed after `fetchProjectMilestonesInRange`. Issues `PUT ${base}/api/v4/projects/:id/milestones/:milestone_id` via `apiFetch('gitlab', ...)` with `PRIVATE-TOKEN` header, body `JSON.stringify(fields)`. Uses the milestone's numeric `id` (not `iid`). 401/403 → `ApiError('Failed to update milestone', status, 'gitlab')`; other non-ok → `Error('Failed to update milestone: status N')`; network failure → `Cannot reach … — check the base URL`.
 - Added a `describe('updateMilestone')` block in `gitlab.test.ts`: success returns parsed milestone; PUT to numeric-id path with `PRIVATE-TOKEN` and changed-fields-only body (`{ description: 'x' }` with no `title` key); 401/403 throw `ApiError`; generic 500 error.
-- TDD cycle: RED commit (`test(...)`, `9894bb91`) with 5 failing cases → GREEN commit (`feat(...)`, `fd8fdb79`). No refactor needed.
+- TDD cycle: RED commit (`test(...)`, `9ca3f667`) with 5 failing cases → GREEN commit (`feat(...)`, `8e0fe85b`). No refactor needed.
 
 ### Task 2: Modal editing + combined save
 - Sidebar reverted to read-only metadata unconditionally (removed the `editing ? <form> : <read-only>` branch). The "Edit" button still calls `startEditing()` which now opens the modal.
@@ -71,12 +71,12 @@ Replaced the release detail sidebar edit form with a centered Base UI modal and 
 **2. [Rule 1 - Bug] Removed now-unused `useMutation` import**
 - **Found during:** Task 2 (biome warning after replacing the Jira `useMutation` with `Promise.allSettled`).
 - **Fix:** Dropped `useMutation` from the `@tanstack/react-query` import.
-- **Commit:** `dcb4dc75`.
+- **Commit:** `e0ac5f7e`.
 
 **3. [formatting] biome reformatted one assertion line in `gitlab.test.ts`**
 - **Found during:** Task 2 `npm run check`.
 - **Issue:** A multi-line `expect(calledUrl).toBe(...)` was collapsed to one line by the formatter.
-- **Fix:** Applied `biome check --write`; the formatting-only change to `gitlab.test.ts` was folded into the Task 2 commit (`dcb4dc75`) since it surfaced during Task 2's gate.
+- **Fix:** Applied `biome check --write`; the formatting-only change to `gitlab.test.ts` was folded into the Task 2 commit (`e0ac5f7e`) since it surfaced during Task 2's gate.
 
 ## Known Stubs
 None.
@@ -85,14 +85,14 @@ None.
 None — `updateMilestone` reuses the existing GitLab auth surface (`PRIVATE-TOKEN` + `apiFetch('gitlab', …)`); no new trust boundary introduced.
 
 ## TDD Gate Compliance
-- RED gate: `9894bb91` `test(quick-260531-php): add failing tests for updateMilestone` (5 failing cases).
-- GREEN gate: `fd8fdb79` `feat(quick-260531-php): add updateMilestone service fn`.
+- RED gate: `9ca3f667` `test(quick-260531-php): add failing tests for updateMilestone` (5 failing cases).
+- GREEN gate: `8e0fe85b` `feat(quick-260531-php): add updateMilestone service fn`.
 - REFACTOR: none required.
 
 ## Commits
-- `9894bb91` test(quick-260531-php): add failing tests for updateMilestone
-- `fd8fdb79` feat(quick-260531-php): add updateMilestone service fn
-- `dcb4dc75` feat(quick-260531-php): move release editing into modal + combined Jira/GitLab save
+- `9ca3f667` test(quick-260531-php): add failing tests for updateMilestone
+- `8e0fe85b` feat(quick-260531-php): add updateMilestone service fn
+- `e0ac5f7e` feat(quick-260531-php): move release editing into modal + combined Jira/GitLab save
 
 ## Notes for UAT
 - Edit opens a centered modal over the dimmed page; the right sidebar never becomes a form.
@@ -102,5 +102,5 @@ None — `updateMilestone` reuses the existing GitLab auth surface (`PRIVATE-TOK
 
 ## Self-Check: PASSED
 - All modified files exist (gitlab.ts, gitlab.test.ts, ReleaseDetailPage.tsx) and SUMMARY.md present.
-- All three commits found in git log (9894bb91, fd8fdb79, dcb4dc75).
+- All three commits found in git log (9ca3f667, 8e0fe85b, e0ac5f7e).
 - `updateMilestone` export and `Dialog.Popup` modal markup confirmed present.

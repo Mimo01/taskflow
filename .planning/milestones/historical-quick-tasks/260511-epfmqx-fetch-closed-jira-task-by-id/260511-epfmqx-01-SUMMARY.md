@@ -37,8 +37,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add fetchJiraIssueByKey to issues.ts and re-export from jira.ts | d15f155 | issues.ts, issues.test.ts, jira.ts |
-| 2 | Add key-pattern auto-detection and Direct Match group to CommandPalette | e671656 | CommandPalette.tsx, CommandPalette.test.tsx |
+| 1 | Add fetchJiraIssueByKey to issues.ts and re-export from jira.ts | 2cc237ae | issues.ts, issues.test.ts, jira.ts |
+| 2 | Add key-pattern auto-detection and Direct Match group to CommandPalette | c948edbf | CommandPalette.tsx, CommandPalette.test.tsx |
 
 ## What Was Built
 
@@ -107,8 +107,8 @@ None.
 - [x] `taskflow/src/services/jira/issues.ts` — contains `fetchJiraIssueByKey` ✓
 - [x] `taskflow/src/services/jira.ts` — re-exports `fetchJiraIssueByKey` ✓
 - [x] `taskflow/src/components/app/CommandPalette.tsx` — contains `isJiraKeyQuery`, `keyMatchResult`, `Direct Match` group ✓
-- [x] Commit d15f155 — Task 1 ✓
-- [x] Commit e671656 — Task 2 ✓
+- [x] Commit 2cc237ae — Task 1 ✓
+- [x] Commit c948edbf — Task 2 ✓
 - [x] 53 tests passing, 0 TypeScript errors ✓
 
 ## Self-Check: PASSED

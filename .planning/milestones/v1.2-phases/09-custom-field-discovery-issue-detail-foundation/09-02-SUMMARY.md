@@ -78,8 +78,8 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Add discoverCustomFields, fetchIssueDetail, updateIssueField to jira.ts** - `03286e9` (feat + test, TDD)
-2. **Task 2: Extend settings store + update main.tsx discovery hook** - `af541cf` (feat)
+1. **Task 1: Add discoverCustomFields, fetchIssueDetail, updateIssueField to jira.ts** - `17230a28` (feat + test, TDD)
+2. **Task 2: Extend settings store + update main.tsx discovery hook** - `8850adb9` (feat)
 
 _Note: Task 1 used TDD — RED (10 failing tests added) then GREEN (implementation). No separate refactor commit needed._
 
@@ -106,7 +106,7 @@ _Note: Task 1 used TDD — RED (10 failing tests added) then GREEN (implementati
 - **Fix:** Replaced the APIF-03 describe block tests to use `discoverCustomFields` equivalents that test the same storyPointsFieldKey resolution behavior
 - **Files modified:** `taskflow/src/services/jira.test.ts`
 - **Verification:** All 54 jira.test.ts tests pass
-- **Committed in:** af541cf (Task 2 commit)
+- **Committed in:** 8850adb9 (Task 2 commit)
 
 ---
 

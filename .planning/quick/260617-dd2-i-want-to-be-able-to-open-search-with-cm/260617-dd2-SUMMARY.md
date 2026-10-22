@@ -40,7 +40,7 @@ Three minimal string substitutions to move the command palette shortcut from cmd
 
 | Task | Description | Commit |
 |------|-------------|--------|
-| 1 | Remap cmd+k to cmd+f (all three registration points) | a6d16d14 |
+| 1 | Remap cmd+k to cmd+f (all three registration points) | cec2362c |
 
 ## Deviations from Plan
 
@@ -59,5 +59,5 @@ None — the shortcut only opens the command palette UI (setPaletteOpen(true)); 
 - `taskflow/src/main.tsx` contains `mod+f` and no `mod+k` near setPaletteOpen: CONFIRMED
 - `taskflow/src-tauri/src/lib.rs` contains `CmdOrCtrl+F`: CONFIRMED
 - `taskflow/src/lib/shortcuts.ts` contains `⌘F` for open-palette entry: CONFIRMED
-- Commit a6d16d14 exists: CONFIRMED
+- Commit cec2362c exists: CONFIRMED
 - Pre-existing biome warnings (chart.tsx, MyTasksPage.tsx) and tsc errors (MyTaskRow.tsx) are out-of-scope — not introduced by this task

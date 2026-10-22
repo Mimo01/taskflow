@@ -6,10 +6,10 @@ One averaged forecast now drives both charts, colour is reserved for statuses, C
 
 | Task | Commit | Message |
 | ---- | ------ | ------- |
-| 1 | 3f080cf7 | one-forecast projection, status bands model, shared finish helpers |
-| 2 | cf7fb70a | one shared forecast in both charts, neutral markers and series |
-| 2b | 293b6a14 | neutral story mini bar fill and icon tooltip markers (split per plan-checker advisory) |
-| 3 | 6d2fdc8a | unified Count/SP/Time bands, neutral tooltip markers, legend spacing fix |
+| 1 | 739d3211 | one-forecast projection, status bands model, shared finish helpers |
+| 2 | 8ddbb7b5 | one shared forecast in both charts, neutral markers and series |
+| 2b | 6a22ff67 | neutral story mini bar fill and icon tooltip markers (split per plan-checker advisory) |
+| 3 | 49f34770 | unified Count/SP/Time bands, neutral tooltip markers, legend spacing fix |
 
 ## What changed
 
@@ -47,7 +47,7 @@ No other existing assertion changed; the full vitest suite (3053 tests) passes o
 
 ## Deviations from Plan
 
-1. Story mini bar split into its own commit (293b6a14), as allowed.
+1. Story mini bar split into its own commit (6a22ff67), as allowed.
 2. Stalled risk icon changed Hourglass to CirclePause (as the plan specified, listed here per its output instruction).
 3. [Rule 1 - minor] EpicChartTooltip.test fixture needed non-null forecast dates for `averageForecasts` to treat it as usable (test-only fix).
 4. Hero big text is `—` when `summary.total` is 0 (per spec), including the edge case of all-done with SP total 0 where `pctDone` is 100.
@@ -63,4 +63,4 @@ Forecast line/band contrast in light and dark (especially Estimate fill 0.08), b
 
 ## Self-Check: PASSED
 
-Commits 3f080cf7, cf7fb70a, 293b6a14, 6d2fdc8a exist; `EpicBands.tsx`, `epic-markers.tsx` present.
+Commits 739d3211, 8ddbb7b5, 6a22ff67, 49f34770 exist; `EpicBands.tsx`, `epic-markers.tsx` present.

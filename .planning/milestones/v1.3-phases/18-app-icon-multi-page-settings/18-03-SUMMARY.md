@@ -72,8 +72,8 @@ completed: 2026-03-15
 
 ## Task Commits
 
-1. **Task 1: Rewrite Settings.tsx as two-column sidebar-nav shell** - `4e5b6e6` (feat)
-2. **Task 2: Create ConnectionsSection with inline Jira/GitLab test feedback** - `5d47d1c` (feat)
+1. **Task 1: Rewrite Settings.tsx as two-column sidebar-nav shell** - `82c03b24` (feat)
+2. **Task 2: Create ConnectionsSection with inline Jira/GitLab test feedback** - `000b473f` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -101,7 +101,7 @@ completed: 2026-03-15
 - **Fix:** Changed prop type to `Promise<any>` with eslint-disable comment
 - **Files modified:** taskflow/src/routes/settings/ConnectionsSection.tsx
 - **Verification:** `npx tsc --noEmit` shows 0 errors in settings files
-- **Committed in:** 5d47d1c (Task 2 commit)
+- **Committed in:** 000b473f (Task 2 commit)
 
 **2. [Rule 1 - Bug] Token input always editable, no readOnly/Edit-toggle**
 - **Found during:** Task 2 test execution
@@ -109,7 +109,7 @@ completed: 2026-03-15
 - **Fix:** Simplified to always-editable password input (no Edit toggle); URL and token are both always mutable inputs
 - **Files modified:** taskflow/src/routes/settings/ConnectionsSection.tsx
 - **Verification:** All 9 ConnectionsSection tests pass
-- **Committed in:** 5d47d1c (Task 2 commit)
+- **Committed in:** 000b473f (Task 2 commit)
 
 ---
 

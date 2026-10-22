@@ -3,8 +3,8 @@
 Burndown ideal now measured in Tempo working days (Mon-Fri fallback), non-working days shaded, chart restyled on a Card, and moved into the top stats row as a column.
 
 ## Commits
-- 39faff8c: working-day ideal and nonWorking ranges in cycleBurndownSeries (+ tests, CycleKpiTiles temp arg)
-- f456645c: Card-surfaced chart, in-row layout, calendar wiring from AioCycleDetailPage (+ tests)
+- bb5b95f0: working-day ideal and nonWorking ranges in cycleBurndownSeries (+ tests, CycleKpiTiles temp arg)
+- a1884da0: Card-surfaced chart, in-row layout, calendar wiring from AioCycleDetailPage (+ tests)
 - Task 3 needed no component fixes, so it has no commit; preview harness files were deleted and the tree is clean.
 
 ## What changed

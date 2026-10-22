@@ -65,8 +65,8 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: Changelog types + timeline merge/filter utilities with tests** - `2d03ff7` (feat)
-2. **Task 2: Watcher service with tests** - `a5099c0` (feat)
+1. **Task 1: Changelog types + timeline merge/filter utilities with tests** - `469315a5` (feat)
+2. **Task 2: Watcher service with tests** - `46b3db78` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira-changelog.ts` - Timeline merge, filter, count pure functions with ChangelogItem/ChangelogHistory types
@@ -88,7 +88,7 @@ Each task was committed atomically:
 - **Fix:** Created jira-changelog.ts and jira-watchers.ts as sibling files; added types and changelog property directly to jira.ts; used re-exports from jira.ts barrel
 - **Files modified:** jira.ts, jira-changelog.ts, jira-watchers.ts
 - **Verification:** All 22 tests pass; existing imports unaffected
-- **Committed in:** 2d03ff7 (Task 1 commit)
+- **Committed in:** 469315a5 (Task 1 commit)
 
 ---
 

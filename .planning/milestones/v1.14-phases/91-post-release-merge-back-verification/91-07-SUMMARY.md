@@ -61,8 +61,8 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Make searchProjectTags fail closed** - `3cadb62f` (fix)
-2. **Task 2: Tag-channel loading/failure guard + WR-01 fix** - `6b0fb673` (fix)
+1. **Task 1: Make searchProjectTags fail closed** - `4158ec7a` (fix)
+2. **Task 2: Tag-channel loading/failure guard + WR-01 fix** - `1b7be167` (fix)
 
 _No separate plan-metadata commit — worktree mode; orchestrator handles STATE.md/ROADMAP.md centrally after merge._
 
@@ -99,4 +99,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 4 modified source/test files found on disk; all 3 commit hashes (`3cadb62f`, `6b0fb673`, `9ea672db`) found in git log.
+All 4 modified source/test files found on disk; all 3 commit hashes (`4158ec7a`, `1b7be167`, `76445958`) found in git log.

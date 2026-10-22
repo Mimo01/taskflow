@@ -8,7 +8,7 @@ re_verification:
   previous_status: gaps_found
   previous_score: 3/4
   gaps_closed:
-    - "No regressions in tsc — TS2322 resolved by commit c4ba2891 (noop fallback onOpen={onOpenIssue ?? (() => {})})"
+    - "No regressions in tsc — TS2322 resolved by commit 89c6dc4b (noop fallback onOpen={onOpenIssue ?? (() => {})})"
   gaps_remaining: []
   regressions: []
 ---
@@ -18,7 +18,7 @@ re_verification:
 **Phase Goal:** On AIO cycle defects subpage, clicking a defect row body opens the PeekPanel side preview; clicking the issue key still navigates full-page. Triggered By column unchanged.
 **Verified:** 2026-06-09T08:00:00Z
 **Status:** passed
-**Re-verification:** Yes — after gap closure (commit c4ba2891)
+**Re-verification:** Yes — after gap closure (commit 89c6dc4b)
 
 ## Goal Achievement
 
@@ -29,7 +29,7 @@ re_verification:
 | 1 | Clicking a defect row body opens the PeekPanel side preview | VERIFIED | DefectRow `<tr>` onClick calls `onOpen(resolvedKey)` (lines 249, 253). `onOpen` is wired to `onOpenIssue ?? (() => {})` at line 1232. `onOpenIssue` comes from OutletContext (line 733); main.tsx provides `handleOpenPeek` at line 581. |
 | 2 | Clicking the issue key NavLink still navigates full-page to /issue/:key | VERIFIED | NavLink at line 265 has `onClick={(e) => e.stopPropagation()}` — stops row-click propagation and lets the NavLink navigate normally. `linkTarget` resolves to `/issue/${issue?.key ?? defectIdOrKey}`. |
 | 3 | The "Triggered By" column remains plain text (AIO test case keys, not Jira issue keys) | VERIFIED | Line 349: `<td className="px-3 py-3 text-xs text-muted-foreground">{triggeredBy || '—'}</td>` — no NavLink, no onClick, plain string render only. |
-| 4 | No regressions in tsc or Biome (plan success criteria) | VERIFIED | `npx tsc --noEmit` exits 0 with no output. The previous TS2322 error at line 1232 is resolved by the noop fallback `onOpen={onOpenIssue ?? (() => {})}` (commit c4ba2891). |
+| 4 | No regressions in tsc or Biome (plan success criteria) | VERIFIED | `npx tsc --noEmit` exits 0 with no output. The previous TS2322 error at line 1232 is resolved by the noop fallback `onOpen={onOpenIssue ?? (() => {})}` (commit 89c6dc4b). |
 
 **Score:** 4/4 truths verified
 
@@ -76,7 +76,7 @@ None — all observable behaviors are determined from static analysis. The PeekP
 
 ### Gaps Summary
 
-No gaps. The single gap from initial verification (TS2322 at line 1232) is closed by commit c4ba2891 which adds the noop fallback `onOpen={onOpenIssue ?? (() => {})}`. All four must-have truths are verified.
+No gaps. The single gap from initial verification (TS2322 at line 1232) is closed by commit 89c6dc4b which adds the noop fallback `onOpen={onOpenIssue ?? (() => {})}`. All four must-have truths are verified.
 
 ---
 

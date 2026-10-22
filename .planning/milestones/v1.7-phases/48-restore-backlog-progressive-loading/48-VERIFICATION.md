@@ -46,7 +46,7 @@ human_verification:
 | 8 | Skeleton loading test validates BacklogSkeleton component (animate-pulse class present) | VERIFIED | Test at line 194 asserts `document.querySelectorAll('.animate-pulse').length > 0` when both queries are pending |
 | 9 | LOAD-04 test verifies per-row epic Skeleton appears when allEpics is pending | VERIFIED | Test at line 209 asserts `.animate-pulse` inside `backlog-row-PROJ-1` when fetchEpicsBasic never resolves |
 | 10 | All existing test behaviors (BACK-01 through BACK-05) still pass | VERIFIED | 16/16 BacklogPage tests pass; full 835-test suite green |
-| 11 | TypeScript compiles without errors | VERIFIED | `npx tsc --noEmit` exits 0 — no output; commit 98e6ded fixed all 7 type errors |
+| 11 | TypeScript compiles without errors | VERIFIED | `npx tsc --noEmit` exits 0 — no output; commit 7790d99f fixed all 7 type errors |
 
 **Score:** 11/11 truths verified
 
@@ -94,7 +94,7 @@ human_verification:
 | isLoading: false present in useBoardId mock | grep line 156 | `{ boardId: 1, isLoading: false }` | PASS |
 | EpicEnriched cast present (3 occurrences) | grep count | 3 | PASS |
 | Cache-invalidation test present in BACK-02 | grep line 342 | test name matches | PASS |
-| Plan 03 commits exist | git log 98e6ded 748a283 | both found | PASS |
+| Plan 03 commits exist | git log 7790d99f 03373a4d | both found | PASS |
 
 ### Requirements Coverage
 
@@ -111,8 +111,8 @@ No blockers. The two previously-flagged warning patterns are resolved:
 
 | File | Line | Pattern | Severity | Resolution |
 |------|------|---------|----------|------------|
-| BacklogPage.test.tsx | 156 | `useBoardId` mock missing `isLoading` | Resolved | `{ boardId: 1, isLoading: false }` — commit 98e6ded |
-| BacklogPage.test.tsx | 441, 497, 529 | fetchEpicsBasic mocked with partial EpicEnriched objects | Resolved | `as unknown as EpicEnriched[]` cast on all 3 calls — commit 98e6ded |
+| BacklogPage.test.tsx | 156 | `useBoardId` mock missing `isLoading` | Resolved | `{ boardId: 1, isLoading: false }` — commit 7790d99f |
+| BacklogPage.test.tsx | 441, 497, 529 | fetchEpicsBasic mocked with partial EpicEnriched objects | Resolved | `as unknown as EpicEnriched[]` cast on all 3 calls — commit 7790d99f |
 
 ### Human Verification Required
 
@@ -138,9 +138,9 @@ No blockers. The two previously-flagged warning patterns are resolved:
 
 Both gaps identified in the initial verification are fully closed:
 
-**Gap 1 — TypeScript type errors (resolved):** Plan 03 commit `98e6ded` added `isLoading: false` to the `useBoardId` mock in `resetMocks()` at line 156, added `import type { EpicEnriched } from '@/services/jira'` at line 22, and applied `as unknown as EpicEnriched[]` casts to all three `fetchEpicsBasic.mockResolvedValue()` calls. `npx tsc --noEmit` now exits 0.
+**Gap 1 — TypeScript type errors (resolved):** Plan 03 commit `7790d99f` added `isLoading: false` to the `useBoardId` mock in `resetMocks()` at line 156, added `import type { EpicEnriched } from '@/services/jira'` at line 22, and applied `as unknown as EpicEnriched[]` casts to all three `fetchEpicsBasic.mockResolvedValue()` calls. `npx tsc --noEmit` now exits 0.
 
-**Gap 2 — Missing cache-invalidation assertion (resolved):** Plan 03 commit `748a283` added a new test at line 342 of the BACK-02 describe block. The test creates an isolated `QueryClient`, spies on `invalidateQueries`, triggers a move-to-sprint action via the context menu, and asserts the spy was called with `{ queryKey: ['jira-sprint-stories'] }`. The test passes as part of the 16-test suite.
+**Gap 2 — Missing cache-invalidation assertion (resolved):** Plan 03 commit `03373a4d` added a new test at line 342 of the BACK-02 describe block. The test creates an isolated `QueryClient`, spies on `invalidateQueries`, triggers a move-to-sprint action via the context menu, and asserts the spy was called with `{ queryKey: ['jira-sprint-stories'] }`. The test passes as part of the 16-test suite.
 
 No regressions were introduced. Production code (BacklogPage.tsx, BacklogRow.tsx, backlog.ts) is unchanged from the initial verification. All 11 truths are now verified.
 

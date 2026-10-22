@@ -55,21 +55,21 @@ None.
 - **Issue:** Plan said `Path: /project/{projectKey}/testcase?{confirmedParam}={issueKey}&startAt={startAt}` but the probe confirmed ALL query params are silently ignored on this AIO instance
 - **Fix:** Function fetches all test cases without issueKey in URL. `issueKey` param accepted for API symmetry but consumed via `void issueKey`. Client-side filtering by `jiraRequirementIDs` is handled by the consumer (Wave 2 component).
 - **Files modified:** `issue-steps.ts`
-- **Commit:** a25b0ad
+- **Commit:** a483cf98
 
 **2. [Probe Finding B] AioTestRunStep field name — 'step' not 'stepAction'**
 - **Found during:** Task 0 (per Phase 54 probe finding B, already known)
 - **Issue:** PATTERNS.md had assumed field name `stepAction` for step action text; probe confirmed actual field name is `step`
 - **Fix:** Interface field named `step` with inline comment noting the assumption deviation
 - **Files modified:** `types.ts`
-- **Commit:** 46349ae
+- **Commit:** ca077afb
 
 **3. [Probe Finding B] No attachments — AioStepAttachment is forward-compat only**
 - **Found during:** Task 0 (per Phase 54 probe finding B, already known)
 - **Issue:** No attachment fields observed across 26 runs in 7 cycles; plan had `AioStepAttachment` but noted attachments should be skipped
 - **Fix:** Interface defined with minimal fields and clear JSDoc noting it's forward-compat; no attachment fields on `AioTestRunStep`; no attachment rendering planned for Phase 54
 - **Files modified:** `types.ts`
-- **Commit:** 46349ae
+- **Commit:** ca077afb
 
 ## Known Stubs
 
@@ -88,7 +88,7 @@ None — this plan is service/types only; no UI components, no data rendering.
 - [x] `taskflow/src/services/aio/types.ts` contains `export interface AioStepAttachment` — CONFIRMED
 - [x] `taskflow/src/services/aio/issue-steps.ts` exists and is non-empty — CONFIRMED
 - [x] `taskflow/src/services/aio/index.ts` contains `export * from './issue-steps'` — CONFIRMED
-- [x] Commits exist: 46349ae (types), a25b0ad (issue-steps + index) — CONFIRMED
+- [x] Commits exist: ca077afb (types), a483cf98 (issue-steps + index) — CONFIRMED
 - [x] No TypeScript errors in modified/created files — CONFIRMED (tsc --noEmit clean in main repo)
 - [x] 7 AIO interfaces in types.ts (4 original + 3 new) — CONFIRMED
 - [x] 2 exported async functions in issue-steps.ts — CONFIRMED

@@ -56,8 +56,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Add native Help menu with Keyboard Shortcuts item in Rust backend** - `31e8944` (feat)
-2. **Task 2: Wire frontend to listen for native menu event and open shortcuts panel** - `a98560b` (feat)
+1. **Task 1: Add native Help menu with Keyboard Shortcuts item in Rust backend** - `5d6e72b8` (feat)
+2. **Task 2: Wire frontend to listen for native menu event and open shortcuts panel** - `31a041d2` (feat)
 
 ## Files Created/Modified
 - `taskflow/src-tauri/src/lib.rs` - Added menu imports, Help submenu with Keyboard Shortcuts item, on_menu_event handler
@@ -77,7 +77,7 @@ Each task was committed atomically:
 - **Fix:** Reverted Cargo.toml to `features = []` -- no feature flag needed.
 - **Files modified:** taskflow/src-tauri/Cargo.toml (reverted, net zero change)
 - **Verification:** `cargo check` compiles successfully
-- **Committed in:** 31e8944 (Task 1 commit)
+- **Committed in:** 5d6e72b8 (Task 1 commit)
 
 ---
 

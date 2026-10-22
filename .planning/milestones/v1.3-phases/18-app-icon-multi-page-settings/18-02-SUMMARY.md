@@ -69,8 +69,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Generate node-graph SVG icon** - `69b1ca8` (feat)
-2. **Task 2: Run tauri icon pipeline to generate all platform sizes** - `ffb0a61` (feat)
+1. **Task 1: Generate node-graph SVG icon** - `3f1137a2` (feat)
+2. **Task 2: Run tauri icon pipeline to generate all platform sizes** - `5ce270a4` (feat)
 
 ## Files Created/Modified
 

@@ -67,7 +67,7 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1 + 2: Fix CreateEpicDialog.tsx credential sources + update test mocks** - `e841120` (fix)
+1. **Task 1 + 2: Fix CreateEpicDialog.tsx credential sources + update test mocks** - `b31f9e58` (fix)
 
 ## Files Created/Modified
 
@@ -100,4 +100,4 @@ None. Pre-existing failure in `notifications.test.ts` (18 errors) is unrelated t
 - FOUND: taskflow/src/routes/dashboard/CreateEpicDialog.tsx
 - FOUND: taskflow/src/routes/dashboard/CreateEpicDialog.test.tsx
 - FOUND: .planning/phases/14-fix-wiring-credential-bugs/14-03-SUMMARY.md
-- FOUND: commit e841120 (fix(14-03): correct CreateEpicDialog credential sources)
+- FOUND: commit b31f9e58 (fix(14-03): correct CreateEpicDialog credential sources)

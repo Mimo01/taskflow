@@ -1048,7 +1048,7 @@ describe('WorklogsPage', () => {
   // ── Task 1: WorklogEntryRow + EditWorklogForm ──────────────────────────────
 
   describe('WorklogEntryRow shows time and comment fields', () => {
-    it('renders time and comment (author shown via row hover, not always-visible — UX change 3c2d9ac5)', async () => {
+    it('renders time and comment (author shown via row hover, not always-visible — UX change b6d13456)', async () => {
       const { WorklogEntryRow } = await import('./WorklogEntryRow');
       const entry: TempoWorklog = {
         jiraWorklogId: 42,
@@ -1213,7 +1213,7 @@ describe('WorklogsPage', () => {
       });
 
       // Popover content renders in a portal — check document.body via screen.
-      // Author is no longer rendered in the row (UX change 3c2d9ac5); assert the
+      // Author is no longer rendered in the row (UX change b6d13456); assert the
       // entry's comment text and a delete affordance instead.
       await waitFor(() => {
         expect(document.body.innerHTML).toContain('Story work');
@@ -1261,7 +1261,7 @@ describe('WorklogsPage', () => {
   });
 
   describe('popover shows individual entries from raw worklog data', () => {
-    it('shows one row per entry when two entries exist for same cell (author no longer rendered — UX 3c2d9ac5)', async () => {
+    it('shows one row per entry when two entries exist for same cell (author no longer rendered — UX b6d13456)', async () => {
       const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
@@ -1301,7 +1301,7 @@ describe('WorklogsPage', () => {
         fireEvent.click(cellBtn as Element);
       });
 
-      // Author display name no longer rendered (UX 3c2d9ac5). Assert that two
+      // Author display name no longer rendered (UX b6d13456). Assert that two
       // distinct entry rows exist instead — one per worklog, each with its own
       // delete affordance and time-spent value.
       await waitFor(() => {

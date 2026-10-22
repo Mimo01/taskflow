@@ -54,10 +54,10 @@ Replaced the sprint board's priority-colored card left border with the actual Ji
 
 | Task | Name | Commit | Files |
 | ---- | ---- | ------ | ----- |
-| 1 (RED) | Failing tests for issueTypeStripeClass | f5356a92 | issueDisplayUtils.test.ts |
-| 1 (GREEN) | PriorityIcon + issueTypeStripeClass | 79526f15 | priority-icon.tsx, issueDisplayUtils.ts |
-| 2 | TaskCard border → issue type + PriorityIcon footer | 780454e0 | TaskCard.tsx, priority-icon.tsx |
-| 3 | Priority icon in swimlane header | 0712f143 | StoryHeaderRow.tsx, SprintBoardTab.tsx |
+| 1 (RED) | Failing tests for issueTypeStripeClass | e6c98b57 | issueDisplayUtils.test.ts |
+| 1 (GREEN) | PriorityIcon + issueTypeStripeClass | a7896837 | priority-icon.tsx, issueDisplayUtils.ts |
+| 2 | TaskCard border → issue type + PriorityIcon footer | d47e5385 | TaskCard.tsx, priority-icon.tsx |
+| 3 | Priority icon in swimlane header | bc415e3e | StoryHeaderRow.tsx, SprintBoardTab.tsx |
 
 ## Deviations from Plan
 
@@ -68,13 +68,13 @@ Replaced the sprint board's priority-colored card left border with the actual Ji
 - **Issue:** `JiraIssue.fields` uses an index signature `[key: string]: unknown`, so `issue.fields.priority` / `stickyHeader.story.fields.priority` are `unknown` — not assignable to `PriorityIcon`'s typed prop. `npm run check` (tsc) failed with TS2322.
 - **Fix:** Cast at each call site to `{ name?: string; iconUrl?: string } | null | undefined`, mirroring the cast the original TaskCard code already used for `priorityStripeClass`.
 - **Files modified:** TaskCard.tsx (1 site), SprintBoardTab.tsx (3 sites).
-- **Commits:** 780454e0, 0712f143.
+- **Commits:** d47e5385, bc415e3e.
 
 **2. [Rule 1 - Style] PriorityIcon `<img>`/signature formatting**
 - **Found during:** Task 2's `npm run check`.
 - **Issue:** Biome formatter required the component signature on one line and the `<img>` wrapped in parens. Surfaced when Task 2 first ran the full check.
 - **Fix:** Applied `biome check --write` to priority-icon.tsx; committed the format fix alongside Task 2.
-- **Commit:** 780454e0.
+- **Commit:** d47e5385.
 
 ### Verify-step note
 
@@ -95,4 +95,4 @@ None.
 - FOUND: taskflow/src/components/ui/priority-icon.tsx
 - FOUND: taskflow/src/lib/issueDisplayUtils.ts (issueTypeStripeClass)
 - FOUND: taskflow/src/lib/issueDisplayUtils.test.ts
-- FOUND commit f5356a92, 79526f15, 780454e0, 0712f143
+- FOUND commit e6c98b57, a7896837, d47e5385, bc415e3e

@@ -38,8 +38,8 @@ Replaced the flat div-row WorkloadTab with a proper HTML table. The useMemo bloc
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Update WorkloadTab tests — extend makeIssue + add WORK-01/02/03 test cases (RED) | c86a115 | WorkloadTab.test.tsx |
-| 2 | Rewrite WorkloadTab — useMemo aggregation + table layout + expand/collapse (GREEN) | 3d14ea8 | WorkloadTab.tsx, WorkloadTab.test.tsx |
+| 1 | Update WorkloadTab tests — extend makeIssue + add WORK-01/02/03 test cases (RED) | 723d9f1a | WorkloadTab.test.tsx |
+| 2 | Rewrite WorkloadTab — useMemo aggregation + table layout + expand/collapse (GREEN) | 9c764faa | WorkloadTab.tsx, WorkloadTab.test.tsx |
 
 ## Deviations from Plan
 
@@ -50,14 +50,14 @@ Replaced the flat div-row WorkloadTab with a proper HTML table. The useMemo bloc
 - **Issue:** Research skeleton accumulated points for all non-subtask stories regardless of status. Existing tests expected done stories to be excluded from point totals (Alice with 5pt open + 3pt done story expected 5pt total, not 8pt).
 - **Fix:** Added `if (cat === 'done') continue;` at the top of the story accumulation loop, skipping done stories entirely from points, count, and detail rows.
 - **Files modified:** taskflow/src/routes/dashboard/WorkloadTab.tsx
-- **Commit:** 3d14ea8
+- **Commit:** 9c764faa
 
 **2. [Rule 1 - Bug] Regex word boundary `\b` failed between "task" and digit**
 - **Found during:** Task 2 (GREEN phase — test regex refinement)
 - **Issue:** Test asserted `/1\s*task\b/i` but `\b` does not match between "k" and "5" since both are `\w` characters. Text "1 task5 pts" caused false assertion failure.
 - **Fix:** Changed regex to `/1\s*task/i` (no word boundary needed; the test correctly checks count without boundary issues).
 - **Files modified:** taskflow/src/routes/dashboard/WorkloadTab.test.tsx
-- **Commit:** 3d14ea8
+- **Commit:** 9c764faa
 
 ## Pre-existing Failures (Out of Scope)
 

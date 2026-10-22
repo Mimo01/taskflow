@@ -98,5 +98,5 @@ shared by full page (`IssueDetailView` two-column) and peek (`PeekPanel` →
 ## Canonical References
 
 No external specs — requirements captured in decisions above. Respect recent
-peek breadcrumb fix (commit 943cba44 / quick-260606-ubz).
+peek breadcrumb fix (commit 5092dc1a / quick-260606-ubz).
 </canonical_refs>

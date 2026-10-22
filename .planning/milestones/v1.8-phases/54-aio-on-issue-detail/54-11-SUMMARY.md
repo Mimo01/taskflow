@@ -74,10 +74,10 @@ completed: 2026-05-14
 
 ## Task Commits
 
-1. **Plan 54-11 written** — `bba99a7` (plan)
-2. **Task 1: cross-project detail fetch fix + test** — `21a4b4d` (fix)
+1. **Plan 54-11 written** — `f304ec15` (plan)
+2. **Task 1: cross-project detail fetch fix + test** — `eca6c020` (fix)
 3. **Task 2: new AioTestRunDetailPage + route + 3 tests** — commit 2 of 3 (feat)
-4. **Task 3: clickable rows + 2 tests** — `ca06965` (feat)
+4. **Task 3: clickable rows + 2 tests** — `688b8f83` (feat)
 5. **Task 4: HUMAN-UAT round-4 scaffold + SUMMARY (this file)** — final docs commit
 
 ## Files Created/Modified
@@ -128,10 +128,10 @@ Phase 54 closes with this UAT round.
 
 The plan as originally written covered Tasks 1–4 (status fix, new page, click wiring, doc). Round-4 UAT surfaced four additional user requests that landed as inline follow-up commits inside the same plan boundary:
 
-- **Single-run consistency (`4c7d16f`):** User asked the single-run path to use the same `CollapsibleRunBlock` as the multi-run path. Test fixture `TEST_RUN.status` switched PASS→FAIL so the existing step-rendering tests still see the expanded table.
-- **In-cycle header info (`c9202cf`):** User wanted cycle key + run ID in the in-cycle header too. Added Link elements (later refactored to buttons — see breadcrumb integration below).
-- **Custom-breadcrumb attempt → reverted (`a0894e6` → `27108bb`):** First attempt used `location.state` for breadcrumbs. User flagged: "we already have a breadcrumb system, integrate it into that one." Reverted to use `useBreadcrumbStore` with the standard back-arrow + trail-entries + current-segment rendering used by `IssueDetailPage` and `ReleaseDetailPage`.
-- **Trail-preservation route allowlist (`8baeb70`):** `main.tsx`'s pathname-change effect was wiping the trail on AIO routes. Added `/aio-cycle/` to the preserve-trail allowlist so the trail survives the issue → cycle/run navigation.
+- **Single-run consistency (`1e045440`):** User asked the single-run path to use the same `CollapsibleRunBlock` as the multi-run path. Test fixture `TEST_RUN.status` switched PASS→FAIL so the existing step-rendering tests still see the expanded table.
+- **In-cycle header info (`c1f4af45`):** User wanted cycle key + run ID in the in-cycle header too. Added Link elements (later refactored to buttons — see breadcrumb integration below).
+- **Custom-breadcrumb attempt → reverted (`61003147` → `98aaa0cb`):** First attempt used `location.state` for breadcrumbs. User flagged: "we already have a breadcrumb system, integrate it into that one." Reverted to use `useBreadcrumbStore` with the standard back-arrow + trail-entries + current-segment rendering used by `IssueDetailPage` and `ReleaseDetailPage`.
+- **Trail-preservation route allowlist (`4d3c0bcf`):** `main.tsx`'s pathname-change effect was wiping the trail on AIO routes. Added `/aio-cycle/` to the preserve-trail allowlist so the trail survives the issue → cycle/run navigation.
 
 ## Next Phase Readiness
 

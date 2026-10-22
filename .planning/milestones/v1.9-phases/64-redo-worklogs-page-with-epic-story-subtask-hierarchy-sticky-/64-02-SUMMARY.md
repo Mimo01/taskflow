@@ -62,10 +62,10 @@ Adds cell drill-down editing on top of the Plan 01 hierarchy table. Three new si
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 (RED) | Add failing tests for WorklogEntryRow + EditWorklogForm | 6b8e2551 | WorklogsPage.test.tsx |
-| 1 (GREEN) | Create WorklogEntryRow + EditWorklogForm sibling components | 75f3a354 | EditWorklogForm.tsx, WorklogEntryRow.tsx |
-| 2 (RED) | Add failing tests for WorklogCellPopover wiring | cef13ea3 | WorklogsPage.test.tsx |
-| 2 (GREEN) | Create WorklogCellPopover + wire into non-zero cells | 7c4b111f | WorklogCellPopover.tsx, WorklogsPage.tsx, WorklogsPage.test.tsx |
+| 1 (RED) | Add failing tests for WorklogEntryRow + EditWorklogForm | 8a02f646 | WorklogsPage.test.tsx |
+| 1 (GREEN) | Create WorklogEntryRow + EditWorklogForm sibling components | 7e3fcc1b | EditWorklogForm.tsx, WorklogEntryRow.tsx |
+| 2 (RED) | Add failing tests for WorklogCellPopover wiring | eaee0542 | WorklogsPage.test.tsx |
+| 2 (GREEN) | Create WorklogCellPopover + wire into non-zero cells | 618afcb1 | WorklogCellPopover.tsx, WorklogsPage.tsx, WorklogsPage.test.tsx |
 
 ## What Was Built
 
@@ -114,14 +114,14 @@ Build: success
 - **Issue:** `WorklogCellPopover` used `<PopoverTrigger asChild>` following Radix UI convention, but the shadcn `popover.tsx` wraps Base UI (not Radix). Base UI's `PopoverTrigger` renders a `<button>` natively and accepts `className` directly — no `asChild` prop exists.
 - **Fix:** Removed `asChild`, moved `className` and `aria-label` directly onto `<PopoverTrigger>`
 - **Files modified:** WorklogCellPopover.tsx
-- **Commit:** 7c4b111f
+- **Commit:** 618afcb1
 
 **2. [Rule 1 - Bug] Popover portal content not in `container` in tests**
 - **Found during:** Task 2 tests (3 popover tests failing despite popover rendering)
 - **Issue:** Base UI Popover renders content via `<Portal>` to `document.body`; tests queried `container.innerHTML` which missed the portal content
 - **Fix:** Updated tests to use `document.body.querySelector/innerHTML` and wrap click events in `act(async () => {...})`
 - **Files modified:** WorklogsPage.test.tsx
-- **Commit:** 7c4b111f
+- **Commit:** 618afcb1
 
 ## Known Stubs
 
@@ -142,7 +142,7 @@ No new network endpoints introduced. All STRIDE mitigations from the threat regi
 - EditWorklogForm.tsx: FOUND
 - WorklogEntryRow.tsx: FOUND
 - WorklogCellPopover.tsx: FOUND
-- Commit 6b8e2551: FOUND
-- Commit 75f3a354: FOUND
-- Commit cef13ea3: FOUND
-- Commit 7c4b111f: FOUND
+- Commit 8a02f646: FOUND
+- Commit 7e3fcc1b: FOUND
+- Commit eaee0542: FOUND
+- Commit 618afcb1: FOUND

@@ -70,8 +70,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Fix all remaining double-casts across 5 files** - `add6224` (fix)
-2. **Task 2: Verify TYPE-02, enable Biome noExplicitAny, run final checks** - `d72154b` (feat)
+1. **Task 1: Fix all remaining double-casts across 5 files** - `6ff9e7d1` (fix)
+2. **Task 2: Verify TYPE-02, enable Biome noExplicitAny, run final checks** - `72751d12` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/settings.store.ts` - Replaced double-cast with single cast from unknown
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Fix:** Changed to `Promise<unknown>` (return value is discarded by caller)
 - **Files modified:** `taskflow/src/routes/settings/ConnectionsSection.tsx`
 - **Verification:** `npx biome lint src/` exits with 0 errors
-- **Committed in:** d72154b (Task 2 commit)
+- **Committed in:** 72751d12 (Task 2 commit)
 
 ---
 

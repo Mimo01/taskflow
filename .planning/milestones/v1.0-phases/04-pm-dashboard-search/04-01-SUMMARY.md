@@ -78,10 +78,10 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **TDD RED: releaseLinker.test.ts failing stubs** - `7e9d9ba` (test)
-2. **TDD GREEN: service extensions + releaseLinker.ts** - `4c116ce` (feat)
-3. **Task 2: Wave 0 scaffold test files** - `5000e90` (chore)
-4. **Fix: add vi import to scaffold files** - `cf79bd5` (fix)
+1. **TDD RED: releaseLinker.test.ts failing stubs** - `6fc0e3df` (test)
+2. **TDD GREEN: service extensions + releaseLinker.ts** - `e4a0e094` (feat)
+3. **Task 2: Wave 0 scaffold test files** - `21fe1d8b` (chore)
+4. **Fix: add vi import to scaffold files** - `c468e654` (fix)
 
 _Note: TDD task has two commits (test RED then feat GREEN); scaffold fix was an auto-fix for TypeScript compliance._
 
@@ -113,7 +113,7 @@ _Note: TDD task has two commits (test RED then feat GREEN); scaffold fix was an 
 - **Fix:** Added `vi` to the `import { describe, it, vi } from 'vitest'` line in all 5 scaffold files
 - **Files modified:** All 5 scaffold .test.tsx files
 - **Verification:** `npx tsc --noEmit` no longer reports vi errors in any modified file
-- **Committed in:** `cf79bd5`
+- **Committed in:** `c468e654`
 
 ---
 

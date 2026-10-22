@@ -10,7 +10,7 @@ updated: 2026-03-11T22:00:00Z
 hypothesis: Plain fetch() in Tauri 2 renderer IS subject to CORS because tauri-plugin-http's http:default capability has no allowed URL scope configured, so the webview enforces CORS normally
 test: Read acl-manifests.json to confirm http:default requires explicit URL scope
 expecting: Confirmed — scope is empty, so fetch() is blocked by CORS
-next_action: RESOLVED — fix confirmed applied in commits c893c33 and 2b2da50
+next_action: RESOLVED — fix confirmed applied in commits 4f4b8cac and cae9363e
 
 ## Symptoms
 
@@ -69,7 +69,7 @@ fix: |
   1. jira.ts: replaced native fetch() with `import { fetch } from '@tauri-apps/plugin-http'`
   2. gitlab.ts: replaced native fetch() with `import { fetch } from '@tauri-apps/plugin-http'`
   3. capabilities/default.json: replaced "http:default" with explicit http:allow-fetch (scope: https://** and http://**) plus http:allow-fetch-send, http:allow-fetch-cancel, http:allow-fetch-read-body
-verification: Fix confirmed applied in commits c893c33 (initial fix) and 2b2da50 (UAT refinement). Human verification confirmed fix resolves the issue.
+verification: Fix confirmed applied in commits 4f4b8cac (initial fix) and cae9363e (UAT refinement). Human verification confirmed fix resolves the issue.
 files_changed:
   - taskflow/src/services/jira.ts
   - taskflow/src/services/gitlab.ts

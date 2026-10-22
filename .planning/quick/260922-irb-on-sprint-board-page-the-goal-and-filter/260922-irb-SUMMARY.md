@@ -5,7 +5,7 @@ status: complete
 # Quick Task 260922-irb: Sprint Board sticky header + goal restyle — Summary
 
 **Date:** 2026-09-22
-**Commits:** `309484a0`, `40890b3d`
+**Commits:** `9832d8b2`, `3433d8ca`
 
 ## What changed
 

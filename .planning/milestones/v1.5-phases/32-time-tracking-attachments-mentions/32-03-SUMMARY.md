@@ -69,8 +69,8 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: AttachmentThumbnail, AttachmentFileRow, and AttachmentLightbox** - `8f781d2` (feat)
-2. **Task 2: AttachmentsSection, AttachmentUpload, and integration** - `744fec7` (feat)
+1. **Task 1: AttachmentThumbnail, AttachmentFileRow, and AttachmentLightbox** - `469ba3db` (feat)
+2. **Task 2: AttachmentsSection, AttachmentUpload, and integration** - `dae04fae` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/issue-detail/AttachmentThumbnail.tsx` - 80x80 authenticated thumbnail with AuthImage, role="button", keyboard support

@@ -38,7 +38,7 @@ After a status transition in the issue detail panel, the sprint board now refres
 
 | Task | Description | Commit |
 |------|-------------|--------|
-| 1 | Fix transitionMutation.onSettled + remove dead keys from both files | 2ac516c7 |
+| 1 | Fix transitionMutation.onSettled + remove dead keys from both files | 56e375d7 |
 
 ## Changes Made
 
@@ -63,7 +63,7 @@ After a status transition in the issue detail panel, the sprint board now refres
 - **Issue:** `IssueDetailPage.progressive.test.tsx` mocks `@/services/jira` as an explicit object; the new `invalidateGhAllData` import in `FieldsSection.tsx` caused Vitest to throw "No 'invalidateGhAllData' export is defined on the mock" at test runtime
 - **Fix:** Added `invalidateGhAllData: vi.fn()` to the mock object alongside the existing `invalidateGhBacklogData: vi.fn()`
 - **Files modified:** `taskflow/src/routes/dashboard/IssueDetailPage.progressive.test.tsx`
-- **Commit:** 2ac516c7 (included in same commit)
+- **Commit:** 56e375d7 (included in same commit)
 
 ## Verification
 
@@ -76,4 +76,4 @@ After a status transition in the issue detail panel, the sprint board now refres
 
 - [x] `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` — exists and modified
 - [x] `taskflow/src/routes/dashboard/create-edit-issue/useIssueMutations.ts` — exists and modified
-- [x] Commit `2ac516c7` — verified in git log
+- [x] Commit `56e375d7` — verified in git log

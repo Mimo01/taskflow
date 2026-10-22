@@ -88,7 +88,7 @@ None.
 | Typecheck clean | `cd taskflow && npx tsc --noEmit` | exit 0, no output | ✓ PASS — independently re-run |
 | `biome check` on release-detail directory + gitlab.ts/gitlab.test.ts | `npx biome check src/routes/dashboard/release-detail/ src/services/gitlab.ts src/services/gitlab.test.ts` | "Checked 34 files in 33ms. No fixes applied." | ✓ PASS |
 | Full project test suite green | `npx vitest run` (whole repo) | 180 files passed, 2 skipped, 2466 tests passed, 13 todo | ✓ PASS — matches the context claim, independently re-run |
-| Commit hashes from 91-09-SUMMARY.md exist in git log | `git log --oneline -15` | `fe4e2ee6`, `af2612ad`, `dc26b23d`, `5dc1ce32` all present, plus the review refresh `5b0cf47c` | ✓ PASS |
+| Commit hashes from 91-09-SUMMARY.md exist in git log | `git log --oneline -15` | `52a645ff`, `be41afe8`, `a877d071`, `148ce3d2` all present, plus the review refresh `aa10e946` | ✓ PASS |
 
 ### Requirements Coverage
 

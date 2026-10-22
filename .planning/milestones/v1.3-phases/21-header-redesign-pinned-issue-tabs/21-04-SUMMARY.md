@@ -61,8 +61,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Move branding from TopBar to Sidebar + copy app icon** - `ff4272a` (feat)
-2. **Task 2: Two-line pinned tab layout + skeleton loading state** - `5c75c60` (feat)
+1. **Task 1: Move branding from TopBar to Sidebar + copy app icon** - `27861403` (feat)
+2. **Task 2: Two-line pinned tab layout + skeleton loading state** - `90c92286` (feat)
 
 ## Files Created/Modified
 - `taskflow/public/app-icon.svg` - App icon copied from source for browser resolution

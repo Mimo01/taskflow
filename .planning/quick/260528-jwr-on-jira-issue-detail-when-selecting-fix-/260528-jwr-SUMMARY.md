@@ -28,7 +28,7 @@ metrics:
 
 ## What Was Done
 
-**Task 1: Sort unreleased fix versions by releaseDate ascending** — `97f183e2`
+**Task 1: Sort unreleased fix versions by releaseDate ascending** — `50fa8a2a`
 **Task 2: Human-verify checkpoint** — APPROVED by user (2026-05-28)
 
 
@@ -51,6 +51,6 @@ None — plan executed exactly as written.
 ## Self-Check
 
 - [x] `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` modified — FOUND
-- [x] Commit `97f183e2` — FOUND
+- [x] Commit `50fa8a2a` — FOUND
 
 ## Self-Check: PASSED

@@ -30,14 +30,14 @@ MR list page labels now render with actual GitLab hex colors by enriching fetchP
 ## What Was Done
 
 ### Task 1: Enrich fetchProjectMRs with label colors and update GitLabMR type
-- **Commit:** 6c7951b
+- **Commit:** 095a74b4
 - Changed `GitLabMR.labels` type from `string[]` to `GitLabLabel[]`
 - Added label color enrichment in `fetchProjectMRs` using the same pattern as `fetchMRDetail`: collects unique label names, fetches `/projects/:id/labels`, builds color map, converts string labels to `GitLabLabel` objects
 - Updated `searchGitLabMRs` to convert string labels to `GitLabLabel` with default gray (`#6b7280`/`#FFFFFF`) since search results span multiple projects
 - All test fixtures use `labels: []` which is compatible with the new type
 
 ### Task 2: Render MR list labels with GitLab colors
-- **Commit:** 9ff7e56
+- **Commit:** d7aed216
 - Replaced generic `bg-muted text-muted-foreground` badge styling with inline `backgroundColor`, `color`, and `borderColor` from `GitLabLabel` objects
 - Kept compact sizing classes (`px-1.5 py-0 text-[10px]`) for list-appropriate density
 - Pattern matches the colored label rendering already used on `MergeRequestDetailPage`

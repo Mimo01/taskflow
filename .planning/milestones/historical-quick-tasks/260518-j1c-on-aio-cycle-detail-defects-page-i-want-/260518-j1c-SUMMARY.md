@@ -49,8 +49,8 @@ The Defects tab in `AioCycleDetailPage` was upgraded from a nearly unreadable ta
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Redesign DefectRow + Defects table header | 21fb750 | AioCycleDetailPage.tsx |
-| 2 | Update Defects tab tests | 49e3875 | AioCycleDetailPage.test.tsx |
+| 1 | Redesign DefectRow + Defects table header | 1043019c | AioCycleDetailPage.tsx |
+| 2 | Update Defects tab tests | 9c4b4884 | AioCycleDetailPage.test.tsx |
 
 ## Verification
 
@@ -70,5 +70,5 @@ None — all data wired from the existing `useQuery(fetchJiraIssueByKey)` result
 
 - taskflow/src/routes/dashboard/AioCycleDetailPage.tsx — exists, modified
 - taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx — exists, modified
-- Commit 21fb750 — verified in git log
-- Commit 49e3875 — verified in git log
+- Commit 1043019c — verified in git log
+- Commit 9c4b4884 — verified in git log

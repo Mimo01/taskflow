@@ -46,7 +46,7 @@ Shipped the GreenHopper transitions cache + status-map infrastructure that Plans
 
 ## What Shipped
 
-### Task 1: Shared `warnOnce` helper + entityMaps refactor — `55371c27`
+### Task 1: Shared `warnOnce` helper + entityMaps refactor — `6a62ed11`
 
 - New `src/services/jira/greenhopper/warnOnce.ts` exporting `warnOnce(kind, id)` and `__resetWarnOnce()` against a single module-level `seenMissing: Set<string>` keyed by `${kind}:${id}`.
 - Warn message format preserved verbatim from the original entityMaps implementation (`[greenhopper] missing ${kind} id="${id}" — using Unknown fallback`) so no existing console output changes.
@@ -54,14 +54,14 @@ Shipped the GreenHopper transitions cache + status-map infrastructure that Plans
 - 5 new `warnOnce.test.ts` cases (same key → one warn, distinct keys → two warns, same id different kinds → two warns, verbatim message format, reset re-warns).
 - All 10 Phase 71 `entityMaps.test.ts` cases remain green.
 
-### Task 2: `fetchAllJiraStatuses` module — `6b596847`
+### Task 2: `fetchAllJiraStatuses` module — `a8c73fff`
 
 - New `src/services/jira/statuses.ts` exporting `fetchAllJiraStatuses(baseUrl, token): Promise<JiraStatus[]>` and the `JiraStatus` interface (`{ id, name, statusCategory: { id, key, name } }`).
 - Mirrors `fetchProjectStatuses` (`fields.ts:127-159`): `apiFetch('jira', ...)`, 401/403 → `ApiError('Failed to fetch Jira statuses', status, 'jira')`, other non-OK → generic `Error` with status in message, trailing slash stripped from baseUrl.
 - `JiraStatus` shape matches `JiraTransition.to.statusCategory` at `jira.ts:183-191` so the Plan 02 adapter can copy `statusCategory` through by reference.
 - 6 test cases covering 200 success, URL+headers+operation label, trailing-slash strip, 401/403 `ApiError`, 500 generic error.
 
-### Task 3: `transitions.ts` cache + adapter + jira.ts re-exports — `3f280269`
+### Task 3: `transitions.ts` cache + adapter + jira.ts re-exports — `592de4b6`
 
 - `fetchGhTransitions` (Phase 71) preserved unchanged.
 - Private helpers (exported with `__` prefix for tests, not re-exported through `jira.ts`):
@@ -137,6 +137,6 @@ Files verified to exist:
 - FOUND: taskflow/src/services/jira.ts (re-exports added)
 
 Commits verified in `git log`:
-- FOUND: 55371c27 feat(72-01): extract shared warnOnce helper for greenhopper folder
-- FOUND: 6b596847 feat(72-01): add fetchAllJiraStatuses module
-- FOUND: 3f280269 feat(72-01): cache hook + helpers + adapter for GH transitions
+- FOUND: 6a62ed11 feat(72-01): extract shared warnOnce helper for greenhopper folder
+- FOUND: a8c73fff feat(72-01): add fetchAllJiraStatuses module
+- FOUND: 592de4b6 feat(72-01): cache hook + helpers + adapter for GH transitions

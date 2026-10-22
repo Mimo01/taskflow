@@ -23,9 +23,9 @@ Worklog-based Estimate/Logged collapse-model burnup in Time mode, subtask-else-o
 
 ## Commits
 
-- c061d337: worklog fetcher, estimate formula, collapse-model deriveTimeBurnup (Task 1)
-- 8f80181c: section rework, lazy EpicTimeBurnup, crosshair, whole-bar tooltips (Task 2)
-- d383e151: quick-peek tooltip and Stories-list mini time bars (Task 3)
+- 626f81ef: worklog fetcher, estimate formula, collapse-model deriveTimeBurnup (Task 1)
+- d03eb8f6: section rework, lazy EpicTimeBurnup, crosshair, whole-bar tooltips (Task 2)
+- d478c181: quick-peek tooltip and Stories-list mini time bars (Task 3)
 
 ## Deviations from Plan
 

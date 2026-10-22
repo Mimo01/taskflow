@@ -69,10 +69,10 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1 RED: Failing tests for mentions, callouts, images** - `a78dbeb` (test)
-2. **Task 1 GREEN: Implement preprocessor, renderers, lightbox** - `2bfe119` (feat)
-3. **Task 2: Comprehensive test coverage** - `1585630` (test)
-4. **Task 3: Visual verification + auth image fix** - `7f947d1` (fix)
+1. **Task 1 RED: Failing tests for mentions, callouts, images** - `5701bbb3` (test)
+2. **Task 1 GREEN: Implement preprocessor, renderers, lightbox** - `cfa6ea17` (feat)
+3. **Task 2: Comprehensive test coverage** - `eb921fdb` (test)
+4. **Task 3: Visual verification + auth image fix** - `f30edd1c` (fix)
 
 _Note: Task 1 followed TDD with RED/GREEN commits. Task 3 checkpoint included additional fixes for authenticated images and mention display names._
 
@@ -101,7 +101,7 @@ _Note: Task 1 followed TDD with RED/GREEN commits. Task 3 checkpoint included ad
 - **Fix:** Created AuthImage component that fetches via Tauri HTTP with auth headers, added attachment field to API, built filename-to-URL map
 - **Files modified:** AuthImage.tsx, WikiRenderer.tsx, IssueDetailContent.tsx, jira.ts
 - **Verification:** Images load correctly in running app
-- **Committed in:** 7f947d1
+- **Committed in:** f30edd1c
 
 **2. [Rule 2 - Missing Critical] Mention display name resolution**
 - **Found during:** Task 3 (visual verification)
@@ -109,7 +109,7 @@ _Note: Task 1 followed TDD with RED/GREEN commits. Task 3 checkpoint included ad
 - **Fix:** Built user name lookup map from issue comment authors, passed to WikiRenderer preprocessor
 - **Files modified:** WikiRenderer.tsx, IssueDetailContent.tsx
 - **Verification:** Mentions show display names in running app
-- **Committed in:** 7f947d1
+- **Committed in:** f30edd1c
 
 ---
 

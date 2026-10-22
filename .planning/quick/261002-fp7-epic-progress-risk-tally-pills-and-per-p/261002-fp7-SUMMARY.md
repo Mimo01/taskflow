@@ -2,7 +2,7 @@
 
 Risks card now shows one icon+token pill per risk (no +N overflow); per-person breakdown is separated by a divider and "By person" heading.
 
-Commit: 05cc905c
+Commit: 5078cf80
 
 ## Changes
 - `epic-progress.ts`: `EpicRisk.token` (overdue `Nd`, late `+Nd`, unestimated/unassigned count, stalled/scope null).

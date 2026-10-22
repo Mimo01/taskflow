@@ -157,7 +157,7 @@ Scanned: standup-date.ts, standup-date.test.ts, StandupNotesPage.tsx, YesterdayC
 
 No gaps. All must-have truths are verified by code inspection, static analysis, and automated tests. The 5 human verification items above are interactive/visual checks that cannot be automated — they represent normal UAT items, not implementation deficiencies.
 
-The code-review fix commit (50d675b4) that prepends `resolvedYesterday` to the day list when it falls outside the 14-calendar-day window is confirmed present at YesterdayColumn.tsx lines 563-565.
+The code-review fix commit (aff077ba) that prepends `resolvedYesterday` to the day list when it falls outside the 14-calendar-day window is confirmed present at YesterdayColumn.tsx lines 563-565.
 
 ---
 

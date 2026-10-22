@@ -71,8 +71,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Add pin button to IssueDetailSheet and IssueDetailContent** - `2cbf9f0` (feat)
-2. **Task 2: Integrate J/K navigation in My Tasks, Notifications, and Backlog** - `edeb3fc` (feat)
+1. **Task 1: Add pin button to IssueDetailSheet and IssueDetailContent** - `f6ec8b3a` (feat)
+2. **Task 2: Integrate J/K navigation in My Tasks, Notifications, and Backlog** - `7bde5987` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/IssueDetailSheet.tsx` - Wire isPinned/onTogglePin through to IssueDetailContent

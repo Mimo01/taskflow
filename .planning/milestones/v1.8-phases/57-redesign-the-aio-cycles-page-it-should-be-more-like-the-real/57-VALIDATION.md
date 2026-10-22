@@ -82,4 +82,4 @@ created: 2026-05-14
 | Resolved | 2 |
 | Escalated | 0 |
 
-Gaps filled: unit tests for `fetchJiraProjectNumericId` (jira/projects.test.ts) and `fetchAioProjectConfig` (aio/cycles.test.ts) — both were UAT inline fixes (commits 4937f16, eed2c3b) that were mocked in component tests but lacked dedicated unit coverage. All 4 error-path branches (200, 401, 404, network) now verified.
+Gaps filled: unit tests for `fetchJiraProjectNumericId` (jira/projects.test.ts) and `fetchAioProjectConfig` (aio/cycles.test.ts) — both were UAT inline fixes (commits a0de4960, 67e671fd) that were mocked in component tests but lacked dedicated unit coverage. All 4 error-path branches (200, 401, 404, network) now verified.

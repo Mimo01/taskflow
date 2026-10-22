@@ -47,7 +47,7 @@ re_verification: false
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| QUICK-waterfall-detail | 260320-nz1-PLAN.md | Detailed waterfall data: response size, inline fetch info, parallelism | SATISFIED | All five truths verified; commits `12f2818` and `451c227` confirmed in git history |
+| QUICK-waterfall-detail | 260320-nz1-PLAN.md | Detailed waterfall data: response size, inline fetch info, parallelism | SATISFIED | All five truths verified; commits `6bafbe20` and `2c0268ce` confirmed in git history |
 
 ### Anti-Patterns Found
 
@@ -75,7 +75,7 @@ None. No TODO/FIXME/placeholder comments found in any modified file. No stub imp
 
 ### Gaps Summary
 
-No gaps. All five observable truths are fully verified across all three levels (exists, substantive, wired). Both commits (`12f2818`, `451c227`) are confirmed in git history. TypeScript compiles clean with zero errors. The implementation matches the plan exactly with no deviations.
+No gaps. All five observable truths are fully verified across all three levels (exists, substantive, wired). Both commits (`6bafbe20`, `2c0268ce`) are confirmed in git history. TypeScript compiles clean with zero errors. The implementation matches the plan exactly with no deviations.
 
 ---
 

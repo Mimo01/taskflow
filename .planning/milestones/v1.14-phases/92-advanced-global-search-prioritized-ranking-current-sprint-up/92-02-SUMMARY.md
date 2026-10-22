@@ -36,7 +36,7 @@ Injection-safe, throwing scoped Jira body search plus a route-independent, open-
 - `useGlobalSearchSources(open)`: shares `['gh-backlog', boardId]` from any route while open, 5-minute staleTime, no focus refetch; passive reactive read of `['gh-all-data', boardId]` that never fetches.
 
 ## Deviations from Plan
-- Worktree base was behind the expected commit; reset to 23e34cac per the branch check.
+- Worktree base was behind the expected commit; reset to 9a347f2b per the branch check.
 - Test imports `react-router-dom` (not `react-router`), matching `useIsActiveRoute`.
 - Task 1 and Task 2 commit hooks ran the full suite; the first Task 1 attempt hit 5 load-induced flaky failures in unrelated files (pass in isolation and on retry). No code change.
 

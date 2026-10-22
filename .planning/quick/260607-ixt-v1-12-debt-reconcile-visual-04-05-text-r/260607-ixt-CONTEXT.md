@@ -8,7 +8,7 @@
 
 Resolve three tech-debt items surfaced by the v1.12 milestone audit (`.planning/v1.12-MILESTONE-AUDIT.md`):
 
-1. **VISUAL-04/05 text divergence** — requirement text describes a priority-driven left-edge stripe, but the shipped UI (quick-260606-oyy, commit 780454e0) uses an issue-TYPE stripe plus a priority footer icon (`PriorityIcon`). Reconcile the requirement text with reality.
+1. **VISUAL-04/05 text divergence** — requirement text describes a priority-driven left-edge stripe, but the shipped UI (quick-260606-oyy, commit d47e5385) uses an issue-TYPE stripe plus a priority footer icon (`PriorityIcon`). Reconcile the requirement text with reality.
 2. **Dead export `priorityStripeClass`** — `taskflow/src/lib/issueDisplayUtils.ts:131`, superseded by `issueTypeStripeClass`. 0 production callers.
 3. **Dead export `rankIssue`** — `taskflow/src/services/jira/rank.ts:21`, known-broken LexoRank calc; Phase 78 used server-side neighbor-key ranking instead. 0 production callers.
 

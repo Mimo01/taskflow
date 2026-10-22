@@ -38,8 +38,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Restyle shared Progress component | 543dfc3f | `src/components/ui/progress.tsx` |
-| 2 | Migrate inline bars + fix blocking tests | 414e9d0a | `ReleaseDetailPage.tsx`, `BulkProgressIndicator.tsx`, `WorklogsPage.test.tsx` |
+| 1 | Restyle shared Progress component | cb0778eb | `src/components/ui/progress.tsx` |
+| 2 | Migrate inline bars + fix blocking tests | 455eff54 | `ReleaseDetailPage.tsx`, `BulkProgressIndicator.tsx`, `WorklogsPage.test.tsx` |
 | 3 | checkpoint:human-verify | (skipped — autonomous execution) | — |
 
 ## What Was Built
@@ -70,7 +70,7 @@ metrics:
 - **Issue:** `WorklogsPage.test.tsx` had 5 tests with hardcoded week dates (`2026-05-18`, `2026-05-19`) for "last week's Monday/Tuesday". The component's default view is "This Week", so those dated columns were no longer visible after the week rolled over, causing `aria-label` lookups to return null.
 - **Fix:** Added `thisWeekDate(dayOffset)` helper function that computes dates relative to the current week's Monday. Replaced 8 hardcoded date assignments (`const monday = '2026-05-18/19'`) and 2 inline date strings in TEMPO-07/D-08 header-matching tests with dynamic equivalents.
 - **Files modified:** `src/routes/worklogs/WorklogsPage.test.tsx`
-- **Commit:** 414e9d0a (included in Task 2 commit)
+- **Commit:** 455eff54 (included in Task 2 commit)
 - **Note:** This is the pre-existing tech debt documented in STATE.md: "WorklogsPage.test.tsx has 5 date-dependent failures (hardcoded week dates) — fix to be date-relative"
 
 ### Checkpoint Skipped
@@ -101,6 +101,6 @@ None — no new network endpoints, auth paths, or trust boundary changes introdu
 - [x] `taskflow/src/components/ui/progress.tsx` exists and modified
 - [x] `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` imports Progress
 - [x] `taskflow/src/routes/dashboard/BulkProgressIndicator.tsx` imports Progress
-- [x] Commit 543dfc3f exists (Task 1)
-- [x] Commit 414e9d0a exists (Task 2)
+- [x] Commit cb0778eb exists (Task 1)
+- [x] Commit 455eff54 exists (Task 2)
 - [x] Build passes, all 1551 tests pass

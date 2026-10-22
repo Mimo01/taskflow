@@ -66,8 +66,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Extend settings store with sidebarItems, dashboardLayout, preset actions, and v9 migration** - `a1e3cdb` (feat)
-2. **Task 2: Create sidebar nav item registry and widget registry with preset definitions** - `247de42` (feat)
+1. **Task 1: Extend settings store with sidebarItems, dashboardLayout, preset actions, and v9 migration** - `f4fa092f` (feat)
+2. **Task 2: Create sidebar nav item registry and widget registry with preset definitions** - `39f10683` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/settings.store.ts` - Added SidebarItem/DashboardLayoutItem types, 8 layout actions, v9 migration
@@ -102,7 +102,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 4 created/modified files verified on disk. Both commit hashes (a1e3cdb, 247de42) found in git log.
+All 4 created/modified files verified on disk. Both commit hashes (f4fa092f, 39f10683) found in git log.
 
 ---
 *Phase: 34-layout-customization*

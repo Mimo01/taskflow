@@ -3,14 +3,14 @@ status: resolved
 session: 2026-05-14T09:25:00Z
 phase: 54-aio-on-issue-detail
 related:
-  - .planning/debug/panel-overflows-table-cell.md (round 1 — fixed by 54-08 commit 9862672, but residual breakage remains)
+  - .planning/debug/panel-overflows-table-cell.md (round 1 — fixed by 54-08 commit 701725fe, but residual breakage remains)
 fix_attempts:
   - plan: 54-07
     commit: previously
     approach: Branch 3-A — `mergeOpenTableRows` + `flattenInlineCalloutsForTableRow` heuristics
     outcome: panel containment improved but cell content still escapes
   - plan: 54-08
-    commit: 9862672
+    commit: 701725fe
     approach: CSS-layer fix — `WikiRenderer.markdownComponents.table` overflow-x-auto wrapper + `min-w-0` on StepTable `<td>` wrappers
     outcome: visual loudness softened (no full-page widening) but table layout STILL fractures around the multi-line cell + panel
 evidence:
@@ -39,7 +39,7 @@ Side-by-side from user screenshots on the SHOP issue with the Finding 1 fixture:
 
 ## Why the 54-08 fix wasn't enough
 
-Plan 54-08 commit 9862672 addressed visual overflow (inner table wider than outer column):
+Plan 54-08 commit 701725fe addressed visual overflow (inner table wider than outer column):
 - `WikiRenderer.markdownComponents.table` wraps in `<div className="overflow-x-auto max-w-full">`
 - `AioTestRunsSection.StepTable` `<td>` wrappers gained `min-w-0`
 

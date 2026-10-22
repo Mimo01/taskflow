@@ -50,7 +50,7 @@ completed: 2026-06-30
 
 ## Task Commits
 
-1. **Task 1: Fix summary cell inner wrapper from inline-flex to block-level flex** - `51b70e48` (fix)
+1. **Task 1: Fix summary cell inner wrapper from inline-flex to block-level flex** - `52c09be0` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/BacklogRow.tsx` - Changed inner wrapper class from `inline-flex items-center gap-2 text-sm text-left` to `flex items-center gap-2 text-sm min-w-0`; removed `whitespace-nowrap text-ellipsis` from the `<td>`

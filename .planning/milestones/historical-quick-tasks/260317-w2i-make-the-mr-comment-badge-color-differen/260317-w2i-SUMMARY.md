@@ -34,7 +34,7 @@ All 9 notification types now have explicit color entries. No type falls through 
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| 1 | 4f22263 | Add distinct badge colors for MR comment notification types |
+| 1 | 238bcc4f | Add distinct badge colors for MR comment notification types |
 
 ## Deviations from Plan
 
@@ -43,5 +43,5 @@ None -- plan executed exactly as written.
 ## Self-Check: PASSED
 
 - [x] NotificationRow.tsx modified with 3 new colorMap entries
-- [x] Commit 4f22263 exists
+- [x] Commit 238bcc4f exists
 - [x] TypeScript compiles without new errors

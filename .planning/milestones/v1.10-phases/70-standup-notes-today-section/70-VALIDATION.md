@@ -19,7 +19,7 @@ validated: 2026-05-25
 
 The original planning-time map targeted a leaf-only filter, a Pinned section (STAND-08),
 and a Log Work action (STAND-09). During Plan 03's human-verify checkpoint and the
-subsequent standup redesign (commit c5b19544), the phase changed substantially:
+subsequent standup redesign (commit b7984f2f), the phase changed substantially:
 
 - **STAND-07** delivered as a **grouped** model (parent stories + nested subtasks),
   replacing the locked leaf-only rule.

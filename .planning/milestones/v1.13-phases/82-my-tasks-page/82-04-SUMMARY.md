@@ -41,8 +41,8 @@ MyTaskRow and MyTasksPage composed from existing primitives, Wave 0 sort lib and
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | MyTaskRow.tsx — full anatomy + inline interactions | b7eab6dc | MyTaskRow.tsx |
-| 2 | MyTasksPage.tsx + MyTasksPage.test.tsx | 48b00c2f | MyTasksPage.tsx, MyTasksPage.test.tsx |
+| 1 | MyTaskRow.tsx — full anatomy + inline interactions | 8aaed2e8 | MyTaskRow.tsx |
+| 2 | MyTasksPage.tsx + MyTasksPage.test.tsx | ab228eb3 | MyTasksPage.tsx, MyTasksPage.test.tsx |
 
 ## What Was Built
 
@@ -117,14 +117,14 @@ Page root composes all Wave 0 outputs:
 - **Issue:** Plan action said "wire StatusPopover with inner button as children". StatusPopover internally uses `<PopoverTrigger>` from Radix, rendering its own pill button — it does not accept `children` as the trigger.
 - **Fix:** Removed the redundant inner `<button>` child and placed `<StatusPopover>` directly inside the `<div className="flex shrink-0">` wrapper. StatusPopover renders the pill itself via its own `PopoverTrigger` with `statusPillClass`.
 - **Files modified:** taskflow/src/routes/my-tasks/MyTaskRow.tsx
-- **Commit:** b7eab6dc
+- **Commit:** 8aaed2e8
 
 **2. [Rule 1 - Bug] Dual Tabs root consolidation**
 - **Found during:** Task 2 implementation
 - **Issue:** Initial draft used two separate `<Tabs>` instances (one for the header strip, one for content), which is redundant and may cause context mismatch.
 - **Fix:** Consolidated into a single `<Tabs>` root that wraps both `<TabsList>` in the header row and the `<TabsContent>` panels below — correct controlled-tabs pattern.
 - **Files modified:** taskflow/src/routes/my-tasks/MyTasksPage.tsx
-- **Commit:** 48b00c2f
+- **Commit:** ab228eb3
 
 **3. [Rule - Implementation scope] getMrHealth() simplified**
 - **Found during:** Task 2 implementation
@@ -153,8 +153,8 @@ None that affect plan goal delivery. The two deferred items (getMrHealth full de
 - [x] MyTaskRow.tsx created at correct worktree path (307 lines)
 - [x] MyTasksPage.tsx created at correct worktree path (685 lines)
 - [x] MyTasksPage.test.tsx created at correct worktree path (120 lines)
-- [x] Commit b7eab6dc exists (MyTaskRow)
-- [x] Commit 48b00c2f exists (MyTasksPage + test)
+- [x] Commit 8aaed2e8 exists (MyTaskRow)
+- [x] Commit ab228eb3 exists (MyTasksPage + test)
 - [x] All acceptance criteria assertions pass
 - [x] No package.json modifications
 - [x] No deletions in commits

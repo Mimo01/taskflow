@@ -69,10 +69,10 @@ completed: 2026-05-14
 
 Each task was committed atomically:
 
-1. **Task 1: Concern A merger verification test** — `ad34ec2` (test)
-2. **Task 2 RED: failing tests for Concerns B+C parser fix** — `48a2c7c` (test)
-3. **Task 2 GREEN: parser-level fix for nested {panel}** — `6fdee86` (fix)
-4. **Task 3: round-3 UAT scaffold** — `c52fb12` (docs)
+1. **Task 1: Concern A merger verification test** — `20e24737` (test)
+2. **Task 2 RED: failing tests for Concerns B+C parser fix** — `377b0acf` (test)
+3. **Task 2 GREEN: parser-level fix for nested {panel}** — `62dbdc81` (fix)
+4. **Task 3: round-3 UAT scaffold** — `cc9104e7` (docs)
 5. **Task 4 (checkpoint:human-verify)** — NOT executed; orchestrator handles the human UAT gate.
 
 _Note: Task 2 was a TDD task (`tdd="true"`), so RED + GREEN are separate commits._
@@ -81,8 +81,8 @@ _Note: Task 2 was a TDD task (`tdd="true"`), so RED + GREEN are separate commits
 
 During UAT round-3 (Task 4 checkpoint), the user reported a remaining symptom: `\\` immediately preceding `{panel}` (zero whitespace) was rendered as literal text and the panel sat inline with the surrounding prose. Per Jira wiki spec, `\\` is unambiguously a hard break in all positions. Fixed inline as a continuation of plan 54-09:
 
-6. **Round-3 RED: failing test for `\\{panel}` no-space form** — `5e291c7` (test)
-7. **Round-3 GREEN: `\\` hard-break before `{panel}` now renders panel on a new line** — `25881bf` (fix)
+6. **Round-3 RED: failing test for `\\{panel}` no-space form** — `3d01dab5` (test)
+7. **Round-3 GREEN: `\\` hard-break before `{panel}` now renders panel on a new line** — `3c6ecf9c` (fix)
 
 ## Files Created/Modified
 
@@ -107,7 +107,7 @@ During UAT round-3 (Task 4 checkpoint), the user reported a remaining symptom: `
 - **Fix:** Inside `mergeOpenTableRows`, after `flattenInlineCalloutsForTableRow` and BEFORE `\n` → ` ` flattening, run `replace(/[ \t]*\\\\[ \t]*\n/g, '<br/>').replace(/[ \t]\\\\[ \t]/g, '<br/>')` on the merged row body. This consumes the `\\` markers as `<br/>` inline line breaks before they can reach `preprocessJiraMarkup`'s row-fracturing substitution.
 - **Files modified:** taskflow/src/routes/dashboard/WikiRenderer.tsx (mergeOpenTableRows merge-and-flatten block)
 - **Verification:** All 5 new tests pass; `tbody.querySelectorAll('tr').length === 2` asserted directly; the rendered hard break inside the cell shows as a `<br>` (correct: visual break preserved, no row split).
-- **Committed in:** 6fdee86 (Task 2 GREEN commit)
+- **Committed in:** 62dbdc81 (Task 2 GREEN commit)
 
 **2. [Rule 1 - Test fixup] Title-panel test asserts visible text instead of `data-title` attribute**
 - **Found during:** Task 2 (final test pass, title-panel test failed with `expected null to be 'Steps'`).
@@ -115,7 +115,7 @@ During UAT round-3 (Task 4 checkpoint), the user reported a remaining symptom: `
 - **Fix:** Test now asserts `panelSpan.textContent.toContain('Steps')` — matches the actual rendered contract (title visible to the user inside the panel) without changing production code. No regression to `data-callout` attribute (it IS forwarded by the renderer).
 - **Files modified:** taskflow/src/routes/dashboard/WikiRenderer.test.tsx (one test only)
 - **Verification:** Title-panel test now passes; visible title text confirmed in debug-dumped HTML.
-- **Committed in:** 6fdee86 (Task 2 GREEN commit)
+- **Committed in:** 62dbdc81 (Task 2 GREEN commit)
 
 ---
 
@@ -151,7 +151,7 @@ Both sub-tests passing → Phase 54 closes; next orchestrator step is `/gsd-veri
 - File `taskflow/src/routes/dashboard/WikiRenderer.tsx` exists and contains `function transformPanelListItems` (grep: 1) and 2 call sites (grep: 3 including the function definition).
 - File `taskflow/src/routes/dashboard/WikiRenderer.test.tsx` exists and contains all 5 expected test names (Plan 54-09 Concern A: 1, Plan 54-09 Concerns B: 3, Plan 54-09 Concern B —: 1).
 - File `.planning/phases/54-aio-on-issue-detail/54-HUMAN-UAT.md` exists and contains all 5 required tokens (`re_uat_round: 3`, `pending_uat_round_3`, `round_3_fix`, `round_3_fix_plan: "54-09"`, `transformPanelListItems`).
-- Commits exist in git log: ad34ec2, 48a2c7c, 6fdee86, c52fb12, plus round-3 follow-up 5e291c7 + 25881bf.
+- Commits exist in git log: 20e24737, 377b0acf, 62dbdc81, cc9104e7, plus round-3 follow-up 3d01dab5 + 3c6ecf9c.
 - `tsc --noEmit` exit 0.
 - Full vitest suite: 1020 passed (was 1019 — round-3 follow-up added one test), 2 skipped, 39 todo, 0 failed.
 

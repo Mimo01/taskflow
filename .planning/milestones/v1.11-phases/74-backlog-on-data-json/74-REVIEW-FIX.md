@@ -39,7 +39,7 @@ status: all_fixed
 ### BL-01: Issues in CLOSED sprints disappear from the backlog view
 
 - **File:** `taskflow/src/routes/dashboard/BacklogPage.tsx`
-- **Commit:** `c9a0cf19`
+- **Commit:** `db722cbb`
 - **Applied fix:** Restricted the `issueIdToSprintId` reverse index to
   `ACTIVE`/`FUTURE` sprint states. Issues whose only sprint membership is a
   CLOSED sprint now fall through to `backlogIssuesAdapted` (the backlog
@@ -52,7 +52,7 @@ status: all_fixed
 ### BL-02: lookupSprintNameById returns null for CLOSED sprints
 
 - **File:** `taskflow/src/routes/dashboard/BacklogPage.tsx`
-- **Commit:** `ef4d6ac0`
+- **Commit:** `8437d59e`
 - **Applied fix:** Resolve sprint names from `backlog.sprints` (the full
   envelope list, includes CLOSED) instead of the ACTIVE/FUTURE-filtered
   `sprintSections`. Added a `!backlog` guard for the no-data case. Matches
@@ -62,7 +62,7 @@ status: all_fixed
 
 - **File:** `taskflow/src/components/app/__tests__/Sidebar.prefetch-helper-shape.test.tsx`
   (renamed from `Sidebar.prefetch.test.tsx`)
-- **Commit:** `ea213cf3`
+- **Commit:** `85f4992e`
 - **Applied fix:** Option (b) from the review — renamed the file, the
   describe block, and the local helper (`prefetchBacklogHelperShape`) to
   reflect that it pins down expected shape rather than gating the real
@@ -75,7 +75,7 @@ status: all_fixed
 ### WR-02: RecentItemsPopover cast partial GH objects to JiraIssue
 
 - **File:** `taskflow/src/components/app/RecentItemsPopover.tsx`
-- **Commits:** `17fa7921`, `06f0b9d2` (biome cleanup)
+- **Commits:** `b32442f7`, `08cca9c7` (biome cleanup)
 - **Applied fix:** Introduced `RecentIssueLike = JiraIssue | { key: string;
   fields: { summary: string }; isPartial: true }` discriminated union as
   the return type of `findJiraIssueInCache`. The `as JiraIssue` cast at
@@ -96,7 +96,7 @@ status: all_fixed
 ### WR-03: Sidebar prefetch timer can be silently overwritten
 
 - **File:** `taskflow/src/components/app/Sidebar.tsx`
-- **Commit:** `6b5b67d4`
+- **Commit:** `eaf41994`
 - **Applied fix:** `handleNavMouseEnter` now clears any prior
   `prefetchTimerRef.current` before scheduling a new debounce timer.
   Matches the review's recommended fix verbatim.
@@ -104,7 +104,7 @@ status: all_fixed
 ### WR-04: BacklogPage invalidates dead `['jira-sprint-stories']` key
 
 - **File:** `taskflow/src/routes/dashboard/BacklogPage.tsx`
-- **Commit:** `88f450f1`
+- **Commit:** `b0893082`
 - **Applied fix:** DIVERGENCE — On inspection,
   `['jira-sprint-stories']` is NOT dead: `RecentItemsPopover.tsx:46`
   reads it for the recents popover, and `main.tsx:~360` walks it in the
@@ -118,7 +118,7 @@ status: all_fixed
 ### WR-05: confirmMoveToSprint had unused `sprintName` param + `void sprintName;`
 
 - **File:** `taskflow/src/routes/dashboard/BacklogPage.tsx`
-- **Commit:** `88f450f1` (clustered with WR-04 — same function body)
+- **Commit:** `b0893082` (clustered with WR-04 — same function body)
 - **Applied fix:** Removed `sprintName` from the function signature, the
   trailing `void sprintName;` no-op, and the call site
   (`ConfirmSprintMoveDialog.onConfirm`). The destination name is already
@@ -130,7 +130,7 @@ status: all_fixed
 - **Files:**
   - `taskflow/src/routes/dashboard/issue-detail/useFieldMutation.ts`
   - `taskflow/src/routes/dashboard/issue-detail/IssueDetailSidebar.tsx`
-- **Commits:** `7036925d`, `06f0b9d2` (biome signature formatting)
+- **Commits:** `b7da8245`, `08cca9c7` (biome signature formatting)
 - **Applied fix:** Added an optional `boardId?: number | null` parameter
   to `useFieldMutation`. When provided, `onSettled` calls
   `invalidateGhBacklogData(queryClient, boardId)` to scope the

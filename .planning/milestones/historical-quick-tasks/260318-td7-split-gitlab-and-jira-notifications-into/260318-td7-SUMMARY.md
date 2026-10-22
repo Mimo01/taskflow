@@ -62,8 +62,8 @@ completed: 2026-03-18
 
 Each task was committed atomically:
 
-1. **Task 1: Add source-specific selectors and split NotificationPopover by source** - `dceea4e` (feat)
-2. **Task 2: Split TopBar bell into two source-specific notification icons** - `a7ba1b5` (feat)
+1. **Task 1: Add source-specific selectors and split NotificationPopover by source** - `a0217c1a` (feat)
+2. **Task 2: Split TopBar bell into two source-specific notification icons** - `dba02366` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/notifications.store.ts` - Added useJiraUnreadCount, useGitlabUnreadCount selectors and markAllReadBySource action
@@ -89,7 +89,7 @@ Each task was committed atomically:
 - **Fix:** Added source prop to NotificationPopover test renders, updated TopBar test defaultProps
 - **Files modified:** NotificationPopover.test.tsx, TopBar.test.tsx
 - **Verification:** TypeScript compiles cleanly (no new errors)
-- **Committed in:** dceea4e (Task 1), a7ba1b5 (Task 2)
+- **Committed in:** a0217c1a (Task 1), dba02366 (Task 2)
 
 ---
 

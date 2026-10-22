@@ -43,8 +43,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Today column tint + Yesterday card treatment | 3ec47360 | StandupNotesPage.tsx, YesterdayColumn.tsx, IssueActivityGroup.tsx, StandaloneMrGroup.tsx |
-| 2 | Today section headers — count badges + separators | 8ba0e3ab | TodayInProgressSection.tsx, TodayUpNextSection.tsx, TodayMrsSection.tsx, TodayParticipatingSection.tsx |
+| 1 | Today column tint + Yesterday card treatment | 7f74de95 | StandupNotesPage.tsx, YesterdayColumn.tsx, IssueActivityGroup.tsx, StandaloneMrGroup.tsx |
+| 2 | Today section headers — count badges + separators | cfb3b26f | TodayInProgressSection.tsx, TodayUpNextSection.tsx, TodayMrsSection.tsx, TodayParticipatingSection.tsx |
 | 3 | Human visual verification checkpoint | — | (awaiting human review — see below) |
 
 ## What Was Built
@@ -95,4 +95,4 @@ None. Pure class-string and JSX structure edits with no new network endpoints, a
 - IssueActivityGroup.tsx `rounded-lg border border-border bg-card overflow-hidden`: grep confirmed in Task 1 verification
 - StandaloneMrGroup.tsx `rounded-lg border border-border bg-card overflow-hidden`: grep confirmed in Task 1 verification
 - Task 2 full grep gate: `border-t` in UpNext/Mrs/Participating, NOT in InProgress, badge in InProgress, no `PARTICIPATING (` in Participating: all confirmed OK
-- Commits 3ec47360 and 8ba0e3ab exist on branch `worktree-agent-ae18f68e315047f52`
+- Commits 7f74de95 and cfb3b26f exist on branch `worktree-agent-ae18f68e315047f52`

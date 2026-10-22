@@ -88,8 +88,8 @@ None — no new network endpoints, auth paths, or trust-boundary changes introdu
 - [x] `taskflow/src/components/app/PeekPanel.test.tsx` — FOUND
 - [x] `taskflow/src/routes/dashboard/issue-detail/IssueDetailSidebar.tsx` — FOUND
 - [x] `taskflow/src/routes/dashboard/IssueDetailView.tsx` — FOUND
-- [x] Commit cea77481 (Task 1) — FOUND
-- [x] Commit 51fa5933 (Task 2) — FOUND
-- [x] Commit 817914bc (Task 3) — FOUND
+- [x] Commit 2e691137 (Task 1) — FOUND
+- [x] Commit 8e4bcbd2 (Task 2) — FOUND
+- [x] Commit 201dc179 (Task 3) — FOUND
 
 ## Self-Check: PASSED

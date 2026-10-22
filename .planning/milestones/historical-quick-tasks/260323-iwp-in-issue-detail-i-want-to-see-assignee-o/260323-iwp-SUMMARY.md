@@ -54,7 +54,7 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add assignee to subtask types and render assignee avatars on both lists** - `e5c5734` (feat)
+1. **Task 1: Add assignee to subtask types and render assignee avatars on both lists** - `6a6e8a68` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira.ts` - Added optional assignee field to subtask type in JiraIssueDetail
@@ -73,7 +73,7 @@ Each task was committed atomically:
 - **Issue:** Plan referenced `taskflow/src/services/jira/types.ts` but this file does not exist; the JiraIssueDetail type is defined in `taskflow/src/services/jira.ts`
 - **Fix:** Updated the subtask type in `jira.ts` only (single source of truth)
 - **Verification:** TypeScript compiles without errors related to our changes
-- **Committed in:** e5c5734
+- **Committed in:** 6a6e8a68
 
 ---
 

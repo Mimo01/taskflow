@@ -44,7 +44,7 @@ The `DefectRow` internal structure is unchanged — the `<tr>` onClick/onKeyDown
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Wire DefectRow row-click to PeekPanel via onOpenIssue | f3bff74b | taskflow/src/routes/dashboard/AioCycleDetailPage.tsx |
+| 1 | Wire DefectRow row-click to PeekPanel via onOpenIssue | 8700988e | taskflow/src/routes/dashboard/AioCycleDetailPage.tsx |
 
 ## Deviations from Plan
 
@@ -68,4 +68,4 @@ None — `onOpenIssue` is the stable OutletContext callback provided by AppLayou
 ## Self-Check: PASSED
 
 - File modified: `taskflow/src/routes/dashboard/AioCycleDetailPage.tsx` — confirmed exists
-- Commit `f3bff74b` — confirmed in git log
+- Commit `8700988e` — confirmed in git log

@@ -3,8 +3,8 @@ quick_id: 260605-hb4
 status: complete
 date: 2026-06-05
 commits:
-  - 401e2ebe
-  - dd20d942
+  - 155e850f
+  - 1c70e2a2
 ---
 
 # Quick Task 260605-hb4 — Summary
@@ -18,8 +18,8 @@ commits:
 
 | Commit | Type | Description |
 |--------|------|-------------|
-| `401e2ebe` | fix | open full issue page from notifications & dashboard |
-| `dd20d942` | test | lock full-page open behavior for notifications & dashboard |
+| `155e850f` | fix | open full issue page from notifications & dashboard |
+| `1c70e2a2` | test | lock full-page open behavior for notifications & dashboard |
 
 ## What changed
 

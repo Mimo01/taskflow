@@ -4,7 +4,7 @@ status: passed
 verdict: PASS
 date: 2026-05-15
 cycle_tested: SHOP-CY-1011
-note: "15/15 checks pass. Mid-UAT fix applied for normalizeCycle ID passthrough (commit c232ff7)"
+note: "15/15 checks pass. Mid-UAT fix applied for normalizeCycle ID passthrough (commit 9122c955)"
 ---
 
 # Phase 58 — UAT
@@ -15,7 +15,7 @@ Tested against `https://jira.other.example`, cycle `SHOP-CY-1011` (48 runs), 202
 
 **Check #1 initially failed** — progress bar did not appear before runs table.
 
-Root cause diagnosed via console diagnostics: `normalizeCycle()` in `cycles.ts` did not pass through `raw.ID`, so `cycleQuery.data.ID` was always `undefined`, `cycleNumericId` stayed `null`, and `summaryQuery` never fired. Fix: added `ID?: number` to `RawCycle`, `AioCycle`, and `normalizeCycle()`. Committed in `c232ff7`.
+Root cause diagnosed via console diagnostics: `normalizeCycle()` in `cycles.ts` did not pass through `raw.ID`, so `cycleQuery.data.ID` was always `undefined`, `cycleNumericId` stayed `null`, and `summaryQuery` never fired. Fix: added `ID?: number` to `RawCycle`, `AioCycle`, and `normalizeCycle()`. Committed in `9122c955`.
 
 After fix: `summaryQuery` fires at ~0.38s (right after detail resolves), progress bar visible well before the 11s runs request completes.
 

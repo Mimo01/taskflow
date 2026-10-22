@@ -74,8 +74,8 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Create jira/ domain modules with types, client, and all domain files** - `7efa009` (feat)
-2. **Task 2: Create barrel index.ts, delete original jira.ts, verify all imports resolve** - `5272523` (feat)
+1. **Task 1: Create jira/ domain modules with types, client, and all domain files** - `712c82df` (feat)
+2. **Task 2: Create barrel index.ts, delete original jira.ts, verify all imports resolve** - `e6b59cdd` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/types.ts` - All 15+ Jira interfaces (JiraUser, JiraIssue, JiraIssueDetail, etc.)

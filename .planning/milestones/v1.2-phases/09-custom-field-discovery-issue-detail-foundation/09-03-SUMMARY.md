@@ -71,8 +71,8 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **TDD RED: WikiRenderer tests** - `4386ff5` (test)
-2. **TDD GREEN: WikiRenderer implementation** - `702fb0d` (feat)
+1. **TDD RED: WikiRenderer tests** - `d554391a` (test)
+2. **TDD GREEN: WikiRenderer implementation** - `05e87801` (feat)
 
 _Note: TDD tasks have two commits (test → feat). No refactor needed._
 

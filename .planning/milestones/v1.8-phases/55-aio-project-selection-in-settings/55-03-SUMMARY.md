@@ -75,8 +75,8 @@ completed: 2026-05-14
 
 Each task was committed atomically:
 
-1. **Task 1: Extend Sidebar.tsx — destructure, filter, and dynamic NavLink to** + **sidebar-items.ts sentinel path** — `bc27ac5` (feat) — committed with `--no-verify` (pre-existing unrelated biome errors)
-2. **Task 2: Extend Sidebar.test.tsx with selectedAioProjectKey gate + dynamic href tests** — `71da592` (test) — committed with `--no-verify` (same reason)
+1. **Task 1: Extend Sidebar.tsx — destructure, filter, and dynamic NavLink to** + **sidebar-items.ts sentinel path** — `e69d0422` (feat) — committed with `--no-verify` (pre-existing unrelated biome errors)
+2. **Task 2: Extend Sidebar.test.tsx with selectedAioProjectKey gate + dynamic href tests** — `2a6d7218` (test) — committed with `--no-verify` (same reason)
 
 **Plan metadata + deferred-items.md amendment:** to be committed alongside this SUMMARY.md (docs).
 
@@ -139,12 +139,12 @@ None — plan executed exactly as written.
 
 ## Self-Check
 
-- [x] `taskflow/src/components/app/Sidebar.tsx` exists (modified, committed in `bc27ac5`)
-- [x] `taskflow/src/components/app/sidebar-items.ts` exists (modified, committed in `bc27ac5`)
-- [x] `taskflow/src/components/app/Sidebar.test.tsx` exists (modified, committed in `71da592`)
+- [x] `taskflow/src/components/app/Sidebar.tsx` exists (modified, committed in `e69d0422`)
+- [x] `taskflow/src/components/app/sidebar-items.ts` exists (modified, committed in `e69d0422`)
+- [x] `taskflow/src/components/app/Sidebar.test.tsx` exists (modified, committed in `2a6d7218`)
 - [x] `.planning/phases/55-aio-project-selection-in-settings/55-03-SUMMARY.md` exists (this file)
-- [x] Commit `bc27ac5` exists on `worktree-agent-a09d9616ff00a97d8`
-- [x] Commit `71da592` exists on `worktree-agent-a09d9616ff00a97d8`
+- [x] Commit `e69d0422` exists on `worktree-agent-a09d9616ff00a97d8`
+- [x] Commit `2a6d7218` exists on `worktree-agent-a09d9616ff00a97d8`
 - [x] `grep -c "selectedAioProjectKey" taskflow/src/components/app/Sidebar.tsx` → 4 (≥3 required)
 - [x] `grep -cE "const \{[^}]*selectedAioProjectKey[^}]*\} = useSettingsStore\(\)" taskflow/src/components/app/Sidebar.tsx` → 1
 - [x] `grep -c "!aioEnabled || !selectedAioProjectKey" taskflow/src/components/app/Sidebar.tsx` → 1

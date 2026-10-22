@@ -65,9 +65,9 @@ completed: 2026-09-16
 
 Each task was committed atomically:
 
-1. **Task 1: Markup helper + attachment picker modal** - `33d1b437` (feat)
-2. **Task 2: Wire picker, preview tab, and paste/drop upload into CommentComposer** - `0a55a3ef` (feat)
-3. **Task 3: Render resolved [^filename] references as styled file chips** - `a80ea8df` (feat)
+1. **Task 1: Markup helper + attachment picker modal** - `940abe7c` (feat)
+2. **Task 2: Wire picker, preview tab, and paste/drop upload into CommentComposer** - `987fac96` (feat)
+3. **Task 3: Render resolved [^filename] references as styled file chips** - `93fd3083` (feat)
 
 _All three tasks were TDD (RED+GREEN combined per project convention — pre-commit hook runs the full suite)._
 
@@ -98,7 +98,7 @@ _All three tasks were TDD (RED+GREEN combined per project convention — pre-com
 - **Fix:** Replaced the inherited `['className', 'data-footnote-backref']` tuple with `['className', 'data-footnote-backref', 'wiki-attachment-chip']`, filtering the old entry out of the spread first so the new one isn't shadowed.
 - **Files modified:** `taskflow/src/routes/dashboard/WikiRenderer.tsx`
 - **Verification:** Reproduced the empty-className bug with a throwaway pipeline test against the raw `unified`/`rehype-sanitize` pipeline before the fix; confirmed the fix restores `wiki-attachment-chip` all the way through to the rendered DOM via the new WikiRenderer.test.tsx assertions.
-- **Committed in:** `a80ea8df` (Task 3 commit)
+- **Committed in:** `93fd3083` (Task 3 commit)
 
 **2. [Rule 1 - Bug] Chip rendering dropped when wrapped in LinkContextMenu**
 - **Found during:** Task 3 (chip rendering)
@@ -106,7 +106,7 @@ _All three tasks were TDD (RED+GREEN combined per project convention — pre-com
 - **Fix:** Chip anchor renders as a plain `<a>` reusing `handleClick` directly, without `LinkContextMenu`.
 - **Files modified:** `taskflow/src/routes/dashboard/WikiRenderer.tsx`
 - **Verification:** WikiRenderer.test.tsx chip tests assert the icon (`svg`) and `wiki-attachment-chip` class both survive to the rendered DOM.
-- **Committed in:** `a80ea8df` (Task 3 commit)
+- **Committed in:** `93fd3083` (Task 3 commit)
 
 ---
 
@@ -137,4 +137,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 9 created/modified files verified present on disk. All 3 task commits (33d1b437, 0a55a3ef, a80ea8df) verified present in git log.
+All 9 created/modified files verified present on disk. All 3 task commits (940abe7c, 987fac96, 93fd3083) verified present in git log.

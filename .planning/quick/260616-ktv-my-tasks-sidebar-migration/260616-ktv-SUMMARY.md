@@ -38,8 +38,8 @@ Added `appendMyTasksItemIfMissing` as an exported pure helper immediately after 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add appendMyTasksItemIfMissing helper + v27 migration | 5c2ac903 | settings.store.ts |
-| 2 | Unit tests for helper + fix stale version assertion | cfd70efb | settings.store.test.ts |
+| 1 | Add appendMyTasksItemIfMissing helper + v27 migration | 8ed2b191 | settings.store.ts |
+| 2 | Unit tests for helper + fix stale version assertion | 10f46881 | settings.store.test.ts |
 
 ## Verification Results
 
@@ -67,5 +67,5 @@ None — no new network endpoints, auth paths, or trust boundaries introduced.
 
 - [x] `taskflow/src/stores/settings.store.ts` exists and contains `appendMyTasksItemIfMissing`, `version: 27`, `if (version < 27)`
 - [x] `taskflow/src/stores/settings.store.test.ts` exists and contains new describe block
-- [x] Commit `5c2ac903` exists (Task 1)
-- [x] Commit `cfd70efb` exists (Task 2)
+- [x] Commit `8ed2b191` exists (Task 1)
+- [x] Commit `10f46881` exists (Task 2)

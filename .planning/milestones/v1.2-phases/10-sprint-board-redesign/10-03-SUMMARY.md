@@ -80,8 +80,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Create DraggableCard and QuickCreateInput components** - `b399749` (feat)
-2. **Task 2: Wire DndContext into SprintBoardTab and useDroppable into BoardColumn** - `5bcded9` (feat)
+1. **Task 1: Create DraggableCard and QuickCreateInput components** - `4fc7d82e` (feat)
+2. **Task 2: Wire DndContext into SprintBoardTab and useDroppable into BoardColumn** - `5fa4f3bb` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -108,7 +108,7 @@ Each task was committed atomically:
 - **Fix:** Updated `DEFAULT_PROPS` helper in test file with all required props; added `fetchTransitions` and `postTransition` to the jira mock (needed by the component)
 - **Files modified:** `taskflow/src/routes/dashboard/QuickCreateInput.test.tsx`
 - **Verification:** TypeScript clean on QuickCreateInput; 3 tests pass after prop fix
-- **Committed in:** `b399749` (Task 1 commit)
+- **Committed in:** `4fc7d82e` (Task 1 commit)
 
 **2. [Rule 1 - Bug] QuickCreateInput button uses lucide Plus icon — test requires `+ Add` text**
 - **Found during:** Task 2 (QuickCreateInput test run)
@@ -116,7 +116,7 @@ Each task was committed atomically:
 - **Fix:** Replaced `<Plus className="size-3" /> Add` with `+ Add` plain text in the button
 - **Files modified:** `taskflow/src/routes/dashboard/QuickCreateInput.tsx`
 - **Verification:** All 3 QuickCreateInput tests pass
-- **Committed in:** `5bcded9` (Task 2 commit)
+- **Committed in:** `5fa4f3bb` (Task 2 commit)
 
 **3. [Rule 1 - Bug] QuickCreateInput test expected synchronous input hide after Enter**
 - **Found during:** Task 2 (QuickCreateInput test run)
@@ -124,7 +124,7 @@ Each task was committed atomically:
 - **Fix:** Added `waitFor` import and wrapped the "input should be hidden" assertion in `waitFor()`
 - **Files modified:** `taskflow/src/routes/dashboard/QuickCreateInput.test.tsx`
 - **Verification:** All 3 QuickCreateInput tests pass with `waitFor`
-- **Committed in:** `5bcded9` (Task 2 commit)
+- **Committed in:** `5fa4f3bb` (Task 2 commit)
 
 ---
 
@@ -147,8 +147,8 @@ Each task was committed atomically:
 - FOUND: taskflow/src/routes/dashboard/QuickCreateInput.tsx
 - FOUND: taskflow/src/routes/dashboard/SprintBoardTab.tsx (DndContext wired)
 - FOUND: taskflow/src/routes/dashboard/BoardColumn.tsx (useDroppable wired)
-- FOUND commit: b399749 (Task 1)
-- FOUND commit: 5bcded9 (Task 2)
+- FOUND commit: 4fc7d82e (Task 1)
+- FOUND commit: 5fa4f3bb (Task 2)
 
 ---
 *Phase: 10-sprint-board-redesign*

@@ -48,7 +48,7 @@ All existing wiring preserved: `data-testid="assignee-assign-to-me"`, `onClick={
 
 | Task | Commit | Files |
 |------|--------|-------|
-| 1 | 0e4a610 | taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx |
+| 1 | 9003103a | taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx |
 
 ## Verification
 
@@ -75,4 +75,4 @@ None.
 ## Self-Check: PASSED
 
 - File modified: FOUND `/Users/mimo/Documents/Projects/taskflow/taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx`
-- Commit: FOUND `0e4a610`
+- Commit: FOUND `9003103a`

@@ -58,8 +58,8 @@ completed: 2026-03-12
 
 Each task committed atomically:
 
-1. **RED: Failing APIF-02 subtask assignee filter tests** - `f79531a` (test)
-2. **GREEN: Append assigneeClause to subtask JQL** - `1a8e2ff` (fix)
+1. **RED: Failing APIF-02 subtask assignee filter tests** - `bb408c7f` (test)
+2. **GREEN: Append assigneeClause to subtask JQL** - `3cc77569` (fix)
 
 _TDD plan: RED then GREEN commits._
 

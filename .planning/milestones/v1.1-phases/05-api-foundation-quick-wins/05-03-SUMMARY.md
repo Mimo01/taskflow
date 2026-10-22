@@ -73,8 +73,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **RED: APIF-02 failing tests** - `097e230` (test)
-2. **GREEN: two-query implementation** - `9bd1b30` (feat)
+1. **RED: APIF-02 failing tests** - `805b53a3` (test)
+2. **GREEN: two-query implementation** - `4f0ba9e9` (feat)
 
 ## Files Created/Modified
 
@@ -98,7 +98,7 @@ Each task was committed atomically:
 - **Fix:** Changed `beforeEach(() => { vi.clearAllMocks() })` to `vi.resetAllMocks()` which resets both call history AND implementation queues. Also changed `chunks` test to use only `mockResolvedValueOnce` variants.
 - **Files modified:** `taskflow/src/services/jira.test.ts`
 - **Verification:** All 29 tests pass; PM-03 fetchFixVersions tests restored to passing
-- **Committed in:** `097e230` (RED phase commit)
+- **Committed in:** `805b53a3` (RED phase commit)
 
 ---
 

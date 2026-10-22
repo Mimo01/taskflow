@@ -3,8 +3,8 @@
 Worklogs presets are now This Week, Last 7 Days, This Month, Last Month (rolling, month-end clamped), Custom; legacy saved filters fall back to This Week.
 
 ## Commits
-- 10f84e30 feat: pure range helpers module + tests (`taskflow/src/lib/worklog-date-ranges.ts`)
-- a3ff085a feat: DatePreset union swap, `normalizeDatePreset`, tempo-filters store v2 migrate, WorklogsPage + tests
+- 39800899 feat: pure range helpers module + tests (`taskflow/src/lib/worklog-date-ranges.ts`)
+- 620410f3 feat: DatePreset union swap, `normalizeDatePreset`, tempo-filters store v2 migrate, WorklogsPage + tests
 
 ## Key changes
 - New ids `last-7-days`, `last-month-to-date` (old `last-month` id not reused so legacy values migrate unambiguously).

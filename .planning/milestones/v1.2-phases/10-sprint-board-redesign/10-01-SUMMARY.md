@@ -78,9 +78,9 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Install @dnd-kit packages** - `4fb5829` (chore)
-2. **Task 2: Add fetchProjectStatuses and createIssue to jira.ts** - `f50fd7b` (feat)
-3. **Task 3: Write Wave 0 RED test stubs** - `51f7f6f` (test)
+1. **Task 1: Install @dnd-kit packages** - `b73d14d9` (chore)
+2. **Task 2: Add fetchProjectStatuses and createIssue to jira.ts** - `f5e83d03` (feat)
+3. **Task 3: Write Wave 0 RED test stubs** - `58745e0f` (test)
 
 **Plan metadata:** (docs commit follows)
 

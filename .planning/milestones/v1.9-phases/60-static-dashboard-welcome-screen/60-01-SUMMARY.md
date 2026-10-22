@@ -74,10 +74,10 @@ completed: 2026-05-20
 
 Each task was committed atomically:
 
-1. **Task 1: Install shadcn Progress component** - `9837b1a5` (chore)
-2. **Task 2: DashboardSprintCard test scaffold (RED)** - `9147d54d` (test)
-3. **Task 3: Implement DashboardSprintCard component (GREEN)** - `4c991070` (feat)
-4. **Fix: D-16 comment cleanup** - `8a65ebec` (fix)
+1. **Task 1: Install shadcn Progress component** - `b7cc3560` (chore)
+2. **Task 2: DashboardSprintCard test scaffold (RED)** - `a5c29209` (test)
+3. **Task 3: Implement DashboardSprintCard component (GREEN)** - `be5d733a` (feat)
+4. **Fix: D-16 comment cleanup** - `4ad4b691` (fix)
 
 _TDD tasks have test commit (RED) followed by feat commit (GREEN)._
 
@@ -102,7 +102,7 @@ _TDD tasks have test commit (RED) followed by feat commit (GREEN)._
 - **Fix:** Rewrote the comment to describe the pattern without naming the forbidden functions
 - **Files modified:** `taskflow/src/routes/dashboard/DashboardSprintCard.tsx`
 - **Verification:** `grep -c "readSecret\|useAuthStore"` now returns 0; all 5 tests still pass
-- **Committed in:** `8a65ebec`
+- **Committed in:** `4ad4b691`
 
 ---
 

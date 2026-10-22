@@ -17,7 +17,7 @@ status: issues_found
 # Phase quick-260606-o5y: Code Review Report
 
 **Reviewed:** 2026-06-06
-**Depth:** quick (diff-scoped to commits 743a2d82 and 0ec11e41)
+**Depth:** quick (diff-scoped to commits 4a2df1bd and ef5034b3)
 **Files Reviewed:** 2
 **Status:** issues_found
 
@@ -99,7 +99,7 @@ check and call `open(storyKey)`, or leave as-is and accept the defensive `?.`.
 **File:** `taskflow/src/routes/dashboard/StoryHeaderRow.tsx:187`
 **Issue:** The updated suppression comment now reads "inner key/chevron/epic are `<button>`".
 This is accurate (the epic pill is a `<button>` with `stopPropagation`), and the comment was
-correctly broadened in commit 0ec11e41. No action required — noting only that the claim was
+correctly broadened in commit ef5034b3. No action required — noting only that the claim was
 verified against lines 155-169 and holds. The assignee avatar, status badge, and subtask
 count remain non-interactive `<span>`s, so their clicks correctly bubble to the body peek as
 intended.

@@ -50,7 +50,7 @@ Zustand settings store extended with `aioEnabled` boolean (version 14 → 15 mig
 ## Task Breakdown
 
 ### Task 1: Extend settings.store.ts with aioEnabled (v14→v15)
-**Commit:** `935bf3f`
+**Commit:** `e6309b97`
 
 Added three changes to `settings.store.ts`:
 1. `aioEnabled: boolean` and `setAioEnabled: (v: boolean) => void` to the `SettingsState` interface (with JSDoc noting it gates all AIO calls)
@@ -62,7 +62,7 @@ Extended `settings.store.test.ts` with a new `describe('settings.store — aioEn
 **Result:** 29/29 tests pass.
 
 ### Task 2: Create IntegrationsSection.tsx, its test, and update Settings.tsx/Settings.test.tsx
-**Commit:** `c8832c2`
+**Commit:** `e29964ec`
 
 Created `IntegrationsSection.tsx` — mirrors `WorkflowSection.tsx` exactly: same outer div `flex flex-col gap-8`, same h2/h3 classNames, same label/checkbox pattern. Reads `aioEnabled`/`setAioEnabled` from `useSettingsStore`. Description text: "Show test execution data from AIO TCMS. Requires AIO plugin on your Jira instance."
 
@@ -112,6 +112,6 @@ None — `aioEnabled` is wired to a real Zustand store field with a real setter.
 - [x] `taskflow/src/routes/settings/IntegrationsSection.test.tsx` — exists, 5 tests
 - [x] `taskflow/src/routes/settings/Settings.tsx` — contains `integrations`, `Plug`, `IntegrationsSection`
 - [x] `taskflow/src/routes/settings/Settings.test.tsx` — contains `aioEnabled`, `toBe(8)`
-- [x] Commit `935bf3f` exists (Task 1)
-- [x] Commit `c8832c2` exists (Task 2)
+- [x] Commit `e6309b97` exists (Task 1)
+- [x] Commit `e29964ec` exists (Task 2)
 - [x] All 52 tests pass

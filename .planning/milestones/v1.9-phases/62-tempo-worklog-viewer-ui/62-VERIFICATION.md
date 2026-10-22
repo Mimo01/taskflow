@@ -35,7 +35,7 @@ re_verification:
 **Phase Goal:** Build the Tempo Worklog Viewer UI — a /worklogs page with a day-column pivot table, date presets, people filter, and totals, gated by tempoEnabled in the sidebar.
 **Verified:** 2026-05-21T16:00:00Z
 **Status:** human_needed
-**Re-verification:** Yes — after gap closure (commit 0497cca5)
+**Re-verification:** Yes — after gap closure (commit 65d0e661)
 
 ---
 
@@ -185,4 +185,4 @@ Phase is blocked only on the human smoke test, which was deferred from the initi
 
 _Verified: 2026-05-21T16:00:00Z_
 _Verifier: Claude (gsd-verifier)_
-_Re-verification: Yes — after commit 0497cca5_
+_Re-verification: Yes — after commit 65d0e661_

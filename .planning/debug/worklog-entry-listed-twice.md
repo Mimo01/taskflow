@@ -50,7 +50,7 @@ tdd_checkpoint: ""
 - fetchFullWorklogs pagination bug: pagination logic is correct for all total/PAGE_SIZE combinations.
 - Two LogWorkPopover instances on the page: confirmed only one in IssueDetailContent.
 - ActivityTimeline receiving worklogs from two props: only one worklogs prop, from the jira-worklogs query.
-- FieldsSection still having LogWorkPopover: removed in commit f4789d49.
+- FieldsSection still having LogWorkPopover: removed in commit 2a1a079a.
 
 ## Resolution
 

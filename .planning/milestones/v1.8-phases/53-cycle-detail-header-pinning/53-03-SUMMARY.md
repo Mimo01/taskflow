@@ -59,7 +59,7 @@ completed: 2026-05-13
 
 ## Task Commits
 
-1. **Task 1: Six surgical changes to main.tsx** - `329177e` (feat)
+1. **Task 1: Six surgical changes to main.tsx** - `20172dee` (feat)
 
 ## Files Created/Modified
 
@@ -108,7 +108,7 @@ Pinned cycle tabs appear in the header strip, persist across restarts (Zustand p
 - [x] `key.includes('-CY-')` in onTabClick handler — CONFIRMED (line 516)
 - [x] `resolvedIssues` count in main.tsx = 0 — CONFIRMED
 - [x] TypeScript compiles without errors on implementation files — CONFIRMED (pre-existing test file warning only)
-- [x] Commit `329177e` exists — CONFIRMED
+- [x] Commit `20172dee` exists — CONFIRMED
 
 ---
 *Phase: 53-cycle-detail-header-pinning*

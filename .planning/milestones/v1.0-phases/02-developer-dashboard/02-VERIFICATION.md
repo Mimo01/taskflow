@@ -7,10 +7,10 @@ re_verification:
   previous_status: passed
   previous_score: 22/22
   gaps_closed:
-    - "Dashboard renders with full Tailwind/CSS styling — all dead config files deleted, @tailwindcss/vite is sole CSS pipeline (commit f96cb29)"
-    - "Clicking the status badge opens StatusPopover with Jira transitions — no-op stub replaced, StatusPopover wired into TaskRow (commits 120eb40, 6114edd)"
-    - "Clicking the comment button expands InlineComment below the task row — no-op stub replaced, InlineComment wired into TaskRow with local commentOpen state (commits 120eb40, 6114edd)"
-    - "GitLab group selector and Jira project selector always visible when base URL configured — silent .catch(()=>[]) pattern replaced with loading/error/success tristate (commit 57c0335)"
+    - "Dashboard renders with full Tailwind/CSS styling — all dead config files deleted, @tailwindcss/vite is sole CSS pipeline (commit 11b6a0e2)"
+    - "Clicking the status badge opens StatusPopover with Jira transitions — no-op stub replaced, StatusPopover wired into TaskRow (commits 816923be, fd793bfd)"
+    - "Clicking the comment button expands InlineComment below the task row — no-op stub replaced, InlineComment wired into TaskRow with local commentOpen state (commits 816923be, fd793bfd)"
+    - "GitLab group selector and Jira project selector always visible when base URL configured — silent .catch(()=>[]) pattern replaced with loading/error/success tristate (commit f8466a01)"
   gaps_remaining: []
   regressions: []
 human_verification:
@@ -55,9 +55,9 @@ The initial verification (2026-03-11T15:18:00Z) returned `status: passed` on aut
 
 Three gap-closure plans were executed and committed:
 
-- **Plan 05** (`f96cb29`): Deleted `postcss.config.js`, `tailwind.config.js`, `tailwind.config.js.bak` — restores Tailwind CSS pipeline
-- **Plan 06** (`120eb40`, `6114edd`): Wired StatusPopover and InlineComment into TaskRow; added transitionMutation and commentMutation with optimistic updates to MyTasksTab
-- **Plan 07** (`57c0335`): Replaced silent-failure `catch(() => [])` guards in TokenSection with loading/error/success tristate for both GitLab group and Jira project selectors
+- **Plan 05** (`11b6a0e2`): Deleted `postcss.config.js`, `tailwind.config.js`, `tailwind.config.js.bak` — restores Tailwind CSS pipeline
+- **Plan 06** (`816923be`, `fd793bfd`): Wired StatusPopover and InlineComment into TaskRow; added transitionMutation and commentMutation with optimistic updates to MyTasksTab
+- **Plan 07** (`f8466a01`): Replaced silent-failure `catch(() => [])` guards in TokenSection with loading/error/success tristate for both GitLab group and Jira project selectors
 
 This report re-verifies all 22 truths, with full verification of the 4 previously failed items.
 
@@ -241,9 +241,9 @@ Two pre-existing TS6133 errors in `GitLabStep.tsx` and `JiraStep.tsx` (unused `S
 
 All 22 Phase 2 must-haves are verified in code. The three gap-closure plans (05, 06, 07) fully address every UAT failure:
 
-- **CSS/styling gap** (UAT test 1): Dead `postcss.config.js` deleted; `@tailwindcss/vite` is the sole CSS pipeline (commit `f96cb29`).
-- **Interactive button gaps** (UAT tests 3, 10, 11): `StatusPopover` and `InlineComment` are now imported and rendered in `TaskRow`; no-op stubs removed from `MyTasksTab`; `transitionMutation` and `commentMutation` with optimistic update/rollback fully wired (commits `120eb40`, `6114edd`).
-- **Group/project selector gap** (UAT tests 6, 7, 8, 9): `TokenSection` now renders both selectors unconditionally when a base URL is configured, with inline loading/error feedback replacing the silent `catch(() => [])` pattern (commit `57c0335`).
+- **CSS/styling gap** (UAT test 1): Dead `postcss.config.js` deleted; `@tailwindcss/vite` is the sole CSS pipeline (commit `11b6a0e2`).
+- **Interactive button gaps** (UAT tests 3, 10, 11): `StatusPopover` and `InlineComment` are now imported and rendered in `TaskRow`; no-op stubs removed from `MyTasksTab`; `transitionMutation` and `commentMutation` with optimistic update/rollback fully wired (commits `816923be`, `fd793bfd`).
+- **Group/project selector gap** (UAT tests 6, 7, 8, 9): `TokenSection` now renders both selectors unconditionally when a base URL is configured, with inline loading/error feedback replacing the silent `catch(() => [])` pattern (commit `f8466a01`).
 
 The automated verification surface (106 tests passing, TypeScript clean in Phase 2 files, all key links wired) is complete. The phase goal — a unified developer dashboard with cross-linking, review health indicators, and inline Jira write actions — is achieved at the code level. Human verification is needed to confirm the visual/interactive experience in the running Tauri app.
 

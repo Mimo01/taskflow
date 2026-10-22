@@ -15,7 +15,7 @@ UAT_VERDICT: PASS (with mid-UAT fix applied)
 
 Check #1 initially failed — progress bar appeared at the same time as runs (11s), not before.
 
-Diagnostics revealed `normalizeCycle()` did not pass `raw.ID` through, so `cycleNumericId` was always `null` and `summaryQuery` never fired. Fix in `c232ff7` added `ID` to `RawCycle`, `AioCycle`, and `normalizeCycle()`. After fix, summary resolves at ~0.4s and progress bar is visible well before runs complete.
+Diagnostics revealed `normalizeCycle()` did not pass `raw.ID` through, so `cycleNumericId` was always `null` and `summaryQuery` never fired. Fix in `9122c955` added `ID` to `RawCycle`, `AioCycle`, and `normalizeCycle()`. After fix, summary resolves at ~0.4s and progress bar is visible well before runs complete.
 
 ## All 15 Checks
 

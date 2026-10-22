@@ -5,6 +5,6 @@ status: complete
 
 Files: `aio-cycle/CycleKpiTiles.tsx`, `aio-cycle/DefectSummary.tsx`, `aio-cycle/CycleBurndown.test.tsx` (nesting assertion updated for the new Execution/Defect wrapper).
 
-Commits: cbd8d40b, 7bf732d7, e3cfddfb, 430d2f89, 6c0162de, 2bf3f234.
+Commits: dd8c9584, 3314a0f5, 179e2b9d, 61f958f2, 0998ebaf, e3e74dd7.
 
 Verified: tsc, biome, full vitest pass; user approved after live review.

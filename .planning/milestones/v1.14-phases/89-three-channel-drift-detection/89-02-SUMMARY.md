@@ -29,7 +29,7 @@ key-files:
   modified: []
 
 key-decisions:
-  - "All three plan tasks landed in a single commit (9d1fafc3) instead of three — see Deviations"
+  - "All three plan tasks landed in a single commit (b0e0153a) instead of three — see Deviations"
   - "wrongMilestoneByKey is empty whenever matchedMilestoneId is null, even though a keyless-milestone MR would otherwise satisfy the 'milestone is absent or differs' offending condition — matches the plan's explicit behavior spec for buildIssueMrIndex"
 
 patterns-established:
@@ -67,7 +67,7 @@ completed: 2026-08-11
 
 ## Task Commits
 
-1. **Tasks 1–3 (union/Channel A, predicates/state gate, assembly/counts/index)** — `9d1fafc3` (feat) — see Deviations for why this landed as one commit instead of three
+1. **Tasks 1–3 (union/Channel A, predicates/state gate, assembly/counts/index)** — `b0e0153a` (feat) — see Deviations for why this landed as one commit instead of three
 
 ## Files Created/Modified
 
@@ -112,7 +112,7 @@ None.
 
 - `taskflow/src/routes/dashboard/release-detail/driftDetection.ts` — FOUND on disk
 - `taskflow/src/routes/dashboard/release-detail/driftDetection.test.ts` — FOUND on disk
-- Commit `9d1fafc3` — FOUND in `git log --oneline`
+- Commit `b0e0153a` — FOUND in `git log --oneline`
 - `npx vitest run src/routes/dashboard/release-detail/driftDetection.test.ts` — 33/33 passed
 - `npx vitest run` (full suite) — 2297 passed, 2 skipped, 13 todo, 0 failed
 - `npx tsc --noEmit` — exits 0

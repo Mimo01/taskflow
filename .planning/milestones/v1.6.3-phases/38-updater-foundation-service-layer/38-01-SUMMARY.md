@@ -71,7 +71,7 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Create version injection script, update build config, and add build-info module** - `50e0e76` (feat)
+1. **Task 1: Create version injection script, update build config, and add build-info module** - `eb6435c0` (feat)
 
 ## Files Created/Modified
 
@@ -99,7 +99,7 @@ Each task was committed atomically:
 - **Fix:** Renamed file to `.cjs` extension and updated package.json script references accordingly
 - **Files modified:** taskflow/scripts/inject-version.cjs, taskflow/package.json
 - **Verification:** `node scripts/inject-version.cjs` outputs APP_VERSION=1.5.0, APP_COMMIT_SHA, APP_BUILD_DATE correctly
-- **Committed in:** 50e0e76
+- **Committed in:** eb6435c0
 
 **2. [Rule 2 - Missing Critical] Added define block to vitest.config.ts**
 - **Found during:** Task 1 (GREEN phase test run)
@@ -107,7 +107,7 @@ Each task was committed atomically:
 - **Fix:** Added the identical define block to vitest.config.ts so import.meta.env.APP_* constants resolve during test runs
 - **Files modified:** taskflow/vitest.config.ts
 - **Verification:** All 4 build-info tests pass
-- **Committed in:** 50e0e76
+- **Committed in:** eb6435c0
 
 ---
 

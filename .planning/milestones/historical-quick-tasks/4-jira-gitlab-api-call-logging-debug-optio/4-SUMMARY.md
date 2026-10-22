@@ -45,9 +45,9 @@ metrics:
 
 | Task | Name | Commit | Key Files |
 |------|------|--------|-----------|
-| 1 | Create debug-log store and apiFetch wrapper | dff15f4 | debug-log.store.ts, apiFetch.ts, settings.store.ts |
-| 2 | Wire apiFetch into jira.ts and gitlab.ts | 0c6ea21 | jira.ts, gitlab.ts |
-| 3 | Debug Mode settings section, Debug Logs page, sidebar link, router wiring | d6cf783 | DebugModeSection.tsx, DebugLogs.tsx, Settings.tsx, Sidebar.tsx, main.tsx |
+| 1 | Create debug-log store and apiFetch wrapper | ae1102ba | debug-log.store.ts, apiFetch.ts, settings.store.ts |
+| 2 | Wire apiFetch into jira.ts and gitlab.ts | 724c47b3 | jira.ts, gitlab.ts |
+| 3 | Debug Mode settings section, Debug Logs page, sidebar link, router wiring | d458987a | DebugModeSection.tsx, DebugLogs.tsx, Settings.tsx, Sidebar.tsx, main.tsx |
 
 ## What Was Built
 
@@ -89,4 +89,4 @@ Pre-existing errors only — confirmed out-of-scope. No new errors introduced.
 
 ## Self-Check: PASSED
 
-All 5 created files confirmed present on disk. All 3 task commits (dff15f4, 0c6ea21, d6cf783) confirmed in git log.
+All 5 created files confirmed present on disk. All 3 task commits (ae1102ba, 724c47b3, d458987a) confirmed in git log.

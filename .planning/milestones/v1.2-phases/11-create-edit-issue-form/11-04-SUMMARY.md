@@ -76,8 +76,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Lift modal state to AppLayout and add Sidebar button** - `a305725` (feat)
-2. **Task 2: Edit button and Add Subtask button in IssueDetailContent** - `474f193` (feat)
+1. **Task 1: Lift modal state to AppLayout and add Sidebar button** - `4de37cfd` (feat)
+2. **Task 2: Edit button and Add Subtask button in IssueDetailContent** - `94716c07` (feat)
 
 **Plan metadata:** (docs commit — see below)
 
@@ -104,7 +104,7 @@ Each task was committed atomically:
 - **Fix:** Added `defaultIssueType?: 'Story' | 'Subtask' | 'Bug'` and `defaultParentKey?: string` to `CreateEditIssueModalProps`; wired into `selectedIssueType` and `parentKey` state initialization
 - **Files modified:** src/routes/dashboard/CreateEditIssueModal.tsx
 - **Verification:** TypeScript compiles without errors for CreateEditIssueModal props
-- **Committed in:** a305725 (Task 1 commit)
+- **Committed in:** 4de37cfd (Task 1 commit)
 
 ---
 

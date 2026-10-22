@@ -182,7 +182,7 @@ against that snapshot, not the live `matchedMilestone`.
 
 ---
 
-## Remediation (applied 2026-05-31, commit 663f36e5)
+## Remediation (applied 2026-05-31, commit e25a9cb7)
 
 | Finding | Resolution |
 |---------|------------|

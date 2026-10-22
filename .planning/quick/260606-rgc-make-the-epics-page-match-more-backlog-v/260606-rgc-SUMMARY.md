@@ -32,8 +32,8 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Remove thead and preserve column widths with colgroup | 5da13469 | EpicsPage.tsx |
-| 2 | Assignee parity (always-render CachedAvatar) and confirm status pill | 5da13469 | EpicsPage.tsx |
+| 1 | Remove thead and preserve column widths with colgroup | 92f979ed | EpicsPage.tsx |
+| 2 | Assignee parity (always-render CachedAvatar) and confirm status pill | 92f979ed | EpicsPage.tsx |
 | 3 | Verify build/lint stays green | — (no file change) | — |
 
 ## What Was Done
@@ -93,7 +93,7 @@ None — UI-only change, no new network endpoints or auth paths.
 ## Self-Check: PASSED
 
 - [x] `taskflow/src/routes/dashboard/EpicsPage.tsx` modified and committed
-- [x] Commit 5da13469 exists: `git log --oneline | grep 5da13469`
+- [x] Commit 92f979ed exists: `git log --oneline | grep 92f979ed`
 - [x] No `<thead>` in EpicsPage.tsx
 - [x] `<colgroup>` with 5 cols present
 - [x] Assignee cell always renders CachedAvatar with `|| 'Unassigned'` fallback

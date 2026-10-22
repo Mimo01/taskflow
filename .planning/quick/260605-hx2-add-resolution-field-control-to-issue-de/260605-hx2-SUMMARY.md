@@ -84,7 +84,7 @@ clears the field via `value: null`. Built entirely on existing infrastructure (`
 - **Fix:** Changed signature to `(value: string | null)` with an early `if (!value) return;`
   guard, mirroring the existing `handlePriorityChange` exactly.
 - **Files modified:** taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx
-- **Commit:** 10125ce4
+- **Commit:** 19b0046c
 
 **2. [Rule 3 - Blocking] base-ui Select options do not mount/drive onValueChange in jsdom**
 - **Found during:** Task 3 (vitest)
@@ -97,7 +97,7 @@ clears the field via `value: null`. Built entirely on existing infrastructure (`
   `fireEvent.change(getByTestId('select-native'), { target: { value } })` after awaiting the async
   options query. This exercises the real FieldsSection → mutate wiring.
 - **Files modified:** taskflow/src/routes/dashboard/issue-detail/FieldsSection.test.tsx
-- **Commit:** d5d9815a
+- **Commit:** 4bca884c
 
 **3. [Rule 3 - Blocking] biome format normalization on Task 1 files**
 - **Found during:** final `npm run check`
@@ -105,7 +105,7 @@ clears the field via `value: null`. Built entirely on existing infrastructure (`
   and collapsed the `fetchResolutions` signature onto one line.
 - **Fix:** Ran `biome check --write` on the changed files; folded the formatting-only diffs into
   the Task 3 commit.
-- **Commit:** d5d9815a
+- **Commit:** 4bca884c
 
 ## Verification Results
 
@@ -122,6 +122,6 @@ clears the field via `value: null`. Built entirely on existing infrastructure (`
 
 ## Self-Check: PASSED
 - FOUND: taskflow/src/services/jira/resolutions.ts
-- FOUND commit 2f3fd571 (Task 1)
-- FOUND commit 10125ce4 (Task 2)
-- FOUND commit d5d9815a (Task 3)
+- FOUND commit 7044666b (Task 1)
+- FOUND commit 19b0046c (Task 2)
+- FOUND commit 4bca884c (Task 3)

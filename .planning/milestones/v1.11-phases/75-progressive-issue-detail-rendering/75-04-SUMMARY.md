@@ -32,7 +32,7 @@ Tauri app against a live Jira instance.
   `console.table(performance.getEntriesByType('measure'))` output, and confirmed the
   progressive-render behaviour. Numbers transcribed into the artifact.
 
-## Measured results (live capture, 2026-05-31, build aebc236f)
+## Measured results (live capture, 2026-05-31, build 41b99f34)
 
 | Metric | Value |
 |--------|-------|

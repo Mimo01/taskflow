@@ -34,8 +34,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Gate subtask rendering for DONE-category parents | `62704e50` | MyTasksPage.tsx |
-| 2 | Add regression test for done-parent subtask suppression | `38b9712f`, `f6aa0030` | MyTasksPage.test.tsx |
+| 1 | Gate subtask rendering for DONE-category parents | `c7c3c88a` | MyTasksPage.tsx |
+| 2 | Add regression test for done-parent subtask suppression | `0e4bb2e0`, `676d88b5` | MyTasksPage.test.tsx |
 
 ## What Was Built
 
@@ -79,13 +79,13 @@ Uses selective `useQuery` mock matching `queryKey[1] === 'my-tasks'` to inject s
 - **Found during:** Task 2 `npm run check`
 - **Issue:** Long ternary in `makeIssue` violated biome 80-col limit; `mockImplementation` return type didn't satisfy `UseQueryResult` (missing 17+ fields).
 - **Fix:** Reformatted ternary to multi-line; added `as any` casts on mock return values with `biome-ignore` comments.
-- **Commit:** `f6aa0030`
+- **Commit:** `676d88b5`
 
 ## Self-Check
 
 - [x] `taskflow/src/routes/my-tasks/MyTasksPage.tsx` modified (line ~585-589)
 - [x] `taskflow/src/routes/my-tasks/MyTasksPage.test.tsx` modified (new describe block)
-- [x] Commits exist: `62704e50`, `38b9712f`, `f6aa0030`
+- [x] Commits exist: `c7c3c88a`, `0e4bb2e0`, `676d88b5`
 - [x] 7/7 tests pass
 - [x] `npm run check` clean
 

@@ -82,7 +82,7 @@ _Reviewer: Claude (gsd-code-reviewer)_
 
 ## Disposition (orchestrator)
 
-Fixed in the commit after e957e20a (which also fixed the sqm source-flag biome error found during this round).
+Fixed in the commit after 23a1ff0f (which also fixed the sqm source-flag biome error found during this round).
 
 | ID | Disposition |
 |----|-------------|

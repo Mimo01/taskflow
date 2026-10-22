@@ -55,8 +55,8 @@ Gap-closure plans 07-04 and 07-05 were executed. This re-verification confirms t
 | 12 | Subtask-linked story MRs bypass the unresolved-discussion filter                                   | VERIFIED  | `data` useMemo adds extras from `mrQueryData.merged` bypassing `filtered`; "bypasses discussion filter" test passes |
 | 13 | "via [subtask-key]" label only on MRs entering list exclusively via subtask path                    | VERIFIED  | `mrViaSubtaskKey` checks `linkMRToTask(mr, sprintIssueKeySet) === null` first; test passes     |
 | 14 | Graceful fallback: no subtask data → base MR list unchanged                                        | VERIFIED  | `subtaskStoryKeys.size === 0` guard returns `base` immediately; "gracefully shows base" test passes |
-| 15 | Subtask toggle button hit target is at least 32px (UAT gap 1 closure)                              | VERIFIED  | TaskCard.tsx line 105-119: single `<button>` wraps Badge + chevron with `p-1 -mx-1` padding; icon is `size-4` (16px); commit 814b320 |
-| 16 | MR Attention reviewer MRs appear only after userId resolves — no empty-list race (UAT gap 2 closure) | VERIFIED | MrAttentionTab.tsx line 98: `queryKey: ['gitlab-mrs', gitlabBaseUrl, userId]`; line 139: `enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId`; commit f7b2da8 |
+| 15 | Subtask toggle button hit target is at least 32px (UAT gap 1 closure)                              | VERIFIED  | TaskCard.tsx line 105-119: single `<button>` wraps Badge + chevron with `p-1 -mx-1` padding; icon is `size-4` (16px); commit 24118fa6 |
+| 16 | MR Attention reviewer MRs appear only after userId resolves — no empty-list race (UAT gap 2 closure) | VERIFIED | MrAttentionTab.tsx line 98: `queryKey: ['gitlab-mrs', gitlabBaseUrl, userId]`; line 139: `enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId`; commit 36f6972a |
 
 **Score:** 16/16 truths verified
 
@@ -124,7 +124,7 @@ Two test failures exist in the full suite. Both predate phase 07 and are unchang
 | File | Test | Root Cause | Phase 07 Introduced? |
 |------|------|------------|----------------------|
 | `MyTasksTab.test.tsx` | `renders skeleton when isLoading` | Skeleton timing assertion races in test env | No — pre-existing |
-| `ReleasesTab.test.tsx` | `shows task count and completion status per fix version row` | `ReleasesTab.tsx` imports `fetchProjectMilestonesInRange` which was never committed to `gitlab.ts` (the function existed only in an uncommitted diff; that diff was correctly discarded by plan-05 to avoid a duplicate identifier) | No — pre-existing since commit 1f5c765 (2026-03-12T23:16); plan-05 correctly declined to commit the broken diff |
+| `ReleasesTab.test.tsx` | `shows task count and completion status per fix version row` | `ReleasesTab.tsx` imports `fetchProjectMilestonesInRange` which was never committed to `gitlab.ts` (the function existed only in an uncommitted diff; that diff was correctly discarded by plan-05 to avoid a duplicate identifier) | No — pre-existing since commit 7a0e1df4 (2026-03-12T23:16); plan-05 correctly declined to commit the broken diff |
 
 The `ReleasesTab` broken import is a pre-phase-07 defect requiring a separate fix: `fetchProjectMilestonesInRange` needs to be implemented in `gitlab.ts` (or `ReleasesTab.tsx` needs to revert to `fetchProjectMilestones`). This is outside phase 07 scope.
 

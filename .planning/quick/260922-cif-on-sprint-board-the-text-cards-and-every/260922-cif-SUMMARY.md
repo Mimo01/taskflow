@@ -43,7 +43,7 @@ Added `density-compact:` Tailwind variants to ~30 previously-fixed-size class si
 
 ## What Was Built
 
-### Task 1 — TaskCard and StoryHeaderRow compact variants (commit `9b2bb2e2`)
+### Task 1 — TaskCard and StoryHeaderRow compact variants (commit `a80b5d66`)
 
 - `TaskCard.tsx`: card outer wrapper padding/gap/radius, flag icon, issue key (both key-button and legacy-span branches), issue type label, summary text/line-height, bottom-row margin/gaps, `PriorityIcon` (via `className` prop, full replacement string), story-points chip, timeInColumn badge, subtask-toggle padding, `Badge` text size, chevron icons.
 - `StoryHeaderRow.tsx`: row wrapper gap/padding, chevron icon, inner gap, flag icon, key text, `PriorityIcon`, summary text, assignee group gap/text/max-width, epic pill, subtask-count min-width/text, transition-error text.
@@ -51,7 +51,7 @@ Added `density-compact:` Tailwind variants to ~30 previously-fixed-size class si
 - Zero new px-unit arbitrary values introduced except the permitted `max-w-[90px]` (assignee name) sizing value.
 - `statusPillClass` call sites left untouched per plan instruction (docblock forbids callers adding sizing classes).
 
-### Task 2 — Board columns/chrome + sticky header measurement (commit `b46f103b`)
+### Task 2 — Board columns/chrome + sticky header measurement (commit `f2d5514b`)
 
 - Replaced `const HEADER_HEIGHT = 37` with `stickyHeaderInnerRef.current?.offsetHeight ?? 37` at the scroll-handler push-out calculation site — density-proof and font-scale-proof, 37 retained only as the pre-mount fallback.
 - `TransitionDropZone`: `min-h-[56px]` → `min-h-[40px]` in compact, added `density-compact:text-[0.625rem]` to the label.
@@ -92,21 +92,21 @@ Task 3 in the plan is `type="checkpoint:human-verify"` with `gate="blocking"`. P
 
 **Update — checkpoint resolved:** The human ran the app, reviewed the board across densities, and requested three rounds of follow-up tuning before giving final approval:
 
-1. **Commit `2c2e14fc`** — avatar, assignee name, and status pill still read as oversized in compact mode. Added a new 16px tier to the shared `CachedAvatar` primitive (additive, existing 20/24/32/40 usages untouched), wired both `TaskCard.tsx` and `StoryHeaderRow.tsx` to read density from `useSettingsStore` and pass 16px avatars in compact; added a missing `density-compact:` variant to `TaskCard.tsx`'s assignee name (it had none at all); appended `density-compact:` geometry overrides to the two `statusPillClass()` call sites (scoped to these two files only — the shared `src/lib/statusStyles.ts` helper itself was not touched).
-2. **Commit `0bb05eff`** — compact mode now felt "too crammed." Eased card/row vertical padding and gaps up one notch (`py-0.5`→`py-1`, `gap-0.5`→`gap-1`), summary-to-footer margin (`mt-0`→`mt-0.5`), story-row padding (`py-0.5`→`py-1`), and column/drop-zone min-height (`40px`→`48px`).
-3. **Commit `a1b7b7cb`** — still felt too small overall. Bumped compact text `0.625rem`→`0.6875rem` across all previously-touched text sites, avatar `16px`→`18px` (new 18px `CachedAvatar` tier, additive), and column min-height `48px`→`54px` to match.
+1. **Commit `ce7380b3`** — avatar, assignee name, and status pill still read as oversized in compact mode. Added a new 16px tier to the shared `CachedAvatar` primitive (additive, existing 20/24/32/40 usages untouched), wired both `TaskCard.tsx` and `StoryHeaderRow.tsx` to read density from `useSettingsStore` and pass 16px avatars in compact; added a missing `density-compact:` variant to `TaskCard.tsx`'s assignee name (it had none at all); appended `density-compact:` geometry overrides to the two `statusPillClass()` call sites (scoped to these two files only — the shared `src/lib/statusStyles.ts` helper itself was not touched).
+2. **Commit `a9290c8b`** — compact mode now felt "too crammed." Eased card/row vertical padding and gaps up one notch (`py-0.5`→`py-1`, `gap-0.5`→`gap-1`), summary-to-footer margin (`mt-0`→`mt-0.5`), story-row padding (`py-0.5`→`py-1`), and column/drop-zone min-height (`40px`→`48px`).
+3. **Commit `ede052ab`** — still felt too small overall. Bumped compact text `0.625rem`→`0.6875rem` across all previously-touched text sites, avatar `16px`→`18px` (new 18px `CachedAvatar` tier, additive), and column min-height `48px`→`54px` to match.
 
-Final human sign-off: **approved**, after round 3 (commit `a1b7b7cb`).
+Final human sign-off: **approved**, after round 3 (commit `ede052ab`).
 
-**Known non-blocking issue** (flagged by both code review and verification): the `density-compact:` overrides appended to `statusPillClass()` call sites in commit `2c2e14fc` technically contradict the "callers must not add geometry classes" contract documented in `src/lib/statusStyles.ts:57-59`. Works correctly today via Tailwind cascade ordering and passed human visual review, but is fragile if that shared helper changes shape later.
+**Known non-blocking issue** (flagged by both code review and verification): the `density-compact:` overrides appended to `statusPillClass()` call sites in commit `ce7380b3` technically contradict the "callers must not add geometry classes" contract documented in `src/lib/statusStyles.ts:57-59`. Works correctly today via Tailwind cascade ordering and passed human visual review, but is fragile if that shared helper changes shape later.
 
 ## Self-Check: PASSED
 
-- `src/routes/dashboard/TaskCard.tsx`: FOUND, modified, commit `9b2bb2e2` verified in `git log`
-- `src/routes/dashboard/StoryHeaderRow.tsx`: FOUND, modified, commit `9b2bb2e2` verified in `git log`
-- `src/routes/dashboard/SprintBoardTab.tsx`: FOUND, modified, commit `b46f103b` verified in `git log`
-- `src/routes/dashboard/SprintGoalBanner.tsx`: FOUND, modified, commit `b46f103b` verified in `git log`
-- `src/routes/dashboard/QuickFilterChipRow.tsx`: FOUND, modified, commit `b46f103b` verified in `git log`
-- `src/routes/dashboard/SprintBoardSkeleton.tsx`: FOUND, modified, commit `b46f103b` verified in `git log`
-- Commit `9b2bb2e2`: FOUND in `git log --oneline --all`
-- Commit `b46f103b`: FOUND in `git log --oneline --all`
+- `src/routes/dashboard/TaskCard.tsx`: FOUND, modified, commit `a80b5d66` verified in `git log`
+- `src/routes/dashboard/StoryHeaderRow.tsx`: FOUND, modified, commit `a80b5d66` verified in `git log`
+- `src/routes/dashboard/SprintBoardTab.tsx`: FOUND, modified, commit `f2d5514b` verified in `git log`
+- `src/routes/dashboard/SprintGoalBanner.tsx`: FOUND, modified, commit `f2d5514b` verified in `git log`
+- `src/routes/dashboard/QuickFilterChipRow.tsx`: FOUND, modified, commit `f2d5514b` verified in `git log`
+- `src/routes/dashboard/SprintBoardSkeleton.tsx`: FOUND, modified, commit `f2d5514b` verified in `git log`
+- Commit `a80b5d66`: FOUND in `git log --oneline --all`
+- Commit `f2d5514b`: FOUND in `git log --oneline --all`

@@ -70,8 +70,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Unit tests for issues, sprints, fields modules** - `60327ea` (test)
-2. **Task 2: Unit tests for epics, backlog, client modules** - `ad5b454` (test)
+1. **Task 1: Unit tests for issues, sprints, fields modules** - `f772d987` (test)
+2. **Task 2: Unit tests for epics, backlog, client modules** - `a8e8a422` (test)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/issues.test.ts` - Tests for issue CRUD and search operations
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Fix:** Changed to total=250 with PAGE_SIZE (200) items on page 1 and 50 on page 2 to properly trigger multi-page pagination
 - **Files modified:** taskflow/src/services/jira/client.test.ts
 - **Verification:** All 15 client tests pass
-- **Committed in:** ad5b454 (Task 2 commit)
+- **Committed in:** a8e8a422 (Task 2 commit)
 
 ---
 

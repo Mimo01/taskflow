@@ -74,8 +74,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Extract createTauriStorage factory and apply to all 5 stores** - `bd441f8` (refactor)
-2. **Task 2: Extract route config from main.tsx + replace SprintBoardTab inline style** - `e575881` (refactor)
+1. **Task 1: Extract createTauriStorage factory and apply to all 5 stores** - `8b57821c` (refactor)
+2. **Task 2: Extract route config from main.tsx + replace SprintBoardTab inline style** - `236109f0` (refactor)
 
 ## Files Created/Modified
 - `taskflow/src/lib/tauri-storage.ts` - Shared createTauriStorage(filename) factory wrapping LazyStore + createJSONStorage

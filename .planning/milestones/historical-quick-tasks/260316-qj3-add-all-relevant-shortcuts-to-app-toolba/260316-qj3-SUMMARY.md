@@ -58,8 +58,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Build full native menu bar in Rust** - `ffb2d00` (feat)
-2. **Task 2: Wire frontend event listeners for all menu actions** - `cfe3a49` (feat)
+1. **Task 1: Build full native menu bar in Rust** - `c37846bc` (feat)
+2. **Task 2: Wire frontend event listeners for all menu actions** - `40510a5c` (feat)
 
 ## Files Created/Modified
 - `taskflow/src-tauri/src/lib.rs` - Full menu bar with App, File, Edit, View, Go, Window, Help submenus and on_menu_event match for all custom items

@@ -58,8 +58,8 @@ Key behaviors:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | TDD RED — test scaffold | 57180e3d | DashboardInProgressCard.test.tsx |
-| 2 | TDD GREEN — implementation | 0f3fbdf1 | DashboardInProgressCard.tsx |
+| 1 | TDD RED — test scaffold | 67576fd7 | DashboardInProgressCard.test.tsx |
+| 2 | TDD GREEN — implementation | 006281b8 | DashboardInProgressCard.tsx |
 
 ## Test Results
 
@@ -104,7 +104,7 @@ No new security surface beyond what is documented in the plan's threat model. Al
 
 - [x] `taskflow/src/routes/dashboard/DashboardInProgressCard.tsx` — exists
 - [x] `taskflow/src/routes/dashboard/DashboardInProgressCard.test.tsx` — exists
-- [x] Commit `57180e3d` — exists (test(60-02): add failing test for DashboardInProgressCard)
-- [x] Commit `0f3fbdf1` — exists (feat(60-02): implement DashboardInProgressCard)
+- [x] Commit `67576fd7` — exists (test(60-02): add failing test for DashboardInProgressCard)
+- [x] Commit `006281b8` — exists (feat(60-02): implement DashboardInProgressCard)
 - [x] All 5 tests pass
 - [x] `tsc --noEmit` exits 0

@@ -32,7 +32,7 @@ Behaviour that must keep working: folder selection persistence (`useAioCyclesSel
 - Pass rate % next to the segmented progress bar; the bar gets a hover tooltip (≤4 rows) instead of the "3P 1F" letter legend.
 - Effort: estimated vs actual (`summary.estimatedEffort` / `summary.actualEffort`).
 
-### Closed cycles (revised after research — a "Show closed" Switch was removed by the user in 99800f30)
+### Closed cycles (revised after research — a "Show closed" Switch was removed by the user in 6c2d5b57)
 - NO Switch. Use a segmented "Open | All" status filter in the cycle-list toolbar; default "Open"; remembered (persisted in aio-cycles-selection store, field e.g. `showClosed`/`statusFilter`).
 - When the selected folder has cycles but ALL are closed and filter = Open, do NOT show a bare empty list: show a notice "All N cycles in this folder are closed" with a one-click "Show them" action that switches to All.
 - In "All" mode, closed cycles sort after open ones and render muted with a Closed status pill.

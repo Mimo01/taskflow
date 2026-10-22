@@ -34,7 +34,7 @@ Also removed the `onStatusSelect` prop entirely from the `MyTaskRowProps` interf
 
 | Task | Description | Commit |
 |------|-------------|--------|
-| 1 | Replace StatusPopover with static status pill | dc4405d8 |
+| 1 | Replace StatusPopover with static status pill | 13c2453b |
 
 ## Deviations from Plan
 
@@ -45,14 +45,14 @@ Also removed the `onStatusSelect` prop entirely from the `MyTaskRowProps` interf
 - **Issue:** `projectId` and `issueTypeId` were computed solely to pass to `StatusPopover`; removing that block left them unused, causing biome `noUnusedVariables` errors
 - **Fix:** Prefixed both with `_` per biome convention
 - **Files modified:** `taskflow/src/routes/my-tasks/MyTaskRow.tsx`
-- **Commit:** dc4405d8 (included in main task commit)
+- **Commit:** 13c2453b (included in main task commit)
 
 **2. [Rule 1 - Style] Formatter: span must be on one line**
 - **Found during:** Task 1 verification (biome check)
 - **Issue:** Biome formatter required the `<span>` and its text content on a single line
 - **Fix:** Collapsed to `<span className={...}>{issue.fields.status.name}</span>`
 - **Files modified:** `taskflow/src/routes/my-tasks/MyTaskRow.tsx`
-- **Commit:** dc4405d8 (included in main task commit)
+- **Commit:** 13c2453b (included in main task commit)
 
 ## Verification
 
@@ -62,6 +62,6 @@ Also removed the `onStatusSelect` prop entirely from the `MyTaskRowProps` interf
 
 ## Self-Check: PASSED
 
-- dc4405d8 exists in git log
+- 13c2453b exists in git log
 - taskflow/src/routes/my-tasks/MyTaskRow.tsx modified (6 insertions, 25 deletions)
 - No StatusPopover or onStatusSelect references remain

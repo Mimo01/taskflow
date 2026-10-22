@@ -30,7 +30,7 @@ metrics:
 ## What Was Done
 
 ### Task 1: Add optional nav metadata to ShortcutEntry and populate on Navigation entries
-**Commit:** 3dcfee7
+**Commit:** dd184ce6
 
 - Added `NavMeta` interface with `label`, `route`, and `action` fields
 - Extended `ShortcutEntry` with optional `navMeta` field
@@ -38,7 +38,7 @@ metrics:
 - Exported `NAV_SHORTCUTS` convenience filter (type-narrowed to guarantee `navMeta` present)
 
 ### Task 2: Replace hardcoded Navigation group with dynamic rendering from NAV_SHORTCUTS
-**Commit:** 8a4a11a
+**Commit:** 31623335
 
 - Imported `NAV_SHORTCUTS` into CommandPalette.tsx
 - Replaced 4 hardcoded `<CommandItem>` elements with a `.map()` over `NAV_SHORTCUTS`
@@ -55,7 +55,7 @@ metrics:
 - **Issue:** The hardcoded Settings CommandItem had no `<CommandShortcut>` child
 - **Fix:** Dynamic rendering from navMeta automatically includes `s.defaultKey` for all items
 - **Files modified:** taskflow/src/components/app/CommandPalette.tsx
-- **Commit:** 8a4a11a
+- **Commit:** 31623335
 
 ## Verification
 

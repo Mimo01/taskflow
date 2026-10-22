@@ -45,6 +45,6 @@ None - plan executed exactly as written. The plan suggested extracting `fixVersi
 - [x] `BacklogPage.tsx` modified: versionMap + fixVersions synthesis present
 - [x] `BacklogRow.tsx` modified: fix version <td> inserted before epic <td>
 - [x] `npx tsc --noEmit` passes with zero errors
-- [x] Commits: 51967327 (Task 1), 36cd7447 (Task 2)
+- [x] Commits: 32735972 (Task 1), e23e6b89 (Task 2)
 
 ## Self-Check: PASSED

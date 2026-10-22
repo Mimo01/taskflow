@@ -26,7 +26,7 @@ started: Broke recently - it worked before but stopped
 <!-- APPEND only - prevents re-investigating -->
 
 - hypothesis: Recent changes to main.tsx (SoftMinimumBanner, AboutDialog) broke the layout
-  evidence: main.tsx layout (flex-1 overflow-auto on <main>) was identical at a3fda18 (sticky-fix commit) and now; none of those commits changed the main layout structure
+  evidence: main.tsx layout (flex-1 overflow-auto on <main>) was identical at 05733d5e (sticky-fix commit) and now; none of those commits changed the main layout structure
   timestamp: 2026-03-26T14:35:00Z
 
 - hypothesis: The scrollContainerRef setup is wrong (virtualizer pointing at wrong scroll element)

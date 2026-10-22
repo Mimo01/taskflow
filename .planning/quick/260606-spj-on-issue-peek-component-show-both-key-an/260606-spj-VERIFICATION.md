@@ -96,11 +96,11 @@ The following behavioral items are best confirmed visually but are not blockers:
 
 ## Commits Verified
 
-- `cea77481` — feat: redesign peek header with icon+key+title and deduped issue query
-- `51fa5933` — feat: extract useLinkedMRs hook and move MR to bottom of single-column peek
-- `817914bc` — test: update PeekPanel tests for deduped issue query mocks
-- `3aa690e2` — style: biome format fixup for peek header imports
-- `e6281e39` — chore: merge executor worktree
+- `2e691137` — feat: redesign peek header with icon+key+title and deduped issue query
+- `8e4bcbd2` — feat: extract useLinkedMRs hook and move MR to bottom of single-column peek
+- `201dc179` — test: update PeekPanel tests for deduped issue query mocks
+- `da74ce67` — style: biome format fixup for peek header imports
+- `d75659cf` — chore: merge executor worktree
 
 ---
 

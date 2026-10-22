@@ -53,9 +53,9 @@ Replaced the person×day pivot table in WorklogsPage with a 3-level Jira issue h
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Update WorklogsPage.test.tsx mocks and fixtures for hierarchy table | 15134757 | WorklogsPage.test.tsx |
-| 2 | Add useOutletContext, uniqueKeys useMemo, and dependent Jira enrichment query | 383f10d0 | WorklogsPage.tsx, WorklogsPage.test.tsx |
-| 3 | Replace pivot table with epic/story/subtask hierarchy + sticky CSS + leaf-row navigation | 16b75990 | WorklogsPage.tsx |
+| 1 | Update WorklogsPage.test.tsx mocks and fixtures for hierarchy table | 75804c48 | WorklogsPage.test.tsx |
+| 2 | Add useOutletContext, uniqueKeys useMemo, and dependent Jira enrichment query | f380cabd | WorklogsPage.tsx, WorklogsPage.test.tsx |
+| 3 | Replace pivot table with epic/story/subtask hierarchy + sticky CSS + leaf-row navigation | 63fbed45 | WorklogsPage.tsx |
 
 ## What Was Built
 
@@ -97,21 +97,21 @@ Full suite: 1323 passed (3 pre-existing failures in dashboard/index.test.tsx unr
 - **Issue:** Stories whose parent epic key was not in enrichMap were routed to a named epic group (`EPIC-MISSING`) instead of the synthetic `__NO_EPIC__` group
 - **Fix:** In the story branch, check `enrichMap.get(parentKey)` — if undefined, use `NO_EPIC` as the epic key
 - **Files modified:** WorklogsPage.tsx (hierarchy useMemo, story branch)
-- **Commit:** 16b75990
+- **Commit:** 63fbed45
 
 **2. [Rule 1 - Bug] Fixed resolvedKeys-based rendering for unresolvable issues**
 - **Found during:** Task 3 (test unresolvable issue key line-through)
 - **Issue:** JSX used `!isNoEpic` as proxy for "is resolvable" — but unresolvable top-level keys (no enrichment, placed as top-level epic nodes) were rendering their summary text instead of the strikethrough span
 - **Fix:** Export `resolvedKeys: new Set(enrichMap.keys())` from the hierarchy useMemo; use `resolvedKeys.has(epicKey/storyKey/subtaskKey)` in all three row types
 - **Files modified:** WorklogsPage.tsx
-- **Commit:** 16b75990
+- **Commit:** 63fbed45
 
 **3. [Rule 1 - Bug] Fixed TypeScript tuple destructuring in test apiFetch assertions**
 - **Found during:** Task 2 TypeScript check
 - **Issue:** `calls.find(([, url]: [string, string]) => ...)` failed because `mock.calls` is typed as `any[][]`, not `[string, string][]`
 - **Fix:** Cast to `unknown[][]` and access `args[1] as string`
 - **Files modified:** WorklogsPage.test.tsx
-- **Commit:** 383f10d0 (amended test file)
+- **Commit:** f380cabd (amended test file)
 
 ## Known Stubs
 
@@ -124,7 +124,7 @@ No new network endpoints or auth paths introduced beyond what the threat model c
 ## Self-Check: PASSED
 
 - SUMMARY.md: FOUND
-- Commit 15134757: FOUND
-- Commit 383f10d0: FOUND
-- Commit 16b75990: FOUND
+- Commit 75804c48: FOUND
+- Commit f380cabd: FOUND
+- Commit 63fbed45: FOUND
 - All files present: taskflow/src/routes/worklogs/WorklogsPage.tsx, taskflow/src/routes/worklogs/WorklogsPage.test.tsx

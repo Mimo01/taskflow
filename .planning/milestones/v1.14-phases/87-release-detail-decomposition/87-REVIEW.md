@@ -39,7 +39,7 @@ status: issues_found
 
 Phase 87 decomposed `ReleaseDetailPage.tsx` (1518 → 322 lines) into 13 files under
 `release-detail/`. I diffed the post-refactor tree against the pre-refactor file
-(`git show 4af774ae:taskflow/src/routes/dashboard/ReleaseDetailPage.tsx`) line by line and
+(`git show a7885d8c:taskflow/src/routes/dashboard/ReleaseDetailPage.tsx`) line by line and
 traced every extracted prop, handler, query key, `enabled` guard and render condition.
 
 **Behavior-preservation verdict:** the relocation itself is clean. Every query key

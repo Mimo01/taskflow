@@ -1,7 +1,7 @@
 ---
 status: complete
 quick_id: 260521-u4u
-commit: 62e932ab
+commit: 2ef14cab
 ---
 
 # Quick Task 260521-u4u: Dashboard Welcome Redesign

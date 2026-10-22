@@ -28,7 +28,7 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Fix status badge alignment with min-width | 499bcbf | taskflow/src/routes/dashboard/StoryHeaderRow.tsx |
+| 1 | Fix status badge alignment with min-width | 693c3506 | taskflow/src/routes/dashboard/StoryHeaderRow.tsx |
 
 ## Changes Made
 
@@ -49,4 +49,4 @@ None.
 
 ## Self-Check: PASSED
 
-- taskflow/src/routes/dashboard/StoryHeaderRow.tsx: modified and committed at 499bcbf
+- taskflow/src/routes/dashboard/StoryHeaderRow.tsx: modified and committed at 693c3506

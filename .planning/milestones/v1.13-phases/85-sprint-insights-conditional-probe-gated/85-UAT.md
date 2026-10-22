@@ -32,10 +32,10 @@ result: pass
 note: |
   Initially blank, then surfaced 3 further live-data issues — all fixed inline and user-verified
   against board 6708 / sprint 19562:
-  - UAT-4  (8917b763): parser read assumed statC; live shape is timeC{oldEstimate,newEstimate} → flat-zero blank plot.
-  - UAT-4b (a54ed5e4): .changes carried a year of pre-sprint history → bounded to sprint window, pre-start folded into baseline.
-  - UAT-4c (d03c5928): anchored at startTime (planning) + categorical x-axis → anchor at activatedTime + time-proportional axis.
-  - UAT-4d (3c36b03d): ideal guideline sloped through weekends → dedicated buildIdealGuideline, flat Sat/Sun working-day staircase.
+  - UAT-4  (f86c4fb6): parser read assumed statC; live shape is timeC{oldEstimate,newEstimate} → flat-zero blank plot.
+  - UAT-4b (41d0d9e5): .changes carried a year of pre-sprint history → bounded to sprint window, pre-start folded into baseline.
+  - UAT-4c (f52040d2): anchored at startTime (planning) + categorical x-axis → anchor at activatedTime + time-proportional axis.
+  - UAT-4d (5abe6578): ideal guideline sloped through weekends → dedicated buildIdealGuideline, flat Sat/Sun working-day staircase.
 
 ### 5. Independent error/retry
 expected: Forcing a fetch failure shows the affected chart's own error state with a working Retry, while the other chart and the rest of the Dashboard stay functional. Velocity fan-out failure surfaces as error/retry, NOT a misleading "not enough data" (CR-02 regression guard).
@@ -55,7 +55,7 @@ note: Tests 3 & 4 initially failed (blank burndown); resolved via 4 inline gap-c
 ## Gaps
 
 - truth: "Sprint Burndown plots remaining work (hours) across the sprint timeline against a dashed ideal guideline"
-  status: resolved   # fixed inline & user-verified — commits 8917b763, a54ed5e4, d03c5928, 3c36b03d
+  status: resolved   # fixed inline & user-verified — commits f86c4fb6, 41d0d9e5, f52040d2, 5abe6578
   reason: "User reported: the Sprint Burndown has no data — blank/empty chart (plot area completely empty), while Personal Velocity beside it renders fine"
   severity: major
   test: 4

@@ -5,8 +5,8 @@ description: unify the style of all pills and badges across the app to have the 
 date: 2026-05-17
 status: complete
 commits:
-  - 9425ed6
-  - 7a60390
+  - 5403c643
+  - 2a57f10c
 ---
 
 # Quick Task 260517-py2: Unify Pills and Badges Style
@@ -18,14 +18,14 @@ Unified the visual language of all chip/pill/badge elements across the app into 
 ## What Was Done
 
 ### Task 1 — Update Badge primitive + tone variant + tonePillClass helper
-**Commit:** 9425ed6  
+**Commit:** 5403c643  
 **Files:** `taskflow/src/components/ui/badge.tsx`, `taskflow/src/lib/statusStyles.ts`
 
 - `badge.tsx`: Changed `rounded-4xl` → `rounded`, `px-2` → `px-1.5`. Added `tone` prop (7 values: `blue | green | red | orange | amber | purple | muted`) mapping to the muted-tint palette (`bg-{color}-500/15 text-{color}-600 dark:text-{color}-400`). All ~25 existing `<Badge>` callers automatically inherit the new shape.
 - `statusStyles.ts`: Added `ChipTone` type, `CHIP_TONE_CLASS` map, and `tonePillClass()` helper — single source of truth imported by `badge.tsx`.
 
 ### Task 2 — Migrate all hand-rolled chips and color-override badges
-**Commit:** 7a60390  
+**Commit:** 2a57f10c  
 **Files:** 14 consumer files
 
 State-like chips migrated to `<Badge tone="...">`:

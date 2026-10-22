@@ -26,17 +26,17 @@ metrics:
 
 Render the shared `IssueTypeIcon` primitive on every Jira row and a `GitMerge` glyph on MR rows
 across all Command Palette (search modal) result groups and the default-state Recent Items list,
-mirroring the treatment already shipped for the Recent Items popover (commits 5b9c4184 / d53558a5).
+mirroring the treatment already shipped for the Recent Items popover (commits 838a44a0 / a540d6a8).
 
 ## What Changed
 
-**Task 1 — Search-result rows (commit `011fcf2b`):**
+**Task 1 — Search-result rows (commit `44f0452a`):**
 - Imported `IssueTypeIcon` from `@/components/ui/issue-type-icon` and `GitMerge` from `lucide-react` into `CommandPalette.tsx`.
 - Added `<IssueTypeIcon typeName={issue.fields.issuetype?.name ?? ''} className="w-3.5 h-3.5 shrink-0" />` as the first child of every Jira `CommandItem`: Direct Match, Issues, Jira Search Results, and Closed Jira Tasks groups.
 - Added `<GitMerge className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />` as the first child of Merge Request rows.
 - `value=`/`key=` strings and `handleIssueSelect`/`handleIssueKeyClick` wiring (PEEK-05 key-button split) left untouched.
 
-**Task 2 — Recent Items rows (commit `0a29595d`):**
+**Task 2 — Recent Items rows (commit `997d4c8c`):**
 - Added `getRecentItemTypeName(item)` helper: `issuesMap.get(item.id)?.fields.issuetype?.name ?? item.issueType` — cache-first, persisted-`issueType`-second, same precedence as `RecentItemsPopover.tsx:131-142`.
 - Recent Items `CommandItem` body now renders `IssueTypeIcon` when a type resolves, `Clock` (from lucide-react) when it doesn't, and `GitMerge` for GitLab recents — same three-way branch as `RecentItemsPopover.tsx:158-166`.
 - Label wrapped in `<span className="truncate">` so the added icon cannot push text to a second line; label text itself (`getRecentItemLabel` output) is unchanged.
@@ -66,7 +66,7 @@ mirroring the treatment already shipped for the Recent Items popover (commits 5b
 - **Issue:** Assumed the default `CheckSquare` icon renders class `lucide-check-square`, but `lucide-react` v0.577.0 aliases `CheckSquare` to `SquareCheckBig`, so the rendered class is `lucide-square-check-big`.
 - **Fix:** Corrected the test selector to `[class*="lucide-square-check-big"]`.
 - **Files modified:** `taskflow/src/components/app/CommandPalette.test.tsx`
-- **Commit:** `011fcf2b`
+- **Commit:** `44f0452a`
 
 ### Process Deviation (not a code bug)
 
@@ -74,7 +74,7 @@ mirroring the treatment already shipped for the Recent Items popover (commits 5b
 
 ## TDD Gate Compliance
 
-Per-task RED-then-GREEN order was followed in-session (verified via `vitest run` showing failures before implementation), but git history does not contain separate `test(...)` commits — see "Process Deviation" above. No `test(...)` commits exist; both `feat(...)` commits (`011fcf2b`, `0a29595d`) include their task's test additions alongside the implementation.
+Per-task RED-then-GREEN order was followed in-session (verified via `vitest run` showing failures before implementation), but git history does not contain separate `test(...)` commits — see "Process Deviation" above. No `test(...)` commits exist; both `feat(...)` commits (`44f0452a`, `997d4c8c`) include their task's test additions alongside the implementation.
 
 ## Known Stubs
 
@@ -84,5 +84,5 @@ None.
 
 - FOUND: taskflow/src/components/app/CommandPalette.tsx
 - FOUND: taskflow/src/components/app/CommandPalette.test.tsx
-- FOUND: commit 011fcf2b
-- FOUND: commit 0a29595d
+- FOUND: commit 44f0452a
+- FOUND: commit 997d4c8c

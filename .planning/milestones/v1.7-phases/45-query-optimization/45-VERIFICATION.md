@@ -46,7 +46,7 @@ human_verification:
 **Phase Goal:** Sprint board and backlog load faster by eliminating sequential API call chains, and sidebar navigation pre-warms the cache
 **Verified:** 2026-03-30T14:36:30Z
 **Status:** passed
-**Re-verification:** Yes — after gap closure (Plan 03, commit b245a8e)
+**Re-verification:** Yes — after gap closure (Plan 03, commit 75901419)
 
 ## Re-verification Summary
 
@@ -71,7 +71,7 @@ No regressions: Full test suite 817 tests passing, TypeScript 0 errors.
 | 6 | Sprint board fires stories, activeSprint, epicsBasic, and projectStatuses queries simultaneously | VERIFIED | `SprintBoardTab.tsx`: Separate `useQuery` hooks for `jira-sprint-stories`, `jira-active-sprint`, `jira-epics-basic`, `project-statuses` — all fire without awaiting each other. |
 | 7 | subtasksLoading boolean from subtasks useQuery is passed to VirtualizedSwimlanes | VERIFIED | `SprintBoardTab.tsx`: `const { data: subtasksData, isLoading: subtasksLoading }` wired to `subtasksLoading={subtasksLoading}` on VirtualizedSwimlanes (not hardcoded false). |
 | 8 | Backlog passes boardId from useBoardId() to fetchBacklogView, builds epicNames/epicColors from allEpics | VERIFIED | `BacklogPage.tsx` line 193: `const { boardId } = useBoardId(...)`. `boardId` passed to `fetchBacklogView` queryFn. Epic maps built from `allEpics` loop. |
-| 9 | Hovering a heavy-route sidebar link prefetches its primary query data | VERIFIED | **Gap closed by Plan 03 (commit b245a8e).** `/backlog` now fires `queryClient.fetchQuery` for `jira-board-id` (Infinity staleTime), chains `.then((boardId) =>` `prefetchQuery` for `jira-backlog-view` with matching key `['jira-backlog-view', activeJiraProject, jiraBaseUrl]`. Silent `.catch()` on chain failure. Old "skip prefetch" comment removed. All 5 PREFETCH_ROUTES covered. |
+| 9 | Hovering a heavy-route sidebar link prefetches its primary query data | VERIFIED | **Gap closed by Plan 03 (commit 75901419).** `/backlog` now fires `queryClient.fetchQuery` for `jira-board-id` (Infinity staleTime), chains `.then((boardId) =>` `prefetchQuery` for `jira-backlog-view` with matching key `['jira-backlog-view', activeJiraProject, jiraBaseUrl]`. Silent `.catch()` on chain failure. Old "skip prefetch" comment removed. All 5 PREFETCH_ROUTES covered. |
 
 **Score:** 9/9 truths verified
 
@@ -127,7 +127,7 @@ No regressions: Full test suite 817 tests passing, TypeScript 0 errors.
 | Sidebar uses `.then((boardId)` chain | `grep -n ".then((boardId)" src/components/app/Sidebar.tsx` | Line 124 | PASS |
 | Sidebar has silent `.catch(` on chain | `grep -n ".catch(" src/components/app/Sidebar.tsx` | Line 132 | PASS |
 | Old "skip" comment removed | `grep -c "skip prefetch for backlog-view itself" src/components/app/Sidebar.tsx` | 0 | PASS |
-| Commit b245a8e exists | `git log --oneline` | b245a8e feat(45-03): chain boardId resolution into backlog prefetch in Sidebar | PASS |
+| Commit 75901419 exists | `git log --oneline` | 75901419 feat(45-03): chain boardId resolution into backlog prefetch in Sidebar | PASS |
 
 ### Requirements Coverage
 
@@ -185,4 +185,4 @@ No gaps remain. All 9/9 observable truths verified. Phase 45 goal fully achieved
 
 _Verified: 2026-03-30T14:36:30Z_
 _Verifier: Claude (gsd-verifier)_
-_Re-verification: Yes — gap closure after Plan 03 (commit b245a8e)_
+_Re-verification: Yes — gap closure after Plan 03 (commit 75901419)_

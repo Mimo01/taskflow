@@ -58,9 +58,9 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Fan out comment+changelog invalidation; fix IssueDetailContent:68 dead key | 6633e55f | `CommentComposer.tsx`, `IssueDetailPage.tsx`, `FieldsSection.tsx`, `IssueDetailContent.tsx` |
-| 2 | Assert invalidation fan-out in the progressive test | a9c1bdee | `IssueDetailPage.progressive.test.tsx` |
-| 3 | Full-suite regression gate | d58a12ea | (empty commit — gate only) |
+| 1 | Fan out comment+changelog invalidation; fix IssueDetailContent:68 dead key | d8d938a7 | `CommentComposer.tsx`, `IssueDetailPage.tsx`, `FieldsSection.tsx`, `IssueDetailContent.tsx` |
+| 2 | Assert invalidation fan-out in the progressive test | 7a2acb2e | `IssueDetailPage.progressive.test.tsx` |
+| 3 | Full-suite regression gate | 926b20c1 | (empty commit — gate only) |
 
 ## What Was Built
 
@@ -182,6 +182,6 @@ None — pure client-side cache-invalidation changes. No new network endpoints, 
 - [x] 6 progressive tests GREEN (3 Wave 0 + 3 new fan-out)
 - [x] Full suite: 148 files / 1664 tests passing
 - [x] `npm run build` passes (tsc + vite clean)
-- [x] Commits: 6633e55f, a9c1bdee, d58a12ea
+- [x] Commits: d8d938a7, 7a2acb2e, 926b20c1
 
 ## Self-Check: PASSED

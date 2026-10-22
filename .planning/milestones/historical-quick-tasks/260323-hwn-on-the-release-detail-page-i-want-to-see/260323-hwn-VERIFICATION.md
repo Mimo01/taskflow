@@ -33,7 +33,7 @@ re_verification: false
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` | Label summary section aggregating unique labels across all milestone MRs | VERIFIED | File exists, contains `labelSummary` useMemo at line 284 and Labels section at lines 469-492; 48 lines added in commit 1026cd0 |
+| `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` | Label summary section aggregating unique labels across all milestone MRs | VERIFIED | File exists, contains `labelSummary` useMemo at line 284 and Labels section at lines 469-492; 48 lines added in commit 2ff1aef5 |
 
 ---
 
@@ -64,7 +64,7 @@ Step 7b: SKIPPED — requires a running browser to verify rendered UI with real 
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| LABEL-SUMMARY | 260323-hwn-PLAN.md | Show unique labels from milestone MRs on release detail page | SATISFIED | `labelSummary` useMemo + Labels section in ReleaseDetailPage.tsx; commit 1026cd0 |
+| LABEL-SUMMARY | 260323-hwn-PLAN.md | Show unique labels from milestone MRs on release detail page | SATISFIED | `labelSummary` useMemo + Labels section in ReleaseDetailPage.tsx; commit 2ff1aef5 |
 
 ---
 
@@ -105,7 +105,7 @@ No gaps. All must-haves are satisfied:
 - Each badge applies the exact GitLab color rendering pattern from MergeRequestDetailPage (`backgroundColor`, `color`, `borderColor`).
 - `Tag` icon is imported from lucide-react and used in the section heading.
 - The data source is a real `useQuery` call to `fetchMilestoneMRs`, not static/mocked data.
-- Commit 1026cd0 confirms the 48-line addition is in the git history.
+- Commit 2ff1aef5 confirms the 48-line addition is in the git history.
 
 ---
 

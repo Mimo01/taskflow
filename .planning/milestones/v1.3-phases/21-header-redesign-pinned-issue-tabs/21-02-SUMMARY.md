@@ -65,8 +65,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Redesign TopBar with branding + remove Sidebar branding** - `e05eda7` (feat)
-2. **Task 2: Create PinnedTabStrip component and wire into AppLayout** - `677016a` (feat)
+1. **Task 1: Redesign TopBar with branding + remove Sidebar branding** - `c35581af` (feat)
+2. **Task 2: Create PinnedTabStrip component and wire into AppLayout** - `7e41ea75` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/PinnedTabStrip.tsx` - New pinned tab strip with cache resolution, type icons, overflow popover

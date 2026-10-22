@@ -55,8 +55,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Service layer: types, fetchAioCycleDetail, aioRunStatusBadgeClass | 2384376 | types.ts, cycles.ts, statusStyles.ts |
-| 2 | AioCycleDetailSkeleton + AioCycleDetailPage + route | 7b6ec05, 68f099e, 86247c5 | Skeleton.tsx, Page.tsx, routes.tsx |
+| 1 | Service layer: types, fetchAioCycleDetail, aioRunStatusBadgeClass | f0cd07e0 | types.ts, cycles.ts, statusStyles.ts |
+| 2 | AioCycleDetailSkeleton + AioCycleDetailPage + route | 517fdb83, c6d32ac6, 1b5a31f9 | Skeleton.tsx, Page.tsx, routes.tsx |
 
 ## What Was Built
 
@@ -83,4 +83,4 @@ metrics:
 - [x] `taskflow/src/services/aio/cycles.ts` exports `fetchAioCycleDetail` — CONFIRMED
 - [x] `taskflow/src/lib/statusStyles.ts` exports `aioRunStatusBadgeClass` — CONFIRMED
 - [x] TypeScript compiles without errors on implementation files — CONFIRMED
-- [x] Commits exist: 2384376, 7b6ec05, 68f099e, 86247c5
+- [x] Commits exist: f0cd07e0, 517fdb83, c6d32ac6, 1b5a31f9

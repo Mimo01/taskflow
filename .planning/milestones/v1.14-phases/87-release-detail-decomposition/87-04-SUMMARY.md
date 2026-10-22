@@ -61,8 +61,8 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 1: Create UnmatchedMRsSection.tsx as a presentational leaf** - `9bf1c2a4` (feat), import-order fix `837f5842` (style)
-2. **Task 2: Create IssuesSection.tsx with UnmatchedMRsSection nested inside its section wrapper, and wire the page** - `d5f394c9` (feat)
+1. **Task 1: Create UnmatchedMRsSection.tsx as a presentational leaf** - `e4025c0d` (feat), import-order fix `4dede3d6` (style)
+2. **Task 2: Create IssuesSection.tsx with UnmatchedMRsSection nested inside its section wrapper, and wire the page** - `c0e1e1a2` (feat)
 
 **Plan metadata:** (this commit, docs: complete plan)
 
@@ -88,21 +88,21 @@ Each task was committed atomically:
 - **Fix:** Added `onOpenIssueFull: (key: string) => void` to `IssuesSectionProps`, wired the key `<button>`'s `onClick` to call `onOpenIssueFull(key)` only, and passed the shell's existing `openIssueFull` closure (unresolved, unconditional — matching original behavior exactly) as that prop. The row body keeps `onSeedBreadcrumb()` then `onOpenIssue(key)` per the plan's instruction, with the shell passing `resolvedOnOpenIssue = onOpenIssue ?? openIssueFull`.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/IssuesSection.tsx`, `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx`
 - **Verification:** `npx tsc --noEmit` exits 0; `npm run check` at the pre-existing 2-error baseline; the PEEK-05 pattern's own file (`BacklogRow.tsx`) and its inline comment (`// Key cell — PEEK-05: inner button navigates full-page, stopPropagation prevents row onOpenIssue`) were used to confirm this is the established convention, not a new one.
-- **Commit:** `d5f394c9`
+- **Commit:** `c0e1e1a2`
 
 **2. [Rule 1 - Lint] Biome import-sort fix**
 - **Found during:** Task 1 pre-commit hook (post-commit)
 - **Issue:** `UnmatchedMRsSection.tsx`'s `lucide-react` and `@tauri-apps/plugin-opener` imports were not alphabetically sorted.
 - **Fix:** Reordered imports; ran `npx biome check` clean.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/UnmatchedMRsSection.tsx`
-- **Commit:** `837f5842`
+- **Commit:** `4dede3d6`
 
 **3. [Rule 1 - Lint] Biome format fix (JSX line-wrap)**
 - **Found during:** Task 2, `npm run check`
 - **Issue:** A multi-line `<span className={statusPillClass(...)}>` in `IssuesSection.tsx` exceeded Biome's line-length wrap threshold when moved verbatim; `npm run check` reported it as a new formatting error beyond the 2-error baseline.
 - **Fix:** Ran `npx biome format --write` on the touched files; verified `npm run check` returns to exactly 2 baseline errors (unrelated `BacklogPage.tsx`/`BacklogRow.tsx`).
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/IssuesSection.tsx`
-- **Committed in:** `d5f394c9`
+- **Committed in:** `c0e1e1a2`
 
 ### Documented Plan Deviation (executor-authored, Rule 1)
 
@@ -132,9 +132,9 @@ No blockers.
 - `taskflow/src/routes/dashboard/release-detail/UnmatchedMRsSection.tsx` - FOUND
 - `taskflow/src/routes/dashboard/release-detail/IssuesSection.tsx` - FOUND
 - `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` - FOUND (779 lines)
-- Commit `9bf1c2a4` - FOUND
-- Commit `837f5842` - FOUND
-- Commit `d5f394c9` - FOUND
+- Commit `e4025c0d` - FOUND
+- Commit `4dede3d6` - FOUND
+- Commit `c0e1e1a2` - FOUND
 
 ## Self-Check: PASSED
 

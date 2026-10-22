@@ -66,7 +66,7 @@ completed: 2026-03-12
 
 ## Task Commits
 
-1. **Task 1: Fix done-story exclusion logic and update tests** - `e6bc1c4` (feat, TDD RED+GREEN)
+1. **Task 1: Fix done-story exclusion logic and update tests** - `36e5deaf` (feat, TDD RED+GREEN)
 
 ## Files Created/Modified
 

@@ -17,7 +17,7 @@ before/after **time-to-first-meaningful-paint** (header visible) and **time-to-f
 | Test issue (key) | _not recorded in this capture_ |
 | Jira instance | live instance (operator's configured Jira) |
 | Network conditions | live network; single-run capture (Assumption A3 — instance/network dependent) |
-| Build / commit | `aebc236f` (Phase 75, progressive rendering merged) |
+| Build / commit | `41b99f34` (Phase 75, progressive rendering merged) |
 | Date captured | 2026-05-31 |
 | Source | `console.table(performance.getEntriesByType('measure'))` — 75-02 instrumentation |
 

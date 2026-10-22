@@ -62,7 +62,7 @@ Not applicable — this task modifies CSS animations and state management logic,
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
 | TypeScript compiles without errors | `cd taskflow && npx tsc --noEmit` | No output (clean) | PASS |
-| All three commits exist in git history | `git cat-file -e 2a298ac`, `751e06b`, `c8d5138` | All found | PASS |
+| All three commits exist in git history | `git cat-file -e 3bc48e18`, `25eb0178`, `13d6e7e9` | All found | PASS |
 | ChevronDown removed from StoryHeaderRow | grep ChevronDown StoryHeaderRow.tsx | No matches | PASS |
 | Old max-height transition removed from SprintBoardTab | grep max-height SprintBoardTab.tsx | No matches | PASS |
 | Old 2.5rem translate removed from sheet.tsx | grep 2.5rem sheet.tsx | No matches | PASS |

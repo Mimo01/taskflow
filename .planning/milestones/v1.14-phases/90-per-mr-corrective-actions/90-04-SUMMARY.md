@@ -65,8 +65,8 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Green the full suite against the recorded baseline and complete the validation ledger** - `bb6571de` (docs)
-2. **Task 2: Live UAT of both corrective actions on real GitLab data** (checkpoint) - `3bb3e7a1` (docs — records the approval)
+1. **Task 1: Green the full suite against the recorded baseline and complete the validation ledger** - `7c5ec13e` (docs)
+2. **Task 2: Live UAT of both corrective actions on real GitLab data** (checkpoint) - `8ef29f6b` (docs — records the approval)
 
 **Plan metadata:** commit follows this SUMMARY.
 
@@ -97,7 +97,7 @@ None — no Rule 1/2/3 auto-fixes were needed in this plan; all code from Plans 
 - **Resolution:** Not fixed (out of Phase 90's scope per the SCOPE BOUNDARY rule — only fix issues directly caused by the current task's own changes). Recorded honestly in both `90-VALIDATION.md`'s Run record and a new `deferred-items.md`, rather than silently reported as passing.
 - **Files modified:** `.planning/phases/90-per-mr-corrective-actions/90-VALIDATION.md`, `.planning/phases/90-per-mr-corrective-actions/deferred-items.md`
 - **Verification:** `git status`/`git diff` at plan start confirmed zero pending changes to `chart.tsx`, `MyTasksPage.tsx`, `MyTasksPage.test.tsx`; the phase's own files (`gitlab.ts`, `useMrFixMutation.ts`, `MrDriftSection.tsx`, `ReleaseDetailPage.tsx`, and their test files) introduce zero new diagnostics.
-- **Committed in:** `bb6571de`
+- **Committed in:** `7c5ec13e`
 
 ---
 

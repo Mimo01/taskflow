@@ -64,8 +64,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Add BOARD-04 test stub to SprintBoardTab.test.tsx** - `f90b555` (test)
-2. **Task 2: Import QuickCreateInput into SprintBoardTab** - `e0ba341` (feat)
+1. **Task 1: Add BOARD-04 test stub to SprintBoardTab.test.tsx** - `c0614a41` (test)
+2. **Task 2: Import QuickCreateInput into SprintBoardTab** - `b38f98c2` (feat)
 
 _Note: TDD tasks have RED commit then GREEN commit._
 
@@ -102,5 +102,5 @@ None - no external service configuration required.
 - FOUND: taskflow/src/routes/dashboard/SprintBoardTab.tsx
 - FOUND: taskflow/src/routes/dashboard/SprintBoardTab.test.tsx
 - FOUND: .planning/phases/14-fix-wiring-credential-bugs/14-01-SUMMARY.md
-- FOUND commit: f90b555 (test: BOARD-04 RED test)
-- FOUND commit: e0ba341 (feat: QuickCreateInput wired into SprintBoardTab)
+- FOUND commit: c0614a41 (test: BOARD-04 RED test)
+- FOUND commit: b38f98c2 (feat: QuickCreateInput wired into SprintBoardTab)

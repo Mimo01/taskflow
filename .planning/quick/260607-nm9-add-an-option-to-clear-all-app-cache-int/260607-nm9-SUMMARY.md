@@ -36,9 +36,9 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 (RED) | Failing tests for clearAvatarCache | `56d20274` | avatarCache.test.ts |
-| 1 (GREEN) | clearAvatarCache() service export | `6c534be5` | avatarCache.ts |
-| 2 | "Clear all app cache" UI row | `52239935` | DebugModeSection.tsx |
+| 1 (RED) | Failing tests for clearAvatarCache | `d0f20a04` | avatarCache.test.ts |
+| 1 (GREEN) | clearAvatarCache() service export | `c070423d` | avatarCache.ts |
+| 2 | "Clear all app cache" UI row | `624a6656` | DebugModeSection.tsx |
 
 ## What Was Built
 
@@ -115,6 +115,6 @@ None — this change adds a destructive-but-safe cache-clear action behind a con
 - FOUND: taskflow/src/services/avatarCache.ts
 - FOUND: taskflow/src/services/avatarCache.test.ts
 - FOUND: taskflow/src/routes/settings/DebugModeSection.tsx
-- FOUND commit 56d20274 (RED test)
-- FOUND commit 6c534be5 (GREEN impl)
-- FOUND commit 52239935 (UI row)
+- FOUND commit d0f20a04 (RED test)
+- FOUND commit c070423d (GREEN impl)
+- FOUND commit 624a6656 (UI row)

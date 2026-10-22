@@ -6,7 +6,7 @@ score: 4/5 must-haves verified
 gaps:
   - truth: "macOS app icon (.icns) shows new logo with squircle mask"
     status: failed
-    reason: "icon.icns and icon.ico were never updated — last git commit touching them is c9faf2f (March 19, 2026), predating the new logo applied in 77e66c7 (April 5, 2026). The apply-variant commit explicitly excluded these files."
+    reason: "icon.icns and icon.ico were never updated — last git commit touching them is 3a5a1fb4 (March 19, 2026), predating the new logo applied in e54724eb (April 5, 2026). The apply-variant commit explicitly excluded these files."
     artifacts:
       - path: "taskflow/src-tauri/icons/icon.icns"
         issue: "Contains old logo from March 19 commit; not updated by the new-logo task"
@@ -31,7 +31,7 @@ gaps:
 |---|-------|--------|----------|
 | 1 | App icon in sidebar shows new flow motif logo at 32x32 | VERIFIED | AppIcon.tsx exports S-curve ribbon SVG; imported and rendered in Sidebar.tsx as `<AppIcon className="w-8 h-8 shrink-0" />` |
 | 2 | Favicon in browser tab shows new logo | VERIFIED | index.html: `<link rel="icon" type="image/svg+xml" href="/app-icon.svg" />`; public/app-icon.svg contains new logo paths |
-| 3 | macOS app icon (.icns) shows new logo with squircle mask | FAILED | icon.icns last updated in commit c9faf2f (Mar 19); the apply-variant commit 77e66c7 (Apr 5) did not include .icns or .ico |
+| 3 | macOS app icon (.icns) shows new logo with squircle mask | FAILED | icon.icns last updated in commit 3a5a1fb4 (Mar 19); the apply-variant commit e54724eb (Apr 5) did not include .icns or .ico |
 | 4 | Logo uses blue (#0ea5e9), orange (#f97316), white (#ffffff) brand colors | VERIFIED | All three files (app-icon-source.svg, public/app-icon.svg, AppIcon.tsx) use exact hex values |
 | 5 | Logo features curved wave/swoosh flow elements as abstract symbol | VERIFIED | Two overlapping S-curve ribbon paths using cubic bezier C commands; confirmed in all three icon files |
 
@@ -44,8 +44,8 @@ gaps:
 | `taskflow/app-icon-source.svg` | 1024x1024 source SVG with flow motif | VERIFIED | Contains viewBox="0 0 1024 1024", both S-curve ribbons with highlights, squircle clip path |
 | `taskflow/src/components/app/AppIcon.tsx` | Inline JSX SVG component for sidebar | VERIFIED | Exports default AppIcon, camelCase attrs, app- prefixed IDs (app-sq), className prop |
 | `taskflow/public/app-icon.svg` | Public SVG copy for favicon | VERIFIED | Contains full logo with highlights; white background rect; squircle clip path |
-| `taskflow/src-tauri/icons/icon.icns` | macOS app icon with new logo | STUB | File exists (76,203 bytes) but contains the old logo — last git commit touching it is c9faf2f (March 19, 2026) |
-| `taskflow/src-tauri/icons/icon.ico` | Windows app icon with new logo | STUB | File exists (12,206 bytes) but contains the old logo — same old commit c9faf2f |
+| `taskflow/src-tauri/icons/icon.icns` | macOS app icon with new logo | STUB | File exists (76,203 bytes) but contains the old logo — last git commit touching it is 3a5a1fb4 (March 19, 2026) |
+| `taskflow/src-tauri/icons/icon.ico` | Windows app icon with new logo | STUB | File exists (12,206 bytes) but contains the old logo — same old commit 3a5a1fb4 |
 | `taskflow/LOGO.md` | Logo design documentation | VERIFIED | 230-line document with curve parameters, brand colors, regeneration instructions |
 
 ### Key Link Verification
@@ -65,7 +65,7 @@ Not applicable — this task produces static SVG assets and React components wit
 |----------|---------|--------|--------|
 | Favicon link points to new SVG | `grep "app-icon.svg" taskflow/index.html` | `<link rel="icon" type="image/svg+xml" href="/app-icon.svg" />` | PASS |
 | AppIcon rendered in sidebar | `grep -r "AppIcon" src/` | `Sidebar.tsx` imports and uses `<AppIcon className="w-8 h-8 shrink-0" />` | PASS |
-| macOS .icns updated by new-logo commit | `git log --oneline -- src-tauri/icons/icon.icns` | Latest commit is c9faf2f (Mar 19) — before 77e66c7 (Apr 5) | FAIL |
+| macOS .icns updated by new-logo commit | `git log --oneline -- src-tauri/icons/icon.icns` | Latest commit is 3a5a1fb4 (Mar 19) — before e54724eb (Apr 5) | FAIL |
 
 ### Requirements Coverage
 
@@ -104,7 +104,7 @@ Not applicable — this task produces static SVG assets and React components wit
 
 One gap blocks full goal achievement: the macOS app icon (.icns) and Windows app icon (.ico) were not regenerated with the new logo. The SUMMARY itself acknowledged this — `npx @tauri-apps/cli icon` was blocked by shell permissions during execution.
 
-The apply-variant commit (77e66c7) updated all PNG sizes and source SVG files but explicitly excluded .icns and .ico. Git history confirms these files have not changed since March 19, 2026 (commit c9faf2f).
+The apply-variant commit (e54724eb) updated all PNG sizes and source SVG files but explicitly excluded .icns and .ico. Git history confirms these files have not changed since March 19, 2026 (commit 3a5a1fb4).
 
 **Fix is one command:** `cd taskflow && npx @tauri-apps/cli icon app-icon-source.svg -o src-tauri/icons`
 

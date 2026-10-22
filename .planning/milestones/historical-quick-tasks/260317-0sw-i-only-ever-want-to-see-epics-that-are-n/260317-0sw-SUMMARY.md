@@ -38,7 +38,7 @@ The `fetchBacklogView` epic-by-key query (`issuekey in (...)` at line 1614) was 
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| 1 | 54d7947 | Add statusCategory != Done to epic listing JQL |
+| 1 | f94a0202 | Add statusCategory != Done to epic listing JQL |
 
 ## Deviations from Plan
 

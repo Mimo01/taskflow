@@ -21,7 +21,7 @@ key-files:
     - taskflow/src/services/jira/types.ts
 
 key-decisions:
-  - "Restored types verbatim from Phase 31 commit 82d7d13 to ensure exact compatibility"
+  - "Restored types verbatim from Phase 31 commit d0ff6b21 to ensure exact compatibility"
 
 patterns-established: []
 
@@ -44,7 +44,7 @@ completed: 2026-03-22
 - **Files modified:** 1
 
 ## Accomplishments
-- Restored all 15 original type exports (JiraUser through EpicEnriched) from Phase 31 commit 82d7d13
+- Restored all 15 original type exports (JiraUser through EpicEnriched) from Phase 31 commit d0ff6b21
 - Preserved 3 phase-32 additions (JiraWorklog, JiraAssignableUser, ParsedDuration)
 - Zero TS2305 errors across all 10 domain modules that import from types.ts
 - All 665 tests pass without modification
@@ -53,13 +53,13 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: Merge original and phase-32 types into types.ts** - `8e112df` (fix)
+1. **Task 1: Merge original and phase-32 types into types.ts** - `b47ca8a2` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/types.ts` - Merged all 18 Jira type definitions (15 original + 3 phase-32)
 
 ## Decisions Made
-- Restored types verbatim from Phase 31 commit 82d7d13 rather than reconstructing from consumer imports, ensuring exact field-level compatibility
+- Restored types verbatim from Phase 31 commit d0ff6b21 rather than reconstructing from consumer imports, ensuring exact field-level compatibility
 
 ## Deviations from Plan
 
@@ -82,7 +82,7 @@ None
 ## Self-Check: PASSED
 
 - FOUND: taskflow/src/services/jira/types.ts
-- FOUND: commit 8e112df
+- FOUND: commit b47ca8a2
 
 ---
 *Phase: 32-time-tracking-attachments-mentions*

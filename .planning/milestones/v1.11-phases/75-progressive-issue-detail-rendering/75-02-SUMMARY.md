@@ -59,8 +59,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1+2 | Three independent queries + global gate removal | a63b58a6 | `IssueDetailPage.tsx`, `ActivityTimeline.tsx` |
-| 3 | Subtask skeleton+error in IssueDetailContent; tests GREEN | 02b99708 | `IssueDetailContent.tsx`, `IssueDetailPage.progressive.test.tsx` |
+| 1+2 | Three independent queries + global gate removal | e69ddbd9 | `IssueDetailPage.tsx`, `ActivityTimeline.tsx` |
+| 3 | Subtask skeleton+error in IssueDetailContent; tests GREEN | c550004a | `IssueDetailContent.tsx`, `IssueDetailPage.progressive.test.tsx` |
 
 ## What Was Built
 
@@ -115,28 +115,28 @@ Full suite: 148 files / 1661 tests — all passing.
 - **Issue:** `noUnusedLocals: true` in tsconfig makes `showCommentsSkeleton`, `showSubtasksSkeleton`, `showChangelogSkeleton`, and `ErrorState` import cause TS6133 errors in Task 1 before Task 2 wires them into JSX.
 - **Fix:** Implemented both tasks before committing, resulting in a single combined commit.
 - **Files modified:** `IssueDetailPage.tsx`, `ActivityTimeline.tsx`
-- **Commit:** a63b58a6
+- **Commit:** e69ddbd9
 
 **2. [Rule 3 - Blocking] ActivityTimeline mergeTimeline call position**
 - **Found during:** Task 2
 - **Issue:** `mergeTimeline(comments, changelog, worklogs)` was called at line 114 before the `changelog === undefined` guard at line 122, causing TS2345 error since `ChangelogHistory[] | undefined` is not assignable to `ChangelogHistory[]`.
 - **Fix:** Moved the `changelog === undefined` skeleton guard before the `mergeTimeline` call.
 - **Files modified:** `ActivityTimeline.tsx`
-- **Commit:** a63b58a6
+- **Commit:** e69ddbd9
 
 **3. [Rule 3 - Blocking] IIFE ReactNode inference**
 - **Found during:** Task 3
 - **Issue:** TypeScript could not infer the return type of a JSX-returning IIFE as `ReactNode`, producing TS2322.
 - **Fix:** Extracted the subtask list render as a `subtaskListContent()` free function with explicit parameter types.
 - **Files modified:** `IssueDetailContent.tsx`
-- **Commit:** 02b99708
+- **Commit:** c550004a
 
 **4. [Rule 3 - Blocking] Progressive test crashing on unmet mock dependencies**
 - **Found during:** Task 3
 - **Issue:** Removing the global gate causes `IssueDetailSidebar` → `FieldsSection` and `StatusPopover` to render, but those components import `isIssueFlagged`, `useGhTransitions`, etc. from `@/services/jira` — none of which were in the test mock. React threw and produced an empty `<div/>`, failing all 3 tests.
 - **Fix:** Added mocks for `IssueDetailSidebar`, `AioTestRunsSection`, `CommentComposer` (null stubs) and added missing `@/services/jira` exports (`isIssueFlagged`, etc.) to the mock. This is additive — no existing assertions removed.
 - **Files modified:** `IssueDetailPage.progressive.test.tsx`
-- **Commit:** 02b99708
+- **Commit:** c550004a
 
 ## Known Stubs
 
@@ -161,6 +161,6 @@ None — pure client-side query orchestration change. No new network endpoints o
 - [x] All 3 progressive tests GREEN
 - [x] `npm run build` passes (tsc + vite)
 - [x] Full test suite: 148 files / 1661 tests passing
-- [x] Commits: a63b58a6, 02b99708
+- [x] Commits: e69ddbd9, c550004a
 
 ## Self-Check: PASSED

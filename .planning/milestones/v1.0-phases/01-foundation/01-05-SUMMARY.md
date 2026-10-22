@@ -70,8 +70,8 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: Add missing CSS import to main.tsx** - `575b42c` (feat)
-2. **Task 2: Fix CORS — switch service files to tauri-plugin-http fetch and add capabilities scope** - `c893c33` (fix)
+1. **Task 1: Add missing CSS import to main.tsx** - `a481c367` (feat)
+2. **Task 2: Fix CORS — switch service files to tauri-plugin-http fetch and add capabilities scope** - `4f4b8cac` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/main.tsx` - Added `import './index.css'` as first import
@@ -112,5 +112,5 @@ None - no external service configuration required.
 - taskflow/src/services/gitlab.ts: FOUND
 - taskflow/src-tauri/capabilities/default.json: FOUND
 - .planning/phases/01-foundation/01-05-SUMMARY.md: FOUND
-- Commit 575b42c: FOUND
-- Commit c893c33: FOUND
+- Commit a481c367: FOUND
+- Commit 4f4b8cac: FOUND

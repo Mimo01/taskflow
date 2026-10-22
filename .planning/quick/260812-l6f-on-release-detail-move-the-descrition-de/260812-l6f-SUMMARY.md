@@ -50,8 +50,8 @@ completed: 2026-08-12
 
 ## Task Commits
 
-1. **Task 1: Render DescriptionsSection in the sidebar and remove it from the main column** - `18cabfe4` (refactor)
-2. **Task 2: Lock the new location with sidebar tests** - `507a83b1` (test)
+1. **Task 1: Render DescriptionsSection in the sidebar and remove it from the main column** - `88c18cc0` (refactor)
+2. **Task 2: Lock the new location with sidebar tests** - `9564e39f` (test)
 3. **Task 3: Human UAT checkpoint** - approved, no code change (verification only)
 
 ## Files Created/Modified
@@ -84,4 +84,4 @@ Pure UI relocation, fully self-contained. No blockers for subsequent work. `Desc
 
 ## Self-Check: PASSED
 
-All created/modified files found on disk; both task commits (`18cabfe4`, `507a83b1`) found in git log.
+All created/modified files found on disk; both task commits (`88c18cc0`, `9564e39f`) found in git log.

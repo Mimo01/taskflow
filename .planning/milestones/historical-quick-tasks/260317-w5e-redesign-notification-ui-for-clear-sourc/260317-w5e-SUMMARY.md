@@ -56,7 +56,7 @@ None -- plan executed exactly as written.
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| 1 | 96a8736 | Redesign NotificationRow with prominent source badges and improved layout |
-| 2 | 4b0d968 | Add source section headers to NotificationPopover and update tests |
+| 1 | a8ec344b | Redesign NotificationRow with prominent source badges and improved layout |
+| 2 | 75e79fc7 | Add source section headers to NotificationPopover and update tests |
 
 ## Self-Check: PASSED

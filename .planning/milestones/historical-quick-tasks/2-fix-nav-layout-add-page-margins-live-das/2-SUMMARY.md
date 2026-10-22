@@ -39,8 +39,8 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add p-4 margins to 6 tab components + Sidebar Work section | 046c150 | MyTasksTab, SprintBoardTab, MrAttentionTab, SprintProgressTab, WorkloadTab, ReleasesTab, Sidebar.tsx |
-| 2 | Wire live data into Dashboard overview cards | 6163cac | dashboard/index.tsx |
+| 1 | Add p-4 margins to 6 tab components + Sidebar Work section | 5d3f2406 | MyTasksTab, SprintBoardTab, MrAttentionTab, SprintProgressTab, WorkloadTab, ReleasesTab, Sidebar.tsx |
+| 2 | Wire live data into Dashboard overview cards | ccce5456 | dashboard/index.tsx |
 
 ## What Was Built
 
@@ -72,7 +72,7 @@ Sidebar now wraps role-specific links in a `<div class="mt-2">` with a "Work" la
 - **Issue:** Plan specified `(fixVersions as { values?: Array<...> })?.values ?? []` cast, but the service's return type is `JiraFixVersion[]` (it already unwraps `.values` internally). TypeScript rejected the cast as non-overlapping types.
 - **Fix:** Removed the cast entirely; replaced with `fixVersions ?? []` which is correct given the inferred type.
 - **Files modified:** taskflow/src/routes/dashboard/index.tsx
-- **Commit:** 6163cac
+- **Commit:** ccce5456
 
 ## Self-Check
 
@@ -82,7 +82,7 @@ Sidebar now wraps role-specific links in a `<div class="mt-2">` with a "Work" la
 - [x] All 6 tab files contain p-4
 
 ### Commits exist:
-- [x] 046c150 — Task 1
-- [x] 6163cac — Task 2
+- [x] 5d3f2406 — Task 1
+- [x] ccce5456 — Task 2
 
 ## Self-Check: PASSED

@@ -31,8 +31,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| RED | Failing tests for MR sentence format | b780c2b9 | TodayColumn.markdown.test.ts (new) |
-| GREEN | Implement sentence-form MR lines | 1764c0d4 | TodayColumn.tsx |
+| RED | Failing tests for MR sentence format | 958717d6 | TodayColumn.markdown.test.ts (new) |
+| GREEN | Implement sentence-form MR lines | 97a876c5 | TodayColumn.tsx |
 
 ## What Was Built
 
@@ -67,12 +67,12 @@ None.
 
 ## TDD Gate Compliance
 
-- RED commit: b780c2b9 (`test(quick-260525-g5z-01): add failing tests...`)
-- GREEN commit: 1764c0d4 (`feat(quick-260525-g5z-01): rewrite participating/reviewing MR lines...`)
+- RED commit: 958717d6 (`test(quick-260525-g5z-01): add failing tests...`)
+- GREEN commit: 97a876c5 (`feat(quick-260525-g5z-01): rewrite participating/reviewing MR lines...`)
 
 ## Self-Check: PASSED
 
 - TodayColumn.markdown.test.ts: EXISTS
 - TodayColumn.tsx (updated): EXISTS
-- Commit b780c2b9: EXISTS
-- Commit 1764c0d4: EXISTS
+- Commit 958717d6: EXISTS
+- Commit 97a876c5: EXISTS

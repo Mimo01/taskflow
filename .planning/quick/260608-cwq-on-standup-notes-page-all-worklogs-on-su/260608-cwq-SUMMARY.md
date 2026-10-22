@@ -6,7 +6,7 @@ status: complete
 
 **Task:** On standup notes page, all worklogs on subtask/story are grouped together. I want to see each log separately with its description.
 **Date:** 2026-06-08
-**Commits:** abb5fcde, 63900847, 47531165
+**Commits:** 05f20543, 17cdaf59, 81bcadf9
 
 ## What Changed
 

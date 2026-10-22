@@ -53,7 +53,7 @@ completed: 2026-03-30
 
 ## Task Commits
 
-1. **Task 1: Chain boardId resolution into backlog prefetch in Sidebar** - `b245a8e` (feat)
+1. **Task 1: Chain boardId resolution into backlog prefetch in Sidebar** - `75901419` (feat)
 
 ## Files Created/Modified
 
@@ -103,5 +103,5 @@ None — no stub patterns or placeholder data in this plan's changes.
 - [x] taskflow/src/components/app/Sidebar.tsx does NOT contain "skip prefetch for backlog-view itself"
 - [x] TypeScript compiles with 0 errors
 - [x] 817 tests passing, 0 failures
-- [x] commit b245a8e exists (Task 1)
+- [x] commit 75901419 exists (Task 1)
 - [x] 45-03-SUMMARY.md created at .planning/phases/45-query-optimization/

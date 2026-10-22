@@ -56,10 +56,10 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 1: Create release-detail/releaseSummaries.ts as a React-free pure module** - `aa00b7c8` (feat)
-2. **Task 2: Write releaseSummaries.test.ts covering the Wave 0 edge cases** - `4d1e1cb7` (test)
-3. **Task 3: Move the two Jira fetchers into services/jira.ts using apiFetch** - `6df5e91f` (feat)
-4. **Post-task formatting fixup** - `d48a3526` (style) — biome auto-format of Task 2's test file to keep `npm run check` at the 2-error baseline
+1. **Task 1: Create release-detail/releaseSummaries.ts as a React-free pure module** - `9bdff635` (feat)
+2. **Task 2: Write releaseSummaries.test.ts covering the Wave 0 edge cases** - `37b09726` (test)
+3. **Task 3: Move the two Jira fetchers into services/jira.ts using apiFetch** - `155c63bf` (feat)
+4. **Post-task formatting fixup** - `b0b12dd3` (style) — biome auto-format of Task 2's test file to keep `npm run check` at the 2-error baseline
 
 **Plan metadata:** (this commit, docs: complete plan)
 
@@ -107,7 +107,7 @@ Each task was committed atomically:
 - **Fix:** Ran `npx biome format --write` on the file to match project formatting conventions.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/releaseSummaries.test.ts`
 - **Verification:** `npm run check` re-run — back to exactly 2 pre-existing baseline errors, 0 new.
-- **Committed in:** `d48a3526`
+- **Committed in:** `b0b12dd3`
 
 ---
 

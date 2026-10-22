@@ -33,13 +33,13 @@ blocked: 0
 
 ### G-01 Sprint-board subtask cards had no transitions (resolved)
 
-Discovered during UAT — fix committed inline as `f7732dd1`.
+Discovered during UAT — fix committed inline as `2a00198c`.
 Root cause: `SprintBoardTab.getTransitions` read `getQueryData(['gh-transitions', projectId, issueTypeId])`, only populated for the sentinel hook's single issueTypeId. Subtask types had no per-type query registered.
 Fix: new `peekGhTransitions(qc, projectId, issueTypeId)` sync helper reads envelope + status-map directly and adapts on demand.
 
 ### G-02 All workflow transitions shown regardless of current status (resolved)
 
-Discovered during UAT — fix committed inline as `f7732dd1`.
+Discovered during UAT — fix committed inline as `2a00198c`.
 Root cause: GH `transitions.json` envelope returns the full workflow (unlike legacy per-issue REST which server-filtered).
 Fix: `fromStatusId` carried through adapter + `filterTransitionsForStatus` helper applied in `SprintBoardTab.getTransitions` and `StatusPopover`.
 

@@ -75,8 +75,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Create EpicsPage.tsx and CreateEpicDialog stub** - `5270c0d`
-2. **Task 2: Add /epics NavLink to Sidebar + register route in main.tsx** - `9789c88`
+1. **Task 1: Create EpicsPage.tsx and CreateEpicDialog stub** - `d822c81b`
+2. **Task 2: Add /epics NavLink to Sidebar + register route in main.tsx** - `dc1aa489`
 
 **Plan metadata:** *(committed after summary)*
 
@@ -103,14 +103,14 @@ Each task was committed atomically:
 - **Issue:** Wave 0 test stub mocked `useSettingsStore` with `jiraBaseUrl`/`activeJiraProject` fields that don't exist in `SettingsState`. The stub also had no readSecret mock, so `token` stayed null and the query was never enabled.
 - **Fix:** Added `vi.mock('@/services/stronghold', ...)` + `vi.mock('@/stores/auth.store', ...)` to test; moved `jiraBaseUrl`/`activeJiraProject` to auth store mock; updated component to read those from `useAuthStore`. Also added `beforeEach` readSecret restoration since `vi.clearAllMocks()` cleared the implementation between tests.
 - **Files modified:** taskflow/src/routes/dashboard/EpicsPage.test.tsx, taskflow/src/routes/dashboard/EpicsPage.tsx
-- **Commit:** 5270c0d
+- **Commit:** d822c81b
 
 **2. [Rule 1 - Bug] Empty state condition uses epicsData !== undefined instead of !isLoading**
 - **Found during:** Task 1 (test 2 failing — empty state not rendering)
 - **Issue:** Original condition `epics.length === 0 && !isLoading` is ambiguous in TQ v5: both "query disabled" and "query resolved with []" have `isLoading=false` and `epics=[]`. Need to distinguish using `epicsData !== undefined`.
 - **Fix:** Changed to `epicsData !== undefined && epics.length === 0` — only shows empty state when query has actually resolved with empty data.
 - **Files modified:** taskflow/src/routes/dashboard/EpicsPage.tsx
-- **Commit:** 5270c0d
+- **Commit:** d822c81b
 
 ---
 

@@ -46,8 +46,8 @@ OnboardingWizard.tsx wired with 5-step array including IntegrationsStep at index
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Wire IntegrationsStep into OnboardingWizard at index 3 | 7eae40f1 | OnboardingWizard.tsx |
-| 2 | Phase-gate build + full test suite verification | 4d208a1a | IntegrationsStep.test.tsx (build fix) |
+| 1 | Wire IntegrationsStep into OnboardingWizard at index 3 | 3dee9951 | OnboardingWizard.tsx |
+| 2 | Phase-gate build + full test suite verification | ca30ba99 | IntegrationsStep.test.tsx (build fix) |
 | 3 | Human verification checkpoint | approved | — |
 
 ## Task 3: Human Verification — APPROVED
@@ -78,8 +78,8 @@ Verified by user running the app and walking the 5-step wizard:
 - **Issue:** `IntegrationsStep.test.tsx` line 7 had `import React, { type ReactElement }` — the `React` namespace was declared but never used (only `ReactElement` type is used). TypeScript's strict `noUnusedLocals` emitted TS6133, causing `tsc && vite build` to fail.
 - **Fix:** Changed to `import { type ReactElement } from 'react'` — removed unused namespace reference.
 - **Files modified:** `taskflow/src/routes/onboarding/IntegrationsStep.test.tsx`
-- **Commit:** `4d208a1a`
-- **Note:** Pre-existing from Plan 02 commit `4424fc86` — not introduced by Plan 03 changes.
+- **Commit:** `ca30ba99`
+- **Note:** Pre-existing from Plan 02 commit `051f88da` — not introduced by Plan 03 changes.
 
 ## Acceptance Criteria Verification
 
@@ -108,8 +108,8 @@ None — this plan only modifies static arrays and a boolean push in OnboardingW
 
 ## Self-Check: PASSED
 
-- `taskflow/src/components/app/OnboardingWizard.tsx` modified and committed at `7eae40f1`
-- `taskflow/src/routes/onboarding/IntegrationsStep.test.tsx` modified and committed at `4d208a1a`
+- `taskflow/src/components/app/OnboardingWizard.tsx` modified and committed at `3dee9951`
+- `taskflow/src/routes/onboarding/IntegrationsStep.test.tsx` modified and committed at `ca30ba99`
 - Both commits verified in git log
 - Production build exits 0
 - Full test suite green

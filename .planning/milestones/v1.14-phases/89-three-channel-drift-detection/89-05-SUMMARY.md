@@ -76,8 +76,8 @@ completed: 2026-08-11
 
 ## Task Commits
 
-1. **Task 1: Build MrDriftSection as a presentational flex-row list** — `6a7b04fc` (feat)
-2. **Task 2: Delete UnmatchedMRsSection, rewire IssuesSection, and mount MrDriftSection as a sibling** — `30186b84` (feat)
+1. **Task 1: Build MrDriftSection as a presentational flex-row list** — `30435f04` (feat)
+2. **Task 2: Delete UnmatchedMRsSection, rewire IssuesSection, and mount MrDriftSection as a sibling** — `cadb21c6` (feat)
 
 ## Files Created/Modified
 
@@ -104,7 +104,7 @@ completed: 2026-08-11
 - **Fix:** Renamed the field to `unmatched`. Confirmed by grep that the only caller (`buildIssueMrIndex` in `driftDetection.ts`) already destructures just `{ matchedRows }`, so this is a pure rename with no behavioral or test impact.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/releaseSummaries.ts`
 - **Verification:** `grep -rn 'unmatchedMRs' taskflow/src` returns no output; `npx tsc --noEmit` exits 0; full suite stays green (`releaseSummaries.test.ts` has no assertions on this field name).
-- **Committed in:** `30186b84` (Task 2)
+- **Committed in:** `cadb21c6` (Task 2)
 
 ## Issues Encountered
 
@@ -147,8 +147,8 @@ Because the plan's `<verify>` requirement for Task 3 (`npx vitest run && npm run
 - `taskflow/src/routes/dashboard/release-detail/MrDriftSection.tsx` — FOUND on disk
 - `taskflow/src/routes/dashboard/release-detail/MrDriftSection.test.tsx` — FOUND on disk
 - `taskflow/src/routes/dashboard/release-detail/UnmatchedMRsSection.tsx` — CONFIRMED DELETED
-- Commit `6a7b04fc` — FOUND in `git log --oneline`
-- Commit `30186b84` — FOUND in `git log --oneline`
+- Commit `30435f04` — FOUND in `git log --oneline`
+- Commit `cadb21c6` — FOUND in `git log --oneline`
 - `npx vitest run src/routes/dashboard/release-detail/MrDriftSection.test.tsx` — 10/10 passed
 - `npx vitest run` (full suite) — 2307 passed, 2 skipped, 13 todo, 0 failed
 - `npx tsc --noEmit` — exits 0
@@ -181,11 +181,11 @@ after the first fix.
 The GitLab instance is throughput-limited, not round-trip-limited — extra
 concurrency buys nothing. Two commits:
 
-- `db4421f2` — `perf(89-05)`: read `x-total-pages` from page 1 and fetch pages
+- `e5718ed1` — `perf(89-05)`: read `x-total-pages` from page 1 and fetch pages
   2..N concurrently (batches of 5) via a shared `fetchAllMRPages` helper used by
   both project-wide fetchers. Falls back to the original sequential walk when the
   header is absent, so completeness never depends on it. ~22s -> ~7.8s.
-- `991fae74` — `perf(89-05)`: bound Channel A with an `updated_after` window
+- `e7eec0dd` — `perf(89-05)`: bound Channel A with an `updated_after` window
   **derived from open releases**, not hardcoded — earliest release date among
   still-unreleased fix versions, minus a 6-month buffer, floored to the month for
   query-key stability, capped at 24 months, defaulting to 12 months when no dates
@@ -212,7 +212,7 @@ release; `countFlaggedMRs` (D-13) also counts TASK drift and Channel A
 key-matches. Labelling both "drift" made a strict subset look like a
 contradiction.
 
-- `8cf1b802` — `fix(89-04)`: the row label now reads `{n} mismatched` instead of
+- `3c704705` — `fix(89-04)`: the row label now reads `{n} mismatched` instead of
   `{n} drift`. Counts and tooltip unchanged; wording only. Equalising the numbers
   was rejected because it would require per-release union work on the Releases
   list, reversing D-14's fetch-once design and reintroducing issue 1.

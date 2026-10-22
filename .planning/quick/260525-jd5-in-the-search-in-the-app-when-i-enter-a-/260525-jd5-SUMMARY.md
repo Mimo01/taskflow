@@ -43,7 +43,7 @@ The direct-key lookup `useQuery` now uses `resolvedKeyLookup` as its queryKey di
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Resolve bare numbers to active-project keys in direct lookup | 5556fddb | CommandPalette.tsx, CommandPalette.test.tsx |
+| 1 | Resolve bare numbers to active-project keys in direct lookup | 67e6cffd | CommandPalette.tsx, CommandPalette.test.tsx |
 
 ## Verification
 
@@ -63,7 +63,7 @@ The direct-key lookup `useQuery` now uses `resolvedKeyLookup` as its queryKey di
 - **Issue:** `resolvedKeyLookup` initially placed before `useAuthStore` call, causing `Cannot access 'activeJiraProject' before initialization` (temporal dead zone)
 - **Fix:** Moved `trimmed` and `resolvedKeyLookup` derivation to after the `useAuthStore` destructure
 - **Files modified:** `CommandPalette.tsx`
-- **Commit:** 5556fddb (same commit — caught before final commit)
+- **Commit:** 67e6cffd (same commit — caught before final commit)
 
 ## Known Stubs
 
@@ -77,4 +77,4 @@ None — no new network endpoints, auth paths, or schema changes introduced. The
 
 - [x] `taskflow/src/components/app/CommandPalette.tsx` — exists and modified
 - [x] `taskflow/src/components/app/CommandPalette.test.tsx` — exists and modified
-- [x] Commit `5556fddb` exists in git log
+- [x] Commit `67e6cffd` exists in git log

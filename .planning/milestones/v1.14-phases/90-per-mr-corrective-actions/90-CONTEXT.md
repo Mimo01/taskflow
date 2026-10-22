@@ -12,7 +12,7 @@ The `MrDriftSection` rows built in Phase 89 gain **two write actions**, attached
 
 **Out of scope:** any third corrective action (P89 D-11 — keyless MRs get **no** action, and the planner must not invent one); merge-back verification (Phase 91); branch/milestone creation (Phase 88, done); a "fix all" / bulk affordance (explicitly excluded by the milestone goal); permission gating (team is all Developer+; a 403 surfaces as a normal `ApiError`); any change to the drift predicates, the union, the row anatomy, or the Issues table.
 
-**Not present, do not build for it:** there is **no Releases-list aggregate drift count**. DRIFT-09 was built in Phase 89 then removed at UAT (`c681931e`); `ReleasesTab.tsx` has no project-wide open-MR query. Nothing in this phase propagates cross-page.
+**Not present, do not build for it:** there is **no Releases-list aggregate drift count**. DRIFT-09 was built in Phase 89 then removed at UAT (`6bdbc00f`); `ReleasesTab.tsx` has no project-wide open-MR query. Nothing in this phase propagates cross-page.
 
 </domain>
 
@@ -132,7 +132,7 @@ No external ADRs or design specs exist for this phase.
 
 - **A corrective action for keyless MRs** ("link an issue") — carried over from P89 D-11, which knowingly accepted a permanent floor of untraceable MRs in the drift count. Still out of scope; still not to be invented by the planner.
 - **A bulk / "fix all flagged" action** — excluded by the milestone goal ("no fix all"). If the per-row flow proves tedious at real drift volumes, that is the phase-92-shaped answer, not an addition here.
-- **Restoring a Releases-list aggregate drift count** — DRIFT-09, built in P89 and removed at UAT (`c681931e`). If it ever returns, D-13's invalidation set grows to include the list page's MR query.
+- **Restoring a Releases-list aggregate drift count** — DRIFT-09, built in P89 and removed at UAT (`6bdbc00f`). If it ever returns, D-13's invalidation set grows to include the list page's MR query.
 - **Keyboard-complete rows** — D-04 makes the two new controls focus-reachable, but the rest of the row (and the app's other row surfaces: peek, drag-to-rank) is not. A coherent keyboard story is its own piece of work.
 - **An undo affordance after a successful fix** — not discussed. With no confirm dialog and a hover-revealed target, a misfire is recoverable only in GitLab. Worth revisiting if it happens in practice.
 - **Closing WR-01 in the P88 create dialogs** — D-10 requires the error extractor for *this* phase's tooltip. Applying it back to `CreateBranchDialog` / `CreateMilestoneDialog` is a natural, cheap follow-on but is not required by MRFIX-01…04.

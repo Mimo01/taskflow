@@ -32,7 +32,7 @@ human_verification:
 
 DASH-06 (MR review queue) was **descoped by product decision** during human UAT on 2026-06-15. The user rejected and requested removal of the MrReviewQueue component. `REQUIREMENTS.md` marks DASH-06 as "Descoped (UAT 2026-06-15)". `MrReviewQueue.tsx` and `MrReviewQueue.test.tsx` were deliberately deleted. This is not a gap. Verification covers DASH-04, DASH-05, and DASH-07 only.
 
-Post-review commit `126aa9fa` addressed code review findings CR-01 (added explanatory comment to `addDays`), WR-01 (removed orphaned `groupMrsByRole` and its tests), and WR-02 (fixed `formatRelative` weekday labeling).
+Post-review commit `482157b2` addressed code review findings CR-01 (added explanatory comment to `addDays`), WR-01 (removed orphaned `groupMrsByRole` and its tests), and WR-02 (fixed `formatRelative` weekday labeling).
 
 ## Goal Achievement
 

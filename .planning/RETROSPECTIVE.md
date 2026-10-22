@@ -290,7 +290,7 @@
 
 ### What Was Inefficient
 
-- **Post-verification commit destroyed 3 features** — commits 81d976d and 850ed04 deleted the entire saved filters feature and sidebar drag-reorder after verification passed; required 3 dedicated gap-closure phases (35-37) to restore them; ~7 plans of rework
+- **Post-verification commit destroyed 3 features** — commits d7c68e5e and 33ddf788 deleted the entire saved filters feature and sidebar drag-reorder after verification passed; required 3 dedicated gap-closure phases (35-37) to restore them; ~7 plans of rework
 - **Bulk operations (BOARD-04-07) implemented then user-deferred** — Phase 33 Plan 03 built the full bulk action system (checkboxes, floating action bar, progress indicator) but user removed it during visual review; wasted implementation effort for components that ship disconnected on disk
 - **Duplicate SUMMARY.md accomplishments in Phase 33** — Phase 33 has a 33-00-SUMMARY.md (Nyquist stubs) that dilutes accomplishment extraction; test scaffolding plans shouldn't produce SUMMARY files
 - **ROADMAP.md plan counts drifted** — several phases show lower plan counts than actual (34 shows 4/5, 35 shows 2/3, 36 shows 0/1) because roadmap checkboxes weren't updated during gap-closure plans
@@ -384,7 +384,7 @@
 
 ### What Worked
 
-- **Milestone audit as development driver** — the audit identified both functional gaps (backlog regression from commit 702ff84) and doc debt, leading to Phases 47-49 that closed all gaps before ship
+- **Milestone audit as development driver** — the audit identified both functional gaps (backlog regression from commit b4a9fe3a) and doc debt, leading to Phases 47-49 that closed all gaps before ship
 - **Per-section query architecture** — splitting monolithic fetchBacklogView into 4 independent queries enabled progressive rendering and eliminated sequential bottlenecks
 - **React Compiler as wholesale cleanup** — enabling the compiler and removing all 35 files' manual memoization in one pass was clean; no per-component decision-making needed
 - **Quick tasks for UX polish** — sprint board story header context menus, assignee display, animations, MR discussion threads, and backlog context menus shipped as quick tasks without blocking performance phases
@@ -555,7 +555,7 @@
 
 - **transitionMutation.onSettled gap caught late** — the missing `invalidateGhAllData` after a status transition from issue detail was a cross-phase wiring gap that went undetected until the final milestone audit (run 1); it was the kind of integration hole that would normally surface during human UAT but the sprint board and issue detail were tested separately
 - **WARNING-01/02 as post-audit cleanup** — `fetchIssueChangelog` missing from the `jira.ts` barrel and `buildEntityMaps` unknown-cast in BacklogPage were both post-audit quick-fix commits rather than issues caught at phase close; better phase-end cross-phase integration checks would have closed these during the phases that created them
-- **`jira-board-quickfilters` system created and then deleted** — Phase 73 wired `jira-board-quickfilters` invalidation into the Reload board handler, but a post-verification quick task (`e1c098f0`) removed the entire system when it turned out GH allData.json doesn't return quickfilter data; the half-implemented system could have been caught earlier with a real-API integration test
+- **`jira-board-quickfilters` system created and then deleted** — Phase 73 wired `jira-board-quickfilters` invalidation into the Reload board handler, but a post-verification quick task (`319439e7`) removed the entire system when it turned out GH allData.json doesn't return quickfilter data; the half-implemented system could have been caught earlier with a real-API integration test
 
 ### Patterns Established
 

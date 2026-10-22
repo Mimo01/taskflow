@@ -96,7 +96,7 @@ Wave 0 type widening + RED→GREEN test scaffolding + static-grep guard for the 
 - **Issue:** The plan instructed Task 3 to commit `useGhBacklogData.test.tsx` with a static `import ... from '../useGhBacklogData'` that resolves to module-not-found (RED). Vite's `vite:import-analysis` transform fails at file-load time — *before* `vi.mock` runs — and the husky pre-commit hook (`cd taskflow && biome check --staged ./src && tsc --noEmit && npm run test`) runs the FULL vitest suite. A load-time failure on this file would therefore block every subsequent commit in this and later plans, making the rest of the wave un-shippable.
 - **Fix:** Ship the real `useGhBacklogData.ts` (verbatim per Plan 02's spec from 74-PATTERNS.md / 74-RESEARCH.md) in Plan 01. The hook tests then run GREEN against the real module. Plan 02's hook deliverable is therefore satisfied by this commit; the orchestrator may consolidate Plan 02's remaining work (barrel re-export + `jira.ts` re-export + biome) into a smaller chore, or merge it into Plan 03's BacklogPage rewrite.
 - **Files modified:** `taskflow/src/services/jira/greenhopper/useGhBacklogData.ts` (created).
-- **Commit:** `55a8adad`.
+- **Commit:** `6b8febe4`.
 
 **2. [Rule 3 — Blocking issue] Task 4 RED gates would also have blocked every subsequent commit**
 - **Found during:** Task 4.
@@ -106,7 +106,7 @@ Wave 0 type widening + RED→GREEN test scaffolding + static-grep guard for the 
   - `BacklogPage.network.test.tsx` — pins the network invariant at the fetcher boundary by calling `getGhBacklogData(...)` against a `@tauri-apps/plugin-http` fetch stub. Plan 03 keeps the gate green by routing `BacklogPage` through `useGhBacklogData(boardId)` (which calls the same `fetchBacklogData` underneath).
   - `Sidebar.prefetch.test.tsx` — gates the post-Plan-04 prefetch shape via a minimal harness that calls `getGhBacklogData` once + mocks the three legacy fetchers and asserts they are NOT called. Plan 04 keeps the gate green by porting the same shape into `Sidebar.tsx`'s `/backlog` branch.
 - **Files modified:** all three test files under `__tests__/`.
-- **Commit:** `db13388e`.
+- **Commit:** `2b4794d9`.
 
 **3. [Rule 3 — Tooling drift] Plan verify commands use `pnpm`; project uses `npm`**
 - **Found during:** Task 1.
@@ -119,7 +119,7 @@ Wave 0 type widening + RED→GREEN test scaffolding + static-grep guard for the 
 - **Found during:** Task 3.
 - **Issue:** The plan's `<action>` block listed the mock paths as `../../../stronghold` / `../../../../hooks/useIsActiveRoute` (varying depths). From `src/services/jira/greenhopper/__tests__/`, the actual depths are: `../data` (1 up, sibling), `../../../stronghold` (3 up — `src/services/`), `../../../../hooks/useIsActiveRoute` (4 up — `src/`), `../../../../stores/auth.store` (4 up — `src/`). The plan's spec was correct for the mocks but the `useAuthStore` import was not enumerated; I picked the matching 4-up path.
 - **Files modified:** test file imports only.
-- **Commit:** Folded into `55a8adad`.
+- **Commit:** Folded into `6b8febe4`.
 
 ### Auth Gates
 
@@ -146,8 +146,8 @@ Created files (existence verified — found all 8 paths):
 - `taskflow/scripts/check-legacy-backlog-keys.mjs` — FOUND
 
 Commits (verified via `git log`):
-- `59b8ddd7` — feat(74-01): widen GhBacklogResponse + add GhSprintBacklog — FOUND
-- `773fd1d1` — test(74-01): pin GhBacklogResponse to data.real.json fixture — FOUND
-- `55a8adad` — feat(74-01): add useGhBacklogData hook + 8-case contract suite — FOUND
-- `db13388e` — test(74-01): add backlog adapter + network + sidebar prefetch contracts — FOUND
-- `178c2db1` — chore(74-01): add check-legacy-backlog-keys static guard — FOUND
+- `12cd38b3` — feat(74-01): widen GhBacklogResponse + add GhSprintBacklog — FOUND
+- `4b8dea36` — test(74-01): pin GhBacklogResponse to data.real.json fixture — FOUND
+- `6b8febe4` — feat(74-01): add useGhBacklogData hook + 8-case contract suite — FOUND
+- `2b4794d9` — test(74-01): add backlog adapter + network + sidebar prefetch contracts — FOUND
+- `b89af838` — chore(74-01): add check-legacy-backlog-keys static guard — FOUND

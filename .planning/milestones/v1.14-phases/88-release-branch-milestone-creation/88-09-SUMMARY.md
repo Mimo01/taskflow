@@ -64,8 +64,8 @@ completed: 2026-08-10
 
 ## Task Commits
 
-1. **Task 1: milestone-invalidation granularity, branch-check error threading, mutation guards (CR-02, CR-03 hook half, WR-10)** - `579db8b1` (feat)
-2. **Task 2: check-failed sidebar rendering + retry + page wiring (CR-03 UI half)** - `932c525d` (feat)
+1. **Task 1: milestone-invalidation granularity, branch-check error threading, mutation guards (CR-02, CR-03 hook half, WR-10)** - `3ab1becc` (feat)
+2. **Task 2: check-failed sidebar rendering + retry + page wiring (CR-03 UI half)** - `25772b05` (feat)
 
 **Plan metadata:** (this SUMMARY commit, following)
 
@@ -92,7 +92,7 @@ completed: 2026-08-10
 - **Fix:** Replaced the two `as any` mock-return casts with precise `ReturnType<typeof useAuthStore>` / `Awaited<ReturnType<typeof fetchProject>>` casts (no `any`), and replaced the third (`fetchVersionIssueCounts` mock) with a fully-typed literal matching the real `VersionIssueCounts` interface (`{ issuesFixed, issuesTotal }` — the mock had used a wrong, invented shape). Ran `npx biome format --write` to fix the ternary formatting.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx`
 - **Verification:** `npx biome check` on all 5 plan files — zero errors, zero warnings. `npx tsc --noEmit` — clean. Full hook test file re-run — 5/5 still pass.
-- **Committed in:** `932c525d` (bundled into Task 2's commit since it was caught during that task's verification pass, not Task 1's)
+- **Committed in:** `25772b05` (bundled into Task 2's commit since it was caught during that task's verification pass, not Task 1's)
 
 ---
 
@@ -101,7 +101,7 @@ completed: 2026-08-10
 ## Issues Encountered
 
 - No `node_modules` existed in this worktree checkout (fresh git worktree, `node_modules` is gitignored per-checkout, same as Plan 88-08). Symlinked `taskflow/node_modules` to the main repo's `taskflow/node_modules` to run vitest/tsc/biome. The symlink is gitignored and untracked.
-- Worktree base commit had drifted ahead of the expected `964e9af5` at agent start (merge-base check showed the expected base as a *descendant* of HEAD, not an ancestor) — corrected via the mandated `git reset --hard 964e9af541431a18234e8898d6c4ce48410ed21b` per the branch-check protocol before any work began. Working tree was clean at that point, so no work was lost.
+- Worktree base commit had drifted ahead of the expected `3647f18d` at agent start (merge-base check showed the expected base as a *descendant* of HEAD, not an ancestor) — corrected via the mandated `git reset --hard 3647f18de12fae9177f2dc7d32a39de503e1b845` per the branch-check protocol before any work began. Working tree was clean at that point, so no work was lost.
 
 ## User Setup Required
 
@@ -124,5 +124,5 @@ None — no external service configuration required.
 - FOUND: taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.tsx
 - FOUND: taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx
 - FOUND: taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
-- FOUND: commit 579db8b1 (feat(88-09): fix milestone-invalidation granularity, thread branch-check error, guard mutations)
-- FOUND: commit 932c525d (feat(88-09): render check-failed branch state with retry, wire from page (CR-03 UI half))
+- FOUND: commit 3ab1becc (feat(88-09): fix milestone-invalidation granularity, thread branch-check error, guard mutations)
+- FOUND: commit 25772b05 (feat(88-09): render check-failed branch state with retry, wire from page (CR-03 UI half))

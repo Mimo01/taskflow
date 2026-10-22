@@ -57,8 +57,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Build RecentItemsPopover component** - `e18ba90` (feat)
-2. **Task 2: Write RecentItemsPopover tests** - `6a345c2` (test)
+1. **Task 1: Build RecentItemsPopover component** - `1e4af4a5` (feat)
+2. **Task 2: Write RecentItemsPopover tests** - `86bc5d8d` (test)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/RecentItemsPopover.tsx` - Clock icon popover with recent items list, cache title lookup, click handlers
@@ -78,7 +78,7 @@ Each task was committed atomically:
 - **Fix:** Changed mock to use `class` syntax with field initializers
 - **Files modified:** taskflow/src/components/app/RecentItemsPopover.test.tsx
 - **Verification:** All 6 tests pass
-- **Committed in:** 6a345c2 (Task 2 commit)
+- **Committed in:** 86bc5d8d (Task 2 commit)
 
 ---
 

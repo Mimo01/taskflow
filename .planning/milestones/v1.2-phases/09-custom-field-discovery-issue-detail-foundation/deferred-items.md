@@ -13,7 +13,7 @@ These tests were failing before 09-02 execution began (confirmed by git log show
 | `src/routes/dashboard/ReleasesTab.test.tsx` | 1 test — "shows task count and completion status" | Assertion failure on version row data |
 
 **Last known good commits for these files:**
-- SubtasksPanel: `a0216ac` (Phase 8)
+- SubtasksPanel: `df13de2c` (Phase 8)
 - MyTasksTab: Phase 8
 - ReleasesTab: Phase 8
 

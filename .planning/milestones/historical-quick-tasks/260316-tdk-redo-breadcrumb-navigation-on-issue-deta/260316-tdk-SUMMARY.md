@@ -55,8 +55,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Fix handleIssueClick breadcrumb logic and add route-change reset** - `5919339` (feat)
-2. **Task 2: Fix IssueDetailPage back button to use breadcrumb trail navigation** - `95c8337` (feat)
+1. **Task 1: Fix handleIssueClick breadcrumb logic and add route-change reset** - `1fd8e2bc` (feat)
+2. **Task 2: Fix IssueDetailPage back button to use breadcrumb trail navigation** - `18eabe8f` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/main.tsx` - handleIssueClick pushes source page label; useEffect resets trail on non-issue routes

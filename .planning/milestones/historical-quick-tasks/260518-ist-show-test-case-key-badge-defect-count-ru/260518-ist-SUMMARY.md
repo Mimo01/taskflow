@@ -3,7 +3,7 @@ quick_id: 260518-ist
 slug: show-test-case-key-badge-defect-count-ru
 description: Show test case key badge, defect count, run count, and assignedToID in cycle detail executions table rows
 date: 2026-05-18
-commit: e63c5b5
+commit: 4a7aec6a
 status: complete
 ---
 

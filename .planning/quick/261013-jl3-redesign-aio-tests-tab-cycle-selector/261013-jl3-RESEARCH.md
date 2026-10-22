@@ -53,7 +53,7 @@ All the data the locked columns need is already returned by the four calls the p
 
 The app already has every UI primitive needed:
 - the Settings/Sidebar nav selected style
-- the `Switch` component (this exact toggle was on this page until commit `99800f30`)
+- the `Switch` component (this exact toggle was on this page until commit `6c2d5b57`)
 - `Tooltip` + `TooltipBody`/`TooltipRow`, as used by EpicProgressCell
 - `aioCycleStatusPillClass` / `STATUS_PILL_LAYOUT_CLASS` + `tonePillClass`
 - the EpicsPage flex-row anatomy
@@ -65,7 +65,7 @@ Nothing new has to be installed.
 
 **Primary recommendation:** Replace the `<table>` with EpicsPage-style flex rows under a sticky slim header. Restyle the folder tree with the Settings-nav selected classes and a sibling chevron button. Add `showClosed` to the existing persisted store. Fix `fetchAioCyclesWithDetail` to paginate, because "All cycles" will exceed the 500 cap.
 
-**History warning:** Phase 57 UAT shipped a "Show closed" Switch and the user removed it (`99800f30`, "user requested removal"). The user has now explicitly asked for it again, with hidden-by-default. The difference that should make it stick: when closed cycles are hidden and a folder would be empty, the empty state must say so and offer a one-click reveal. Folders like "2023 - DONE" are probably all closed.
+**History warning:** Phase 57 UAT shipped a "Show closed" Switch and the user removed it (`6c2d5b57`, "user requested removal"). The user has now explicitly asked for it again, with hidden-by-default. The difference that should make it stick: when closed cycles are hidden and a folder would be empty, the empty state must say so and offer a one-click reveal. Folders like "2023 - DONE" are probably all closed.
 
 ## 1. DATA — what each call actually gives us
 
@@ -124,7 +124,7 @@ Nothing new has to be installed.
 | Side-panel container | `routes/settings/Settings.tsx:73-75` | `w-52 shrink-0 border-r border-border flex flex-col gap-0.5 px-2 py-6 overflow-y-auto`. Use `w-64`, keep `border-r border-border`, drop `bg-muted/10` |
 | Selected / unselected nav item | `Settings.tsx:83-88`, `components/app/Sidebar.tsx:65-70` | base `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium w-full text-left`; selected `bg-accent text-accent-foreground font-semibold`; idle `text-muted-foreground hover:bg-accent hover:text-accent-foreground`; plus `aria-current="page"`. Add density: `py-2 density-compact:py-1 density-comfortable:py-3` (Sidebar l.66) |
 | Search input | `routes/dashboard/MergeRequestListPage.tsx:146-154` | wrapper `relative`; icon `absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground`; input `w-full pl-8 pr-3 py-1.5 text-sm rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring`. Clear-X pattern: `UnifiedFilterBar.tsx:104-112` |
-| Toggle | `components/ui/switch.tsx` (`checked`, `onCheckedChange`, `role="switch"`) | Exact prior usage: `git show 99800f30`, i.e. `<Switch id="show-closed" …/><label htmlFor="show-closed" className="text-sm">Show closed</label>` in a `flex items-center gap-2`. Use `text-xs text-muted-foreground` in the toolbar |
+| Toggle | `components/ui/switch.tsx` (`checked`, `onCheckedChange`, `role="switch"`) | Exact prior usage: `git show 6c2d5b57`, i.e. `<Switch id="show-closed" …/><label htmlFor="show-closed" className="text-sm">Show closed</label>` in a `flex items-center gap-2`. Use `text-xs text-muted-foreground` in the toolbar |
 | Status pill | `lib/statusStyles.ts:84,99,126,143` | `aioCycleStatusPillClass('Active'|'Closed')` (blue / muted). Overdue: `` `${STATUS_PILL_LAYOUT_CLASS} ${tonePillClass('red')}` ``. **Wrap in `<div className="flex">`** (EpicsPage.tsx:86-92). Pill `min-w-[5.5rem]` needs a cell of at least `w-28` with `px-2` |
 | Segmented bar + tooltip | `routes/dashboard/EpicProgressCells.tsx:76-120` | `<Tooltip><TooltipTrigger delay={0} render={<div/>} role="img" aria-label=… className="w-16 py-1 -my-1">` → bar `flex h-1.5 w-full overflow-hidden rounded-full bg-muted`; `<TooltipContent><TooltipBody title=…><TooltipRow color=… label=… value=…/>` (`components/ui/tooltip-body.tsx`). The label beside it: `text-xs text-muted-foreground tabular-nums whitespace-nowrap` |
 | Status colours | current page l.243-255 and `AioCycleDetailPage.tsx:904-927` | pass `bg-green-500`, fail `bg-red-500`, blocked `bg-orange-400`, in-progress `bg-blue-500` (detail page; the list uses `blue-400`, so unify to 500), not-run = track `bg-muted`. Tooltip colours: `var(--color-green-500)` etc., the same literal-var style as `STATUS_CATEGORY_COLOR` (statusStyles.ts:26) |
@@ -247,7 +247,7 @@ Update:
 |---|---|
 | Pagination concatenates pages until isLast | cycles.test.ts (new): 2 mocked pages, items.length = sum |
 | showClosed persists / default false | store test (new) |
-| Closed hidden by default; Switch reveals; all-closed empty state button reveals | page test (restore the deleted test from `99800f30`, adapted) |
+| Closed hidden by default; Switch reveals; all-closed empty state button reveals | page test (restore the deleted test from `6c2d5b57`, adapted) |
 | Selected folder uses aria-current, not bg-primary | update tests at l.312/316/351 |
 | Aggregate count (parent = own + children) | page test: tree 101→{103}, counts {101:1,103:2}, badge "3" via `within` |
 | All cycles calls fetch with `[]` folderIds | page test: click `folder-node-all`, assert last call arg 4 is `[]` |
@@ -270,7 +270,7 @@ Manual: one human-verify checkpoint against the live AIO instance to confirm (a)
 
 ## Sources
 - Codebase: files and lines cited inline (verified by reading in this session)
-- `.planning/milestones/v1.8-phases/57-*/API-EXAMPLES.md`, `57-PROBE-FINDINGS.md`, `57-UAT.md`; commit `99800f30`
+- `.planning/milestones/v1.8-phases/57-*/API-EXAMPLES.md`, `57-PROBE-FINDINGS.md`, `57-UAT.md`; commit `6c2d5b57`
 - [AIO Tests REST APIs (KB)](https://aiosupport.atlassian.net/wiki/spaces/AioTests/pages/2025619567): Cycle Summary returns estimated/actual effort; units not stated
 - [AIO Python code sample](https://aiosupport.atlassian.net/wiki/spaces/AioTests/pages/2025652401): `effort: 120` on run create (unit implied, not stated)
 

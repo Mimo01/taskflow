@@ -39,8 +39,8 @@ Wired all three detail-page right panels with the `useResizable` hook. Each page
 
 ## Commits
 
-- `6c97440` — feat(50-03): wire IssueDetailPage right panel with useResizable
-- `e280667` — feat(50-03): wire MergeRequestDetailPage and ReleaseDetailPage right panels with useResizable
+- `4edea29f` — feat(50-03): wire IssueDetailPage right panel with useResizable
+- `4bf0476a` — feat(50-03): wire MergeRequestDetailPage and ReleaseDetailPage right panels with useResizable
 
 ## Deviations
 

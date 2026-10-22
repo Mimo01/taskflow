@@ -76,8 +76,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Wave 0 RED test stubs** - `8c7721f` (test)
-2. **Task 2: Extend jira.ts with five new service functions** - `b12b549` (feat)
+1. **Task 1: Wave 0 RED test stubs** - `1f929635` (test)
+2. **Task 2: Extend jira.ts with five new service functions** - `fa1257b3` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/CreateEditIssueModal.test.tsx` - Wave 0 stubs (7 vi.todo() — intentionally fails to compile, component not yet created)

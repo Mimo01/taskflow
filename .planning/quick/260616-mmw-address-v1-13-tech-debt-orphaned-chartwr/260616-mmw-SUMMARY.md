@@ -37,9 +37,9 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Delete orphaned ChartWrapper, burndown types, deriveCounts | 34937814, b3c2bba1 | chart-wrapper.tsx (del), chart-wrapper.test.tsx (del), jira.ts, greenhopper/types.ts, my-tasks-sort.ts, my-tasks-sort.test.ts |
-| 2 | Rewrite two stale cache-sharing comments | 299e6844 | MyIssuesCard.tsx, HoursCommitsChart.tsx |
-| 3 | Reconcile REQUIREMENTS.md traceability + run full gate | 02312626 | .planning/REQUIREMENTS.md |
+| 1 | Delete orphaned ChartWrapper, burndown types, deriveCounts | f35ebe4d, 6c359376 | chart-wrapper.tsx (del), chart-wrapper.test.tsx (del), jira.ts, greenhopper/types.ts, my-tasks-sort.ts, my-tasks-sort.test.ts |
+| 2 | Rewrite two stale cache-sharing comments | c99eda00 | MyIssuesCard.tsx, HoursCommitsChart.tsx |
+| 3 | Reconcile REQUIREMENTS.md traceability + run full gate | 12353297 | .planning/REQUIREMENTS.md |
 
 ## What Was Done
 
@@ -51,7 +51,7 @@ metrics:
 
 **Phase 82 debt (deriveCounts):** Deleted the `MyTaskCounts` interface and `deriveCounts` export function (~59 lines) from `my-tasks-sort.ts`. Removed the `deriveCounts` import and the entire `// --- deriveCounts ---` describe block (7 test cases, ~72 lines) from `my-tasks-sort.test.ts`. The function was superseded when `MyTasksPage` adopted inline count derivation in Phase 82.
 
-Post-deletion biome format fixes committed separately (b3c2bba1): collapsed 4-name import to single line, removed trailing blank lines.
+Post-deletion biome format fixes committed separately (6c359376): collapsed 4-name import to single line, removed trailing blank lines.
 
 ### Task 2 — Stale Cache-Sharing Comments (W-03, W-04)
 
@@ -96,9 +96,9 @@ None. All changes are dead-code deletions, comment corrections, and documentatio
 - [x] `grep -rln "SprintHealthSection|same as ActivityStrip" MyIssuesCard.tsx HoursCommitsChart.tsx` → exit 1 (no matches in target files)
 
 ### Commits exist
-- [x] 34937814 — Task 1 dead-code deletions
-- [x] b3c2bba1 — Task 1 biome format fixes
-- [x] 299e6844 — Task 2 comment corrections
-- [x] 02312626 — Task 3 REQUIREMENTS.md reconciliation
+- [x] f35ebe4d — Task 1 dead-code deletions
+- [x] 6c359376 — Task 1 biome format fixes
+- [x] c99eda00 — Task 2 comment corrections
+- [x] 12353297 — Task 3 REQUIREMENTS.md reconciliation
 
 ## Self-Check: PASSED

@@ -94,8 +94,8 @@ None. No `TBD`/`FIXME`/`XXX` markers in modified files. No empty handlers, no st
 
 | Item | Reported At | Remediation Commit | Status |
 | ---- | ----------- | ------------------ | ------ |
-| Pre-existing WorklogsPage test failures (3 tests) | 71-03 | `7c94def4 fix(test): align WorklogsPage assertions with hover-only popover UX` | RESOLVED — 44/44 WorklogsPage tests pass at HEAD |
-| Biome regressions in `greenhopper/` (8 errors, 1 warning) | 71-06 | `2ad8e92b style(71): fix biome import-order + non-null assertion in greenhopper subdir` | RESOLVED — `biome check src/services/jira/greenhopper/` returns 0/0 |
+| Pre-existing WorklogsPage test failures (3 tests) | 71-03 | `5ef3bdc2 fix(test): align WorklogsPage assertions with hover-only popover UX` | RESOLVED — 44/44 WorklogsPage tests pass at HEAD |
+| Biome regressions in `greenhopper/` (8 errors, 1 warning) | 71-06 | `71d2e313 style(71): fix biome import-order + non-null assertion in greenhopper subdir` | RESOLVED — `biome check src/services/jira/greenhopper/` returns 0/0 |
 
 Biome baseline (memory `project_biome_state.md`: 0 errors / 0 warnings) is restored within the phase scope.
 

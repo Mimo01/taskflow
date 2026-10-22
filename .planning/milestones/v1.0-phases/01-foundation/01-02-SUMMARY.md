@@ -102,10 +102,10 @@ completed: 2026-03-11
 
 ## Task Commits
 
-1. **Task 1 RED: Failing Jira/GitLab service tests** — `a2b9ac9` (test)
-2. **Task 1 GREEN: jira.ts and gitlab.ts implementations** — `45f662f` (feat)
-3. **Task 2 RED: Failing JiraStep tests + shadcn init** — `41923ab` (test)
-4. **Task 2 GREEN: All wizard components** — `884d0f7` (feat)
+1. **Task 1 RED: Failing Jira/GitLab service tests** — `1e980eaa` (test)
+2. **Task 1 GREEN: jira.ts and gitlab.ts implementations** — `35d913ac` (feat)
+3. **Task 2 RED: Failing JiraStep tests + shadcn init** — `122cb2dc` (test)
+4. **Task 2 GREEN: All wizard components** — `323b5b0a` (feat)
 
 ## shadcn/ui Components Added
 
@@ -151,21 +151,21 @@ All 29 active tests pass. 10 todos are Plan 03 stubs (RoleStep, Settings).
 - **Issue:** `npx shadcn@latest init --defaults` failed with "No Tailwind CSS configuration found" because the PostCSS config was missing despite tailwind.config.js being present. shadcn requires `postcss.config.js` to detect Tailwind.
 - **Fix:** Created `postcss.config.js` with tailwindcss and autoprefixer plugins; re-ran shadcn init which then succeeded
 - **Files modified:** `postcss.config.js` (created)
-- **Commit:** 41923ab
+- **Commit:** 122cb2dc
 
 **2. [Rule 2 - Missing Critical] Added @ path alias to tsconfig, vite.config, vitest.config**
 - **Found during:** Task 2 (shadcn init second attempt)
 - **Issue:** shadcn uses `@/` import aliases; no path alias was configured in the project. Without it, shadcn-generated components and test mocks using `@/services/...` imports would fail to resolve.
 - **Fix:** Added `baseUrl` and `paths` to tsconfig.json; added `resolve.alias` to vite.config.ts and vitest.config.ts; installed `@types/node` for `path.resolve()`
 - **Files modified:** tsconfig.json, vite.config.ts, vitest.config.ts
-- **Commit:** 41923ab
+- **Commit:** 122cb2dc
 
 **3. [Rule 1 - Bug] Added src/index.css with Tailwind directives before shadcn init**
 - **Found during:** Task 2 (shadcn init failures)
 - **Issue:** No global CSS file with `@tailwind base/components/utilities` directives existed; shadcn init requires this for CSS variable injection
 - **Fix:** Created `src/index.css` with standard Tailwind directives + shadcn CSS custom properties; shadcn init then updated it with its design token variables
 - **Files modified:** `src/index.css` (created, then updated by shadcn init)
-- **Commit:** 41923ab
+- **Commit:** 122cb2dc
 
 ---
 

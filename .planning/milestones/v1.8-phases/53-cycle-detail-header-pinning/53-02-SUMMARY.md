@@ -35,8 +35,8 @@ Extended `usePinnedTabsStore` with `pinnedCycleMeta` persistence (version 0→1 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Extend pinned-tabs.store.ts (version 0→1, cycle metadata) | 8f07339 | taskflow/src/stores/pinned-tabs.store.ts |
-| 2 | Refactor PinnedTabStrip.tsx (discriminated union prop, cycle tab rendering) | e5ab0da | taskflow/src/components/app/PinnedTabStrip.tsx |
+| 1 | Extend pinned-tabs.store.ts (version 0→1, cycle metadata) | 8eb3ffb3 | taskflow/src/stores/pinned-tabs.store.ts |
+| 2 | Refactor PinnedTabStrip.tsx (discriminated union prop, cycle tab rendering) | 275730de | taskflow/src/components/app/PinnedTabStrip.tsx |
 
 ## What Was Built
 
@@ -103,7 +103,7 @@ Files exist:
 - taskflow/src/components/app/PinnedTabStrip.tsx — FOUND
 
 Commits exist:
-- 8f07339 — feat(53-02): extend pinned-tabs store with cycle metadata (v0→v1)
-- e5ab0da — feat(53-02): refactor PinnedTabStrip for discriminated union (IssueTab | CycleTab)
+- 8eb3ffb3 — feat(53-02): extend pinned-tabs store with cycle metadata (v0→v1)
+- 275730de — feat(53-02): refactor PinnedTabStrip for discriminated union (IssueTab | CycleTab)
 
 ## Self-Check: PASSED

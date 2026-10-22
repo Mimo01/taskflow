@@ -78,8 +78,8 @@ Commit verification substituted:
 
 | Commit | Description | Status |
 |--------|-------------|--------|
-| `3816f46` | Install husky, add pre-commit/pre-push hooks, remove ci.yml | FOUND in git log |
-| `8528c2a` | Extend release.sh for full local lifecycle, remove release.yml | FOUND in git log |
+| `01520174` | Install husky, add pre-commit/pre-push hooks, remove ci.yml | FOUND in git log |
+| `434cb90c` | Extend release.sh for full local lifecycle, remove release.yml | FOUND in git log |
 
 ### Requirements Coverage
 

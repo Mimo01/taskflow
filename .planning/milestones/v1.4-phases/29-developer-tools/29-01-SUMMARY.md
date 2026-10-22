@@ -63,8 +63,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Migrate settings store and create operation profiler store** - `f13156f` (feat)
-2. **Task 2: Update apiFetch to use granular toggles and operation profiler** - `3104f1e` (feat)
+1. **Task 1: Migrate settings store and create operation profiler store** - `137450ff` (feat)
+2. **Task 2: Update apiFetch to use granular toggles and operation profiler** - `ddc539d8` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/settings.store.ts` - v8 with 6 granular dev tools fields replacing debugMode
@@ -93,7 +93,7 @@ Each task was committed atomically:
 - **Fix:** Updated all references from debugMode/setDebugMode to devToolsEnabled/setDevToolsEnabled
 - **Files modified:** Sidebar.tsx, DebugLogs.tsx, DebugModeSection.tsx, main.tsx, ConnectionsSection.test.tsx, Settings.test.tsx
 - **Verification:** tsc --noEmit passes, all 615 tests pass
-- **Committed in:** f13156f (Task 1 commit)
+- **Committed in:** 137450ff (Task 1 commit)
 
 ---
 
@@ -113,7 +113,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 4 key files exist. Both task commits (f13156f, 3104f1e) verified in git log.
+All 4 key files exist. Both task commits (137450ff, ddc539d8) verified in git log.
 
 ---
 *Phase: 29-developer-tools*

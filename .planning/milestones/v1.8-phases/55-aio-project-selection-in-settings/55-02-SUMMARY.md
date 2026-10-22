@@ -87,8 +87,8 @@ completed: 2026-05-14
 
 Each task was committed atomically:
 
-1. **Task 1: Add AIO project picker block to IntegrationsSection.tsx** — `17f8429` (feat)
-2. **Task 2: Extend IntegrationsSection.test.tsx with picker tests** — `e22a3ef` (test)
+1. **Task 1: Add AIO project picker block to IntegrationsSection.tsx** — `0b273e2b` (feat)
+2. **Task 2: Extend IntegrationsSection.test.tsx with picker tests** — `f41b6588` (test)
 
 **Plan metadata:** committed alongside this SUMMARY.md (docs) by the orchestrator's wave-merge step.
 
@@ -130,7 +130,7 @@ For future-phase reference into `taskflow/src/routes/settings/IntegrationsSectio
 - **Fix:** Wrapped the existing tests' renders with `renderWithClient(...)` (which provides a `QueryClient` with `retry: false`), default-mocked `fetchAioProjects` to `[]` in the toggle suite's `beforeEach`, and re-armed `vi.mocked(readSecret).mockResolvedValue('test-jira-token')` after `vi.clearAllMocks()` so the credential-loader `useEffect` still works.
 - **Files modified:** `taskflow/src/routes/settings/IntegrationsSection.test.tsx` (existing `describe('IntegrationsSection', ...)` block beforeEach extended; the 5 existing `it(...)` tests re-routed through `renderWithClient`).
 - **Verification:** 11/11 tests pass (5 original toggle + 6 new picker).
-- **Committed in:** `e22a3ef` (Task 2 commit — extending the test file)
+- **Committed in:** `f41b6588` (Task 2 commit — extending the test file)
 
 **2. [Rule 3 - Blocking] base-ui Select portal does not render options in jsdom**
 - **Found during:** Task 2 implementation (writing the change-handler test)
@@ -138,7 +138,7 @@ For future-phase reference into `taskflow/src/routes/settings/IntegrationsSectio
 - **Fix:** Added a `vi.mock('@/components/ui/select', ...)` factory that returns a deterministic stand-in: `Select` wraps a React context; `SelectTrigger` renders `<button disabled={ctx.disabled} {...rest}>{children}</button>`; `SelectContent` renders `<select data-testid="aio-project-select" value={ctx.value} onChange={(e) => ctx.onValueChange(e.target.value)}>{children}</select>`; `SelectItem` renders `<option value={value}>{children}</option>`. Same prop API, deterministic in jsdom.
 - **Files modified:** `taskflow/src/routes/settings/IntegrationsSection.test.tsx` (lines 37–98 — vi.mock factory)
 - **Verification:** All 6 picker tests pass; the change-handler test deterministically asserts `setSelectedAioProjectKey` was called with `'PROJ2'` after a `fireEvent.change` on the mocked native select.
-- **Committed in:** `e22a3ef` (Task 2 commit)
+- **Committed in:** `f41b6588` (Task 2 commit)
 
 **3. [Out-of-scope] Pre-existing biome errors in unrelated files**
 - **Found during:** Task 1 and Task 2 commits (husky pre-commit `npm run check`)
@@ -162,8 +162,8 @@ For future-phase reference into `taskflow/src/routes/settings/IntegrationsSectio
 - [x] `taskflow/src/routes/settings/IntegrationsSection.tsx` exists (verified; modified)
 - [x] `taskflow/src/routes/settings/IntegrationsSection.test.tsx` exists (verified; modified)
 - [x] `.planning/phases/55-aio-project-selection-in-settings/deferred-items.md` exists (verified; appended)
-- [x] Commit `17f8429` exists on `worktree-agent-abeab45f5aec94f77` (verified via `git log --oneline -3`)
-- [x] Commit `e22a3ef` exists on `worktree-agent-abeab45f5aec94f77` (verified via `git log --oneline -3`)
+- [x] Commit `0b273e2b` exists on `worktree-agent-abeab45f5aec94f77` (verified via `git log --oneline -3`)
+- [x] Commit `f41b6588` exists on `worktree-agent-abeab45f5aec94f77` (verified via `git log --oneline -3`)
 - [x] `grep -c "fetchAioProjects" taskflow/src/routes/settings/IntegrationsSection.tsx` ≥ 2 → 2
 - [x] `grep -c "readSecret('jira-pat')" taskflow/src/routes/settings/IntegrationsSection.tsx` → 1
 - [x] `grep -c "'aio', jiraBaseUrl, 'projects'" taskflow/src/routes/settings/IntegrationsSection.tsx` → 1

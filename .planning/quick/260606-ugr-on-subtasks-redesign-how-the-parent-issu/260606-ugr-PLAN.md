@@ -99,7 +99,7 @@ Key facts (verified during scouting — do not re-discover):
   nested `issuetype` + `status` (with statusCategory) + `summary`. Proof: `jira.ts:832` already reads
   `issue.fields.parent?.fields?.issuetype?.name` at runtime. The data is present; only the
   TS type at jira.ts:1239 narrows `parent.fields` to `{ summary }`.
-- Respect commit 943cba44 (peek breadcrumb-trail fix): clicking parent must keep routing
+- Respect commit 5092dc1a (peek breadcrumb-trail fix): clicking parent must keep routing
   through `onOpenIssue(parent.key)` — do NOT change the navigation contract.
 - Out of scope: `SubtasksPanel.tsx` inline parent display. No backend/API field changes.
   Also out of scope: the other narrowed parent sites (`jira/types.ts:46`, `jira/types.ts:191`,
@@ -185,7 +185,7 @@ Key facts (verified during scouting — do not re-discover):
           6. Trailing nav affordance pinned right: `<ArrowUpRight className="size-4 text-muted-foreground shrink-0 ml-auto" />`
              (the summary wrapper's `flex-1` already pushes it right; `ml-auto` is a safety belt).
       - Behavior: `onClick={() => onOpenIssue?.(parent.key)}` — unchanged navigation contract
-        (preserves the commit 943cba44 peek breadcrumb-trail behavior).
+        (preserves the commit 5092dc1a peek breadcrumb-trail behavior).
       - Accessibility: `aria-label={`Open parent issue ${parent.key}`}`.
 
     Do NOT touch the `<p>{issue.key}</p>` and `<h2>{summary}</h2>` lines below — only replace

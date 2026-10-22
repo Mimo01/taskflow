@@ -62,8 +62,8 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Create SaveFilterDialog and EditFilterDialog components** - `ef68c31` (feat)
-2. **Task 2: Create SavedFilterList component and tests** - `88c0c8f` (feat)
+1. **Task 1: Create SaveFilterDialog and EditFilterDialog components** - `64383b5d` (feat)
+2. **Task 2: Create SavedFilterList component and tests** - `37a233aa` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/SaveFilterDialog.tsx` - Modal dialog for saving current JQL filter with name, description, read-only JQL preview
@@ -94,7 +94,7 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - All 4 created files verified on disk
-- Both task commits (ef68c31, 88c0c8f) verified in git log
+- Both task commits (64383b5d, 37a233aa) verified in git log
 
 ---
 *Phase: 35-restore-saved-filters*

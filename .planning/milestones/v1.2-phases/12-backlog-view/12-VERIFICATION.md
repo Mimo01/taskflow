@@ -45,7 +45,7 @@ human_verification:
 | 8 | AppLayout Outlet context includes openCreateStory | VERIFIED | main.tsx line 157: Outlet context object includes `openCreateStory: handleOpenCreateStory` |
 | 9 | /backlog route is registered and navigable via sidebar | VERIFIED | main.tsx line 190: `{ path: '/backlog', element: <BacklogPage /> }`; Sidebar.tsx lines 93 and 120: NavLink to="/backlog" in both developer and PM sections with List icon |
 | 10 | All 16 BacklogPage tests pass GREEN | VERIFIED | `npx vitest run src/routes/dashboard/BacklogPage.test.tsx` — 16 tests, 0 failures |
-| 11 | Full vitest suite (non-phase-12 files) has no regressions | VERIFIED | 351 tests pass across 30 test files; 18 unhandled errors in gitlab.test.ts pre-date phase 12 (last touched at commit bf6ee0c, phase 5 era) |
+| 11 | Full vitest suite (non-phase-12 files) has no regressions | VERIFIED | 351 tests pass across 30 test files; 18 unhandled errors in gitlab.test.ts pre-date phase 12 (last touched at commit 5b849742, phase 5 era) |
 
 **Score:** 11/11 automated truths verified
 
@@ -137,7 +137,7 @@ This is an implementation evolution, not a gap. Tests mock `fetchBacklogView`, t
 
 No gaps. All automated must-haves are verified. The five BACK requirements are implemented, wired, and covered by passing tests. Human approval for the live Jira instance was documented in 12-04-SUMMARY.md on 2026-03-14.
 
-The 18 unhandled errors in the full vitest run originate from `src/services/gitlab.test.ts` which was last modified in the phase 5 era (commit bf6ee0c). These errors pre-date phase 12 and are not a regression.
+The 18 unhandled errors in the full vitest run originate from `src/services/gitlab.test.ts` which was last modified in the phase 5 era (commit 5b849742). These errors pre-date phase 12 and are not a regression.
 
 ---
 

@@ -32,7 +32,7 @@ metrics:
 
 ## What Was Built
 
-### Task 1 — generate-changelog.sh (commit: 98e8b32)
+### Task 1 — generate-changelog.sh (commit: ffa03124)
 
 New script `taskflow/scripts/generate-changelog.sh`:
 
@@ -45,7 +45,7 @@ New script `taskflow/scripts/generate-changelog.sh`:
 - Falls back to "Internal improvements and maintenance." when all commits are internal-only
 - Pure bash — no Node/npm dependencies
 
-### Task 2 — release.sh updated (commit: a9685fe)
+### Task 2 — release.sh updated (commit: a7b4afe0)
 
 Updated `taskflow/scripts/release.sh`:
 
@@ -73,5 +73,5 @@ None — plan executed exactly as written.
 
 - taskflow/scripts/generate-changelog.sh: exists and executable
 - taskflow/scripts/release.sh: exists and executable
-- Commits 98e8b32 and a9685fe verified in git log
+- Commits ffa03124 and a7b4afe0 verified in git log
 - `bash scripts/generate-changelog.sh v1.6 v1.5` produces ### Features and ### Bug Fixes sections

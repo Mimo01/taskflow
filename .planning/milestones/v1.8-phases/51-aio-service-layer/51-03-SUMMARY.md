@@ -58,7 +58,7 @@ The complete `src/services/aio/` service module: client wrapper with two base pa
 ## Task Breakdown
 
 ### Task 1: aio/client.ts, types.ts, client.test.ts
-**Commit:** `4584dfd`
+**Commit:** `746697ca`
 
 Created `client.ts` with two exported constants (per D-13):
 - `AIO_PROJECTS_API_PATH = '/rest/aio-tcms/1.0'` — project listing only
@@ -75,7 +75,7 @@ Created `types.ts` with four interfaces:
 `client.test.ts`: 6 tests — URL construction, trailing slash stripping, source='jira', Authorization header, Content-Type header, AIO_PROJECTS_API_PATH override. All pass.
 
 ### Task 2: projects.ts, issue-runs.ts, index.ts, and tests
-**Commit:** `1d4c3db`
+**Commit:** `b421d760`
 
 Created `projects.ts` — `fetchAioProjects(baseUrl, token)` calls `aioFetch` with `AIO_PROJECTS_API_PATH`. Returns `AioProject[]` on 200, `[]` on 404, `ApiError('Invalid token or token has expired', 401, 'jira')` on 401, `Error('Cannot reach AIO at ...')` on network failure.
 
@@ -108,20 +108,20 @@ Pre-existing failure in `UpdateDialog.test.tsx` (1 test) confirmed unrelated to 
 - **Issue:** The plan specified a single `AIO_API_PATH` in the `aioFetch` URL construction formula. But D-13 confirmed two purpose-split paths: projects endpoint uses `/rest/aio-tcms/1.0`, all other endpoints use `/rest/aio-tcms-api/1.0`. A single hard-coded path in `aioFetch` would force either projects or cycles/runs to use the wrong base path.
 - **Fix:** Added optional `apiPath: string = AIO_API_PATH` parameter to `aioFetch`. The default is `AIO_API_PATH` (correct for cycles/runs). `projects.ts` passes `AIO_PROJECTS_API_PATH` explicitly.
 - **Files modified:** `client.ts`, `client.test.ts` (added 6th test for apiPath override)
-- **Commit:** `4584dfd`
+- **Commit:** `746697ca`
 
 **2. [Rule 1 - Probe deviation] issue-runs.ts rescoped from issueKey lookup to cycle-based runs**
 - **Found during:** Task 2 — the plan specified `fetchAioRunsForIssue(baseUrl, token, issueKey)` using `GET /testrun?issueKey=`. D-15 confirmed this endpoint does NOT exist.
 - **Issue:** The plan's `issue-runs.ts` was designed around an endpoint that was proven absent by the Phase 51 probe. Implementing it as-specified would create a service function that always 404s against the real API.
 - **Fix:** Renamed the exported function to `fetchAioTestRunsForCycle(baseUrl, token, projectKey, cycleKey)`. Path is `/project/{projectKey}/testcycle/{cycleKey}/testrun`. Uses `AioPage<T>` unwrapping. Issue-level filtering deferred to Phase 54 (which will filter `AioTestRun[]` client-side by Jira issue key if the field is present).
 - **Files modified:** `issue-runs.ts` (full rescope), `issue-runs.test.ts` (tests rewritten for cycle params)
-- **Commit:** `1d4c3db`
+- **Commit:** `b421d760`
 
 **3. [Rule 2 - Type correctness] AioIssueRun removed; AioCycle and AioTestRun added**
 - **Found during:** Task 1 — `types.ts` per the plan would export `AioIssueRun` (tied to the now-absent issueKey endpoint). The correct types per D-17 are `AioCycle` and `AioTestRun`, plus the `AioPage<T>` generic.
 - **Fix:** `types.ts` exports `AioProject`, `AioCycle`, `AioTestRun`, `AioPage<T>`. No `AioIssueRun` (that concept tied to the nonexistent endpoint).
 - **Files modified:** `types.ts`
-- **Commit:** `4584dfd`
+- **Commit:** `746697ca`
 
 ## Known Stubs
 
@@ -146,6 +146,6 @@ No new network endpoints, auth paths, or schema changes introduced beyond what t
 - [x] `taskflow/src/services/aio/client.test.ts` — exists, 6 tests
 - [x] `taskflow/src/services/aio/projects.test.ts` — exists, 4 tests
 - [x] `taskflow/src/services/aio/issue-runs.test.ts` — exists, 5 tests
-- [x] Commit `4584dfd` exists (Task 1)
-- [x] Commit `1d4c3db` exists (Task 2)
+- [x] Commit `746697ca` exists (Task 1)
+- [x] Commit `b421d760` exists (Task 2)
 - [x] All 15 tests pass

@@ -79,7 +79,7 @@ None — all success criteria are machine-verifiable and confirmed.
 **Verification results:**
 - `npx tsc --noEmit` exits code 0 with zero output
 - `npm test` passes: 489 tests, 0 failures, 0 warnings, exit code 0
-- Commit: `ce2b44a` — "fix(26-03): add vitest globals type reference to setup.ts"
+- Commit: `6daeba6a` — "fix(26-03): add vitest globals type reference to setup.ts"
 
 **Design decision:** Triple-slash directive chosen over `tsconfig.json` types array to keep vitest type pollution scoped to test-only files.
 

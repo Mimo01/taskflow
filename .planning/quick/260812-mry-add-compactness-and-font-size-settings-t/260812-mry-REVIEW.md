@@ -37,7 +37,7 @@ status: issues_found
 
 ## Summary
 
-Reviewed the diff `git diff 16a60485..HEAD` for the Text Size setting addition plus the pre-existing density-application bootstrap fix. Traced the full path: `settings.store.ts` migration (v27→v28) → `theme.ts` (`loadAppearance`/`applyFontScale`) → `main.tsx` bootstrap → `AppearanceSection.tsx` UI → `useResizable.ts`/`Sidebar.tsx` dynamic bounds → the px→rem and density-variant sweep across the ranked-surface components.
+Reviewed the diff `git diff 07b065c1..HEAD` for the Text Size setting addition plus the pre-existing density-application bootstrap fix. Traced the full path: `settings.store.ts` migration (v27→v28) → `theme.ts` (`loadAppearance`/`applyFontScale`) → `main.tsx` bootstrap → `AppearanceSection.tsx` UI → `useResizable.ts`/`Sidebar.tsx` dynamic bounds → the px→rem and density-variant sweep across the ranked-surface components.
 
 - **Migration (v27→v28):** correct. `version < 28` guard only backfills `fontScale` when `undefined`, consistent with the established per-version migrate-chain idiom. No existing fields are dropped or overwritten.
 - **Pre-paint bootstrap (`loadAppearance`):** correctly reads the same `'settings-store'` key/shape that `createTauriStorage`/`persistChangelogBeforeRestart` already use elsewhere in the codebase, wraps `JSON.parse` in try/catch, and falls back to baseline (`'default'`/`'md'`) on any failure (fresh install, malformed blob, corrupt JSON) — it can never throw out of `main.tsx`, so it cannot break startup. Render is correctly gated behind `Promise.all([...])` so there's no flash of un-scaled/un-densified content.

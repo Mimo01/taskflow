@@ -62,8 +62,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Fix Navigation/Actions cmdk unmount race + resolve recent item title** - `3d299a9` (fix)
-2. **Task 2: Add test coverage for navigation items in search state** - `99258d6` (test)
+1. **Task 1: Fix Navigation/Actions cmdk unmount race + resolve recent item title** - `c8fabcf8` (fix)
+2. **Task 2: Add test coverage for navigation items in search state** - `8a072b94` (test)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/CommandPalette.tsx` - Navigation/Actions groups moved outside ternary for stable cmdk refs
@@ -84,7 +84,7 @@ Each task was committed atomically:
 - **Fix:** Changed test to assert Actions items ARE visible in default state (correct behavior with unconditional rendering)
 - **Files modified:** taskflow/src/components/app/CommandPalette.test.tsx
 - **Verification:** All 12 tests pass
-- **Committed in:** 3d299a9 (Task 1 commit)
+- **Committed in:** c8fabcf8 (Task 1 commit)
 
 ---
 

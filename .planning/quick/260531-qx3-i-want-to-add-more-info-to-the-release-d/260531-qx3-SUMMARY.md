@@ -37,7 +37,7 @@ Surfaced three already-loaded info groups on the release detail page — MR-stat
 
 ## What Was Built
 
-**Task 1 — Data derivations + fetch field (commit 4c27ca0f):**
+**Task 1 — Data derivations + fetch field (commit 9029d79e):**
 - Added `customfield_10016` to the `fetchFixVersionIssues` `fields` string so loaded issues carry story points when configured. React Query key (line 297) left untouched — it does not include fields, so the cache change is safe.
 - Imported `Users` from lucide-react (alphabetical order preserved).
 - Derived four memo-free consts after `labelCoverage`:
@@ -46,7 +46,7 @@ Surfaced three already-loaded info groups on the release detail page — MR-stat
   - `issueStatusCounts` `{ new, indeterminate, done }` — buckets by `statusCategory?.key` with `'new'` default for undefined.
   - `storyPoints` `{ total, completed }` + `hasStoryPoints` — sums `customfield_10016` guarded by `typeof === 'number'`; `completed` counts only done-category issues.
 
-**Task 2 — Rendering (commit e0133d2b):**
+**Task 2 — Rendering (commit a9cc6b80):**
 - **MR-state distribution:** sidebar `MetaRow label="MRs"` (after MR Labels row) with GitMerge icon + Badge counts (`tone=green/blue/muted`). Zero buckets omitted; whole row hidden when `gitlabMatch.type === 'none'` or no MRs (no "—").
 - **Contributor list:** left-column `<section>` (after Labels) with `Users` icon, count Badge, and a wrapping row of `CachedAvatar` + name. Guarded by milestone match + `contributors.length > 0`.
 - **Issue status distribution + effort:** inside the Issues section under the Progress bar. Status Badges (new/in progress/done, zero buckets omitted) render when `releaseIssues.length > 0`; the "Story points: {completed} / {total}" line renders only when `hasStoryPoints`.
@@ -70,23 +70,23 @@ None. All new sections are wired to live derived data and render nothing when da
 
 ## Self-Check: PASSED
 - FOUND: taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
-- FOUND commit 4c27ca0f (Task 1)
-- FOUND commit e0133d2b (Task 2)
+- FOUND commit 9029d79e (Task 1)
+- FOUND commit a9cc6b80 (Task 2)
 
 ## Post-Completion Follow-Ups (session, approved)
 
 Adjustments made after the validated run, in response to user feedback:
 
-- **Code-review remediation** (`0d0fb2be`): story points now resolve via the
+- **Code-review remediation** (`4d2646bb`): story points now resolve via the
   instance `storyPointsFieldKey` from settings (requests 10016/10028/resolved key)
   instead of a hardcoded `customfield_10016`; issue-status bucketing made NaN-safe
   (WR-01, WR-02 from the code review).
-- **Layout revision** (`a0842383`): removed the Contributors section entirely
+- **Layout revision** (`deeaa573`): removed the Contributors section entirely
   (and its derivation + `Users` icon import); moved the issue status distribution
   and story-point effort out of the main Issues section into the metadata sidebar
   as `MetaRow`s alongside the MRs row.
-- **Icon trim** (`c5892eeb`): dropped the `GitMerge` icon from the sidebar MRs row.
-- **Status colors** (`3e728aae`): aligned issue status badge tones with the app's
+- **Icon trim** (`2be0e277`): dropped the `GitMerge` icon from the sidebar MRs row.
+- **Status colors** (`baf080a1`): aligned issue status badge tones with the app's
   canonical palette (`statusStyles.ts`): new → muted, in progress → blue, done → green.
 
 Final state: left column keeps descriptions, labels, and the issues table; the

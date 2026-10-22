@@ -63,8 +63,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Add updateComment and deleteComment to Jira service** - `8a9b1d5` (feat)
-2. **Task 2: Redesign comment section -- sticky composer, card layout, edit/delete menu** - `5e2df26` (feat)
+1. **Task 1: Add updateComment and deleteComment to Jira service** - `1e4b6b76` (feat)
+2. **Task 2: Redesign comment section -- sticky composer, card layout, edit/delete menu** - `acd6c20c` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira.ts` - Added updateComment and deleteComment exported functions

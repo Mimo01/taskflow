@@ -30,7 +30,7 @@
 **CRITICAL UI-SPEC corrections to apply during extraction:**
 - Replace every `gap-1.5` with `gap-2` (3 occurrences in the AIO block)
 - Replace `font-medium` with `font-normal` in the toggle label `<p>` (line 70)
-- Source file has NOT been updated; extracted component must reflect UI-SPEC from commit `be69a770`
+- Source file has NOT been updated; extracted component must reflect UI-SPEC from commit `d80e6cf1`
 
 **Imports pattern** (lines 1–9 of IntegrationsSection.tsx):
 ```typescript
@@ -626,7 +626,7 @@ The following values in `src/routes/settings/IntegrationsSection.tsx` are **wron
 | `gap-1.5` | `gap-2` | Line 92 (error row) | `AioBlock.tsx` |
 | `font-medium` | `font-normal` | Line 70 (toggle label `<p>`) | `AioBlock.tsx` |
 
-**Source of truth:** UI-SPEC commit `be69a770` updated the design contract. The source `.tsx` was not updated in that commit — this phase corrects it during extraction.
+**Source of truth:** UI-SPEC commit `d80e6cf1` updated the design contract. The source `.tsx` was not updated in that commit — this phase corrects it during extraction.
 
 ---
 

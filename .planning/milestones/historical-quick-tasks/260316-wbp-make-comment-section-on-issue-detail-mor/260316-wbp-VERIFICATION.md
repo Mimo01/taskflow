@@ -65,8 +65,8 @@ TypeScript compiles with no errors in files modified by this task. Pre-existing 
 
 | Commit | Message | Status |
 |--------|---------|--------|
-| `8a9b1d5` | feat(quick-260316-wbp): add updateComment and deleteComment Jira API functions | Exists |
-| `5e2df26` | feat(quick-260316-wbp): redesign comment section with sticky composer, card layout, edit/delete | Exists |
+| `1e4b6b76` | feat(quick-260316-wbp): add updateComment and deleteComment Jira API functions | Exists |
+| `acd6c20c` | feat(quick-260316-wbp): redesign comment section with sticky composer, card layout, edit/delete | Exists |
 
 ### Human Verification Required
 

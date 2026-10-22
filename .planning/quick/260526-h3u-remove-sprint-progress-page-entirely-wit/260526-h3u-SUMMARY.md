@@ -49,9 +49,9 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Delete the five Sprint Progress / Sprint Health files | d9f5c443 | 5 deleted |
-| 2 | Remove all route, sidebar, and breadcrumb references | b307938a | 5 edited |
-| 3 | Clean comment/test references, build and test clean | 76c28cec | 6 edited |
+| 1 | Delete the five Sprint Progress / Sprint Health files | fc1b0b77 | 5 deleted |
+| 2 | Remove all route, sidebar, and breadcrumb references | 0add0342 | 5 edited |
+| 3 | Clean comment/test references, build and test clean | 02f6a7ac | 6 edited |
 
 ## What Was Done
 
@@ -97,5 +97,5 @@ None — this is a pure deletion of dead UI; no new network endpoints, auth path
 
 - All 5 deleted files absent from worktree disk
 - All 11 edited files verified clean of Sprint Progress references
-- 3 commits present: d9f5c443, b307938a, 76c28cec
+- 3 commits present: fc1b0b77, 0add0342, 02f6a7ac
 - Build and test suite pass

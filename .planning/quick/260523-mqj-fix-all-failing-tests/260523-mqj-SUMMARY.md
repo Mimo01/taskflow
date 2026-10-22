@@ -12,8 +12,8 @@ key-files:
   created:
     - .planning/quick/260523-mqj-fix-all-failing-tests/FAILURES.md
 commits:
-  - 55ab38c8  # fix(tests): dashboard greeting parses first name from token[0] (cluster C1)
-  - 29dac3e7  # fix(tests): move dashboard ambient SVG inside hero section (cluster C2)
+  - ed9a7308  # fix(tests): dashboard greeting parses first name from token[0] (cluster C1)
+  - 85d477d1  # fix(tests): move dashboard ambient SVG inside hero section (cluster C2)
 metrics:
   failures_at_triage: 3
   clusters_total: 2
@@ -38,15 +38,15 @@ Restored a green Vitest suite by fixing two distinct root causes in the Dashboar
 
 | Cluster | Status | Commit | Root cause (one-line) |
 | --- | --- | --- | --- |
-| C1 — Dashboard name parsing inverted (Tests 1 + 2) | FIXED | `55ab38c8` | Source parsed `displayName` as `"Surname Firstname [Status]"` (tokens[1]), but live Jira returns `"Firstname Surname"` (2 tokens). Switched to tokens[0] with a defensive `[Status]` strip. |
-| C2 — Dashboard hero SVG placement (Test 6) | FIXED | `29dac3e7` | Decorative SVG was a sibling of `<section>`; Test 6 contract requires `document.querySelector('section svg')` to find it. Moved SVG inside the section with `overflow-hidden` bounding and `relative` text layering. |
+| C1 — Dashboard name parsing inverted (Tests 1 + 2) | FIXED | `ed9a7308` | Source parsed `displayName` as `"Surname Firstname [Status]"` (tokens[1]), but live Jira returns `"Firstname Surname"` (2 tokens). Switched to tokens[0] with a defensive `[Status]` strip. |
+| C2 — Dashboard hero SVG placement (Test 6) | FIXED | `85d477d1` | Decorative SVG was a sibling of `<section>`; Test 6 contract requires `document.querySelector('section svg')` to find it. Moved SVG inside the section with `overflow-hidden` bounding and `relative` text layering. |
 
 ## Why production code (not the tests) was the bug
 
 Both clusters fall under "test was right, source was wrong":
 
-- **C1:** Commit `8adc3169` (2026-05-21) hypothesised that Jira returns `"Surname Firstname [Status]"`, but the same day's quick-plan `260521-t6m` documented the real shape as the 2-token form `"Jane Doe"`. The test mocks (`'Alice Doe'`, `'Jane Doe'`) encode the Firstname-Surname convention; tokens[0] is the correct first-name selector.
-- **C2:** Test 6 was added in commit `46db80bf` as TDD-RED for a hero-section decoration. When the ambient SVG was later added at the outer-wrapper level it was never wired up to satisfy the test contract.
+- **C1:** Commit `d1c92a3a` (2026-05-21) hypothesised that Jira returns `"Surname Firstname [Status]"`, but the same day's quick-plan `260521-t6m` documented the real shape as the 2-token form `"Jane Doe"`. The test mocks (`'Alice Doe'`, `'Jane Doe'`) encode the Firstname-Surname convention; tokens[0] is the correct first-name selector.
+- **C2:** Test 6 was added in commit `f6b02497` as TDD-RED for a hero-section decoration. When the ambient SVG was later added at the outer-wrapper level it was never wired up to satisfy the test contract.
 
 ## Follow-up Work Surfaced
 
@@ -65,6 +65,6 @@ Both clusters fall under "test was right, source was wrong":
   - `taskflow/src/routes/dashboard/index.tsx` — modified (FOUND on disk)
   - `.planning/quick/260523-mqj-fix-all-failing-tests/FAILURES.md` — created (FOUND on disk)
 - Commits verified:
-  - `55ab38c8` — FOUND in `git log` (C1 fix)
-  - `29dac3e7` — FOUND in `git log` (C2 fix)
+  - `ed9a7308` — FOUND in `git log` (C1 fix)
+  - `85d477d1` — FOUND in `git log` (C2 fix)
 - Final `npm test` run reproduces the green tally above.

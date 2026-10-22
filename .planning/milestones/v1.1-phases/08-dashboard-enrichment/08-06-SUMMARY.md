@@ -65,8 +65,8 @@ completed: 2026-03-13
 
 ## Task Commits
 
-1. **Task 1: Fix SubtasksPanel sprintData access + align test assertions** - `a0216ac` (fix)
-2. **Task 2: Add "View all notifications" Link to NotificationsPanel** - `b57d547` (feat)
+1. **Task 1: Fix SubtasksPanel sprintData access + align test assertions** - `df13de2c` (fix)
+2. **Task 2: Add "View all notifications" Link to NotificationsPanel** - `461d2c23` (feat)
 
 ## Files Created/Modified
 

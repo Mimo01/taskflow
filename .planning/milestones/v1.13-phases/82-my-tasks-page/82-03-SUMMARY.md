@@ -34,8 +34,8 @@ Extends the Jira service layer for the My Tasks page (MYTASK-07): adds `fetchAll
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1 | Criterion-6 pagination assertion in client.test.ts | 5205b013 | taskflow/src/services/jira/client.test.ts |
-| 2 | fetchAllAssignedHierarchy + flagged-field extension of fetchMyTasksHierarchy | b664258f | taskflow/src/services/jira.ts |
+| 1 | Criterion-6 pagination assertion in client.test.ts | c75ddb5e | taskflow/src/services/jira/client.test.ts |
+| 2 | fetchAllAssignedHierarchy + flagged-field extension of fetchMyTasksHierarchy | 25b3c642 | taskflow/src/services/jira.ts |
 
 ## What Was Built
 
@@ -93,9 +93,9 @@ No new threat surface beyond the plan's T-82-04 mitigation (verified: `assignee 
 
 ## Self-Check: PASSED
 
-- `taskflow/src/services/jira.ts` — modified and committed (b664258f)
-- `taskflow/src/services/jira/client.test.ts` — modified and committed (5205b013)
-- Commit 5205b013 exists: confirmed
-- Commit b664258f exists: confirmed
+- `taskflow/src/services/jira.ts` — modified and committed (25b3c642)
+- `taskflow/src/services/jira/client.test.ts` — modified and committed (c75ddb5e)
+- Commit c75ddb5e exists: confirmed
+- Commit 25b3c642 exists: confirmed
 - 16 tests passing, 0 failing
 - TypeScript: clean

@@ -70,17 +70,17 @@ Ran the exact commands CI will execute and confirmed both pass at exit 0.
 - **Issue:** 149 biome errors (format + organizeImports) blocked CI at exit 1, plus 5 real lint errors
 - **Fix:** `biome --write` for format/imports, then manual fixes for 5 lint violations
 - **Files modified:** 119 files reformatted, 5 files with manual lint fixes
-- **Commits:** 4d3e312
+- **Commits:** cc1ea88a
 
 **2. [Rule 1 - Bug] Preserved circular-safe import order in registry/settings**
 - **Found during:** Task 2 (fixing test failures caused by biome reordering)
 - **Issue:** biome `organizeImports` reordered imports in `registry.ts`, `settings.store.ts`, and `settings.store.test.ts`, causing TDZ ReferenceError in Vitest (circular dependency between registry and settings store)
 - **Fix:** Added `biome-ignore assist/source/organizeImports` comments to preserve required initialization order
 - **Files modified:** `registry.ts`, `settings.store.ts`, `settings.store.test.ts`
-- **Commit:** 4d3e312
+- **Commit:** cc1ea88a
 
 ## Self-Check: PASSED
 
 - FOUND: `.github/workflows/ci.yml`
-- FOUND: commit e62ddd3 (feat: add CI workflow)
-- FOUND: commit 4d3e312 (fix: auto-fix biome format and lint errors)
+- FOUND: commit 32cf64c1 (feat: add CI workflow)
+- FOUND: commit cc1ea88a (fix: auto-fix biome format and lint errors)

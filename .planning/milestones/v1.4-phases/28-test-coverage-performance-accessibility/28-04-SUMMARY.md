@@ -69,8 +69,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Install @tanstack/react-virtual and virtualize BacklogPage** - `2afaa24` (feat)
-2. **Task 2: Virtualize NotificationPopover and SprintBoardTab swimlanes** - `0102e27` (feat)
+1. **Task 1: Install @tanstack/react-virtual and virtualize BacklogPage** - `1b1fce5c` (feat)
+2. **Task 2: Virtualize NotificationPopover and SprintBoardTab swimlanes** - `b38c1da9` (feat)
 
 ## Files Created/Modified
 - `taskflow/package.json` - Added @tanstack/react-virtual dependency
@@ -95,7 +95,7 @@ Each task was committed atomically:
 - **Fix:** Added fallback logic: when virtualItems.length === 0 but the list has items, render all rows without positioning. Applied same pattern to NotificationPopover and SprintBoardTab
 - **Files modified:** BacklogPage.tsx, NotificationPopover.tsx, SprintBoardTab.tsx
 - **Verification:** All 42 component tests pass
-- **Committed in:** 2afaa24 (Task 1), 0102e27 (Task 2)
+- **Committed in:** 1b1fce5c (Task 1), b38c1da9 (Task 2)
 
 ---
 

@@ -73,8 +73,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Migrate settings store** - `8c05fa7` (feat)
-2. **Task 2: Write test scaffolds** - `36f90bc` (test)
+1. **Task 1: Migrate settings store** - `dc3a88cf` (feat)
+2. **Task 2: Write test scaffolds** - `18db8a28` (test)
 
 ## Files Created/Modified
 
@@ -99,7 +99,7 @@ Each task was committed atomically:
 - **Fix:** Created minimal stub `ConnectionsSection.tsx` returning null — the plan implies Wave 0 ends with zero TS errors on the test files
 - **Files modified:** taskflow/src/routes/settings/ConnectionsSection.tsx (created)
 - **Verification:** `npx tsc --noEmit` shows 0 errors in settings files
-- **Committed in:** 36f90bc (Task 2 commit)
+- **Committed in:** 18db8a28 (Task 2 commit)
 
 **2. [Rule 2 - Missing Critical] Added QueryClientProvider wrapper in Settings.test.tsx**
 - **Found during:** Task 2 (Settings.test.tsx rewrite)
@@ -107,7 +107,7 @@ Each task was committed atomically:
 - **Fix:** Added `renderWithQuery()` helper wrapping all renders with QueryClientProvider
 - **Files modified:** taskflow/src/routes/settings/Settings.test.tsx
 - **Verification:** Tests reach the actual assertions (correctly failing on missing sidebar nav) rather than crashing on infrastructure error
-- **Committed in:** 36f90bc (Task 2 commit)
+- **Committed in:** 18db8a28 (Task 2 commit)
 
 ---
 

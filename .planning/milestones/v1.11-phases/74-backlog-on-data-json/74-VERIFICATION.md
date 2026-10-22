@@ -22,7 +22,7 @@ human_verification:
 
 **Verified:** 2026-05-29
 **Status:** human_needed (all technical / code-side checks pass; SC-1 network log and SC-2 behavioral parity require runtime UAT)
-**Re-verification:** No — initial verification (post REVIEW-FIX commits c9a0cf19, ef4d6ac0)
+**Re-verification:** No — initial verification (post REVIEW-FIX commits db722cbb, 8437d59e)
 
 ## Goal Achievement
 
@@ -31,7 +31,7 @@ human_verification:
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
 | 1 | Opening the backlog issues exactly one `data.json` request (SC-1 / GH-BACKLOG-01) | ✓ VERIFIED (code) / ? UNCERTAIN (network log) | `BacklogPage.tsx:234` calls `useGhBacklogData(boardId ?? null)` — exactly one hook; `useGhBacklogData.ts:75-80` issues one `useQuery({queryKey: ['gh-backlog', boardId], queryFn: () => fetchBacklogData(...)})`; `services/jira/greenhopper/data.ts:31` targets `/plan/backlog/data.json?rapidViewId={boardId}`. **Static grep finds zero remaining `fetchBacklogIssues` / `fetchBacklogSprintStories` / `fetchBacklogView` references in production source.** Network log verification deferred to human (see human_verification[0]). |
-| 2 | Move-to-sprint, create story, filter (epic/label/assignee), virtualized rendering all work on the new data source (SC-2 / GH-BACKLOG-02) | ✓ VERIFIED (code) / ? UNCERTAIN (UX parity) | `BacklogPage.tsx` imports `ConfirmSprintMoveDialog`, `addIssuesToSprint`, `moveIssuesToBacklog`, `useVirtualizer` (`@tanstack/react-virtual`), and `UnifiedFilterBar`. `requestMoveToSprint` (line 577) resolves `fromSprintName` via `lookupSprintNameById` which (post-BL-02 fix ef4d6ac0) reads from raw `backlog.sprints` so CLOSED-sprint names still resolve. ACTIVE/FUTURE-only `sprintSections` (line 302) is consistent with the reverse-index restriction (BL-01 fix c9a0cf19). Filter/virtualization wiring is unchanged from pre-cutover (filter store + virtualizer survive). UX parity deferred to human (see human_verification[1]). |
+| 2 | Move-to-sprint, create story, filter (epic/label/assignee), virtualized rendering all work on the new data source (SC-2 / GH-BACKLOG-02) | ✓ VERIFIED (code) / ? UNCERTAIN (UX parity) | `BacklogPage.tsx` imports `ConfirmSprintMoveDialog`, `addIssuesToSprint`, `moveIssuesToBacklog`, `useVirtualizer` (`@tanstack/react-virtual`), and `UnifiedFilterBar`. `requestMoveToSprint` (line 577) resolves `fromSprintName` via `lookupSprintNameById` which (post-BL-02 fix 8437d59e) reads from raw `backlog.sprints` so CLOSED-sprint names still resolve. ACTIVE/FUTURE-only `sprintSections` (line 302) is consistent with the reverse-index restriction (BL-01 fix db722cbb). Filter/virtualization wiring is unchanged from pre-cutover (filter store + virtualizer survive). UX parity deferred to human (see human_verification[1]). |
 | 3 | Old REST backlog-fetch path is deleted (SC-3 / GH-CUT-01) | ✓ VERIFIED | `grep -rE "fetchBacklogIssues\|fetchBacklogSprintStories\|fetchBacklogView\|BacklogViewData" src/` excluding tests returns ZERO production hits. `services/jira/backlog.ts` (59 lines) exports only `fetchSprintList` (still used by `FieldsSection.tsx` sprint picker per D-09a). `services/jira.ts` no longer re-exports the deleted symbols. `npm run check:legacy-backlog` exits 0 ("OK"). |
 
 **Score:** 3/3 truths verified at the source-code level. Truths 1 and 2 carry human-verification subpoints (network log + UX parity).
@@ -55,8 +55,8 @@ human_verification:
 | `useGhBacklogData` | `fetchBacklogData` (`data.json`) | `useQuery({queryFn: () => fetchBacklogData(...)})` | ✓ WIRED | `useGhBacklogData.ts:77`; `data.ts:31` targets the canonical endpoint |
 | `Sidebar` prefetch | `getGhBacklogData` | `fetchBoardId().then(getGhBacklogData)` | ✓ WIRED | `Sidebar.tsx:172-189`; warmed key matches BacklogPage read key |
 | Mutation sites (5×) | `invalidateGhBacklogData` | imported from `@/services/jira` | ✓ WIRED | `main.tsx`, `RecentItemsPopover.tsx`, `FieldsSection.tsx`, `useFieldMutation.ts`, `useIssueMutations.ts`, `BacklogPage.tsx` — verified via grep, zero remaining legacy `['jira-backlog-*']` keys in production |
-| Sprint move dialog | `lookupSprintNameById` (raw `backlog.sprints`) | post-BL-02 fix | ✓ WIRED | `BacklogPage.tsx:567-575` reads from `backlog.sprints` (full list incl. CLOSED), confirmed in commit `ef4d6ac0` |
-| Reverse index (issueId → sprintId) | excludes CLOSED | post-BL-01 fix | ✓ WIRED | `BacklogPage.tsx:264-268` filters `s.state !== 'ACTIVE' && s.state !== 'FUTURE'` continue, confirmed in commit `c9a0cf19` |
+| Sprint move dialog | `lookupSprintNameById` (raw `backlog.sprints`) | post-BL-02 fix | ✓ WIRED | `BacklogPage.tsx:567-575` reads from `backlog.sprints` (full list incl. CLOSED), confirmed in commit `8437d59e` |
+| Reverse index (issueId → sprintId) | excludes CLOSED | post-BL-01 fix | ✓ WIRED | `BacklogPage.tsx:264-268` filters `s.state !== 'ACTIVE' && s.state !== 'FUTURE'` continue, confirmed in commit `db722cbb` |
 
 ### Data-Flow Trace (Level 4)
 

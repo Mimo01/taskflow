@@ -55,9 +55,9 @@ Store version bumped from 13 → 14. Migration guard at `version < 14` initialis
 
 | Hash | Type | Description |
 |------|------|-------------|
-| a88cf1b | feat | create useResizable hook |
-| 561f0df | feat | extend settings store with width fields and v14 migration |
-| b4edf5d | test | add Phase 50 describe block to settings store tests |
+| 56b235f4 | feat | create useResizable hook |
+| e755ca3b | feat | extend settings store with width fields and v14 migration |
+| b56ddac0 | test | add Phase 50 describe block to settings store tests |
 
 ## Deviations from Plan
 
@@ -68,7 +68,7 @@ Store version bumped from 13 → 14. Migration guard at `version < 14` initialis
 - **Issue:** After a previous describe block runs `act(() => useSettingsStore.getState().someMethod())` (setter called directly via getState without a prior renderHook), the subsequent `renderHook(() => useSettingsStore())` in a new describe returns null or incorrect values. Zustand v5's subscriber mechanism and @testing-library/react v16's concurrent act flushing interact in a way that leaves `result.current` reflecting the pre-beforeEach state. The plan's verbatim test code used `renderHook(() => useSettingsStore())` for default assertions.
 - **Fix:** Changed the 4 default-value `it` blocks to use `useSettingsStore.getState().fieldName` directly instead of `renderHook`. The setter tests (4 of 8) already used `getState()` and were unaffected. The fix is strictly equivalent — getState() reads the same store state, it just doesn't go through a React render cycle.
 - **Files modified:** `taskflow/src/stores/settings.store.test.ts`
-- **Commit:** b4edf5d
+- **Commit:** b56ddac0
 
 **2. [Rule 3 - Blocker] Worktree lacked node_modules symlink**
 - **Found during:** Task 1 verification
@@ -80,9 +80,9 @@ Store version bumped from 13 → 14. Migration guard at `version < 14` initialis
 **3. [Rule 1 - Bug] Accidental commit to main branch**
 - **Found during:** Task 1 commit
 - **Issue:** First commit attempt ran `git commit` from `/Users/user/Documents/Projects/taskflow` (main repo) rather than the worktree root, causing the commit to land on `main`.
-- **Fix:** Immediately reverted with `git revert HEAD` on main (commit f6b4448). Then re-wrote the file to the correct worktree path and committed from the worktree branch.
+- **Fix:** Immediately reverted with `git revert HEAD` on main (commit 15e1d7df). Then re-wrote the file to the correct worktree path and committed from the worktree branch.
 - **Files modified:** None (revert restored main to prior state)
-- **Commit on main:** f6b4448 (revert)
+- **Commit on main:** 15e1d7df (revert)
 
 ## Known Stubs
 
@@ -100,8 +100,8 @@ Files created/modified:
 - taskflow/src/stores/settings.store.test.ts — FOUND (Phase 50 describe block)
 
 Commits:
-- a88cf1b — FOUND on worktree-agent-a9d1504a831bf3596
-- 561f0df — FOUND
-- b4edf5d — FOUND
+- 56b235f4 — FOUND on worktree-agent-a9d1504a831bf3596
+- e755ca3b — FOUND
+- b56ddac0 — FOUND
 
 ## Self-Check: PASSED

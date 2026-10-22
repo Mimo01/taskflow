@@ -47,8 +47,8 @@ HoursCommitsChart — full-width dual-Y-axis ComposedChart (hours blue/left, com
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| RED  | Failing tests for data layer + render states | 860537c2 | HoursCommitsChart.test.tsx |
-| 1+2  | Data layer + render layer implementation | 2a6bb2d5 | HoursCommitsChart.tsx + test (biome fix) |
+| RED  | Failing tests for data layer + render states | fca568c9 | HoursCommitsChart.test.tsx |
+| 1+2  | Data layer + render layer implementation | 5c5f4f93 | HoursCommitsChart.tsx + test (biome fix) |
 
 ## What Was Built
 
@@ -90,8 +90,8 @@ Full-width `<Card>` wrapping a Recharts `ComposedChart` with:
 
 | Gate | Commit | Status |
 |------|--------|--------|
-| RED (test) | 860537c2 | PASSED — failed due to missing import (HoursCommitsChart.tsx not created yet) |
-| GREEN (feat) | 2a6bb2d5 | PASSED — all 15 tests pass |
+| RED (test) | fca568c9 | PASSED — failed due to missing import (HoursCommitsChart.tsx not created yet) |
+| GREEN (feat) | 5c5f4f93 | PASSED — all 15 tests pass |
 | REFACTOR | skipped — no structural cleanup needed | N/A |
 
 ## Acceptance Criteria Verification
@@ -136,7 +136,7 @@ None — no new network endpoints, auth paths, or schema changes introduced. Exi
 
 - `taskflow/src/routes/dashboard/HoursCommitsChart.tsx` — FOUND
 - `taskflow/src/routes/dashboard/HoursCommitsChart.test.tsx` — FOUND
-- Commit 860537c2 (RED test) — FOUND
-- Commit 2a6bb2d5 (feat implementation) — FOUND
+- Commit fca568c9 (RED test) — FOUND
+- Commit 5c5f4f93 (feat implementation) — FOUND
 - `npm run test -- src/routes/dashboard/HoursCommitsChart` — 15 passed
 - `npm run check` — 0 errors

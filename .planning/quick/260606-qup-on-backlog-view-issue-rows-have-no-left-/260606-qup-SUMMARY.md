@@ -46,7 +46,7 @@ The explicit `style={{ width: 18, height: 18 }}` spans inside both cells were le
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add left/right edge padding to Backlog row cells | 91c6d386 | taskflow/src/routes/dashboard/BacklogRow.tsx |
+| 1 | Add left/right edge padding to Backlog row cells | f0ed238e | taskflow/src/routes/dashboard/BacklogRow.tsx |
 | 2 | Visual verify (checkpoint:human-verify) | — | — |
 
 ## Verification
@@ -71,7 +71,7 @@ None — plan executed exactly as written. Two className strings changed, inner 
 
 ## Self-Check
 
-- [x] `taskflow/src/routes/dashboard/BacklogRow.tsx` modified and committed (91c6d386)
+- [x] `taskflow/src/routes/dashboard/BacklogRow.tsx` modified and committed (f0ed238e)
 - [x] `pl-4` present in first cell
 - [x] `pr-4` present in last cell
 - [x] Biome GREEN

@@ -138,7 +138,7 @@
 | Header count only after server confirms | Never shows a number the server disagrees with; count lags the ✓ | |
 
 **User's choice:** "You decide."
-**Notes:** Claude initially chose "both", then corrected the premise on verification: there **is no Releases-list drift count** — DRIFT-09 was built in Phase 89 and removed at UAT (`c681931e`), and `ReleasesTab.tsx` has no project-wide open-MR query. The surviving decision (CONTEXT D-12/D-13) is: header badge decrements immediately, and all three detail-page channel queries are invalidated at project granularity. Nothing cross-page.
+**Notes:** Claude initially chose "both", then corrected the premise on verification: there **is no Releases-list drift count** — DRIFT-09 was built in Phase 89 and removed at UAT (`6bdbc00f`), and `ReleasesTab.tsx` has no project-wide open-MR query. The surviving decision (CONTEXT D-12/D-13) is: header badge decrements immediately, and all three detail-page channel queries are invalidated at project granularity. Nothing cross-page.
 
 ---
 

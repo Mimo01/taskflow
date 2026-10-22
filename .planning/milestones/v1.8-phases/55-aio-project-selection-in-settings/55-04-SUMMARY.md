@@ -97,23 +97,23 @@ completed: 2026-05-14
 
 | # | Task | Type | Hash | Verify |
 | - | ---- | ---- | ---- | ------ |
-| 1 | Delete the three AIO list page files (D-11) | `chore` | `4b67001` | `test ! -f` on all three files; project-wide grep returns only `routes.tsx:21` (then removed by Task 2) |
-| 2 | Remove /aio-projects route entry + AioProjectsPage lazy import (D-12) | `feat` | `e7ce6e9` | `tsc --noEmit` exits 0; full vitest suite green (1046 pass / 2 skipped / 39 todo / 107 files) |
-| 3 | Re-point AION-02 traceability to Phase 55 + refresh footer (D-13) | `docs` | `459d060` | `grep -c '| AION-02 | Phase 55 | Pending |' .planning/REQUIREMENTS.md` → 1; footer rationale present |
+| 1 | Delete the three AIO list page files (D-11) | `chore` | `4a3e9a98` | `test ! -f` on all three files; project-wide grep returns only `routes.tsx:21` (then removed by Task 2) |
+| 2 | Remove /aio-projects route entry + AioProjectsPage lazy import (D-12) | `feat` | `550081b1` | `tsc --noEmit` exits 0; full vitest suite green (1046 pass / 2 skipped / 39 todo / 107 files) |
+| 3 | Re-point AION-02 traceability to Phase 55 + refresh footer (D-13) | `docs` | `c041c3fe` | `grep -c '| AION-02 | Phase 55 | Pending |' .planning/REQUIREMENTS.md` → 1; footer rationale present |
 
 Task 1 committed cleanly via the husky pre-commit hook (deletions only — biome had nothing to fail on). Task 2 + Task 3 commits used `--no-verify` for the pre-existing unrelated biome errors documented in `deferred-items.md` per memory `feedback_no_verify_lint.md`.
 
 ## Files Created / Modified / Deleted
 
-**Deleted (via `git rm`, committed in `4b67001`):**
+**Deleted (via `git rm`, committed in `4a3e9a98`):**
 - `taskflow/src/routes/dashboard/AioProjectsPage.tsx`
 - `taskflow/src/routes/dashboard/AioProjectsPage.test.tsx`
 - `taskflow/src/routes/dashboard/AioProjectsSkeleton.tsx`
 
 **Modified:**
-- `taskflow/src/routes/routes.tsx` — two lines removed (one lazy import declaration + one route entry); 60 → 57 lines (committed in `e7ce6e9`)
-- `.planning/REQUIREMENTS.md` — one traceability row swapped (Phase 52 → Phase 55), one footer timestamp + rationale refreshed (committed in `459d060`)
-- `.planning/phases/55-aio-project-selection-in-settings/deferred-items.md` — appended Phase 55-04 entry documenting the husky bypass on Task 2 + Task 3 (committed in `459d060`)
+- `taskflow/src/routes/routes.tsx` — two lines removed (one lazy import declaration + one route entry); 60 → 57 lines (committed in `550081b1`)
+- `.planning/REQUIREMENTS.md` — one traceability row swapped (Phase 52 → Phase 55), one footer timestamp + rationale refreshed (committed in `c041c3fe`)
+- `.planning/phases/55-aio-project-selection-in-settings/deferred-items.md` — appended Phase 55-04 entry documenting the husky bypass on Task 2 + Task 3 (committed in `c041c3fe`)
 
 **Created:**
 - `.planning/phases/55-aio-project-selection-in-settings/55-04-SUMMARY.md` (this file — committed by orchestrator's wave-merge step)
@@ -155,7 +155,7 @@ None. The plan executed exactly as written; all three tasks' acceptance criteria
 - [x] `grep -c 'AION-02 traceability re-pointed to Phase 55' .planning/REQUIREMENTS.md` → 1
 - [x] `grep -c 'Unmapped: 0' .planning/REQUIREMENTS.md` → 1
 - [x] AION-02 requirement text `**AION-02**: User can view a list of all AIO test projects` unchanged (line 13 of REQUIREMENTS.md)
-- [x] `git log --oneline -4` shows Task 1 (`4b67001`), Task 2 (`e7ce6e9`), Task 3 (`459d060`) commits
+- [x] `git log --oneline -4` shows Task 1 (`4a3e9a98`), Task 2 (`550081b1`), Task 3 (`c041c3fe`) commits
 - [x] `cd taskflow && ./node_modules/.bin/tsc --noEmit` → exit 0 (no dangling imports)
 - [x] Full vitest suite (after Task 2): 1046 pass / 2 skipped / 39 todo across 107 test files — no regressions from the deletion
 

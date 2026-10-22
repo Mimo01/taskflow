@@ -58,8 +58,8 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Add milestone to GitLabMRDetail and labels/milestone to GitLabMR types** - `e124cea` (feat)
-2. **Task 2: Display milestone on MR detail page and labels/milestone on MR list** - `a98deb0` (feat)
+1. **Task 1: Add milestone to GitLabMRDetail and labels/milestone to GitLabMR types** - `85606130` (feat)
+2. **Task 2: Display milestone on MR detail page and labels/milestone on MR list** - `a8a15931` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/gitlab.ts` - Added milestone to GitLabMRDetail, labels/milestone to GitLabMR, Omit for type conflict
@@ -82,14 +82,14 @@ Each task was committed atomically:
 - **Issue:** Adding `labels: string[]` to GitLabMR caused type incompatibility with `GitLabMRDetail.labels: GitLabLabel[]`
 - **Fix:** Changed `GitLabMRDetail extends GitLabMR` to `GitLabMRDetail extends Omit<GitLabMR, 'labels' | 'milestone'>`
 - **Files modified:** taskflow/src/services/gitlab.ts
-- **Committed in:** e124cea
+- **Committed in:** 85606130
 
 **2. [Rule 3 - Blocking] Updated test mocks for new required fields**
 - **Found during:** Task 1
 - **Issue:** 4 test files had GitLabMR mocks missing the new `labels` and `milestone` fields
 - **Fix:** Added `labels: []` and `milestone: null` to all mock MR objects
 - **Files modified:** MrAttentionTab.test.tsx, MyTasksTab.test.tsx, linkEngine.test.ts, notifications.test.ts
-- **Committed in:** e124cea
+- **Committed in:** 85606130
 
 ---
 

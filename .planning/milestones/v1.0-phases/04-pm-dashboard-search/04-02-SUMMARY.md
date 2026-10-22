@@ -86,9 +86,9 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1 RED: Failing tests for SprintProgress and Workload** - `4382d0d` (test)
-2. **Task 1 GREEN: Store extension, dashboard index, all three tab implementations** - `4e98e4f` (feat)
-3. **Task 2 RED: Failing tests for ReleasesTab** - `a02f4b1` (test)
+1. **Task 1 RED: Failing tests for SprintProgress and Workload** - `48cfc4f6` (test)
+2. **Task 1 GREEN: Store extension, dashboard index, all three tab implementations** - `165b6b02` (feat)
+3. **Task 2 RED: Failing tests for ReleasesTab** - `bff1b222` (test)
 
 _Note: ReleasesTab implementation was part of Task 1 commit (implemented together with other tabs). Tests were RED against non-existent file, GREEN after Task 1 implementation._
 
@@ -121,7 +121,7 @@ _Note: ReleasesTab implementation was part of Task 1 commit (implemented togethe
 - **Fix:** Changed test assertions to await computed values that only appear after data fetch (`'8 / 16 pts'`, specific count numbers). These are only rendered when the query has resolved with actual data.
 - **Files modified:** `SprintProgressTab.test.tsx`
 - **Verification:** All 5 SprintProgressTab tests GREEN
-- **Committed in:** `4e98e4f` (Task 1 GREEN commit)
+- **Committed in:** `165b6b02` (Task 1 GREEN commit)
 
 ---
 

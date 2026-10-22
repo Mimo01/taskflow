@@ -42,7 +42,7 @@ Exported `getTodayDate(): string` returning today's date as a YYYY-MM-DD string 
 `toLocalDateString(new Date())`. Placed next to `buildRecentDayOptions` with a doc comment
 restating the standing rule: local calendar components, never `toISOString()`. `buildRecentDayOptions`
 was left unchanged (still "recent past days starting at yesterday").
-- Commit: `9dc0e4e1`
+- Commit: `24be6e47`
 
 ### Task 2 — Today heading + prepended today row (`YesterdayColumn.tsx`)
 - Added `getTodayDate` to the existing import from `@/lib/standup-date`.
@@ -53,7 +53,7 @@ was left unchanged (still "recent past days starting at yesterday").
   today row `"<dateLabel> · Today"`, mirroring the existing `· Yesterday` / `· Last working day` style.
 - Did NOT touch `DropdownMenuRadioGroup` `onValueChange`, StandupNotesPage, or any query keys —
   today flows through as a normal date override.
-- Commit: `2ff57d85`
+- Commit: `b7ccae91`
 
 ## Verification
 
@@ -77,7 +77,7 @@ was left unchanged (still "recent past days starting at yesterday").
   biome onto a single line; `biome check` flagged it as a format error, failing the verify gate.
 - **Fix:** Collapsed the import to one line.
 - **Files modified:** taskflow/src/routes/standup-notes/YesterdayColumn.tsx
-- **Commit:** `2ff57d85`
+- **Commit:** `b7ccae91`
 
 ## Known Stubs
 
@@ -91,15 +91,15 @@ None — pure client-side date computation; no new trust boundary or dependency 
 
 - taskflow/src/lib/standup-date.ts — FOUND (modified, getTodayDate exported)
 - taskflow/src/routes/standup-notes/YesterdayColumn.tsx — FOUND (modified)
-- Commit 9dc0e4e1 — FOUND
-- Commit 2ff57d85 — FOUND
+- Commit 24be6e47 — FOUND
+- Commit b7ccae91 — FOUND
 
 ## Post-Review Follow-up (WR-01)
 
 Code review (260616-igl-REVIEW.md) flagged WR-01: `dayOptions` and the column
 heading derive from "today" but were not reactive, so a tab left open across
 midnight kept a stale "· Today" row/heading and the radio value could stop
-matching a row. Fixed in commit **e9ccf9b2**: added `useTodayDate()` (single
+matching a row. Fixed in commit **e78e40b5**: added `useTodayDate()` (single
 timeout to next local midnight, no polling) and threaded the reactive value
 through `getColumnHeading(dateStr, todayStr)` and the `dayOptions` memo deps.
 `tsc --noEmit` and `biome check` both clean. WR-02 (today === resolvedYesterday

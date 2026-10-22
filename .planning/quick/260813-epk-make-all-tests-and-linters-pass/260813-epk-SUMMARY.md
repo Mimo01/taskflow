@@ -3,14 +3,14 @@ quick_id: 260813-epk
 description: make all tests and linters pass
 date: 2026-08-13
 status: complete
-commit: 494ff60b
+commit: e33de3b9
 ---
 
 # Quick Task 260813-epk: make all tests and linters pass
 
 ## What was wrong
 
-Only one gate was failing. Measured at HEAD `3bb2deec`:
+Only one gate was failing. Measured at HEAD `b9b4d145`:
 
 | Gate | Command | Before | After |
 |------|---------|--------|-------|
@@ -36,7 +36,7 @@ callback onto the `forwardRef` line, which re-indented the whole component body.
 `git diff -w` reduces the entire changeset to 17 insertions / 12 deletions, all of
 them line joins or splits — no token changes.
 
-Commit: `494ff60b` (code). The pre-commit hook ran biome on the staged files plus the
+Commit: `e33de3b9` (code). The pre-commit hook ran biome on the staged files plus the
 full vitest suite; both passed.
 
 ## Surviving warning baseline (out of scope, non-blocking)

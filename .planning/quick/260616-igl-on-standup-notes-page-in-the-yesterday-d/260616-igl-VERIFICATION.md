@@ -22,7 +22,7 @@ overrides_applied: 0
 | 1 | User can select today as the first (top) row of the Yesterday-column day selector | ✓ VERIFIED | `YesterdayColumn.tsx:588-589` — `const today = getTodayDate(); if (!dates.includes(today)) dates.unshift(today);` places today at index 0. The radio group maps `dayOptions` to selectable `DropdownMenuRadioItem`s (`:673-677`). |
 | 2 | The today row is tagged "<Weekday, D Month YYYY> · Today" | ✓ VERIFIED | `YesterdayColumn.tsx:593` — `if (date === today) return { date, label: \`${dateLabel} · Today\` };` where `dateLabel = formatDayLabel(date)` produces "Weekday, D Month YYYY". |
 | 3 | When today is the selected date, the column heading reads "Today" | ✓ VERIFIED | `YesterdayColumn.tsx:119` — `if (dateStr === getTodayDate()) return 'Today';` placed before the yesterday comparison in `getColumnHeading`. Heading rendered at `:664` via `getColumnHeading(yesterdayDate)`. |
-| 4 | Selecting today sets the date override and refetches recap data (no query wiring changes) | ✓ VERIFIED | `onValueChange` (`:671`) unchanged: `onSelectDate(v === resolvedYesterday ? null : v)`. Today is never `resolvedYesterday`, so it flows as a normal date override. Git range `bb528743..HEAD` touched only the two planned files — no StandupNotesPage edits. |
+| 4 | Selecting today sets the date override and refetches recap data (no query wiring changes) | ✓ VERIFIED | `onValueChange` (`:671`) unchanged: `onSelectDate(v === resolvedYesterday ? null : v)`. Today is never `resolvedYesterday`, so it flows as a normal date override. Git range `51455330..HEAD` touched only the two planned files — no StandupNotesPage edits. |
 | 5 | All date math uses local calendar components — never toISOString() | ✓ VERIFIED | `getTodayDate` delegates to `toLocalDateString(new Date())` (`standup-date.ts:106-108`). No `toISOString()` calls in either file — the 5 occurrences are doc-comment warnings only. |
 
 **Score:** 5/5 truths verified
@@ -50,7 +50,7 @@ overrides_applied: 0
 | Today heading | `grep "return 'Today'"` | match at L119 | ✓ PASS |
 | Today tag | `grep "· Today"` | match at L593 | ✓ PASS |
 | No toISOString calls | `grep toISOString` | doc comments only, zero calls | ✓ PASS |
-| Scope confined | `git diff --name-only bb528743..HEAD` | 2 planned files only | ✓ PASS |
+| Scope confined | `git diff --name-only 51455330..HEAD` | 2 planned files only | ✓ PASS |
 
 ### Requirements Coverage
 

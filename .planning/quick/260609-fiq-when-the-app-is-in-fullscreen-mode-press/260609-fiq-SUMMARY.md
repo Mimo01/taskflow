@@ -42,7 +42,7 @@ Added to `AppLayout` in `taskflow/src/main.tsx`:
 
 | # | Name | Commit | Status |
 |---|------|--------|--------|
-| 1 | Add fullscreen ESC guard to AppShell | d2007c4c | Done |
+| 1 | Add fullscreen ESC guard to AppShell | 2f11b01c | Done |
 
 ## Deviations from Plan
 
@@ -59,7 +59,7 @@ None. No new network endpoints, auth paths, or trust-boundary surface introduced
 ## Self-Check: PASSED
 
 - `taskflow/src/main.tsx` modified with `isFullscreenRef`, `syncFullscreen`, `handleEscCapture`, capture-phase listener and Tauri resize subscription.
-- Commit `d2007c4c` present in git log.
+- Commit `2f11b01c` present in git log.
 - `biome check ./src/main.tsx` — clean (no errors).
 - `tsc --noEmit` — no errors in `main.tsx`.
 - Pre-existing errors in `gitlab.ts`, `CommandPalette.tsx`, `BacklogPage.tsx` are unrelated to this change.

@@ -20,8 +20,8 @@ giving each row the sprint-board swimlane order: **key → priority → title**.
 
 | Commit | What |
 |--------|------|
-| `41132d74` | Initial: render PriorityIcon leading the summary cell |
-| `f686edd7` | UAT refinement: move icon to its own column; explicit-px wrapper; px-0 padding |
+| `da77a7f6` | Initial: render PriorityIcon leading the summary cell |
+| `aa3f0ac4` | UAT refinement: move icon to its own column; explicit-px wrapper; px-0 padding |
 
 ## UAT iterations (notable)
 

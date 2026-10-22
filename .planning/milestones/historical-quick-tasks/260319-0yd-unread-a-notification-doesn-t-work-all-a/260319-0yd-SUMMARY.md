@@ -39,7 +39,7 @@ markAsUnread store action added; popover onMarkRead callback now toggles based o
 - Changed `onMarkRead` callback from always calling `markAsRead` to a toggle: `readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id)`
 - Added `px-2` to "Mark all read" button className to match the All/Unread toggle button padding
 
-**Commit:** 25efc51
+**Commit:** a8586200
 
 ## Deviations from Plan
 

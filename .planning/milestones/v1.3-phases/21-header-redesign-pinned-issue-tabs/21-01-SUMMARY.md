@@ -61,8 +61,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Create pinned-tabs store and useListNavigation hook** - `27866cd` (feat)
-2. **Task 2: Add J/K/Enter shortcut entries to shortcuts registry** - `7810ce2` (feat)
+1. **Task 1: Create pinned-tabs store and useListNavigation hook** - `994d3ba0` (feat)
+2. **Task 2: Add J/K/Enter shortcut entries to shortcuts registry** - `eeacfb88` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/pinned-tabs.store.ts` - Zustand persist store for pinned issue keys

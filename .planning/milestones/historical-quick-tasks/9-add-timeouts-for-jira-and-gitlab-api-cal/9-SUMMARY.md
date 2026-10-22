@@ -60,7 +60,7 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1: Add 15s AbortController timeout to apiFetch** - `7859212` (feat)
+1. **Task 1: Add 15s AbortController timeout to apiFetch** - `db59942a` (feat)
 
 **Plan metadata:** TBD (docs: complete plan)
 
@@ -98,5 +98,5 @@ None - no external service configuration required.
 
 - `taskflow/src/lib/apiFetch.ts` — FOUND
 - `.planning/quick/9-add-timeouts-for-jira-and-gitlab-api-cal/9-SUMMARY.md` — FOUND
-- Commit `7859212` — FOUND
+- Commit `db59942a` — FOUND
 - `API_TIMEOUT_MS`, `AbortController`, `clearTimeout` (x2), `AbortSignal.any` — all present in implementation

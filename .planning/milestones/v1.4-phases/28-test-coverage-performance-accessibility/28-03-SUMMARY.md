@@ -56,8 +56,8 @@ completed: 2026-03-20
 
 ## Task Commits
 
-1. **Task 1: Store unit tests** - `d1dd92a` (test)
-2. **Task 2: Memoized unread count** - `676b9c0` (feat)
+1. **Task 1: Store unit tests** - `84df632f` (test)
+2. **Task 2: Memoized unread count** - `94b4944e` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/auth.store.test.ts` - Auth store state transition tests

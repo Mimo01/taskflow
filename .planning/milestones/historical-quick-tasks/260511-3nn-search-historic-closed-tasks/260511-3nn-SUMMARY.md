@@ -61,9 +61,9 @@ completed: 2026-05-11
 
 ## Task Commits
 
-1. **RED: Failing tests for searchJiraClosed** - `f3e2ff9` (test)
-2. **GREEN: searchJiraClosed implementation** - `01c053d` (feat)
-3. **Task 2: CommandPalette closed-task search** - `667662c` (feat)
+1. **RED: Failing tests for searchJiraClosed** - `b9db9cfa` (test)
+2. **GREEN: searchJiraClosed implementation** - `ceb03d80` (feat)
+3. **Task 2: CommandPalette closed-task search** - `ae4a2171` (feat)
 
 ## Files Created/Modified
 

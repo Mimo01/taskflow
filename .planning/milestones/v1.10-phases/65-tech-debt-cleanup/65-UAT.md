@@ -49,4 +49,4 @@ blocked: 0
       issue: "Missing p-4 wrapper div around ErrorState at line 953"
   missing:
     - "Wrap ErrorState in <div className=\"p-4\"> at call site"
-  fix_commit: "44cbb0a4"
+  fix_commit: "6914a0f1"

@@ -94,7 +94,7 @@ The `void sprintName;` at line 486 is an intentional no-op documented in comment
 
 ### Gaps Summary
 
-No gaps. All 6 observable truths are fully verified against the actual codebase. Both commits (702ff84, 932128e) exist in git history. TypeScript passes with zero errors. 14/14 tests pass. The implementation correctly uses the render-prop pattern (`ContextMenuTrigger render={<tr>}`) to avoid invalid HTML nesting, and the `RowCells` helper correctly deduplicates cell markup between the plain and context-menu render paths.
+No gaps. All 6 observable truths are fully verified against the actual codebase. Both commits (b4a9fe3a, 3ef5ad4f) exist in git history. TypeScript passes with zero errors. 14/14 tests pass. The implementation correctly uses the render-prop pattern (`ContextMenuTrigger render={<tr>}`) to avoid invalid HTML nesting, and the `RowCells` helper correctly deduplicates cell markup between the plain and context-menu render paths.
 
 ---
 

@@ -92,9 +92,9 @@ None. No TODO/FIXME/placeholder comments, no stub returns (`return null`, `retur
 
 | Commit  | Task                                 | Status  |
 |---------|--------------------------------------|---------|
-| 985b35f | Expand role type in stores           | EXISTS  |
-| 88ca19d | Add Tech Lead option to role pickers | EXISTS  |
-| 2f3fb6a | Add Tech Lead sidebar branch         | EXISTS  |
+| b8e5f858 | Expand role type in stores           | EXISTS  |
+| ab2beb3a | Add Tech Lead option to role pickers | EXISTS  |
+| 927ee126 | Add Tech Lead sidebar branch         | EXISTS  |
 
 ---
 

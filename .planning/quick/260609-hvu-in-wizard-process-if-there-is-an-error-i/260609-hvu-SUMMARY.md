@@ -34,8 +34,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add expandable error log panel to JiraStep | 4c8e0bea | taskflow/src/routes/onboarding/JiraStep.tsx |
-| 2 | Apply the same pattern to GitLabStep | 3a5eb7cb | taskflow/src/routes/onboarding/GitLabStep.tsx |
+| 1 | Add expandable error log panel to JiraStep | 25e6301d | taskflow/src/routes/onboarding/JiraStep.tsx |
+| 2 | Apply the same pattern to GitLabStep | d7cdb8f7 | taskflow/src/routes/onboarding/GitLabStep.tsx |
 
 ## What Was Built
 
@@ -67,7 +67,7 @@ None beyond the accepted T-hvu-01/T-hvu-02 items in the plan's threat model (loc
 
 ## Self-Check: PASSED
 
-- taskflow/src/routes/onboarding/JiraStep.tsx: modified and committed (4c8e0bea)
-- taskflow/src/routes/onboarding/GitLabStep.tsx: modified and committed (3a5eb7cb)
+- taskflow/src/routes/onboarding/JiraStep.tsx: modified and committed (25e6301d)
+- taskflow/src/routes/onboarding/GitLabStep.tsx: modified and committed (d7cdb8f7)
 - biome check ./src/routes/onboarding/: 0 errors
 - tsc errors in JiraStep/GitLabStep: 0 (pre-existing AboutDialog errors unrelated)

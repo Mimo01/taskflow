@@ -56,7 +56,7 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add status transition popover to FieldsSection** - `f6661f8` (feat)
+1. **Task 1: Add status transition popover to FieldsSection** - `3e168796` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` - Added status transition popover with useQuery for fetching transitions, dedicated useMutation with optimistic update/rollback, and Popover UI replacing static Badge

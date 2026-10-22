@@ -58,8 +58,8 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Create SidebarItemsList integration test (RED)** - `8c51939` (test)
-2. **Task 2: Add dnd-kit sortable to SidebarItemsList (GREEN)** - `65d46e1` (feat)
+1. **Task 1: Create SidebarItemsList integration test (RED)** - `0a753131` (test)
+2. **Task 2: Add dnd-kit sortable to SidebarItemsList (GREEN)** - `e6d3ca58` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/settings/SidebarItemsList.test.tsx` - Integration tests for drag handle rendering, checkbox toggle, section headers, row layout

@@ -43,8 +43,8 @@ All three components already had `cn` imported — no new dependencies added.
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add strikethrough to done issue keys in sprint board components | 2c3aa84 | StoryHeaderRow.tsx, TaskCard.tsx |
-| 2 | Add strikethrough to done issue keys in backlog rows | 811fe6a | BacklogRow.tsx |
+| 1 | Add strikethrough to done issue keys in sprint board components | f0abcba6 | StoryHeaderRow.tsx, TaskCard.tsx |
+| 2 | Add strikethrough to done issue keys in backlog rows | 8c8e8eae | BacklogRow.tsx |
 
 ## Decisions Made
 
@@ -63,6 +63,6 @@ None.
 - `taskflow/src/routes/dashboard/StoryHeaderRow.tsx` — modified, contains `line-through`
 - `taskflow/src/routes/dashboard/TaskCard.tsx` — modified, contains `line-through`
 - `taskflow/src/routes/dashboard/BacklogRow.tsx` — modified, contains `line-through`
-- Commit 2c3aa84 exists (Task 1)
-- Commit 811fe6a exists (Task 2)
+- Commit f0abcba6 exists (Task 1)
+- Commit 8c8e8eae exists (Task 2)
 - TypeScript: no errors (`npx tsc --noEmit` clean)

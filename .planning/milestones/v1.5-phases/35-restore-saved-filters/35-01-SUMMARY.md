@@ -61,8 +61,8 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Add JiraSavedFilter type and create filter CRUD service** - `c2bb780` (feat)
-2. **Task 2: Create saved-filter store and filter service tests** - `f1593ec` (feat)
+1. **Task 1: Add JiraSavedFilter type and create filter CRUD service** - `419da7e0` (feat)
+2. **Task 2: Create saved-filter store and filter service tests** - `9a059d0d` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/types.ts` - Added JiraSavedFilter interface

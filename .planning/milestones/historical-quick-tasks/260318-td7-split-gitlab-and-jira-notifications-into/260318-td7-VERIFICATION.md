@@ -76,8 +76,8 @@ No anti-patterns detected in the modified files. No TODOs, placeholder returns, 
 ### Commit Verification
 
 Both task commits confirmed in git log:
-- `dceea4e` — Task 1: source-specific selectors + source-filtered NotificationPopover
-- `a7ba1b5` — Task 2: dual-icon TopBar + dual popover state in main.tsx
+- `a0217c1a` — Task 1: source-specific selectors + source-filtered NotificationPopover
+- `dba02366` — Task 2: dual-icon TopBar + dual popover state in main.tsx
 
 ### Human Verification Required
 

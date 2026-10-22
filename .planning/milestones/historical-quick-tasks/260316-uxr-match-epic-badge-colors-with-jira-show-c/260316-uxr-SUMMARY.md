@@ -71,33 +71,33 @@ Epic badges across the app now reflect the actual color assigned to each epic in
 - **Issue:** Adding `epicColors` to `BacklogViewData` interface broke all BacklogPage test mock data
 - **Fix:** Added `epicColors: new Map()` to all test fixture objects
 - **Files modified:** `BacklogPage.test.tsx`
-- **Commit:** 1cb51a6
+- **Commit:** dae3c510
 
 **2. [Rule 1 - Bug] fetchIssueDetail not requesting epicColorFieldKey**
 - **Found during:** Task 3 (checkpoint feedback)
 - **Issue:** Epic detail pages showed no color because fetchIssueDetail did not include epicColorFieldKey in its API field list
 - **Fix:** Added epicColorFieldKey to fetchIssueDetail customFields parameter and both callers
 - **Files modified:** `jira.ts`, `IssueDetailPage.tsx`, `IssueDetailSheet.tsx`
-- **Commit:** 42f5d48
+- **Commit:** 3153baae
 
 **3. [Rule 1 - Bug] Epic color accent bar not showing for epics without Jira color**
 - **Found during:** Task 3 (checkpoint feedback)
 - **Issue:** Accent bar and color swatch were gated on `epicColorValue` being truthy, hiding them for epics using fallback colors
 - **Fix:** Changed gate to `isEpic` so hash fallback colors always render
 - **Files modified:** `IssueDetailContent.tsx`, `IssueDetailSidebar.tsx`
-- **Commit:** 42f5d48
+- **Commit:** 3153baae
 
 **4. [Rule 1 - Bug] Epics page color indicator too subtle**
 - **Found during:** Task 3 (checkpoint feedback)
 - **Issue:** Small 2.5x2.5 color dot was barely visible
 - **Fix:** Replaced with colored left border bar + colored name badge pill
 - **Files modified:** `EpicsPage.tsx`
-- **Commit:** 42f5d48
+- **Commit:** 3153baae
 
 ## Commits
 
 | # | Hash | Message |
 |---|------|---------|
-| 1 | 1cb51a6 | feat(quick-260316-uxr): discover epic color field and add color mapping utility |
-| 2 | 3a3c189 | feat(quick-260316-uxr): apply real Jira epic colors to all badge locations |
-| 3 | 42f5d48 | fix(quick-260316-uxr): fix epic color not showing on detail + make epics page color prominent |
+| 1 | dae3c510 | feat(quick-260316-uxr): discover epic color field and add color mapping utility |
+| 2 | 7ba2e331 | feat(quick-260316-uxr): apply real Jira epic colors to all badge locations |
+| 3 | 3153baae | fix(quick-260316-uxr): fix epic color not showing on detail + make epics page color prominent |

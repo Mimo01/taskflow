@@ -31,8 +31,8 @@ wizard walkthrough to a human (Continue-gating D-01..D-04, StepIndicator checkma
 Settings write-back). This re-verification resolves those items against the **current**
 code and test suite.
 
-**Wizard-step-count context (resolved):** Phase 66 (commit `b45bdad9`) collapsed the
-wizard to 4 steps by deleting the Role step. Phase 68 (commit `7eae40f1`) then inserted
+**Wizard-step-count context (resolved):** Phase 66 (commit `3869accc`) collapsed the
+wizard to 4 steps by deleting the Role step. Phase 68 (commit `3dee9951`) then inserted
 the Integrations step, returning the wizard to 5 steps. The current
 `OnboardingWizard.tsx` correctly shows `['Welcome', 'Jira', 'GitLab', 'Integrations',
 'Done']` with `IntegrationsStep` at index 3 and `DoneStep` at index 4. No `RoleStep`

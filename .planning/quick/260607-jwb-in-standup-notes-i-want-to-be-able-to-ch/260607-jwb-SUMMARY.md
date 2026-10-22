@@ -34,9 +34,9 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add TZ-safe buildRecentDayOptions helper + unit test | 6d0b08bc | standup-date.ts, standup-date.test.ts |
-| 2 | Hold dateOverride state in StandupNotesPage and thread new props | 882aae3f | StandupNotesPage.tsx |
-| 3 | Add caret-on-hover dropdown day picker to YesterdayColumn heading | 652dc504 | YesterdayColumn.tsx, YesterdayColumn.tempo-disabled.test.tsx |
+| 1 | Add TZ-safe buildRecentDayOptions helper + unit test | 7b29fd63 | standup-date.ts, standup-date.test.ts |
+| 2 | Hold dateOverride state in StandupNotesPage and thread new props | 9841abc6 | StandupNotesPage.tsx |
+| 3 | Add caret-on-hover dropdown day picker to YesterdayColumn heading | faa00857 | YesterdayColumn.tsx, YesterdayColumn.tempo-disabled.test.tsx |
 
 ## What Was Built
 
@@ -81,4 +81,4 @@ No new network surface introduced. Override values come from buildRecentDayOptio
 
 ## Self-Check: PASSED
 
-All three commits exist (6d0b08bc, 882aae3f, 652dc504). All five modified files confirmed present and type-clean.
+All three commits exist (7b29fd63, 9841abc6, faa00857). All five modified files confirmed present and type-clean.

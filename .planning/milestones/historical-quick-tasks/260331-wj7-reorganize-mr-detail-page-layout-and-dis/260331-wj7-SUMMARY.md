@@ -22,5 +22,5 @@
 - **New function**: `fetchMRChanges()` — fetches MR changes from `/api/v4/projects/:id/merge_requests/:iid/changes`
 
 ## Commits
-- `ec0358e`: Restructure MR detail page header, sections, and sidebar width
+- `5e829f43`: Restructure MR detail page header, sections, and sidebar width
 - (inline fix): System note markdown rendering, diff code preview, linked Jira to sidebar

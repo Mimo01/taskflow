@@ -66,9 +66,9 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **TDD RED: Failing tests for ADF conversion and clickable chip** - `5e7b473` (test)
-2. **Task 1: adfToPlainText utility + Jira description fix + GitLab chip fix** - `0d3873c` (feat)
-3. **Auto-fix: Remove unused React import from test** - `3da008f` (fix)
+1. **TDD RED: Failing tests for ADF conversion and clickable chip** - `acc70b36` (test)
+2. **Task 1: adfToPlainText utility + Jira description fix + GitLab chip fix** - `940557a9` (feat)
+3. **Auto-fix: Remove unused React import from test** - `002b56f5` (fix)
 
 **Plan metadata:** (final docs commit — see below)
 
@@ -94,7 +94,7 @@ _Note: Task 1 and Task 2 changes were applied to the same file in one editing se
 - **Fix:** Removed the unused import line
 - **Files modified:** `taskflow/src/components/app/SearchResultPanel.test.tsx`
 - **Verification:** `npx tsc --noEmit` shows no SearchResultPanel errors; 21 tests still pass
-- **Committed in:** `3da008f`
+- **Committed in:** `002b56f5`
 
 ---
 

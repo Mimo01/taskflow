@@ -36,9 +36,9 @@ Anchor `onClick` now calls `tryInternalPath` first; uses `navigate()` on a hit, 
 
 | Hash | Description |
 |------|-------------|
-| 45e315f3 | feat: add pure tryInternalPath helper with unit tests |
-| 6509b815 | feat: wire tryInternalPath into WikiRenderer anchor handler |
-| fdf7871d | fix: handle Jira/GitLab context paths in tryInternalPath |
-| ad26e2d9 | fix: wire tryInternalPath into DiscussionThreads anchor handler |
-| 50b61e31 | feat: map Jira fixforversion URLs to in-app releases route |
-| 9e93b8b6 | fix: resolve merge conflict in WikiRenderer.test.tsx |
+| 6cbfc0f1 | feat: add pure tryInternalPath helper with unit tests |
+| 8017607d | feat: wire tryInternalPath into WikiRenderer anchor handler |
+| 7b570861 | fix: handle Jira/GitLab context paths in tryInternalPath |
+| e07ec85f | fix: wire tryInternalPath into DiscussionThreads anchor handler |
+| 8e73fa19 | feat: map Jira fixforversion URLs to in-app releases route |
+| 3c28305e | fix: resolve merge conflict in WikiRenderer.test.tsx |

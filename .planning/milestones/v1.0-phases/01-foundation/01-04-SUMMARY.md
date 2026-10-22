@@ -82,8 +82,8 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: Fix TypeScript compile errors in 4 files** - `18eb980` (fix)
-2. **Task 2: Wire project-switch cache invalidation in TokenSection** - `9eb3b78` (feat)
+1. **Task 1: Fix TypeScript compile errors in 4 files** - `f3150cbc` (fix)
+2. **Task 2: Wire project-switch cache invalidation in TokenSection** - `978dd769` (feat)
 
 ## Files Created/Modified
 
@@ -110,7 +110,7 @@ Each task was committed atomically:
 - **Fix:** Removed `baseUrl` from the TokenBlock props interface and all three call sites
 - **Files modified:** `taskflow/src/routes/settings/TokenSection.tsx`
 - **Verification:** `tsc --noEmit` exits 0
-- **Committed in:** `9eb3b78` (Task 2 commit)
+- **Committed in:** `978dd769` (Task 2 commit)
 
 **2. [Rule 1 - Bug] Updated AUTH-05 test to match new readSecret-on-mount behavior**
 - **Found during:** Task 2 verification (vitest run)
@@ -118,7 +118,7 @@ Each task was committed atomically:
 - **Fix:** Updated test to assert that `readSecret` IS called with `'jira-pat'` on mount (for project list loading), and that no eye-toggle interaction is needed to trigger it
 - **Files modified:** `taskflow/src/routes/settings/Settings.test.tsx`
 - **Verification:** All 42 tests pass
-- **Committed in:** `9eb3b78` (Task 2 commit)
+- **Committed in:** `978dd769` (Task 2 commit)
 
 ---
 

@@ -63,8 +63,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1: Clear stale numeric project IDs on store rehydration** - `31d66a5` (fix)
-2. **Task 2: Rename handleProjectChange parameter + verify build** - `cee3508` (fix)
+1. **Task 1: Clear stale numeric project IDs on store rehydration** - `a0187c28` (fix)
+2. **Task 2: Rename handleProjectChange parameter + verify build** - `6ed9f234` (fix)
 
 **Plan metadata:** _(docs commit to follow)_
 

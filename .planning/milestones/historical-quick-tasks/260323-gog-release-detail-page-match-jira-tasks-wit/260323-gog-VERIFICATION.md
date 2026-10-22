@@ -81,7 +81,7 @@ Step 7b: SKIPPED — Tauri desktop app; no runnable HTTP entry points to curl/in
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
 | `taskflow/src/routes/dashboard/OverdueBadge.test.ts` | 1 | `TS6133: 'vi' declared but never read` | Info | Pre-existing; unrelated to this task |
-| `taskflow/src/services/jira.ts` | 1757 | `TS6133: '_sprintIdsWithIssues' declared but never read` | Info | Pre-existing; unrelated to this task (commit 33ea39c predates task commits d3bdc41/214ac82) |
+| `taskflow/src/services/jira.ts` | 1757 | `TS6133: '_sprintIdsWithIssues' declared but never read` | Info | Pre-existing; unrelated to this task (commit e61c0a2b predates task commits 8a88740d/fd76ee67) |
 
 No blockers or warnings introduced by this task. The two TypeScript unused-variable warnings exist in files not touched by this task and predate the task commits by several weeks.
 

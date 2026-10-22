@@ -60,7 +60,7 @@ reasoning_checkpoint:
 - timestamp: 2026-09-22
   checked: jira2md/index.js to_markdown() rule order and regex (node_modules/jira2md/index.js line 65)
   found: "Strikethrough rule `.replace(/(\\s+)-(\\S+.*?\\S)-(\\s+)/g, '\$1~~\$2~~\$3')` runs AFTER bold/italic (lines 51/53) and REQUIRES whitespace immediately before the opening `-` and after the closing `-`. In `*1. -TEXT-*`, the closing `-` is immediately followed by `*` (the bold delimiter), never whitespace — so this rule can never match regardless of bold-pairing correctness. This is a pre-existing jira2md limitation, not something introduced by the round-1 fix; round-1 only made the bold *boundary* correct, it does not touch strikethrough."
-  implication: root cause of round 2 is jira2md's whitespace-only boundary requirement for strikethrough colliding with adjacent bold/italic delimiters — the same boundary-adjacency category of bug already fixed once for the narrower `[-text-|url]` named-link-label case (commit a5d78151), never generalized to bold/italic-adjacent strikethrough in prose.
+  implication: root cause of round 2 is jira2md's whitespace-only boundary requirement for strikethrough colliding with adjacent bold/italic delimiters — the same boundary-adjacency category of bug already fixed once for the narrower `[-text-|url]` named-link-label case (commit 55fe6995), never generalized to bold/italic-adjacent strikethrough in prose.
 - timestamp: 2026-09-22
   checked: scratch node repro of first-draft fix regex `-(\S+[^\n]*?\S)-` with `*`/`_` added as valid boundary chars
   found: "Against `*1. -TEXT-* niečo *Letná Akcia Prima-*`, the naive regex (content class `\\S`) greedily consumed through the first `*` delimiter and the second dash-wrapped span too, producing `<del>TEXT-* niečo *Letná Akcia Prima</del>` — because `\\S` includes `*`/`_` themselves, so the greedy `\\S+` component doesn't stop at a bold delimiter. Reproduces the exact same greedy-pairing failure mode the round-1 fix addressed, now inside the new strikethrough regex."
@@ -116,7 +116,7 @@ root_cause: |
   whitespace, so jira2md's rule never matches and the dashes render as literal characters instead
   of producing a struck-through span. This is the same "boundary character isn't whitespace"
   defect category already fixed once for the narrower `[-text-|url]` named-link-label case
-  (commit a5d78151), never generalized to bold/italic-adjacent strikethrough in ordinary prose.
+  (commit 55fe6995), never generalized to bold/italic-adjacent strikethrough in ordinary prose.
 fix: |
   ROUND 1 (unchanged): Generalized the non-greedy, link-protected per-line bold/italic conversion
   from table rows only to ALL lines in normalizeTableCellInlineFormatting(), converting

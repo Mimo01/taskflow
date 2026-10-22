@@ -18,7 +18,7 @@ expected: Pressing Cmd+/ opens the keyboard shortcuts panel
 actual: Nothing happens — handler never fires
 errors: None (silent failure — no console error)
 reproduction: Press Cmd+/ anywhere in the Tauri app after onboarding
-started: After commit 8e37ec6 changed hotkey from "?" to "mod+/"
+started: After commit aaf97cbb changed hotkey from "?" to "mod+/"
 
 ## Eliminated
 

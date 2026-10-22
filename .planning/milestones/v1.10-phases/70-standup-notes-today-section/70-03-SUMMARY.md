@@ -31,7 +31,7 @@ key_files:
   removed:
     - taskflow/src/routes/standup-notes/TodayPinnedSection.tsx (Pinned section dropped per user)
 decisions:
-  - "Wire-up: TodayColumnPlaceholder replaced with <TodayColumn onIssueClick={onIssueClick} /> in StandupNotesPage right column (b35c82c2)"
+  - "Wire-up: TodayColumnPlaceholder replaced with <TodayColumn onIssueClick={onIssueClick} /> in StandupNotesPage right column (a6cf747b)"
   - "Grouped display replaces locked D-04 leaf-only rule: parent stories shown with my assigned subtasks nested; the old rule hid in-progress stories that had subtasks (the 'only one story' bug)"
   - "Sprint query switched to assignedToMe=false (whole sprint, key 'sprint-board-today-full') so stories where I only own a subtask are visible; my-assignment grouping is client-side"
   - "Done items dropped up front in filterSprintItems — done parents and done subtasks never show; an active subtask of a done parent resurfaces as a standalone row"
@@ -55,9 +55,9 @@ Wired the real `TodayColumn` into `StandupNotesPage` (replacing the placeholder)
 
 | Task | Name | Key commit(s) |
 |------|------|---------------|
-| 1 | Replace TodayColumnPlaceholder with TodayColumn in StandupNotesPage | b35c82c2 |
+| 1 | Replace TodayColumnPlaceholder with TodayColumn in StandupNotesPage | a6cf747b |
 | 2 | Full-suite + production-build phase gate | (verification gate — no new files) |
-| 3 | Human-verify checkpoint (live data UAT) → refinements below | bc3ce716 … fca70d61 |
+| 3 | Human-verify checkpoint (live data UAT) → refinements below | fc51c819 … 4f2fc0a9 |
 
 ## What Was Built / Changed
 

@@ -48,7 +48,7 @@ Full Tempo Worklog Viewer page replacing the Plan 62-01 stub: day-column pivot t
 
 ## What Was Built
 
-### Task 1: WorklogsPage.tsx — Full Implementation (commit 3f01e367)
+### Task 1: WorklogsPage.tsx — Full Implementation (commit 3600824b)
 
 Overwrote the Plan 62-01 stub (`WorklogsPage.tsx`) with a 340-line production component:
 
@@ -73,7 +73,7 @@ Overwrote the Plan 62-01 stub (`WorklogsPage.tsx`) with a 340-line production co
 
 **State branches:** `isError && !data` → `<ErrorState>`; `isLoading && !data` → skeleton grid (5 rows × days.length cols); `data?.length === 0` → `<EmptyState icon={Clock}>`; else → pivot table
 
-### Task 2: WorklogsPage.test.tsx — 17 Tests (commit 43682341)
+### Task 2: WorklogsPage.test.tsx — 17 Tests (commit 2345159c)
 
 Created `WorklogsPage.test.tsx` with module-level mutable mock pattern:
 
@@ -124,7 +124,7 @@ Full suite: 1298 passed — the 2 failures in `jira.test.ts` (`discoverCustomFie
 - **Fix (a):** Changed to `getAllByText('Total').length >= 1` check + direct `querySelectorAll('thead th')` for structure test
 - **Fix (b):** Scoped all dropdown assertions to `container.querySelector('ul')` → iterating `querySelectorAll('button')` inside the dropdown `<ul>` only
 - **Files modified:** `taskflow/src/routes/worklogs/WorklogsPage.test.tsx`
-- **Commit:** 43682341
+- **Commit:** 2345159c
 
 ## Known Stubs
 
@@ -134,11 +134,11 @@ None. The Plan 62-01 stub string "Plan 62-02 will implement this view." has been
 
 None. No new network endpoints, auth paths, file access, or schema changes introduced. All network calls go through `fetchWorklogs` (Phase 61 service, already in Plan 62-02 threat model T-62-04 through T-62-08).
 
-### Task 3: Settings Store v21 Migration — sidebarItems fix (commit acc527cf)
+### Task 3: Settings Store v21 Migration — sidebarItems fix (commit e8b765b3)
 
 Human smoke-test at the Task 3 checkpoint revealed that toggling `tempoEnabled` in Settings had no visible effect on the sidebar. Root cause: existing users have a persisted `sidebarItems` array in Tauri store that was saved before the `worklogs` nav item existed. `visibleIds.has('worklogs')` was therefore always `false`, regardless of `tempoEnabled`.
 
-**Fix applied on main (`acc527cf`):**
+**Fix applied on main (`e8b765b3`):**
 
 - Bumped settings store version 20 → 21
 - Added `appendWorklogsItemIfMissing(items)` helper (mirrors the `appendAioItemIfMissing` pattern from version 16 migration)
@@ -152,9 +152,9 @@ After the migration, new and existing users both see the Worklogs sidebar item, 
 - `taskflow/src/routes/worklogs/WorklogsPage.tsx` — FOUND, 340+ lines, no stub string
 - `taskflow/src/routes/worklogs/WorklogsPage.test.tsx` — FOUND, 17/17 tests pass
 - `taskflow/src/stores/settings.store.ts` — FOUND, v21 migration with appendWorklogsItemIfMissing
-- Commit 3f01e367 — FOUND (feat: WorklogsPage implementation)
-- Commit 43682341 — FOUND (test: WorklogsPage tests)
-- Commit acc527cf — FOUND (fix: settings store v21 sidebarItems migration)
+- Commit 3600824b — FOUND (feat: WorklogsPage implementation)
+- Commit 2345159c — FOUND (test: WorklogsPage tests)
+- Commit e8b765b3 — FOUND (fix: settings store v21 sidebarItems migration)
 - `grep -c "fetchWorklogs" WorklogsPage.tsx` → 2 (queryFn + import)
 - `grep -c "tempoEnabled" WorklogsPage.tsx` → 2 (selector + enabled guard)
 - `grep "jiraToken" WorklogsPage.tsx | grep -c "queryKey"` → 0 (token not in key)

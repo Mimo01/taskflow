@@ -62,9 +62,9 @@ completed: 2026-04-05
 
 ## Task Commits
 
-1. **Task 1: Design flow motif SVG variants** - `dc56d21` (feat)
-2. **Task 3: Apply chosen variant to all icon surfaces** - `77e66c7` (feat)
-3. **Cleanup: Remove variant temp files** - `4b7672f` (chore)
+1. **Task 1: Design flow motif SVG variants** - `c7a6e7a6` (feat)
+2. **Task 3: Apply chosen variant to all icon surfaces** - `e54724eb` (feat)
+3. **Cleanup: Remove variant temp files** - `d535ca80` (chore)
 
 ## Files Created/Modified
 - `taskflow/app-icon-source.svg` - 1024x1024 source SVG with new flow motif logo

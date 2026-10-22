@@ -126,7 +126,7 @@ _Depth: quick_
 
 ---
 
-## Disposition (orchestrator, fixed in 01f76114)
+## Disposition (orchestrator, fixed in e578d1db)
 
 Findings verified against the code; regression tests for WR-01..04 proven to fail on the pre-fix code.
 

@@ -40,7 +40,7 @@ completed: 2026-03-16
 
 ## Task Commits
 
-1. **Task 1: Add sticky positioning to active sprint section header** - `0dd4da6` (feat)
+1. **Task 1: Add sticky positioning to active sprint section header** - `59f13160` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/BacklogPage.tsx` - Added isSticky parameter to renderSection, conditional sticky/opaque/shadow classes for active sprint header

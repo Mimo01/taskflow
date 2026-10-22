@@ -30,7 +30,7 @@ Consistent badge styling for unestimated issues (? in bordered badge) and whites
 
 ### Task 1: Show ? badge for null story points and prevent key wrapping
 
-**Commit:** `0bbcc51`
+**Commit:** `4e632195`
 
 **BacklogRow.tsx:**
 - Replaced `<span className="text-xs text-muted-foreground">--</span>` with a badge matching the estimated-points style: `inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground` showing `?`

@@ -69,7 +69,7 @@ Four targeted changes made to the component:
 
 | Hash | Type | Description |
 |------|------|-------------|
-| d2bb4ab | feat | wire Sidebar.tsx with useResizable drag-to-resize |
+| e8be5b5e | feat | wire Sidebar.tsx with useResizable drag-to-resize |
 
 ## Deviations from Plan
 
@@ -77,7 +77,7 @@ None — plan executed exactly as written. All five changes (import, selectors, 
 
 ### Out-of-scope pre-existing failure logged
 
-**BacklogPage.test.tsx — BACK-02** (`moving an issue to a sprint invalidates jira-backlog-sprint-stories cache key`) fails on the base commit (`0610f0e`) before any changes in this plan. Confirmed by stashing changes and running the test. This failure is unrelated to Sidebar.tsx and is outside the scope of this plan per the deviation rules scope boundary.
+**BacklogPage.test.tsx — BACK-02** (`moving an issue to a sprint invalidates jira-backlog-sprint-stories cache key`) fails on the base commit (`11486561`) before any changes in this plan. Confirmed by stashing changes and running the test. This failure is unrelated to Sidebar.tsx and is outside the scope of this plan per the deviation rules scope boundary.
 
 ## Known Stubs
 
@@ -93,7 +93,7 @@ Files modified:
 - taskflow/src/components/app/Sidebar.tsx — FOUND
 
 Commits:
-- d2bb4ab — FOUND
+- e8be5b5e — FOUND
 
 Done criteria:
 - `style={{ width: sidebarCollapsed ? 64 : width }}` — 1 match

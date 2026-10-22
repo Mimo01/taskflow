@@ -31,9 +31,9 @@ Seven keyboard shortcuts (Cmd+Shift+H/T/U/E/M/R/W) wired end-to-end in shortcuts
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Register new nav shortcuts in shortcuts.ts | 05009404 | taskflow/src/lib/shortcuts.ts |
-| 2 | Wire shortcuts in main.tsx (useHotkeys + Tauri listeners) | 1885725f | taskflow/src/main.tsx |
-| 3 | Add Go menu items and event routing in lib.rs | c21c5613 | taskflow/src-tauri/src/lib.rs |
+| 1 | Register new nav shortcuts in shortcuts.ts | 83db9f17 | taskflow/src/lib/shortcuts.ts |
+| 2 | Wire shortcuts in main.tsx (useHotkeys + Tauri listeners) | 5bf18d0c | taskflow/src/main.tsx |
+| 3 | Add Go menu items and event routing in lib.rs | 09695e00 | taskflow/src-tauri/src/lib.rs |
 
 ## What Was Built
 
@@ -64,4 +64,4 @@ None. All routes are internal client-side navigation; no user-supplied data in p
 - taskflow/src/lib/shortcuts.ts: contains all 7 nav-* IDs with navMeta
 - taskflow/src/main.tsx: contains 7 useHotkeys + 7 listen entries
 - taskflow/src-tauri/src/lib.rs: contains 7 MenuItemBuilder declarations + restructured Go menu + extended match arm
-- Commits: 05009404, 1885725f, c21c5613 all verified in git log
+- Commits: 83db9f17, 5bf18d0c, 09695e00 all verified in git log

@@ -48,12 +48,12 @@ Atomically deleted the entire widget-based dashboard system (11 widget component
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Atomic widget + store deletion + index.tsx stub | 4b07cd23 | 20 files (18 deleted, 2 modified) |
-| 2 | Update widget-aware tests | f5fd3c34 | 2 files modified |
+| 1 | Atomic widget + store deletion + index.tsx stub | 0440e168 | 20 files (18 deleted, 2 modified) |
+| 2 | Update widget-aware tests | a410dbbc | 2 files modified |
 
 ## What Was Built
 
-### Task 1: Atomic widget system + store deletion (4b07cd23)
+### Task 1: Atomic widget system + store deletion (0440e168)
 
 - Replaced `taskflow/src/routes/dashboard/index.tsx` (118 lines) with exact 3-line stub: `export default function Dashboard() { return <div />; }` — no imports, no props, no logic (D-01)
 - Removed from `settings.store.ts`: biome-ignore comment, registry import, `DashboardLayoutItem` interface, `dashboardLayout` field, `setDashboardLayout`/`addDashboardWidget`/`removeDashboardWidget`/`updateWidgetConfig` action implementations, initial state value, and the `dashboardLayout` half of `applyPreset`
@@ -63,7 +63,7 @@ Atomically deleted the entire widget-based dashboard system (11 widget component
 - Deleted 18 files: all 11 widget components + registry.ts in `widgets/`, plus WidgetGrid/Card/Picker/WorkloadTab/WorkloadSkeleton/WorkloadTab.test
 - Removed `WorkloadTab` lazy import and `/workload` route from `routes.tsx` (Rule 1 auto-fix — leaked consumer of deleted file)
 
-### Task 2: Test file cleanup (f5fd3c34)
+### Task 2: Test file cleanup (a410dbbc)
 
 - Removed registry import block (`DEV_DASHBOARD_PRESET`, `PM_DASHBOARD_PRESET`, `WIDGET_REGISTRY`) from `settings.store.test.ts`
 - Deleted entire `describe('settings.store — layout customization (Phase 34)')` block (132 lines, 8 test cases) from `settings.store.test.ts`
@@ -80,7 +80,7 @@ Atomically deleted the entire widget-based dashboard system (11 widget component
 - **Issue:** `routes.tsx` still imported `const WorkloadTab = lazy(() => import('./dashboard/WorkloadTab'))` and had `{ path: '/workload', element: withLazy(WorkloadTab) }` — both reference the deleted WorkloadTab.tsx
 - **Fix:** Removed the lazy import declaration and the `/workload` route entry from `routes.tsx` in the same atomic commit as the deletion (D-04 compliant)
 - **Files modified:** `taskflow/src/routes/routes.tsx`
-- **Commit:** 4b07cd23 (included in the atomic Task 1 commit)
+- **Commit:** 0440e168 (included in the atomic Task 1 commit)
 
 ## Verification Results
 
@@ -108,6 +108,6 @@ No new network endpoints, auth paths, file access patterns, or schema changes in
 | SUMMARY.md exists | FOUND |
 | index.tsx stub exists | FOUND |
 | settings.store.ts exists | FOUND |
-| Task 1 commit 4b07cd23 | FOUND |
-| Task 2 commit f5fd3c34 | FOUND |
+| Task 1 commit 0440e168 | FOUND |
+| Task 2 commit a410dbbc | FOUND |
 | widgets/ directory absent | PASS |

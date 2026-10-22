@@ -67,8 +67,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1: Implement releases sort in useMemo** - `57b46dd` (feat)
-2. **Task 2: Implement Released/Unreleased/timing badges** - `1187fba` (feat)
+1. **Task 1: Implement releases sort in useMemo** - `2acdd510` (feat)
+2. **Task 2: Implement Released/Unreleased/timing badges** - `94e8bff9` (feat)
 
 **Plan metadata:** _(to be added by final commit)_ (docs: complete plan)
 

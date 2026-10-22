@@ -33,7 +33,7 @@ Replaced four stacked per-source EmptyState cards (~160px each) in YesterdayColu
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Replace per-source EmptyState blocks with CompactEmptyNotice | 5acef435 | YesterdayColumn.tsx |
+| 1 | Replace per-source EmptyState blocks with CompactEmptyNotice | d40d6016 | YesterdayColumn.tsx |
 
 ## What Was Built
 
@@ -83,7 +83,7 @@ None.
 ## Self-Check: PASSED
 
 - [x] `taskflow/src/routes/standup-notes/YesterdayColumn.tsx` modified and committed
-- [x] Commit 5acef435 exists in git log
+- [x] Commit d40d6016 exists in git log
 - [x] TypeScript passes with no new errors
 - [x] CompactEmptyNotice component present in file
 - [x] Full-column EmptyState unchanged

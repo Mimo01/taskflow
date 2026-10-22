@@ -73,8 +73,8 @@ completed: 2026-03-14
 
 ## Task Commits
 
-1. **Task 1: Add onClick to TaskCard and onIssueClick to TaskRow** - `78c040f` (feat)
-2. **Task 2: Wire IssueDetailSheet into SprintBoardTab and MyTasksTab** - `54b44bb` (feat)
+1. **Task 1: Add onClick to TaskCard and onIssueClick to TaskRow** - `b7f019c3` (feat)
+2. **Task 2: Wire IssueDetailSheet into SprintBoardTab and MyTasksTab** - `1a80e720` (feat)
 
 ## Files Created/Modified
 

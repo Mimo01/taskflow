@@ -58,8 +58,8 @@ completed: 2026-08-04
 
 Each task was committed atomically:
 
-1. **Task 1: Add extractDeploymentPackage pure helper with tests** - `8af58f25` (test)
-2. **Task 2: Render Deployment package row under Fix Versions and type the field** - `e5efa506` (feat)
+1. **Task 1: Add extractDeploymentPackage pure helper with tests** - `172f8fab` (test)
+2. **Task 2: Render Deployment package row under Fix Versions and type the field** - `e8fff5f5` (feat)
 
 **Plan metadata:** not yet committed (orchestrator handles docs commit; also Task 3 checkpoint pending)
 
@@ -122,8 +122,8 @@ No other blockers — Tasks 1 and 2 are fully committed, tested (`npx vitest run
 - FOUND: taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx (contains extractDeploymentPackage, MetaRow, data-testid="deployment-package-value")
 - FOUND: taskflow/src/routes/dashboard/issue-detail/FieldsSection.test.tsx (contains describe('extractDeploymentPackage'))
 - FOUND: taskflow/src/services/jira.ts (contains customfield_15725)
-- FOUND commit 8af58f25 (test: add extractDeploymentPackage + tests)
-- FOUND commit e5efa506 (feat: render Deployment package row + type field)
+- FOUND commit 172f8fab (test: add extractDeploymentPackage + tests)
+- FOUND commit e8fff5f5 (feat: render Deployment package row + type field)
 
 ---
 *Plan: quick-260804-jhf*

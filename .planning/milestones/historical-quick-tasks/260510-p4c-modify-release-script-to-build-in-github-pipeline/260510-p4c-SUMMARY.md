@@ -43,12 +43,12 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Simplify release.sh to version-bump-and-push-tag only | 446af80 | taskflow/scripts/release.sh |
-| 2 | Extend CI workflow with macOS build, release creation, README update, and unified latest.json | 822c206 | .github/workflows/release-cross-platform.yml |
+| 1 | Simplify release.sh to version-bump-and-push-tag only | 3882ba32 | taskflow/scripts/release.sh |
+| 2 | Extend CI workflow with macOS build, release creation, README update, and unified latest.json | 0266b6a4 | .github/workflows/release-cross-platform.yml |
 
 ## What Was Done
 
-**Task 1 — release.sh (446af80)**
+**Task 1 — release.sh (3882ba32)**
 
 Stripped the script from ~500 lines to 112 lines. Kept only:
 - Phase A: pre-flight checks (semver format, clean working tree, git remote exists). Removed token and signing key detection entirely.
@@ -58,7 +58,7 @@ Stripped the script from ~500 lines to 112 lines. Kept only:
 
 All of Phases C–G removed: local macOS universal build, Linux Docker build, GitHub release creation via curl, artifact upload, latest.json generation, README update.
 
-**Task 2 — CI workflow (822c206)**
+**Task 2 — CI workflow (0266b6a4)**
 
 Extended `.github/workflows/release-cross-platform.yml` with:
 
@@ -93,7 +93,7 @@ None — plan executed exactly as written.
 
 ## Self-Check: PASSED
 
-- `446af80` exists in git log
-- `822c206` exists in git log
+- `3882ba32` exists in git log
+- `0266b6a4` exists in git log
 - `taskflow/scripts/release.sh` present and 112 lines
 - `.github/workflows/release-cross-platform.yml` present and YAML-valid

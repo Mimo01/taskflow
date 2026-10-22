@@ -71,8 +71,8 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: TimeTrackingSummary, DurationInput, LogWorkPopover and sidebar integration** - `360659b` (feat)
-2. **Task 2: WorklogEntry, timeline integration, filter chip, and worklog CRUD wiring** - `86ab419` (feat)
+1. **Task 1: TimeTrackingSummary, DurationInput, LogWorkPopover and sidebar integration** - `3fdc6f48` (feat)
+2. **Task 2: WorklogEntry, timeline integration, filter chip, and worklog CRUD wiring** - `381d667f` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/issue-detail/DurationInput.tsx` - Natural language duration input with clock picker popover fallback
@@ -100,7 +100,7 @@ Each task was committed atomically:
 - **Fix:** Removed `asChild` from PopoverTrigger, removed `align` from PopoverContent, used PopoverTrigger className directly
 - **Files modified:** DurationInput.tsx, LogWorkPopover.tsx
 - **Verification:** TypeScript compiles without errors
-- **Committed in:** 360659b (Task 1 commit)
+- **Committed in:** 3fdc6f48 (Task 1 commit)
 
 **2. [Rule 3 - Blocking] Fixed import paths for worklog/duration services**
 - **Found during:** Task 1 (LogWorkPopover)
@@ -108,7 +108,7 @@ Each task was committed atomically:
 - **Fix:** Changed imports to `@/services/jira/duration` and `@/services/jira/worklogs`
 - **Files modified:** LogWorkPopover.tsx, IssueDetailPage.tsx
 - **Verification:** TypeScript compiles without errors
-- **Committed in:** 360659b, 86ab419
+- **Committed in:** 3fdc6f48, 381d667f
 
 ---
 

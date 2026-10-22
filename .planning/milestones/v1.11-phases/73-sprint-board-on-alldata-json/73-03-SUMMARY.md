@@ -84,11 +84,11 @@ metrics:
 
 | Task | Type | Hash      | Subject                                                                |
 | ---- | ---- | --------- | ---------------------------------------------------------------------- |
-| 1    | test | d42d4636  | add failing tests for single Reload board toolbar action               |
-| 1    | feat | 87cd5087  | collapse toolbar to single Reload board action                         |
-| 2    | test | b62e09e4  | add failing prefetch swap tests for Sidebar                            |
-| 2    | feat | 886a2c15  | swap Sidebar /sprint-board prefetch to getGhAllData                    |
-| 3    | feat | 0ec8f68f  | delete fetchSprintSubtasks (GH-CUT-01 hard cutover)                    |
+| 1    | test | 206349bb  | add failing tests for single Reload board toolbar action               |
+| 1    | feat | 0e3611f4  | collapse toolbar to single Reload board action                         |
+| 2    | test | 013ebf5e  | add failing prefetch swap tests for Sidebar                            |
+| 2    | feat | fd4596a1  | swap Sidebar /sprint-board prefetch to getGhAllData                    |
+| 3    | feat | 22c82048  | delete fetchSprintSubtasks (GH-CUT-01 hard cutover)                    |
 
 (SUMMARY.md is intentionally left uncommitted in the worktree per the orchestrator merge contract.)
 
@@ -143,28 +143,28 @@ metrics:
 - **Issue:** Plan listed `taskflow/src/services/jira/sprint-subtasks.ts` as the source module of `fetchSprintSubtasks`. That file does not exist; the function is defined inline inside `taskflow/src/services/jira.ts` (line 519, pre-deletion). The plan's step (2) covered both cases ("delete file outright; otherwise leave only the still-used exports") — applied the inline-delete branch.
 - **Fix:** Deleted the function definition in `jira.ts` directly; also removed the matching `describe('fetchSprintSubtasks', …)` block and the named import from `jira.test.ts`. No re-export removal needed (the symbol was never re-exported through `jira.ts` — it WAS jira.ts).
 - **Files modified:** `taskflow/src/services/jira.ts`, `taskflow/src/services/jira.test.ts`
-- **Commit:** 0ec8f68f
+- **Commit:** 22c82048
 
 **2. [Rule 1 — Bug] Reload-board test required unconditional 5-key invalidation**
 - **Found during:** Task 1 GREEN
 - **Issue:** First implementation guarded `['jira-active-sprint', …]` invalidation behind `if (activeSprint?.id)` — matching the original PATTERNS.md handler sketch. The test (and the must_haves contract: "all FIVE keys per D-07 + R-01 + R-02") required all five invalidations to fire unconditionally; the mocked `fetchActiveSprint` returns `null` so the guarded branch was skipping.
 - **Fix:** Dropped the `activeSprintId` guard. The query-key invalidation is harmless when no active-sprint cache entry exists.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** 87cd5087
+- **Commit:** 0e3611f4
 
 **3. [Rule 1 — Bug] Plan's grep guard for acceptance had the wrong variable**
 - **Found during:** Task 1 GREEN verify
 - **Issue:** Plan referenced `isFetching` as the React Query loading flag for the toolbar button's `animate-spin` and `disabled` props. The actual destructured name in `SprintBoardTab.tsx` is `storiesFetching` (renamed inside the `useGhAllData` destructure block at line 612-617, Plan 02 carry-forward).
 - **Fix:** Used `storiesFetching` instead. Behavior identical.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** 87cd5087
+- **Commit:** 0e3611f4
 
 **4. [Rule 3 — Blocking] Sidebar test NavLink mock dropped prefetch handlers**
 - **Found during:** Task 2 GREEN
 - **Issue:** The existing `vi.mock('react-router-dom', …)` only forwarded `to`, `children`, `className`. The new prefetch tests fire `fireEvent.focus(...)` which expects the `NavLink`'s `onFocus` to invoke `handleNavFocus` → `prefetchForPath`. Without those handlers on the mocked `<a>`, the test could never observe any prefetch call.
 - **Fix:** Extended the mock to forward `onMouseEnter`, `onMouseLeave`, `onFocus`.
 - **Files modified:** `taskflow/src/components/app/Sidebar.test.tsx`
-- **Commit:** b62e09e4
+- **Commit:** 013ebf5e
 
 **5. [Rule 3 — Blocking] Worktree missing `node_modules`**
 - **Found during:** First `npx vitest` invocation
@@ -205,10 +205,10 @@ None introduced. T-73-07 (button spam-click) is mitigated by the `disabled={stor
 - `taskflow/src/components/app/Sidebar.test.tsx` → FOUND (modified)
 - `taskflow/src/services/jira.ts` → FOUND (modified, fetchSprintSubtasks deleted)
 - `taskflow/src/services/jira.test.ts` → FOUND (modified, describe block deleted)
-- Commit d42d4636 → FOUND in git log
-- Commit 87cd5087 → FOUND in git log
-- Commit b62e09e4 → FOUND in git log
-- Commit 886a2c15 → FOUND in git log
-- Commit 0ec8f68f → FOUND in git log
+- Commit 206349bb → FOUND in git log
+- Commit 0e3611f4 → FOUND in git log
+- Commit 013ebf5e → FOUND in git log
+- Commit fd4596a1 → FOUND in git log
+- Commit 22c82048 → FOUND in git log
 
 ## Self-Check: PASSED

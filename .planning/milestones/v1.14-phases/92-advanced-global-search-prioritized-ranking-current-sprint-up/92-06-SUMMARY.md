@@ -42,27 +42,27 @@ metrics:
 Task 1 ran all automated gates (full vitest suite, `tsc --noEmit`, biome on the phase's files) and filled the decision-to-test map in `92-VALIDATION.md`. Task 2, the live-Jira and visual UAT, was **approved by the user** after an iterative polish loop. The loop produced the 21 `fix(92-06)` commits listed below. The final state passes `npm run build`, `tsc`, biome on all 24 phase-touched files, and the full suite (3728 passed, 2 skipped).
 
 ## Task 1
-- `714d84a1` docs(92-06): validation map (Task ID column, D-19..D-21 rows, D-03 test path fixed, nyquist_compliant / wave_0_complete true)
+- `cf7b3599` docs(92-06): validation map (Task ID column, D-19..D-21 rows, D-03 test path fixed, nyquist_compliant / wave_0_complete true)
 
 ## Task 2 — UAT feedback addressed
 | Commit | Change |
 |--------|--------|
-| 6270661d | No extra ↳ glyph on subtasks (type icon is the arrow); shared RecentItemRow for palette Recent Items + top-bar popover |
-| 9b25a8b0 | Recent subtasks shown under their parent story (buildRecentRows) |
-| 8a897cb1 | Open epics get an "Epics" section instead of rendering as Backlog stories |
-| 406fd880, ce5be164 | Parent rows: same size, only faded (opacity-40); uniform row height; key column alignment; MR rows use the shared row |
-| 64776187 | Recent subtasks show their parent with a cold cache (parent persisted on the recent item) |
-| 3fb2bd84 | Subtle hairline divider between story groups |
-| 00b1fe1f, 1ae3c9da, ba1ca52d | Body matches never squeeze the title; compact status pill; comment hits get real excerpts (fields=comment) |
-| f39a5c7f | Consistent column grid; popover rows match palette height and padding |
-| 80f01b78, 98fcd23a | History always shows assignee/status/epic: batch fetch of non-indexed recent keys (fetchIssuesByKeys + useRecentIssues); popover widened to 40rem so epics show |
-| bc0fd85f | Done issues show a struck-through key (app-wide convention) |
-| f584280e | No flash/blink on open: stable fetch keys + keepPreviousData + skeleton until ready; fixed `isIndexLoading` stuck true when no board exists |
-| 588c5f66, 55b89c90 | Body matches: one muted line under the row with the highlighted excerpt |
-| 6dcc6614 | Amber background highlight; excerpts start at the match's sentence |
-| 3a4ce993 | Small subtask indent; match line starts under the key column |
-| 9a9e79a6 | Rows slightly larger and roomier (final sizing) |
-| 4da4641c | History popover closes on select; "Matched in another field" label replaces a wrong comment claim |
+| a25911da | No extra ↳ glyph on subtasks (type icon is the arrow); shared RecentItemRow for palette Recent Items + top-bar popover |
+| 5c19ef84 | Recent subtasks shown under their parent story (buildRecentRows) |
+| e9c58abe | Open epics get an "Epics" section instead of rendering as Backlog stories |
+| 369d4da1, ce561a86 | Parent rows: same size, only faded (opacity-40); uniform row height; key column alignment; MR rows use the shared row |
+| bfb8ca5a | Recent subtasks show their parent with a cold cache (parent persisted on the recent item) |
+| a36839a3 | Subtle hairline divider between story groups |
+| 8a3c1e68, c1ff8023, b30ce572 | Body matches never squeeze the title; compact status pill; comment hits get real excerpts (fields=comment) |
+| 284b8903 | Consistent column grid; popover rows match palette height and padding |
+| 5d9ec141, 763b68b7 | History always shows assignee/status/epic: batch fetch of non-indexed recent keys (fetchIssuesByKeys + useRecentIssues); popover widened to 40rem so epics show |
+| 94486711 | Done issues show a struck-through key (app-wide convention) |
+| c32412a3 | No flash/blink on open: stable fetch keys + keepPreviousData + skeleton until ready; fixed `isIndexLoading` stuck true when no board exists |
+| 2daa704d, b0736413 | Body matches: one muted line under the row with the highlighted excerpt |
+| 0242e186 | Amber background highlight; excerpts start at the match's sentence |
+| ea0025fe | Small subtask indent; match line starts under the key column |
+| 9c94abb3 | Rows slightly larger and roomier (final sizing) |
+| 29c63e05 | History popover closes on select; "Matched in another field" label replaces a wrong comment claim |
 
 ## Deviations from Plan
 - Task 2 was a pure human-verify checkpoint. In practice the user requested many design changes during UAT, and the orchestrator implemented them inline with tests, as atomic `fix(92-06)` commits. These went beyond the original UI-SPEC:

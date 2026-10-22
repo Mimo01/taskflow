@@ -33,8 +33,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Extract saved filter sync hook and wire into app layout | c853baf | taskflow/src/hooks/useSavedFilterSync.ts, taskflow/src/main.tsx |
-| 2 | Remove saved filters rendering and unused imports from Sidebar | 16f45ba | taskflow/src/components/app/Sidebar.tsx |
+| 1 | Extract saved filter sync hook and wire into app layout | d54b0436 | taskflow/src/hooks/useSavedFilterSync.ts, taskflow/src/main.tsx |
+| 2 | Remove saved filters rendering and unused imports from Sidebar | 0679ea69 | taskflow/src/components/app/Sidebar.tsx |
 
 ## What Was Built
 
@@ -60,5 +60,5 @@ None.
 - taskflow/src/hooks/useSavedFilterSync.ts — FOUND
 - taskflow/src/components/app/Sidebar.tsx — FOUND (saved filters removed)
 - taskflow/src/main.tsx — FOUND (useSavedFilterSync called)
-- Commit c853baf — FOUND
-- Commit 16f45ba — FOUND
+- Commit d54b0436 — FOUND
+- Commit 0679ea69 — FOUND

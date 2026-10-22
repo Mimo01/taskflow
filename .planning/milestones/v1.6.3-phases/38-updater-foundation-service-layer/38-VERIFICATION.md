@@ -91,8 +91,8 @@ re_verification: false
 | `updaterService` mock tests pass | `npm test -- src/services/updater.test.ts --reporter=dot` | 3/3 passed | PASS |
 | `update.store` all 8 transitions pass | `npm test -- src/stores/update.store.test.ts --reporter=dot` | 8/8 passed | PASS |
 | `settings.store` v10 with updateCheckInterval | `npm test -- src/stores/settings.store.test.ts --reporter=dot` | 18/18 passed | PASS |
-| inject-version.cjs script output format | Confirmed by commit `50e0e76` verification step in SUMMARY | `APP_VERSION=1.5.0`, SHA, date lines | PASS |
-| All commits from SUMMARY exist in git | `git log --oneline` | `50e0e76`, `4a5829f`, `f4c3aa7` all present | PASS |
+| inject-version.cjs script output format | Confirmed by commit `eb6435c0` verification step in SUMMARY | `APP_VERSION=1.5.0`, SHA, date lines | PASS |
+| All commits from SUMMARY exist in git | `git log --oneline` | `eb6435c0`, `0233d621`, `a1365fc0` all present | PASS |
 
 **Total: 15 tests + all spot-checks pass (33/33 test assertions across 3 files; 18 in settings store)**
 

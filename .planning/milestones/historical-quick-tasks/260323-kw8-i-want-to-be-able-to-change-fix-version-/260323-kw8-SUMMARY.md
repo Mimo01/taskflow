@@ -50,7 +50,7 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Make fix versions editable with version picker popover** - `5d94455` (feat)
+1. **Task 1: Make fix versions editable with version picker popover** - `d5def30d` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` - Added fix version popover with toggle, useQuery for fetching versions, and mutation handler

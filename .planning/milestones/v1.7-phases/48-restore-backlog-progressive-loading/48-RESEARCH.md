@@ -21,7 +21,7 @@
 
 ## Summary
 
-Phase 48 is a re-integration, not a greenfield build. All the pieces already exist in the codebase — the regression was introduced by post-milestone commit `702ff84` (context menu feature for backlog) which rewrote BacklogPage from scratch without carrying over the Phase 47 progressive loading architecture. The goal is to re-integrate the per-section query architecture alongside the existing context menu functionality.
+Phase 48 is a re-integration, not a greenfield build. All the pieces already exist in the codebase — the regression was introduced by post-milestone commit `b4a9fe3a` (context menu feature for backlog) which rewrote BacklogPage from scratch without carrying over the Phase 47 progressive loading architecture. The goal is to re-integrate the per-section query architecture alongside the existing context menu functionality.
 
 The current `BacklogPage.tsx` uses: one monolithic `fetchBacklogView` query (`jira-backlog-view` key), raw `isLoading` for skeleton gating (no flicker prevention), inline `animate-pulse` divs (ignores the existing `BacklogSkeleton` component), and invalidates the wrong cache key on move-to-sprint. The `BacklogSkeleton` component, `useDelayedLoading` hook, `fetchSprintList`, `fetchFutureSprintIssues`, and `fetchBacklogIssues` are all fully implemented but currently orphaned.
 
@@ -307,10 +307,10 @@ export async function fetchSprintList(
 
 | Old Approach | Current Approach | When Changed | Impact |
 |--------------|------------------|--------------|--------|
-| Per-section queries (Phase 47) | Monolithic fetchBacklogView | commit 702ff84 (2026-04-01) | Regression: all sections wait for single response |
-| BacklogSkeleton component (Phase 44) | Inline animate-pulse divs | commit 702ff84 (2026-04-01) | Regression: not layout-matched |
-| useDelayedLoading on isLoading (Phase 44) | Raw isLoading (no delay) | commit 702ff84 (2026-04-01) | Regression: skeleton flickers on sub-200ms cache hits |
-| jira-sprint-stories invalidation (Phase 45) | jira-issues,sprint-board invalidation | commit 702ff84 (2026-04-01) | Bug: Sprint Board not refreshed when moving issue from backlog |
+| Per-section queries (Phase 47) | Monolithic fetchBacklogView | commit b4a9fe3a (2026-04-01) | Regression: all sections wait for single response |
+| BacklogSkeleton component (Phase 44) | Inline animate-pulse divs | commit b4a9fe3a (2026-04-01) | Regression: not layout-matched |
+| useDelayedLoading on isLoading (Phase 44) | Raw isLoading (no delay) | commit b4a9fe3a (2026-04-01) | Regression: skeleton flickers on sub-200ms cache hits |
+| jira-sprint-stories invalidation (Phase 45) | jira-issues,sprint-board invalidation | commit b4a9fe3a (2026-04-01) | Bug: Sprint Board not refreshed when moving issue from backlog |
 
 **Root cause:** All regressions trace to a single commit. The fix is surgical re-integration of the progressive loading architecture without touching the context menu feature that commit added.
 

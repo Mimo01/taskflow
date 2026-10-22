@@ -56,7 +56,7 @@ Migrated the four `fetchTransitions` call sites in `src/routes/dashboard/` to th
 
 ## What Shipped
 
-### Task 1: StatusPopover + SprintBoardTab — commit `a41b395f`
+### Task 1: StatusPopover + SprintBoardTab — commit `94a74ece`
 
 **StatusPopover (`src/routes/dashboard/StatusPopover.tsx`)**
 - Prop surface flipped from `issueKey: string` → `projectId: number, issueTypeId: string`. The component no longer needs `jiraBaseUrl` / `token` props — the hook resolves those internally via `useAuthStore` + `readSecret('jira-pat')`.
@@ -82,7 +82,7 @@ Migrated the four `fetchTransitions` call sites in `src/routes/dashboard/` to th
   - "routes transitions through useGhTransitions (no fetchTransitions call)" — asserts the hook is invoked on board mount.
   - "toolbar 'Reload workflow transitions' action invalidates envelope + jira-statuses" — spies on `QueryClient.prototype.invalidateQueries`, asserts `invalidateGhTransitions(qc, 10042)` and `invalidateQueries({ queryKey: ['jira-statuses'] })`, and confirms the inline aria-live text reads exactly `"Workflow transitions reloaded"`.
 
-### Task 2: BulkActionBar + QuickCreateInput — commit `7cd3df00`
+### Task 2: BulkActionBar + QuickCreateInput — commit `f500fe69`
 
 **BulkActionBar (`src/routes/dashboard/BulkActionBar.tsx`)**
 - Added `useQueryClient` hook + `const queryClient = useQueryClient();` near the top.
@@ -162,14 +162,14 @@ Migrated the four `fetchTransitions` call sites in `src/routes/dashboard/` to th
 - **Issue:** The plan called for `Number(issue.fields.project.id)` and `issue.fields.issuetype.id`, but (a) the JiraIssue type's `issuetype` literal only declared `{ name, subtask }`, no `id`, and (b) the sprint stories / subtasks `fields=` search-API lists did not include `project`, so the runtime payload never carried the project object either.
 - **Fix:** Extended both JiraIssue copies (`jira.ts`, `jira/types.ts`) with `issuetype.id?: string` (optional to preserve ~50 existing test fixtures) and `project?: { id: string; key: string }`. Added `project` to the six search-field lists in `jira.ts` (sprint stories, sprint subtasks, fetchAllSprintIssues helper, single-issue detail).
 - **Files modified:** `src/services/jira.ts`, `src/services/jira/types.ts`.
-- **Commit:** `a41b395f`.
+- **Commit:** `94a74ece`.
 
 **2. [Rule 3 — Blocking issue] IssueDetailSheet.test.tsx jira mock missing useGhTransitions**
 - **Found during:** Task 2 full-suite run.
 - **Issue:** `FieldsSection` (rendered inside `IssueDetailSheet`) now consumes `useGhTransitions` via `StatusPopover`. The test mock for `@/services/jira` did not expose it, so Vitest threw "No 'useGhTransitions' export is defined" mid-render — 7 unrelated tests failed.
 - **Fix:** Added a default `useGhTransitions` stub (`{ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }`) to the jira mock factory at `IssueDetailSheet.test.tsx:24`.
 - **Files modified:** `src/routes/dashboard/IssueDetailSheet.test.tsx`.
-- **Commit:** `7cd3df00`.
+- **Commit:** `f500fe69`.
 
 ### Deviation from PATTERNS analog
 
@@ -208,5 +208,5 @@ Files verified to exist:
 - FOUND: taskflow/src/services/jira/types.ts (parallel types)
 
 Commits verified in `git log`:
-- FOUND: a41b395f feat(72-02): migrate StatusPopover + SprintBoardTab to GH transitions cache
-- FOUND: 7cd3df00 feat(72-02): migrate BulkActionBar + QuickCreateInput to getGhTransitions
+- FOUND: 94a74ece feat(72-02): migrate StatusPopover + SprintBoardTab to GH transitions cache
+- FOUND: f500fe69 feat(72-02): migrate BulkActionBar + QuickCreateInput to getGhTransitions

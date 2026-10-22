@@ -26,10 +26,10 @@ requirements:
   - TEMPO-03
   - TEMPO-07
 commits:
-  - "0a022db0: docs(phase-61): write VERIFICATION.md — TEMPO-06 verified passed (artifact reconciliation)"
-  - "64209889: docs(phase-63): write VERIFICATION.md — TEMPO-04/05 + QUAL-01/02 verified passed"
-  - "1ce7cca4: docs(phase-64): write VERIFICATION.md — TEMPO-08 + TEMPO-EDIT-01 verified human_needed (UAT 9-12 deferred)"
-  - "95ed09f4: docs(requirements): reconcile v1.9 checkboxes + traceability table against VERIFICATION.md artifacts"
+  - "c1b08f12: docs(phase-61): write VERIFICATION.md — TEMPO-06 verified passed (artifact reconciliation)"
+  - "7ff66cc6: docs(phase-63): write VERIFICATION.md — TEMPO-04/05 + QUAL-01/02 verified passed"
+  - "446761ca: docs(phase-64): write VERIFICATION.md — TEMPO-08 + TEMPO-EDIT-01 verified human_needed (UAT 9-12 deferred)"
+  - "0643c17b: docs(requirements): reconcile v1.9 checkboxes + traceability table against VERIFICATION.md artifacts"
 ---
 
 # Quick Task 260523-s1h: Close v1.9 Verification Artifact Gaps Summary
@@ -40,10 +40,10 @@ commits:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Write 61-VERIFICATION.md (TEMPO-06, status passed) | `0a022db0` | `.planning/phases/61-tempo-probe-service-layer/61-VERIFICATION.md` |
-| 2 | Write 63-VERIFICATION.md (TEMPO-04, TEMPO-05, QUAL-01, QUAL-02, status passed) | `64209889` | `.planning/phases/63-tempo-saved-filters-test-pass/63-VERIFICATION.md` |
-| 3 | Write 64-VERIFICATION.md (TEMPO-08 + TEMPO-EDIT-01, status human_needed) | `1ce7cca4` | `.planning/phases/64-redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-/64-VERIFICATION.md` |
-| 4 | Reconcile REQUIREMENTS.md (10 checkboxes + 10 traceability rows + TEMPO-03 override note) | `95ed09f4` | `.planning/REQUIREMENTS.md` |
+| 1 | Write 61-VERIFICATION.md (TEMPO-06, status passed) | `c1b08f12` | `.planning/phases/61-tempo-probe-service-layer/61-VERIFICATION.md` |
+| 2 | Write 63-VERIFICATION.md (TEMPO-04, TEMPO-05, QUAL-01, QUAL-02, status passed) | `7ff66cc6` | `.planning/phases/63-tempo-saved-filters-test-pass/63-VERIFICATION.md` |
+| 3 | Write 64-VERIFICATION.md (TEMPO-08 + TEMPO-EDIT-01, status human_needed) | `446761ca` | `.planning/phases/64-redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-/64-VERIFICATION.md` |
+| 4 | Reconcile REQUIREMENTS.md (10 checkboxes + 10 traceability rows + TEMPO-03 override note) | `0643c17b` | `.planning/REQUIREMENTS.md` |
 
 ## What Was Built
 
@@ -64,7 +64,7 @@ Verified TEMPO-04, TEMPO-05, QUAL-01, QUAL-02:
 
 - `tempo-filters.store.ts` + `createTauriStorage('tempo-filters.json')` — 6/6 store tests
 - `WorklogsPage.tsx` saved-filter row, Save flow, empty-name guard, active pill style, right-click ContextMenu
-- `moveFilter` action + 23/23 WorklogsPage tests at plan completion (1362/1362 at validation strategy 7c6da56e)
+- `moveFilter` action + 23/23 WorklogsPage tests at plan completion (1362/1362 at validation strategy bd55d17f)
 - `63-03-DEAD-CODE-AUDIT.md` — STALE: 0
 - 8/8 UAT tests PASS, 0 issues
 - Override applied: hover-× delete + dblclick rename → right-click ContextMenu (user-approved at Plan 63-02 checkpoint)
@@ -77,8 +77,8 @@ Verified TEMPO-08 + TEMPO-EDIT-01 mechanically; four UAT scenarios deferred:
 - Dependent enrichment useQuery `['jira', 'worklog-enrich', jiraBaseUrl, uniqueKeysStr]` (jiraToken excluded — T-62-06 mitigation)
 - `WorklogCellPopover` + `WorklogEntryRow` + `EditWorklogForm` wired into non-zero cells
 - Mutation success → `queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] })` (D-14)
-- Gap closures verified: cursor-pointer at three row-title buttons (`cadfaefc`) + routeLabel `/worklogs` → 'Worklogs' (`bfd0f6d5`)
-- 41/41 WorklogsPage tests at validation strategy `8d174271`
+- Gap closures verified: cursor-pointer at three row-title buttons (`ce053fad`) + routeLabel `/worklogs` → 'Worklogs' (`ad93ea91`)
+- 41/41 WorklogsPage tests at validation strategy `c954e49d`
 - INT-W1 (unkeyed fragments in Epic/Story map callbacks) recorded under Anti-Patterns Found, non-blocking
 - Override applied: zero-hour cells DO open the popover (user-preferred per 64-UAT Test 13)
 - Human verification required: UAT tests 9-12 (popover edit / validation / delete / add) — live Tempo CRUD via running Tauri app
@@ -120,7 +120,7 @@ The first Write call for 61-VERIFICATION.md initially landed in the main repo (u
 |-------|--------|
 | 61-VERIFICATION.md exists with `status: passed`, references TEMPO-06 + TEMPO_API_PATH + tempoEnabled | PASS |
 | 63-VERIFICATION.md exists with `status: passed`, references TEMPO-04/05 + QUAL-01/02 + tempo-filters | PASS |
-| 64-VERIFICATION.md exists with `status: human_needed`, references TEMPO-08 + TEMPO-EDIT-01 + cadfaefc + bfd0f6d5 + WorklogCellPopover | PASS |
+| 64-VERIFICATION.md exists with `status: human_needed`, references TEMPO-08 + TEMPO-EDIT-01 + ce053fad + ad93ea91 + WorklogCellPopover | PASS |
 | REQUIREMENTS.md: 7 TEMPO-01..TEMPO-07 lines all `[x]`; REMOVE-01, REMOVE-02, QUAL-03 all `[x]`; no Pending rows for v1.9 traceability requirements; TEMPO-03 carries `single-select` override note; footer dated 2026-05-23 with reconciliation message | PASS |
 | 4 atomic commits exist on `worktree-agent-ab14b4d101e193fd0` matching `(phase-61|phase-63|phase-64|requirements).*(VERIFICATION|reconcile)` | PASS (count: 4) |
 | No collateral edits to `.planning/v1.9-MILESTONE-AUDIT.md` or `taskflow/src/routes/dashboard/index.{tsx,test.tsx}` | PASS — only the four listed files changed across the four commits |
@@ -142,10 +142,10 @@ Files exist (verified via `test -f`):
 - [x] `.planning/REQUIREMENTS.md` (modified)
 
 Commits exist (verified via `git log --oneline`):
-- [x] `0a022db0` — `docs(phase-61): write VERIFICATION.md — TEMPO-06 verified passed (artifact reconciliation)`
-- [x] `64209889` — `docs(phase-63): write VERIFICATION.md — TEMPO-04/05 + QUAL-01/02 verified passed`
-- [x] `1ce7cca4` — `docs(phase-64): write VERIFICATION.md — TEMPO-08 + TEMPO-EDIT-01 verified human_needed (UAT 9-12 deferred)`
-- [x] `95ed09f4` — `docs(requirements): reconcile v1.9 checkboxes + traceability table against VERIFICATION.md artifacts`
+- [x] `c1b08f12` — `docs(phase-61): write VERIFICATION.md — TEMPO-06 verified passed (artifact reconciliation)`
+- [x] `7ff66cc6` — `docs(phase-63): write VERIFICATION.md — TEMPO-04/05 + QUAL-01/02 verified passed`
+- [x] `446761ca` — `docs(phase-64): write VERIFICATION.md — TEMPO-08 + TEMPO-EDIT-01 verified human_needed (UAT 9-12 deferred)`
+- [x] `0643c17b` — `docs(requirements): reconcile v1.9 checkboxes + traceability table against VERIFICATION.md artifacts`
 
 ## Milestone Audit Impact
 

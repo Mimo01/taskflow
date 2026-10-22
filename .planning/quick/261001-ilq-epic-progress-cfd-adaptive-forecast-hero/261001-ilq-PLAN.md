@@ -125,7 +125,7 @@ Output:
 Orchestrator resolution (locked): the Count/SP chart axis starts at the epic created date. Stories created earlier are clamped to it.
 
 <interfaces>
-Verified by the planner on main at 29decb5f.
+Verified by the planner on main at c7ef44cf.
 
 epic-progress.ts:
 - Exports:

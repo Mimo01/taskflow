@@ -66,9 +66,9 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: NotificationsSection** - `fcc1838` (feat)
-2. **Task 2 RED: WorkflowSection failing tests** - `38f1801` (test)
-3. **Task 2 GREEN: WorkflowSection implementation** - `5870b6d` (feat)
+1. **Task 1: NotificationsSection** - `d1243e4d` (feat)
+2. **Task 2 RED: WorkflowSection failing tests** - `d7a1afd6` (test)
+3. **Task 2 GREEN: WorkflowSection implementation** - `1cb0089b` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -89,7 +89,7 @@ None - plan executed exactly as written.
 
 ## Self-Check: PASSED
 
-All 3 files found. All 3 task commits verified (fcc1838, 38f1801, 5870b6d).
+All 3 files found. All 3 task commits verified (d1243e4d, d7a1afd6, 1cb0089b).
 
 ## Issues Encountered
 

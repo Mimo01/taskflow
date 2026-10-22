@@ -63,8 +63,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Create SprintGoalBanner and QuickFilterChipRow components** - `6ee05c2` (feat)
-2. **Task 2: Wire SprintGoalBanner and QuickFilterChipRow into SprintBoardTab** - `fa5523e` (feat)
+1. **Task 1: Create SprintGoalBanner and QuickFilterChipRow components** - `f2dac092` (feat)
+2. **Task 2: Wire SprintGoalBanner and QuickFilterChipRow into SprintBoardTab** - `a4ec00ab` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/SprintGoalBanner.tsx` - Sprint goal accent banner component with null-when-empty behavior
@@ -95,8 +95,8 @@ None - no external service configuration required.
 - [x] SprintGoalBanner.tsx exists
 - [x] QuickFilterChipRow.tsx exists
 - [x] 33-02-SUMMARY.md exists
-- [x] Commit 6ee05c2 found (Task 1)
-- [x] Commit fa5523e found (Task 2)
+- [x] Commit f2dac092 found (Task 1)
+- [x] Commit a4ec00ab found (Task 2)
 
 ---
 *Phase: 33-board-sprint-filters*

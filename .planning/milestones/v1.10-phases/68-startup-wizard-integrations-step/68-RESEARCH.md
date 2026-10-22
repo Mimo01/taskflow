@@ -57,7 +57,7 @@ Phase 68 is a surgical extension of the existing 4-step onboarding wizard (Welco
 
 All settings reads and writes go directly to `useSettingsStore` — the same store `IntegrationsSection` uses today. There is no new persisted state, no migration, and no new npm packages. The wizard shell (`OnboardingWizard.tsx`) needs only two data changes: a new entry in `STEP_LABELS`/`STEP_COMPONENTS`, and updated `completedSteps` derivation. The `onboarding.store.ts` needs one line changed: `Math.min(3, ...)` → `Math.min(4, ...)`. The existing `IntegrationsSection.test.tsx` covers most logic for the shared component; additional tests are needed for `IntegrationsStep` navigation gating and the store limit bump.
 
-One important discrepancy: `IntegrationsSection.tsx` currently uses `font-medium` (weight 500) and `gap-1.5` (6px) in the AIO toggle label and picker container. The UI-SPEC (updated in commit `be69a770`) explicitly drops `font-medium` in favor of `font-normal` and replaces `gap-1.5` with `gap-2`. The **extracted component must use the corrected values** from the UI-SPEC, not copy verbatim from the source file.
+One important discrepancy: `IntegrationsSection.tsx` currently uses `font-medium` (weight 500) and `gap-1.5` (6px) in the AIO toggle label and picker container. The UI-SPEC (updated in commit `d80e6cf1`) explicitly drops `font-medium` in favor of `font-normal` and replaces `gap-1.5` with `gap-2`. The **extracted component must use the corrected values** from the UI-SPEC, not copy verbatim from the source file.
 
 **Primary recommendation:** Create the extracted `AioBlock` component in `src/components/integrations/AioBlock.tsx`, update `IntegrationsSection` to import it, then build `IntegrationsStep` on top of it. Commit in TypeScript-safe order: extract → update consumer → new step → wizard wiring.
 
@@ -231,7 +231,7 @@ const handleContinue = () => {
 
 - **Duplicating AIO block inline in IntegrationsStep:** Both IntegrationsSection and IntegrationsStep would then diverge. D-05 locks extraction.
 - **Adding wizard-specific state for aioEnabled/tempoEnabled:** D-10 locks direct settings store binding. Do not add `aioEnabledDraft` or similar.
-- **Copying gap-1.5 or font-medium from IntegrationsSection.tsx:** The UI-SPEC was updated (commit `be69a770`) to use `gap-2` and `font-normal`. The source file has not yet been updated. The extracted component must reflect the UI-SPEC, not the source file as it currently stands.
+- **Copying gap-1.5 or font-medium from IntegrationsSection.tsx:** The UI-SPEC was updated (commit `d80e6cf1`) to use `gap-2` and `font-normal`. The source file has not yet been updated. The extracted component must reflect the UI-SPEC, not the source file as it currently stands.
 - **Adding IntegrationsStep to onboarding/index.tsx exports:** The index.tsx only re-exports/routes to `OnboardingWizard`. Step components are imported directly in `OnboardingWizard.tsx`. No index change needed.
 - **Using `Math.min(3, ...)` in goNext test assertions without bumping:** The existing `onboarding.store.test.ts` has step-limit tests that will need to be updated to reflect the new max of 4.
 
@@ -255,7 +255,7 @@ const handleContinue = () => {
 ### Pitfall 1: Copying gap-1.5 and font-medium from the source file
 
 **What goes wrong:** The extracted `AioBlock` and `IntegrationsStep` render with non-spec spacing (6px instead of 8px) and wrong font weight.
-**Why it happens:** `IntegrationsSection.tsx` currently uses `gap-1.5` in three places and `font-medium` in the toggle label. The UI-SPEC fix (`be69a770`) updated the design contract document but NOT the source file. A naive copy-paste propagates the old values.
+**Why it happens:** `IntegrationsSection.tsx` currently uses `gap-1.5` in three places and `font-medium` in the toggle label. The UI-SPEC fix (`d80e6cf1`) updated the design contract document but NOT the source file. A naive copy-paste propagates the old values.
 **How to avoid:** When extracting, replace every `gap-1.5` with `gap-2` and `font-medium` with `font-normal` in the AIO block.
 **Warning signs:** Review extracted file for `gap-1.5` or `font-medium` strings before committing.
 
@@ -567,7 +567,7 @@ No new security surface. The Stronghold token read follows the established `read
 - `taskflow/src/stores/settings.store.ts` — aioEnabled, tempoEnabled, selectedAioProjectKey confirmed by direct read
 - `taskflow/src/routes/onboarding/GitLabStep.tsx` — layout and navigation pattern confirmed by direct read
 - `.planning/phases/68-startup-wizard-integrations-step/68-CONTEXT.md` — all decisions confirmed
-- `.planning/phases/68-startup-wizard-integrations-step/68-UI-SPEC.md` — confirmed; gap-2/font-normal corrections from commit be69a770
+- `.planning/phases/68-startup-wizard-integrations-step/68-UI-SPEC.md` — confirmed; gap-2/font-normal corrections from commit d80e6cf1
 - `taskflow/src/routes/settings/IntegrationsSection.test.tsx` — confirmed test patterns and mocks
 
 ### Secondary (MEDIUM confidence)

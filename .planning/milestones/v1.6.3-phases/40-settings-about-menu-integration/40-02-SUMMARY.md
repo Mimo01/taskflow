@@ -35,8 +35,8 @@ Updates settings section with frequency dropdown, Check Now button, last-checked
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add lastChecked to settings store and wire Updates into Settings sidebar | 31809cf | settings.store.ts, Settings.tsx |
-| 2 | Create UpdatesSection with controls and version history list | 301be09 | UpdatesSection.tsx (new) |
+| 1 | Add lastChecked to settings store and wire Updates into Settings sidebar | 3ece6f2a | settings.store.ts, Settings.tsx |
+| 2 | Create UpdatesSection with controls and version history list | 18237b8d | UpdatesSection.tsx (new) |
 
 ## What Was Built
 
@@ -83,5 +83,5 @@ The placeholder stub does not prevent the section from rendering or the other co
 - FOUND: taskflow/src/routes/settings/UpdatesSection.tsx
 - FOUND: taskflow/src/stores/settings.store.ts
 - FOUND: taskflow/src/routes/settings/Settings.tsx
-- FOUND commit: 31809cf (feat(40-02): add lastChecked to settings store and wire Updates into Settings sidebar)
-- FOUND commit: 301be09 (feat(40-02): create UpdatesSection with controls and version history list)
+- FOUND commit: 3ece6f2a (feat(40-02): add lastChecked to settings store and wire Updates into Settings sidebar)
+- FOUND commit: 18237b8d (feat(40-02): create UpdatesSection with controls and version history list)

@@ -38,7 +38,7 @@ human_verification:
 
 | Item | Previous | Now | Change |
 |------|----------|-----|--------|
-| TypeScript compilation (TS2305 errors) | FAILED | VERIFIED | Gap closed by commit `8e112df` |
+| TypeScript compilation (TS2305 errors) | FAILED | VERIFIED | Gap closed by commit `b47ca8a2` |
 | types.ts exports (18 interfaces) | PARTIAL (3/18) | VERIFIED | Gap closed |
 | All other 15 truths | VERIFIED | VERIFIED | No regressions |
 | Test suite (665 tests) | PASS | PASS | No change |
@@ -198,7 +198,7 @@ No blocker anti-patterns remain. The previous BLOCKER (`types.ts` regression) ha
 
 ## Gaps Summary
 
-No gaps remain. The single gap from the initial verification (TypeScript types.ts regression) was closed by Plan 05 (commit `8e112df`):
+No gaps remain. The single gap from the initial verification (TypeScript types.ts regression) was closed by Plan 05 (commit `b47ca8a2`):
 
 - `types.ts` now exports all 18 interfaces — 15 original (restored from Phase 31) plus 3 phase-32 additions (JiraWorklog, JiraAssignableUser, ParsedDuration)
 - `npx tsc --noEmit` produces zero TS2305 errors
@@ -211,4 +211,4 @@ The remaining 2 TypeScript warnings (`TS6133: 'vi' is declared but its value is 
 
 _Verified: 2026-03-22T21:14:00Z_
 _Verifier: Claude (gsd-verifier)_
-_Re-verification after gap closure: Plan 05 (commit 8e112df)_
+_Re-verification after gap closure: Plan 05 (commit b47ca8a2)_

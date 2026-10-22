@@ -32,7 +32,7 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Restyle three Yesterday sub-components | 4c687c86 | IssueActivityGroup.tsx, StandaloneMrGroup.tsx, OtherCommitsGroup.tsx |
+| 1 | Restyle three Yesterday sub-components | cc311c34 | IssueActivityGroup.tsx, StandaloneMrGroup.tsx, OtherCommitsGroup.tsx |
 
 ## Changes Made
 
@@ -74,7 +74,7 @@ None — className-only changes, no new network endpoints, auth paths, or schema
 
 ## Self-Check: PASSED
 
-- [x] `4c687c86` commit exists: `git log --oneline | grep 4c687c86`
+- [x] `cc311c34` commit exists: `git log --oneline | grep cc311c34`
 - [x] IssueActivityGroup.tsx modified and committed
 - [x] StandaloneMrGroup.tsx modified and committed
 - [x] OtherCommitsGroup.tsx modified and committed

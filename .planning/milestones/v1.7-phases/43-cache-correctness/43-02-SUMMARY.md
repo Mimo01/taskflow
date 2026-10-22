@@ -73,8 +73,8 @@ completed: 2026-03-29
 
 Each task was committed atomically:
 
-1. **Task 1: Wire polling changes into SprintBoardTab, WorkloadTab, SprintProgressTab** - `68f1418` (feat)
-2. **Task 2: Wire polling changes into MyTasksTab and MrAttentionTab** - `598ceca` (feat)
+1. **Task 1: Wire polling changes into SprintBoardTab, WorkloadTab, SprintProgressTab** - `0a9f2e0f` (feat)
+2. **Task 2: Wire polling changes into MyTasksTab and MrAttentionTab** - `eb67f215` (feat)
 
 ## Files Created/Modified
 
@@ -99,7 +99,7 @@ Each task was committed atomically:
 - **Issue:** `vi.mock('react-router-dom')` in 5 test files did not export `useLocation`, causing "No 'useLocation' export is defined on the mock" runtime errors
 - **Fix:** Added `useLocation: vi.fn(() => ({ pathname: '<route>' }))` to each test's react-router-dom mock, returning the tab's own pathname so `isActive=true` and queries remain enabled
 - **Files modified:** SprintBoardTab.test.tsx, WorkloadTab.test.tsx (new mock block added), SprintProgressTab.test.tsx, MyTasksTab.test.tsx, MrAttentionTab.test.tsx (pathname changed from /dashboard to /mr-attention)
-- **Commits:** 68f1418, 598ceca
+- **Commits:** 0a9f2e0f, eb67f215
 
 ## Issues Encountered
 
@@ -125,6 +125,6 @@ None.
 - SprintProgressTab.tsx: contains useIsActiveRoute('/sprint-progress'), POLL_INTERVAL_MS, refetchIntervalInBackground: false
 - MyTasksTab.tsx: contains useIsActiveRoute('/my-tasks'), POLL_INTERVAL_MS, refetchIntervalInBackground: false (x2)
 - MrAttentionTab.tsx: contains useIsActiveRoute('/mr-attention'), POLL_INTERVAL_MS, refetchIntervalInBackground: false
-- Commit 68f1418: FOUND
-- Commit 598ceca: FOUND
+- Commit 0a9f2e0f: FOUND
+- Commit eb67f215: FOUND
 - All tests: 793 passed, 0 failed

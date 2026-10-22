@@ -29,7 +29,7 @@ committed atomically. The fix commits were fast-forwarded onto `main`.
 ### WR-01: CommentsSkeleton and ActivityTimeline empty-state can render simultaneously
 
 **Files modified:** `taskflow/src/routes/dashboard/IssueDetailPage.tsx`
-**Commit:** a695af76
+**Commit:** f3e5efe6
 **Applied fix:** Converted the sibling `{showCommentsSkeleton && ...}<CommentsSkeleton />`
 plus always-rendered `<ActivityTimeline>` into a single mutually-exclusive ternary:
 while comments are pending (and not errored) only the `CommentsSkeleton` renders;
@@ -41,7 +41,7 @@ ternary so error isolation is unchanged.
 ### WR-04: Subtask enrichment query key omits subtask identity
 
 **Files modified:** `taskflow/src/routes/dashboard/IssueDetailPage.tsx`
-**Commit:** 909445c9
+**Commit:** 43759af4
 **Applied fix:** Added a stable `subtaskSignature` derived from
 `(issue?.fields.subtasks ?? []).map(s => s.key).join(',')` and appended it to the
 `subtaskEnrichmentQuery` cache key (`['jira-subtask-enrichment', issueKey, jiraBaseUrl, subtaskSignature]`).
@@ -57,7 +57,7 @@ removing a subtask within the staleTime window now refreshes assignees correctly
 ### WR-02: Worklog edit/delete mutations do not invalidate the changelog/activity timeline
 
 **Files modified:** `taskflow/src/routes/dashboard/IssueDetailPage.tsx`
-**Commit:** 92b1ebc3
+**Commit:** e08b91cd
 **Applied fix:** Added
 `queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] })`
 to the `onSuccess` handlers of both `worklogEditMutation` and `worklogDeleteMutation`,
@@ -67,7 +67,7 @@ in the merged timeline now refreshes after a worklog edit/delete.
 ### WR-05: Worklog query failure is silently swallowed with no error UI
 
 **Files modified:** `taskflow/src/routes/dashboard/IssueDetailPage.tsx`
-**Commit:** ee9de11f
+**Commit:** a92a9cb4
 **Applied fix:** Refactored the destructured `{ data: worklogs = [] }` query into a
 named `worklogsQuery` (with `const worklogs = worklogsQuery.data ?? [];` preserving the
 existing default) and added an inline `<ErrorState viewName="worklogs" ...>` banner gated
@@ -79,7 +79,7 @@ isolation contract for all three timeline sources.
 ### WR-03: `aria-activedescendant` is hardcoded to option 0 and never tracks the highlighted mention
 
 **Files modified:** `taskflow/src/routes/dashboard/MentionPopover.tsx`, `taskflow/src/routes/dashboard/CommentComposer.tsx`
-**Commit:** 74412dc1
+**Commit:** a0c63590
 **Applied fix:** Added an optional `onActiveChange?: (index: number) => void` prop to
 `MentionPopover` and a `useEffect` that calls it whenever the internal `activeIndex`
 changes (covering Arrow-key navigation, query-reset, and mouse-hover updates). In

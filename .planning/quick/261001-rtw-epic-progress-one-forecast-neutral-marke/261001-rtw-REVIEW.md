@@ -100,7 +100,7 @@ _Depth: quick_
 
 ## Disposition (orchestrator)
 
-Fixed in the commit after aba787e5; regression tests proven to fail on the pre-fix code.
+Fixed in the commit after 60eb01f4; regression tests proven to fail on the pre-fix code.
 
 | ID | Disposition |
 |----|-------------|

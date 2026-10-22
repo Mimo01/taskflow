@@ -94,7 +94,7 @@ blocked: 0
     - "Title -> font-semibold, subtitle -> text-xs (match StandupPageHeader)"
     - "Tiles: p-3, rounded-lg, text-2xl number, h-7 rounded-md icon box"
     - "To Do icon -> ListTodo, In Progress icon -> Timer"
-  fix_commit: dece06fd
+  fix_commit: 8a61d5bb
   debug_session: ""
 
 - truth: "Labels metadata chip on a row uses an icon appropriate for labels/tags"
@@ -109,7 +109,7 @@ blocked: 0
       issue: "Folder icon used for labels"
   missing:
     - "Swap Folder -> Tag icon"
-  fix_commit: 91c5cbed
+  fix_commit: 6ebef207
   debug_session: ""
 
 - truth: "Scope selection persists across app reloads via my-tasks.json"
@@ -127,7 +127,7 @@ blocked: 0
   missing:
     - "Convert scope to local useState (transient, defaults current-sprint)"
     - "Delete orphaned my-tasks.store.ts + test, drop page-test mock"
-  fix_commit: efd8595e
+  fix_commit: e775d464
   debug_session: ""
 
 ## Post-UAT Refinements
@@ -135,10 +135,10 @@ blocked: 0
 Additional UI/behavior changes requested live during this verify session, all
 applied and user-approved 2026-06-15:
 
-- Header subtitle: color-code all metrics (open/done/pts in flight) — 484f7312
-- Header subtitle: drop redundant "in review" metric (it's part of In Progress) — 48d499b0
-- All Assigned / All Reported: group by sprint instead of My Day bands — 19007d7e
+- Header subtitle: color-code all metrics (open/done/pts in flight) — 234b6e96
+- Header subtitle: drop redundant "in review" metric (it's part of In Progress) — 9c6b4a90
+- All Assigned / All Reported: group by sprint instead of My Day bands — 6ea21bb3
 - Fix sprint grouping landing everything in Backlog (used discovered
-  settings.sprintFieldKey instead of hard-coded customfield_10020) — 7987bdba
+  settings.sprintFieldKey instead of hard-coded customfield_10020) — 137a71fd
 - Stat tiles: watermark icon backgrounds, top-right, final icon set
-  (To Do=Hourglass, In Progress=Zap, Done=BadgeCheck) — 73e059f1
+  (To Do=Hourglass, In Progress=Zap, Done=BadgeCheck) — 34c9d556

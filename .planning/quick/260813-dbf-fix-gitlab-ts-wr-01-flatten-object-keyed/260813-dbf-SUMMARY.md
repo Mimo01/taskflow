@@ -61,8 +61,8 @@ completed: 2026-08-13
 
 Each task was committed atomically:
 
-1. **Task 1: Add an `error`-key fallback to flattenGitLabError** - `8bab7327` (fix)
-2. **Task 2: Route createBranch, createMilestone, and updateMilestone through flattenGitLabError** - `6a68948d` (fix)
+1. **Task 1: Add an `error`-key fallback to flattenGitLabError** - `4f2d29f9` (fix)
+2. **Task 2: Route createBranch, createMilestone, and updateMilestone through flattenGitLabError** - `ceb3f0d6` (fix)
 
 **Plan metadata:** committed separately by the orchestrator (docs commit not included here per constraints)
 
@@ -102,5 +102,5 @@ None - no external service configuration required.
 
 - FOUND: taskflow/src/services/gitlab.ts
 - FOUND: taskflow/src/services/gitlab.test.ts
-- FOUND: commit 8bab7327
-- FOUND: commit 6a68948d
+- FOUND: commit 4f2d29f9
+- FOUND: commit ceb3f0d6

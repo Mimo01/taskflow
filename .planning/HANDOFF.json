@@ -9,10 +9,10 @@
   "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Today tint + Yesterday card treatment", "status": "done", "commit": "61ed7076"},
-    {"id": 2, "name": "Today section headers — count badges + separators", "status": "done", "commit": "8ba0e3ab"},
-    {"id": "2b", "name": "Code review fixes WR-01/WR-02", "status": "done", "commit": "24f69ba4"},
-    {"id": "2c", "name": "Feedback round 2 — match columns, py-3 rows", "status": "done", "commit": "1db01b21"}
+    {"id": 1, "name": "Today tint + Yesterday card treatment", "status": "done", "commit": "11c33def"},
+    {"id": 2, "name": "Today section headers — count badges + separators", "status": "done", "commit": "cfb3b26f"},
+    {"id": "2b", "name": "Code review fixes WR-01/WR-02", "status": "done", "commit": "44b0f1c7"},
+    {"id": "2c", "name": "Feedback round 2 — match columns, py-3 rows", "status": "done", "commit": "3ccf9206"}
   ],
   "remaining_tasks": [
     {"id": 3, "name": "Visual verification by user", "status": "in_progress"}

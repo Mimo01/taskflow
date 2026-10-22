@@ -28,7 +28,7 @@ Filter fix version picker to show unreleased versions plus 10 most recent releas
 ## What Was Done
 
 ### Task 1: Filter fix version list to unreleased + last 10 released
-**Commit:** `c0bcc3a`
+**Commit:** `b1545360`
 
 Added a `useMemo`-based `filteredVersions` computation in FieldsSection.tsx that:
 - Separates versions into unreleased and released groups

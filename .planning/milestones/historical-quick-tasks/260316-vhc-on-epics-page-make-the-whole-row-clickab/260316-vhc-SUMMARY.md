@@ -44,8 +44,8 @@ completed: 2026-03-16
 
 ## Task Commits
 
-1. **Task 1: Make EpicRow whole-row clickable** - `151b5a0` (feat)
-2. **Task 2: Make BacklogRow whole-row clickable** - `c70bb2d` (feat)
+1. **Task 1: Make EpicRow whole-row clickable** - `79e5b0ef` (feat)
+2. **Task 2: Make BacklogRow whole-row clickable** - `d8b27937` (feat)
 
 ## Files Modified
 - `taskflow/src/routes/dashboard/EpicsPage.tsx` - Added onClick + cursor-pointer to tr, converted epic name button to span

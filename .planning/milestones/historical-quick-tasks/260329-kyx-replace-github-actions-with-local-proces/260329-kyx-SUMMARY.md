@@ -42,8 +42,8 @@ metrics:
 | Task | Name | Commit | Key Files |
 |------|------|--------|-----------|
 | 1 | Decide cross-platform build scope | (decision resolved from context) | option-d: macOS + Linux Docker |
-| 2 | Install husky, configure git hooks, remove ci.yml | 3816f46 | taskflow/.husky/pre-commit, taskflow/.husky/pre-push, .github/workflows/ci.yml (deleted) |
-| 3 | Extend release.sh for full local release lifecycle, remove release.yml | 8528c2a | taskflow/scripts/release.sh, taskflow/scripts/bump-version.mjs, .github/workflows/release.yml (deleted) |
+| 2 | Install husky, configure git hooks, remove ci.yml | 01520174 | taskflow/.husky/pre-commit, taskflow/.husky/pre-push, .github/workflows/ci.yml (deleted) |
+| 3 | Extend release.sh for full local release lifecycle, remove release.yml | 434cb90c | taskflow/scripts/release.sh, taskflow/scripts/bump-version.mjs, .github/workflows/release.yml (deleted) |
 
 ## What Was Built
 
@@ -111,5 +111,5 @@ None — release.sh is a complete implementation. Linux Docker section will warn
 | taskflow/scripts/release.sh | FOUND |
 | .github/workflows/ci.yml deleted | CONFIRMED |
 | .github/workflows/release.yml deleted | CONFIRMED |
-| commit 3816f46 | FOUND |
-| commit 8528c2a | FOUND |
+| commit 01520174 | FOUND |
+| commit 434cb90c | FOUND |

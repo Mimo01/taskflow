@@ -35,7 +35,7 @@ Removed QuickCreateInput "+ Add" buttons from sprint board column cells, cleanin
   - "renders a QuickCreateInput in each column when data is loaded"
   - "passes numeric Jira status ID (not category key) to QuickCreateInput so transition lookup succeeds"
 - Removed unused `createIssue` mock from the jira service mock factory
-- **Commit:** cad6eff
+- **Commit:** bfbb1104
 
 ## Verification Results
 
@@ -51,4 +51,4 @@ None - plan executed exactly as written.
 
 | # | Hash | Message |
 |---|------|---------|
-| 1 | cad6eff | fix(quick-260316-ssu): remove QuickCreateInput from sprint board columns |
+| 1 | bfbb1104 | fix(quick-260316-ssu): remove QuickCreateInput from sprint board columns |

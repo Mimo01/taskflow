@@ -40,8 +40,8 @@ metrics:
 
 | Task | Name | Commit | Key Files |
 |------|------|--------|-----------|
-| 1 | Move Flagged MetaRow + labeled Flag section in TaskCard + BacklogRow | bd90fcfa | FieldsSection.tsx, TaskCard.tsx, BacklogRow.tsx |
-| 2 | Add flag wiring to StoryHeaderRow + pass from SprintBoardTab at all three call sites | cc48a9b2 | StoryHeaderRow.tsx, SprintBoardTab.tsx, 3 test files |
+| 1 | Move Flagged MetaRow + labeled Flag section in TaskCard + BacklogRow | dd005517 | FieldsSection.tsx, TaskCard.tsx, BacklogRow.tsx |
+| 2 | Add flag wiring to StoryHeaderRow + pass from SprintBoardTab at all three call sites | 40526d75 | StoryHeaderRow.tsx, SprintBoardTab.tsx, 3 test files |
 
 ## What Was Built
 
@@ -63,7 +63,7 @@ metrics:
 - **Issue:** `SprintBoardTab.test.tsx`, `BacklogPage.test.tsx`, and `IssueDetailSheet.test.tsx` each define a `vi.mock('@/services/jira', ...)` that doesn't include `isIssueFlagged` (or `setIssueFlagged`). Once the component code paths exercised by the tests reached `isIssueFlagged`, Vitest threw "No isIssueFlagged export is defined on the mock".
 - **Fix:** Added `isIssueFlagged: vi.fn().mockReturnValue(false)` and `setIssueFlagged: vi.fn().mockResolvedValue(undefined)` to all three mocks. Also added `flaggedFieldKey: 'customfield_10021'` to the settings store mock in SprintBoardTab.test.tsx and BacklogPage.test.tsx (which destructure it from `useSettingsStore`).
 - **Files modified:** SprintBoardTab.test.tsx, BacklogPage.test.tsx, IssueDetailSheet.test.tsx
-- **Commit:** cc48a9b2
+- **Commit:** 40526d75
 
 ## Verification
 
@@ -89,7 +89,7 @@ None — no new network endpoints, auth paths, or trust boundary changes introdu
 - [x] BacklogRow.tsx modified — confirmed
 - [x] StoryHeaderRow.tsx modified — confirmed
 - [x] SprintBoardTab.tsx modified — confirmed
-- [x] Task 1 commit bd90fcfa — confirmed in git log
-- [x] Task 2 commit cc48a9b2 — confirmed in git log
+- [x] Task 1 commit dd005517 — confirmed in git log
+- [x] Task 2 commit 40526d75 — confirmed in git log
 - [x] All 401 dashboard tests pass — confirmed
 - [x] tsc --noEmit clean — confirmed

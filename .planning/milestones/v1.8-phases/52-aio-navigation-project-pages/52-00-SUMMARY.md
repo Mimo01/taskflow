@@ -81,9 +81,9 @@ completed: 2026-05-12
 
 Each task was committed atomically:
 
-1. **Task 1: cycles.test.ts stub (RED)** - `e9b5075` (test)
-2. **Task 2: AioProjectsPage + AioProjectOverviewPage stubs (RED)** - `d580539` (test)
-3. **Task 3: Sidebar.test.tsx stub (RED)** - `b2dbd67` (test)
+1. **Task 1: cycles.test.ts stub (RED)** - `d3d74524` (test)
+2. **Task 2: AioProjectsPage + AioProjectOverviewPage stubs (RED)** - `c02520ed` (test)
+3. **Task 3: Sidebar.test.tsx stub (RED)** - `395e9690` (test)
 
 ## Files Created/Modified
 
@@ -105,7 +105,7 @@ None — plan executed exactly as written.
 
 ## Issues Encountered
 
-The worktree was created from commit `a9f30f5` which predates Phase 51's `aio/` service layer. As a result:
+The worktree was created from commit `4791b687` which predates Phase 51's `aio/` service layer. As a result:
 - `taskflow/src/services/aio/` directory did not exist — created it to house `cycles.test.ts`
 - `@tanstack/react-query`, `@testing-library/react`, and other deps are not resolvable from the worktree's `taskflow/` subdirectory (no `node_modules` there)
 - Page test files and Sidebar.test.tsx fail at import resolution — this counts as RED per plan spec: "import will resolve at test run time (currently causes module-not-found but that counts as failing RED)"

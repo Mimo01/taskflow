@@ -48,9 +48,9 @@ Merged jira/issues.ts (718 lines, 5 callers) into jira.ts (2209 lines, 62 caller
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Migrate function bodies into jira.ts | 08de6d2 | jira.ts |
-| 2 | Update callers, append test blocks, delete jira/issues.{ts,test.ts} | c6594e2 | 7 files + 2 deleted |
-| 3 | Full verification battery | ade709a | SprintBoardTab.test.tsx, BacklogPage.test.tsx, Sidebar.test.tsx |
+| 1 | Migrate function bodies into jira.ts | 23ea10e8 | jira.ts |
+| 2 | Update callers, append test blocks, delete jira/issues.{ts,test.ts} | 4f386b7f | 7 files + 2 deleted |
+| 3 | Full verification battery | e8747ff4 | SprintBoardTab.test.tsx, BacklogPage.test.tsx, Sidebar.test.tsx |
 
 ## New Function Insertion Points in jira.ts
 
@@ -91,7 +91,7 @@ The `isResponseLikeError` mock removal (plan step: "DROP these mock calls entire
 - **Issue:** Three test files had `vi.mock('@/services/jira/issues', ...)` and dynamic `import('@/services/jira/issues')` calls. After jira/issues.ts was deleted, these test files failed with "Failed to resolve import" errors. These test files were not listed in the plan's `files_modified` because they are test-only files that shadow production callers.
 - **Fix:** Merged `fetchSprintStories`/`fetchSprintSubtasks` into the existing `@/services/jira` mock factory in each file; replaced all dynamic `import('@/services/jira/issues')` with `import('@/services/jira')`.
 - **Files modified:** SprintBoardTab.test.tsx, BacklogPage.test.tsx, Sidebar.test.tsx
-- **Commit:** ade709a
+- **Commit:** e8747ff4
 
 ## Verification Results
 
@@ -121,4 +121,4 @@ None — this is a pure refactor (no new network endpoints, auth paths, or schem
 
 ## Self-Check: PASSED
 
-All verification checks pass. Commits exist at 08de6d2, c6594e2, ade709a.
+All verification checks pass. Commits exist at 23ea10e8, 4f386b7f, e8747ff4.

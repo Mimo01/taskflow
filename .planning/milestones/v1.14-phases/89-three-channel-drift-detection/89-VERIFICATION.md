@@ -30,7 +30,7 @@ overrides_applied: 0
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | DRIFT-01: Channel A discovers MRs via Jira issue keys of the fix version's issues | ✓ VERIFIED (accepted trade-off) | `fetchAllProjectMRs` + `selectChannelA` (`gitlab.ts:1802-1826`, `driftDetection.ts`). **Narrowed post-SUMMARY** by `updated_after` windowing (12mo default / 6mo buffer / 24mo cap, month-floored) added in commits `991fae74`/`bd8fc0f7`. See "Accepted Trade-off" section below — judged non-blocking because Channels B/C remain unbounded safety nets and the window is generous. |
+| 1 | DRIFT-01: Channel A discovers MRs via Jira issue keys of the fix version's issues | ✓ VERIFIED (accepted trade-off) | `fetchAllProjectMRs` + `selectChannelA` (`gitlab.ts:1802-1826`, `driftDetection.ts`). **Narrowed post-SUMMARY** by `updated_after` windowing (12mo default / 6mo buffer / 24mo cap, month-floored) added in commits `e7eec0dd`/`ad5c74b0`. See "Accepted Trade-off" section below — judged non-blocking because Channels B/C remain unbounded safety nets and the window is generous. |
 | 2 | DRIFT-02: Channel B discovers MRs via GitLab milestone | ✓ VERIFIED | `fetchMilestoneMRs` unchanged, wired at `useReleaseDetail.ts` as `milestoneMRs`, key `['gitlab-milestone-mrs', ...]` |
 | 3 | DRIFT-03: Channel C discovers MRs via target-branch match, fully paginated | ✓ VERIFIED | `fetchBranchTargetedMRs` (`gitlab.ts`), `while(true)`/short-page-break loop confirmed by reading source; multi-page unit test in `gitlab.test.ts`; A2 resolved live (`89-PROBE-RESULTS.md`: `target_branch: PRESENT`, `draft: PRESENT`); Channel-C completeness proven via synthetic >100-MR fixture (live branch only had 8 MRs) |
 | 4 | DRIFT-04: The three channels union into one MR set with per-channel provenance | ✓ VERIFIED | `unionMRs` keyed by `mr.id` (not `iid`), `Set<Channel>` per entry; 33 unit tests in `driftDetection.test.ts`; `DriftRow.channels` rendered via `Found via: ...` tooltip in `MrDriftSection.tsx` (`grep -c 'Found via:'` = 1) |
@@ -38,7 +38,7 @@ overrides_applied: 0
 | 6 | DRIFT-06: MR flagged when release milestone not assigned | ✓ VERIFIED | `evaluateMilestoneDrift` (`driftDetection.ts:142-145`), unit tested |
 | 7 | DRIFT-07: MR flagged when Jira task not in fix version | ✓ VERIFIED | `evaluateTaskDrift` returns 3-valued `TaskDriftReason`, checks title + source_branch keys, unit tested |
 | 8 | DRIFT-08: Merged/closed/draft MRs classified so they don't pollute drift counts | ✓ VERIFIED | `classifyMrState` gate `mr.state === 'opened'`; D-10 override (drafts ARE evaluated, not muted) implemented and guarded by a named regression test at both the logic layer (`driftDetection.test.ts` "state classification") and render layer (`MrDriftSection.test.tsx`) |
-| 9 | DRIFT-09: Release row shows an aggregate drift count | ✓ VERIFIED | `ReleasesTab.tsx` `gitlab-open-mrs` single fetch-once query, `computeRowDriftCount` per row, `row-drift-count` testid, tooltip explaining branch/milestone-only coverage; relabeled "{n} mismatched" (commit `8cf1b802`) to resolve list-vs-detail count confusion — see "Count Coherence" section below |
+| 9 | DRIFT-09: Release row shows an aggregate drift count | ✓ VERIFIED | `ReleasesTab.tsx` `gitlab-open-mrs` single fetch-once query, `computeRowDriftCount` per row, `row-drift-count` testid, tooltip explaining branch/milestone-only coverage; relabeled "{n} mismatched" (commit `3c704705`) to resolve list-vs-detail count confusion — see "Count Coherence" section below |
 
 **Score:** 9/9 truths verified (1 carries a documented, judged-acceptable trade-off)
 
@@ -46,8 +46,8 @@ overrides_applied: 0
 
 Post-SUMMARY UAT reported the drift section as "very very slow." Measured against the live instance: Channel A (`fetchAllProjectMRs`, all-history, all-states) is ~4189 MRs / 42 pages / ~15MB, and the GitLab server is throughput-limited (5-, 12-, 20-way parallelism all ~8s — added parallelism buys nothing). Two fixes landed:
 
-1. Parallel page fetching (`db4421f2`) using `x-total-pages` with a bounded, verified fallback (`bd8fc0f7` closed the WR-02/WR-03 gaps this introduced — see Outstanding Review Findings).
-2. An `updated_after` window on Channel A only (`991fae74`), derived from unreleased fix versions: earliest unreleased release date minus a 6-month buffer, month-floored for query-key stability, capped at 24 months, defaulting to 12 months when no open-release dates exist.
+1. Parallel page fetching (`e5718ed1`) using `x-total-pages` with a bounded, verified fallback (`ad5c74b0` closed the WR-02/WR-03 gaps this introduced — see Outstanding Review Findings).
+2. An `updated_after` window on Channel A only (`e7eec0dd`), derived from unreleased fix versions: earliest unreleased release date minus a 6-month buffer, month-floored for query-key stability, capped at 24 months, defaulting to 12 months when no open-release dates exist.
 
 **Verified in code** (`useReleaseDetail.ts:304-338`): the window derivation exactly matches this description — `BUFFER_MONTHS = 6`, `MAX_LOOKBACK_MONTHS = 24`, `DEFAULT_LOOKBACK_MONTHS = 12`, floored to `Date.UTC(y, m, 1)`.
 
@@ -63,7 +63,7 @@ Verified mitigating factors:
 
 ### Count Coherence: List vs Detail (D-13/D-14)
 
-Verified `computeRowDriftCount` (D-14, `ReleasesTab.tsx`) deliberately excludes TASK drift and only counts branch/milestone mismatches on MRs relevant to the row; `countFlaggedMRs` (D-13, detail page) counts all three columns including TASK and Channel-A key-matches. `list ≤ detail` is structural by construction — confirmed by reading both implementations. The list label was changed from "{n} drift" to "{n} mismatched" (commit `8cf1b802`) specifically so the two numbers reading differently ("1" vs "4" in the reported case) doesn't look like a bug. Tooltip text on the list badge (`ReleasesTab.tsx:650`) still correctly states "MRs need branch or milestone attention. Open the release for the full check, including task links." Semantics intact; only wording changed.
+Verified `computeRowDriftCount` (D-14, `ReleasesTab.tsx`) deliberately excludes TASK drift and only counts branch/milestone mismatches on MRs relevant to the row; `countFlaggedMRs` (D-13, detail page) counts all three columns including TASK and Channel-A key-matches. `list ≤ detail` is structural by construction — confirmed by reading both implementations. The list label was changed from "{n} drift" to "{n} mismatched" (commit `3c704705`) specifically so the two numbers reading differently ("1" vs "4" in the reported case) doesn't look like a bug. Tooltip text on the list badge (`ReleasesTab.tsx:650`) still correctly states "MRs need branch or milestone attention. Open the release for the full check, including task links." Semantics intact; only wording changed.
 
 ### Required Artifacts
 
@@ -108,7 +108,7 @@ No orphaned requirements — all 9 DRIFT-* IDs in REQUIREMENTS.md are claimed by
 
 ### Anti-Patterns / Outstanding Review Findings
 
-`89-REVIEW.md` (standard depth, 19 findings: 1 critical, 12 warning, 6 info) was raised after the 5 plan SUMMARYs. Commit `bd8fc0f7` resolved **CR-01** (title-mangling highlighter — verified fixed, `matchTicketKeyInTitle` now case/separator-tolerant with a `null`-miss guard) and **WR-01/02/03/05** (double-fetch on cold mount, unbounded/silently-truncating pagination header trust, false-positive branch drift on a not-yet-created branch — all verified fixed by reading current source).
+`89-REVIEW.md` (standard depth, 19 findings: 1 critical, 12 warning, 6 info) was raised after the 5 plan SUMMARYs. Commit `ad5c74b0` resolved **CR-01** (title-mangling highlighter — verified fixed, `matchTicketKeyInTitle` now case/separator-tolerant with a `null`-miss guard) and **WR-01/02/03/05** (double-fetch on cold mount, unbounded/silently-truncating pagination header trust, false-positive branch drift on a not-yet-created branch — all verified fixed by reading current source).
 
 **Outstanding, NOT fixed** (confirmed still present by reading current source):
 

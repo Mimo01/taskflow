@@ -41,8 +41,8 @@ Previously the table only showed the 4 pts columns. The new Stories column count
 
 | Task | Description | Commit |
 |------|-------------|--------|
-| RED  | Add failing SPPG-07 tests + update SPPG-03 cell indices | 2c96abc |
-| GREEN | Implement stories/subtasks fields + JSX columns | ded80fa |
+| RED  | Add failing SPPG-07 tests + update SPPG-03 cell indices | 40d3d266 |
+| GREEN | Implement stories/subtasks fields + JSX columns | 249beb54 |
 
 ## Deviations from Plan
 
@@ -53,7 +53,7 @@ Previously the table only showed the 4 pts columns. The new Stories column count
 - **Issue:** Adding Stories column (value=2) alongside To Do count (value=2) caused `screen.findByText('2')` to throw "Found multiple elements". Same for `findByText('1')`.
 - **Fix:** Changed `findByText('2')` and `findByText('1')` to `findAllByText('2')` / `findAllByText('1')` — these tests just verify data loaded, not specific cell values.
 - **Files modified:** taskflow/src/routes/dashboard/SprintProgressTab.test.tsx
-- **Commit:** ded80fa (included in implementation commit)
+- **Commit:** 249beb54 (included in implementation commit)
 
 ## Self-Check
 
@@ -62,7 +62,7 @@ Previously the table only showed the 4 pts columns. The new Stories column count
 - taskflow/src/routes/dashboard/SprintProgressTab.test.tsx — FOUND
 
 ### Commits exist:
-- 2c96abc — RED state (failing tests)
-- ded80fa — GREEN state (implementation)
+- 40d3d266 — RED state (failing tests)
+- 249beb54 — GREEN state (implementation)
 
 ## Self-Check: PASSED

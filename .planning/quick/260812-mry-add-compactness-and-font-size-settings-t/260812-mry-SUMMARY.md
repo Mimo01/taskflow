@@ -57,7 +57,7 @@ patterns-established:
 requirements-completed: []
 
 # Metrics
-duration: ~7min (Task 1 8cdb4d5e to Task 3 4d1a5d8a; excludes Task 1's one-time worktree npm install)
+duration: ~7min (Task 1 8ef1118e to Task 3 240ad1c1; excludes Task 1's one-time worktree npm install)
 completed: 2026-08-12
 ---
 
@@ -86,9 +86,9 @@ completed: 2026-08-12
 
 ## Task Commits
 
-1. **Task 1: Font scale foundation — store field, appliers, CSS, pre-paint bootstrap** - `8cdb4d5e` (feat)
-2. **Task 2: Text Size selector in Appearance + test mock updates** - `8c9af630` (feat)
-3. **Task 3: Bounded px-to-rem scaling sweep + density variant sweep on ranked surfaces** - `4d1a5d8a` (feat)
+1. **Task 1: Font scale foundation — store field, appliers, CSS, pre-paint bootstrap** - `8ef1118e` (feat)
+2. **Task 2: Text Size selector in Appearance + test mock updates** - `f0200672` (feat)
+3. **Task 3: Bounded px-to-rem scaling sweep + density variant sweep on ranked surfaces** - `240ad1c1` (feat)
 
 _Note: Task 1 and Task 3 each include one small in-scope test fix (Rule 1) folded into the task commit rather than a separate commit — see Deviations below._
 
@@ -130,7 +130,7 @@ _Note: Task 1 and Task 3 each include one small in-scope test fix (Rule 1) folde
 - **Fix:** Updated the test's expected value and description to reference v28 / this quick task.
 - **Files modified:** `taskflow/src/stores/settings.store.test.ts`
 - **Verification:** `npx vitest run src/stores/settings.store.test.ts` passes (65/65)
-- **Committed in:** `8cdb4d5e` (Task 1 commit)
+- **Committed in:** `8ef1118e` (Task 1 commit)
 
 **2. [Rule 1 - Bug/pre-existing test] Updated TaskCard timeInColumn badge className assertion**
 - **Found during:** Task 3
@@ -138,7 +138,7 @@ _Note: Task 1 and Task 3 each include one small in-scope test fix (Rule 1) folde
 - **Fix:** Updated the assertion to the new rem-based class string.
 - **Files modified:** `taskflow/src/routes/dashboard/TaskCard.test.tsx`
 - **Verification:** Full `npx vitest run` — 2586/2586 passing, 0 failures
-- **Committed in:** `4d1a5d8a` (Task 3 commit)
+- **Committed in:** `240ad1c1` (Task 3 commit)
 
 **3. [Environment setup, not a plan deviation] Installed npm dependencies in the worktree**
 - **Found during:** Task 1, before first test run
@@ -180,4 +180,4 @@ All automated verification (tsc, full vitest suite, biome lint on touched files,
 ## Self-Check: PASSED
 
 - All 19 files listed in `key-files.modified` verified to exist on disk.
-- All 3 task commits (`8cdb4d5e`, `8c9af630`, `4d1a5d8a`) verified present in `git log --oneline --all`.
+- All 3 task commits (`8ef1118e`, `f0200672`, `240ad1c1`) verified present in `git log --oneline --all`.

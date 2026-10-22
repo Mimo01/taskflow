@@ -60,8 +60,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1 RED: Add failing APIF-02 guard test** - `6f12070` (test)
-2. **Task 1 GREEN: Add issuetype guard to sprint JQL** - `22c5e32` (fix)
+1. **Task 1 RED: Add failing APIF-02 guard test** - `d093de9c` (test)
+2. **Task 1 GREEN: Add issuetype guard to sprint JQL** - `54f1e73f` (fix)
 
 _Note: TDD tasks have separate RED and GREEN commits per protocol_
 
@@ -83,7 +83,7 @@ _Note: TDD tasks have separate RED and GREEN commits per protocol_
 - **Fix:** Updated test assertion to `issuetype%20not%20in%20subtaskIssueTypes()`
 - **Files modified:** taskflow/src/services/jira.test.ts
 - **Verification:** Test fails on pre-fix code, passes after guard added to jira.ts
-- **Committed in:** 6f12070 (RED commit)
+- **Committed in:** d093de9c (RED commit)
 
 ---
 

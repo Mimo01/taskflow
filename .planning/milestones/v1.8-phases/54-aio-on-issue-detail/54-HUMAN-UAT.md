@@ -9,19 +9,19 @@ re_uat_round_4_result: pass
 re_uat_round_4_reported: "approved"
 re_uat_round_4_at: "2026-05-14T14:15:00Z"
 fix_commits:
-  - "7a99427"
-  - "9862672"
-  - "65463bb"
-  - "6fdee86"
-  - "25881bf"
-  - "db693d9"
-  - "21a4b4d"
-  - "ca06965"
-  - "4c7d16f"
-  - "c9202cf"
-  - "a0894e6"
-  - "27108bb"
-  - "8baeb70"
+  - "3a64019b"
+  - "701725fe"
+  - "b8bfdb7c"
+  - "62dbdc81"
+  - "3c6ecf9c"
+  - "6cf425dc"
+  - "eca6c020"
+  - "688b8f83"
+  - "1e045440"
+  - "c1f4af45"
+  - "61003147"
+  - "98aaa0cb"
+  - "4d3c0bcf"
 ---
 
 ## Current Test
@@ -34,14 +34,14 @@ fix_commits:
 expected: On SHOP-393120 (defect with 2 linked test runs in single cycle SHOP-CY-1011, both testRunStatusID 53 = Passed), the AIO Test Runs section MUST appear with the "Impacted executions (across all cycles)" header and 2 rows (one per linked test case: SHOP-TC-8477 / SHOP-TC-8478), each showing test case key + title + cycle key (SHOP-CY-1011) + run ID (263794 / 263793) + a colored status chip whose color reflects the live API's run.status (green PASS chip). Rows are read-only.
 result: pass
 reported: "I can see AIO test runs correctly."
-prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427)
+prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 3a64019b)
 
 ### 2. Gap 2 RE-UAT — AioAttachmentsGrid header always visible on no-runs path
 expected: On the same SHOP-393120 issue, BELOW the Impacted executions list, the collapsible "AIO attachments" header MUST be visible (paperclip icon + count). Expanded by default. Either ≥1 thumbnail (if step content carries `[file.png|url]` refs) OR the "No inline image attachments found in linked test runs." empty state visible inside. Clicking a thumbnail (if present) opens the in-app ImageLightbox via the AuthImage bridge-URL translation path.
 result: pass
 reported: "I can see AIO attachments but they are always empty (empty-state text visible)."
 note: Empty-state behavior is the contract — SHOP-393120 runs have empty testRunSteps[] so there are no inline [file.png|url] refs to discover. Header visible + empty-state text matches the Gap 2 contract truth.
-prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427 — line-606 guard narrowed, AioAttachmentsGrid now sibling on all 3 render arms)
+prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 3a64019b — line-606 guard narrowed, AioAttachmentsGrid now sibling on all 3 render arms)
 
 ### 3. Gap 3 RE-UAT — Nested wiki (`{panel}` inside `|cell|`) renders inside table cell without breaking outer column
 expected: Open an SHOP issue whose failed test runs contain step content matching the verbatim Finding 1 fixture (a `{panel}` block embedded inside a `|cell|` table row with `# [img-a.png|...]`). The outer StepTable renders WITHOUT BREAKING LAYOUT. The inner wiki table either fits inside the Step column OR scrolls horizontally inside it (the page itself does NOT widen). The `{panel}` content (including the img-a.png anchor) renders INSIDE the step table cell. Clicking the img-a.png anchor opens the in-app ImageLightbox (not the OS browser).
@@ -56,7 +56,7 @@ evidence:
   actual_screenshot: .planning/phases/54-aio-on-issue-detail/screenshots/gap3-round2-actual.png
 round_3_fix:
   plan: "54-09"
-  commits: ["6fdee86", "25881bf"]
+  commits: ["62dbdc81", "3c6ecf9c"]
   landed_at: "2026-05-14T13:10:00Z"
   summary: |
     Parser-level fix landed inside WikiRenderer.tsx::flattenInlineCalloutsForTableRow:
@@ -70,7 +70,7 @@ round_3_fix:
     `\\` → `  \n` substitution. Concern A confirmed non-issue via direct
     mergeOpenTableRows unit test. The 54-08 overflow-x-auto wrapper stays as
     defensive CSS.
-    Round-3 UAT follow-up (commit 25881bf): `\\` immediately before `{panel}`
+    Round-3 UAT follow-up (commit 3c6ecf9c): `\\` immediately before `{panel}`
     (no space, e.g. `text\\{panel}`) is now also recognised as a hard break.
     Prior two regex patterns required surrounding whitespace and missed the
     no-space form; replaced with a single `/\\\\/g → <br/>` pattern applied
@@ -83,7 +83,7 @@ note: |
   (2) Wiki link `[img-a.png|url]` inside the flattened panel span keeps its literal `|`, breaking markdown table column parsing — `# img-b.png` escapes the table entirely as a sibling below.
   (3) Numbered list `# item` inside the panel loses its semantics — demoted to bare `#` text with awkward panel styling.
   Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md
-prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 9862672 — WikiRenderer.markdownComponents.table wraps in overflow-x-auto, StepTable td wrappers gain min-w-0 — but root cause was misframed as CSS overflow when actual cause is parser-level)
+prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 701725fe — WikiRenderer.markdownComponents.table wraps in overflow-x-auto, StepTable td wrappers gain min-w-0 — but root cause was misframed as CSS overflow when actual cause is parser-level)
 debug_session: .planning/debug/panel-still-breaks-table-round-2.md
 
 ### 4. ROADMAP SC end-to-end UAT on a happy-path issue
@@ -92,7 +92,7 @@ result: pass
 result_round_4_at: "2026-05-14T14:15:00Z"
 result_round_4_reported: "approved"
 note: All round-4 fixes verified by user — cross-project status chips render correctly, cycle/run links navigate via shared useBreadcrumbStore, single-run case uses CollapsibleRunBlock for consistency, in-cycle header shows cycle + run info, and the breadcrumb integration uses the existing IssueDetailPage convention.
-prerequisites: ["Test 3 round 3 PASS (confirmed 2026-05-14)", "Plan 54-10 fix landed (commit db693d9)", "Plan 54-11 fixes landed (commits 21a4b4d through 8baeb70)"]
+prerequisites: ["Test 3 round 3 PASS (confirmed 2026-05-14)", "Plan 54-10 fix landed (commit 6cf425dc)", "Plan 54-11 fixes landed (commits eca6c020 through 4d3c0bcf)"]
 prior_round_1_result: skipped (deferred until Tests 1-3 resolved)
 
 ## How to run
@@ -118,7 +118,7 @@ new_gap_round_3: |
   Gap 4 (new, round 3): AIO attachments grid was empty even though the issue
   description contained AIO image references. Root cause confirmed as scope:
   AioAttachmentsGrid scanned test-run step content only. User accepted scope
-  expansion as plan 54-10. Fix landed: commit db693d9 — AioTestRunsSection
+  expansion as plan 54-10. Fix landed: commit 6cf425dc — AioTestRunsSection
   now accepts `description?: string | null`, aggregates image refs from
   description body alongside step-derived refs (deduped by URL), and
   IssueDetailPage wires `issue.fields.description` to it. 3 new tests pass;
@@ -133,7 +133,7 @@ new_gap_round_3: |
   status: resolved
   uat_round_2: pass
   resolved_at: "2026-05-14T09:15:00Z"
-  fix_commit: "7a99427"
+  fix_commit: "3a64019b"
   fix_plan: "54-08"
   reason: |
     User reported: looking at issue SHOP defect 393120 (jiraProjectID 10134, AIO project 13806) — no executions shown in UI, but the live traceability endpoint returns 2 impacted executions both in cycle SHOP-CY-1011 (ID 14041): testRun 263794 (SHOP-TC-8477) and testRun 263793 (SHOP-TC-8478). Both linked to defect 393120 via testRunDefects[].defectID. Cycle is active (endDate 2026-05-30, today 2026-05-14). Verbatim live URL: /rest/aio-tcms/1.0/project/13806/traceability/defect/393120?c_pId=13806
@@ -143,7 +143,7 @@ new_gap_round_3: |
     Two-part failure on the no-runs path. (a) Primary-cycle partitioning at AioTestRunsSection.tsx:408-425 routes ALL traceability runs into `inCycleRefs` whenever only ONE cycle is referenced (both SHOP runs are in cycle SHOP-CY-1011, so crossCycleRefs ends up empty — ImpactedExecutionsList path at line 629 is unreachable). (b) Then the in-cycle path hard-filters via `r.detail.steps.length > 0` at line 476 — both runs have testRunStatusID 53 (Passed), which on this SHOP instance typically return empty testRunSteps[] (Probe B observation: testers skip step content on trivial passes). Result: data.runs=[], data.impactedExecutions=[], defensive null-return at line 606 silently hides the whole section.
     Eliminated hypothesis: aio-tcms-api vs aio-tcms base-path concern — client.ts:16-17 exports both, projects.ts:65 correctly uses AIO_PROJECTS_API_PATH (/rest/aio-tcms/1.0) for traceability, matching the user's verbatim URL.
   fix_landed: |
-    Plan 54-08 commit 7a99427 — split inCycleResults into inCycleWithSteps (→ data.runs) and inCycleWithoutSteps (→ data.impactedExecutions[]); in-cycle promotions appended after cross-cycle in the concatenation. Service-level shape-lock tests for fetchAioTraceabilityTestCases landed in commit 65463bb (8 new tests covering testRun/latestTestRun fallback, runId stringification, cycleKey extraction, 404/non-array/network-error empty fallback). New unit test "single-cycle empty-steps" covers the SHOP-393120 scenario in AioTestRunsSection.test.tsx.
+    Plan 54-08 commit 3a64019b — split inCycleResults into inCycleWithSteps (→ data.runs) and inCycleWithoutSteps (→ data.impactedExecutions[]); in-cycle promotions appended after cross-cycle in the concatenation. Service-level shape-lock tests for fetchAioTraceabilityTestCases landed in commit b8bfdb7c (8 new tests covering testRun/latestTestRun fallback, runId stringification, cycleKey extraction, 404/non-array/network-error empty fallback). New unit test "single-cycle empty-steps" covers the SHOP-393120 scenario in AioTestRunsSection.test.tsx.
   debug_session: .planning/debug/aio-no-impacted-executions-shop-393120.md
 
 - truth: "AioAttachmentsGrid header is visible on no-runs path with either thumbnails or an empty-state message; clicking a thumbnail opens in-app ImageLightbox via AuthImage bridge translation."
@@ -151,7 +151,7 @@ new_gap_round_3: |
   uat_round_2: pass
   resolved_at: "2026-05-14T09:15:00Z"
   uat_note: "Header visible + empty-state text shown on SHOP-393120 — matches contract since runs have empty testRunSteps[] (no inline [file.png|url] refs to discover)."
-  fix_commit: "7a99427"
+  fix_commit: "3a64019b"
   fix_plan: "54-08"
   reason: |
     User reported: 'i dont see the new section at all. inline aio images work'. On issue SHOP 393120 (no-runs / impacted-executions path), the AIO attachments header is missing entirely. Inline AIO images render correctly in other contexts, so the AuthImage bridge translation and lightbox plumbing are intact — the failure is upstream: AioAttachmentsGrid is gated on data presence which is empty because Test 1 root cause leaves data.impactedExecutions empty.
@@ -161,7 +161,7 @@ new_gap_round_3: |
   root_cause: |
     Cascade from Gap 1 — the defensive guard at AioTestRunsSection.tsx:606 (`if (!hasInCycleRuns && !hasImpactedExecutions) return null`) short-circuits the entire <section> before reaching AioAttachmentsGrid at line 631. Once Gap 1 fix populates data.impactedExecutions, the section renders and the attachments grid (which is unconditionally inside the section and renders its own empty-state header internally) re-appears. AioAttachmentsGrid implementation (lines 150-212) is correct — the header <button> renders unconditionally with empty-state text inside via `attachments.length===0 ? <p>... : <grid>`.
   fix_landed: |
-    Plan 54-08 commit 7a99427 — line-606 short-circuit removed; render layer now has a 3-arm tree (in-cycle runs / impacted executions / "No executions resolved for the linked test cases yet" notice with data-testid="aio-no-executions-notice"); AioAttachmentsGrid moved outside the ternary as a sibling so the header is rendered on ALL three branches. Test at AioTestRunsSection.test.tsx:201-216 was REWRITTEN to assert the new contract (section + grid empty state visible when data !== null but both arrays empty).
+    Plan 54-08 commit 3a64019b — line-606 short-circuit removed; render layer now has a 3-arm tree (in-cycle runs / impacted executions / "No executions resolved for the linked test cases yet" notice with data-testid="aio-no-executions-notice"); AioAttachmentsGrid moved outside the ternary as a sibling so the header is rendered on ALL three branches. Test at AioTestRunsSection.test.tsx:201-216 was REWRITTEN to assert the new contract (section + grid empty state visible when data !== null but both arrays empty).
   debug_session: .planning/debug/aio-attachments-header-missing.md
 
 - truth: "Nested {panel} blocks embedded inside |cell| of a wiki table row render INSIDE the cell without breaking table layout; links open in-app ImageLightbox."
@@ -169,7 +169,7 @@ new_gap_round_3: |
   uat_round_2: issue
   uat_round_2_at: "2026-05-14T09:25:00Z"
   uat_round_3: pending_uat
-  round_3_fix_commit: "6fdee86, 25881bf"
+  round_3_fix_commit: "62dbdc81, 3c6ecf9c"
   round_3_fix_plan: "54-09"
   round_3_root_cause: |
     Parser-level — not CSS. (B) wiki-link `[name|url]` literal `|` survives into the
@@ -178,14 +178,14 @@ new_gap_round_3: |
     non-issue: mergeOpenTableRows correctly consumes the 6-line panel-bearing row.
     Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md.
   round_3_fix_landed: |
-    Plan 54-09 (commits 6fdee86, 25881bf) — flattenInlineCalloutsForTableRow gains a
+    Plan 54-09 (commits 62dbdc81, 3c6ecf9c) — flattenInlineCalloutsForTableRow gains a
     transformPanelListItems helper that converts `# [name|url]` inside {panel} to
     `<ol><li><a href="url">name</a></li></ol>`; remaining literal `|` chars in
     non-list panel body escaped to `\|` before reaching jira2md. Phantom-row
     prevention: mergeOpenTableRows now substitutes Jira `\\` hard-break markers
     to `<br/>` inside merged rows so they cannot re-fracture the row via
     preprocessJiraMarkup's later `\\` → `  \n` substitution. Round-3 UAT
-    follow-up (25881bf): `\\` immediately before `{panel}` with NO surrounding
+    follow-up (3c6ecf9c): `\\` immediately before `{panel}` with NO surrounding
     whitespace (real SHOP source `text\\{panel}`) now also handled — replaced
     two prior whitespace-padded patterns with a single `/\\\\/g → <br/>`
     applied BEFORE callout substitution so the panel renders on a new line.
@@ -196,7 +196,7 @@ new_gap_round_3: |
     Round 2: 'rendering of the panel is better but it still breaks the table'. Screenshots received.
     Reframed root cause: PARSER-LEVEL fractures (not CSS overflow). Three independent concerns surfaced:
     (A) mergeOpenTableRows may not consume full panel-bearing row; (B) wiki link `[name|url]` literal `|` breaks markdown table parsing — `# img-b.png` escapes the table; (C) wiki numbered list `# item` inside panel loses semantics. Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md
-  fix_commit: "9862672"
+  fix_commit: "701725fe"
   fix_plan: "54-08"
   next_plan: "54-09 (landed; round-3 UAT PASS confirmed 2026-05-14)"
 
@@ -208,7 +208,7 @@ new_gap_round_3: |
     Round-3 UAT: 'There is still an issue with AIO attachments being empty even though the story has AIO images in the description.' By design, the grid scanned test-run step content only. Description-body refs were never extracted. User accepted scope expansion as plan 54-10.
   severity: minor
   test: 4
-  fix_commit: "db693d9"
+  fix_commit: "6cf425dc"
   fix_plan: "54-10"
   fix_landed: |
     AioTestRunsSection accepts a new `description?: string | null` prop; the
@@ -225,7 +225,7 @@ new_gap_round_3: |
     Round-3 UAT (user): "The impacted executions are not clickable to their detail. Their status is always 'not run' even though some have other states." User shared verbatim diagnostic URL: /project/QAT/testcycle/SHOP-CY-759/testrun/209620?assignSteps=true → 'For the selected project, No Cycle found with Key: SHOP-CY-759'. Root cause: the detail fetch used the parent issue's projectKey ('QAT') for ALL impacted executions, but cross-project cycles (SHOP-CY-759) require their OWN project key.
   severity: major
   test: 4
-  fix_commit: "21a4b4d"
+  fix_commit: "eca6c020"
   fix_plan: "54-11"
   fix_landed: |
     Detail fetch projectKey now derived per-row from `runRef.cycleKey.split('-')[0]` (AIO convention {PROJECT}-CY-{N}). Applied at both in-cycle and cross-cycle fetch sites for consistency. Updated the prior direct-lookup perf-path test that asserted the buggy behavior (UNIQUE_CYCLE_KEY='SHOP-CY-1011' was always cross-project to PROJECT_KEY='PROJ'). Added dedicated cross-project test that asserts the projectKey derivation for a different project prefix ('OTHER-CY-9').
@@ -238,10 +238,10 @@ new_gap_round_3: |
     Round-3 UAT (user): rows were previously read-only by design ("No click handlers — cycle/run navigation is a phase-53 concern"). User requested two link targets per row. Accepted as scope expansion.
   severity: minor
   test: 4
-  fix_commit: "ca06965"
+  fix_commit: "688b8f83"
   fix_plan: "54-11"
   fix_landed: |
-    New `AioTestRunDetailPage` route at `/aio-cycle/:projectKey/:cycleKey/run/:runId` (commit 2 of 3 in plan 54-11). Cycle key + run ID cells in `ImpactedExecutionsList` wrapped in `<Link>` with hrefs derived from `cycleKey.split('-')[0]` so cross-project navigation works. 5 new tests in plan 54-11: cross-project detail fetch (21a4b4d), 3 for the new page (commit 2), 2 for the click targets (ca06965).
+    New `AioTestRunDetailPage` route at `/aio-cycle/:projectKey/:cycleKey/run/:runId` (commit 2 of 3 in plan 54-11). Cycle key + run ID cells in `ImpactedExecutionsList` wrapped in `<Link>` with hrefs derived from `cycleKey.split('-')[0]` so cross-project navigation works. 5 new tests in plan 54-11: cross-project detail fetch (eca6c020), 3 for the new page (commit 2), 2 for the click targets (688b8f83).
   reason: |
     User reported: 'images work but the layout is still kind of broken. The table doesnt break in the middle like it used to but the pannel is not rendered in one cell of a table but overflows and breaks the layout in the section of the table where it is located'. Partial Branch 3-A improvement (no mid-table break, image routing intact) but the panel content still escapes its containing <td> — appears as sibling rather than child of the cell, or overflows the cell's bounds.
   severity: major
@@ -249,5 +249,5 @@ new_gap_round_3: |
   root_cause: |
     NOT a <span data-callout> escape — the panel IS structurally contained inside the inner wiki table's <td>. The actual bug is a layout-integration failure between two NESTED tables: the inner wiki table (from WikiRenderer) grows wider than the outer Step column allows and overflows. WikiRenderer.tsx <article> had no overflow container around rendered tables; AioTestRunsSection StepTable outer <td> had no min-w-0 to release the min-content floor.
   fix_landed: |
-    Plan 54-08 commit 9862672 — WikiRenderer.tsx markdownComponents gained a `table` override wrapping rendered <table> in <div className="overflow-x-auto max-w-full">. AioTestRunsSection.tsx StepTable Step/Expected/Actual <td> wrappers gained `min-w-0` so the column releases its min-content floor and the overflow container can contract + scroll. Regression test in WikiRenderer.test.tsx asserts the wrapper class exists when rendered inside a constrained-width parent.
+    Plan 54-08 commit 701725fe — WikiRenderer.tsx markdownComponents gained a `table` override wrapping rendered <table> in <div className="overflow-x-auto max-w-full">. AioTestRunsSection.tsx StepTable Step/Expected/Actual <td> wrappers gained `min-w-0` so the column releases its min-content floor and the overflow container can contract + scroll. Regression test in WikiRenderer.test.tsx asserts the wrapper class exists when rendered inside a constrained-width parent.
   debug_session: .planning/debug/panel-overflows-table-cell.md

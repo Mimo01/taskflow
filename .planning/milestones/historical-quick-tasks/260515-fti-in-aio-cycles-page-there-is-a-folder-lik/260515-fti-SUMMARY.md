@@ -97,9 +97,9 @@ No deviations.
 - [x] `taskflow/src/stores/aio-cycles-selection.store.test.ts` exists
 - [x] `taskflow/src/routes/dashboard/AioProjectOverviewPage.tsx` modified
 - [x] `taskflow/src/routes/dashboard/AioProjectOverviewPage.test.tsx` modified
-- [x] Commit `b483023` — Task 1 (store + tests)
-- [x] Commit `dee597d` — Task 2 (page wiring + tests)
-- [x] Commit `e737311` — Task 3 (expand selected folder, not always first root)
+- [x] Commit `b077f2f6` — Task 1 (store + tests)
+- [x] Commit `7e80eedd` — Task 2 (page wiring + tests)
+- [x] Commit `526e4f11` — Task 3 (expand selected folder, not always first root)
 - [x] All 9 tests pass
 - [x] Typecheck clean
 

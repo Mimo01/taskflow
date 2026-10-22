@@ -23,8 +23,8 @@ status: clean
 
 ## Summary
 
-Reviewed the diff for commits `ecc595af` (widen `JiraIssueDetail.fields.parent` type with
-optional `issuetype` + `status`) and `42926b02` (replace the muted subtask parent breadcrumb
+Reviewed the diff for commits `c3273687` (widen `JiraIssueDetail.fields.parent` type with
+optional `issuetype` + `status`) and `3c8b3dd6` (replace the muted subtask parent breadcrumb
 with a prominent clickable parent card). Scope limited to the change set; pre-existing jira.ts
 code was not re-reviewed.
 

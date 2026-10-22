@@ -34,15 +34,15 @@ Added a "Defects" section to `AioTestRunDetailPage` that renders below the step 
 
 ## TDD Gate Compliance
 
-- RED commit `3e5ee5ce`: 3 new failing tests added (defects section rendering, empty array, undefined)
-- GREEN commit `b4669fc8`: Implementation added, all 8 tests pass
+- RED commit `f234f9c2`: 3 new failing tests added (defects section rendering, empty array, undefined)
+- GREEN commit `07f5dbdd`: Implementation added, all 8 tests pass
 
 ## Tasks Completed
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 (RED) | Failing tests for defects section | 3e5ee5ce | AioTestRunDetailPage.test.tsx |
-| 1 (GREEN) | Implement defects section | b4669fc8 | AioTestRunDetailPage.tsx |
+| 1 (RED) | Failing tests for defects section | f234f9c2 | AioTestRunDetailPage.test.tsx |
+| 1 (GREEN) | Implement defects section | 07f5dbdd | AioTestRunDetailPage.tsx |
 
 ## Decisions Made
 
@@ -66,5 +66,5 @@ None. Defect IDs come from the authenticated AIO API (same auth domain as Jira).
 
 - `/Users/mimo/Documents/Projects/taskflow/.claude/worktrees/agent-aa2b1d79314ed97af/taskflow/src/routes/dashboard/AioTestRunDetailPage.tsx` — FOUND (16103 bytes, modified 2026-05-18)
 - `/Users/mimo/Documents/Projects/taskflow/.claude/worktrees/agent-aa2b1d79314ed97af/taskflow/src/routes/dashboard/AioTestRunDetailPage.test.tsx` — FOUND (8 tests, all pass)
-- Commit `3e5ee5ce` — FOUND (test RED)
-- Commit `b4669fc8` — FOUND (feat GREEN)
+- Commit `f234f9c2` — FOUND (test RED)
+- Commit `07f5dbdd` — FOUND (feat GREEN)

@@ -71,8 +71,8 @@ completed: 2026-08-10
 
 Each auto task was committed atomically:
 
-1. **Task 88-06-T1: CreateMilestoneDialog with format enforcement, reference list, and duplicate blocking** - `9c07a975` (feat)
-2. **Task 88-06-T2: createMilestone mutation + sidebar Create action + page wiring** - `0e318a05` (feat)
+1. **Task 88-06-T1: CreateMilestoneDialog with format enforcement, reference list, and duplicate blocking** - `fbe31380` (feat)
+2. **Task 88-06-T2: createMilestone mutation + sidebar Create action + page wiring** - `bca0b212` (feat)
 
 Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Waived — NOT Performed" below.
 
@@ -98,7 +98,7 @@ Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Waived — NOT Perf
 - **Fix:** Reworded the `CreateMilestoneDialog.tsx` docstring to avoid the literal hook-name substrings (kept the intent: "no data fetching or credential/mutation hooks of its own"). The "Recent milestones" double-count is NOT fixable the same way — see item 2 below, it is a genuine locked-copy conflict, not a comment artifact. Reworded the `useReleaseDetail.ts` comment to avoid the literal words "toast" and "description" while preserving the same meaning ("no success notice"; "carries only title and due_date").
 - **Files modified:** `CreateMilestoneDialog.tsx`, `useReleaseDetail.ts`
 - **Verification:** All affected greps re-run individually and confirmed to return their exact expected values (0 for the hook-names/onMutate-toast checks); full suite and `tsc --noEmit` still green.
-- **Committed in:** `9c07a975` (Task 1), `0e318a05` (Task 2)
+- **Committed in:** `fbe31380` (Task 1), `bca0b212` (Task 2)
 
 **2. [Rule 1 - Bug] Documented, non-fixable acceptance-criteria conflict: "Recent milestones" appears twice by design**
 - **Found during:** Task 1 verification
@@ -106,7 +106,7 @@ Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Waived — NOT Perf
 - **Fix:** Kept both locked strings verbatim (neither is paraphrased) since the UI-SPEC copywriting contract takes precedence over a grep count that the plan itself made structurally impossible to satisfy at exactly 1 while also satisfying the two required copy strings.
 - **Files modified:** None (no code change — the two locked strings are both required as literally specified)
 - **Verification:** Both `DialogDescription` text and the reference-list label are verbatim, exact matches to the plan's `<action>` text; `npm run test` confirms both render correctly.
-- **Committed in:** `9c07a975` (Task 1)
+- **Committed in:** `fbe31380` (Task 1)
 
 **3. [Rule 1 - Bug] Duplicate-message precedence over format-message for whitespace-variant duplicates**
 - **Found during:** Task 1 test-writing, cross-checked against the plan's own checkpoint Step 4
@@ -114,7 +114,7 @@ Task 88-06-T3 (checkpoint) has no commit — see "Checkpoint Waived — NOT Perf
 - **Fix:** Duplicate detection takes rendering precedence: if `findDuplicateMilestone` finds a match, the duplicate message renders regardless of format validity; the format message only renders when there is no duplicate match. The submit button remains disabled in both cases (`isPending || !formatValid || duplicate !== null`), so no behavior change to submission — only which message displays.
 - **Files modified:** `CreateMilestoneDialog.tsx`
 - **Verification:** Test `blocks a normalized-duplicate title and shows the duplicate message (RELMS-04)` uses a double-space duplicate variant and asserts the duplicate message (not the format message) renders; button asserted disabled.
-- **Committed in:** `9c07a975` (Task 1)
+- **Committed in:** `fbe31380` (Task 1)
 
 ---
 
@@ -142,7 +142,7 @@ The coordinator relayed the user's verbatim response: *"waived — record accura
 
 ## Issues Encountered
 - Worktree had no `node_modules`; symlinked `taskflow/node_modules` to the main checkout's install (same workaround as Plans 88-01/88-02/88-03/88-05). Not committed (gitignored).
-- Worktree branch initially pointed at a newer `main` commit (`ca59303f`, tracking-doc update) rather than the expected `88-05` base (`3ef9edfa`); the mandatory pre-flight base-drift check caught this and `git reset --hard` corrected it before any file was touched (working tree was clean, so this was safe).
+- Worktree branch initially pointed at a newer `main` commit (`2f87c86d`, tracking-doc update) rather than the expected `88-05` base (`36fb8bf4`); the mandatory pre-flight base-drift check caught this and `git reset --hard` corrected it before any file was touched (working tree was clean, so this was safe).
 
 ## User Setup Required
 

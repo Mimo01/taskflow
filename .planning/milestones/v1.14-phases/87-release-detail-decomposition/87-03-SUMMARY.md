@@ -67,9 +67,9 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 1: Extract MetaRow.tsx and ReleaseDetailSkeleton.tsx** - `648b3896` (feat)
-2. **Task 2: Extract ReleaseHeader.tsx (breadcrumb header + title heading as two exports)** - `4949385d` (feat)
-3. **Task 3: Extract DescriptionsSection.tsx and LabelSummarySection.tsx** - `c41f93e3` (feat)
+1. **Task 1: Extract MetaRow.tsx and ReleaseDetailSkeleton.tsx** - `c7298e6e` (feat)
+2. **Task 2: Extract ReleaseHeader.tsx (breadcrumb header + title heading as two exports)** - `f9047652` (feat)
+3. **Task 3: Extract DescriptionsSection.tsx and LabelSummarySection.tsx** - `20fc4fe2` (feat)
 
 **Plan metadata:** (this commit, docs: complete plan)
 
@@ -98,7 +98,7 @@ Each task was committed atomically:
 - **Issue:** The plan instructs `ReleaseBreadcrumbHeaderProps.trail` to "use the trail element type from `@/stores/breadcrumb.store`," but the store's `TrailEntry` interface was private (not exported), which would have blocked the import.
 - **Fix:** Added `export` to the existing `interface TrailEntry` declaration in `breadcrumb.store.ts`. No behavior change — purely a type-visibility fix.
 - **Files modified:** `taskflow/src/stores/breadcrumb.store.ts`
-- **Commit:** `4949385d`
+- **Commit:** `f9047652`
 
 **2. [Rule 1 - Lint] Biome import-sort and formatting**
 - **Found during:** Task 2 and Task 3 `npm run check`
@@ -106,7 +106,7 @@ Each task was committed atomically:
 - **Fix:** Ran `npx biome check --write` / `npx biome format --write` on the affected files.
 - **Files modified:** `ReleaseDetailPage.tsx`, `LabelSummarySection.tsx`
 - **Verification:** `npx biome check` clean on all touched files; `npm run check` shows exactly the pre-existing 2-error `BacklogPage.tsx`/`BacklogRow.tsx` baseline (0 new).
-- **Committed in:** `4949385d`, `c41f93e3`
+- **Committed in:** `f9047652`, `20fc4fe2`
 
 ### Documented Plan Deviation (planner-authored)
 
@@ -133,7 +133,7 @@ No blockers.
 
 ## Self-Check: PASSED
 
-All 5 created files and the modified page shell verified present on disk; all 4 commits (648b3896, 4949385d, c41f93e3, 65a4dece) verified in git log.
+All 5 created files and the modified page shell verified present on disk; all 4 commits (c7298e6e, f9047652, 20fc4fe2, 64eb37a7) verified in git log.
 
 ---
 *Phase: 87-release-detail-decomposition*

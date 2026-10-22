@@ -63,7 +63,7 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Fix gitlab-mrs query key and enabled guard** - `f7b2da8` (feat)
+1. **Task 1: Fix gitlab-mrs query key and enabled guard** - `36f6972a` (feat)
 2. **Task 2: Revert duplicate fetchProjectMilestonesInRange** - no commit needed (git checkout reverted uncommitted changes)
 
 ## Files Created/Modified

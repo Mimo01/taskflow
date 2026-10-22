@@ -80,9 +80,9 @@ None — the dialog is fully wired to live data (probe-sourced `allowedValues`) 
 
 ## Commits
 
-- c9bd464e — feat: add BoardResolutionDialog resolution picker
-- 0180372f — feat: wire board drag-to-resolution picker (helper + barrel + drag flow)
-- 9b432ae5 — test: cover resolveDropResolution + dialog confirm wiring
+- b259190a — feat: add BoardResolutionDialog resolution picker
+- 76266018 — feat: wire board drag-to-resolution picker (helper + barrel + drag flow)
+- 20b8c184 — test: cover resolveDropResolution + dialog confirm wiring
 
 ## Self-Check: PASSED
 

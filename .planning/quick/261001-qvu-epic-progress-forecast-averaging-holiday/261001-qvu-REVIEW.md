@@ -109,7 +109,7 @@ _Depth: quick_
 
 ## Disposition (orchestrator)
 
-Fixed in the commit after 95c5fe7f; regression tests for WR-01 and WR-04 proven to fail pre-fix.
+Fixed in the commit after 45f92155; regression tests for WR-01 and WR-04 proven to fail pre-fix.
 
 | ID | Disposition |
 |----|-------------|

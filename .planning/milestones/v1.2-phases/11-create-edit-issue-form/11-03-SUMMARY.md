@@ -78,8 +78,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: IssueLinkRow component** - `afd804e` (feat)
-2. **Task 2: Wire issue links into CreateEditIssueModal** - `9627ae0` (feat)
+1. **Task 1: IssueLinkRow component** - `46a5d17f` (feat)
+2. **Task 2: Wire issue links into CreateEditIssueModal** - `ef9f568e` (feat)
 
 ## Files Created/Modified
 
@@ -105,7 +105,7 @@ Each task was committed atomically:
 - **Fix:** Changed `crypto.randomUUID()` to `crypto.randomUUID?.() ?? \`link-${Date.now()}-${Math.random()}\``
 - **Files modified:** taskflow/src/routes/dashboard/CreateEditIssueModal.tsx
 - **Verification:** Tests pass; production Tauri webview has crypto.randomUUID available
-- **Committed in:** 9627ae0 (Task 2 commit)
+- **Committed in:** ef9f568e (Task 2 commit)
 
 **2. [Rule 1 - Bug] TDD fake timer + useQuery incompatibility**
 - **Found during:** Task 1 (IssueLinkRow component)
@@ -113,7 +113,7 @@ Each task was committed atomically:
 - **Fix:** Removed fake timers from async tests; used `waitFor({ timeout: 2000 })` with real timers — debounce resolves naturally within 350ms + query execution
 - **Files modified:** taskflow/src/routes/dashboard/IssueLinkRow.test.tsx
 - **Verification:** All 6 IssueLinkRow tests pass
-- **Committed in:** afd804e (Task 1 commit)
+- **Committed in:** 46a5d17f (Task 1 commit)
 
 ---
 

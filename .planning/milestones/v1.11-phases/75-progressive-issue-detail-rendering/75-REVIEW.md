@@ -19,7 +19,7 @@ findings:
   warning: 5
   info: 4
   total: 9
-resolved:  # prior review cycle, fixed in 7f28b704
+resolved:  # prior review cycle, fixed in f1eca6ca
   - "prior CR-01 — TTI gate fixed for zero-subtask issues"
   - "prior CR-02 — delete-comment error gated on deletingCommentId === comment.id"
   - "prior WR-01 — live comments passed from parent query into IssueDetailContent"
@@ -32,7 +32,7 @@ status: issues_found
 
 > **Re-review (2026-05-31):** This report supersedes the initial phase-75 review. The 2 prior
 > criticals (CR-01, CR-02) and the 2 goal-undermining warnings (prior WR-01, prior WR-04) were
-> fixed inline during execute-phase (commit `7f28b704`) and are **confirmed resolved** in this
+> fixed inline during execute-phase (commit `f1eca6ca`) and are **confirmed resolved** in this
 > pass — no criticals remain. Two prior open items carry forward under new IDs (prior WR-02
 > subtask-key → **WR-04** below; prior WR-03 console.table → **IN-02** below). Two prior Info
 > items (duplicate comment fns, changelog pagination cap) were not re-surfaced this pass but
@@ -187,10 +187,10 @@ error type so genuinely different failures produce distinguishable messages.
 
 ## Previous Review History
 
-The initial phase-75 review (commits `158d3162`, `2e50a448`) found **2 Critical + 4 Warning +
+The initial phase-75 review (commits `952cf445`, `7d4ad9b0`) found **2 Critical + 4 Warning +
 2 Info**. Status of those findings as of this re-review:
 
-**Resolved in commit `7f28b704` (confirmed this pass):**
+**Resolved in commit `f1eca6ca` (confirmed this pass):**
 - **CR-01** — TTI measurement never fired for zero-subtask issues (`isPending` gate on a disabled query). Fixed: gate now accounts for subtasks presence.
 - **CR-02** — Delete-comment errors silently discarded (`deleteError` gated on `isEditing`). Fixed: gated on `deletingCommentId === comment.id`.
 - **prior WR-01** — `IssueDetailContent` read the no-longer-fetched `issue.fields.comment`. Fixed: live comments passed from the parent query.

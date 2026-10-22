@@ -107,7 +107,7 @@ Rewrote `BacklogPage.tsx` onto a single `useGhBacklogData(boardId)` call against
 - **Issue:** Task 1's `<behavior>` block deletes `sprintIds`, `sprintStories`, `backlogIssues`, `storiesLoading`, `backlogError`, `refetchBacklog`, `refetchStories`, `mergedSprints`, `subtaskStatusMap`. Task 2's mutation handlers read every one of those identifiers. A Task-1-only commit would leave the file non-compiling, which would fail tsc inside the husky pre-commit hook and block the commit entirely. Splitting via `git stash` is forbidden by the GSD destructive-git prohibition (memory `[[feedback_no_git_stash_for_lint_compare]]`).
 - **Fix:** Apply both tasks' edits, then make a single commit whose message body enumerates Task 1 and Task 2 distinctly with their respective decision codes. The acceptance criteria for both tasks were verified end-to-end against the final file; this is identical to the post-merge state the plan targets.
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.tsx`.
-- **Commit:** `300b5eb1`.
+- **Commit:** `104b7cad`.
 
 **2. [Rule 3 — Blocking issue] Deleted legacy `BacklogPage.test.tsx`**
 - **Found during:** Task 1 verification (full-suite run).
@@ -118,7 +118,7 @@ Rewrote `BacklogPage.tsx` onto a single `useGhBacklogData(boardId)` call against
   - `useGhBacklogData.test.tsx` pins the hook contract (gating, ensureQueryData, invalidation).
   The BACK-01..05 / LOAD-04 surface is functionally exercised by these contracts plus the BacklogRow tests that remain unchanged.
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.test.tsx` (deleted).
-- **Commit:** `300b5eb1`.
+- **Commit:** `104b7cad`.
 
 **3. [Rule 3 — Tooling drift] Used local node_modules symlink + `./node_modules/.bin/*` invocations**
 - **Found during:** Pre-verification.
@@ -132,7 +132,7 @@ Rewrote `BacklogPage.tsx` onto a single `useGhBacklogData(boardId)` call against
 - **Issue:** D-05a requires the label filter chip "removed entirely from toolbar". `UnifiedFilterBar` is a shared component consumed by both `SprintBoardTab` and `BacklogPage`, and is outside this plan's `files_modified` allow-list.
 - **Fix:** `filterOptions.labels` is now hard-`[]` on the backlog; the shared dropdown renders structurally with no options. A future plan modifying `UnifiedFilterBar` can introduce a `hideLabels` prop or per-route conditional rendering. The behavioral D-05a intent (no labels filterable on backlog) is satisfied.
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.tsx` (filterOptions).
-- **Commit:** `300b5eb1`.
+- **Commit:** `104b7cad`.
 
 ### Auth Gates
 
@@ -155,7 +155,7 @@ Deleted files (verified absent):
 - `taskflow/src/routes/dashboard/BacklogPage.test.tsx` — NOT FOUND (`ls` returns "No such file").
 
 Commit (verified via `git log --oneline -1`):
-- `300b5eb1` — feat(74-03): rewrite BacklogPage data layer onto useGhBacklogData — FOUND.
+- `104b7cad` — feat(74-03): rewrite BacklogPage data layer onto useGhBacklogData — FOUND.
 
 Acceptance gates (re-verified post-commit):
 - All eight grep gates from Task 1 + Task 2 acceptance pass (counts above).

@@ -57,7 +57,7 @@ completed: 2026-09-22
 
 Each task was committed atomically:
 
-1. **Task 1: Restyle SprintBoardHeader to the canonical page-header treatment** - `821f4b0b` (feat)
+1. **Task 1: Restyle SprintBoardHeader to the canonical page-header treatment** - `0b85fb7f` (feat)
 
 Task 2 (checkpoint:human-verify) is a visual-parity gate — see "Checkpoint / Human Verification" below.
 
@@ -81,13 +81,13 @@ None - plan executed exactly as written for Task 1.
 
 Task 2 in the plan is `type="checkpoint:human-verify"` — a live visual-parity check comparing the Sprint Board header against the Backlog page header in the running app, including density toggling. Initial automated pass compared className strings only; the user then reviewed the running app and requested two follow-up changes, now folded into this task's verification:
 
-- **Follow-up 1 (`9c461245`):** goal moved from inline text after the title (separated by a middle dot) to its own line below the title, with a `Target` icon leading it. Also added `SprintBoardHeaderSkeleton`, gated on the 200ms-delayed `showSkeleton` flag, so the header slot wasn't visually absent while `SprintBoardTab` was fetching.
+- **Follow-up 1 (`cc5059a9`):** goal moved from inline text after the title (separated by a middle dot) to its own line below the title, with a `Target` icon leading it. Also added `SprintBoardHeaderSkeleton`, gated on the 200ms-delayed `showSkeleton` flag, so the header slot wasn't visually absent while `SprintBoardTab` was fetching.
 - **User feedback round 2:** clicking into the page while data was still loading produced a blank flash (no title segment) before the header appeared — caused by the skeleton itself being gated on the delayed `showSkeleton` rather than the raw `isLoading`, leaving a ~200ms window where neither the skeleton nor the real header was mounted. User also asked to drop the `Target` icon.
-- **Follow-up 2 (`c420a22c`):** removed the `Target` icon (goal is now plain de-emphasized text on its own line, no icon). Switched the header's skeleton gate from `showSkeleton` to raw `isLoading` in `SprintBoardTab.tsx`, so the skeleton mounts immediately on load with no blank gap. The body skeleton (`SprintBoardSkeleton`) keeps the original delayed `showSkeleton` gate — only the small header needed the immediate-mount fix.
+- **Follow-up 2 (`624a8123`):** removed the `Target` icon (goal is now plain de-emphasized text on its own line, no icon). Switched the header's skeleton gate from `showSkeleton` to raw `isLoading` in `SprintBoardTab.tsx`, so the skeleton mounts immediately on load with no blank gap. The body skeleton (`SprintBoardSkeleton`) keeps the original delayed `showSkeleton` gate — only the small header needed the immediate-mount fix.
 - User confirmed the result — **approved**.
 
 ## Next Phase Readiness
-- Code changes complete, tested, typechecked, and committed (`821f4b0b`, `9c461245`, `c420a22c`)
+- Code changes complete, tested, typechecked, and committed (`0b85fb7f`, `cc5059a9`, `624a8123`)
 - Full vitest suite (2753 tests) passes with no regressions
 - Live visual sign-off: **done** — user reviewed in the running app and approved after the two follow-up rounds above
 
@@ -95,7 +95,7 @@ Task 2 in the plan is `type="checkpoint:human-verify"` — a live visual-parity 
 
 - FOUND: `taskflow/src/routes/dashboard/SprintBoardHeader.tsx` contains `text-lg font-semibold` and `px-4 py-3 border-b`, no `bg-muted/40`, `density-compact:py-`, or `Target` icon
 - FOUND: `SprintBoardTab.tsx` gates `SprintBoardHeaderSkeleton` on raw `isLoading`
-- FOUND: commits `821f4b0b`, `9c461245`, `c420a22c` in `git log --oneline`
+- FOUND: commits `0b85fb7f`, `cc5059a9`, `624a8123` in `git log --oneline`
 
 ---
 *Quick task: 260922-jtc*

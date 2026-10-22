@@ -28,7 +28,7 @@ Label summary section aggregating unique GitLab labels from milestone MRs with c
 ## What Was Done
 
 ### Task 1: Add label summary section to ReleaseDetailPage
-**Commit:** 1026cd0
+**Commit:** 2ff1aef5
 
 - Added `Tag` icon import from lucide-react
 - Created `labelSummary` useMemo hook that aggregates all unique labels across milestone MRs, counting how many MRs carry each label, sorted by count descending then alphabetically

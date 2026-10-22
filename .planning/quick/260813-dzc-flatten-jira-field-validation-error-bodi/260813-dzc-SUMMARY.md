@@ -66,9 +66,9 @@ completed: 2026-08-13
 
 Each task was committed atomically:
 
-1. **Task 1: Add flattenJiraError helper with shape-coverage tests** - `7d37e55b` (feat)
-2. **Task 2: Wire flattenJiraError into the four existing errorMessages sites** - `1e309350` (feat)
-3. **Task 3: Read and flatten the rank-api error body** - `1151d46a` (feat)
+1. **Task 1: Add flattenJiraError helper with shape-coverage tests** - `553fc891` (feat)
+2. **Task 2: Wire flattenJiraError into the four existing errorMessages sites** - `853e54c2` (feat)
+3. **Task 3: Read and flatten the rank-api error body** - `454fae1b` (feat)
 
 **Plan metadata:** (this commit, handled by orchestrator)
 
@@ -100,7 +100,7 @@ _Note: each task's RED (test) and GREEN (implementation) changes were combined i
 - **Fix:** Updated the regex to `/Failed to rank issue: status 500/` with a comment noting the new fallback literal.
 - **Files modified:** `taskflow/src/services/jira/__tests__/rank-api.test.ts`
 - **Verification:** `npx vitest run src/services/jira/__tests__/rank-api.test.ts src/services/jira/rank-api.test.ts` — 16/16 pass
-- **Committed in:** `1151d46a` (Task 3 commit)
+- **Committed in:** `454fae1b` (Task 3 commit)
 
 **2. [Rule 3 - Blocking] Guarded `response.json?.()` with optional chaining in `rank-api.ts`**
 - **Found during:** Task 3, verifying pre-existing 500-status test mocks
@@ -108,7 +108,7 @@ _Note: each task's RED (test) and GREEN (implementation) changes were combined i
 - **Fix:** Used `await Promise.resolve(response.json?.()).catch(() => null)` so a missing `json` method resolves to `undefined`/`null` gracefully instead of throwing.
 - **Files modified:** `taskflow/src/services/jira/rank-api.ts`
 - **Verification:** All rank-api tests (old and new) pass
-- **Committed in:** `1151d46a` (Task 3 commit)
+- **Committed in:** `454fae1b` (Task 3 commit)
 
 ---
 
@@ -133,4 +133,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 9 created/modified files verified present on disk; all 3 task commits (7d37e55b, 1e309350, 1151d46a) verified present in `git log`.
+All 9 created/modified files verified present on disk; all 3 task commits (553fc891, 853e54c2, 454fae1b) verified present in `git log`.

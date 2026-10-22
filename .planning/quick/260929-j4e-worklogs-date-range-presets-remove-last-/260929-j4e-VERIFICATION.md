@@ -16,7 +16,7 @@ Goal: Worklogs presets become This Week, Last 7 Days, This Month, Last Month (ro
 | 3 | Last 7 Days = today-6..today | VERIFIED | `getLast7DaysRange` builds from local components. Unit tests cover month wrap and the DST day. |
 | 4 | Last Month = same day a month ago, clamped | VERIFIED | `getLastMonthToDateRange` uses `Math.min(d, new Date(y, m, 0).getDate())`. Tests cover 31 Mar to 28 Feb, the leap year, year wrap and the 30-day clamp. |
 | 5 | Legacy saved preset loads as This Week | VERIFIED | Store persist is at version 2 and its migrate maps `savedFilters[].preset` through `normalizeDatePreset`. `handleLoadFilter` calls `setPreset(normalizeDatePreset(...))`, and the useMemo switch has a `default` returning `getThisWeekRange()`. |
-| 6 | standup-date.ts unchanged | VERIFIED | `git diff --quiet a49c662e HEAD -- taskflow/src/lib/standup-date.ts` exits 0. |
+| 6 | standup-date.ts unchanged | VERIFIED | `git diff --quiet 61f5b5af HEAD -- taskflow/src/lib/standup-date.ts` exits 0. |
 
 Tests: `worklog-date-ranges.test.ts`, `tempo-filters.store.test.ts` and `WorklogsPage.test.tsx` all pass (3 files, 75 tests). `tsc --noEmit` is clean.
 

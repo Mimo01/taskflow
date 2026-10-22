@@ -62,8 +62,8 @@ completed: 2026-03-25
 
 ## Task Commits
 
-1. **Task 1: Manual setup (keys, secrets, repo)** - `f3d0f3d` (feat: add updater signing pubkey)
-2. **Task 2: E2E pipeline verification** - `0479f05` (fix: releaseCommitish for cross-repo)
+1. **Task 1: Manual setup (keys, secrets, repo)** - `8ec04cea` (feat: add updater signing pubkey)
+2. **Task 2: E2E pipeline verification** - `5ab6ef59` (fix: releaseCommitish for cross-repo)
 
 ## Files Created/Modified
 - `taskflow/src-tauri/tauri.conf.json` - Added pubkey to plugins.updater
@@ -86,7 +86,7 @@ completed: 2026-03-25
 - **Fix:** Added `releaseCommitish: main` to the tauri-action inputs
 - **Files modified:** .github/workflows/release.yml
 - **Verification:** Subsequent pipeline run succeeded on all 3 platforms
-- **Committed in:** 0479f05
+- **Committed in:** 5ab6ef59
 
 **2. [Rule 3 - Blocking] Pre-existing test failures broke CI**
 - **Found during:** Task 2 (E2E verification)
@@ -94,7 +94,7 @@ completed: 2026-03-25
 - **Fix:** Added MemoryRouter to all render calls, added optional chaining
 - **Files modified:** ReleasesTab.test.tsx, jira.ts
 - **Verification:** Full test suite passes (780/780)
-- **Committed in:** 4bafcf1
+- **Committed in:** cf8ea4e3
 
 ---
 

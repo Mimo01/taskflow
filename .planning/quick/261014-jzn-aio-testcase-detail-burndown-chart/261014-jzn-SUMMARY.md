@@ -3,8 +3,8 @@
 Compact AIO-style burndown (neutral step line of remaining cases, status-coloured diamond per execution, dashed straight ideal line) added to the AIO cycle detail stats block.
 
 ## Commits
-- ec0fdbd7: cycleBurndownSeries / aioDateMs / burndownMarkerColor + unit tests (aio-cycle-charts)
-- 706a1d71: CycleBurndown component, wired into CycleKpiTiles and AioCycleDetailPage (`cycle` prop) + tests
+- f587fc4a: cycleBurndownSeries / aioDateMs / burndownMarkerColor + unit tests (aio-cycle-charts)
+- 844b70d7: CycleBurndown component, wired into CycleKpiTiles and AioCycleDetailPage (`cycle` prop) + tests
 
 ## Behaviour
 - Burndown section sits below the stats row, 140px plot; skeleton while runs load; hidden when nothing executed.

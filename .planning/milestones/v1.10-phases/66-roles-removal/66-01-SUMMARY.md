@@ -42,9 +42,9 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Simplify getDefaultSidebarItems to no-arg all-visible, remove preset constants | 70a94aee | sidebar-items.ts |
-| 2 | Update sidebar-items.test.ts to assert all-visible default | 1ebd32dd | sidebar-items.test.ts |
-| 3 | Strip role/setRole/applyPreset from settings store, bump to v22, add migration | 3d18427d | settings.store.ts |
+| 1 | Simplify getDefaultSidebarItems to no-arg all-visible, remove preset constants | 5d443734 | sidebar-items.ts |
+| 2 | Update sidebar-items.test.ts to assert all-visible default | 334ee5bc | sidebar-items.test.ts |
+| 3 | Strip role/setRole/applyPreset from settings store, bump to v22, add migration | 23bec8c7 | settings.store.ts |
 
 ## What Was Built
 
@@ -95,6 +95,6 @@ None — this plan only removes fields and simplifies a factory function. No new
 ## Self-Check
 
 **Commits exist:**
-- 70a94aee: feat(66-01): simplify getDefaultSidebarItems to no-arg all-visible, remove preset constants
-- 1ebd32dd: test(66-01): update sidebar-items test to assert all-visible default
-- 3d18427d: feat(66-01): strip role/setRole/applyPreset from settings store, bump to v22
+- 5d443734: feat(66-01): simplify getDefaultSidebarItems to no-arg all-visible, remove preset constants
+- 334ee5bc: test(66-01): update sidebar-items test to assert all-visible default
+- 23bec8c7: feat(66-01): strip role/setRole/applyPreset from settings store, bump to v22

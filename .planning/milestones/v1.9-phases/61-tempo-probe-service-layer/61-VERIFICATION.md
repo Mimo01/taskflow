@@ -84,7 +84,7 @@ re_verification: false
 | Settings store suite (26 tests including 4 new tempo tests) | `npm test -- src/stores/settings.store.test.ts` | 26/26 pass (4 new + 22 existing) | PASS (per 61-03-SUMMARY.md Test Results) |
 | IntegrationsSection suite (18 tests including 4 new tempo tests) | `npm test -- IntegrationsSection.test.tsx` | 18/18 pass (4 new + 14 prior) | PASS (per 61-04-SUMMARY.md Verification Results table) |
 | TypeScript compilation | `npx tsc --noEmit` | 0 errors | PASS (per 61-04-SUMMARY.md Verification Results table) |
-| Phase 61 validation strategy full suite | full vitest run at commit 8a82bb5a | 66/66 tests green | PASS (per `git log --oneline -10` entry: `docs(phase-61): mark validation strategy compliant — 66/66 tests green`) |
+| Phase 61 validation strategy full suite | full vitest run at commit 76f5ec2f | 66/66 tests green | PASS (per `git log --oneline -10` entry: `docs(phase-61): mark validation strategy compliant — 66/66 tests green`) |
 
 ---
 

@@ -40,7 +40,7 @@ human_verification:
 
 ## Fail-without-fix proof
 
-I copied the project into the scratchpad (rsync, with node_modules symlinked) and overwrote jira.ts, the modal, the form hook and the mutations hook with their pre-change versions from commit 4c3f2a25. The working tree was not touched. The new tests were kept. Result: **9 failed, 146 passed**.
+I copied the project into the scratchpad (rsync, with node_modules symlinked) and overwrote jira.ts, the modal, the form hook and the mutations hook with their pre-change versions from commit a64bf29a. The working tree was not touched. The new tests were kept. Result: **9 failed, 146 passed**.
 
 - Failed without the fix:
   - assignIssue: 4 tests.

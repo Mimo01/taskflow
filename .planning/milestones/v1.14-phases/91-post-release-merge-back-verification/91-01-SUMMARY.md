@@ -64,9 +64,9 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Add fetchSourceBranchMRs, compareRefs, and their types to services/gitlab.ts** - `a85ea3a5` (feat)
-2. **Task 2: Mocked-fetch tests for both new service functions** - `cf084391` (test)
-3. **Biome formatting auto-fix on Task 2's test file** - `816a0dab` (style)
+1. **Task 1: Add fetchSourceBranchMRs, compareRefs, and their types to services/gitlab.ts** - `d98d067f` (feat)
+2. **Task 2: Mocked-fetch tests for both new service functions** - `41ac08d5` (test)
+3. **Biome formatting auto-fix on Task 2's test file** - `824509b5` (style)
 
 ## Files Created/Modified
 - `taskflow/src/services/gitlab.ts` - Added `GitLabCompareResult` interface, `fetchSourceBranchMRs`, `compareRefs`, optional `merged_at` on `GitLabMR`
@@ -86,7 +86,7 @@ Each task was committed atomically:
 - **Fix:** Ran `npx biome check --write src/services/gitlab.test.ts`, which collapsed the call to Biome's preferred single-line form
 - **Files modified:** `taskflow/src/services/gitlab.test.ts`
 - **Verification:** `npx biome check src/services/gitlab.ts src/services/gitlab.test.ts` clean; `npx tsc --noEmit` clean; `npx vitest run src/services/gitlab.test.ts` green (146/146)
-- **Committed in:** `816a0dab`
+- **Committed in:** `824509b5`
 
 ---
 

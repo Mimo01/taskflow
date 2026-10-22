@@ -6,10 +6,10 @@ duration_minutes: 10
 tasks_completed: 1
 tasks_total: 1
 commits:
-  - hash: 34b428f
+  - hash: faa20ce3
     message: "test(quick-260509-yzn): add failing test for updater source in ApiLogEntry"
     type: RED
-  - hash: e26e040
+  - hash: f1e6cc67
     message: "feat(quick-260509-yzn): add 'updater' source category to dev log system"
     type: GREEN
 key_files:
@@ -60,12 +60,12 @@ Update checks in `useUpdatePolling.ts` were previously logged with `source: 'jir
 - **Issue:** WaterfallBar.tsx and WaterfallTab.tsx use `FetchRecord.source` from operation-profiler.store. That type was still `'jira' | 'gitlab'`, causing TS2367 comparison errors against `'updater'`
 - **Fix:** Extended `FetchRecord.source` to `'jira' | 'gitlab' | 'updater'` in operation-profiler.store.ts
 - **Files modified:** `taskflow/src/stores/operation-profiler.store.ts`
-- **Commit:** e26e040
+- **Commit:** f1e6cc67
 
 ## TDD Gate Compliance
 
-- RED gate commit: 34b428f (test adds `source: 'updater'` which tsc rejects before implementation)
-- GREEN gate commit: e26e040 (all 8 tests pass, tsc --noEmit clean)
+- RED gate commit: faa20ce3 (test adds `source: 'updater'` which tsc rejects before implementation)
+- GREEN gate commit: f1e6cc67 (all 8 tests pass, tsc --noEmit clean)
 - REFACTOR: not required (no cleanup needed)
 
 ## Verification
@@ -78,8 +78,8 @@ npx vitest run src/stores/debug-log.store.test.ts src/services/updater.test.ts
 
 ## Self-Check: PASSED
 
-- [x] 34b428f exists in git log
-- [x] e26e040 exists in git log
+- [x] faa20ce3 exists in git log
+- [x] f1e6cc67 exists in git log
 - [x] All 7 source files modified
 - [x] TypeScript compiles without errors
 - [x] Tests pass (8/8)

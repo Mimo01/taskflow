@@ -39,9 +39,9 @@ Additionally, the linter co-implemented SPPG-07 (Stories and Subtasks count colu
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| RED  | Add failing sort test | c1ddc57 | SprintProgressTab.test.tsx |
-| GREEN | Implement sort comparator | 1bcafe5 | SprintProgressTab.tsx |
-| LINTER | Co-implement SPPG-07 Stories/Subtasks columns | 0124a7f | SprintProgressTab.tsx, SprintProgressTab.test.tsx |
+| RED  | Add failing sort test | e7c49485 | SprintProgressTab.test.tsx |
+| GREEN | Implement sort comparator | ce0af9a9 | SprintProgressTab.tsx |
+| LINTER | Co-implement SPPG-07 Stories/Subtasks columns | ab4c6e4b | SprintProgressTab.tsx, SprintProgressTab.test.tsx |
 
 ## Verification
 
@@ -57,11 +57,11 @@ All 15 SprintProgressTab tests pass, including:
 - **Issue:** Linter appended SPPG-07 test suite and implemented Stories/Subtasks columns in both the data model and JSX table
 - **Fix:** Accepted linter changes — all tests pass, feature is an improvement
 - **Files modified:** SprintProgressTab.tsx, SprintProgressTab.test.tsx
-- **Commit:** 0124a7f
+- **Commit:** ab4c6e4b
 
 ## Self-Check: PASSED
 
 - taskflow/src/routes/dashboard/SprintProgressTab.tsx — modified (contains `b.points - a.points || a.name.localeCompare(b.name)`, Stories/Subtasks columns)
 - taskflow/src/routes/dashboard/SprintProgressTab.test.tsx — modified (SPPG-03 sort test + SPPG-07 tests)
-- All commits c1ddc57, 1bcafe5, 0124a7f exist in git log
+- All commits e7c49485, ce0af9a9, ab4c6e4b exist in git log
 - 15/15 tests pass

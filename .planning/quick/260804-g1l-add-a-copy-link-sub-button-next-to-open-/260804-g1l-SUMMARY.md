@@ -51,7 +51,7 @@ completed: 2026-08-04
 
 ## Task Commits
 
-1. **Task 1: Add copy-Jira-link icon button to the issue detail action row** - `6e426bff` (feat)
+1. **Task 1: Add copy-Jira-link icon button to the issue detail action row** - `c35ccdb7` (feat)
 
 **Plan metadata:** (this commit)
 
@@ -86,5 +86,5 @@ Change is complete and isolated to a single file. No follow-up work identified.
 
 ## Self-Check: PASSED
 - FOUND: taskflow/src/routes/dashboard/IssueDetailContent.tsx
-- FOUND: commit 6e426bff
+- FOUND: commit c35ccdb7
 - FOUND: SUMMARY.md

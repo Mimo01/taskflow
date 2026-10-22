@@ -16,7 +16,7 @@ runtime_verified: "UAT-1..4 confirmed live (board 6708 / sprint 19562); burndown
 Phase 85 (Sprint Insights — probe-gated velocity + burndown charts) passed all 5
 success criteria in automated verification (5/5), and both code-review blockers
 (CR-01 burndown ideal guideline, CR-02 velocity fan-out error handling) are resolved
-and committed (f8a3faba). `npm run check` is clean and all 2029 unit tests pass.
+and committed (797f1b63). `npm run check` is clean and all 2029 unit tests pass.
 
 The remaining items are **runtime-only** — they require the app pointed at the real
 Jira DC instance (`https://jira.corp.sk`, board 6708) because the data shapes
@@ -38,14 +38,14 @@ from the probe and cannot be exercised in unit tests.
       fixes**, each confirmed against live board 6708 / sprint 19562. The MEDIUM-confidence
       probe assumption was indeed wrong, and three further live-data issues surfaced once the
       curve rendered:
-      - `8917b763` (UAT-4)  — live `.changes` uses `timeC{oldEstimate,newEstimate}` (seconds),
+      - `f86c4fb6` (UAT-4)  — live `.changes` uses `timeC{oldEstimate,newEstimate}` (seconds),
         not the assumed `statC{newValue,oldValue}` → parser read zero deltas → flat-zero blank plot.
         Also corrected `statisticField` type (object, not string).
-      - `a54ed5e4` (UAT-4b) — `.changes` carries each issue's full estimate history (a year+ of
+      - `41d0d9e5` (UAT-4b) — `.changes` carries each issue's full estimate history (a year+ of
         pre-sprint edits) → bounded to `[startTime,endTime]`, pre-start folded into the baseline.
-      - `d03c5928` (UAT-4c) — anchored at `startTime` (planning) + categorical x-axis (93 day-1
+      - `f52040d2` (UAT-4c) — anchored at `startTime` (planning) + categorical x-axis (93 day-1
         planning changes hogged half the chart) → anchor at `activatedTime` + time-proportional axis.
-      - `3c36b03d` (UAT-4d) — dashed ideal sloped through weekends → dedicated `buildIdealGuideline`,
+      - `5abe6578` (UAT-4d) — dashed ideal sloped through weekends → dedicated `buildIdealGuideline`,
         a working-day staircase that stays flat across Sat/Sun.
 
 - [ ] **UAT-5 — Independent error/retry.** ⏭️ SKIPPED this session (could not easily force a

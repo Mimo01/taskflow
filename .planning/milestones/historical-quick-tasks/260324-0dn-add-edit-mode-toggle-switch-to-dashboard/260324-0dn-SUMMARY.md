@@ -43,7 +43,7 @@ completed: 2026-03-24
 
 ## Task Commits
 
-1. **Task 1: Add isEditable prop to WidgetGrid and WidgetCard, wire edit mode toggle in Dashboard** - `6ef49b1` (feat)
+1. **Task 1: Add isEditable prop to WidgetGrid and WidgetCard, wire edit mode toggle in Dashboard** - `2deeaadd` (feat)
 
 ## Files Modified
 - `taskflow/src/routes/dashboard/index.tsx` - Added isEditable state, Switch import, Lock/Unlock icons, toggle UI in header, conditional WidgetPicker

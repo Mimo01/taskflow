@@ -73,8 +73,8 @@ Added `"bump": "node scripts/bump-version.mjs"` alongside existing `"release"` s
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| Task 1 | 52d8d17 | feat(quick-260329-k5y): add cliff.toml and generate initial CHANGELOG.md |
-| Task 2 | 2a4f5fb | feat(quick-260329-k5y): add bump-version.mjs, update release.sh, remove generate-changelog.sh |
+| Task 1 | 995c2f74 | feat(quick-260329-k5y): add cliff.toml and generate initial CHANGELOG.md |
+| Task 2 | e815b509 | feat(quick-260329-k5y): add bump-version.mjs, update release.sh, remove generate-changelog.sh |
 
 ## Deviations from Plan
 
@@ -92,4 +92,4 @@ None.
 - taskflow/scripts/release.sh: FOUND (calls bump-version.mjs)
 - taskflow/scripts/generate-changelog.sh: DELETED
 - taskflow/package.json: FOUND (bump + release scripts present)
-- Commits 52d8d17 and 2a4f5fb: FOUND in git log
+- Commits 995c2f74 and e815b509: FOUND in git log

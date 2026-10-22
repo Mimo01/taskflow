@@ -2,7 +2,7 @@
 status: resolved
 reviewed: 2026-10-02
 depth: quick
-range: c9c001ce..ac8a33fd
+range: 8bd550a2..0bb6a599
 ---
 # Code Review: 261002-h9e
 
@@ -10,10 +10,10 @@ Critical 0 · Warning 3 · Info 3. Focus areas passed: filter parity with remove
 
 | ID | Finding | Outcome |
 |----|---------|---------|
-| WR-01 | Burst window slid against the last edit → unbounded chains | Fixed 1fe95769 — anchored to the group's first edit |
-| WR-02 | Header time/author depended on sort order (`histories[0]`) | Fixed 1fe95769 — `latestHistory()` |
-| WR-03 | `author.displayName` unguarded; anonymous histories merged on `''` | Fixed 1fe95769 — "Unknown", never merges (pre-existing risk, not a regression) |
-| IN-01 | A → B → A within a burst rendered "A → A" | Fixed 1fe95769 — reverted fields dropped (single no-op items kept) |
+| WR-01 | Burst window slid against the last edit → unbounded chains | Fixed a6fe0c84 — anchored to the group's first edit |
+| WR-02 | Header time/author depended on sort order (`histories[0]`) | Fixed a6fe0c84 — `latestHistory()` |
+| WR-03 | `author.displayName` unguarded; anonymous histories merged on `''` | Fixed a6fe0c84 — "Unknown", never merges (pre-existing risk, not a regression) |
+| IN-01 | A → B → A within a burst rendered "A → A" | Fixed a6fe0c84 — reverted fields dropped (single no-op items kept) |
 | IN-02 | `useMemo([histories])` never hits since groups are rebuilt every render | Skipped — cheap; perf only |
 | IN-03 | Multi-token merge block dense | Skipped — covered by tests |
 

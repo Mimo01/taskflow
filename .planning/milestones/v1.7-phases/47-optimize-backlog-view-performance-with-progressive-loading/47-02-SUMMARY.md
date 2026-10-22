@@ -75,8 +75,8 @@ completed: 2026-04-01
 
 Each task was committed atomically:
 
-1. **Task 1: Replace monolithic fetchBacklogView query with per-section queries** - `7fbde7d` (feat)
-2. **Task 2: Update BacklogPage tests and add LOAD-04 test cases** - `3f29789` (test)
+1. **Task 1: Replace monolithic fetchBacklogView query with per-section queries** - `b984979d` (feat)
+2. **Task 2: Update BacklogPage tests and add LOAD-04 test cases** - `08f2aeb5` (test)
 
 ## Files Created/Modified
 
@@ -103,7 +103,7 @@ Each task was committed atomically:
 - **Fix:** Added optimistic `setQueryData` on `jira-sprint-stories` key before calling `addIssuesToSprint`, with rollback included in catch block.
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.tsx`
 - **Verification:** BACK-02 sprint issues test now passes
-- **Committed in:** `7fbde7d` (Task 1 commit, part of handleMoveToSprint update)
+- **Committed in:** `b984979d` (Task 1 commit, part of handleMoveToSprint update)
 
 **2. [Rule 1 - Bug] Pre-existing BacklogPage test failures due to jsdom virtualizer returning 0 items**
 - **Found during:** Task 2 (running tests)
@@ -111,7 +111,7 @@ Each task was committed atomically:
 - **Fix:** Added `vi.mock('@tanstack/react-virtual', ...)` to render all items without scroll dimension dependency
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.test.tsx`
 - **Verification:** All 19 BacklogPage tests pass
-- **Committed in:** `3f29789` (Task 2 commit)
+- **Committed in:** `08f2aeb5` (Task 2 commit)
 
 **3. [Rule 1 - Bug] Mock bleed between BacklogPage tests due to vi.clearAllMocks() not resetting implementations**
 - **Found during:** Task 2 (BACK-02 tests failing with "Found multiple elements")
@@ -119,7 +119,7 @@ Each task was committed atomically:
 - **Fix:** Added `resetMocks()` async helper that calls `vi.clearAllMocks()` then re-establishes safe defaults for all service mocks
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.test.tsx`
 - **Verification:** Test isolation confirmed — all 19 tests pass independently
-- **Committed in:** `3f29789` (Task 2 commit)
+- **Committed in:** `08f2aeb5` (Task 2 commit)
 
 **4. [Rule 1 - Bug] backlog.test.ts mock queue pollution via clearAllMocks vs resetAllMocks**
 - **Found during:** Task 2 (fetchSprintList tests failing with wrong data from previous test)
@@ -127,7 +127,7 @@ Each task was committed atomically:
 - **Fix:** Changed `beforeEach(() => vi.clearAllMocks())` to `vi.resetAllMocks()` in backlog.test.ts
 - **Files modified:** `taskflow/src/services/jira/backlog.test.ts`
 - **Verification:** All 13 backlog service tests pass
-- **Committed in:** `3f29789` (Task 2 commit)
+- **Committed in:** `08f2aeb5` (Task 2 commit)
 
 ---
 

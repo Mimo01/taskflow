@@ -49,8 +49,8 @@ Real Today column with four independently-degrading sections (In Progress, Up Ne
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1+2 | TodayColumn shell + four section subcomponents | 5c7c5c5d | TodayColumn.tsx, TodayInProgressSection.tsx, TodayUpNextSection.tsx, TodayMrsSection.tsx, TodayPinnedSection.tsx |
-| 3 | Render/interaction tests | d17d9192 | TodayColumn.test.tsx, TodayPinnedSection.test.tsx, TodayMrsSection.test.tsx |
+| 1+2 | TodayColumn shell + four section subcomponents | 15c64566 | TodayColumn.tsx, TodayInProgressSection.tsx, TodayUpNextSection.tsx, TodayMrsSection.tsx, TodayPinnedSection.tsx |
+| 3 | Render/interaction tests | 1c266664 | TodayColumn.test.tsx, TodayPinnedSection.test.tsx, TodayMrsSection.test.tsx |
 
 ## What Was Built
 
@@ -109,7 +109,7 @@ None — plan executed exactly as written. The `act(...)` warnings in TodayColum
 
 **Note on node_modules:** The git worktree does not have its own `node_modules`. A symlink `worktree/taskflow/node_modules → main/taskflow/node_modules` was created (same approach as Plan 01) to allow vitest to resolve imports. This is a non-code deviation; the symlink is discarded when the worktree is removed.
 
-**Orchestrator note:** This SUMMARY.md was committed by the orchestrator. The executor agent completed and committed all implementation work (commits 5c7c5c5d, d17d9192) but its stream was truncated before it could write SUMMARY.md to the correct path — it had written it under the stale duplicate `taskflow/.planning/` tree instead of the repo-root `.planning/`. Content is preserved verbatim from the executor's output.
+**Orchestrator note:** This SUMMARY.md was committed by the orchestrator. The executor agent completed and committed all implementation work (commits 15c64566, 1c266664) but its stream was truncated before it could write SUMMARY.md to the correct path — it had written it under the stale duplicate `taskflow/.planning/` tree instead of the repo-root `.planning/`. Content is preserved verbatim from the executor's output.
 
 ## Known Stubs
 
@@ -131,7 +131,7 @@ None new beyond the plan's threat model. T-70-02 (token-in-queryKey) is mitigate
 | TodayColumn.test.tsx exists | FOUND |
 | TodayPinnedSection.test.tsx exists | FOUND |
 | TodayMrsSection.test.tsx exists | FOUND |
-| Commit 5c7c5c5d (Tasks 1+2) | FOUND |
-| Commit d17d9192 (Task 3) | FOUND |
+| Commit 15c64566 (Tasks 1+2) | FOUND |
+| Commit 1c266664 (Task 3) | FOUND |
 | 29/29 standup-notes tests green | PASS |
 | tsc --noEmit zero errors | PASS |

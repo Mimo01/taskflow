@@ -42,7 +42,7 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Remove epic ID from epic badge, show title only** - `7010b71` (feat)
+1. **Task 1: Remove epic ID from epic badge, show title only** - `4951d003` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/IssueDetailSidebar.tsx` - Simplified epic badge to show only title text

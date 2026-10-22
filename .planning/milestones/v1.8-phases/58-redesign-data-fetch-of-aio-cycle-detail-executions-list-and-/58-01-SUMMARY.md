@@ -38,4 +38,4 @@ DEFECT_RESOLUTION_DECISION: COMPONENT-LEVEL-USEQUERY
 
 ## Artifacts
 
-- `58-PROBE-FINDINGS.md` — committed in `e14c375`
+- `58-PROBE-FINDINGS.md` — committed in `49dfac56`

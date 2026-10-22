@@ -32,8 +32,8 @@ Three pure derivation functions added to `dashboardMetrics.ts` as the Wave-0 tes
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1 | Add buildWeekBuckets, groupMrsByRole, mergeActivityEntries to dashboardMetrics.ts | 2a2d757f | dashboardMetrics.ts |
-| 2 | Add Phase 84 test suite to dashboardMetrics.test.ts (16 new tests, mandated timezone test) | 1a24e9d1 | dashboardMetrics.test.ts |
+| 1 | Add buildWeekBuckets, groupMrsByRole, mergeActivityEntries to dashboardMetrics.ts | 9b6679d5 | dashboardMetrics.ts |
+| 2 | Add Phase 84 test suite to dashboardMetrics.test.ts (16 new tests, mandated timezone test) | 0c2ca8fc | dashboardMetrics.test.ts |
 
 ## What Was Built
 
@@ -78,7 +78,7 @@ Three pure derivation functions added to `dashboardMetrics.ts` as the Wave-0 tes
 - **Issue:** Plan specified `weekStart: '2026-06-09'` for the timezone-safety test, but `2026-06-09 + 4 days = 2026-06-13` (not `2026-06-14`). `2026-06-14` fell outside the 5-bucket window.
 - **Fix:** Changed `weekStart` to `'2026-06-10'` so `2026-06-10 + 4 = 2026-06-14` (Friday). Updated all other tests in the `buildWeekBuckets` describe block to use the same consistent weekStart. Intent of the test (timezone-safe bucketing, criterion 1) preserved exactly.
 - **Files modified:** `taskflow/src/routes/dashboard/dashboardMetrics.test.ts`
-- **Commit:** included in 1a24e9d1
+- **Commit:** included in 0c2ca8fc
 
 ## Known Stubs
 
@@ -92,8 +92,8 @@ None — plan adds only pure functions operating on already-fetched in-memory da
 
 - [x] `taskflow/src/routes/dashboard/dashboardMetrics.ts` exists and exports all 6 symbols
 - [x] `taskflow/src/routes/dashboard/dashboardMetrics.test.ts` exists with mandated timezone string `2026-06-14T23:00:00`
-- [x] Commit `2a2d757f` exists (Task 1)
-- [x] Commit `1a24e9d1` exists (Task 2)
+- [x] Commit `9b6679d5` exists (Task 1)
+- [x] Commit `0c2ca8fc` exists (Task 2)
 - [x] 38/38 tests pass
 - [x] `npm run check` green (0 errors, 20 pre-existing warnings)
 

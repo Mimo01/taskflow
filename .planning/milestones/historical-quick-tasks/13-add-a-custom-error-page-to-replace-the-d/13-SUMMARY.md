@@ -34,8 +34,8 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Create ErrorPage component | 525ff29 | taskflow/src/routes/error/ErrorPage.tsx |
-| 2 | Wire errorElement into the router | 4db00be | taskflow/src/main.tsx |
+| 1 | Create ErrorPage component | b8413af7 | taskflow/src/routes/error/ErrorPage.tsx |
+| 2 | Wire errorElement into the router | 352d7361 | taskflow/src/main.tsx |
 
 ## What Was Built
 
@@ -63,5 +63,5 @@ None — plan executed exactly as written.
 
 - [x] `taskflow/src/routes/error/ErrorPage.tsx` exists
 - [x] `taskflow/src/main.tsx` contains `errorElement: <ErrorPage />`
-- [x] Commits 525ff29 and 4db00be exist in git log
+- [x] Commits b8413af7 and 352d7361 exist in git log
 - [x] No new TypeScript errors introduced

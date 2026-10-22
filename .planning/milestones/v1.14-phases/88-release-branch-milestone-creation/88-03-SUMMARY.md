@@ -67,8 +67,8 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 88-03-T1: Add gitlab-project and gitlab-branch queries to useReleaseDetail** - `07983e76` (feat)
-2. **Task 88-03-T2: Render the Release Branch MetaRow in the sidebar (all six states) + component test** - `af5cd590` (feat)
+1. **Task 88-03-T1: Add gitlab-project and gitlab-branch queries to useReleaseDetail** - `6c02c07f` (feat)
+2. **Task 88-03-T2: Render the Release Branch MetaRow in the sidebar (all six states) + component test** - `eeedad9d` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts` - Added `fetchProject`/`fetchBranch` imports, `deriveReleaseBranchName`/`resolveBranchState` imports from `./releaseBranch`, `ownProjectMilestones` import from `./releaseMilestone`; two new queries (`gitlab-project`, `gitlab-branch`); derived `releaseBranchName`, `defaultBranch`, `branchState`, `ownWindowMilestones`; all four added to the `as const` return object
@@ -85,7 +85,7 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 - Worktree had no `node_modules` (fresh worktree provisioned after a base reset from a stale branch to the expected `88-02` base commit); symlinked `taskflow/node_modules` to the main checkout's install, consistent with the workaround documented in the 88-01/88-02 summaries. The symlink is not committed (`node_modules` is gitignored).
-- The provisioned worktree branch initially pointed at a newer, unrelated `main` commit (`ca59303f`, version bump) rather than the expected `88-02` base (`53daa4d7`); the mandatory pre-flight base-drift check caught this and `git reset --hard` corrected it before any file was touched (working tree was clean at the time, so this was safe).
+- The provisioned worktree branch initially pointed at a newer, unrelated `main` commit (`2f87c86d`, version bump) rather than the expected `88-02` base (`27dedfc1`); the mandatory pre-flight base-drift check caught this and `git reset --hard` corrected it before any file was touched (working tree was clean at the time, so this was safe).
 
 ## User Setup Required
 
@@ -102,4 +102,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 4 files verified present on disk (3 modified + 1 new); both commit hashes (`07983e76`, `af5cd590`) verified present in `git log`.
+All 4 files verified present on disk (3 modified + 1 new); both commit hashes (`6c02c07f`, `eeedad9d`) verified present in `git log`.

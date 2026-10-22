@@ -54,9 +54,9 @@ Fix: Added `fetchProjectMRs` to `gitlab.ts` (GET `/api/v4/projects/{id}/merge_re
 
 | Task | Name | Commit | Key Files |
 |------|------|--------|-----------|
-| 1 (RED) | Failing test for project MR linking | fd4ca0b | MyTasksTab.test.tsx |
-| 1 (GREEN) | fetchProjectMRs + MyTasksTab fixes | d0b1e9a | gitlab.ts, MyTasksTab.tsx |
-| 2 | MrAttentionTab project MR pool | d81be7a | MrAttentionTab.tsx, MrAttentionTab.test.tsx |
+| 1 (RED) | Failing test for project MR linking | db6d152a | MyTasksTab.test.tsx |
+| 1 (GREEN) | fetchProjectMRs + MyTasksTab fixes | 06323b68 | gitlab.ts, MyTasksTab.tsx |
+| 2 | MrAttentionTab project MR pool | fb1ad89c | MrAttentionTab.tsx, MrAttentionTab.test.tsx |
 | 3 | Full suite verification | — | No regressions |
 
 ## Test Results
@@ -74,8 +74,8 @@ None — plan executed exactly as written.
 - `taskflow/src/services/gitlab.ts` — fetchProjectMRs exported: FOUND
 - `taskflow/src/routes/dashboard/MyTasksTab.tsx` — userId + query key fix: FOUND
 - `taskflow/src/routes/dashboard/MrAttentionTab.tsx` — project MRs + sprint bypass: FOUND
-- commit fd4ca0b: FOUND
-- commit d0b1e9a: FOUND
-- commit d81be7a: FOUND
+- commit db6d152a: FOUND
+- commit 06323b68: FOUND
+- commit fb1ad89c: FOUND
 
 ## Self-Check: PASSED

@@ -28,7 +28,7 @@ overrides_applied: 0
 
 ### Note on active-sprint query change (UAT fix)
 
-The plan specified `enabled:false` for the active-sprint `useQuery` in `SprintHealthSection`. During human UAT, this caused a false "No active sprint" empty state on cold load (Sidebar prefetch hadn't yet resolved `boardId`, so the cache entry was absent). The fix (commit `ca98232d`) changed `enabled` to `!!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null`. This preserves DASH-03 (zero new API calls when cache is warm, because the key + staleTime deduplicate against the Sidebar prefetch), while self-healing on cold load. This is the correct behavior — the plan's `enabled:false` was a design decision that was superseded by the UAT finding. The DASH-03 "zero new API calls when warm" criterion is still met.
+The plan specified `enabled:false` for the active-sprint `useQuery` in `SprintHealthSection`. During human UAT, this caused a false "No active sprint" empty state on cold load (Sidebar prefetch hadn't yet resolved `boardId`, so the cache entry was absent). The fix (commit `f95d2e0f`) changed `enabled` to `!!jiraBaseUrl && !!jiraToken && !!activeJiraProject && boardId != null`. This preserves DASH-03 (zero new API calls when cache is warm, because the key + staleTime deduplicate against the Sidebar prefetch), while self-healing on cold load. This is the correct behavior — the plan's `enabled:false` was a design decision that was superseded by the UAT finding. The DASH-03 "zero new API calls when warm" criterion is still met.
 
 ### Required Artifacts
 
@@ -92,7 +92,7 @@ Scanned: `dashboardMetrics.ts`, `StatTile.tsx`, `SprintHealthSection.tsx`, `inde
 
 ### Human Verification
 
-Human UAT in a real Tauri WebKit build was performed and approved by the user (as noted in the phase context). One defect was found and fixed during UAT (SprintHealthSection false "No active sprint" on cold load — fixed in commit `ca98232d`). Two advisory warnings (WR-01 empty-state flash, WR-02 UTC-vs-local overdue date) were also addressed (commit `6e255d43`). Post-fix UAT confirmed:
+Human UAT in a real Tauri WebKit build was performed and approved by the user (as noted in the phase context). One defect was found and fixed during UAT (SprintHealthSection false "No active sprint" on cold load — fixed in commit `f95d2e0f`). Two advisory warnings (WR-01 empty-state flash, WR-02 UTC-vs-local overdue date) were also addressed (commit `4ffe23ef`). Post-fix UAT confirmed:
 
 1. Gradient hero greeting + en-GB date renders; next-release countdown is present.
 2. Four stat tiles render (Open/In Progress/Overdue/SP Done); Overdue turns red when > 0; tiles are static (no hover/cursor/click).

@@ -70,7 +70,7 @@ Two additive edits:
 
 | Hash | Message |
 |------|---------|
-| `54715fdd` | `feat(61-04): add Tempo Timesheets toggle to Settings → Integrations` |
+| `4e722386` | `feat(61-04): add Tempo Timesheets toggle to Settings → Integrations` |
 
 ## Deviations from Plan
 
@@ -92,4 +92,4 @@ User confirmed all six steps in the running Tauri app:
 
 - `/Users/user/Documents/Projects/taskflow/taskflow/src/routes/settings/IntegrationsSection.tsx` — exists, modified
 - `/Users/user/Documents/Projects/taskflow/taskflow/src/routes/settings/IntegrationsSection.test.tsx` — exists, modified
-- Commit `54715fdd` — verified present in git log
+- Commit `4e722386` — verified present in git log

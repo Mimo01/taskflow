@@ -63,8 +63,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Install shadcn command + create recent-items store + store tests** - `2b3bd5b` (feat)
-2. **Task 2: Add Phase 20 shortcut entries to registry** - `0cfec2a` (feat)
+1. **Task 1: Install shadcn command + create recent-items store + store tests** - `0f6692f6` (feat)
+2. **Task 2: Add Phase 20 shortcut entries to registry** - `184c5b5e` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/ui/command.tsx` - shadcn Command primitives wrapping cmdk

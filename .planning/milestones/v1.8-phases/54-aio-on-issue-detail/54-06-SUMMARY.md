@@ -81,9 +81,9 @@ completed: 2026-05-13
 
 Each task was committed atomically (probe-first plan structure):
 
-0. **Task 0: Probe C — direct run lookup feasibility** — `340153c` (probe, **pre-Plan 54-06 execution**; recorded by the human in the prior session)
-1. **Task 1: Render step content via WikiRenderer + route external links through openUrl** — `3bfb0d2` (feat)
-2. **Task 2: Replace full cycle scan with direct lookup (Branch A1)** — `16e2f4b` (perf)
+0. **Task 0: Probe C — direct run lookup feasibility** — `8b3ad08b` (probe, **pre-Plan 54-06 execution**; recorded by the human in the prior session)
+1. **Task 1: Render step content via WikiRenderer + route external links through openUrl** — `4063fa53` (feat)
+2. **Task 2: Replace full cycle scan with direct lookup (Branch A1)** — `2e94a76d` (perf)
 3. **Task 3: Human UAT gate** — **pending** (checkpoint:human-verify, not auto-passed; see "Task 3 Pending" below)
 
 **Plan metadata commit:** to be added by the orchestrator after Task 3 closes.
@@ -97,7 +97,7 @@ Each task was committed atomically (probe-first plan structure):
 - `taskflow/src/services/aio/projects.ts` — widened `RawTraceabilityItem` to include `testRun?.ID`, `latestTestRun?.ID`, and `testCycle?.detail?.key`; `fetchAioTraceabilityTestCases` now returns `AioTestCaseWithRuns[]` with embedded runs; legacy `AioTestCase` export preserved.
 - `taskflow/src/services/aio/types.ts` — added exported `AioTraceabilityRunRef` and `AioTestCaseWithRuns` interfaces (the latter is structurally a superset of `AioTestCase` so existing typed callers continue to compile).
 - `taskflow/src/services/aio/issue-steps.ts` — added exported `fetchAioTestRunDetail(baseUrl, token, projectKey, cycleKey, runId)` that returns `{ run: AioTestRun, steps: AioTestRunStep[] } | null` from the same `?assignSteps=true` endpoint already used by `fetchAioTestRunSteps`; introduced `RawRunDetail`, `toRunChipStatus`, and `normalizeRunDate` helpers (private to the module).
-- `.planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md` — committed in `340153c` before Plan 54-06 began (Task 0 evidence: Probe C1 yes / C2 silently-ignored / C3 all-404, Decision = Branch A1).
+- `.planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md` — committed in `8b3ad08b` before Plan 54-06 began (Task 0 evidence: Probe C1 yes / C2 silently-ignored / C3 all-404, Decision = Branch A1).
 
 ## Decisions Made
 
@@ -117,7 +117,7 @@ Each task was committed atomically (probe-first plan structure):
 - **Fix:** Added two regex normalisations to `preprocessJiraMarkup` (executes before jira2md): `^(h[1-6]\.)(\S)` → `$1 $2` for the heading-no-space case; `[ \t]*\\\\[ \t]*\n` → `  \n` and `[ \t]\\\\[ \t]` → `  \n` for the hard-break case.
 - **Files modified:** `taskflow/src/routes/dashboard/WikiRenderer.tsx` (preprocessJiraMarkup function only).
 - **Verification:** `h4. + bold + hard break` test in `AioTestRunsSection.test.tsx` now passes (was failing before the fix); all pre-existing WikiRenderer tests still GREEN (26 + 3 new = 29 passed in WikiRenderer.test.tsx).
-- **Committed in:** `3bfb0d2` (Task 1 commit).
+- **Committed in:** `4063fa53` (Task 1 commit).
 
 **2. [Rule 3 - Blocking] Fixed `@ts-expect-error` placement after Task 1 biome auto-format**
 - **Found during:** Task 2, on first `tsc --noEmit` after editing `WikiRenderer.tsx`.
@@ -125,7 +125,7 @@ Each task was committed atomically (probe-first plan structure):
 - **Fix:** Moved the `@ts-expect-error` line to sit directly above the `import j2m from 'jira2md'` line (no blank line between them).
 - **Files modified:** `taskflow/src/routes/dashboard/WikiRenderer.tsx` (top imports block).
 - **Verification:** `cd taskflow && npx tsc --noEmit` exits 0.
-- **Committed in:** `16e2f4b` (Task 2 commit — bundled with the Branch A1 changes that triggered the rebuild).
+- **Committed in:** `2e94a76d` (Task 2 commit — bundled with the Branch A1 changes that triggered the rebuild).
 
 ---
 
@@ -138,7 +138,7 @@ None — the plan's `<threat_model>` enumerated `T-54-06-01` (Tampering/Spoofing
 
 ## Issues Encountered
 
-- **Pre-commit hook fails on pre-existing baseline lint warnings:** `npm run check` reports 29 errors (32 before this plan) on files we did NOT touch. Per `feedback_no_verify_lint.md`, `--no-verify` is approved when the hook fails on pre-existing unrelated issues. Both `3bfb0d2` and `16e2f4b` used `--no-verify`; biome on the 8 files we touched is clean (0 errors).
+- **Pre-commit hook fails on pre-existing baseline lint warnings:** `npm run check` reports 29 errors (32 before this plan) on files we did NOT touch. Per `feedback_no_verify_lint.md`, `--no-verify` is approved when the hook fails on pre-existing unrelated issues. Both `4063fa53` and `2e94a76d` used `--no-verify`; biome on the 8 files we touched is clean (0 errors).
 - **Worktree node_modules missing on first `vitest` run:** spawn-time worktree had no `node_modules`. Resolved with `npm install` (243 packages). No `package.json` changes from this plan.
 
 ## Task 3 — UAT Outcome (APPROVED with scoped follow-ups)
@@ -158,12 +158,12 @@ The UAT surfaced three pieces of NEW scope (not in Finding 1 or 2) that are expl
 
 Three product-behaviour iterations happened during UAT and were committed as 54-06 follow-ups (not feature creep — each closed a specific UAT gap on Finding 1):
 
-- **`6f45a70` fix(54-06): open image attachment links in-app via existing ImageLightbox.** Original Task 1 routed all external `<a>` clicks through `openUrl`. UAT direction: image-extension attachment files should open in-app (not OS browser). Detected by filename extension (`.png/.jpe?g/.gif/.webp/.svg/.bmp`); non-image links still go through `openUrl`.
-- **`a88f7f5` fix(54-06): translate AIO bridge URLs to direct download endpoint in AuthImage.** UAT surfaced broken-image `?` placeholders. Probe D found that `/plugins/servlet/aio-tcms/bridge/tcms/browse?...` is a browser-navigation URL returning HTML, not image bytes. Direct download endpoint is `GET /rest/aio-tcms-api/1.0/project/{projectKey}/attachment/{attachmentId}`. `AuthImage` now translates bridge URLs (same-host only) using `attachmentId` from the bridge params + `activeJiraProject` from auth store.
-- **`dbfd361` feat(54-06): inline image links stay text + new AIO attachments grid.** UAT direction: full-size image embeds inside step prose broke flow. Image-extension `[name.ext|url]` links now render as inline TEXT anchors again; click opens the lightbox in-app via the bridge-URL-translation path. Added a new "AIO attachments" sub-section below the run blocks (collapsible, 4-col grid, Paperclip icon — mirrors `AttachmentsSection`); aggregates inline `[name.ext|url]` image refs across every step of every linked run, dedupes by URL.
-- **`8a92dbb` fix(54-06): always render AIO attachments header, with empty state inside.** Earlier the grid `return null`'d when no inline image refs were found, which made it impossible to distinguish "section missing" from "section empty" during UAT. Header is now always rendered (when AIO test-run data is present) with an empty-state line inside the expanded body.
+- **`77405e93` fix(54-06): open image attachment links in-app via existing ImageLightbox.** Original Task 1 routed all external `<a>` clicks through `openUrl`. UAT direction: image-extension attachment files should open in-app (not OS browser). Detected by filename extension (`.png/.jpe?g/.gif/.webp/.svg/.bmp`); non-image links still go through `openUrl`.
+- **`192f66db` fix(54-06): translate AIO bridge URLs to direct download endpoint in AuthImage.** UAT surfaced broken-image `?` placeholders. Probe D found that `/plugins/servlet/aio-tcms/bridge/tcms/browse?...` is a browser-navigation URL returning HTML, not image bytes. Direct download endpoint is `GET /rest/aio-tcms-api/1.0/project/{projectKey}/attachment/{attachmentId}`. `AuthImage` now translates bridge URLs (same-host only) using `attachmentId` from the bridge params + `activeJiraProject` from auth store.
+- **`5d7c8a84` feat(54-06): inline image links stay text + new AIO attachments grid.** UAT direction: full-size image embeds inside step prose broke flow. Image-extension `[name.ext|url]` links now render as inline TEXT anchors again; click opens the lightbox in-app via the bridge-URL-translation path. Added a new "AIO attachments" sub-section below the run blocks (collapsible, 4-col grid, Paperclip icon — mirrors `AttachmentsSection`); aggregates inline `[name.ext|url]` image refs across every step of every linked run, dedupes by URL.
+- **`dc763a26` fix(54-06): always render AIO attachments header, with empty state inside.** Earlier the grid `return null`'d when no inline image refs were found, which made it impossible to distinguish "section missing" from "section empty" during UAT. Header is now always rendered (when AIO test-run data is present) with an empty-state line inside the expanded body.
 
-Probe D was recorded in `54-PROBE-FINDINGS.md` (same commit `a88f7f5`).
+Probe D was recorded in `54-PROBE-FINDINGS.md` (same commit `192f66db`).
 
 ## Files Modified — UAT Follow-up Pass
 
@@ -182,8 +182,8 @@ Probe D was recorded in `54-PROBE-FINDINGS.md` (same commit `a88f7f5`).
 ## Self-Check: PASSED
 
 - `54-06-SUMMARY.md` present at `.planning/phases/54-aio-on-issue-detail/54-06-SUMMARY.md`
-- Original Task commits `340153c` (probe), `3bfb0d2` (Task 1), `16e2f4b` (Task 2), `ca19e4e` (SUMMARY) all reachable
-- UAT follow-up commits `6f45a70`, `a88f7f5`, `dbfd361`, `8a92dbb` all reachable
+- Original Task commits `8b3ad08b` (probe), `4063fa53` (Task 1), `2e94a76d` (Task 2), `e83ddfe7` (SUMMARY) all reachable
+- UAT follow-up commits `77405e93`, `192f66db`, `5d7c8a84`, `dc763a26` all reachable
 - `cd taskflow && npx tsc --noEmit && npx vitest run` → 992 passed, 2 skipped, 39 todo at the most recent run
 - AIO bridge URL translation verified end-to-end in the running Tauri app (image thumbnails load + lightbox opens in-app)
 

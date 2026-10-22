@@ -32,8 +32,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| RED | Add failing DoneStep tests | 27103417 | DoneStep.test.tsx (+71 lines) |
-| GREEN | Implement mount-save via useEffect | 5c986572 | DoneStep.tsx (+5/-1) |
+| RED | Add failing DoneStep tests | 0ecdebcf | DoneStep.test.tsx (+71 lines) |
+| GREEN | Implement mount-save via useEffect | f3e6d8dc | DoneStep.tsx (+5/-1) |
 
 ## What Was Built
 
@@ -43,8 +43,8 @@ This means: reaching DoneStep persists wizard completion in the Tauri store imme
 
 ## TDD Gate Compliance
 
-- RED: `test(quick-260609-iff-01)` commit 27103417 — 2/5 tests failed as expected
-- GREEN: `feat(quick-260609-iff-01)` commit 5c986572 — 5/5 tests pass
+- RED: `test(quick-260609-iff-01)` commit 0ecdebcf — 2/5 tests failed as expected
+- GREEN: `feat(quick-260609-iff-01)` commit f3e6d8dc — 5/5 tests pass
 
 ## Verification
 
@@ -58,7 +58,7 @@ This means: reaching DoneStep persists wizard completion in the Tauri store imme
 - **Issue:** Biome `useExhaustiveDependencies` flagged empty `[]` dep array missing `setOnboardingComplete`
 - **Fix:** Changed dep array from `[]` to `[setOnboardingComplete]`; behavior is identical since Zustand setters are stable references — effect still fires exactly once on mount
 - **Files modified:** DoneStep.tsx
-- **Commit:** 5c986572 (included in GREEN commit)
+- **Commit:** f3e6d8dc (included in GREEN commit)
 
 ## Known Stubs
 
@@ -72,5 +72,5 @@ None — no new network endpoints, auth paths, or schema changes introduced.
 
 - [x] taskflow/src/routes/onboarding/DoneStep.tsx exists and modified
 - [x] taskflow/src/routes/onboarding/DoneStep.test.tsx exists and created
-- [x] Commit 27103417 exists (RED)
-- [x] Commit 5c986572 exists (GREEN)
+- [x] Commit 0ecdebcf exists (RED)
+- [x] Commit f3e6d8dc exists (GREEN)

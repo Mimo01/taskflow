@@ -34,7 +34,7 @@ Other checks:
 - `npx vitest run src/lib/my-tasks-sort.test.ts src/routes/my-tasks`: 3 files, 53 tests passed.
 - `npx tsc --noEmit -p .`: clean.
 - `npx biome check` on the 3 touched files: 1 error, 17 warnings.
-  - The error is an import-sort error in `MyTasksPage.tsx` L33, introduced by commit 58f2c9c4.
+  - The error is an import-sort error in `MyTasksPage.tsx` L33, introduced by commit 2950fdbf.
   - Biome wants `{ groupByMyDay, type MyDayBand }`, but the code has `{ type MyDayBand, groupByMyDay }`.
   - The plan's done criterion says "no new diagnostics", so this is a WARNING (cosmetic, one-line fix). It is not a goal blocker.
 

@@ -47,8 +47,8 @@ IntegrationsStep wizard route created with AioBlock mount, inline Tempo toggle, 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Write IntegrationsStep tests covering gating, Tempo toggle, store binding, navigation | 6e774d72 | IntegrationsStep.test.tsx |
-| 2 | Implement IntegrationsStep component | 4424fc86 | IntegrationsStep.tsx |
+| 1 | Write IntegrationsStep tests covering gating, Tempo toggle, store binding, navigation | 90ccecb2 | IntegrationsStep.test.tsx |
+| 2 | Implement IntegrationsStep component | 051f88da | IntegrationsStep.tsx |
 
 ## Test Results
 
@@ -97,5 +97,5 @@ None — no new attack surface introduced. The duplicate gating query reuses `re
 
 - `taskflow/src/routes/onboarding/IntegrationsStep.tsx` exists on disk
 - `taskflow/src/routes/onboarding/IntegrationsStep.test.tsx` exists on disk
-- Task 1 commit `6e774d72` verified in git log
-- Task 2 commit `4424fc86` verified in git log
+- Task 1 commit `90ccecb2` verified in git log
+- Task 2 commit `051f88da` verified in git log

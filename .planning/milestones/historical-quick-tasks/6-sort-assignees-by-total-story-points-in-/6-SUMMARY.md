@@ -38,8 +38,8 @@ A new test was added verifying that Bob (8pts) ranks above Carol (5pts) above Al
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 (RED) | Add failing sort-by-points test | ba7d7ba | WorkloadTab.test.tsx |
-| 1 (GREEN) | Implement sort by points descending | 99dc766 | WorkloadTab.tsx |
+| 1 (RED) | Add failing sort-by-points test | fa55b4aa | WorkloadTab.test.tsx |
+| 1 (GREEN) | Implement sort by points descending | c740d27f | WorkloadTab.tsx |
 
 ## Decisions Made
 
@@ -54,7 +54,7 @@ None - plan executed exactly as written.
 
 - [x] `taskflow/src/routes/dashboard/WorkloadTab.tsx` — exists, line 135 uses `b.points - a.points`
 - [x] `taskflow/src/routes/dashboard/WorkloadTab.test.tsx` — exists, new sort test added
-- [x] Commits ba7d7ba and 99dc766 exist
+- [x] Commits fa55b4aa and c740d27f exist
 - [x] All 13 tests pass
 
 ## Self-Check: PASSED

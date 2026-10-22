@@ -72,7 +72,7 @@ Added "Created Issues" as a fifth data source to the standup notes Yesterday col
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1+2  | Add created-issues data source to standup Yesterday column | 3e7c9f7e | jira.ts, IssueActivityGroup.tsx, YesterdayColumn.tsx, StandupNotesPage.tsx |
+| 1+2  | Add created-issues data source to standup Yesterday column | b77f765a | jira.ts, IssueActivityGroup.tsx, YesterdayColumn.tsx, StandupNotesPage.tsx |
 
 ## Deviations from Plan
 
@@ -92,5 +92,5 @@ None — no new network endpoints or auth paths beyond what the existing four Ji
 - [x] `taskflow/src/routes/standup-notes/IssueActivityGroup.tsx` — modified, contains `issue-created`
 - [x] `taskflow/src/routes/standup-notes/YesterdayColumn.tsx` — modified, contains `createdData` and `jiraCreatedQuery`
 - [x] `taskflow/src/routes/standup-notes/StandupNotesPage.tsx` — modified, contains `jiraCreatedQuery`
-- [x] Commit 3e7c9f7e exists: `git log --oneline | grep 3e7c9f7e`
+- [x] Commit b77f765a exists: `git log --oneline | grep b77f765a`
 - [x] `npm run check` (biome + tsc): 466 files, no errors

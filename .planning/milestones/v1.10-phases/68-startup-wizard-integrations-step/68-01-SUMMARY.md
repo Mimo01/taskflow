@@ -51,9 +51,9 @@ Onboarding store bumped to 5 steps (0–4) with `integrationsVisited` flag; AIO 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Bump onboarding store step limit to 4 and add integrationsVisited flag | 86af7b41 | onboarding.store.ts, onboarding.store.test.ts |
-| 2 | Extract AioBlock component with UI-SPEC corrections + tests | a620b337 | AioBlock.tsx, AioBlock.test.tsx |
-| 3 | Update IntegrationsSection to import AioBlock | c319cdf6 | IntegrationsSection.tsx |
+| 1 | Bump onboarding store step limit to 4 and add integrationsVisited flag | 6714f33b | onboarding.store.ts, onboarding.store.test.ts |
+| 2 | Extract AioBlock component with UI-SPEC corrections + tests | a3e1159b | AioBlock.tsx, AioBlock.test.tsx |
+| 3 | Update IntegrationsSection to import AioBlock | 28e83de8 | IntegrationsSection.tsx |
 
 ## Test Results
 

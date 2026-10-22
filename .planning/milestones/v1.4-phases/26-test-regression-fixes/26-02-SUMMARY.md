@@ -72,8 +72,8 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Fix high-volume test failures (SprintBoardTab, BacklogPage, MrAttentionTab)** - `81fc277` (fix)
-2. **Task 2: Fix remaining test failures (IssueDetailSheet, services, notifications, misc)** - `069b3aa` (fix)
+1. **Task 1: Fix high-volume test failures (SprintBoardTab, BacklogPage, MrAttentionTab)** - `66c63159` (fix)
+2. **Task 2: Fix remaining test failures (IssueDetailSheet, services, notifications, misc)** - `22fe406a` (fix)
 
 ## Files Created/Modified
 - `SprintBoardTab.test.tsx` - Added quickFilters/epicColorFieldKey to settings mock, updated EPIC-02 filter tests to use filter store directly, fixed statusCategory typing
@@ -101,14 +101,14 @@ Each task was committed atomically:
 - **Issue:** BACK-04 and BACK-05 tests failed because filter state from epic filter tests persisted into subsequent tests
 - **Fix:** Added `useFilterStore.getState().clearAll()` in beforeEach blocks for BACK-04 and BACK-05 describe groups
 - **Files modified:** BacklogPage.test.tsx
-- **Committed in:** 81fc277
+- **Committed in:** 66c63159
 
 **2. [Rule 1 - Bug] Selector-aware store mock needed for IssueDetailSheet**
 - **Found during:** Task 2
 - **Issue:** InlineComment uses `useSettingsStore((s) => s.commentSortOrder)` selector pattern, but simple vi.fn mock ignored the selector and returned full object
 - **Fix:** Created selector-aware mock: `vi.fn((selector?) => selector ? selector(state) : state)`
 - **Files modified:** IssueDetailSheet.test.tsx
-- **Committed in:** 069b3aa
+- **Committed in:** 22fe406a
 
 ---
 

@@ -79,8 +79,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: ApiError class + isAuthError/getErrorSource helpers + EmptyState + StaleDataBanner** - `88bf0aa` (feat)
-2. **Task 2: ErrorState component + ApiError retrofit in jira.ts and gitlab.ts** - `078b880` (feat)
+1. **Task 1: ApiError class + isAuthError/getErrorSource helpers + EmptyState + StaleDataBanner** - `5078c974` (feat)
+2. **Task 2: ErrorState component + ApiError retrofit in jira.ts and gitlab.ts** - `686d6f67` (feat)
 
 _TDD workflow: RED tests written first (fail confirmed), then GREEN implementation._
 
@@ -115,7 +115,7 @@ _TDD workflow: RED tests written first (fail confirmed), then GREEN implementati
 - **Fix:** Updated test to match "Failed to fetch project statuses" (status preserved in ApiError.status field)
 - **Files modified:** taskflow/src/services/jira.test.ts
 - **Verification:** Test passes, ApiError.status still carries 403
-- **Committed in:** 078b880 (Task 2 commit)
+- **Committed in:** 686d6f67 (Task 2 commit)
 
 **2. [Rule 1 - Bug] Preserved fetchFixVersions error message extraction order**
 - **Found during:** Task 2 (service retrofit)
@@ -123,7 +123,7 @@ _TDD workflow: RED tests written first (fail confirmed), then GREEN implementati
 - **Fix:** Moved JSON extraction before 401/403 check so ApiError carries specific server message
 - **Files modified:** taskflow/src/services/jira.ts
 - **Verification:** "Permission denied" message preserved in ApiError, test passes
-- **Committed in:** 078b880 (Task 2 commit)
+- **Committed in:** 686d6f67 (Task 2 commit)
 
 ---
 

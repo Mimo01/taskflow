@@ -74,19 +74,19 @@ Added two exported functions and two exported interfaces to `taskflow/src/servic
 
 | Gate | Commit | Status |
 |------|--------|--------|
-| RED (Task 1) | `36e21a5f` — `test(69-02): add failing tests for fetchUserCommits (STAND-05 RED)` | PASS — 7 tests failing before implementation |
-| GREEN (Task 1) | `61e0c1c2` — `feat(69-02): add fetchUserCommits and GitLabCommit to gitlab.ts (STAND-05)` | PASS — 21/21 tests passing |
-| RED (Task 2) | `5af0dfcb` — `test(69-02): add failing tests for fetchUserMREvents (STAND-06 RED)` | PASS — 6 tests failing before implementation |
-| GREEN (Task 2) | `37234fb7` — `feat(69-02): add fetchUserMREvents and GitLabUserMREvent to gitlab.ts (STAND-06)` | PASS — 27/27 tests passing |
+| RED (Task 1) | `e6060dd6` — `test(69-02): add failing tests for fetchUserCommits (STAND-05 RED)` | PASS — 7 tests failing before implementation |
+| GREEN (Task 1) | `2ac70408` — `feat(69-02): add fetchUserCommits and GitLabCommit to gitlab.ts (STAND-05)` | PASS — 21/21 tests passing |
+| RED (Task 2) | `a566d903` — `test(69-02): add failing tests for fetchUserMREvents (STAND-06 RED)` | PASS — 6 tests failing before implementation |
+| GREEN (Task 2) | `01889e55` — `feat(69-02): add fetchUserMREvents and GitLabUserMREvent to gitlab.ts (STAND-06)` | PASS — 27/27 tests passing |
 
 ## Commits
 
 | Hash | Type | Description |
 |------|------|-------------|
-| `36e21a5f` | test | Add failing tests for fetchUserCommits (STAND-05 RED) |
-| `61e0c1c2` | feat | Add fetchUserCommits + GitLabCommit to gitlab.ts (STAND-05) |
-| `5af0dfcb` | test | Add failing tests for fetchUserMREvents (STAND-06 RED) |
-| `37234fb7` | feat | Add fetchUserMREvents + GitLabUserMREvent to gitlab.ts (STAND-06) |
+| `e6060dd6` | test | Add failing tests for fetchUserCommits (STAND-05 RED) |
+| `2ac70408` | feat | Add fetchUserCommits + GitLabCommit to gitlab.ts (STAND-05) |
+| `a566d903` | test | Add failing tests for fetchUserMREvents (STAND-06 RED) |
+| `01889e55` | feat | Add fetchUserMREvents + GitLabUserMREvent to gitlab.ts (STAND-06) |
 
 ## Deviations from Plan
 
@@ -122,6 +122,6 @@ Files exist:
 - `taskflow/src/services/gitlab.ts` contains `export async function fetchUserCommits(` and `export async function fetchUserMREvents(`
 - `taskflow/src/services/gitlab.test.ts` contains `fetchUserMREvents` test suite
 
-Commits exist: `36e21a5f`, `61e0c1c2`, `5af0dfcb`, `37234fb7` — all verified in git log.
+Commits exist: `e6060dd6`, `2ac70408`, `a566d903`, `01889e55` — all verified in git log.
 
 ## Self-Check: PASSED

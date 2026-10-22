@@ -71,8 +71,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Create KeyboardShortcutsPanel.tsx** - `c11ad0f` (feat)
-2. **Task 2: Wire ? shortcut in AppLayout + migrate SearchOverlay Escape** - `82fbefc` (feat)
+1. **Task 1: Create KeyboardShortcutsPanel.tsx** - `80bff2e1` (feat)
+2. **Task 2: Wire ? shortcut in AppLayout + migrate SearchOverlay Escape** - `f17bd302` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Fix:** Changed test to `fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })`
 - **Files modified:** taskflow/src/components/app/SearchOverlay.test.tsx
 - **Verification:** All SearchOverlay tests pass green
-- **Committed in:** 82fbefc (Task 2 commit)
+- **Committed in:** f17bd302 (Task 2 commit)
 
 ---
 

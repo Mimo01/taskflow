@@ -64,8 +64,8 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Create NotificationsPage component** - `2af194c` (feat)
-2. **Task 2: Register /notifications route and add Bell sidebar link** - `4bb565d` (feat)
+1. **Task 1: Create NotificationsPage component** - `27a8ef68` (feat)
+2. **Task 2: Register /notifications route and add Bell sidebar link** - `1ee130b4` (feat)
 
 **Plan metadata:** (docs commit below)
 

@@ -79,7 +79,7 @@ None.
 - taskflow/src/routes/dashboard/BacklogRow.tsx — modified (ContextMenu, no checkboxes)
 - taskflow/src/routes/dashboard/BacklogPage.tsx — modified (no bulk bar, no selectedKeys)
 - taskflow/src/routes/dashboard/BacklogPage.test.tsx — modified (19 tests pass)
-- Commit 702ff84: feat(quick-260401-ffx): remove checkboxes and bulk bar
-- Commit 932128e: test(quick-260401-ffx): update BacklogPage tests
+- Commit b4a9fe3a: feat(quick-260401-ffx): remove checkboxes and bulk bar
+- Commit 3ef5ad4f: test(quick-260401-ffx): update BacklogPage tests
 - TypeScript: zero errors
 - Tests: 19/19 pass

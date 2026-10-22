@@ -78,11 +78,11 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Apply density variants to list rows and sidebar nav** - `0a2dad1` (feat)
-2. **Task 2: Apply density variants to sprint board cards** - `856d99a` (feat)
-3. **Checkpoint reached** - `0535556` (docs)
-4. **Fix: scrollable sidebar nav + Debug to Advanced section** - `edac5be` (fix)
-5. **Fix: main sidebar nav scrollable in comfortable density** - `70ce28c` (fix)
+1. **Task 1: Apply density variants to list rows and sidebar nav** - `34b56548` (feat)
+2. **Task 2: Apply density variants to sprint board cards** - `6ae25cde` (feat)
+3. **Checkpoint reached** - `02f91589` (docs)
+4. **Fix: scrollable sidebar nav + Debug to Advanced section** - `2c5c5f45` (fix)
+5. **Fix: main sidebar nav scrollable in comfortable density** - `915a4b21` (fix)
 
 **Plan metadata:** _(this docs commit)_
 
@@ -113,7 +113,7 @@ The plan frontmatter listed files at `src/routes/developer/`, `src/routes/sprint
 - **Fix:** Wrapped sidebar nav list in `overflow-y-auto` scroll container; promoted Debug to top-level Advanced section so it has a stable sidebar slot
 - **Files modified:** `taskflow/src/components/app/Sidebar.tsx`
 - **Verification:** Human visual check confirmed sidebar is scrollable and all items reachable at comfortable density
-- **Committed in:** `edac5be`, `70ce28c`
+- **Committed in:** `2c5c5f45`, `915a4b21`
 
 ---
 

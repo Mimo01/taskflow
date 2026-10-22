@@ -66,7 +66,7 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: Add loading and error state to project/group selectors in TokenSection** - `57c0335` (fix)
+1. **Task 1: Add loading and error state to project/group selectors in TokenSection** - `f8466a01` (fix)
 
 **Plan metadata:** (docs commit — see below)
 
@@ -90,7 +90,7 @@ Each task was committed atomically:
 - **Fix:** Removed `SelectValue` from the Select component import destructuring
 - **Files modified:** taskflow/src/routes/settings/TokenSection.tsx
 - **Verification:** `tsc --noEmit` reports no errors for TokenSection.tsx
-- **Committed in:** 57c0335 (Task 1 commit)
+- **Committed in:** f8466a01 (Task 1 commit)
 
 ---
 

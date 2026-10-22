@@ -9,7 +9,7 @@
 Strip drag-reorder capability from `SidebarItemsList.tsx` — replace the dnd-kit sortable UI with a simple checkbox-per-item visibility list, remove the now-orphaned `reorderSidebarItem` store action, and uninstall the `@dnd-kit/*` packages.
 
 **Pre-satisfied by Phase 66 (no work needed):**
-- SETUI-01: `SidebarItemsList` was already removed from `AppearanceSection.tsx` in commit `da30013b`. Appearance section is clean.
+- SETUI-01: `SidebarItemsList` was already removed from `AppearanceSection.tsx` in commit `1422bbfb`. Appearance section is clean.
 - SETUI-03: v22 migration in Phase 66 already resets `sidebarItems` to all-visible for all users.
 
 **Phase 67 work = SETUI-02 only:** `SidebarItemsList.tsx` still contains `DndContext`, `SortableContext`, `DragOverlay`, `SortableItem` (~180 LOC). These must be stripped and replaced with a plain list of checkboxes.
@@ -63,7 +63,7 @@ Strip drag-reorder capability from `SidebarItemsList.tsx` — replace the dnd-ki
 
 ### Prior state reference
 - `.planning/STATE.md` — build verification: use `npm run build`, not just `tsc` (Phase 59 standing rule)
-- Phase 66 context: `da30013b` is the commit that removed `SidebarItemsList` from `AppearanceSection` — SETUI-01 already done
+- Phase 66 context: `1422bbfb` is the commit that removed `SidebarItemsList` from `AppearanceSection` — SETUI-01 already done
 
 </canonical_refs>
 

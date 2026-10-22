@@ -63,8 +63,8 @@ completed: 2026-03-29
 
 Each task was committed atomically:
 
-1. **Task 1: Create query-constants.ts and useIsActiveRoute hook with tests** - `0afc58d` (feat)
-2. **Task 2: Add gcTime: Infinity to QueryClient defaultOptions** - `6b039cf` (feat)
+1. **Task 1: Create query-constants.ts and useIsActiveRoute hook with tests** - `b6611715` (feat)
+2. **Task 2: Add gcTime: Infinity to QueryClient defaultOptions** - `cc60cecf` (feat)
 
 **Plan metadata:** committed with docs commit after SUMMARY creation
 
@@ -106,5 +106,5 @@ None - no external service configuration required.
 - useIsActiveRoute.ts: FOUND
 - useIsActiveRoute.test.ts: FOUND
 - SUMMARY.md: FOUND
-- Commit 0afc58d: FOUND
-- Commit 6b039cf: FOUND
+- Commit b6611715: FOUND
+- Commit cc60cecf: FOUND

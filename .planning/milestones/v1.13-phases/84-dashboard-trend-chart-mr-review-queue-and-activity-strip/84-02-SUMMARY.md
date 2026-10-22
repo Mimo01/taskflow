@@ -40,9 +40,9 @@ Tempo bar chart (DASH-04) and two-group MR review queue (DASH-06) built as indep
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1 | WeeklyTrendChart.tsx — Mon–Fri Tempo bar chart with 8h ReferenceLine + test | 9adb1381 | WeeklyTrendChart.tsx, WeeklyTrendChart.test.tsx |
-| 2 | MrReviewQueue.tsx — two-group MR queue from warm cache + test | 57b61ee5 | MrReviewQueue.tsx, MrReviewQueue.test.tsx |
-| fix | Biome import order + formatting in WeeklyTrendChart | 424d127d | WeeklyTrendChart.tsx |
+| 1 | WeeklyTrendChart.tsx — Mon–Fri Tempo bar chart with 8h ReferenceLine + test | f6a451ea | WeeklyTrendChart.tsx, WeeklyTrendChart.test.tsx |
+| 2 | MrReviewQueue.tsx — two-group MR queue from warm cache + test | 35fa87c4 | MrReviewQueue.tsx, MrReviewQueue.test.tsx |
+| fix | Biome import order + formatting in WeeklyTrendChart | ed12a8f1 | WeeklyTrendChart.tsx |
 
 ## What Was Built
 
@@ -65,14 +65,14 @@ Tempo bar chart (DASH-04) and two-group MR review queue (DASH-06) built as indep
 - **Issue:** PATTERNS.md specified `import { Plugin } from 'lucide-react'` for the GitLab-not-connected EmptyState. The installed lucide-react does not export `Plugin` — the correct icon is `Plug`.
 - **Fix:** Changed import to `Plug` throughout MrReviewQueue.tsx
 - **Files modified:** `MrReviewQueue.tsx`
-- **Commit:** 57b61ee5
+- **Commit:** 35fa87c4
 
 **2. [Rule 2 - Missing functionality] ChartWrapper empty state does not support custom title**
 - **Found during:** Task 1 (test expected "Tempo not connected" but ChartWrapper renders hardcoded "No data yet")
 - **Issue:** Plan says `isEmpty={!tempoEnabled}` via ChartWrapper, but ChartWrapper's EmptyState is hardcoded to "No data yet". The plan requires the "Tempo not connected" copy (test-verified).
 - **Fix:** When `tempoEnabled=false`, WeeklyTrendChart branches before ChartWrapper and renders the card shell + custom EmptyState directly. When `tempoEnabled=true`, ChartWrapper is used with `isEmpty=false` always (Pitfall 6 preserved).
 - **Files modified:** `WeeklyTrendChart.tsx`
-- **Commit:** 9adb1381
+- **Commit:** f6a451ea
 
 **3. [Rule 3 - Blocking] Worktree has no node_modules for vitest**
 - **Found during:** Task 1 RED phase (vitest could not resolve `@tanstack/react-query`)
@@ -97,8 +97,8 @@ No new threat surface beyond what was documented in the plan's threat model. All
 | MrReviewQueue.tsx | FOUND |
 | MrReviewQueue.test.tsx | FOUND |
 | 84-02-SUMMARY.md | FOUND |
-| Commit 9adb1381 (WeeklyTrendChart) | VERIFIED |
-| Commit 57b61ee5 (MrReviewQueue) | VERIFIED |
-| Commit 424d127d (biome format fix) | VERIFIED |
+| Commit f6a451ea (WeeklyTrendChart) | VERIFIED |
+| Commit 35fa87c4 (MrReviewQueue) | VERIFIED |
+| Commit ed12a8f1 (biome format fix) | VERIFIED |
 | 16 tests GREEN | VERIFIED |
 | 0 biome errors | VERIFIED |

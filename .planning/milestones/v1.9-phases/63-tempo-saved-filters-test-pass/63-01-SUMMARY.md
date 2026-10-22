@@ -48,8 +48,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Export DatePreset from WorklogsPage and create tempo-filters.store.ts | c07d48db | WorklogsPage.tsx (1 keyword change), tempo-filters.store.ts (new) |
-| 2 | Write unit tests for tempo-filters.store actions | 2d6e402e | tempo-filters.store.test.ts (new, 6 tests) |
+| 1 | Export DatePreset from WorklogsPage and create tempo-filters.store.ts | 3b7610ee | WorklogsPage.tsx (1 keyword change), tempo-filters.store.ts (new) |
+| 2 | Write unit tests for tempo-filters.store actions | 8687ac28 | tempo-filters.store.test.ts (new, 6 tests) |
 
 ## What Was Built
 
@@ -95,6 +95,6 @@ None. All introduced surfaces (LazyStore IPC for `tempo-filters.json`) were anti
 - [x] `taskflow/src/stores/tempo-filters.store.ts` exists
 - [x] `taskflow/src/stores/tempo-filters.store.test.ts` exists
 - [x] `taskflow/src/routes/worklogs/WorklogsPage.tsx` contains `export type DatePreset`
-- [x] Commit `c07d48db` exists in git log
-- [x] Commit `2d6e402e` exists in git log
+- [x] Commit `3b7610ee` exists in git log
+- [x] Commit `8687ac28` exists in git log
 - [x] 6/6 tests pass

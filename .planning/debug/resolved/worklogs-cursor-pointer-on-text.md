@@ -18,7 +18,7 @@ expected: When hovering an epic, story, or subtask row in the WorklogsPage hiera
 actual: "the cursor is not pointer on the epic/issue text, only the cell"
 errors: None
 reproduction: UAT Test 3 — open Worklogs page, hover over the issue title text in any epic/story/subtask row
-started: Discovered in UAT 2026-05-23 against commits 16b75990 (Plan 01 hierarchy table) and 7c4b111f (Plan 02 cell popover wiring)
+started: Discovered in UAT 2026-05-23 against commits 63fbed45 (Plan 01 hierarchy table) and 618afcb1 (Plan 02 cell popover wiring)
 
 ## Eliminated
 

@@ -33,7 +33,7 @@ Rich inline comments with WikiRenderer rendering, edit/delete on own comments vi
 ## What Was Done
 
 ### Task 1: Rewrite InlineComment with rich rendering, edit/delete, and formatting toolbar
-**Commit:** e916046
+**Commit:** 86d9db34
 
 Rewrote InlineComment.tsx from a plaintext comment viewer to a full-featured comment list matching IssueDetailPage CommentCard design:
 - Comments now render via WikiRenderer (bold, italic, code blocks, lists, headings)
@@ -45,7 +45,7 @@ Rewrote InlineComment.tsx from a plaintext comment viewer to a full-featured com
 - Increased scrollable comment list max-h from 48 to 64 for richer content
 
 ### Task 2: Update TaskRow to pass jiraBaseUrl to InlineComment
-**Commit:** 13ed287
+**Commit:** 4192f5a3
 
 Added `jiraBaseUrl={jiraBaseUrl}` prop to InlineComment JSX in TaskRow, enabling edit/delete API calls.
 

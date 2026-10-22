@@ -56,7 +56,7 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Add vitest globals type reference to setup.ts** - `ce2b44a` (fix)
+1. **Task 1: Add vitest globals type reference to setup.ts** - `6daeba6a` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/test/setup.ts` - Added vitest/globals triple-slash reference directive as first line

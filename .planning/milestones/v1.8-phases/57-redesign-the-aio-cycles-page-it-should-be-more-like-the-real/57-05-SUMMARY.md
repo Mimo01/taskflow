@@ -27,13 +27,13 @@ All fixes were committed with tests green before approval:
 
 | Fix | Commit | Description |
 |-----|--------|-------------|
-| Wrong project ID | 4937f16 | Added `fetchJiraProjectNumericId` — AIO folder endpoints need Jira numeric ID not AIO-internal ID |
-| 405 on paged (GET→POST) | 45d3f2d | `/testcycle/paged` and `/testcycle/summary/paged` require POST |
-| POST body format | 02dda50 | Correct body shapes: paged=`{columns,sortingData,folderID}`, summaries=`[...ids]` |
-| User key param | 3ba7320 | `?username=` → `?key=` for JIRAUSER* keys |
-| Status ID map wrong | 21a1d86 | Corrected 51/53/54; then made dynamic via `/config` |
-| Folder click no-op | b248411 | Query keyed by `selectedFolderID`; POST body includes subtree folder filter |
-| Dynamic status map | eed2c3b | `fetchAioProjectConfig` → `buildStatusMap` from `statusType` strings |
+| Wrong project ID | a0de4960 | Added `fetchJiraProjectNumericId` — AIO folder endpoints need Jira numeric ID not AIO-internal ID |
+| 405 on paged (GET→POST) | 2e1d5eaa | `/testcycle/paged` and `/testcycle/summary/paged` require POST |
+| POST body format | dfd744cf | Correct body shapes: paged=`{columns,sortingData,folderID}`, summaries=`[...ids]` |
+| User key param | 5323bd4c | `?username=` → `?key=` for JIRAUSER* keys |
+| Status ID map wrong | b417924a | Corrected 51/53/54; then made dynamic via `/config` |
+| Folder click no-op | 60c95b10 | Query keyed by `selectedFolderID`; POST body includes subtree folder filter |
+| Dynamic status map | 67e671fd | `fetchAioProjectConfig` → `buildStatusMap` from `statusType` strings |
 
 ## Recommended next command
 

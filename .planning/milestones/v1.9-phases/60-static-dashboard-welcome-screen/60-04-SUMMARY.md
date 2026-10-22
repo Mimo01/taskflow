@@ -26,8 +26,8 @@ Added `taskflow/src/routes/dashboard/index.test.tsx` with 5 Vitest tests coverin
 
 ## Commits
 
-- `7f34ff65` — `test(60-04): add failing tests for Dashboard index.tsx (TDD RED)` — 5 tests covering hero/date/fallback/DASH-05/cards
-- `c6056bdb` — `feat(60-04): implement Dashboard hero + 3-card grid orchestrator (DASH-01, DASH-05)` — full implementation, all 5 tests green
+- `6e8a00bc` — `test(60-04): add failing tests for Dashboard index.tsx (TDD RED)` — 5 tests covering hero/date/fallback/DASH-05/cards
+- `2117dcf9` — `feat(60-04): implement Dashboard hero + 3-card grid orchestrator (DASH-01, DASH-05)` — full implementation, all 5 tests green
 
 ## Verification
 

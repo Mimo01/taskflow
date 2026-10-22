@@ -68,9 +68,9 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Create SprintBoardTab.test.tsx with failing HIER-02 stubs** - `58fd2c9` (test)
-2. **Task 1 fix: correct JiraIssue parent fixture shape** - `f919142` (fix)
-3. **Task 2: suppress orphan rendering and fix onMutate cache shape** - `15e41b8` (fix)
+1. **Task 1: Create SprintBoardTab.test.tsx with failing HIER-02 stubs** - `afa0ec54` (test)
+2. **Task 1 fix: correct JiraIssue parent fixture shape** - `2bef2f48` (fix)
+3. **Task 2: suppress orphan rendering and fix onMutate cache shape** - `2a65bd97` (fix)
 
 _Note: TDD tasks may have multiple commits (test → feat → refactor)_
 
@@ -92,7 +92,7 @@ _Note: TDD tasks may have multiple commits (test → feat → refactor)_
 - **Fix:** Updated makeIssue to include full parent shape with id and fields.summary
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.test.tsx
 - **Verification:** `npx tsc --noEmit` shows no errors in SprintBoardTab.test.tsx
-- **Committed in:** f919142 (fixture fix commit)
+- **Committed in:** 2bef2f48 (fixture fix commit)
 
 **2. [Rule 1 - Bug] Skeleton test failed due to async jiraToken loading**
 - **Found during:** Task 1 (test execution)
@@ -100,7 +100,7 @@ _Note: TDD tasks may have multiple commits (test → feat → refactor)_
 - **Fix:** Wrapped skeleton assertion in `waitFor()` to wait for readSecret to resolve
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.test.tsx
 - **Verification:** Skeleton test passes
-- **Committed in:** f919142 (fixture fix commit)
+- **Committed in:** 2bef2f48 (fixture fix commit)
 
 ---
 

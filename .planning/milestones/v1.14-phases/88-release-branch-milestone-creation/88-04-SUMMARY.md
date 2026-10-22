@@ -64,8 +64,8 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 88-04-T1: One-shot paginated branch-set query in ReleasesTab** - `d6fc1d58` (feat)
-2. **Task 88-04-T2: Row indicator icons + ReleasesTab test coverage** - `401b4c3b` (feat)
+1. **Task 88-04-T1: One-shot paginated branch-set query in ReleasesTab** - `1dd09346` (feat)
+2. **Task 88-04-T2: Row indicator icons + ReleasesTab test coverage** - `c874e5c4` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/ReleasesTab.tsx` - Added `gitlab-release-branches` query, `releaseBranchNames` Set, `branchMissing`/`milestoneMissing` on `MatchedVersion`, two `AlertTriangle` drift indicators in the row indicator group
@@ -85,7 +85,7 @@ Each task was committed atomically:
 - **Fix:** Wrapped each `AlertTriangle` in a `<span title="..." data-testid="...">` matching the existing native-title tooltip convention at `ReleaseDetailSidebar.tsx:118`. The rendered DOM, tooltip copy, and `data-testid` targets are unchanged from the plan's intent.
 - **Files modified:** `taskflow/src/routes/dashboard/ReleasesTab.tsx`
 - **Verification:** `tsc --noEmit` clean; `grep -c 'title="No release branch"'` / `grep -c 'title="No GitLab milestone"'` both return `1` as required by acceptance criteria
-- **Committed in:** `401b4c3b`
+- **Committed in:** `c874e5c4`
 
 **2. [Rule 1 - Bug] Cross-test mock-call pollution in the new "fetches exactly once" test**
 - **Found during:** Task 88-04-T2, running the full `ReleasesTab.test.tsx` suite (initially failed with `toHaveBeenCalledTimes` expecting 1, got 9)
@@ -93,7 +93,7 @@ Each task was committed atomically:
 - **Fix:** Added a synchronous `vi.mocked(fetchProjectBranches).mockClear()` immediately before `renderWithQuery` in the affected test, executed before any `await` yields to the microtask queue — this discards any leaked calls from prior tests' still-resolving promises without touching the real call this test's render will make (which only fires after the async `readSecret` token-load effect resolves)
 - **Files modified:** `taskflow/src/routes/dashboard/ReleasesTab.test.tsx`
 - **Verification:** Full suite passes 17/17 both in isolation and as part of the 2167-test project run
-- **Committed in:** `401b4c3b`
+- **Committed in:** `c874e5c4`
 
 ---
 
@@ -102,7 +102,7 @@ Each task was committed atomically:
 
 ## Issues Encountered
 - The worktree had no `node_modules`; symlinked `taskflow/node_modules` to the main checkout's install (same pattern used by Plans 88-01/88-02) to run `vitest`/`tsc`/`biome` without a multi-minute reinstall. `node_modules` is gitignored — no trace left in git status, no commit needed.
-- Worktree base had drifted from the expected commit at agent spawn time; the mandatory `worktree_branch_check` step's `git reset --hard` corrected it to `53daa4d7` (clean working tree, no uncommitted work lost).
+- Worktree base had drifted from the expected commit at agent spawn time; the mandatory `worktree_branch_check` step's `git reset --hard` corrected it to `27dedfc1` (clean working tree, no uncommitted work lost).
 
 ## User Setup Required
 

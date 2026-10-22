@@ -5,4 +5,4 @@
 - Files changed: `NotificationPopover.tsx`, `RecentItemsPopover.tsx`
 
 ## Commit
-- `134efaa`: feat(quick-260317-cei): widen notifications and recents popovers from w-96 to w-[28rem]
+- `4883c98e`: feat(quick-260317-cei): widen notifications and recents popovers from w-96 to w-[28rem]

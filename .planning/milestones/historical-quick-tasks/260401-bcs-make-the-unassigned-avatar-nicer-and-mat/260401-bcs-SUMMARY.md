@@ -38,8 +38,8 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Update CachedAvatar to show person icon for unassigned | f610200 | cached-avatar.tsx, cached-avatar.test.tsx |
-| 2 | Ensure consistent unassigned avatar usage across all views | d98e0a9 | FieldsSection.tsx, MergeRequestDetailPage.tsx, ReleaseDetailPage.tsx |
+| 1 | Update CachedAvatar to show person icon for unassigned | 04e7c560 | cached-avatar.tsx, cached-avatar.test.tsx |
+| 2 | Ensure consistent unassigned avatar usage across all views | 16fe03bf | FieldsSection.tsx, MergeRequestDetailPage.tsx, ReleaseDetailPage.tsx |
 
 ## What Was Built
 
@@ -77,8 +77,8 @@ None.
 
 ## Self-Check: PASSED
 
-- f610200 exists: confirmed
-- d98e0a9 exists: confirmed
+- 04e7c560 exists: confirmed
+- 16fe03bf exists: confirmed
 - taskflow/src/components/ui/cached-avatar.tsx: modified with User icon logic
 - taskflow/src/components/ui/cached-avatar.test.tsx: 8 tests including new unassigned tests
 - taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx: unassigned branch updated

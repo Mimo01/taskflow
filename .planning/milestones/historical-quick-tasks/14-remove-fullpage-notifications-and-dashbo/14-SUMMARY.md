@@ -37,8 +37,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Remove NotificationsPanel from dashboard and delete its files | 6787b01 | dashboard/index.tsx (modified), NotificationsPanel.tsx (deleted), NotificationsPanel.test.tsx (deleted) |
-| 2 | Remove /notifications route from router and Bell NavLink from sidebar | ec6d662 | main.tsx, Sidebar.tsx |
+| 1 | Remove NotificationsPanel from dashboard and delete its files | 3f02cdf5 | dashboard/index.tsx (modified), NotificationsPanel.tsx (deleted), NotificationsPanel.test.tsx (deleted) |
+| 2 | Remove /notifications route from router and Bell NavLink from sidebar | 97c512f0 | main.tsx, Sidebar.tsx |
 
 ## What Was Done
 
@@ -74,5 +74,5 @@ None — plan executed exactly as written.
 - main.tsx: FOUND
 - NotificationsPanel.tsx: CONFIRMED DELETED
 - NotificationsPanel.test.tsx: CONFIRMED DELETED
-- Commit 6787b01: FOUND
-- Commit ec6d662: FOUND
+- Commit 3f02cdf5: FOUND
+- Commit 97c512f0: FOUND

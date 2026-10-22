@@ -65,8 +65,8 @@ completed: 2026-03-25
 
 Each task was committed atomically:
 
-1. **Task 1: Replace all placeholder URLs with real Mimo01/taskflow-releases URLs** - `5b7fdb1` (feat)
-2. **Task 2: Create GitHub Actions release workflow** - `fedd6ab` (feat)
+1. **Task 1: Replace all placeholder URLs with real Mimo01/taskflow-releases URLs** - `6ea85b25` (feat)
+2. **Task 2: Create GitHub Actions release workflow** - `d42eba8e` (feat)
 
 ## Files Created/Modified
 - `.github/workflows/release.yml` - Complete CI release workflow: 3-platform matrix, inject-version, tauri-action publish to Mimo01/taskflow-releases
@@ -110,5 +110,5 @@ Before using the release workflow, the following GitHub Actions secrets must be 
 - FOUND: `taskflow/src/hooks/useVersionPolicyCheck.ts`
 - FOUND: `taskflow/src/routes/settings/UpdatesSection.tsx`
 - FOUND: `.planning/phases/41-ci-pipeline/41-01-SUMMARY.md`
-- COMMIT `5b7fdb1` verified: feat(41-01): replace placeholder URLs
-- COMMIT `fedd6ab` verified: feat(41-01): add GitHub Actions release workflow
+- COMMIT `6ea85b25` verified: feat(41-01): replace placeholder URLs
+- COMMIT `d42eba8e` verified: feat(41-01): add GitHub Actions release workflow

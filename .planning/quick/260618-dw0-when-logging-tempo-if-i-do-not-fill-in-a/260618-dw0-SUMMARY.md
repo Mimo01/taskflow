@@ -39,8 +39,8 @@ When logging work in Tempo/Jira with an empty or whitespace-only description, `c
 
 | Task | Name | Commit | Files |
 | ---- | ---- | ------ | ----- |
-| 1 (RED) | Add failing tests for default worklog comment | 6d0f7596 | taskflow/src/services/jira/worklogs.test.ts |
-| 1 (GREEN) | Default blank worklog comment in createWorklog | ba7886db | taskflow/src/services/jira/worklogs.ts |
+| 1 (RED) | Add failing tests for default worklog comment | f726c30d | taskflow/src/services/jira/worklogs.test.ts |
+| 1 (GREEN) | Default blank worklog comment in createWorklog | 4ef84e74 | taskflow/src/services/jira/worklogs.ts |
 
 ## Verification
 
@@ -60,8 +60,8 @@ When logging work in Tempo/Jira with an empty or whitespace-only description, `c
 
 ## TDD Gate Compliance
 
-- RED commit present: `6d0f7596` (`test(...)`) — new tests confirmed failing (8 passed, 2 failed) before implementation.
-- GREEN commit present: `ba7886db` (`feat(...)`) — after implementation 10/10 pass.
+- RED commit present: `f726c30d` (`test(...)`) — new tests confirmed failing (8 passed, 2 failed) before implementation.
+- GREEN commit present: `4ef84e74` (`feat(...)`) — after implementation 10/10 pass.
 - REFACTOR: not needed; implementation is minimal and clean.
 
 ## Known Stubs
@@ -71,5 +71,5 @@ None.
 ## Self-Check: PASSED
 - taskflow/src/services/jira/worklogs.ts — FOUND (modified, contains "Working on issue")
 - taskflow/src/services/jira/worklogs.test.ts — FOUND (modified, new default-comment cases)
-- Commit 6d0f7596 — FOUND
-- Commit ba7886db — FOUND
+- Commit f726c30d — FOUND
+- Commit 4ef84e74 — FOUND

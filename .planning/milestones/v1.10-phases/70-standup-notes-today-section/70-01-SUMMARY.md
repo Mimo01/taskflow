@@ -34,8 +34,8 @@ Pure `filterSprintItems(issues, jiraUserDisplayName) => { inProgress, upNext }` 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Write filterSprintItems pure helper | 080ad48e | filterSprintItems.ts |
-| 2 | Write filterSprintItems unit test suite | cfc821cc | filterSprintItems.test.ts |
+| 1 | Write filterSprintItems pure helper | 69cad62e | filterSprintItems.ts |
+| 2 | Write filterSprintItems unit test suite | e777bf17 | filterSprintItems.test.ts |
 
 ## What Was Built
 
@@ -84,5 +84,5 @@ None — this plan adds no network calls, no token handling, no DOM injection, n
 | filterSprintItems.ts exists | FOUND |
 | filterSprintItems.test.ts exists | FOUND |
 | 70-01-SUMMARY.md exists | FOUND |
-| Commit 080ad48e (Task 1) | FOUND |
-| Commit cfc821cc (Task 2) | FOUND |
+| Commit 69cad62e (Task 1) | FOUND |
+| Commit e777bf17 (Task 2) | FOUND |

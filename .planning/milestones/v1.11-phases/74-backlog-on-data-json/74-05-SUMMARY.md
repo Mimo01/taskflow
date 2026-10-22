@@ -47,8 +47,8 @@ No other UI surfaces touched. No new dependencies. No new files.
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | handleReloadBacklog + reloadStatus state + 3s auto-clear effect | 469b827c | taskflow/src/routes/dashboard/BacklogPage.tsx |
-| 2 | Toolbar RefreshCw button + aria-live region; no leftover per-section refresh callbacks | 049cb57c | taskflow/src/routes/dashboard/BacklogPage.tsx |
+| 1 | handleReloadBacklog + reloadStatus state + 3s auto-clear effect | 2632eb2a | taskflow/src/routes/dashboard/BacklogPage.tsx |
+| 2 | Toolbar RefreshCw button + aria-live region; no leftover per-section refresh callbacks | 57042a3a | taskflow/src/routes/dashboard/BacklogPage.tsx |
 
 ## Implementation notes
 
@@ -116,6 +116,6 @@ Plan tasks declared `tdd="true"`, but did not require new test files (acceptance
 ## Self-Check: PASSED
 
 - File `taskflow/src/routes/dashboard/BacklogPage.tsx` exists and contains all required identifiers (verified via grep).
-- Commit `469b827c` (Task 1) present in `git log`.
-- Commit `049cb57c` (Task 2) present in `git log`.
+- Commit `2632eb2a` (Task 1) present in `git log`.
+- Commit `57042a3a` (Task 2) present in `git log`.
 - No modifications to `.planning/STATE.md` or `.planning/ROADMAP.md`.

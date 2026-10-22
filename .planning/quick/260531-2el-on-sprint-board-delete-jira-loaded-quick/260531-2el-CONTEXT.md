@@ -91,7 +91,7 @@ Update/trim affected tests so the suite passes:
 <specifics>
 ## Specific Ideas
 
-The recent commit `79efbb39 "fix(board): load sprint board quick filters from
+The recent commit `10ebb0ba "fix(board): load sprint board quick filters from
 GreenHopper editmodel"` is the feature being reverted/removed. There is also a
 debug note at `.planning/debug/sprint-board-quickfilter-404.md` — leave it (it is
 historical record), but the executor may optionally note its obsolescence.

@@ -46,7 +46,7 @@ Current text:
 - VISUAL-04: "Sprint board cards show a left-edge color stripe driven by issue priority"
 - VISUAL-05: "The card color stripe is legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)"
 
-Shipped reality (quick-260606-oyy, commit 780454e0): stripe encodes issue **type** (Bug/Story/Subtask/Epic); **priority** is shown via the `PriorityIcon` footer image. Rewrite should: (a) make VISUAL-04 describe the type-stripe, (b) make VISUAL-05 cover priority-via-icon, (c) note the original intent (at-a-glance priority visibility) is preserved by the approved UX change. Exact wording is Claude's discretion.
+Shipped reality (quick-260606-oyy, commit d47e5385): stripe encodes issue **type** (Bug/Story/Subtask/Epic); **priority** is shown via the `PriorityIcon` footer image. Rewrite should: (a) make VISUAL-04 describe the type-stripe, (b) make VISUAL-05 cover priority-via-icon, (c) note the original intent (at-a-glance priority visibility) is preserved by the approved UX change. Exact wording is Claude's discretion.
 
 ## RESEARCH COMPLETE
 File: `.planning/quick/260607-ixt-v1-12-debt-reconcile-visual-04-05-text-r/260607-ixt-RESEARCH.md`

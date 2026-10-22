@@ -59,7 +59,7 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: Delete dead PostCSS and Tailwind v3 config files** - `f96cb29` (chore)
+1. **Task 1: Delete dead PostCSS and Tailwind v3 config files** - `11b6a0e2` (chore)
 
 **Plan metadata:** _(docs commit to follow)_
 

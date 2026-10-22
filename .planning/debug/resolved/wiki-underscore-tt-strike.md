@@ -55,5 +55,5 @@ tdd_checkpoint:
 
 root_cause: (1) italic regexes lacked word-boundary; (2) typography plugin default code backticks; (3) not reproduced
 fix: boundary-aware italic regex + USCORE placeholder for intra-word _ + prose-code:before/after:content-none
-verification: 4 new tests (2 fail pre-fix); user confirmed in app 2026-10-05; date-picker tests made locale-independent (abb5d689); fix c0379a01. Symptom 3 not reproduced — user did not report it persisting.
+verification: 4 new tests (2 fail pre-fix); user confirmed in app 2026-10-05; date-picker tests made locale-independent (19521c85); fix 724452e5. Symptom 3 not reproduced — user did not report it persisting.
 files_changed: taskflow/src/routes/dashboard/WikiRenderer.tsx, WikiRenderer.test.tsx

@@ -5,7 +5,7 @@
 **Phases completed:** 7 phases (87-91.2, incl. 2 inserted), 49 plans, 121 tasks
 **Timeline:** 2026-06-16 → 2026-08-13 (phase execution 2026-08-10 → 2026-08-12)
 **Codebase:** 525 files changed (+68,011/−5,675 lines), 551 commits; `taskflow/src` alone 152 files (+21,865/−4,131)
-**Git range:** 8f848976 (chore: bump version to 1.13.0) → d49d9deb (docs(quick-260813-epk): make all tests and linters pass)
+**Git range:** 3bf0323b (chore: bump version to 1.13.0) → 557b78b3 (docs(quick-260813-epk): make all tests and linters pass)
 
 **Key accomplishments:**
 
@@ -28,7 +28,7 @@ Plus a substantial quick-task layer between v1.13 and v1.14 (~25 tasks): compact
 **Phases completed:** 6 phases (81-86), 23 plans
 **Timeline:** 9 days (2026-06-07 → 2026-06-16)
 **Codebase:** 370 files changed (+41,255/−21,884 lines), 411 commits
-**Git range:** 33274681 (chore: bump version to 1.12.0) → 85139076 (docs(quick-260616-mmw): v1.13 tech-debt cleanup plan/summary + milestone audit)
+**Git range:** c5bf696d (chore: bump version to 1.12.0) → f8eee26a (docs(quick-260616-mmw): v1.13 tech-debt cleanup plan/summary + milestone audit)
 
 **Key accomplishments:**
 
@@ -50,7 +50,7 @@ Plus a v1.13 tech-debt cleanup pass (quick-260616-mmw): deleted orphaned `ChartW
 **Phases completed:** 5 phases (76-80), 19 plans, 29 tasks
 **Timeline:** 6 days (2026-06-01 → 2026-06-07)
 **Codebase:** 434 files changed (+46,310/−3,051 lines), 441 commits
-**Git range:** 7f02e71c (chore: archive v1.11 phase directories) → ea0fa34a (fix(standup): widen watched-person picker popover)
+**Git range:** b9ce8c65 (chore: archive v1.11 phase directories) → 30a5d607 (fix(standup): widen watched-person picker popover)
 
 **Key accomplishments:**
 
@@ -71,7 +71,7 @@ Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevat
 **Phases completed:** 5 phases (71-75), 22 plans
 **Timeline:** 4 days (2026-05-28 → 2026-06-01)
 **Codebase:** ~80,895+ lines TypeScript, 308 files changed (+48,340/−16,981 lines), 284 commits
-**Git range:** 9a8ce377 (docs: start milestone v1.11) → 76f5b155 (chore(v1.11): fix stale reload doc)
+**Git range:** cca84454 (docs: start milestone v1.11) → f31939ed (chore(v1.11): fix stale reload doc)
 
 **Key accomplishments:**
 
@@ -90,7 +90,7 @@ Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevat
 **Phases completed:** 6 phases (65-70), 15 plans, 17 quick tasks
 **Timeline:** 3 days (2026-05-23 → 2026-05-25)
 **Codebase:** ~80,895 lines TypeScript / 136 test files, 432 files changed (+30,286/−1,489 lines), 271 commits
-**Git range:** 1cf34652 (feat(65-02): runtime AIO status map) → v1.10 tag
+**Git range:** 8e29886e (feat(65-02): runtime AIO status map) → v1.10 tag
 
 **Key accomplishments:**
 
@@ -117,7 +117,7 @@ Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevat
 **Phases completed:** 6 phases (59-64), 20 plans, 10 quick tasks
 **Timeline:** 4 days (2026-05-20 → 2026-05-23)
 **Codebase:** ~73,264 lines TypeScript, 230 files changed (+26,283/−3,085 lines), 258 commits
-**Git range:** 59d836d (feat(59-02): remove WorkloadTab lazy import) → v1.9 tag
+**Git range:** b5372caa (feat(59-02): remove WorkloadTab lazy import) → v1.9 tag
 
 **Key accomplishments:**
 
@@ -145,7 +145,7 @@ Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevat
 **Phases completed:** 8 phases (51–58), 45 plans
 **Timeline:** 7 days (2026-05-12 → 2026-05-19)
 **Codebase:** 367 files changed (+62,924/−2,759 lines), 464 commits
-**Git range:** a05cb2a (docs: start milestone v1.8) → fbbbf48 (docs(phase-58): validation strategy)
+**Git range:** 80d9d753 (docs: start milestone v1.8) → 0942cc08 (docs(phase-58): validation strategy)
 
 **Key accomplishments:**
 
@@ -237,7 +237,7 @@ Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevat
 **Phases completed:** 6 phases (25–30), 21 plans
 **Timeline:** 2026-03-19 → 2026-03-20 (2 days)
 **Codebase:** ~37,520 lines TypeScript
-**Git range:** 268b909..e5ca8b6 (141 commits, 505 files changed, +29,115/−47,892 lines)
+**Git range:** 0e8c5ed7..ea78e9dc (141 commits, 505 files changed, +29,115/−47,892 lines)
 
 **Key accomplishments:**
 
@@ -278,7 +278,7 @@ Plus a heavy quick-task polish layer (~30 tasks) refining the peek header/elevat
 **Phases completed:** 9 phases (9–17), 29 plans
 **Timeline:** 2026-03-13 → 2026-03-15 (2 days)
 **Codebase:** ~23,607 lines TypeScript
-**Git range:** 3001850..a84417a (173 commits, 222 files changed, +28,330/−1,730 lines)
+**Git range:** bb24a4b0..deadfd2b (173 commits, 222 files changed, +28,330/−1,730 lines)
 
 **Key accomplishments:**
 

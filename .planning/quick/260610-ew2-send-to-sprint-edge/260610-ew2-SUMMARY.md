@@ -61,8 +61,8 @@ changes.
 ## TDD Gate Compliance
 
 Task 1 followed RED → GREEN:
-- RED commit `adea9398` — `test(...)`: 7 failing tests (`resolveSendToEdge is not a function`).
-- GREEN commit `fa368357` — `feat(...)`: helper added, all 46 helper tests pass.
+- RED commit `9de07b4d` — `test(...)`: 7 failing tests (`resolveSendToEdge is not a function`).
+- GREEN commit `2e31e62d` — `feat(...)`: helper added, all 46 helper tests pass.
 
 ## Verification
 
@@ -85,4 +85,4 @@ Otherwise the plan executed exactly as written.
 
 ## Self-Check: PASSED
 - Files: all 4 modified files present.
-- Commits: adea9398, fa368357, d2d90aeb, 43476ea6 all in history.
+- Commits: 9de07b4d, 2e31e62d, 8146055f, 1d47c62b all in history.

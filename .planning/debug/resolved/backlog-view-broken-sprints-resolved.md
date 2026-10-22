@@ -22,7 +22,7 @@ started: After phases 48 and 49 were implemented.
 
 ## Eliminated
 
-- hypothesis: Phase 49 commit (37703a3) broke something in query keys
+- hypothesis: Phase 49 commit (f9d9545f) broke something in query keys
   evidence: Phase 49 only replaced dead references to jira-backlog-view query key with correct query keys; did not touch data fetching logic
   timestamp: 2026-04-04
 

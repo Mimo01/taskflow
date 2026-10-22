@@ -63,8 +63,8 @@ completed: 2026-05-28
 
 ## Task Commits
 
-1. **Task 1: Implement scripts/capture-greenhopper.mjs** — `126598cd` (feat)
-2. **Task 2: Capture redacted GreenHopper fixtures** — `23fd3d7a` (test)
+1. **Task 1: Implement scripts/capture-greenhopper.mjs** — `077d215b` (feat)
+2. **Task 2: Capture redacted GreenHopper fixtures** — `30603540` (test)
 
 ## Files Created/Modified
 - `taskflow/scripts/capture-greenhopper.mjs` — one-shot env-driven CLI; reads JIRA_BASE_URL/JIRA_PAT/BOARD_ID/ISSUE_KEY/PROJECT_ID; redacts and writes four fixtures

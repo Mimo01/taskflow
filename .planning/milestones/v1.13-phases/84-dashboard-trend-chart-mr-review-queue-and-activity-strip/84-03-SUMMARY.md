@@ -38,8 +38,8 @@ ActivityStrip compact activity feed using byte-identical TanStack Query keys to 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | ActivityStrip.tsx — shared-key Jira+commits feed | bad61610 | ActivityStrip.tsx |
-| 2 | ActivityStrip.test.tsx — key-equality + interleave + cap + degradation tests | e52869c2 | ActivityStrip.test.tsx, ActivityStrip.tsx (biome fixes) |
+| 1 | ActivityStrip.tsx — shared-key Jira+commits feed | d32415b5 | ActivityStrip.tsx |
+| 2 | ActivityStrip.test.tsx — key-equality + interleave + cap + degradation tests | 83daa179 | ActivityStrip.test.tsx, ActivityStrip.tsx (biome fixes) |
 
 ## What Was Built
 
@@ -100,7 +100,7 @@ Acceptance criteria checks:
 - **Issue:** Biome `lint/a11y/useSemanticElements` flags `<div role="region">` — should use `<section>` element
 - **Fix:** Replaced the outer `<div role="region">` with `<section>` in ActivityStrip.tsx
 - **Files modified:** `taskflow/src/routes/dashboard/ActivityStrip.tsx`
-- **Commit:** e52869c2
+- **Commit:** 83daa179
 
 **2. [Rule 3 - Blocking] Worktree lacks node_modules for vitest**
 - **Found during:** Task 2 test execution

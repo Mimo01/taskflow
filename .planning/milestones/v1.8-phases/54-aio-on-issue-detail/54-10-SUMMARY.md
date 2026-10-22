@@ -67,19 +67,19 @@ completed: 2026-05-14
 
 ## Task Commits
 
-1. **Plan 54-10 written** — `57c7b97` (plan)
-2. **Tasks 1+2+3 (inline GREEN)** — `db693d9` (feat: type prop + useMemo merge + IssueDetailPage wiring + 3 new tests)
-3. **Task 3 doc update** — `db693d9` (54-HUMAN-UAT.md round-3 gap 4 closure recorded inside the same commit since the doc change is trivial)
+1. **Plan 54-10 written** — `40688219` (plan)
+2. **Tasks 1+2+3 (inline GREEN)** — `6cf425dc` (feat: type prop + useMemo merge + IssueDetailPage wiring + 3 new tests)
+3. **Task 3 doc update** — `6cf425dc` (54-HUMAN-UAT.md round-3 gap 4 closure recorded inside the same commit since the doc change is trivial)
 4. **Task 4 (checkpoint:human-verify)** — NOT executed; orchestrator presents the UAT after this SUMMARY.md lands.
 
-_Note: Tasks 1, 2, and 3 were bundled into a single commit because the implementation surface was small (one prop + one merge step + one callsite + three tests), and atomic-per-task would have produced a chain of trivially-coupled commits. The plan-file commit (57c7b97) remains separate as the contract anchor._
+_Note: Tasks 1, 2, and 3 were bundled into a single commit because the implementation surface was small (one prop + one merge step + one callsite + three tests), and atomic-per-task would have produced a chain of trivially-coupled commits. The plan-file commit (40688219) remains separate as the contract anchor._
 
 ## Files Created/Modified
 
 - `taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.tsx` — `description?: string | null` on `AioTestRunsSectionProps`; destructured in the function signature; `aioAttachments` useMemo now merges `extractInlineImageAttachments(description)` with run-derived refs and dedupes by URL.
 - `taskflow/src/routes/dashboard/IssueDetailPage.tsx` — `<AioTestRunsSection>` callsite now passes `description={issue.fields.description}`.
 - `taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.test.tsx` — `renderSection` helper signature extended with `description?: string | null`; 3 new tests under the impacted-executions describe block.
-- `.planning/phases/54-aio-on-issue-detail/54-HUMAN-UAT.md` — Gap 4 entry in `## Gaps` with status `resolved`, fix commit `db693d9`, plan `54-10`. Test 4 prerequisites updated.
+- `.planning/phases/54-aio-on-issue-detail/54-HUMAN-UAT.md` — Gap 4 entry in `## Gaps` with status `resolved`, fix commit `6cf425dc`, plan `54-10`. Test 4 prerequisites updated.
 
 ## Decisions Made
 
@@ -102,7 +102,7 @@ None.
 ## Round-3 UAT Outcome
 
 **Test 3 (Gap 3):** PASS — confirmed by user "The panel rendering is fixed, this part is approved."
-**Gap 4 (round-3 new):** resolved at code layer (db693d9); user UAT pending on the same SHOP story.
+**Gap 4 (round-3 new):** resolved at code layer (6cf425dc); user UAT pending on the same SHOP story.
 **Test 4 (ROADMAP SC end-to-end):** pending — runs after user confirms Gap 4 grid behavior + verifies SC-1 through SC-4 on a happy-path issue.
 
 Both Test 4 and Gap 4 re-verify form the remaining `checkpoint:human-verify` gate. Phase 54 closes once both pass.

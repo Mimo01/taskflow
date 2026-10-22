@@ -82,8 +82,8 @@ completed: 2026-03-13
 
 ## Task Commits
 
-1. **TDD RED: IssueDetailSheet tests** - `0cdc5c4` (test)
-2. **TDD GREEN: Three component files** - `c384ab0` (feat)
+1. **TDD RED: IssueDetailSheet tests** - `07da6a08` (test)
+2. **TDD GREEN: Three component files** - `49143ccb` (feat)
 
 _Note: TDD tasks have two commits (test → feat). No refactor needed._
 
@@ -111,14 +111,14 @@ _Note: TDD tasks have two commits (test → feat). No refactor needed._
 - **Issue:** `@/components/ui/skeleton` import in IssueDetailSheet.tsx would fail — skeleton.tsx not present in ui components directory
 - **Fix:** Created `taskflow/src/components/ui/skeleton.tsx` using standard shadcn skeleton pattern (animate-pulse + bg-accent + rounded-md)
 - **Files modified:** `taskflow/src/components/ui/skeleton.tsx`
-- **Commit:** `0cdc5c4`
+- **Commit:** `07da6a08`
 
 **2. [Rule 1 - Bug] Fixed test assertions to match actual component structure**
 - **Found during:** Task 1 (first GREEN run)
 - **Issue:** Test used `findByTestId('sheet-open')` (non-existent) and `require()` (ESM incompatible)
 - **Fix:** Updated tests to use `data-testid="issue-detail-skeleton"` (skeleton is rendered while loading) and converted to async import
 - **Files modified:** `taskflow/src/routes/dashboard/IssueDetailSheet.test.tsx`
-- **Commit:** `c384ab0`
+- **Commit:** `49143ccb`
 
 ## Issues Encountered
 
@@ -141,5 +141,5 @@ None — no external service configuration required.
 - FOUND: `taskflow/src/routes/dashboard/IssueDetailContent.tsx`
 - FOUND: `taskflow/src/routes/dashboard/IssueDetailSidebar.tsx`
 - FOUND: `taskflow/src/components/ui/skeleton.tsx`
-- FOUND commit: `0cdc5c4` (test RED)
-- FOUND commit: `c384ab0` (feat GREEN)
+- FOUND commit: `07da6a08` (test RED)
+- FOUND commit: `49143ccb` (feat GREEN)

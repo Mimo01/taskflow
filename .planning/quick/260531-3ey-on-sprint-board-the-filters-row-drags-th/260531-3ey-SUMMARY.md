@@ -29,14 +29,14 @@ Restructured both rows of `UnifiedFilterBar.tsx` so overflowing filter content s
 
 ## What changed
 
-**Task 1 — Primary row** (commit `e5ad4e5d`):
+**Task 1 — Primary row** (commit `736b1bfd`):
 - Wrapped the empty-state hint, quickfilter preset pills, and the active-chip block inside a new `flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar` left region.
 - Switched the active-chip container from `flex-wrap` to `flex-nowrap`; added `shrink-0` to each chip span, the hint span, and the divider so they keep intrinsic width inside the nowrap region.
 - Deleted the `<div className="flex-1" />` spacer (the left region's `flex-1` now fills the available space).
 - Pinned all right-side controls (Save / Save Filter / `savingName` input / Filter toggle) inside a single `shrink-0 flex items-center gap-1.5` group.
 - Kept `px-3` on the outer row only.
 
-**Task 2 — Expanded filtersOpen row** (commit `dc9fbbd8`):
+**Task 2 — Expanded filtersOpen row** (commit `f426f7e0`):
 - Wrapped the four FilterDropdowns (Epic / Label / Assignee / Status) and the active-chip block inside a matching `flex-1 min-w-0 ... overflow-x-auto no-scrollbar` region.
 - Switched the expanded chip container to `flex-nowrap`; added `shrink-0` to each chip span and the divider.
 - No right-pinned group needed in this row.
@@ -52,7 +52,7 @@ No logic, handlers, state, props, conditional-render guards, or `data-testid` va
 - **Issue:** Inside a `flex-nowrap` scroll region, flex children shrink by default. Without `shrink-0` the four FilterDropdown trigger buttons would squash instead of overflowing/scrolling, defeating the intended scroll behavior. The plan specified `shrink-0` for chips and divider but not the dropdowns.
 - **Fix:** Added `shrink-0` to the four FilterDropdown wrappers (className only; no prop/logic/testid change).
 - **Files modified:** taskflow/src/components/UnifiedFilterBar.tsx
-- **Commit:** dc9fbbd8
+- **Commit:** f426f7e0
 
 ## Verification
 
@@ -70,5 +70,5 @@ None.
 
 ## Self-Check: PASSED
 - FOUND: taskflow/src/components/UnifiedFilterBar.tsx
-- FOUND commit: e5ad4e5d
-- FOUND commit: dc9fbbd8
+- FOUND commit: 736b1bfd
+- FOUND commit: f426f7e0

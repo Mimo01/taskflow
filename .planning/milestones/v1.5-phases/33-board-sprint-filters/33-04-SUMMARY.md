@@ -66,8 +66,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Create SaveFilterDialog and EditFilterDialog components** - `86c577f` (feat)
-2. **Task 2: Create SavedFilterList and wire Save Filter into UnifiedFilterBar** - `e56d09e` (feat)
+1. **Task 1: Create SaveFilterDialog and EditFilterDialog components** - `f34bb2c7` (feat)
+2. **Task 2: Create SavedFilterList and wire Save Filter into UnifiedFilterBar** - `2c790100` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/SaveFilterDialog.tsx` - Modal dialog for naming and saving current filter to Jira
@@ -101,7 +101,7 @@ None - all components are fully wired to Jira API service and store.
 ## Self-Check: PASSED
 
 - All 4 files verified on disk (3 created, 1 modified)
-- Commits 86c577f and e56d09e verified in git log
+- Commits f34bb2c7 and 2c790100 verified in git log
 - TypeScript compilation: only 2 pre-existing errors, no new errors
 
 ---

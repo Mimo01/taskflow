@@ -73,7 +73,7 @@ Cross-referenced every `openExternal(` invocation in the codebase (excluding tes
 | Focused test files (7) | `npx vitest run <7 touched test files>` | 230/230 passed |
 | Full suite | `npx vitest run` | 188 files, 2688 passed, 2 skipped, 13 todo — matches SUMMARY.md claim exactly |
 | Type check | `npx tsc --noEmit` | Clean, zero errors |
-| Dependency diff | `git diff afc51aa9~1 41abf1d2 -- package.json src-tauri/Cargo.toml` | Empty — zero new dependencies confirmed |
+| Dependency diff | `git diff 5fce26fb~1 31010f5f -- package.json src-tauri/Cargo.toml` | Empty — zero new dependencies confirmed |
 | Biome | `npx biome check ./src` | Only pre-existing baseline files flagged (`chart.tsx`, `BacklogRow.tsx`, `MyTasksPage.tsx`, `MyTasksPage.test.tsx`, `IssueDetailPage.progressive.test.tsx`) — no newly-touched phase files flagged |
 
 ### Anti-Patterns Found

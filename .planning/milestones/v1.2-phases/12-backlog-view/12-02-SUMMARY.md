@@ -72,9 +72,9 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Create BacklogRow component** - `7369b13` (feat)
-2. **Task 2: Create BacklogFilterBar component** - `04b374b` (feat)
-3. **Task 3: Create BacklogPage component** - `28381e0` (feat)
+1. **Task 1: Create BacklogRow component** - `3c936ea2` (feat)
+2. **Task 2: Create BacklogFilterBar component** - `a95f585d` (feat)
+3. **Task 3: Create BacklogPage component** - `b4d1cf2f` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/BacklogRow.tsx` - Single issue row: checkbox, key, summary button, story points, avatar, epic badge
@@ -95,14 +95,14 @@ Each task was committed atomically:
 - **Issue:** Plan's `filterOptions` computation only added to epics Map when both `epicKey && epicName`. Test fixtures use `customfield_10015: null` so epics Map was empty. Select had no valid 'EPIC-1' option → `fireEvent.change` didn't trigger state update → epic filter had no effect.
 - **Fix:** Changed `if (epicKey && epicName) epics.set(...)` to `if (epicKey) epics.set(epicKey, epicName ?? epicKey)` — falls back to key as display name
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogPage.tsx`
-- **Committed in:** `28381e0` (Task 3 commit)
+- **Committed in:** `b4d1cf2f` (Task 3 commit)
 
 **2. [Rule 2 - Browser warning] BacklogRow avatar src empty string guard**
 - **Found during:** Task 3 (running tests — JSDOM warning in test output)
 - **Issue:** Test fixture uses `avatarUrls: { '48x48': '' }`, img with `src=""` causes React/JSDOM warning
 - **Fix:** `src={avatarUrls['48x48'] || undefined}` — avoids rendering empty src attribute
 - **Files modified:** `taskflow/src/routes/dashboard/BacklogRow.tsx`
-- **Committed in:** `28381e0` (Task 3 commit)
+- **Committed in:** `b4d1cf2f` (Task 3 commit)
 
 ---
 

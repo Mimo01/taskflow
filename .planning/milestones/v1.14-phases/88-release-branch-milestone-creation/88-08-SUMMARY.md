@@ -60,7 +60,7 @@ completed: 2026-08-10
 
 Both plan tasks landed in one commit because the repo pre-commit hook runs the full suite and blocks failing-test commits (see Deviations):
 
-1. **Task 1 + Task 2 combined: check-failed BranchState + byte-stable control-char tests** - `4c82bd6b` (feat)
+1. **Task 1 + Task 2 combined: check-failed BranchState + byte-stable control-char tests** - `137dc9e8` (feat)
 
 **Plan metadata:** (this SUMMARY commit, following)
 
@@ -81,7 +81,7 @@ Both plan tasks landed in one commit because the repo pre-commit hook runs the f
 - **Fix:** Verified RED interactively (`npx vitest run` showed 2 of 8 new tests failing against the unmodified `releaseBranch.ts`), then implemented the GREEN change and committed test + implementation together in one `feat` commit once all 41 tests in the file (2191 total) passed.
 - **Files modified:** taskflow/src/routes/dashboard/release-detail/releaseBranch.ts, taskflow/src/routes/dashboard/release-detail/releaseBranch.test.ts
 - **Verification:** `npx vitest run src/routes/dashboard/release-detail/releaseBranch.test.ts` — 41/41 pass; full suite via pre-commit hook — 2191/2191 pass, 2 skipped, 13 todo
-- **Committed in:** `4c82bd6b`
+- **Committed in:** `137dc9e8`
 
 ---
 
@@ -108,4 +108,4 @@ None - no external service configuration required.
 
 - FOUND: taskflow/src/routes/dashboard/release-detail/releaseBranch.ts
 - FOUND: taskflow/src/routes/dashboard/release-detail/releaseBranch.test.ts
-- FOUND: commit 4c82bd6b (feat(88-08): add check-failed BranchState variant and branchCheckFailed param)
+- FOUND: commit 137dc9e8 (feat(88-08): add check-failed BranchState variant and branchCheckFailed param)

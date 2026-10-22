@@ -76,8 +76,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Create StoryHeaderRow and BoardColumn components** - `259debf` (feat)
-2. **Task 2: Rebuild SprintBoardTab with workflow-API columns and grouped layout** - `a822e5a` (feat)
+1. **Task 1: Create StoryHeaderRow and BoardColumn components** - `adc73bca` (feat)
+2. **Task 2: Rebuild SprintBoardTab with workflow-API columns and grouped layout** - `9c6c4d93` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -103,7 +103,7 @@ Each task was committed atomically:
 - **Fix:** Updated `makeIssue` to use status name as id; added `makeStatus` helper; added `fetchProjectStatuses` mocks to all tests needing columns; rewrote 3 old HIER-02 tests to verify new always-visible subtask layout; removed unused `fireEvent` import.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.test.tsx`
 - **Verification:** 11/11 tests pass after update
-- **Committed in:** `a822e5a` (Task 2 commit)
+- **Committed in:** `9c6c4d93` (Task 2 commit)
 
 ---
 
@@ -125,8 +125,8 @@ Each task was committed atomically:
 - FOUND: StoryHeaderRow.tsx
 - FOUND: SprintBoardTab.tsx
 - FOUND: 10-02-SUMMARY.md
-- FOUND commit: 259debf (Task 1)
-- FOUND commit: a822e5a (Task 2)
+- FOUND commit: adc73bca (Task 1)
+- FOUND commit: 9c6c4d93 (Task 2)
 
 ---
 *Phase: 10-sprint-board-redesign*

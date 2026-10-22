@@ -46,8 +46,8 @@ The "Filter by person" combobox on the Worklogs page was redesigned from a free-
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| Task 1: Redesign WorklogsPage.tsx | `6544061f` | feat(quick-260521-t6m-01): redesign person filter |
-| Task 2: Update WorklogsPage.test.tsx | `8c5fa10c` | test(quick-260521-t6m-01): update tests for new filter UX |
+| Task 1: Redesign WorklogsPage.tsx | `4e7ccdc6` | feat(quick-260521-t6m-01): redesign person filter |
+| Task 2: Update WorklogsPage.test.tsx | `98556955` | test(quick-260521-t6m-01): update tests for new filter UX |
 
 ## Deviations from Plan
 
@@ -63,8 +63,8 @@ None — no new network endpoints, auth paths, or trust boundary changes introdu
 
 ## Self-Check: PASSED
 
-- `taskflow/src/routes/worklogs/WorklogsPage.tsx` — modified, committed at 6544061f
-- `taskflow/src/routes/worklogs/WorklogsPage.test.tsx` — modified, committed at 8c5fa10c
+- `taskflow/src/routes/worklogs/WorklogsPage.tsx` — modified, committed at 4e7ccdc6
+- `taskflow/src/routes/worklogs/WorklogsPage.test.tsx` — modified, committed at 98556955
 - All 23 tests pass (`npx vitest run` confirmed)
 - TypeScript compiles with no new errors (`npx tsc --noEmit` produced no WorklogsPage errors)
 - Checkpoint task (Task 3: visual verification) awaits human review

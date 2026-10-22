@@ -46,9 +46,9 @@ Links the Jira Deployment package field (customfield_15725, an RM child issue) t
 
 ## Commits
 
-- 8704309c: pure lib + tests, jira.ts fetchers, settings v30, RM picker
-- 20e2060d: sidebar warning and one-click fixes
-- a57b9417: release detail section, sync hook, Releases tab chip and bulk sync
+- 9f7e966e: pure lib + tests, jira.ts fetchers, settings v30, RM picker
+- 592e9d6c: sidebar warning and one-click fixes
+- f709ccda: release detail section, sync hook, Releases tab chip and bulk sync
 
 ## Deliberate decisions
 
@@ -86,7 +86,7 @@ None beyond the plan's threat model (project/issue keys are regex-validated befo
 
 ## Post-execution UAT follow-ups (live Jira, user-approved 2026-10-14)
 
-Live UAT surfaced instance specifics; all fixed on main (last commit e13892d7):
+Live UAT surfaced instance specifics; all fixed on main (last commit 6d44d2ad):
 
 - **RM children hang off the WEEK parent via Advanced Roadmaps "Parent Link"**, not `parent`/Epic Link. Link field ids are now discovered via `/field` (cached per base URL) and only discovered ids are queried; the guessed `cf[10014]` 404'd (Epic Link is `customfield_10101` here, Parent Link `customfield_12700`).
 - **WEEK titles use non-padded dates** (`WEEK45 (2.11.2026 - 8.11.2026) STANDARD`); the parser required 2-digit parts so those weeks were silently dropped. Now `\d{1,2}`, padded to YYYY-MM-DD; labels keep the original text.

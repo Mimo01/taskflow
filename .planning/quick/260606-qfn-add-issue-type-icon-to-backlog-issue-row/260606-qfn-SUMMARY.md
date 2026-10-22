@@ -68,7 +68,7 @@ Added the existing `IssueTypeIcon` (Story/Bug/Task/Epic/Subtask) to the two list
 - **Issue:** Biome `organizeImports` (assist) required `IssueTypeIcon` to sort after the multi-line `context-menu` import block in both BacklogRow.tsx and StoryHeaderRow.tsx.
 - **Fix:** `biome check --write ./src` reordered the two imports.
 - **Files modified:** taskflow/src/routes/dashboard/BacklogRow.tsx, taskflow/src/routes/dashboard/StoryHeaderRow.tsx
-- **Commit:** af17e7fd
+- **Commit:** 79bcb682
 
 ## Deferred Issues
 
@@ -88,4 +88,4 @@ None — no new network endpoints, auth paths, or trust-boundary surface. Pure p
 
 - All 3 modified source files present.
 - SUMMARY.md present.
-- All 3 task commits present (825ddbda, b9120a5f, af17e7fd).
+- All 3 task commits present (c2cffb88, cb695c43, 79bcb682).

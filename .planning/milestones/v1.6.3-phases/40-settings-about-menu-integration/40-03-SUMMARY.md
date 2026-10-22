@@ -37,8 +37,8 @@ Unit tests for AboutDialog, UpdatesSection, and Settings nav count update with z
 
 | Task | Description | Commit | Status |
 |------|-------------|--------|--------|
-| 1 | Write AboutDialog tests | 2c38212 | Done |
-| 2 | Write UpdatesSection tests + update Settings.test.tsx | cf42c07 | Done |
+| 1 | Write AboutDialog tests | 6cec2051 | Done |
+| 2 | Write UpdatesSection tests + update Settings.test.tsx | ab40def9 | Done |
 
 ## What Was Built
 
@@ -119,5 +119,5 @@ None — all test assertions reference real component output.
 - FOUND: taskflow/src/components/about/AboutDialog.test.tsx
 - FOUND: taskflow/src/routes/settings/UpdatesSection.test.tsx
 - FOUND: .planning/phases/40-settings-about-menu-integration/40-03-SUMMARY.md
-- FOUND commit: 2c38212 (AboutDialog tests)
-- FOUND commit: cf42c07 (UpdatesSection tests + Settings update)
+- FOUND commit: 6cec2051 (AboutDialog tests)
+- FOUND commit: ab40def9 (UpdatesSection tests + Settings update)

@@ -70,7 +70,7 @@ human_verification:
 | `useSortable` present in implementation | `grep -c "useSortable" SidebarItemsList.tsx` | 2 matches | PASS |
 | `reorderSidebarItem` wired in onDragEnd | `grep -c "reorderSidebarItem" SidebarItemsList.tsx` | 2 matches | PASS |
 | `GripVertical` drag handle present | `grep -c "GripVertical" SidebarItemsList.tsx` | 3 matches | PASS |
-| Documented commits exist in git history | `git log --oneline \| grep 8c51939\|65d46e1` | Both commits found | PASS |
+| Documented commits exist in git history | `git log --oneline \| grep 0a753131\|e6d3ca58` | Both commits found | PASS |
 
 ---
 

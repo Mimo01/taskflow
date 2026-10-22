@@ -33,12 +33,12 @@ metrics:
 Closing the last open subtask (Sprint Board or issue-detail sidebar) now opens a modal offering to move the parent story to done. The user picks among the parent's done-category transitions, and a resolution is requested through the existing BoardResolutionDialog when needed.
 
 ## Commits
-- d92d6d1a: parentCompletion service
-- 6e5b61be: hook + dialog
-- 894ca466: board/sidebar/StatusPopover wiring
+- 59d04295: parentCompletion service
+- ed016f1a: hook + dialog
+- d9dc169c: board/sidebar/StatusPopover wiring
 
 ## Deviations from Plan
-None of substance. Minor: `boardId` typed `number | null` to match the invalidate helpers. Worktree had no `taskflow/node_modules`, so a gitignored symlink to the main checkout's node_modules was created to run hooks/tests. Worktree base was reset to d892b6b5 per the branch check.
+None of substance. Minor: `boardId` typed `number | null` to match the invalidate helpers. Worktree had no `taskflow/node_modules`, so a gitignored symlink to the main checkout's node_modules was created to run hooks/tests. Worktree base was reset to abe42e4b per the branch check.
 
 ## Notes
 - FieldsSection test: the StatusPopover mock now exposes two trigger buttons (existing assertions unchanged).

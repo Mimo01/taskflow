@@ -37,7 +37,7 @@
 const tokens = jiraUserDisplayName?.trim().split(/\s+/) ?? [];
 const firstName = tokens[1] ?? tokens[0] ?? null;
 ```
-This was changed in commit `8adc3169` ("fix first name from Surname Firstname Status format") under the assumption that Jira returns `"Surname Firstname [Status]"`. That is incorrect for this codebase: real Jira `displayName` for the live user is the 2-token form `"Jane Doe"` (Firstname Surname), as documented in `.planning/quick/260521-t6m-.../260521-t6m-PLAN.md` line 80. With the current logic, `'Jane Doe'` → `tokens[1]='Doe'`, which is the surname, not the first name. Both tests assert the standard convention (token[0] = first name).
+This was changed in commit `d1c92a3a` ("fix first name from Surname Firstname Status format") under the assumption that Jira returns `"Surname Firstname [Status]"`. That is incorrect for this codebase: real Jira `displayName` for the live user is the 2-token form `"Jane Doe"` (Firstname Surname), as documented in `.planning/quick/260521-t6m-.../260521-t6m-PLAN.md` line 80. With the current logic, `'Jane Doe'` → `tokens[1]='Doe'`, which is the surname, not the first name. Both tests assert the standard convention (token[0] = first name).
 
 **Fix strategy:** Source code. In `src/routes/dashboard/index.tsx`, change the first-name selector to use `tokens[0]` (with a defensive trailing-bracket strip in case a future `[Status]` suffix appears). Tests are correct; tests are the contract.
 
@@ -45,7 +45,7 @@ This was changed in commit `8adc3169` ("fix first name from Surname Firstname St
 
 **Failing tests:** Test 6 in `src/routes/dashboard/index.test.tsx`.
 
-**Root cause:** `src/routes/dashboard/index.tsx` renders the decorative `<svg aria-hidden="true">` as a sibling of `<section>` (both children of the outer wrapper `<div>`). The test asserts the SVG lives **inside** the hero `<section>` (via `document.querySelector('section svg')`). Test 6 was added in commit `46db80bf` as part of the same redesign, encoding the intended DOM structure.
+**Root cause:** `src/routes/dashboard/index.tsx` renders the decorative `<svg aria-hidden="true">` as a sibling of `<section>` (both children of the outer wrapper `<div>`). The test asserts the SVG lives **inside** the hero `<section>` (via `document.querySelector('section svg')`). Test 6 was added in commit `f6b02497` as part of the same redesign, encoding the intended DOM structure.
 
 **Fix strategy:** Source code. Move the decorative `<svg>` inside the `<section>` element. Keep `aria-hidden="true"` and `pointer-events-none` so it remains decorative. The visual result is unchanged (SVG was already absolutely-positioned to fill the area).
 
@@ -69,8 +69,8 @@ Skips and todos are identical to the initial run (5 file-skips, 2 test-skips, 39
 
 | Cluster | Status | Commit | Root cause |
 | --- | --- | --- | --- |
-| C1 — Dashboard hero name parsing inverted | FIXED | `55ab38c8` | Source used `tokens[1]` based on a wrong assumption about Jira `displayName` format; live Jira returns `"Firstname Surname"` (2 tokens), so `tokens[0]` is the correct first name. |
-| C2 — Dashboard hero SVG placement | FIXED | `29dac3e7` | Decorative ambient SVG was a sibling of `<section>`; Test 6 contract requires it be a descendant. Moved SVG inside the section with `overflow-hidden` to keep it bounded and `relative` on text children to keep them above the SVG. |
+| C1 — Dashboard hero name parsing inverted | FIXED | `ed9a7308` | Source used `tokens[1]` based on a wrong assumption about Jira `displayName` format; live Jira returns `"Firstname Surname"` (2 tokens), so `tokens[0]` is the correct first name. |
+| C2 — Dashboard hero SVG placement | FIXED | `85d477d1` | Decorative ambient SVG was a sibling of `<section>`; Test 6 contract requires it be a descendant. Moved SVG inside the section with `overflow-hidden` to keep it bounded and `relative` on text children to keep them above the SVG. |
 
 ### Biome (`npm run check`) status on touched files
 

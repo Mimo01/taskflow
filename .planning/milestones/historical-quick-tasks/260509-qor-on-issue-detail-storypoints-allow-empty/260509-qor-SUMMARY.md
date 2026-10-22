@@ -41,8 +41,8 @@ Story points in issue detail previously sent `0` when the user cleared the input
 
 ## TDD Gate Compliance
 
-- RED commit `1af8156`: 3 new failing tests added for SP clear behavior
-- GREEN commit `0293111`: Implementation makes all 23 tests pass
+- RED commit `de778eeb`: 3 new failing tests added for SP clear behavior
+- GREEN commit `997b7ce9`: Implementation makes all 23 tests pass
 
 ## Test Results
 
@@ -66,5 +66,5 @@ None. The change is UI-only: null is a valid explicit value in the Jira API and 
 
 - `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` — modified, exists
 - `taskflow/src/routes/dashboard/IssueDetailSheet.test.tsx` — modified, exists
-- RED commit `1af8156` — verified in git log
-- GREEN commit `0293111` — verified in git log
+- RED commit `de778eeb` — verified in git log
+- GREEN commit `997b7ce9` — verified in git log

@@ -18,7 +18,7 @@ result: issue
 reported: "{} is not iterable mountMemo@react-dom_client.js:6527:35"
 severity: blocker
 root_cause: "MyTasksTab queryFn returned GitLabMR[] while MrHealthPanel/MrAttentionTab returned { filtered, merged } for the same ['gitlab-mrs', baseUrl, userId] cache key. Dashboard loaded first, cached { filtered: [], merged: [] }, then MyTasksTab read it and for...of on non-iterable object threw."
-fix_commit: "957e7c3"
+fix_commit: "2a0177c3"
 
 ### 2. SubtasksPanel — Renders without crash (any data state)
 expected: Open the Dashboard as a developer/tech-lead. The Subtasks panel loads and displays either a list of subtask rows or an empty state message — no crash, no error boundary, even if Jira API returns an unexpected shape.

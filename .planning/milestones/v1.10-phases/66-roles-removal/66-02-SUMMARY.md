@@ -66,9 +66,9 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Remove PresetButtons from SidebarSection + AppearanceSection, delete PresetButtons.tsx and RoleSection.tsx | 75a407b6 | SidebarSection.tsx, AppearanceSection.tsx, PresetButtons.tsx (deleted), RoleSection.tsx (deleted), Settings.tsx |
-| 2 | Collapse wizard to 4 steps, remove RoleStep, strip role from onboarding store, delete RoleStep files | b45bdad9 | OnboardingWizard.tsx, onboarding.store.ts, RoleStep.tsx (deleted), RoleStep.test.tsx (deleted) |
-| 3 | Update remaining test files, run full suite, run production build, verify ROLES-05 grep | b2e40060 | onboarding.store.test.ts, tauri-storage.test.ts, SidebarItemsList.test.tsx, Settings.test.tsx, ConnectionsSection.test.tsx |
+| 1 | Remove PresetButtons from SidebarSection + AppearanceSection, delete PresetButtons.tsx and RoleSection.tsx | 941c492c | SidebarSection.tsx, AppearanceSection.tsx, PresetButtons.tsx (deleted), RoleSection.tsx (deleted), Settings.tsx |
+| 2 | Collapse wizard to 4 steps, remove RoleStep, strip role from onboarding store, delete RoleStep files | 3869accc | OnboardingWizard.tsx, onboarding.store.ts, RoleStep.tsx (deleted), RoleStep.test.tsx (deleted) |
+| 3 | Update remaining test files, run full suite, run production build, verify ROLES-05 grep | 4338b38b | onboarding.store.test.ts, tauri-storage.test.ts, SidebarItemsList.test.tsx, Settings.test.tsx, ConnectionsSection.test.tsx |
 
 ## What Was Built
 
@@ -109,7 +109,7 @@ metrics:
 - **Issue:** `grep -rn "RoleSection" src/` returned a hit in Settings.tsx line 12 — a doc comment `- RoleSection: existing, unchanged`. This was not an import but would leave a false reference to a deleted file.
 - **Fix:** Removed the stale line from the Settings.tsx JSDoc comment.
 - **Files modified:** `taskflow/src/routes/settings/Settings.tsx`
-- **Commit:** 75a407b6
+- **Commit:** 941c492c
 
 **2. [Rule 3 - Blocking] node_modules not present in worktree taskflow directory**
 - **Found during:** Task 3 vitest run
@@ -134,8 +134,8 @@ None — this plan deletes UI files and test fixtures and removes an in-memory s
 - `test ! -f taskflow/src/routes/onboarding/RoleStep.test.tsx` — FOUND (deleted)
 
 **Commits exist:**
-- 75a407b6: feat(66-02): remove PresetButtons from settings sections, delete PresetButtons.tsx and RoleSection.tsx
-- b45bdad9: feat(66-02): collapse wizard to 4 steps, delete RoleStep files, strip role from onboarding store
-- b2e40060: feat(66-02): update test files to remove role fixtures, DEV_SIDEBAR_PRESET, and role mock entries
+- 941c492c: feat(66-02): remove PresetButtons from settings sections, delete PresetButtons.tsx and RoleSection.tsx
+- 3869accc: feat(66-02): collapse wizard to 4 steps, delete RoleStep files, strip role from onboarding store
+- 4338b38b: feat(66-02): update test files to remove role fixtures, DEV_SIDEBAR_PRESET, and role mock entries
 
 ## Self-Check: PASSED

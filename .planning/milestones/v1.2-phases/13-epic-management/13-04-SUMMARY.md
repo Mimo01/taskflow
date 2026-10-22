@@ -71,8 +71,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Create EpicDetailSheet.tsx** - `c77206e` (feat)
-2. **Task 2: Wire EpicDetailSheet into AppLayout** - `2e2ebbd` (feat)
+1. **Task 1: Create EpicDetailSheet.tsx** - `6627d63c` (feat)
+2. **Task 2: Wire EpicDetailSheet into AppLayout** - `ded916f8` (feat)
 
 **Plan metadata:** (docs commit — see below)
 

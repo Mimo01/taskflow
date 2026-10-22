@@ -49,7 +49,7 @@ block dismissal while pending; `createBranch`/`createMilestone` surface GitLab's
 401/403. `tsc --noEmit` is clean, `biome check` on the touched paths reports no diagnostics, and
 the 8 test files in scope pass (139 tests).
 
-The problems concentrate in the one change made outside the plans (commit f63e785a, the unwindowed
+The problems concentrate in the one change made outside the plans (commit ee819dd3, the unwindowed
 `['gitlab-milestones', projectId, 'all']` query). That change is internally inconsistent with its
 own commit message and code comments: the commit claims "Widening the list also strengthens
 findDuplicateMilestone, which reads the same list", but the list that reaches
@@ -72,7 +72,7 @@ dialog `recentMilestonesByDate(...)` — hard-capped at `RECENT_MILESTONE_LIMIT 
 (releaseMilestone.ts:111,132). `CreateMilestoneDialog` uses that same 5-entry array as *both* the
 read-only reference list *and* the input to `findDuplicateMilestone` (lines 93-94). RELMS-04's
 duplicate guard therefore now compares a candidate title against at most 5 milestones — the 5
-newest by `due_date`. Before f63e785a the source was `ownWindowMilestones` (the ±7-day window,
+newest by `due_date`. Before ee819dd3 the source was `ownWindowMilestones` (the ±7-day window,
 uncapped), which is exactly the window in which a same-dated colliding title lives. For any release
 whose date is not among the 5 newest milestone dates (a past release, a back-filled version, or any
 project with a dense cadence), the guard returns `null` for a title that demonstrably exists and
@@ -197,7 +197,7 @@ vi.mocked(gitlab.fetchProjectMilestones).mockResolvedValue([makeMilestone(), ...
 
 **File:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts:188` and `330`
 
-**Issue:** f63e785a repointed `ReleaseDetailPage` from `ownWindowMilestones` to
+**Issue:** ee819dd3 repointed `ReleaseDetailPage` from `ownWindowMilestones` to
 `recentReferenceMilestones`; the old value is still computed on every render and exported from the
 hook's return object, with no consumer anywhere in `src` (verified by grep). It is a live trap: the
 two names differ only in scope, and a future caller wiring "the milestone list" to the wrong one

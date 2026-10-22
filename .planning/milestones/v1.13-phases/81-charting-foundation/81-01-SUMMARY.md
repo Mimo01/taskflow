@@ -39,8 +39,8 @@ Wave 0 foundation for all charting work: recharts@^3.8.0 + react-is@^19.2.7 inst
 
 | Task | Description | Commit | Status |
 |------|-------------|--------|--------|
-| 1 | Install recharts + react-is + generate shadcn chart primitive | 4f86a8e4 | Done |
-| 2 | Add ResizeObserver mock + Biome suppressions for shadcn files | 9c6e4900 | Done |
+| 1 | Install recharts + react-is + generate shadcn chart primitive | 77165754 | Done |
+| 2 | Add ResizeObserver mock + Biome suppressions for shadcn files | c31fe7fb | Done |
 
 ## Actual Chart.tsx Exports (Assumption A1 Verification)
 
@@ -65,7 +65,7 @@ Assumption A1 was **mostly correct** — all expected exports are present. `Char
 - **Issue:** `npx shadcn@latest add chart` generates files with double-quote strings, missing semicolons, and import ordering that violates Biome rules. The `card.tsx` peer file also had format violations.
 - **Fix:** Ran `npm run fix` on both files to auto-format; added `biome-ignore` comments for `noDangerouslySetInnerHtml` (CSS var injection from config, not user input) and `useNamingConvention` (`__html` is the React DOM API property name).
 - **Files modified:** `src/components/ui/chart.tsx`, `src/components/ui/card.tsx`
-- **Commit:** 9c6e4900 (included in Task 2 commit)
+- **Commit:** c31fe7fb (included in Task 2 commit)
 
 ### Assumption Deviation
 
@@ -106,7 +106,7 @@ None — no new network endpoints, auth paths, or trust boundaries. Package inst
 - [x] `taskflow/src/components/ui/chart.tsx` exists: FOUND
 - [x] `taskflow/src/components/ui/card.tsx` exists: FOUND
 - [x] `taskflow/src/test/setup.ts` has ResizeObserver mock: FOUND
-- [x] Commit 4f86a8e4 exists: FOUND
-- [x] Commit 9c6e4900 exists: FOUND
+- [x] Commit 77165754 exists: FOUND
+- [x] Commit c31fe7fb exists: FOUND
 
 ## Self-Check: PASSED

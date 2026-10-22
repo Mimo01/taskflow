@@ -68,11 +68,11 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add SavedFilterList to Sidebar and saved filters to CommandPalette** - `2d4df21` (feat)
-2. **Task 2: Wire activeFilterId from saved-filter.store into SprintBoardTab filtering** - `3fdbfb9` (feat)
+1. **Task 1: Add SavedFilterList to Sidebar and saved filters to CommandPalette** - `5eb3c1b1` (feat)
+2. **Task 2: Wire activeFilterId from saved-filter.store into SprintBoardTab filtering** - `ee551086` (feat)
 3. **Task 3: Visual verification fixes (checkpoint feedback):**
-   - SprintGoalBanner redesign - `8a006c2` (fix)
-   - Sticky headers fix + bulk edit removal - `a380685` (fix)
+   - SprintGoalBanner redesign - `2a9216b4` (fix)
+   - Sticky headers fix + bulk edit removal - `e4765e89` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/Sidebar.tsx` - Added SavedFilterList section with favourite filter fetching
@@ -95,21 +95,21 @@ Each task was committed atomically:
 - **Issue:** Sticky column headers not working correctly due to non-sticky content (goal banner, filters) positioned between headers and swimlanes
 - **Fix:** Moved all non-sticky content above the sticky header bar in DOM order
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.tsx
-- **Committed in:** a380685
+- **Committed in:** e4765e89
 
 **2. [Rule 1 - Bug] Redesigned SprintGoalBanner**
 - **Found during:** Task 3 (visual verification checkpoint)
 - **Issue:** SprintGoalBanner looked out of place with heavy bordered card styling
 - **Fix:** Redesigned as compact inline strip with Target icon, "Goal" label, muted colors, and truncated text
 - **Files modified:** taskflow/src/routes/dashboard/SprintGoalBanner.tsx
-- **Committed in:** 8a006c2
+- **Committed in:** 2a9216b4
 
 **3. [User Request] Removed bulk edit UI**
 - **Found during:** Task 3 (visual verification checkpoint)
 - **Issue:** User does not want bulk edit functionality in the UI
 - **Fix:** Removed checkbox overlay from DraggableCard, removed BulkActionBar rendering and useBoardSelectionStore from SprintBoardTab, preserved component files
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.tsx, taskflow/src/routes/dashboard/DraggableCard.tsx
-- **Committed in:** a380685
+- **Committed in:** e4765e89
 
 ---
 
@@ -130,7 +130,7 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - All 5 modified files exist on disk
-- All 4 commit hashes verified in git log (2d4df21, 3fdbfb9, 8a006c2, a380685)
+- All 4 commit hashes verified in git log (5eb3c1b1, ee551086, 2a9216b4, e4765e89)
 - 665 tests pass, 0 failures
 
 ---

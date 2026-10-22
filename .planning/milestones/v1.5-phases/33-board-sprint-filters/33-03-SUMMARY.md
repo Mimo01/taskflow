@@ -69,8 +69,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add checkboxes to DraggableCard and create BulkActionBar + BulkProgressIndicator** - `1eafb02` (feat)
-2. **Task 2: Wire bulk selection and BulkActionBar into SprintBoardTab** - `f88a251` (feat)
+1. **Task 1: Add checkboxes to DraggableCard and create BulkActionBar + BulkProgressIndicator** - `acfe3929` (feat)
+2. **Task 2: Wire bulk selection and BulkActionBar into SprintBoardTab** - `722a726b` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/BulkActionBar.tsx` - Floating bulk action toolbar with status/assignee/priority dropdowns and parallelBatch execution
@@ -101,8 +101,8 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - All 4 files verified on disk
-- Commit 1eafb02 (Task 1) verified in git log
-- Commit f88a251 (Task 2) verified in git log
+- Commit acfe3929 (Task 1) verified in git log
+- Commit 722a726b (Task 2) verified in git log
 
 ---
 *Phase: 33-board-sprint-filters*

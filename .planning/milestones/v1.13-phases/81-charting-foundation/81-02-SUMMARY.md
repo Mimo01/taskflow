@@ -33,8 +33,8 @@ ChartWrapper named export with `'use no memo'` at line 1, composing Skeleton/Err
 
 | Task | Description | Commit | Status |
 |------|-------------|--------|--------|
-| 1 | Build ChartWrapper status-prop card (CHART-03, CHART-01) | 0a77603e, 2818bd62 | Done |
-| 2 | ChartWrapper render tests — all four states (CHART-03) | 1087d34e | Done |
+| 1 | Build ChartWrapper status-prop card (CHART-03, CHART-01) | a889a215, fcb7b002 | Done |
+| 2 | ChartWrapper render tests — all four states (CHART-03) | 16764d16 | Done |
 
 ## Deviations from Plan
 
@@ -45,7 +45,7 @@ ChartWrapper named export with `'use no memo'` at line 1, composing Skeleton/Err
 - **Issue:** Biome formatter requires a semicolon after `'use no memo'` string literal directive, and prefers collapsed single-line JSX expressions for short returns. Initial file used multi-line form.
 - **Fix:** Ran `npm run fix` on `chart-wrapper.tsx`; the directive became `'use no memo';` (with semicolon). The `head -1 | grep -c "use no memo"` acceptance check still passes since the directive text is present.
 - **Files modified:** `taskflow/src/components/chart-wrapper.tsx`
-- **Commit:** 2818bd62
+- **Commit:** fcb7b002
 
 ## Verification Results
 
@@ -75,8 +75,8 @@ None — pure frontend presentational component composing existing shipped UI pr
 
 - [x] `taskflow/src/components/chart-wrapper.tsx` exists: FOUND
 - [x] `taskflow/src/components/chart-wrapper.test.tsx` exists: FOUND
-- [x] Commit 0a77603e exists (feat Task 1): FOUND
-- [x] Commit 2818bd62 exists (style fix Task 1): FOUND
-- [x] Commit 1087d34e exists (test Task 2): FOUND
+- [x] Commit a889a215 exists (feat Task 1): FOUND
+- [x] Commit fcb7b002 exists (style fix Task 1): FOUND
+- [x] Commit 16764d16 exists (test Task 2): FOUND
 
 ## Self-Check: PASSED

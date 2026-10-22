@@ -32,9 +32,9 @@ metrics:
 
 # Quick 261002-0xf: Epic progress polish (zoom navigator, cards, tooltips, risks)
 
-Three commits: 147a749c (Task 1), a7aac0a6 (Task 2), 9f05dd5e (Task 3).
+Three commits: 8e2a65d9 (Task 1), 2444427c (Task 2), eb411405 (Task 3).
 
-## Task 1 (147a749c, executor)
+## Task 1 (8e2a65d9, executor)
 
 Pure zoom/data lib work. Daily `historyDates`; `viewSample` (every ceil(n/(max-1))-th row, keeps
 first/last, one neighbour each side and `keep` dates); `timeTicks` / `formatMonthYear` /
@@ -43,7 +43,7 @@ first/last, one neighbour each side and `keep` dates); `timeTicks` / `formatMont
 preset with `PRESET_SHORT_MAX_DAYS` 90 and `PRESET_MEDIUM_MAX_DAYS` 240; range-matrix tests A to H.
 Intentional test changes are listed in that commit. No deviations.
 
-## Task 2 (a7aac0a6, finished by the orchestrator)
+## Task 2 (2444427c, finished by the orchestrator)
 
 The executor was interrupted by a usage limit and two stream stalls; the orchestrator finished it.
 EpicStatCard plus a container-query grid; concise tooltips; `sourceNote`; tab-independent risks
@@ -55,7 +55,7 @@ tabs/states, skeleton cards, tooltip budget for hero/Finish/Remaining/assignee, 
 across tabs). The chart-tooltip budget was deferred to Task 3. Deviation: the "1 unestimated" /
 "2 unassigned" tests now query chips by accessible name because chips show short tokens.
 
-## Task 3 (9f05dd5e)
+## Task 3 (eb411405)
 
 - `EpicRangeNavigator`: base-ui Slider (two thumbs 'Range start' / 'Range end', date
   aria-valuetext, step 1 day, largeStep 7, minStepsBetweenValues 7, collision 'none') over a

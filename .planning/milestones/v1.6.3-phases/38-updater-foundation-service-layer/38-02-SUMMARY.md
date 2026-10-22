@@ -71,8 +71,8 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Register Tauri updater plugin in Rust backend and install npm dep** - `4a5829f` (feat)
-2. **Task 2: Create update service wrapper and state machine store with tests** - `f4c3aa7` (feat)
+1. **Task 1: Register Tauri updater plugin in Rust backend and install npm dep** - `0233d621` (feat)
+2. **Task 2: Create update service wrapper and state machine store with tests** - `a1365fc0` (feat)
 
 ## Files Created/Modified
 - `taskflow/src-tauri/Cargo.toml` - Added `tauri-plugin-updater = "2"` dependency
@@ -98,7 +98,7 @@ Each task was committed atomically:
 - **Fix:** Replaced `const mockCheck = vi.fn()` + `vi.mock()` with `vi.hoisted()` pattern: `const { mockCheck } = vi.hoisted(() => ({ mockCheck: vi.fn() }))` which is explicitly designed for this use case
 - **Files modified:** `taskflow/src/services/updater.test.ts`
 - **Verification:** All 11 tests pass after fix
-- **Committed in:** `f4c3aa7` (Task 2 commit)
+- **Committed in:** `a1365fc0` (Task 2 commit)
 
 ---
 

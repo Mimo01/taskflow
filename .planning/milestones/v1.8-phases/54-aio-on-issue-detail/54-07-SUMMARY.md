@@ -34,7 +34,7 @@ key-files:
 
 key-decisions:
   - "Probe E selected Branch 3-A (preprocess heuristic) over 3-B (custom td renderer) and 3-C (parser swap) — lowest blast radius, no new wiki-parser deps, isolated to preprocessJiraMarkup. Validated against the verbatim SHOP fixture from 54-06-UAT-FINDINGS.md Finding 1 (panel + image-link list render INSIDE the table cell)."
-  - "Sub-changes 1 + 2 landed in a single commit (1188624) because they share the same widened queryFn return shape (impactedExecutions[] carries BOTH the per-row status chip data AND the per-row step data the attachments grid aggregates from). Sub-change 3 is a separate commit (72e0dea) because it touches different files (WikiRenderer.tsx)."
+  - "Sub-changes 1 + 2 landed in a single commit (5913542e) because they share the same widened queryFn return shape (impactedExecutions[] carries BOTH the per-row status chip data AND the per-row step data the attachments grid aggregates from). Sub-change 3 is a separate commit (21e47000) because it touches different files (WikiRenderer.tsx)."
   - "rehype-sanitize ADDED as a new dependency for T-54-07-01 mitigation. Plan said 'no new deps unless Branch 3-C selected' — but T-54-07-01 mitigation is a separate threat-model requirement (also called out in Probe E sub-finding) and rehype-sanitize is the standard companion to rehype-raw for this purpose. Custom schema preserves the existing wiki surface (data-callout/mention/img/br/span/a) while stripping <script>/<iframe>/on-* attrs."
   - "Plan T-54-07-01 acceptance criterion specified `<script>` payload renders as LITERAL TEXT. Updated to assert no <script> element + no <script[data-test='injected']> + surrounding text preserved — sanitize STRIPS the script entirely (safer outcome than rendering as literal text). Same security guarantee, slightly different observable behaviour."
   - "Primary cycle picker uses most-frequent cycleKey across runRefs (tie-broken by highest CY-N suffix) instead of fetchAioCycles — Branch A1 path doesn't call fetchAioCycles, so we infer the primary cycle from the traceability response itself."
@@ -76,9 +76,9 @@ completed: 2026-05-14
 
 Each task was committed atomically:
 
-1. **Task 1: Probe E — Nested wiki rendering branch selection** — `9ae3b40` (docs)
-2. **Task 2 Sub-change 1 + Sub-change 2: Gap 1 (ImpactedExecutionsList) + Gap 2 (attachments grid + cross-cycle bounded fetch)** — `1188624` (feat)
-3. **Task 2 Sub-change 3: Gap 3 (nested wiki Branch 3-A + T-54-07-01 XSS mitigation)** — `72e0dea` (fix)
+1. **Task 1: Probe E — Nested wiki rendering branch selection** — `88965a59` (docs)
+2. **Task 2 Sub-change 1 + Sub-change 2: Gap 1 (ImpactedExecutionsList) + Gap 2 (attachments grid + cross-cycle bounded fetch)** — `5913542e` (feat)
+3. **Task 2 Sub-change 3: Gap 3 (nested wiki Branch 3-A + T-54-07-01 XSS mitigation)** — `21e47000` (fix)
 
 _Note: Sub-change 1 and Sub-change 2 landed in one commit because they share the same widened `queryFn` return shape and cannot be split atomically — the cross-cycle step fetch IS the source of both the impacted-executions list AND the attachments grid data on the no-runs path. Sub-change 3 is a separate commit (different file: WikiRenderer.tsx)._
 
@@ -111,7 +111,7 @@ _Note: Sub-change 1 and Sub-change 2 landed in one commit because they share the
 - **Fix:** Installed `rehype-sanitize@^6.0.0`; wired AFTER `rehype-raw` with a custom schema that preserves the existing wiki surface (data-callout, data-title, mention, img, br, span, a) and strips `<script>`, `<iframe>`, on-* event handler attributes
 - **Files modified:** package.json, package-lock.json, WikiRenderer.tsx, WikiRenderer.test.tsx
 - **Verification:** Three new tests assert no script element on table-cell payloads, on prose payloads, and that on-* attributes are stripped. Full test suite passes.
-- **Committed in:** 72e0dea (Sub-change 3 commit)
+- **Committed in:** 21e47000 (Sub-change 3 commit)
 
 **2. [Rule 1 - Test fixture] Adjusted T-54-07-01 test assertion to match sanitize behaviour**
 - **Found during:** Task 2 Sub-change 3
@@ -119,7 +119,7 @@ _Note: Sub-change 1 and Sub-change 2 landed in one commit because they share the
 - **Fix:** Updated test to assert no script element + no `script[data-test="injected"]` + surrounding text preserved. Same security guarantee, more accurate to actual sanitize behaviour.
 - **Files modified:** WikiRenderer.test.tsx
 - **Verification:** Test passes; manual review confirms the threat is mitigated (no JS execution surface) AND surrounding cell text remains visible.
-- **Committed in:** 72e0dea (Sub-change 3 commit)
+- **Committed in:** 21e47000 (Sub-change 3 commit)
 
 **3. [Rule 1 - Test contract] Updated legacy "No test runs in active cycle" EmptyState test to reflect new D-04 second-case contract**
 - **Found during:** Task 2 Sub-change 1 (tests run after queryFn shape widening)
@@ -127,7 +127,7 @@ _Note: Sub-change 1 and Sub-change 2 landed in one commit because they share the
 - **Fix:** Renamed the test to "renders nothing (section hidden) when legacy path returns no usable runs and no impacted executions (Plan 54-07 D-04 second case)" and updated assertions to expect the section is absent from the DOM.
 - **Files modified:** AioTestRunsSection.test.tsx
 - **Verification:** Test passes. Other 19 AioTestRunsSection tests continue passing.
-- **Committed in:** 1188624 (Sub-change 1 commit)
+- **Committed in:** 5913542e (Sub-change 1 commit)
 
 ---
 
@@ -165,7 +165,7 @@ Verified via `grep` and `git log` that all artifacts referenced in this SUMMARY 
 - `.planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md` — Probe E section + Decision line present (verified by `grep -qE "^### Decision: Branch 3-[ABC] selected — "`)
 - `taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.tsx` — `ImpactedExecutionsList` (3 occurrences), `MAX_IMPACTED_EXECUTIONS` (4), `MAX_PARALLEL` (6), `T-54-07-02` (6), `AioAttachmentsGrid` (3) — all ≥ acceptance threshold
 - `taskflow/src/routes/dashboard/WikiRenderer.test.tsx` — `Plati pre tarify` (3), `Branch 3-A` (3), `alert(1)` (3) — all present
-- Commits: `9ae3b40`, `1188624`, `72e0dea` — all visible in `git log`
+- Commits: `88965a59`, `5913542e`, `21e47000` — all visible in `git log`
 - Full test suite: 1002 tests passing, 0 failures (verified by `npx vitest run --reporter=dot`)
 
 ---

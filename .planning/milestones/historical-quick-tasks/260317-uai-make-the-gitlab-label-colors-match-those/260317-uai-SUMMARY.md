@@ -56,8 +56,8 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Add GitLabLabel type and fetch label details from API** - `2de4e11` (feat)
-2. **Task 2: Render GitLab labels with actual colors in MR detail page** - `3416a23` (feat)
+1. **Task 1: Add GitLabLabel type and fetch label details from API** - `15878a3e` (feat)
+2. **Task 2: Render GitLab labels with actual colors in MR detail page** - `3bd168f6` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/gitlab.ts` - Added GitLabLabel interface, changed labels type, added include_labels_details param

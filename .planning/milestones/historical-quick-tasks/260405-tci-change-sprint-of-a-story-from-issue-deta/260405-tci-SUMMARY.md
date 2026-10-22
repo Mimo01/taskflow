@@ -61,8 +61,8 @@ completed: 2026-04-05
 
 ## Task Commits
 
-1. **Task 1: Sprint picker + ConfirmSprintMoveDialog** - `e7ab0fe` (feat)
-2. **Task 2: Backlog confirmation wiring** - `635e22e` (feat)
+1. **Task 1: Sprint picker + ConfirmSprintMoveDialog** - `5c178177` (feat)
+2. **Task 2: Backlog confirmation wiring** - `2747b7bc` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/ui/confirm-sprint-move-dialog.tsx` - Reusable confirmation dialog with issueKey, from/to sprint names, cancel/confirm buttons

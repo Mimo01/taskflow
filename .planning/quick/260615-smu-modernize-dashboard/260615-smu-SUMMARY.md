@@ -73,9 +73,9 @@ completed: 2026-06-15
 
 Each task was committed atomically:
 
-1. **Task 1: Modernize ChartWrapper container + add bare variant** - `537d048a` (feat)
-2. **Task 2: Adopt Card for StatTile, SprintHealthSection, ActivityStrip, DashboardReleaseCard** - `cf2611b3` (feat)
-3. **Task 3: Replace hero header, consolidate page shell, update SVG test** - `ee768fd9` (feat)
+1. **Task 1: Modernize ChartWrapper container + add bare variant** - `a5a4eb52` (feat)
+2. **Task 2: Adopt Card for StatTile, SprintHealthSection, ActivityStrip, DashboardReleaseCard** - `ae4d6e6e` (feat)
+3. **Task 3: Replace hero header, consolidate page shell, update SVG test** - `1898834b` (feat)
 
 **Plan metadata:** handled by orchestrator (docs commit)
 
@@ -97,7 +97,7 @@ Each task was committed atomically:
 None - plan executed exactly as written. All three tasks implemented per the locked CONTEXT.md decisions and the per-task action specs; no auto-fixes, no architectural changes, no behavior or interaction changes.
 
 ## Issues Encountered
-- **Worktree base drift:** the worktree HEAD was created at an older commit (`c4e6d754`) than the expected base (`22179057`), so the target files were initially absent. `c4e6d754` is an ancestor of the base, so a forward `git reset --hard` to `22179057` (per the branch-check Step 2 intent) restored the correct tree. Resolved cleanly.
+- **Worktree base drift:** the worktree HEAD was created at an older commit (`df8ffd36`) than the expected base (`3a5018e9`), so the target files were initially absent. `df8ffd36` is an ancestor of the base, so a forward `git reset --hard` to `3a5018e9` (per the branch-check Step 2 intent) restored the correct tree. Resolved cleanly.
 - **Missing worktree deps:** `taskflow/node_modules` did not exist in the worktree, breaking vitest config load. Symlinked the worktree's `taskflow/node_modules` to the main checkout's installed deps (node_modules is gitignored, so no tracked change). Tests then ran normally.
 
 ## Known Stubs
@@ -117,7 +117,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 7 modified source/test files exist and all 3 task commits (`537d048a`, `cf2611b3`, `ee768fd9`) are present in git history.
+All 7 modified source/test files exist and all 3 task commits (`a5a4eb52`, `ae4d6e6e`, `1898834b`) are present in git history.
 
 ---
 *Phase: 260615-smu-modernize-dashboard*

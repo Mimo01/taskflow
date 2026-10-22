@@ -118,5 +118,5 @@ Files created/modified:
 - FOUND: taskflow/src/routes/dashboard/index.tsx
 
 Commits:
-- FOUND: 2200d485 (Task 1 — BurndownChart.tsx)
-- FOUND: b7309848 (Task 2 — index.tsx Sprint Insights wiring)
+- FOUND: facd5f15 (Task 1 — BurndownChart.tsx)
+- FOUND: 0588cae8 (Task 2 — index.tsx Sprint Insights wiring)

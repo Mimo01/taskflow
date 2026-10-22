@@ -67,8 +67,8 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: ChangelogEntry, TimelineFilterChips, and ActivityTimeline components** - `82d7d13` (feat)
-2. **Task 2: WatcherToggle sidebar widget** - `c02223e` (feat)
+1. **Task 1: ChangelogEntry, TimelineFilterChips, and ActivityTimeline components** - `d0ff6b21` (feat)
+2. **Task 2: WatcherToggle sidebar widget** - `6d158e03` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/issue-detail/ActivityTimeline.tsx` - Main timeline component replacing CommentThread
@@ -95,7 +95,7 @@ Each task was committed atomically:
 - **Fix:** Added &expand=changelog to the URL in jira/issues.ts
 - **Files modified:** taskflow/src/services/jira/issues.ts
 - **Verification:** Test suite passes (643 tests)
-- **Committed in:** 82d7d13
+- **Committed in:** d0ff6b21
 
 **2. [Rule 3 - Blocking] Added changelog field to JiraIssueDetail in jira/types.ts**
 - **Found during:** Task 1
@@ -103,7 +103,7 @@ Each task was committed atomically:
 - **Fix:** Added changelog?: { histories: [...] } to the type
 - **Files modified:** taskflow/src/services/jira/types.ts
 - **Verification:** Test suite passes
-- **Committed in:** 82d7d13
+- **Committed in:** d0ff6b21
 
 ---
 

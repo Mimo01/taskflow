@@ -57,8 +57,8 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Add global LazyStore mock to setup.ts and npm test script** - `3ee8d79` (feat)
-2. **Task 2: Remove unused _sprintIdsWithIssues variable from jira.ts** - `fbdc2e9` (fix)
+1. **Task 1: Add global LazyStore mock to setup.ts and npm test script** - `815f879a` (feat)
+2. **Task 2: Remove unused _sprintIdsWithIssues variable from jira.ts** - `da434377` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/test/setup.ts` - Added global LazyStore mock with in-memory Map implementation

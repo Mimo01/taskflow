@@ -51,8 +51,8 @@ Fully removed the MR Attention feature from the codebase. The feature had a side
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Remove MR Attention sidebar entry, route, and breadcrumb | 5083a59 | sidebar-items.ts, routes.tsx, main.tsx, Settings.test.tsx |
-| 2 | Remove MrAttentionWidget and delete component files | 93bc36d | registry.ts, MyTasksTab.tsx, MrHealthPanel.tsx + 4 deleted |
+| 1 | Remove MR Attention sidebar entry, route, and breadcrumb | 2f0ec6f5 | sidebar-items.ts, routes.tsx, main.tsx, Settings.test.tsx |
+| 2 | Remove MrAttentionWidget and delete component files | fb364ad7 | registry.ts, MyTasksTab.tsx, MrHealthPanel.tsx + 4 deleted |
 
 ## Changes Made
 
@@ -85,6 +85,6 @@ None.
 
 ## Self-Check: PASSED
 
-- Commits 5083a59 and 93bc36d exist in git log
+- Commits 2f0ec6f5 and fb364ad7 exist in git log
 - All 4 MrAttention files confirmed deleted
 - No remaining MrAttention references in source

@@ -5,9 +5,9 @@ status: complete
 started: "2026-05-21T06:55:00Z"
 completed: "2026-05-21T09:02:00Z"
 commits:
-  - b2e9bd5e
-  - 3c1b6527
-  - 614cdcd2
+  - 4485c703
+  - 32ea8ad4
+  - 737e64a1
 self_check: PASSED
 ---
 
@@ -30,9 +30,9 @@ Fixed the breadcrumb regression in `DashboardInProgressCard`: subtask row clicks
 
 ## Commits
 
-1. `b2e9bd5e` feat(60-05): add onIssueClick prop to DashboardInProgressCard, remove useNavigate
-2. `3c1b6527` feat(60-05): thread onIssueClick from useOutletContext through dashboard/index.tsx
-3. `614cdcd2` test(60-05): update DashboardInProgressCard tests — replace navigate mock with onIssueClick spy
+1. `4485c703` feat(60-05): add onIssueClick prop to DashboardInProgressCard, remove useNavigate
+2. `32ea8ad4` feat(60-05): thread onIssueClick from useOutletContext through dashboard/index.tsx
+3. `737e64a1` test(60-05): update DashboardInProgressCard tests — replace navigate mock with onIssueClick spy
 
 ## Verification
 

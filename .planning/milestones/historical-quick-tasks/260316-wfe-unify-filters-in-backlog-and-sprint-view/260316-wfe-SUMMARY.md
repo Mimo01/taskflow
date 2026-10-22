@@ -55,8 +55,8 @@ completed: 2026-03-16
 
 ## Task Commits
 
-1. **Task 1: Create shared filter store, UnifiedFilterBar component, and quickfilter persistence** - `f6aeab6` (feat)
-2. **Task 2: Wire UnifiedFilterBar into BacklogPage and SprintBoardTab, add labels to sprint fetch** - `67eb23b` (feat)
+1. **Task 1: Create shared filter store, UnifiedFilterBar component, and quickfilter persistence** - `4ef0b575` (feat)
+2. **Task 2: Wire UnifiedFilterBar into BacklogPage and SprintBoardTab, add labels to sprint fetch** - `b355f6a6` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/filter.store.ts` - Shared filter state store (activeEpics, activeLabels, activeAssignees, toggle/clear/apply)

@@ -35,13 +35,13 @@ Added `sortedProjects` derived via `useMemo` in `IntegrationsSection.tsx` — a 
 
 | Task | Type | Commit | Description |
 |------|------|--------|-------------|
-| Task 1 (RED) | test | a71a8b2 | add failing alphabetical-sort assertions for AIO project picker |
-| Task 1 (GREEN) | feat | c59176c | sort AIO project options alphabetically by name in Settings |
+| Task 1 (RED) | test | 05bdac4a | add failing alphabetical-sort assertions for AIO project picker |
+| Task 1 (GREEN) | feat | 031ee8e3 | sort AIO project options alphabetically by name in Settings |
 
 ## TDD Gate Compliance
 
-- RED gate: `test(quick-260514-qr8-01)` commit a71a8b2 — 2 new tests failing (alphabetical order assertion + case-insensitive test)
-- GREEN gate: `feat(quick-260514-qr8-01)` commit c59176c — all 14 tests passing
+- RED gate: `test(quick-260514-qr8-01)` commit 05bdac4a — 2 new tests failing (alphabetical order assertion + case-insensitive test)
+- GREEN gate: `feat(quick-260514-qr8-01)` commit 031ee8e3 — all 14 tests passing
 
 ## Test Results
 
@@ -84,8 +84,8 @@ None — UI-only render-order change with no new network surface.
 
 - [x] `taskflow/src/routes/settings/IntegrationsSection.tsx` — exists and modified
 - [x] `taskflow/src/routes/settings/IntegrationsSection.test.tsx` — exists and modified
-- [x] commit a71a8b2 — RED gate confirmed
-- [x] commit c59176c — GREEN gate confirmed
+- [x] commit 05bdac4a — RED gate confirmed
+- [x] commit 031ee8e3 — GREEN gate confirmed
 - [x] 14/14 tests passing
 
 ## Self-Check: PASSED

@@ -82,7 +82,7 @@ No anti-patterns detected in the modified files.
 | `taskflow/src/routes/dashboard/ReleasesTab.test.tsx` | Mock uses `fetchProjectMilestones` (not `fetchGroupMilestones`); auth store mock uses `activeGitlabProject: 42` | VERIFIED |
 | `taskflow/src/routes/settings/Settings.test.tsx` | Mock uses `listGitLabProjects` returning `GitLabProject` shape; `mockAuthStore` has `activeGitlabProject: 1`, `activeGitlabProjectPath`, `setActiveGitlabProject` | VERIFIED |
 
-Summary from SUMMARY.md: 186 tests pass; 1 pre-existing failure in `MyTasksTab.test.tsx` (unrelated). All three task commits verified in git: `c745a6b`, `6ee7a8c`, `6e2fb62`.
+Summary from SUMMARY.md: 186 tests pass; 1 pre-existing failure in `MyTasksTab.test.tsx` (unrelated). All three task commits verified in git: `a7f1327c`, `568fe21b`, `39fb9563`.
 
 ---
 

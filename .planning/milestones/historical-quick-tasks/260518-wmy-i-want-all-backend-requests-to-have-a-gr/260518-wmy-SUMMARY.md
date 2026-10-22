@@ -45,9 +45,9 @@ Every `apiFetch` and `aioFetch` call site in `taskflow/src/` now passes a meanin
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add required `operation` param to `aioFetch`; label all AIO call sites | `43da923d` | client.ts, client.test.ts, projects.ts, cycles.ts, issue-runs.ts, issue-steps.ts |
-| 2 | Label all previously-unlabelled `apiFetch` calls in jira.ts, jira/\*, CustomJqlWidget | `4b1b1df6` | jira.ts (~30 calls), attachments.ts, users.ts, worklogs.ts, CustomJqlWidget.tsx |
-| 3 | Audit existing labels — correct inconsistent ones | `4110b563` | transitions.ts, notifications.ts, projects.ts |
+| 1 | Add required `operation` param to `aioFetch`; label all AIO call sites | `e772f92a` | client.ts, client.test.ts, projects.ts, cycles.ts, issue-runs.ts, issue-steps.ts |
+| 2 | Label all previously-unlabelled `apiFetch` calls in jira.ts, jira/\*, CustomJqlWidget | `84f4d679` | jira.ts (~30 calls), attachments.ts, users.ts, worklogs.ts, CustomJqlWidget.tsx |
+| 3 | Audit existing labels — correct inconsistent ones | `706414c7` | transitions.ts, notifications.ts, projects.ts |
 
 ## Changes Made
 
@@ -110,14 +110,14 @@ Labels applied to ~30 previously-unlabelled calls:
 - **Issue:** `replace_all` edit only matched one pattern variant; two calls on lines 174 and 254 still had bare 3-arg `aioFetch(baseUrl, token, path)` causing TS errors
 - **Fix:** Targeted edits for each remaining call site
 - **Files modified:** `taskflow/src/services/aio/issue-steps.ts`
-- **Commit:** `43da923d`
+- **Commit:** `e772f92a`
 
 **2. [Rule 2 - Deviation] fetchFixVersions labeled 'Load Releases' not 'Load Issue Detail'**
 - **Found during:** Task 2
 - **Issue:** Plan's line-number mapping suggested `'Load Issue Detail'` for `fetchFixVersions`, but it fetches fix versions/releases — semantically identical to `jira/versions.ts` which uses `'Load Releases'`
 - **Fix:** Used `'Load Releases'` to match the existing convention and produce a meaningful group name
 - **Files modified:** `taskflow/src/services/jira.ts`
-- **Commit:** `4b1b1df6`
+- **Commit:** `84f4d679`
 
 ## Label Audit Decisions
 
@@ -144,9 +144,9 @@ None — this plan only changes string literals passed as instrumentation metada
 
 ## Self-Check
 
-- [x] Task 1 commit `43da923d` — verified via git log
-- [x] Task 2 commit `4b1b1df6` — verified via git log
-- [x] Task 3 commit `4110b563` — verified via git log
+- [x] Task 1 commit `e772f92a` — verified via git log
+- [x] Task 2 commit `84f4d679` — verified via git log
+- [x] Task 3 commit `706414c7` — verified via git log
 - [x] All 14 modified files exist on disk
 
 ## Self-Check: PASSED

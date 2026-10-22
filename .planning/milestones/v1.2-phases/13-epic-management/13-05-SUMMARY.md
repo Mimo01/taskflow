@@ -58,7 +58,7 @@ completed: 2026-03-14
 
 ## Task Commits
 
-1. **Task 1: Full test suite gate** - `57fad7d` (docs: checkpoint — test gate passed, awaiting human verification)
+1. **Task 1: Full test suite gate** - `f1c81d17` (docs: checkpoint — test gate passed, awaiting human verification)
 2. **Task 2: Human verification** - approved (no code changes; checkpoint resume)
 
 **Plan metadata:** (docs commit — this SUMMARY + state updates)
@@ -93,7 +93,7 @@ None — no external service configuration required.
 ## Self-Check: PASSED
 
 - SUMMARY.md created at `.planning/phases/13-epic-management/13-05-SUMMARY.md`
-- Task 1 commit `57fad7d` confirmed in git log
+- Task 1 commit `f1c81d17` confirmed in git log
 - Task 2 human verification approved by user
 
 ---

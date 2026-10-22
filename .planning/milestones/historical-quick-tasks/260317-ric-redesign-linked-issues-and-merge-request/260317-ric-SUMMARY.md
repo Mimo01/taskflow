@@ -57,7 +57,7 @@ completed: 2026-03-17
 
 Both tasks committed atomically (single file):
 
-1. **Task 1+2: Redesign linked issues + MR sections** - `cbb797e` (feat)
+1. **Task 1+2: Redesign linked issues + MR sections** - `059990bc` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/IssueDetailSidebar.tsx` - Redesigned linked issues (grouped compact cards) and MR sections (rich compact cards with metadata)

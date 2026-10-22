@@ -23,7 +23,7 @@ metrics:
 React-free `global-search.ts` implementing the sprint-tier index (Current > next > later sprints > Backlog > Closed), body-hit field classification, parent/subtask grouping with dimmed context parents, per-tier and total caps, key lookup and secondary filtering, covered by 29 unit tests.
 
 ## Commits
-- 84c07e84: feat(92-04): both tasks in one commit (pre-commit hook runs the full suite, so RED/GREEN and the two tasks were combined).
+- 2b45011a: feat(92-04): both tasks in one commit (pre-commit hook runs the full suite, so RED/GREEN and the two tasks were combined).
 
 ## Deviations from Plan
 - Worktree base was behind main; reset to main per the startup check. Ran `npm ci` for node_modules.

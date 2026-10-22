@@ -67,8 +67,8 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Wire SaveFilterDialog into UnifiedFilterBar and fix attachment delete prop** - `42162b8` (feat)
-2. **Task 2: Wire SavedFilterList into Sidebar and add Saved Filters to CommandPalette** - `817722f` (feat)
+1. **Task 1: Wire SaveFilterDialog into UnifiedFilterBar and fix attachment delete prop** - `c4e825b0` (feat)
+2. **Task 2: Wire SavedFilterList into Sidebar and add Saved Filters to CommandPalette** - `e4222234` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/UnifiedFilterBar.tsx` - Added "Save Filter" button, SaveFilterDialog integration, JQL builder

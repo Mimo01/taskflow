@@ -72,8 +72,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Add openCreateStory to AppLayout Outlet context in main.tsx** - `abc0fac` (feat)
-2. **Task 2: Wire bulk action bar and Create Story in BacklogPage.tsx** - `1f70953` (feat)
+1. **Task 1: Add openCreateStory to AppLayout Outlet context in main.tsx** - `0571dbf9` (feat)
+2. **Task 2: Wire bulk action bar and Create Story in BacklogPage.tsx** - `85f54b43` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/main.tsx` - Added handleOpenCreateStory, wasStoryCreate ref, handleCreateModalClose, extended Outlet context
@@ -95,7 +95,7 @@ Each task was committed atomically:
 - **Fix:** Changed `useOutletContext: () => (...)` to `useOutletContext: vi.fn(() => (...))`
 - **Files modified:** taskflow/src/routes/dashboard/BacklogPage.test.tsx
 - **Verification:** BACK-03 and BACK-05 now pass; all 13 tests GREEN
-- **Committed in:** 1f70953 (Task 2 commit)
+- **Committed in:** 85f54b43 (Task 2 commit)
 
 **2. [Rule 1 - Bug] Changed button text from "Move N issues to active sprint" to "Move to sprint"**
 - **Found during:** Task 2 (test run analysis)
@@ -103,7 +103,7 @@ Each task was committed atomically:
 - **Fix:** Simplified button text to "Move to sprint" — the count is already shown in the "N issues selected" span
 - **Files modified:** taskflow/src/routes/dashboard/BacklogPage.tsx
 - **Verification:** All BACK-02 tests find the button; 13/13 tests GREEN
-- **Committed in:** 1f70953 (Task 2 commit)
+- **Committed in:** 85f54b43 (Task 2 commit)
 
 ---
 

@@ -57,8 +57,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add failing tests for case-insensitive and space-tolerant matching** - `fe9ad5f` (test)
-2. **Task 2: Make extractTicketKeys case-insensitive with uppercase normalization** - `3614f9e` (feat)
+1. **Task 1: Add failing tests for case-insensitive and space-tolerant matching** - `99313385` (test)
+2. **Task 2: Make extractTicketKeys case-insensitive with uppercase normalization** - `20594fe4` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/linkEngine.ts` - Added case-insensitive TICKET_KEY_RE, new TICKET_KEY_SPACE_RE, position-sorted deduplication
@@ -79,7 +79,7 @@ Each task was committed atomically:
 - **Fix:** Added position tracking via match.index and sort before deduplication
 - **Files modified:** taskflow/src/services/linkEngine.ts
 - **Verification:** All 30 tests pass
-- **Committed in:** 3614f9e (Task 2 commit)
+- **Committed in:** 20594fe4 (Task 2 commit)
 
 ---
 

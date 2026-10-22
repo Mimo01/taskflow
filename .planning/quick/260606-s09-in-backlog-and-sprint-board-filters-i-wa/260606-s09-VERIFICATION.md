@@ -71,7 +71,7 @@ No gaps. The goal is fully achieved:
 - The sentinel is pinned to the top of the option list and shown only when ≥1 visible issue is unassigned.
 - Both views delegate to a single `matchesAssigneeFilter` predicate (behaviorally identical, OR semantics) and a single `buildAssigneeOptions` builder.
 - The dropdown list, search, and active chip render the human label "Unassigned" via `displayMap`/chip remap.
-- A post-review hardening commit (a0c22947) added a collision guard so a real displayName equal to the sentinel is never offered as a named option (covered by test line 82-87).
+- A post-review hardening commit (0102d226) added a collision guard so a real displayName equal to the sentinel is never offered as a named option (covered by test line 82-87).
 - `npm run check` (biome + tsc) is GREEN; 12/12 unit tests pass.
 
 ---

@@ -41,7 +41,7 @@ human_verification:
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `taskflow/src/routes/standup-notes/YesterdayColumn.tsx` | CompactEmptyNotice local component + flex-wrap notice container replacing per-source EmptyState blocks | ✓ VERIFIED | File exists. `CompactEmptyNotice` defined at line 360 as a private function component. Flex-wrap container at lines 555–586 wraps all four conditional `CompactEmptyNotice` renders. Commit 5acef435 confirmed in git log. |
+| `taskflow/src/routes/standup-notes/YesterdayColumn.tsx` | CompactEmptyNotice local component + flex-wrap notice container replacing per-source EmptyState blocks | ✓ VERIFIED | File exists. `CompactEmptyNotice` defined at line 360 as a private function component. Flex-wrap container at lines 555–586 wraps all four conditional `CompactEmptyNotice` renders. Commit d40d6016 confirmed in git log. |
 
 ### Key Link Verification
 
@@ -58,7 +58,7 @@ Not applicable — this phase changes rendering only. The data sources (`tempoQu
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
 | TypeScript: no errors in YesterdayColumn | `npx tsc --noEmit 2>&1 \| grep -i YesterdayColumn` | "No TS errors in YesterdayColumn" | PASS |
-| Commit 5acef435 exists | `git log --oneline \| head -10` | `5acef435 feat(quick-260525-jrz-01): replace per-source EmptyState blocks with CompactEmptyNotice` | PASS |
+| Commit d40d6016 exists | `git log --oneline \| head -10` | `d40d6016 feat(quick-260525-jrz-01): replace per-source EmptyState blocks with CompactEmptyNotice` | PASS |
 
 ### Probe Execution
 

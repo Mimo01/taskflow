@@ -60,8 +60,8 @@ completed: 2026-03-12
 
 Each task was committed atomically (TDD pattern):
 
-1. **Task 1 RED: Add failing tests for fetchFixVersions** - `d7eaeb6` (test)
-2. **Task 1 GREEN: Fix fetchFixVersions to extract data.values** - `f99ce7c` (fix)
+1. **Task 1 RED: Add failing tests for fetchFixVersions** - `e499eae8` (test)
+2. **Task 1 GREEN: Fix fetchFixVersions to extract data.values** - `799b9467` (fix)
 
 _Note: TDD tasks have multiple commits (test → feat)_
 
@@ -94,4 +94,4 @@ None - no external service configuration required.
 - taskflow/src/services/jira.ts: FOUND
 - taskflow/src/services/jira.test.ts: FOUND
 - .planning/phases/04-pm-dashboard-search/04-04-SUMMARY.md: FOUND
-- Commits d7eaeb6 and f99ce7c: FOUND
+- Commits e499eae8 and 799b9467: FOUND

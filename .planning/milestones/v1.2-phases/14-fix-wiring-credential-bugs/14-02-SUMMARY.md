@@ -58,7 +58,7 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Fix cache invalidation key in main.tsx handleCreateModalClose** - `51e84b0` (fix)
+1. **Task 1: Fix cache invalidation key in main.tsx handleCreateModalClose** - `2693a158` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/main.tsx` - Changed invalidateQueries key from `['jira-backlog']` to `['jira-backlog-view']` (line 130)

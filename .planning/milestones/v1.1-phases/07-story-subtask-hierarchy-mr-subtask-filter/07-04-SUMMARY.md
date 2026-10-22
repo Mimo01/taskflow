@@ -57,7 +57,7 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Expand subtask toggle hit target in TaskCard** - `814b320` (feat)
+1. **Task 1: Expand subtask toggle hit target in TaskCard** - `24118fa6` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/TaskCard.tsx` - Subtask count+chevron row now uses a single button with p-1 padding

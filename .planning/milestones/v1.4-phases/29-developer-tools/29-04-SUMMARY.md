@@ -59,8 +59,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Update Tauri native menu item and event handler in lib.rs** - `34e72f7` (feat)
-2. **Task 2: Update frontend listener in main.tsx to navigate to /dev-tools** - `eae2d51` (feat)
+1. **Task 1: Update Tauri native menu item and event handler in lib.rs** - `f5c73eb2` (feat)
+2. **Task 2: Update frontend listener in main.tsx to navigate to /dev-tools** - `9a0d4f08` (feat)
 
 ## Files Created/Modified
 - `taskflow/src-tauri/src/lib.rs` - Updated menu item label, ID, submenu name, and match arm

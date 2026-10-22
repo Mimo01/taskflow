@@ -59,8 +59,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Add Create issue action to CommandPalette and wire from AppLayout** - `7bb1bd0` (feat)
-2. **Task 2: Add test coverage for Create issue action** - `ecea5d8` (test)
+1. **Task 1: Add Create issue action to CommandPalette and wire from AppLayout** - `4c42f899` (feat)
+2. **Task 2: Add test coverage for Create issue action** - `439ac9f5` (test)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/CommandPalette.tsx` - Added onOpenCreate prop, handleCreateIssue handler, Create issue CommandItem in Actions group

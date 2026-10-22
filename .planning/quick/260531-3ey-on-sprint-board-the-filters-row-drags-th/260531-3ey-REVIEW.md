@@ -22,7 +22,7 @@ status: issues_found
 
 ## Summary
 
-Reviewed the two commits (`e5ad4e5d`, `dc9fbbd8`) that wrap the Sprint Board filter
+Reviewed the two commits (`736b1bfd`, `f426f7e0`) that wrap the Sprint Board filter
 rows in a horizontal scroll region (`flex-1 min-w-0 overflow-x-auto no-scrollbar`
 with `flex-nowrap` chips) and pin the right-side action buttons in a `shrink-0`
 group.

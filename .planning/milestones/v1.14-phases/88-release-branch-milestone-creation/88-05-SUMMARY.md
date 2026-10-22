@@ -70,8 +70,8 @@ completed: 2026-08-10
 
 Each auto task was committed atomically:
 
-1. **Task 88-05-T1: CreateBranchDialog presentational component + test** - `f3f1f3d2` (feat)
-2. **Task 88-05-T2: createBranch mutation in useReleaseDetail + sidebar Create action wiring** - `d473a159` (feat)
+1. **Task 88-05-T1: CreateBranchDialog presentational component + test** - `e57c6e38` (feat)
+2. **Task 88-05-T2: createBranch mutation in useReleaseDetail + sidebar Create action wiring** - `b03ca427` (feat)
 
 Task 88-05-T3 (checkpoint) has no commit — see "Checkpoint Waived" below.
 
@@ -97,7 +97,7 @@ Task 88-05-T3 (checkpoint) has no commit — see "Checkpoint Waived" below.
 - **Fix:** `npx biome check --write` scoped to the two new files
 - **Files modified:** `CreateBranchDialog.tsx`
 - **Verification:** Re-ran the 4-test file, still green; `biome check` on the two files clean
-- **Committed in:** `f3f1f3d2`
+- **Committed in:** `e57c6e38`
 
 **2. [Rule 1 - Bug] Restructured the sidebar's Create-button rendering to satisfy conflicting acceptance-criteria greps**
 - **Found during:** Task 2 verification
@@ -105,7 +105,7 @@ Task 88-05-T3 (checkpoint) has no commit — see "Checkpoint Waived" below.
 - **Fix:** Extracted the shared `BranchCreateButton` subcomponent (see Decisions Made above)
 - **Files modified:** `ReleaseDetailSidebar.tsx`
 - **Verification:** All 8 of Task 2's acceptance-criteria greps individually confirmed to return their exact expected values
-- **Committed in:** `d473a159`
+- **Committed in:** `b03ca427`
 
 **3. [Rule 1 - Bug] Reworded two comments that tripped false-positive acceptance-criteria greps**
 - **Found during:** Task 2 verification
@@ -113,7 +113,7 @@ Task 88-05-T3 (checkpoint) has no commit — see "Checkpoint Waived" below.
 - **Fix:** Reworded both comments to convey the same meaning without the flagged substrings
 - **Files modified:** `useReleaseDetail.ts`
 - **Verification:** Both greps confirmed to return `0`
-- **Committed in:** `d473a159`
+- **Committed in:** `b03ca427`
 
 ---
 
@@ -138,7 +138,7 @@ The coordinator relayed the user's verbatim response: *"I do not have any releas
 
 ## Issues Encountered
 - Worktree had no `node_modules`; symlinked `taskflow/node_modules` to the main checkout's install (same workaround as Plans 88-01/88-02/88-03). Not committed (gitignored).
-- Worktree branch initially pointed at a newer `main` commit (`ca59303f`, version bump) rather than the expected `88-04` base (`d9764406`); the mandatory pre-flight base-drift check caught this and `git reset --hard` corrected it before any file was touched (working tree was clean, so this was safe).
+- Worktree branch initially pointed at a newer `main` commit (`2f87c86d`, version bump) rather than the expected `88-04` base (`f8045670`); the mandatory pre-flight base-drift check caught this and `git reset --hard` corrected it before any file was touched (working tree was clean, so this was safe).
 
 ## User Setup Required
 
@@ -154,4 +154,4 @@ None for the code itself. **Live-GitLab verification of this plan's write path r
 
 ## Self-Check: PASSED
 
-All 6 files verified present on disk (2 new + 4 modified); both commit hashes (`f3f1f3d2`, `d473a159`) verified present in `git log`. `npx tsc --noEmit` clean. Full suite: 2177 passed / 2 skipped / 0 failed. `biome check` at the documented 2-error baseline (no new errors).
+All 6 files verified present on disk (2 new + 4 modified); both commit hashes (`e57c6e38`, `b03ca427`) verified present in `git log`. `npx tsc --noEmit` clean. Full suite: 2177 passed / 2 skipped / 0 failed. `biome check` at the documented 2-error baseline (no new errors).

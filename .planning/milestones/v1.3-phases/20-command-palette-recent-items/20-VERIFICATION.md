@@ -7,8 +7,8 @@ re_verification:
   previous_status: human_needed
   previous_score: 10/10
   gaps_closed:
-    - "Navigation items (Sprint Board, Backlog, Notifications, Settings) appear in search results when query >= 2 chars — fixed by Plan 06 commit 3d299a9"
-    - "Recently opened issue shows its title in the Recent Items popover — fixed by Plan 06 commit 3d299a9"
+    - "Navigation items (Sprint Board, Backlog, Notifications, Settings) appear in search results when query >= 2 chars — fixed by Plan 06 commit c8fabcf8"
+    - "Recently opened issue shows its title in the Recent Items popover — fixed by Plan 06 commit c8fabcf8"
   gaps_remaining: []
   regressions: []
 human_verification:
@@ -50,7 +50,7 @@ Previous status was `human_needed` (10/10 automated truths). UAT testing reveale
 | #3 | Navigation items (Settings, Sprint Board, etc.) not appearing in search results | Major | Plan 06 — moved Navigation/Actions groups outside the `isDefaultState` ternary; cmdk now keeps stable DOM refs across the 2-char threshold |
 | #8 | Recent item appears in popover but title is missing | Major | Plan 06 — `handleIssueClick` in main.tsx now resolves title from react-query cache before calling `pushRecentItem` |
 
-Both gaps were fixed in commit `3d299a9` (Plan 06). A regression test for gap #3 was added in commit `99258d6`. All 28 Phase 20 tests pass.
+Both gaps were fixed in commit `c8fabcf8` (Plan 06). A regression test for gap #3 was added in commit `8a072b94`. All 28 Phase 20 tests pass.
 
 ---
 
@@ -198,7 +198,7 @@ No TODO/FIXME/placeholder comments in Phase 20 files. No stub implementations. N
 
 No code gaps remain.
 
-Two UAT gaps found during real app testing (navigation items hidden in search, recent item title missing) were diagnosed and closed by Plan 06 (commits `3d299a9` and `99258d6`). The fixes are verified in the codebase:
+Two UAT gaps found during real app testing (navigation items hidden in search, recent item title missing) were diagnosed and closed by Plan 06 (commits `c8fabcf8` and `8a072b94`). The fixes are verified in the codebase:
 
 - `CommandPalette.tsx`: Navigation and Actions groups rendered unconditionally outside the `isDefaultState` ternary — exactly one `heading="Navigation"` at line 303, one `heading="Actions"` at line 331
 - `main.tsx`: `handleIssueClick` resolves title via `queryClient.getQueriesData(['jira-issues'])` prefix scan before calling `pushRecentItem`
@@ -209,4 +209,4 @@ All 28 tests pass. The remaining open items are human verification tests that re
 
 _Verified: 2026-03-16T11:00:00Z_
 _Verifier: Claude (gsd-verifier)_
-_Re-verification: Yes — after UAT gap closure (Plan 06, commits 3d299a9 and 99258d6)_
+_Re-verification: Yes — after UAT gap closure (Plan 06, commits c8fabcf8 and 8a072b94)_

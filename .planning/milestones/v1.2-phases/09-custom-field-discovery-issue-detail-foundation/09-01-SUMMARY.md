@@ -73,8 +73,8 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Install packages and shadcn Sheet** - `9db5f1b` (chore)
-2. **Task 2: Create Wave 0 test scaffolds** - `24c384c` (test)
+1. **Task 1: Install packages and shadcn Sheet** - `329cdd6e` (chore)
+2. **Task 2: Create Wave 0 test scaffolds** - `6818704c` (test)
 
 **Plan metadata:** (docs commit below)
 
@@ -100,7 +100,7 @@ Each task was committed atomically:
 - **Fix:** Removed `discoverStoryPointsField` from the static import (tests using it via dynamic `await import('./jira')` were already updated in 09-02)
 - **Files modified:** taskflow/src/services/jira.test.ts
 - **Verification:** `npx vitest run src/services/jira.test.ts` passes 54 tests
-- **Committed in:** 24c384c (Task 2 commit)
+- **Committed in:** 6818704c (Task 2 commit)
 
 **2. [Context] Plans 09-02 and 09-03 ran before 09-01**
 - WikiRenderer.test.tsx: plan called for it.todo stubs, but real implementations already committed by 09-03
@@ -126,8 +126,8 @@ Each task was committed atomically:
 - [x] `taskflow/node_modules/remark-gfm` exists
 - [x] `taskflow/node_modules/@tailwindcss/typography` exists
 - [x] `@plugin "@tailwindcss/typography"` present in index.css
-- [x] Task 1 commit: 9db5f1b
-- [x] Task 2 commit: 24c384c
+- [x] Task 1 commit: 329cdd6e
+- [x] Task 2 commit: 6818704c
 - [x] vitest suite runs: 22 passed, 3 failed (pre-existing failures in unrelated files), 22 todo
 
 ## Next Phase Readiness

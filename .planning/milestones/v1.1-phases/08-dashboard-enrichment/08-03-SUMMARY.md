@@ -91,8 +91,8 @@ Added because Plan 02 (which adds this function) had not yet been executed, bloc
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| Task 1 | bcd5824 | feat(08-03): implement MrHealthPanel (DASH-02) |
-| Task 2 | 74f6bc8 | feat(08-03): implement SprintHealthPanel (DASH-03) and add fetchActiveSprint |
+| Task 1 | 2602f7b4 | feat(08-03): implement MrHealthPanel (DASH-02) |
+| Task 2 | 87cbba73 | feat(08-03): implement SprintHealthPanel (DASH-03) and add fetchActiveSprint |
 
 ## Deviations from Plan
 
@@ -103,7 +103,7 @@ Added because Plan 02 (which adds this function) had not yet been executed, bloc
 - **Issue:** Plan 02 (which was supposed to add `fetchActiveSprint` to `jira.ts`) had not been executed. SprintHealthPanel requires this export to compile and function.
 - **Fix:** Added `JiraActiveSprint` interface and `fetchActiveSprint` function to the bottom of `jira.ts` following the exact pattern specified in the Plan 02 and RESEARCH.md.
 - **Files modified:** `taskflow/src/services/jira.ts`
-- **Commit:** 74f6bc8
+- **Commit:** 87cbba73
 
 **2. [Rule 2 - Test quality] Converted it.todo() stubs to real test implementations**
 - **Found during:** Both tasks
@@ -115,7 +115,7 @@ Added because Plan 02 (which adds this function) had not yet been executed, bloc
 - [x] taskflow/src/routes/dashboard/MrHealthPanel.tsx exists
 - [x] taskflow/src/routes/dashboard/SprintHealthPanel.tsx exists
 - [x] fetchActiveSprint and JiraActiveSprint exported from taskflow/src/services/jira.ts
-- [x] Commits bcd5824 and 74f6bc8 exist
+- [x] Commits 2602f7b4 and 87cbba73 exist
 - [x] `npx vitest run src/routes/dashboard/MrHealthPanel.test.tsx` — 2/2 GREEN
 - [x] `npx vitest run src/routes/dashboard/SprintHealthPanel.test.tsx` — 6/6 GREEN
 - [x] No new TypeScript errors introduced by this plan's files

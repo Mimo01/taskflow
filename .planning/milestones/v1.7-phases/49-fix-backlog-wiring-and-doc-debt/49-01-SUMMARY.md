@@ -69,8 +69,8 @@ completed: 2026-04-04
 
 ## Task Commits
 
-1. **Task 1: Fix Sidebar prefetch and mutation invalidation sites** - `37703a3` (fix)
-2. **Task 2: Migrate BacklogRow avatar to CachedAvatar** - `46a1a04` (fix)
+1. **Task 1: Fix Sidebar prefetch and mutation invalidation sites** - `f9d9545f` (fix)
+2. **Task 2: Migrate BacklogRow avatar to CachedAvatar** - `0d202c6f` (fix)
 
 ## Files Created/Modified
 

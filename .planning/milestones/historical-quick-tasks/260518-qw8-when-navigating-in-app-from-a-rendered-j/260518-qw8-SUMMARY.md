@@ -30,5 +30,5 @@ Same `deriveSourceCrumb` + `push` wiring added to `useGitLabLinkComponents` anch
 
 | Hash | Description |
 |------|-------------|
-| 90071753 | feat: push source page breadcrumb on internal-link navigation |
-| 2505df37 | test: assert breadcrumb push fires on internal-link click |
+| 83f20a0f | feat: push source page breadcrumb on internal-link navigation |
+| b52a32f8 | test: assert breadcrumb push fires on internal-link click |

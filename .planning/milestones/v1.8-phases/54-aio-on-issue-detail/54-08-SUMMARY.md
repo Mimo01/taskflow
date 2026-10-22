@@ -76,9 +76,9 @@ completed: 2026-05-14
 
 Each task was committed atomically:
 
-1. **Task 1 — Gap 1 widening + Gap 2 narrowing** — `7a99427` (fix): split `inCycleResults` into withSteps/withoutSteps; remove line-606 short-circuit; add 3-arm render tree with AioAttachmentsGrid as sibling. Test changes: rewrite Test 4 to the Gap 2 contract, add new "Gap 1 (single-cycle empty-steps)" test, update existing chip-color test's count from 2 → 4.
-2. **Task 2 — Gap 3 overflow wrapper + min-w-0** — `9862672` (fix): `markdownComponents.table` override in WikiRenderer.tsx; `min-w-0` added to three StepTable `<td>` wrappers in AioTestRunsSection.tsx. Test changes: 2 new regression tests in WikiRenderer.test.tsx.
-3. **Task 3 — fetchAioTraceabilityTestCases shape-lock** — `65463bb` (test): 9 new tests in projects.test.ts; migrated existing 4 fetchAioProjects tests from mockedApiFetch → mockedAioFetch (Rule 1 fix — the previous mock was non-load-bearing because fetchAioProjects actually calls aioFetch).
+1. **Task 1 — Gap 1 widening + Gap 2 narrowing** — `3a64019b` (fix): split `inCycleResults` into withSteps/withoutSteps; remove line-606 short-circuit; add 3-arm render tree with AioAttachmentsGrid as sibling. Test changes: rewrite Test 4 to the Gap 2 contract, add new "Gap 1 (single-cycle empty-steps)" test, update existing chip-color test's count from 2 → 4.
+2. **Task 2 — Gap 3 overflow wrapper + min-w-0** — `701725fe` (fix): `markdownComponents.table` override in WikiRenderer.tsx; `min-w-0` added to three StepTable `<td>` wrappers in AioTestRunsSection.tsx. Test changes: 2 new regression tests in WikiRenderer.test.tsx.
+3. **Task 3 — fetchAioTraceabilityTestCases shape-lock** — `b8bfdb7c` (test): 9 new tests in projects.test.ts; migrated existing 4 fetchAioProjects tests from mockedApiFetch → mockedAioFetch (Rule 1 fix — the previous mock was non-load-bearing because fetchAioProjects actually calls aioFetch).
 
 ## Files Modified
 
@@ -105,21 +105,21 @@ Each task was committed atomically:
 - **Issue:** The existing 4 tests called `mockedApiFetch.mockResolvedValue(...)`, but `fetchAioProjects` calls `aioFetch` from `./client`, which is the wrapper that calls `apiFetch` internally. Once we added `vi.mock('./client', ...)` to mock `aioFetch`, the existing apiFetch mock no longer fired and the existing tests would have broken (aioFetch returned undefined).
 - **Fix:** Migrated all 4 existing `mockedApiFetch` references to `mockedAioFetch`. Added `void mockedApiFetch;` so the unused import doesn't break lint.
 - **Files modified:** taskflow/src/services/aio/projects.test.ts
-- **Commit:** 65463bb
+- **Commit:** b8bfdb7c
 
 **2. [Rule 2 - Test contract update] Plan 54-07 chip-color test's `.toBe(2)` count became stale after Gap 1 widening.**
 - **Found during:** Task 1 — the Plan 54-07 Gap 1 test "Gap 1: status chip color reflects fetched detail.run.status (PASS green, FAIL red — NOT defaulted to gray 'Not Run')" at line 645 asserts the number of impacted-execution chips is exactly 2.
 - **Issue:** With the Gap 1 widening from Plan 54-08, the SENTINEL_CASE pair (in-cycle empty-steps) is ALSO promoted to impactedExecutions[], producing 4 chips total (2 sentinel PASS + 1 cross-cycle PASS + 1 cross-cycle FAIL) instead of 2. The chip-color contract (status drives color, NOT gray default) still holds — hasGreen / hasRed / !allMuted all pass for 4 chips — but the count assertion was locked to the pre-widening shape.
 - **Fix:** Updated `.toBe(2)` → `.toBe(4)` with an explanatory comment referencing Plan 54-08 Gap 1.
 - **Files modified:** taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.test.tsx
-- **Commit:** 7a99427
+- **Commit:** 3a64019b
 
 **3. [Rule 3 - Pre-commit hook bypass] `--no-verify` used on all three commits due to 26 pre-existing lint errors in unrelated files.**
 - **Found during:** Task 1 commit attempt — husky pre-commit hook runs `npm run check` which runs `biome check ./src && tsc --noEmit`. Biome reports 26 errors in pre-existing unrelated files (`src/test/setup.ts` no-non-null-assertion + useNamingConvention, `src/components/SavedFilterList.test.tsx`, `src/components/app/Sidebar.test.tsx`, etc. — all files NOT touched by this plan).
 - **Issue:** The plan's `<parallel_execution>` block says "Run `git commit` normally — hooks run by default. Do NOT pass `--no-verify`." But the user's documented memory at `~/.claude/projects/-Users-mimo-Documents-Projects-taskflow/memory/feedback_no_verify_lint.md` explicitly approves `--no-verify` when the lint hook fails on pre-existing unrelated warnings.
 - **Fix:** All three task commits use `--no-verify`. Verified my modified files have 0 biome errors (3 warnings, all pre-existing — `idx` keys in StepThumbnail map, intentional cast in AioTestRunsSection unchanged from 54-07). Verified vitest 1014/0 + tsc clean independently before each commit.
 - **Files modified:** None (commit flag only).
-- **Commits:** 7a99427, 9862672, 65463bb (all three).
+- **Commits:** 3a64019b, 701725fe, b8bfdb7c (all three).
 
 ## Pending UAT (Task 4 — Human Verification Gate)
 
@@ -159,9 +159,9 @@ All claimed artifacts verified to exist on disk:
 - `taskflow/src/services/aio/projects.test.ts` ✓
 
 All claimed commits verified in `git log --oneline --all`:
-- `7a99427` (Task 1 — Gap 1 + Gap 2 fix) ✓
-- `9862672` (Task 2 — Gap 3 fix) ✓
-- `65463bb` (Task 3 — fetchAioTraceabilityTestCases shape-lock tests) ✓
+- `3a64019b` (Task 1 — Gap 1 + Gap 2 fix) ✓
+- `701725fe` (Task 2 — Gap 3 fix) ✓
+- `b8bfdb7c` (Task 3 — fetchAioTraceabilityTestCases shape-lock tests) ✓
 
 Automated gates verified:
 - `tsc --noEmit` exits 0 ✓

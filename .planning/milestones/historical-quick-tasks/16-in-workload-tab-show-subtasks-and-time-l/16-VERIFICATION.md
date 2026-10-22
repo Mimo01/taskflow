@@ -61,7 +61,7 @@ re_verification: false
 
 ### TypeScript Compilation
 
-`npx tsc --noEmit` errors in `SprintProgressTab.test.tsx` (timetracking null vs undefined type mismatch) and `SearchOverlay.test.tsx` (unused React import) are **pre-existing issues** — both files were last modified before commit `8e7a341` (the first quick-16 commit). No new TypeScript errors introduced by this task.
+`npx tsc --noEmit` errors in `SprintProgressTab.test.tsx` (timetracking null vs undefined type mismatch) and `SearchOverlay.test.tsx` (unused React import) are **pre-existing issues** — both files were last modified before commit `28e9a43b` (the first quick-16 commit). No new TypeScript errors introduced by this task.
 
 ---
 

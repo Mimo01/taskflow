@@ -78,8 +78,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1: Update SprintProgressTab tests (RED)** - `38711d2` (test)
-2. **Task 2: Rewrite SprintProgressTab implementation (GREEN)** - `5fd5076` (feat)
+1. **Task 1: Update SprintProgressTab tests (RED)** - `430b6e3a` (test)
+2. **Task 2: Rewrite SprintProgressTab implementation (GREEN)** - `6766fd15` (feat)
 
 **Plan metadata:** _(this commit)_ (docs: complete plan)
 
@@ -107,7 +107,7 @@ _Note: TDD tasks had RED → GREEN commits; no separate REFACTOR needed_
 - **Fix:** Changed `getByText` → `getAllByText` in two existing tests; changed SPPG-01 stacked bar test to `findByTestId('stacked-bar')` as data-loaded sentinel instead of text-based wait
 - **Files modified:** `SprintProgressTab.test.tsx`
 - **Verification:** All 10 tests pass after fix
-- **Committed in:** `5fd5076` (Task 2 feat commit)
+- **Committed in:** `6766fd15` (Task 2 feat commit)
 
 ---
 
@@ -133,5 +133,5 @@ _Note: TDD tasks had RED → GREEN commits; no separate REFACTOR needed_
 - FOUND: SprintProgressTab.tsx
 - FOUND: SprintProgressTab.test.tsx
 - FOUND: 06-02-SUMMARY.md
-- FOUND: commit 38711d2 (test RED)
-- FOUND: commit 5fd5076 (feat GREEN)
+- FOUND: commit 430b6e3a (test RED)
+- FOUND: commit 6766fd15 (feat GREEN)

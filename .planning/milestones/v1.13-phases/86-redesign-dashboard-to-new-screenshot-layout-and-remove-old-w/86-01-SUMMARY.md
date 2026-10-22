@@ -47,7 +47,7 @@ Props-only sprint-progress and release-timeline cards sharing existing TanStack 
 
 ## What Was Built
 
-### Task 1: MyIssuesCard (commit `2223a09d`)
+### Task 1: MyIssuesCard (commit `e5224140`)
 
 `taskflow/src/routes/dashboard/MyIssuesCard.tsx` — props-only card (D-16) that displays personal sprint progress as a segmented horizontal bar. Receives `jiraBaseUrl`, `jiraToken`, `activeJiraProject`, `storyPointsFieldKey`, `jiraUserDisplayName` from `index.tsx`.
 
@@ -65,7 +65,7 @@ Key implementation details:
 - Render: big done number, "of N done" annotation, segmented bar role=img, legend items, subtask exclusion
 - Accessibility: role="region" aria-label="My issues this sprint"
 
-### Task 2: UpcomingReleasesTimeline (commit `981382a9`)
+### Task 2: UpcomingReleasesTimeline (commit `4d112090`)
 
 `taskflow/src/routes/dashboard/UpcomingReleasesTimeline.tsx` — props-only card (D-16) that renders up to 3 upcoming unreleased fix versions as a horizontal timeline with readiness bars.
 
@@ -95,14 +95,14 @@ Key implementation details:
 - **Issue:** `vi.mocked(useQueries).mockReturnValue([...] as ReturnType<typeof useQueries>)` caused TS2352/TS2537 errors because the partial mock object doesn't overlap with the full `UseQueryResult` union type
 - **Fix:** Added `mockQuery<T>()` and `mockQueriesResult()` helper functions that use the project-approved `as unknown as` double-cast (single cast from unknown; no explicit `any` — matches project constraint from BIOME.md `noExplicitAny`)
 - **Files modified:** `UpcomingReleasesTimeline.test.tsx`
-- **Commit:** `981382a9`
+- **Commit:** `4d112090`
 
 **2. [Rule 1 - Bug] Biome formatting violations in both component files**
 - **Found during:** Task 2 — `biome check` step
 - **Issue:** Line-length wrapping differences in filter chains and JSX attributes
 - **Fix:** `biome check --write` auto-applied; tests confirmed still passing after format
 - **Files modified:** `MyIssuesCard.tsx`, `UpcomingReleasesTimeline.tsx`
-- **Commit:** `981382a9`
+- **Commit:** `4d112090`
 
 **3. [Rule 3 - Blocking] No node_modules in worktree for test runner**
 - **Found during:** Task 1 test verification
@@ -126,8 +126,8 @@ No new threat surface introduced. Both components are read-only dashboard cards.
 | `taskflow/src/routes/dashboard/MyIssuesCard.test.tsx` | FOUND |
 | `taskflow/src/routes/dashboard/UpcomingReleasesTimeline.tsx` | FOUND |
 | `taskflow/src/routes/dashboard/UpcomingReleasesTimeline.test.tsx` | FOUND |
-| Commit `2223a09d` (Task 1: MyIssuesCard) | FOUND |
-| Commit `981382a9` (Task 2: UpcomingReleasesTimeline) | FOUND |
+| Commit `e5224140` (Task 1: MyIssuesCard) | FOUND |
+| Commit `4d112090` (Task 2: UpcomingReleasesTimeline) | FOUND |
 | 23 tests passing | VERIFIED |
 | `npm run check` (biome + tsc) GREEN | VERIFIED |
 | No `dangerouslySetInnerHTML` in either component | VERIFIED |

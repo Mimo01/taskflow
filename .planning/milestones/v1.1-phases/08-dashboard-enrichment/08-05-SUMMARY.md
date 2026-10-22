@@ -69,16 +69,16 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Rewrite dashboard/index.tsx with 2x2 panel grid** - `7dcf893` (feat)
+1. **Task 1: Rewrite dashboard/index.tsx with 2x2 panel grid** - `55d80ed7` (feat)
 
 Post-checkpoint fix commits (visual verification):
 
-2. **Fix: subtask sprint query and broken notifications link** - `f50106d` (fix)
-3. **Fix: subtask row clicks and always show view-all link** - `1aa03e2` (fix)
-4. **Fix: sanitize rehydrated notifications store on load** - `e218c3f` (fix)
-5. **Fix: add cursor-pointer to subtask rows** - `66f05d3` (fix)
+2. **Fix: subtask sprint query and broken notifications link** - `0823f051` (fix)
+3. **Fix: subtask row clicks and always show view-all link** - `6f87fdc0` (fix)
+4. **Fix: sanitize rehydrated notifications store on load** - `3b67c808` (fix)
+5. **Fix: add cursor-pointer to subtask rows** - `a4cfc84c` (fix)
 
-**Plan metadata (pre-checkpoint):** `11473c3` (docs)
+**Plan metadata (pre-checkpoint):** `0f6d5e61` (docs)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/index.tsx` - Rewritten as thin wiring layer for 4 panel components
@@ -97,25 +97,25 @@ Post-checkpoint fix commits (visual verification):
 - **Found during:** Visual checkpoint review
 - **Issue:** Subtask JQL fetched from openSprints() without excluding subtaskIssueTypes() — on Jira DC this can return subtasks directly, causing empty SubtasksPanel view
 - **Fix:** Added `issuetype not in subtaskIssueTypes()` guard to sprint JQL
-- **Committed in:** `f50106d`
+- **Committed in:** `0823f051`
 
 **2. [Rule 1 - Bug] Fixed subtask row click handler and removed broken notifications link**
 - **Found during:** Visual checkpoint review
 - **Issue:** Clicking a subtask row did not open the Jira issue; also a broken notifications link was present
 - **Fix:** Corrected row click handler; removed broken link; made view-all link always render
-- **Committed in:** `1aa03e2`
+- **Committed in:** `6f87fdc0`
 
 **3. [Rule 1 - Bug] Fixed notifications store rehydration with invalid id types**
 - **Found during:** Visual checkpoint review
 - **Issue:** Rehydrated notifications store could contain numeric or null id values, causing row click failures on string comparison
 - **Fix:** Added sanitization in onRehydrateStorage — coerces all notification ids to string
-- **Committed in:** `e218c3f`
+- **Committed in:** `3b67c808`
 
 **4. [Rule 1 - Bug] Added cursor-pointer to subtask rows**
 - **Found during:** Visual checkpoint review
 - **Issue:** Subtask rows appeared non-interactive — no pointer cursor on hover
 - **Fix:** Added `cursor-pointer` Tailwind class to subtask row elements
-- **Committed in:** `66f05d3`
+- **Committed in:** `a4cfc84c`
 
 ---
 

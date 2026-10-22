@@ -69,9 +69,9 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Expand notification types, add new fetchers** - `f423319` (feat)
-2. **Task 2: Per-type settings toggles and polling hook integration** - `063392a` (feat)
-3. **Task 3: Update NotificationRow labels and verify full build** - `c66ce09` (feat)
+1. **Task 1: Expand notification types, add new fetchers** - `6fdcf8bd` (feat)
+2. **Task 2: Per-type settings toggles and polling hook integration** - `30102225` (feat)
+3. **Task 3: Update NotificationRow labels and verify full build** - `6d5c8588` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/notifications.ts` - 6 new fetchers (all-comments, due-date, approvals, pipelines, assignment detection, @mention detection)
@@ -100,7 +100,7 @@ Each task was committed atomically:
 - **Issue:** Tests only mocked 2 Jira fetch calls but new all-comments and due-date queries add 2 more
 - **Fix:** Added empty response mocks for Query C (all-comments) and Query D (due-date) in all Jira test cases
 - **Files modified:** taskflow/src/services/notifications.test.ts
-- **Committed in:** f423319
+- **Committed in:** 6fdcf8bd
 
 ---
 

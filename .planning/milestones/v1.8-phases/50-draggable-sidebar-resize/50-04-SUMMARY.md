@@ -18,17 +18,17 @@ Human verification of all drag-to-resize interactions across four sidebar/panel 
 ### Bug 1: Detail page drag direction reversed
 - **Root cause**: `useResizable` hook computed `width + delta` where a positive delta (moving right) increased width. For left-edge handles, moving left should increase width — delta needed negation.
 - **Fix**: Added `direction?: 'right' | 'left'` option to `useResizable`. Detail page call sites pass `direction: 'left'` to negate the delta.
-- **Commit**: `4a8ada6`
+- **Commit**: `721545f9`
 
 ### Bug 2: Collapse button blocked by drag handle z-index
 - **Root cause**: Drag handle was `z-20`, collapse chevron button was `z-10` — drag handle intercepted click events at the sidebar edge.
 - **Fix**: Raised collapse button from `z-10` to `z-30`.
-- **Commit**: `4a8ada6`
+- **Commit**: `721545f9`
 
 ### Bug 3: Drag handle trigger zone felt off-center
 - **Root cause**: CSS `box-sizing: border-box` means `right: 0` places the handle at the padding edge, 1px inside the visual border. Hit zone was entirely inside the sidebar.
 - **Fix**: Sidebar handle changed to `-right-px w-3` (covers the border pixel, 12px total). Detail page handles widened to `w-3` (12px inside, constrained by `overflow-auto` clipping).
-- **Commit**: `ea1aaef`
+- **Commit**: `1854f583`
 
 ## Verification Results
 

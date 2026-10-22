@@ -58,8 +58,8 @@ completed: 2026-04-04
 
 ## Task Commits
 
-1. **Task 1: Annotate phase 43 docs for MrAttentionTab.tsx removal** — `da199ed`
-2. **Task 2: Set nyquist_compliant: true in VALIDATION.md files** — `a8221c0`
+1. **Task 1: Annotate phase 43 docs for MrAttentionTab.tsx removal** — `5930896e`
+2. **Task 2: Set nyquist_compliant: true in VALIDATION.md files** — `a949900f`
 
 ## Files Modified
 

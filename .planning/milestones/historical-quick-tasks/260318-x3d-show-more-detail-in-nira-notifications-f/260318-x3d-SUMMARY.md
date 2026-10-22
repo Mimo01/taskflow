@@ -23,7 +23,7 @@ Expanded Jira changelog extraction in fetchIssueUpdates() from 2 fields (status,
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Expand changelog field extraction in fetchIssueUpdates | c6efff1 | notifications.ts |
+| 1 | Expand changelog field extraction in fetchIssueUpdates | ce477f99 | notifications.ts |
 
 ## Implementation Details
 

@@ -61,8 +61,8 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Fetch the project's open MRs once and derive a per-row drift count** - `b4b14204` (feat)
-2. **Task 2: Render the drift indicator in the reserved slot and assert it in tests** - `aded3767` (feat)
+1. **Task 1: Fetch the project's open MRs once and derive a per-row drift count** - `c2fea789` (feat)
+2. **Task 2: Render the drift indicator in the reserved slot and assert it in tests** - `c3bb8143` (feat)
 
 ## Files Created/Modified
 
@@ -91,12 +91,12 @@ Each task was committed atomically:
 - **Fix:** Ran `npx biome check --write` on both modified files, which reordered the two relative imports.
 - **Files modified:** `taskflow/src/routes/dashboard/ReleasesTab.tsx`
 - **Verification:** `npx tsc --noEmit` and `npx vitest run src/routes/dashboard/ReleasesTab.test.tsx` both stayed green after the reorder; `npm run check` confirmed back to the documented 2-error baseline.
-- **Committed in:** `aded3767` (part of Task 2 commit, since it was caught before Task 2's commit)
+- **Committed in:** `c3bb8143` (part of Task 2 commit, since it was caught before Task 2's commit)
 
 **3. [Process] Worktree HEAD was on a stale base commit at spawn time**
 - **Found during:** Mandatory worktree branch check (first action)
-- **Issue:** `git merge-base HEAD <expected-base>` did not equal the expected base; the worktree branch's tip (`ca59303f`, a later `chore: bump version` commit from an unrelated prior session) was not a descendant of the wave's expected base commit `76c8eb20`.
-- **Fix:** Per the mandatory branch-check protocol, ran `git reset --hard 76c8eb20ff5753883f10ab351e96f51ec30dba8a` after confirming the working tree was clean (`git status --short` empty, no uncommitted work to lose).
+- **Issue:** `git merge-base HEAD <expected-base>` did not equal the expected base; the worktree branch's tip (`2f87c86d`, a later `chore: bump version` commit from an unrelated prior session) was not a descendant of the wave's expected base commit `17f06671`.
+- **Fix:** Per the mandatory branch-check protocol, ran `git reset --hard 17f0667126f079017252bedffd391750bb6039f4` after confirming the working tree was clean (`git status --short` empty, no uncommitted work to lose).
 - **Committed in:** N/A (reset, not a commit)
 
 ---
@@ -126,9 +126,9 @@ None - no external service configuration required.
 - `taskflow/src/routes/dashboard/ReleasesTab.tsx` — FOUND on disk
 - `taskflow/src/routes/dashboard/ReleasesTab.test.tsx` — FOUND on disk
 - `.planning/phases/89-three-channel-drift-detection/89-04-SUMMARY.md` — FOUND on disk
-- Commit `b4b14204` (Task 1) — FOUND in `git log --oneline --all`
-- Commit `aded3767` (Task 2) — FOUND in `git log --oneline --all`
-- Commit `e97b5366` (SUMMARY) — FOUND in `git log --oneline --all`
+- Commit `c2fea789` (Task 1) — FOUND in `git log --oneline --all`
+- Commit `c3bb8143` (Task 2) — FOUND in `git log --oneline --all`
+- Commit `c3cc78e1` (SUMMARY) — FOUND in `git log --oneline --all`
 
 ---
 

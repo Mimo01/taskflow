@@ -123,7 +123,7 @@ const SliceShape = (p: PieSectorShapeProps) => <Sector {...p} fill={(p.payload a
   - Not run: `var(--color-muted)` (the bar uses `bg-muted`). It may be too faint against the card, so consider `var(--color-gray-300)`/dark `gray-600` and check this at UAT.
   - Defect status category: `STATUS_CATEGORY_COLOR` / `statusCategoryColor()` from `lib/statusStyles.ts` (gray-400 / blue-500 / green-500).
 - **Status donut granularity:** 3 slices by status category, matching the pills it replaces and colour-by-status. The slice tooltip lists the top status names in that category, up to 4 rows (merge the rest into "Other").
-- **Priority donut:** slices ordered by `priorityRank`. Colour by icon severity. The old `prioritySeverityFromIcon` / `ICON_SEVERITY_STRIPE` ramp was **deleted** in 1a6daa24 (260607-ixt-03), so the memory note is stale. Re-create a small `priorityChartColor(priority)` in the new lib from the original c45211c5 mapping:
+- **Priority donut:** slices ordered by `priorityRank`. Colour by icon severity. The old `prioritySeverityFromIcon` / `ICON_SEVERITY_STRIPE` ramp was **deleted** in 54f74d6a (260607-ixt-03), so the memory note is stale. Re-create a small `priorityChartColor(priority)` in the new lib from the original 0901afed mapping:
   - blocker, critical, highest, major -> red-600
   - high -> orange-500
   - medium -> yellow-500
@@ -196,7 +196,7 @@ Wave 0: create `src/lib/aio-cycle-charts.test.ts` covering:
 Read-only rendering of already-fetched data. No new input, auth or network surface. Not applicable beyond the existing controls.
 
 ## Sources
-- Codebase (verified): `aio-cycle/CycleKpiTiles.tsx`, `AioTile.tsx`, `useAioCycleData.ts`, `useCycleDefects.ts`, `DefectsList.tsx`, `lib/aio-cycle-list.ts`, `lib/statusStyles.ts`, `lib/aio-defect-sort.ts`, `services/aio/cycles.ts:588`, `services/jira.ts:2015`, `components/ui/chart.tsx`, `src/test/setup.ts`, `widget-removal.guard.test.ts`, git 1a6daa24 / c45211c5
+- Codebase (verified): `aio-cycle/CycleKpiTiles.tsx`, `AioTile.tsx`, `useAioCycleData.ts`, `useCycleDefects.ts`, `DefectsList.tsx`, `lib/aio-cycle-list.ts`, `lib/statusStyles.ts`, `lib/aio-defect-sort.ts`, `services/aio/cycles.ts:588`, `services/jira.ts:2015`, `components/ui/chart.tsx`, `src/test/setup.ts`, `widget-removal.guard.test.ts`, git 54f74d6a / 0901afed
 - `node_modules/recharts/types` (3.8.0): Cell `@deprecated`, Pie `shape`, `paddingAngle`, `isAnimationActive`
 - https://recharts.github.io/en-US/guide/cell/ (Cell to `shape` migration)
 - 261013-mnc-PROBE-RESULTS.md (P2 `allDefects` on latestTestRun only; P5 no effort)

@@ -75,8 +75,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: DescriptionEditor component** - `70be187` (feat)
-2. **Task 2: CreateEditIssueModal component** - `b10a9df` (feat)
+1. **Task 1: DescriptionEditor component** - `bcf11225` (feat)
+2. **Task 2: CreateEditIssueModal component** - `538ffd8a` (feat)
 
 ## Files Created/Modified
 

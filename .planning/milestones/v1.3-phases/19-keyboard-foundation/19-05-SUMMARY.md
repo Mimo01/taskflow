@@ -57,7 +57,7 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Fix mod+/ to mod+slash binding and update test comments** - `1e0f569` (fix)
+1. **Task 1: Fix mod+/ to mod+slash binding and update test comments** - `1a0897a9` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/main.tsx` - Changed useHotkeys binding from 'mod+/' to 'mod+slash'

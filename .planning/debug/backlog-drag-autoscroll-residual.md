@@ -18,7 +18,7 @@ expected: After a drag that auto-scrolled, releasing returns the page to a consi
 actual: After a drag THAT CAUSED AUTOSCROLL, clicking a row selects/peeks a DIFFERENT row than the one visually under the cursor. A drag with no scroll is fine.
 errors: none (visual/interaction desync)
 reproduction: Drag a row near top/bottom edge so list auto-scrolls; release; click any row -> wrong row selected.
-started: After commit 4f0cfdd3 (portal + MeasuringStrategy.Always) fixed the during-drag clone drift.
+started: After commit 814a3b24 (portal + MeasuringStrategy.Always) fixed the during-drag clone drift.
 
 ## Resolution
 

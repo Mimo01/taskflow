@@ -167,7 +167,7 @@ Groups:
 - **Issue:** `types.ts` marks `GhIssue.estimateStatistic` as required, but 103 of 156 issues in `__fixtures__/allData.real.json` have the field absent. The plan's `<action>` line for D-02 (`gh.estimateStatistic.statFieldId === storyPointsFieldKey ? ...`) would throw `TypeError: Cannot read properties of undefined` on production data the moment any non-estimated issue appears, breaking the full-iteration test and any future caller.
 - **Fix:** Treated `estimateStatistic` as optional at runtime via a local cast (`const estimate = gh.estimateStatistic as GhIssue['estimateStatistic'] | undefined`) and optional-chained the field-id check. When absent OR statFieldId mismatch OR value absent → `customfield_10016 = null` (the legacy sentinel). Behavior on present-with-match is unchanged from the plan.
 - **Files modified:** `taskflow/src/services/jira/greenhopper/adapter.ts`
-- **Commit:** `72c0c045`
+- **Commit:** `9677eda8`
 - **Threat-register impact:** Strengthens T-71-13 mitigation (adapter never throws on drifted production data); does not relax T-71-12 (the statFieldId match gate still gates story-points synthesis).
 
 ### Doc-comment cleanups
@@ -186,12 +186,12 @@ No Rule 4 architectural decisions triggered.
 
 The worktree's `taskflow/node_modules` was empty — symlinked it to `/Users/mimo/Documents/Projects/taskflow/taskflow/node_modules` so vitest could resolve `@vitejs/plugin-react`. Same convenience as Phase 71-04. The symlink is outside git.
 
-The worktree HEAD on first attach was at the older `c463d555` (predates Phase 71); the `<worktree_branch_check>` `git reset --hard 7c94def4` was executed to bring the worktree to the expected base before reading any phase-71 files.
+The worktree HEAD on first attach was at the older `8bf748a3` (predates Phase 71); the `<worktree_branch_check>` `git reset --hard 5ef3bdc2` was executed to bring the worktree to the expected base before reading any phase-71 files.
 
 ## Self-Check: PASSED
 
 - `taskflow/src/services/jira/greenhopper/adapter.ts` — FOUND
 - `taskflow/src/services/jira/greenhopper/adapter.test.ts` — FOUND
 - Commits in git log:
-  - `d1b3a84e` `test(71-05): add failing tests for adapter.ts (RED)` — FOUND
-  - `72c0c045` `feat(71-05): implement adaptIssue + createAdapter (GREEN)` — FOUND
+  - `77ca2646` `test(71-05): add failing tests for adapter.ts (RED)` — FOUND
+  - `9677eda8` `feat(71-05): implement adaptIssue + createAdapter (GREEN)` — FOUND

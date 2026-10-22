@@ -1,6 +1,6 @@
 # Quick 261002-0xf: Epic progress section UI review
 
-**Audited:** 2026-10-02 (retroactive, after 261002-0et at HEAD 87aeda1b)
+**Audited:** 2026-10-02 (retroactive, after 261002-0et at HEAD 50cf4900)
 **Baseline:** Abstract 6-pillar standards, plus the user's style contract: full-width divider layout, hero + stat strip, status colours only for statuses, neutral glyph markers. No UI-SPEC.md exists.
 **Screenshots:** Not captured. Vite answers on :1420, but Playwright isn't installed, and the epic view needs Tauri IPC and an authenticated Jira session. This is a code-only audit. Any finding marked *(verify in DOM)* depends on WebKit layout, so inspect the rendered DOM before changing CSS (see memory: visual bugs, DOM first).
 

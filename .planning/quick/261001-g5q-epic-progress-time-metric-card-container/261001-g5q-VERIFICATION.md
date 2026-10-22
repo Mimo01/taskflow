@@ -40,8 +40,8 @@ Fetcher: `fetchEpicStories` requests `aggregatetimeoriginalestimate`, `aggregate
 - vitest on EpicProgressSection, EpicDetailSheet, IssueDetailPage.progressive, epic-progress and jira.test: 5 files, 169 tests passed.
 - `npx tsc --noEmit`: clean.
 - `biome check` on the 4 touched source files: no diagnostics.
-- EpicProgressCells.tsx: unchanged between 605d3ce9 and 18a6331d, so the constraint is met.
-- Commits: exactly the two planned ones (ead77644, 18a6331d), each with tests alongside the implementation.
+- EpicProgressCells.tsx: unchanged between 51df90ae and 67655563, so the constraint is met.
+- Commits: exactly the two planned ones (75879190, 67655563), each with tests alongside the implementation.
 
 ## Anti-patterns
 

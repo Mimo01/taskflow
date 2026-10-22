@@ -65,8 +65,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add Switch component and refactor Sidebar to data-driven rendering** - `18ea1b9` (feat)
-2. **Task 2: Create SidebarItemsList and PresetButtons in Settings > Appearance** - `2c4b333` (feat)
+1. **Task 1: Add Switch component and refactor Sidebar to data-driven rendering** - `00c1f418` (feat)
+2. **Task 2: Create SidebarItemsList and PresetButtons in Settings > Appearance** - `57db2fd5` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/ui/switch.tsx` - shadcn Switch toggle component with role="switch" and aria-checked
@@ -91,7 +91,7 @@ Each task was committed atomically:
 - **Fix:** Ran `npm install @dnd-kit/sortable @dnd-kit/modifiers`
 - **Files modified:** package.json, package-lock.json
 - **Verification:** Import succeeds, TypeScript compiles
-- **Committed in:** 18ea1b9 (Task 1 commit)
+- **Committed in:** 00c1f418 (Task 1 commit)
 
 ---
 
@@ -110,7 +110,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 5 created/modified files verified on disk. Both task commits (18ea1b9, 2c4b333) verified in git log.
+All 5 created/modified files verified on disk. Both task commits (00c1f418, 57db2fd5) verified in git log.
 
 ---
 *Phase: 34-layout-customization*

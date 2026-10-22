@@ -61,8 +61,8 @@ re_verification: false
 
 | Commit | Message | Exists |
 |--------|---------|--------|
-| a95842c | feat(quick-260316-r34): add changelog extraction to Jira and system note parsing to GitLab notifications | Yes |
-| e228718 | feat(quick-260316-r34): update notification UI to render multi-line arrow-format changes | Yes |
+| 7b0cad9a | feat(quick-260316-r34): add changelog extraction to Jira and system note parsing to GitLab notifications | Yes |
+| 096d12b7 | feat(quick-260316-r34): update notification UI to render multi-line arrow-format changes | Yes |
 
 ### Human Verification Required
 

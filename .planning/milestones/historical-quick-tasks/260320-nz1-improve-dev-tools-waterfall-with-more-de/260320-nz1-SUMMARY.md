@@ -64,8 +64,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Add response size tracking to FetchRecord and apiFetch** - `12f2818` (feat)
-2. **Task 2: Redesign waterfall summary row and expanded view** - `451c227` (feat)
+1. **Task 1: Add response size tracking to FetchRecord and apiFetch** - `6bafbe20` (feat)
+2. **Task 2: Redesign waterfall summary row and expanded view** - `2c0268ce` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/operation-profiler.store.ts` - Added responseSize field to FetchRecord interface

@@ -96,7 +96,7 @@ Level 4 not applicable to CI workflow files or config files. The source files (`
 | release.yml is valid YAML                             | `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/release.yml'))"` | No parse error           | PASS    |
 | inject-version.cjs outputs APP_VERSION/SHA/DATE lines | inspect stdout.write call at line 28 of script                                    | Format confirmed in code | PASS    |
 | No PLACEHOLDER or OWNER/RELEASES_REPO strings in src  | python3 file scan across taskflow/src + taskflow/src-tauri                        | 0 matches (TokenSection.tsx `MASKED_PLACEHOLDER` constant is unrelated masking UI) | PASS |
-| All 5 phase commits exist in git history              | `git log --oneline` checked for 5b7fdb1, fedd6ab, f3d0f3d, 0479f05, 4bafcf1     | All 5 FOUND              | PASS    |
+| All 5 phase commits exist in git history              | `git log --oneline` checked for 6ea85b25, d42eba8e, 8ec04cea, 5ab6ef59, cf8ea4e3     | All 5 FOUND              | PASS    |
 | tauri.conf.json has pubkey + correct endpoint         | python3 json parse                                                                | pubkey present (64+ chars), endpoint correct | PASS |
 
 ---

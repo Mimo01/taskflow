@@ -32,7 +32,7 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Create AboutDialog component and wire Rust menu events | b6f31e4 | AboutDialog.tsx, lib.rs, main.tsx |
+| 1 | Create AboutDialog component and wire Rust menu events | aabc7eb5 | AboutDialog.tsx, lib.rs, main.tsx |
 
 ## What Was Built
 
@@ -69,4 +69,4 @@ None — all metadata fields source from real `buildInfo` constants and live `us
 - [x] `taskflow/src/components/about/AboutDialog.tsx` — exists and exports `AboutDialog`
 - [x] `taskflow/src-tauri/src/lib.rs` — contains `MenuItemBuilder::new("About TaskFlow")` (2 occurrences), no `PredefinedMenuItem::about`
 - [x] `taskflow/src/main.tsx` — contains `listen('menu-about'`, `aboutOpen`, `<AboutDialog`
-- [x] Commit b6f31e4 — verified via git log
+- [x] Commit aabc7eb5 — verified via git log

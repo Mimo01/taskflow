@@ -100,4 +100,4 @@ None. The stub page introduces no network endpoints, no auth paths, no file acce
 - `taskflow/src/components/app/Sidebar.tsx` — Clock import, ICON_MAP entry, tempoEnabled selector, gate clause
 - `taskflow/src/components/app/Sidebar.test.tsx` — tempoEnabled gate describe block, 7 tests pass
 - `taskflow/src/routes/routes.tsx` — lazy declaration + /worklogs route entry
-- Commits: edb22e92, 7daca7fe, f1de8b02 — all present in git log
+- Commits: 26ede884, 88588242, 3e6c3f84 — all present in git log

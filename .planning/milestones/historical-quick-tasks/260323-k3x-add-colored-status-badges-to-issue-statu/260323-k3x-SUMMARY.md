@@ -53,8 +53,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Extend JiraTransition type with statusCategory** - `0b37eb9` (feat)
-2. **Task 2: Render transition buttons as colored status badges** - `6a06445` (feat)
+1. **Task 1: Extend JiraTransition type with statusCategory** - `a33af460` (feat)
+2. **Task 2: Render transition buttons as colored status badges** - `b0cec938` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira.ts` - Added optional statusCategory to JiraTransition.to interface
@@ -73,7 +73,7 @@ Each task was committed atomically:
 - **Fix:** Used the same `STATUS_CATEGORY_STYLES` constant pattern inline in StatusPopover.tsx, consistent with existing codebase conventions.
 - **Files modified:** taskflow/src/routes/dashboard/StatusPopover.tsx
 - **Verification:** TypeScript compiles without new errors
-- **Committed in:** 6a06445
+- **Committed in:** b0cec938
 
 ---
 

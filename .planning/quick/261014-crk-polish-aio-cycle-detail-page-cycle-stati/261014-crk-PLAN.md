@@ -149,7 +149,7 @@ Project gotchas:
     - `defectPrioritySlices(defects: ResolvedDefect[])`
     - `priorityChartColor(priority)`
 
-    Execution slice rows are Runs and Share. Re-create the priority colour ramp from the c45211c5 mapping in RESEARCH. Its documented limitation is that Critical and Should share highest.svg.
+    Execution slice rows are Runs and Share. Re-create the priority colour ramp from the 0901afed mapping in RESEARCH. Its documented limitation is that Critical and Should share highest.svg.
 
     Reuse `statusLabel` (aio-cycle-list), `statusCategoryColor` (statusStyles) and `priorityRank` (aio-defect-sort). Do not hand-roll replacements for them.
 

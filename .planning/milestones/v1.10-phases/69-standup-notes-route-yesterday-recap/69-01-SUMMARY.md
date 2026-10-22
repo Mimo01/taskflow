@@ -45,8 +45,8 @@ Pure-data foundations for the Yesterday recap: `standup-date.ts` utility (weeken
 
 | # | Task | Commit (RED) | Commit (GREEN) | Tests |
 |---|------|-------------|----------------|-------|
-| 1 | standup-date.ts utility | c699fd41 | 6d5fe48f | 24 passing |
-| 2 | fetchYesterdayJiraActivity() in jira.ts | 7e934bab | 1ab6b66b | 10 passing |
+| 1 | standup-date.ts utility | a62c60db | 60345c3a | 24 passing |
+| 2 | fetchYesterdayJiraActivity() in jira.ts | 13e373c0 | 1397d993 | 10 passing |
 
 ## What Was Built
 
@@ -78,10 +78,10 @@ None — plan executed exactly as written.
 
 | Gate | Commit | Status |
 |------|--------|--------|
-| Task 1 RED | c699fd41 | PASS — tests failed before implementation |
-| Task 1 GREEN | 6d5fe48f | PASS — 24 tests pass |
-| Task 2 RED | 7e934bab | PASS — tests failed before implementation |
-| Task 2 GREEN | 1ab6b66b | PASS — 10 tests pass |
+| Task 1 RED | a62c60db | PASS — tests failed before implementation |
+| Task 1 GREEN | 60345c3a | PASS — 24 tests pass |
+| Task 2 RED | 13e373c0 | PASS — tests failed before implementation |
+| Task 2 GREEN | 1397d993 | PASS — 10 tests pass |
 
 ## Known Stubs
 
@@ -103,7 +103,7 @@ All created files confirmed on disk. All task commits confirmed in git log.
 | taskflow/src/lib/standup-date.test.ts | FOUND |
 | taskflow/src/services/jira-standup.test.ts | FOUND |
 | .planning/phases/69-standup-notes-route-yesterday-recap/69-01-SUMMARY.md | FOUND |
-| Commit c699fd41 (test RED standup-date) | FOUND |
-| Commit 6d5fe48f (feat GREEN standup-date) | FOUND |
-| Commit 7e934bab (test RED jira-standup) | FOUND |
-| Commit 1ab6b66b (feat GREEN jira.ts) | FOUND |
+| Commit a62c60db (test RED standup-date) | FOUND |
+| Commit 60345c3a (feat GREEN standup-date) | FOUND |
+| Commit 13e373c0 (test RED jira-standup) | FOUND |
+| Commit 1397d993 (feat GREEN jira.ts) | FOUND |

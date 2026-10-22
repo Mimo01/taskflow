@@ -78,8 +78,8 @@ completed: 2026-03-14
 
 ## Task Commits
 
-1. **Task 1: Wire IssueDetailSheet into Dashboard (search + notifications entry points)** - `44bd6f0` (feat)
-2. **Fix: Widen IssueDetailSheet and sidebar for metadata display** - `b96b9a0` (fix)
+1. **Task 1: Wire IssueDetailSheet into Dashboard (search + notifications entry points)** - `121c7a96` (feat)
+2. **Fix: Widen IssueDetailSheet and sidebar for metadata display** - `31396119` (fix)
 
 ## Files Created/Modified
 
@@ -109,7 +109,7 @@ completed: 2026-03-14
 - **Fix:** Lifted IssueDetailSheet to AppLayout level; added onIssueClick prop to TopBar, SearchOverlay, and NotificationPopover — the minimum required to make search and notification entry points work.
 - **Files modified:** `main.tsx`, `TopBar.tsx`, `SearchOverlay.tsx`, `NotificationPopover.tsx` (in addition to planned `dashboard/index.tsx`)
 - **Verification:** TypeScript clean compile on all modified files; no new test failures introduced.
-- **Committed in:** `44bd6f0` (Task 1 commit)
+- **Committed in:** `121c7a96` (Task 1 commit)
 
 ---
 
@@ -119,7 +119,7 @@ completed: 2026-03-14
 - **Fix:** Sheet widened to 85vw; sidebar column to 42%; MetaRow label column to w-28
 - **Files modified:** `IssueDetailSheet.tsx`, `IssueDetailSidebar.tsx`
 - **Verification:** TypeScript clean on modified files; layout visually confirmed by user
-- **Committed in:** `b96b9a0`
+- **Committed in:** `31396119`
 
 ---
 

@@ -63,8 +63,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1: Install shadcn Badge and fix searchGitLabMRs state filter** - `af298f9` (feat)
-2. **Task 2: Write failing test stubs for APIF-04 and REL-01/02/03** - `adea6d5` (test)
+1. **Task 1: Install shadcn Badge and fix searchGitLabMRs state filter** - `ffacde21` (feat)
+2. **Task 2: Write failing test stubs for APIF-04 and REL-01/02/03** - `cb02782f` (test)
 
 ## Files Created/Modified
 - `taskflow/src/components/ui/badge.tsx` - shadcn Badge component (created via `npx shadcn@latest add badge`)
@@ -100,5 +100,5 @@ None - plan executed exactly as written.
 - FOUND: taskflow/src/services/gitlab.test.ts
 - FOUND: taskflow/src/routes/dashboard/ReleasesTab.test.tsx
 - FOUND: .planning/phases/05-api-foundation-quick-wins/05-01-SUMMARY.md
-- FOUND commit: af298f9 (feat(05-01): install shadcn Badge and fix searchGitLabMRs state filter)
-- FOUND commit: adea6d5 (test(05-01): add APIF-04 and REL-01/02/03 test stubs (RED state))
+- FOUND commit: ffacde21 (feat(05-01): install shadcn Badge and fix searchGitLabMRs state filter)
+- FOUND commit: cb02782f (test(05-01): add APIF-04 and REL-01/02/03 test stubs (RED state))

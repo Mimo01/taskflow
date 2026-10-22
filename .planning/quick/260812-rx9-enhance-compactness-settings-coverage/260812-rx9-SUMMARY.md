@@ -130,20 +130,20 @@ before.**
 
 ## Task Commits
 
-1. **Task 1a: Wiki prose attach point** - `99530259` (feat)
-2. **Task 1b: Epics page rows** - `d1724a57` (feat) + `bdae8041` (style: biome line-length wrap)
-3. **Task 1c: AIO test run min-h fix** - `fa932783` (fix)
-4. **Task 1d: AIO project overview page** - `40975ad2` (feat)
-5. **Task 1d: AIO cycle detail page** - `900b7690` (feat)
-6. **Task 1d: AIO test run detail page** - `53225c2e` (feat)
-7. **Task 1e: Standup notes row groups** - `0434bd26` (feat)
-8. **Task 1f: Remaining min-h floors (SprintBoard/Subtasks/MrHealth)** - `56a185cf` (fix)
-9. **Task 2a/2b/2f: Issue-detail rows, MR list/detail, discussions, releases** - `17c6da94` (feat)
-10. **Task 2b/2c: Issue-detail vertical stacks and cards** - `3a0761f4` (feat)
-11. **Task 2d/2e: My Tasks, notifications, worklogs, backlog headers** - `c64be3bb` (feat)
-12. **Task 3a/3b: Filter bars and popover/picker rows** - `2a2455f5` (feat)
-13. **Task 3c: Settings and dev-tools lists** - `9ed7c4c6` (feat)
-14. **Task 3d: Release detail sidebar and descriptions** - `18a1dce3` (feat)
+1. **Task 1a: Wiki prose attach point** - `99ff6b26` (feat)
+2. **Task 1b: Epics page rows** - `162f98eb` (feat) + `43077ddd` (style: biome line-length wrap)
+3. **Task 1c: AIO test run min-h fix** - `e2a98184` (fix)
+4. **Task 1d: AIO project overview page** - `7eafc3c6` (feat)
+5. **Task 1d: AIO cycle detail page** - `2e632e3b` (feat)
+6. **Task 1d: AIO test run detail page** - `a06856b7` (feat)
+7. **Task 1e: Standup notes row groups** - `00691f34` (feat)
+8. **Task 1f: Remaining min-h floors (SprintBoard/Subtasks/MrHealth)** - `81b476f4` (fix)
+9. **Task 2a/2b/2f: Issue-detail rows, MR list/detail, discussions, releases** - `e34fa4bb` (feat)
+10. **Task 2b/2c: Issue-detail vertical stacks and cards** - `c47be045` (feat)
+11. **Task 2d/2e: My Tasks, notifications, worklogs, backlog headers** - `f8b8130f` (feat)
+12. **Task 3a/3b: Filter bars and popover/picker rows** - `a957c65d` (feat)
+13. **Task 3c: Settings and dev-tools lists** - `5e1a5c17` (feat)
+14. **Task 3d: Release detail sidebar and descriptions** - `fa392c78` (feat)
 
 **Plan metadata:** pending (docs: complete plan) — added by orchestrator after this SUMMARY
 
@@ -270,7 +270,7 @@ maintain internal consistency within a single file** — Found during: Tasks 1d,
 - **Files:** `AioProjectOverviewPage.tsx`, `AioCycleDetailPage.tsx`, `AioTestRunDetailPage.tsx`,
   `TodayInProgressSection.tsx`, `TodayUpNextSection.tsx`, `TodayMrsSection.tsx`,
   `TodayParticipatingSection.tsx`, `UnifiedFilterBar.tsx`, `WorklogsPage.tsx`.
-- **Commits:** `40975ad2`, `900b7690`, `53225c2e`, `0434bd26`, `c64be3bb`, `2a2455f5`.
+- **Commits:** `7eafc3c6`, `2e632e3b`, `a06856b7`, `00691f34`, `f8b8130f`, `a957c65d`.
 
 **2. [Discretion] `ActivityTimeline.tsx:117` skeleton `space-y-3` was treated per the plan's
 explicit instruction, deviating from the general "skeletons are N/A" guidance in RESEARCH §3's
@@ -300,7 +300,7 @@ and either type "approved" or list surfaces that still look wrong.
 - `npm run check`: **4 errors / 30 warnings**, identical file set to the pre-task baseline
   (`WikiRenderer.tsx` format, `TaskCard.tsx` format, `release-detail/UnifiedTaskTable.tsx` format,
   `components/ui/chart.tsx`, `BacklogRow.tsx`, `MyTasksPage.tsx`, `MyTasksPage.test.tsx`) — verified
-  by diffing `biome check` output against the pre-task commit (910aaac3) for each newly-appearing
+  by diffing `biome check` output against the pre-task commit (5c557053) for each newly-appearing
   file; all were already flagged there. **No NEW files flagged** by this plan's changes.
 - R1 (additive-only): every `git diff` hunk across all 15 commits was manually inspected via
   `git diff | grep '^-[^-]'` per commit; every removed line's baseline utility class reappears
@@ -318,9 +318,9 @@ and either type "approved" or list surfaces that still look wrong.
 
 ## Self-Check: PASSED
 
-- All 15 commit hashes verified present via `git log --oneline --all`: `99530259`, `d1724a57`,
-  `bdae8041`, `fa932783`, `40975ad2`, `900b7690`, `53225c2e`, `0434bd26`, `56a185cf`, `17c6da94`,
-  `3a0761f4`, `c64be3bb`, `2a2455f5`, `9ed7c4c6`, `18a1dce3` — all FOUND, none missing.
+- All 15 commit hashes verified present via `git log --oneline --all`: `99ff6b26`, `162f98eb`,
+  `43077ddd`, `e2a98184`, `7eafc3c6`, `2e632e3b`, `a06856b7`, `00691f34`, `81b476f4`, `e34fa4bb`,
+  `c47be045`, `f8b8130f`, `a957c65d`, `5e1a5c17`, `fa392c78` — all FOUND, none missing.
 - Representative key-files verified present on disk: `WikiRenderer.tsx`, `EpicsPage.tsx`,
   `AioTestRunsSection.tsx`, `ReleaseDetailSidebar.tsx` — all FOUND.
 - No missing items.
@@ -335,9 +335,9 @@ User walked the density tiers in the running app and approved. The checkpoint ga
 
 | Commit | Change | Origin |
 |---|---|---|
-| `99fe186e` | Restored both-variant parity: `density-compact:[&_p]:my-0` / `[&_ul]:my-0` on the DiscussionThreads NoteCard, and `density-comfortable:[&_p]:leading-relaxed` / `[&_li]` on WikiRenderer | Code review WR-01, WR-02 |
-| `b9231844` | Loosened compact wiki prose one half-step (`my-1`→`my-1.5`, `li my-0`→`my-0.5`, headings `mt-3/mb-1`→`mt-4/mb-1.5`, `leading-snug`→`leading-normal`) | UAT: compact descriptions read too tight |
-| `cdec90cb` | Set all three wiki-prose tiers explicitly on one monotonic scale — tightened Default, loosened Comfortable | UAT: default too loose, comfortable too subtle |
+| `8c786b41` | Restored both-variant parity: `density-compact:[&_p]:my-0` / `[&_ul]:my-0` on the DiscussionThreads NoteCard, and `density-comfortable:[&_p]:leading-relaxed` / `[&_li]` on WikiRenderer | Code review WR-01, WR-02 |
+| `86edfc5d` | Loosened compact wiki prose one half-step (`my-1`→`my-1.5`, `li my-0`→`my-0.5`, headings `mt-3/mb-1`→`mt-4/mb-1.5`, `leading-snug`→`leading-normal`) | UAT: compact descriptions read too tight |
+| `51df2e32` | Set all three wiki-prose tiers explicitly on one monotonic scale — tightened Default, loosened Comfortable | UAT: default too loose, comfortable too subtle |
 
 ### Final wiki-prose scale
 
@@ -350,7 +350,7 @@ User walked the density tiers in the running app and approved. The checkpoint ga
 
 ### Deviation from R1 (recorded, accepted)
 
-`cdec90cb` intentionally changes rendering **at default density** for wiki prose. The sweep's
+`51df2e32` intentionally changes rendering **at default density** for wiki prose. The sweep's
 original R1 invariant — "at default density the app renders byte-identically to before" — no
 longer holds for `WikiRenderer.tsx`. This was requested directly at UAT and is the only place
 in the 49-file change where the diff is not purely additive.
@@ -371,4 +371,4 @@ to the user and not requested. Bring them onto the same scale if comment density
 - 19 commits total (15 sweep + 4 post-UAT)
 - Density variant coverage: 11 files → 49 files
 - `npm run test`: 2586 passed / 2 skipped / 13 todo — green after every commit
-- `npm run check`: no NEW files flagged vs. the pre-task baseline at `910aaac3`
+- `npm run check`: no NEW files flagged vs. the pre-task baseline at `5c557053`

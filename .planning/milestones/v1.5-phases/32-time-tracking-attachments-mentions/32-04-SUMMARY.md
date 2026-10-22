@@ -58,7 +58,7 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: MentionPopover component and CommentComposer @mention integration** - `d96d752` (feat)
+1. **Task 1: MentionPopover component and CommentComposer @mention integration** - `83add453` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/MentionPopover.tsx` - Cursor-anchored user autocomplete popover with keyboard navigation, debounced search, ARIA roles
@@ -79,7 +79,7 @@ Each task was committed atomically:
 - **Fix:** Preserved the original Unicode ellipsis character in the placeholder
 - **Files modified:** taskflow/src/routes/dashboard/CommentComposer.tsx
 - **Verification:** Full test suite passes (665 tests, 0 failures)
-- **Committed in:** d96d752
+- **Committed in:** 83add453
 
 ---
 

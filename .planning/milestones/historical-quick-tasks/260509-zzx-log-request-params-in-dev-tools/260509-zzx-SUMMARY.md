@@ -39,8 +39,8 @@ Request body capture and display for the dev tools log system. POST and PUT API 
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add requestBody to ApiLogEntry and capture in apiFetch | a14638a | debug-log.store.ts, apiFetch.ts |
-| 2 | Render Request Body section in LogsTab.tsx and DebugLogs.tsx | 8c71cdc | LogsTab.tsx, DebugLogs.tsx |
+| 1 | Add requestBody to ApiLogEntry and capture in apiFetch | fe8c9927 | debug-log.store.ts, apiFetch.ts |
+| 2 | Render Request Body section in LogsTab.tsx and DebugLogs.tsx | 65b6b92e | LogsTab.tsx, DebugLogs.tsx |
 
 ## Changes
 
@@ -81,6 +81,6 @@ None — no new network endpoints, auth paths, or trust boundaries introduced.
 - [x] `taskflow/src/lib/apiFetch.ts` — modified, `requestBody` captured and included in both entries
 - [x] `taskflow/src/routes/dev-tools/LogsTab.tsx` — modified, "Request Body" section rendered
 - [x] `taskflow/src/routes/debug-logs/DebugLogs.tsx` — modified, "Request Body" section rendered
-- [x] Commit a14638a — exists (Task 1)
-- [x] Commit 8c71cdc — exists (Task 2)
+- [x] Commit fe8c9927 — exists (Task 1)
+- [x] Commit 65b6b92e — exists (Task 2)
 - [x] `npx tsc --noEmit` passes with no errors

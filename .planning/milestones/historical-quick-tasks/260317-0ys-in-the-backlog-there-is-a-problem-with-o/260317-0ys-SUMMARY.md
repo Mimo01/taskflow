@@ -39,7 +39,7 @@ completed: 2026-03-17
 
 ## Task Commits
 
-1. **Task 1: Fix backlog table overflow with table-fixed and proper truncation** - `b5feee5` (fix)
+1. **Task 1: Fix backlog table overflow with table-fixed and proper truncation** - `e70e8981` (fix)
 
 ## Files Modified
 - `taskflow/src/routes/dashboard/BacklogPage.tsx` - Added table-fixed class to backlog table

@@ -72,8 +72,8 @@ completed: 2026-08-11
 
 Each task was committed atomically (Task 2 + 3 combined per the deviation below):
 
-1. **Task 1: Two gated queries and the resolver call in useReleaseDetail.ts** - `5e7b08c5` (feat)
-2. **Task 2 + Task 3: "Merged back" MetaRow, D-08 wording softening, prop threading, and test coverage** - `fc969d9d` (feat)
+1. **Task 1: Two gated queries and the resolver call in useReleaseDetail.ts** - `41a570c3` (feat)
+2. **Task 2 + Task 3: "Merged back" MetaRow, D-08 wording softening, prop threading, and test coverage** - `64dc2fac` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts` - `fetchSourceBranchMRs`/`compareRefs` imports, `mergeBackTagName` hoist, widened `needsTagLookup`, two new gated queries, `resolveMergeBackVerdict` call, `mergeBackVerdict` in the return object
@@ -105,7 +105,7 @@ Each task was committed atomically (Task 2 + 3 combined per the deviation below)
 - **Fix:** Ran `npx biome check --write` on each affected file; no logic changed.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts`, `taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx`
 - **Verification:** `npx biome check` clean on both files afterward; `npx tsc --noEmit` and targeted `vitest run` still green
-- **Committed in:** `5e7b08c5` and `fc969d9d` respectively
+- **Committed in:** `41a570c3` and `64dc2fac` respectively
 
 ---
 
@@ -132,8 +132,8 @@ None — no external service configuration required.
 - FOUND: taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
 - FOUND: taskflow/src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx
 - FOUND: taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx
-- FOUND commit: 5e7b08c5
-- FOUND commit: fc969d9d
+- FOUND commit: 41a570c3
+- FOUND commit: 64dc2fac
 
 ---
 *Phase: 91-post-release-merge-back-verification*

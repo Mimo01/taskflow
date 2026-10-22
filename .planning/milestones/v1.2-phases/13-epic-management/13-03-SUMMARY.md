@@ -35,8 +35,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add epic filter bar to SprintBoardTab (EPIC-02) | 73d3118 | SprintBoardTab.tsx, SprintBoardTab.test.tsx |
-| 2 | Build CreateEpicDialog.tsx (EPIC-04) | 9422f5a | CreateEpicDialog.tsx |
+| 1 | Add epic filter bar to SprintBoardTab (EPIC-02) | 2a39ad0e | SprintBoardTab.tsx, SprintBoardTab.test.tsx |
+| 2 | Build CreateEpicDialog.tsx (EPIC-04) | 65aca8ae | CreateEpicDialog.tsx |
 
 ## What Was Built
 
@@ -80,25 +80,25 @@ Created `CreateEpicDialog.tsx`:
 - **Issue:** `@base-ui/react/dialog Dialog.Popup` throws "Base UI: Dialog.Portal is missing" when rendered without a Portal wrapper
 - **Fix:** Wrapped `Dialog.Backdrop` and `Dialog.Popup` in `Dialog.Portal` — same pattern used in `CreateEditIssueModal.tsx`
 - **Files modified:** `CreateEpicDialog.tsx`
-- **Commit:** 9422f5a
+- **Commit:** 65aca8ae
 
 **2. [Rule 1 - Bug] getByText vs getAllByText in EPIC-02 tests**
 - **Found during:** Task 1 GREEN phase
 - **Issue:** Bare stories appear in both `StoryHeaderRow` and the card area, so `getByText('Story Alpha')` throws "Found multiple elements". Test assertions used `getByText` instead of `getAllByText`
 - **Fix:** Changed assertions to `getAllByText(...).length >= 1` — semantically equivalent
 - **Files modified:** `SprintBoardTab.test.tsx`
-- **Commit:** 73d3118
+- **Commit:** 2a39ad0e
 
 **3. [Rule 1 - Design] CreateEpicDialog reads auth from useSettingsStore**
 - **Found during:** Task 2 RED analysis
 - **Issue:** Test only mocks `useSettingsStore` (not `useAuthStore` or `stronghold`), and provides `jiraToken: 'tok'` there. Using `readSecret` or `useAuthStore` would cause missing mock errors
 - **Fix:** Component reads `jiraBaseUrl`, `activeJiraProject`, `jiraToken` from `useSettingsStore` via type cast — matches test contract; production behavior unchanged since settings store mock is only in tests
-- **Commit:** 9422f5a
+- **Commit:** 65aca8ae
 
 ## Self-Check: PASSED
 
 - SprintBoardTab.tsx: FOUND
 - SprintBoardTab.test.tsx: FOUND
 - CreateEpicDialog.tsx: FOUND
-- Commit 73d3118 (Task 1): FOUND
-- Commit 9422f5a (Task 2): FOUND
+- Commit 2a39ad0e (Task 1): FOUND
+- Commit 65aca8ae (Task 2): FOUND

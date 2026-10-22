@@ -68,8 +68,8 @@ completed: 2026-05-14
 
 Each task was committed atomically:
 
-1. **Task 1: Add selectedAioProjectKey field, setter, and v17 migration to settings.store.ts** — `4d0d8aa` (feat)
-2. **Task 2: Add selectedAioProjectKey tests to settings.store.test.ts** — `ca86311` (test)
+1. **Task 1: Add selectedAioProjectKey field, setter, and v17 migration to settings.store.ts** — `ab65e28f` (feat)
+2. **Task 2: Add selectedAioProjectKey tests to settings.store.test.ts** — `0b528176` (test)
 
 **Plan metadata:** committed alongside this SUMMARY.md (docs)
 
@@ -105,7 +105,7 @@ None of the plan's own actions deviated. One blocking-style issue was encountere
 
 **1. [Out-of-scope] Pre-existing biome format error in `WikiRenderer.test.tsx`**
 - **Found during:** Task 1 commit (husky pre-commit `npm run check` failure)
-- **Issue:** `taskflow/src/routes/dashboard/WikiRenderer.test.tsx:202-204` has a multi-line `.filter((c) => ...)` that biome's formatter wants on a single line. The file was last touched by commit `613568e` (quick task `260514-k2u`) — pre-dates this plan and is unrelated to settings store work.
+- **Issue:** `taskflow/src/routes/dashboard/WikiRenderer.test.tsx:202-204` has a multi-line `.filter((c) => ...)` that biome's formatter wants on a single line. The file was last touched by commit `054b2f03` (quick task `260514-k2u`) — pre-dates this plan and is unrelated to settings store work.
 - **Action:** Logged to `.planning/phases/55-aio-project-selection-in-settings/deferred-items.md`; commit made with `--no-verify` per the standing approval ("`--no-verify` OK when pre-existing unrelated lint hook fails", recorded in user memory `feedback_no_verify_lint.md`).
 - **Files modified for the work itself:** none (logged only).
 - **Suggested follow-up:** `cd taskflow && npm run fix` in a cleanup commit/quick task.
@@ -122,11 +122,11 @@ None of the plan's own actions deviated. One blocking-style issue was encountere
 
 ## Self-Check
 
-- [x] `taskflow/src/stores/settings.store.ts` exists (verified — modified, committed in 4d0d8aa)
-- [x] `taskflow/src/stores/settings.store.test.ts` exists (verified — modified, committed in ca86311)
+- [x] `taskflow/src/stores/settings.store.ts` exists (verified — modified, committed in ab65e28f)
+- [x] `taskflow/src/stores/settings.store.test.ts` exists (verified — modified, committed in 0b528176)
 - [x] `.planning/phases/55-aio-project-selection-in-settings/deferred-items.md` exists (verified — created)
-- [x] Commit `4d0d8aa` exists on `worktree-agent-af16cf23f8ddfa038`
-- [x] Commit `ca86311` exists on `worktree-agent-af16cf23f8ddfa038`
+- [x] Commit `ab65e28f` exists on `worktree-agent-af16cf23f8ddfa038`
+- [x] Commit `0b528176` exists on `worktree-agent-af16cf23f8ddfa038`
 - [x] `grep -c "selectedAioProjectKey" taskflow/src/stores/settings.store.ts` ≥ 4 → 4
 - [x] `grep -c "version: 17" taskflow/src/stores/settings.store.ts` → 1
 - [x] `grep -c "if (version < 17)" taskflow/src/stores/settings.store.ts` → 1

@@ -4,7 +4,7 @@ Reviewer returned findings inline; orchestrator recorded them here. Blockers spo
 
 ## Blockers
 - **CR-01** AioCycleDetailPage.tsx:108/160/183 — cycle loads but runsQuery errors → neither error block nor content renders (blank body, no retry). VERIFIED. Pre-existing gating shape (old page also required !runsQuery.isError), not a regression — still worth fixing: gate whole-page error on cycleQuery only; let ExecutionsList show runs error/retry.
-- **CR-02** aioUtils.ts:84-96 + useAioCycleData status-map query — initializeAioStatusMap swallows errors, queryFn returns true, cached 1h → all statuses Not Run after transient /config failure; map is a module global not keyed by project. VERIFIED. Pre-existing (6efe14b7).
+- **CR-02** aioUtils.ts:84-96 + useAioCycleData status-map query — initializeAioStatusMap swallows errors, queryFn returns true, cached 1h → all statuses Not Run after transient /config failure; map is a module global not keyed by project. VERIFIED. Pre-existing (6ee7615e).
 
 ## Warnings
 - WR-01 RunSidebar "Back to cycle" NavLink doesn't pop breadcrumb trail → trail includes cycle itself, grows per round-trip.

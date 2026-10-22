@@ -25,8 +25,8 @@ All three `relativeTime`/`formatTimeAgo` implementations now produce "X year[s] 
 
 ## Commits
 
-- `8fbd3bae` `test(quick-260609-fs9-01): add failing year+day tests for formatTimeAgo`
-- `a9673c73` `feat(quick-260609-fs9-01): add year+day branch to all three relativeTime implementations`
+- `6da48149` `test(quick-260609-fs9-01): add failing year+day tests for formatTimeAgo`
+- `2500b7b9` `feat(quick-260609-fs9-01): add year+day branch to all three relativeTime implementations`
 
 ## Test Results
 

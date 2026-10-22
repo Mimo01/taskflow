@@ -72,7 +72,7 @@ None — plan executed exactly as written.
 - [x] `taskflow/src/services/jira.ts` — fetchIssueWorklogs exported
 - [x] `taskflow/src/routes/dashboard/WorkloadTab.tsx` — contains `workload-subtask-row`
 - [x] `taskflow/src/routes/dashboard/WorkloadTab.test.tsx` — 4 new tests pass
-- [x] Commits: 8e7a341 (jira.ts + tests), 36553c8 (WorkloadTab + tests)
+- [x] Commits: 28e9a43b (jira.ts + tests), f363d805 (WorkloadTab + tests)
 - [x] 56 total tests pass across both test files
 
 ## Self-Check: PASSED

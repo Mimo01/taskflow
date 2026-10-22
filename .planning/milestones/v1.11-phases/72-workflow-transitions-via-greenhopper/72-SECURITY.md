@@ -44,7 +44,7 @@ threat_model verified against final implementation; no new scanning.
 | T-72-13 | Tampering | mitigate | `postTransition` grep: 1 definition in `services/jira/transitions.ts:15`; re-exported via `services/jira.ts:695`. `JiraTransition` interface: 1 canonical definition in `services/jira.ts:193` (plus a `services/jira/types.ts:76` parallel — pre-existing; `greenhopper/transitions.ts:38` imports the canonical from `../../jira`) |
 | T-72-14 | Denial of Service | mitigate | Call-site grep confirms `fetchTransitions` is fully removed (T-72-15 evidence) and `postTransition` retained at 1 definition site (T-72-13). Gate executed pre-deletion per SUMMARY |
 | T-72-15 | Information Disclosure | mitigate | `grep -rn fetchTransitions src/` returns ZERO matches. Legacy per-issue REST GET path removed; only `postTransition` retained (`services/jira/transitions.ts:1-48`) |
-| T-72-16 | Repudiation | accept | Phase work landed via standard git commits (e.g. 11570c88, 6bc87fb7, c96dedd9, 7dd2eb25, c158995c). Risk acceptance holds |
+| T-72-16 | Repudiation | accept | Phase work landed via standard git commits (e.g. 46e7e2d9, b07c770c, 7f38e0fa, f089823c, 59788e42). Risk acceptance holds |
 | T-72-SC #1 | Tampering | mitigate | Phase 72-01 PLAN: no `npm install` declared; only TS source authored |
 | T-72-SC #2 | Tampering | mitigate | Phase 72-02 PLAN: no `npm install` declared; cutover deletes legacy code only |
 | T-72-SC #3 | Tampering | mitigate | Phase 72-03 PLAN: no `npm install` declared; refresh-action wiring only |

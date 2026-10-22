@@ -76,6 +76,6 @@ wiring in the original plan still needs to be done.
 
 ## Commits
 
-- `b76d705` feat(12-04): add fetchSprintsForBoard and fetchBacklogView to jira.ts
-- `e07f9bb` feat(12-04): rewrite BacklogPage to Jira-style sprint sections layout
-- `83f76e1` refactor(12-04): update BacklogPage tests for Jira-style sprint section design
+- `9e845d8c` feat(12-04): add fetchSprintsForBoard and fetchBacklogView to jira.ts
+- `8781196b` feat(12-04): rewrite BacklogPage to Jira-style sprint sections layout
+- `92fef083` refactor(12-04): update BacklogPage tests for Jira-style sprint section design

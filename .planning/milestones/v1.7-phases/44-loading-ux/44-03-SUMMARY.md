@@ -76,8 +76,8 @@ completed: 2026-03-30
 
 ## Task Commits
 
-1. **Task 1: Wire skeletons into MyTasksTab, WorkloadTab, SprintProgressTab** - `cd03cdb` (feat)
-2. **Task 2: Wire skeletons into EpicsPage, ReleasesTab, MrAttentionTab** - `9201421` (feat)
+1. **Task 1: Wire skeletons into MyTasksTab, WorkloadTab, SprintProgressTab** - `6a32d880` (feat)
+2. **Task 2: Wire skeletons into EpicsPage, ReleasesTab, MrAttentionTab** - `fb67a65d` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -117,8 +117,8 @@ None — all skeleton components are functional. The views render their skeleton
 ## Self-Check: PASSED
 
 - SUMMARY.md: FOUND
-- Commit cd03cdb (Task 1): FOUND
-- Commit 9201421 (Task 2): FOUND
+- Commit 6a32d880 (Task 1): FOUND
+- Commit fb67a65d (Task 2): FOUND
 
 ---
 *Phase: 44-loading-ux*

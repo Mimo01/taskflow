@@ -41,7 +41,7 @@ completed: 2026-03-23
 
 ## Task Commits
 
-1. **Task 1: Add label coverage indicator to ReleaseDetailPage** - `5ef8cf8` (feat)
+1. **Task 1: Add label coverage indicator to ReleaseDetailPage** - `03915cfb` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` - Added labelCoverage memo and coverage banner UI section between Labels and Issues

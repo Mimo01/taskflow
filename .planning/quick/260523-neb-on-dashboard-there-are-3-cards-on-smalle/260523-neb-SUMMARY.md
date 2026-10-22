@@ -60,7 +60,7 @@ At the original breakpoints, viewports between `sm` (640px) and `lg` (1024px) re
 
 | Task | Name                                                                           | Commit   | Files                                  |
 | ---- | ------------------------------------------------------------------------------ | -------- | -------------------------------------- |
-| 1    | Rebalance Dashboard cards grid — 1 column below lg, 3 columns at lg+          | dc7ce077 | taskflow/src/routes/dashboard/index.tsx |
+| 1    | Rebalance Dashboard cards grid — 1 column below lg, 3 columns at lg+          | 23fa40df | taskflow/src/routes/dashboard/index.tsx |
 
 ## Deviations from Plan
 
@@ -70,5 +70,5 @@ None — plan executed exactly as written.
 
 - File `taskflow/src/routes/dashboard/index.tsx` exists and contains `grid-cols-1 lg:grid-cols-3 gap-6 p-6` on line 89.
 - `sm:grid-cols-2` no longer appears anywhere in the file.
-- Commit `dc7ce077` exists on `worktree-agent-a419bf439b01e734b` with the expected diff (+1/-1).
+- Commit `23fa40df` exists on `worktree-agent-a419bf439b01e734b` with the expected diff (+1/-1).
 - Biome check passes on the modified file.

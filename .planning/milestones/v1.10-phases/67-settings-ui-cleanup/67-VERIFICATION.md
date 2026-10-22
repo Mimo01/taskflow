@@ -74,7 +74,7 @@ Step 7c: SKIPPED — no `scripts/*/tests/probe-*.sh` files declared by this phas
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|---------|
-| SETUI-01 | 67-01-PLAN.md | Remove "sidebar items" panel from Settings → Appearance section | ✓ SATISFIED | `AppearanceSection.tsx` contains zero references to `SidebarItemsList`; removed in Phase 66 commit `da30013b` (fix(66): WR-02 remove duplicate SidebarItemsList from AppearanceSection); confirmed in Phase 67 plan verification check |
+| SETUI-01 | 67-01-PLAN.md | Remove "sidebar items" panel from Settings → Appearance section | ✓ SATISFIED | `AppearanceSection.tsx` contains zero references to `SidebarItemsList`; removed in Phase 66 commit `1422bbfb` (fix(66): WR-02 remove duplicate SidebarItemsList from AppearanceSection); confirmed in Phase 67 plan verification check |
 | SETUI-02 | 67-01-PLAN.md | Sidebar settings — visibility toggles only; remove drag-reorder UI + handlers | ✓ SATISFIED | `SidebarItemsList.tsx` has no drag handles, no dnd-kit, no reorder handlers; `reorderSidebarItem` absent from store; 6/6 must-haves verified above |
 | SETUI-03 | 67-01-PLAN.md | Default visibility = all sidebar items shown | ✓ SATISFIED | `getDefaultSidebarItems()` returns all items with `visible: true` (verified at sidebar-items.ts line 92-97); store initial state uses `getDefaultSidebarItems()`; fresh-install users get all items visible by default |
 

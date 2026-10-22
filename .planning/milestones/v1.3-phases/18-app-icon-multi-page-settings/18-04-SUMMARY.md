@@ -72,8 +72,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: applyDensity service, density CSS variants, startup call** - `1297da4` (feat)
-2. **Task 2: AppearanceSection with theme toggle and density selector** - `97b8e6a` (feat)
+1. **Task 1: applyDensity service, density CSS variants, startup call** - `b1cebec3` (feat)
+2. **Task 2: AppearanceSection with theme toggle and density selector** - `c3f48465` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/theme.ts` - Added `applyDensity()` function and `Density` type import

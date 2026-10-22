@@ -48,9 +48,9 @@ Fourth iteration of the epic progress section: working-day EWMA forecast with ex
 
 | Task | Hash | Message |
 | ---- | ---- | ------- |
-| 1 | d6075fc6 | feat(261001-ilq): adaptive forecast, CFD derivation, status-history fetcher, status colour map |
-| 2 | dd2dfc4a | feat(261001-ilq): hero + stat strip, Jira-like assignee rows, unified tooltips and status colours |
-| 3 | 2a3db14c | feat(261001-ilq): cumulative flow diagram and time chart with remaining and forecast band |
+| 1 | a9d15a1e | feat(261001-ilq): adaptive forecast, CFD derivation, status-history fetcher, status colour map |
+| 2 | 229c09f4 | feat(261001-ilq): hero + stat strip, Jira-like assignee rows, unified tooltips and status colours |
+| 3 | ec8518fa | feat(261001-ilq): cumulative flow diagram and time chart with remaining and forecast band |
 
 Each commit ran the pre-commit hook (biome, tsc incl. tests, full vitest): final run 203 files passed, 2988 tests passed, 2 skipped, 7 todo.
 
@@ -85,7 +85,7 @@ Unchanged and green: EpicDetailSheet assertions (/Stories/, 'In Progress', 'Done
 
 ## Deviations from Plan
 
-1. **[Setup] Base reset.** The worktree HEAD was 7f156622, not 6269fc28; reset --hard to 6269fc28 per the base check.
+1. **[Setup] Base reset.** The worktree HEAD was 20599798, not 3a95740c; reset --hard to 3a95740c per the base check.
 2. **[Test port, within change 16]** The 'counts a story created past local today at today' test was converted to `deriveCfd` instead of being deleted (same intent, keeps coverage). Not in the plan's exact list; flagged for review.
 3. **Neighbour mock additions (planned in Task 3 g, not a deviation in kind):** `IssueDetailContent.test.tsx`, `IssueDetailPage.progressive.test.tsx` and `EpicDetailSheet.test.tsx` gained `fetchEpicStatusHistory` / `fetchAllJiraStatuses` mocks. These suites also passed before the mocks (queries error silently into the fallback), so the additions are defensive. Those files also gained the `rowTexts` helper where needed (changes 13-15).
 4. **Forecast clamping detail.** After `ceil`, `nPess = max(nLikely, ceil(s+^2))` and `nOpt = min(nLikely, ceil(s-^2))` so the rounded triple is always ordered. This is not a threshold change.
@@ -108,5 +108,5 @@ All eight pinned cases passed on the first run with the RESEARCH constants (MIN_
 
 ## Self-Check: PASSED
 
-- Commits d6075fc6, dd2dfc4a, 2a3db14c exist on branch worktree-agent-ac4aedf350f60b602.
+- Commits a9d15a1e, 229c09f4, ec8518fa exist on branch worktree-agent-ac4aedf350f60b602.
 - Created files verified on disk; `.at(` count in epic-progress.ts = 0; `fetchEpicStories` untouched; no `color-gray-400` / `color-green-500` left in `issue-detail/*.tsx`.

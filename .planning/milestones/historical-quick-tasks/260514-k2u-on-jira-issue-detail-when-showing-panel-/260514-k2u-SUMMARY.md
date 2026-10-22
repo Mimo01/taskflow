@@ -39,16 +39,16 @@ The fix also covers the `<span data-callout>` variant used for callouts inside t
 
 ## TDD Gate
 
-- **RED commit:** `5a72844` — test(260514-k2u): add failing regression test for callout first/last-child margin reset
-- **GREEN commit:** `131f813` — feat(260514-k2u): zero first/last-child paragraph margins inside callout panels
+- **RED commit:** `b0a6924b` — test(260514-k2u): add failing regression test for callout first/last-child margin reset
+- **GREEN commit:** `fec1e1bc` — feat(260514-k2u): zero first/last-child paragraph margins inside callout panels
 - All 40 WikiRenderer tests pass after fix.
 
 ## Commits
 
 | Phase | Hash | Message |
 |-------|------|---------|
-| RED | 5a72844 | test(260514-k2u): add failing regression test for callout first/last-child margin reset |
-| GREEN | 131f813 | feat(260514-k2u): zero first/last-child paragraph margins inside callout panels |
+| RED | b0a6924b | test(260514-k2u): add failing regression test for callout first/last-child margin reset |
+| GREEN | fec1e1bc | feat(260514-k2u): zero first/last-child paragraph margins inside callout panels |
 
 ## Task 2: Human Verification (Pending UAT)
 
@@ -74,8 +74,8 @@ None — plan executed exactly as written.
 
 - taskflow/src/routes/dashboard/WikiRenderer.tsx: modified (calloutStyles map updated)
 - taskflow/src/routes/dashboard/WikiRenderer.test.tsx: modified (regression test added)
-- RED commit 5a72844: FOUND
-- GREEN commit 131f813: FOUND
+- RED commit b0a6924b: FOUND
+- GREEN commit fec1e1bc: FOUND
 - All 40 tests pass
 
 ## Round 2 — UAT failure & broader fix (2026-05-14)
@@ -88,7 +88,7 @@ None — plan executed exactly as written.
 
 **Test added:** Regression test mounts a verbatim SHOP-style fixture (panel-in-table-cell with `<ol>`), asserts the `<ol>` actually rendered inside the `<span data-callout="panel">`, and asserts both `[&>*:first-child]:mt-0` and `[&>*:last-child]:mb-0` are present on the className. 41/41 tests pass.
 
-**Commit (round 2):** `901052c` — fix(260514-k2u): broaden callout margin-reset selector to all element types
+**Commit (round 2):** `c1551ad7` — fix(260514-k2u): broaden callout margin-reset selector to all element types
 
 **Re-UAT pending.** Verify by reopening the same Jira issue/test-run cell that originally exposed the bug — the panel containing the numbered list of attachment links should now have ~12px top/bottom padding (matching `p-3`) instead of the previous doubled spacing shown in the round-1 UAT screenshot.
 
@@ -109,17 +109,17 @@ None — plan executed exactly as written.
 
 **Test added:** Mounts the SHOP table-cell fixture and asserts (a) no `<br>` is a direct child of `<span data-callout>`, and (b) `firstElementChild` / `lastElementChild` of the panel span are both the `<ol>`. 42/42 tests pass.
 
-**Commit (round 3):** `613568e` — fix(260514-k2u): strip stray leading/trailing <br/> from inline panel span
+**Commit (round 3):** `054b2f03` — fix(260514-k2u): strip stray leading/trailing <br/> from inline panel span
 
 ## UAT Approved (2026-05-14)
 
 User confirmed round-3 fix resolved the visible padding issue. Task 2 (visual verification) is complete.
 
 **Final commit chain:**
-- `5a72844` test — RED regression
-- `131f813` feat — GREEN round-1 (added `[&>p:…]` reset; insufficient for non-`<p>` children)
-- `901052c` fix — round-2 broadened to `[&>*:…]` (still insufficient — selector zeroed `<br>` margins that don't exist)
-- `613568e` fix — round-3 stripped stray leading/trailing `<br/>` at the preprocess layer (resolved)
+- `b0a6924b` test — RED regression
+- `fec1e1bc` feat — GREEN round-1 (added `[&>p:…]` reset; insufficient for non-`<p>` children)
+- `c1551ad7` fix — round-2 broadened to `[&>*:…]` (still insufficient — selector zeroed `<br>` margins that don't exist)
+- `054b2f03` fix — round-3 stripped stray leading/trailing `<br/>` at the preprocess layer (resolved)
 
 ## Postmortem
 

@@ -98,8 +98,8 @@ Files exist:
 - taskflow/src/services/aio/types.ts: FOUND
 
 Commits:
-- 4b520a2: docs(56-05): add probe findings comment to issue-runs.ts — FOUND
-- 1b22a58: fix(56-05): resolve jiraDefectIDs to Jira keys in normalizeTestRun — FOUND
+- 19aed3ff: docs(56-05): add probe findings comment to issue-runs.ts — FOUND
+- 28a45bbb: fix(56-05): resolve jiraDefectIDs to Jira keys in normalizeTestRun — FOUND
 
 Test results: 1083 passed, 0 failed, full suite green.
 TypeScript: 0 errors in files modified by this plan (2 pre-existing errors in AioCycleDetailPage.tsx and AioProjectOverviewPage.tsx are out of scope).

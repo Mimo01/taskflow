@@ -81,8 +81,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Annotate apiFetch call sites with operation labels** - `3ab873d` (feat)
-2. **Task 2: Wire routing, shortcut, and remove old debug-logs references** - `9667d7b` (feat)
+1. **Task 1: Annotate apiFetch call sites with operation labels** - `9bc349c1` (feat)
+2. **Task 2: Wire routing, shortcut, and remove old debug-logs references** - `013acc52` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/issues.ts` - Load My Tasks, Load Issue Detail, Search Issues, Create/Edit Issue labels
@@ -125,7 +125,7 @@ Each task was committed atomically:
 - **Fix:** Added the correct operation label string as 4th argument to all failing assertions
 - **Files modified:** comments.test.ts, issues.test.ts, links.test.ts, sprints.test.ts, transitions.test.ts
 - **Verification:** All 615 tests pass
-- **Committed in:** 9667d7b (Task 2 commit)
+- **Committed in:** 013acc52 (Task 2 commit)
 
 ---
 

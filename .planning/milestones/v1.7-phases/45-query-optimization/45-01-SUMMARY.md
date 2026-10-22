@@ -64,9 +64,9 @@ requirements-completed: [QOPT-01, QOPT-02]
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Concurrency limiter + useBoardId hook + install p-limit | 6ce0aed | concurrency.ts, concurrency.test.ts, useBoardId.ts, useBoardId.test.ts, client.ts, sprints.ts, package.json |
-| 2 | Split fetchSprintIssues into fetchSprintStories + fetchSprintSubtasks | 9bc83c8 | issues.ts, issues.test.ts |
-| 3 | Refactor fetchBacklogView to accept boardId and remove epic batch | e936696 | backlog.ts, backlog.test.ts, types.ts |
+| 1 | Concurrency limiter + useBoardId hook + install p-limit | edc4b3e5 | concurrency.ts, concurrency.test.ts, useBoardId.ts, useBoardId.test.ts, client.ts, sprints.ts, package.json |
+| 2 | Split fetchSprintIssues into fetchSprintStories + fetchSprintSubtasks | 14c8f968 | issues.ts, issues.test.ts |
+| 3 | Refactor fetchBacklogView to accept boardId and remove epic batch | f7a39622 | backlog.ts, backlog.test.ts, types.ts |
 
 ## What Was Built
 
@@ -110,9 +110,9 @@ None — no stub patterns or placeholder data in this plan's changes.
 - [x] taskflow/src/lib/concurrency.test.ts exists
 - [x] taskflow/src/hooks/useBoardId.ts exists
 - [x] taskflow/src/hooks/useBoardId.test.ts exists
-- [x] commit 6ce0aed exists (Task 1)
-- [x] commit 9bc83c8 exists (Task 2)
-- [x] commit e936696 exists (Task 3)
+- [x] commit edc4b3e5 exists (Task 1)
+- [x] commit 14c8f968 exists (Task 2)
+- [x] commit f7a39622 exists (Task 3)
 - [x] getJiraLimit() wired in client.ts
 - [x] fetchSprintStories and fetchSprintSubtasks exported from issues.ts
 - [x] fetchBacklogView accepts boardId parameter

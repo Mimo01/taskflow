@@ -17,14 +17,14 @@ updated: 2026-06-17
 ## Current Focus
 
 ```yaml
-hypothesis: "?fields=*navigable omits `attachment` (non-navigable field in Jira DC); commit 7b8d3b92 switched from explicit field list (which included 'attachment') to *navigable, silently dropping it from the response"
-test: "Examined git diff of 7b8d3b92 — original code explicitly listed 'attachment' in fields array; new code uses fields=*navigable which excludes non-navigable fields"
+hypothesis: "?fields=*navigable omits `attachment` (non-navigable field in Jira DC); commit e2684e88 switched from explicit field list (which included 'attachment') to *navigable, silently dropping it from the response"
+test: "Examined git diff of e2684e88 — original code explicitly listed 'attachment' in fields array; new code uses fields=*navigable which excludes non-navigable fields"
 expecting: "Adding ,attachment to the query string restores issue.fields.attachment in the response"
 next_action: "Request human verification that attachments now display"
 reasoning_checkpoint:
   hypothesis: "fetchIssueDetail switched from explicit fields=...attachment... to fields=*navigable; attachment is not a navigable field in Jira DC so it is absent from the response; issue.fields.attachment is undefined; AttachmentsSection receives [] and renders blank"
   confirming_evidence:
-    - "git show 7b8d3b92 shows 'attachment' was in the explicit field list before the commit, then removed when switching to *navigable"
+    - "git show e2684e88 shows 'attachment' was in the explicit field list before the commit, then removed when switching to *navigable"
     - "AttachmentsSection receives issue.fields.attachment ?? [] — undefined ?? [] = [] → empty render"
     - "No console error because [] is a valid empty array, not an error state"
     - "Symptom is 'was working, broke recently' which matches the exact commit date (2026-06-17)"
@@ -37,8 +37,8 @@ tdd_checkpoint: ""
 ## Evidence
 
 - timestamp: 2026-06-17
-  checked: "git log + git show 7b8d3b92 on taskflow/src/services/jira.ts"
-  found: "Commit 7b8d3b92 (2026-06-17) switched fetchIssueDetail from explicit fields list (included 'attachment') to ?fields=*navigable. The 'attachment' field was explicitly present in the old list and was silently dropped."
+  checked: "git log + git show e2684e88 on taskflow/src/services/jira.ts"
+  found: "Commit e2684e88 (2026-06-17) switched fetchIssueDetail from explicit fields list (included 'attachment') to ?fields=*navigable. The 'attachment' field was explicitly present in the old list and was silently dropped."
   implication: "Jira's *navigable expansion does not include the attachment field. issue.fields.attachment becomes undefined on every issue detail load since that commit."
 
 - timestamp: 2026-06-17
@@ -56,7 +56,7 @@ tdd_checkpoint: ""
 ## Resolution
 
 ```yaml
-root_cause: "commit 7b8d3b92 switched fetchIssueDetail from an explicit Jira fields list (which included 'attachment') to ?fields=*navigable. The `attachment` field is not navigable in Jira DC and is therefore excluded from *navigable responses. issue.fields.attachment became undefined on every fetch, falling back to [] in the UI."
+root_cause: "commit e2684e88 switched fetchIssueDetail from an explicit Jira fields list (which included 'attachment') to ?fields=*navigable. The `attachment` field is not navigable in Jira DC and is therefore excluded from *navigable responses. issue.fields.attachment became undefined on every fetch, falling back to [] in the UI."
 fix: "Changed ?fields=*navigable to ?fields=*navigable,attachment in fetchIssueDetail URL (jira.ts line ~1631). This explicitly requests the non-navigable attachment field alongside all navigable fields."
 verification: "confirmed by user — attachments now display correctly"
 files_changed:

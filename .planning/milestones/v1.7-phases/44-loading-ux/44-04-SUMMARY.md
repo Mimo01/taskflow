@@ -80,8 +80,8 @@ Traceability table updated to match checkbox states.
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| Task 1 | de958cd | fix(44-04): remove unused refetch from useQuery destructurings in 8 view files |
-| Task 2 | 9f3d37c | docs(44-04): update REQUIREMENTS.md to reflect LOAD-03 deferred and LOAD-04 partial status |
+| Task 1 | d9e6d863 | fix(44-04): remove unused refetch from useQuery destructurings in 8 view files |
+| Task 2 | ddb6e613 | docs(44-04): update REQUIREMENTS.md to reflect LOAD-03 deferred and LOAD-04 partial status |
 
 ## Deviations from Plan
 
@@ -95,4 +95,4 @@ None.
 
 - `taskflow/src/routes/dashboard/SprintBoardTab.tsx` — FOUND (modified, no unused refetch)
 - `.planning/REQUIREMENTS.md` — FOUND (LOAD-03 deferred, LOAD-04 partial, traceability updated)
-- Commits de958cd and 9f3d37c — VERIFIED in git log
+- Commits d9e6d863 and ddb6e613 — VERIFIED in git log

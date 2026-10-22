@@ -61,8 +61,8 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Remove inline NotificationDetail and simplify click handling** - `fb0531c` (feat)
-2. **Task 2: Update notification tests for simplified behavior** - `6bc2a0a` (test)
+1. **Task 1: Remove inline NotificationDetail and simplify click handling** - `ff341e5d` (feat)
+2. **Task 2: Update notification tests for simplified behavior** - `2143986b` (test)
 
 ## Files Created/Modified
 - `taskflow/src/routes/notifications/NotificationPopover.tsx` - Removed useState/selectedItem, NotificationDetail import; added onClose prop; simplified handleRowClick

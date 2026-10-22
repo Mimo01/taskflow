@@ -37,7 +37,7 @@ Global and local gitignore configured to exclude .claude/ directory; 146 previou
 - Created `.gitignore` in project root with `.claude/` entry
 - Removed 146 .claude files from git index using `git rm -r --cached .claude/`
 - Files remain on disk, only removed from version control
-- Committed as `268b909`
+- Committed as `0e8c5ed7`
 
 ## Deviations from Plan
 
@@ -57,6 +57,6 @@ None - plan executed exactly as written.
 
 | Hash | Message |
 |------|---------|
-| 268b909 | chore: add gitignore and remove .claude from git tracking |
+| 0e8c5ed7 | chore: add gitignore and remove .claude from git tracking |
 
 ## Self-Check: PASSED

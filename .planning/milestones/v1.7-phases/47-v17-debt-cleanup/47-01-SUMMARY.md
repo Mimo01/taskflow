@@ -59,8 +59,8 @@ completed: 2026-03-30
 
 Each task was committed atomically:
 
-1. **Task 1: Replace literal 30_000 with STALE_TIME_MS and remove dead mock** - `58a1cf5` (refactor)
-2. **Task 2: Add stats.html to .gitignore** - `a1c6af9` (chore)
+1. **Task 1: Replace literal 30_000 with STALE_TIME_MS and remove dead mock** - `bf66741b` (refactor)
+2. **Task 2: Add stats.html to .gitignore** - `9d357db7` (chore)
 
 **Plan metadata:** (docs commit follows)
 
@@ -93,8 +93,8 @@ None - no external service configuration required.
 - FOUND: taskflow/src/routes/dashboard/SprintBoardTab.test.tsx
 - FOUND: taskflow/.gitignore (contains stats.html)
 - FOUND: stats.html deleted from disk
-- FOUND: commit 58a1cf5 (task 1)
-- FOUND: commit a1c6af9 (task 2)
+- FOUND: commit bf66741b (task 1)
+- FOUND: commit 9d357db7 (task 2)
 
 ---
 *Phase: 47-v17-debt-cleanup*

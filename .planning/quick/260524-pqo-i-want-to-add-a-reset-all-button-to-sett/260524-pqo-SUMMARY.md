@@ -38,9 +38,9 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| RED  | Failing unit tests for reset actions | 5ced9cb7 | settings.store.test.ts |
-| GREEN | resetSettings + resetAuth store actions | b58375f0 | settings.store.ts, auth.store.ts |
-| 2    | Three reset rows with confirm dialogs | 841c5a58 | DebugModeSection.tsx |
+| RED  | Failing unit tests for reset actions | 61f11064 | settings.store.test.ts |
+| GREEN | resetSettings + resetAuth store actions | f7908b6c | settings.store.ts, auth.store.ts |
+| 2    | Three reset rows with confirm dialogs | 7171c4a1 | DebugModeSection.tsx |
 
 ## What Was Built
 
@@ -98,8 +98,8 @@ None — no new network endpoints, auth paths, or file access patterns introduce
 
 ## TDD Gate Compliance
 
-- RED gate commit: `5ced9cb7` (test(quick-260524-pqo-01): add failing tests...)
-- GREEN gate commit: `b58375f0` (feat(quick-260524-pqo-01): add resetSettings + resetAuth...)
+- RED gate commit: `61f11064` (test(quick-260524-pqo-01): add failing tests...)
+- GREEN gate commit: `f7908b6c` (feat(quick-260524-pqo-01): add resetSettings + resetAuth...)
 - Both gates present. No REFACTOR pass needed (code was clean on first pass).
 
 ## Self-Check: PASSED
@@ -108,6 +108,6 @@ None — no new network endpoints, auth paths, or file access patterns introduce
 - taskflow/src/stores/auth.store.ts: FOUND
 - taskflow/src/stores/settings.store.test.ts: FOUND
 - taskflow/src/routes/settings/DebugModeSection.tsx: FOUND
-- Commit 5ced9cb7: FOUND
-- Commit b58375f0: FOUND
-- Commit 841c5a58: FOUND
+- Commit 61f11064: FOUND
+- Commit f7908b6c: FOUND
+- Commit 7171c4a1: FOUND

@@ -58,9 +58,9 @@ requirements-completed: [QOPT-01, QOPT-02, QOPT-03]
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Wire SprintBoardTab parallel queries and BacklogPage useBoardId | baad23e | SprintBoardTab.tsx, BacklogPage.tsx, package.json |
-| 2 | Sidebar prefetch + dev tools concurrency toggle | 80060c0 | Sidebar.tsx, DebugModeSection.tsx, settings.store.ts, SprintBoardTab.test.tsx, BacklogPage.test.tsx |
-| 3 | Verify + fix prefetch (checkpoint resolution) | 9e9107d | Sidebar.tsx (queryFn added to all prefetchQuery calls) |
+| 1 | Wire SprintBoardTab parallel queries and BacklogPage useBoardId | c249ad01 | SprintBoardTab.tsx, BacklogPage.tsx, package.json |
+| 2 | Sidebar prefetch + dev tools concurrency toggle | 87ec6474 | Sidebar.tsx, DebugModeSection.tsx, settings.store.ts, SprintBoardTab.test.tsx, BacklogPage.test.tsx |
+| 3 | Verify + fix prefetch (checkpoint resolution) | ccf92ce5 | Sidebar.tsx (queryFn added to all prefetchQuery calls) |
 
 ## What Was Built
 
@@ -138,42 +138,42 @@ requirements-completed: [QOPT-01, QOPT-02, QOPT-03]
 - **Issue:** `concurrency.ts` imports `p-limit` but the package wasn't installed in this worktree (Plan 01 added it to package.json but `npm install` wasn't run)
 - **Fix:** `npm install p-limit` in taskflow directory
 - **Files modified:** package-lock.json (already in package.json from Plan 01)
-- **Commit:** baad23e
+- **Commit:** c249ad01
 
 **2. [Rule 1 - Bug] Variable name collision: `stories` query result vs `stories` filter variable**
 - **Found during:** Task 1 TypeScript check (TS2451: Cannot redeclare block-scoped variable)
 - **Issue:** Named the new query result `stories` but the component already had `const stories = localIssues.filter(...)` later in the same scope
 - **Fix:** Renamed the local variable to `storyIssues` and `subtaskIssues` to avoid collision
 - **Files modified:** SprintBoardTab.tsx
-- **Commit:** baad23e
+- **Commit:** c249ad01
 
 **3. [Rule 1 - Bug] BacklogViewData type mismatch between jira.ts and jira/types.ts**
 - **Found during:** Task 1 TypeScript check
 - **Issue:** `jira.ts` has `epicNames: Map<string, string>` (non-optional), `jira/types.ts` has `epicNames?: Map<string, string>` (optional). Using wrong type caused TS error
 - **Fix:** Import `BacklogViewData` from `@/services/jira/types` (the correct new definition) instead of `@/services/jira`
 - **Files modified:** BacklogPage.tsx
-- **Commit:** baad23e
+- **Commit:** c249ad01
 
 **4. [Rule 1 - Bug] `EpicEnriched.epicColor` property doesn't exist — correct name is `color`**
 - **Found during:** Task 1 TypeScript check
 - **Issue:** Plan spec used `e.epicColor` but `EpicEnriched` interface defines the field as `color`
 - **Fix:** Updated to `e.color`
 - **Files modified:** BacklogPage.tsx
-- **Commit:** baad23e
+- **Commit:** c249ad01
 
 **5. [Rule 1 - Bug] SprintBoardTab.test.tsx and BacklogPage.test.tsx broken by query split**
 - **Found during:** Task 2 test run (test runner crash on issuetype undefined)
 - **Issue:** All 20 SprintBoardTab tests and 16 BacklogPage tests used `fetchSprintIssues` mock. After the query split, the new `fetchSprintStories`/`fetchSprintSubtasks` functions were unmocked, causing the component to receive undefined/unresolvable query results
 - **Fix:** Added global mocks for new modules; updated all individual tests to mock the split functions; BacklogPage tests also needed `useBoardId` mock returning `boardId: 1` (non-null to unblock query), and `fetchBacklogView` import updated to `@/services/jira/backlog`
 - **Files modified:** SprintBoardTab.test.tsx, BacklogPage.test.tsx
-- **Commit:** 80060c0
+- **Commit:** 87ec6474
 
 **6. [Rule 1 - Bug] Sidebar prefetch was a no-op (reported during human-verify checkpoint)**
 - **Found during:** Task 3 (checkpoint:human-verify — user reported "prefetch doesn't seem to work")
 - **Issue:** `queryClient.prefetchQuery()` called without `queryFn`. TanStack Query's prefetchQuery without a queryFn only checks if cache data exists and is fresh — it cannot actually fetch anything for queries that were never previously registered (cold cache)
 - **Fix:** Added `jiraToken` state via `readSecret('jira-pat')` in Sidebar, provided real `queryFn` callbacks using actual service functions (fetchSprintStories, fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses). Merged /sprint-board and /dashboard cases. Skipped backlog-view (needs async boardId) and /my-tasks (complex internal logic) prefetch.
 - **Files modified:** Sidebar.tsx
-- **Commit:** 9e9107d
+- **Commit:** ccf92ce5
 
 ## Known Stubs
 
@@ -200,9 +200,9 @@ None — no stub patterns or placeholder data in this plan's changes.
 - [x] taskflow/src/routes/settings/DebugModeSection.tsx contains `jiraConcurrencyLimit` and `<Select` element
 - [x] taskflow/src/stores/settings.store.ts contains `jiraConcurrencyLimit: 6` (default)
 - [x] taskflow/src/stores/settings.store.ts contains `setJiraConcurrencyLimit` action
-- [x] commit baad23e exists (Task 1)
-- [x] commit 80060c0 exists (Task 2)
-- [x] commit 9e9107d exists (Task 3 fix)
+- [x] commit c249ad01 exists (Task 1)
+- [x] commit 87ec6474 exists (Task 2)
+- [x] commit ccf92ce5 exists (Task 3 fix)
 - [x] Sidebar.tsx prefetchQuery calls include queryFn with real service functions
 - [x] Sidebar.tsx loads jiraToken from Stronghold via readSecret
 - [x] 817 tests passing, 0 failures, TypeScript compiles clean

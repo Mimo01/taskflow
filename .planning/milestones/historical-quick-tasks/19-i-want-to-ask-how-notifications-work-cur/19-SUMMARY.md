@@ -41,8 +41,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| RED | Failing tests for assignee/reporter/watcher broadening | 8b39427 | notifications.test.ts |
-| GREEN | Rewrite fetchNewJiraComments with dual-query strategy | 5fd923c | notifications.ts, notifications.test.ts |
+| RED | Failing tests for assignee/reporter/watcher broadening | cb4e9af5 | notifications.test.ts |
+| GREEN | Rewrite fetchNewJiraComments with dual-query strategy | 298138f8 | notifications.ts, notifications.test.ts |
 
 ## What Was Built
 
@@ -79,12 +79,12 @@ Both queries run concurrently. Failure of one doesn't prevent the other from ret
 - **Issue:** 3 original comment-mention tests and the merge-and-sort test only mocked one `fetch` call. With two Jira queries now running, the first mock response was consumed by Query A (which silently discarded it as non-matching), leaving Query B with no mock — returning [].
 - **Fix:** Added `emptyIssuesResp` mock as the first response in each affected test, so Query A consumes it and Query B receives the intended comment-mention fixture.
 - **Files modified:** `taskflow/src/services/notifications.test.ts`
-- **Commit:** 5fd923c
+- **Commit:** 298138f8
 
 ## Self-Check: PASSED
 
 - taskflow/src/services/notifications.ts — FOUND
 - taskflow/src/services/notifications.test.ts — FOUND
-- Commit 8b39427 (RED) — FOUND
-- Commit 5fd923c (GREEN) — FOUND
+- Commit cb4e9af5 (RED) — FOUND
+- Commit 298138f8 (GREEN) — FOUND
 - All 15 tests pass

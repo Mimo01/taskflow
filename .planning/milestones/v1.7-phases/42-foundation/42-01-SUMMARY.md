@@ -66,8 +66,8 @@ completed: 2026-03-29
 
 Each task was committed atomically:
 
-1. **Task 1: Create RouteSpinner and ChunkErrorBoundary with tests** - `d0b4de4` (feat)
-2. **Task 2: Wire lazy routes in routes.tsx** - `41e7194` (feat)
+1. **Task 1: Create RouteSpinner and ChunkErrorBoundary with tests** - `842a7033` (feat)
+2. **Task 2: Wire lazy routes in routes.tsx** - `1b8f7040` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/ui/route-spinner.tsx` - Centered Loader2 spinner with role=status, aria-label
@@ -110,5 +110,5 @@ None - no external service configuration required.
 - FOUND: taskflow/src/components/ChunkErrorBoundary.test.tsx
 - FOUND: taskflow/src/routes/routes.tsx
 - FOUND: .planning/phases/42-foundation/42-01-SUMMARY.md
-- FOUND: commit d0b4de4
-- FOUND: commit 41e7194
+- FOUND: commit 842a7033
+- FOUND: commit 1b8f7040

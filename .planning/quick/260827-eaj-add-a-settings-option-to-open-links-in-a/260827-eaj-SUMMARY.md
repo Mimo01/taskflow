@@ -54,17 +54,17 @@ Added a Links section to Settings with a cross-platform browser picker (System D
 
 ## What was built
 
-**Task 1 — Backend browser detection + capability scope** (`275f2687`)
+**Task 1 — Backend browser detection + capability scope** (`8ca278ef`)
 - `list_browsers` Tauri command in `src-tauri/src/lib.rs`: detects installed browsers via `Path::exists()` only (no subprocess, no new crate) across macOS (`/Applications` + `~/Applications`), Windows (`%ProgramFiles%`/`%ProgramFiles(x86)%`/`%LOCALAPPDATA%`), and Linux (`$PATH` scan). Returns an empty `Vec<BrowserInfo>` on no matches — never errors.
 - `capabilities/default.json`: added an additive `opener:allow-open-url` scope (`{ "url": "http://*", "app": true }` + https variant) alongside the existing `opener:default`, so a non-default `openUrl(url, appPath)` call no longer resolves to `Application::Default` and gets silently rejected.
 
-**Task 2 — openExternal choke point + 12 call-site migration** (`5a03826a`)
+**Task 2 — openExternal choke point + 12 call-site migration** (`6948018d`)
 - `src/lib/openExternal.ts`: reads `useSettingsStore.getState().externalBrowser` imperatively, tries the selected browser first (if any), falls back to the OS default, and never rejects. Accepts an optional `onFallbackFailed` callback for one additional caller-owned fallback rung.
 - `settings.store.ts`: added `externalBrowser: string | null` + `setExternalBrowser`, bumped persist version 28 → 29 with a migrate branch.
 - Migrated all 12 `openUrl(` call sites across 9 files (WikiRenderer, DiscussionThreads, IssueDetailContent, ReleaseDetailPage, SubtasksPanel, MergeRequestDetailPage, ReleaseDetailSidebar ×3, UnifiedTaskTable ×2, NotificationPopover) to `openExternal(`.
 - 4 behavior tests for `openExternal` (null preference, selected preference, fallback-on-failure, no-retry-on-null-failure) — all pass.
 
-**Task 3 — Links settings section** (`059eda30`)
+**Task 3 — Links settings section** (`e1cb1321`)
 - `LinksSection.tsx`: fetches `list_browsers` via `tauriService.invoke` on mount, renders a shadcn `Select` with "System Default" (mapped to `null` via a `__default__` sentinel) plus every detected browser. If the persisted `externalBrowser` path isn't in the fetched list, an extra "(basename) (not found)" option keeps the Select honest without auto-clearing the setting.
 - Wired into `Settings.tsx`: new `'links'` section between Appearance and Sidebar, using the `ExternalLink` icon (distinct from `Link2` used by Connections).
 
@@ -77,21 +77,21 @@ Added a Links section to Settings with a cross-platform browser picker (System D
 - **Issue:** `SubtasksPanel.test.tsx` mocks `openUrl` to always reject, expecting the panel's try/catch to fall through to `window.open`. Since `openExternal` swallows all rejections (per the locked "fail quietly" decision), the panel's catch would never fire.
 - **Fix:** Added an optional `onFallbackFailed?: () => void` parameter to `openExternal` (backward-compatible — all other 8 call sites pass none) that fires only when the final default-browser `openUrl` attempt also fails. `SubtasksPanel.tsx`'s `openJiraIssue` passes a callback that calls `window.open(...)`, preserving the three-rung chain (selected browser → default browser → `window.open`) exactly as the plan's Task 2 action text explicitly authorized ("adjust the panel, not the test").
 - **Files modified:** `src/lib/openExternal.ts`, `src/routes/dashboard/SubtasksPanel.tsx`
-- **Commit:** `5a03826a`
+- **Commit:** `6948018d`
 
 **2. [Rule 1 - Bug] Two existing test files' settings-store mocks lacked `getState()`, breaking `openExternal`'s imperative read**
 - **Found during:** Task 2 (running `npx vitest run` for the full dashboard/notifications/stores suite)
 - **Issue:** `IssueDetailSheet.test.tsx` and `SubtasksPanel.test.tsx` each mock `@/stores/settings.store` as a plain callable (`useSettingsStore: vi.fn(() => ({...}))`) with no `.getState` static. `openExternal` calls `useSettingsStore.getState()` for non-React call sites, which threw `TypeError: useSettingsStore.getState is not a function` when a mocked test clicked an "open in browser" affordance.
 - **Fix:** Added a `getState: () => state` static to both mocks' `useSettingsStore` stand-ins (mirroring the pattern already used in `UpdatesSection.test.tsx`), plus `externalBrowser: null` in each mock's state object.
 - **Files modified:** `src/routes/dashboard/IssueDetailSheet.test.tsx`, `src/routes/dashboard/SubtasksPanel.test.tsx`
-- **Commit:** `5a03826a`
+- **Commit:** `6948018d`
 
 **3. [Rule 1 - Bug] settings.store.test.ts's hardcoded version-28 smoke test needed updating for the version 29 bump**
 - **Found during:** Task 2
 - **Issue:** A source-string assertion test (`persist version is 28 (v28 migration smoke...)`) reads `settings.store.ts` and asserts `version === 28`. Bumping to 29 for `externalBrowser` broke this test by design (it's meant to catch exactly this kind of drift).
 - **Fix:** Updated the test to assert 29 with an updated description, and added a new `externalBrowser defaults to null` assertion.
 - **Files modified:** `src/stores/settings.store.test.ts`
-- **Commit:** `5a03826a`
+- **Commit:** `6948018d`
 
 No architectural deviations (Rule 4) were needed.
 
@@ -109,4 +109,4 @@ The plan's Task 3 `<human-check>` step (launch `npm run tauri dev`, manually pic
 
 ## Self-Check: PASSED
 
-All 8 key files confirmed present on disk (`ls` verification). All 3 task commits (`275f2687`, `5a03826a`, `059eda30`) confirmed present in `git log`.
+All 8 key files confirmed present on disk (`ls` verification). All 3 task commits (`8ca278ef`, `6948018d`, `e1cb1321`) confirmed present in `git log`.

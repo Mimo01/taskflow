@@ -120,9 +120,9 @@ None — all functions are fully implemented with real logic.
 - [x] `taskflow/src/hooks/useAioCredentials.test.ts` exists (4 tests)
 - [x] `taskflow/src/lib/aioUtils.ts` exists
 - [x] `taskflow/src/lib/aioUtils.test.ts` exists (12 tests)
-- [x] Commit 517b738 exists (Task 1)
-- [x] Commit d73a605 exists (Task 2)
-- [x] Commit 5e5efeb exists (Task 3)
+- [x] Commit 4928c395 exists (Task 1)
+- [x] Commit 54ce047d exists (Task 2)
+- [x] Commit 2f9a2d0b exists (Task 3)
 - [x] `grep -c "readSecret" AioTestRunDetailPage.tsx` → 0
 - [x] `grep -c "useAioCredentials" AioTestRunDetailPage.tsx` → 2
 - [x] `grep "queryKey.*token"` → 0 lines

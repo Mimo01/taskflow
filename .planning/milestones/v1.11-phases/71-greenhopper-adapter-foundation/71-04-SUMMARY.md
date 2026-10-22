@@ -127,5 +127,5 @@ The worktree's `taskflow/node_modules` was missing — symlinked it to the main 
 - `taskflow/src/services/jira/greenhopper/entityMaps.ts` — FOUND
 - `taskflow/src/services/jira/greenhopper/entityMaps.test.ts` — FOUND
 - Commits in git log:
-  - `85ff0fb4` `test(71-04): add failing tests for entityMaps resolvers` — FOUND (RED)
-  - `f9a1aa96` `feat(71-04): implement entityMaps buildEntityMaps + resolvers` — FOUND (GREEN)
+  - `cd6c4c5c` `test(71-04): add failing tests for entityMaps resolvers` — FOUND (RED)
+  - `f68523a2` `feat(71-04): implement entityMaps buildEntityMaps + resolvers` — FOUND (GREEN)

@@ -65,8 +65,8 @@ audited: 2026-05-23
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Sticky CSS visual behavior (vertical/horizontal scroll, z-index layering, opaque `bg-background` fill) | D-01..D-10 layout | CSS `sticky` positioning, z-index stacking, and "no bleed-through" cannot be reliably asserted in jsdom — requires a real browser layout engine. | `64-UAT.md` item 2 — scroll the table both axes; corner stays in place, no content bleed. ✅ pass 2026-05-23. |
-| Cursor-pointer on epic/story/subtask title text | D-08, D-10 | Tailwind v4 Preflight overrides require live render to verify. | `64-UAT.md` item 3 — hover over title text; cursor is pointer (not default). ✅ pass after `cadfaefc`. |
-| Issue-detail breadcrumb shows "Worklogs" (not "Home") | D-09 | Requires the live route layout + breadcrumb store + `main.tsx routeLabel()` integration. | `64-UAT.md` item 3 (note) — navigate to issue from worklogs row; breadcrumb trail reads `Worklogs > KEY`. ✅ pass after `bfd0f6d5`. |
+| Cursor-pointer on epic/story/subtask title text | D-08, D-10 | Tailwind v4 Preflight overrides require live render to verify. | `64-UAT.md` item 3 — hover over title text; cursor is pointer (not default). ✅ pass after `ce053fad`. |
+| Issue-detail breadcrumb shows "Worklogs" (not "Home") | D-09 | Requires the live route layout + breadcrumb store + `main.tsx routeLabel()` integration. | `64-UAT.md` item 3 (note) — navigate to issue from worklogs row; breadcrumb trail reads `Worklogs > KEY`. ✅ pass after `ad93ea91`. |
 | Cell popover open / close interaction in a real browser | D-11 (UX) | Base UI Popover focus / portal / dismiss behavior requires real DOM event pipeline. | `64-UAT.md` item 5 — click non-zero cell; popover opens with entry list. ✅ pass. |
 | Schedule-day shading (weekend/holiday) preserved | TEMPO-07 (regression) | Schedule background colors carry over from Phase 62 visual contract. | `64-UAT.md` item 10 — weekend/holiday columns shaded. ✅ pass. |
 
@@ -104,7 +104,7 @@ audited: 2026-05-23
 **Findings:**
 - All five automated tasks (64-01-01, 64-01-02, 64-01-03, 64-02-01, 64-02-02) have green automated verification in `WorklogsPage.test.tsx` (41/41 passing).
 - Manual checkpoint 64-02-03 was operator-approved during execution: 7/13 UAT items passed live; 6/13 items were skipped at runtime but **all six skipped paths are covered by automated tests** (cross-referenced above).
-- Two UAT-discovered defects (cursor-pointer on title text, breadcrumb `Home` → `Worklogs`) were diagnosed via debug sessions and fixed in commits `cadfaefc` + `bfd0f6d5` before Phase 64 sign-off.
+- Two UAT-discovered defects (cursor-pointer on title text, breadcrumb `Home` → `Worklogs`) were diagnosed via debug sessions and fixed in commits `ce053fad` + `ad93ea91` before Phase 64 sign-off.
 - Original draft VALIDATION.md listed a single placeholder task `64-01-01` with status `⬜ pending ❌ W0`; replaced with full 6-task map reflecting actual execution.
 - Full vitest suite: 1362 passed, 0 failed.
 - No additional tests required — Phase 64 is Nyquist-compliant.

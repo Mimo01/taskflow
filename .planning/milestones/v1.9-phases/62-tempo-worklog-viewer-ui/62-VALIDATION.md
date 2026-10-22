@@ -94,6 +94,6 @@ audited: 2026-05-23
 | Tests passing | 72 / 72 (WorklogsPage + Sidebar suites) |
 
 **Audit notes:**
-- Initial VALIDATION.md (2026-05-21) was a draft created during planning with all tasks marked `⬜ pending` and `❌ Wave 0`. Wave 0 test files were subsequently created during execution (commits 7daca7fe, 43682341) and have been extended by later phases (TEMPO-04/05/08 from Phases 64-66).
+- Initial VALIDATION.md (2026-05-21) was a draft created during planning with all tasks marked `⬜ pending` and `❌ Wave 0`. Wave 0 test files were subsequently created during execution (commits 88588242, 2345159c) and have been extended by later phases (TEMPO-04/05/08 from Phases 64-66).
 - Every Per-Task Map row maps to at least one passing test in either `Sidebar.test.tsx` or `WorklogsPage.test.tsx`. TEMPO-01 (route + table render) is implicitly verified by every WorklogsPage test that mounts the component through the lazy import path; explicit row/column structure assertions live in the TEMPO-07 totals tests and TEMPO-08 hierarchy tests.
 - Threat refs added inline: T-62-01 (fail-closed gate, Sidebar tests), T-62-04 (URLSearchParams encoding, service layer), T-62-05 (custom-range guard, TEMPO-02 tests).

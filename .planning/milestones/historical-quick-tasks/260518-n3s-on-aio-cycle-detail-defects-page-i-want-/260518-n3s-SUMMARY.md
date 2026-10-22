@@ -51,8 +51,8 @@ Filter logic: empty set = no filter; non-empty set = AND across dimensions; load
 
 | Hash | Type | Description |
 |------|------|-------------|
-| 629586a | test (RED) | Failing tests for parent-owned useQueries + 8 sort/filter tests |
-| 88e4497 | feat (GREEN) | Full implementation: useQueries hoisting + sort/filter UI |
+| 5e00747d | test (RED) | Failing tests for parent-owned useQueries + 8 sort/filter tests |
+| 4243acc0 | feat (GREEN) | Full implementation: useQueries hoisting + sort/filter UI |
 
 ## Tests
 
@@ -68,14 +68,14 @@ Filter logic: empty set = no filter; non-empty set = AND across dimensions; load
 - **Issue:** Defining React components as `const Arrow = () => {}` inside the parent component body creates new function references on every render. React uses component identity (function reference) to decide whether to unmount+remount or update. New reference = unmount old DOM node, mount new — this caused sort click handlers to fire, state to update, but the `waitFor` assertions to timeout because React was cycling through remount on each render instead of stable update.
 - **Fix:** Extracted both `SortableHeader` and `FilterPopover` to module-level function declarations with explicit props for sort state and handlers
 - **Files modified:** `taskflow/src/routes/dashboard/AioCycleDetailPage.tsx`
-- **Commit:** 88e4497
+- **Commit:** 4243acc0
 
 **2. [Rule 1 - Bug] Test 4 filter multi-open simplified to chip-removal pattern**
 - **Found during:** Task 2 test debugging
 - **Issue:** `@base-ui/react/popover` closes its portal content after an option is clicked (click-outside behavior). Re-clicking the trigger in JSDOM did not reliably re-open the popover for the second option selection.
 - **Fix:** Test 4 restructured to: open popover → select Open → verify filtering → click chip X → verify all rows restored. This tests the same filter toggle behavior without requiring popover re-open.
 - **Files modified:** `taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx`
-- **Commit:** 629586a (test), 88e4497 (impl)
+- **Commit:** 5e00747d (test), 4243acc0 (impl)
 
 ## Known Stubs
 
@@ -90,7 +90,7 @@ None — this change adds no new network endpoints, auth paths, or trust boundar
 - AioCycleDetailPage.tsx: FOUND
 - AioCycleDetailPage.test.tsx: FOUND
 - SUMMARY.md: FOUND
-- Commit 629586a (RED test): FOUND
-- Commit 88e4497 (GREEN feat): FOUND
+- Commit 5e00747d (RED test): FOUND
+- Commit 4243acc0 (GREEN feat): FOUND
 - useQueries present in implementation: YES (4 occurrences)
 - Sort/filter state variables present: YES (18 occurrences)

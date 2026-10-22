@@ -65,7 +65,7 @@ completed: 2026-03-30
 
 ## Decisions Made
 
-- Used `hover:bg-accent/50` instead of restoring `hover:border-primary/50` — the original removal (commit 74ef958) was intentional because the border highlighted the wrong interaction (right-click menu vs left-click navigation). Background tint is a more neutral affordance.
+- Used `hover:bg-accent/50` instead of restoring `hover:border-primary/50` — the original removal (commit 305d4bb5) was intentional because the border highlighted the wrong interaction (right-click menu vs left-click navigation). Background tint is a more neutral affordance.
 - `group`/`group-hover:underline` pattern chosen over always-underline to keep the UI clean when not hovered.
 
 ## Deviations from Plan

@@ -30,7 +30,7 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add consistent leftward elevation to the peek panel root | a33b9b5b | taskflow/src/components/app/PeekPanel.tsx |
+| 1 | Add consistent leftward elevation to the peek panel root | 547eedd8 | taskflow/src/components/app/PeekPanel.tsx |
 
 ## What Was Done
 
@@ -75,4 +75,4 @@ None — purely visual CSS class addition, no new network surface, auth paths, o
 ## Self-Check: PASSED
 
 - taskflow/src/components/app/PeekPanel.tsx: modified (verified by grep)
-- Commit a33b9b5b: exists (confirmed via git rev-parse)
+- Commit 547eedd8: exists (confirmed via git rev-parse)

@@ -18,7 +18,7 @@ re_verification:
 **Re-verification:** No — initial verification
 
 > Note: SUMMARY.md cites commits `74d3877f` / `6487399d`, but the merged work landed on main as
-> `c64c3387`, `84fd8189`, `e5d541a4` (the third — reactive badge + shared cache key — post-dates the
+> `36e5771a`, `f6d14a23`, `8517b369` (the third — reactive badge + shared cache key — post-dates the
 > SUMMARY). The codebase, not the SUMMARY, was used as the source of truth; all claims verified against
 > the actual files.
 

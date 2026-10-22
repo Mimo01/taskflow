@@ -34,8 +34,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Widen update dialogs and expand changelog areas | 78267ab | UpdateDialog.tsx, WhatsNewDialog.tsx |
-| 2 | Polish settings release history changelog rendering | b4a5562 | UpdatesSection.tsx |
+| 1 | Widen update dialogs and expand changelog areas | bcfcce17 | UpdateDialog.tsx, WhatsNewDialog.tsx |
+| 2 | Polish settings release history changelog rendering | ef787b8a | UpdatesSection.tsx |
 
 ## Changes Summary
 
@@ -81,5 +81,5 @@ None.
 - taskflow/src/components/update/UpdateDialog.tsx: FOUND
 - taskflow/src/components/update/WhatsNewDialog.tsx: FOUND
 - taskflow/src/routes/settings/UpdatesSection.tsx: FOUND
-- Commit 78267ab: FOUND
-- Commit b4a5562: FOUND
+- Commit bcfcce17: FOUND
+- Commit ef787b8a: FOUND

@@ -35,7 +35,7 @@ metrics:
 
 ## What Was Built
 
-### Task 1: buildGroups origin-key tagging + sub-task partition pass (6d4d24bc)
+### Task 1: buildGroups origin-key tagging + sub-task partition pass (b49c39be)
 
 - Added `originKey?: string` to `SubItem` interface in `IssueActivityGroup.tsx` (distinct from `issueKey` click affordance)
 - Exported new `SubTaskSubGroup` interface: `{ issueKey, summary, issueType?, subItems[] }`
@@ -47,7 +47,7 @@ metrics:
   - MR events (approvals + comments): `originKey = extractedJiraKey`; comment aggregation key changed to composite for per-(group, origin, MR) attribution
 - Added single partition pass after all four source loops: splits each group's `subItems` into story-level vs per-subtask map (using `issueMeta` to confirm `isSubtask && parentKey === group.issueKey`), builds `subTaskGroups` sorted by `issueKey` ascending; story-level items (no meta, or origin === groupKey, or origin is not a subtask of this group) stay flat in `group.subItems`
 
-### Task 2: Nested rendering in IssueActivityGroup + prop wiring (8fabfc96)
+### Task 2: Nested rendering in IssueActivityGroup + prop wiring (2a044697)
 
 - Extracted `SubItemList` helper function inside `IssueActivityGroup.tsx` to avoid duplicating the three-way clickable-MR / clickable-issue / plain item render branches
 - Added `subTaskGroups?: SubTaskSubGroup[]` and `onOpenIssue?: (key: string) => void` props to `IssueActivityGroupProps`
@@ -61,7 +61,7 @@ metrics:
 - Wired `subTaskGroups={group.subTaskGroups}` and `onOpenIssue={onOpenIssue}` through `YesterdayColumn` render loop
 - Fixed non-null assertion lint errors in partition pass; applied biome formatting
 
-### Task 3: Nested markdown emit + extended tests (b7c86ae0)
+### Task 3: Nested markdown emit + extended tests (f0937915)
 
 - Updated `generateMarkdown` to emit nested sub-task block after story-level items:
   - `  - ${st.issueKey}: ${st.summary}` (2-space indent)
@@ -100,9 +100,9 @@ None — this is a pure frontend rendering refactor with no new network endpoint
 - [x] `taskflow/src/routes/standup-notes/YesterdayColumn.tsx` — modified (exists)
 - [x] `taskflow/src/routes/standup-notes/IssueActivityGroup.tsx` — modified (exists)
 - [x] `taskflow/src/routes/standup-notes/YesterdayColumn.test.ts` — modified (exists)
-- [x] Commit `6d4d24bc` — Task 1 (buildGroups)
-- [x] Commit `8fabfc96` — Task 2 (rendering)
-- [x] Commit `b7c86ae0` — Task 3 (markdown + tests)
+- [x] Commit `b49c39be` — Task 1 (buildGroups)
+- [x] Commit `2a044697` — Task 2 (rendering)
+- [x] Commit `f0937915` — Task 3 (markdown + tests)
 - [x] All 65 standup tests GREEN
 - [x] `npm run check` GREEN
 

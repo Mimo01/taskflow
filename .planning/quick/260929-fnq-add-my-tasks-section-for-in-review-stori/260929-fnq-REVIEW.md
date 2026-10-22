@@ -1,6 +1,6 @@
 # Quick 260929-fnq — Code Review (quick depth)
 
-Scope: 24c6d1c2, 58f2c9c4 (my-tasks-sort.ts, my-tasks-sort.test.ts, MyTasksPage.tsx)
+Scope: f195accf, 2950fdbf (my-tasks-sort.ts, my-tasks-sort.test.ts, MyTasksPage.tsx)
 Result: 0 critical, 1 warning, 1 info (advisory, not fixed)
 
 ## WR-01: Colleagues' subtasks influence subtree band (pre-existing)

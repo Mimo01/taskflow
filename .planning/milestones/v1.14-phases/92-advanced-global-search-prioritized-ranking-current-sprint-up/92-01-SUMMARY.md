@@ -26,11 +26,11 @@ Pure text-matching module (fuzzysort v4 per-token fuzzy matching, exact/word-sta
 ## Tasks
 
 1. Package legitimacy checkpoint: approved by user (resolved by orchestrator, no commit).
-2. Install fuzzysort and implement search-text.ts: commit 3b5ae4a1.
+2. Install fuzzysort and implement search-text.ts: commit 25a191b2.
 
 ## Deviations from Plan
 
-- Worktree base was reset to 23e34cac per startup check (plan files absent at old HEAD).
+- Worktree base was reset to 9a347f2b per startup check (plan files absent at old HEAD).
 - Biome auto-formatted the two new files (--write on those files only).
 
 ## Known Stubs

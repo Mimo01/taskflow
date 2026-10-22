@@ -24,7 +24,7 @@ status: issues_found
 
 ## Summary
 
-Reviewed the diff (2801f9aa..af17e7fd, commits 825ddbda, b9120a5f, af17e7fd) that adds
+Reviewed the diff (4fa9bad1..79bcb682, commits c2cffb88, cb695c43, 79bcb682) that adds
 an issue-type icon column to `BacklogRow` and an issue-type icon to the sprint-board story
 swimlane header (`StoryHeaderRow`), wired through `SprintBoardTab`.
 

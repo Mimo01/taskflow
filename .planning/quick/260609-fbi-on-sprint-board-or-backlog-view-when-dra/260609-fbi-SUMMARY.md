@@ -12,13 +12,13 @@ date: 2026-06-09
 
 Both `SprintBoardTab.tsx` and `BacklogPage.tsx` now handle the dnd-kit `onDragCancel` event that fires when the user presses ESC during a drag.
 
-### Task 1 — SprintBoardTab (commit 0315e393)
+### Task 1 — SprintBoardTab (commit 591c420c)
 
 - Imported `DragCancelEvent` from `@dnd-kit/core`
 - Added `handleDragCancel` that resets `isDraggingRef`, `activeId`, `activeWidth`, and `dropModel`
 - Wired `onDragCancel={handleDragCancel}` on the `DndContext`
 
-### Task 2 — BacklogPage (commit 488bd808)
+### Task 2 — BacklogPage (commit 07191bb8)
 
 - Imported `DragCancelEvent` from `@dnd-kit/core`
 - Added `handleDragCancel` that resets `isDraggingRef`, `activeId`, re-clones `localOrder`, and clears `rankError`
@@ -28,5 +28,5 @@ Both handlers deliberately skip `justDragged` (ESC produces no follow-on click e
 
 ## Commits
 
-- `0315e393` feat(quick-260609-fbi): add onDragCancel to SprintBoardTab
-- `488bd808` feat(quick-260609-fbi): add onDragCancel to BacklogPage
+- `591c420c` feat(quick-260609-fbi): add onDragCancel to SprintBoardTab
+- `07191bb8` feat(quick-260609-fbi): add onDragCancel to BacklogPage

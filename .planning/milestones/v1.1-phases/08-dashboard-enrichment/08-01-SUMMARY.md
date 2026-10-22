@@ -96,8 +96,8 @@ Created four test files in `taskflow/src/routes/dashboard/` as the Wave 0 Nyquis
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| Task 1 | cbd01a0 | test(08-01): add failing test stubs for SubtasksPanel and MrHealthPanel |
-| Task 2 | 0285570 | test(08-01): add failing test stubs for SprintHealthPanel and NotificationsPanel |
+| Task 1 | 33aa2bec | test(08-01): add failing test stubs for SubtasksPanel and MrHealthPanel |
+| Task 2 | d548dd34 | test(08-01): add failing test stubs for SprintHealthPanel and NotificationsPanel |
 
 ## Deviations from Plan
 
@@ -109,5 +109,5 @@ None — plan executed exactly as written.
 - [x] taskflow/src/routes/dashboard/MrHealthPanel.test.tsx exists
 - [x] taskflow/src/routes/dashboard/SprintHealthPanel.test.tsx exists
 - [x] taskflow/src/routes/dashboard/NotificationsPanel.test.tsx exists
-- [x] Commits cbd01a0 and 0285570 exist
+- [x] Commits 33aa2bec and d548dd34 exist
 - [x] `npx vitest run src/routes/dashboard` picks up all 4 files (17 todo stubs)

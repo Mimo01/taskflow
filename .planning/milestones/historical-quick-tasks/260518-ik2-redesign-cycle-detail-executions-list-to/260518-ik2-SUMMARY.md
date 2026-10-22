@@ -3,7 +3,7 @@ quick_id: 260518-ik2
 slug: redesign-cycle-detail-executions-list-to
 description: Redesign cycle detail executions list to use fast paged endpoint
 date: 2026-05-18
-commit: 060cbe0
+commit: d45d91be
 status: complete
 ---
 

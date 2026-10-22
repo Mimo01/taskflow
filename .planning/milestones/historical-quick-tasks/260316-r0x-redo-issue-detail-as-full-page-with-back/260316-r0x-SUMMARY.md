@@ -58,8 +58,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Create IssueDetailPage route component** - `94687d6` (feat)
-2. **Task 2: Rewire router and all entry points** - `6333799` (feat)
+1. **Task 1: Create IssueDetailPage route component** - `8a5a82ab` (feat)
+2. **Task 2: Rewire router and all entry points** - `a3936a11` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/IssueDetailPage.tsx` - Full-page issue detail route with back arrow, breadcrumb, content + sidebar layout

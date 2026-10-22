@@ -16,7 +16,7 @@ updated: 2026-08-11T16:10:00Z
 
 The original live UAT (Plan 04, step 6) was approved against code that still had the
 CR-01 rollback defect: a whole-array cache restore meant a *failing* action reverted a
-sibling action's already-successful write. The fix (commit `8e8e4676`) replaced this with
+sibling action's already-successful write. The fix (commit `75534733`) replaced this with
 a field-scoped inverse patch and is covered by a passing regression test that asserts
 cache contents directly — but no human has re-confirmed it against live GitLab.
 

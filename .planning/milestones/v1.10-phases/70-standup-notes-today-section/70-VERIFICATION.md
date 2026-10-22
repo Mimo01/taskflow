@@ -9,14 +9,14 @@ re_verification:
   previous_score: 7/7
   reason: >-
     Re-verified against current code after the standup-notes redesign
-    (commit c5b19544 "redesign standup notes — symmetric columns, compact rows").
+    (commit b7984f2f "redesign standup notes — symmetric columns, compact rows").
     The redesign REMOVED the Log Work feature from the Today column, which makes
     two of the three open live-data human checks MOOT (popover pre-fill, chip
     refresh). The third (sprint grouping) is confirmed by code + the recorded
     live UAT (70-UAT.md test #1/#2 pass). Resolving human_needed → passed.
   gaps_closed:
     - "Human check #1 (sprint grouping vs live Jira) — confirmed VERIFIED in code (filterSprintItems + Today sections) and corroborated by 70-UAT.md tests #1/#2 (pass)."
-    - "Human check #2 (LogWorkPopover pre-fill) — MOOT: Log Work removed from Today column by redesign commit c5b19544. Zero LogWorkPopover references remain in standup-notes/."
+    - "Human check #2 (LogWorkPopover pre-fill) — MOOT: Log Work removed from Today column by redesign commit b7984f2f. Zero LogWorkPopover references remain in standup-notes/."
     - "Human check #3 (logged-time chip refresh after worklog) — MOOT: the chip + today-tempo invalidation loop was removed with Log Work in the same redesign."
   gaps_remaining: []
   regressions: []
@@ -27,11 +27,11 @@ re_verification:
 **Phase Goal:** Complete the Standup Notes page with the Today section so the page is fully usable for daily standups.
 **Verified:** 2026-05-26T00:35:00Z
 **Status:** passed
-**Re-verification:** Yes — re-verified against current code after the standup redesign (commit c5b19544) that removed Log Work from the Today column.
+**Re-verification:** Yes — re-verified against current code after the standup redesign (commit b7984f2f) that removed Log Work from the Today column.
 
 > **Re-verification note.** This phase shipped in the now-closed v1.10 milestone. The
 > original verification (2026-05-25) left status `human_needed` for three live-data
-> checks. A subsequent standup-notes redesign (commit `c5b19544`, "redesign standup
+> checks. A subsequent standup-notes redesign (commit `b7984f2f`, "redesign standup
 > notes — symmetric columns, compact rows") **removed the Log Work feature from the
 > Today column entirely**. That makes original human checks #2 (LogWorkPopover
 > pre-fill) and #3 (logged-time chip refresh) **MOOT** — the feature they tested no
@@ -56,7 +56,7 @@ re_verification:
 
 > **Truths #5–#7 from the original report (LogWorkPopover present, popover pre-filled
 > with today's date + issueKey, onSuccess invalidates today-tempo) are RETIRED.** The
-> redesign (commit `c5b19544`) removed Log Work from the Today column. Verified by grep:
+> redesign (commit `b7984f2f`) removed Log Work from the Today column. Verified by grep:
 > zero `LogWorkPopover` references in `taskflow/src/routes/standup-notes/` and no
 > `LogWorkPopover.tsx` file in the directory. These truths backed STAND-09, which is
 > now DESCOPED (see Requirements Coverage). They are not failures — they describe a
@@ -110,7 +110,7 @@ re_verification:
 | No TodayColumnPlaceholder references | `grep -rni "TodayColumnPlaceholder" standup-notes/` | zero matches; file deleted | PASS |
 | No pinned-issue section | `grep -rni "TodayPinnedSection\|pinned" standup-notes/` | only unrelated `pinned-tabs.store` (cycle/tab feature); no pinned-issues section | PASS |
 | Sprint cache key isolation | `grep "'sprint-board-today-full'" TodayColumn.tsx` | present; distinct from `'sprint-board'` | PASS |
-| Redesign commit confirmed | `git show --stat c5b19544` | "redesign standup notes — symmetric columns, compact rows"; TodayInProgressSection −92, TodayUpNextSection −94 lines | PASS |
+| Redesign commit confirmed | `git show --stat b7984f2f` | "redesign standup notes — symmetric columns, compact rows"; TodayInProgressSection −92, TodayUpNextSection −94 lines | PASS |
 
 ### Requirements Coverage
 
@@ -118,7 +118,7 @@ re_verification:
 |-------------|-------------|-------------|--------|----------|
 | STAND-07 | 70-01, 70-02, 70-03 | Today section shows my open subtasks/tasks in current sprint, grouped stories + nested subtasks (assignee = me) | SATISFIED | filterSprintItems implements the grouped model (done excluded; parent included if assigned-to-me or owns my subtask; subtasks nested; orphans standalone); TodayColumn fetches full sprint via isolated key and feeds both sections; 26 unit tests green; corroborated live in 70-UAT.md tests #1/#2 (pass). |
 | STAND-08 | Descoped | ~~Pinned-issues section~~ — removed by user decision during Phase 70 | DESCOPED | No `TodayPinnedSection.tsx`; no pinned-issues section references in standup-notes code (the only `pinned`-named code is the unrelated `pinned-tabs.store`). This is why original human check #2's pinned context is moot. |
-| STAND-09 | Descoped | ~~Planned worklog targets / Log Work on sprint rows~~ — built then removed in the standup redesign | DESCOPED | Zero `LogWorkPopover` references in `standup-notes/`; no `LogWorkPopover.tsx` file. Removed by redesign commit `c5b19544`. This is why original human checks #2 (popover pre-fill) and #3 (chip refresh) are MOOT. Not a failure — feature intentionally removed. |
+| STAND-09 | Descoped | ~~Planned worklog targets / Log Work on sprint rows~~ — built then removed in the standup redesign | DESCOPED | Zero `LogWorkPopover` references in `standup-notes/`; no `LogWorkPopover.tsx` file. Removed by redesign commit `b7984f2f`. This is why original human checks #2 (popover pre-fill) and #3 (chip refresh) are MOOT. Not a failure — feature intentionally removed. |
 
 ### Anti-Patterns Found
 
@@ -131,7 +131,7 @@ re_verification:
 
 No TBD/FIXME/XXX debt markers in any phase-70 production file. All `return null` calls are the documented D-03 "hidden-when-empty" pattern, not stubs.
 
-**Code-review blockers (from 70-REVIEW.md) remain resolved.** CR-01 (`Promise.all` rejecting the whole participating query on CE approvals shape) and CR-02 (reviewer/participating dedup using bare iid across projects) were fixed before the original verification (commit `de1af6d8`) and are unaffected by the redesign.
+**Code-review blockers (from 70-REVIEW.md) remain resolved.** CR-01 (`Promise.all` rejecting the whole participating query on CE approvals shape) and CR-02 (reviewer/participating dedup using bare iid across projects) were fixed before the original verification (commit `f502ee0e`) and are unaffected by the redesign.
 
 ### Human Verification Required
 
@@ -145,7 +145,7 @@ Confirmed in code (`filterSprintItems` + Today sections) AND confirmed live in `
 
 #### 2. LogWorkPopover pre-fill (originally STAND-09) — MOOT
 
-The Log Work feature was removed from the Today column by redesign commit `c5b19544`. Zero `LogWorkPopover` references remain in `standup-notes/`. There is no popover to pre-fill. `70-UAT.md` test #4 records the user confirming Log Work "was removed from the Today column rows — no longer present by design."
+The Log Work feature was removed from the Today column by redesign commit `b7984f2f`. Zero `LogWorkPopover` references remain in `standup-notes/`. There is no popover to pre-fill. `70-UAT.md` test #4 records the user confirming Log Work "was removed from the Today column rows — no longer present by design."
 
 #### 3. Logged-time chip refresh after worklog (originally STAND-09) — MOOT
 
@@ -155,7 +155,7 @@ The logged-time chip and its `today-tempo` query-invalidation loop were removed 
 
 No gaps. STAND-07 (the single criterion that had to be VERIFIED in code) is observably satisfied: `filterSprintItems` implements the grouped done-excluded assignee-aware model, `TodayColumn` fetches the full sprint through an isolated cache key and feeds both Today sections, and the sections render parent stories with nested subtasks and nested matched MRs. 26 unit tests pass and live UAT tests #1/#2 confirm the rendering.
 
-STAND-08 (pinned-issues section) and STAND-09 (Log Work / planned worklog targets) are cleanly **DESCOPED** — both feature surfaces are absent from the code (no pinned-issues section, zero `LogWorkPopover` references, no `LogWorkPopover.tsx`), removed by user decision and redesign commit `c5b19544`. The two original human checks tied to Log Work are therefore **MOOT**, and the remaining grouping check is **VERIFIED**. Status flips from `human_needed` to **passed**.
+STAND-08 (pinned-issues section) and STAND-09 (Log Work / planned worklog targets) are cleanly **DESCOPED** — both feature surfaces are absent from the code (no pinned-issues section, zero `LogWorkPopover` references, no `LogWorkPopover.tsx`), removed by user decision and redesign commit `b7984f2f`. The two original human checks tied to Log Work are therefore **MOOT**, and the remaining grouping check is **VERIFIED**. Status flips from `human_needed` to **passed**.
 
 Non-blocking observations carried forward for honesty: **WR-05** (unguarded story-points cast in both Today sections) and **IN-01** (uncleared `setCopied` timeout in StandupNotesPage). Neither affects the phase verdict.
 

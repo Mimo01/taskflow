@@ -87,7 +87,7 @@ No separate API call, no new query, no adapter change — the existing search en
 ## Pitfalls
 
 ### Biome / tsc clean baseline (`npm run check`)
-The baseline is fully green (per memory, 944260ea). To keep it:
+The baseline is fully green (per memory, 0d2b8b8e). To keep it:
 - **Exhaustive union handling:** `mr.state` includes `'locked'`. If you write a `switch` or chained ternary, account for it or biome/tsc may flag non-exhaustiveness. Simplest: count `merged`, `opened`, and bucket everything else as closed/other.
 - **`statusCategory?.key` is optional** — TS will error on unguarded access. Use optional chaining + a default.
 - **`customfield_10016` is `number | null`** — guard with `typeof === 'number'` before arithmetic; `null + null` is not valid and summing null silently yields `0` only after coercion (avoid implicit coercion to satisfy strict checks).

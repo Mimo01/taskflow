@@ -244,7 +244,7 @@ The unified helper concatenates static color class strings (no dynamic template 
     - Color palette matches the sprint board reference (blue for in-progress/active/etc.).
 
     Also confirm:
-    - Sprint board hasn't visually regressed (reference baseline should look identical to commit `5dda387`).
+    - Sprint board hasn't visually regressed (reference baseline should look identical to commit `8469e1fe`).
     - Notification badges (type chips like "Assigned to you", entity-state chips) and tab-count badges are unchanged — they were intentionally out of scope.
   </how-to-verify>
   <resume-signal>Type "approved" if all status pills look unified and no regression on out-of-scope chips. If anything looks off, describe which surface + which pill and we'll iterate.</resume-signal>

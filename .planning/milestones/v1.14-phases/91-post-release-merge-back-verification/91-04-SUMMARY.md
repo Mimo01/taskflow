@@ -57,8 +57,8 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Make compareRefs fail closed on a malformed compare payload (CR-02)** - `b76a58be` (fix)
-2. **Task 2: Bound fetchSourceBranchMRs pagination and cover a non-default target_branch fixture (WR-06, CR-01 service side)** - `3649901c` (fix)
+1. **Task 1: Make compareRefs fail closed on a malformed compare payload (CR-02)** - `59f35f24` (fix)
+2. **Task 2: Bound fetchSourceBranchMRs pagination and cover a non-default target_branch fixture (WR-06, CR-01 service side)** - `982c4d61` (fix)
 
 **Plan metadata:** committed with this SUMMARY.md (see final commit below)
 
@@ -97,5 +97,5 @@ None - no external service configuration required.
 - FOUND: taskflow/src/services/gitlab.ts
 - FOUND: taskflow/src/services/gitlab.test.ts
 - FOUND: .planning/phases/91-post-release-merge-back-verification/91-04-SUMMARY.md
-- FOUND: commit b76a58be (Task 1)
-- FOUND: commit 3649901c (Task 2)
+- FOUND: commit 59f35f24 (Task 1)
+- FOUND: commit 982c4d61 (Task 2)

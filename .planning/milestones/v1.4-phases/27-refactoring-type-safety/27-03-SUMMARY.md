@@ -68,8 +68,8 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Create useCreateEditForm hook and useIssueMutations hook** - `59cadd2` (feat)
-2. **Task 2: Extract sub-components, create orchestrator, wire barrel export** - `8f1ebc8` (feat)
+1. **Task 1: Create useCreateEditForm hook and useIssueMutations hook** - `64e7dcea` (feat)
+2. **Task 2: Extract sub-components, create orchestrator, wire barrel export** - `401b069d` (feat)
 
 ## Files Created/Modified
 - `create-edit-issue/useCreateEditForm.ts` - useReducer-based form state with FormState, FormAction, RESET action
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Fix:** Extracted all 5 TanStack Query hooks into `useCreateEditQueries.ts`, reducing orchestrator to 178 lines
 - **Files modified:** useCreateEditQueries.ts (new), CreateEditIssueModal.tsx
 - **Verification:** `wc -l` confirms 178 lines, all tests pass
-- **Committed in:** 8f1ebc8 (Task 2 commit)
+- **Committed in:** 401b069d (Task 2 commit)
 
 ---
 
@@ -117,7 +117,7 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - All 8 created files verified on disk
-- Commits 59cadd2 and 8f1ebc8 verified in git log
+- Commits 64e7dcea and 401b069d verified in git log
 - 489/489 tests passing
 - Orchestrator at 178 lines (under 250 max)
 - Zero useState in orchestrator

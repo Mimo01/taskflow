@@ -70,8 +70,8 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Create shared hook, utilities, and section sub-components** - `0b25bea` (feat)
-2. **Task 2: Create orchestrator, barrel export, update original file** - `0b2bc34` (feat)
+1. **Task 1: Create shared hook, utilities, and section sub-components** - `a7ceff64` (feat)
+2. **Task 2: Create orchestrator, barrel export, update original file** - `9f75357d` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/issue-detail/IssueDetailSidebar.tsx` - Slim orchestrator (128 lines) composing section components
@@ -101,7 +101,7 @@ Each task was committed atomically:
 - **Fix:** Created separate MetaRow.tsx for the JSX component, kept pure functions in utils.ts
 - **Files modified:** utils.ts, MetaRow.tsx, FieldsSection.tsx (import update)
 - **Verification:** TypeScript compilation passes clean
-- **Committed in:** 0b25bea (Task 1 commit)
+- **Committed in:** a7ceff64 (Task 1 commit)
 
 ---
 
@@ -124,4 +124,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 11 files verified on disk. Both task commits (0b25bea, 0b2bc34) found in git log.
+All 11 files verified on disk. Both task commits (a7ceff64, 9f75357d) found in git log.

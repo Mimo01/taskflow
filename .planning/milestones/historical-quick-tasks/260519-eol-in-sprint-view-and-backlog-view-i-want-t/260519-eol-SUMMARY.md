@@ -46,9 +46,9 @@ metrics:
 
 | Task | Name | Commit | Key Files |
 |------|------|--------|-----------|
-| 1 | Wire flaggedFieldKey discovery, settings, fetch fields, and toggle helper | a2a7f308 | fields.ts, jira.ts, backlog.ts, settings.store.ts, main.tsx |
-| 2 | Render flag in sprint view + backlog view with right-click toggle | 614f35c4 | TaskCard.tsx, BacklogRow.tsx, SprintBoardTab.tsx, BacklogPage.tsx |
-| 3 | Add Flagged row to issue detail sidebar | 46f6f7fe | FieldsSection.tsx, FieldsSection.test.tsx, IssueDetailSidebar.tsx |
+| 1 | Wire flaggedFieldKey discovery, settings, fetch fields, and toggle helper | 585296f9 | fields.ts, jira.ts, backlog.ts, settings.store.ts, main.tsx |
+| 2 | Render flag in sprint view + backlog view with right-click toggle | fb890609 | TaskCard.tsx, BacklogRow.tsx, SprintBoardTab.tsx, BacklogPage.tsx |
+| 3 | Add Flagged row to issue detail sidebar | c6264d5b | FieldsSection.tsx, FieldsSection.test.tsx, IssueDetailSidebar.tsx |
 
 ## Implementation Notes
 
@@ -99,9 +99,9 @@ Files exist:
 - taskflow/src/routes/dashboard/issue-detail/FieldsSection.test.tsx — FOUND (3 new tests)
 
 Commits exist:
-- a2a7f308 — FOUND
-- 614f35c4 — FOUND
-- 46f6f7fe — FOUND
+- 585296f9 — FOUND
+- fb890609 — FOUND
+- c6264d5b — FOUND
 
 TypeScript: CLEAN (tsc --noEmit exits 0)
 Tests: 48/48 PASS across TaskCard, BacklogRow, SprintBoardTab, BacklogPage, FieldsSection test files

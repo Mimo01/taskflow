@@ -8,7 +8,7 @@ human_verification:
   - test: "Force a single-section failure (block the /comment endpoint in DevTools or equivalent), confirm comments shows 'Couldn't load comments' + Retry while the panel body, changelog, and subtasks remain fully functional."
     expected: "Inline ErrorState for comments only; rest of the panel (header, description, changelog, subtasks) unaffected. Retry triggers refetch."
     why_human: "Automated tests assert per-section ErrorState renders when query.isError is true, but do not execute an actual network failure and verify the composite panel remains intact around it. The 75-04 artifact explicitly records this check was not performed manually."
-    resolution: "Resolved 2026-05-31 via 75-HUMAN-UAT.md (commit 3af0f3d3). Operator confirmed the live panel works; could not run the force-failure simulation. Failure path remains covered by automated per-section ErrorState tests (75-02). Approved."
+    resolution: "Resolved 2026-05-31 via 75-HUMAN-UAT.md (commit 86dda50a). Operator confirmed the live panel works; could not run the force-failure simulation. Failure path remains covered by automated per-section ErrorState tests (75-02). Approved."
 ---
 
 # Phase 75: Progressive Issue Detail Rendering — Verification Report
@@ -114,14 +114,14 @@ No `TBD`, `FIXME`, or `XXX` markers found in phase-modified files.
 
 ### Code Review Cross-Reference (75-REVIEW.md)
 
-The code review identified 2 criticals, 4 warnings, and 2 info items. Resolution status as committed in `7f28b704`:
+The code review identified 2 criticals, 4 warnings, and 2 info items. Resolution status as committed in `f1eca6ca`:
 
 | Finding | Status | Notes |
 |---------|--------|-------|
-| CR-01: TTI never fires for zero-subtask issues | CLOSED — fixed in 7f28b704 | `subtasksSettled` guard at line 196 correctly handles disabled query semantics. |
-| CR-02: Delete-comment errors silently discarded | CLOSED — fixed in 7f28b704 | `deleteError` now gated on `deletingCommentId === comment.id` (CommentCard line 783). |
-| WR-01: `IssueDetailContent` reads stale `issue.fields.comment` | CLOSED — fixed in 7f28b704 | `comments` prop passed from parent commentsQuery; IssueDetailContent uses `commentsProp ?? []`. |
-| WR-04: Comments error hides changelog panel | CLOSED — fixed in 7f28b704 | Error banners are sibling `div`s; ActivityTimeline is always rendered (with `commentsQuery.isError ? [] : comments` guard). |
+| CR-01: TTI never fires for zero-subtask issues | CLOSED — fixed in f1eca6ca | `subtasksSettled` guard at line 196 correctly handles disabled query semantics. |
+| CR-02: Delete-comment errors silently discarded | CLOSED — fixed in f1eca6ca | `deleteError` now gated on `deletingCommentId === comment.id` (CommentCard line 783). |
+| WR-01: `IssueDetailContent` reads stale `issue.fields.comment` | CLOSED — fixed in f1eca6ca | `comments` prop passed from parent commentsQuery; IssueDetailContent uses `commentsProp ?? []`. |
+| WR-04: Comments error hides changelog panel | CLOSED — fixed in f1eca6ca | Error banners are sibling `div`s; ActivityTimeline is always rendered (with `commentsQuery.isError ? [] : comments` guard). |
 | WR-02: Subtask enrichment key omits subtask list | OPEN (known/accepted) | Stale enrichment on base refetch; new subtask assignees appear only after navigate-away/back. Tracked in 75-REVIEW.md. |
 | WR-03: `console.table` in production | OPEN (known/accepted) | See Anti-Patterns above. Tracked in 75-REVIEW.md. |
 | INFO-01: Duplicate comment fns in jira.ts vs jira/comments.ts | OPEN (known/accepted) | Pre-existing tech debt; out of scope per REQUIREMENTS.md. |

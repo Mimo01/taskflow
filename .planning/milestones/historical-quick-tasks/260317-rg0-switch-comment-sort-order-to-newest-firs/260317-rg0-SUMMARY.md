@@ -59,8 +59,8 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Add commentSortOrder to settings store with migration** - `9813cb7` (feat)
-2. **Task 2: Apply sort order in CommentThread and InlineComment, add settings toggle** - `cad1752` (feat)
+1. **Task 1: Add commentSortOrder to settings store with migration** - `4df28e7a` (feat)
+2. **Task 2: Apply sort order in CommentThread and InlineComment, add settings toggle** - `d9db60fb` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/settings.store.ts` - Added CommentSortOrder type, field, setter, v7 migration

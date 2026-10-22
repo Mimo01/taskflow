@@ -69,10 +69,10 @@ completed: 2026-07-09
 Each task was committed atomically:
 
 1. **Task 1: Verify highlight.js package legitimacy (blocking gate)** - resolved inline (see Deviations/Checkpoint Resolution below); no code commit
-2. **Task 2: Foundation — highlight.js dep, size field, useAuthBlob, resolvePreviewKind, highlightCode** - `237988fa` (feat)
-3. **Task 3: Generalize AttachmentLightbox into AttachmentPreviewModal** - `6c048785` (feat)
-4. **Task 4: Wire previewable non-image rows into the modal** - `9de3d8c2` (feat)
-5. **Format fix for resolvePreviewKind.test.ts** - `75355a87` (style)
+2. **Task 2: Foundation — highlight.js dep, size field, useAuthBlob, resolvePreviewKind, highlightCode** - `b0222a28` (feat)
+3. **Task 3: Generalize AttachmentLightbox into AttachmentPreviewModal** - `b372ba9b` (feat)
+4. **Task 4: Wire previewable non-image rows into the modal** - `f8f27c2c` (feat)
+5. **Format fix for resolvePreviewKind.test.ts** - `ebe50345` (style)
 
 **Plan metadata:** commit pending (handled by orchestrator per Step 8 constraints)
 
@@ -111,7 +111,7 @@ Performed the package legitimacy verification directly (per orchestrator instruc
 - **Fix:** Corrected suppression rule names to match biome's actual rule IDs, moved `biome-ignore` comments to the line immediately preceding the flagged hook/JSX (matching the pattern already used in `chart.tsx`/`ConnectionsSection.tsx`), and reformatted the JSX for `dangerouslySetInnerHTML`
 - **Files modified:** `AttachmentPreviewModal.tsx`
 - **Verification:** `npx biome check` on all task-3/4 files returns clean (no errors, no warnings)
-- **Committed in:** `6c048785` (Task 3 commit)
+- **Committed in:** `b372ba9b` (Task 3 commit)
 
 **2. [Rule 1 - Bug] Fixed resolvePreviewKind.test.ts biome formatting**
 - **Found during:** post-Task-4 full `npm run check`
@@ -119,7 +119,7 @@ Performed the package legitimacy verification directly (per orchestrator instruc
 - **Fix:** Ran `npx biome format --write` on the file to auto-format per project style
 - **Files modified:** `resolvePreviewKind.test.ts`
 - **Verification:** `npx biome check` on the file is clean; `npx vitest run` for the file still passes (18/18)
-- **Committed in:** `75355a87`
+- **Committed in:** `ebe50345`
 
 ---
 
@@ -128,11 +128,11 @@ Performed the package legitimacy verification directly (per orchestrator instruc
 
 ## TDD Gate Compliance
 
-Task 2 was marked `tdd="true"` with a `<behavior>` block, which should trigger the RED→GREEN commit sequence. In practice, the test file (`resolvePreviewKind.test.ts`) and its implementation (`resolvePreviewKind.ts`) were written together and committed in a single `feat` commit (`237988fa`) rather than as separate `test(...)` (RED) then `feat(...)` (GREEN) commits. The test suite was run and confirmed passing (18/18) before committing, so the behavior contract in the plan was honored, but the git history does not show the RED phase as a separate failing-test commit. Documented here per the TDD Gate Enforcement rule since a strict RED commit is absent from git log.
+Task 2 was marked `tdd="true"` with a `<behavior>` block, which should trigger the RED→GREEN commit sequence. In practice, the test file (`resolvePreviewKind.test.ts`) and its implementation (`resolvePreviewKind.ts`) were written together and committed in a single `feat` commit (`b0222a28`) rather than as separate `test(...)` (RED) then `feat(...)` (GREEN) commits. The test suite was run and confirmed passing (18/18) before committing, so the behavior contract in the plan was honored, but the git history does not show the RED phase as a separate failing-test commit. Documented here per the TDD Gate Enforcement rule since a strict RED commit is absent from git log.
 
 ## Issues Encountered
 - Task 3's `<verify>` step runs `npx tsc --noEmit` across the whole repo, but `AttachmentsSection.tsx` still imported the (about to be deleted) `AttachmentLightbox` until Task 4's wiring changes landed. Resolved by implementing Task 3 and Task 4's file edits together before running any tsc/biome verification, then splitting the actual git commits along each task's declared file list (as documented in the plan frontmatter) so per-task commits stay atomic and attributable.
-- Full-repo `npx vitest run` surfaces 14 pre-existing failures (10 in `AioTestRunsSection.test.tsx`, 1 in `jira.test.ts`, 3 in `CommandPalette.test.tsx`) unrelated to any file this plan touches. Confirmed pre-existing by running the identical test files against the pre-dispatch base commit (`fba060b4`) in an isolated `git worktree` — same failures reproduce there. Logged to `deferred-items.md` in this task's directory; not fixed (out of scope per the executor's scope-boundary rule).
+- Full-repo `npx vitest run` surfaces 14 pre-existing failures (10 in `AioTestRunsSection.test.tsx`, 1 in `jira.test.ts`, 3 in `CommandPalette.test.tsx`) unrelated to any file this plan touches. Confirmed pre-existing by running the identical test files against the pre-dispatch base commit (`b4c2d0ce`) in an isolated `git worktree` — same failures reproduce there. Logged to `deferred-items.md` in this task's directory; not fixed (out of scope per the executor's scope-boundary rule).
 
 ## Next Phase Readiness
 - MEDIA-PREVIEW requirement satisfied: text/code/pdf/video/audio attachments preview inline; images unaffected; unsupported types remain download-only
@@ -140,7 +140,7 @@ Task 2 was marked `tdd="true"` with a `<behavior>` block, which should trigger t
 
 ## Self-Check: PASSED
 
-All 9 created/modified files confirmed present, `AttachmentLightbox.tsx` confirmed deleted, all 4 commit hashes (`237988fa`, `6c048785`, `9de3d8c2`, `75355a87`) confirmed present in git log.
+All 9 created/modified files confirmed present, `AttachmentLightbox.tsx` confirmed deleted, all 4 commit hashes (`b0222a28`, `b372ba9b`, `f8f27c2c`, `ebe50345`) confirmed present in git log.
 
 ---
 *Quick task: 260709-e0f*

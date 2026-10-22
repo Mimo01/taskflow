@@ -43,7 +43,7 @@ from the global status list.
 
 ## What Was Built
 
-### Task 1 — Enrich transitions with statusCategory keys (commit 1931a1f9)
+### Task 1 — Enrich transitions with statusCategory keys (commit 9081efbd)
 - Widened `JiraActivityItem.transitions` element type with optional `fromCategory?: string`
   and `toCategory?: string` (statusCategory.key values).
 - `fetchYesterdayJiraActivity` now imports `fetchAllJiraStatuses` and fetches the global
@@ -56,14 +56,14 @@ from the global status list.
   and inserted a status-list mock into the existing comment-presence test to preserve mock
   call ordering. TDD: RED (2 new tests failing) → GREEN (17/17 pass).
 
-### Task 2 — Thread structured transition data onto SubItem (commit df0b4638)
+### Task 2 — Thread structured transition data onto SubItem (commit 8ad75bb2)
 - Extended `SubItem` with an optional `transition` field (`{ fromStatus, toStatus,
   fromCategory?, toCategory? }`).
 - `buildGroups` sets `transition` from the sorted first/last transition **in addition to**
   the unchanged plain-text `label`. `generateMarkdown` is untouched — it still reads
   `item.label`, so the clipboard export emits the same `From → To` plain text.
 
-### Task 3 — Render transition sub-items as pills + arrow (commit 8eeb4cce)
+### Task 3 — Render transition sub-items as pills + arrow (commit 282ba484)
 - `SubItemList` special-cases `item.kind === 'transition' && item.transition != null` in the
   non-clickable branch, rendering two `statusPillClass()` pills joined by a muted `→` inside
   a `flex` wrapper (the flex parent statusPillClass requires per project memory). No geometry
@@ -100,6 +100,6 @@ threat surface introduced.
 - taskflow/src/services/jira-standup.test.ts — FOUND
 - taskflow/src/routes/standup-notes/IssueActivityGroup.tsx — FOUND
 - taskflow/src/routes/standup-notes/YesterdayColumn.tsx — FOUND
-- Commit 1931a1f9 — FOUND
-- Commit df0b4638 — FOUND
-- Commit 8eeb4cce — FOUND
+- Commit 9081efbd — FOUND
+- Commit 8ad75bb2 — FOUND
+- Commit 282ba484 — FOUND

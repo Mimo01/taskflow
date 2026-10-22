@@ -39,8 +39,8 @@ metrics:
 AIO Cycles page rebuilt with a searchable folder panel (All cycles root, aggregate counts, subtle aria-current selection) and a one-line-per-row cycle list (status/overdue pill, pass % bar with <=4-row tooltip, conditional Dates/Effort, persisted Open|All filter, whole-row overlay click). Cycle fetch now paginates past 500.
 
 ## Commits
-- 9c551659 feat(quick-261013-jl3): paginated cycle fetch, Open|All filter store, list helpers
-- ad7ca188 feat(quick-261013-jl3): redesign AIO Cycles folder panel and cycle list
+- ba6eb34b feat(quick-261013-jl3): paginated cycle fetch, Open|All filter store, list helpers
+- 21a7657a feat(quick-261013-jl3): redesign AIO Cycles folder panel and cycle list
 
 ## Tasks
 1. Data layer (done): fetchAioCyclesWithDetail loops until isLast, advancing startAt by items returned and stopping on empty pages or pages with no new IDs; requests startDate/endDate columns; store `statusFilter` ('open' default); pure helpers in `lib/aio-cycle-list.ts` (toDateKey, isOverdue, formatCycleDates, formatEffort, cycleProgress, progressTooltipRows, aggregateFolderCounts, filterFolderTree, sortCycles) with tests.
@@ -69,14 +69,14 @@ None.
 None.
 
 ## Self-Check: PASSED
-Created files exist; commits 9c551659 and ad7ca188 exist.
+Created files exist; commits ba6eb34b and 21a7657a exist.
 
 ## UAT (2026-10-13) — approved by user
 
 Fixes applied after review/UAT:
-- 04f7e2cd — review findings: no empty-state flash during skeleton grace period, folder filter keeps matching folder's subtree, progress clamped to 100%, JSDoc corrected
-- 41212278 — keys clickable (key cell under the row overlay), owner column spacing, Ungrouped computed as all cycles minus cycles in any folder (paged endpoint returns nothing for folderID -1)
-- 93633849 — Owner column widened to 240px
-- 64e568f4 — list virtualized above 100 rows (@tanstack/react-virtual); "All cycles" (~1,300) no longer struggles
+- b7b39d51 — review findings: no empty-state flash during skeleton grace period, folder filter keeps matching folder's subtree, progress clamped to 100%, JSDoc corrected
+- 8f566a7a — keys clickable (key cell under the row overlay), owner column spacing, Ungrouped computed as all cycles minus cycles in any folder (paged endpoint returns nothing for folderID -1)
+- adc146ee — Owner column widened to 240px
+- fbd942b3 — list virtualized above 100 rows (@tanstack/react-virtual); "All cycles" (~1,300) no longer struggles
 
 Still unconfirmed live: effort unit (assumed seconds), date format, whether folder counts already include descendants.

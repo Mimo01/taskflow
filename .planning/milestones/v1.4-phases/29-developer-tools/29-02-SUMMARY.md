@@ -68,8 +68,8 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Create DevToolsPage shell, Settings panel, and LogsTab** - `90d4f06` (feat)
-2. **Task 2: Create OperationsTab and WaterfallTab with CSS bar visualization** - `be5d1d8` (feat)
+1. **Task 1: Create DevToolsPage shell, Settings panel, and LogsTab** - `b747e643` (feat)
+2. **Task 2: Create OperationsTab and WaterfallTab with CSS bar visualization** - `85a524a4` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dev-tools/index.tsx` - Route entry point re-exporting DevToolsPage
@@ -95,7 +95,7 @@ Each task was committed atomically:
 - **Fix:** Created utils.ts upfront with formatBody, statusColor, and sourceBadgeClass
 - **Files modified:** taskflow/src/routes/dev-tools/utils.ts
 - **Verification:** TypeScript compilation passes, all components import from utils.ts
-- **Committed in:** 90d4f06 (Task 1 commit)
+- **Committed in:** b747e643 (Task 1 commit)
 
 ---
 

@@ -66,8 +66,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **RED — Add failing REL-01 tests** - `13f25d4` (test)
-2. **GREEN — Fix fetchFixVersions endpoint + auth store rehydration** - `a14bf61` (fix)
+1. **RED — Add failing REL-01 tests** - `b6b2e5e2` (test)
+2. **GREEN — Fix fetchFixVersions endpoint + auth store rehydration** - `73455a3f` (fix)
 
 ## Files Created/Modified
 

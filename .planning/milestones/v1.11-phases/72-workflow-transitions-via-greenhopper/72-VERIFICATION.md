@@ -2,7 +2,7 @@
 phase: 72-workflow-transitions-via-greenhopper
 verified: 2026-05-29T00:32:00Z
 status: passed
-score: 4/4 success criteria verified; 2 human UAT items approved 2026-05-29 (see 72-HUMAN-UAT.md); 2 gap-closure fixes (subtask transitions + status filter) committed as f7732dd1
+score: 4/4 success criteria verified; 2 human UAT items approved 2026-05-29 (see 72-HUMAN-UAT.md); 2 gap-closure fixes (subtask transitions + status filter) committed as 2a00198c
 re_verification:
   previous_status: null
   previous_score: null
@@ -102,9 +102,9 @@ None. No TBD/FIXME/XXX/HACK/PLACEHOLDER markers introduced in the touched files.
 
 No automated gaps. All 4 roadmap success criteria are observably true in the codebase:
 
-1. Two-layer GH cache infrastructure shipped + tested (Plan 01, commits 55371c27, 6b596847, 3f280269).
-2. All 4 call sites (StatusPopover, SprintBoardTab, BulkActionBar, QuickCreateInput) migrated (Plan 02, commits a41b395f, 7cd3df00).
-3. Legacy fetchTransitions GET deleted from both jira.ts and jira/transitions.ts (Plan 03, commit 878cd8fe); grep gate `fetchTransitions` = 0 across src.
+1. Two-layer GH cache infrastructure shipped + tested (Plan 01, commits 6a62ed11, a8c73fff, 592de4b6).
+2. All 4 call sites (StatusPopover, SprintBoardTab, BulkActionBar, QuickCreateInput) migrated (Plan 02, commits 94a74ece, f500fe69).
+3. Legacy fetchTransitions GET deleted from both jira.ts and jira/transitions.ts (Plan 03, commit a6be320a); grep gate `fetchTransitions` = 0 across src.
 4. Toolbar Reload action with aria-live feedback present; postTransition + JiraTransition retained.
 
 Full test suite (1649 tests) green. Only remaining items are the two human network-tab + visual UAT checks listed above — these are the standard manual verifications declared in 72-VALIDATION.md "Manual-Only Verifications" and must be confirmed before sign-off.

@@ -18,7 +18,7 @@ expected: When clicking an epic/story/subtask row on the Worklogs page, the issu
 actual: Breadcrumb shows 'Home > {ISSUE-KEY}' instead of 'Worklogs > {ISSUE-KEY}'
 errors: None
 reproduction: Open Worklogs page, click any epic/story/subtask row, observe breadcrumb on the issue detail page that loads
-started: Plan 64-01 commit 16b75990 (Worklogs page hierarchy table introduced — first time worklogs page navigates to issue detail)
+started: Plan 64-01 commit 63fbed45 (Worklogs page hierarchy table introduced — first time worklogs page navigates to issue detail)
 
 ## Eliminated
 

@@ -42,8 +42,8 @@ Increase the default Tauri window size and widen onboarding wizard containers to
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Increase default Tauri window dimensions | 29877ff | taskflow/src-tauri/tauri.conf.json |
-| 2 | Widen onboarding wizard step containers | 57c0c9e | JiraStep.tsx, GitLabStep.tsx, RoleStep.tsx, DoneStep.tsx, WelcomeStep.tsx |
+| 1 | Increase default Tauri window dimensions | bf416909 | taskflow/src-tauri/tauri.conf.json |
+| 2 | Widen onboarding wizard step containers | a46a4818 | JiraStep.tsx, GitLabStep.tsx, RoleStep.tsx, DoneStep.tsx, WelcomeStep.tsx |
 
 ## Changes Made
 
@@ -73,5 +73,5 @@ These were logged as out-of-scope and not modified.
 
 - tauri.conf.json: FOUND, width=1100 height=750 confirmed
 - All 5 onboarding files: FOUND, max-w-lg on outer containers confirmed
-- Commit 29877ff: FOUND (tauri window change)
-- Commit 57c0c9e: FOUND (onboarding containers)
+- Commit bf416909: FOUND (tauri window change)
+- Commit a46a4818: FOUND (onboarding containers)

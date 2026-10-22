@@ -25,25 +25,25 @@ status: all_fixed
 ### CR-01: BulkActionBar combined-mode (status + assignee/priority) loses progress counters and double-counts
 
 **Files modified:** `taskflow/src/routes/dashboard/BulkActionBar.tsx`
-**Commit:** `7dd2eb25`
+**Commit:** `f089823c`
 **Applied fix:** Replaced the four-branch parallelBatch dispatch with a single per-key `applyOps` that runs status → assignee → priority sequentially per key. Counters increment exactly once per key; any per-key error short-circuits into the failure path and rollback. The dropped "status=null, assignee=set, priority=set" case is also fixed (priority used to be silently skipped). **Requires human verification of progress-UI behavior under mixed success/failure across multiple fields.**
 
 ### WR-01: Duplicate `postTransition` definitions invite drift
 
 **Files modified:** `taskflow/src/services/jira.ts`
-**Commit:** `7bd3c5b1`
+**Commit:** `79b49a19`
 **Applied fix:** Removed the duplicate `postTransition` definition in `services/jira.ts` and replaced it with `export { postTransition } from './jira/transitions';`. All legacy `@/services/jira` import sites (BulkActionBar, QuickCreateInput, SprintBoardTab) continue to resolve through the re-export; FieldsSection's direct `@/services/jira/transitions` import now points at the same canonical function.
 
 ### WR-02: `JiraTransition` type duplicated; `types.ts` version is missing `fromStatusId`
 
 **Files modified:** `taskflow/src/services/jira/types.ts`
-**Commit:** `48151bce`
+**Commit:** `af5e34f3`
 **Applied fix:** Added `fromStatusId?: string` to the canonical `JiraTransition` interface in `services/jira/types.ts` with a comment pointing at the legacy re-declaration in `services/jira.ts` so they stay in sync. (Not collapsing one into the other in this iteration — both files re-declare the type historically; a follow-up could have `jira.ts` re-export from `types.ts`.)
 
 ### WR-03: `Number(issue.fields.project?.id ?? 0)` silently maps "missing project id" to projectId=0
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/transitions.ts`, `taskflow/src/routes/dashboard/StatusPopover.tsx`
-**Commit:** `c96dedd9`
+**Commit:** `7f38e0fa`
 **Applied fix:** Centralized the guard in the cache layer:
 - `getGhTransitions` throws a typed "Missing project context" error when `projectId <= 0` or `issueTypeId` is empty.
 - `peekGhTransitions` returns `undefined` (so render paths show their loading affordance, not an empty popover).
@@ -53,19 +53,19 @@ status: all_fixed
 ### WR-04: `QuickCreateInput.handleSubmit` swallows transition failure as creation failure
 
 **Files modified:** `taskflow/src/routes/dashboard/QuickCreateInput.tsx`
-**Commit:** `6bc87fb7`
+**Commit:** `b07c770c`
 **Applied fix:** Split the single try block into two. `createIssue` failures abort and keep the input open for retry. `getGhTransitions`/`postTransition` failures now show a softer "Created {key} but couldn't move it to {statusName}: {err}" notice, still reset the input, and call `onCreated()` so the board refreshes. Eliminates the duplicate-issue risk from retry-on-transition-error.
 
 ### WR-05: `useGhTransitions` `useEffect` does not re-fire when `readSecret` changes
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/transitions.ts`
-**Commit:** `11570c88`
+**Commit:** `46e7e2d9`
 **Applied fix:** Added `jiraBaseUrl` to the token-loading effect's dep array so the secret re-reads when the user logs out/in or switches Jira instances. Comment documents the rationale.
 
 ### WR-06: `__adaptToJiraTransition` casts `gh.fromStatusId` through `undefined` check that incorrectly treats null and 0
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/transitions.ts`
-**Commit:** `11570c88`
+**Commit:** `46e7e2d9`
 **Applied fix:** Replaced the strict `=== undefined` check with `== null` (covers both `null` and `undefined`) using a `fromRaw` local. Comment notes the Jira DC null-emission case from RESEARCH §Pitfall 4. Co-committed with WR-05 since both touch the same file.
 
 ## Verification Performed

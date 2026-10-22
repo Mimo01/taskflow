@@ -68,8 +68,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Update TopBar -- replace SearchOverlay with palette trigger, add clock icon, control notification popover** - `5a7c84a` (feat)
-2. **Task 2: Update AppLayout -- palette state, nav shortcuts, recent item tracking, delete old files** - `96fec84` (feat)
+1. **Task 1: Update TopBar -- replace SearchOverlay with palette trigger, add clock icon, control notification popover** - `ef44be98` (feat)
+2. **Task 2: Update AppLayout -- palette state, nav shortcuts, recent item tracking, delete old files** - `ce6f0ad6` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/TopBar.tsx` - Replaced SearchOverlay with palette trigger, added RecentItemsPopover, controlled notification popover

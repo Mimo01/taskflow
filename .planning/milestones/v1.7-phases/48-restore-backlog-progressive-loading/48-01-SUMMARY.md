@@ -37,8 +37,8 @@ Re-integrated per-section query architecture and progressive loading into Backlo
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add epicsLoading prop to BacklogRow | baf625c | BacklogRow.tsx |
-| 2 | Refactor BacklogPage to per-section queries; remove fetchFutureSprintIssues | a9fd999 | BacklogPage.tsx, backlog.ts, backlog.test.ts |
+| 1 | Add epicsLoading prop to BacklogRow | e6af122e | BacklogRow.tsx |
+| 2 | Refactor BacklogPage to per-section queries; remove fetchFutureSprintIssues | 160962e7 | BacklogPage.tsx, backlog.ts, backlog.test.ts |
 
 ## What Was Built
 
@@ -114,5 +114,5 @@ Files exist:
 - taskflow/src/services/jira/backlog.test.ts — FOUND
 
 Commits exist:
-- baf625c — FOUND (feat(48-01): add epicsLoading prop to BacklogRow)
-- a9fd999 — FOUND (feat(48-01): refactor BacklogPage to per-section queries)
+- e6af122e — FOUND (feat(48-01): add epicsLoading prop to BacklogRow)
+- 160962e7 — FOUND (feat(48-01): refactor BacklogPage to per-section queries)

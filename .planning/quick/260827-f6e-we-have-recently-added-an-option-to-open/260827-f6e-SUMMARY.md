@@ -77,9 +77,9 @@ completed: 2026-08-27
 
 ## Task Commits
 
-1. **Task 1: Build openExternalWith, useDetectedBrowsers, and the shared LinkContextMenu** - `afc51aa9` (feat)
-2. **Task 2: Wire inline prose links and notification rows** - `17594bcf` (feat)
-3. **Task 3: Wire the remaining button and row call sites** - `41abf1d2` (feat)
+1. **Task 1: Build openExternalWith, useDetectedBrowsers, and the shared LinkContextMenu** - `5fce26fb` (feat)
+2. **Task 2: Wire inline prose links and notification rows** - `465bc009` (feat)
+3. **Task 3: Wire the remaining button and row call sites** - `31010f5f` (feat)
 
 _All tasks were plain `type="auto"` (not TDD-gated at the plan level), though Task 1 and Task 2 carried `tdd="true"` and tests were written alongside the implementation in the same commit per the pre-commit-hook constraint (full vitest suite runs on every commit — see project memory "Pre-commit hook blocks RED commits")._
 
@@ -119,7 +119,7 @@ See `key-decisions` in frontmatter. Most consequential: the base-ui render-prop 
 - **Fix:** Added the import
 - **Files modified:** `src/routes/dashboard/WikiRenderer.tsx`
 - **Verification:** `npx vitest run src/routes/dashboard/WikiRenderer.test.tsx` — all 150 tests pass
-- **Committed in:** `17594bcf` (Task 2 commit)
+- **Committed in:** `465bc009` (Task 2 commit)
 
 **2. [Rule 1 - Bug] Copy link flash never appeared — popup closed on click**
 - **Found during:** Task 1, `link-context-menu.test.tsx` first run
@@ -127,7 +127,7 @@ See `key-decisions` in frontmatter. Most consequential: the base-ui render-prop 
 - **Fix:** Added `closeOnClick={false}` to the Copy link item only (the Open-in-* items keep the default close-on-select behavior)
 - **Files modified:** `src/components/ui/link-context-menu.tsx`
 - **Verification:** `npx vitest run src/components/ui/link-context-menu.test.tsx` — all 7 tests pass, including the fake-timer flash-and-revert test
-- **Committed in:** `afc51aa9` (Task 1 commit)
+- **Committed in:** `5fce26fb` (Task 1 commit)
 
 **3. [Rule 1 - Bug] `LinkContextMenu` mounting broke 5 pre-existing test files that render without a `QueryClientProvider`**
 - **Found during:** Task 2 and Task 3, full-suite runs after each file's wrap
@@ -135,7 +135,7 @@ See `key-decisions` in frontmatter. Most consequential: the base-ui render-prop 
 - **Fix:** Added `vi.mock('@/lib/useDetectedBrowsers', () => ({ useDetectedBrowsers: () => [] }))` to each of the 4 affected test files, rather than retrofitting a `QueryClientProvider` wrapper onto dozens of individual call sites across those files
 - **Files modified:** `src/routes/dashboard/WikiRenderer.test.tsx`, `src/routes/notifications/NotificationRow.test.tsx`, `src/routes/notifications/NotificationPopover.test.tsx`, `src/routes/dashboard/release-detail/ReleaseDetailSidebar.test.tsx`
 - **Verification:** `npx vitest run` — full suite green (2688 passed, 2 skipped, 13 todo)
-- **Committed in:** `17594bcf` (WikiRenderer/NotificationRow/NotificationPopover), `41abf1d2` (ReleaseDetailSidebar)
+- **Committed in:** `465bc009` (WikiRenderer/NotificationRow/NotificationPopover), `31010f5f` (ReleaseDetailSidebar)
 
 ---
 

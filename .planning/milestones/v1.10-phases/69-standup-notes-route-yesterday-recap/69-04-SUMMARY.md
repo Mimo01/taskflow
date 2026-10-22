@@ -74,7 +74,7 @@ after a round of UAT fixes.
 
 ## Commit
 
-- `af2e2dcf` — fix(69-04): standup Yesterday recap — query scope, grouping, navigation
+- `98c6e72d` — fix(69-04): standup Yesterday recap — query scope, grouping, navigation
 
 ## Known unrelated issue
 

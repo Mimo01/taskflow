@@ -43,8 +43,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add unified statusPillClass helpers in statusStyles.ts | 9be1775 | statusStyles.ts |
-| 2 | Migrate all status-pill consumers to the unified helper | 2ff5c3c | 9 consumer files |
+| 1 | Add unified statusPillClass helpers in statusStyles.ts | 3bce58ff | statusStyles.ts |
+| 2 | Migrate all status-pill consumers to the unified helper | c72622d1 | 9 consumer files |
 | 3 | Visual UAT — confirm status pills look unified across the app | DEFERRED | — |
 
 ## Task 3 — Deferred (Visual UAT)
@@ -107,5 +107,5 @@ None.
 ## Self-Check: PASSED
 
 - taskflow/src/lib/statusStyles.ts — exists, contains `STATUS_PILL_LAYOUT_CLASS`, `statusPillClass`, `aioCycleStatusPillClass`, `aioRunStatusPillClass`
-- All 9 consumer files modified and committed in 2ff5c3c
-- Commits 9be1775 and 2ff5c3c verified in git log
+- All 9 consumer files modified and committed in c72622d1
+- Commits 3bce58ff and c72622d1 verified in git log

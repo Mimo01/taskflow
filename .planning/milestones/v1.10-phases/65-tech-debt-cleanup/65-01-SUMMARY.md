@@ -42,10 +42,10 @@ Five carried React and type-architecture debt items surgically fixed: timer memo
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| Pre | Commit pending tauri-storage fix (D-07) | f57e01bc | tauri-storage.ts, tauri-storage.test.ts |
-| 1 | WorklogsPage timer cleanup, error state, keyed fragments (CLEAN-01, 02, 03) | c2c845d4 | WorklogsPage.tsx, WorklogsPage.test.tsx |
-| 2 | Move DatePreset to tempo service types, fix store import (CLEAN-04) | 16bbe922 | types.ts, WorklogsPage.tsx, tempo-filters.store.ts |
-| 3 | Remove stale workload sidebar test mock (CLEAN-05) | f204cbec | Sidebar.test.tsx |
+| Pre | Commit pending tauri-storage fix (D-07) | 7ab2faf0 | tauri-storage.ts, tauri-storage.test.ts |
+| 1 | WorklogsPage timer cleanup, error state, keyed fragments (CLEAN-01, 02, 03) | 1f206375 | WorklogsPage.tsx, WorklogsPage.test.tsx |
+| 2 | Move DatePreset to tempo service types, fix store import (CLEAN-04) | e9baa7d6 | types.ts, WorklogsPage.tsx, tempo-filters.store.ts |
+| 3 | Remove stale workload sidebar test mock (CLEAN-05) | 430f53eb | Sidebar.test.tsx |
 
 ## What Was Built
 
@@ -102,7 +102,7 @@ npm run build → built in 3.72s
 
 ### Pre-execution: Committed tauri-storage.ts pre-condition (D-07)
 
-Per CONTEXT.md D-07, committed the pending `tauri-storage.ts` and `tauri-storage.test.ts` modifications as a standalone commit (`f57e01bc`) before any phase-65 plan work. These files were already modified in the working tree and must not be mixed into plan commits.
+Per CONTEXT.md D-07, committed the pending `tauri-storage.ts` and `tauri-storage.test.ts` modifications as a standalone commit (`7ab2faf0`) before any phase-65 plan work. These files were already modified in the working tree and must not be mixed into plan commits.
 
 ### Node modules symlink for worktree test execution
 
@@ -126,7 +126,7 @@ None. No new network endpoints, auth paths, file access patterns, or schema chan
 - [x] `export type DatePreset` in `WorklogsPage.tsx` = 0
 - [x] No DatePreset import from routes/worklogs anywhere
 - [x] `workload` count in `Sidebar.test.tsx` = 0
-- [x] All commits exist: c2c845d4, 16bbe922, f204cbec
+- [x] All commits exist: 1f206375, e9baa7d6, 430f53eb
 - [x] Build passes: `npm run build` exits 0
 
 ## Self-Check: PASSED

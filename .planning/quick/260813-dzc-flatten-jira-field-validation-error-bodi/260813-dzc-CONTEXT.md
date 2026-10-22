@@ -17,7 +17,7 @@ Every error path in the Jira service layer reads only `errorMessages?.[0]`. Noth
 reads `errors`. So on a field-validation rejection the real reason is **silently discarded** and the
 user sees a generic fallback string.
 
-This is the Jira-side sibling of GitLab WR-01 (quick task 260813-dbf, commits 8bab7327/6a68948d),
+This is the Jira-side sibling of GitLab WR-01 (quick task 260813-dbf, commits 4f2d29f9/ceb3f0d6),
 which was the same root cause — a narrow widening of a multi-shape error body. GitLab's version
 rendered `[object Object]`; Jira's throws the information away entirely.
 

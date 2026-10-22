@@ -57,7 +57,7 @@ No per-frame `onDragOver` live-reorder reintroduced (order computed once on drop
 
 | Task | Name | Commit | Files |
 | ---- | ---- | ------ | ----- |
-| 1 | Remove DragOverlay from BacklogPage; drag row in place in BacklogRow | 2a2a4c30 | BacklogPage.tsx, BacklogRow.tsx |
+| 1 | Remove DragOverlay from BacklogPage; drag row in place in BacklogRow | 716ffaee | BacklogPage.tsx, BacklogRow.tsx |
 | 2 | Run dashboard + jira test suites to confirm no regressions | (no code change) | — |
 
 ## Verification
@@ -83,4 +83,4 @@ None.
 
 - FOUND: taskflow/src/routes/dashboard/BacklogPage.tsx
 - FOUND: taskflow/src/routes/dashboard/BacklogRow.tsx
-- FOUND commit: 2a2a4c30
+- FOUND commit: 716ffaee

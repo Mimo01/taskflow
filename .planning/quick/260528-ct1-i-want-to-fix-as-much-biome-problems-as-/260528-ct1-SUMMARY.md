@@ -46,8 +46,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Mechanical / single-line fixes (8 files, 8 warnings) | 9abca2ee | AppIcon, KeyboardShortcutsPanel, empty-state.test, label, input-group, SprintGoalBanner, AioCycleDetailPage, BacklogFilterBar |
-| 2 | Keyboard handlers on clickable non-interactive elements (5 files, 12 warnings) | c8bbe684 | input-group, CommandPalette, AuthImage, ImageLightbox, MentionPopover |
+| 1 | Mechanical / single-line fixes (8 files, 8 warnings) | d63f2aae | AppIcon, KeyboardShortcutsPanel, empty-state.test, label, input-group, SprintGoalBanner, AioCycleDetailPage, BacklogFilterBar |
+| 2 | Keyboard handlers on clickable non-interactive elements (5 files, 12 warnings) | 4760a99f | input-group, CommandPalette, AuthImage, ImageLightbox, MentionPopover |
 | 3 | Full verification + regression check | (no source edits) | — |
 
 ## Verification Results
@@ -93,7 +93,7 @@ None — changes are attribute/handler additions only, no new network endpoints 
 ## Self-Check: PASSED
 
 - All 12 modified files exist and were committed
-- Task 1 commit: 9abca2ee (verified in git log)
-- Task 2 commit: c8bbe684 (verified in git log)
+- Task 1 commit: d63f2aae (verified in git log)
+- Task 2 commit: 4760a99f (verified in git log)
 - `npx biome check ./src` exits 0
 - vitest run: 129/129 test files pass

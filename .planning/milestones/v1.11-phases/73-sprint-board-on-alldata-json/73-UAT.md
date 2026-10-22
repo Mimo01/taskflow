@@ -31,7 +31,7 @@ result: pass
 ### 5. Status Transitions Still Work After Rewrite
 expected: Drag a card to a different column (or use a transition action). The transition completes, the card moves, and time-in-column badge resets. No errors related to missing projectId / sentinel issue.
 result: pass
-note: initially failed (no transitions); fixed inline in commit d5e1c1ad (adapter.ts: populate issuetype.id from gh.typeId); re-verified pass
+note: initially failed (no transitions); fixed inline in commit 2cf55b92 (adapter.ts: populate issuetype.id from gh.typeId); re-verified pass
 
 ### 6. Sidebar Prefetch Warms Sprint Board
 expected: From a non-sprint-board page, hover/focus the Sprint Board sidebar link. Then click it. The board appears with cached data (no visible loading spinner, or only a very brief one) — faster than a cold load.
@@ -68,6 +68,6 @@ blocked: 0
       issue: "issuetype object missing id field"
     - path: "taskflow/src/services/jira/greenhopper/adapter.test.ts"
       issue: "test enforced incorrect prior invariant (no id)"
-  fix_commit: "d5e1c1ad"
+  fix_commit: "2cf55b92"
   fix: "Added `id: gh.typeId` to adaptedIssuetype; updated test to assert id IS populated from gh.typeId"
   debug_session: ".planning/debug/phase73-no-transitions.md"

@@ -30,9 +30,9 @@ The fix adds a `showSubtaskRows = true` parameter to `renderFlatRows`. `accumula
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 (RED) | Add failing regression test for done-parent time rollup | `50e83580` | MyTasksPage.test.tsx |
-| 2 (GREEN) | Decouple time aggregation from subtask-row display | `72ada5c1` | MyTasksPage.tsx |
-| 3 | Verify full check (lint + typecheck + targeted tests) | `ae5fa61f` | MyTasksPage.tsx (biome fmt) |
+| 1 (RED) | Add failing regression test for done-parent time rollup | `e126beae` | MyTasksPage.test.tsx |
+| 2 (GREEN) | Decouple time aggregation from subtask-row display | `4ef654ec` | MyTasksPage.tsx |
+| 3 | Verify full check (lint + typecheck + targeted tests) | `9bd06d81` | MyTasksPage.tsx (biome fmt) |
 
 ## Verification Results
 
@@ -47,7 +47,7 @@ The fix adds a `showSubtaskRows = true` parameter to `renderFlatRows`. `accumula
 - **Issue:** The multi-line `renderFlatRows(parent, subtasksByKey.get(parent.key) ?? [], !isParentDone)` call triggered a biome formatter error
 - **Fix:** Applied `npx biome check --write` to collapse to one line; no logic change
 - **Files modified:** `taskflow/src/routes/my-tasks/MyTasksPage.tsx`
-- **Commit:** `ae5fa61f`
+- **Commit:** `9bd06d81`
 
 ## Known Stubs
 
@@ -61,4 +61,4 @@ None — no new network endpoints, auth paths, or schema changes introduced.
 
 - `taskflow/src/routes/my-tasks/MyTasksPage.tsx` exists and contains `showSubtaskRows` param
 - `taskflow/src/routes/my-tasks/MyTasksPage.test.tsx` exists and contains `260618-efy` describe block
-- Commits `50e83580`, `72ada5c1`, `ae5fa61f` present in worktree history
+- Commits `e126beae`, `4ef654ec`, `9bd06d81` present in worktree history

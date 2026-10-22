@@ -34,7 +34,7 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Render priority icons in Select option list and trigger value | d9038d8e | FieldsSection.tsx, FieldsSection.test.tsx |
+| 1 | Render priority icons in Select option list and trigger value | 0657e726 | FieldsSection.tsx, FieldsSection.test.tsx |
 
 ## What Was Built
 
@@ -99,7 +99,7 @@ None — no new trust boundaries introduced. The `iconUrl` from `JiraPriority` w
 
 - [x] `taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx` exists and contains `PriorityIcon` import + usage
 - [x] `taskflow/src/routes/dashboard/issue-detail/FieldsSection.test.tsx` contains new tests
-- [x] Commit d9038d8e exists
+- [x] Commit 0657e726 exists
 - [x] `grep -n "PriorityIcon" FieldsSection.tsx` shows lines 19, 644, 654
 - [x] 23/23 FieldsSection tests pass
 - [x] biome check clean, tsc clean

@@ -79,8 +79,8 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: SearchOverlay with debounced parallel search and grouped results** - `d467460` (feat)
-2. **Task 2: SearchResultPanel and Search icon wired into TopBar** - `3690e6f` (feat)
+1. **Task 1: SearchOverlay with debounced parallel search and grouped results** - `c86f34c7` (feat)
+2. **Task 2: SearchResultPanel and Search icon wired into TopBar** - `ca8fdd0a` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/SearchOverlay.tsx` - Full-width fixed search overlay component with debounce and TanStack Query integration
@@ -120,5 +120,5 @@ None — no external service configuration required.
 - taskflow/src/components/app/SearchOverlay.tsx: FOUND
 - taskflow/src/components/app/SearchResultPanel.tsx: FOUND
 - .planning/phases/04-pm-dashboard-search/04-03-SUMMARY.md: FOUND
-- commit d467460: FOUND
-- commit 3690e6f: FOUND
+- commit c86f34c7: FOUND
+- commit ca8fdd0a: FOUND

@@ -65,8 +65,8 @@ completed: 2026-05-13
 
 Each task was committed atomically:
 
-1. **Task 0: Integrate AioTestRunsSection into IssueDetailPage** - `ed3f656` (feat)
-2. **Task 1: Turn all 9 component tests GREEN** - `26fca78` (test)
+1. **Task 0: Integrate AioTestRunsSection into IssueDetailPage** - `55a7f678` (feat)
+2. **Task 1: Turn all 9 component tests GREEN** - `42731826` (test)
 
 **Plan metadata:** (committed below with SUMMARY)
 
@@ -89,7 +89,7 @@ Each task was committed atomically:
 - **Fix:** Changed both tests to `getByRole('button', { name: 'screenshot.png - click to view full size' })`. Test 9 lightbox assertion updated to `expect(screen.getByRole('dialog')).toBeInTheDocument()`
 - **Files modified:** `taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.test.tsx`
 - **Verification:** All 9 tests pass GREEN; lightbox dialog confirmed to appear after thumbnail click
-- **Committed in:** `26fca78` (Task 1 commit)
+- **Committed in:** `42731826` (Task 1 commit)
 
 ---
 

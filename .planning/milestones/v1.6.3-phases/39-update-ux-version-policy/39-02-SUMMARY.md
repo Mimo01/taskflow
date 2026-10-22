@@ -83,8 +83,8 @@ completed: 2026-03-25
 
 ## Task Commits
 
-1. **Task 1: Version policy service + compare-versions + policy JSON** - `f6dcd07` (feat)
-2. **Task 2: SoftMinimumBanner + HardMinimumOverlay + AppLayout wiring** - `68079d1` (feat)
+1. **Task 1: Version policy service + compare-versions + policy JSON** - `8644e255` (feat)
+2. **Task 2: SoftMinimumBanner + HardMinimumOverlay + AppLayout wiring** - `7c36e9e7` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/versionPolicy.ts` — fetchVersionPolicy + isBelow + VersionPolicy interface

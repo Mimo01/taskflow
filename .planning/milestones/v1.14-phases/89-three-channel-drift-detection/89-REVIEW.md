@@ -42,7 +42,7 @@ The pure module (`driftDetection.ts`) is well factored and its documented overri
 
 Cross-module consistency is also weaker than the docs claim: the Releases list and the detail page resolve the "matched milestone" with two different tie-break rules and two different windows, and the list-page drift count fires on branch drift for a release branch that provably does not exist yet — the same false-positive class that `branchMissing`/`milestoneMissing` were deliberately gated against.
 
-Note: `TodayColumn.markdown.test.ts`, `mrMatching.test.ts`, `linkEngine.test.ts` and `notifications.test.ts` show no changes in this phase's commit range (`5e91952f~1..HEAD`); reviewed lightly, nothing to report.
+Note: `TodayColumn.markdown.test.ts`, `mrMatching.test.ts`, `linkEngine.test.ts` and `notifications.test.ts` show no changes in this phase's commit range (`c316566d~1..HEAD`); reviewed lightly, nothing to report.
 
 No structural pre-pass findings were supplied with this review.
 
@@ -139,7 +139,7 @@ const driftCount = openMrsLoaded && !version.released
 #### WR-06: List page and detail page resolve "the matched milestone" by different rules
 
 **File:** `taskflow/src/routes/dashboard/ReleasesTab.tsx:255-269` vs `taskflow/src/routes/dashboard/release-detail/releaseSummaries.ts:79-98`
-**Issue:** `ReleasesTab.toMatched` takes the **first** fuzzy candidate encountered (`if (match.type === 'fuzzy' && bestMatch.type === 'none')`), while `resolveGitLabMatch` takes the **closest by due_date** with an explicit deterministic tie-break. The two also fetch different milestone windows (list: min..max of all fix versions ±7d; detail: this version's date ±7d). With more than one milestone in a version's window, the row and the detail page can therefore evaluate drift against *different* milestones and different branch names — producing exactly the "1 here, 4 there" confusion commit `8cf1b802` tried to paper over with wording.
+**Issue:** `ReleasesTab.toMatched` takes the **first** fuzzy candidate encountered (`if (match.type === 'fuzzy' && bestMatch.type === 'none')`), while `resolveGitLabMatch` takes the **closest by due_date** with an explicit deterministic tie-break. The two also fetch different milestone windows (list: min..max of all fix versions ±7d; detail: this version's date ±7d). With more than one milestone in a version's window, the row and the detail page can therefore evaluate drift against *different* milestones and different branch names — producing exactly the "1 here, 4 there" confusion commit `3c704705` tried to paper over with wording.
 **Fix:** Have `ReleasesTab` call `resolveGitLabMatch` (it already takes a milestone array) instead of hand-rolling the loop, so both surfaces share one tie-break.
 
 #### WR-07: `evaluateMilestoneDrift` uses strict `=== null` where the rest of the module uses `== null`/`?.`

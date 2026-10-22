@@ -51,8 +51,8 @@ Update dialog lifecycle with available/downloading/ready/error views, post-updat
 
 | # | Task | Commit | Status |
 |---|------|--------|--------|
-| 1 | Settings store v11 migration + UpdateDialog component | 8df037c | Done |
-| 2 | WhatsNewDialog component + AppLayout wiring | ee665ed | Done |
+| 1 | Settings store v11 migration + UpdateDialog component | edf2c5bb | Done |
+| 2 | WhatsNewDialog component + AppLayout wiring | e52f7942 | Done |
 
 ## What Was Built
 
@@ -114,4 +114,4 @@ All states use `showCloseButton={false}` per D-06.
 - [x] `taskflow/src/stores/settings.store.ts` has `lastSeenVersion`
 - [x] `taskflow/src/main.tsx` imports and mounts `<UpdateDialog />` and `<WhatsNewDialog />`
 - [x] `taskflow/src/main.tsx` calls `useUpdatePolling()`
-- [x] Commits 8df037c (Task 1) and ee665ed (Task 2) exist
+- [x] Commits edf2c5bb (Task 1) and e52f7942 (Task 2) exist

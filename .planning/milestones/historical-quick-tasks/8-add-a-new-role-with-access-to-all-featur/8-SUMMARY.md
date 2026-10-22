@@ -35,9 +35,9 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Expand role type in stores | 985b35f | settings.store.ts, onboarding.store.ts |
-| 2 | Add Tech Lead option to role pickers | 88ca19d | RoleStep.tsx, RoleSection.tsx |
-| 3 | Add Tech Lead sidebar branch | 2f3fb6a | Sidebar.tsx |
+| 1 | Expand role type in stores | b8e5f858 | settings.store.ts, onboarding.store.ts |
+| 2 | Add Tech Lead option to role pickers | ab2beb3a | RoleStep.tsx, RoleSection.tsx |
+| 3 | Add Tech Lead sidebar branch | 927ee126 | Sidebar.tsx |
 
 ## What Was Built
 
@@ -65,6 +65,6 @@ Files exist:
 - taskflow/src/components/app/Sidebar.tsx — FOUND
 
 Commits exist:
-- 985b35f (Task 1) — FOUND
-- 88ca19d (Task 2) — FOUND
-- 2f3fb6a (Task 3) — FOUND
+- b8e5f858 (Task 1) — FOUND
+- ab2beb3a (Task 2) — FOUND
+- 927ee126 (Task 3) — FOUND

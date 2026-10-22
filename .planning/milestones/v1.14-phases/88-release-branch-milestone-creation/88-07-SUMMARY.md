@@ -67,8 +67,8 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 1: Gate the missing-branch indicator on query success and surface a branch-fetch-error chip (CR-01)** - `6503aa8a` (fix, TDD)
-2. **Task 2: Scope the missing-milestone indicator to dated unreleased versions and give both indicators accessible names (WR-04, WR-06)** - `df03bcc1` (fix, TDD)
+1. **Task 1: Gate the missing-branch indicator on query success and surface a branch-fetch-error chip (CR-01)** - `3d035786` (fix, TDD)
+2. **Task 2: Scope the missing-milestone indicator to dated unreleased versions and give both indicators accessible names (WR-04, WR-06)** - `85cc1cc3` (fix, TDD)
 
 _Both tasks followed RED→GREEN TDD: tests were written and confirmed failing before the corresponding source change._
 
@@ -89,7 +89,7 @@ None - plan executed exactly as written. Both tasks' acceptance-criteria grep as
 
 ## Issues Encountered
 
-- **Worktree base drift:** The worktree's initial `git merge-base` check against the target base commit (`7e7c3debc25efc15502d3925dddb1ff3547c4f47`) did not match — HEAD was still on an earlier commit (`ca59303f`) that predated the Phase 88 plans 88-01 through 88-06 (including the `feat(88-04): row indicator icons + ReleasesTab test coverage` commit this plan depends on). Ran the branch-check's `git reset --hard` to the correct base commit, which brought in the drift-indicator code this plan modifies. Resolved before any task work began; no impact on the final result.
+- **Worktree base drift:** The worktree's initial `git merge-base` check against the target base commit (`01a266e6867d5bb0da0b8d8f0f9f5404a987eb2f`) did not match — HEAD was still on an earlier commit (`2f87c86d`) that predated the Phase 88 plans 88-01 through 88-06 (including the `feat(88-04): row indicator icons + ReleasesTab test coverage` commit this plan depends on). Ran the branch-check's `git reset --hard` to the correct base commit, which brought in the drift-indicator code this plan modifies. Resolved before any task work began; no impact on the final result.
 - **Missing `node_modules`:** The worktree's `taskflow/` directory had no `node_modules` installed (test runner failed with `ERR_MODULE_NOT_FOUND` for `@vitejs/plugin-react`). Symlinked `taskflow/node_modules` to the main checkout's `taskflow/node_modules` (confirmed gitignored via `git status --ignored`, so it does not appear in any commit) rather than running a fresh install, since the lockfile-pinned dependencies were already present and verified at the main checkout.
 
 ## User Setup Required
@@ -114,6 +114,6 @@ None - no external service configuration required.
 - FOUND: taskflow/src/routes/dashboard/ReleasesTab.tsx
 - FOUND: taskflow/src/routes/dashboard/ReleasesTab.test.tsx
 - FOUND: .planning/phases/88-release-branch-milestone-creation/88-07-SUMMARY.md
-- FOUND commit: 6503aa8a (Task 1)
-- FOUND commit: df03bcc1 (Task 2)
-- FOUND commit: 0d558b6f (docs: plan summary)
+- FOUND commit: 3d035786 (Task 1)
+- FOUND commit: 85cc1cc3 (Task 2)
+- FOUND commit: 633b91b8 (docs: plan summary)

@@ -81,10 +81,10 @@ metrics:
 
 | Task | Type | Hash | Subject |
 |------|------|------|---------|
-| 1 | test | 9c361e2e | add failing tests for TaskCard timeInColumn badge |
-| 1 | feat | 86e4530b | render timeInColumn badge in TaskCard |
-| 2 | test | b044c05b | rewrite SprintBoardTab tests onto useGhAllData mock |
-| 2 | feat | 37c3e50e | rewrite SprintBoardTab data layer onto useGhAllData |
+| 1 | test | d2f35fd0 | add failing tests for TaskCard timeInColumn badge |
+| 1 | feat | 7c9d2db5 | render timeInColumn badge in TaskCard |
+| 2 | test | 12438716 | rewrite SprintBoardTab tests onto useGhAllData mock |
+| 2 | feat | 8eb91b2d | rewrite SprintBoardTab data layer onto useGhAllData |
 
 (SUMMARY.md is intentionally left uncommitted in the worktree per the orchestrator merge contract.)
 
@@ -136,42 +136,42 @@ metrics:
 - **Issue:** PLAN.md focused on the query swap but said "subtask grouping NO CHANGE." It did not specify that the 4 sites which still invalidate the legacy `['jira-sprint-stories' | 'jira-sprint-subtasks']` keys (post-transition success path, post-flag success path, top toolbar Refresh button, ErrorState/StaleDataBanner Retry paths) would silently no-op against the new data source.
 - **Fix:** Added `invalidateGhAllData(queryClient, boardId ?? undefined)` alongside each legacy invalidation. Legacy keys retained so Plan 03's toolbar sweep can remove both in one diff. This is a correctness requirement — without it, drag-to-transition followed by re-render would show stale data until the next 60s poll.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** included in 37c3e50e
+- **Commit:** included in 8eb91b2d
 
 **3. [Rule 1 - Bug] Removed `isActive` + `useIsActiveRoute` from SprintBoardTab**
 - **Found during:** Post-rewrite tsc check
 - **Issue:** PLAN.md left them in but they became dead code after the query swap (`useGhAllData` owns active-route gating internally — same hook used inside `useGhAllData.ts`). tsc raised TS6133 "declared but never read."
 - **Fix:** Deleted the import + the `const isActive` line. Behavior unchanged — `useGhAllData` already calls `useIsActiveRoute('/sprint-board')` internally per the Plan 01 hook contract.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** included in 37c3e50e
+- **Commit:** included in 8eb91b2d
 
 **4. [Rule 1 - Bug] Removed `STALE_TIME_MS` + `POLL_INTERVAL_MS` imports from SprintBoardTab**
 - **Found during:** Same tsc pass
 - **Issue:** With the inline useQuery blocks gone, these constants are no longer referenced in-file (`useGhAllData` consumes them internally). Unused-import warnings broke the 0/0 biome baseline.
 - **Fix:** Dropped the import. `useGhAllData.ts` (Plan 01) owns the values.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** included in 37c3e50e
+- **Commit:** included in 8eb91b2d
 
 **5. [Rule 1 - Bug] Adapted `buildEntityMaps` call shape**
 - **Found during:** First post-edit tsc run
 - **Issue:** PATTERNS.md and PLAN action steps called `buildEntityMaps(allData.entityData)` — but the actual Phase 71 signature is `buildEntityMaps(allData: GhAllDataResponse)` (full envelope, not just the entityData sub-object).
 - **Fix:** Call with `allData` directly. The function's docs confirm it reads `allData.entityData` internally.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** included in 37c3e50e
+- **Commit:** included in 8eb91b2d
 
 **6. [Rule 1 - Bug] Updated `getTransitions` to fall back to sentinel projectId**
 - **Found during:** Post-rewrite reasoning about non-test-covered paths
 - **Issue:** PLAN.md's R-04 note covered the sentinel hook call and the reload handler. `getTransitions(issue)` also reads `issue.fields.project?.id` — that property is also missing from `AdaptedIssue`, so context-menu transitions would silently use projectId 0 for every card.
 - **Fix:** `const projectId = Number(issue.fields.project?.id ?? 0) || sentinelProjectId;` — falls back to the raw-envelope sentinel when the adapter didn't populate it.
 - **Files modified:** `taskflow/src/routes/dashboard/SprintBoardTab.tsx`
-- **Commit:** included in 37c3e50e
+- **Commit:** included in 8eb91b2d
 
 **7. [Rule 1 - Bug] Test file `noNonNullAssertion` lint fixes**
 - **Found during:** Post-Task 1 biome run
 - **Issue:** Initial DOM-order test used `storyPointsChip!.compareDocumentPosition(...)` — biome's `lint/style/noNonNullAssertion` rule flagged it.
 - **Fix:** Replaced bang assertions with a typed runtime check (`if (!storyPointsChip || !statusBadge) throw …`).
 - **Files modified:** `taskflow/src/routes/dashboard/TaskCard.test.tsx`
-- **Commit:** included in 86e4530b
+- **Commit:** included in 7c9d2db5
 
 No Rule 4 (architectural) deviations. No checkpoint hits. No auth gates.
 
@@ -185,9 +185,9 @@ None. The badge wiring is data-driven — when `timeInColumn` is absent (e.g. th
 - `taskflow/src/routes/dashboard/TaskCard.tsx` → FOUND (modified)
 - `taskflow/src/routes/dashboard/SprintBoardTab.tsx` → FOUND (modified)
 - `taskflow/src/routes/dashboard/SprintBoardTab.test.tsx` → FOUND (modified)
-- Commit 9c361e2e → FOUND in git log
-- Commit 86e4530b → FOUND in git log
-- Commit b044c05b → FOUND in git log
-- Commit 37c3e50e → FOUND in git log
+- Commit d2f35fd0 → FOUND in git log
+- Commit 7c9d2db5 → FOUND in git log
+- Commit 12438716 → FOUND in git log
+- Commit 8eb91b2d → FOUND in git log
 
 ## Self-Check: PASSED

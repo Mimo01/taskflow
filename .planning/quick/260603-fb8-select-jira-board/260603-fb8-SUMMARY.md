@@ -77,10 +77,10 @@ completed: 2026-06-03
 
 ## Task Commits
 
-1. **Task 1: Data layer (listProjectBoards, store, funnel, fetchActiveSprint boardId)** - `53b212bc` (feat)
-2. **Task 2: Thread resolved boardId through 3 active-sprint callers** - `5210c81a` (fix)
-3. **Task 3: Shared BoardPicker + wizard and settings wiring** - `9eb6040b` (feat)
-4. **Post-gate: biome format + dashboard test mock** - `023c7828` (style)
+1. **Task 1: Data layer (listProjectBoards, store, funnel, fetchActiveSprint boardId)** - `fa436ccd` (feat)
+2. **Task 2: Thread resolved boardId through 3 active-sprint callers** - `5d1cd145` (fix)
+3. **Task 3: Shared BoardPicker + wizard and settings wiring** - `e6b08431` (feat)
+4. **Post-gate: biome format + dashboard test mock** - `07f54478` (style)
 
 _Plan/docs metadata commit handled by the orchestrator._
 
@@ -112,7 +112,7 @@ _Plan/docs metadata commit handled by the orchestrator._
 - **Fix:** Added `boardId={null}` to the 6 card render sites; added `useAuthStore.getState` returning `{ jiraBoardIds: {} }` to the Sidebar mock; wrapped ConnectionsSection renders in a `QueryClientProvider` helper and mocked `listProjectBoards` + extended the auth mock; mocked `@/hooks/useBoardId` in the dashboard index test.
 - **Files modified:** the four test files above.
 - **Verification:** Affected suites pass (1028 tests green); `npm run check` GREEN.
-- **Committed in:** `5210c81a` (Task 2), `9eb6040b` (Task 3), `023c7828` (post-gate).
+- **Committed in:** `5d1cd145` (Task 2), `e6b08431` (Task 3), `07f54478` (post-gate).
 
 **2. [Rule 3 - Blocking] biome format reflow of multi-arg fetchActiveSprint calls**
 - **Found during:** Final `npm run check`
@@ -120,7 +120,7 @@ _Plan/docs metadata commit handled by the orchestrator._
 - **Fix:** Ran `biome check --write`; the formatter wrapped the calls. No logic change.
 - **Files modified:** `useBoardId.ts`, `SprintBoardTab.tsx`, `DashboardSprintCard.tsx`.
 - **Verification:** `npm run check` GREEN.
-- **Committed in:** `023c7828`.
+- **Committed in:** `07f54478`.
 
 ---
 
@@ -146,7 +146,7 @@ None - no new network endpoints, auth paths, or trust-boundary surface beyond th
 
 ## Self-Check: PASSED
 - Created file present: `taskflow/src/components/jira/BoardPicker.tsx` (FOUND).
-- Task commits present: `53b212bc`, `5210c81a`, `9eb6040b`, `023c7828` (all FOUND in git log).
+- Task commits present: `fa436ccd`, `5d1cd145`, `e6b08431`, `07f54478` (all FOUND in git log).
 - `npm run check` GREEN; affected vitest suites 1028 passed / 2 skipped.
 
 ---

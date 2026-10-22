@@ -53,7 +53,7 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Register settings shortcut and wire navigation** - `4d4811b` (feat)
+1. **Task 1: Register settings shortcut and wire navigation** - `dde46623` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/lib/shortcuts.ts` - Added nav-settings shortcut entry after nav-notifications

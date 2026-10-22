@@ -62,8 +62,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add fetchMilestoneMRs and fetchFixVersionIssues helpers** - `d3bdc41` (feat)
-2. **Task 2: Build issue-MR matching table with missing/unmatched sections** - `214ac82` (feat)
+1. **Task 1: Add fetchMilestoneMRs and fetchFixVersionIssues helpers** - `8a88740d` (feat)
+2. **Task 2: Build issue-MR matching table with missing/unmatched sections** - `fd76ee67` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/gitlab.ts` - Added fetchMilestoneMRs function for milestone-scoped MR fetching with pagination and label enrichment
@@ -83,7 +83,7 @@ Each task was committed atomically:
 - **Issue:** Lucide React AlertTriangle does not accept `title` as a prop
 - **Fix:** Moved `title` attribute to the wrapping `<span>` element
 - **Files modified:** taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
-- **Committed in:** 214ac82
+- **Committed in:** fd76ee67
 
 ---
 

@@ -4,13 +4,13 @@ quick_id: 260518-v8c
 slug: in-backlog-view-switch-summary-and-epic-
 description: In backlog view switch summary and epic columns. And make the epics aligned to right
 date: 2026-05-18
-commit: 21b174bd
+commit: 4602d5e9
 ---
 
 # Quick Task 260518-v8c: Switch Summary/Epic columns in backlog; right-align Epic
 
 **Status:** Complete
-**Commit:** 21b174bd
+**Commit:** 4602d5e9
 **Date:** 2026-05-18
 
 ## What Changed

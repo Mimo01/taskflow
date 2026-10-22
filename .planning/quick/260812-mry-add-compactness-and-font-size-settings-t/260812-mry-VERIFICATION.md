@@ -99,7 +99,7 @@ None. No TBD/FIXME/XXX/placeholder markers found in the touched files. No stub r
 
 ### Gaps Summary
 
-No gaps found. All 7 code-level must-haves are genuinely implemented, wired, and covered by passing automated tests (independently re-run, not just trusted from SUMMARY.md). The one item plan Task 4 deliberately deferred to human verification (visual XL-clipping and live-rescale checks in a running Tauri window) remains outstanding and is honestly routed to human_needed rather than inferred pass/fail. WR-01 (persisted sidebar width not clamped to font-scaled bounds on hydration) was independently confirmed fixed in commit `5566e8ff` — `Sidebar.tsx` bounds are computed via `getComputedStyle(document.documentElement).fontSize)/16` factor functions, and `useResizable.ts:69-75` clamps `initialWidth` on every hydration-driven change while not dragging.
+No gaps found. All 7 code-level must-haves are genuinely implemented, wired, and covered by passing automated tests (independently re-run, not just trusted from SUMMARY.md). The one item plan Task 4 deliberately deferred to human verification (visual XL-clipping and live-rescale checks in a running Tauri window) remains outstanding and is honestly routed to human_needed rather than inferred pass/fail. WR-01 (persisted sidebar width not clamped to font-scaled bounds on hydration) was independently confirmed fixed in commit `5658e924` — `Sidebar.tsx` bounds are computed via `getComputedStyle(document.documentElement).fontSize)/16` factor functions, and `useResizable.ts:69-75` clamps `initialWidth` on every hydration-driven change while not dragging.
 
 ---
 

@@ -46,8 +46,8 @@ metrics:
 
 | Task | Name | Type | Commit | Files |
 |------|------|------|--------|-------|
-| 1 | Create DashboardReleaseCard test scaffold (TDD RED) | test | `62c8b32b` | `DashboardReleaseCard.test.tsx` |
-| 2 | Implement DashboardReleaseCard component (TDD GREEN) | feat | `9f904e66` | `DashboardReleaseCard.tsx` |
+| 1 | Create DashboardReleaseCard test scaffold (TDD RED) | test | `464a484a` | `DashboardReleaseCard.test.tsx` |
+| 2 | Implement DashboardReleaseCard component (TDD GREEN) | feat | `e2319f64` | `DashboardReleaseCard.tsx` |
 
 ## What Was Built
 
@@ -105,5 +105,5 @@ No new threat surface beyond what the threat model covers. The component:
 
 - `taskflow/src/routes/dashboard/DashboardReleaseCard.tsx` — FOUND
 - `taskflow/src/routes/dashboard/DashboardReleaseCard.test.tsx` — FOUND
-- Commit `62c8b32b` — FOUND
-- Commit `9f904e66` — FOUND
+- Commit `464a484a` — FOUND
+- Commit `e2319f64` — FOUND

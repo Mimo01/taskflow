@@ -37,9 +37,9 @@ metrics:
 
 ### Task 1: Rewrite SidebarItemsList + remove reorderSidebarItem (TDD)
 
-**RED commit:** `c12a72f5` — Updated test file with failing new row-structure test; removed drag-handle and old row-structure tests; removed reorderSidebarItem from mock state.
+**RED commit:** `ac7c9cbc` — Updated test file with failing new row-structure test; removed drag-handle and old row-structure tests; removed reorderSidebarItem from mock state.
 
-**GREEN commit:** `ae272617` — Implemented all changes:
+**GREEN commit:** `43fecaaf` — Implemented all changes:
 
 - `SidebarItemsList.tsx`: Rewritten from ~180 LOC to 50 LOC. Removed all @dnd-kit/* imports, GripVertical, useState, SortableItem component, DndContext, SortableContext, DragOverlay, useSortable, useSensors, handleDragStart, handleDragEnd, activeId state. Now renders via `SIDEBAR_NAV_ITEMS.filter(nav.section === section.id)` (static registry order correct now that reorder is gone). Visibility lookup via `new Map(sidebarItems.map(item => [item.id, item.visible]))` with `?? true` default.
 - `settings.store.ts`: Removed `reorderSidebarItem` from SettingsState type (was line 158) and its implementation block (was lines 307-313). `setSidebarItems` and `setSidebarItemVisible` untouched. `version: 22` unchanged.
@@ -48,7 +48,7 @@ metrics:
 
 ### Task 2: Uninstall @dnd-kit packages + verify build
 
-**Commit:** `f60c834f` — Ran `npm uninstall @dnd-kit/core @dnd-kit/sortable @dnd-kit/modifiers @dnd-kit/utilities` from the worktree's taskflow directory. Both package.json and package-lock.json now have zero @dnd-kit entries. `npm run build` exits 0 with no dnd-kit resolution errors.
+**Commit:** `abbea4fc` — Ran `npm uninstall @dnd-kit/core @dnd-kit/sortable @dnd-kit/modifiers @dnd-kit/utilities` from the worktree's taskflow directory. Both package.json and package-lock.json now have zero @dnd-kit entries. `npm run build` exits 0 with no dnd-kit resolution errors.
 
 ## Verification Results
 
@@ -67,8 +67,8 @@ SidebarItemsList.tsx: 50 LOC (target: 40-70 LOC). Component renders checkbox-per
 
 ## TDD Gate Compliance
 
-- RED gate: commit `c12a72f5` — `test(67-01)` commit with 1 failing test (drag-handle assertion).
-- GREEN gate: commit `ae272617` — `feat(67-01)` commit with all 21 tests passing.
+- RED gate: commit `ac7c9cbc` — `test(67-01)` commit with 1 failing test (drag-handle assertion).
+- GREEN gate: commit `43fecaaf` — `feat(67-01)` commit with all 21 tests passing.
 - REFACTOR: no cleanup needed; component is already minimal.
 
 ## Deviations from Plan
@@ -89,6 +89,6 @@ No new network endpoints, auth paths, file access patterns, or schema changes in
 - [x] `taskflow/src/stores/settings.store.ts` exists with `version: 22`, no `reorderSidebarItem`
 - [x] `taskflow/src/routes/settings/SidebarItemsList.test.tsx` updated — no drag-handle test names
 - [x] `taskflow/src/routes/settings/Settings.test.tsx` updated — no `reorderSidebarItem: vi.fn()`
-- [x] Commits c12a72f5, ae272617, f60c834f exist in git log
+- [x] Commits ac7c9cbc, 43fecaaf, abbea4fc exist in git log
 - [x] `npm run build` green
 - [x] 61 settings tests passing

@@ -63,8 +63,8 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: Fix jira.test.ts — replace vi.stubGlobal with vi.mock for plugin-http fetch** - `5d6e691` (fix)
-2. **Task 2: Fix gitlab.test.ts — replace vi.stubGlobal with vi.mock for plugin-http fetch** - `def8817` (fix)
+1. **Task 1: Fix jira.test.ts — replace vi.stubGlobal with vi.mock for plugin-http fetch** - `8ad32f9a` (fix)
+2. **Task 2: Fix gitlab.test.ts — replace vi.stubGlobal with vi.mock for plugin-http fetch** - `0e241c36` (fix)
 
 **Plan metadata:** (docs commit — see below)
 

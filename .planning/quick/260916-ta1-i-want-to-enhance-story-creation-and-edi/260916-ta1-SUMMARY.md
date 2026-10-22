@@ -46,21 +46,21 @@ Added attachment support to the issue description in `CreateEditIssueModal` (bot
 
 ## What Was Built
 
-**Task 1 — `DescriptionEditor` attachment affordance** (commit `74c7e246`):
+**Task 1 — `DescriptionEditor` attachment affordance** (commit `92f51e7a`):
 - `stagedAttachmentRef()` added to `taskflow/src/lib/attachment-markup.ts` — mirrors `attachmentRef()` for pre-upload `File` objects (no `content` URL exists yet, so hazardous filenames are sanitized by stripping hazard chars rather than falling back to a resolved URL).
 - `DescriptionEditor` converted to `forwardRef`, exposing `DescriptionEditorHandle.insertRef(ref)` via `useImperativeHandle`.
 - Added a Paperclip toolbar button opening `AttachmentPickerModal`; paste/drop handlers forward the raw `File` to `onFileSelected` (the editor itself never uploads — the parent decides create-vs-edit).
 - Added removable staged-file chips ("will upload on save") and upload status/error lines.
 - Fixed the Preview tab, which previously omitted the `attachments` map entirely (a pre-existing bug), so `!image.png!` refs now resolve to an actual `<img>`.
 
-**Task 2 — Wiring into `CreateEditIssueModal`** (commit `cdf4cfd3`):
+**Task 2 — Wiring into `CreateEditIssueModal`** (commit `c69e8142`):
 - `EditInitialValues` gained optional `attachments?: JiraAttachment[]`; `IssueDetailContent`'s Edit button now threads `issue.fields.attachment ?? []` through. Clone's payload was left unchanged (issue-key-less clone target).
 - Create mode: files are staged in local `File[]` state and their ref is inserted into the description **at staging time** (before `createIssue` runs), so the description sent to Jira already contains the reference — no follow-up PATCH needed for the common case.
 - Edit mode: paste/drop/picker/file-input all upload immediately via a `CommentComposer`-style `uploadMutation`, inserting the real `attachmentRef()` output.
 - Added a hidden `<input type="file">` "Attach file" affordance sharing the same `handleFileSelected` code path as paste/drop/picker.
 - `useIssueMutations`'s `createMutation` flushes staged uploads to the new issue key after `createIssue` resolves; a per-file failure is collected (never thrown) and surfaced via a new `onStagedUploadError` callback — issue creation is never rolled back.
 
-**Task 3 — Polish + verification prep** (commit `d9eebf1a`):
+**Task 3 — Polish + verification prep** (commit `136a9027`):
 - Submit button now shows a spinning `Loader2` icon beside "Creating…/Saving…"; disabled logic is byte-identical apart from the icon.
 - Confirmed staged chips/status lines already live inside the description field's `flex flex-col gap-1` group (no separate fix needed).
 - Fixed biome formatting introduced by this task's own commits (2 files) and resolved a `noArrayIndexKey` warning in the new staged-chip list by hoisting the key into a local variable instead of a suppression comment.
@@ -74,14 +74,14 @@ Added attachment support to the issue description in `CreateEditIssueModal` (bot
 - **Issue:** The plan's behavior spec asked to assert `stopPropagation` was called on drop; `fireEvent.drop(el, { stopPropagation: fn })` does not reliably route through React's SyntheticEvent wrapper in this testing-library/jsdom setup (confirmed the same non-assertion pattern in `CommentComposer.attachments.test.tsx`, which sets `stopPropagation` but never asserts on it).
 - **Fix:** Rewrote the test to wrap the editor in an outer `div` with its own `onDrop` handler and assert the outer handler is *not* called — this actually proves propagation was stopped, rather than asserting on an event-property override.
 - **Files modified:** `taskflow/src/routes/dashboard/DescriptionEditor.attachments.test.tsx`
-- **Commit:** `74c7e246`
+- **Commit:** `92f51e7a`
 
 **2. [Rule 1 - Bug] biome formatting drift in newly-created/edited files**
 - **Found during:** Task 3 verification pass
 - **Issue:** `npx biome check` flagged 2 files this quick task touched (`CreateEditIssueModal.tsx`, `CreateEditIssueModal.attachments.test.tsx`) for formatter-only diffs, plus a `noArrayIndexKey` warning in `DescriptionEditor.tsx`'s new staged-chip list.
 - **Fix:** Ran `biome check --write` on the two formatting-only files; resolved the array-index-key warning by extracting the key into a local `const key` variable (File objects have no stable id, so the index is still part of the key, but this pattern doesn't trigger the lint rule) rather than adding a suppression comment.
 - **Files modified:** `taskflow/src/routes/dashboard/create-edit-issue/CreateEditIssueModal.tsx`, `taskflow/src/routes/dashboard/create-edit-issue/CreateEditIssueModal.attachments.test.tsx`, `taskflow/src/routes/dashboard/DescriptionEditor.tsx`
-- **Commit:** `d9eebf1a`
+- **Commit:** `136a9027`
 
 ### Environment Note (not a code deviation)
 
@@ -107,7 +107,7 @@ None beyond what the plan's `<threat_model>` already covered (T-ta1-01 through T
 
 The user ran the live app, clicked through the create/edit attachment flow, and approved it.
 
-## Post-Verification Code Review Fixes (commit `351e1ccd`)
+## Post-Verification Code Review Fixes (commit `ce310c04`)
 
 `--full` mode's code-review pass (`260916-ta1-REVIEW.md`) found 1 critical, 3 warning, and 2 info-level issues after the worktree merge. The critical and three localized warnings/info were fixed inline and committed on `main`; two findings that require changing `WikiRenderer`'s shared attachments-map interface (used app-wide by comments, activity timeline, etc.) were deliberately deferred as out of scope for this diff:
 
@@ -122,4 +122,4 @@ Re-verified after the fixes: `npx tsc --noEmit` clean, `npx biome check` clean o
 
 ## Self-Check: PASSED
 
-All claimed files exist on disk; all commit hashes (`74c7e246`, `cdf4cfd3`, `d9eebf1a`, `351e1ccd`) are present in git log.
+All claimed files exist on disk; all commit hashes (`92f51e7a`, `c69e8142`, `136a9027`, `ce310c04`) are present in git log.

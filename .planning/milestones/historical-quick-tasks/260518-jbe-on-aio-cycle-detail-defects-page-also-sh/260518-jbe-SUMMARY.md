@@ -69,8 +69,8 @@ completed: 2026-05-18
 
 ## Task Commits
 
-1. **Task 1: Extend Jira issue fetch + types** - `19957a1` (feat)
-2. **Task 2: Render Reporter, Priority, Severity columns** - `1cd7350` (feat)
+1. **Task 1: Extend Jira issue fetch + types** - `acf1d88b` (feat)
+2. **Task 2: Render Reporter, Priority, Severity columns** - `73f66778` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/issues.ts` - Widened `fields=` query string in `fetchJiraIssueByKey` to include reporter, priority, severity

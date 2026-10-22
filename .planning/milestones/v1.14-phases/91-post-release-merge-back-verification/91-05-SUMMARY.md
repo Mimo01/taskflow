@@ -50,7 +50,7 @@ completed: 2026-08-11
 ## Performance
 
 - **Duration:** ~25 min
-- **Started:** 2026-08-11T21:40:00Z (approx, worktree base commit 341a3b16)
+- **Started:** 2026-08-11T21:40:00Z (approx, worktree base commit 9f9054bd)
 - **Completed:** 2026-08-11T21:49:19Z
 - **Tasks:** 2 completed
 - **Files modified:** 2
@@ -66,7 +66,7 @@ completed: 2026-08-11
 
 Each task was implemented together (intertwined edits to the same 11-step resolver and the same test file) and committed as one atomic commit, per file-overlap pragmatics:
 
-1. **Task 1 + Task 2: target_branch filtering, deterministic MR selection, terminal fallbacks** - `127b028f` (fix)
+1. **Task 1 + Task 2: target_branch filtering, deterministic MR selection, terminal fallbacks** - `39c92e72` (fix)
 
 _Note: both tasks modify the identical function (`resolveMergeBackVerdict`) and the identical test file; there was no clean line-level boundary to split into two separate commits without re-deriving one from a partial diff of the other, so they landed as a single fix commit covering both CR-01/WR-02 and CR-03/CR-04. This is a pragmatic combination, not a skipped task — both tasks' acceptance criteria were independently verified before committing._
 

@@ -85,7 +85,7 @@ re_verification: false
 | No table elements in BacklogPage              | `grep -c '<tr\|<td\|<th\|<table' BacklogPage.tsx`                      | 0               | PASS    |
 | No useVirtual flag in BacklogPage             | `grep 'useVirtual = false' BacklogPage.tsx`                            | no match        | PASS    |
 | fetchSprintList exported from backlog.ts      | `grep 'export async function fetchSprintList' backlog.ts`              | line 76 found   | PASS    |
-| Commits exist in git history                  | `git log 1c60cf1 ae57aaf 7fbde7d 3f29789`                              | all 4 found     | PASS    |
+| Commits exist in git history                  | `git log 7eef23bd f4167876 b984979d 08f2aeb5`                              | all 4 found     | PASS    |
 
 ---
 
@@ -121,7 +121,7 @@ None — all goal-critical behaviors are programmatically verifiable. The progre
 
 No gaps. Phase 47 fully achieves its goal.
 
-All eleven observable truths are verified against the actual codebase. The four commits (1c60cf1, ae57aaf, 7fbde7d, 3f29789) are confirmed in git history. TypeScript compiles with zero errors. 32 tests pass.
+All eleven observable truths are verified against the actual codebase. The four commits (7eef23bd, f4167876, b984979d, 08f2aeb5) are confirmed in git history. TypeScript compiles with zero errors. 32 tests pass.
 
 LOAD-04 requirement is now SATISFIED (upgraded from Partial after Phase 44). The per-section query architecture in BacklogPage.tsx decouples issue row rendering from epic metadata loading, and BacklogRow.tsx shows per-row Skeleton badges during the epic resolution window.
 

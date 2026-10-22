@@ -25,7 +25,7 @@ re_verification:
 | 1 | Parent renders as prominent, distinct, clickable card above key+title on full page AND peek (not a faint muted breadcrumb) | ✓ VERIFIED | `IssueDetailContent.tsx:226-255` — full-width `<button>` with `border bg-muted/50 px-3 py-2 hover:bg-muted`, rendered above the `<p>{issue.key}</p>` (256) and `<h2>{summary}</h2>` (257). Shared by both surfaces (see Key Links). |
 | 2 | Card shows real issue-type icon, "Parent" label, mono key, foreground-weight truncating summary | ✓ VERIFIED | `IssueTypeIcon typeName={parent.fields.issuetype.name}` (236-237); "Parent" label `text-[10px] uppercase tracking-wide text-muted-foreground` (239-241); key `font-mono text-xs` (242); summary `min-w-0 flex-1 truncate pr-0.5 text-sm font-medium text-foreground` (243-245) |
 | 3 | Trailing ArrowUpRight pinned right | ✓ VERIFIED | `<ArrowUpRight className="size-4 text-muted-foreground shrink-0 ml-auto" />` (253) |
-| 4 | Clicking opens parent via existing onOpenIssue(parent.key), preserving peek breadcrumb-trail behavior | ✓ VERIFIED | `onClick={() => onOpenIssue?.(parent.key)}` (234) — navigation contract from commit 943cba44 unchanged |
+| 4 | Clicking opens parent via existing onOpenIssue(parent.key), preserving peek breadcrumb-trail behavior | ✓ VERIFIED | `onClick={() => onOpenIssue?.(parent.key)}` (234) — navigation contract from commit 5092dc1a unchanged |
 | 5 | Card has accessible label "Open parent issue PROJ-12" | ✓ VERIFIED | `aria-label={`Open parent issue ${parent.key}`}` (229) |
 | 6 | Graceful fallback when issuetype absent (icon omitted, layout holds) | ✓ VERIFIED | Icon gated by `{parent.fields.issuetype?.name && (...)}` (236); flex layout holds without it. Type at jira.ts:1244 marks `issuetype?` optional |
 | 7 | Status pill correctly colored — color from statusCategory.key, text from status.name | ✓ VERIFIED | `statusPillClass(parent.fields.status?.statusCategory?.key)` for color (248), `{parent.fields.status?.name}` for text (249); pill wrapped in `flex shrink-0` div (247). Negative grep confirms NO `statusPillClass(parent.fields.status.name)` |
@@ -72,11 +72,11 @@ None. No debt markers (TODO/FIXME/XXX/TBD/HACK/PLACEHOLDER) in modified files. N
 
 - Type widened ONLY at the consumed site `jira.ts:1239` (JiraIssueDetail at line 1212). Confirmed dead sites in jira/types.ts left untouched.
 - Status pill colored via `statusCategory.key`, NOT the human status name — matches all other callers (e.g. IssueDetailContent.tsx:316).
-- Navigation contract `onOpenIssue(parent.key)` preserved (commit 943cba44 peek breadcrumb behavior unregressed).
+- Navigation contract `onOpenIssue(parent.key)` preserved (commit 5092dc1a peek breadcrumb behavior unregressed).
 
 ### Gaps Summary
 
-No gaps. All 8 must-haves verified against the actual codebase. Commits ecc595af and 42926b02 confirmed present on main. The shared-component architecture (PeekPanel → IssueDetailView ← IssueDetailPage → IssueDetailContent) confirms the single card edit covers both the full page and the peek panel as required. `npm run check` was run by the verifier and exits 0.
+No gaps. All 8 must-haves verified against the actual codebase. Commits c3273687 and 3c8b3dd6 confirmed present on main. The shared-component architecture (PeekPanel → IssueDetailView ← IssueDetailPage → IssueDetailContent) confirms the single card edit covers both the full page and the peek panel as required. `npm run check` was run by the verifier and exits 0.
 
 ---
 

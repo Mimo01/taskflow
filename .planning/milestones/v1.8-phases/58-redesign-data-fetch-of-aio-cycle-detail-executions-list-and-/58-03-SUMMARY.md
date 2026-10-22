@@ -80,7 +80,7 @@ completed: 2026-05-15
 
 ## Task Commits
 
-1. **Task 1: Wire jiraProjectId + cycleNumericId resolution and decouple progress bar** — `1f8acba` (feat)
+1. **Task 1: Wire jiraProjectId + cycleNumericId resolution and decouple progress bar** — `8eb9c22a` (feat)
 
 **Plan metadata:** (docs commit — see below)
 
@@ -108,7 +108,7 @@ completed: 2026-05-15
 - **Fix:** Switched to mocking `readSecret` (from `@/services/stronghold`) to return `new Promise(() => {})` — keeps `useAioCredentials` in `isLoading: true` state without needing module override. Restores mock at end of test.
 - **Files modified:** `taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx`
 - **Verification:** Test passes and subsequent tests (which rely on readSecret resolving) still pass
-- **Committed in:** `1f8acba` (part of task commit)
+- **Committed in:** `8eb9c22a` (part of task commit)
 
 ---
 
@@ -143,7 +143,7 @@ None — no external service configuration required.
 
 - [x] `taskflow/src/routes/dashboard/AioCycleDetailPage.tsx` exists on disk
 - [x] `taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx` exists on disk
-- [x] Commit `1f8acba` exists in git log
+- [x] Commit `8eb9c22a` exists in git log
 - [x] `npm test -- AioCycleDetailPage` exits 0 (25/25 tests)
 - [x] `npm test` exits 0 (1135/1135 tests)
 - [x] `tsc --noEmit` exits 0

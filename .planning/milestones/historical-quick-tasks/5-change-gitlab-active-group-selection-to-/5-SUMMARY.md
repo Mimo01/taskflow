@@ -51,9 +51,9 @@ metrics:
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| 1 | c745a6b | Add listGitLabProjects, fetchProjectMilestones, update stores |
-| 2 | 6ee7a8c | Update all consumers from group to project selection |
-| 3 | 6e2fb62 | Update tests for project-based GitLab selection |
+| 1 | a7f1327c | Add listGitLabProjects, fetchProjectMilestones, update stores |
+| 2 | 568fe21b | Update all consumers from group to project selection |
+| 3 | 39fb9563 | Update tests for project-based GitLab selection |
 
 ## Deviations from Plan
 
@@ -82,4 +82,4 @@ None.
 - [x] taskflow/src/routes/settings/TokenSection.tsx — modified, uses listGitLabProjects
 - [x] taskflow/src/routes/dashboard/ReleasesTab.tsx — modified, uses fetchProjectMilestones
 - [x] taskflow/src/hooks/useNotificationPolling.ts — modified, uses activeGitlabProject
-- [x] Commits c745a6b, 6ee7a8c, 6e2fb62 exist in git log
+- [x] Commits a7f1327c, 568fe21b, 39fb9563 exist in git log

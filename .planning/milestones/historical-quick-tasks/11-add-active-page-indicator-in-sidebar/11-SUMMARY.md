@@ -37,7 +37,7 @@ Inactive link style: `hover:bg-accent` (hover-only, as before)
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Switch sidebar links to NavLink with active styling | dbd0a8d | taskflow/src/components/app/Sidebar.tsx |
+| 1 | Switch sidebar links to NavLink with active styling | d0f4a175 | taskflow/src/components/app/Sidebar.tsx |
 
 ## Implementation Details
 
@@ -52,7 +52,7 @@ None — plan executed exactly as written.
 
 ## Self-Check
 
-- [x] taskflow/src/components/app/Sidebar.tsx modified and committed (dbd0a8d)
+- [x] taskflow/src/components/app/Sidebar.tsx modified and committed (d0f4a175)
 - [x] TypeScript: no Sidebar errors (`npx tsc --noEmit` — no Sidebar output)
 - [x] No `Link` imports remain in Sidebar.tsx
 

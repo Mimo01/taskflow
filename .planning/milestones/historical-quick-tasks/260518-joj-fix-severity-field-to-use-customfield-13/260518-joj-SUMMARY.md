@@ -2,7 +2,7 @@
 status: complete
 quick_id: 260518-joj
 date: 2026-05-18
-commit: 53ec526
+commit: 7cc44934
 ---
 
 # Quick Task 260518-joj: Fix severity field to use customfield_13415

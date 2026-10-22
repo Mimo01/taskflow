@@ -66,7 +66,7 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Register /backlog route and add Sidebar NavLinks** - `a8cab8e` (feat)
+1. **Task 1: Register /backlog route and add Sidebar NavLinks** - `cddc0686` (feat)
 
 2. **Task 2: Human verification — all five BACK requirements on Client Jira instance** - human approved (no code commit)
 
@@ -90,7 +90,7 @@ Each task was committed atomically:
 - **Fix:** Changed return to `{ ...old, sprints: ..., backlog: ... }` to preserve all required fields
 - **Files modified:** taskflow/src/routes/dashboard/BacklogPage.tsx
 - **Verification:** TypeScript compiles clean; existing tests cover the optimistic removal behavior
-- **Committed in:** a8cab8e (Task 1 commit)
+- **Committed in:** cddc0686 (Task 1 commit)
 
 **2. [Rule 1 - Bug] 11 test fixture mocks missing required epicNames field**
 - **Found during:** Task 1 (TypeScript compilation check)
@@ -98,7 +98,7 @@ Each task was committed atomically:
 - **Fix:** Added `epicNames: new Map()` to all 11 affected test mock objects across BACK-01, BACK-02, BACK-03, BACK-04, BACK-05 test groups
 - **Files modified:** taskflow/src/routes/dashboard/BacklogPage.test.tsx
 - **Verification:** TypeScript compiles clean; 351 tests pass
-- **Committed in:** a8cab8e (Task 1 commit)
+- **Committed in:** cddc0686 (Task 1 commit)
 
 ---
 

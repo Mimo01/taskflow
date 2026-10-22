@@ -52,8 +52,8 @@ Added the Jira data-access layer for both Sprint Insights charts: closed-sprint 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Closed-sprint tail paginator + per-sprint issue fetch + dedicated p-limit(3) | `7c31604d` | concurrency.ts, jira.ts |
-| 2 | GreenHopper burndown fetcher (rapid-charts path override) + types | `bc3c94eb` | burndown.ts (new), types.ts, index.ts, jira.ts |
+| 1 | Closed-sprint tail paginator + per-sprint issue fetch + dedicated p-limit(3) | `87ed4172` | concurrency.ts, jira.ts |
+| 2 | GreenHopper burndown fetcher (rapid-charts path override) + types | `be439930` | burndown.ts (new), types.ts, index.ts, jira.ts |
 
 ## What Was Built
 
@@ -116,4 +116,4 @@ No new network endpoints, auth paths, file access patterns, or schema changes be
 
 ## Self-Check: PASSED
 
-All 6 files found. Both commits (`7c31604d`, `bc3c94eb`) present in git log.
+All 6 files found. Both commits (`87ed4172`, `be439930`) present in git log.

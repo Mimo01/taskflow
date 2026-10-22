@@ -9,7 +9,7 @@ note: "All checks pass after 7 inline fixes applied during session — see Fixes
 # Phase 57 UAT — AioProjectOverviewPage live verification
 
 **UAT date:** 2026-05-15
-**App version:** git SHA eed2c3b
+**App version:** git SHA 67e671fd
 **AIO instance:** jira.other.example (anonymised)
 
 ## Checks

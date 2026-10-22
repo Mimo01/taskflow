@@ -53,7 +53,7 @@ completed: 2026-08-10
 
 ## Task Commits
 
-1. **Task 1: Extract EditReleaseModal.tsx** - `a663f1a4` (feat)
+1. **Task 1: Extract EditReleaseModal.tsx** - `2cf759db` (feat)
 2. **Task 2: Final structural audit and full-suite regression gate** - no code changes required; audit-only, folded into this SUMMARY
 3. **Task 3: Manual UAT click-through** - checkpoint, no code changes; result recorded below, folded into the final SUMMARY commit
 
@@ -105,8 +105,8 @@ Phase 87 closes with Task 3 approved. All three success criteria are satisfied: 
 
 - `taskflow/src/routes/dashboard/release-detail/EditReleaseModal.tsx` - FOUND
 - `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` - FOUND (322 lines)
-- Commit `a663f1a4` - FOUND
-- Commit `3e81fc74` (draft SUMMARY, Tasks 1-2) - FOUND
+- Commit `2cf759db` - FOUND
+- Commit `827f40b4` (draft SUMMARY, Tasks 1-2) - FOUND
 - `npx tsc --noEmit -p .` re-run at finalization - clean, no output
 - `npm run check` re-run at finalization - 2 errors (BacklogPage.tsx / BacklogRow.tsx baseline only), 30 warnings
 - `npm test -- ReleasesTab.test.tsx UpcomingReleasesTimeline.test.tsx releaseSummaries.test.ts` re-run at finalization - 3 files / 40 tests passed

@@ -53,9 +53,9 @@ completed: 2026-05-10
 ## Task Commits
 
 1. **Task 1: Compose release notes** — held in memory, no separate commit (bump-version.mjs writes CHANGELOG)
-2. **Task 2: Run release script** — `3ebb421` (chore: bump version to 1.7.2) — created by release.sh
+2. **Task 2: Run release script** — `aa232c58` (chore: bump version to 1.7.2) — created by release.sh
 
-**Deviation commit (pre-release cleanup):** `9c6c841` (chore: commit pending lock file and config updates before release)
+**Deviation commit (pre-release cleanup):** `a10c94e7` (chore: commit pending lock file and config updates before release)
 
 ## Files Created/Modified
 - `taskflow/package.json` - version bumped to 1.7.2
@@ -76,7 +76,7 @@ completed: 2026-05-10
 - **Fix:** Staged and committed all 4 files with message "chore: commit pending lock file and config updates before release"
 - **Files modified:** .planning/config.json, taskflow/.planning/config.json, taskflow/package-lock.json, taskflow/src-tauri/Cargo.lock
 - **Verification:** `git diff-index --quiet HEAD --` passed after commit
-- **Committed in:** `9c6c841`
+- **Committed in:** `a10c94e7`
 
 ---
 

@@ -78,8 +78,8 @@ completed: 2026-03-13
 
 ## Task Commits
 
-1. **RED: add failing ISSUE-04 optimistic update tests** - `f950da0` (test)
-2. **GREEN: implement inline field editors** - `05e86d4` (feat)
+1. **RED: add failing ISSUE-04 optimistic update tests** - `7ed755d7` (test)
+2. **GREEN: implement inline field editors** - `4c918255` (feat)
 
 ## Files Created/Modified
 
@@ -104,7 +104,7 @@ completed: 2026-03-13
 - **Fix:** Changed to use PopoverTrigger directly without asChild, moved data-testid and styling onto the trigger itself
 - **Files modified:** taskflow/src/routes/dashboard/IssueDetailSidebar.tsx
 - **Verification:** Console warning eliminated; tests still pass
-- **Committed in:** 05e86d4 (feat commit)
+- **Committed in:** 4c918255 (feat commit)
 
 ---
 
@@ -126,8 +126,8 @@ None — implementation followed plan interfaces exactly.
 - FOUND: taskflow/src/routes/dashboard/IssueDetailSidebar.tsx
 - FOUND: taskflow/src/routes/dashboard/IssueDetailSheet.tsx
 - FOUND: .planning/phases/09-custom-field-discovery-issue-detail-foundation/09-05-SUMMARY.md
-- FOUND commit f950da0 (test: RED tests)
-- FOUND commit 05e86d4 (feat: GREEN implementation)
+- FOUND commit 7ed755d7 (test: RED tests)
+- FOUND commit 4c918255 (feat: GREEN implementation)
 - All 20 IssueDetailSheet.test.tsx tests passing
 
 ---

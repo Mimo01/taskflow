@@ -52,7 +52,7 @@ completed: 2026-08-11
 ## Performance
 
 - **Duration:** ~20 min
-- **Started:** 2026-08-11T21:58:00Z (approx, worktree base commit 9e574ac6)
+- **Started:** 2026-08-11T21:58:00Z (approx, worktree base commit 4669e308)
 - **Completed:** 2026-08-11T22:02:58Z
 - **Tasks:** 3 completed
 - **Files modified:** 4
@@ -66,9 +66,9 @@ completed: 2026-08-11
 
 ## Task Commits
 
-1. **Task 1: Thread the project-fetch error and the tracking-MR-unavailable signal into the resolver** - `430a958c` (fix)
-2. **Task 2: Replace the hook test's tautology with bug-state assertions** - `6550721a` (test)
-3. **Task 3: Re-anchor the D-12 no-control regression lock to a stable test hook** - `b08027fd` (test)
+1. **Task 1: Thread the project-fetch error and the tracking-MR-unavailable signal into the resolver** - `48723689` (fix)
+2. **Task 2: Replace the hook test's tautology with bug-state assertions** - `43598161` (test)
+3. **Task 3: Re-anchor the D-12 no-control regression lock to a stable test hook** - `e3023bb6` (test)
 
 **Plan metadata:** (this SUMMARY.md commit, below)
 
@@ -105,4 +105,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All claimed files exist on disk (useReleaseDetail.ts, useReleaseDetail.test.tsx, MetaRow.tsx, ReleaseDetailSidebar.test.tsx, this SUMMARY.md) and all four commit hashes (430a958c, 6550721a, b08027fd, 0855d6ae) are present in `git log --oneline`.
+All claimed files exist on disk (useReleaseDetail.ts, useReleaseDetail.test.tsx, MetaRow.tsx, ReleaseDetailSidebar.test.tsx, this SUMMARY.md) and all four commit hashes (48723689, 43598161, e3023bb6, a0fc8c26) are present in `git log --oneline`.

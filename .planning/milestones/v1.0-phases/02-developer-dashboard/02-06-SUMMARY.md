@@ -69,8 +69,8 @@ completed: 2026-03-11
 
 ## Task Commits
 
-1. **Task 1: Wire StatusPopover and InlineComment into TaskRow** - `120eb40` (feat)
-2. **Task 2: Add write mutations to MyTasksTab and pass new props to TaskRow** - `6114edd` (feat)
+1. **Task 1: Wire StatusPopover and InlineComment into TaskRow** - `816923be` (feat)
+2. **Task 2: Add write mutations to MyTasksTab and pass new props to TaskRow** - `fd793bfd` (feat)
 
 ## Files Created/Modified
 
@@ -94,7 +94,7 @@ completed: 2026-03-11
 - **Fix:** Removed `openCommentKey`/`setOpenCommentKey`; comment close on success handled by `setCommentOpen(false)` in TaskRow's `onSubmit` callback (optimistic close).
 - **Files modified:** `taskflow/src/routes/dashboard/MyTasksTab.tsx`, `taskflow/src/routes/dashboard/TaskRow.tsx`
 - **Verification:** TypeScript compiles (dashboard files); 12/12 tests pass
-- **Committed in:** `6114edd` (Task 2 commit)
+- **Committed in:** `fd793bfd` (Task 2 commit)
 
 **2. [Rule 2 - Missing Critical] Added StatusPopover and InlineComment mocks to test file**
 - **Found during:** Task 2 (test execution)
@@ -102,7 +102,7 @@ completed: 2026-03-11
 - **Fix:** Added `vi.mock('./StatusPopover', ...)` and `vi.mock('./InlineComment', ...)` at top of test file; wrapped direct TaskRow renders in `QueryClientProvider`.
 - **Files modified:** `taskflow/src/routes/dashboard/MyTasksTab.test.tsx`
 - **Verification:** All 12 tests pass
-- **Committed in:** `6114edd` (Task 2 commit)
+- **Committed in:** `fd793bfd` (Task 2 commit)
 
 ---
 

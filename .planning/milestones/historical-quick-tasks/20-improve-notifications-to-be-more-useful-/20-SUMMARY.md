@@ -81,4 +81,4 @@ None — plan executed exactly as written.
 
 ## Self-Check: PASSED
 
-All 5 modified files exist. Both task commits verified: `5ec3cdf` (Task 1) and `2177ec3` (Task 2).
+All 5 modified files exist. Both task commits verified: `c036c283` (Task 1) and `aa052f77` (Task 2).

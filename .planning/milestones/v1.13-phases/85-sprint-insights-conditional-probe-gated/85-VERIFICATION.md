@@ -3,7 +3,7 @@ phase: 85-sprint-insights-conditional-probe-gated
 verified: 2026-06-15T19:15:00Z
 status: passed
 score: 5/5 must-haves verified
-human_uat: "Closed 2026-06-15 via /gsd-verify-work 85. UAT-1..4 verified live (board 6708 / sprint 19562). UAT-4 surfaced 4 live-data burndown defects beyond the MEDIUM-confidence flag — all fixed inline & user-verified (commits 8917b763, a54ed5e4, d03c5928, 3c36b03d). UAT-5 (forced-failure error/retry) accepted as skipped by user. Follow-up: /gsd-secure-phase 85 not yet run."
+human_uat: "Closed 2026-06-15 via /gsd-verify-work 85. UAT-1..4 verified live (board 6708 / sprint 19562). UAT-4 surfaced 4 live-data burndown defects beyond the MEDIUM-confidence flag — all fixed inline & user-verified (commits f86c4fb6, 41d0d9e5, f52040d2, 5abe6578). UAT-5 (forced-failure error/retry) accepted as skipped by user. Follow-up: /gsd-secure-phase 85 not yet run."
 re_verification:
   previous_status: gaps_found
   previous_score: 3/5
@@ -36,7 +36,7 @@ human_verification:
 
 **Verified:** 2026-06-15T19:15:00Z
 **Status:** passed (human UAT closed 2026-06-15)
-**Re-verification:** Yes — after gap closure in commit f8a3faba (two blockers addressed)
+**Re-verification:** Yes — after gap closure in commit 797f1b63 (two blockers addressed)
 
 ## Goal Achievement
 
@@ -188,5 +188,5 @@ The executor flagged `.changes` field semantics in the GreenHopper scopechangebu
 ---
 
 _Verified: 2026-06-15T19:15:00Z_
-_Re-verification: after commit f8a3faba (CR-01 + CR-02 gap closure)_
+_Re-verification: after commit 797f1b63 (CR-01 + CR-02 gap closure)_
 _Verifier: Claude (gsd-verifier)_

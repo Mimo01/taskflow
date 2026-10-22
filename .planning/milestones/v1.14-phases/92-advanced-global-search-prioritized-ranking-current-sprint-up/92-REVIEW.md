@@ -43,7 +43,7 @@ status: issues_found
 
 ## Summary
 
-This is the second review pass. It runs after the fixes in c4331191 and f31af600..a4860dab. I re-checked each earlier Critical and Warning fix against the current code:
+This is the second review pass. It runs after the fixes in e40d02a6 and a4f1d5c3..9792d7a6. I re-checked each earlier Critical and Warning fix against the current code:
 
 | Prior finding | Result |
 |---|---|

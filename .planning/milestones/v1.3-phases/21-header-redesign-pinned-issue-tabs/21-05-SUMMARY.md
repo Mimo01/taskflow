@@ -61,8 +61,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Add selectedIssueKey to outlet context + /notifications route** - `2b00e70` (feat)
-2. **Task 2: Disable J/K navigation when detail sheet is open in all list views** - `dc1f293` (fix)
+1. **Task 1: Add selectedIssueKey to outlet context + /notifications route** - `ee73acc7` (feat)
+2. **Task 2: Disable J/K navigation when detail sheet is open in all list views** - `cc360575` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/main.tsx` - Added selectedIssueKey to Outlet context, NotificationsPage import, /notifications route
@@ -90,8 +90,8 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - All 4 modified files exist on disk
-- Commit 2b00e70 (Task 1) verified in git log
-- Commit dc1f293 (Task 2) verified in git log
+- Commit ee73acc7 (Task 1) verified in git log
+- Commit cc360575 (Task 2) verified in git log
 
 ---
 *Phase: 21-header-redesign-pinned-issue-tabs*

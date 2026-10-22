@@ -33,7 +33,7 @@ updated: 2026-05-23
 - timestamp: 2026-05-23
   file: taskflow/src/lib/tauri-storage.ts
   finding: |
-    persistChangelogBeforeRestart() introduced in commit 97ec4153 has a data-format mismatch.
+    persistChangelogBeforeRestart() introduced in commit 3f338f1d has a data-format mismatch.
     Zustand's createJSONStorage adapter stores the entire settings state as a JSON-encoded
     *string* under the store key (createJSONStorage.setItem calls JSON.stringify before
     delegating to the custom adapter's setItem). persistChangelogBeforeRestart() calls

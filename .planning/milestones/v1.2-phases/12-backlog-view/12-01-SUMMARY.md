@@ -68,8 +68,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Add fetchBacklogIssues and addIssuesToSprint to jira.ts** - `b0c53ae` (feat)
-2. **Task 2: Create BacklogPage.test.tsx with RED stubs for BACK-01..05** - `5767298` (test)
+1. **Task 1: Add fetchBacklogIssues and addIssuesToSprint to jira.ts** - `b12be7e2` (feat)
+2. **Task 2: Create BacklogPage.test.tsx with RED stubs for BACK-01..05** - `9d04cd4d` (test)
 
 **Plan metadata:** (docs commit — follows this summary)
 

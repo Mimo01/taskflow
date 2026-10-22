@@ -46,8 +46,8 @@ Wire all 11 avatar usage sites to CachedAvatar and initialize the blob URL cache
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1 | Initialize avatar cache on app startup | 5ddbc2f | main.tsx |
-| 2 | Replace all inline avatar patterns with CachedAvatar | 2059dcc | 11 route files + 1 test file |
+| 1 | Initialize avatar cache on app startup | c37967d0 | main.tsx |
+| 2 | Replace all inline avatar patterns with CachedAvatar | bde98192 | 11 route files + 1 test file |
 
 ## What Was Built
 
@@ -81,7 +81,7 @@ Wire all 11 avatar usage sites to CachedAvatar and initialize the blob URL cache
 - **Issue:** Test checked `container.querySelector('img')` to verify avatar rendering with `authorAvatarUrl`. CachedAvatar shows `role="img"` div with initials until blob URL resolves; `<img>` never renders in test environment (no Tauri fetch).
 - **Fix:** Changed test assertion from `container.querySelector('img')` to `screen.getByRole('img', { name: 'Jane Smith' })` — the accessible div rendered by CachedAvatar's initials fallback.
 - **Files modified:** `taskflow/src/routes/notifications/NotificationRow.test.tsx`
-- **Commit:** 2059dcc
+- **Commit:** bde98192
 
 ## Verification Results
 

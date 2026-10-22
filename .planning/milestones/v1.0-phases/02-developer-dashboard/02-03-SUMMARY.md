@@ -78,8 +78,8 @@ completed: 2026-03-11
 
 ## Task Commits
 
-1. **Task 1 RED: Failing tests for MR linking and TaskRow health chips** - `05e69a5` (test)
-2. **Task 1 GREEN: Wire link engine into dashboard UI with review health badges** - `9534048` (feat)
+1. **Task 1 RED: Failing tests for MR linking and TaskRow health chips** - `71b2787c` (test)
+2. **Task 1 GREEN: Wire link engine into dashboard UI with review health badges** - `616d6901` (feat)
 
 ## Files Modified
 
@@ -107,14 +107,14 @@ completed: 2026-03-11
 - **Issue:** `JiraIssue.fields.issuetype` is a required property but was omitted in test helper — TS2322 errors in both test files
 - **Fix:** Added `issuetype: { name: 'Story' }` and `status.id` to `makeIssue()` factories in both test files
 - **Files modified:** `MyTasksTab.test.tsx`, `MrAttentionTab.test.tsx`
-- **Committed in:** `9534048` (feat commit, bundled with GREEN)
+- **Committed in:** `616d6901` (feat commit, bundled with GREEN)
 
 **2. [Rule 1 - Bug] Fixed ambiguous test assertion for linked task badge**
 - **Found during:** GREEN phase test run (test 12 of 12 failing)
 - **Issue:** `findByText(/PROJ-7/i)` threw "Found multiple elements" — MR title "PROJ-7 fix something" and task badge "PROJ-7" both match
 - **Fix:** Changed to `findAllByText(/PROJ-7/i)` with `expect(length).toBeGreaterThanOrEqual(2)` — asserts both the title and badge render
 - **Files modified:** `MrAttentionTab.test.tsx`
-- **Committed in:** `9534048`
+- **Committed in:** `616d6901`
 
 ---
 

@@ -47,8 +47,8 @@ All functions accept `today: Date = new Date()` as final param for deterministic
 
 ## TDD Gate Compliance
 
-- RED commit: `53086d64` — `test(82-01): add failing tests for my-tasks-sort band classification and subtree-band D-04`
-- GREEN commit: `acac366b` — `feat(82-01): implement pure my-tasks-sort band classification, subtree-band, grouping, and deriveCounts`
+- RED commit: `1471b180` — `test(82-01): add failing tests for my-tasks-sort band classification and subtree-band D-04`
+- GREEN commit: `cb7ad89b` — `feat(82-01): implement pure my-tasks-sort band classification, subtree-band, grouping, and deriveCounts`
 
 RED gate: tests failed with "Failed to resolve import ./my-tasks-sort" (file did not exist). GREEN gate: all 29 tests pass.
 
@@ -82,7 +82,7 @@ RED gate: tests failed with "Failed to resolve import ./my-tasks-sort" (file did
 - **Issue:** The initial test suite contained one test asserting "done takes priority over flagged (done wins)" with a done+flagged issue expecting band 5. This contradicted the plan's `must_haves` truth: "A flagged parent sorts into band 0 regardless of subtask bands." The RESEARCH.md algorithm put `done` first, but the plan's must_haves are the authoritative constraint.
 - **Fix:** (1) Moved the `flagged/blocked` check before the `done` check in `classifyBand`. (2) Updated the contradicting test to assert band 0 for a done+flagged issue, with a comment referencing the must_haves rule.
 - **Files modified:** `my-tasks-sort.ts` (check order), `my-tasks-sort.test.ts` (test expectation + description)
-- **Commits:** covered in GREEN commit `acac366b`
+- **Commits:** covered in GREEN commit `cb7ad89b`
 
 ## Known Stubs
 
@@ -96,5 +96,5 @@ None. This plan introduces no new trust boundary — all inputs are already-fetc
 
 - [x] `taskflow/src/lib/my-tasks-sort.ts` — FOUND
 - [x] `taskflow/src/lib/my-tasks-sort.test.ts` — FOUND
-- [x] Commit `53086d64` (RED) — FOUND
-- [x] Commit `acac366b` (GREEN) — FOUND
+- [x] Commit `1471b180` (RED) — FOUND
+- [x] Commit `cb7ad89b` (GREEN) — FOUND

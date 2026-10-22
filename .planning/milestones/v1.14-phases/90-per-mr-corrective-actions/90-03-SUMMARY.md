@@ -66,9 +66,9 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Freeze the row order for the life of the mounted list (D-11)** — `dc0f7315` (feat)
-2. **Task 2: Build DriftActionCell and wire the fix context from the page** — `12842d1e` (feat)
-3. **Task 3: Interaction test suite — pending, success, sticky failure, independence, unavailable** — `2b458c2f` (test)
+1. **Task 1: Freeze the row order for the life of the mounted list (D-11)** — `df390170` (feat)
+2. **Task 2: Build DriftActionCell and wire the fix context from the page** — `25c917bf` (feat)
+3. **Task 3: Interaction test suite — pending, success, sticky failure, independence, unavailable** — `9fff1eec` (test)
 
 ## Files Created/Modified
 
@@ -88,7 +88,7 @@ Each task was committed atomically:
 **1. `applyHeldOrder`/`orderRef` live in `MrDriftSection.tsx`, not `useReleaseDetail.ts`**
 - **Rationale (from the plan):** "life of the mounted list" is the list component itself, and `90-VALIDATION.md` places the `held sort order` test in `MrDriftSection.test.tsx`.
 - **Files:** `taskflow/src/routes/dashboard/release-detail/MrDriftSection.tsx`
-- **Commit:** `dc0f7315`
+- **Commit:** `df390170`
 
 No other deviations. All three tasks matched their acceptance criteria without needing Rule 1/2/3 auto-fixes.
 
@@ -127,4 +127,4 @@ None. All six threat-register dispositions for this plan's files (T-90-11 throug
 *Completed: 2026-08-11*
 
 ## Self-Check: PASSED
-All created/modified files verified present on disk; all 3 task commit hashes (dc0f7315, 12842d1e, 2b458c2f) verified in git log.
+All created/modified files verified present on disk; all 3 task commit hashes (df390170, 25c917bf, 9fff1eec) verified in git log.

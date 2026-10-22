@@ -58,8 +58,8 @@ completed: 2026-05-10
 
 ## Task Commits
 
-1. **Pre-release cleanup:** `9654040` (chore: commit pending debug note and Cargo.lock update before release)
-2. **Task 1: Run release script** - `35d42b1` (chore: bump version to 1.7.3)
+1. **Pre-release cleanup:** `6c5de378` (chore: commit pending debug note and Cargo.lock update before release)
+2. **Task 1: Run release script** - `1fdc3c06` (chore: bump version to 1.7.3)
 
 ## Files Created/Modified
 

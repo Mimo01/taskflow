@@ -39,8 +39,8 @@ Added `GitLabReAuthBanner` as a named export in `ReAuthBanner.tsx`, matching the
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add GitLabReAuthBanner export to ReAuthBanner.tsx | 8466c7c | taskflow/src/components/app/ReAuthBanner.tsx |
-| 2 | Mount GitLabReAuthBanner in AppLayout | 5a1d3d4 | taskflow/src/main.tsx |
+| 1 | Add GitLabReAuthBanner export to ReAuthBanner.tsx | b4cbe00a | taskflow/src/components/app/ReAuthBanner.tsx |
+| 2 | Mount GitLabReAuthBanner in AppLayout | 18602183 | taskflow/src/main.tsx |
 
 ## Deviations from Plan
 
@@ -50,6 +50,6 @@ None - plan executed exactly as written.
 
 - [x] taskflow/src/components/app/ReAuthBanner.tsx — modified, GitLabReAuthBanner export present
 - [x] taskflow/src/main.tsx — modified, GitLabReAuthBanner imported and rendered
-- [x] Commit 8466c7c — FOUND
-- [x] Commit 5a1d3d4 — FOUND
+- [x] Commit b4cbe00a — FOUND
+- [x] Commit 18602183 — FOUND
 - [x] TypeScript: no errors in main.tsx or ReAuthBanner.tsx (pre-existing errors in other files are out-of-scope per STATE.md)

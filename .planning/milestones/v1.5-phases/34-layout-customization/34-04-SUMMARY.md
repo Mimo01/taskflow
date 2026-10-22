@@ -68,9 +68,9 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Create NotificationsWidget, SprintProgressWidget, MrAttentionWidget, ReleasesWidget** - `32147a2` (feat)
-2. **Task 2: Create WorkloadWidget, SavedFiltersWidget, PinnedIssuesWidget** - `c4157ea` (feat)
-3. **Task 3: Create CustomJqlWidget with config persistence, wire all into registry** - `d38774c` (feat)
+1. **Task 1: Create NotificationsWidget, SprintProgressWidget, MrAttentionWidget, ReleasesWidget** - `b4b97632` (feat)
+2. **Task 2: Create WorkloadWidget, SavedFiltersWidget, PinnedIssuesWidget** - `d2b3bd9b` (feat)
+3. **Task 3: Create CustomJqlWidget with config persistence, wire all into registry** - `cb5bb3ed` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/widgets/NotificationsWidget.tsx` - Compact notification list from store (last 8 items)

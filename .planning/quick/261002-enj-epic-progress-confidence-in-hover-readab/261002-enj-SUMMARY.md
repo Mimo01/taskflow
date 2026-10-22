@@ -22,8 +22,8 @@ Readable hoverable risk labels (tooltip + popover on one trigger), confidence on
 
 ## Commits
 
-- c13ff1df: Task 1 (cards)
-- 596aad43: Task 2 (charts)
+- bf44eca3: Task 1 (cards)
+- 750f25a7: Task 2 (charts)
 
 ## What changed
 

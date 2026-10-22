@@ -38,7 +38,7 @@ key-files:
     - taskflow/src/routes/dashboard/DashboardInProgressCard.test.tsx
 
 key-decisions:
-  - "Active-sprint query enabled (guarded on resolved boardId) instead of enabled:false — fixes a false 'No active sprint' empty state on cold load while preserving zero-new-calls when the Sidebar prefetch warmed the cache (UAT fix, commit ca98232d)"
+  - "Active-sprint query enabled (guarded on resolved boardId) instead of enabled:false — fixes a false 'No active sprint' empty state on cold load while preserving zero-new-calls when the Sidebar prefetch warmed the cache (UAT fix, commit f95d2e0f)"
   - "Single shared ['jira-issues','sprint-board',...] query feeds both the stat tiles and SprintHealthSection via identical cache key (dedup, no second fetch)"
 
 patterns-established:
@@ -73,7 +73,7 @@ completed: 2026-06-15
 
 Human UAT (task 3) surfaced one real defect: the Sprint Health section rendered **"No active sprint"** even with an active sprint. Root cause: the active-sprint query was `enabled: false`, so it could only read the `['jira-active-sprint', …]` cache populated by the Sidebar prefetch — a key that nothing else in the app writes. When the dashboard loaded without that prefetch firing for the resolved `boardId`, the query stayed `undefined` and the empty state showed falsely.
 
-**Fix (ca98232d):** enabled the query (guarded on a resolved `boardId`). The matching key + `staleTime` still dedups against a warm Sidebar prefetch (DASH-03 "zero new API calls when warm" preserved), but a cold load now self-fetches once instead of showing a false empty state. UAT re-verified: everything works.
+**Fix (f95d2e0f):** enabled the query (guarded on a resolved `boardId`). The matching key + `staleTime` still dedups against a warm Sidebar prefetch (DASH-03 "zero new API calls when warm" preserved), but a cold load now self-fetches once instead of showing a false empty state. UAT re-verified: everything works.
 
 ## Verification
 

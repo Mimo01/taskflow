@@ -28,9 +28,9 @@ One-liner: clickable-key Risks popover, one hero "Data sources" block, a shared 
 
 | Task | Commit | Message |
 | ---- | ------ | ------- |
-| 1 | b6f1fe83 | shared chart axis/domain, zoom presets, confidence reason, data-source lines |
-| 2 | 68a784fb | data sources in hero tooltip, confidence meter, clickable risk keys |
-| 3 | 7a8f51ef | shared chart domain, brush + preset zoom, status-coloured time series |
+| 1 | db110402 | shared chart axis/domain, zoom presets, confidence reason, data-source lines |
+| 2 | 347af739 | data sources in hero tooltip, confidence meter, clickable risk keys |
+| 3 | b69017c3 | shared chart domain, brush + preset zoom, status-coloured time series |
 
 Each commit passed the full pre-commit hook (biome, tsc, full vitest: 3098 passed at the end).
 
@@ -65,4 +65,4 @@ Checker item 1: the Risks-tile hover test (~1285) passes unchanged (openOnHover 
 
 ## Self-Check: PASSED
 
-Created files exist (ConfidenceMeter.tsx, EpicChartZoom.tsx); commits b6f1fe83, 68a784fb, 7a8f51ef present.
+Created files exist (ConfidenceMeter.tsx, EpicChartZoom.tsx); commits db110402, 347af739, b69017c3 present.

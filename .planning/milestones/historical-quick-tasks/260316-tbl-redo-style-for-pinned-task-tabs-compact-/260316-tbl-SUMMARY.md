@@ -52,13 +52,13 @@ completed: 2026-03-16
 
 ## Task Commits
 
-1. **Task 1: Restyle pinned tabs with compact layout and smooth loading transition** - `a82b0eb` (feat)
-2. **Close button iteration: swap type icon to X on hover** - `c34b470` (feat)
-3. **Close button iteration: tiny corner X badge** - `66be3a7` (feat)
-4. **Close button iteration: match shadcn style** - `3d5e579` (fix)
-5. **Close button iteration: revert shadcn style** - `2d5ea61` (revert)
-6. **Close button iteration: inline X after summary** - `180530c` (feat)
-7. **Close button iteration: vertically centered, slightly bigger** - `3a07d4e` (fix)
+1. **Task 1: Restyle pinned tabs with compact layout and smooth loading transition** - `6f70563c` (feat)
+2. **Close button iteration: swap type icon to X on hover** - `b2b3c3b8` (feat)
+3. **Close button iteration: tiny corner X badge** - `8041cfd0` (feat)
+4. **Close button iteration: match shadcn style** - `8afab34c` (fix)
+5. **Close button iteration: revert shadcn style** - `7b0d7497` (revert)
+6. **Close button iteration: inline X after summary** - `4a1df7b7` (feat)
+7. **Close button iteration: vertically centered, slightly bigger** - `7a32d6e6` (fix)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/PinnedTabStrip.tsx` - Compact tab layout with loading spinner, stacked key+summary, inline close button

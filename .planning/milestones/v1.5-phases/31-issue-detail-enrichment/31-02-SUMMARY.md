@@ -70,8 +70,8 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: OverdueBadge component + isOverdue utility with tests, integrate into 3 locations** - `cc27c8e` (test: RED), `a7447f7` (feat: GREEN + integration)
-2. **Task 2: Clone Issue button in action bar** - `9f59c57` (feat)
+1. **Task 1: OverdueBadge component + isOverdue utility with tests, integrate into 3 locations** - `a65e9905` (test: RED), `204777a6` (feat: GREEN + integration)
+2. **Task 2: Clone Issue button in action bar** - `8d586551` (feat)
 
 _Note: Task 1 used TDD with RED/GREEN commits._
 
@@ -102,7 +102,7 @@ _Note: Task 1 used TDD with RED/GREEN commits._
 - **Fix:** Integrated OverdueBadge into IssueDetailSidebar.tsx instead, at the same logical location (due date MetaRow)
 - **Files modified:** taskflow/src/routes/dashboard/IssueDetailSidebar.tsx
 - **Verification:** Badge renders next to due date in sidebar
-- **Committed in:** a7447f7
+- **Committed in:** 204777a6
 
 **2. [Rule 2 - Missing Critical] Added duedate to API fetch field lists**
 - **Found during:** Task 1 (OverdueBadge integration into TaskRow/BacklogRow)
@@ -110,7 +110,7 @@ _Note: Task 1 used TDD with RED/GREEN commits._
 - **Fix:** Added `duedate` to fields in fetchSprintIssues, fetchMyTasksHierarchy, fetchBacklogIssues, and fetchBacklogView
 - **Files modified:** taskflow/src/services/jira.ts
 - **Verification:** Field present in API request strings
-- **Committed in:** a7447f7
+- **Committed in:** 204777a6
 
 ---
 

@@ -71,8 +71,8 @@ completed: 2026-03-30
 
 Each task was committed atomically:
 
-1. **Task 1: Create useDelayedLoading hook with tests** - `9756698` (feat)
-2. **Task 2: Create all 8 per-view skeleton components** - `c9be7f9` (feat)
+1. **Task 1: Create useDelayedLoading hook with tests** - `df58dc25` (feat)
+2. **Task 2: Create all 8 per-view skeleton components** - `085ce146` (feat)
 
 **Plan metadata:** (docs commit below)
 
@@ -120,4 +120,4 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - All 10 files exist on disk
-- Both task commits verified: 9756698, c9be7f9
+- Both task commits verified: df58dc25, 085ce146

@@ -13,7 +13,7 @@ updated: 2026-06-07
 - **Expected:** The user's own Jira avatar image renders in the new (watched-)person picker on the standup notes page.
 - **Actual:** The avatar falls back to initials/letters for the current user.
 - **Error messages:** none reported
-- **Timeline:** Appeared with the recently-added standup watched-person picker (commits d62dc4e4, ae20b96e, 93d54f5c).
+- **Timeline:** Appeared with the recently-added standup watched-person picker (commits cb32962d, 2deb2276, 747efe37).
 - **Reproduction:** Open standup notes page → open the new person picker → observe the current user's own avatar shows fallback letters instead of the Jira avatar image.
 - **Scope:** Avatars render correctly everywhere else in the app (only this picker is affected, and specifically the current user's avatar).
 

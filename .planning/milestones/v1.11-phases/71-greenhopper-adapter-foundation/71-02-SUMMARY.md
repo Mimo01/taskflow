@@ -123,9 +123,9 @@ All shapes lifted verbatim from `71-RESEARCH.md §"API Response Shapes (TypeScri
 
 | Hash | Type | Description |
 |------|------|-------------|
-| `e46594ee` | test | add failing test for greenhopperFetch (RED) |
-| `11fc2960` | feat | implement greenhopperFetch over apiFetch('jira',...) (GREEN) |
-| `1f6e68d6` | feat | add GreenHopper response types + EntityMaps |
+| `f2edc024` | test | add failing test for greenhopperFetch (RED) |
+| `860dcd51` | feat | implement greenhopperFetch over apiFetch('jira',...) (GREEN) |
+| `89e2b405` | feat | add GreenHopper response types + EntityMaps |
 
 ## Deviations from Plan
 
@@ -133,8 +133,8 @@ None — plan executed exactly as written. The TDD cycle for Task 1 produced a c
 
 ## TDD Gate Compliance
 
-- RED commit: `e46594ee` (test added, vitest run shows "Failed to resolve import './client'" — test correctly fails)
-- GREEN commit: `11fc2960` (12/12 vitest cases pass)
+- RED commit: `f2edc024` (test added, vitest run shows "Failed to resolve import './client'" — test correctly fails)
+- GREEN commit: `860dcd51` (12/12 vitest cases pass)
 - REFACTOR: skipped — implementation was minimal and clean on first pass.
 
 ## Threat Flags
@@ -156,6 +156,6 @@ None.
 - File `taskflow/src/services/jira/greenhopper/client.ts` — FOUND
 - File `taskflow/src/services/jira/greenhopper/client.test.ts` — FOUND
 - File `taskflow/src/services/jira/greenhopper/types.ts` — FOUND
-- Commit `e46594ee` — FOUND
-- Commit `11fc2960` — FOUND
-- Commit `1f6e68d6` — FOUND
+- Commit `f2edc024` — FOUND
+- Commit `860dcd51` — FOUND
+- Commit `89e2b405` — FOUND

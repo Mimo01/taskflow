@@ -37,7 +37,7 @@ completed: 2026-03-16
 
 ## Task Commits
 
-1. **Task 1: Change JQL ordering from updated DESC to rank ASC** - `a7bff1a` (feat)
+1. **Task 1: Change JQL ordering from updated DESC to rank ASC** - `110347cb` (feat)
 
 ## Files Modified
 - `taskflow/src/services/jira.ts` - Changed ORDER BY clause in fetchSprintIssues (line 302) and fetchMyTasksHierarchy (line 398)

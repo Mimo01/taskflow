@@ -67,8 +67,8 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Create useMrFixMutation.ts — cache helpers plus the per-cell mutation hook** - `e38674dd` (feat) + `9270e86f` (style — biome format fix)
-2. **Task 2: Prove the header-badge decrement path through useReleaseDetail (D-12)** - `f80d8a2e` (test)
+1. **Task 1: Create useMrFixMutation.ts — cache helpers plus the per-cell mutation hook** - `5a4defe0` (feat) + `ee5748dc` (style — biome format fix)
+2. **Task 2: Prove the header-badge decrement path through useReleaseDetail (D-12)** - `da3a7c89` (test)
 
 ## Files Created/Modified
 
@@ -128,14 +128,14 @@ Plan 03 calls `useMrFixMutation` once per BR cell (`action: 'retarget'`) and onc
 - **Issue:** `restoreMrChannelCaches`'s parameter list and several long `getQueryData`/`getQueryState` call chains in the test file exceeded the configured line width, which Biome's formatter (run by the pre-commit hook) flagged as 2 errors.
 - **Fix:** `npx biome format --write` on both files; re-ran the full test file + `tsc --noEmit` to confirm no behavioral change.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/useMrFixMutation.ts`, `taskflow/src/routes/dashboard/release-detail/useMrFixMutation.test.tsx`
-- **Commit:** `9270e86f`
+- **Commit:** `ee5748dc`
 
 **2. [Rule 1 - Bug] Task 2 fixture needed full JiraIssue shape, not the plan's shorthand**
 - **Found during:** Task 2, first test run
 - **Issue:** The plan's action block suggested seeding `fetchFixVersionIssues` with an issue "whose `key` is `PROJ-1`" without specifying the full shape. `computeIssueStatusCounts` inside `useReleaseDetail` unconditionally reads `fields.status.statusCategory.key` for every issue in `releaseIssues`, so a bare `{ key: 'PROJ-1' }` fixture threw a `TypeError` and crashed the render (caught by React's error boundary logging, test failed on the assertion instead of the crash directly).
 - **Fix:** Built a minimal-but-complete `JiraIssue` fixture (`id`, `key`, `fields.summary/status/assignee/customfield_10016/issuetype`) matching the shape other tests in the same file already use.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.test.tsx`
-- **Commit:** `f80d8a2e`
+- **Commit:** `da3a7c89`
 
 ---
 
@@ -168,4 +168,4 @@ None. All threat-model dispositions for this plan's files (T-90-06 through T-90-
 *Completed: 2026-08-11*
 
 ## Self-Check: PASSED
-All created/modified files verified present on disk; all 4 commit hashes (e38674dd, 9270e86f, f80d8a2e, d01c0765) verified in git log.
+All created/modified files verified present on disk; all 4 commit hashes (5a4defe0, ee5748dc, da3a7c89, 335e72d7) verified in git log.

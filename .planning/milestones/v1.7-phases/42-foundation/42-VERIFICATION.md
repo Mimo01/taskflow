@@ -73,7 +73,7 @@ Not applicable — this phase produces infrastructure components and build tooli
 | 9 lazy routes in routes.tsx | `grep -c "lazy\|withLazy" routes.tsx` | 10 (9 lazy defs + 1 function def) | PASS |
 | React Compiler wired in vite.config.ts | `grep "reactCompilerPreset" vite.config.ts` | Found on lines 2 and 35 | PASS |
 | Visualizer behind ANALYZE guard | `grep "ANALYZE" vite.config.ts` | `process.env.ANALYZE === 'true'` found on line 36 | PASS |
-| Git commits from summaries exist | `git log --oneline --all` | d0b4de4, 41e7194, 37fc72a, 6408a49, 251eb44, a5b38a9, e913f1d all present | PASS |
+| Git commits from summaries exist | `git log --oneline --all` | 842a7033, 1b8f7040, 4ab48ebf, 6a816f45, 9e457bc5, b473aa6a, e64009a5 all present | PASS |
 
 ---
 

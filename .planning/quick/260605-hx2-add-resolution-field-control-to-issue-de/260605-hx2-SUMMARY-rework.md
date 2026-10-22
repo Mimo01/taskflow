@@ -50,17 +50,17 @@ Reworked the issue-detail Resolution control so resolution is set by EXECUTING a
 
 ## What was built
 
-### Task 1 — `postTransition` fields + `fetchIssueTransitionsWithFields` + types (`89e87f5c`)
+### Task 1 — `postTransition` fields + `fetchIssueTransitionsWithFields` + types (`6cb8dca3`)
 - `postTransition` gained an optional 5th param `fields?: Record<string, unknown>`. The body is built with a **presence check** (`fields !== undefined ? { fields } : {}`), so a `{ resolution: null }` clear payload survives while existing no-fields callers still produce exactly `{ transition: { id } }`. URL, headers, and error handling unchanged.
 - Added `fetchIssueTransitionsWithFields(baseUrl, token, issueKey)` → `GET /rest/api/2/issue/{key}/transitions?expand=transitions.fields`, returning the `transitions` array, with the resolutions-style error envelope (401/403 → `ApiError`, other non-OK → generic `Error`, label `'Load Transitions'`).
 - Added `JiraTransitionWithFields` + `JiraTransitionFieldMeta` types in `types.ts` (`to.statusCategory?.key`, `fields?` map with `{ required, allowedValues?, operations? }`). `JiraTransition` left untouched. Both the fetcher and types are re-exported from `jira.ts`.
 
-### Task 2 — Sidebar Resolution control via in-place transition (`222d93bf`)
+### Task 2 — Sidebar Resolution control via in-place transition (`7e9d4bf3`)
 - Removed the dead direct-PUT path (`handleResolutionChange`, the `fetchResolutions`-only query, and the `statusCategory==='done'` edit gate).
 - Added an on-demand query keyed `['jira-issue-transitions-fields', issueKey, jiraBaseUrl]`, enabled only while editing, deriving `inPlaceResolutionTransition` (first transition where `to.id === f.status.id && fields?.resolution`).
 - The Select is editable only when such a transition exists; options come from its `allowedValues` (id as value), plus an "Unresolved" item when the resolution field is not `required`. Selecting runs a dedicated mutation calling `postTransition(..., { resolution: { id } | null })` with **no optimistic status change** (in-place loop). Otherwise the row renders read-only with the explanation "Resolution can only be changed via a status transition."
 
-### Task 3 — StatusPopover resolution step (`5a6528b5`)
+### Task 3 — StatusPopover resolution step (`ca74c669`)
 - Threaded optional `issueKey`/`jiraBaseUrl` props from FieldsSection. When open, StatusPopover fetches transitions-with-fields via the same shared cache key.
 - `onSelect` signature extended to `(transitionId, toStatusName, opts?: { resolution: { id: string } | null })`. Picking a transition whose REST counterpart (matched by id) is resolution-capable shows an in-popover "Select resolution" step; choosing a resolution calls `onSelect(id, toName, { resolution: { id } })`. Non-capable transitions call `onSelect(id, toName)` immediately (unchanged). Loading/errored/empty REST metadata falls back to the plain transition.
 - FieldsSection's `handleTransition` forwards the optional resolution into `postTransition`'s fields.
@@ -86,6 +86,6 @@ The worktree had no `node_modules`; a symlink to the main checkout's `taskflow/n
 - FOUND: taskflow/src/services/jira/types.ts
 - FOUND: taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx
 - FOUND: taskflow/src/routes/dashboard/StatusPopover.tsx
-- FOUND commit: 89e87f5c
-- FOUND commit: 222d93bf
-- FOUND commit: 5a6528b5
+- FOUND commit: 6cb8dca3
+- FOUND commit: 7e9d4bf3
+- FOUND commit: ca74c669

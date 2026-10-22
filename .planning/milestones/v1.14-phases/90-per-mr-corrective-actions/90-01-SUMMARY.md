@@ -68,9 +68,9 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Write the read-only approvals / protected-branch probe script** - `7f11ac15` (feat)
-2. **Task 2: Run the probe against live GitLab and record 90-PROBE-RESULTS.md** - `18b620b0` (docs) — recorded as `not-run`, no live PAT available
-3. **Task 3: Add flattenGitLabError and updateMergeRequest to gitlab.ts** - `86385652` (feat)
+1. **Task 1: Write the read-only approvals / protected-branch probe script** - `71c230e5` (feat)
+2. **Task 2: Run the probe against live GitLab and record 90-PROBE-RESULTS.md** - `86b837c4` (docs) — recorded as `not-run`, no live PAT available
+3. **Task 3: Add flattenGitLabError and updateMergeRequest to gitlab.ts** - `5deba86a` (feat)
 
 _No separate plan-metadata commit yet — the final `docs(90-01): complete...` commit follows this SUMMARY._
 
@@ -99,7 +99,7 @@ None — Task 3 followed RESEARCH Pattern 1/2 exactly as specified (three-branch
 - **Resolution:** Wrote `90-PROBE-RESULTS.md` as an honest `status: not-run` documentation record with all four required headings, A1 marked `UNRESOLVED (probe D skipped)`, and the D-16 ruling restated in full per the orchestrator's exact wording.
 - **Files modified:** `.planning/phases/90-per-mr-corrective-actions/90-PROBE-RESULTS.md`
 - **Verification:** All Task 2 acceptance-criteria greps pass (four headings present, A1 line matches, `reset_approvals_on_push:` literal present, "no confirm dialog"/"no warning" present, no leaked credential pattern, no `taskflow/src` file touched).
-- **Committed in:** `18b620b0`
+- **Committed in:** `86b837c4`
 
 ---
 

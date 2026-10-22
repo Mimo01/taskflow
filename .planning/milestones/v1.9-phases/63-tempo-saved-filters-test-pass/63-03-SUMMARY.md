@@ -47,8 +47,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Fix the two discoverCustomFields test expectations and confirm full suite green | 3c53e114 | taskflow/src/services/jira.test.ts |
-| 2 | Dead code audit and sweep for widget/workload references and Phase 62 unused imports | d388a6c9 | .planning/phases/63-tempo-saved-filters-test-pass/63-03-DEAD-CODE-AUDIT.md |
+| 1 | Fix the two discoverCustomFields test expectations and confirm full suite green | 536a0516 | taskflow/src/services/jira.test.ts |
+| 2 | Dead code audit and sweep for widget/workload references and Phase 62 unused imports | 85d86213 | .planning/phases/63-tempo-saved-filters-test-pass/63-03-DEAD-CODE-AUDIT.md |
 
 ---
 
@@ -124,7 +124,7 @@ Files exist:
 - [x] `.planning/phases/63-tempo-saved-filters-test-pass/63-03-DEAD-CODE-AUDIT.md` — created
 
 Commits exist:
-- [x] 3c53e114 — test(63-03): fix discoverCustomFields expectations
-- [x] d388a6c9 — chore(63-03): dead-code audit
+- [x] 536a0516 — test(63-03): fix discoverCustomFields expectations
+- [x] 85d86213 — chore(63-03): dead-code audit
 
 ## Self-Check: PASSED

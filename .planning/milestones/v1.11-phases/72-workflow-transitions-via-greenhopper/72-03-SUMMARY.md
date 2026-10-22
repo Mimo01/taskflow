@@ -47,7 +47,7 @@ Deleted both copies of the legacy per-issue Jira REST GET fetcher (the `fetchTra
 
 ## What Shipped
 
-### Task 1 — commit `878cd8fe`
+### Task 1 — commit `a6be320a`
 
 **`src/services/jira.ts`**
 - Deleted the legacy GET function block at former lines 680-721 (JSDoc + signature + body + closing brace). Approximately ~42 lines removed.
@@ -124,14 +124,14 @@ Re-run on touched files only: `6 files, 132 tests, all passed`.
 - **Found during:** Step 6 (hard grep gate) after deleting the function blocks. The grep returned 10 lines, all from `routes/dashboard/*.test.tsx`. Plan 02's SUMMARY already flagged these 10 hits as "all in comments / test descriptors" — they remained because Plan 02 did not own the deletion gate. The Plan 03 hard gate (`grep ... | grep -v '^#' | wc -l = 0`) does not exempt JS/TS comments — `-v '^#'` only filters lines beginning with `#` (shell/markdown). To reach 0, these literal `fetchTransitions` mentions had to go.
 - **Fix:** Rephrased headers / comments / one it() descriptor to reference "the legacy per-issue REST GET path" or "the legacy REST GET fetcher" instead of the function name. No assertion logic or mock surface changed. The source-grep guard in StatusPopover.test.tsx still verifies the mock-narrow import path holds.
 - **Files modified:** `routes/dashboard/StatusPopover.test.tsx`, `routes/dashboard/SprintBoardTab.test.tsx`, `routes/dashboard/BulkActionBar.test.tsx`, `routes/dashboard/QuickCreateInput.test.tsx`.
-- **Commit:** `878cd8fe`.
+- **Commit:** `a6be320a`.
 
 **2. [Rule 1 — Bug from edit cascade] Biome line-width violation after header rewrite in BulkActionBar.test.tsx**
 - **Found during:** Step 7 (biome run).
 - **Issue:** Rephrasing the BulkActionBar.test.tsx file-header docblock added one line, shifting the `getGhTransitions: vi.fn().mockResolvedValue([...])` array literal across biome's line-width threshold.
 - **Fix:** Ran `biome check --write` on the single file. Biome rewrote the value as a chained call (`vi.fn().mockResolvedValue([...])` flattened) — semantics identical, only formatting changed.
 - **Files modified:** `routes/dashboard/BulkActionBar.test.tsx`.
-- **Commit:** `878cd8fe` (folded into the same commit).
+- **Commit:** `a6be320a` (folded into the same commit).
 
 No architectural changes were introduced. No new files. No package installs.
 
@@ -169,4 +169,4 @@ Files verified to exist (relative to worktree root):
 
 Commits verified in `git log`:
 
-- FOUND: 878cd8fe feat(72-03): delete legacy fetchTransitions GET + tests (D-08 / GH-CUT-01)
+- FOUND: a6be320a feat(72-03): delete legacy fetchTransitions GET + tests (D-08 / GH-CUT-01)

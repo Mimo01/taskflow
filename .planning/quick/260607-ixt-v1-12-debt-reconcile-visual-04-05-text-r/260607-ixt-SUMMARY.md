@@ -18,7 +18,7 @@ All three v1.12 milestone-audit debt items resolved. Both quality gates pass.
 
 ## Tasks
 
-### Task 1 — VISUAL-04/05 doc reconciliation (commit `a8277a6b`)
+### Task 1 — VISUAL-04/05 doc reconciliation (commit `b0bd38ad`)
 - `.planning/REQUIREMENTS.md`: VISUAL-04 now states the sprint-board card left-edge stripe
   encodes issue **TYPE** (via `issueTypeStripeClass`), and priority is signaled via the
   `PriorityIcon` footer image; VISUAL-05 reworded to reference the issue-type stripe.
@@ -26,13 +26,13 @@ All three v1.12 milestone-audit debt items resolved. Both quality gates pass.
 - `.planning/ROADMAP.md`: Phase 76 goal + success criteria #3/#4 aligned to the type-stripe design.
 - `.planning/phases/76-*/76-VERIFICATION.md` left untouched (historical override record).
 
-### Task 2 — Delete dead client-side rank calc (commit `5f39bb96`)
+### Task 2 — Delete dead client-side rank calc (commit `16301667`)
 - Deleted `taskflow/src/services/jira/rank.ts` (dead `rankIssue` LexoRank calc, 0 callers).
 - Deleted `taskflow/src/services/jira/rank.test.ts` (12 tests, E1–E12).
 - Pre-deletion re-confirmed: no barrel re-export of `./rank`; only `rank.test.ts` imported it.
 - `taskflow/src/services/jira/rank-api.ts` (`rankIssueApi`, server-side ranking used by Phase 78) intact.
 
-### Task 3 — Remove dead priorityStripeClass family (commit `1a6daa24`)
+### Task 3 — Remove dead priorityStripeClass family (commit `54f74d6a`)
 - Removed from `taskflow/src/lib/issueDisplayUtils.ts`: `priorityStripeClass`,
   `prioritySeverityFromIcon`, and constants `PRIORITY_STRIPE`, `ICON_SEVERITY_STRIPE`,
   `DEFAULT_STRIPE` (+ their JSDoc).

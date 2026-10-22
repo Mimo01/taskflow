@@ -60,10 +60,10 @@ completed: 2026-05-23
 
 ## Task Commits
 
-1. **Task 1: Add 51/52 to TESTCASE_STATUS_MAP (CLEAN-06)** — `fd052513` (fix)
-2. **Task 2 RED: Failing tests for initializeAioStatusMap (CLEAN-07)** — `6cbf3f98` (test)
-3. **Task 2 GREEN: Replace AIO_STATUS_MAP with runtime cache (CLEAN-07)** — `1cf34652` (feat)
-4. **Task 3: Migrate consumer + wire activation call site (CLEAN-07)** — `3cb7c2ef` (feat)
+1. **Task 1: Add 51/52 to TESTCASE_STATUS_MAP (CLEAN-06)** — `7f757185` (fix)
+2. **Task 2 RED: Failing tests for initializeAioStatusMap (CLEAN-07)** — `804ecb9b` (test)
+3. **Task 2 GREEN: Replace AIO_STATUS_MAP with runtime cache (CLEAN-07)** — `8e29886e` (feat)
+4. **Task 3: Migrate consumer + wire activation call site (CLEAN-07)** — `20e17bcf` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/aio/cycles.ts` — Added 51/52 to TESTCASE_STATUS_MAP
@@ -87,18 +87,18 @@ completed: 2026-05-23
 - **Found during:** Task 3 (TypeScript build check)
 - **Issue:** Interface requires `color: string`; plan-provided mock shapes omitted it
 - **Fix:** Added `color` field to all `AioTestRunStatusConfig` mocks in `aioUtils.test.ts` and `AioCycleDetailPage.test.tsx`
-- **Commit:** 3cb7c2ef
+- **Commit:** 20e17bcf
 
 **2. [Rule 1 - Bug] AioCycleDetailPage tests failed after CLEAN-07 — runtime map empty in test context**
 - **Found during:** Task 3 (full test suite run)
 - **Issue:** `normalizeStatusById` now reads `runtimeAioStatusMap` which is empty until `initializeAioStatusMap` runs; tests using numeric IDs broke
 - **Fix:** Added `vi.mock('@/services/aio/cycles')` and `beforeEach` call to `initializeAioStatusMap` in `AioCycleDetailPage.test.tsx`
-- **Commit:** 3cb7c2ef
+- **Commit:** 20e17bcf
 
 **3. [Rule 1 - Bug] Stale JSDoc in types.ts referenced removed AIO_STATUS_MAP**
 - **Found during:** Task 3 (grep scan for AIO_STATUS_MAP references)
 - **Fix:** Updated to reference `normalizeStatusById`
-- **Commit:** 3cb7c2ef
+- **Commit:** 20e17bcf
 
 ---
 **Total deviations:** 3 auto-fixed

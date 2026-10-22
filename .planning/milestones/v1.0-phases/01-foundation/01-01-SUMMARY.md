@@ -122,9 +122,9 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1: Scaffold Tauri 2 project and install all dependencies** - `b161e44` (feat)
-2. **Task 2 RED: Test scaffolds (failing)** - `312db83` (test)
-3. **Task 2 GREEN: Service layer, stores, routes** - `bf26dd2` (feat)
+1. **Task 1: Scaffold Tauri 2 project and install all dependencies** - `3038d80c` (feat)
+2. **Task 2 RED: Test scaffolds (failing)** - `4a2c18ef` (test)
+3. **Task 2 GREEN: Service layer, stores, routes** - `0384f740` (feat)
 
 ## Files Created/Modified
 
@@ -226,7 +226,7 @@ None — no external service configuration required for this plan. The next plan
 
 ## Self-Check: PASSED
 
-All 25 key files confirmed present. All 3 task commits verified (b161e44, 312db83, bf26dd2).
+All 25 key files confirmed present. All 3 task commits verified (3038d80c, 4a2c18ef, 0384f740).
 
 ---
 *Phase: 01-foundation*

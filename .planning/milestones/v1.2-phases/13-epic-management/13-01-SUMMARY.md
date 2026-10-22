@@ -72,8 +72,8 @@ completed: 2026-03-14
 
 Each task was committed atomically:
 
-1. **Task 1: Add EpicEnriched interface + service functions to jira.ts** - `1e24782` (feat + test TDD)
-2. **Task 2: Create Wave 0 RED test stubs** - `afe4b0b` (test)
+1. **Task 1: Add EpicEnriched interface + service functions to jira.ts** - `a204839c` (feat + test TDD)
+2. **Task 2: Create Wave 0 RED test stubs** - `7b01b7ae` (test)
 
 **Plan metadata:** *(committed after summary)*
 
@@ -101,7 +101,7 @@ Each task was committed atomically:
 - **Fix:** Updated all test fixtures to match the exact JiraIssue interface shape from jira.ts (statusCategory has only `key`, issuetype has `name` and `subtask: boolean`, status has `id`)
 - **Files modified:** taskflow/src/services/jira.test.ts
 - **Verification:** `npx tsc --noEmit` exits 0 for all non-test files
-- **Committed in:** 1e24782 (Task 1 commit)
+- **Committed in:** a204839c (Task 1 commit)
 
 ---
 

@@ -16,9 +16,9 @@ status: complete
 
 ## Commits
 
-- `bb4d19dd` — test(quick-260827-gji): add pure MR-health selection + aggregation helpers
-- `5cc46a69` — feat(quick-260827-gji): wire real per-MR approvals + gated discussions into My Tasks
-- `fab68c91` — chore(quick-260827-gji): delete dead dashboard/TaskRow.tsx and dashboard/MrRow.tsx
+- `9e60f5c5` — test(quick-260827-gji): add pure MR-health selection + aggregation helpers
+- `a0f4b5de` — feat(quick-260827-gji): wire real per-MR approvals + gated discussions into My Tasks
+- `fac28025` — chore(quick-260827-gji): delete dead dashboard/TaskRow.tsx and dashboard/MrRow.tsx
 
 ## Verification
 

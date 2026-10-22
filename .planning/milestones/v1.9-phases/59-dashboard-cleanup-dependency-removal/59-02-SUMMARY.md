@@ -38,9 +38,9 @@ Surgical removal of all five non-store, non-widget workload references: the lazy
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Remove /workload route entry and lazy import | 59d836d4 | routes.tsx |
-| 2 | Remove Workload sidebar nav item and pmVisible reference | 087f496f | sidebar-items.ts |
-| 3 | Remove /workload branch from routeLabel and both staticLabels | 92cb8881 | main.tsx, WikiRenderer.tsx, DiscussionThreads.tsx |
+| 1 | Remove /workload route entry and lazy import | b5372caa | routes.tsx |
+| 2 | Remove Workload sidebar nav item and pmVisible reference | 63ff82c2 | sidebar-items.ts |
+| 3 | Remove /workload branch from routeLabel and both staticLabels | a1c3cada | main.tsx, WikiRenderer.tsx, DiscussionThreads.tsx |
 
 ## Verification Results
 
@@ -70,4 +70,4 @@ None. The URL `/workload` now falls through to the existing React Router catch-a
 - taskflow/src/main.tsx — FOUND, zero workload references
 - taskflow/src/routes/dashboard/WikiRenderer.tsx — FOUND, zero workload references
 - taskflow/src/routes/dashboard/DiscussionThreads.tsx — FOUND, zero workload references
-- Commits 59d836d4, 087f496f, 92cb8881 — all present in git log
+- Commits b5372caa, 63ff82c2, a1c3cada — all present in git log

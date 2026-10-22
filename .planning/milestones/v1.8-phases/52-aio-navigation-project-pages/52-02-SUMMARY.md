@@ -76,9 +76,9 @@ completed: 2026-05-12T23:05:00Z
 
 Each task was committed atomically:
 
-1. **Task 1: sidebar-items.ts — Testing section + aio-projects item** - `4b1877a` (feat)
-2. **Task 2: Sidebar.tsx — FlaskConical + aioEnabled gate + test GREEN** - `d8faf10` (feat)
-3. **Task 3: settings.store.ts v16 migration + routes.tsx lazy additions** - `cda63bb` (feat)
+1. **Task 1: sidebar-items.ts — Testing section + aio-projects item** - `5e5a0166` (feat)
+2. **Task 2: Sidebar.tsx — FlaskConical + aioEnabled gate + test GREEN** - `92b691dd` (feat)
+3. **Task 3: settings.store.ts v16 migration + routes.tsx lazy additions** - `dab68e90` (feat)
 
 ## Files Created/Modified
 
@@ -103,7 +103,7 @@ Each task was committed atomically:
 - **Issue:** Wave 0 left `expect(true).toBe(false)` bodies in Sidebar.test.tsx — the GREEN phase must replace them with real assertions or the tests never pass
 - **Fix:** Replaced both test bodies with `getByText('Testing')`, `getByText('AIO Projects')` for the true case and `queryByText('Testing')` returning null for the false case
 - **Files modified:** `taskflow/src/components/app/Sidebar.test.tsx`
-- **Commit:** d8faf10
+- **Commit:** 92b691dd
 
 ### Worktree Test Verification Note
 
@@ -121,10 +121,10 @@ No new network endpoints, auth paths, or file access patterns introduced. All ch
 
 ## Self-Check
 
-- `taskflow/src/components/app/sidebar-items.ts` — FOUND (committed 4b1877a)
-- `taskflow/src/components/app/Sidebar.tsx` — FOUND (committed d8faf10)
-- `taskflow/src/components/app/Sidebar.test.tsx` — FOUND (committed d8faf10)
-- `taskflow/src/stores/settings.store.ts` — FOUND (committed cda63bb)
-- `taskflow/src/routes/routes.tsx` — FOUND (committed cda63bb)
+- `taskflow/src/components/app/sidebar-items.ts` — FOUND (committed 5e5a0166)
+- `taskflow/src/components/app/Sidebar.tsx` — FOUND (committed 92b691dd)
+- `taskflow/src/components/app/Sidebar.test.tsx` — FOUND (committed 92b691dd)
+- `taskflow/src/stores/settings.store.ts` — FOUND (committed dab68e90)
+- `taskflow/src/routes/routes.tsx` — FOUND (committed dab68e90)
 
 ## Self-Check: PASSED

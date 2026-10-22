@@ -54,8 +54,8 @@ completed: 2026-08-10
 
 Each task was committed atomically:
 
-1. **Task 1: Create release-detail/useReleaseDetail.ts with all 6 queries carried over verbatim** - `e1788f01` (feat)
-2. **Task 2: Rewire ReleaseDetailPage.tsx onto useReleaseDetail and delete the inline data layer** - `4d5c7a02` (refactor)
+1. **Task 1: Create release-detail/useReleaseDetail.ts with all 6 queries carried over verbatim** - `b26113d7` (feat)
+2. **Task 2: Rewire ReleaseDetailPage.tsx onto useReleaseDetail and delete the inline data layer** - `5da15434` (refactor)
 
 **Plan metadata:** (this commit, docs: complete plan)
 
@@ -95,7 +95,7 @@ activeGitlabProject, storyPointsFieldKey
 - **Fix:** Ran `npx biome format --write` to reflow to the project's multi-line call convention.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts`
 - **Verification:** `npx biome check` clean; `npm run check` still at the 2-error `BacklogPage.tsx`/`BacklogRow.tsx` baseline (0 new).
-- **Committed in:** `e1788f01`
+- **Committed in:** `b26113d7`
 
 ### Noted, Not Auto-fixed
 

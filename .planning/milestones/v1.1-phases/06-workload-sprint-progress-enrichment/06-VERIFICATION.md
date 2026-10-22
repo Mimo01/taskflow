@@ -27,7 +27,7 @@ human_verification:
 **Phase Goal:** Workload shows correct per-assignee story points (no double-counting) plus time tracking columns, and Sprint Progress shows a full breakdown by status, time totals, and per-assignee table
 **Verified:** 2026-03-12T22:52:00Z
 **Status:** PASSED
-**Re-verification:** Yes — after gap closure (plan 06-03, commit e6bc1c4)
+**Re-verification:** Yes — after gap closure (plan 06-03, commit 36e5deaf)
 
 ---
 
@@ -159,11 +159,11 @@ Pre-existing failures in other test files (not phase 06 scope):
 
 All phase 06 commits exist in git history:
 
-- `c86a115` — test(06-01): add failing tests for WORK-01/02/03 (RED state)
-- `3d14ea8` — feat(06-01): rewrite WorkloadTab with table layout, time tracking, expand/collapse
-- `38711d2` — test(06-02): add failing SPPG-01/02/03 test cases (RED state)
-- `5fd5076` — feat(06-02): rewrite SprintProgressTab with stacked bar, time totals, per-assignee table
-- `e6bc1c4` — feat(06-03): fix done-story exclusion — include as sub-rows, exclude from count/pts (gap closure)
+- `723d9f1a` — test(06-01): add failing tests for WORK-01/02/03 (RED state)
+- `9c764faa` — feat(06-01): rewrite WorkloadTab with table layout, time tracking, expand/collapse
+- `430b6e3a` — test(06-02): add failing SPPG-01/02/03 test cases (RED state)
+- `6766fd15` — feat(06-02): rewrite SprintProgressTab with stacked bar, time totals, per-assignee table
+- `36e5deaf` — feat(06-03): fix done-story exclusion — include as sub-rows, exclude from count/pts (gap closure)
 
 ---
 

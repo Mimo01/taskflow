@@ -30,11 +30,11 @@ completed: 2026-10-16
 Compact one-line SearchResultRow (type icon, key button, truncating title, snippet+tag, epic badge, status pill, 20px avatar) plus a HighlightedText that renders match ranges as React `<mark>` elements (clamped, merged, capped at 6, no innerHTML).
 
 ## Tasks
-1. HighlightedText + tests (6 pass) - bb4a56f9
+1. HighlightedText + tests (6 pass) - 826dd289
 2. SearchResultRow + tests (11 pass), dimmed and indent variants - see git log (feat(92-03): add SearchResultRow)
 
 ## Deviations from Plan
-- Worktree base was behind the expected commit; reset to 23e34cac as the startup check instructs.
+- Worktree base was behind the expected commit; reset to 9a347f2b as the startup check instructs.
 - The pre-commit full vitest run failed once on an unrelated test (flaky under load); passed on re-run and on retry commit. No code change.
 
 ## Known Stubs

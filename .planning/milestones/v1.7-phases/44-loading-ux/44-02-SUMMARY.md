@@ -66,8 +66,8 @@ completed: 2026-03-30
 
 ## Task Commits
 
-1. **Task 1: Wire SprintBoardTab with skeleton, progressive subtask loading, and refresh** - `ec45a0b` (feat)
-2. **Task 2: Wire BacklogPage with skeleton, progressive epic badges, and refresh** - `12f9d5d` (feat)
+1. **Task 1: Wire SprintBoardTab with skeleton, progressive subtask loading, and refresh** - `78cea70d` (feat)
+2. **Task 2: Wire BacklogPage with skeleton, progressive epic badges, and refresh** - `21668c73` (feat)
 
 ## Files Created/Modified
 
@@ -90,7 +90,7 @@ completed: 2026-03-30
 - **Fix:** Changed `!isLoading && !isError && data && ...` to `!showSkeleton && !isError && data && ...` for all content guards (sprint goal, quick filters, active filter banner, unified filter bar, empty state, virtualized swimlanes)
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.tsx
 - **Verification:** Tests pass; isRefreshing now correctly hides content while invalidateQueries refetches
-- **Committed in:** ec45a0b (Task 1 commit)
+- **Committed in:** 78cea70d (Task 1 commit)
 
 ---
 
@@ -120,5 +120,5 @@ None - all skeleton/progressive patterns are wired to real loading states.
 - taskflow/src/routes/dashboard/SprintBoardTab.tsx: FOUND
 - taskflow/src/routes/dashboard/BacklogPage.tsx: FOUND
 - .planning/phases/44-loading-ux/44-02-SUMMARY.md: FOUND
-- Task 1 commit ec45a0b: FOUND
-- Task 2 commit 12f9d5d: FOUND
+- Task 1 commit 78cea70d: FOUND
+- Task 2 commit 21668c73: FOUND

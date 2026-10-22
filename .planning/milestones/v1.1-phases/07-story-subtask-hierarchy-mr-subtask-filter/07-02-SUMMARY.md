@@ -70,8 +70,8 @@ completed: 2026-03-12
 
 Each task was committed atomically:
 
-1. **Task 1: Extend TaskCard with subtask count chip, chevron, and isSubtask variant** - `dd1d181` (feat)
-2. **Task 2: Restructure SprintBoardTab with boardGroups memo and per-story collapse** - `9b4af6e` (feat)
+1. **Task 1: Extend TaskCard with subtask count chip, chevron, and isSubtask variant** - `6755702d` (feat)
+2. **Task 2: Restructure SprintBoardTab with boardGroups memo and per-story collapse** - `b037e04e` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/TaskCard.tsx` - Extended props: subtaskCount, isExpanded, onToggle, isSubtask; Badge chip + chevron render block; isSubtask wrapper cn() variant

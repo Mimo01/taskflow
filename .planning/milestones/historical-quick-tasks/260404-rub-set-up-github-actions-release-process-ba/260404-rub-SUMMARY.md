@@ -69,7 +69,7 @@ The following secrets must be configured in the GitHub repo settings before the 
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Create cross-platform release workflow | e9afd62 | `.github/workflows/release-cross-platform.yml` |
+| 1 | Create cross-platform release workflow | a3f57c90 | `.github/workflows/release-cross-platform.yml` |
 
 ## Deviations from Plan
 
@@ -78,7 +78,7 @@ None — plan executed exactly as written.
 ## Self-Check: PASSED
 
 - `.github/workflows/release-cross-platform.yml` — FOUND (338 lines, above 200 minimum)
-- Commit e9afd62 — FOUND
+- Commit a3f57c90 — FOUND
 - `grep -c "pmkar"` returns 0 — no pmkar references remain
 - `taskflow-releases` referenced in upload job URLs — FOUND
 - `working-directory: taskflow` at build job level — FOUND

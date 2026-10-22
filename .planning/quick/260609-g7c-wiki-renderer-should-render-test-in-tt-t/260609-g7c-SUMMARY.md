@@ -34,8 +34,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| RED | Add failing tt tests to WikiRenderer.test.tsx | 642eb1bc | WikiRenderer.test.tsx |
-| GREEN | Add {{{...}}} → <tt> regex in preprocessJiraMarkup | 62e5728b | WikiRenderer.tsx |
+| RED | Add failing tt tests to WikiRenderer.test.tsx | 99bccc00 | WikiRenderer.test.tsx |
+| GREEN | Add {{{...}}} → <tt> regex in preprocessJiraMarkup | 6b659ee9 | WikiRenderer.tsx |
 
 ## Implementation Details
 
@@ -60,8 +60,8 @@ Final result: **144/144 tests pass** (142 existing + 2 new tt tests + 1 regressi
 
 ## TDD Gate Compliance
 
-- RED gate: commit `642eb1bc` — `test(quick-260609-g7c-01)`: 2 failing tests confirmed
-- GREEN gate: commit `62e5728b` — `feat(quick-260609-g7c-01)`: all 144 tests passing
+- RED gate: commit `99bccc00` — `test(quick-260609-g7c-01)`: 2 failing tests confirmed
+- GREEN gate: commit `6b659ee9` — `feat(quick-260609-g7c-01)`: all 144 tests passing
 
 ## Verification
 
@@ -84,5 +84,5 @@ None — the regex uses non-greedy `(.*?)` and content passes through rehype-san
 
 - WikiRenderer.tsx modified: FOUND
 - WikiRenderer.test.tsx modified: FOUND
-- RED commit 642eb1bc: FOUND
-- GREEN commit 62e5728b: FOUND
+- RED commit 99bccc00: FOUND
+- GREEN commit 6b659ee9: FOUND

@@ -40,7 +40,7 @@ deleted code paths. The phase truths themselves were verified at phase close via
 | D-01 (dashboard stub) | 59-01 | SUPERSEDED | — | Phase 60 overwrote stub with real dashboard; covered by `index.test.tsx` |
 | D-02 (5 workload consumers) | 59-02 | COVERED | `routes.test.ts` + `sidebar-items.test.ts` | (see above) |
 | D-03 (store v19 migration) | 59-01 | COVERED | `taskflow/src/stores/settings.store.test.ts` (extended) | `npm test -- --run settings.store.test` |
-| D-04 (atomic deletion) | 59-01 | HISTORICAL | — | Git commit `4b07cd23` — verifiable via `git show` |
+| D-04 (atomic deletion) | 59-01 | HISTORICAL | — | Git commit `0440e168` — verifiable via `git show` |
 | D-05 (build clean) | 59-03 | COVERED | `npm run build` exit 0 | CI / manual |
 
 ## Per-Task Validation Map
@@ -51,7 +51,7 @@ deleted code paths. The phase truths themselves were verified at phase close via
 | 59-01 | T2: Update widget-aware tests | `npm test -- --run settings.store.test Settings.test` | green |
 | 59-02 | T1: Remove /workload route | `routes.test.ts` | green |
 | 59-02 | T2: Remove Workload sidebar item | `sidebar-items.test.ts` | green |
-| 59-02 | T3: Remove /workload labels | grep guard in commit `92cb8881` | covered by build |
+| 59-02 | T3: Remove /workload labels | grep guard in commit `a1c3cada` | covered by build |
 | 59-03 | T1: Uninstall react-grid-layout | `package-deps.guard.test.ts` | green |
 | 59-03 | T2: Authoritative build + tests | `npm run build` + `npm test -- --run` | green |
 
@@ -79,6 +79,6 @@ None. All five gaps were resolved with automated tests.
 | Plan must-have truths backed by automated checks (excluding superseded D-01 and historical D-04) | ✓ |
 | No PARTIAL or ESCALATE gaps | ✓ |
 | Tests green when run in isolation | ✓ (52/52) |
-| New tests committed separately from this doc | ✓ (commits `d2fa742a`, `2b83af8a`, `6d6b1780`, `a03fbce5`, `6fa8972b`) |
+| New tests committed separately from this doc | ✓ (commits `b0b72d5c`, `708e647a`, `2e29c542`, `e1c463b4`, `4e8c1dc4`) |
 
 **Nyquist-compliant:** YES — all live truths from Phase 59 have automated regression guards.

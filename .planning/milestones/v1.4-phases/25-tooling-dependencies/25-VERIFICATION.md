@@ -96,7 +96,7 @@ None required for this phase. All acceptance criteria are mechanically verifiabl
 ### Gaps Summary
 
 No gaps. All must-have truths are verified. The one nuance — `npm run check` not exiting 0 end-to-end — is due to 5 pre-existing TypeScript errors that:
-1. Exist in git history before the first Phase 25 implementation commit (47edd21)
+1. Exist in git history before the first Phase 25 implementation commit (c578230c)
 2. Are documented explicitly in both SUMMARY files as out-of-scope
 3. Are assigned to Phase 26 (test fixes) and Phase 27 (type safety)
 

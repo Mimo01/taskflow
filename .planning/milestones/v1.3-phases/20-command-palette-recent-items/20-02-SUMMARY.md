@@ -60,8 +60,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Build CommandPalette component** - `875e541` (feat)
-2. **Task 2: Write CommandPalette tests** - `7b56af7` (test)
+1. **Task 1: Build CommandPalette component** - `bb4d6251` (feat)
+2. **Task 2: Write CommandPalette tests** - `b54d429a` (test)
 
 ## Files Created/Modified
 - `taskflow/src/components/app/CommandPalette.tsx` - Full command palette overlay with fuzzy search, grouped results, live search
@@ -81,7 +81,7 @@ Each task was committed atomically:
 - **Fix:** Added beforeAll polyfills in test file: ResizeObserver class stub and Element.prototype.scrollIntoView mock
 - **Files modified:** taskflow/src/components/app/CommandPalette.test.tsx
 - **Verification:** All 10 tests pass
-- **Committed in:** 7b56af7 (Task 2 commit)
+- **Committed in:** b54d429a (Task 2 commit)
 
 ---
 

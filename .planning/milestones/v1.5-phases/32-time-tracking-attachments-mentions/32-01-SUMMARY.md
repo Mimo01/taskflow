@@ -77,8 +77,8 @@ completed: 2026-03-22
 
 Each task was committed atomically:
 
-1. **Task 1: Types, duration parser, and worklog/attachment/user service functions** - `41699f1` (feat)
-2. **Task 2: Extend timeline with worklog entry type and filter** - `f2f8e7d` (feat)
+1. **Task 1: Types, duration parser, and worklog/attachment/user service functions** - `39c7a86b` (feat)
+2. **Task 2: Extend timeline with worklog entry type and filter** - `cbb7e81c` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/services/jira/types.ts` - JiraWorklog, JiraAssignableUser, ParsedDuration type definitions
@@ -108,7 +108,7 @@ Each task was committed atomically:
 - **Fix:** Created new `jira/` subdirectory with fresh files; imports reference `../jira` for existing types (JiraAttachment, JiraComment) and `../../lib/apiFetch` for the fetch wrapper
 - **Files modified:** All new files in `taskflow/src/services/jira/`
 - **Verification:** All 35 tests pass
-- **Committed in:** `41699f1` (Task 1 commit)
+- **Committed in:** `39c7a86b` (Task 1 commit)
 
 **2. [Rule 3 - Blocking] jira-changelog.ts did not exist (plan said to modify)**
 - **Found during:** Task 2
@@ -116,7 +116,7 @@ Each task was committed atomically:
 - **Fix:** Created the complete module from scratch with worklog support built-in from the start
 - **Files modified:** `taskflow/src/services/jira-changelog.ts`, `taskflow/src/services/jira-changelog.test.ts`
 - **Verification:** All 10 timeline tests pass
-- **Committed in:** `f2f8e7d` (Task 2 commit)
+- **Committed in:** `cbb7e81c` (Task 2 commit)
 
 ---
 
@@ -140,7 +140,7 @@ None - all service functions are fully implemented with proper error handling.
 ## Self-Check: PASSED
 
 - All 11 created files verified present
-- Both task commits (41699f1, f2f8e7d) verified in git log
+- Both task commits (39c7a86b, cbb7e81c) verified in git log
 
 *Phase: 32-time-tracking-attachments-mentions*
 *Completed: 2026-03-22*

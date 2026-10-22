@@ -59,8 +59,8 @@ completed: 2026-03-23
 
 Each task was committed atomically:
 
-1. **Task 1: Add updateFixVersion service + route wiring + navigation from ReleasesTab** - `9dce364` (feat)
-2. **Task 2: Build ReleaseDetailPage with inline editing** - `899bf61` (feat)
+1. **Task 1: Add updateFixVersion service + route wiring + navigation from ReleasesTab** - `2f1fc37b` (feat)
+2. **Task 2: Build ReleaseDetailPage with inline editing** - `26b72593` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` - Full release detail page with inline editing (534 lines)
@@ -82,14 +82,14 @@ Each task was committed atomically:
 - **Issue:** useEffect and JiraFixVersion type were imported but unused, causing TS lint errors
 - **Fix:** Removed unused imports, added `import type React` for MetaRow component JSX types
 - **Files modified:** taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
-- **Committed in:** 899bf61 (Task 2 commit)
+- **Committed in:** 26b72593 (Task 2 commit)
 
 **2. [Rule 3 - Blocking] Adapted plan to actual file structure**
 - **Found during:** Task 1
 - **Issue:** Plan referenced `versions.ts` as separate service file, but fetchFixVersions lives in `jira.ts`
 - **Fix:** Added updateFixVersion to jira.ts instead of non-existent versions.ts; plan also referenced routes.tsx but routing is in main.tsx
 - **Files modified:** taskflow/src/services/jira.ts
-- **Committed in:** 9dce364 (Task 1 commit)
+- **Committed in:** 2f1fc37b (Task 1 commit)
 
 ---
 

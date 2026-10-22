@@ -55,8 +55,8 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Add sidebarCollapsed to settings store with persistence** - `a54d576` (feat)
-2. **Task 2: Implement collapsible sidebar UI with toggle button and keyboard shortcut** - `69d1621` (feat)
+1. **Task 1: Add sidebarCollapsed to settings store with persistence** - `7dd7ac07` (feat)
+2. **Task 2: Implement collapsible sidebar UI with toggle button and keyboard shortcut** - `79402301` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/settings.store.ts` - Added sidebarCollapsed boolean, toggleSidebarCollapsed setter, persist version 6 with migration

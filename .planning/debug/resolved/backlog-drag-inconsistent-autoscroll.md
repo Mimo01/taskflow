@@ -10,7 +10,7 @@ updated: 2026-09-16T00:35:00Z
 reasoning_checkpoint:
   hypothesis: "Intermittent autoscroll is native browser text-selection autoscroll (row lacks user-select:none/touch-action:none, PointerSensor's 150ms/5px activation window lets native selection start), and there is otherwise NO deliberate always-on autoscroll (dnd-kit's is off) — hence 'sometimes' and 'I always want it'."
   confirming_evidence:
-    - "BacklogPage.tsx:1386 autoScroll={false}, confirmed deliberate via commit aeb6b3f4 + ~10 prior commits fighting dnd-kit#1108 desync"
+    - "BacklogPage.tsx:1386 autoScroll={false}, confirmed deliberate via commit 24fb1264 + ~10 prior commits fighting dnd-kit#1108 desync"
     - "BacklogRow.tsx row (pre-fix) had no user-select/touch-action on the draggable div; dnd-kit's useDraggable attributes never set these (verified in node_modules/@dnd-kit/core/dist/core.esm.js)"
   falsification_test: "If autoscroll still occurred with dnd-kit autoScroll fully off AND no native selection possible, root cause would be wrong. User confirmed direction: implement a deliberate custom autoscroll (always-on) rather than relying on native/dnd-kit — this directly satisfies 'I always want it' regardless of the phantom-selection root cause."
   fix_rationale: "Two-part fix per user's checkpoint decision: (1) eliminate the phantom native-selection autoscroll by setting user-select:none/touch-action:none on the draggable row (BacklogRow.tsx dragStyle) so browser-driven autoscroll can never fire; (2) add a hand-rolled, always-on custom autoscroll (BacklogPage.tsx) driven purely by a window pointermove listener + rAF loop that reads pointer Y vs scrollRef's bounding rect and nudges scrollRef.current.scrollTop directly. This is fully decoupled from dnd-kit's collision detection / sortable rect measuring (autoScroll stays false; onDragMove is still not used for reorder logic), so it cannot reintroduce the P78 rect-desync bug — reorder/rank computation still happens exactly once on drop, reading live DOM/state at that moment."
@@ -31,7 +31,7 @@ started: Always been intermittent since the drag-to-rank feature was built (phas
 
 ## Related prior sessions (context, not yet confirmed relevant)
 
-- `.planning/debug/backlog-drag-autoscroll-desync.md` — diagnosed: DragOverlay was rendered inside the inner overflow-auto scroll container instead of portaled to body, causing overlay/cursor desync during autoscroll. Root cause found; fix direction only (portal + MeasuringStrategy.Always), noted as later applied per commit 4f0cfdd3 referenced in the next session.
+- `.planning/debug/backlog-drag-autoscroll-desync.md` — diagnosed: DragOverlay was rendered inside the inner overflow-auto scroll container instead of portaled to body, causing overlay/cursor desync during autoscroll. Root cause found; fix direction only (portal + MeasuringStrategy.Always), noted as later applied per commit 814a3b24 referenced in the next session.
 - `.planning/debug/backlog-drag-autoscroll-residual.md` — diagnosed (root-cause-only): after the portal fix, releasing a drag that auto-scrolled leaves stale hit-test state (clicks select wrong row) on no-op/same-index drops.
 - Neither prior session addressed autoscroll *not triggering* at all — this is a distinct symptom (intermittent engagement, not post-drag desync). Worth checking whether BacklogPage.tsx has two nested overflow-auto containers (per desync session's evidence) and whether dnd-kit's autoScroll is scoped to the wrong/ambiguous container, which could explain non-deterministic engagement.
 
@@ -48,7 +48,7 @@ started: Always been intermittent since the drag-to-rank feature was built (phas
 
 - timestamp: 2026-09-16T00:12:00Z
   checked: git log -- BacklogPage.tsx (autoScroll history)
-  found: commit aeb6b3f4 "fix(78): disable dnd-kit autoScroll — final resolution for drag desync" is the last word; ~10 prior commits (9f7fd7d8, 619a9d66, 13f944f6, 738e1c2c, 2a2a4c30, 9fd20297, f4ecf9d9, 4f0cfdd3) show a long back-and-forth trying to make dnd-kit autoScroll work (pin to container, portal overlay, pointer-based collision, Always measuring) before giving up and disabling it.
+  found: commit 24fb1264 "fix(78): disable dnd-kit autoScroll — final resolution for drag desync" is the last word; ~10 prior commits (fcbde481, e67ccd7e, fb4db16e, b2086dc9, 716ffaee, 07064a7c, 8fe4996a, 814a3b24) show a long back-and-forth trying to make dnd-kit autoScroll work (pin to container, portal overlay, pointer-based collision, Always measuring) before giving up and disabling it.
   implication: re-enabling autoScroll is a well-trodden, previously-abandoned path — not a quick fix. High risk of reintroducing the desync bug that many commits fought to eliminate.
 
 - timestamp: 2026-09-16T00:15:00Z

@@ -54,7 +54,7 @@ completed: 2026-09-16
 
 Each task was committed atomically:
 
-1. **Task 1: Add type-icon column to UnifiedTaskTable's primary task rows** - `2c7a890` (feat)
+1. **Task 1: Add type-icon column to UnifiedTaskTable's primary task rows** - `b085db3f` (feat)
 
 _Task 2 (checkpoint:human-verify) required no code changes — see "Checkpoint Verification" below._
 
@@ -97,7 +97,7 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 - FOUND: taskflow/src/routes/dashboard/release-detail/UnifiedTaskTable.tsx
-- FOUND: commit 2c7a890
+- FOUND: commit b085db3f
 
 ---
 *Quick task: 260916-rk1*

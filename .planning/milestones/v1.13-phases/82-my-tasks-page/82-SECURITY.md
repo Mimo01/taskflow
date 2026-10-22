@@ -43,7 +43,7 @@ plans 82-01…82-05 and verified against the implementation.
 | T-82-08 | Information Disclosure | My Tasks data render | mitigate | Page renders only what the currentUser-scoped service functions return; sprint grouping reads already-fetched fields client-side and adds no broadening query (verified) | closed |
 | T-82-09 | Spoofing / Tampering | client-side route registration | accept | SPA route is local to the already-authenticated desktop app; Jira PAT still gates all data; no server-side authz bypassed | closed |
 | T-82-10 | Information Disclosure | fetchAllReportedHierarchy JQL (added during UAT) | mitigate | New All-Reported scope hard-codes `reporter = currentUser()` (jira.ts:739); no reporter param accepted from UI. Same mitigation pattern as T-82-04 | closed |
-| T-82-SC | Tampering | npm/pip/cargo installs | mitigate | Zero new packages across the phase — `git diff 049f6807..HEAD -- taskflow/package.json` is empty (verified) | closed |
+| T-82-SC | Tampering | npm/pip/cargo installs | mitigate | Zero new packages across the phase — `git diff 89598e72..HEAD -- taskflow/package.json` is empty (verified) | closed |
 
 *Status: open · closed*
 *Disposition: mitigate (implementation required) · accept (documented risk) · transfer (third-party)*

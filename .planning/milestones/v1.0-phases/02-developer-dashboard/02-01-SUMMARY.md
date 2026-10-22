@@ -80,10 +80,10 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1 RED: Failing tests for Jira/GitLab functions** - `1691a58` (test)
-2. **Task 1 GREEN: Extend Jira and GitLab service layers** - `64f62ce` (feat)
-3. **Task 2 RED: Failing tests for linkEngine** - `4e2b909` (test)
-4. **Task 2 GREEN: Create linkEngine, dashboard store, extend settings store** - `b8806b6` (feat)
+1. **Task 1 RED: Failing tests for Jira/GitLab functions** - `c3325a66` (test)
+2. **Task 1 GREEN: Extend Jira and GitLab service layers** - `8b690c8d` (feat)
+3. **Task 2 RED: Failing tests for linkEngine** - `895fd1f0` (test)
+4. **Task 2 GREEN: Create linkEngine, dashboard store, extend settings store** - `ded59684` (feat)
 
 _Note: TDD tasks have separate test (RED) and feat (GREEN) commits per each task_
 
@@ -114,7 +114,7 @@ _Note: TDD tasks have separate test (RED) and feat (GREEN) commits per each task
 - **Fix:** Added negative lookbehind `(?<![A-Za-z0-9-])` before the word boundary — `PREFIX-FEAT-1` no longer yields `FEAT-1`
 - **Files modified:** `taskflow/src/services/linkEngine.ts`
 - **Verification:** All 18 linkEngine tests pass including the word boundary check
-- **Committed in:** `b8806b6` (Task 2 GREEN commit)
+- **Committed in:** `ded59684` (Task 2 GREEN commit)
 
 **2. [Rule 1 - Bug] Used plain fetch() instead of @tauri-apps/plugin-http fetch**
 - **Found during:** Task 1 (linter reverted service files during git stash check)
@@ -122,7 +122,7 @@ _Note: TDD tasks have separate test (RED) and feat (GREEN) commits per each task
 - **Fix:** Followed linter-enforced pattern (plain fetch, vi.stubGlobal for tests) — this matches the existing Phase 1 services that were also reverted to plain fetch
 - **Files modified:** `jira.ts`, `gitlab.ts`, all test files
 - **Verification:** 65/65 tests pass; linter does not revert the new code
-- **Committed in:** `64f62ce` (Task 1 GREEN commit)
+- **Committed in:** `8b690c8d` (Task 1 GREEN commit)
 
 ---
 

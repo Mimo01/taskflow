@@ -50,8 +50,8 @@ completed: 2026-03-17
 
 Each task was committed atomically:
 
-1. **Task 1: Add parentKey/parentSummary to NotificationItem and enrich Jira queries** - `f8c0c02` (feat)
-2. **Task 2: Show parent story context in NotificationRow for subtasks** - `089efe8` (feat)
+1. **Task 1: Add parentKey/parentSummary to NotificationItem and enrich Jira queries** - `e0646a06` (feat)
+2. **Task 2: Show parent story context in NotificationRow for subtasks** - `9dbb5a64` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/stores/notifications.store.ts` - Added parentKey/parentSummary optional fields to NotificationItem

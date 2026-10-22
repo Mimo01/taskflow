@@ -55,7 +55,7 @@ started: Since phase 39 implementation — plugin was never added as dependency
 
 root_cause: Two-part issue: (1) tauri-plugin-process was never added as a dependency — fixed in prior session. (2) The invoke call used 'plugin:process|relaunch' but the plugin only registers a command named 'restart', not 'relaunch', so ACL correctly blocked it.
 fix: 1) Add tauri-plugin-process = "2" to Cargo.toml (done), 2) Register plugin in lib.rs (done), 3) Add "process:allow-restart" to capabilities/default.json (done), 4) Change invoke('plugin:process|relaunch') to invoke('plugin:process|restart') in UpdateDialog.tsx
-verification: Committed aface9b. Human verification of update+relaunch flow needed.
+verification: Committed 0264e517. Human verification of update+relaunch flow needed.
 files_changed:
 - taskflow/src-tauri/Cargo.toml
 - taskflow/src-tauri/src/lib.rs

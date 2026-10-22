@@ -6,7 +6,7 @@
 
 ## Summary
 
-Phase 35 restores the saved filters feature that was fully implemented in Phase 33 and then entirely deleted by commit `81d976d`. The deleted code is well-documented in git history and can be recovered verbatim or with minor adjustments to match any API changes since Phase 33. This is a restoration task, not a greenfield build -- the exact code that was deleted (878 lines across 12 files) is available via `git show 81d976d^` for each file.
+Phase 35 restores the saved filters feature that was fully implemented in Phase 33 and then entirely deleted by commit `d7c68e5e`. The deleted code is well-documented in git history and can be recovered verbatim or with minor adjustments to match any API changes since Phase 33. This is a restoration task, not a greenfield build -- the exact code that was deleted (878 lines across 12 files) is available via `git show d7c68e5e^` for each file.
 
 The work breaks into four areas: (1) recreate the service layer (`filters.ts`, `JiraSavedFilter` type), (2) recreate the Zustand store (`saved-filter.store.ts`), (3) recreate the UI components (`SaveFilterDialog`, `EditFilterDialog`, `SavedFilterList`), and (4) re-wire the integration points (`UnifiedFilterBar`, `Sidebar`, `CommandPalette`, `SprintBoardTab`). An additional integration fix wires the `onDelete` prop for attachment deletion in `IssueDetailContent.tsx`.
 
@@ -85,7 +85,7 @@ taskflow/src/
 **Key detail:** Uses the existing `apiFetch()` wrapper for instrumented logging, timeout, and auth error handling.
 
 ```typescript
-// Exact pattern from deleted code (commit 81d976d^)
+// Exact pattern from deleted code (commit d7c68e5e^)
 export async function createJiraFilter(
   baseUrl: string, token: string,
   name: string, jql: string, description?: string,
@@ -161,7 +161,7 @@ interface SavedFilterState {
 
 ### Pitfall 4: Missing JiraSavedFilter Type
 **What goes wrong:** The `JiraSavedFilter` interface was deleted from `types.ts` -- any component importing it will fail to compile.
-**Why it happens:** Commit `81d976d` removed it along with the filter service.
+**Why it happens:** Commit `d7c68e5e` removed it along with the filter service.
 **How to avoid:** Re-add the interface to `types.ts` as the first step before restoring any components.
 
 ### Pitfall 5: Attachment Delete Button (Integration Fix)
@@ -174,7 +174,7 @@ interface SavedFilterState {
 ### JiraSavedFilter Type (to restore in types.ts)
 
 ```typescript
-// Source: git show 81d976d^ -- taskflow/src/services/jira/types.ts
+// Source: git show d7c68e5e^ -- taskflow/src/services/jira/types.ts
 export interface JiraSavedFilter {
   id: string;
   name: string;
@@ -276,8 +276,8 @@ async function handleDeleteAttachment(attachment: JiraAttachment) {
 ## Sources
 
 ### Primary (HIGH confidence)
-- Git history: `git show 81d976d` -- exact diff of all deleted code (878 lines, 12 files)
-- Git history: `git show 81d976d^` -- pre-deletion state of all affected files
+- Git history: `git show d7c68e5e` -- exact diff of all deleted code (878 lines, 12 files)
+- Git history: `git show d7c68e5e^` -- pre-deletion state of all affected files
 - v1.5 Milestone Audit: `.planning/v1.5-MILESTONE-AUDIT.md` -- gap analysis and tech debt items
 - Current codebase: direct inspection of all integration point files
 

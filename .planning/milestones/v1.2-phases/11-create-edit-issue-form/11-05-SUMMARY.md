@@ -18,13 +18,13 @@ All four CREATE requirements verified against the live Client Jira instance.
 
 | Commit | Fix |
 |--------|-----|
-| f05aa9f | Wire Edit/AddSubtask handlers via outlet context |
-| c93d4e2 | Restrict subtask creation to non-subtask issues |
-| 0eee239 | Reset modal form state on each open |
-| ecedbfa | Fix assignee search and subtask time estimate |
-| 3a8c5ee | Fix assignee dropdown clipping and re-search on focus |
-| 88e332b | Replace useDebounce/useCallback with useEffect for assignee search |
-| e5c5096 | Assignee pagination, fuzzy filter, and custom field autocomplete |
+| 293b2cd8 | Wire Edit/AddSubtask handlers via outlet context |
+| 40fa4cb6 | Restrict subtask creation to non-subtask issues |
+| 33fb8b58 | Reset modal form state on each open |
+| 92035775 | Fix assignee search and subtask time estimate |
+| fd070314 | Fix assignee dropdown clipping and re-search on focus |
+| 48e9f39a | Replace useDebounce/useCallback with useEffect for assignee search |
+| 9bbc5d26 | Assignee pagination, fuzzy filter, and custom field autocomplete |
 
 ## Key Decisions
 

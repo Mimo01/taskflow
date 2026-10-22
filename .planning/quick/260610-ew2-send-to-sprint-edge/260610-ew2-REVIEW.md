@@ -26,7 +26,7 @@ status: issues_found
 ## Summary
 
 Reviewed the "Send to top" / "Send to bottom" context-menu reorder feature (commits
-`adea9398..HEAD`): the new `resolveSendToEdge` helper, its `handleSendToEdge` wiring in
+`9de07b4d..HEAD`): the new `resolveSendToEdge` helper, its `handleSendToEdge` wiring in
 `BacklogPage`, and the new context-menu items + render guard in `BacklogRow`.
 
 The core requirement — **rerank within the row's own section without changing sprint

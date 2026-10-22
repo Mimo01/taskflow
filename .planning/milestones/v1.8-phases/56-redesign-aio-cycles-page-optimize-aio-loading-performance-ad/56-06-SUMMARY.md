@@ -97,14 +97,14 @@ Existing tests (pre-accordion) use cycles without a `folder` field. These cycles
 - **Issue:** `CycleStatsCell.jiraBaseUrl` prop is typed `string | undefined` but `useAuthStore().jiraBaseUrl` returns `string | null`. Pre-existing error (was at line 185 before accordion refactor).
 - **Fix:** `jiraBaseUrl={jiraBaseUrl ?? undefined}` in the JSX
 - **Files modified:** `AioProjectOverviewPage.tsx`
-- **Commit:** df41e05
+- **Commit:** c0db0ab7
 
 **2. [Rule 1 - Bug] Updated cycles.test.ts expected shape to include folder field**
 - **Found during:** Full test suite run after Task 1
 - **Issue:** `fetchAioCycles` test used strict `toEqual` on AioCycle shape; `normalizeCycle` now maps `folder` so the returned object includes `folder: 'Active'` (status fallback). Test expectation was outdated.
 - **Fix:** Added `folder: 'Active'` to the expected object in the `toEqual` assertion
 - **Files modified:** `taskflow/src/services/aio/cycles.test.ts`
-- **Commit:** df41e05
+- **Commit:** c0db0ab7
 
 **3. [Rule 3 - Blocking] Worktree node_modules missing — created symlink**
 - **Found during:** Test execution
@@ -141,8 +141,8 @@ Files exist:
 - FOUND: taskflow/src/routes/dashboard/AioProjectOverviewPage.test.tsx
 
 Commits:
-- d88a900: feat(56-06): add folder field to AioCycle and normalizeCycle — FOUND
-- df41e05: feat(56-06): accordion-grouped cycles page with lazy CycleStatsCell rendering — FOUND
+- 0c41adf5: feat(56-06): add folder field to AioCycle and normalizeCycle — FOUND
+- c0db0ab7: feat(56-06): accordion-grouped cycles page with lazy CycleStatsCell rendering — FOUND
 
 Test results: 1088 passed, 0 failed, full suite green.
 TypeScript: 0 errors in files modified by this plan. 1 pre-existing error in AioCycleDetailPage.tsx (out of scope, confirmed in 56-05-SUMMARY).

@@ -25,7 +25,7 @@ status: issues_found
 
 ## Summary
 
-Reviewed the diff for commits `c64c3387` and `84fd8189` against `6e13b93f` — a
+Reviewed the diff for commits `36e5771a` and `f6d14a23` against `193fa3e6` — a
 feature that warns when a task's MR exists but is on the wrong release milestone.
 
 The implementation is largely sound on the dimensions the prompt flagged:

@@ -42,8 +42,8 @@ Wired the three Phase 84 sections into the Dashboard root, relocated the next-re
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Wire sections + gitlab auth/token + relocate release card | `96b50472` | `dashboard/index.tsx` |
-| 2 | Human UAT (real Tauri build) + apply UAT feedback | `053c96c8` | `index.tsx`, `ActivityStrip.tsx(+test)`, `WeeklyTrendChart.tsx`, `MrReviewQueue.*` (deleted) |
+| 1 | Wire sections + gitlab auth/token + relocate release card | `72d19afc` | `dashboard/index.tsx` |
+| 2 | Human UAT (real Tauri build) + apply UAT feedback | `a202ad9e` | `index.tsx`, `ActivityStrip.tsx(+test)`, `WeeklyTrendChart.tsx`, `MrReviewQueue.*` (deleted) |
 
 ## UAT Outcome
 

@@ -13,7 +13,7 @@ through a shared TipTap v3 `WikiEditor` with `jiraToTiptap.ts` / `jiraWikiSerial
 `taskflow/package.json`, no `node_modules/@tiptap`, no `src/components/wiki-editor/`, and no
 converter files. The WikiEditor work exists only on an unmerged commit reachable from the tag
 `backup/wiki-editor-before-revert-260531` — it was **reverted** and never landed on `main`
-(`git merge-base --is-ancestor 7ab5c7a8 main` → NO). All editing today is **plain `<textarea>`
+(`git merge-base --is-ancestor 4b06906b main` → NO). All editing today is **plain `<textarea>`
 + `insertAtCursor`/`applyMarkup` toolbars + a `WikiRenderer` preview**. Any plan written
 against a TipTap custom node will not compile. [VERIFIED: working tree + git history]
 

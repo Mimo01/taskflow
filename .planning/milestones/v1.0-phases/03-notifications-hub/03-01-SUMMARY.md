@@ -93,8 +93,8 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1 RED: Wave 0 test scaffolds + Tauri plugin install** - `c964eeb` (test)
-2. **Task 2 GREEN: Notification engine — service, stores, plugin registration** - `b8a59d5` (feat)
+1. **Task 1 RED: Wave 0 test scaffolds + Tauri plugin install** - `382a3ec8` (test)
+2. **Task 2 GREEN: Notification engine — service, stores, plugin registration** - `5ede9857` (feat)
 
 _Note: TDD tasks have separate test (RED) and feat (GREEN) commits per task_
 
@@ -130,7 +130,7 @@ _Note: TDD tasks have separate test (RED) and feat (GREEN) commits per task_
 - **Fix:** Changed mock to `class LazyStore { get = vi.fn()... }` syntax inside `vi.mock` factory
 - **Files modified:** `taskflow/src/stores/notifications.store.test.ts`
 - **Verification:** All 9 store tests pass GREEN
-- **Committed in:** `b8a59d5` (Task 2 GREEN commit)
+- **Committed in:** `5ede9857` (Task 2 GREEN commit)
 
 **2. [Rule 1 - Bug] bodyPreview test required mention text in comment body**
 - **Found during:** Task 2 (bodyPreview test returning empty result[])
@@ -138,7 +138,7 @@ _Note: TDD tasks have separate test (RED) and feat (GREEN) commits per task_
 - **Fix:** Changed test body to `'[~auser] ' + 'A'.repeat(120)` so client-side filter passes
 - **Files modified:** `taskflow/src/services/notifications.test.ts`
 - **Verification:** bodyPreview test passes, result[0].bodyPreview has exactly 80 chars
-- **Committed in:** `b8a59d5` (Task 2 GREEN commit)
+- **Committed in:** `5ede9857` (Task 2 GREEN commit)
 
 ---
 
@@ -172,8 +172,8 @@ All created files verified present on disk. All task commits verified in git log
 - FOUND: taskflow/src/routes/notifications/NotificationRow.test.tsx
 - FOUND: taskflow/src/routes/notifications/NotificationPopover.test.tsx
 - FOUND: taskflow/src/components/app/TopBar.test.tsx
-- FOUND commit: c964eeb (Task 1 RED)
-- FOUND commit: b8a59d5 (Task 2 GREEN)
+- FOUND commit: 382a3ec8 (Task 1 RED)
+- FOUND commit: 5ede9857 (Task 2 GREEN)
 
 ---
 *Phase: 03-notifications-hub*

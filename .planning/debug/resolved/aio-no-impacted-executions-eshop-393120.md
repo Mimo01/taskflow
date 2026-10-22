@@ -102,7 +102,7 @@ root_cause: |
   or step assignment") was not implemented for the single-cycle case.
 
 fix: |
-  Option A applied in commit 7a994279 (fix(54-08): widen no-runs path + narrow line-606 guard).
+  Option A applied in commit 3a64019b (fix(54-08): widen no-runs path + narrow line-606 guard).
   - inCycleResults split into withSteps (→ data.runs, StepTable) and withoutSteps (→ data.impactedExecutions, ImpactedExecutionsList).
   - Old line-606 blanket null-return removed; replaced with graceful third arm ("No executions resolved yet.").
   - AioAttachmentsGrid rendered unconditionally on all three arms.

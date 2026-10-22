@@ -59,7 +59,7 @@ completed: 2026-08-11
 
 Both plan tasks landed in one commit (see Deviations below for why):
 
-1. **Task 1 + Task 2: mergeBackVerification.ts + mergeBackVerification.test.ts** - `1bc22a06` (feat)
+1. **Task 1 + Task 2: mergeBackVerification.ts + mergeBackVerification.test.ts** - `337d3b5d` (feat)
 
 **Plan metadata:** (this SUMMARY's own commit, to follow)
 
@@ -89,7 +89,7 @@ Both plan tasks landed in one commit (see Deviations below for why):
 - **Fix:** Ran `npx biome check --write` on both new files; only the test file needed reformatting (wrapped several `makeParams({...})` calls and object literals onto Biome's preferred layout). No logic changed.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/mergeBackVerification.test.ts`
 - **Verification:** `npm run check` clean for both new files; full suite still green (2396 passed)
-- **Committed in:** `1bc22a06` (part of the combined commit)
+- **Committed in:** `337d3b5d` (part of the combined commit)
 
 ---
 
@@ -111,7 +111,7 @@ None - no external service configuration required.
 
 - FOUND: taskflow/src/routes/dashboard/release-detail/mergeBackVerification.ts
 - FOUND: taskflow/src/routes/dashboard/release-detail/mergeBackVerification.test.ts
-- FOUND commit: 1bc22a06
+- FOUND commit: 337d3b5d
 
 ---
 *Phase: 91-post-release-merge-back-verification*

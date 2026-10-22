@@ -69,9 +69,9 @@ completed: 2026-08-10
 
 ## Task Commits
 
-1. **Task 1: read GitLab response body before classifying 401/403 on both create write paths (WR-11)** - `03e85b5c` (feat)
-2. **Task 2: prefill a valid milestone title from the Jira version name, stop passing project id 0 (WR-01, WR-10 read side)** - `4d94770a` (feat)
-3. **Task 3: lock both create dialogs against dismissal while a write is in flight (WR-03)** - `f4d764a7` (feat)
+1. **Task 1: read GitLab response body before classifying 401/403 on both create write paths (WR-11)** - `c48bd4d9` (feat)
+2. **Task 2: prefill a valid milestone title from the Jira version name, stop passing project id 0 (WR-01, WR-10 read side)** - `16e12dd1` (feat)
+3. **Task 3: lock both create dialogs against dismissal while a write is in flight (WR-03)** - `54a05680` (feat)
 
 **Plan metadata:** (this SUMMARY commit, following)
 
@@ -98,7 +98,7 @@ None beyond the RED+GREEN commit-combining and the test-fixture-collision fix do
 ## Issues Encountered
 
 - No `node_modules` existed in this worktree checkout (fresh git worktree, `node_modules` is gitignored per-checkout, same as Plans 88-08/88-09). Symlinked `taskflow/node_modules` to the main repo's `taskflow/node_modules` to run vitest/tsc/biome. The symlink is gitignored and untracked.
-- Worktree base commit had drifted ahead of the expected `a1287a24` at agent start — the worktree's initial `pwd` context appeared to be the wrong directory for a compound shell command (unrelated sandbox restriction on multi-statement commands), which was resolved by running each git-check step as a separate Bash invocation. `git merge-base HEAD a1287a24...` returned `ca59303f...` (a much later commit, "bump version to 1.13.5"), confirming the worktree had drifted past the expected base. Corrected via the mandated `git reset --hard a1287a248d897c27c6b870d8b33599d84918cf9d` per the branch-check protocol before any work began. Working tree was clean at that point, so no work was lost.
+- Worktree base commit had drifted ahead of the expected `eda0f1ca` at agent start — the worktree's initial `pwd` context appeared to be the wrong directory for a compound shell command (unrelated sandbox restriction on multi-statement commands), which was resolved by running each git-check step as a separate Bash invocation. `git merge-base HEAD eda0f1ca...` returned `2f87c86d...` (a much later commit, "bump version to 1.13.5"), confirming the worktree had drifted past the expected base. Corrected via the mandated `git reset --hard eda0f1ca1f05cd1d59f39ecce53b1a56d3634b81` per the branch-check protocol before any work began. Working tree was clean at that point, so no work was lost.
 
 ## User Setup Required
 
@@ -119,6 +119,6 @@ None — no external service configuration required.
 - FOUND: taskflow/src/services/gitlab.ts
 - FOUND: taskflow/src/routes/dashboard/release-detail/CreateMilestoneDialog.tsx
 - FOUND: taskflow/src/routes/dashboard/release-detail/CreateBranchDialog.tsx
-- FOUND: commit 03e85b5c (feat(88-10): read GitLab response body before classifying 401/403 on create paths (WR-11))
-- FOUND: commit 4d94770a (feat(88-10): prefill a valid milestone title from the Jira version name (WR-01, WR-10))
-- FOUND: commit f4d764a7 (feat(88-10): lock both create dialogs against dismissal while a write is in flight (WR-03))
+- FOUND: commit c48bd4d9 (feat(88-10): read GitLab response body before classifying 401/403 on create paths (WR-11))
+- FOUND: commit 16e12dd1 (feat(88-10): prefill a valid milestone title from the Jira version name (WR-01, WR-10))
+- FOUND: commit 54a05680 (feat(88-10): lock both create dialogs against dismissal while a write is in flight (WR-03))

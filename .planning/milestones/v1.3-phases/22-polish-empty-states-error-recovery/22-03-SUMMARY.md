@@ -71,8 +71,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Replace empty/error states in WorkloadTab, ReleasesTab, EpicsPage** - `b1adb8a` (feat)
-2. **Task 2: NotificationPopover error propagation + CommandPalette search empty state** - `25e8e96` (feat)
+1. **Task 1: Replace empty/error states in WorkloadTab, ReleasesTab, EpicsPage** - `4c462801` (feat)
+2. **Task 2: NotificationPopover error propagation + CommandPalette search empty state** - `b1b49d21` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/WorkloadTab.tsx` - EmptyState(Users) + ErrorState + StaleDataBanner integration
@@ -99,7 +99,7 @@ Each task was committed atomically:
 - **Fix:** Updated to "No workload data" and "No releases found" respectively
 - **Files modified:** taskflow/src/routes/dashboard/WorkloadTab.test.tsx, taskflow/src/routes/dashboard/ReleasesTab.test.tsx
 - **Verification:** All 40 tests pass across 3 test files
-- **Committed in:** b1adb8a (Task 1 commit)
+- **Committed in:** 4c462801 (Task 1 commit)
 
 ---
 

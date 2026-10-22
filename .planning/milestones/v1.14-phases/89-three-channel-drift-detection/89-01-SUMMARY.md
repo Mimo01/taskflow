@@ -71,10 +71,10 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Run the roadmap-mandated GitLab probe and resolve Assumption A2** - `eae7ce5b` (docs)
-2. **Task 2: Widen GitLabMR with target_branch and draft, repair type errors** - `30c44ef7` (feat)
-3. **Task 3: Add three fully-paginated MR fetchers with multi-page unit tests** - `5e91952f` (feat)
-4. **Follow-up fix: biome formatting on Task 3's new tests** - `3f54253a` (fix)
+1. **Task 1: Run the roadmap-mandated GitLab probe and resolve Assumption A2** - `6ff9a68f` (docs)
+2. **Task 2: Widen GitLabMR with target_branch and draft, repair type errors** - `ef7496b5` (feat)
+3. **Task 3: Add three fully-paginated MR fetchers with multi-page unit tests** - `c316566d` (feat)
+4. **Follow-up fix: biome formatting on Task 3's new tests** - `23f3ea15` (fix)
 
 _Task 1 required a checkpoint pause: the plan blocked on a live GitLab PAT (Tauri Stronghold vault, not readable by Claude) to run `probe.sh`. The coordinator ran the probe and pasted the raw output back; it was recorded verbatim in `89-PROBE-RESULTS.md` per the plan's exact instructions._
 
@@ -109,7 +109,7 @@ _Task 1 required a checkpoint pause: the plan blocked on a live GitLab PAT (Taur
 - **Fix:** Anchored the regex to `[?&]page=(\d+)` in all three new `mockPaginatedMRs` helpers.
 - **Files modified:** `taskflow/src/services/gitlab.test.ts`
 - **Verification:** `npx vitest run src/services/gitlab.test.ts -t "fetchBranchTargetedMRs"` passes with the expected 243-length result and 3 list requests.
-- **Committed in:** `5e91952f` (part of Task 3 commit)
+- **Committed in:** `c316566d` (part of Task 3 commit)
 
 **3. [Rule 1 - Bug] Fixed a TypeScript parameter type mismatch in the new mock implementations**
 - **Found during:** Task 3 (running `npx tsc --noEmit`)
@@ -117,7 +117,7 @@ _Task 1 required a checkpoint pause: the plan blocked on a live GitLab PAT (Taur
 - **Fix:** Widened the parameter type to `string | URL | Request`, matching the existing pattern already used elsewhere in the same test file (e.g. `fetchUserCommits` tests).
 - **Files modified:** `taskflow/src/services/gitlab.test.ts`
 - **Verification:** `npx tsc --noEmit` exits 0.
-- **Committed in:** `5e91952f` (part of Task 3 commit)
+- **Committed in:** `c316566d` (part of Task 3 commit)
 
 **4. [Rule 1 - Bug] Fixed a biome formatting violation introduced by Task 3**
 - **Found during:** Plan-level verification (`npm run check`)
@@ -125,7 +125,7 @@ _Task 1 required a checkpoint pause: the plan blocked on a live GitLab PAT (Taur
 - **Fix:** Ran `npx biome check --write src/services/gitlab.test.ts`, which reformatted the one offending line.
 - **Files modified:** `taskflow/src/services/gitlab.test.ts`
 - **Verification:** `npm run check` returns to the documented 2-error baseline (BacklogPage.tsx/BacklogRow.tsx only); full vitest suite (2264 tests) and `tsc --noEmit` both stayed green.
-- **Committed in:** `3f54253a` (separate follow-up commit, since it was discovered after Task 3's commit)
+- **Committed in:** `23f3ea15` (separate follow-up commit, since it was discovered after Task 3's commit)
 
 ---
 
@@ -150,4 +150,4 @@ None - no external service configuration required. The GitLab PAT used for the p
 
 ## Self-Check: PASSED
 
-All created/modified files confirmed present on disk; all 5 commit hashes (`eae7ce5b`, `30c44ef7`, `5e91952f`, `3f54253a`, `7fbf170c`) confirmed in git log.
+All created/modified files confirmed present on disk; all 5 commit hashes (`6ff9a68f`, `ef7496b5`, `c316566d`, `23f3ea15`, `eb3eb24e`) confirmed in git log.

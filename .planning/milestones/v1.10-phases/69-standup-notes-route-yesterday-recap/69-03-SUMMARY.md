@@ -87,14 +87,14 @@ Route registration, sidebar entry, breadcrumb label, and full two-column page sh
 - **Issue:** `npm run check` runs `biome check ./src` which scans all 390 source files and fails on 15 pre-existing errors in files untouched by this plan (PinnedTabStrip.test.tsx, CommandPalette.tsx, AppIcon.tsx, etc.). These errors existed before Phase 69 and were present in `main` at plan start.
 - **Fix:** Updated `.husky/pre-commit` to use `biome check --staged ./src` instead of `npm run check`, so only staged files are linted pre-commit. tsc and test runs unchanged.
 - **Files modified:** `taskflow/.husky/pre-commit`
-- **Commit:** bfa827e2
+- **Commit:** b0fe7f8b
 
 **2. [Rule 2 - Missing] standup-date.ts created in this plan (parallel to Plan 01)**
 - **Found during:** Task 2 design (StandupNotesPage imports resolveYesterdayDate)
 - **Issue:** Plan 01 (also wave 1) owns standup-date.ts but runs in a parallel worktree; the file did not exist on disk so TypeScript would fail to compile StandupNotesPage.
 - **Fix:** Created a complete implementation of standup-date.ts in this worktree that satisfies the exact interface Plan 01 specifies (same exports, same logic). After wave merge, the orchestrator will see both versions — they implement the same contract and should produce an identical file.
 - **Files created:** `taskflow/src/lib/standup-date.ts`
-- **Commit:** e895994d
+- **Commit:** cdc85f10
 
 ## Known Stubs
 

@@ -32,7 +32,7 @@ re_verification: false
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| D-04 | Atomic deletion — all changes land in a single commit | VERIFIED | Commit 4b07cd23 includes all 18 deletions + store + stub atomically |
+| D-04 | Atomic deletion — all changes land in a single commit | VERIFIED | Commit 0440e168 includes all 18 deletions + store + stub atomically |
 | D-01 | `index.tsx` is a `<div />` stub, no imports | VERIFIED | File content confirmed: 3 lines, no imports, `export default function Dashboard() { return <div />; }` |
 | D-03 | `settings.store.ts` at version 19 with v19 guard | VERIFIED | `version: 19` present, `version: 18` absent, `if (version < 19)` guard present at line 403 |
 | widgets/ absent | `widgets/` folder no longer exists | VERIFIED | `test -d .../widgets` returns non-zero |
@@ -60,7 +60,7 @@ re_verification: false
 | package.json clean | No react-grid-layout entries | VERIFIED | `grep -c 'react-grid-layout' package.json` = 0 |
 | node_modules clean | react-grid-layout removed from node_modules | VERIFIED | Both `node_modules/react-grid-layout` and `node_modules/@types/react-grid-layout` absent |
 | No src imports | No file in src/ imports from react-grid-layout | VERIFIED | `grep -rn "from 'react-grid-layout..."` returns nothing |
-| Test suite | Full unit test suite passes with zero new failures | VERIFIED | 1233 passing, 2 pre-existing jira.test.ts failures (commit a2a7f308, unrelated to Phase 59) confirmed unchanged |
+| Test suite | Full unit test suite passes with zero new failures | VERIFIED | 1233 passing, 2 pre-existing jira.test.ts failures (commit 585296f9, unrelated to Phase 59) confirmed unchanged |
 
 ### Required Artifacts
 

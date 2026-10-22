@@ -33,7 +33,7 @@ from main repo):**
 ### CR-01 (BLOCKER): Adapter synthesised `parent.key = ''` when `gh.parentKey` was undefined
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/adapter.ts`
-**Commit:** `bbada26b` (combined with WR-01 — both touch contiguous lines)
+**Commit:** `0bb03b48` (combined with WR-01 — both touch contiguous lines)
 **Applied fix:** Synthesize `fields.parent` only when BOTH `parentId` AND
 `parentKey` are present (matching the contract enforced by `resolveParent()`
 in `entityMaps.ts`). Also derive `issuetype.subtask` from `parent !==
@@ -48,7 +48,7 @@ change is straightforward but a behavioural test would lock the invariant.
 ### WR-01: Dead `void resolveEpic / resolvePriority / resolveParent` calls
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/adapter.ts`
-**Commit:** `bbada26b` (combined with CR-01)
+**Commit:** `0bb03b48` (combined with CR-01)
 **Applied fix:** Removed the three `void` calls and dropped the now-unused
 imports. The resolvers are still surface-exercised by entityMaps tests and
 remain reachable from the package barrel via `export * from './entityMaps'`
@@ -62,7 +62,7 @@ contradicted D-08 by proxy.
 `taskflow/src/services/jira/greenhopper/data.ts`,
 `taskflow/src/services/jira/greenhopper/details.ts`,
 `taskflow/src/services/jira/greenhopper/transitions.ts`
-**Commits:** `4cb6e49f` (initial fix) + `ac203073` (ES2020-compat follow-up)
+**Commits:** `76a9c57d` (initial fix) + `8eab3f73` (ES2020-compat follow-up)
 **Applied fix:** Changed `catch {}` to `catch (err)`; re-throw `ApiError`
 unchanged so auth-failure semantics (`setJiraConnected(false)` per D-04) are
 preserved; only collapse the remaining (network-class) errors to the "Cannot
@@ -74,7 +74,7 @@ a typed cast — the follow-up commit handles that without behavioural change.
 ### WR-03: `adapter.test.ts` Group G hand-rolled enumeration of `GhIssue` fields
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/adapter.test.ts`
-**Commit:** `ce64e883`
+**Commit:** `d2583073`
 **Applied fix:** Replaced the 14-field manual enumeration with an
 object-rest destructure: `const { timeInColumn: _drop, ...ghIssue } = edge({});`.
 The test now stays exhaustive when `GhIssue` evolves in `types.ts` instead
@@ -83,7 +83,7 @@ of silently dropping any newly-added field.
 ### WR-04: `redactTransitions` rewrote any `key` field matching `<ALLCAPS>-<digits>`
 
 **Files modified:** `taskflow/scripts/capture-greenhopper.mjs`
-**Commit:** `668c26e6`
+**Commit:** `5391c92f`
 **Applied fix:** Removed the catch-all `key` matcher; kept only the explicit
 `issueKey` carrier. Future GH builds adding `STEP-1`/`REL-12`-style values
 will no longer be silently rewritten to `PROJ-{n}` in the committed
@@ -93,7 +93,7 @@ un-redacted left in-code as a comment.
 ### WR-05: Details capture script does not redact plain-text PII surfaces
 
 **Files modified:** `taskflow/scripts/capture-greenhopper.mjs`
-**Commit:** `a3fc69db`
+**Commit:** `8ac7011b`
 **Applied fix:** Added three defence-in-depth layers to `redactDetails`:
 1. Explicit redaction of `description`, `comments[].body`, `comments[].author`,
    `comments[].authorFullName`.
@@ -111,7 +111,7 @@ un-redacted left in-code as a comment.
 
 **Files modified:** `taskflow/src/services/jira/greenhopper/adapter.ts`,
 `taskflow/src/services/jira/greenhopper/adapter.test.ts`
-**Commit:** `9d99d7f0`
+**Commit:** `bf5377ec`
 **Applied fix:** Extended the adapter header (D-01 block) to spell out the
 `flagged: undefined → false` collapse and its implication ("show flagged
 badge if flagged" UI is fine; ever-been-flagged telemetry must read raw

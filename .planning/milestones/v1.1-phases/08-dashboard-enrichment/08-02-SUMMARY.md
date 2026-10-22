@@ -73,8 +73,8 @@ Created `taskflow/src/routes/dashboard/SubtasksPanel.tsx`:
 
 | Task | Commit | Description |
 |------|--------|-------------|
-| Task 1 | 68a7c94 | feat(08-02): add fetchActiveSprint and JiraActiveSprint to jira.ts |
-| Task 2 | cbe71e9 | feat(08-02): implement SubtasksPanel and convert test stubs to GREEN |
+| Task 1 | f4f3dcdf | feat(08-02): add fetchActiveSprint and JiraActiveSprint to jira.ts |
+| Task 2 | 3956f651 | feat(08-02): implement SubtasksPanel and convert test stubs to GREEN |
 
 ## Deviations from Plan
 
@@ -83,7 +83,7 @@ Created `taskflow/src/routes/dashboard/SubtasksPanel.tsx`:
 - **Issue:** Auto-formatter appended a second copy of `JiraActiveSprint` and `fetchActiveSprint` to jira.ts after Task 1 commit, causing 9 extra TypeScript errors (68 → 77 → 59 after removal)
 - **Fix:** Removed the duplicate block; TypeScript error count dropped to 59 (below pre-phase baseline of 68)
 - **Files modified:** taskflow/src/services/jira.ts
-- **Commit:** cbe71e9 (included in Task 2 commit)
+- **Commit:** 3956f651 (included in Task 2 commit)
 
 ## Self-Check: PASSED
 
@@ -92,4 +92,4 @@ Created `taskflow/src/routes/dashboard/SubtasksPanel.tsx`:
 - [x] SubtasksPanel.test.tsx has 5 real tests (no it.todo())
 - [x] 5/5 tests pass: `npx vitest run src/routes/dashboard/SubtasksPanel.test.tsx`
 - [x] TypeScript error count: 59 (at or below pre-phase baseline of 68)
-- [x] Commits 68a7c94 and cbe71e9 exist
+- [x] Commits f4f3dcdf and 3956f651 exist

@@ -103,7 +103,7 @@ Modified files (existence verified via `git diff --stat`):
 - `taskflow/src/services/jira.ts` — FOUND (three new names added in alphabetical position).
 
 Commit (verified via `git log --oneline -1`):
-- `d20c42a7` — feat(74-02): wire useGhBacklogData barrel + services/jira.ts re-export — FOUND.
+- `bf70bae6` — feat(74-02): wire useGhBacklogData barrel + services/jira.ts re-export — FOUND.
 
 Public-surface importability (compile-time, via `tsc --noEmit`):
 - `useGhBacklogData` reachable via `@/services/jira` — VERIFIED (clean compile).

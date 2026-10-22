@@ -53,8 +53,8 @@ completed: 2026-03-20
 
 ## Task Commits
 
-1. **Task 1: ARIA labels for CreateEditIssueModal** - `37c9ac0` (a11y)
-2. **Task 2: ARIA labels for ConnectionsSection** - `457ca77` (a11y)
+1. **Task 1: ARIA labels for CreateEditIssueModal** - `1f03212a` (a11y)
+2. **Task 2: ARIA labels for ConnectionsSection** - `993f7d99` (a11y)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/create-edit-issue/CreateEditIssueModal.tsx` - htmlFor/id for form inputs, listbox roles for dropdowns

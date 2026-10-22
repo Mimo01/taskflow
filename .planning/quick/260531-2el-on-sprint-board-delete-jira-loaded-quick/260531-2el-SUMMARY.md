@@ -40,20 +40,20 @@ metrics:
 
 # Quick Task 260531-2el: Remove Jira-loaded Sprint Board quick filters Summary
 
-Surgically reverted commit 79efbb39 — the Sprint Board no longer fetches or
+Surgically reverted commit 10ebb0ba — the Sprint Board no longer fetches or
 renders Jira GreenHopper editmodel quick-filter chips. The app's own filters
 (label chips, epic/label/assignee/status, UnifiedFilterBar saved presets) remain
 fully functional.
 
 ## What Changed
 
-**Task 1 — Delete editmodel fetcher + type** (`46c95ae1`)
+**Task 1 — Delete editmodel fetcher + type** (`ea564274`)
 - `git rm` of `board-config.ts` and `board-config.test.ts` (sole-purpose files,
   only production consumer was SprintBoardTab).
 - Removed the `JiraBoardQuickFilter` interface (and its Phase 33 comment) from
   `jira/types.ts`. Surrounding `ParsedDuration` / `JiraSavedFilter` untouched.
 
-**Task 2 — Strip Jira-QF state + JQL** (`35798b89`)
+**Task 2 — Strip Jira-QF state + JQL** (`9bc863f8`)
 - `filter.store.ts`: removed `activeJiraQuickFilters` field/initializer/clearAll
   entry, `toggleJiraQuickFilter`, and `clearJiraQuickFilters`. Kept
   `activeLabelFilters` / `toggleLabelFilter` / `clearLabelFilters`, the
@@ -68,7 +68,7 @@ fully functional.
 - `QuickFilterChipRow.test.tsx`: removed the two Jira-QF `it.todo` stubs; kept the
   label + a11y todos.
 
-**Task 3 — Remove SprintBoardTab wiring + verify** (`e1c098f0`)
+**Task 3 — Remove SprintBoardTab wiring + verify** (`319439e7`)
 - Removed the `fetchBoardQuickFilters` import, the `boardQuickFilters` useQuery
   (`['jira-board-quickfilters', boardId]`) and its invalidation block,
   `activeJiraQuickFilters` from the store destructure, the `qfMatch` block (and
@@ -132,6 +132,6 @@ None.
 
 - Deleted files confirmed absent: `board-config.ts`, `board-config.test.ts`.
 - Commits confirmed in `git log`:
-  - `46c95ae1` feat(quick-260531-2el): delete editmodel quick-filter fetcher and JiraBoardQuickFilter type
-  - `35798b89` refactor(quick-260531-2el): strip Jira-QF state and JQL from filter store and chip row
-  - `e1c098f0` refactor(quick-260531-2el): remove all Jira-QF wiring from SprintBoardTab
+  - `ea564274` feat(quick-260531-2el): delete editmodel quick-filter fetcher and JiraBoardQuickFilter type
+  - `9bc863f8` refactor(quick-260531-2el): strip Jira-QF state and JQL from filter store and chip row
+  - `319439e7` refactor(quick-260531-2el): remove all Jira-QF wiring from SprintBoardTab

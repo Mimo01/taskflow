@@ -60,7 +60,7 @@ completed: 2026-03-20
 
 Each task was committed atomically:
 
-1. **Task 1: Add operation labels and redesign waterfall** - `f16fe7e` (feat)
+1. **Task 1: Add operation labels and redesign waterfall** - `7d64daa0` (feat)
 2. **Task 2: Verify notification grouping and waterfall redesign** - checkpoint, user approved
 
 ## Files Created/Modified
@@ -92,7 +92,7 @@ None - no external service configuration required.
 - FOUND: taskflow/src/routes/dev-tools/WaterfallTab.tsx
 - FOUND: taskflow/src/routes/dev-tools/WaterfallBar.tsx
 - FOUND: .planning/phases/29-developer-tools/29-05-SUMMARY.md
-- FOUND: f16fe7e (Task 1 commit)
+- FOUND: 7d64daa0 (Task 1 commit)
 
 ---
 *Phase: 29-developer-tools*

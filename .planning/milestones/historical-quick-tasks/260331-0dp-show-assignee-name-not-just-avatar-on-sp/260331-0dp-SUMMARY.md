@@ -30,7 +30,7 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add assignee display name text next to avatar | 409395f | taskflow/src/routes/dashboard/StoryHeaderRow.tsx |
+| 1 | Add assignee display name text next to avatar | 04457d2c | taskflow/src/routes/dashboard/StoryHeaderRow.tsx |
 
 ## What Was Built
 
@@ -52,4 +52,4 @@ None - plan executed exactly as written.
 ## Self-Check: PASSED
 
 - File modified: `/Users/mimo/Desktop/Tasker/taskflow/src/routes/dashboard/StoryHeaderRow.tsx` — exists
-- Commit 409395f — exists
+- Commit 04457d2c — exists

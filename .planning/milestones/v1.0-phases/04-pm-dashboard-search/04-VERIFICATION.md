@@ -97,11 +97,11 @@ re_verification:
 |------|----|-----|--------|---------|
 | `dashboard/index.tsx` | `settings.store.ts` | `role === 'pm'` conditional | VERIFIED | Line 25: `useSettingsStore((s) => s.role)`; line 27: `if (role === 'pm')` |
 | `SprintProgressTab.tsx` | `jira.ts` | `fetchSprintIssues` with `assignedToMe=false` + `statusCategory.key` bucket mapping | VERIFIED | Line 17 import; line 49: `statusCategory?.key ?? 'new'`; line 34: `assignedToMe: false` |
-| `ReleasesTab.tsx` | `jira.ts` | `fetchFixVersions` returning `data.values` array | VERIFIED | Plan 04-04 commit `f99ce7c`; line 143 `.map()` now receives array |
+| `ReleasesTab.tsx` | `jira.ts` | `fetchFixVersions` returning `data.values` array | VERIFIED | Plan 04-04 commit `799b9467`; line 143 `.map()` now receives array |
 | `ReleasesTab.tsx` | `releaseLinker.ts` | `matchGitLabToFixVersion` for each fix version vs milestone/tag | VERIFIED | Line 21 import; line 166: `matchGitLabToFixVersion(version.releaseDate, cand)` |
 | `TopBar.tsx` | `SearchOverlay.tsx` | `{searchOpen && <SearchOverlay onClose={...} />}` | VERIFIED | Line 19 import; line 55: `{searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}` |
 | `SearchOverlay.tsx` | `jira.ts` + `gitlab.ts` | `Promise.allSettled([searchJira(...), searchGitLabMRs(...)])` | VERIFIED | Lines 14, 16 imports; lines 29–30: both calls in `performSearch` |
-| `SearchResultPanel.tsx` | ADF description | `adfToPlainText()` called before `.slice(0, 200)` | VERIFIED | Plan 04-05 commit `0d3873c`; line 78: `adfToPlainText(issue.fields.description as unknown)` |
+| `SearchResultPanel.tsx` | ADF description | `adfToPlainText()` called before `.slice(0, 200)` | VERIFIED | Plan 04-05 commit `940557a9`; line 78: `adfToPlainText(issue.fields.description as unknown)` |
 | `SearchResultPanel.tsx (GitLabPanel)` | Jira browse URL | `openUrl(\`${jiraBaseUrl}/browse/${linkedKey}\`)` in chip `<button>` | VERIFIED | Line 169: `onClick` fires `openUrl`; `jiraBaseUrl` forwarded at line 196 |
 | `SearchResultPanel.tsx` | `@tauri-apps/plugin-opener` | `openUrl` in both Jira and GitLab panel footers + GitLab chip | VERIFIED | Line 12 import; lines 122, 169, 181: three call sites |
 
@@ -204,11 +204,11 @@ Phase 4 goal is fully achieved across all 5 plans. The initial verification (21/
 Re-verification score: 25/25 truths verified. No regressions in any previously-passing test. No stub or orphaned artifacts.
 
 **Commits verified:**
-- `d7eaeb6` — test(04-04): fetchFixVersions envelope tests
-- `f99ce7c` — fix(04-04): extract data.values from paginated envelope
-- `5e7b473` — test(04-05): ADF description and clickable chip tests
-- `0d3873c` — feat(04-05): adfToPlainText utility + Jira description fix + GitLab chip fix
-- `3da008f` — fix(04-05): remove unused React import from test
+- `e499eae8` — test(04-04): fetchFixVersions envelope tests
+- `799b9467` — fix(04-04): extract data.values from paginated envelope
+- `acc70b36` — test(04-05): ADF description and clickable chip tests
+- `940557a9` — feat(04-05): adfToPlainText utility + Jira description fix + GitLab chip fix
+- `002b56f5` — fix(04-05): remove unused React import from test
 
 ---
 

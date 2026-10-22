@@ -47,7 +47,7 @@ optional `issuetype?: { name; iconUrl? }` and `status?: { name; statusCategory?:
 Type-only change; no field-request strings altered (Jira DC already expands nested parent
 fields, proven by jira.ts:832). The two narrow sites at jira.ts:169 and jira/types.ts were
 deliberately left untouched (dead for this component).
-- Commit: `ecc595af`
+- Commit: `c3273687`
 
 ### Task 2 — Prominent clickable parent card
 Imported `IssueTypeIcon` and replaced the `{isSubtask && parent && (...)}` breadcrumb
@@ -60,7 +60,7 @@ Imported `IssueTypeIcon` and replaced the `{isSubtask && parent && (...)}` bread
   text `{parent.fields.status?.name}`, wrapped in a `flex shrink-0` div
 - trailing `ArrowUpRight` with `ml-auto shrink-0`
 - `aria-label={`Open parent issue ${parent.key}`}`, unchanged `onOpenIssue?.(parent.key)`
-- Commit: `42926b02`
+- Commit: `3c8b3dd6`
 
 ### Task 3 — Verification gate
 `npm run check` (biome check + tsc) exits 0 — GREEN. No `any` casts on parent access.
@@ -84,7 +84,7 @@ The green tsc proves the Task 1 widening flows to the component. Verification-on
 ## Self-Check: PASSED
 - FOUND: taskflow/src/services/jira.ts
 - FOUND: taskflow/src/routes/dashboard/IssueDetailContent.tsx
-- FOUND commit: ecc595af
-- FOUND commit: 42926b02
+- FOUND commit: c3273687
+- FOUND commit: 3c8b3dd6
 - npm run check: exit 0 (GREEN)
 - No `any` casts on parent.fields access

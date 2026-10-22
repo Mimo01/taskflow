@@ -57,7 +57,7 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Harden MyTasksTab against non-array data shapes** - `baf680a` (fix)
+1. **Task 1: Harden MyTasksTab against non-array data shapes** - `2112055f` (fix)
 
 **Plan metadata:** (docs commit follows)
 

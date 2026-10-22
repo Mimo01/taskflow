@@ -72,10 +72,10 @@ completed: 2026-08-11
 
 ## Task Commits
 
-1. **Task 1: Add the three channel queries to useReleaseDetail and derive the drift rows** — `f9f30ee2` (feat)
-2. **Task 2: Re-source the Issues table data from the union and delete buildWrongMilestoneMap** — `7db094f3` (feat)
-3. **Task 3: Delete fetchRecentProjectMRs and its test block** — `e4092532` (fix)
-4. **Follow-up: remove a stale `buildWrongMilestoneMap` literal from a driftDetection.ts JSDoc** — `c1aa0524` (fix)
+1. **Task 1: Add the three channel queries to useReleaseDetail and derive the drift rows** — `94d69bb4` (feat)
+2. **Task 2: Re-source the Issues table data from the union and delete buildWrongMilestoneMap** — `eb67142c` (feat)
+3. **Task 3: Delete fetchRecentProjectMRs and its test block** — `d126b860` (fix)
+4. **Follow-up: remove a stale `buildWrongMilestoneMap` literal from a driftDetection.ts JSDoc** — `b109d93b` (fix)
 
 ## Files Created/Modified
 
@@ -101,7 +101,7 @@ completed: 2026-08-11
 - **Fix:** Restored both imports for the duration of Task 1's commit, then removed them cleanly in Task 2 once the GGX-WARN-01 block itself was deleted — keeping every commit independently green per the mandatory per-task verification gate.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts`
 - **Verification:** `npx tsc --noEmit` exits 0 at both the Task 1 and Task 2 commit boundaries.
-- **Committed in:** `f9f30ee2` (Task 1), cleaned up in `7db094f3` (Task 2)
+- **Committed in:** `94d69bb4` (Task 1), cleaned up in `eb67142c` (Task 2)
 
 **2. [Rule 1 - Bug] Rephrased two JSDoc comments in `driftDetection.ts` (a file outside this plan's declared file list) to drop literal references to the deleted function/heuristic names**
 - **Found during:** Task 3's final verification pass (`grep -rn 'fetchRecentProjectMRs\|buildWrongMilestoneMap' taskflow/src`)
@@ -109,7 +109,7 @@ completed: 2026-08-11
 - **Fix:** Rephrased both lines to describe the deleted heuristic without repeating the literal identifier strings (e.g. "capped-recent-MR-fetch plus wrong-milestone-map heuristic (both since deleted)"). No functional/exported-behavior change to `driftDetection.ts`.
 - **Files modified:** `taskflow/src/routes/dashboard/release-detail/driftDetection.ts`
 - **Verification:** `grep -rn 'fetchRecentProjectMRs\|buildWrongMilestoneMap' taskflow/src` returns no output; `npx tsc --noEmit` exits 0; full suite stays green.
-- **Committed in:** `e4092532` (first line, part of Task 3's commit) and `c1aa0524` (second line, separate follow-up fix committed after Task 3 since it was caught during the plan-level verification pass, not the task-level one)
+- **Committed in:** `d126b860` (first line, part of Task 3's commit) and `b109d93b` (second line, separate follow-up fix committed after Task 3 since it was caught during the plan-level verification pass, not the task-level one)
 
 ## Issues Encountered
 

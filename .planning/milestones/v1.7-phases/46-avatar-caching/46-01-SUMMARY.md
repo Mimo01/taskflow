@@ -75,8 +75,8 @@ completed: 2026-03-30
 
 Each task was committed atomically:
 
-1. **Task 1: Avatar cache service with tests and test infrastructure** - `8ba1f64` (feat)
-2. **Task 2: useAvatarCache hook and CachedAvatar component with tests** - `ae46ebd` (feat)
+1. **Task 1: Avatar cache service with tests and test infrastructure** - `25bcf524` (feat)
+2. **Task 2: useAvatarCache hook and CachedAvatar component with tests** - `dd93eb76` (feat)
 
 **Plan metadata:** (pending final commit)
 
@@ -107,7 +107,7 @@ _Note: TDD tasks committed with both test and implementation in one commit per t
 - **Fix:** Upgraded LazyStore mock in setup.ts to use a module-level `stores: Map<string, Map>` registry keyed by filename. Added `static clearStore(filename)` helper for test cleanup. All instances with same filename now share state.
 - **Files modified:** taskflow/src/test/setup.ts
 - **Verification:** Test 4 passes (disk init populates memoryCache from LazyStore)
-- **Committed in:** 8ba1f64
+- **Committed in:** 25bcf524
 
 **2. [Rule 1 - Bug] vi.stubGlobal('URL') broke URL as constructor**
 - **Found during:** Task 1 (GREEN phase, first run)
@@ -115,7 +115,7 @@ _Note: TDD tasks committed with both test and implementation in one commit per t
 - **Fix:** Replaced with `vi.spyOn(URL, 'createObjectURL').mockImplementation(...)` and same for revokeObjectURL. Spying patches only the static methods, not the constructor.
 - **Files modified:** taskflow/src/services/avatarCache.test.ts
 - **Verification:** All 8 tests pass with no constructor errors
-- **Committed in:** 8ba1f64
+- **Committed in:** 25bcf524
 
 ---
 

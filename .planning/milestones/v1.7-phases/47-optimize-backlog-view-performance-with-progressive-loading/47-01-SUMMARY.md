@@ -34,7 +34,7 @@ metrics:
 
 ## What Was Built
 
-### Task 1: fetchSprintList + BacklogRow div conversion (commit `1c60cf1`)
+### Task 1: fetchSprintList + BacklogRow div conversion (commit `7eef23bd`)
 
 Added `fetchSprintList` to `backlog.ts` — a standalone function that fetches active and future sprints from the Jira Agile board API. This mirrors the inline sprint-list fetch inside `fetchBacklogView` but exposes it as a reusable export for Plan 02's per-section query architecture.
 
@@ -44,7 +44,7 @@ Converted `BacklogRow` from a `<tr>`-based table row to a `<div>`-based CSS grid
 - Added `epicsLoading?: boolean` prop — shows `<Skeleton className="h-4 w-14 rounded-full" />` in epic cell when true and issue has an epic key
 - Added `style?: React.CSSProperties` prop — accepts virtualizer absolute positioning
 
-### Task 2: VirtualizedBacklogTable div-based CSS grid (commit `ae57aaf`)
+### Task 2: VirtualizedBacklogTable div-based CSS grid (commit `f4167876`)
 
 Rewrote `VirtualizedBacklogTable` in `BacklogPage.tsx`:
 - Replaced `<table>/<thead>/<tbody>/<tr>/<th>/<td>` with div-based CSS grid using `grid-cols-[32px_96px_auto_1fr_56px_40px]`
@@ -71,7 +71,7 @@ Files exist:
 - `taskflow/src/routes/dashboard/BacklogPage.tsx` — FOUND (div-based grid, always-on virtual)
 
 Commits exist:
-- `1c60cf1` — feat(47-01): add fetchSprintList to backlog.ts and convert BacklogRow to div-based grid
-- `ae57aaf` — feat(47-01): convert VirtualizedBacklogTable to div-based CSS grid with always-on virtualization
+- `7eef23bd` — feat(47-01): add fetchSprintList to backlog.ts and convert BacklogRow to div-based grid
+- `f4167876` — feat(47-01): convert VirtualizedBacklogTable to div-based CSS grid with always-on virtualization
 
 TypeScript: zero errors (`npx tsc --noEmit` exits 0).

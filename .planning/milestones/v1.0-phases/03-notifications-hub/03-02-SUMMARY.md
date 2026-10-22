@@ -82,8 +82,8 @@ completed: 2026-03-11
 
 Each task was committed atomically:
 
-1. **Task 1 GREEN: TopBar, NotificationRow, NotificationDetail components** - `331628d` (feat)
-2. **Task 2 GREEN: NotificationPopover, NotificationSettingsSection, layout wiring** - `14852f4` (feat)
+1. **Task 1 GREEN: TopBar, NotificationRow, NotificationDetail components** - `735a63aa` (feat)
+2. **Task 2 GREEN: NotificationPopover, NotificationSettingsSection, layout wiring** - `59b89a42` (feat)
 
 _Note: TDD tasks committed as GREEN since Wave 0 scaffolds (RED) were created in Plan 03-01_
 
@@ -113,7 +113,7 @@ _Note: TDD tasks committed as GREEN since Wave 0 scaffolds (RED) were created in
 - **Fix:** Moved polling logic into `taskflow/src/hooks/useNotificationPolling.ts`, called from AppLayout in main.tsx where QueryClientProvider is available. TopBar reverted to pure UI component.
 - **Files modified:** `taskflow/src/components/app/TopBar.tsx`, `taskflow/src/hooks/useNotificationPolling.ts`, `taskflow/src/main.tsx`
 - **Verification:** All 3 TopBar tests pass GREEN; full 113-test suite passes
-- **Committed in:** `14852f4` (Task 2 commit)
+- **Committed in:** `59b89a42` (Task 2 commit)
 
 ---
 
@@ -146,8 +146,8 @@ All created files verified present on disk. All task commits verified in git log
 - FOUND: taskflow/src/routes/notifications/NotificationPopover.tsx
 - FOUND: taskflow/src/hooks/useNotificationPolling.ts
 - FOUND: taskflow/src/routes/settings/NotificationSettingsSection.tsx
-- FOUND commit: 331628d (Task 1 GREEN)
-- FOUND commit: 14852f4 (Task 2 GREEN)
+- FOUND commit: 735a63aa (Task 1 GREEN)
+- FOUND commit: 59b89a42 (Task 2 GREEN)
 
 ---
 *Phase: 03-notifications-hub*

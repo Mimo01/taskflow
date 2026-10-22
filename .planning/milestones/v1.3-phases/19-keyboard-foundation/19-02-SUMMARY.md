@@ -66,8 +66,8 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Create src/lib/shortcuts.ts — shortcut registry constants** - `523adb1` (feat)
-2. **Task 2: Extend settings.store.ts — keyboardOverrides field + version 2 migration** - `86710b8` (feat)
+1. **Task 1: Create src/lib/shortcuts.ts — shortcut registry constants** - `3c37f082` (feat)
+2. **Task 2: Extend settings.store.ts — keyboardOverrides field + version 2 migration** - `ef17ffa5` (feat)
 
 **Plan metadata:** (docs commit follows)
 

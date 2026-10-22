@@ -6,9 +6,9 @@
 
 | Task | Commit | Message |
 |------|--------|---------|
-| 1 | 297e0eb5 | holiday-aware working calendar, averaged forecast, per-day projection, risks |
-| 2 | e67d50fd | averaged finish, Tempo holidays, risks redesign, tooltip row markers |
-| 3 | a4e06b51 | per-day forecast hover points, fully hoverable assignee rows |
+| 1 | 10aa15ee | holiday-aware working calendar, averaged forecast, per-day projection, risks |
+| 2 | ea0fa771 | averaged finish, Tempo holidays, risks redesign, tooltip row markers |
+| 3 | 124094c3 | per-day forecast hover points, fully hoverable assignee rows |
 
 ## What changed
 

@@ -111,9 +111,9 @@ No orphaned requirements. KEYS-03 through KEYS-06 are mapped to later phases and
 **Commit verification (Plans 05 and 06):**
 
 All three Plan 05/06 commits confirmed in git history:
-- `1e0f569` — fix(19-05): use mod+slash binding to bypass react-hotkeys-hook #1125
-- `31e8944` — feat(19-06): add native Help menu with Keyboard Shortcuts item
-- `a98560b` — feat(19-06): wire frontend listener for native Help menu shortcuts event
+- `1a0897a9` — fix(19-05): use mod+slash binding to bypass react-hotkeys-hook #1125
+- `5d6e72b8` — feat(19-06): add native Help menu with Keyboard Shortcuts item
+- `31a041d2` — feat(19-06): wire frontend listener for native Help menu shortcuts event
 
 ---
 

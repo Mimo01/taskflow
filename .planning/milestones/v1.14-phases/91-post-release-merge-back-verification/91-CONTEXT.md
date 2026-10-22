@@ -12,7 +12,7 @@ Once a Jira fix version is marked **released**, the release detail page states �
 
 **Out of scope:** any manual override or confirmation control (**MERGE-03 descoped — see D-11**); a Releases-list per-row indicator (D-06); any write action — this phase is read-only, unlike Phases 88 and 90; branch/milestone creation (Phase 88, done); MR drift detection or per-MR fixes (Phases 89/90, done); anything that blocks, gates, or marks a release as unfinished in a way the user must clear.
 
-**Not present, do not build for it:** there is no Releases-list aggregate drift count (DRIFT-09 built in P89, removed at UAT `c681931e`) and no cross-page propagation. Nothing in this phase writes to Jira or GitLab, and nothing persists to disk.
+**Not present, do not build for it:** there is no Releases-list aggregate drift count (DRIFT-09 built in P89, removed at UAT `6bdbc00f`) and no cross-page propagation. Nothing in this phase writes to Jira or GitLab, and nothing persists to disk.
 
 </domain>
 

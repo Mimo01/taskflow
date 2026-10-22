@@ -43,10 +43,10 @@ list (secondary, cache-only badge).
 
 > **Commit note:** the executor ran in an isolated worktree branched (per a known
 > EnterWorktree base-drift) from before the pre-dispatch plan commit, so its original
-> hashes (`74d3877f`, `6487399d`) were cherry-picked onto `main` as `c64c3387` and
-> `84fd8189`. A follow-up code-review fix landed as `e5d541a4` (see below).
+> hashes (`74d3877f`, `6487399d`) were cherry-picked onto `main` as `36e5771a` and
+> `f6d14a23`. A follow-up code-review fix landed as `8517b369` (see below).
 
-### Task 1 — `searchProjectMRsByKey` service (commit `c64c3387`, orig `74d3877f`)
+### Task 1 — `searchProjectMRsByKey` service (commit `36e5771a`, orig `74d3877f`)
 - Added `searchProjectMRsByKey(baseUrl, token, projectId, key): Promise<GitLabMR[]>` to
   `gitlab.ts`, modeled on `fetchMilestoneMRs`:
   - Hits `GET /api/v4/projects/:id/merge_requests?search=<key>&in=title&state=all&per_page=100&page=N`
@@ -59,7 +59,7 @@ list (secondary, cache-only badge).
   special-char encoding, two-page pagination concatenation + stop-on-short-page,
   single-short-page no second request, unreachable → throws, 401/403 → throws.
 
-### Task 2 — Wire warning into detail row + list badge (commit `84fd8189`, orig `6487399d`)
+### Task 2 — Wire warning into detail row + list badge (commit `f6d14a23`, orig `6487399d`)
 - **ReleaseDetailPage.tsx**:
   - Imports `useQueries` and `searchProjectMRsByKey`.
   - Derives `missingRows = matchedRows.filter(r => r.mr === null)` and runs a `useQueries`
@@ -80,7 +80,7 @@ list (secondary, cache-only badge).
     `title` tooltip) appears once that release's detail view has been visited and found ≥1
     wrong-milestone MR. Absent cache → no badge (graceful degradation).
 
-### Code-review follow-up (commit `e5d541a4`)
+### Code-review follow-up (commit `8517b369`)
 Two findings from the `--full` code review were fixed before completion:
 - **WR-01 (reactivity):** the list badge originally read the cache imperatively in render
   (`queryClient.getQueryData`), so it never re-rendered when the detail page seeded the
@@ -116,5 +116,5 @@ release→issue mapping from raw `['gitlab-mr-by-key', …]` cache entries on th
 per-release attribution with zero list-render fetch/fan-out. No other deviations.
 
 ## Self-Check: PASSED
-- Commits on main: `c64c3387`, `84fd8189`, `e5d541a4`.
+- Commits on main: `36e5771a`, `f6d14a23`, `8517b369`.
 - Files present: `gitlab.ts`, `gitlab.test.ts`, `ReleaseDetailPage.tsx`, `ReleasesTab.tsx`, `lib/query-constants.ts`.

@@ -69,9 +69,9 @@ completed: 2026-03-13
 
 ## Task Commits
 
-1. **Task 1: Add viaSubtaskKey prop to MrRow** - `5b6f59b` (feat)
-2. **Task 2 RED: Add failing MRAT-02 tests** - `fbdd0a5` (test)
-3. **Task 2 GREEN: MrAttentionTab MRAT-02 implementation** - `61f7650` (feat)
+1. **Task 1: Add viaSubtaskKey prop to MrRow** - `75d706f5` (feat)
+2. **Task 2 RED: Add failing MRAT-02 tests** - `13e2fd9e` (test)
+3. **Task 2 GREEN: MrAttentionTab MRAT-02 implementation** - `9a20a717` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/MrRow.tsx` - Added `viaSubtaskKey?: string` prop and muted label render

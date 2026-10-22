@@ -25,7 +25,7 @@ result: pass
 ### 3. Epic / Story / Subtask row click navigates to issue detail
 expected: Click an epic row, then a story row, then a subtask row. Each click navigates to the issue detail page for that key, with breadcrumbs reflecting the navigation path back to Worklogs.
 result: pass
-note: "Originally reported issue (cursor not pointer on text; breadcrumb said 'home') resolved in cadfaefc + bfd0f6d5"
+note: "Originally reported issue (cursor not pointer on text; breadcrumb said 'home') resolved in ce053fad + ad93ea91"
 
 ### 4. Unresolvable issue key renders with strikethrough
 expected: If any worklog references a Jira key the enrichment query could not resolve (e.g. deleted/inaccessible issue), that key renders with a line-through style in place of a summary — it is not shown as a normal clickable epic row.
@@ -102,7 +102,7 @@ note: "Tests 9-12 (popover CRUD) confirmed passing in live UAT 2026-05-23T21:30Z
   missing:
     - "Add `cursor-pointer` to the className of each of the three row-title buttons (epic, story, subtask) in WorklogsPage.tsx"
   debug_session: .planning/debug/worklogs-cursor-pointer-on-text.md
-  resolved_in: cadfaefc
+  resolved_in: ce053fad
 
 - truth: "Issue detail breadcrumb back-link shows 'Worklogs' when navigated from the Worklogs page (not 'Home')"
   status: failed
@@ -116,4 +116,4 @@ note: "Tests 9-12 (popover CRUD) confirmed passing in live UAT 2026-05-23T21:30Z
   missing:
     - "Add `if (pathname.startsWith('/worklogs')) return 'Worklogs';` to routeLabel() in taskflow/src/main.tsx"
   debug_session: .planning/debug/worklogs-issue-detail-breadcrumb-home.md
-  resolved_in: bfd0f6d5
+  resolved_in: ad93ea91

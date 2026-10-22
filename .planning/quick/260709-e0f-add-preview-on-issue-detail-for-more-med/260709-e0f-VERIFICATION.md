@@ -31,7 +31,7 @@ human_verification:
 
 ## Note on missing SUMMARY.md
 
-No `260709-e0f-SUMMARY.md` exists in the task directory (only CONTEXT.md, RESEARCH.md, PLAN.md, REVIEW.md). Per the adversarial-verification mandate, this did not block verification — every claim below was checked directly against the working tree (file reads, `git log`, `tsc`, `vitest`, `biome`), not against SUMMARY narrative. The 3 execution-task commits (`237988fa`, `6c048785`, `9de3d8c2`) plus a follow-up format fix (`75355a87`) are present in `git log` and match the plan's 3 tasks; a code review (`260709-e0f-REVIEW.md`, status `issues_found`, 0 critical / 6 warning / 4 info) was completed after execution.
+No `260709-e0f-SUMMARY.md` exists in the task directory (only CONTEXT.md, RESEARCH.md, PLAN.md, REVIEW.md). Per the adversarial-verification mandate, this did not block verification — every claim below was checked directly against the working tree (file reads, `git log`, `tsc`, `vitest`, `biome`), not against SUMMARY narrative. The 3 execution-task commits (`b0222a28`, `b372ba9b`, `f8f27c2c`) plus a follow-up format fix (`ebe50345`) are present in `git log` and match the plan's 3 tasks; a code review (`260709-e0f-REVIEW.md`, status `issues_found`, 0 critical / 6 warning / 4 info) was completed after execution.
 
 ## Goal Achievement
 
@@ -81,7 +81,7 @@ No `260709-e0f-SUMMARY.md` exists in the task directory (only CONTEXT.md, RESEAR
 | resolvePreviewKind unit tests | `npx vitest run resolvePreviewKind.test.ts` | 18/18 passed | PASS |
 | TypeScript compiles clean | `npx tsc --noEmit` | 0 errors (after `npm install` — see note below) | PASS |
 | Biome clean on all 7 modified TS/TSX files | `npx biome check <files>` | "Checked 7 files... No fixes applied" | PASS |
-| Full issue-detail test suite | `npx vitest run src/routes/dashboard/issue-detail` | 68 passed / 10 failed / 2 skipped | 10 failures are in `AioTestRunsSection.test.tsx`, a file NOT in this phase's `files_modified` list and last touched by an unrelated commit (`feeddd23`, `260528-20i`); pre-existing/unrelated failure, not a regression from this phase |
+| Full issue-detail test suite | `npx vitest run src/routes/dashboard/issue-detail` | 68 passed / 10 failed / 2 skipped | 10 failures are in `AioTestRunsSection.test.tsx`, a file NOT in this phase's `files_modified` list and last touched by an unrelated commit (`e08cb7c2`, `260528-20i`); pre-existing/unrelated failure, not a regression from this phase |
 | `AttachmentLightbox` removed | `grep -rl "AttachmentLightbox" src/` | no matches | PASS |
 
 **Important environment note:** On first run, `npx tsc --noEmit` failed with 15 `TS2307: Cannot find module 'highlight.js/...'` errors because `node_modules/highlight.js` was physically absent even though `package.json` and `package-lock.json` both correctly declared `highlight.js@11.11.1` (lock file has a valid `resolved`/`integrity` entry). Running `npm install highlight.js@11.11.1` fixed this immediately (1 package added) and `tsc --noEmit` then passed with 0 errors. `node_modules` is gitignored, so this is most plausibly a stale/uninstalled local environment rather than a code defect — but it does mean this repo checkout, as found, would fail `npm run check` until `npm install` is (re-)run. Flagging as a warning, not a blocker, since package.json/lock are correct and a normal `npm install` step (which any fresh clone or CI run performs) resolves it.

@@ -40,8 +40,8 @@ Updated BacklogPage.test.tsx mocks from the defunct fetchBacklogView single-quer
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1 | Update test mocks to per-section query architecture | 5e84a6d | BacklogPage.test.tsx |
-| 2 | Add LOAD-04 test for per-row epic Skeleton | 5e84a6d | BacklogPage.test.tsx |
+| 1 | Update test mocks to per-section query architecture | cc167103 | BacklogPage.test.tsx |
+| 2 | Add LOAD-04 test for per-row epic Skeleton | cc167103 | BacklogPage.test.tsx |
 
 ## What Was Built
 
@@ -73,7 +73,7 @@ Updated BacklogPage.test.tsx mocks from the defunct fetchBacklogView single-quer
 - **Issue:** `vi.resetAllMocks()` clears mock implementations including `readSecret.mockResolvedValue('test-jira-token')`, causing `Cannot read properties of undefined (reading 'then')` in the `useEffect` that calls `readSecret('jira-pat').then(setJiraToken)`
 - **Fix:** Created async `resetMocks()` helper called in `beforeEach` that re-establishes base implementations for `readSecret`, `fetchEpicsBasic`, `fetchProjectStatuses`, `addIssuesToSprint`, `fetchSprintStories`, `fetchSprintList`, `fetchBacklogIssues`, `useBoardId`, `useDelayedLoading`, and `useOutletContext`
 - **Files modified:** BacklogPage.test.tsx
-- **Commit:** 5e84a6d
+- **Commit:** cc167103
 
 ## Known Stubs
 
@@ -82,7 +82,7 @@ None — test file only; no UI stubs introduced.
 ## Self-Check: PASSED
 
 - [x] `/Users/mimo/Desktop/Tasker/taskflow/src/routes/dashboard/BacklogPage.test.tsx` — file exists and modified
-- [x] Commit `5e84a6d` exists
+- [x] Commit `cc167103` exists
 - [x] No `fetchBacklogView` references in test file (grep count: 0)
 - [x] LOAD-04 test present at line 208
 - [x] All 15 BacklogPage tests pass

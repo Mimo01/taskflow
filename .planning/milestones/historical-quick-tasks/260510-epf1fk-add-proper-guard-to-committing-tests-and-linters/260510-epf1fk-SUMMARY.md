@@ -56,7 +56,7 @@ completed: 2026-05-10
 
 ## Task Commits
 
-1. **Task 1 + Task 2: Update pre-commit and pre-push hooks** - `d284dc5` (feat)
+1. **Task 1 + Task 2: Update pre-commit and pre-push hooks** - `a93a8676` (feat)
 
 ## Files Created/Modified
 - `taskflow/.husky/pre-commit` - Replaced lint/format:check with check + test; both commands unconditional

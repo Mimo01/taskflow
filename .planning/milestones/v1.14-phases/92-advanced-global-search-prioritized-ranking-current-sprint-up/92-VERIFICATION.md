@@ -43,7 +43,7 @@ Requirement IDs: none in REQUIREMENTS.md; the contract is 92-CONTEXT.md D-01..D-
 ## Anti-Patterns and Gates
 
 - `TBD`, `FIXME` and `XXX` markers in phase files: none found.
-- Code review CR-01 and CR-02: both fixed in c4331191. The JQL now splits tokens on reserved characters (test in `jira.test.ts:2648`). `withoutDirectMatch` has tests.
+- Code review CR-01 and CR-02: both fixed in e40d02a6. The JQL now splits tokens on reserved characters (test in `jira.test.ts:2648`). `withoutDirectMatch` has tests.
 - The 9 warnings and 8 info items in 92-REVIEW.md are advisory and are not re-assessed here.
 
 ## Spot-Checks and Gates Run

@@ -3,8 +3,8 @@
 Epic detail (Sheet and View) now shows an "Epic progress" region above the Stories list: burnup, status bar + legend, per-assignee bars, 4 stat tiles, Count/SP toggle (default Count).
 
 ## Commits
-- f7f792be feat: pure `epic-progress` lib (burnup, status/assignee buckets, forecast) + `fetchEpicStories` now also requests created, resolutiondate, updated, statuscategorychangedate (JQL/ORDER BY untouched; optional typed fields on JiraIssue).
-- dd5006bd feat: `EpicProgressSection.tsx` (+ test) wired into `IssueDetailContent` isEpic branch above Stories `<section>`.
+- 8e42fb95 feat: pure `epic-progress` lib (burnup, status/assignee buckets, forecast) + `fetchEpicStories` now also requests created, resolutiondate, updated, statuscategorychangedate (JQL/ORDER BY untouched; optional typed fields on JiraIssue).
+- 663df6e1 feat: `EpicProgressSection.tsx` (+ test) wired into `IssueDetailContent` isEpic branch above Stories `<section>`.
 
 ## Files
 - taskflow/src/lib/epic-progress.ts, epic-progress.test.ts (new)

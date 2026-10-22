@@ -126,8 +126,8 @@ None — CycleStatsCell is fully wired to `fetchAioTestRunsForCycle` and `normal
 - [x] `taskflow/src/routes/dashboard/AioProjectOverviewPage.tsx` modified — contains `CycleStatsCell`, `useAioCredentials`, `fetchAioTestRunsForCycle`, `normalizeStatus`, `data-testid="cycle-stats-loading"`, `data-testid="cycle-stats-loaded"`, 4 color classes
 - [x] `taskflow/src/routes/dashboard/AioCyclesSkeleton.tsx` modified — 5 Skeleton elements per row, `h-1.5 w-full rounded-full` present
 - [x] `taskflow/src/routes/dashboard/AioProjectOverviewPage.test.tsx` modified — 9 total `it(` cases, `fetchAioTestRunsForCycle` mock present
-- [x] Commit 249eb35 exists (Task 1 — page layout + CycleStatsCell)
-- [x] Commit e2e757c exists (Task 2 — skeleton + tests)
+- [x] Commit f45ffae2 exists (Task 1 — page layout + CycleStatsCell)
+- [x] Commit f262d734 exists (Task 2 — skeleton + tests)
 - [x] `npx tsc --noEmit` reports 0 errors for AioProjectOverviewPage
 - [x] All 9 AioProjectOverviewPage tests pass
 - [x] Full suite: 1071 tests pass, zero failures

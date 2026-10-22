@@ -70,10 +70,10 @@ The five additional invalidation swaps were Rule-1 fixes — RESEARCH had identi
 
 | Task | What                                                                                                | Commit     | Files                                                                                                                                                                                                            |
 | ---- | --------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Pre-delete grep audit confirming zero production callers; fetchSprintList still wired to FieldsSection | `ce787dd6` | `.planning/phases/74-backlog-on-data-json/74-06-AUDIT.txt`                                                                                                                                                       |
-| 2    | Delete legacy fetchers from `services/jira/backlog.ts`; trim test file; clean dead mocks            | `81a506f4` | `services/jira/backlog.ts`, `services/jira/backlog.test.ts`, `components/app/Sidebar.test.tsx`, `components/app/__tests__/Sidebar.prefetch.test.tsx`                                                             |
-| 3    | Delete legacy surface from `services/jira.ts`, `types.ts`; scrub JSDoc references                   | `0172e220` | `services/jira.ts`, `services/jira/types.ts`, `services/jira/epics.ts`                                                                                                                                           |
-| 4    | Wire grep guard via `package.json`; swap five production cache-invalidation sites to gh-backlog     | `2c912186` | `package.json`, `main.tsx`, `RecentItemsPopover.tsx`, `FieldsSection.tsx`, `useFieldMutation.ts`, `useIssueMutations.ts`, `services/jira/backlog.ts` (comment), `WorklogCellPopover.tsx`, `greenhopper/types.ts` |
+| 1    | Pre-delete grep audit confirming zero production callers; fetchSprintList still wired to FieldsSection | `205a9561` | `.planning/phases/74-backlog-on-data-json/74-06-AUDIT.txt`                                                                                                                                                       |
+| 2    | Delete legacy fetchers from `services/jira/backlog.ts`; trim test file; clean dead mocks            | `768599a8` | `services/jira/backlog.ts`, `services/jira/backlog.test.ts`, `components/app/Sidebar.test.tsx`, `components/app/__tests__/Sidebar.prefetch.test.tsx`                                                             |
+| 3    | Delete legacy surface from `services/jira.ts`, `types.ts`; scrub JSDoc references                   | `40d369d3` | `services/jira.ts`, `services/jira/types.ts`, `services/jira/epics.ts`                                                                                                                                           |
+| 4    | Wire grep guard via `package.json`; swap five production cache-invalidation sites to gh-backlog     | `7297ea2f` | `package.json`, `main.tsx`, `RecentItemsPopover.tsx`, `FieldsSection.tsx`, `useFieldMutation.ts`, `useIssueMutations.ts`, `services/jira/backlog.ts` (comment), `WorklogCellPopover.tsx`, `greenhopper/types.ts` |
 
 ## Deviations from Plan
 
@@ -85,7 +85,7 @@ The five additional invalidation swaps were Rule-1 fixes — RESEARCH had identi
 - **Issue:** RESEARCH only flagged BacklogPage as a legacy-key consumer, but `main.tsx` (handleCreateModalClose + title resolver), `RecentItemsPopover.tsx` (title resolver), `FieldsSection.tsx` (two mutation onSettled handlers), `useFieldMutation.ts` (mutation onSettled), and `useIssueMutations.ts` (create/edit onSuccess) all still invalidated the deleted `['jira-backlog-issues']` / `['jira-backlog-sprint-stories']` keys.
 - **Fix:** Imported `invalidateGhBacklogData` from `@/services/jira` and replaced each invalidation block with a single call (passing `boardId` where in scope, otherwise the all-boards overload). For the two title-resolver paths, rewrote the cache lookup to read from `['gh-backlog']` envelopes and adapt the `GhIssue { key, summary }` shape into the minimal `JiraIssue { fields: { summary } }` the consumers want.
 - **Files modified:** `main.tsx`, `RecentItemsPopover.tsx`, `FieldsSection.tsx`, `useFieldMutation.ts`, `useIssueMutations.ts`.
-- **Commit:** `2c912186`.
+- **Commit:** `7297ea2f`.
 
 **2. [Rule 1 — RESEARCH correction] BacklogViewData declaration lives in `services/jira/types.ts`, not `backlog.ts:8`**
 
@@ -93,7 +93,7 @@ The five additional invalidation swaps were Rule-1 fixes — RESEARCH had identi
 - **Issue:** RESEARCH §"Common Pitfalls #3" said `BacklogViewData` was referenced only at `services/jira/backlog.ts:8` — true, but that's the IMPORT, not the declaration. The declaration is at `services/jira/types.ts:210`, with a duplicate in the dual-file `services/jira.ts:2149`.
 - **Fix:** Extended deletion to also drop the `types.ts` declaration (no remaining importer). Pure naming correction, no architectural change.
 - **Files modified:** `services/jira/types.ts`.
-- **Commit:** `0172e220`.
+- **Commit:** `40d369d3`.
 
 **3. [Rule 3 — Pre-existing baseline drift unblocking `biome check .`] Two unrelated files had drifted formatter output**
 
@@ -101,7 +101,7 @@ The five additional invalidation swaps were Rule-1 fixes — RESEARCH had identi
 - **Issue:** `WorklogCellPopover.tsx` and `services/jira/greenhopper/types.ts` had Prettier-style formatter drift that pre-dated Plan 06. The husky pre-commit hook only runs `biome check --staged`, so these slipped past every commit since the 2026-05-28 baseline. Plan 06's acceptance gate explicitly requires `biome check .` 0 errors.
 - **Fix:** Ran `biome format --write` on the two files. Pure whitespace, no semantic change. Documented in `deferred-items.md`.
 - **Files modified:** `WorklogCellPopover.tsx`, `services/jira/greenhopper/types.ts`.
-- **Commit:** `2c912186`.
+- **Commit:** `7297ea2f`.
 
 **4. [Rule 1 — Dead JSDoc references] Two JSDoc comments referenced the deleted `fetchBacklogView`**
 
@@ -109,7 +109,7 @@ The five additional invalidation swaps were Rule-1 fixes — RESEARCH had identi
 - **Issue:** `services/jira/epics.ts:84` and `services/jira.ts:2515` both contained `"Two-query pattern (mirrors fetchBacklogView):"` — dangling reference to a function that no longer exists.
 - **Fix:** Reworded to `"Two-query pattern:"`.
 - **Files modified:** `services/jira/epics.ts`, `services/jira.ts`.
-- **Commit:** `0172e220`.
+- **Commit:** `40d369d3`.
 
 ## Deferred Issues
 
@@ -152,10 +152,10 @@ All four are biome-marked **Unsafe fix** — and `useGhBacklogData.ts:56` explic
 - File `.planning/phases/74-backlog-on-data-json/74-06-SUMMARY.md` — FOUND
 - File `.planning/phases/74-backlog-on-data-json/74-06-AUDIT.txt` — FOUND
 - File `.planning/phases/74-backlog-on-data-json/deferred-items.md` — FOUND
-- Commit `ce787dd6` (Task 1 audit) — FOUND
-- Commit `81a506f4` (Task 2 backlog.ts trim) — FOUND
-- Commit `0172e220` (Task 3 jira.ts/types.ts trim) — FOUND
-- Commit `2c912186` (Task 4 guard wiring + cache-key swap) — FOUND
+- Commit `205a9561` (Task 1 audit) — FOUND
+- Commit `768599a8` (Task 2 backlog.ts trim) — FOUND
+- Commit `40d369d3` (Task 3 jira.ts/types.ts trim) — FOUND
+- Commit `7297ea2f` (Task 4 guard wiring + cache-key swap) — FOUND
 - `fetchBacklogIssues` / `fetchBacklogSprintStories` / `fetchBacklogView` / `BacklogViewData` absent from `services/jira/backlog.ts`, `services/jira.ts`, `services/jira/types.ts` production source — VERIFIED
 - `fetchSprintList` still imported by `routes/dashboard/issue-detail/FieldsSection.tsx:32` — VERIFIED
 - `npm run check:legacy-backlog` exits 0 — VERIFIED

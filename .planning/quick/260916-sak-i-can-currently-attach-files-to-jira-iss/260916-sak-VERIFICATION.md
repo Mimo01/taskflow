@@ -88,7 +88,7 @@ Two fixes were applied by the orchestrator on top of the executor's 3 commits (p
 | TypeScript compile | `npx tsc --noEmit -p .` | no output (clean) | ✓ PASS |
 | Biome check on touched files | `npx biome check <5 files>` | "No fixes applied" | ✓ PASS |
 | No `@tiptap` imports | `grep -rn "@tiptap" src` | 0 matches | ✓ PASS |
-| `DescriptionEditor.tsx` untouched | `git log -- DescriptionEditor.tsx` | last touching commit unrelated to this task (37c9ac09, pre-dates quick task) | ✓ PASS |
+| `DescriptionEditor.tsx` untouched | `git log -- DescriptionEditor.tsx` | last touching commit unrelated to this task (1f03212a, pre-dates quick task) | ✓ PASS |
 
 ### Human Verification Required
 

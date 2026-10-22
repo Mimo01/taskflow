@@ -42,7 +42,7 @@ Added a "Merge Requests" section to `IssueDetailSidebar.tsx` that:
 
 4. **Conditional visibility**: Section only renders when `gitlabConnected && gitlabBaseUrl`. Shows loading skeleton during fetch, "None" when no MRs match.
 
-**Commit:** `0096dc9`
+**Commit:** `9ffd30f2`
 
 ## Deviations from Plan
 
@@ -59,4 +59,4 @@ None - plan executed exactly as written.
 
 Verified:
 - Modified file exists: taskflow/src/routes/dashboard/IssueDetailSidebar.tsx
-- Commit exists: 0096dc9
+- Commit exists: 9ffd30f2

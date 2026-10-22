@@ -57,9 +57,9 @@ All MR rows on the Standup Notes page are now clickable, navigating to `/mr/:pro
 
 | Task | Description | Commit |
 |------|-------------|--------|
-| 1 | Expose onMRClick in Outlet context; add projectId to NestedMr | a3aa7141 |
-| 2 | Make all Today-column MR rows clickable | c40eb71b |
-| 3 | Make Yesterday standalone MR groups clickable | 0d984cdd |
+| 1 | Expose onMRClick in Outlet context; add projectId to NestedMr | cceca269 |
+| 2 | Make all Today-column MR rows clickable | a938bb11 |
+| 3 | Make Yesterday standalone MR groups clickable | 0326621a |
 
 ## Verification
 
@@ -84,6 +84,6 @@ None — no new network endpoints, auth paths, or trust boundary changes introdu
 - [x] taskflow/src/main.tsx — exists, contains `onMRClick: handleMRClick`
 - [x] taskflow/src/routes/standup-notes/mrMatching.ts — exists, NestedMr has `projectId`
 - [x] taskflow/src/routes/standup-notes/StandaloneMrGroup.tsx — exists, header row is role=button
-- [x] Commits a3aa7141, c40eb71b, 0d984cdd — present in git log
+- [x] Commits cceca269, a938bb11, 0326621a — present in git log
 
 ## Self-Check: PASSED

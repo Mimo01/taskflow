@@ -38,9 +38,9 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Fix sticky header, swimlane collapse animation, reload bug | 2a298ac | SprintBoardTab.tsx, StoryHeaderRow.tsx |
-| 2 | Improve sheet slide animation | 751e06b | sheet.tsx |
-| 3 | Fix sticky header white flash, reload race, and collapse jump | c8d5138 | SprintBoardTab.tsx |
+| 1 | Fix sticky header, swimlane collapse animation, reload bug | 3bc48e18 | SprintBoardTab.tsx, StoryHeaderRow.tsx |
+| 2 | Improve sheet slide animation | 25eb0178 | sheet.tsx |
+| 3 | Fix sticky header white flash, reload race, and collapse jump | 13d6e7e9 | SprintBoardTab.tsx |
 
 ## What Was Built
 
@@ -92,19 +92,19 @@ metrics:
 - Found during: Task 3 (user verification)
 - Issue: `bg-background` on wrapper div caused white flash between swimlane header transitions
 - Fix: Removed `bg-background` from sticky header wrapper
-- Commit: c8d5138
+- Commit: 13d6e7e9
 
 **3. [Rule 1 - Bug] Fixed reload race condition with showSkeletonRef guard**
 - Found during: Task 3 (user verification)
 - Issue: Scroll handler immediately re-set sticky header after cleanup effect cleared it
 - Fix: Added showSkeletonRef guard in handleStickyHeaderChange + clear on refresh click
-- Commit: c8d5138
+- Commit: 13d6e7e9
 
 **4. [Rule 1 - Bug] Fixed collapse jump by tracking isExpanded in dedup check**
 - Found during: Task 3 (user verification)
 - Issue: Collapsing current sticky header didn't update because dedup only compared key
 - Fix: Added lastStickyExpandedRef to track and compare both key and isExpanded
-- Commit: c8d5138
+- Commit: 13d6e7e9
 
 ## Test Results
 
@@ -120,6 +120,6 @@ None.
 - taskflow/src/routes/dashboard/SprintBoardTab.tsx — FOUND
 - taskflow/src/routes/dashboard/StoryHeaderRow.tsx — FOUND
 - taskflow/src/components/ui/sheet.tsx — FOUND
-- Commit 2a298ac — FOUND
-- Commit 751e06b — FOUND
-- Commit c8d5138 — FOUND
+- Commit 3bc48e18 — FOUND
+- Commit 25eb0178 — FOUND
+- Commit 13d6e7e9 — FOUND

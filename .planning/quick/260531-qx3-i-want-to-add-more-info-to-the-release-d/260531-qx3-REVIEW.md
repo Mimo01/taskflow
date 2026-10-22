@@ -22,7 +22,7 @@ status: issues_found
 
 ## Summary
 
-Reviewed the quick-260531-qx3 additions to `ReleaseDetailPage.tsx` across commits 4c27ca0f (story-points field + derived datasets) and e0133d2b (MR-state, contributor, issue-status render groups), diff base `c2a50263^`.
+Reviewed the quick-260531-qx3 additions to `ReleaseDetailPage.tsx` across commits 9029d79e (story-points field + derived datasets) and a9cc6b80 (MR-state, contributor, issue-status render groups), diff base `2f1a515f^`.
 
 The derived datasets are mostly sound: the `mrStateCounts` fold of `locked`/`closed` is exhaustive and correct against the `GitLabMR.state` union; `contributors` dedupes correctly by author id; the `customfield_10016` summation is correctly guarded against `null` with a `typeof === 'number'` check; and the render guards hide groups gracefully when data is absent. No security issues, secrets, or dangerous patterns found.
 

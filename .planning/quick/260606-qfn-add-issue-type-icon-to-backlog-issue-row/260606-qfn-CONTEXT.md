@@ -43,7 +43,7 @@ Reuse the existing `IssueTypeIcon` component (`src/components/ui/issue-type-icon
 ## Specific Ideas
 
 - Reuse `IssueTypeIcon` from `src/components/ui/issue-type-icon.tsx` (props: `typeName`, optional `className`).
-- Backlog precedent: PriorityIcon column added in commit `f686edd7` to `BacklogRow.tsx` — copy the explicit-px-width wrapper approach.
+- Backlog precedent: PriorityIcon column added in commit `aa3f0ac4` to `BacklogRow.tsx` — copy the explicit-px-width wrapper approach.
 - Swimlane precedent: PriorityIcon already rendered in `StoryHeaderRow.tsx` after the key button — insert IssueTypeIcon before the key button.
 - Issue type field: `issue.fields.issuetype.name` (id optional; `subtask: boolean` authoritative for subtask detection but IssueTypeIcon already handles name mapping including "Sub-task").
 </specifics>

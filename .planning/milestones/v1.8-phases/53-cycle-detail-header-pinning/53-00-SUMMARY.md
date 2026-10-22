@@ -45,9 +45,9 @@ Wave 0 RED stubs for all three Phase 53 test targets. Three test files establish
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | AioCycleDetailPage test stubs (RED) | 5f6a27f | taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx (created) |
-| 2 | Extend pinned-tabs.store.test.ts with RED stubs | fc834c5 | taskflow/src/stores/pinned-tabs.store.test.ts (modified) |
-| 3 | New PinnedTabStrip.test.tsx with RED stubs | 3e60ff9 | taskflow/src/components/app/PinnedTabStrip.test.tsx (created) |
+| 1 | AioCycleDetailPage test stubs (RED) | ec84745a | taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx (created) |
+| 2 | Extend pinned-tabs.store.test.ts with RED stubs | c18db8cf | taskflow/src/stores/pinned-tabs.store.test.ts (modified) |
+| 3 | New PinnedTabStrip.test.tsx with RED stubs | eddc1d72 | taskflow/src/components/app/PinnedTabStrip.test.tsx (created) |
 
 ## Test Coverage Summary
 
@@ -110,6 +110,6 @@ None — test-only files, no production surface introduced.
 - [x] `taskflow/src/routes/dashboard/AioCycleDetailPage.test.tsx` — FOUND
 - [x] `taskflow/src/stores/pinned-tabs.store.test.ts` — FOUND (modified)
 - [x] `taskflow/src/components/app/PinnedTabStrip.test.tsx` — FOUND
-- [x] Commit `5f6a27f` exists (Task 1)
-- [x] Commit `fc834c5` exists (Task 2)
-- [x] Commit `3e60ff9` exists (Task 3)
+- [x] Commit `ec84745a` exists (Task 1)
+- [x] Commit `c18db8cf` exists (Task 2)
+- [x] Commit `eddc1d72` exists (Task 3)

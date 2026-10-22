@@ -3,7 +3,7 @@ status: complete
 quick_id: 260513-awc
 slug: sprint-board-epic-pill
 date: 2026-05-13
-commit: ff61a86
+commit: ee706e79
 ---
 
 # Quick Task 260513-awc: Sprint Board Epic Pill
@@ -24,6 +24,6 @@ Added a clickable epic name pill to sprint board story header rows, positioned b
 
 ## Commits
 
-- `437a53f` feat: add epic pill props to StoryHeaderRow
-- `21978e0` feat: wire epic pill data through SprintBoardTab
-- `ff61a86` fix: restore assignee-before-status order, epic pill between them
+- `9693f361` feat: add epic pill props to StoryHeaderRow
+- `95b165e5` feat: wire epic pill data through SprintBoardTab
+- `ee706e79` fix: restore assignee-before-status order, epic pill between them

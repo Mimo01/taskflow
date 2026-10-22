@@ -34,8 +34,8 @@ metrics:
 
 | # | Task | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add description field to GitLabMilestone type | ca92363d | taskflow/src/services/gitlab.ts |
-| 2 | Render matched GitLab milestone description on release detail page | 4735942e | taskflow/src/routes/dashboard/ReleaseDetailPage.tsx |
+| 1 | Add description field to GitLabMilestone type | ddcdb465 | taskflow/src/services/gitlab.ts |
+| 2 | Render matched GitLab milestone description on release detail page | 16a28d18 | taskflow/src/routes/dashboard/ReleaseDetailPage.tsx |
 
 ## What Was Built
 
@@ -59,8 +59,8 @@ None — plan executed exactly as written. Two minor auto-fixes during biome lin
 
 - [x] `taskflow/src/services/gitlab.ts` — modified, `description` field present
 - [x] `taskflow/src/routes/dashboard/ReleaseDetailPage.tsx` — modified, `GitLab Description` + `matchedMilestone` + `ReactMarkdown` present
-- [x] Commit ca92363d exists
-- [x] Commit 4735942e exists
+- [x] Commit ddcdb465 exists
+- [x] Commit 16a28d18 exists
 - [x] `npm run check` (biome + tsc) passes with exit 0
 
 ## Self-Check: PASSED
@@ -71,8 +71,8 @@ None — plan executed exactly as written. Two minor auto-fixes during biome lin
 
 After the initial plan executed, three refinements were committed directly:
 
-- `91690baa` — added `description: null` to two `GitLabMilestone` test fixtures in `ReleasesTab.test.tsx`. The required field broke `tsc` on the merged tree (the worktree check had passed); fixed and 14 tests green.
-- `045eee17` — the Jira "Description" header now reads **"Jira Description"** only when a GitLab milestone is matched, to disambiguate the two blocks.
-- `9023e456` — when a milestone is matched but **neither** side has a description, the two empty "No description" blocks collapse into a single "Description" section.
+- `2d7129c0` — added `description: null` to two `GitLabMilestone` test fixtures in `ReleasesTab.test.tsx`. The required field broke `tsc` on the merged tree (the worktree check had passed); fixed and 14 tests green.
+- `707e42c3` — the Jira "Description" header now reads **"Jira Description"** only when a GitLab milestone is matched, to disambiguate the two blocks.
+- `dd181fed` — when a milestone is matched but **neither** side has a description, the two empty "No description" blocks collapse into a single "Description" section.
 
 All changes pass `npm run check`. Final code state covers all four match/empty combinations.

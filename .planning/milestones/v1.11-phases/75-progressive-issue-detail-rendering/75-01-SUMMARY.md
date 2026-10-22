@@ -50,9 +50,9 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Decompose fetchIssueDetail | 98052cca | `jira/changelog.ts` (new), `jira.ts` (modified) |
-| 2 | Create CommentsSkeleton and SubtasksSkeleton | da11dac1 | `CommentsSkeleton.tsx` (new), `SubtasksSkeleton.tsx` (new) |
-| 3 | Wave 0 failing progressive-rendering test scaffold | 69c058b9 | `IssueDetailPage.progressive.test.tsx` (new) |
+| 1 | Decompose fetchIssueDetail | 553b7866 | `jira/changelog.ts` (new), `jira.ts` (modified) |
+| 2 | Create CommentsSkeleton and SubtasksSkeleton | 51f90a18 | `CommentsSkeleton.tsx` (new), `SubtasksSkeleton.tsx` (new) |
+| 3 | Wave 0 failing progressive-rendering test scaffold | 556c2d49 | `IssueDetailPage.progressive.test.tsx` (new) |
 
 ## What Was Built
 
@@ -101,4 +101,4 @@ None — this plan creates service functions and UI primitives; no data is flowi
 - [x] `IssueDetailPage.progressive.test.tsx` exists, mocks `@/services/jira/comments` and `@/services/jira/changelog`, asserts `comments-skeleton` and `subtasks-skeleton`, all 3 tests RED
 - [x] Build green (tsc + vite) after Task 1 and Task 2
 - [x] No greenhopper reference in `jira/changelog.ts` (GH-CUT-01)
-- [x] Commits: 98052cca, da11dac1, 69c058b9
+- [x] Commits: 553b7866, 51f90a18, 556c2d49

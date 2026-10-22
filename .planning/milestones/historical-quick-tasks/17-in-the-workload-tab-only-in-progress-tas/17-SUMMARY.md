@@ -34,7 +34,7 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Count all stories in Tasks column and badge done sub-rows | 4d74b93 | WorkloadTab.tsx, WorkloadTab.test.tsx |
+| 1 | Count all stories in Tasks column and badge done sub-rows | bc1e78fa | WorkloadTab.tsx, WorkloadTab.test.tsx |
 
 ## Changes Made
 
@@ -72,6 +72,6 @@ None — plan executed exactly as written.
 - [x] WorkloadStoryRow interface has `isDone: boolean`
 - [x] Done badge rendered in story sub-row JSX
 - [x] All 19 WorkloadTab tests pass
-- [x] Commit 4d74b93 exists
+- [x] Commit bc1e78fa exists
 
 ## Self-Check: PASSED

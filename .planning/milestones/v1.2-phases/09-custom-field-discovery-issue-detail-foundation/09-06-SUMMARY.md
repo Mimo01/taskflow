@@ -74,8 +74,8 @@ completed: 2026-03-13
 
 Each task was committed atomically:
 
-1. **Task 1: Build CommentComposer with wiki markup toolbar** - `76df759` (feat)
-2. **Task 2: Add comment thread and Open in Jira to IssueDetailContent** - `7c69e41` (feat)
+1. **Task 1: Build CommentComposer with wiki markup toolbar** - `22ec2fc7` (feat)
+2. **Task 2: Add comment thread and Open in Jira to IssueDetailContent** - `fb196c69` (feat)
 
 **Plan metadata:** (docs commit follows)
 
@@ -103,7 +103,7 @@ _Note: TDD tasks had combined RED+GREEN commits — tests written alongside impl
 - **Fix:** Created `textarea.tsx` as a native `<textarea>` wrapper following exact same pattern as existing `input.tsx`
 - **Files modified:** `taskflow/src/components/ui/textarea.tsx`
 - **Verification:** CommentComposer renders and tests pass with the component
-- **Committed in:** `76df759` (Task 1 commit)
+- **Committed in:** `22ec2fc7` (Task 1 commit)
 
 ---
 
@@ -129,6 +129,6 @@ _Note: TDD tasks had combined RED+GREEN commits — tests written alongside impl
 - textarea.tsx: FOUND
 - IssueDetailContent.tsx: FOUND (verified openUrl + reverse() present)
 - 09-06-SUMMARY.md: FOUND
-- Commit 76df759 (Task 1): FOUND
-- Commit 7c69e41 (Task 2): FOUND
+- Commit 22ec2fc7 (Task 1): FOUND
+- Commit fb196c69 (Task 2): FOUND
 - 20/20 tests passing in IssueDetailSheet.test.tsx

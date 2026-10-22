@@ -70,7 +70,7 @@ status: issues_found
 
 ## Summary
 
-Reviewed the full `910aaac3..HEAD` diff (+247/-187 across 49 files) against the plan's R1-R10
+Reviewed the full `5c557053..HEAD` diff (+247/-187 across 49 files) against the plan's R1-R10
 contract. This is a mechanical Tailwind class-string sweep and, on the whole, it is executed
 cleanly:
 

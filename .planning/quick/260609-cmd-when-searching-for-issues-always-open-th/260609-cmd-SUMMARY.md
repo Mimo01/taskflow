@@ -29,8 +29,8 @@ metrics:
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Route all issue selections to full-page navigation | 36c44c7f | CommandPalette.tsx |
-| 2 | Update PALETTE-02 test to assert full-page navigation | 765b6c65 | CommandPalette.test.tsx |
+| 1 | Route all issue selections to full-page navigation | 62386d6b | CommandPalette.tsx |
+| 2 | Update PALETTE-02 test to assert full-page navigation | 8d06cffe | CommandPalette.test.tsx |
 
 ## What Was Built
 
@@ -54,8 +54,8 @@ None — plan executed exactly as written.
 
 - [x] `taskflow/src/components/app/CommandPalette.tsx` modified (handleIssueSelect updated)
 - [x] `taskflow/src/components/app/CommandPalette.test.tsx` modified (PALETTE-02 assertions flipped)
-- [x] Commit 36c44c7f exists
-- [x] Commit 765b6c65 exists
+- [x] Commit 62386d6b exists
+- [x] Commit 8d06cffe exists
 - [x] 17/17 CommandPalette tests pass
 
 ## Self-Check: PASSED

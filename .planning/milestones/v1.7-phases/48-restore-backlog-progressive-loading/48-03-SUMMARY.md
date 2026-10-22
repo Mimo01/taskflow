@@ -61,8 +61,8 @@ completed: 2026-04-04
 
 Each task was committed atomically:
 
-1. **Task 1: Fix TypeScript type errors in test mocks** - `98e6ded` (fix)
-2. **Task 2: Add cache-invalidation assertion to BACK-02** - `748a283` (test)
+1. **Task 1: Fix TypeScript type errors in test mocks** - `7790d99f` (fix)
+2. **Task 2: Add cache-invalidation assertion to BACK-02** - `03373a4d` (test)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/BacklogPage.test.tsx` - Added EpicEnriched import, isLoading: false to useBoardId mock, three EpicEnriched[] casts, and new cache-invalidation test in BACK-02

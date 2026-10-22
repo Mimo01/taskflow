@@ -87,7 +87,7 @@ Added `useStoryPointsFieldDiscovery()` hook in `main.tsx` (co-located with start
 - **Issue:** Making `issuetype.subtask` a required boolean field broke 5 existing test files that had `issuetype: { name: 'Story' }` without `subtask`
 - **Fix:** Added `subtask: false` to makeIssue/makeJiraIssue factory functions in all 5 affected test files
 - **Files modified:** `SearchOverlay.test.tsx`, `SearchResultPanel.test.tsx`, `MyTasksTab.test.tsx`, `WorkloadTab.test.tsx`, `MrAttentionTab.test.tsx`, `SprintProgressTab.test.tsx`
-- **Commit:** 3f87984
+- **Commit:** 0cb4c485
 
 **Note:** Also noticed linter auto-reverted the initial jira.ts interface edit between the first Edit call and subsequent tsc check. Re-applied the change successfully on second attempt.
 
@@ -95,9 +95,9 @@ Added `useStoryPointsFieldDiscovery()` hook in `main.tsx` (co-located with start
 
 | Hash | Message |
 |------|---------|
-| 8c19299 | test(05-02): add failing tests for APIF-01 type extension and APIF-03 discovery |
-| 3f87984 | feat(05-02): extend JiraIssue interface and add discoverStoryPointsField + settings store key |
-| b8cc1de | feat(05-02): wire useStoryPointsFieldDiscovery into AppLayout startup |
+| fdfebc0a | test(05-02): add failing tests for APIF-01 type extension and APIF-03 discovery |
+| 0cb4c485 | feat(05-02): extend JiraIssue interface and add discoverStoryPointsField + settings store key |
+| 71ce968a | feat(05-02): wire useStoryPointsFieldDiscovery into AppLayout startup |
 
 ## Self-Check: PASSED
 
@@ -105,4 +105,4 @@ Added `useStoryPointsFieldDiscovery()` hook in `main.tsx` (co-located with start
 - FOUND: taskflow/src/stores/settings.store.ts (storyPointsFieldKey + setStoryPointsFieldKey present, 3 occurrences)
 - FOUND: taskflow/src/main.tsx (useStoryPointsFieldDiscovery defined and called, 2 occurrences)
 - FOUND: .planning/phases/05-api-foundation-quick-wins/05-02-SUMMARY.md
-- Commits verified: 8c19299, 3f87984, b8cc1de
+- Commits verified: fdfebc0a, 0cb4c485, 71ce968a

@@ -18,10 +18,10 @@ updated: 2026-06-12
 ## Prior context (IMPORTANT — read before investigating)
 
 This is a RE-REPORT of `.planning/debug/resolved/issue-status-cache-stale.md` (resolved earlier today, 2026-06-12). Two fixes already landed and are confirmed present in `FieldsSection.tsx` transitionMutation.onSettled:
-- Line 324: `queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] })` (commit 6b82f07f)
-- Line 329: `queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] })` (commit d47f0d5f)
+- Line 324: `queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment'] })` (commit 5233ca96)
+- Line 329: `queryClient.invalidateQueries({ queryKey: ['jira-epic-stories'] })` (commit c3b47bb2)
 
-Those fixes targeted the FULL-PAGE IssueDetailView path. The user STILL sees staleness, and the key difference is everything is happening inside the **drawer / peek panel**. Recent commit `4a7ab5e6` "fix(peek-panel): wire edit/clone/add-subtask handlers to drawer preview" indicates the drawer preview is a distinct rendering path.
+Those fixes targeted the FULL-PAGE IssueDetailView path. The user STILL sees staleness, and the key difference is everything is happening inside the **drawer / peek panel**. Recent commit `7a153b86` "fix(peek-panel): wire edit/clone/add-subtask handlers to drawer preview" indicates the drawer preview is a distinct rendering path.
 
 ## Current Focus
 

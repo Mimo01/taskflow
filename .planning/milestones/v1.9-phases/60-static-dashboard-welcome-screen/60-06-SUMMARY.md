@@ -43,9 +43,9 @@ Added `fetchReleaseIssues` to jira.ts and a second `useQuery` in DashboardReleas
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 | Add fetchReleaseIssues to jira.ts | b895da0e | taskflow/src/services/jira.ts |
-| 2 | Add second useQuery, donePct, Progress bar to DashboardReleaseCard | 2e0cc043 | taskflow/src/routes/dashboard/DashboardReleaseCard.tsx |
-| 3 | Update tests for two-query mock, add Tests 6-8 | 946e50c9 | taskflow/src/routes/dashboard/DashboardReleaseCard.test.tsx |
+| 1 | Add fetchReleaseIssues to jira.ts | 3a4be970 | taskflow/src/services/jira.ts |
+| 2 | Add second useQuery, donePct, Progress bar to DashboardReleaseCard | db8852b2 | taskflow/src/routes/dashboard/DashboardReleaseCard.tsx |
+| 3 | Update tests for two-query mock, add Tests 6-8 | e1e0dec2 | taskflow/src/routes/dashboard/DashboardReleaseCard.test.tsx |
 
 ## Deviations from Plan
 
@@ -67,9 +67,9 @@ Files created/modified:
 - taskflow/src/routes/dashboard/DashboardReleaseCard.test.tsx — FOUND (339 lines, 8 tests)
 
 Commits:
-- b895da0e — FOUND
-- 2e0cc043 — FOUND
-- 946e50c9 — FOUND
+- 3a4be970 — FOUND
+- db8852b2 — FOUND
+- e1e0dec2 — FOUND
 
 TypeScript: no errors across all modified files.
 Tests: 8/8 pass.

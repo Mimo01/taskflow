@@ -42,8 +42,8 @@ metrics:
 
 | # | Name | Commit | Files |
 |---|------|--------|-------|
-| 1 | Add fetchComments to jira.ts + JiraComment type | 4936730 | taskflow/src/services/jira.ts |
-| 2 | Expand InlineComment + update TaskRow with count badge | d0404e9 | taskflow/src/routes/dashboard/InlineComment.tsx, taskflow/src/routes/dashboard/TaskRow.tsx |
+| 1 | Add fetchComments to jira.ts + JiraComment type | bb2ca3e1 | taskflow/src/services/jira.ts |
+| 2 | Expand InlineComment + update TaskRow with count badge | 780e7478 | taskflow/src/routes/dashboard/InlineComment.tsx, taskflow/src/routes/dashboard/TaskRow.tsx |
 
 ## Deviations from Plan
 
@@ -60,5 +60,5 @@ None — plan executed exactly as written.
 - [x] `taskflow/src/services/jira.ts` — JiraComment and fetchComments present
 - [x] `taskflow/src/routes/dashboard/InlineComment.tsx` — existingComments.map rendering present
 - [x] `taskflow/src/routes/dashboard/TaskRow.tsx` — useQuery and badge rendering present
-- [x] Commit 4936730 exists
-- [x] Commit d0404e9 exists
+- [x] Commit bb2ca3e1 exists
+- [x] Commit 780e7478 exists

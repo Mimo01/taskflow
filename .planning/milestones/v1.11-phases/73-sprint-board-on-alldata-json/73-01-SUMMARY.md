@@ -83,10 +83,10 @@ metrics:
 
 | Task | Type | Hash | Subject |
 |------|------|------|---------|
-| 1 | feat | 37e2dd34 | add useGhAllData hook + getGhAllData + invalidateGhAllData |
-| 2 | feat | 2e512cb0 | add Intl.RelativeTimeFormat-based time-ago helpers |
-| 3 | feat | ad84573f | expose useGhAllData public surface via greenhopper barrel + jira.ts |
-| post | style | 8f7ae1ee | biome auto-format useGhAllData; align WR-05 comment to analog |
+| 1 | feat | 60838187 | add useGhAllData hook + getGhAllData + invalidateGhAllData |
+| 2 | feat | e1c8dcfc | add Intl.RelativeTimeFormat-based time-ago helpers |
+| 3 | feat | 549eeb26 | expose useGhAllData public surface via greenhopper barrel + jira.ts |
+| post | style | cc25dc96 | biome auto-format useGhAllData; align WR-05 comment to analog |
 
 ## Verification
 
@@ -129,14 +129,14 @@ metrics:
 - **Issue:** The PLAN acceptance test `grep -r "date-fns" taskflow/src/lib/formatTimeAgo.ts` must return nothing. The doc comment used the literal package name explaining why we don't depend on it, which failed the strict grep.
 - **Fix:** Rephrased the comment to "third-party time-format libraries are not project dependencies" — semantically identical, passes the grep gate.
 - **Files modified:** `taskflow/src/lib/formatTimeAgo.ts`
-- **Commit:** included in 2e512cb0
+- **Commit:** included in e1c8dcfc
 
 **3. [Rule 1 - Bug] Reverted ineffective `biome-ignore` comment placement**
 - **Found during:** Final verification
 - **Issue:** Initially added a `biome-ignore lint/correctness/useExhaustiveDependencies` block above the `useEffect`, which biome flagged as `suppressions/unused` (the ignore must be immediately adjacent to the source line containing the violation, but biome's rule attribution is line-level).
 - **Fix:** Removed the suppression and restored the inline WR-05 comment style. The warning now matches the pre-existing analog on `transitions.ts:315` exactly — no new warning category introduced.
 - **Files modified:** `taskflow/src/services/jira/greenhopper/useGhAllData.ts`
-- **Commit:** 8f7ae1ee
+- **Commit:** cc25dc96
 
 No Rule 4 (architectural) deviations. No checkpoint hits.
 
@@ -146,9 +146,9 @@ No Rule 4 (architectural) deviations. No checkpoint hits.
 - `taskflow/src/services/jira/greenhopper/useGhAllData.test.ts` → FOUND
 - `taskflow/src/lib/formatTimeAgo.ts` → FOUND
 - `taskflow/src/lib/formatTimeAgo.test.ts` → FOUND
-- Commit 37e2dd34 → FOUND in git log
-- Commit 2e512cb0 → FOUND in git log
-- Commit ad84573f → FOUND in git log
-- Commit 8f7ae1ee → FOUND in git log
+- Commit 60838187 → FOUND in git log
+- Commit e1c8dcfc → FOUND in git log
+- Commit 549eeb26 → FOUND in git log
+- Commit cc25dc96 → FOUND in git log
 
 ## Self-Check: PASSED

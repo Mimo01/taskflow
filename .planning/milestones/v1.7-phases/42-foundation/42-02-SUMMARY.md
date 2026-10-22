@@ -106,10 +106,10 @@ completed: 2026-03-29
 
 Each task was committed atomically:
 
-1. **Task 1: Enable React Compiler in vite.config.ts** - `37fc72a` (feat)
-2. **Task 2: Remove memoization from components and batch-1 dashboard files** - `6408a49` (refactor)
-3. **Task 3: Remove memoization from dashboard root + issue-detail files** - `251eb44` (refactor)
-4. **Task 4: Remove memoization from widget files** - `a5b38a9` (refactor)
+1. **Task 1: Enable React Compiler in vite.config.ts** - `4ab48ebf` (feat)
+2. **Task 2: Remove memoization from components and batch-1 dashboard files** - `6a816f45` (refactor)
+3. **Task 3: Remove memoization from dashboard root + issue-detail files** - `9e457bc5` (refactor)
+4. **Task 4: Remove memoization from widget files** - `b473aa6a` (refactor)
 
 ## Files Created/Modified
 

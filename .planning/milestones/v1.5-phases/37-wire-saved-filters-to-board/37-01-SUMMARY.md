@@ -61,8 +61,8 @@ completed: 2026-03-24
 
 Each task was committed atomically:
 
-1. **Task 1: Add saved filter test cases (TDD RED)** - `bfceb65` (test)
-2. **Task 2: Wire useSavedFilterStore into SprintBoardTab (TDD GREEN)** - `dc11143` (feat)
+1. **Task 1: Add saved filter test cases (TDD RED)** - `87ecb569` (test)
+2. **Task 2: Wire useSavedFilterStore into SprintBoardTab (TDD GREEN)** - `1e7d950c` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/SprintBoardTab.tsx` - Added useSavedFilterStore subscription, saved filter JQL useQuery, filteredSwimlanes intersection, and active filter banner
@@ -83,7 +83,7 @@ Each task was committed atomically:
 - **Fix:** Moved useQuery to after the activeFilter variable derivation from useSavedFilterStore
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.tsx
 - **Verification:** All 20 tests pass
-- **Committed in:** dc11143 (Task 2 commit)
+- **Committed in:** 1e7d950c (Task 2 commit)
 
 ---
 

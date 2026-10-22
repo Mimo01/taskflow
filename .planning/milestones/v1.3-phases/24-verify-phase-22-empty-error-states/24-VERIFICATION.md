@@ -42,7 +42,7 @@ human_verification:
 
 | Artifact | Status | Details |
 |----------|--------|---------|
-| `.planning/phases/22-polish-empty-states-error-recovery/22-VERIFICATION.md` | VERIFIED | 223 lines, created at commit `3b64812`. Contains Observable Truths, Required Artifacts, Key Link Verification, Requirements Coverage, Test Results, Anti-Patterns, Human Verification, and Gaps Summary sections. |
+| `.planning/phases/22-polish-empty-states-error-recovery/22-VERIFICATION.md` | VERIFIED | 223 lines, created at commit `cd7c220f`. Contains Observable Truths, Required Artifacts, Key Link Verification, Requirements Coverage, Test Results, Anti-Patterns, Human Verification, and Gaps Summary sections. |
 
 ---
 
@@ -109,7 +109,7 @@ None. The produced 22-VERIFICATION.md contains no TODOs, placeholders, or stub c
 
 No gaps. The phase goal is fully achieved:
 
-- `.planning/phases/22-polish-empty-states-error-recovery/22-VERIFICATION.md` exists (223 lines, created at commit `3b64812`)
+- `.planning/phases/22-polish-empty-states-error-recovery/22-VERIFICATION.md` exists (223 lines, created at commit `cd7c220f`)
 - All 3 POLISH requirements are marked SATISFIED with file-path evidence in the document
 - All 31 Phase 22 component tests pass (confirmed by independent re-run)
 - The v1.3 milestone audit gap (missing VERIFICATION.md for Phase 22) is closed

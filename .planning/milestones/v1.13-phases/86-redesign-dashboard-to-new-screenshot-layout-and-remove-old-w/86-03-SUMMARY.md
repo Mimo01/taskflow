@@ -78,9 +78,9 @@ completed: 2026-06-15
 
 ## Task Commits
 
-1. **Task 1: Rewrite index.tsx + index.test.tsx** - `c6ff6b33` (feat)
-2. **Task 2: Delete 12 widgets + slim dashboardMetrics** - `16dd5f68` (feat)
-3. **Task 3: Extend widget-removal.guard** - `35bbc4e0` (test)
+1. **Task 1: Rewrite index.tsx + index.test.tsx** - `8bbd9e36` (feat)
+2. **Task 2: Delete 12 widgets + slim dashboardMetrics** - `854ca46a` (feat)
+3. **Task 3: Extend widget-removal.guard** - `ab345242` (test)
 
 ## Files Created/Modified
 
@@ -119,7 +119,7 @@ completed: 2026-06-15
 - **Fix:** Removed `export * from './burndown'` from `greenhopper/index.ts`; replaced with a comment explaining the removal.
 - **Files modified:** `src/services/jira/greenhopper/index.ts`
 - **Verification:** `npm run check` passed with 0 errors.
-- **Committed in:** `16dd5f68` (Task 2 commit)
+- **Committed in:** `854ca46a` (Task 2 commit)
 
 **2. [Rule 3 - Blocking] Fixed Biome formatting error in index.test.tsx**
 - **Found during:** Task 1 (after writing index.test.tsx)
@@ -127,7 +127,7 @@ completed: 2026-06-15
 - **Fix:** Used Python string replacement to normalize the trailing spaces to a single space.
 - **Files modified:** `src/routes/dashboard/index.test.tsx`
 - **Verification:** `npm run check` passed with 0 errors/warnings (excluding 17 pre-existing `noNonNullAssertion` warnings in `MyTasksPage.tsx`).
-- **Committed in:** `c6ff6b33` (Task 1 commit)
+- **Committed in:** `8bbd9e36` (Task 1 commit)
 
 ---
 
@@ -150,9 +150,9 @@ None — no new network endpoints, auth paths, or schema changes introduced.
 ## Self-Check: PASSED
 
 All task commits verified:
-- `c6ff6b33` (Task 1) — confirmed in git log
-- `16dd5f68` (Task 2) — confirmed in git log
-- `35bbc4e0` (Task 3) — confirmed in git log
+- `8bbd9e36` (Task 1) — confirmed in git log
+- `854ca46a` (Task 2) — confirmed in git log
+- `ab345242` (Task 3) — confirmed in git log
 
 Key files confirmed present on filesystem:
 - `src/routes/dashboard/index.tsx` — exists
@@ -160,7 +160,7 @@ Key files confirmed present on filesystem:
 - `src/routes/dashboard/dashboardMetrics.ts` — exists (2 exports only)
 
 Key files confirmed absent (deletions verified):
-- StatTile.tsx, SprintHealthSection.tsx, WeeklyTrendChart.tsx, ActivityStrip.tsx, DashboardReleaseCard.tsx, VelocityChart.tsx, BurndownChart.tsx — all deleted in `16dd5f68`
+- StatTile.tsx, SprintHealthSection.tsx, WeeklyTrendChart.tsx, ActivityStrip.tsx, DashboardReleaseCard.tsx, VelocityChart.tsx, BurndownChart.tsx — all deleted in `854ca46a`
 
 ## Next Phase Readiness
 

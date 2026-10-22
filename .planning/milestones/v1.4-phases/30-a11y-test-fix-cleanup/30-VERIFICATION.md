@@ -59,7 +59,7 @@ human_verification: []
 
 | Commit | Message | Files | Status |
 |--------|---------|-------|--------|
-| `e3bbb68` | docs(30-01): mark A11Y-01 requirement as complete | `.planning/REQUIREMENTS.md` (+2/-2) | VERIFIED — exists in git history |
+| `44f92e10` | docs(30-01): mark A11Y-01 requirement as complete | `.planning/REQUIREMENTS.md` (+2/-2) | VERIFIED — exists in git history |
 
 ---
 

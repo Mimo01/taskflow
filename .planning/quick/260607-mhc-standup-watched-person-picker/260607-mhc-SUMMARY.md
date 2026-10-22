@@ -66,12 +66,12 @@ completed: 2026-06-07
 
 ## Task Commits
 
-1. **Task 1 (RED): failing tests for resolveEffectiveIdentity** - `47803cfc` (test)
-2. **Task 1 (GREEN): effective-identity helper + WatchedPersonPicker** - `a050dce9` (feat)
-3. **Task 2: thread effective identity through standup page + mount picker** - `39a7de22` (feat)
-4. **Task 3: thread effective identity into TodayColumn + not-matched hint** - `ae20b96e` (feat)
+1. **Task 1 (RED): failing tests for resolveEffectiveIdentity** - `afbe4332` (test)
+2. **Task 1 (GREEN): effective-identity helper + WatchedPersonPicker** - `28e4a494` (feat)
+3. **Task 2: thread effective identity through standup page + mount picker** - `64fcd956` (feat)
+4. **Task 3: thread effective identity into TodayColumn + not-matched hint** - `2deb2276` (feat)
 
-_Task 1 followed TDD: RED (`47803cfc`, test fails — module missing) → GREEN (`a050dce9`, 5/5 pass)._
+_Task 1 followed TDD: RED (`afbe4332`, test fails — module missing) → GREEN (`28e4a494`, 5/5 pass)._
 
 ## Files Created/Modified
 - `effectiveIdentity.ts` - Pure `resolveEffectiveIdentity(auth, watchedUser)` + `EffectiveIdentity`/`AuthIdentity` types; watched branch forces all GitLab fields to null.
@@ -96,7 +96,7 @@ _Task 1 followed TDD: RED (`47803cfc`, test fails — module missing) → GREEN 
 - **Fix:** Changed the guard to `(!!id.gitlabUsername || !!id.gitlabName)`. `fetchUserCommits` already accepts an empty username plus a name for git-author matching.
 - **Files modified:** taskflow/src/routes/standup-notes/StandupNotesPage.tsx
 - **Verification:** `npm run check` clean; standup suite 70/70; logic matches plan truth 3.
-- **Committed in:** `39a7de22` (Task 2 commit)
+- **Committed in:** `64fcd956` (Task 2 commit)
 
 **2. [Rule 2 - Missing Critical] Hide MR sections (not just empty) when watching an unmatched person**
 - **Found during:** Task 3
@@ -104,7 +104,7 @@ _Task 1 followed TDD: RED (`47803cfc`, test fails — module missing) → GREEN 
 - **Fix:** Gated both `TodayMrsSection` and `TodayParticipatingSection` on `!showNotMatchedHint` in addition to `!!gitlabBaseUrl`, and surfaced the explicit "not matched" hint instead.
 - **Files modified:** taskflow/src/routes/standup-notes/TodayColumn.tsx
 - **Verification:** `npm run check` clean; standup suite 70/70.
-- **Committed in:** `ae20b96e` (Task 3 commit)
+- **Committed in:** `2deb2276` (Task 3 commit)
 
 ---
 
@@ -126,7 +126,7 @@ None. The "not matched" hint is intentional UX (a watched person legitimately ha
 ## Self-Check: PASSED
 
 - All created files present (effectiveIdentity.ts, effectiveIdentity.test.ts, WatchedPersonPicker.tsx).
-- All task commits present (47803cfc, a050dce9, 39a7de22, ae20b96e).
+- All task commits present (afbe4332, 28e4a494, 64fcd956, 2deb2276).
 - `npm run check` GREEN (466 files); `vitest run src/routes/standup-notes/` 70/70.
 
 ---

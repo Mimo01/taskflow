@@ -39,7 +39,7 @@ wired at all three call sites including the sticky overlay.
 
 ## What Was Built
 
-**Task 1 — StoryHeaderRow.tsx** (commit `743a2d82`, refined in `0ec11e41`):
+**Task 1 — StoryHeaderRow.tsx** (commit `4a2df1bd`, refined in `ef5034b3`):
 - Added optional `onOpenIssue?: (key: string) => void` prop and `useKeyBodySplit = !!onOpenIssue` switch.
 - Outer row wrapper now branches into a static `div[role=button]` peek target
   (split path) vs. a plain non-interactive `<div>` (degraded path), with the row
@@ -55,7 +55,7 @@ wired at all three call sites including the sticky overlay.
   block, status badge, subtask count, transitionError all unchanged.
 - JSDoc updated to document the body→peek / key→full-page behavior.
 
-**Task 2 — SprintBoardTab.tsx** (commit `0ec11e41`):
+**Task 2 — SprintBoardTab.tsx** (commit `ef5034b3`):
 - Added `onOpenIssue={onOpenIssue}` to all three `StoryHeaderRow` instantiations
   (in-list virtualized x2 + sticky overlay), immediately after `onOpenDetail={setSelectedIssueKey}`.
 - Total `onOpenIssue={onOpenIssue}` occurrences in the file is now 8 (4 prior card sites + 3 story-row sites + 1 other card site).
@@ -79,7 +79,7 @@ wired at all three call sites including the sticky overlay.
   suppression applies cleanly and `noStaticElementInteractions` no longer fires (no
   extra suppression needed, matching TaskCard).
 - **Files modified:** taskflow/src/routes/dashboard/StoryHeaderRow.tsx
-- **Commit:** `0ec11e41`
+- **Commit:** `ef5034b3`
 
 ## Verification
 
@@ -96,5 +96,5 @@ None.
 
 - FOUND: taskflow/src/routes/dashboard/StoryHeaderRow.tsx
 - FOUND: taskflow/src/routes/dashboard/SprintBoardTab.tsx
-- FOUND commit: 743a2d82
-- FOUND commit: 0ec11e41
+- FOUND commit: 4a2df1bd
+- FOUND commit: ef5034b3

@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Re-implement dnd-kit sortable sidebar item reordering in Settings > Appearance. The `reorderSidebarItem` store action exists but is not wired to the UI — SidebarItemsList was stripped of dnd-kit sortable during post-verification cleanup (commit 850ed04). This phase restores that functionality.
+Re-implement dnd-kit sortable sidebar item reordering in Settings > Appearance. The `reorderSidebarItem` store action exists but is not wired to the UI — SidebarItemsList was stripped of dnd-kit sortable during post-verification cleanup (commit 33ddf788). This phase restores that functionality.
 
 </domain>
 

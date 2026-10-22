@@ -68,7 +68,7 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: Change hotkey from ? to mod+/ across all three files** - `8e37ec6` (feat)
+1. **Task 1: Change hotkey from ? to mod+/ across all three files** - `aaf97cbb` (feat)
 2. **Task 2: Run full test suite and verify no regressions** - (verification only, no new files changed)
 
 **Plan metadata:** (docs commit — created below)

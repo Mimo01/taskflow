@@ -22,7 +22,7 @@ findings:
   info: 4
   total: 9
 status: resolved
-resolution_commit: e3f3b752
+resolution_commit: cb1ba22a
 resolved:
   - WR-01 (DashboardSprintCard active-sprint queryKey now includes jiraBaseUrl)
   - WR-02 (onboarding resets jiraBoardId on project change)

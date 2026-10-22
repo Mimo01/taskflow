@@ -54,7 +54,7 @@ human_verification:
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `taskflow/src/hooks/useResizable.ts` | Shared drag-resize hook | VERIFIED | 84 lines, exports `useResizable` with full implementation including `direction` option added in bug-fix commit 4a8ada6 |
+| `taskflow/src/hooks/useResizable.ts` | Shared drag-resize hook | VERIFIED | 84 lines, exports `useResizable` with full implementation including `direction` option added in bug-fix commit 721545f9 |
 | `taskflow/src/stores/settings.store.ts` | Persisted width state at version 14 | VERIFIED | version: 14, all four width fields in interface and impl, v14 migration guard present |
 | `taskflow/src/stores/settings.store.test.ts` | Unit tests for Phase 50 width fields | VERIFIED | "resize panel widths (Phase 50)" describe block found at line 214; 26 tests pass (100%) |
 | `taskflow/src/components/app/Sidebar.tsx` | Main nav sidebar with drag-to-resize | VERIFIED | Inline style width, drag handle conditionally rendered, collapse at 64px, -right-px w-3 handle (bug 3 fix) |

@@ -4,9 +4,9 @@
 
 | Task | Commit | Message |
 | ---- | ------ | ------- |
-| 1 | 1c91e0cc | zoom threshold, visible presets, shorter confidence reasons |
-| 2 | 828396d4 | aligned confidence meter, conditional zoom |
-| 3 | 30b1eb13 | one-line risks with per-risk issue popover |
+| 1 | 9f802f70 | zoom threshold, visible presets, shorter confidence reasons |
+| 2 | 9736e3d5 | aligned confidence meter, conditional zoom |
+| 3 | c348069d | one-line risks with per-risk issue popover |
 
 Each commit passed the full pre-commit hook (biome, tsc, full vitest: 3111 passed on the last).
 

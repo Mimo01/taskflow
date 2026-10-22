@@ -22,7 +22,7 @@ overrides_applied: 0
 | 1 | Primary row left content scrolls horizontally on overflow instead of widening page | ✓ VERIFIED | `UnifiedFilterBar.tsx:330` — left region `flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar` wraps hint + presets + chip block |
 | 2 | Right-side action buttons (Save / Save Filter / savingName input / Filter toggle) stay pinned right, unaffected by scroll | ✓ VERIFIED | `UnifiedFilterBar.tsx:482` — `shrink-0 flex items-center gap-1.5` group contains all four control sets (lines 484-561) outside the scroll region |
 | 3 | Expanded `filtersOpen` row also scrolls horizontally instead of dragging page | ✓ VERIFIED | `UnifiedFilterBar.tsx:578` — matching `flex-1 min-w-0 ... overflow-x-auto no-scrollbar` region wraps the 4 FilterDropdowns + chip block |
-| 4 | QuickFilterChipRow remains untouched | ✓ VERIFIED | File at `src/routes/dashboard/QuickFilterChipRow.tsx`; last commit `35798b89` (prior unrelated task `quick-260531-2el`); not in task commit range (`e5ad4e5d`/`dc9fbbd8` touched only `UnifiedFilterBar.tsx`) |
+| 4 | QuickFilterChipRow remains untouched | ✓ VERIFIED | File at `src/routes/dashboard/QuickFilterChipRow.tsx`; last commit `9bc863f8` (prior unrelated task `quick-260531-2el`); not in task commit range (`736b1bfd`/`f426f7e0` touched only `UnifiedFilterBar.tsx`) |
 | 5 | `npm run check` (biome + tsc) stays green | ✓ VERIFIED | `npm run check`: "Checked 447 files. No fixes applied." — exit 0 |
 
 **Score:** 5/5 truths verified

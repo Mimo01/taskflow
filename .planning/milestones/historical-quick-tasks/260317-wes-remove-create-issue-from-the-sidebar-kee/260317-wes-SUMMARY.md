@@ -43,7 +43,7 @@ Removed the Create Issue button and all associated code from the Sidebar compone
    - Removed `onOpenCreate={handleOpenCreate}` prop from `<Sidebar>` call
    - `handleOpenCreate` kept intact -- still used by CommandPalette (line 404)
 
-**Commit:** `6c7951b`
+**Commit:** `095a74b4`
 
 ## Verification
 
@@ -66,4 +66,4 @@ Removed the Create Issue button and all associated code from the Sidebar compone
 
 - [x] taskflow/src/components/app/Sidebar.tsx exists and has no Create Issue button
 - [x] taskflow/src/main.tsx has `<Sidebar />` without onOpenCreate
-- [x] Commit 6c7951b exists and contains the changes
+- [x] Commit 095a74b4 exists and contains the changes

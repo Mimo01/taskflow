@@ -42,7 +42,7 @@ Wire the greenhopper adapter foundation into the project's import graph: ship th
 
 ## What Shipped
 
-### Task 1 — `src/services/jira/greenhopper/index.ts` (commit `6d2462d7`)
+### Task 1 — `src/services/jira/greenhopper/index.ts` (commit `280ed7b2`)
 
 14-line barrel modeled verbatim on `src/services/aio/index.ts`:
 
@@ -60,7 +60,7 @@ export * from './types';
 - Doc-comment text mentions `'./client'` (mirrors aio analog) but is not a code export.
 - Alphabetical order matches aio/index.ts style.
 
-### Task 2 — `src/services/jira.ts` re-export blocks (commit `89f4f201`)
+### Task 2 — `src/services/jira.ts` re-export blocks (commit `d0bbc65c`)
 
 Two appended blocks at the bottom of `services/jira.ts` (after `fetchEpicStories`, line 2729+):
 
@@ -94,7 +94,7 @@ Both blocks point at `'./jira/greenhopper'` — verified by `grep -c "from './ji
 - **Issue:** Biome wants `export type {}` before `export {}` and alphabetical members
 - **Fix:** Ran `npx biome check --write src/services/jira.ts` — Biome auto-sorted both blocks
 - **Files modified:** `taskflow/src/services/jira.ts` (final committed state has type block first, then value block, both alphabetical)
-- **Commit:** `89f4f201`
+- **Commit:** `d0bbc65c`
 - **Functional impact:** None — re-export name set is identical to the spec; only the order in source changed
 
 ### Out-of-Scope (Deferred)
@@ -116,8 +116,8 @@ The plan's acceptance criterion `biome check src/services/jira.ts src/services/j
 
 - [x] `taskflow/src/services/jira/greenhopper/index.ts` exists (file present)
 - [x] `taskflow/src/services/jira.ts` modified with 2 `from './jira/greenhopper'` lines (`grep -c == 2`)
-- [x] Commit `6d2462d7` exists (Task 1)
-- [x] Commit `89f4f201` exists (Task 2)
+- [x] Commit `280ed7b2` exists (Task 1)
+- [x] Commit `d0bbc65c` exists (Task 2)
 - [x] `npx tsc --noEmit` clean
 - [x] `npx vitest run` green (1619 passed)
 

@@ -60,8 +60,8 @@ completed: 2026-03-19
 
 Each task was committed atomically:
 
-1. **Task 1: Update minor/patch dependencies and fix vulnerabilities** - `cea165a` (chore)
-2. **Task 2: Update major dependencies (Vite 8, plugin-react 6, TypeScript 5.9, jsdom 29)** - `0abcdc3` (feat)
+1. **Task 1: Update minor/patch dependencies and fix vulnerabilities** - `fe79f5b1` (chore)
+2. **Task 2: Update major dependencies (Vite 8, plugin-react 6, TypeScript 5.9, jsdom 29)** - `f6003d46` (feat)
 
 ## Files Created/Modified
 - `taskflow/package.json` - Updated all dependency version ranges, removed autoprefixer and postcss

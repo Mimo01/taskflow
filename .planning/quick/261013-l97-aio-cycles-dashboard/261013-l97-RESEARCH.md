@@ -33,7 +33,7 @@
 
 The page already loads everything the dashboard needs. `cyclesWithDetailQuery.data.items` holds every cycle in scope, paginated with no 500 cap. `summaryByID` holds each cycle's test-run distribution. `configQuery.data` holds the status config. All KPIs and charts are **pure derivations of data the page already has**. No new endpoints are needed, except optional owner-name lookups that reuse the cached `OwnerCell` query key.
 
-**Two context assumptions are wrong.** `StatTile` and `ChartWrapper` no longer exist. They were deleted in Phase 86 (16dd5f68) and quick-260616-mmw (34937814). `routes/dashboard/widget-removal.guard.test.ts` also **fails the build if `routes/dashboard/StatTile.tsx` (or `.test.tsx`) exists**. The current primitives are `<Card>`, the `EpicStatCard` geometry (`STAT_CARD_CLASS`, `StatCardBody`), `TooltipBody`/`TooltipRow`, `BandBar`, `ChartContainer` and `clickableCard`.
+**Two context assumptions are wrong.** `StatTile` and `ChartWrapper` no longer exist. They were deleted in Phase 86 (854ca46a) and quick-260616-mmw (f35ebe4d). `routes/dashboard/widget-removal.guard.test.ts` also **fails the build if `routes/dashboard/StatTile.tsx` (or `.test.tsx`) exists**. The current primitives are `<Card>`, the `EpicStatCard` geometry (`STAT_CARD_CLASS`, `StatCardBody`), `TooltipBody`/`TooltipRow`, `BandBar`, `ChartContainer` and `clickableCard`.
 
 Recharts 3.8 has no keyboard activation for Bar or Pie clicks: Enter only toggles the tooltip. Clickable chart elements must therefore be **HTML/CSS bars built from `<button>`s**. This is the pattern ProgressCell, BandBar and the epic "By person" rows already use.
 

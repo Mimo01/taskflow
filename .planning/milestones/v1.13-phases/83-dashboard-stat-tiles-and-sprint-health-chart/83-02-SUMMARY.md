@@ -121,7 +121,7 @@ Cache-seeding test pattern: `QueryClient.setQueryData()` pre-seeds both cache sl
 - **Issue:** Test `applies iconClass to the icon element` queried `icon?.className` on an SVG element. In jsdom, SVG `className` is an `SVGAnimatedString` object, not a regular string, so `.toContain('text-destructive')` always failed
 - **Fix:** Changed to `icon?.getAttribute('class')` which returns the raw class string in jsdom
 - **Files modified:** `StatTile.test.tsx`
-- **Commit:** `eaa5fa84` (folded into Task 1 commit after fix)
+- **Commit:** `05face10` (folded into Task 1 commit after fix)
 
 **2. [Infrastructure] node_modules symlink recreated for worktree**
 - Same as 83-01: worktree's `taskflow/` has no `node_modules`; created symlink to main repo's `node_modules` to allow vitest to resolve. No production code affected.

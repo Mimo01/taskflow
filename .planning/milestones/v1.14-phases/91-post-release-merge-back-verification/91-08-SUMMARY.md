@@ -66,9 +66,9 @@ completed: 2026-08-11
 
 Each task was committed atomically:
 
-1. **Task 1: Thread the tag query's failure and in-flight signals into the resolver** - `550bcc53` (fix)
-2. **Task 2: Hook tests for a slow-resolving and a rejecting searchProjectTags** - `694f1088` (test)
-3. **Task 3: Restore the four (five) newly-flagged files to a clean biome check** - `c28984b9` (style)
+1. **Task 1: Thread the tag query's failure and in-flight signals into the resolver** - `c88be3d8` (fix)
+2. **Task 2: Hook tests for a slow-resolving and a rejecting searchProjectTags** - `5147bd27` (test)
+3. **Task 3: Restore the four (five) newly-flagged files to a clean biome check** - `a24248e5` (style)
 
 _No separate plan-metadata commit — worktree mode; orchestrator handles STATE.md/ROADMAP.md centrally after merge._
 
@@ -108,4 +108,4 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-All 5 modified source/test files and the SUMMARY.md itself found on disk; all 4 commit hashes (`550bcc53`, `694f1088`, `c28984b9`, `4bcaedb3`) found in git log.
+All 5 modified source/test files and the SUMMARY.md itself found on disk; all 4 commit hashes (`c88be3d8`, `5147bd27`, `a24248e5`, `9d354ce3`) found in git log.

@@ -74,8 +74,8 @@ completed: 2026-03-16
 
 Each task was committed atomically:
 
-1. **Task 1: Replace empty/error states in MyTasksTab, SprintBoardTab, SprintProgressTab** - `e86b442` (feat)
-2. **Task 2: Replace empty/error states in BacklogPage and MrAttentionTab** - `4c4105a` (feat)
+1. **Task 1: Replace empty/error states in MyTasksTab, SprintBoardTab, SprintProgressTab** - `873c8e29` (feat)
+2. **Task 2: Replace empty/error states in BacklogPage and MrAttentionTab** - `3bec4e59` (feat)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/MyTasksTab.tsx` - EmptyState + ErrorState + StaleDataBanner integration
@@ -105,7 +105,7 @@ Each task was committed atomically:
 - **Fix:** Added `useNavigate: vi.fn(() => vi.fn())` to all affected test mock factories
 - **Files modified:** MyTasksTab.test.tsx, SprintBoardTab.test.tsx, SprintProgressTab.test.tsx, BacklogPage.test.tsx, MrAttentionTab.test.tsx
 - **Verification:** All 439 tests pass
-- **Committed in:** e86b442 (Task 1) and 4c4105a (Task 2)
+- **Committed in:** 873c8e29 (Task 1) and 3bec4e59 (Task 2)
 
 **2. [Rule 1 - Bug] Fixed bannerDismissed useEffect placement in SprintBoardTab**
 - **Found during:** Task 1
@@ -113,7 +113,7 @@ Each task was committed atomically:
 - **Fix:** Moved state declaration and effect after the useQuery call
 - **Files modified:** taskflow/src/routes/dashboard/SprintBoardTab.tsx
 - **Verification:** All SprintBoardTab tests pass
-- **Committed in:** e86b442 (Task 1)
+- **Committed in:** 873c8e29 (Task 1)
 
 **3. [Rule 1 - Bug] Updated test assertions for new component text patterns**
 - **Found during:** Task 1
@@ -121,7 +121,7 @@ Each task was committed atomically:
 - **Fix:** Updated findByText matchers to match ErrorState ("Couldn't load...") and EmptyState ("You're all caught up!", "No sprint issues", "No sprint data yet") text
 - **Files modified:** MyTasksTab.test.tsx, SprintBoardTab.test.tsx, SprintProgressTab.test.tsx
 - **Verification:** All tests pass
-- **Committed in:** e86b442 (Task 1)
+- **Committed in:** 873c8e29 (Task 1)
 
 **4. [Rule 1 - Bug] Fixed findByText multiple match errors in SprintProgressTab tests**
 - **Found during:** Task 1
@@ -129,7 +129,7 @@ Each task was committed atomically:
 - **Fix:** Changed `findByText(/to do/i)` to `findAllByText(/to do/i)` in affected assertions
 - **Files modified:** SprintProgressTab.test.tsx
 - **Verification:** All SprintProgressTab tests pass
-- **Committed in:** e86b442 (Task 1)
+- **Committed in:** 873c8e29 (Task 1)
 
 ---
 

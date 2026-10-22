@@ -20,7 +20,7 @@ Added a one-click "Assign to me" button at the top of the Assignee popover in `t
 
 ## Commits
 
-- `d974d1b` feat(quick-260518-d7z-01): add Assign to me quick action to assignee popover
+- `46952e0c` feat(quick-260518-d7z-01): add Assign to me quick action to assignee popover
 
 ## Files changed
 
