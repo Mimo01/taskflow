@@ -17,7 +17,9 @@ export function foldText(text: string): FoldedText {
   const ends: number[] = [];
   let i = 0;
   for (const ch of text) {
-    const f = ch.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+    // Whitespace runs (incl. nbsp/newlines) collapse to one space, like rendered text
+    let f = /\s/.test(ch) ? (folded.endsWith(' ') ? '' : ' ') : ch;
+    f = f.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
     for (let k = 0; k < f.length; k++) {
       starts.push(i);
       ends.push(i + ch.length);
@@ -103,9 +105,7 @@ export function collectRuns(scope: Element): TextRun[] {
           ? NodeFilter.FILTER_REJECT
           : NodeFilter.FILTER_SKIP;
       }
-      return (node.nodeValue ?? '').trim() === ''
-        ? NodeFilter.FILTER_REJECT
-        : NodeFilter.FILTER_ACCEPT;
+      return NodeFilter.FILTER_ACCEPT;
     },
   });
   const runs: TextRun[] = [];
@@ -124,6 +124,9 @@ export function collectRuns(scope: Element): TextRun[] {
       current.parent === parent &&
       onlyTextBetween(lastNode, t);
     if (!contiguous) {
+      // Whitespace-only nodes never start a run, but are kept inside one so
+      // "foo{' '}bar" stays "foo bar" rather than "foobar".
+      if ((t.nodeValue ?? '').trim() === '') continue;
       current = { text: '', segments: [], parent };
       runs.push(current);
     }

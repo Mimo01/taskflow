@@ -70,6 +70,24 @@ describe('collectRuns', () => {
     expect(ranges[0].startContainer).not.toBe(ranges[0].endContainer);
     expect(ranges[0].toString()).toBe('3 items');
   });
+  it('keeps whitespace-only text nodes inside a run', () => {
+    const p = document.createElement('p');
+    p.append(
+      document.createTextNode('foo'),
+      document.createTextNode(' '),
+      document.createTextNode('bar'),
+    );
+    document.body.append(p);
+    const runs = collectRuns(document.body);
+    expect(runs.map((r) => r.text)).toEqual(['foo bar']);
+    expect(buildMatchRanges(runs, 'foobar', () => true).ranges).toHaveLength(0);
+    expect(buildMatchRanges(runs, 'foo bar', () => true).ranges).toHaveLength(1);
+  });
+  it('matches collapsed whitespace and nbsp against a single space', () => {
+    expect(findInRuns(['foo\u00a0 \n bar'], 'foo bar').matches).toEqual([
+      { run: 0, start: 0, end: 10 },
+    ]);
+  });
   it('does not match across element boundaries', () => {
     document.body.innerHTML = '<table><tr><td>Status</td><td>Done</td></tr></table>';
     const runs = collectRuns(document.body);

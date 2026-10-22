@@ -260,11 +260,17 @@ function AppLayout() {
 
   const openFind = useCallback(() => {
     if (paletteOpenRef.current) return;
+    const resolved = resolveFindScope();
     if (findOpenRef.current) {
+      // Re-target if a dialog/peek opened (or the old scope went away) since find was opened
+      if (resolved) {
+        setFindState((prev) =>
+          prev && prev.scope !== resolved.el ? { scope: resolved.el, kind: resolved.kind } : prev,
+        );
+      }
       setFindFocusSignal((n) => n + 1);
       return;
     }
-    const resolved = resolveFindScope();
     if (!resolved) return;
     findReturnFocusRef.current = document.activeElement;
     findOpenRef.current = true;
@@ -289,7 +295,7 @@ function AppLayout() {
   // PALETTE-01: Cmd+Shift+F opens command palette; Cmd+F opens find-in-page — capture-phase to suppress WKWebView's native find regardless of focus target
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyF' && !e.altKey) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && !e.altKey) {
         e.preventDefault();
         if (e.shiftKey) setPaletteOpen(true);
         else openFind();

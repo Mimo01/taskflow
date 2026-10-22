@@ -110,18 +110,25 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
     recompute(query, 'query');
   }, [query, scope]);
 
-  // Live updates: debounced MutationObserver on the scope.
+  // Live updates: throttled MutationObserver on the whole body, so removal of the
+  // scope itself (dialog/peek closing) and newly opened layers are seen too.
+  // Trailing throttle (timer not reset) so constantly-mutating pages still refresh.
   // biome-ignore lint/correctness/useExhaustiveDependencies: recompute reads refs only
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const mo = new MutationObserver((records) => {
+      if (!scope.isConnected) {
+        clearTimeout(timer);
+        onCloseRef.current();
+        return;
+      }
       const relevant = records.some((r) => {
         const el = r.target instanceof Element ? r.target : r.target.parentElement;
         return !el?.closest('[data-find-bar]');
       });
-      if (!relevant) return;
-      clearTimeout(timer);
+      if (!relevant || timer) return;
       timer = setTimeout(() => {
+        timer = undefined;
         const resolved = resolveFindScope();
         if (!scope.isConnected || resolved?.el !== scope) {
           onCloseRef.current();
@@ -130,7 +137,7 @@ export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {
         if (queryRef.current.trim()) recompute(queryRef.current, 'mutation');
       }, 150);
     });
-    mo.observe(scope, { childList: true, subtree: true, characterData: true });
+    mo.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => {
       mo.disconnect();
       clearTimeout(timer);

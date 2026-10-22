@@ -75,6 +75,18 @@ describe('FindBar', () => {
     expect(scrollSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('closes when its scope element is removed from the document', async () => {
+    const wrapper = document.createElement('div');
+    document.body.append(wrapper);
+    wrapper.append(scope);
+    const { onClose } = renderBar();
+    wrapper.remove();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('shows No results and clears on empty query', () => {
     renderBar();
     type('zzz');
