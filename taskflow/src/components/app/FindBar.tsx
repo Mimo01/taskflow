@@ -29,10 +29,25 @@ function highlightsSupported(): boolean {
   );
 }
 
+// WebKit only repaints ranges removed via the Highlight's own set API — replacing or
+// deleting a registry entry leaves stale paint behind. So mutate one Highlight per
+// name in place, and clear() it before deleting.
+function getHighlight(name: string, priority: number): Highlight {
+  let h = CSS.highlights.get(name);
+  if (!h) {
+    h = new Highlight();
+    h.priority = priority;
+    CSS.highlights.set(name, h);
+  }
+  return h;
+}
+
 function clearHighlights() {
   if (!highlightsSupported()) return;
-  CSS.highlights.delete(HL_ALL);
-  CSS.highlights.delete(HL_CURRENT);
+  for (const name of [HL_ALL, HL_CURRENT]) {
+    CSS.highlights.get(name)?.clear();
+    CSS.highlights.delete(name);
+  }
 }
 
 function paint(ranges: Range[], idx: number) {
@@ -41,15 +56,13 @@ function paint(ranges: Range[], idx: number) {
     clearHighlights();
     return;
   }
-  CSS.highlights.set(HL_ALL, new Highlight(...ranges));
+  const all = getHighlight(HL_ALL, 0);
+  all.clear();
+  for (const r of ranges) all.add(r);
+  const current = getHighlight(HL_CURRENT, 1);
+  current.clear();
   const cur = ranges[idx];
-  if (cur) {
-    const h = new Highlight(cur);
-    h.priority = 1;
-    CSS.highlights.set(HL_CURRENT, h);
-  } else {
-    CSS.highlights.delete(HL_CURRENT);
-  }
+  if (cur) current.add(cur);
 }
 
 export function FindBar({ scope, kind, focusSignal, onClose }: FindBarProps) {

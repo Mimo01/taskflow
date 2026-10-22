@@ -2,11 +2,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FindBar } from './FindBar';
 
-class FakeHighlight {
-  ranges: Range[];
+class FakeHighlight extends Set<Range> {
   priority = 0;
   constructor(...ranges: Range[]) {
-    this.ranges = ranges;
+    super(ranges);
+  }
+  get ranges() {
+    return [...this];
   }
 }
 
@@ -85,6 +87,20 @@ describe('FindBar', () => {
       await new Promise((r) => setTimeout(r, 0));
     });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('narrowing the query updates the same Highlight in place (WebKit repaint)', () => {
+    scope.innerHTML = '<p>cafe</p><p>caf</p>';
+    renderBar();
+    type('caf');
+    const all = hl('find-all');
+    const current = hl('find-current');
+    expect(all?.ranges).toHaveLength(2);
+    type('cafe');
+    expect(hl('find-all')).toBe(all);
+    expect(hl('find-current')).toBe(current);
+    expect(all?.ranges).toHaveLength(1);
+    expect(all?.ranges[0].toString()).toBe('cafe');
   });
 
   it('shows No results and clears on empty query', () => {
