@@ -14,3 +14,11 @@ None. Pass rate tile untouched and gated only on countsLoading. Old retest/unlin
 See PLAN Task 3 human-check: confirm Not Run executions carry steps (assumption A1); if not, steps-executed / steps-per-case undercount and the testcase-detail fallback is a follow-up.
 
 ## Self-Check: PASSED
+
+## Follow-up after UAT (2026-10-22)
+
+- Step data was slow (one run-detail request per case). Live checks showed the `testcasewithrun/paged` step fields are always null and no cycle-level GET carries steps.
+- AIO's own cycle-summary dashboard gadget uses `POST /rest/aio-tcms/1.0/project/{jiraProjectId}/report/multicycle/summary/open` (`additionalInsight: 'STEP'`), which returns the cycle's step distribution by step status ID in one request. `fetchAioCycleStepSummary` now feeds the step tiles. The per-run fan-out, `p-limit` throttle and `aio-step-stats.ts` were removed (4653e598 → eeda7384).
+- The Steps per case tooltip shows Cases / With steps, because the report has no per-case step counts.
+- The "do Not Run executions return steps?" question is moot: totals come from AIO itself.
+- UAT approved.

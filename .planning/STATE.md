@@ -186,7 +186,7 @@ None yet.
 | 261022-h1q | Cmd+Shift+F opens global search; Cmd+F searches current page content only (custom find bar, accent/case-insensitive, live) | 2026-10-22 | 80214321 | Verified (UAT) | [261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se](./quick/261022-h1q-cmd-shift-f-opens-global-search-cmd-f-se/) |
 | 261022-jzt | AIO cycle Defect Summary: friendly no-defects empty state (green BugOff badge + text) instead of empty grey ring | 2026-10-22 | 04f86c31 | Verified (UAT) | [261022-jzt-aio-tc-detail-defect-summary-empty-state](./quick/261022-jzt-aio-tc-detail-defect-summary-empty-state/) |
 | 261022-k5j | AIO cycle Burndown: compact empty state (Hourglass "Testing not started" / ClipboardList "No test cases") instead of empty space before first execution | 2026-10-22 | 2dabcab2 | Verified (UAT) | [261022-k5j-aio-tc-detail-empty-state-when-no-burndo](./quick/261022-k5j-aio-tc-detail-empty-state-when-no-burndo/) |
-| 261022-kd8 | AIO cycle KPI tiles: keep Pass rate, replace Ready to retest / Unlinked failures / Re-runs with step tiles (Step pass rate, Steps executed, Steps per case) via throttled per-run step fetch | 2026-10-22 | 0150ae64 | Needs Review | [261022-kd8-aio-tc-detail-metric-cards](./quick/261022-kd8-aio-tc-detail-metric-cards/) |
+| 261022-kd8 | AIO cycle KPI tiles: keep Pass rate, replace Ready to retest / Unlinked failures / Re-runs with step tiles (Step pass rate, Steps executed, Steps per case) from one AIO report request | 2026-10-22 | eeda7384 | Verified (UAT) | [261022-kd8-aio-tc-detail-metric-cards](./quick/261022-kd8-aio-tc-detail-metric-cards/) |
 
 ## Deferred Items
 
