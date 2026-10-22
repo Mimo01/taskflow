@@ -40,6 +40,23 @@ describe('CycleBurndown', () => {
     expect(el.style.height).toBe('');
   });
 
+  it('renders a not-started empty state that fills its parent', () => {
+    render(<CycleBurndown series={null} loading={false} />);
+    const el = screen.getByTestId('cycle-burndown-empty');
+    expect(el.className).toContain('absolute');
+    expect(el.className).toContain('inset-0');
+    expect(screen.getByText('Testing not started')).toBeDefined();
+    expect(screen.getByText('Burndown appears after the first execution')).toBeDefined();
+    expect(screen.queryByTestId('cycle-burndown')).toBeNull();
+  });
+
+  it('renders the no-cases copy when noCases is set', () => {
+    render(<CycleBurndown series={null} loading={false} noCases />);
+    expect(screen.getByText('No test cases in this cycle')).toBeDefined();
+    expect(screen.getByText('Add test cases to track progress')).toBeDefined();
+    expect(screen.queryByText('Testing not started')).toBeNull();
+  });
+
   it('renders the chart wrapper for a series', () => {
     const series = cycleBurndownSeries(
       [run('PASS', s + D), run('NOT_EXECUTED')],
@@ -68,9 +85,16 @@ describe('CycleKpiTiles burndown section', () => {
     expect(screen.getByText('Burndown')).toBeDefined();
   });
 
-  it('hides the section when nothing was executed', () => {
+  it('shows the not-started empty state when nothing was executed', () => {
     tiles([run('NOT_EXECUTED'), run('NOT_EXECUTED')]);
-    expect(screen.queryByText('Burndown')).toBeNull();
+    expect(screen.getByText('Burndown')).toBeDefined();
+    expect(screen.getByText('Testing not started')).toBeDefined();
+    expect(screen.queryByTestId('cycle-burndown')).toBeNull();
+  });
+
+  it('shows the no-cases empty state for an empty cycle', () => {
+    tiles([]);
+    expect(screen.getByText('No test cases in this cycle')).toBeDefined();
   });
 });
 

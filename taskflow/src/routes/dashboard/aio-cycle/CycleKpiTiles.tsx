@@ -25,7 +25,7 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  * what those cannot (pass rate of executed, re-runs, unlinked failures, open defects).
  *
  * A Burndown column (remaining cases over time against a working-day ideal) is part of the
- * block; it is hidden when nothing has been executed. The plot is absolutely positioned inside
+ * block; before the first execution (or with no cases) it shows a compact empty state in the same space. The plot is absolutely positioned inside
  * its section, so it never adds height: the sibling columns set the row height and it fills it.
  *
  * Two layouts on the block's own container width (content box, so the page is 56px wider):
@@ -201,16 +201,14 @@ export function CycleKpiTiles({
               )}
             </div>
           </Section>
-          {!runs || burndown ? (
-            <Section
-              title="Burndown"
-              className={BURNDOWN_CLASS}
-              headingClassName={SIDE_HEADING_CLASS}
-              bodyClassName="relative min-h-[140px] items-stretch @4xl/epic:min-h-[110px]"
-            >
-              <CycleBurndown series={burndown} loading={!runs} />
-            </Section>
-          ) : null}
+          <Section
+            title="Burndown"
+            className={BURNDOWN_CLASS}
+            headingClassName={SIDE_HEADING_CLASS}
+            bodyClassName="relative min-h-[140px] items-stretch @4xl/epic:min-h-[110px]"
+          >
+            <CycleBurndown series={burndown} loading={!runs} noCases={runs?.length === 0} />
+          </Section>
         </div>
         <div className="flex min-w-0 gap-6 @4xl/epic:contents">
           <Section

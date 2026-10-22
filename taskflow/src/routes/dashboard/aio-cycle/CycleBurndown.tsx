@@ -7,7 +7,9 @@
  * status colour is on the diamonds.
  *
  * The wrapper is absolutely positioned: its parent supplies the height, so the chart adds none.
+ * With no series (nothing executed yet, or no cases) it shows a compact empty state filling the same box.
  */
+import { ClipboardList, Hourglass } from 'lucide-react';
 import { useRef } from 'react';
 import {
   Area,
@@ -118,9 +120,12 @@ function BurndownTooltip({
 export function CycleBurndown({
   series,
   loading,
+  noCases = false,
 }: {
   series: BurndownSeries | null;
   loading: boolean;
+  /** The cycle has no test cases at all (changes the empty-state copy). */
+  noCases?: boolean;
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(plotRef);
@@ -130,7 +135,29 @@ export function CycleBurndown({
       <Skeleton data-testid="cycle-burndown-skeleton" className="absolute inset-0 rounded-md" />
     );
   }
-  if (!series) return null;
+  if (!series) {
+    const Icon = noCases ? ClipboardList : Hourglass;
+    return (
+      <div
+        data-testid="cycle-burndown-empty"
+        className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center"
+      >
+        <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Icon className="size-5" aria-hidden />
+        </div>
+        <div className="min-w-0 max-w-full">
+          <div className="truncate text-sm font-medium">
+            {noCases ? 'No test cases in this cycle' : 'Testing not started'}
+          </div>
+          <div className="truncate text-xs text-muted-foreground">
+            {noCases
+              ? 'Add test cases to track progress'
+              : 'Burndown appears after the first execution'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const spanDays = (series.to - series.from) / DAY_MS;
   const showBands = spanDays > 0 && width / spanDays >= MIN_BAND_DAY_PX;
