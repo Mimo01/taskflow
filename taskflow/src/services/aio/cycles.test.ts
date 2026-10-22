@@ -5,6 +5,7 @@ vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 import { apiFetch } from '../../lib/apiFetch';
 import {
   fetchAioCycleDetail,
+  fetchAioCycleStepSummary,
   fetchAioCycleSummaries,
   fetchAioCycles,
   fetchAioCyclesInFolders,
@@ -375,6 +376,88 @@ describe('fetchAioCycleSummaries', () => {
     await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [])).rejects.toThrow(
       'Cannot reach AIO at',
     );
+  });
+});
+
+describe('fetchAioCycleStepSummary', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const STATUSES = [
+    { ID: 51, statusType: 'NOT_RUN' },
+    { ID: 52, statusType: 'IN_PROGRESS' },
+    { ID: 53, statusType: 'PASSED' },
+    { ID: 54, statusType: 'FAILED' },
+    { ID: 55, statusType: 'BLOCKED' },
+    { ID: 901, statusType: 'PASSED' },
+  ];
+  const ok = (body: unknown) =>
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => body,
+    } as unknown as Response);
+
+  it('POSTs the STEP report for one cycle and buckets the distribution by status type', async () => {
+    ok({
+      testRunStepStatusList: STATUSES,
+      testCycleSummaryList: [
+        {
+          testCycle: { ID: 1001 },
+          testIdList: [1, 2, 3, 4],
+          testListHavingSteps: [1, 2, 3],
+          testRunStepDistribution: { '51': 4, '52': 1, '53': 10, '54': 2, '55': 1, '901': 2 },
+        },
+      ],
+    });
+    const result = await fetchAioCycleStepSummary(BASE, TOKEN, PROJECT_ID, 1001);
+    expect(result).toEqual({
+      passed: 12,
+      failed: 2,
+      blocked: 1,
+      notRun: 5,
+      total: 20,
+      cases: 4,
+      casesWithSteps: 3,
+    });
+    const [, url, init] = mockedApiFetch.mock.calls[0];
+    expect(url).toContain(
+      `/rest/aio-tcms/1.0/project/${PROJECT_ID}/report/multicycle/summary/open`,
+    );
+    const body = JSON.parse((init as { body: string }).body);
+    expect(body).toMatchObject({
+      testCycleIdList: [1001],
+      projectIdList: [PROJECT_ID],
+      additionalInsight: 'STEP',
+    });
+  });
+
+  it('picks the requested cycle and counts unknown status IDs as not run', async () => {
+    ok({
+      testRunStepStatusList: STATUSES,
+      testCycleSummaryList: [
+        { testCycle: { ID: 7 }, testRunStepDistribution: { '53': 99 } },
+        { testCycle: { ID: 1001 }, testRunStepDistribution: { '53': 1, '999': 2 } },
+      ],
+    });
+    const result = await fetchAioCycleStepSummary(BASE, TOKEN, PROJECT_ID, 1001);
+    expect(result).toMatchObject({ passed: 1, notRun: 2, total: 3, cases: 0, casesWithSteps: 0 });
+  });
+
+  it('returns null on 404 or when the report has no cycles', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    expect(await fetchAioCycleStepSummary(BASE, TOKEN, PROJECT_ID, 1001)).toBeNull();
+    ok({ testCycleSummaryList: [] });
+    expect(await fetchAioCycleStepSummary(BASE, TOKEN, PROJECT_ID, 1001)).toBeNull();
+  });
+
+  it('throws ApiError on 401', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: false, status: 401 } as unknown as Response);
+    await expect(fetchAioCycleStepSummary(BASE, TOKEN, PROJECT_ID, 1001)).rejects.toMatchObject({
+      status: 401,
+      source: 'jira',
+    });
   });
 });
 

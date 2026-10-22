@@ -33,9 +33,7 @@ const tiles = (runs: AioTestRun[] | undefined) =>
         executed: 0,
         total: 0,
         cases: 0,
-        minPerCase: 0,
-        maxPerCase: 0,
-        unavailable: 0,
+        casesWithSteps: 0,
         loading: false,
       }}
       cycle={{ startDate: s, endDate: s + 10 * D }}

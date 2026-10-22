@@ -20,7 +20,7 @@ vi.mock('@/services/aio', () => ({
   fetchAioCycleDetail: vi.fn(),
   fetchAioCycleSummaries: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
-  fetchAioTestRunDetail: vi.fn(),
+  fetchAioCycleStepSummary: vi.fn(),
 }));
 // Mock the cycles module so initializeAioStatusMap can populate the runtime map in tests
 vi.mock('@/services/aio/cycles', () => ({
@@ -117,17 +117,29 @@ const mockRuns = [
   },
 ];
 
-const STEP_FIXTURE = ['PASS', 'PASS', 'FAIL', 'NOT_EXECUTED'];
+// 3 cases x 4 steps => 12 total, 9 executed, 6 passed.
+const STEP_FIXTURE = {
+  passed: 6,
+  failed: 2,
+  blocked: 1,
+  notRun: 3,
+  total: 12,
+  cases: 3,
+  casesWithSteps: 3,
+};
+const NO_STEPS = {
+  ...STEP_FIXTURE,
+  passed: 0,
+  failed: 0,
+  blocked: 0,
+  notRun: 0,
+  total: 0,
+  casesWithSteps: 0,
+};
 
-// Every run gets the same steps: 3 runs x 4 steps => 12 total, 9 executed, 6 passed.
-async function mockRunDetail(statuses: string[]) {
-  const { fetchAioTestRunDetail } = await import('@/services/aio');
-  (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockImplementation(
-    async (_b: string, _t: string, _p: string, _c: string, runId: string) => ({
-      run: mockRuns.find((r) => r.id === runId) ?? mockRuns[0],
-      steps: statuses.map((status, i) => ({ id: i, step: 's', status })),
-    }),
-  );
+async function mockStepSummary(summary: typeof STEP_FIXTURE) {
+  const { fetchAioCycleStepSummary } = await import('@/services/aio');
+  (fetchAioCycleStepSummary as ReturnType<typeof vi.fn>).mockResolvedValue(summary);
 }
 
 // Helper: set up default mocks for the happy path
@@ -139,7 +151,7 @@ async function setupDefaultMocks() {
   (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
   (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
   (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
-  await mockRunDetail(STEP_FIXTURE);
+  await mockStepSummary(STEP_FIXTURE);
   (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
   // Populate the module-level runtime AIO status map so normalizeStatusById resolves
   // testRunDistribution IDs correctly (CLEAN-07: map is no longer static).
@@ -765,7 +777,7 @@ describe('AioCycleDetailPage', () => {
   });
 
   describe('KPI tiles', () => {
-    it('renders the four tiles in order with step values from the run details', async () => {
+    it('renders the four tiles in order with step values from the step report', async () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => expect(screen.getByTestId('kpi-steps-per-case')).toBeDefined());
@@ -797,10 +809,10 @@ describe('AioCycleDetailPage', () => {
       expect(screen.queryByTestId('kpi-reruns')).toBeNull();
     });
 
-    it('renders Pass rate while step fetches are still pending', async () => {
-      const { fetchAioTestRunDetail } = await import('@/services/aio');
+    it('renders Pass rate while the step report is still pending', async () => {
+      const { fetchAioCycleStepSummary } = await import('@/services/aio');
       await setupDefaultMocks();
-      (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+      (fetchAioCycleStepSummary as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
       renderPage();
       await waitFor(() => expect(screen.getByTestId('kpi-pass-rate')).toBeDefined());
       expect(screen.getByTestId('kpi-skeleton-step-pass')).toBeDefined();
@@ -808,9 +820,9 @@ describe('AioCycleDetailPage', () => {
       expect(screen.getByTestId('kpi-skeleton-steps-per-case')).toBeDefined();
     });
 
-    it('shows dashes and 0.0 when the runs have no steps', async () => {
+    it('shows dashes and 0.0 when the cases have no steps', async () => {
       await setupDefaultMocks();
-      await mockRunDetail([]);
+      await mockStepSummary(NO_STEPS);
       renderPage();
       await waitFor(() => expect(screen.getByTestId('kpi-steps-per-case')).toBeDefined());
       expect(screen.getByTestId('kpi-step-pass-rate').textContent).toMatch(/—/);

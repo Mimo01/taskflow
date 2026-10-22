@@ -1,61 +1,53 @@
-import { useQueries } from '@tanstack/react-query';
-import pLimit from 'p-limit';
-import { aggregateStepStats, type StepStatsTotals } from '@/lib/aio-step-stats';
-import { type AioTestRun, fetchAioTestRunDetail } from '@/services/aio';
+import { useQuery } from '@tanstack/react-query';
+import { type AioCycleStepSummary, fetchAioCycleStepSummary } from '@/services/aio';
 
-// Dedicated AIO step limiter, deliberately NOT getJiraLimit(): a few hundred step
-// fetches queued on the shared Jira limiter would starve Jira calls (defect resolution etc.).
-// 16: a live probe served 20 parallel run details without throttling, ~15x faster than serial;
-// 4 left most of a cycle queued. testcasewithrun/paged has step fields but they are always null.
-const stepLimit = pLimit(16);
+export type CycleStepStats = AioCycleStepSummary & {
+  /** passed + failed + blocked */
+  executed: number;
+  loading: boolean;
+};
 
-export type CycleStepStats = StepStatsTotals & { loading: boolean };
+const ZERO: AioCycleStepSummary = {
+  passed: 0,
+  failed: 0,
+  blocked: 0,
+  notRun: 0,
+  total: 0,
+  cases: 0,
+  casesWithSteps: 0,
+};
 
 /**
- * Step-level totals for a cycle. No bulk/cycle-level step endpoint exists, so this
- * issues one run-detail query per run, throttled to 16 concurrent requests. The query
- * key and fetcher match AioTestRunDetailPage so both share one cache entry; step data
- * therefore ages on the shared 5-min staleTime, independent of the runs list.
- * Only the step tiles wait on `loading`; case counts and charts never do.
+ * Step-level totals for a cycle from one AIO report request (the endpoint behind AIO's
+ * cycle-summary dashboard gadget). Only the step tiles wait on `loading`; case counts and
+ * charts never do. A failed request settles to zeros, so the tiles show dashes.
  */
 export function useCycleStepStats({
-  runs,
   projectKey,
-  cycleKey,
+  jiraProjectId,
+  cycleNumericId,
   jiraBaseUrl,
   token,
   tokenLoading,
 }: {
-  runs: AioTestRun[] | undefined;
   projectKey: string | undefined;
-  cycleKey: string | undefined;
+  jiraProjectId: number | null | undefined;
+  cycleNumericId: number | null | undefined;
   jiraBaseUrl: string | null | undefined;
   token: string | null | undefined;
   tokenLoading: boolean;
 }): CycleStepStats {
-  const enabled = !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey;
-  const ids = [...new Set((runs ?? []).filter((r) => !!r.id).map((r) => r.id))];
-  return useQueries({
-    queries: ids.map((runId) => ({
-      queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
-      // Reading `signal` lets TanStack cancel on unmount; queued fetches then bail before
-      // hitting AIO instead of draining the whole backlog after the user leaves the page.
-      queryFn: ({ signal }: { signal: AbortSignal }) =>
-        stepLimit(() => {
-          signal.throwIfAborted();
-          return fetchAioTestRunDetail(
-            jiraBaseUrl ?? '',
-            token ?? '',
-            projectKey ?? '',
-            cycleKey ?? '',
-            runId,
-          );
-        }),
-      enabled,
-    })),
-    combine: (results) => ({
-      ...aggregateStepStats(results),
-      loading: runs === undefined || !enabled || results.some((r) => r.isPending),
-    }),
+  const query = useQuery({
+    queryKey: ['aio', jiraBaseUrl, 'cycle-step-summary', projectKey, String(cycleNumericId)],
+    queryFn: () =>
+      fetchAioCycleStepSummary(
+        jiraBaseUrl ?? '',
+        token ?? '',
+        jiraProjectId ?? 0,
+        cycleNumericId ?? 0,
+      ),
+    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!jiraProjectId && !!cycleNumericId,
   });
+  const s = query.data ?? ZERO;
+  return { ...s, executed: s.passed + s.failed + s.blocked, loading: query.isPending };
 }

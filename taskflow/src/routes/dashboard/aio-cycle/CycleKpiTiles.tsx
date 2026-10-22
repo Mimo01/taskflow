@@ -24,8 +24,8 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
  * donuts. Every figure appears once: the donut carries the per-status split (the Executions
  * tab chips carry the counts), the header carries the last run date, so the tiles show the case
  * pass rate plus step-level metrics (step pass rate, steps executed, steps per case) that the
- * donuts cannot. Step tiles load after the case data from a throttled per-run fetch and never
- * block the Pass rate tile or the charts.
+ * donuts cannot. Step tiles load from one AIO report request and never block the Pass rate tile
+ * or the charts.
  *
  * A Burndown column (remaining cases over time against a working-day ideal) is part of the
  * block; before the first execution (or with no cases) it shows a compact empty state in the same space. The plot is absolutely positioned inside
@@ -165,9 +165,6 @@ export function CycleKpiTiles({
                     <TooltipBody title="Steps executed">
                       <TooltipRow label="Executed" value={stepStats.executed} />
                       <TooltipRow label="Not run" value={stepStats.notRun} />
-                      {stepStats.unavailable > 0 && (
-                        <TooltipRow label="Unavailable" value={`${stepStats.unavailable} cases`} />
-                      )}
                     </TooltipBody>
                   }
                 />
@@ -188,8 +185,8 @@ export function CycleKpiTiles({
                   sub={<span className="truncate">{`${stepStats.total} steps total`}</span>}
                   tip={
                     <TooltipBody title="Steps per case">
-                      <TooltipRow label="Min" value={stepStats.minPerCase} />
-                      <TooltipRow label="Max" value={stepStats.maxPerCase} />
+                      <TooltipRow label="Cases" value={stepStats.cases} />
+                      <TooltipRow label="With steps" value={stepStats.casesWithSteps} />
                     </TooltipBody>
                   }
                 />

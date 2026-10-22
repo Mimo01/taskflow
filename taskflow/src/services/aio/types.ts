@@ -224,6 +224,24 @@ export interface AioCycleDetailItem {
 }
 
 /**
+ * Step totals for one cycle, normalised from the AIO dashboard report
+ * (POST report/multicycle/summary/open with additionalInsight 'STEP').
+ * N/A steps count as passed (AIO's own statusType for them is PASSED).
+ */
+export interface AioCycleStepSummary {
+  passed: number;
+  failed: number;
+  blocked: number;
+  /** Not Run + In Progress (+ any status AIO does not type). */
+  notRun: number;
+  total: number;
+  /** Cases in the cycle. */
+  cases: number;
+  /** Cases that have at least one step. */
+  casesWithSteps: number;
+}
+
+/**
  * A single cycle entry in the paged summary response.
  * Returned by GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/summary/paged
  * (Phase 57 probe finding A3). Matches API-EXAMPLES.md `paged2` section.

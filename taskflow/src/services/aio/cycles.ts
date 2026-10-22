@@ -14,6 +14,7 @@ import type {
   AioCycle,
   AioCycleDetailItem,
   AioCycleDetailPagedResponse,
+  AioCycleStepSummary,
   AioCycleSummaryItem,
   AioFolder,
   AioPage,
@@ -479,6 +480,84 @@ export async function fetchAioCycleSummaries(
     return [];
   }
   throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+// Raw step slice of POST /report/multicycle/summary/open (only the fields read here)
+type RawStepReport = {
+  testRunStepStatusList?: { ID: number; statusType?: string }[];
+  testCycleSummaryList?: {
+    testCycle?: { ID?: number };
+    testIdList?: number[];
+    testRunStepDistribution?: Record<string, number>;
+    testListHavingSteps?: number[];
+  }[];
+};
+
+const STEP_BUCKET: Record<string, 'passed' | 'failed' | 'blocked'> = {
+  PASSED: 'passed',
+  FAILED: 'failed',
+  BLOCKED: 'blocked',
+};
+
+/**
+ * Fetch step totals for one cycle in a single request — the endpoint behind AIO's own
+ * cycle-summary dashboard gadget. The paged test-case list carries step fields too, but
+ * they are always null, so this replaces one run-detail request per case.
+ * POST /rest/aio-tcms/1.0/project/{jiraProjectId}/report/multicycle/summary/open
+ * Distribution keys are step status IDs (JSON strings), typed via testRunStepStatusList.
+ * @returns AioCycleStepSummary; null on 404 or when the cycle is missing from the report
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioCycleStepSummary(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+  cycleNumericId: number,
+): Promise<AioCycleStepSummary | null> {
+  const path = `/project/${jiraProjectId}/report/multicycle/summary/open?c_pId=${jiraProjectId}&t=${Date.now()}`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, {
+      method: 'POST',
+      body: JSON.stringify({
+        testCycleIdList: [cycleNumericId],
+        projectIdList: [jiraProjectId],
+        additionalInsight: 'STEP',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new ApiError('Invalid token or token has expired', 401, 'jira');
+    }
+    if (response.status === 404) return null;
+    throw new Error(`AIO request failed with status ${response.status}`);
+  }
+  const data = (await response.json()) as RawStepReport;
+  const list = data.testCycleSummaryList ?? [];
+  const cycle = list.find((c) => c.testCycle?.ID === cycleNumericId) ?? list[0];
+  if (!cycle) return null;
+  const typeById = new Map(
+    (data.testRunStepStatusList ?? []).map((s) => [s.ID, STEP_BUCKET[s.statusType ?? '']]),
+  );
+  const totals: AioCycleStepSummary = {
+    passed: 0,
+    failed: 0,
+    blocked: 0,
+    notRun: 0,
+    total: 0,
+    cases: cycle.testIdList?.length ?? 0,
+    casesWithSteps: cycle.testListHavingSteps?.length ?? 0,
+  };
+  for (const [id, count] of Object.entries(cycle.testRunStepDistribution ?? {})) {
+    totals[typeById.get(Number(id)) ?? 'notRun'] += count;
+    totals.total += count;
+  }
+  return totals;
 }
 
 // Raw shape from POST /testcasewithrun/paged

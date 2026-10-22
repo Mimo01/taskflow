@@ -38,6 +38,8 @@ export default function AioCycleDetailPage() {
     token,
     tokenLoading,
     jiraBaseUrl,
+    jiraProjectId,
+    cycleNumericId,
   } = useAioCycleData(projectKey, cycleKey);
   const { defects, isResolving: defectsResolving } = useCycleDefects({
     runs,
@@ -46,9 +48,9 @@ export default function AioCycleDetailPage() {
     tokenLoading,
   });
   const stepStats = useCycleStepStats({
-    runs,
     projectKey,
-    cycleKey,
+    jiraProjectId,
+    cycleNumericId,
     jiraBaseUrl,
     token,
     tokenLoading,
