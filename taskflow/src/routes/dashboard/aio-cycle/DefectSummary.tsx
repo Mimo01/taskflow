@@ -1,3 +1,4 @@
+import { BugOff } from 'lucide-react';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -85,8 +86,8 @@ export function DefectDonuts({
 }
 
 /**
- * Defect donuts computed straight from the resolved defects. Always renders something of the
- * same height (skeleton rings, an empty ring, or the pair), so the block never jumps.
+ * Defect donuts computed straight from the resolved defects. Renders skeleton rings while loading,
+ * a compact no-defects empty state, or the donuts, so the section stays roughly stable.
  */
 export function CycleDefectDonuts({
   defects,
@@ -111,9 +112,20 @@ export function CycleDefectDonuts({
   }
   if (statusSlices.length === 0) {
     return (
-      <AioDonutSkeleton testId="defect-donut-empty" pulse={false}>
-        No linked defects
-      </AioDonutSkeleton>
+      <div
+        data-testid="defect-donut-empty"
+        className="flex w-full flex-col items-center justify-center gap-2 text-center"
+      >
+        <div className="flex size-10 items-center justify-center rounded-full bg-green-500/10 text-green-600 dark:bg-green-400/10 dark:text-green-400">
+          <BugOff className="size-5" aria-hidden />
+        </div>
+        <div>
+          <div className="text-sm font-medium">No linked defects</div>
+          <div className="text-xs text-muted-foreground">
+            No defects raised against this cycle&apos;s runs
+          </div>
+        </div>
+      </div>
     );
   }
   return (

@@ -48,3 +48,14 @@ describe('defect donut loading skeleton', () => {
     expect(screen.getByTestId('defect-severity-skeleton')).toBeDefined();
   });
 });
+
+describe('defect donut empty state', () => {
+  it('shows a compact no-defects message instead of an empty ring', () => {
+    render(<CycleDefectDonuts defects={[]} loading={false} />);
+    const empty = screen.getByTestId('defect-donut-empty');
+    expect(within(empty).getByText('No linked defects')).toBeDefined();
+    expect(within(empty).getByText("No defects raised against this cycle's runs")).toBeDefined();
+    expect(screen.queryByTestId('defect-status-donut')).toBeNull();
+    expect(empty.querySelector('.border-muted')).toBeNull();
+  });
+});
