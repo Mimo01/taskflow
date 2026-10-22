@@ -52,6 +52,11 @@ describe('aggregateStepStats', () => {
     expect(t).toMatchObject({ cases: 1, total: 1, unavailable: 2 });
   });
 
+  it('keeps last good data when a background refetch errors', () => {
+    const t = aggregateStepStats([{ ...ok('PASS', 'FAIL'), isError: true }]);
+    expect(t).toMatchObject({ cases: 1, passed: 1, failed: 1, unavailable: 0 });
+  });
+
   it('ignores pending results without flagging them unavailable', () => {
     const t = aggregateStepStats([ok('PASS'), { isPending: true, isError: false }]);
     expect(t).toMatchObject({ cases: 1, unavailable: 0 });

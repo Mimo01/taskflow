@@ -32,20 +32,23 @@ export function useCycleStepStats({
   tokenLoading: boolean;
 }): CycleStepStats {
   const enabled = !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey;
-  const ids = (runs ?? []).filter((r) => !!r.id).map((r) => r.id);
+  const ids = [...new Set((runs ?? []).filter((r) => !!r.id).map((r) => r.id))];
   return useQueries({
     queries: ids.map((runId) => ({
       queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
-      queryFn: () =>
-        stepLimit(() =>
-          fetchAioTestRunDetail(
+      // Reading `signal` lets TanStack cancel on unmount; queued fetches then bail before
+      // hitting AIO instead of draining the whole backlog after the user leaves the page.
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        stepLimit(() => {
+          signal.throwIfAborted();
+          return fetchAioTestRunDetail(
             jiraBaseUrl ?? '',
             token ?? '',
             projectKey ?? '',
             cycleKey ?? '',
             runId,
-          ),
-        ),
+          );
+        }),
       enabled,
     })),
     combine: (results) => ({

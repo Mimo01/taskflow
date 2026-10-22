@@ -27,8 +27,8 @@ export interface StepQueryResult {
 
 /**
  * Aggregates step counts over per-run detail query results. Pending results are
- * neither counted nor flagged unavailable; errored / null results are excluded
- * from all counts and increment `unavailable`.
+ * neither counted nor flagged unavailable; errored-without-data / null results are
+ * excluded from all counts and increment `unavailable`.
  */
 export function aggregateStepStats(results: readonly StepQueryResult[]): StepStatsTotals {
   const t: StepStatsTotals = {
@@ -44,7 +44,8 @@ export function aggregateStepStats(results: readonly StepQueryResult[]): StepSta
     unavailable: 0,
   };
   for (const r of results) {
-    if (r.isError || r.data === null) {
+    // A failed background refetch keeps the last good data (isError + data): still count it.
+    if (r.data === null || (r.isError && !r.data)) {
       t.unavailable++;
       continue;
     }
