@@ -733,6 +733,14 @@ export function preprocessJiraMarkup(
     },
   );
 
+  // wiki-code-block-in-list-item: an empty list-marker line (` * `) directly
+  // before a {code}/{noformat} block. jira2md's list regex `^\s*(\*+)\s+` lets
+  // `\s+` swallow the newline, gluing the fence onto the bullet (`* ```java`),
+  // so the fence opens inside the list item while its closing ``` sits at
+  // column 0 — the pairing flips and a stray fence swallows the rest of the
+  // document. An empty bullet carries no content, so drop it.
+  result = result.replace(/^[ \t]*[*#]+[ \t]*\n(?=[ \t]*(?:\{code[^}]*\}|\{noformat\}))/gm, '');
+
   // html-in-description-rendered fix: escape literal HTML metacharacters in the
   // RAW wiki source before any preprocessing runs. Real Jira wiki markup has no
   // legitimate use of '<', '>', or '&' — Jira itself treats HTML a user types

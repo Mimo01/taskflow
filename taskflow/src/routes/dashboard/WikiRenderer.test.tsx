@@ -226,6 +226,31 @@ describe('WikiRenderer', () => {
     });
   });
 
+  it('wiki-code-block-in-list-item: empty bullet before {code} keeps the block intact and following markup rendered', () => {
+    const wiki = [
+      'Intro.',
+      ' * First point',
+      ' * Second point:',
+      ' * ',
+      '{code:java}',
+      ' <ns:item>',
+      '     <ns:id>ABC:5;100%</ns:id>',
+      ' </ns:item> {code}',
+      '',
+      '*Heading:*',
+      '||Col A||Col B||',
+      '|x|y|',
+    ].join('\n');
+    const { container } = render(<WikiRenderer wikiText={wiki} />);
+    const pres = container.querySelectorAll('pre');
+    expect(pres).toHaveLength(1);
+    expect(pres[0].textContent).toContain('<ns:item>');
+    expect(pres[0].textContent).toContain('<ns:id>ABC:5;100%</ns:id>');
+    expect(pres[0].textContent).not.toContain('<strong>');
+    expect(container.querySelector('table')).not.toBeNull();
+    expect(container.querySelector('strong')?.textContent).toBe('Heading:');
+  });
+
   it('wraps output in an article element with prose class', () => {
     const { container } = render(<WikiRenderer wikiText="hello" />);
     const article = container.querySelector('article');
