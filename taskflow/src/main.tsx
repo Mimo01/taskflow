@@ -9,7 +9,7 @@ import {
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
@@ -21,6 +21,7 @@ import {
 } from 'react-router-dom';
 import { AboutDialog } from './components/about/AboutDialog';
 import CommandPalette from './components/app/CommandPalette';
+import { FindBar } from './components/app/FindBar';
 import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
 import { PeekPanel } from './components/app/PeekPanel';
 import PinnedTabStrip from './components/app/PinnedTabStrip';
@@ -34,6 +35,7 @@ import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
+import { type FindScopeKind, resolveFindScope } from './lib/find-in-page';
 import { ParentCompletionHost } from './routes/dashboard/CompleteParentDialog';
 import {
   CreateEditIssueModal,
@@ -243,17 +245,59 @@ function AppLayout() {
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
   useHotkeys('mod+slash', () => setShortcutsOpen(true));
 
-  // PALETTE-01: Cmd+F opens command palette — capture-phase to suppress WKWebView's native find-in-page regardless of focus target
+  // Find-in-page state (Cmd+F). Refs let the long-lived listeners read the latest values.
+  const [findState, setFindState] = useState<{ scope: HTMLElement; kind: FindScopeKind } | null>(
+    null,
+  );
+  const [findFocusSignal, setFindFocusSignal] = useState(0);
+  const findOpenRef = useRef(false);
+  const paletteOpenRef = useRef(false);
+  const findReturnFocusRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    paletteOpenRef.current = paletteOpen;
+  }, [paletteOpen]);
+
+  const openFind = useCallback(() => {
+    if (paletteOpenRef.current) return;
+    if (findOpenRef.current) {
+      setFindFocusSignal((n) => n + 1);
+      return;
+    }
+    const resolved = resolveFindScope();
+    if (!resolved) return;
+    findReturnFocusRef.current = document.activeElement;
+    findOpenRef.current = true;
+    setFindState({ scope: resolved.el, kind: resolved.kind });
+  }, []);
+
+  const closeFind = useCallback(() => {
+    findOpenRef.current = false;
+    setFindState(null);
+    const prev = findReturnFocusRef.current;
+    findReturnFocusRef.current = null;
+    if (prev instanceof HTMLElement && prev.isConnected) prev.focus();
+  }, []);
+
+  // Close find on route change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
+  useEffect(() => {
+    findOpenRef.current = false;
+    setFindState(null);
+  }, [location.pathname]);
+
+  // PALETTE-01: Cmd+Shift+F opens command palette; Cmd+F opens find-in-page — capture-phase to suppress WKWebView's native find regardless of focus target
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f' && !e.shiftKey && !e.altKey) {
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyF' && !e.altKey) {
         e.preventDefault();
-        setPaletteOpen(true);
+        if (e.shiftKey) setPaletteOpen(true);
+        else openFind();
       }
     };
     document.addEventListener('keydown', handler, { capture: true });
     return () => document.removeEventListener('keydown', handler, { capture: true });
-  }, []);
+  }, [openFind]);
 
   // KEYS-03: Navigation shortcuts
   useHotkeys('mod+shift+s', () => navigate('/sprint-board'));
@@ -281,6 +325,7 @@ function AppLayout() {
     const listeners = [
       listen('menu-keyboard-shortcuts', () => setShortcutsOpen(true)),
       listen('menu-command-palette', () => setPaletteOpen(true)),
+      listen('menu-find', () => openFind()),
       listen('menu-nav-sprint', () => navigate('/sprint-board')),
       listen('menu-nav-backlog', () => navigate('/backlog')),
       listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
@@ -300,7 +345,7 @@ function AppLayout() {
         p.then((fn) => fn());
       });
     };
-  }, [navigate]);
+  }, [navigate, openFind]);
 
   // Show/hide Debug menu in native toolbar when devToolsEnabled changes
   useEffect(() => {
@@ -650,7 +695,7 @@ function AppLayout() {
           />
         )}
         <div className="flex flex-row flex-1 overflow-hidden min-h-0">
-          <main className="flex-1 overflow-auto min-w-0">
+          <main data-find-scope="main" className="flex-1 overflow-auto min-w-0">
             <Outlet
               context={{
                 onIssueClick: handleIssueClick,
@@ -685,6 +730,14 @@ function AppLayout() {
           )}
         </div>
       </div>
+      {findState && (
+        <FindBar
+          scope={findState.scope}
+          kind={findState.kind}
+          focusSignal={findFocusSignal}
+          onClose={closeFind}
+        />
+      )}
       {/* Command palette overlay */}
       <CommandPalette
         open={paletteOpen}

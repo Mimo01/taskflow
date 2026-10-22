@@ -326,6 +326,10 @@ pub fn run() {
             // --- Help menu ---
             let command_palette_item = MenuItemBuilder::new("Command Palette")
                 .id("menu-command-palette")
+                .accelerator("CmdOrCtrl+Shift+F")
+                .build(handle)?;
+            let find_item = MenuItemBuilder::new("Find…")
+                .id("menu-find")
                 .accelerator("CmdOrCtrl+F")
                 .build(handle)?;
             let shortcuts_item = MenuItemBuilder::new("Keyboard Shortcuts")
@@ -360,6 +364,8 @@ pub fn run() {
                     &PredefinedMenuItem::copy(handle, None)?,
                     &PredefinedMenuItem::paste(handle, None)?,
                     &PredefinedMenuItem::select_all(handle, None)?,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &find_item,
                 ],
             )?;
 
@@ -375,6 +381,7 @@ pub fn run() {
             match id {
                 "menu-keyboard-shortcuts"
                 | "menu-command-palette"
+                | "menu-find"
                 | "menu-nav-sprint"
                 | "menu-nav-backlog"
                 | "menu-nav-notifications"
