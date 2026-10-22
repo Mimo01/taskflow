@@ -16,6 +16,7 @@ import { DefectsList } from './aio-cycle/DefectsList';
 import { ExecutionsList } from './aio-cycle/ExecutionsList';
 import { useAioCycleData } from './aio-cycle/useAioCycleData';
 import { useCycleDefects } from './aio-cycle/useCycleDefects';
+import { useCycleStepStats } from './aio-cycle/useCycleStepStats';
 import { useEpicWorkCalendar } from './issue-detail/useEpicProgressQueries';
 
 export default function AioCycleDetailPage() {
@@ -40,6 +41,14 @@ export default function AioCycleDetailPage() {
   } = useAioCycleData(projectKey, cycleKey);
   const { defects, isResolving: defectsResolving } = useCycleDefects({
     runs,
+    jiraBaseUrl,
+    token,
+    tokenLoading,
+  });
+  const stepStats = useCycleStepStats({
+    runs,
+    projectKey,
+    cycleKey,
     jiraBaseUrl,
     token,
     tokenLoading,
@@ -193,6 +202,7 @@ export default function AioCycleDetailPage() {
               countsLoading={countsLoading}
               defectsLoading={!runs || defectsResolving}
               defects={defects}
+              stepStats={stepStats}
               cycle={cycleQuery.data}
               calendar={calendar}
             />

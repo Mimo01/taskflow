@@ -1,4 +1,4 @@
-import { BugOff, CircleCheck, FlaskConical, Redo2 } from 'lucide-react';
+import { CircleCheck, Footprints, Layers, ListChecks } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cycleBurndownSeries } from '@/lib/aio-cycle-charts';
@@ -12,6 +12,7 @@ import { CycleDefectDonuts } from './DefectSummary';
 import { ExecutionDonut } from './ExecutionDonut';
 import type { AioStatusCounts } from './useAioCycleData';
 import type { ResolvedDefect } from './useCycleDefects';
+import type { CycleStepStats } from './useCycleStepStats';
 
 const pctOf = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
@@ -21,8 +22,10 @@ const HEADING_CLASS = 'text-sm font-medium leading-5 text-muted-foreground';
 /**
  * Cycle stats block: Cycle Statistics tiles | Execution Distribution donut | Defect Summary
  * donuts. Every figure appears once: the donut carries the per-status split (the Executions
- * tab chips carry the counts), the header carries the last run date, so the tiles show only
- * what those cannot (pass rate of executed, re-runs, unlinked failures, open defects).
+ * tab chips carry the counts), the header carries the last run date, so the tiles show the case
+ * pass rate plus step-level metrics (step pass rate, steps executed, steps per case) that the
+ * donuts cannot. Step tiles load after the case data from a throttled per-run fetch and never
+ * block the Pass rate tile or the charts.
  *
  * A Burndown column (remaining cases over time against a working-day ideal) is part of the
  * block; before the first execution (or with no cases) it shows a compact empty state in the same space. The plot is absolutely positioned inside
@@ -43,6 +46,7 @@ export function CycleKpiTiles({
   countsLoading,
   defectsLoading,
   defects,
+  stepStats,
   cycle,
   calendar,
 }: {
@@ -52,6 +56,7 @@ export function CycleKpiTiles({
   countsLoading: boolean;
   defectsLoading: boolean;
   defects: ResolvedDefect[];
+  stepStats: CycleStepStats;
   cycle: Pick<AioCycle, 'startDate' | 'endDate'> | undefined;
   calendar: WorkCalendar;
 }) {
@@ -65,32 +70,6 @@ export function CycleKpiTiles({
   );
   const executed = counts.pass + counts.fail + counts.blocked;
   const passPct = pctOf(counts.pass, executed);
-  const reRunList = (runs ?? []).filter((r) => (r.runCount ?? 0) > 1);
-  const reRuns = reRunList.length;
-  const maxRuns = reRunList.reduce((m, r) => Math.max(m, r.runCount ?? 0), 0);
-  const unlinked = (runs ?? []).filter(
-    (r) => (r.status === 'FAIL' || r.status === 'BLOCKED') && (r.jiraDefectIDs?.length ?? 0) === 0,
-  );
-  const failedNoDefect = unlinked.filter((r) => r.status === 'FAIL').length;
-  const blockedNoDefect = unlinked.filter((r) => r.status === 'BLOCKED').length;
-  // Same source (the runs list) as the unlinked / retest numerators, so "N of M failing"
-  // can never read N > M even when the cycle summary and the runs list disagree.
-  const failing = (runs ?? []).filter((r) => r.status === 'FAIL' || r.status === 'BLOCKED').length;
-  // Failing cases whose linked defects are all Done: the fix is in, the case needs another run.
-  const doneDefects = new Set(
-    defects
-      .filter((d) => d.issue?.fields.status?.statusCategory?.key === 'done')
-      .map((d) => d.defectKey),
-  );
-  const retest = (runs ?? []).filter((r) => {
-    const ids = (r.jiraDefectIDs ?? []).map(String);
-    return (
-      (r.status === 'FAIL' || r.status === 'BLOCKED') &&
-      ids.length > 0 &&
-      ids.every((id) => doneDefects.has(id))
-    );
-  });
-  const retestFailed = retest.filter((r) => r.status === 'FAIL').length;
 
   return (
     <div className={cn(STAT_CONTAINER_CLASS, 'flex-none border-b border-border py-4 pr-8 pl-6')}>
@@ -129,72 +108,88 @@ export function CycleKpiTiles({
                   }
                 />
               )}
-              {!runs || defectsLoading ? (
-                <TileSkeleton testId="kpi-skeleton-retest" icon={FlaskConical} tint="blue" />
+              {stepStats.loading ? (
+                <TileSkeleton testId="kpi-skeleton-step-pass" icon={ListChecks} tint="green" />
               ) : (
                 <Tile
-                  testId="kpi-retest"
-                  icon={FlaskConical}
+                  testId="kpi-step-pass-rate"
+                  icon={ListChecks}
+                  tint="green"
+                  label="Step pass rate"
+                  value={
+                    <span className={VALUE_CLASS}>
+                      {stepStats.executed > 0
+                        ? `${pctOf(stepStats.passed, stepStats.executed)}%`
+                        : '—'}
+                    </span>
+                  }
+                  sub={<span className="truncate">of executed steps</span>}
+                  tip={
+                    <TooltipBody title="Step pass rate">
+                      <TooltipRow
+                        label="Passed"
+                        value={stepStats.passed}
+                        color="var(--color-green-500)"
+                      />
+                      <TooltipRow
+                        label="Failed"
+                        value={stepStats.failed}
+                        color="var(--color-red-500)"
+                      />
+                      <TooltipRow
+                        label="Blocked"
+                        value={stepStats.blocked}
+                        color="var(--color-orange-400)"
+                      />
+                    </TooltipBody>
+                  }
+                />
+              )}
+              {stepStats.loading ? (
+                <TileSkeleton testId="kpi-skeleton-steps-executed" icon={Footprints} tint="blue" />
+              ) : (
+                <Tile
+                  testId="kpi-steps-executed"
+                  icon={Footprints}
                   tint="blue"
-                  label="Ready to retest"
-                  value={<span className={VALUE_CLASS}>{retest.length}</span>}
-                  sub={<span className="truncate">{`of ${failing} failing`}</span>}
+                  label="Steps executed"
+                  value={
+                    <span className={VALUE_CLASS}>
+                      {stepStats.total > 0 ? `${pctOf(stepStats.executed, stepStats.total)}%` : '—'}
+                    </span>
+                  }
+                  sub={
+                    <span className="truncate">{`${stepStats.executed} of ${stepStats.total} steps`}</span>
+                  }
                   tip={
-                    <TooltipBody title="Ready to retest">
-                      <TooltipRow
-                        label="Failed, defects done"
-                        value={retestFailed}
-                        color="var(--color-red-500)"
-                      />
-                      <TooltipRow
-                        label="Blocked, defects done"
-                        value={retest.length - retestFailed}
-                        color="var(--color-orange-400)"
-                      />
+                    <TooltipBody title="Steps executed">
+                      <TooltipRow label="Executed" value={stepStats.executed} />
+                      <TooltipRow label="Not run" value={stepStats.notRun} />
+                      {stepStats.unavailable > 0 && (
+                        <TooltipRow label="Unavailable" value={`${stepStats.unavailable} cases`} />
+                      )}
                     </TooltipBody>
                   }
                 />
               )}
-              {!runs ? (
-                <TileSkeleton testId="kpi-skeleton-unlinked" icon={BugOff} tint="red" />
+              {stepStats.loading ? (
+                <TileSkeleton testId="kpi-skeleton-steps-per-case" icon={Layers} tint="amber" />
               ) : (
                 <Tile
-                  testId="kpi-unlinked"
-                  icon={BugOff}
-                  tint="red"
-                  label="Unlinked failures"
-                  value={<span className={VALUE_CLASS}>{unlinked.length}</span>}
-                  sub={<span className="truncate">{`of ${failing} failing`}</span>}
-                  tip={
-                    <TooltipBody title="Unlinked failures">
-                      <TooltipRow
-                        label="Failed w/o defect"
-                        value={failedNoDefect}
-                        color="var(--color-red-500)"
-                      />
-                      <TooltipRow
-                        label="Blocked w/o defect"
-                        value={blockedNoDefect}
-                        color="var(--color-orange-400)"
-                      />
-                    </TooltipBody>
-                  }
-                />
-              )}
-              {!runs ? (
-                <TileSkeleton testId="kpi-skeleton-reruns" icon={Redo2} tint="amber" />
-              ) : (
-                <Tile
-                  testId="kpi-reruns"
-                  icon={Redo2}
+                  testId="kpi-steps-per-case"
+                  icon={Layers}
                   tint="amber"
-                  label="Re-runs"
-                  value={<span className={VALUE_CLASS}>{reRuns}</span>}
-                  sub={<span className="truncate">{`${pctOf(reRuns, total)}% of cases`}</span>}
+                  label="Steps per case"
+                  value={
+                    <span className={VALUE_CLASS}>
+                      {stepStats.cases > 0 ? (stepStats.total / stepStats.cases).toFixed(1) : '—'}
+                    </span>
+                  }
+                  sub={<span className="truncate">{`${stepStats.total} steps total`}</span>}
                   tip={
-                    <TooltipBody title="Re-runs">
-                      <TooltipRow label="Re-run cases" value={reRuns} />
-                      <TooltipRow label="Max runs" value={maxRuns} />
+                    <TooltipBody title="Steps per case">
+                      <TooltipRow label="Min" value={stepStats.minPerCase} />
+                      <TooltipRow label="Max" value={stepStats.maxPerCase} />
                     </TooltipBody>
                   }
                 />

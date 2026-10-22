@@ -25,6 +25,19 @@ const tiles = (runs: AioTestRun[] | undefined) =>
       countsLoading={false}
       defectsLoading={false}
       defects={[]}
+      stepStats={{
+        passed: 0,
+        failed: 0,
+        blocked: 0,
+        notRun: 0,
+        executed: 0,
+        total: 0,
+        cases: 0,
+        minPerCase: 0,
+        maxPerCase: 0,
+        unavailable: 0,
+        loading: false,
+      }}
       cycle={{ startDate: s, endDate: s + 10 * D }}
       calendar={DEFAULT_CALENDAR}
     />,

@@ -20,6 +20,7 @@ vi.mock('@/services/aio', () => ({
   fetchAioCycleDetail: vi.fn(),
   fetchAioCycleSummaries: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
+  fetchAioTestRunDetail: vi.fn(),
 }));
 // Mock the cycles module so initializeAioStatusMap can populate the runtime map in tests
 vi.mock('@/services/aio/cycles', () => ({
@@ -116,6 +117,19 @@ const mockRuns = [
   },
 ];
 
+const STEP_FIXTURE = ['PASS', 'PASS', 'FAIL', 'NOT_EXECUTED'];
+
+// Every run gets the same steps: 3 runs x 4 steps => 12 total, 9 executed, 6 passed.
+async function mockRunDetail(statuses: string[]) {
+  const { fetchAioTestRunDetail } = await import('@/services/aio');
+  (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockImplementation(
+    async (_b: string, _t: string, _p: string, _c: string, runId: string) => ({
+      run: mockRuns.find((r) => r.id === runId) ?? mockRuns[0],
+      steps: statuses.map((status, i) => ({ id: i, step: 's', status })),
+    }),
+  );
+}
+
 // Helper: set up default mocks for the happy path
 async function setupDefaultMocks() {
   const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
@@ -125,6 +139,7 @@ async function setupDefaultMocks() {
   (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
   (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
   (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+  await mockRunDetail(STEP_FIXTURE);
   (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
   // Populate the module-level runtime AIO status map so normalizeStatusById resolves
   // testRunDistribution IDs correctly (CLEAN-07: map is no longer static).
@@ -187,7 +202,7 @@ describe('AioCycleDetailPage', () => {
         // pass / executed: 1 pass of 2 executed
         expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
         expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/of executed/);
-        expect(screen.getByTestId('kpi-unlinked')).toBeDefined();
+        expect(screen.getByTestId('kpi-step-pass-rate')).toBeDefined();
         expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
         expect(screen.getByTestId('exec-donut').textContent).toMatch(/executed/);
         expect(screen.queryByTestId('cycle-progress-bar')).toBeNull();
@@ -269,7 +284,7 @@ describe('AioCycleDetailPage', () => {
       renderPage();
       await waitFor(() => {
         expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
-        expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 2 failing/);
+        expect(screen.getByTestId('kpi-step-pass-rate')).toBeDefined();
         expect(screen.getByTestId('exec-donut').textContent).toMatch(/4\/4/);
       });
     });
@@ -318,7 +333,7 @@ describe('AioCycleDetailPage', () => {
       // Falls back to runs-derived counts: 1 pass, 1 fail, 1 not-run
       await waitFor(() => {
         expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/50%/);
-        expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 1 failing/);
+        expect(screen.getByTestId('kpi-step-pass-rate')).toBeDefined();
         expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
       });
     });
@@ -750,56 +765,57 @@ describe('AioCycleDetailPage', () => {
   });
 
   describe('KPI tiles', () => {
-    it('renders the four tiles with sub-lines', async () => {
+    it('renders the four tiles in order with step values from the run details', async () => {
       await setupDefaultMocks();
       renderPage();
-      await waitFor(() => expect(screen.getByTestId('kpi-retest')).toBeDefined());
-      expect(screen.getByTestId('kpi-pass-rate').textContent).toMatch(/Pass rate/);
+      await waitFor(() => expect(screen.getByTestId('kpi-steps-per-case')).toBeDefined());
       expect(screen.getByTestId('exec-donut').textContent).toMatch(/2\/3/);
-      expect(screen.getByTestId('kpi-reruns')).toBeDefined();
-      // run-2 FAIL has a linked defect, so nothing is failing without one
-      expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/0of 1 failing/);
-      // labels are user-facing copy: assert them so an icon/label mix-up can't slip through
-      expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/Unlinked failures/);
-      expect(screen.getByTestId('kpi-retest').textContent).toMatch(/Ready to retest/);
-      expect(screen.getByTestId('kpi-reruns').textContent).toMatch(/Re-runs/);
+      const ids = [
+        'kpi-pass-rate',
+        'kpi-step-pass-rate',
+        'kpi-steps-executed',
+        'kpi-steps-per-case',
+      ];
+      const els = ids.map((id) => screen.getByTestId(id));
+      for (let i = 1; i < els.length; i++) {
+        expect(
+          els[i - 1].compareDocumentPosition(els[i]) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      }
+      expect(els[0].textContent).toMatch(/Pass rate/);
+      expect(els[1].textContent).toMatch(/Step pass rate/);
+      expect(els[1].textContent).toMatch(/67%/);
+      expect(els[1].textContent).toMatch(/of executed steps/);
+      expect(els[2].textContent).toMatch(/Steps executed/);
+      expect(els[2].textContent).toMatch(/75%/);
+      expect(els[2].textContent).toMatch(/9 of 12 steps/);
+      expect(els[3].textContent).toMatch(/Steps per case/);
+      expect(els[3].textContent).toMatch(/4\.0/);
+      expect(els[3].textContent).toMatch(/12 steps total/);
+      expect(screen.queryByTestId('kpi-retest')).toBeNull();
+      expect(screen.queryByTestId('kpi-unlinked')).toBeNull();
+      expect(screen.queryByTestId('kpi-reruns')).toBeNull();
     });
 
-    it('failing denominators come from the runs list, not the (possibly different) cycle summary', async () => {
-      const { fetchAioCycleSummaries } = await import('@/services/aio');
+    it('renders Pass rate while step fetches are still pending', async () => {
+      const { fetchAioTestRunDetail } = await import('@/services/aio');
       await setupDefaultMocks();
-      // The summary claims 5 failed; the runs list only has one failing case.
-      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
-        {
-          ID: 10134,
-          jiraProjectID: 10134,
-          detail: null,
-          summary: { totalTests: 7, testRunDistribution: { '901': 1, '54': 5, '51': 1 } },
-        },
-      ]);
+      (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
       renderPage();
-      await waitFor(() => {
-        expect(screen.getByTestId('kpi-unlinked').textContent).toMatch(/of 1 failing/);
-        expect(screen.getByTestId('kpi-retest').textContent).toMatch(/of 1 failing/);
-      });
+      await waitFor(() => expect(screen.getByTestId('kpi-pass-rate')).toBeDefined());
+      expect(screen.getByTestId('kpi-skeleton-step-pass')).toBeDefined();
+      expect(screen.getByTestId('kpi-skeleton-steps-executed')).toBeDefined();
+      expect(screen.getByTestId('kpi-skeleton-steps-per-case')).toBeDefined();
     });
 
-    it('Ready to retest counts failing cases whose linked defects are all Done', async () => {
-      const { fetchJiraIssueByKey } = await import('@/services/jira');
+    it('shows dashes and 0.0 when the runs have no steps', async () => {
       await setupDefaultMocks();
-      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: '186227',
-        key: 'PROJ-1234',
-        fields: {
-          summary: 'Login broken',
-          status: { name: 'Done', statusCategory: { key: 'done' } },
-          issuetype: { name: 'Bug', subtask: false },
-        },
-      });
+      await mockRunDetail([]);
       renderPage();
-      await waitFor(() =>
-        expect(screen.getByTestId('kpi-retest').textContent).toMatch(/1of 1 failing/),
-      );
+      await waitFor(() => expect(screen.getByTestId('kpi-steps-per-case')).toBeDefined());
+      expect(screen.getByTestId('kpi-step-pass-rate').textContent).toMatch(/—/);
+      expect(screen.getByTestId('kpi-steps-executed').textContent).toMatch(/—/);
+      expect(screen.getByTestId('kpi-steps-per-case').textContent).toMatch(/0\.0/);
     });
   });
 
