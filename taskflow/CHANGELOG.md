@@ -2,6 +2,22 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.11] — 2026-10-22
+
+### Added
+
+- **Find in page** — Cmd+F opens a find bar that searches the text of the current page, or the open dialog or peek panel. Matches are highlighted everywhere, including badges, status pills and field buttons, and matching ignores accents and extra whitespace. Global search moves to Cmd+Shift+F.
+- **AIO step-level stats** — the cycle stats block now shows Step pass rate, Steps executed and Steps per case in place of Ready to retest, Unlinked failures and Re-runs. Step totals load in a single request, and the last good figures stay on screen if a refresh fails.
+
+### Changed
+
+- **AIO empty states** — the Defect Summary shows a green "no defects" badge instead of an empty grey ring, and the Burndown section always appears, with a short message before the first execution or when the cycle has no test cases.
+
+### Fixed
+
+- **Wiki rendering** — an empty list bullet right before a `{code}` block no longer swallows the rest of the description.
+- **Command palette shortcuts** — navigation entries show shortcut glyphs (⌘⇧D) instead of raw key syntax (mod+shift+d).
+
 ## [1.14.10] — 2026-10-16
 
 ### Added
