@@ -12,5 +12,5 @@
 - [Scroll restore reverted](project_scroll_restore_reverted.md) — breadcrumb scroll restoration tried and reverted; main.overflow-auto never scrolls on h-full pages
 - [No git stash for lint/test compare](feedback_no_git_stash_for_lint_compare.md) — don't stash to A/B compare findings; tree may be modified concurrently — diff/temp-copy instead
 - [Wiki editor = shared TipTap WikiEditor](project_wiki_editor.md) — issue desc + comments use one TipTap WYSIWYG w/ Source toggle; Jira-wiki round-trip via jiraToTiptap/jiraWikiSerializer; task-lists need reconvertTaskItems post-pass
-- [Biome baseline GREEN](project_biome_state.md) — `npm run check` (biome check + tsc) fully clean 05-31 (944260ea); lesson: `biome lint` ≠ `check` (lint falsely flags assist suppressions as unused — fix via biome.json override, not deletion)
+- [Biome baseline GREEN](project_biome_state.md) — `npm run check` (biome check + tsc) fully clean 05-31 (0d2b8b8e); lesson: `biome lint` ≠ `check` (lint falsely flags assist suppressions as unused — fix via biome.json override, not deletion)
 - [v1.11 audit — one gap before close](project_v111_audit.md) — FieldsSection missing invalidateGhAllData (user fixing); run /gsd-complete-milestone v1.11 after
