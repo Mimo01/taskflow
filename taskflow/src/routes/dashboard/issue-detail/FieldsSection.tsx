@@ -30,6 +30,7 @@ import { useRmPackage } from '@/hooks/useRmWeekIndex';
 import { apiFetch } from '@/lib/apiFetch';
 import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
 import {
   fetchIssuePriorityOptions,
@@ -387,6 +388,8 @@ export function FieldsSection({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // AIO pages render linked defects from a separate lightweight issue cache.
+      invalidateLightweightIssue(queryClient, jiraBaseUrl, issueKey);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
       // Belt-and-suspenders for same-status refreshes: a status change re-keys
       // the transitions query (via f.status.id) so a stale list can't gate the
@@ -462,6 +465,8 @@ export function FieldsSection({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // AIO pages render linked defects from a separate lightweight issue cache.
+      invalidateLightweightIssue(queryClient, jiraBaseUrl, issueKey);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
       // Refresh the transitions-with-fields family so a follow-up resolution
       // edit re-reads gating against the latest state (CR-01 / WR-04).
@@ -503,6 +508,8 @@ export function FieldsSection({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // AIO pages render linked defects from a separate lightweight issue cache.
+      invalidateLightweightIssue(queryClient, jiraBaseUrl, issueKey);
       if (boardId) invalidateGhAllData(queryClient, boardId);
       else invalidateGhAllData(queryClient);
       if (boardId) invalidateGhBacklogData(queryClient, boardId);

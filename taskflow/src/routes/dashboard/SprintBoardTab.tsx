@@ -43,6 +43,7 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import { orderSubtasks } from '@/lib/subtask-order';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
@@ -1379,6 +1380,8 @@ export default function SprintBoardTab() {
       // separately, so invalidate it here — otherwise opening the issue shows the
       // stale resolution/status. Mirrors FieldsSection's transition invalidation.
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // AIO pages render linked defects from a separate lightweight issue cache.
+      invalidateLightweightIssue(queryClient, jiraBaseUrl, issueKey);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
       // Status changed → the transitions-with-fields gating must be re-read.
       queryClient.invalidateQueries({ queryKey: ['jira-issue-transitions-fields', issueKey] });

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
+import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
 import type { JiraIssueDetail } from '@/services/jira';
 import {
   assignIssue,
@@ -65,6 +66,8 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // AIO pages render linked defects from a separate lightweight issue cache.
+      invalidateLightweightIssue(queryClient, jiraBaseUrl, issueKey);
       // A parent story renders its subtask rows (incl. assignee avatars) from a
       // separate enrichment query keyed by the PARENT key
       // (['jira-subtask-enrichment', parentKey, ...] in IssueDetailPage). Editing a
