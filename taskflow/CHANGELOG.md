@@ -2,6 +2,16 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.12] — 2026-10-27
+
+### Changed
+
+- **AIO cycle Executions and Defects tabs** — each tab is now split into an Open section and a Done section, and each section shows its count and has its own sticky column header. Passed runs and defects that are done in Jira move to Done. One toolbar filters and sorts both sections. When filters hide every row in a section, it shows a short message with a Clear filters button.
+
+### Fixed
+
+- **Stale AIO defect rows** — changing a defect's status or fields from the issue sidebar, or moving it on the sprint board, now updates its row on the AIO cycle and test case pages straight away.
+
 ## [1.14.11] — 2026-10-22
 
 ### Added
