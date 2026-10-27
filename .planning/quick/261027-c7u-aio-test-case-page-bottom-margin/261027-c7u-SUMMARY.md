@@ -22,3 +22,7 @@ tsc clean, biome clean on the file, full vitest suite passed (238 files, 3810 te
 
 ## Deviations
 None. Worktree HEAD was reset to the expected base 27fb5858 at start, per the branch check.
+
+## Correction (2026-10-27)
+
+User UAT: "tc" meant the **test cycle** page, not the test-run page. The test-run padding (b3f6100f) was reverted and `pb-16` was added to the cycle detail scroll container (`aio-cycle-scroll` in `AioCycleDetailPage.tsx`), which previously had no bottom padding. tsc, biome and the two page test files pass.
