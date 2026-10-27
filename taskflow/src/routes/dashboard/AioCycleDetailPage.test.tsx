@@ -660,13 +660,13 @@ describe('AioCycleDetailPage', () => {
       });
     });
 
-    it('partitions runs into Not done (non-pass) and Done (pass) sections', async () => {
+    it('partitions runs into Outstanding (non-pass) and Done (pass) sections', async () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => expect(screen.getByTestId('executions-section-open')).toBeDefined());
       const open = within(screen.getByTestId('executions-section-open'));
       const done = within(screen.getByTestId('executions-section-done'));
-      expect(open.getByText('Not done (2)')).toBeDefined();
+      expect(open.getByText('Outstanding (2)')).toBeDefined();
       expect(done.getByText('Done (1)')).toBeDefined();
       expect(open.getByTestId('run-row-run-2')).toBeDefined();
       expect(open.getByTestId('run-row-run-3')).toBeDefined();
@@ -1902,7 +1902,7 @@ describe('AIOC-N3S: defects sort + filter', () => {
     const open = within(screen.getByTestId('defects-section-open'));
     await user.click(open.getByTestId('defects-sort-header-priority'));
 
-    // High (rank 1) → Medium (rank 2) within Not done; Low (1002) is Done
+    // High (rank 1) → Medium (rank 2) within Open; Low (1002) is Done
     await waitFor(() => {
       const rows = open.getAllByTestId(/^defect-row-/);
       expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1001'); // High
@@ -2082,7 +2082,7 @@ describe('AIOC-N3S: defects sort + filter', () => {
     expect(screen.queryByText('No defects are linked to runs in this cycle.')).toBeNull();
   });
 
-  it('partitions defects into Not done / Done sections with counts', async () => {
+  it('partitions defects into Open / Done sections with counts', async () => {
     const user = userEvent.setup();
     await setupSortFilterMocks();
     renderPage();
@@ -2091,7 +2091,7 @@ describe('AIOC-N3S: defects sort + filter', () => {
     await waitFor(() => expect(screen.getByText('PROJ-2')).toBeDefined());
     const open = within(screen.getByTestId('defects-section-open'));
     const done = within(screen.getByTestId('defects-section-done'));
-    expect(open.getByText('Not done (2)')).toBeDefined();
+    expect(open.getByText('Open (2)')).toBeDefined();
     expect(done.getByText('Done (1)')).toBeDefined();
     expect(open.getByTestId('defect-row-1001')).toBeDefined();
     expect(open.getByTestId('defect-row-1003')).toBeDefined();
@@ -2132,9 +2132,9 @@ describe('AIOC-N3S: defects sort + filter', () => {
     const bob = screen.getAllByRole('button', { name: /^Bob$/ });
     await user.click(bob[bob.length - 1]);
     const open = within(screen.getByTestId('defects-section-open'));
-    await waitFor(() => expect(open.getByText('Not done (1)')).toBeDefined());
+    await waitFor(() => expect(open.getByText('Open (1)')).toBeDefined());
     await user.click(screen.getByTestId('defects-filter-clear-all'));
-    await waitFor(() => expect(open.getByText('Not done (3)')).toBeDefined());
+    await waitFor(() => expect(open.getByText('Open (3)')).toBeDefined());
   });
 
   it('shows "No open defects" when every defect is done', async () => {

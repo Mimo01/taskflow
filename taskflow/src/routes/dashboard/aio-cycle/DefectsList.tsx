@@ -439,7 +439,7 @@ export function DefectsList({
     });
   }, [filtered, sortKey, sortDir]);
 
-  // D-02: Done = Jira status category 'done'. Loading / unresolved rows stay in Not done.
+  // D-02: Done = Jira status category 'done'. Loading / unresolved rows stay in Open.
   const [openDefects, doneDefects] = useMemo(() => {
     const open: ResolvedDefect[] = [];
     const done: ResolvedDefect[] = [];
@@ -683,7 +683,7 @@ export function DefectsList({
       <div className="flex flex-col gap-2">
         {renderSection({
           testId: 'defects-section-open',
-          title: 'Not done',
+          title: 'Open',
           rows: openDefects,
           filteredOut: totalOpen > 0,
           emptyIcon: totalOpen === 0 ? ShieldCheck : ListFilter,

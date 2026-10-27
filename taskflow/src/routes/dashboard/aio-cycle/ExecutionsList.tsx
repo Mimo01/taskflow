@@ -513,7 +513,7 @@ export function ExecutionsList({
         <div className="flex flex-col gap-2">
           {renderSection({
             testId: 'executions-section-open',
-            title: 'Not done',
+            title: 'Outstanding',
             rows: openRuns,
             filteredOut: totalOpen > 0,
             emptyIcon: totalOpen === 0 ? CircleCheck : ListFilter,
