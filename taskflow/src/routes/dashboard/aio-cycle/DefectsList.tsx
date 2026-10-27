@@ -1,5 +1,13 @@
-import { ChevronDown, ChevronUp, FlaskConical, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import {
+  Bug,
+  ChevronDown,
+  ChevronUp,
+  FlaskConical,
+  ListFilter,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -16,6 +24,7 @@ import type { AioTestRun } from '@/services/aio';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { severityOf, severityRaw } from './DefectSummary';
+import { SectionHeading } from './RunSection';
 import type { ResolvedDefect } from './useCycleDefects';
 
 type DefectSortKey = 'key' | 'status' | 'priority' | 'severity' | 'assignee' | null;
@@ -38,6 +47,10 @@ const COL = {
 } as const;
 
 const MAX_TRIGGER_CHIPS = 2;
+
+function isDoneDefect(d: ResolvedDefect): boolean {
+  return !d.isLoading && d.issue?.fields.status?.statusCategory?.key === 'done';
+}
 
 function optionsOf(
   defects: ResolvedDefect[],
@@ -426,6 +439,17 @@ export function DefectsList({
     });
   }, [filtered, sortKey, sortDir]);
 
+  // D-02: Done = Jira status category 'done'. Loading / unresolved rows stay in Not done.
+  const [openDefects, doneDefects] = useMemo(() => {
+    const open: ResolvedDefect[] = [];
+    const done: ResolvedDefect[] = [];
+    for (const d of sorted) (isDoneDefect(d) ? done : open).push(d);
+    return [open, done];
+  }, [sorted]);
+
+  const totalDone = useMemo(() => defects.filter(isDoneDefect).length, [defects]);
+  const totalOpen = defects.length - totalDone;
+
   const handleSort = (key: SortableKey) => {
     if (sortKey !== key) {
       setSortKey(key);
@@ -502,6 +526,91 @@ export function DefectsList({
   const headerCell = cn(CELL_PADDING, 'text-xs font-medium text-muted-foreground');
   const headerProps = { activeSortKey: sortKey, activeSortDir: sortDir, onSort: handleSort };
 
+  const renderSection = ({
+    testId,
+    title,
+    rows,
+    emptyIcon,
+    emptyTitle,
+  }: {
+    testId: string;
+    title: string;
+    rows: ResolvedDefect[];
+    emptyIcon: typeof Bug;
+    emptyTitle: string;
+  }): ReactNode => (
+    <section data-testid={testId} className="min-w-0">
+      <SectionHeading title={title} count={rows.length} className="mb-0 px-4 pt-3 pb-2" />
+      {rows.length > 0 ? (
+        <div>
+          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))] pr-2">
+            <SortableHeader
+              sortKey="key"
+              label="Key"
+              className={cn(COL.key, headerCell)}
+              {...headerProps}
+            />
+            <div className={cn(COL.title, headerCell)}>Title</div>
+            <SortableHeader
+              sortKey="status"
+              label="Status"
+              className={cn(COL.status, headerCell)}
+              {...headerProps}
+            />
+            <div className={cn(COL.triggered, headerCell)}>Triggered By</div>
+            <SortableHeader
+              sortKey="priority"
+              label="Priority"
+              className={cn(COL.priority, headerCell)}
+              {...headerProps}
+            />
+            <SortableHeader
+              sortKey="severity"
+              label="Severity"
+              className={cn(COL.severity, headerCell)}
+              {...headerProps}
+            />
+            <SortableHeader
+              sortKey="assignee"
+              label="Assignee"
+              className={cn(COL.assignee, headerCell)}
+              {...headerProps}
+            />
+            <div className={cn(COL.reporter, headerCell)}>Reporter</div>
+          </div>
+          {rows.map((d) => (
+            <DefectRow
+              key={d.defectKey}
+              defect={d}
+              onOpen={onOpenIssue}
+              onOpenRun={onOpenRun}
+              onKeyClick={() =>
+                useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname })
+              }
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          compact
+          icon={emptyIcon}
+          title={emptyTitle}
+          action={
+            emptyIcon === ListFilter && anyFilterActive ? (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Clear filters
+              </button>
+            ) : undefined
+          }
+        />
+      )}
+    </section>
+  );
+
   return (
     <div className="@container flex flex-col">
       <div
@@ -568,60 +677,23 @@ export function DefectsList({
         )}
       </div>
 
-      {sorted.length === 0 && anyFilterActive ? (
-        <p className="px-4 py-3 text-sm text-muted-foreground">
-          No defects match the selected filters.
-        </p>
-      ) : (
-        <div>
-          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))] pr-2">
-            <SortableHeader
-              sortKey="key"
-              label="Key"
-              className={cn(COL.key, headerCell)}
-              {...headerProps}
-            />
-            <div className={cn(COL.title, headerCell)}>Title</div>
-            <SortableHeader
-              sortKey="status"
-              label="Status"
-              className={cn(COL.status, headerCell)}
-              {...headerProps}
-            />
-            <div className={cn(COL.triggered, headerCell)}>Triggered By</div>
-            <SortableHeader
-              sortKey="priority"
-              label="Priority"
-              className={cn(COL.priority, headerCell)}
-              {...headerProps}
-            />
-            <SortableHeader
-              sortKey="severity"
-              label="Severity"
-              className={cn(COL.severity, headerCell)}
-              {...headerProps}
-            />
-            <SortableHeader
-              sortKey="assignee"
-              label="Assignee"
-              className={cn(COL.assignee, headerCell)}
-              {...headerProps}
-            />
-            <div className={cn(COL.reporter, headerCell)}>Reporter</div>
-          </div>
-          {sorted.map((d) => (
-            <DefectRow
-              key={d.defectKey}
-              defect={d}
-              onOpen={onOpenIssue}
-              onOpenRun={onOpenRun}
-              onKeyClick={() =>
-                useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname })
-              }
-            />
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col gap-2">
+        {renderSection({
+          testId: 'defects-section-open',
+          title: 'Not done',
+          rows: openDefects,
+          emptyIcon: totalOpen === 0 ? ShieldCheck : ListFilter,
+          emptyTitle: totalOpen === 0 ? 'No open defects' : 'No open defects match the filters',
+        })}
+        {renderSection({
+          testId: 'defects-section-done',
+          title: 'Done',
+          rows: doneDefects,
+          emptyIcon: totalDone === 0 ? Bug : ListFilter,
+          emptyTitle:
+            totalDone === 0 ? 'No resolved defects yet' : 'No resolved defects match the filters',
+        })}
+      </div>
     </div>
   );
 }

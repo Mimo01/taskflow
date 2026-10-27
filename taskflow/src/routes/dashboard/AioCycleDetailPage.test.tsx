@@ -1853,49 +1853,41 @@ describe('AIOC-N3S: defects sort + filter', () => {
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
     await user.click(screen.getByRole('tab', { name: 'Defects' }));
 
-    // Wait for all three defects to load
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeDefined();
       expect(screen.getByText('PROJ-2')).toBeDefined();
       expect(screen.getByText('PROJ-3')).toBeDefined();
     });
 
-    // Click Key header → asc order
-    const keyHeader = screen.getByTestId('defects-sort-header-key');
-    await user.click(keyHeader);
+    const open = () => within(screen.getByTestId('defects-section-open'));
+    const done = () => within(screen.getByTestId('defects-section-done'));
+    const ids = (w: { getAllByTestId: (id: RegExp) => HTMLElement[] }) =>
+      w.getAllByTestId(/^defect-row-/).map((r) => r.getAttribute('data-testid'));
 
-    // Chevron-up indicator should be visible
-    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-key')).toBeDefined());
+    // Open = 1001, 1003 ; Done = 1002
+    expect(ids(open())).toEqual(['defect-row-1001', 'defect-row-1003']);
+    expect(ids(done())).toEqual(['defect-row-1002']);
 
-    // All three rows still visible in asc order (by resolved key: PROJ-1 < PROJ-2 < PROJ-3)
-    await waitFor(() => {
-      const rows = screen.getAllByTestId(/^defect-row-/);
-      expect(rows.length).toBe(3);
-      expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1001');
-      expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1002');
-      expect(rows[2].getAttribute('data-testid')).toBe('defect-row-1003');
-    });
+    // Click Key header -> asc order
+    const keyHeader = () => open().getByTestId('defects-sort-header-key');
+    await user.click(keyHeader());
+    await waitFor(() => expect(open().getByTestId('defects-sort-indicator-key')).toBeDefined());
+    expect(ids(open())).toEqual(['defect-row-1001', 'defect-row-1003']);
+    expect(ids(done())).toEqual(['defect-row-1002']);
 
-    // Click again → desc order: PROJ-3, PROJ-2, PROJ-1
-    await user.click(keyHeader);
-    await waitFor(
-      () => {
-        const rowsDesc = screen.getAllByTestId(/^defect-row-/);
-        expect(rowsDesc[0].getAttribute('data-testid')).toBe('defect-row-1003');
-        expect(rowsDesc[1].getAttribute('data-testid')).toBe('defect-row-1002');
-        expect(rowsDesc[2].getAttribute('data-testid')).toBe('defect-row-1001');
-      },
-      { timeout: 3000 },
-    );
-
-    // Click again → unsorted (original input order: 1001, 1002, 1003)
-    await user.click(keyHeader);
-    // No sort indicator
-    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-key')).toBeNull(), {
+    // desc
+    await user.click(keyHeader());
+    await waitFor(() => expect(ids(open())).toEqual(['defect-row-1003', 'defect-row-1001']), {
       timeout: 3000,
     });
-    const rowsUnsorted = screen.getAllByTestId(/^defect-row-/);
-    expect(rowsUnsorted[0].getAttribute('data-testid')).toBe('defect-row-1001');
+    expect(ids(done())).toEqual(['defect-row-1002']);
+
+    // unsorted
+    await user.click(keyHeader());
+    await waitFor(() => expect(open().queryByTestId('defects-sort-indicator-key')).toBeNull(), {
+      timeout: 3000,
+    });
+    expect(ids(open())).toEqual(['defect-row-1001', 'defect-row-1003']);
   });
 
   it('Test 2 (sort by Priority): clicking Priority header sorts by rank High → Medium → Low', async () => {
@@ -1907,16 +1899,18 @@ describe('AIOC-N3S: defects sort + filter', () => {
 
     await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
 
-    const priorityHeader = screen.getByTestId('defects-sort-header-priority');
-    await user.click(priorityHeader);
+    const open = within(screen.getByTestId('defects-section-open'));
+    await user.click(open.getByTestId('defects-sort-header-priority'));
 
-    // High (rank 1) → Medium (rank 2) → Low (rank 3)
+    // High (rank 1) → Medium (rank 2) within Not done; Low (1002) is Done
     await waitFor(() => {
-      const rows = screen.getAllByTestId(/^defect-row-/);
+      const rows = open.getAllByTestId(/^defect-row-/);
       expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1001'); // High
       expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1003'); // Medium
-      expect(rows[2].getAttribute('data-testid')).toBe('defect-row-1002'); // Low
     });
+    expect(
+      within(screen.getByTestId('defects-section-done')).getByTestId('defect-row-1002'),
+    ).toBeDefined();
   });
 
   it('Test 3 (sort indicator): active column shows chevron, inactive columns do not', async () => {
@@ -1930,18 +1924,21 @@ describe('AIOC-N3S: defects sort + filter', () => {
     // No indicator initially
     expect(screen.queryByTestId('defects-sort-indicator-status')).toBeNull();
 
-    const statusHeader = screen.getByTestId('defects-sort-header-status');
+    const statusHeader = screen.getAllByTestId('defects-sort-header-status')[0];
     await user.click(statusHeader);
-    // ChevronUp shown for asc
-    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-status')).toBeDefined());
+    // ChevronUp shown for asc (one per section: shared sort state)
+    await waitFor(() =>
+      expect(screen.getAllByTestId('defects-sort-indicator-status')).toHaveLength(2),
+    );
     // Priority header has no indicator
     expect(screen.queryByTestId('defects-sort-indicator-priority')).toBeNull();
 
     // Click again → ChevronDown (still has indicator)
     await user.click(statusHeader);
-    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-status')).toBeDefined(), {
-      timeout: 3000,
-    });
+    await waitFor(
+      () => expect(screen.getAllByTestId('defects-sort-indicator-status')).toHaveLength(2),
+      { timeout: 3000 },
+    );
 
     // Click again → no indicator (unsorted)
     await user.click(statusHeader);
@@ -2055,7 +2052,7 @@ describe('AIOC-N3S: defects sort + filter', () => {
     );
   });
 
-  it('Test 7 (no matches): filter that matches nothing shows "No defects match the selected filters."', async () => {
+  it('Test 7 (no matches): filter that matches nothing shows per-section no-match states', async () => {
     const user = userEvent.setup();
     await setupSortFilterMocks();
     renderPage();
@@ -2077,11 +2074,91 @@ describe('AIOC-N3S: defects sort + filter', () => {
     await user.click(openOptions[openOptions.length - 1]);
 
     await waitFor(() => {
-      expect(screen.getByText('No defects match the selected filters.')).toBeDefined();
+      expect(screen.getByText('No open defects match the filters')).toBeDefined();
+      expect(screen.getByText('No resolved defects match the filters')).toBeDefined();
     });
 
     // EmptyState "No defects" title must NOT be present (that's for allDefects.length === 0)
     expect(screen.queryByText('No defects are linked to runs in this cycle.')).toBeNull();
+  });
+
+  it('partitions defects into Not done / Done sections with counts', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-2')).toBeDefined());
+    const open = within(screen.getByTestId('defects-section-open'));
+    const done = within(screen.getByTestId('defects-section-done'));
+    expect(open.getByText('Not done (2)')).toBeDefined();
+    expect(done.getByText('Done (1)')).toBeDefined();
+    expect(open.getByTestId('defect-row-1001')).toBeDefined();
+    expect(open.getByTestId('defect-row-1003')).toBeDefined();
+    expect(done.getByTestId('defect-row-1002')).toBeDefined();
+  });
+
+  it('shows "No resolved defects yet" and Clear filters resets the no-match state', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockImplementation(
+      (_b: string, _t: string, key: string) => {
+        if (key === '1001') return Promise.resolve(defectIssueA);
+        if (key === '1002')
+          return Promise.resolve({
+            ...defectIssueB,
+            fields: {
+              ...defectIssueB.fields,
+              status: { name: 'Open', statusCategory: { key: 'new' } },
+            },
+          });
+        if (key === '1003') return Promise.resolve(defectIssueC);
+        return Promise.resolve(null);
+      },
+    );
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-2')).toBeDefined());
+    const done = within(screen.getByTestId('defects-section-done'));
+    expect(done.getByText('No resolved defects yet')).toBeDefined();
+
+    // Filter Assignee=Alice -> the Done section has no rows but defects exist overall? (none done)
+    await user.click(screen.getByTestId('defects-filter-assignee'));
+    await waitFor(() =>
+      expect(screen.queryAllByRole('button', { name: /^Bob$/ }).length).toBeGreaterThan(0),
+    );
+    const bob = screen.getAllByRole('button', { name: /^Bob$/ });
+    await user.click(bob[bob.length - 1]);
+    const open = within(screen.getByTestId('defects-section-open'));
+    await waitFor(() => expect(open.getByText('Not done (1)')).toBeDefined());
+    await user.click(screen.getByTestId('defects-filter-clear-all'));
+    await waitFor(() => expect(open.getByText('Not done (3)')).toBeDefined());
+  });
+
+  it('shows "No open defects" when every defect is done', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockImplementation(
+      (_b: string, _t: string, key: string) => {
+        const base = key === '1001' ? defectIssueA : key === '1002' ? defectIssueB : defectIssueC;
+        return Promise.resolve({
+          ...base,
+          fields: { ...base.fields, status: { name: 'Done', statusCategory: { key: 'done' } } },
+        });
+      },
+    );
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-2')).toBeDefined());
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('defects-section-open')).getByText('No open defects'),
+      ).toBeDefined(),
+    );
   });
 
   it('Test 8 (loading rows excluded from filter but present unfiltered): loading defect sorts to bottom', async () => {
