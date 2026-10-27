@@ -655,8 +655,68 @@ describe('AioCycleDetailPage', () => {
       await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
       await user.type(screen.getByLabelText('Search test cases'), 'zzz-nothing');
       await waitFor(() => {
-        expect(screen.getByText(/No runs match the selected filters/)).toBeDefined();
+        expect(screen.getByText('No open runs match the filters')).toBeDefined();
+        expect(screen.getByText('No passed runs match the filters')).toBeDefined();
       });
+    });
+
+    it('partitions runs into Not done (non-pass) and Done (pass) sections', async () => {
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('executions-section-open')).toBeDefined());
+      const open = within(screen.getByTestId('executions-section-open'));
+      const done = within(screen.getByTestId('executions-section-done'));
+      expect(open.getByText('Not done (2)')).toBeDefined();
+      expect(done.getByText('Done (1)')).toBeDefined();
+      expect(open.getByTestId('run-row-run-2')).toBeDefined();
+      expect(open.getByTestId('run-row-run-3')).toBeDefined();
+      expect(open.queryByTestId('run-row-run-1')).toBeNull();
+      expect(done.getByTestId('run-row-run-1')).toBeDefined();
+    });
+
+    it('shows "All runs passed" when every run passes', async () => {
+      const { fetchAioCycleTestCasesWithRuns } = await import('@/services/aio');
+      await setupDefaultMocks();
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockRuns.map((r) => ({ ...r, status: 'PASS' })),
+      );
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('executions-section-open')).toBeDefined());
+      const open = within(screen.getByTestId('executions-section-open'));
+      expect(open.getByText('All runs passed')).toBeDefined();
+      expect(open.queryByTestId('executions-sort-key')).toBeNull();
+      expect(
+        within(screen.getByTestId('executions-section-done')).getAllByTestId(/^run-row-/),
+      ).toHaveLength(3);
+    });
+
+    it('shows "No passed runs yet" when no run passes', async () => {
+      const { fetchAioCycleTestCasesWithRuns } = await import('@/services/aio');
+      await setupDefaultMocks();
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockRuns.map((r) => ({ ...r, status: 'FAIL' })),
+      );
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('executions-section-done')).toBeDefined());
+      expect(
+        within(screen.getByTestId('executions-section-done')).getByText('No passed runs yet'),
+      ).toBeDefined();
+    });
+
+    it('Clear filters in a no-match section resets search and status', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      await user.click(screen.getByRole('radio', { name: 'Pass 1' }));
+      const open = within(screen.getByTestId('executions-section-open'));
+      expect(open.getByText('No open runs match the filters')).toBeDefined();
+      await user.click(open.getByRole('button', { name: 'Clear filters' }));
+      await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      expect(screen.getByText('Login test')).toBeDefined();
+      expect(screen.getByRole('radio', { name: 'All 3' }).getAttribute('aria-checked')).toBe(
+        'true',
+      );
     });
 
     it('sort buttons cycle asc, desc, then back to server order', async () => {
@@ -664,20 +724,23 @@ describe('AioCycleDetailPage', () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
+      const open = () => within(screen.getByTestId('executions-section-open'));
       const order = () =>
-        screen.getAllByTestId(/^run-row-/).map((r) => r.getAttribute('data-testid'));
-      expect(order()).toEqual(['run-row-run-1', 'run-row-run-2', 'run-row-run-3']);
+        open()
+          .getAllByTestId(/^run-row-/)
+          .map((r) => r.getAttribute('data-testid'));
+      expect(order()).toEqual(['run-row-run-2', 'run-row-run-3']);
 
-      await user.click(screen.getByTestId('executions-sort-key'));
-      expect(screen.getByTestId('executions-sort-indicator-key')).toBeDefined();
-      expect(order()).toEqual(['run-row-run-1', 'run-row-run-2', 'run-row-run-3']);
+      await user.click(open().getByTestId('executions-sort-key'));
+      expect(open().getByTestId('executions-sort-indicator-key')).toBeDefined();
+      expect(order()).toEqual(['run-row-run-2', 'run-row-run-3']);
 
-      await user.click(screen.getByTestId('executions-sort-key'));
-      expect(order()).toEqual(['run-row-run-3', 'run-row-run-2', 'run-row-run-1']);
+      await user.click(open().getByTestId('executions-sort-key'));
+      expect(order()).toEqual(['run-row-run-3', 'run-row-run-2']);
 
-      await user.click(screen.getByTestId('executions-sort-key'));
-      expect(screen.queryByTestId('executions-sort-indicator-key')).toBeNull();
-      expect(order()).toEqual(['run-row-run-1', 'run-row-run-2', 'run-row-run-3']);
+      await user.click(open().getByTestId('executions-sort-key'));
+      expect(open().queryByTestId('executions-sort-indicator-key')).toBeNull();
+      expect(order()).toEqual(['run-row-run-2', 'run-row-run-3']);
     });
 
     it('status sort puts failing runs first', async () => {
@@ -685,10 +748,17 @@ describe('AioCycleDetailPage', () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => expect(screen.getByText('Checkout test')).toBeDefined());
-      await user.click(screen.getByTestId('executions-sort-status'));
-      const rows = screen.getAllByTestId(/^run-row-/).map((r) => r.getAttribute('data-testid'));
+      const open = within(screen.getByTestId('executions-section-open'));
+      await user.click(open.getByTestId('executions-sort-status'));
+      const rows = open.getAllByTestId(/^run-row-/).map((r) => r.getAttribute('data-testid'));
       expect(rows[0]).toBe('run-row-run-2'); // FAIL
-      expect(rows[rows.length - 1]).toBe('run-row-run-1'); // PASS
+      expect(rows[rows.length - 1]).toBe('run-row-run-3'); // NOT_EXECUTED
+      // shared sort state drives the Done section too
+      expect(
+        within(screen.getByTestId('executions-section-done')).getByTestId(
+          'executions-sort-indicator-status',
+        ),
+      ).toBeDefined();
     });
 
     it('a row without a run id has no open button and is muted', async () => {

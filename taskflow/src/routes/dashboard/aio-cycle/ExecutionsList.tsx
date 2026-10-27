@@ -1,5 +1,15 @@
-import { Bug, ChevronDown, ChevronUp, FlaskConical, Search, X } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import {
+  Bug,
+  ChevronDown,
+  ChevronUp,
+  CircleCheck,
+  CircleDashed,
+  FlaskConical,
+  ListFilter,
+  Search,
+  X,
+} from 'lucide-react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,6 +19,7 @@ import { formatDateKey } from '@/lib/epic-progress';
 import { aioRunStatusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
+import { SectionHeading } from './RunSection';
 import { UserChip } from './UserChip';
 
 type SortKey = 'key' | 'status' | 'defects' | 'runs' | 'assignee' | 'executed';
@@ -285,6 +296,24 @@ export function ExecutionsList({
     });
   }, [runs, query, statusFilter, sortKey, sortDir]);
 
+  const anyFilterActive = query.trim() !== '' || statusFilter !== 'ALL';
+
+  // D-01: Done = Pass only. Single pass keeps the shared sort order inside each group.
+  const [openRuns, doneRuns] = useMemo(() => {
+    const open: AioTestRun[] = [];
+    const done: AioTestRun[] = [];
+    for (const r of visible) (normalizeStatus(r.status) === 'pass' ? done : open).push(r);
+    return [open, done];
+  }, [visible]);
+
+  const totalDone = counts.pass;
+  const totalOpen = (runs?.length ?? 0) - totalDone;
+
+  const clearFilters = () => {
+    setQuery('');
+    setStatusFilter('ALL');
+  };
+
   const handleSort = (key: SortKey) => {
     if (sortKey !== key) {
       setSortKey(key);
@@ -313,6 +342,93 @@ export function ExecutionsList({
 
   const sortProps = { activeKey: sortKey, activeDir: sortDir, onSort: handleSort };
   const headerCell = cn(CELL_PADDING, 'text-xs font-medium text-muted-foreground');
+
+  const renderSection = ({
+    testId,
+    title,
+    rows,
+    emptyIcon,
+    emptyTitle,
+  }: {
+    testId: string;
+    title: string;
+    rows: AioTestRun[];
+    emptyIcon: typeof CircleCheck;
+    emptyTitle: string;
+  }): ReactNode => (
+    <section data-testid={testId} className="min-w-0">
+      <SectionHeading title={title} count={rows.length} className="mb-0 px-4 pt-3 pb-2" />
+      {rows.length > 0 ? (
+        <div>
+          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]">
+            <SortHeader
+              sortKey="key"
+              label="Key"
+              className={cn(COL.key, headerCell)}
+              {...sortProps}
+            />
+            <div className={cn(COL.title, headerCell)}>Title</div>
+            <SortHeader
+              sortKey="status"
+              label="Status"
+              className={cn(COL.status, headerCell)}
+              {...sortProps}
+            />
+            <SortHeader
+              sortKey="defects"
+              label="Defects"
+              className={cn(COL.defects, headerCell)}
+              {...sortProps}
+            />
+            <SortHeader
+              sortKey="runs"
+              label="Runs"
+              className={cn(COL.runs, headerCell)}
+              {...sortProps}
+            />
+            <SortHeader
+              sortKey="assignee"
+              label="Assignee"
+              className={cn(COL.assignee, headerCell)}
+              {...sortProps}
+            />
+            <SortHeader
+              sortKey="executed"
+              label="Executed"
+              className={cn(COL.executed, headerCell)}
+              {...sortProps}
+            />
+          </div>
+          {rows.map((run, i) => (
+            <RunRow
+              key={run.id || `${run.testCaseKey}-${i}`}
+              run={run}
+              onOpenRun={onOpenRun}
+              jiraBaseUrl={jiraBaseUrl}
+              token={token}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          compact
+          icon={emptyIcon}
+          title={emptyTitle}
+          action={
+            emptyIcon === ListFilter && anyFilterActive ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Clear filters
+              </button>
+            ) : undefined
+          }
+        />
+      )}
+    </section>
+  );
 
   return (
     <div className="@container flex flex-col">
@@ -392,60 +508,22 @@ export function ExecutionsList({
           title="No test runs found"
           subtitle="No test runs have been recorded for this cycle yet."
         />
-      ) : visible.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-muted-foreground">
-          No runs match the selected filters. Try another status or adjust the search.
-        </p>
       ) : (
-        <div>
-          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]">
-            <SortHeader
-              sortKey="key"
-              label="Key"
-              className={cn(COL.key, headerCell)}
-              {...sortProps}
-            />
-            <div className={cn(COL.title, headerCell)}>Title</div>
-            <SortHeader
-              sortKey="status"
-              label="Status"
-              className={cn(COL.status, headerCell)}
-              {...sortProps}
-            />
-            <SortHeader
-              sortKey="defects"
-              label="Defects"
-              className={cn(COL.defects, headerCell)}
-              {...sortProps}
-            />
-            <SortHeader
-              sortKey="runs"
-              label="Runs"
-              className={cn(COL.runs, headerCell)}
-              {...sortProps}
-            />
-            <SortHeader
-              sortKey="assignee"
-              label="Assignee"
-              className={cn(COL.assignee, headerCell)}
-              {...sortProps}
-            />
-            <SortHeader
-              sortKey="executed"
-              label="Executed"
-              className={cn(COL.executed, headerCell)}
-              {...sortProps}
-            />
-          </div>
-          {visible.map((run, i) => (
-            <RunRow
-              key={run.id || `${run.testCaseKey}-${i}`}
-              run={run}
-              onOpenRun={onOpenRun}
-              jiraBaseUrl={jiraBaseUrl}
-              token={token}
-            />
-          ))}
+        <div className="flex flex-col gap-2">
+          {renderSection({
+            testId: 'executions-section-open',
+            title: 'Not done',
+            rows: openRuns,
+            emptyIcon: totalOpen === 0 ? CircleCheck : ListFilter,
+            emptyTitle: totalOpen === 0 ? 'All runs passed' : 'No open runs match the filters',
+          })}
+          {renderSection({
+            testId: 'executions-section-done',
+            title: 'Done',
+            rows: doneRuns,
+            emptyIcon: totalDone === 0 ? CircleDashed : ListFilter,
+            emptyTitle: totalDone === 0 ? 'No passed runs yet' : 'No passed runs match the filters',
+          })}
         </div>
       )}
     </div>
