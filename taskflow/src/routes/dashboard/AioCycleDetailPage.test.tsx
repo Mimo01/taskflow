@@ -660,13 +660,13 @@ describe('AioCycleDetailPage', () => {
       });
     });
 
-    it('partitions runs into Outstanding (non-pass) and Done (pass) sections', async () => {
+    it('partitions runs into Open (non-pass) and Done (pass) sections', async () => {
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => expect(screen.getByTestId('executions-section-open')).toBeDefined());
       const open = within(screen.getByTestId('executions-section-open'));
       const done = within(screen.getByTestId('executions-section-done'));
-      expect(open.getByText('Outstanding (2)')).toBeDefined();
+      expect(open.getByText('Open (2)')).toBeDefined();
       expect(done.getByText('Done (1)')).toBeDefined();
       expect(open.getByTestId('run-row-run-2')).toBeDefined();
       expect(open.getByTestId('run-row-run-3')).toBeDefined();
