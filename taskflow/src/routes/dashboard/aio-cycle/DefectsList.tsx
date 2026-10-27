@@ -532,12 +532,15 @@ export function DefectsList({
     rows,
     emptyIcon,
     emptyTitle,
+    filteredOut,
   }: {
     testId: string;
     title: string;
     rows: ResolvedDefect[];
     emptyIcon: typeof Bug;
     emptyTitle: string;
+    /** Section has items but the active filters hide them all. */
+    filteredOut: boolean;
   }): ReactNode => (
     <section data-testid={testId} className="min-w-0">
       <SectionHeading title={title} count={rows.length} className="mb-0 px-4 pt-3 pb-2" />
@@ -596,7 +599,7 @@ export function DefectsList({
           icon={emptyIcon}
           title={emptyTitle}
           action={
-            emptyIcon === ListFilter && anyFilterActive ? (
+            filteredOut ? (
               <button
                 type="button"
                 onClick={clearAllFilters}
@@ -682,6 +685,7 @@ export function DefectsList({
           testId: 'defects-section-open',
           title: 'Not done',
           rows: openDefects,
+          filteredOut: totalOpen > 0,
           emptyIcon: totalOpen === 0 ? ShieldCheck : ListFilter,
           emptyTitle: totalOpen === 0 ? 'No open defects' : 'No open defects match the filters',
         })}
@@ -689,6 +693,7 @@ export function DefectsList({
           testId: 'defects-section-done',
           title: 'Done',
           rows: doneDefects,
+          filteredOut: totalDone > 0,
           emptyIcon: totalDone === 0 ? Bug : ListFilter,
           emptyTitle:
             totalDone === 0 ? 'No resolved defects yet' : 'No resolved defects match the filters',

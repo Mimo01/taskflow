@@ -296,8 +296,6 @@ export function ExecutionsList({
     });
   }, [runs, query, statusFilter, sortKey, sortDir]);
 
-  const anyFilterActive = query.trim() !== '' || statusFilter !== 'ALL';
-
   // D-01: Done = Pass only. Single pass keeps the shared sort order inside each group.
   const [openRuns, doneRuns] = useMemo(() => {
     const open: AioTestRun[] = [];
@@ -349,12 +347,15 @@ export function ExecutionsList({
     rows,
     emptyIcon,
     emptyTitle,
+    filteredOut,
   }: {
     testId: string;
     title: string;
     rows: AioTestRun[];
     emptyIcon: typeof CircleCheck;
     emptyTitle: string;
+    /** Section has items but the active filters hide them all. */
+    filteredOut: boolean;
   }): ReactNode => (
     <section data-testid={testId} className="min-w-0">
       <SectionHeading title={title} count={rows.length} className="mb-0 px-4 pt-3 pb-2" />
@@ -415,7 +416,7 @@ export function ExecutionsList({
           icon={emptyIcon}
           title={emptyTitle}
           action={
-            emptyIcon === ListFilter && anyFilterActive ? (
+            filteredOut ? (
               <button
                 type="button"
                 onClick={clearFilters}
@@ -514,6 +515,7 @@ export function ExecutionsList({
             testId: 'executions-section-open',
             title: 'Not done',
             rows: openRuns,
+            filteredOut: totalOpen > 0,
             emptyIcon: totalOpen === 0 ? CircleCheck : ListFilter,
             emptyTitle: totalOpen === 0 ? 'All runs passed' : 'No open runs match the filters',
           })}
@@ -521,6 +523,7 @@ export function ExecutionsList({
             testId: 'executions-section-done',
             title: 'Done',
             rows: doneRuns,
+            filteredOut: totalDone > 0,
             emptyIcon: totalDone === 0 ? CircleDashed : ListFilter,
             emptyTitle: totalDone === 0 ? 'No passed runs yet' : 'No passed runs match the filters',
           })}
