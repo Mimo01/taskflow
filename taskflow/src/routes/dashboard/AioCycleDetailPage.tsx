@@ -158,7 +158,7 @@ export default function AioCycleDetailPage() {
       {/* Single page scroll: header + KPI tiles scroll away; the tab bar and the
           list column headers stick (offset via --aio-sticky-top = tab bar height). */}
       <div
-        className="min-h-0 flex-1 overflow-auto [--aio-sticky-top:2.75rem]"
+        className="min-h-0 flex-1 overflow-auto pb-16 [--aio-sticky-top:2.75rem]"
         data-testid="aio-cycle-scroll"
       >
         <CycleHeader
