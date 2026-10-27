@@ -314,7 +314,7 @@ export default function AioTestRunDetailPage() {
               style={{ '--run-sidebar-w': `${sidebarWidth}px` } as CSSProperties}
             >
               <div
-                className="min-w-0 flex-1 space-y-10 p-6 density-compact:space-y-6 density-comfortable:space-y-12 @[900px]:overflow-y-auto"
+                className="min-w-0 flex-1 space-y-10 p-6 pb-16 density-compact:space-y-6 density-comfortable:space-y-12 @[900px]:overflow-y-auto"
                 data-testid="aio-run-main-scroll"
               >
                 {description && (
@@ -383,7 +383,7 @@ export default function AioTestRunDetailPage() {
               <div
                 className={cn(
                   // Two columns scroll independently (sidebar stays put), as on issue detail.
-                  'relative border-t p-4 @[900px]:w-(--run-sidebar-w) @[900px]:flex-none @[900px]:overflow-y-auto @[900px]:border-t-0 @[900px]:border-l',
+                  'relative border-t p-4 pb-12 @[900px]:w-(--run-sidebar-w) @[900px]:flex-none @[900px]:overflow-y-auto @[900px]:border-t-0 @[900px]:border-l',
                   !isDragging && 'transition-[width] duration-200',
                 )}
                 data-testid="aio-run-sidebar-panel"
