@@ -10,6 +10,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JiraIssue } from '@/services/jira';
+import { isIssueFlagged } from '@/services/jira';
 import { usePeekStore } from '@/stores/peek.store';
 import { MyTaskRow } from './MyTaskRow';
 
@@ -183,5 +184,30 @@ describe('MyTaskRow — responsive container tiers', () => {
       <MyTaskRow issue={makeIssue('PROJ-6', 'new', { subtask: true })} isSubtask {...BASE_PROPS} />,
     );
     expect(screen.getByTestId('my-task-left')).toHaveClass('overflow-hidden');
+  });
+});
+
+describe('MyTaskRow — icon-only chips at narrow widths', () => {
+  it('Flagged chip text is sr-only below 860px with aria-label + title', () => {
+    vi.mocked(isIssueFlagged).mockReturnValueOnce(true);
+    render(<MyTaskRow issue={makeIssue('PROJ-7', 'new')} {...BASE_PROPS} />);
+    const text = screen.getByText('Flagged');
+    expect(text).toHaveClass('@max-[860px]:sr-only');
+    const chip = text.parentElement;
+    expect(chip).toHaveAttribute('aria-label', 'Flagged');
+    expect(chip).toHaveAttribute('title', 'Flagged');
+    expect(chip?.querySelector('svg')).not.toHaveClass('hidden');
+  });
+
+  it.each([
+    ['approved', 'Approved'],
+    ['changes_requested', 'Changes requested'],
+    ['waiting_for_review', 'Awaiting review'],
+  ] as const)('MR chip %s is icon-only below 860px with accessible name', (health, label) => {
+    render(<MyTaskRow issue={makeIssue('PROJ-8', 'new')} mrHealth={health} {...BASE_PROPS} />);
+    const text = screen.getByText(label);
+    expect(text).toHaveClass('@max-[860px]:sr-only');
+    expect(text.parentElement).toHaveAttribute('aria-label', `MR: ${label}`);
+    expect(text.parentElement).toHaveAttribute('title', `MR: ${label}`);
   });
 });

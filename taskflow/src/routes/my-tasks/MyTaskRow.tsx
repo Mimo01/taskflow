@@ -416,9 +416,11 @@ export function MyTaskRow({
               CHIP_BASE,
               'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30',
             )}
+            aria-label="Flagged"
+            title="Flagged"
           >
             <Flag className="size-3 shrink-0" />
-            Flagged
+            <span className="@max-[860px]:sr-only">Flagged</span>
           </span>
         )}
 
@@ -433,9 +435,11 @@ export function MyTaskRow({
               mrHealth === 'waiting_for_review' &&
                 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400',
             )}
+            aria-label={`MR: ${MR_HEALTH_LABEL[mrHealth]}`}
+            title={`MR: ${MR_HEALTH_LABEL[mrHealth]}`}
           >
             <GitPullRequest className="size-3 shrink-0" />
-            {MR_HEALTH_LABEL[mrHealth]}
+            <span className="@max-[860px]:sr-only">{MR_HEALTH_LABEL[mrHealth]}</span>
           </span>
         )}
       </div>
