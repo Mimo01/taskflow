@@ -40,7 +40,7 @@ const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 const COL = {
   key: 'flex-none w-32 pl-4 pr-2',
   title: 'flex-1 min-w-0 px-2',
-  status: 'flex-none w-32 px-2',
+  status: 'flex-none w-28 px-2',
   priority: 'flex-none w-10 @[640px]:w-28 px-2 flex items-center',
   severity: 'flex-none w-24 px-2 hidden @[760px]:flex items-center',
   assignee: 'flex-none w-10 @[880px]:w-40 px-2 flex items-center',
