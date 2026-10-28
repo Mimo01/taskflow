@@ -65,7 +65,7 @@ export function RunDefectsSection({
                 key={d.id}
                 data-testid={`aio-run-defect-${d.id}`}
                 data-peeked={clickable && peekKey === key ? 'true' : undefined}
-                className={`${clickable && peekKey === key ? `${PEEKED_ROW_CLASS} ` : ''}relative flex min-w-0 items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/30 density-compact:py-2 density-comfortable:py-4`}
+                className={`${clickable && peekKey === key ? `${PEEKED_ROW_CLASS} ` : ''}relative flex min-w-0 items-center gap-4 px-4 py-3 text-sm transition-colors ${clickable && peekKey === key ? '' : 'hover:bg-muted/30'} density-compact:py-2 density-comfortable:py-4`}
               >
                 {clickable && (
                   <button

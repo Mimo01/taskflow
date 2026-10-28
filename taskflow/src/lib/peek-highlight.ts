@@ -4,7 +4,8 @@
  */
 
 /** List rows: subtle primary tint + 3px inset leading-edge bar. */
-export const PEEKED_ROW_CLASS = 'bg-primary/10 shadow-[inset_3px_0_0_var(--color-primary)]';
+export const PEEKED_ROW_CLASS =
+  'bg-primary/10 hover:bg-primary/15 shadow-[inset_3px_0_0_var(--color-primary)]';
 
 /** TaskCard: tint + ring (its 3px type stripe owns the leading edge). */
-export const PEEKED_CARD_CLASS = 'bg-primary/10 ring-2 ring-primary/70';
+export const PEEKED_CARD_CLASS = 'bg-primary/10 hover:bg-primary/15 ring-2 ring-primary/70';

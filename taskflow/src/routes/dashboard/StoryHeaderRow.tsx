@@ -108,7 +108,6 @@ export function StoryHeaderRow({
   const rowClassName = cn(
     'flex items-center gap-2 density-compact:gap-1.5 px-3 py-2 density-compact:px-2 density-compact:py-1 density-comfortable:py-3 transition-colors border-b',
     useKeyBodySplit && 'cursor-pointer',
-    isPeeked && PEEKED_ROW_CLASS,
     isExpanded
       ? isFlagged
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
@@ -116,6 +115,7 @@ export function StoryHeaderRow({
       : isFlagged
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60 mb-px'
         : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
+    isPeeked && PEEKED_ROW_CLASS,
   );
 
   const rowInner = (
