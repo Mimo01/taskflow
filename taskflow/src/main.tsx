@@ -701,7 +701,7 @@ function AppLayout() {
           />
         )}
         <div className="flex flex-row flex-1 overflow-hidden min-h-0">
-          <main data-find-scope="main" className="flex-1 overflow-auto min-w-0">
+          <main data-find-scope="main" className="isolate flex-1 overflow-auto min-w-0">
             <Outlet
               context={{
                 onIssueClick: handleIssueClick,
