@@ -18,11 +18,13 @@ import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { severityLabel } from '@/lib/aio-cycle-charts';
 import { compareDefectPriority } from '@/lib/aio-defect-sort';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { AioTestRun } from '@/services/aio';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useIsPeeked } from '@/stores/peek.store';
 import { severityOf, severityRaw } from './DefectSummary';
 import { SectionHeading } from './RunSection';
 import type { ResolvedDefect } from './useCycleDefects';
@@ -246,11 +248,16 @@ function DefectRow({
   const severity = severityOf(issue);
   const muted = 'text-xs text-muted-foreground';
   const cell = 'pointer-events-none relative';
+  const isPeeked = useIsPeeked(displayKey);
 
   return (
     <div
       data-testid={`defect-row-${defectKey}`}
-      className="group/row relative flex w-full items-center border-b border-border pr-2 transition-colors hover:bg-muted/30"
+      data-peeked={isPeeked ? 'true' : undefined}
+      className={cn(
+        'group/row relative flex w-full items-center border-b border-border pr-2 transition-colors hover:bg-muted/30',
+        isPeeked && PEEKED_ROW_CLASS,
+      )}
     >
       {isClickable && (
         <button

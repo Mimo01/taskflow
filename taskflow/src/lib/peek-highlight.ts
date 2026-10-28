@@ -3,8 +3,8 @@
  * Background + box-shadow/ring only (no border/padding) so there is no layout shift.
  */
 
-/** List rows: subtle primary tint + 2px inset leading-edge bar. */
-export const PEEKED_ROW_CLASS = 'bg-primary/5 shadow-[inset_2px_0_0_var(--color-primary)]';
+/** List rows: subtle primary tint + 3px inset leading-edge bar. */
+export const PEEKED_ROW_CLASS = 'bg-primary/10 shadow-[inset_3px_0_0_var(--color-primary)]';
 
 /** TaskCard: tint + ring (its 3px type stripe owns the leading edge). */
-export const PEEKED_CARD_CLASS = 'bg-primary/5 ring-2 ring-primary/40';
+export const PEEKED_CARD_CLASS = 'bg-primary/10 ring-2 ring-primary/70';

@@ -2,8 +2,10 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { JiraIssue } from '@/services/jira/types';
+import { usePeekStore } from '@/stores/peek.store';
 import { RunSection } from './RunSection';
 
 export interface RunDefect {
@@ -36,6 +38,7 @@ export function RunDefectsSection({
   defects: RunDefect[];
   onOpenDefect: (key: string) => void;
 }) {
+  const peekKey = usePeekStore((s) => s.peekIssueKey);
   if (defects.length === 0) return null;
   return (
     <RunSection title="Defects" count={defects.length} testId="aio-run-defects-section">
@@ -61,7 +64,8 @@ export function RunDefectsSection({
               <li
                 key={d.id}
                 data-testid={`aio-run-defect-${d.id}`}
-                className="relative flex min-w-0 items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/30 density-compact:py-2 density-comfortable:py-4"
+                data-peeked={clickable && peekKey === key ? 'true' : undefined}
+                className={`${clickable && peekKey === key ? `${PEEKED_ROW_CLASS} ` : ''}relative flex min-w-0 items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/30 density-compact:py-2 density-comfortable:py-4`}
               >
                 {clickable && (
                   <button

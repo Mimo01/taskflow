@@ -254,7 +254,7 @@ export function MyTaskRow({
         role="button"
         tabIndex={0}
         className={cn(
-          'flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'ml-9 flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           isPeeked && PEEKED_ROW_CLASS,
         )}
         onClick={() => onOpenPeek(issue.key)}
@@ -264,9 +264,6 @@ export function MyTaskRow({
       >
         {/* LEFT region */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* Indent spacer — aligns subtask type icon under parent priority icon */}
-          <span className="shrink-0" style={{ width: 36 }} aria-hidden />
-
           {/* Issue type icon */}
           <span
             className="flex items-center justify-center shrink-0"
