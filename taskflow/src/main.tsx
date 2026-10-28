@@ -50,6 +50,7 @@ import { loadAppearance, loadTheme } from './services/theme';
 import { updaterService } from './services/updater';
 import { useAuthStore } from './stores/auth.store';
 import { useBreadcrumbStore } from './stores/breadcrumb.store';
+import { usePeekStore } from './stores/peek.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
 import { useRecentItemsStore } from './stores/recent-items.store';
 import { useSettingsStore } from './stores/settings.store';
@@ -141,7 +142,8 @@ function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
-  const [peekIssueKey, setPeekIssueKey] = useState<string | null>(null);
+  const peekIssueKey = usePeekStore((s) => s.peekIssueKey);
+  const setPeekIssueKey = usePeekStore((s) => s.setPeekIssueKey);
   const peekPanelWidth = useSettingsStore((s) => s.peekPanelWidth);
   const setPeekPanelWidth = useSettingsStore((s) => s.setPeekPanelWidth);
   const navigate = useNavigate();
@@ -402,7 +404,7 @@ function AppLayout() {
       setPeekIssueKey(null);
       prevPathRef.current = location.pathname;
     }
-  }, [location.pathname]);
+  }, [location.pathname, setPeekIssueKey]);
 
   // Derive active issue key from current URL for PinnedTabStrip highlight
   const activeIssueKey = location.pathname.startsWith('/issue/')
