@@ -41,9 +41,11 @@ import {
 } from '@/components/ui/context-menu';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { isDoneStatus, issueTypeStripeClass } from '@/lib/issueDisplayUtils';
+import { PEEKED_CARD_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
+import { useIsPeeked } from '@/stores/peek.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 interface TaskCardProps {
@@ -288,6 +290,9 @@ export default function TaskCard({
   justDragged,
   isOverlay,
 }: TaskCardProps) {
+  const isPeeked = useIsPeeked(issue.key);
+  // DragOverlay clones are never highlighted.
+  const showPeek = isPeeked && !isOverlay;
   const assignee = issue.fields.assignee;
   const avatarUrl = assignee?.avatarUrls['48x48'];
   const displayName = assignee?.displayName ?? '';
@@ -345,6 +350,7 @@ export default function TaskCard({
     'group border rounded-lg px-2 py-2 density-compact:px-1.5 density-compact:py-1 density-compact:gap-1 density-compact:rounded-md density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
     'border-l-[3px]',
     issueTypeStripeClass(issue.fields.issuetype),
+    showPeek && PEEKED_CARD_CLASS,
     isFlagged &&
       'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
   );
@@ -369,6 +375,7 @@ export default function TaskCard({
       ref={isDraggable ? setDragNodeRef : undefined}
       style={dragStyle}
       data-dragging={isDragging ? 'true' : undefined}
+      data-peeked={showPeek ? 'true' : undefined}
       aria-hidden={isOverlay ? 'true' : undefined}
       className={outerClassName}
       onClick={() => {
@@ -397,6 +404,7 @@ export default function TaskCard({
       ref={isDraggable ? setDragNodeRef : undefined}
       style={dragStyle}
       data-dragging={isDragging ? 'true' : undefined}
+      data-peeked={showPeek ? 'true' : undefined}
       aria-hidden={isOverlay ? 'true' : undefined}
       className={outerClassName}
       onClick={() => {

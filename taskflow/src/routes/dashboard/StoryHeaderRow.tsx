@@ -27,9 +27,11 @@ import {
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import type { EpicColorResult } from '@/lib/epicColors';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraTransition } from '@/services/jira';
+import { useIsPeeked } from '@/stores/peek.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 interface StoryHeaderRowProps {
@@ -99,12 +101,14 @@ export function StoryHeaderRow({
   // becomes div[role=button] (body → peek) so the inner key <button> is valid HTML.
   const useKeyBodySplit = !!onOpenIssue;
 
+  const isPeeked = useIsPeeked(storyKey);
   const density = useSettingsStore((s) => s.density);
   const avatarSize = density === 'compact' ? 18 : 20;
 
   const rowClassName = cn(
     'flex items-center gap-2 density-compact:gap-1.5 px-3 py-2 density-compact:px-2 density-compact:py-1 density-comfortable:py-3 transition-colors border-b',
     useKeyBodySplit && 'cursor-pointer',
+    isPeeked && PEEKED_ROW_CLASS,
     isExpanded
       ? isFlagged
         ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
@@ -229,11 +233,14 @@ export function StoryHeaderRow({
         }
       }}
       className={rowClassName}
+      data-peeked={isPeeked ? 'true' : undefined}
     >
       {rowInner}
     </div>
   ) : (
-    <div className={rowClassName}>{rowInner}</div>
+    <div className={rowClassName} data-peeked={isPeeked ? 'true' : undefined}>
+      {rowInner}
+    </div>
   );
 
   if (!onTransition && !onToggleFlag) {

@@ -14,7 +14,7 @@
  */
 
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // lucide-react icons are SVGs — stub for jsdom stability (mirrors SprintBoardTab.test).
 vi.mock('lucide-react', async (importOriginal) => {
@@ -27,6 +27,7 @@ vi.mock('lucide-react', async (importOriginal) => {
   };
 });
 
+import { usePeekStore } from '@/stores/peek.store';
 import TaskCard from './TaskCard';
 
 function makeIssue(overrides: Record<string, unknown> = {}) {
@@ -53,6 +54,36 @@ describe('TaskCard — no entered-status chip', () => {
   it('does not render an entered-status time chip', () => {
     render(<TaskCard issue={makeIssue()} showStatus />);
     expect(screen.queryByTitle(/^Entered status /)).toBeNull();
+  });
+});
+
+describe('TaskCard — peek highlight', () => {
+  beforeEach(() => {
+    usePeekStore.setState({ peekIssueKey: null });
+  });
+
+  it('marks the card whose key is peeked (div[role=button] path)', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-1' });
+    const { container } = render(<TaskCard issue={makeIssue()} onOpenIssue={vi.fn()} />);
+    expect(container.querySelector('[data-peeked="true"]')).not.toBeNull();
+  });
+
+  it('marks the card on the legacy <button> path', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-1' });
+    const { container } = render(<TaskCard issue={makeIssue()} onClick={vi.fn()} />);
+    expect(container.querySelector('button[data-peeked="true"]')).not.toBeNull();
+  });
+
+  it('does not mark a card with a different key', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-2' });
+    const { container } = render(<TaskCard issue={makeIssue()} onOpenIssue={vi.fn()} />);
+    expect(container.querySelector('[data-peeked]')).toBeNull();
+  });
+
+  it('never marks a DragOverlay clone (isOverlay)', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-1' });
+    const { container } = render(<TaskCard issue={makeIssue()} onOpenIssue={vi.fn()} isOverlay />);
+    expect(container.querySelector('[data-peeked]')).toBeNull();
   });
 });
 

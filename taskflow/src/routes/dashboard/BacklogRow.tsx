@@ -31,8 +31,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
+import { useIsPeeked } from '@/stores/peek.store';
 import { OverdueBadge } from './issue-detail/OverdueBadge';
 
 // -- Props --------------------------------------------------------------------
@@ -248,6 +250,9 @@ export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(func
   },
   _ref,
 ) {
+  const isPeeked = useIsPeeked(issue.key);
+  // DragOverlay clones are never highlighted.
+  const showPeek = isPeeked && !isOverlay;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: issue.key,
     disabled: isOverlay,
@@ -306,6 +311,7 @@ export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(func
     isFlagged
       ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
       : 'hover:bg-muted/30',
+    showPeek && PEEKED_ROW_CLASS,
     isFocused && 'bg-muted border-l-2 border-primary',
     overlayClassName,
   );
@@ -329,6 +335,7 @@ export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(func
         className={rowClassName}
         style={dragStyle}
         data-dragging={isDragging ? 'true' : undefined}
+        data-peeked={showPeek ? 'true' : undefined}
         onClick={() => {
           if (justDragged?.current) return;
           (onOpenIssue ?? onIssueClick)(issue.key);
@@ -352,6 +359,7 @@ export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(func
             className={rowClassName}
             style={dragStyle}
             data-dragging={isDragging ? 'true' : undefined}
+            data-peeked={showPeek ? 'true' : undefined}
             onClick={() => {
               if (justDragged?.current) return;
               (onOpenIssue ?? onIssueClick)(issue.key);
