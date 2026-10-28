@@ -11,11 +11,21 @@
  * right-edge columns align vertically. Subtasks reserve the SP slot as an
  * invisible placeholder of the same width.
  *
+ * Responsive tiers (Tailwind v4 container variants, keyed to the page
+ * @container in MyTasksPage — descendants only, never window width):
+ *   < 1024px: SP slot + label chips hidden
+ *   <  860px: Flagged / MR chips icon-only (text sr-only, aria-label + title)
+ *   <  720px: time bar narrows 144px -> 96px
+ *   <  580px: time bar hidden
+ * The LEFT region is overflow-hidden so leftover chips clip instead of
+ * painting over the right cluster at extreme widths.
+ *
  * WebKit/Tauri pitfalls mitigated:
- * - All icon columns have explicit style={{ width, height }} (not Tailwind class)
- * - Time bar column: w-36 (144px) fixed via inline style, never collapses
- * - SP slot: explicit w-12 via inline style, WebKit never collapses it
+ * - Icon columns have explicit style={{ width, height }} (not Tailwind class)
+ * - Time bar / SP slot: explicit px width classes + shrink-0 (never collapse);
+ *   NOT inline style, which would beat the container-variant overrides
  * - statusPill wrapped in a flex div (pill needs flex parent for geometry)
+ * - No negative margins; one line per row at every width
  */
 
 import { Flag, GitPullRequest, Tag } from 'lucide-react';
@@ -50,6 +60,9 @@ const CHIP_BASE =
 
 // ── Stacked time bar ──────────────────────────────────────────────────────────
 
+// Shared by the empty-spacer and filled branches so rows stay column-aligned.
+const TIME_BAR_WIDTH_CLASS = 'w-[144px] @max-[720px]:w-24 @max-[580px]:hidden';
+
 interface StackedTimeBarProps {
   spentSeconds: number;
   totalSeconds: number | undefined;
@@ -61,7 +74,13 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
 
   // Equal-width spacer so all rows align even when there's no time data
   if (!hasEst && !hasSpent) {
-    return <div className="shrink-0" style={{ width: 144 }} aria-hidden />;
+    return (
+      <div
+        className={cn('shrink-0', TIME_BAR_WIDTH_CLASS)}
+        data-testid="my-task-time-bar"
+        aria-hidden
+      />
+    );
   }
 
   const est = hasEst ? (totalSeconds as number) : 0;
@@ -79,13 +98,16 @@ function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
     : formatDuration(spentSeconds);
 
   return (
-    <div className="shrink-0 flex flex-col gap-0.5" style={{ width: 144 }}>
+    <div
+      className={cn('shrink-0 flex flex-col gap-0.5', TIME_BAR_WIDTH_CLASS)}
+      data-testid="my-task-time-bar"
+    >
       <Progress
         value={hasEst ? fillPct : 0}
         className="h-1.5 w-full rounded-full"
         indicatorClassName={indicatorColor}
       />
-      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap truncate">
         {caption}
       </span>
     </div>
@@ -103,14 +125,24 @@ function LabelChips({ labels }: { labels: string[] }) {
       {visible.map((label) => (
         <span
           key={label}
-          className={cn(CHIP_BASE, 'bg-muted text-muted-foreground border-border/60 max-w-[120px]')}
+          data-chip="label"
+          className={cn(
+            CHIP_BASE,
+            'bg-muted text-muted-foreground border-border/60 max-w-[120px] @max-[1024px]:hidden',
+          )}
         >
           <Tag className="size-3 shrink-0" />
           <span className="truncate">{label}</span>
         </span>
       ))}
       {overflow > 0 && (
-        <span className={cn(CHIP_BASE, 'bg-muted text-muted-foreground border-border/60')}>
+        <span
+          data-chip="label"
+          className={cn(
+            CHIP_BASE,
+            'bg-muted text-muted-foreground border-border/60 @max-[1024px]:hidden',
+          )}
+        >
           +{overflow}
         </span>
       )}
@@ -212,7 +244,10 @@ export function MyTaskRow({
 
       {/* SP slot — fixed w-12 so WebKit never collapses it.
           Subtask: invisible placeholder preserves column alignment. */}
-      <span className="flex shrink-0 items-center justify-center" style={{ width: 48 }}>
+      <span
+        className="flex w-12 shrink-0 items-center justify-center @max-[1024px]:hidden"
+        data-testid="my-task-sp-slot"
+      >
         {isSubtask ? (
           // Invisible placeholder — same dimensions as the filled chip
           <span
@@ -263,7 +298,10 @@ export function MyTaskRow({
         data-testid={`my-task-row-${issue.key}`}
       >
         {/* LEFT region */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div
+          className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden"
+          data-testid="my-task-left"
+        >
           {/* Issue type icon */}
           <span
             className="flex items-center justify-center shrink-0"
@@ -322,7 +360,10 @@ export function MyTaskRow({
       data-testid={`my-task-row-${issue.key}`}
     >
       {/* LEFT region */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div
+        className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden"
+        data-testid="my-task-left"
+      >
         {/* Issue type icon */}
         <span
           className="flex items-center justify-center shrink-0"

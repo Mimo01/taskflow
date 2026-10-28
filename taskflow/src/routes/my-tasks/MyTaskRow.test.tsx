@@ -23,7 +23,11 @@ vi.mock('@/services/jira', () => ({
 function makeIssue(
   key: string,
   statusCategoryKey: 'done' | 'indeterminate' | 'new',
-  opts: { subtask?: boolean } = {},
+  opts: {
+    subtask?: boolean;
+    labels?: string[];
+    timetracking?: Record<string, number>;
+  } = {},
 ): JiraIssue {
   return {
     id: key,
@@ -43,10 +47,10 @@ function makeIssue(
       issuetype: { name: opts.subtask ? 'Subtask' : 'Story', subtask: opts.subtask ?? false },
       priority: { name: 'Medium', iconUrl: '' },
       assignee: null,
-      timetracking: undefined,
+      timetracking: opts.timetracking,
       customfield_10016: null,
       customfield_10021: null,
-      labels: [],
+      labels: opts.labels ?? [],
     },
   } as unknown as JiraIssue;
 }
@@ -138,5 +142,46 @@ describe('MyTaskRow — peek highlight', () => {
     );
     expect(screen.getByTestId('my-task-row-PROJ-3')).toHaveAttribute('data-peeked', 'true');
     expect(screen.getByTestId('my-task-row-PROJ-4')).not.toHaveAttribute('data-peeked');
+  });
+});
+
+describe('MyTaskRow — responsive container tiers', () => {
+  it('SP slot hides below 1024px on parent and subtask rows', () => {
+    const { unmount } = render(<MyTaskRow issue={makeIssue('PROJ-1', 'new')} {...BASE_PROPS} />);
+    expect(screen.getByTestId('my-task-sp-slot')).toHaveClass('@max-[1024px]:hidden');
+    unmount();
+    render(
+      <MyTaskRow issue={makeIssue('PROJ-2', 'new', { subtask: true })} isSubtask {...BASE_PROPS} />,
+    );
+    expect(screen.getByTestId('my-task-sp-slot')).toHaveClass('@max-[1024px]:hidden');
+  });
+
+  it('label chips and the +N chip hide below 1024px', () => {
+    const issue = makeIssue('PROJ-3', 'new', { labels: ['alpha', 'beta', 'gamma'] });
+    const { container } = render(<MyTaskRow issue={issue} {...BASE_PROPS} />);
+    const chips = container.querySelectorAll('[data-chip="label"]');
+    expect(chips).toHaveLength(3);
+    for (const chip of chips) expect(chip).toHaveClass('@max-[1024px]:hidden');
+    expect(screen.getByText('+1').closest('[data-chip="label"]')).not.toBeNull();
+  });
+
+  it.each([
+    ['empty spacer', undefined],
+    ['filled bar', { timeSpentSeconds: 3600, originalEstimateSeconds: 7200 }],
+  ])('time bar (%s) narrows below 720px and hides below 580px', (_name, timetracking) => {
+    render(<MyTaskRow issue={makeIssue('PROJ-4', 'new', { timetracking })} {...BASE_PROPS} />);
+    const bar = screen.getByTestId('my-task-time-bar');
+    expect(bar).toHaveClass('w-[144px]', '@max-[720px]:w-24', '@max-[580px]:hidden');
+    expect(bar).not.toHaveAttribute('style');
+  });
+
+  it('LEFT region is overflow-hidden on parent and subtask rows', () => {
+    const { unmount } = render(<MyTaskRow issue={makeIssue('PROJ-5', 'new')} {...BASE_PROPS} />);
+    expect(screen.getByTestId('my-task-left')).toHaveClass('overflow-hidden');
+    unmount();
+    render(
+      <MyTaskRow issue={makeIssue('PROJ-6', 'new', { subtask: true })} isSubtask {...BASE_PROPS} />,
+    );
+    expect(screen.getByTestId('my-task-left')).toHaveClass('overflow-hidden');
   });
 });
