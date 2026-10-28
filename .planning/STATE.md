@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 92 (advanced-global-search-prioritized-ranking-current-sprint-up) — COMPLETE
 Plan: 6 of 6
 Status: Phase 92 complete — verification passed (21/21 decisions); live UAT approved; code review CR-01/CR-02 fixed, 9 advisory warnings open in 92-REVIEW.md
-Last activity: 2026-10-28 - Completed quick task 261028-mgp: Story Points filter on Backlog + Sprint Board
+Last activity: 2026-10-28 - Completed quick task 261028-n6b: My Tasks responsive rows
 
 ## Performance Metrics
 
@@ -191,6 +191,7 @@ None yet.
 | 261028-lal | Highlight the task open in the peek sidebar on the main page (My Tasks, Sprint Board, Backlog, Release detail): peek store + useIsPeeked, tint + inset bar / card ring | 2026-10-28 | 8d50136a | Verified (UAT) | [261028-lal-when-i-open-a-task-sidebar-the-task-that](./quick/261028-lal-when-i-open-a-task-sidebar-the-task-that/) |
 | 261028-m3b | AIO cycle Defects list: priority icon + assignee avatar at narrowest, columns reordered, Triggered By removed, tighter column widths | 2026-10-28 | e00861ee | Verified (UAT) | [261028-m3b-aio-tc-defects-responsive-columns-assign](./quick/261028-m3b-aio-tc-defects-responsive-columns-assign/) |
 | 261028-mgp | Story Points filter on Backlog + Sprint Board (shared filter store; stories only, subtasks follow their story) | 2026-10-28 | 90bb5286 | Verified (UAT approved) | [261028-mgp-sprint-board-and-backlog-shared-filter-b](./quick/261028-mgp-sprint-board-and-backlog-shared-filter-b/) |
+| 261028-n6b | My Tasks rows: container-query responsive tiers (hide SP+labels <1024, icon-only chips <860, shrink/hide time bar <720/<580) | 2026-10-28 | 76c67851 | Needs Review (visual sweep pending) | [261028-n6b-my-tasks-view-fix-overlapping-row-column](./quick/261028-n6b-my-tasks-view-fix-overlapping-row-column/) |
 
 ## Deferred Items
 
