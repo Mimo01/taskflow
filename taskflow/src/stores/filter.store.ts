@@ -13,6 +13,8 @@ export interface QuickFilter {
   labels: string[];
   assignees: string[];
   statuses: string[];
+  /** Optional: filters saved before quick-261028-mgp lack this key. */
+  storyPoints?: string[];
 }
 
 interface FilterState {
@@ -20,15 +22,18 @@ interface FilterState {
   activeLabels: Set<string>;
   activeAssignees: Set<string>;
   activeStatuses: Set<string>;
+  activeStoryPoints: Set<string>;
   activeLabelFilters: Set<string>;
   setActiveEpics: (epics: Set<string>) => void;
   setActiveLabels: (labels: Set<string>) => void;
   setActiveAssignees: (assignees: Set<string>) => void;
   setActiveStatuses: (statuses: Set<string>) => void;
+  setActiveStoryPoints: (storyPoints: Set<string>) => void;
   toggleEpic: (name: string) => void;
   toggleLabel: (label: string) => void;
   toggleAssignee: (name: string) => void;
   toggleStatus: (status: string) => void;
+  toggleStoryPoints: (value: string) => void;
   toggleLabelFilter: (label: string) => void;
   clearLabelFilters: () => void;
   clearAll: () => void;
@@ -47,17 +52,21 @@ export const useFilterStore = create<FilterState>()((set) => ({
   activeLabels: new Set<string>(),
   activeAssignees: new Set<string>(),
   activeStatuses: new Set<string>(),
+  activeStoryPoints: new Set<string>(),
   activeLabelFilters: new Set<string>(),
   setActiveEpics: (epics) => set({ activeEpics: epics }),
   setActiveLabels: (labels) => set({ activeLabels: labels }),
   setActiveAssignees: (assignees) => set({ activeAssignees: assignees }),
   setActiveStatuses: (statuses) => set({ activeStatuses: statuses }),
+  setActiveStoryPoints: (storyPoints) => set({ activeStoryPoints: storyPoints }),
   toggleEpic: (name) => set((state) => ({ activeEpics: toggle(state.activeEpics, name) })),
   toggleLabel: (label) => set((state) => ({ activeLabels: toggle(state.activeLabels, label) })),
   toggleAssignee: (name) =>
     set((state) => ({ activeAssignees: toggle(state.activeAssignees, name) })),
   toggleStatus: (status) =>
     set((state) => ({ activeStatuses: toggle(state.activeStatuses, status) })),
+  toggleStoryPoints: (value) =>
+    set((state) => ({ activeStoryPoints: toggle(state.activeStoryPoints, value) })),
   toggleLabelFilter: (label) =>
     set((state) => {
       const next = new Set(state.activeLabelFilters);
@@ -72,6 +81,7 @@ export const useFilterStore = create<FilterState>()((set) => ({
       activeLabels: new Set<string>(),
       activeAssignees: new Set<string>(),
       activeStatuses: new Set<string>(),
+      activeStoryPoints: new Set<string>(),
       activeLabelFilters: new Set<string>(),
     }),
   applyQuickFilter: (filter) =>
@@ -80,5 +90,6 @@ export const useFilterStore = create<FilterState>()((set) => ({
       activeLabels: new Set(filter.labels),
       activeAssignees: new Set(filter.assignees),
       activeStatuses: new Set(filter.statuses ?? []),
+      activeStoryPoints: new Set(filter.storyPoints ?? []),
     }),
 }));

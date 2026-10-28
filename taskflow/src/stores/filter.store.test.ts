@@ -73,4 +73,32 @@ describe('filter.store', () => {
     expect(state.activeAssignees.has('A1')).toBe(true);
     expect(state.activeStatuses.has('S1')).toBe(true);
   });
+
+  it('toggleStoryPoints adds then removes; clearAll empties it', () => {
+    act(() => {
+      useFilterStore.getState().toggleStoryPoints('3');
+    });
+    expect(useFilterStore.getState().activeStoryPoints.has('3')).toBe(true);
+    act(() => {
+      useFilterStore.getState().toggleStoryPoints('3');
+    });
+    expect(useFilterStore.getState().activeStoryPoints.size).toBe(0);
+    act(() => {
+      useFilterStore.getState().toggleStoryPoints('5');
+      useFilterStore.getState().clearAll();
+    });
+    expect(useFilterStore.getState().activeStoryPoints.size).toBe(0);
+  });
+
+  it('applyQuickFilter populates storyPoints; legacy filter yields empty', () => {
+    const base = { id: '1', name: 'QF', epics: [], labels: [], assignees: [], statuses: [] };
+    act(() => {
+      useFilterStore.getState().applyQuickFilter({ ...base, storyPoints: ['3'] });
+    });
+    expect(useFilterStore.getState().activeStoryPoints.has('3')).toBe(true);
+    act(() => {
+      useFilterStore.getState().applyQuickFilter(base);
+    });
+    expect(useFilterStore.getState().activeStoryPoints.size).toBe(0);
+  });
 });
