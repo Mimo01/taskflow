@@ -34,18 +34,19 @@ type SortableKey = Exclude<DefectSortKey, null>;
 
 const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 
-// Shared by the header row and the data rows so columns line up. Reporter, assignee,
-// severity, priority and triggered-by drop (in that order) as the container narrows,
-// so a row is always exactly one line.
+// Shared by the header row and the data rows so columns line up. As the container widens
+// the columns appear in this order: priority + assignee (icon / avatar only), then full
+// priority, severity, full assignee, reporter and finally triggered-by, so a row is
+// always exactly one line.
 const COL = {
   key: 'flex-none w-32 pl-4 pr-2',
   title: 'flex-1 min-w-0 px-2',
   status: 'flex-none w-32 px-2',
-  triggered: 'flex-none w-44 px-2 hidden @[640px]:flex items-center gap-1',
-  priority: 'flex-none w-28 px-2 hidden @[760px]:flex items-center',
-  severity: 'flex-none w-24 px-2 hidden @[880px]:flex items-center',
-  assignee: 'flex-none w-40 px-2 hidden @[1000px]:flex items-center',
-  reporter: 'flex-none w-40 px-2 hidden @[1160px]:flex items-center',
+  triggered: 'flex-none w-44 px-2 hidden @[1160px]:flex items-center gap-1',
+  priority: 'flex-none w-10 @[640px]:w-28 px-2 flex items-center',
+  severity: 'flex-none w-24 px-2 hidden @[760px]:flex items-center',
+  assignee: 'flex-none w-10 @[880px]:w-40 px-2 flex items-center',
+  reporter: 'flex-none w-40 px-2 hidden @[1000px]:flex items-center',
 } as const;
 
 const MAX_TRIGGER_CHIPS = 2;
@@ -68,6 +69,8 @@ function optionsOf(
 function SortableHeader({
   sortKey,
   label,
+  compactLabel,
+  compactUntil = 640,
   className,
   activeSortKey,
   activeSortDir,
@@ -75,6 +78,10 @@ function SortableHeader({
 }: {
   sortKey: SortableKey;
   label: string;
+  /** Short label shown while the column is icon-only (narrow container). */
+  compactLabel?: string;
+  /** Container width (px) at which the full label replaces the compact one. */
+  compactUntil?: 640 | 880;
   className: string;
   activeSortKey: DefectSortKey;
   activeSortDir: 'asc' | 'desc';
@@ -89,7 +96,23 @@ function SortableHeader({
         className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
         onClick={() => onSort(sortKey)}
       >
-        {label}
+        {compactLabel ? (
+          <>
+            <span
+              className={compactUntil === 640 ? '@[640px]:hidden' : '@[880px]:hidden'}
+              aria-hidden
+            >
+              {compactLabel}
+            </span>
+            <span
+              className={compactUntil === 640 ? 'hidden @[640px]:inline' : 'hidden @[880px]:inline'}
+            >
+              {label}
+            </span>
+          </>
+        ) : (
+          label
+        )}
         {isActive && activeSortDir === 'asc' && (
           <ChevronUp className="w-3 h-3" data-testid={`defects-sort-indicator-${sortKey}`} />
         )}
@@ -170,12 +193,21 @@ function FilterPopover({
   );
 }
 
-function PersonCell({ person }: { person: JiraIssue['fields']['assignee'] | undefined }) {
+function PersonCell({
+  person,
+  nameFrom,
+}: {
+  person: JiraIssue['fields']['assignee'] | undefined;
+  /** When set, the name is hidden (avatar only) below this container width. */
+  nameFrom?: 880;
+}) {
   if (!person) return <span>—</span>;
   return (
-    <div className="flex min-w-0 items-center gap-1.5">
+    <div className="flex min-w-0 items-center gap-1.5" title={person.displayName}>
       <CachedAvatar url={person.avatarUrls?.['48x48']} name={person.displayName} size={18} />
-      <span className="truncate">{person.displayName}</span>
+      <span className={cn('truncate', nameFrom === 880 && 'hidden @[880px]:inline')}>
+        {person.displayName}
+      </span>
     </div>
   );
 }
@@ -308,11 +340,11 @@ function DefectRow({
       </div>
       <div className={cn(COL.priority, CELL_PADDING, cell, muted)}>
         {isLoading ? (
-          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-4 @[640px]:w-16" />
         ) : issue?.fields.priority ? (
           <div className="flex min-w-0 items-center gap-1.5">
             <PriorityIcon priority={issue.fields.priority} />
-            <span className="truncate">{issue.fields.priority.name}</span>
+            <span className="hidden truncate @[640px]:inline">{issue.fields.priority.name}</span>
           </div>
         ) : (
           <span>—</span>
@@ -329,9 +361,9 @@ function DefectRow({
       </div>
       <div className={cn(COL.assignee, CELL_PADDING, cell, muted)}>
         {isLoading ? (
-          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-4 @[880px]:w-20" />
         ) : (
-          <PersonCell person={issue?.fields.assignee} />
+          <PersonCell person={issue?.fields.assignee} nameFrom={880} />
         )}
       </div>
       <div className={cn(COL.reporter, CELL_PADDING, cell, muted)}>
@@ -571,6 +603,7 @@ export function DefectsList({
             <SortableHeader
               sortKey="priority"
               label="Priority"
+              compactLabel="Pri"
               className={cn(COL.priority, headerCell)}
               {...headerProps}
             />
@@ -583,6 +616,8 @@ export function DefectsList({
             <SortableHeader
               sortKey="assignee"
               label="Assignee"
+              compactLabel="Asg"
+              compactUntil={880}
               className={cn(COL.assignee, headerCell)}
               {...headerProps}
             />
