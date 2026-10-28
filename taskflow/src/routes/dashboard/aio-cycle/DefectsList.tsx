@@ -21,7 +21,6 @@ import { compareDefectPriority } from '@/lib/aio-defect-sort';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import type { AioTestRun } from '@/services/aio';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useIsPeeked } from '@/stores/peek.store';
@@ -36,20 +35,17 @@ const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 
 // Shared by the header row and the data rows so columns line up. As the container widens
 // the columns appear in this order: priority + assignee (icon / avatar only), then full
-// priority, severity, full assignee, reporter and finally triggered-by, so a row is
-// always exactly one line. Triggered-by, priority and severity sit before status.
+// priority, severity, full assignee and reporter, so a row is always exactly one line.
+// Priority and severity sit before status.
 const COL = {
   key: 'flex-none w-32 pl-4 pr-2',
   title: 'flex-1 min-w-0 px-2',
   status: 'flex-none w-32 px-2',
-  triggered: 'flex-none w-44 px-2 hidden @[1160px]:flex items-center gap-1',
   priority: 'flex-none w-10 @[640px]:w-28 px-2 flex items-center',
   severity: 'flex-none w-24 px-2 hidden @[760px]:flex items-center',
   assignee: 'flex-none w-10 @[880px]:w-40 px-2 flex items-center',
   reporter: 'flex-none w-40 px-2 hidden @[1000px]:flex items-center',
 } as const;
-
-const MAX_TRIGGER_CHIPS = 2;
 
 function isDoneDefect(d: ResolvedDefect): boolean {
   return !d.isLoading && d.issue?.fields.status?.statusCategory?.key === 'done';
@@ -212,68 +208,16 @@ function PersonCell({
   );
 }
 
-function TriggerChips({
-  defectId,
-  runs,
-  onOpenRun,
-}: {
-  defectId: string;
-  runs: AioTestRun[];
-  onOpenRun: (run: AioTestRun) => void;
-}) {
-  const shown = runs.slice(0, MAX_TRIGGER_CHIPS);
-  const extra = runs.length - shown.length;
-  if (runs.length === 0) return <span className="text-muted-foreground">—</span>;
-  return (
-    <>
-      {shown.map((run) =>
-        run.id ? (
-          <button
-            key={run.id}
-            type="button"
-            data-testid={`defect-trigger-${defectId}-${run.id}`}
-            title={run.testCase?.title ?? run.testCaseKey}
-            onClick={() => onOpenRun(run)}
-            className="pointer-events-auto relative z-10 flex-none rounded border border-border px-1.5 font-mono text-[11px] leading-5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            {run.testCaseKey}
-          </button>
-        ) : (
-          <span
-            key={run.testCaseKey}
-            className="flex-none font-mono text-[11px] leading-5 text-muted-foreground"
-          >
-            {run.testCaseKey}
-          </span>
-        ),
-      )}
-      {extra > 0 && (
-        <span
-          className="flex-none text-[11px] text-muted-foreground"
-          title={runs
-            .slice(MAX_TRIGGER_CHIPS)
-            .map((r) => r.testCaseKey)
-            .join(', ')}
-        >
-          +{extra}
-        </span>
-      )}
-    </>
-  );
-}
-
 function DefectRow({
   defect,
   onOpen,
-  onOpenRun,
   onKeyClick,
 }: {
   defect: ResolvedDefect;
   onOpen: (resolvedKey: string) => void;
-  onOpenRun: (run: AioTestRun) => void;
   onKeyClick: () => void;
 }) {
-  const { defectKey, issue, isLoading, triggeredByRuns } = defect;
+  const { defectKey, issue, isLoading } = defect;
   const displayKey = issue?.key ?? defectKey;
   const resolvedKey = issue?.key ?? null;
   const isClickable = !isLoading && !!resolvedKey;
@@ -323,9 +267,6 @@ function DefectRow({
             {issue?.fields.summary ?? displayKey}
           </span>
         )}
-      </div>
-      <div className={cn(COL.triggered, CELL_PADDING, cell, 'overflow-hidden')}>
-        <TriggerChips defectId={defectKey} runs={triggeredByRuns} onOpenRun={onOpenRun} />
       </div>
       <div className={cn(COL.priority, CELL_PADDING, cell, muted)}>
         {isLoading ? (
@@ -378,20 +319,17 @@ function DefectRow({
 }
 
 /**
- * Defects tab: summary strip, sortable/filterable one-line flex rows, and triggered-by
- * chips that open the run. All sort + filter state lives here.
+ * Defects tab: summary strip, sortable/filterable one-line flex rows, All sort + filter state lives here.
  */
 export function DefectsList({
   defects,
   isLoading,
   onOpenIssue,
-  onOpenRun,
   cycleName,
 }: {
   defects: ResolvedDefect[];
   isLoading: boolean;
   onOpenIssue: (issueKey: string) => void;
-  onOpenRun: (run: AioTestRun) => void;
   cycleName: string;
 }) {
   const location = useLocation();
@@ -593,7 +531,6 @@ export function DefectsList({
               {...headerProps}
             />
             <div className={cn(COL.title, headerCell)}>Title</div>
-            <div className={cn(COL.triggered, headerCell)}>Triggered By</div>
             <SortableHeader
               sortKey="priority"
               label="Priority"
@@ -628,7 +565,6 @@ export function DefectsList({
               key={d.defectKey}
               defect={d}
               onOpen={onOpenIssue}
-              onOpenRun={onOpenRun}
               onKeyClick={() =>
                 useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname })
               }

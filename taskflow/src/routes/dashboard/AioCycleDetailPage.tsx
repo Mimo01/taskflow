@@ -234,7 +234,6 @@ export default function AioCycleDetailPage() {
                   defects={defects}
                   isLoading={runsQuery.isLoading}
                   onOpenIssue={onOpenIssue ?? (() => {})}
-                  onOpenRun={openRun}
                   cycleName={cycleName}
                 />
               </TabsContent>

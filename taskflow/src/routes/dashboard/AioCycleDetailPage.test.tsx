@@ -986,36 +986,6 @@ describe('AioCycleDetailPage', () => {
       );
     });
 
-    it('AIOC-03: triggered-by column lists test case keys from runs whose jiraDefectIDs contains the ID', async () => {
-      const user = userEvent.setup();
-      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
-        await import('@/services/aio');
-      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
-      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
-      const multiRuns = [
-        ...mockRuns,
-        {
-          id: 'run-4',
-          status: 'FAIL',
-          testCaseKey: 'PROJ-TC-X',
-          cycleKey: 'PROJ-CY-2',
-          testCase: { title: 'Extra test', updatedDate: '2024-01-04' },
-          defects: [],
-          jiraDefectIDs: [186227],
-        },
-      ];
-      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(multiRuns);
-      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
-      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-      renderPage();
-      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
-      await user.click(screen.getByRole('tab', { name: 'Defects' }));
-      await waitFor(() => {
-        expect(screen.getByText(/PROJ-TC-2/)).toBeDefined();
-        expect(screen.getByText(/PROJ-TC-X/)).toBeDefined();
-      });
-    });
-
     it('passes raw jiraDefectIDs (stringified) to DefectRow, not pre-resolved defects', async () => {
       const user = userEvent.setup();
       const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
@@ -1147,7 +1117,7 @@ describe('AioCycleDetailPage', () => {
       await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
-      // All 8 column headers present
+      // All 7 column headers present
       for (const name of [
         'Key',
         'Title',
@@ -1156,7 +1126,6 @@ describe('AioCycleDetailPage', () => {
         'Reporter',
         'Priority',
         'Severity',
-        'Triggered By',
       ]) {
         expect(screen.getAllByText(name).length).toBeGreaterThan(0);
       }
@@ -1372,7 +1341,7 @@ describe('AioCycleDetailPage', () => {
     });
   });
 
-  describe('Defects tab — summary strip and triggered-by chips', () => {
+  describe('Defects tab — summary strip', () => {
     it('status/priority/severity donuts live in the stats block only; no Sev line in the tab', async () => {
       const user = userEvent.setup();
       const { fetchJiraIssueByKey } = await import('@/services/jira');
@@ -1404,45 +1373,6 @@ describe('AioCycleDetailPage', () => {
       // the old text breakdown is gone (the Severity column stays)
       expect(screen.queryByTestId('defects-summary')).toBeNull();
       expect(screen.queryByText(/^Sev:/)).toBeNull();
-    });
-
-    it('triggered-by chip pushes the cycle breadcrumb and opens that run', async () => {
-      const user = userEvent.setup();
-      const { fetchJiraIssueByKey } = await import('@/services/jira');
-      await setupDefaultMocks();
-      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: '186227',
-        key: 'PROJ-1234',
-        fields: {
-          summary: 'Login broken',
-          status: { name: 'Open', statusCategory: { key: 'new' } },
-          issuetype: { name: 'Bug', subtask: false },
-        },
-      });
-      mockBreadcrumbPush.mockReset();
-      render(
-        <QueryClientProvider client={makeClient()}>
-          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
-            <Routes>
-              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
-              <Route
-                path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
-                element={<div data-testid="run-detail-route">Run Detail</div>}
-              />
-            </Routes>
-          </MemoryRouter>
-        </QueryClientProvider>,
-      );
-      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
-      await user.click(screen.getByRole('tab', { name: 'Defects' }));
-      const chip = await screen.findByTestId('defect-trigger-186227-run-2');
-      expect(chip.textContent).toBe('PROJ-TC-2');
-      await user.click(chip);
-      await waitFor(() => expect(screen.getByTestId('run-detail-route')).toBeDefined());
-      expect(mockBreadcrumbPush).toHaveBeenCalledWith({
-        label: 'Sprint 2',
-        path: '/aio-cycle/PROJ/PROJ-CY-2',
-      });
     });
   });
 
