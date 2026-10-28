@@ -8,8 +8,9 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JiraIssue } from '@/services/jira';
+import { usePeekStore } from '@/stores/peek.store';
 import { MyTaskRow } from './MyTaskRow';
 
 // MyTaskRow calls isIssueFlagged from @/services/jira
@@ -99,5 +100,43 @@ describe('MyTaskRow — D-06 key-only strikethrough', () => {
 
     expect(keyEl).not.toHaveClass('line-through');
     expect(summaryEl).not.toHaveClass('line-through');
+  });
+});
+
+describe('MyTaskRow — peek highlight', () => {
+  beforeEach(() => {
+    usePeekStore.setState({ peekIssueKey: null });
+  });
+
+  it('parent row has data-peeked when its key is peeked; siblings do not', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-1' });
+    render(
+      <>
+        <MyTaskRow issue={makeIssue('PROJ-1', 'new')} {...BASE_PROPS} />
+        <MyTaskRow issue={makeIssue('PROJ-2', 'new')} {...BASE_PROPS} />
+      </>,
+    );
+    expect(screen.getByTestId('my-task-row-PROJ-1')).toHaveAttribute('data-peeked', 'true');
+    expect(screen.getByTestId('my-task-row-PROJ-2')).not.toHaveAttribute('data-peeked');
+  });
+
+  it('subtask row has data-peeked when its key is peeked', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-3' });
+    render(
+      <>
+        <MyTaskRow
+          issue={makeIssue('PROJ-3', 'new', { subtask: true })}
+          isSubtask
+          {...BASE_PROPS}
+        />
+        <MyTaskRow
+          issue={makeIssue('PROJ-4', 'new', { subtask: true })}
+          isSubtask
+          {...BASE_PROPS}
+        />
+      </>,
+    );
+    expect(screen.getByTestId('my-task-row-PROJ-3')).toHaveAttribute('data-peeked', 'true');
+    expect(screen.getByTestId('my-task-row-PROJ-4')).not.toHaveAttribute('data-peeked');
   });
 });

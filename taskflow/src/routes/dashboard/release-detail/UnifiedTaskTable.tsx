@@ -7,10 +7,13 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { Progress } from '@/components/ui/progress';
 import { openExternal } from '@/lib/openExternal';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
+import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { extractTicketKeys } from '@/services/linkEngine';
+import { useIsPeeked } from '@/stores/peek.store';
 import type { Channel, DriftMark, DriftRow } from './driftDetection';
 import { type MrFixAction, useMrFixMutation } from './useMrFixMutation';
 
@@ -851,10 +854,15 @@ function TaskRow({
   onOpenIssueFull: (key: string) => void;
   onSeedBreadcrumb: () => void;
 }) {
+  const isPeeked = useIsPeeked(issue.key);
   return (
     <div
       data-testid="task-row"
-      className="group/row relative flex items-center gap-2 text-sm py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/40"
+      data-peeked={isPeeked ? 'true' : undefined}
+      className={cn(
+        'group/row relative flex items-center gap-2 text-sm py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/40',
+        isPeeked && PEEKED_ROW_CLASS,
+      )}
     >
       <button
         type="button"

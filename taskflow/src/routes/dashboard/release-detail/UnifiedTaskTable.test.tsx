@@ -27,6 +27,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateMergeRequest } from '@/services/gitlab';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
+import { usePeekStore } from '@/stores/peek.store';
 import type { DriftRow } from './driftDetection';
 import {
   matchTicketKeyInTitle,
@@ -177,6 +178,23 @@ function renderWithRows(
 }
 
 describe('UnifiedTaskTable', () => {
+  beforeEach(() => {
+    usePeekStore.setState({ peekIssueKey: null });
+  });
+
+  it('marks only the peeked task-row with data-peeked', () => {
+    usePeekStore.setState({ peekIssueKey: 'PROJ-1' });
+    renderSection({
+      primaryRows: [
+        { issue: makeIssue({ key: 'PROJ-1' }), mrs: [] },
+        { issue: makeIssue({ key: 'PROJ-2' }), mrs: [] },
+      ],
+    });
+    const rows = screen.getAllByTestId('task-row');
+    expect(rows[0]).toHaveAttribute('data-peeked', 'true');
+    expect(rows[1]).not.toHaveAttribute('data-peeked');
+  });
+
   it('renders primaryRows in the given order (D-04/D-13 row order is now the component contract)', () => {
     const flagged = makeRow({ mr: makeMR({ id: 1, iid: 10 }), flagged: true, br: 'flag' });
     const clean = makeRow({ mr: makeMR({ id: 2, iid: 5 }) });

@@ -24,12 +24,14 @@ import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Progress } from '@/components/ui/progress';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
 import type { ReviewHealth } from '@/services/linkEngine';
+import { useIsPeeked } from '@/stores/peek.store';
 
 // ── MR health chip config ─────────────────────────────────────────────────────
 
@@ -160,6 +162,7 @@ export function MyTaskRow({
   accumulatedSpentSeconds,
   accumulatedEstimateSeconds,
 }: MyTaskRowProps) {
+  const isPeeked = useIsPeeked(issue.key);
   const isFlagged = isIssueFlagged(issue, flaggedFieldKey);
   const statusCategoryKey = issue.fields.status.statusCategory?.key;
 
@@ -250,9 +253,13 @@ export function MyTaskRow({
       <div
         role="button"
         tabIndex={0}
-        className="flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          'flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isPeeked && PEEKED_ROW_CLASS,
+        )}
         onClick={() => onOpenPeek(issue.key)}
         onKeyDown={handleKeyDown}
+        data-peeked={isPeeked ? 'true' : undefined}
         data-testid={`my-task-row-${issue.key}`}
       >
         {/* LEFT region */}
@@ -308,11 +315,13 @@ export function MyTaskRow({
       tabIndex={0}
       className={cn(
         'flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 rounded-md cursor-pointer hover:bg-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        isPeeked && PEEKED_ROW_CLASS,
         isFlagged &&
           'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
       )}
       onClick={() => onOpenPeek(issue.key)}
       onKeyDown={handleKeyDown}
+      data-peeked={isPeeked ? 'true' : undefined}
       data-testid={`my-task-row-${issue.key}`}
     >
       {/* LEFT region */}
