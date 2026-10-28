@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 92 (advanced-global-search-prioritized-ranking-current-sprint-up) — COMPLETE
 Plan: 6 of 6
 Status: Phase 92 complete — verification passed (21/21 decisions); live UAT approved; code review CR-01/CR-02 fixed, 9 advisory warnings open in 92-REVIEW.md
-Last activity: 2026-10-28 - Completed quick task 261028-lal: Highlight peeked task on main page
+Last activity: 2026-10-28 - Completed quick task 261028-m3b: AIO defects list responsive columns
 
 ## Performance Metrics
 
@@ -189,6 +189,7 @@ None yet.
 | 261022-kd8 | AIO cycle KPI tiles: keep Pass rate, replace Ready to retest / Unlinked failures / Re-runs with step tiles (Step pass rate, Steps executed, Steps per case) from one AIO report request | 2026-10-22 | eeda7384 | Verified (UAT) | [261022-kd8-aio-tc-detail-metric-cards](./quick/261022-kd8-aio-tc-detail-metric-cards/) |
 | 261027-iz9 | AIO cycle Executions + Defects tabs: split into stacked Open / Done sections (Done = Pass only / Jira status category done), shared toolbar, compact per-section empty states (empty vs no-match + Clear filters) | 2026-10-27 | d5912868 | Verified (UAT) | [261027-iz9-aio-test-case-page-split-executions-and-](./quick/261027-iz9-aio-test-case-page-split-executions-and-/) |
 | 261028-lal | Highlight the task open in the peek sidebar on the main page (My Tasks, Sprint Board, Backlog, Release detail): peek store + useIsPeeked, tint + inset bar / card ring | 2026-10-28 | 8d50136a | Verified (UAT) | [261028-lal-when-i-open-a-task-sidebar-the-task-that](./quick/261028-lal-when-i-open-a-task-sidebar-the-task-that/) |
+| 261028-m3b | AIO cycle Defects list: priority icon + assignee avatar at narrowest, columns reordered, Triggered By removed, tighter column widths | 2026-10-28 | e00861ee | Verified (UAT) | [261028-m3b-aio-tc-defects-responsive-columns-assign](./quick/261028-m3b-aio-tc-defects-responsive-columns-assign/) |
 
 ## Deferred Items
 
