@@ -1550,7 +1550,12 @@ export default function SprintBoardTab() {
   // Assignee options (named people + an "Unassigned" sentinel pinned to the top
   // when ≥1 visible issue has no assignee) come from the shared helper.
   const filterOptionsAssignees = buildAssigneeOptions(localIssues);
-  const filterOptionsStoryPoints = buildStoryPointOptions(localIssues, storyPointsFieldKey);
+  // Story points filter stories only (subtasks are never filtered by estimate),
+  // so options come from the story rows alone.
+  const filterOptionsStoryPoints = buildStoryPointOptions(
+    swimlanes.map((s) => s.story),
+    storyPointsFieldKey,
+  );
   const filterOptionsStatuses = new Set<string>();
   for (const s of workflowStatuses ?? []) filterOptionsStatuses.add(s.name);
   for (const issue of localIssues) {
@@ -1576,11 +1581,6 @@ export default function SprintBoardTab() {
         activeLabels.size === 0 ||
         ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
       const assigneeMatch = matchesAssigneeFilter(issue, activeAssignees);
-      const storyPointsMatch = matchesStoryPointsFilter(
-        issue,
-        activeStoryPoints,
-        storyPointsFieldKey,
-      );
       const statusMatch =
         activeStatuses.size === 0 ||
         (() => {
@@ -1595,14 +1595,7 @@ export default function SprintBoardTab() {
           activeLabelFilters.has(l),
         );
 
-      return (
-        epicMatch &&
-        labelMatch &&
-        assigneeMatch &&
-        storyPointsMatch &&
-        statusMatch &&
-        labelChipMatch
-      );
+      return epicMatch && labelMatch && assigneeMatch && statusMatch && labelChipMatch;
     });
   }
 
@@ -1619,6 +1612,8 @@ export default function SprintBoardTab() {
   ) {
     filteredSwimlanes = filteredSwimlanes
       .map(({ story, subtasks: sub }) => {
+        // Story points apply to the story only; its subtasks follow the story.
+        if (!matchesStoryPointsFilter(story, activeStoryPoints, storyPointsFieldKey)) return null;
         const storyMatches = applyFilters([story]).length > 0;
         const filteredSubtasks = applyFilters(sub);
         if (!storyMatches && filteredSubtasks.length === 0) return null;
