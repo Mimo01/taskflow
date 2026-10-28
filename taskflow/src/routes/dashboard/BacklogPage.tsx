@@ -64,6 +64,7 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
+import { buildStoryPointOptions, matchesStoryPointsFilter } from '@/lib/story-points-filter';
 import type { JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
@@ -602,7 +603,8 @@ export default function BacklogPage() {
 
   // ── Filter state (shared across views) ──────────────────────────────────────
 
-  const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
+  const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeStoryPoints } =
+    useFilterStore();
 
   // ── Sprint context for downstream UI (move-to-sprint menus) ──────────────────
 
@@ -660,6 +662,8 @@ export default function BacklogPage() {
     // Assignee options (named people + an "Unassigned" sentinel pinned to the
     // top when ≥1 visible issue has no assignee) come from the shared helper.
     const assignees = buildAssigneeOptions(allIssues);
+    // Story-point options (numeric asc + pinned "No estimate") from the shared helper.
+    const storyPoints = buildStoryPointOptions(allIssues, storyPointsFieldKey);
     // Statuses: all project workflow statuses (not just those on current issues)
     const statuses = new Set<string>();
     for (const s of projectStatuses ?? []) statuses.add(s.name);
@@ -670,9 +674,17 @@ export default function BacklogPage() {
       epics,
       labels: [] as string[],
       assignees,
+      storyPoints,
       statuses: Array.from(statuses).sort(),
     };
-  }, [allIssues, epicLinkFieldKey, epicNameFieldKey, allEpics, projectStatuses]);
+  }, [
+    allIssues,
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    allEpics,
+    projectStatuses,
+    storyPointsFieldKey,
+  ]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -687,6 +699,12 @@ export default function BacklogPage() {
         activeLabels.size === 0 ||
         ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
       const assigneeMatch = matchesAssigneeFilter(issue, activeAssignees);
+      // Shared helper (quick-261028-mgp) — same predicate as the Sprint Board.
+      const storyPointsMatch = matchesStoryPointsFilter(
+        issue,
+        activeStoryPoints,
+        storyPointsFieldKey,
+      );
       const statusMatch = (() => {
         if (activeStatuses.size === 0) return true;
         const activeLC = new Set(Array.from(activeStatuses).map((s) => s.toLowerCase()));
@@ -696,7 +714,7 @@ export default function BacklogPage() {
         const storyStatus = (issue.fields.status?.name ?? '').toLowerCase();
         return Boolean(storyStatus && activeLC.has(storyStatus));
       })();
-      const result = epicMatch && labelMatch && assigneeMatch && statusMatch;
+      const result = epicMatch && labelMatch && assigneeMatch && storyPointsMatch && statusMatch;
       return result;
     });
   }

@@ -44,6 +44,7 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildAssigneeOptions, matchesAssigneeFilter } from '@/lib/assignee-filter';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
+import { buildStoryPointOptions, matchesStoryPointsFilter } from '@/lib/story-points-filter';
 import { orderSubtasks } from '@/lib/subtask-order';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
@@ -1525,8 +1526,14 @@ export default function SprintBoardTab() {
     });
   }, [allDoneFingerprint]);
 
-  const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeLabelFilters } =
-    useFilterStore();
+  const {
+    activeEpics,
+    activeLabels,
+    activeAssignees,
+    activeStatuses,
+    activeStoryPoints,
+    activeLabelFilters,
+  } = useFilterStore();
 
   const filterOptionsEpics = new Map<string, string>();
   for (const e of epicsBasic ?? []) filterOptionsEpics.set(e.key, e.epicName);
@@ -1543,6 +1550,7 @@ export default function SprintBoardTab() {
   // Assignee options (named people + an "Unassigned" sentinel pinned to the top
   // when ≥1 visible issue has no assignee) come from the shared helper.
   const filterOptionsAssignees = buildAssigneeOptions(localIssues);
+  const filterOptionsStoryPoints = buildStoryPointOptions(localIssues, storyPointsFieldKey);
   const filterOptionsStatuses = new Set<string>();
   for (const s of workflowStatuses ?? []) filterOptionsStatuses.add(s.name);
   for (const issue of localIssues) {
@@ -1552,6 +1560,7 @@ export default function SprintBoardTab() {
     epics: filterOptionsEpics,
     labels: Array.from(filterOptionsLabels),
     assignees: filterOptionsAssignees,
+    storyPoints: filterOptionsStoryPoints,
     statuses: Array.from(filterOptionsStatuses).sort(),
   };
 
@@ -1567,6 +1576,11 @@ export default function SprintBoardTab() {
         activeLabels.size === 0 ||
         ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
       const assigneeMatch = matchesAssigneeFilter(issue, activeAssignees);
+      const storyPointsMatch = matchesStoryPointsFilter(
+        issue,
+        activeStoryPoints,
+        storyPointsFieldKey,
+      );
       const statusMatch =
         activeStatuses.size === 0 ||
         (() => {
@@ -1581,7 +1595,14 @@ export default function SprintBoardTab() {
           activeLabelFilters.has(l),
         );
 
-      return epicMatch && labelMatch && assigneeMatch && statusMatch && labelChipMatch;
+      return (
+        epicMatch &&
+        labelMatch &&
+        assigneeMatch &&
+        storyPointsMatch &&
+        statusMatch &&
+        labelChipMatch
+      );
     });
   }
 
@@ -1592,6 +1613,7 @@ export default function SprintBoardTab() {
     activeEpics.size > 0 ||
     activeLabels.size > 0 ||
     activeAssignees.size > 0 ||
+    activeStoryPoints.size > 0 ||
     activeStatuses.size > 0 ||
     activeLabelFilters.size > 0
   ) {

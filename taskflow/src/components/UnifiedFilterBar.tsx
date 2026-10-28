@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from '@/lib/assignee-filter';
+import { NO_ESTIMATE_FILTER, NO_ESTIMATE_LABEL } from '@/lib/story-points-filter';
 import type { QuickFilter } from '@/stores/filter.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -185,6 +186,7 @@ export interface UnifiedFilterBarProps {
     epics: Map<string, string>;
     labels: string[];
     assignees: string[];
+    storyPoints: string[];
     statuses: string[];
     epicColors?: Map<string, string>;
   };
@@ -196,6 +198,8 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     activeLabels,
     activeAssignees,
     activeStatuses,
+    activeStoryPoints,
+    toggleStoryPoints,
     toggleEpic,
     toggleLabel,
     toggleAssignee,
@@ -219,10 +223,15 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     activeEpics.size > 0 ||
     activeLabels.size > 0 ||
     activeAssignees.size > 0 ||
+    activeStoryPoints.size > 0 ||
     activeStatuses.size > 0;
 
   const activeCount =
-    activeEpics.size + activeLabels.size + activeAssignees.size + activeStatuses.size;
+    activeEpics.size +
+    activeLabels.size +
+    activeAssignees.size +
+    activeStoryPoints.size +
+    activeStatuses.size;
 
   function handleSaveQuickFilter() {
     if (!nameInput.trim()) return;
@@ -233,6 +242,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       labels: Array.from(activeLabels),
       assignees: Array.from(activeAssignees),
       statuses: Array.from(activeStatuses),
+      storyPoints: Array.from(activeStoryPoints),
     };
     addQuickFilter(qf);
     setNameInput('');
@@ -256,7 +266,10 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     const statusMatch =
       (qf.statuses ?? []).length === activeStatuses.size &&
       (qf.statuses ?? []).every((s) => activeStatuses.has(s));
-    return epicMatch && labelMatch && assigneeMatch && statusMatch;
+    const storyPointsMatch =
+      (qf.storyPoints ?? []).length === activeStoryPoints.size &&
+      (qf.storyPoints ?? []).every((v) => activeStoryPoints.has(v));
+    return epicMatch && labelMatch && assigneeMatch && statusMatch && storyPointsMatch;
   }
 
   // True when the current active filter state is already saved as a quickfilter —
@@ -293,6 +306,14 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       label: assignee === UNASSIGNED_FILTER ? UNASSIGNED_LABEL : assignee,
       category: 'Assignee',
       onRemove: () => toggleAssignee(assignee),
+    });
+  });
+  activeStoryPoints.forEach((value) => {
+    activeChips.push({
+      key: `storypoints-${value}`,
+      label: value === NO_ESTIMATE_FILTER ? NO_ESTIMATE_LABEL : value,
+      category: 'Story Points',
+      onRemove: () => toggleStoryPoints(value),
     });
   });
   activeStatuses.forEach((status) => {
@@ -438,7 +459,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                 {activeChips.map((chip) => (
                   <span
                     key={chip.key}
-                    data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
+                    data-testid={`${chip.key.replace(/^(epic|label|assignee|storypoints|status)-/, '$1-chip-')}`}
                     className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[0.6875rem] leading-tight"
                   >
                     <span className="text-muted-foreground font-medium">{chip.category}:</span>
@@ -561,6 +582,14 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               distinctValue={UNASSIGNED_FILTER}
             />
             <FilterDropdown
+              label="Story Points"
+              options={filterOptions.storyPoints}
+              selected={activeStoryPoints}
+              onToggle={toggleStoryPoints}
+              displayMap={new Map([[NO_ESTIMATE_FILTER, NO_ESTIMATE_LABEL]])}
+              distinctValue={NO_ESTIMATE_FILTER}
+            />
+            <FilterDropdown
               label="Status"
               options={filterOptions.statuses}
               selected={activeStatuses}
@@ -575,7 +604,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                   {activeChips.map((chip) => (
                     <span
                       key={chip.key}
-                      data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
+                      data-testid={`${chip.key.replace(/^(epic|label|assignee|storypoints|status)-/, '$1-chip-')}`}
                       className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[0.6875rem] leading-tight"
                     >
                       <span className="text-muted-foreground font-medium">{chip.category}:</span>
