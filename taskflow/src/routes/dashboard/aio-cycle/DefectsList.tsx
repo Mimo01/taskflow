@@ -37,7 +37,7 @@ const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 // Shared by the header row and the data rows so columns line up. As the container widens
 // the columns appear in this order: priority + assignee (icon / avatar only), then full
 // priority, severity, full assignee, reporter and finally triggered-by, so a row is
-// always exactly one line.
+// always exactly one line. Priority and severity sit before status.
 const COL = {
   key: 'flex-none w-32 pl-4 pr-2',
   title: 'flex-1 min-w-0 px-2',
@@ -324,20 +324,6 @@ function DefectRow({
           </span>
         )}
       </div>
-      <div className={cn(COL.status, CELL_PADDING, cell)}>
-        {issue?.fields.status ? (
-          <div className="flex">
-            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
-              {issue.fields.status.name}
-            </span>
-          </div>
-        ) : (
-          <span className={muted}>—</span>
-        )}
-      </div>
-      <div className={cn(COL.triggered, CELL_PADDING, cell, 'overflow-hidden')}>
-        <TriggerChips defectId={defectKey} runs={triggeredByRuns} onOpenRun={onOpenRun} />
-      </div>
       <div className={cn(COL.priority, CELL_PADDING, cell, muted)}>
         {isLoading ? (
           <Skeleton className="h-4 w-4 @[640px]:w-16" />
@@ -358,6 +344,20 @@ function DefectRow({
         ) : (
           <span>—</span>
         )}
+      </div>
+      <div className={cn(COL.status, CELL_PADDING, cell)}>
+        {issue?.fields.status ? (
+          <div className="flex">
+            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+              {issue.fields.status.name}
+            </span>
+          </div>
+        ) : (
+          <span className={muted}>—</span>
+        )}
+      </div>
+      <div className={cn(COL.triggered, CELL_PADDING, cell, 'overflow-hidden')}>
+        <TriggerChips defectId={defectKey} runs={triggeredByRuns} onOpenRun={onOpenRun} />
       </div>
       <div className={cn(COL.assignee, CELL_PADDING, cell, muted)}>
         {isLoading ? (
@@ -594,13 +594,6 @@ export function DefectsList({
             />
             <div className={cn(COL.title, headerCell)}>Title</div>
             <SortableHeader
-              sortKey="status"
-              label="Status"
-              className={cn(COL.status, headerCell)}
-              {...headerProps}
-            />
-            <div className={cn(COL.triggered, headerCell)}>Triggered By</div>
-            <SortableHeader
               sortKey="priority"
               label="Priority"
               compactLabel="Pri"
@@ -613,6 +606,13 @@ export function DefectsList({
               className={cn(COL.severity, headerCell)}
               {...headerProps}
             />
+            <SortableHeader
+              sortKey="status"
+              label="Status"
+              className={cn(COL.status, headerCell)}
+              {...headerProps}
+            />
+            <div className={cn(COL.triggered, headerCell)}>Triggered By</div>
             <SortableHeader
               sortKey="assignee"
               label="Assignee"
