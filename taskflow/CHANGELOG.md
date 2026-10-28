@@ -2,6 +2,22 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.13] — 2026-10-28
+
+### Added
+
+- **Story Points filter** — the Backlog and the Sprint Board have a Story Points filter. On the sprint board it applies to stories only, so their subtasks stay visible under a matching story.
+- **Peeked row highlight** — the row, card or story header whose peek panel is open is now highlighted on My Tasks, the Backlog, the Sprint Board, Release detail and AIO defect lists. A highlighted row darkens slightly on hover.
+
+### Changed
+
+- **AIO defects list** — Priority and Severity now come before Status, the Triggered by column is removed, and the Priority, Severity and Status columns are tighter. At the narrowest width the list shows a priority icon and an assignee avatar.
+- **My Tasks at narrow widths** — story points and labels are hidden and the time bar shrinks. The Flagged and MR chips turn into icon-only chips, so rows stay on one line.
+
+### Fixed
+
+- **Peek panel shadow** — the peek panel's shadow now paints over sticky section headers instead of being cut off behind them.
+
 ## [1.14.12] — 2026-10-27
 
 ### Changed
