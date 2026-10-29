@@ -532,6 +532,18 @@
   .f3 .pr.q.past .prow { opacity: .85; }
   .f3 .pr.q.past .prow .nm { color: var(--muted-foreground); }
 
+
+  /* F3: L1 date stamps left of the rail */
+  .f3 .pol-rail .pr, .f3 .pol-rail .plabel, .f3 .pol-rail .ptoday, .f3 .pol-rail .pmore { grid-template-columns: 58px 52px 1fr; column-gap: 0; }
+  .f3 .pol-rail .pr > .prow, .f3 .pol-rail .plabel > .tx, .f3 .pol-rail .ptoday > .ln { margin-left: 10px; }
+  .f3 .stamp { text-align: right; padding-right: 2px; font-size: 12.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.25; }
+  .f3 .stamp b { color: var(--foreground); font-weight: 600; }
+  .f3 .pr.q .stamp { padding-top: 7px; }
+  .f3 .pr.q.past .stamp b { color: var(--muted-foreground); font-weight: 500; }
+  .f3 .pr.q .rc .qdot { margin-top: 12px; }
+  .f3 .pr.q .prow .qd { display: none; }
+  .f3 .pmore > div:first-child + div + button, .f3 .pmore button { grid-column: 3; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1517,6 +1529,12 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         new ResizeObserver(() => { if (Math.abs(tr.clientWidth - lastW) > 4) draw(); }).observe(body);
         draw(); }
       const relLabel = [...slot.querySelectorAll('.plabel')].find(l => l.textContent.trim().startsWith('Released'));
+      // L1 date stamps: extra left column on every rail row
+      slot.querySelectorAll('.pol-rail > .pr, .pol-rail > .plabel, .pol-rail > .ptoday, .pol-rail > .pmore').forEach(el => {
+        let html = '';
+        if (el.classList.contains('q')) { const t = el.querySelector('.qd').textContent.split(' '); html = `<b>${t[1]} ${t[2]}</b><br>${t[0]}`; }
+        el.insertAdjacentHTML('afterbegin', `<div class="stamp">${html}</div>`);
+      });
       if (relLabel) { relLabel.classList.add('rel-sep'); const prev = relLabel.previousElementSibling; if (prev) prev.classList.add('pre-rel'); const first = relLabel.nextElementSibling; if (first) first.classList.add('first-rel'); }
     }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
