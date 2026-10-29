@@ -6,13 +6,12 @@
  * with inline editing capabilities.
  */
 
-import { ExternalLink, Pin } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { useResizable } from '@/hooks/useResizable';
+import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
+import { releasePill } from '@/lib/release-list';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -23,7 +22,7 @@ import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
-import { ReleaseBreadcrumbHeader, ReleaseTitleHeading } from './release-detail/ReleaseHeader';
+import { ReleaseBreadcrumbHeader, ReleaseDetailHeader } from './release-detail/ReleaseHeader';
 import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
@@ -98,6 +97,12 @@ export default function ReleaseDetailPage() {
     activeJiraProject,
     gitlabBaseUrl,
     activeGitlabProject,
+    headerBreakdown,
+    headerBreakdownLoading,
+    headerBreakdownError,
+    releasePackage,
+    rmEnabled,
+    rmLoading,
   } = useReleaseDetail(versionId);
 
   // Edit-modal state, diff builders and combined save (D-07 style co-located hook)
@@ -241,8 +246,35 @@ export default function ReleaseDetailPage() {
           {/* Left column */}
           <div className="@container flex-1 overflow-auto">
             <div className="p-6 @max-[480px]:p-4 space-y-6">
-              {/* Header */}
-              <ReleaseTitleHeading versionId={version.id} versionName={version.name} />
+              {/* Header: owns the done figure (D-14) and the page actions */}
+              <ReleaseDetailHeader
+                name={version.name}
+                pill={releasePill(version, toLocalDateString(new Date()))}
+                releaseDate={version.releaseDate}
+                showPackage={rmEnabled}
+                pkg={releasePackage}
+                pkgLoading={rmLoading}
+                breakdown={headerBreakdown}
+                breakdownLoading={headerBreakdownLoading}
+                breakdownError={headerBreakdownError}
+                pinned={pinned}
+                onTogglePin={() => {
+                  if (pinned) {
+                    removePin(releaseKey);
+                    clearReleaseMeta(releaseKey);
+                  } else {
+                    togglePin(releaseKey);
+                    setPinnedReleaseMeta(releaseKey, {
+                      name: version.name,
+                      versionId: versionId ?? '',
+                      projectKey: activeJiraProject ?? '',
+                    });
+                  }
+                }}
+                onEdit={startEditing}
+                jiraVersionUrl={jiraVersionUrl}
+                onOpenInJira={handleOpenInJira}
+              />
 
               {/* Label summary from milestone MRs */}
               <LabelSummarySection
@@ -297,56 +329,6 @@ export default function ReleaseDetailPage() {
                     : null,
                 }}
               />
-
-              {/* Action buttons */}
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  aria-label={pinned ? 'Unpin release' : 'Pin release'}
-                  title={pinned ? 'Unpin release' : 'Pin release'}
-                  onClick={() => {
-                    if (pinned) {
-                      removePin(releaseKey);
-                      clearReleaseMeta(releaseKey);
-                    } else {
-                      togglePin(releaseKey);
-                      setPinnedReleaseMeta(releaseKey, {
-                        name: version.name,
-                        versionId: versionId ?? '',
-                        projectKey: activeJiraProject ?? '',
-                      });
-                    }
-                  }}
-                >
-                  <Pin className={`size-3.5${pinned ? ' fill-current text-primary' : ''}`} />
-                  {pinned ? 'Unpin' : 'Pin'}
-                </Button>
-                {jiraVersionUrl ? (
-                  <LinkContextMenu href={jiraVersionUrl}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-xs"
-                      onClick={handleOpenInJira}
-                    >
-                      <ExternalLink className="size-3.5" />
-                      Open in Jira
-                    </Button>
-                  </LinkContextMenu>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={handleOpenInJira}
-                  >
-                    <ExternalLink className="size-3.5" />
-                    Open in Jira
-                  </Button>
-                )}
-              </div>
             </div>
           </div>
 
@@ -358,7 +340,6 @@ export default function ReleaseDetailPage() {
             onResizeMouseDown={handleMouseDown}
             handleHovered={handleHovered}
             setHandleHovered={setHandleHovered}
-            onStartEditing={startEditing}
             version={version}
             gitlabMatch={gitlabMatch}
             matchedMilestone={matchedMilestone}

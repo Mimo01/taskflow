@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, Pencil, Pin, PinOff, Rocket } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Pin, PinOff } from 'lucide-react';
 import { ReleaseIssueGraph } from '@/components/release/ReleaseIssueGraph';
 import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
 import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
@@ -47,23 +47,6 @@ export function ReleaseBreadcrumbHeader({
       <span className="min-w-0 truncate font-medium" title={versionName ?? undefined}>
         {versionName ?? 'Release'}
       </span>
-    </div>
-  );
-}
-
-interface ReleaseTitleHeadingProps {
-  versionId: string;
-  versionName: string;
-}
-
-export function ReleaseTitleHeading({ versionId, versionName }: ReleaseTitleHeadingProps) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <Rocket className="size-4 text-muted-foreground" />
-        <p className="text-xs font-mono text-muted-foreground">v{versionId}</p>
-      </div>
-      <h2 className="text-xl font-semibold leading-snug">{versionName}</h2>
     </div>
   );
 }
