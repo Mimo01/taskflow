@@ -154,15 +154,15 @@ Plans:
 **Goal:** The Releases list is a fast, GitLab-free, fix-version-driven list (Upcoming/Released groups; per row version, RM package, date, one status pill and a small issue graph streamed for visible rows only; instant cached revisits), and the release detail page keeps all its information under a header that echoes the list row (pill, date, package, wide graph, Pin/Edit/Open in Jira), with each figure shown once.
 **Requirements**: TBD
 **Depends on:** Phase 92
-**Plans:** 6 plans
+**Plans:** 3/6 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 93-01-PLAN.md — shared release model + ReleaseStatusPill / ReleaseIssueGraph / ReleasePackageCell + useReleasePackages
-- [ ] 93-02-PLAN.md — batched paginated status search, chunk-per-reveal useReleaseBreakdowns, upstream-first refresh, edit invalidation
-- [ ] 93-03-PLAN.md — detail trims: table done badge/progress, sidebar Status/Date; body section heading polish
+- [x] 93-01-PLAN.md — shared release model + ReleaseStatusPill / ReleaseIssueGraph / ReleasePackageCell + useReleasePackages
+- [x] 93-02-PLAN.md — batched paginated status search, chunk-per-reveal useReleaseBreakdowns, upstream-first refresh, edit invalidation
+- [x] 93-03-PLAN.md — detail trims: table done badge/progress, sidebar Status/Date; body section heading polish
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
