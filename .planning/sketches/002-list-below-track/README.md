@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "S1g"
+winner: "S1h"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -65,6 +65,11 @@ open .planning/sketches/002-list-below-track/index.html
 - One-line rows: full name, RM package inline as muted text after it, issues slot, team, pill, hover ›; hairline between rows; ~43px row height.
 - Mini date blocks (weekday · day · month, 36px) on every row; only the next release keeps the full block.
 - Next card is two lines: name · package · team · pill, then a thick bar + figure.
+
+## Current: S1h — branched from S1e (round 9)
+- User: "s1e was the best so far, branch from there" — S1f (app tokens) and S1g (one-line compaction) set aside.
+- S1e look kept (stacked name + package, S1e pills/typography, next-release card).
+- Fixes carried over: next card shows "15/24 done" once (breakdown only in the bar tooltip); releases separated by an inset hairline with slightly more row padding; mini blocks keep the month.
 
 ## What to Look For
 - Which reads as a nice overview, not a table

@@ -414,6 +414,17 @@
   .cg .plabel.month .tx { padding: 10px 8px 2px; }
   .narrow .cg .prow .pk { display: none; }
 
+
+  /* ── S1h: S1e + single figure + separation ── */
+  .hh .pcard .r4 { display: none; }
+  .hh .pr .prow { padding-top: 11px; padding-bottom: 11px; }
+  .hh .pr.mini .prow { padding-top: 8px; padding-bottom: 8px; }
+  .hh .pr:not(.next) .prow::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -2px; height: 1px; background: var(--border); }
+  .hh .pr:not(.next):hover .prow::after, .hh .pr:has(+ .pr .prow:hover) .prow::after { opacity: 0; }
+  .hh .pr .cal { margin: 9px 0; }
+  .hh .pr.mini .cal { margin: 6px 0; }
+  .hh .pr.next .cal { margin-top: 18px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -463,7 +474,8 @@
   <button class="variant-tab" data-v="s1d">S1d: released last</button>
   <button class="variant-tab" data-v="s1e">S1e: polished</button>
   <button class="variant-tab" data-v="s1f">S1f: app style</button>
-  <button class="variant-tab active" data-v="s1g">S1g: compact rows ★</button>
+  <button class="variant-tab" data-v="s1g">S1g: compact rows</button>
+  <button class="variant-tab active" data-v="s1h">S1h: from S1e ★</button>
 </div>
 
 <div id="frame">
@@ -619,11 +631,16 @@
     <div id="s1f-slot"></div>
   </section>
 
-  <section id="variant-s1g" class="variant active pol app">
+  <section id="variant-s1g" class="variant pol app">
     <div class="app-bar"><span class="t">Releases</span><span class="c">18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov</span><span style="flex:1"></span><span class="c">Updated 2 min ago</span><button class="app-link">↻ Refresh</button></div>
     <div class="note">S1g — S1f with compact one-line rows: package inline after the name, mini date blocks everywhere except the next release, tighter rows with hairlines. Next-release card is two lines: name · package · team · pill, then the bar with one figure (breakdown lives in the bar tooltip). No figure is shown twice.</div>
     <div id="s1g-track-slot"></div>
     <div id="s1g" class="pol-rail cg"></div>
+  </section>
+
+  <section id="variant-s1h" class="variant active pol hh">
+    <div class="note">S1h — branched from S1e. Same look; two fixes only: the next-release card shows "15/24 done" once (breakdown lives in the bar tooltip), and releases are separated by an inset hairline with a touch more padding.</div>
+    <div id="s1h-slot"></div>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -1260,6 +1277,8 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
   { const src = document.getElementById('variant-s1e'); const slot = document.getElementById('s1f-slot');
     [src.querySelector('.pol-track'), src.querySelector('#s1e')].forEach(n => { const c = n.cloneNode(true); c.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1e', 's1f')); if (c.id) c.id = c.id.replace('s1e', 's1f'); slot.appendChild(c); });
     { const c = src.querySelector('.pol-track').cloneNode(true); c.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1e', 's1g')); document.getElementById('s1g-track-slot').appendChild(c); }
+    { const sh = document.getElementById('s1h-slot');
+      [src.querySelector('.pol-head'), src.querySelector('.pol-track'), src.querySelector('#s1e')].forEach(n => { const c = n.cloneNode(true); c.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1e', 's1h')); if (c.id) c.id = c.id.replace('s1e', 's1h'); sh.appendChild(c); }); }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
