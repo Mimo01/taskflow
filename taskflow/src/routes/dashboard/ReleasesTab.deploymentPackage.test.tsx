@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { indexChildToWeek, type RmWeek } from '@/lib/deployment-package';
 
 const week43: RmWeek = {
@@ -49,7 +49,13 @@ function renderTab(ui: React.ReactElement) {
 }
 
 describe('ReleasesTab deployment package', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 29, 12, 0, 0));
     rm.enabled = true;
     vi.mocked(fetchFixVersions).mockResolvedValue([
       { id: '10001', name: 'R-43', releaseDate: '2026-10-22', released: false },
@@ -57,19 +63,19 @@ describe('ReleasesTab deployment package', () => {
     vi.mocked(listJiraProjects).mockResolvedValue([{ id: '1', key: 'PROJ', name: 'Core' }]);
   });
 
-  it('hides the Package column and cells without an RM project (D-12)', async () => {
+  it('hides every package line without an RM project (D-12)', async () => {
     rm.enabled = false;
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderTab(<ReleasesTab />);
-    await screen.findByText('R-43');
+    await screen.findAllByTestId('release-row');
     expect(screen.queryByText('Package')).toBeNull();
     expect(screen.queryByTestId('row-deployment-package')).toBeNull();
   });
 
-  it('shows the Package header and the derived RM child for the release-date week', async () => {
+  it('shows the derived RM child for the release-date week', async () => {
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderTab(<ReleasesTab />);
-    await screen.findByText('Package');
+    await screen.findAllByTestId('release-row');
     await waitFor(() =>
       expect(screen.getByTestId('row-deployment-package').textContent).toBe(
         'Week 43 (19.10.2026 – 25.10.2026)RM-11',
