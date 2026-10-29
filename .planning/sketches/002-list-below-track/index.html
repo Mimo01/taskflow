@@ -794,6 +794,11 @@
   .f5 .f1-rail .ag-item.next .dot { border-color: var(--foreground); }
   .f5 .f1-rail .ag-item.q .dot { width: 10px; height: 10px; top: 11px; }
 
+
+  .f5 .pol-range .f5-today-btn { font-size: 12px; padding: 2px 8px; margin: 0 2px 0 6px; border-radius: 6px; border: 1px solid var(--border) !important; background: var(--background) !important; color: var(--foreground); cursor: pointer; }
+  .f5 .pol-range .f5-today-btn:disabled { color: var(--muted-foreground); opacity: .55; cursor: default; }
+  .f5 .pol-range .btn:disabled { opacity: .35; cursor: default; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1955,7 +1960,12 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         const upTo = nd ? parseFloat(nd.style.left) : (td ? parseFloat(td.style.left) : 0);
         tr.insertAdjacentHTML('beforeend', `<div class="f5-passed" style="width:${upTo}%"></div>`);
       };
-      pb.onclick = () => { off = Math.max(0, off - 1); draw(); }; nb.onclick = () => { off = Math.min(6, off + 1); draw(); };
+      pb.insertAdjacentHTML('beforebegin', '<button class="btn f5-today-btn" title="Back to today">Today</button>');
+      const tb = rng.querySelector('.f5-today-btn');
+      const sync = () => { tb.disabled = off === 0; pb.disabled = off === 0; };
+      tb.onclick = () => { off = 0; draw(); sync(); };
+      pb.onclick = () => { off = Math.max(0, off - 1); draw(); sync(); }; nb.onclick = () => { off = Math.min(6, off + 1); draw(); sync(); };
+      sync();
       new ResizeObserver(() => { if (Math.abs(tr.clientWidth - lastW) > 4) draw(); }).observe(body);
       draw();
       // rail = F1 rail, released moved to its own panel
