@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: MVP
-status: complete
-last_updated: "2026-10-16T17:20:00.000Z"
-last_activity: 2026-10-16 -- Phase 92 complete (verification passed, UAT approved)
+status: verifying
+last_updated: "2026-10-29T19:36:45.121Z"
+last_activity: "2026-10-29 - Completed quick task 261029-qez: Add refresh button to AIO cycles and cycle detail pages"
 progress:
   total_phases: 7
   completed_phases: 0
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 
 ## Current Position
 
-Phase: 92 (advanced-global-search-prioritized-ranking-current-sprint-up) — COMPLETE
+Phase: 93 (releases-list-and-detail-redesign) — NOT PLANNED
 Plan: 6 of 6
 Status: Phase 92 complete — verification passed (21/21 decisions); live UAT approved; code review CR-01/CR-02 fixed, 9 advisory warnings open in 92-REVIEW.md
 Last activity: 2026-10-29 - Completed quick task 261029-qez: Add refresh button to AIO cycles and cycle detail pages
@@ -73,6 +73,7 @@ Last activity: 2026-10-29 - Completed quick task 261029-qez: Add refresh button 
 - Phase 91.1 inserted after Phase 91: Unified Release Detail Task Table — one Jira-task table with inline MRs, secondary table for uncovered MRs (URGENT)
 - Phase 91.2 inserted after Phase 91: Epics Page Redesign — creation-order sort, quick-search, progress/points/priority/labels/child-status per row (URGENT)
 - Phase 92 added: Advanced Global Search — ranked, cache-backed, grouped results with highlighting
+- Phase 93 added: Releases list and detail redesign (fix-version-driven list, drop milestones/branch, app-consistent styling, fast; detail keeps full info, restyled to match)
 
 ### Decisions
 
@@ -222,9 +223,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-10-16T10:39:27.297Z
-Stopped at: Phase 92 UI-SPEC approved
-Resume file: .planning/milestones/v1.14-phases/92-advanced-global-search-prioritized-ranking-current-sprint-up/92-UI-SPEC.md
+Last session: 2026-10-29T19:36:45.115Z
+Stopped at: Phase 93 context gathered
+Resume file: .planning/phases/93-releases-list-and-detail-redesign-fix-version-driven-list-fi/93-CONTEXT.md
 
 ## Operator Next Steps
 
