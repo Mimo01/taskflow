@@ -19,6 +19,8 @@ const ids = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `
 const U = ['1001', '1002'];
 const R = Array.from({ length: 20 }, (_, i) => String(2000 + i + 1));
 const zero = { new: 0, indeterminate: 0, done: 0 };
+const zeroFull = { ...zero, assignees: [] };
+const alex = { key: 'alex', displayName: 'Alex Placeholder', count: 2 };
 
 describe('planBreakdownChunks', () => {
   it('emits upcoming then first released page', () => {
@@ -62,7 +64,7 @@ describe('useReleaseBreakdowns', () => {
     qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     vi.mocked(useAuthStore).mockReturnValue({ jiraBaseUrl: 'https://jira.example.com' } as never);
     vi.mocked(fetchVersionsStatusBreakdown).mockImplementation(async (_b, _t, vids) =>
-      Object.fromEntries(vids.map((v) => [v, { ...zero, done: 1 }])),
+      Object.fromEntries(vids.map((v) => [v, { ...zeroFull, done: 1, assignees: [alex] }])),
     );
   });
 
@@ -84,7 +86,7 @@ describe('useReleaseBreakdowns', () => {
   });
 
   it('reports loading while in flight, then moves ids to breakdowns', async () => {
-    let resolve: (v: Record<string, typeof zero>) => void = () => {};
+    let resolve: (v: Record<string, typeof zeroFull>) => void = () => {};
     vi.mocked(fetchVersionsStatusBreakdown).mockImplementation(
       () =>
         new Promise((r) => {
@@ -97,7 +99,7 @@ describe('useReleaseBreakdowns', () => {
     );
     await waitFor(() => expect(result.current.loadingIds.size).toBe(2));
     expect(result.current.breakdowns.size).toBe(0);
-    resolve({ '1001': zero, '1002': zero });
+    resolve({ '1001': zeroFull, '1002': zeroFull });
     await waitFor(() => expect(result.current.breakdowns.size).toBe(2));
     expect(result.current.loadingIds.size).toBe(0);
   });
@@ -105,7 +107,7 @@ describe('useReleaseBreakdowns', () => {
   it('puts only the failing chunk ids in errorIds', async () => {
     vi.mocked(fetchVersionsStatusBreakdown).mockImplementation(async (_b, _t, vids) => {
       if (vids[0] === U[0]) throw new Error('boom');
-      return Object.fromEntries(vids.map((v) => [v, zero]));
+      return Object.fromEntries(vids.map((v) => [v, zeroFull]));
     });
     const { result } = renderHook(
       () => useReleaseBreakdowns({ upcomingIds: U, releasedIds: R, releasedVisible: 5 }),
@@ -123,5 +125,51 @@ describe('useReleaseBreakdowns', () => {
     );
     expect(result.current.loadingIds.size).toBe(0);
     expect(fetchVersionsStatusBreakdown).not.toHaveBeenCalled();
+  });
+
+  it('with releasedFirstPage 3 fetches exactly 3 released ids, then one chunk per reveal', async () => {
+    const { result, rerender } = renderHook(
+      ({ visible }) =>
+        useReleaseBreakdowns({
+          upcomingIds: U,
+          releasedIds: R,
+          releasedVisible: visible,
+          releasedFirstPage: 3,
+        }),
+      { wrapper, initialProps: { visible: 3 } },
+    );
+    await waitFor(() => expect(result.current.breakdowns.size).toBe(5));
+    expect(fetchVersionsStatusBreakdown).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetchVersionsStatusBreakdown).mock.calls[1][2]).toEqual(R.slice(0, 3));
+
+    rerender({ visible: 13 });
+    await waitFor(() => expect(result.current.breakdowns.size).toBe(15));
+    expect(fetchVersionsStatusBreakdown).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(fetchVersionsStatusBreakdown).mock.calls[2][2]).toEqual(R.slice(3, 13));
+  });
+
+  it('exposes teams per version and keeps breakdowns and the seed counts-only', async () => {
+    const { result } = renderHook(
+      () => useReleaseBreakdowns({ upcomingIds: U, releasedIds: [], releasedVisible: 5 }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.teams.size).toBe(2));
+    expect(result.current.teams.get(U[0])).toEqual([alex]);
+    expect(result.current.breakdowns.get(U[0])).toEqual({ ...zero, done: 1 });
+    expect(qc.getQueryData(releaseBreakdownSeedKey(U[0]))).toEqual({ ...zero, done: 1 });
+  });
+
+  it('tolerates old-shape results without assignees', async () => {
+    vi.mocked(fetchVersionsStatusBreakdown).mockImplementation((async (
+      _b: string,
+      _t: string,
+      vids: string[],
+    ) => Object.fromEntries(vids.map((v) => [v, zero]))) as never);
+    const { result } = renderHook(
+      () => useReleaseBreakdowns({ upcomingIds: U, releasedIds: [], releasedVisible: 5 }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.breakdowns.size).toBe(2));
+    expect(result.current.teams.get(U[0])).toEqual([]);
   });
 });

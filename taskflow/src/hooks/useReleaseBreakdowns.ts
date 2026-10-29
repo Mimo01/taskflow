@@ -1,5 +1,9 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
-import { fetchVersionsStatusBreakdown, type VersionStatusBreakdown } from '@/services/jira';
+import {
+  fetchVersionsStatusBreakdown,
+  type VersionAssignee,
+  type VersionStatusBreakdown,
+} from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -48,14 +52,19 @@ export function useReleaseBreakdowns(args: {
   upcomingIds: readonly string[];
   releasedIds: readonly string[];
   releasedVisible: number;
+  /** Size of the first released page (default 5; the F5 list uses 3). */
+  releasedFirstPage?: number;
 }): {
   breakdowns: ReadonlyMap<string, VersionStatusBreakdown>;
+  teams: ReadonlyMap<string, VersionAssignee[]>;
   loadingIds: ReadonlySet<string>;
   errorIds: ReadonlySet<string>;
 } {
   const { jiraBaseUrl } = useAuthStore();
   const queryClient = useQueryClient();
-  const chunks = planBreakdownChunks(args.upcomingIds, args.releasedIds, args.releasedVisible);
+  const chunks = planBreakdownChunks(args.upcomingIds, args.releasedIds, args.releasedVisible, {
+    firstPage: args.releasedFirstPage,
+  });
 
   return useQueries({
     queries: chunks.map((ids) => ({
@@ -63,7 +72,17 @@ export function useReleaseBreakdowns(args: {
       queryFn: async () => {
         const token = await readSecret('jira-pat');
         const res = await fetchVersionsStatusBreakdown(jiraBaseUrl ?? '', token ?? '', ids);
-        for (const id of ids) queryClient.setQueryData(releaseBreakdownSeedKey(id), res[id]);
+        for (const id of ids) {
+          const r = res[id];
+          // Counts only: the detail header reads this seed as a StatusBreakdown.
+          if (r) {
+            queryClient.setQueryData(releaseBreakdownSeedKey(id), {
+              new: r.new,
+              indeterminate: r.indeterminate,
+              done: r.done,
+            });
+          }
+        }
         return res;
       },
       enabled: !!jiraBaseUrl && ids.length > 0,
@@ -71,6 +90,7 @@ export function useReleaseBreakdowns(args: {
     })),
     combine: (results) => {
       const breakdowns = new Map<string, VersionStatusBreakdown>();
+      const teams = new Map<string, VersionAssignee[]>();
       const loadingIds = new Set<string>();
       const errorIds = new Set<string>();
       results.forEach((q, i) => {
@@ -78,7 +98,10 @@ export function useReleaseBreakdowns(args: {
         if (q.data) {
           for (const id of ids) {
             const b = q.data[id];
-            if (b) breakdowns.set(id, b);
+            if (b) {
+              breakdowns.set(id, { new: b.new, indeterminate: b.indeterminate, done: b.done });
+              teams.set(id, b.assignees ?? []);
+            }
           }
         } else if (q.isError) {
           for (const id of ids) errorIds.add(id);
@@ -86,7 +109,7 @@ export function useReleaseBreakdowns(args: {
           for (const id of ids) loadingIds.add(id);
         }
       });
-      return { breakdowns, loadingIds, errorIds };
+      return { breakdowns, teams, loadingIds, errorIds };
     },
   });
 }
