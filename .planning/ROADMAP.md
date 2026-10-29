@@ -154,7 +154,7 @@ Plans:
 **Goal:** The Releases list is a fast, GitLab-free, fix-version-driven list (Upcoming/Released groups; per row version, RM package, date, one status pill and a small issue graph streamed for visible rows only; instant cached revisits), and the release detail page keeps all its information under a header that echoes the list row (pill, date, package, wide graph, Pin/Edit/Open in Jira), with each figure shown once.
 **Requirements**: TBD
 **Depends on:** Phase 92
-**Plans:** 6/11 plans executed (93-07..11: gap closure — rebuild the list to sketch 002 F5 after UAT "too plain")
+**Plans:** 8/11 plans executed
 
 Plans:
 
@@ -171,14 +171,14 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 93-06-PLAN.md — phase gates, validation map, visual + live-Jira UAT
+- [x] 93-06-PLAN.md — phase gates, validation map, visual + live-Jira UAT
 
 **Gap closure — sketch 002 F5 (UAT: list "too plain")**
 
 **Gap wave 1**
 
-- [ ] 93-07-PLAN.md — F5 agenda model (order, countdown, stamps, summary) + assignees in the batch search + hook teams / 3-released first page
-- [ ] 93-08-PLAN.md — timeline model + uncarded responsive ReleaseTimeline graph (chips, axis dots, TODAY, Today/‹ › controls)
+- [x] 93-07-PLAN.md — F5 agenda model (order, countdown, stamps, summary) + assignees in the batch search + hook teams / 3-released first page
+- [x] 93-08-PLAN.md — timeline model + uncarded responsive ReleaseTimeline graph (chips, axis dots, TODAY, Today/‹ › controls)
 
 **Gap wave 2** *(blocked on 93-07)*
 
