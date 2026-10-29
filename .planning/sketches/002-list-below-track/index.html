@@ -584,6 +584,128 @@
   .f3 .ptoday .rc::after { content: ''; width: 9px; height: 2px; padding: 0; border-radius: 0; background: var(--foreground); }
   .f3 .ptoday { grid-template-columns: 64px 34px 1fr; }
 
+
+  /* ── F4: F1 + dashboard release-timeline styles ── */
+  .f4 { --orange: #f97316; --orange-fg: #ea580c; --amber-fg2: #d97706; --ring: color-mix(in srgb, var(--foreground) 10%, transparent); }
+  :root[data-theme='dark'] .f4 { --orange-fg: #fb923c; --amber-fg2: #fbbf24; }
+  .f4-hero { position: relative; overflow: hidden; border-radius: 16px; padding: 28px 28px 18px; margin-bottom: 16px; }
+  .f4-curves { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .f4-curves path { fill: none; stroke-linecap: round; }
+  .f4-hero-in { position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .f4-hero h1 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -.025em; line-height: 1.1; }
+  .f4-hero .sub { margin: 6px 0 0; font-size: 14px; color: var(--muted-foreground); }
+  .f4-hero .sub b { color: var(--foreground); font-weight: 600; }
+  .f4-hero .sub .o { color: var(--orange-fg); font-weight: 500; }
+  .f4-hero-r { display: flex; gap: 12px; align-items: center; font-size: 12px; }
+  .f4-stats { position: relative; display: flex; gap: 22px; margin-top: 16px; flex-wrap: wrap; }
+  .f4-stats .s { display: flex; flex-direction: column; gap: 1px; }
+  .f4-stats .v { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .f4-stats .l { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: color-mix(in srgb, var(--muted-foreground) 70%, transparent); }
+  .f4-stats .v.am { color: var(--amber-fg2); }
+  /* dashboard card */
+  .f4-card { position: relative; overflow: hidden; background: var(--card); border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); padding: 16px; }
+  .f4-rocket { position: absolute; top: -16px; right: -12px; width: 88px; height: 88px; color: rgb(245 158 11 / .10); pointer-events: none; }
+  :root[data-theme='dark'] .f4-rocket { color: rgb(251 191 36 / .15); }
+  .f4-card-h { position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .f4-title { font-size: 14px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: color-mix(in srgb, var(--muted-foreground) 70%, transparent); }
+  .f4-range { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted-foreground); margin-right: 52px; }
+  .f4-range > span { margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .f4-nav { font: inherit; font-size: 14px; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted-foreground); cursor: pointer; }
+  .f4-nav:hover { background: var(--muted); color: var(--foreground); }
+  /* horizontal track, dashboard look */
+  .f4-track { position: relative; height: 128px; }
+  .f4-axis { position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--border); }
+  .f4-seg { position: absolute; top: 6px; height: 2px; background: var(--orange); }
+  .f4-late { position: absolute; top: 6px; height: 2px; background: repeating-linear-gradient(90deg, var(--amber-fg2) 0 4px, transparent 4px 7px); opacity: .7; }
+  .f4-dot { position: absolute; top: 1px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%); border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); background: var(--card); box-sizing: border-box; z-index: 2; }
+  .f4-dot.next { background: var(--orange); border-color: var(--orange); }
+  .f4-dot.late { border-color: var(--amber-fg2); }
+  .f4-dot.past { background: var(--done); border-color: var(--done); }
+  .f4-today { position: absolute; top: -4px; height: 22px; width: 0; border-left: 1.5px solid var(--foreground); z-index: 1; }
+  .f4-today span { position: absolute; top: 22px; left: 0; transform: translateX(-50%); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+  .f4-item { position: absolute; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; cursor: pointer; }
+  .f4-item .n { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .f4-item .d { font-size: 11.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .f4-item .t { font-size: 12px; color: var(--muted-foreground); }
+  .f4-item.next .t { color: var(--orange-fg); } .f4-item.late .t { color: var(--amber-fg2); }
+  .f4-item.past .n { color: var(--muted-foreground); font-weight: 500; } .f4-item.past .t { color: var(--green-fg); }
+  .f4-item .rb { width: 88px; max-width: 100%; height: 4px; border-radius: 99px; background: var(--muted); overflow: hidden; margin-top: 1px; }
+  .f4-item .rb i { display: block; height: 100%; border-radius: 99px; background: color-mix(in srgb, var(--muted-foreground) 40%, transparent); }
+  .f4-item.next .rb i, .f4-item.late .rb i { background: var(--muted-foreground); }
+  .f4-item .pc { font-size: 11.5px; font-weight: 500; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .f4-item:hover .n { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border); }
+  /* rail */
+  .f4-rail { margin-top: 20px; }
+  .f4r { display: grid; grid-template-columns: 64px 28px 1fr; }
+  .f4r .dt { text-align: right; padding-top: 12px; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .f4r .dt b { display: block; font-size: 13px; font-weight: 600; }
+  .f4r .dt span { display: block; font-size: 11.5px; color: var(--muted-foreground); }
+  .f4r .rl { position: relative; }
+  .f4r .rl::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .f4r .rl .dot { position: absolute; left: 50%; top: 15px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-50%); border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); background: var(--background); box-sizing: border-box; box-shadow: 0 0 0 3px var(--background); }
+  .f4r.next .rl .dot { background: var(--orange); border-color: var(--orange); top: 26px; }
+  .f4r.next .rl::after { content: ''; position: absolute; left: 50%; top: 32px; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--orange); }
+  .f4r.after-next .rl::after { content: ''; position: absolute; left: 50%; top: 0; height: 15px; width: 2px; transform: translateX(-50%); background: var(--orange); }
+  .f4r.late .rl .dot { border-color: var(--amber-fg2); }
+  .f4r.undated .rl .dot { border-style: dashed; }
+  .f4r.past .rl .dot { background: var(--done); border-color: var(--done); width: 9px; height: 9px; top: 12px; }
+  .f4r.past .rl::before { background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--green-fg) 40%, transparent) 0 4px, transparent 4px 8px); }
+  .f4r.first .rl::before { top: 18px; } .f4r.lastu .rl::before { bottom: calc(100% - 20px); } .f4r.lastr .rl::before { bottom: calc(100% - 16px); }
+  .f4r .bd { display: flex; align-items: center; gap: 14px; padding: 9px 12px; margin: 1px 0; border-radius: 10px; cursor: pointer; min-width: 0; }
+  .f4r .bd:hover { background: color-mix(in srgb, var(--muted) 70%, transparent); }
+  .f4r .bd .tx { flex: 1 1 auto; min-width: 0; }
+  .f4r .bd .nm { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .f4r .bd .pk { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+  .f4r .bd .rd { width: 150px; flex: none; display: flex; align-items: center; gap: 8px; }
+  .f4r .bd .rd .rb { flex: 1; height: 4px; border-radius: 99px; background: var(--muted); overflow: hidden; }
+  .f4r .bd .rd .rb i { display: block; height: 100%; border-radius: 99px; background: var(--muted-foreground); }
+  .f4r .bd .rd .pc { font-size: 12px; font-weight: 500; color: var(--muted-foreground); font-variant-numeric: tabular-nums; width: 64px; text-align: right; }
+  .f4r .bd .tm { width: 66px; flex: none; display: flex; justify-content: flex-end; }
+  .f4r .bd .tl { width: 104px; flex: none; text-align: right; font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; }
+  .f4r.late .bd .tl { color: var(--amber-fg2); font-weight: 500; }
+  .f4r.undated .bd .tl { color: var(--amber-fg2); }
+  /* quiet */
+  .f4r.q .dt { padding-top: 7px; } .f4r.q .dt b { font-size: 12.5px; font-weight: 500; } .f4r.q .rl .dot { top: 10px; width: 10px; height: 10px; }
+  .f4r.q .bd { padding: 5px 12px; }
+  .f4r.q .bd .nm { font-size: 13.5px; font-weight: 400; }
+  .f4r.q .bd .mt { flex: none; font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; }
+  .f4r.q .bd .mt b { font-weight: 500; color: var(--foreground); }
+  .f4r.q.past .bd .nm { color: var(--muted-foreground); }
+  .f4r.q.past .bd .mt b { color: var(--green-fg); }
+  .f4r.q.past .dt b { color: var(--muted-foreground); }
+  /* next card */
+  .f4r.next .bd { display: block; position: relative; overflow: hidden; padding: 14px 16px; margin: 8px 0; border-radius: 12px; background: var(--card); box-shadow: 0 0 0 1px var(--ring); }
+  .f4r.next .bd:hover { background: var(--card); box-shadow: 0 0 0 1px color-mix(in srgb, var(--orange) 55%, transparent); }
+  .f4r.next .bd .kk { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: color-mix(in srgb, var(--muted-foreground) 70%, transparent); }
+  .f4r.next .bd .h { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
+  .f4r.next .bd .h .nm { font-size: 15.5px; font-weight: 600; letter-spacing: -.005em; flex: 0 1 auto; }
+  .f4r.next .bd .h .o { color: var(--orange-fg); font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .f4r.next .bd .m { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+  .f4r.next .bd .bb { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .f4r.next .bd .bb .rb { flex: 1; height: 6px; border-radius: 99px; background: var(--muted); overflow: hidden; }
+  .f4r.next .bd .bb .rb i { display: block; height: 100%; border-radius: 99px; background: var(--foreground); opacity: .75; }
+  .f4r.next .bd .bb .pc { font-size: 12.5px; font-weight: 500; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .f4r.next .bd .f4-rocket { width: 72px; height: 72px; top: -14px; right: -10px; }
+  .f4l { display: grid; grid-template-columns: 64px 28px 1fr; }
+  .f4l .rl { position: relative; } .f4l .rl::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .f4l .tx { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: color-mix(in srgb, var(--muted-foreground) 70%, transparent); padding: 14px 12px 4px; display: flex; gap: 6px; }
+  .f4l .tx .n { font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .f4l.gap .rl::before { display: none; }
+  .f4l.rel { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 6px; }
+  .f4l.rel .tx { color: var(--green-fg); }
+  .f4l.und .tx { color: var(--amber-fg2); }
+  .f4t { display: grid; grid-template-columns: 64px 28px 1fr; align-items: center; height: 30px; }
+  .f4t .lb { text-align: right; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .f4t .rl { position: relative; height: 100%; } .f4t .rl::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .f4t .rl::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 2px; transform: translate(-50%, -50%); background: var(--foreground); }
+  .f4t .ln { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 12px; color: var(--muted-foreground); }
+  .f4t .ln::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .f4m { display: grid; grid-template-columns: 64px 28px 1fr; padding-top: 6px; }
+  .f4m button { justify-self: start; font: inherit; font-size: 12.5px; color: var(--muted-foreground); background: none; border: 0; padding: 4px 12px; border-radius: 8px; cursor: pointer; }
+  .f4m button:hover { background: var(--muted); color: var(--foreground); }
+  .narrow .f4r .bd .tm, .narrow .f4r .bd .pk { display: none; } .narrow .f4r .bd .rd { width: 100px; }
+  .narrow .f4-hero h1 { font-size: 28px; } .narrow .f4-stats { gap: 16px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -640,7 +762,8 @@
   <button class="variant-tab" data-v="u3">U3: mini cards</button>
   <button class="variant-tab" data-v="f1">F1: L1 + U1</button>
   <button class="variant-tab" data-v="f2">F2: calendar + quiet</button>
-  <button class="variant-tab active" data-v="f3">F3: calendar for key only ★</button>
+  <button class="variant-tab" data-v="f3">F3: calendar for key only</button>
+  <button class="variant-tab active" data-v="f4">F4: F1 + dashboard style ★</button>
 </div>
 
 <div id="frame">
@@ -821,7 +944,36 @@
 
   <section id="variant-f2" class="variant pol hh f2"><div class="note">F2 — calendar blocks are back (S1h rail). Overdue, next, next+1 and undated keep full rows; planned and released releases are quiet lines next to mini calendar blocks: name, then "8 to do · in 12 days" (or "✓ 25 done") — no pill, no avatars.</div><div class="f2slot"></div></section>
 
-  <section id="variant-f3" class="variant active pol hh f2 f3"><div class="note">F3 — calendar blocks only for the releases that matter (overdue, next, next+1, undated). Planned and released are quiet lines: a dot on the rail, the date as text, the name, and "8 to do · in 12 days" / "✓ 25 done".</div><div class="f3slot"></div></section>
+  <section id="variant-f3" class="variant pol hh f2 f3"><div class="note">F3 — calendar blocks only for the releases that matter (overdue, next, next+1, undated). Planned and released are quiet lines: a dot on the rail, the date as text, the name, and "8 to do · in 12 days" / "✓ 25 done".</div><div class="f3slot"></div></section>
+
+  <section id="variant-f4" class="variant active f4">
+    <header class="f4-hero">
+      <svg aria-hidden="true" viewBox="0 0 1200 900" preserveAspectRatio="none" class="f4-curves">
+        <path d="M -50 220 Q 400 90 1250 -20" stroke="#f97316" stroke-width="1" opacity=".35"/>
+        <path d="M -50 320 Q 500 160 1250 80" stroke="#f97316" stroke-width=".8" opacity=".25"/>
+        <path d="M -50 420 Q 600 240 1250 180" stroke="#f97316" stroke-width=".6" opacity=".18"/>
+        <path d="M -50 760 Q 500 540 1250 380" stroke="#06b6d4" stroke-width="1" opacity=".32"/>
+        <path d="M -50 860 Q 600 640 1250 480" stroke="#06b6d4" stroke-width=".8" opacity=".24"/>
+        <path d="M -50 540 Q 550 380 1250 240" stroke="#f97316" stroke-width=".5" opacity=".14"/>
+        <path d="M -50 660 Q 600 460 1250 320" stroke="#06b6d4" stroke-width=".5" opacity=".14"/>
+      </svg>
+      <div class="f4-hero-in">
+        <div>
+          <h1>Releases</h1>
+          <p class="sub" id="f4-sub"></p>
+        </div>
+        <div class="f4-hero-r"><span class="muted">Updated 2 min ago</span><button class="app-link">↻ Refresh</button></div>
+      </div>
+      <div class="f4-stats" id="f4-stats"></div>
+    </header>
+    <div class="note">F4 — F1 polished with the dashboard "Upcoming releases" language: orange marks only the closest release (solid dot, orange connector, orange timing), everything else is grayscale with hollow dots; readiness is a thin grayscale bar + "N% ready"; timing is text, not pills (amber when overdue). Track card uses the dashboard card header + ambient rocket. Title is a compact version of the dashboard hero (ambient curves).</div>
+    <section class="f4-card f4-trackcard">
+      <svg class="f4-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+      <div class="f4-card-h"><span class="f4-title">Timeline</span><span class="f4-range"><span id="f4-range"></span><button class="f4-nav" id="f4-prev">‹</button><button class="f4-nav" id="f4-next">›</button></span></div>
+      <div class="f4-track" id="f4-track"></div>
+    </section>
+    <div class="f4-rail" id="f4-rail"></div>
+  </section>
 
   <!-- ───────── Variant A2 ───────── -->
   <section id="variant-a2" class="variant">
@@ -1445,6 +1597,103 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     html += mo('Released', `${rel2.length} recent`) + rel2.map((r, i) => quiet(r, i === rel2.length - 1 ? 'last' : '')).join('');
     html += `<div class="ag-more"><div></div><div></div><button>Show older releases ↓</button></div>`;
     document.getElementById('f1').innerHTML = html;
+  }
+
+  // F4: F1 + dashboard release-timeline styles
+  {
+    const pct = r => total(r) ? Math.min(100, Math.round(r.d / total(r) * 100)) : 0;
+    const kind = r => rel2.includes(r) ? 'past' : !r.date ? 'undated' : days(r) < 0 ? 'late' : r === nxt[0] ? 'next' : '';
+    const timing = r => {
+      const n = days(r);
+      if (rel2.includes(r)) return 'Released';
+      if (n === null) return 'No date';
+      if (n < 0) return `${-n} ${-n === 1 ? 'day' : 'days'} overdue`;
+      if (n === 0) return 'Today'; if (n === 1) return 'Tomorrow';
+      if (n < 14) return `in ${n} days`;
+      return `in ${Math.round(n / 7)} weeks`;
+    };
+    const short = r => parseName(r.n).text;
+    const rb = r => `<span class="rb"><i style="width:${pct(r)}%"></i></span>`;
+    const ROCKET = document.querySelector('.f4-rocket').outerHTML;
+    // hero
+    const n0 = nxt[0];
+    document.getElementById('f4-sub').innerHTML = `Next up <b>${short(n0)}</b> · ${fmtD(n0.date)} · <span class="o">${timing(n0)}</span>`;
+    const late = plan.filter(r => r.date && days(r) < 0).length;
+    const issuesOpen = plan.filter(r => r.date && days(r) >= 0 && days(r) <= 28).reduce((a, r) => a + r.p + r.t, 0);
+    document.getElementById('f4-stats').innerHTML = [
+      ['Planned', plan.filter(r => r.date).length, ''], ['Overdue', late, late ? 'am' : ''], ['No date', plan.filter(r => !r.date).length, ''],
+      ['Open issues · 4 wks', issuesOpen, ''], ['Released this month', rel2.filter(r => r.date >= '2026-10-01').length, ''],
+    ].map(([l, v, c]) => `<div class="s"><span class="v ${c}">${v}</span><span class="l">${l}</span></div>`).join('');
+    // horizontal track (responsive weeks, lanes)
+    const tr = document.getElementById('f4-track'); let off = 0, lastW = 0;
+    const draw = () => {
+      const W = tr.clientWidth; if (!W) return; lastW = W;
+      const weeks = Math.max(3, Math.min(8, Math.floor(W / 120)));
+      const st0 = new Date(weeks <= 5 ? '2026-10-17' : '2026-10-08'); st0.setDate(st0.getDate() + off * 7 * Math.max(1, weeks - 2));
+      const en = new Date(st0); en.setDate(en.getDate() + weeks * 7 + 4);
+      const p = x => (new Date(x) - st0) / (en - st0) * 100;
+      const list = [rel2[0], ...plan.filter(r => r.date)].filter(r => new Date(r.date) >= st0 && new Date(r.date) <= en).sort((a, b) => a.date.localeCompare(b.date));
+      let html = '<div class="f4-axis"></div>';
+      const ni = list.indexOf(nxt[0]);
+      if (ni >= 0) { const to = list[ni + 1] ? p(list[ni + 1].date) : Math.min(100, p(nxt[0].date) + 8); html += `<div class="f4-seg" style="left:${p(nxt[0].date)}%;width:${to - p(nxt[0].date)}%"></div>`; }
+      list.filter(r => kind(r) === 'late').forEach(r => { html += `<div class="f4-late" style="left:${p(r.date)}%;width:${p('2026-10-29') - p(r.date)}%"></div>`; });
+      if (new Date('2026-10-29') >= st0) html += `<div class="f4-today" style="left:${p('2026-10-29')}%"><span>Today</span></div>`;
+      const lanes = [[], []]; const colW = W / (weeks + .6);
+      const order = [...list].sort((a, b) => (b === nxt[0]) - (a === nxt[0]));
+      const laneOf = new Map(order.map(r => { const x = p(r.date) / 100 * W, a = x - 6, b = x + colW - 10; for (let i = 0; i < 2; i++) if (lanes[i].every(([c, d]) => b < c || a > d)) { lanes[i].push([a, b]); return [r, i]; } return [r, 1]; }));
+      list.forEach(r => {
+        const k = kind(r), lane = laneOf.get(r), top = lane ? 122 : 24;
+        html += `<div class="f4-dot ${k}" style="left:${p(r.date)}%"></div>`;
+        html += `<div class="f4-item ${k}" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}' style="left:calc(${p(r.date)}% - 6px);top:${top}px;width:${colW - 14}px">
+          <span class="d">${fmtD(r.date)}</span><span class="n">${short(r)}</span><span class="t">${timing(r)}</span>${k === 'past' ? '' : `${rb(r)}<span class="pc">${pct(r)}% ready</span>`}</div>`;
+      });
+      tr.innerHTML = html;
+      tr.style.height = ([...laneOf.values()].includes(1) ? 214 : 118) + 'px';
+      const later = plan.filter(r => r.date && new Date(r.date) > en).length;
+      document.getElementById('f4-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`;
+    };
+    document.getElementById('f4-prev').onclick = () => { off = Math.max(0, off - 1); draw(); };
+    document.getElementById('f4-next').onclick = () => { off = Math.min(6, off + 1); draw(); };
+    new ResizeObserver(() => { if (Math.abs(tr.clientWidth - lastW) > 4) draw(); }).observe(tr);
+    draw();
+    // rail
+    const stamp = r => r.date ? `<b>${fmt(r.date)}</b><span>${wd(r.date)}</span>` : '<b>—</b><span>No date</span>';
+    const full = (r, cls = '') => {
+      const k = kind(r);
+      if (k === 'next') return `<div class="f4r next ${cls}"><div class="dt" style="padding-top:22px">${stamp(r)}</div><div class="rl"><span class="dot"></span></div>
+        <div class="bd" title="${r.n}">${ROCKET}<div class="kk">Next release</div>
+          <div class="h"><span class="nm">${r.n}</span><span class="o">${timing(r)}</span></div>
+          <div class="m"><span>${r.pkg ? pkgText(r) : 'No RM package'}</span>${av(r.team)}</div>
+          <div class="bb" data-row='${JSON.stringify([r.d, r.p, r.t])}'>${rb(r)}<span class="pc">${pct(r)}% ready</span></div></div></div>`;
+      return `<div class="f4r ${k} ${cls}"><div class="dt">${stamp(r)}</div><div class="rl"><span class="dot"></span></div>
+        <div class="bd" title="${r.n}"><div class="tx"><div class="nm">${r.n}</div>${r.pkg ? `<div class="pk">${pkgText(r)}</div>` : ''}</div>
+        <span class="rd" data-row='${JSON.stringify([r.d, r.p, r.t])}'>${r.d + r.p > 0 ? `${rb(r)}<span class="pc">${pct(r)}% ready</span>` : `<span class="pc" style="width:auto">${total(r)} to do</span>`}</span>
+        <span class="tm">${av(r.team)}</span><span class="tl">${timing(r)}</span></div></div>`;
+    };
+    const quiet = (r, cls = '') => {
+      const rel = rel2.includes(r);
+      const mt = rel ? `<b>✓ ${total(r)} done</b>` : `<b>${total(r)} to do</b> · ${timing(r)}`;
+      return `<div class="f4r q ${rel ? 'past' : ''} ${cls}"><div class="dt">${stamp(r)}</div><div class="rl"><span class="dot"></span></div>
+        <div class="bd" title="${r.n}"><span class="tx"><span class="nm" style="display:block">${r.n}</span></span><span class="mt">${mt}</span></div></div>`;
+    };
+    const lbl = (t, n, cls = '') => `<div class="f4l ${cls}"><div></div><div class="rl"></div><div class="tx">${t}${n !== undefined ? `<span class="n">${n}</span>` : ''}</div></div>`;
+    const monthName = d => { const x = new Date(d); return x.toLocaleDateString('en-GB', { month: 'long' }) + (x.getFullYear() !== 2026 ? ' ' + x.getFullYear() : ''); };
+    const dated = plan.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
+    let html = ''; let today = false; let lastMonth = null; let prevNext = false;
+    dated.forEach((r, i) => {
+      if (!today && days(r) >= 0) { html += `<div class="f4t"><span class="lb">Today</span><span class="rl"></span><span class="ln">Thu 29 Oct</span></div>`; today = true; lastMonth = monthName('2026-10-29'); }
+      const m = monthName(r.date);
+      if (today && m !== lastMonth) { html += lbl(m); lastMonth = m; }
+      const cls = [i === 0 ? 'first' : '', prevNext ? 'after-next' : ''].join(' ');
+      prevNext = r === nxt[0];
+      const isQuiet = days(r) >= 0 && !near.has(r) && !(r.d + r.p > 0);
+      html += isQuiet ? quiet(r, cls) : full(r, cls);
+    });
+    const und = plan.filter(r => !r.date);
+    if (und.length) html += lbl('No date', und.length, 'und') + und.map((r, i) => full(r, i === und.length - 1 ? 'lastu' : '')).join('');
+    html += lbl('Released', `${rel2.length} recent`, 'rel gap') + rel2.map((r, i) => quiet(r, i === rel2.length - 1 ? 'lastr' : '')).join('');
+    html += `<div class="f4m"><div></div><div></div><button>Show older releases ↓</button></div>`;
+    document.getElementById('f4-rail').innerHTML = html;
   }
 
   // Track renderer (shared)

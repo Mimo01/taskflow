@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "F3"
+winner: "F4"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -100,6 +100,13 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - Alignment (user: "the calendars are on the right, the labels are more to the left"): calendar blocks moved into the date column, right-aligned to the same edge as the text stamps; every row gets a state-coloured dot on the rail.
 - Responsive track (user: "on smaller screens the graph gets squished"): weeks shown = track width / ~115px, clamped 3–8; window starts just before the overdue release; ‹ › pan; redraws on resize; side "No date" box hidden under ~620px.
 - Released separated (user: "separate released from unreleased better"): rail ends after the last unreleased item, full-width divider + 26px gap, green "Released · 3 recent" heading, released rail restarts as a dashed green line, rows slightly muted.
+
+## Current: F4 — F1 + dashboard release-timeline styles (round 14)
+- User: "lets go back to f1. polish it. we have release graph on app dashboard, apply the styles here. make the title nicer".
+- Source: `taskflow/src/routes/dashboard/UpcomingReleasesTimeline.tsx` + dashboard hero in `routes/dashboard/index.tsx`.
+- Title: compact dashboard hero — ambient orange/cyan curves, "Releases" 34px semibold tight, subline "Next up **Statement export** · Tue 03 Nov · in 5 days" (orange), Updated + Refresh on the right, stat strip (Planned / Overdue / No date / Open issues · 4 wks / Released this month) with dashboard uppercase labels.
+- Timeline card: dashboard Card + uppercase muted title + ambient rocket; 12px dots — solid orange for the closest release, orange connector to the next dot, hollow grey rings otherwise, amber ring + dashed amber trail for overdue, green for released; items = date, short name (semibold), timing text, 4px grayscale readiness bar, "N% ready". Responsive weeks + lanes.
+- Rail (F1): L1 stamps, hollow ring dots, orange dot + orange rail segment from next → next+1; timing as text (orange next, amber overdue) instead of pills; grayscale readiness bars + "% ready"; next card with dashboard kicker + ambient rocket; U1 quiet lines for planned; released set apart (divider, green label, dashed green rail).
 
 ## What to Look For
 - Which reads as a nice overview, not a table

@@ -11,4 +11,4 @@ Current shipped list (Phase 93) screenshots; AioCycleList column grid.
 | # | Name | Design Question | Winner | Tags |
 |---|------|----------------|--------|------|
 | 001 | upcoming-overview | How should Upcoming releases scan for health and timing? | A4: release-date axis track, next release emphasised, bars only where work started | layout, releases, list, timeline |
-| 002 | list-below-track | What replaces the table under the track? | F3 (calendar blocks for key releases only, dot + text-date quiet lines for planned/released, S1e header + windowed track): one rail of calendar blocks (overdue → TODAY → next card → condensed planned → No date), released collapsed at the bottom, under an 8-week windowed track | layout, releases, list |
+| 002 | list-below-track | What replaces the table under the track? | F4 (F1 agenda rail + U1 quiet lines in the dashboard Upcoming-releases style, dashboard-hero title) | layout, releases, list |
