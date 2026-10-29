@@ -32,7 +32,7 @@ function Stamp({ entry }: { entry: AgendaRelease }) {
   const s = dateStamp(date);
   if (entry.quiet) {
     return (
-      <div className="pt-2 pr-3 text-right text-[12.5px] font-semibold whitespace-nowrap tabular-nums">
+      <div className="pt-2 pr-3 text-right text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums">
         {s.inline}
       </div>
     );

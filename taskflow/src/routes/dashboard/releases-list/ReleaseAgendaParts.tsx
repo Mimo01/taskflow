@@ -219,20 +219,22 @@ export function NextReleaseCard({
       <div className="pointer-events-none relative text-[11px] font-bold tracking-[.06em] text-muted-foreground/70 uppercase">
         Next release
       </div>
-      <div className="pointer-events-none relative flex items-center gap-2">
+      <div className="pointer-events-none relative flex items-center justify-between gap-2.5">
         <span className="truncate text-base font-semibold" title={version.name}>
           {version.name}
         </span>
         <ReleaseStatusPill pill={entry.countdown} />
       </div>
-      <div className="relative flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
         {showPackage &&
           (pkg || pkgLoading ? (
             <ReleasePackageCell pkg={pkg} loading={pkgLoading} />
           ) : (
             <span data-testid="row-deployment-package">No RM package</span>
           ))}
-        <ReleaseTeam assignees={team} />
+        <span className="ml-auto">
+          <ReleaseTeam assignees={team} />
+        </span>
       </div>
       <div className="relative">
         <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="card" />
