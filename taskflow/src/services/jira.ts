@@ -1327,6 +1327,70 @@ export async function fetchVersionIssueCounts(
   return { issuesFixed, issuesTotal };
 }
 
+export type VersionStatusBreakdown = { new: number; indeterminate: number; done: number };
+
+/**
+ * Fetch per-fix-version status-category breakdowns for several versions in ONE
+ * paginated JQL search (`fixVersion in (...)`, fields=status,fixVersions).
+ * An issue carrying several requested versions counts toward each of them.
+ *
+ * No subtask exclusion on purpose: it must match fetchVersionIssueCounts so the
+ * list and detail N / M figures agree. Pagination is never capped.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param versionIds - numeric fix version ids
+ * @returns breakdown per requested id (zeroed when no issues)
+ */
+export async function fetchVersionsStatusBreakdown(
+  baseUrl: string,
+  token: string,
+  versionIds: string[],
+): Promise<Record<string, VersionStatusBreakdown>> {
+  for (const id of versionIds) {
+    if (!/^\d+$/.test(id)) throw new Error(`Invalid versionId: ${id}`);
+  }
+  const out: Record<string, VersionStatusBreakdown> = {};
+  if (versionIds.length === 0) return out;
+  for (const id of versionIds) out[id] = { new: 0, indeterminate: 0, done: 0 };
+  const wanted = new Set(versionIds);
+
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const jql = encodeURIComponent(`fixVersion in (${versionIds.join(',')})`);
+  const maxResults = 200;
+  let startAt = 0;
+  let seen = 0;
+
+  while (true) {
+    const url = `${base}/rest/api/2/search?jql=${jql}&fields=status,fixVersions&maxResults=${maxResults}&startAt=${startAt}`;
+    const resp = await apiFetch('jira', url, { headers }, 'Load Release Issue Status');
+    if (!resp.ok) throw new Error(`Failed to fetch release issue status: status ${resp.status}`);
+
+    const data = (await resp.json()) as {
+      issues: {
+        fields?: {
+          status?: { statusCategory?: { key?: string } };
+          fixVersions?: { id: string }[];
+        };
+      }[];
+      total: number;
+    };
+    for (const issue of data.issues) {
+      const key = issue.fields?.status?.statusCategory?.key;
+      const bucket = key === 'done' ? 'done' : key === 'indeterminate' ? 'indeterminate' : 'new';
+      for (const fv of issue.fields?.fixVersions ?? []) {
+        if (wanted.has(fv.id)) out[fv.id][bucket] += 1;
+      }
+    }
+    seen += data.issues.length;
+    if (data.issues.length === 0 || seen >= data.total) break;
+    startAt = seen;
+  }
+
+  return out;
+}
+
 /**
  * Fetch all Jira issues for a fix version (including subtasks carrying the
  * version directly), paginated, ordered
