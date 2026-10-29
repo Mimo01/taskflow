@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aggregateCycleScope, aggregateFolderCounts } from '@/lib/aio-cycle-list';
+import { refreshAioCycleList } from '@/lib/aio-refresh';
 import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { toLocalDateString } from '@/lib/local-date';
 import {
@@ -328,6 +330,20 @@ export default function AioProjectOverviewPage() {
       ? (findFolder(folderTree, selectedFolderID)?.children.map((f) => f.name) ?? [])
       : [];
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    if (!projectKey) return;
+    setRefreshing(true);
+    try {
+      await refreshAioCycleList(queryClient, jiraBaseUrl, projectKey);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const lastRefreshed = cyclesWithDetailQuery.dataUpdatedAt
+    ? `Refreshed: ${new Date(cyclesWithDetailQuery.dataUpdatedAt).toLocaleTimeString()}`
+    : '';
+
   // ── render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -335,6 +351,21 @@ export default function AioProjectOverviewPage() {
       <div className="flex flex-shrink-0 items-baseline gap-3 border-b border-border px-6 py-4">
         <h1 className="text-xl font-semibold">Test cycles</h1>
         <span className="font-mono text-sm text-muted-foreground">{projectKey ?? ''}</span>
+        <div className="ml-auto flex items-center gap-2 self-center">
+          <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
+          <button
+            type="button"
+            onClick={() => {
+              void handleRefresh();
+            }}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Refresh cycles"
+            title="Refresh cycles"
+          >
+            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-row overflow-hidden">

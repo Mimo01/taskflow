@@ -761,3 +761,37 @@ describe('AioProjectOverviewPage — error states', () => {
     );
   });
 });
+
+describe('AioProjectOverviewPage — refresh', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('Refresh cycles button invalidates folders, spins and disables while pending', async () => {
+    await setupStandardMocks();
+    const Page = await importPage();
+    const client = makeClient();
+    const spy = vi
+      .spyOn(client, 'invalidateQueries')
+      .mockImplementation((() => new Promise<void>(() => {})) as never);
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
+          <Routes>
+            <Route path="/aio-project/:projectKey" element={<Page />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const btn = (await screen.findByRole('button', {
+      name: 'Refresh cycles',
+    })) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn.disabled).toBe(true));
+    expect(btn.querySelector('svg')?.getAttribute('class')).toContain('animate-spin');
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: expect.arrayContaining(['folders', 'PROJ']) }),
+    );
+  });
+});

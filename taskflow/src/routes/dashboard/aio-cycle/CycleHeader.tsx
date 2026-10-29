@@ -1,4 +1,4 @@
-import { CalendarDays, Folder, Pin } from 'lucide-react';
+import { CalendarDays, Folder, Pin, RefreshCw } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +28,9 @@ export function CycleHeader({
   lastExecuted,
   pinned,
   onTogglePin,
+  onRefresh,
+  refreshing,
+  lastRefreshed,
   jiraBaseUrl,
   token,
 }: {
@@ -38,6 +41,9 @@ export function CycleHeader({
   lastExecuted: string | null;
   pinned: boolean;
   onTogglePin: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  lastRefreshed: string;
   jiraBaseUrl: string | null | undefined;
   token: string | null | undefined;
 }) {
@@ -128,17 +134,30 @@ export function CycleHeader({
             </div>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-none gap-1.5 text-xs"
-          aria-label={pinned ? `Unpin cycle ${cycleKey}` : `Pin cycle ${cycleKey}`}
-          title={pinned ? 'Unpin from tabs' : 'Pin to tabs'}
-          onClick={onTogglePin}
-        >
-          <Pin className={`size-3.5 ${pinned ? 'fill-current text-primary' : ''}`} />
-          {pinned ? 'Unpin' : 'Pin'}
-        </Button>
+        <div className="flex flex-none items-center gap-2">
+          <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Refresh cycle"
+            title="Refresh cycle"
+          >
+            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
+          </button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-none gap-1.5 text-xs"
+            aria-label={pinned ? `Unpin cycle ${cycleKey}` : `Pin cycle ${cycleKey}`}
+            title={pinned ? 'Unpin from tabs' : 'Pin to tabs'}
+            onClick={onTogglePin}
+          >
+            <Pin className={`size-3.5 ${pinned ? 'fill-current text-primary' : ''}`} />
+            {pinned ? 'Unpin' : 'Pin'}
+          </Button>
+        </div>
       </div>
       {!cycle && <Skeleton className="h-4 w-72" />}
       {items.length > 0 && (

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -2140,5 +2140,32 @@ describe('AIOC-N3S: defects sort + filter', () => {
       expect(screen.getAllByTestId(/^defect-row-/).length).toBe(1);
     });
     expect(screen.queryByTestId('defect-row-9999')).toBeNull();
+  });
+});
+
+describe('AioCycleDetailPage — refresh', () => {
+  it('Refresh cycle button invalidates runs, spins and disables while pending', async () => {
+    await setupDefaultMocks();
+    const client = makeClient();
+    const spy = vi
+      .spyOn(client, 'invalidateQueries')
+      .mockImplementation((() => new Promise<void>(() => {})) as never);
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+          <Routes>
+            <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const btn = (await screen.findByRole('button', { name: 'Refresh cycle' })) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn.disabled).toBe(true));
+    expect(btn.querySelector('svg')?.getAttribute('class')).toContain('animate-spin');
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: expect.arrayContaining(['runs', 'PROJ', 'PROJ-CY-2']) }),
+    );
   });
 });

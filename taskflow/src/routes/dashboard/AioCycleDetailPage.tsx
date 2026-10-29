@@ -1,10 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { refreshAioCycleDetail } from '@/lib/aio-refresh';
 import { toLocalDateString } from '@/lib/local-date';
 import type { AioTestRun } from '@/services/aio';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -77,6 +78,20 @@ export default function AioCycleDetailPage() {
       navigate('/dashboard');
     }
   };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    if (!projectKey || !cycleKey) return;
+    setRefreshing(true);
+    try {
+      await refreshAioCycleDetail(queryClient, { jiraBaseUrl, projectKey, cycleKey });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const lastRefreshed = runsQuery.dataUpdatedAt
+    ? `Refreshed: ${new Date(runsQuery.dataUpdatedAt).toLocaleTimeString()}`
+    : '';
 
   const openRun = (run: AioTestRun) => {
     if (!run.id) return; // a case without a run has nothing to open
@@ -168,6 +183,11 @@ export default function AioCycleDetailPage() {
           lastExecuted={lastExecuted}
           pinned={pinned}
           onTogglePin={onTogglePin}
+          onRefresh={() => {
+            void handleRefresh();
+          }}
+          refreshing={refreshing}
+          lastRefreshed={lastRefreshed}
           jiraBaseUrl={jiraBaseUrl}
           token={token}
         />
