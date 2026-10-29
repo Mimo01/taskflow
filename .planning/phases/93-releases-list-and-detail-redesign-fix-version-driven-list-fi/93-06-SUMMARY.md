@@ -39,3 +39,7 @@ Functional checks pass. Issue reported verbatim:
 > "it works but it is too plain. I was imagining something more interesting"
 
 Not approved. Next step chosen by user: sketch 2-3 throwaway HTML mockups of alternative list designs (e.g. next-release hero, timeline, richer rows) before planning gap closure.
+
+### Redesign direction (2026-10-29)
+
+Sketches `.planning/sketches/001-upcoming-overview` and `.planning/sketches/002-list-below-track` explored the "too plain" feedback. User approved **sketch 002 / F5** as the target design for gap closure (see its README for the full decision log).
