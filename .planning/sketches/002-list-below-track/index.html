@@ -708,10 +708,10 @@
 
 
   /* ── F5: F1 + light dashboard polish ── */
-  .f5 .pol-track { position: relative; overflow: hidden; border: 0; border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); padding: 14px 16px 6px; }
+  .f5 .pol-track { position: relative; overflow: hidden; border: 0; border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); }
   .f5 .pol-track .f5-th { position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .f5 .pol-track .f5-th .f4-title { font-size: 13px; }
-  .f5 .pol-track .pol-range { margin-right: 52px; }
+
   .f5 .pol-track .pol-range .btn { border: 0; background: transparent; color: var(--muted-foreground); }
   .f5 .pol-track .pol-range .btn:hover { background: var(--muted); color: var(--foreground); }
   .f5 .pol-track .f4-rocket { top: -14px; right: -10px; width: 80px; height: 80px; }
@@ -753,7 +753,8 @@
   .f5 #f5-hero .f4-hero { padding-bottom: 22px; }
   .f5 #f5-hero .sub .o { color: var(--foreground); font-weight: 500; }
   .f5 .f5-passed { position: absolute; left: 0; bottom: 18px; height: 2px; background: var(--orange); z-index: 1; }
-  .f5 .tl-dot { z-index: 2; padding: 0 !important; }
+  .f5 .tl-dot { z-index: 2; padding: 0 !important; width: 10px; height: 10px; box-sizing: border-box; }
+  .f5 .pol-track .tl-track { height: 150px !important; }
   .f5 .tl-dot.f5-ring { background: var(--card) !important; border: 2px solid color-mix(in srgb, var(--muted-foreground) 45%, transparent); width: 12px; height: 12px; box-sizing: border-box; }
   .f5 .tl-dot.f5-ring.f5-next { border-color: var(--foreground); width: 13px; height: 13px; }
   .f5 .tl-dot.f5-ring.f5-late { border-color: var(--red-fg); }
@@ -770,7 +771,7 @@
 
 
   /* F5 round 5: graph axis is plain (no coloured line, no circles); colour + circles live on the list rail */
-  .f5 .pol-track .f5-passed, .f5 .pol-track .tl-dot { display: none; }
+  .f5 .pol-track .f5-passed { display: none; }
   .f5 .f1-rail .ag-item .dot { display: block; }
 
 
@@ -1934,8 +1935,6 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
       const t = src.querySelector('.pol-track').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
       const ROCKET = document.querySelector('.f4-rocket').outerHTML;
       const rng = t.querySelector('.pol-range');
-      rng.insertAdjacentHTML('beforebegin', `<div class="f5-th"><span class="f4-title">Timeline</span></div>`);
-      t.querySelector('.f5-th').appendChild(rng);
       document.getElementById('f5-track').appendChild(t);
       // responsive draw + dashboard dots
       const tr = t.querySelector('.tl-track'), body = t.querySelector('.tl-body'), range = rng.querySelector('span');
@@ -1950,8 +1949,6 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         const later = drawTrack(tr, dated, st0, en, () => true);
         range.textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`;
         const dots = [...tr.querySelectorAll('.tl-dot')];
-        dots.forEach(d => { const bg = d.style.background; if (bg.includes('--foreground')) d.classList.add('f5-ring', 'f5-next'); else if (bg.includes('--muted-foreground')) d.classList.add('f5-ring'); });
-        dots.forEach(d => { if (d.style.background.includes('--red-fg')) d.classList.add('f5-ring', 'f5-late'); if (d.style.background.includes('--done')) d.classList.add('f5-rel'); });
         tr.querySelectorAll('.tl-chip:not(.next)').forEach(c => { const b = c.querySelector('.bar'); if (!b) return; const [d0, p0, t0] = JSON.parse(c.dataset.row || '[0,0,0]'); b.outerHTML = `<span class="figure" style="font-size:11px">${d0}/${d0 + p0 + t0} done</span>`; });
         tr.querySelectorAll('.tl-late').forEach(e => e.remove());
         const nd = tr.querySelector('.tl-dot.f5-next'), td = tr.querySelector('.tl-today');
