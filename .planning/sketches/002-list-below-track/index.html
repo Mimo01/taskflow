@@ -502,6 +502,15 @@
   .narrow .f1 .ag-body .tm, .narrow .f1 .ag-body .t .pk { display: none; }
   .narrow .f1 .ag-body .st { width: 110px; }
 
+
+  /* ── F2: calendar + quiet lines ── */
+  .f2 .pr.q .prow { padding-top: 6px; padding-bottom: 6px; }
+  .f2 .pr.q .prow .nm { font-weight: 400; font-size: 13.5px; }
+  .f2 .pr.q .prow .m { flex: none; color: var(--muted-foreground); font-size: 12.5px; white-space: nowrap; }
+  .f2 .pr.q .prow .m b { font-weight: 500; color: var(--foreground); }
+  .f2 .pr.q.past .prow .m b { color: var(--green-fg); }
+  .f2 .pr.q .cal { margin: 4px 0; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -556,7 +565,8 @@
   <button class="variant-tab" data-v="u1">U1: quiet list</button>
   <button class="variant-tab" data-v="u2">U2: month grid</button>
   <button class="variant-tab" data-v="u3">U3: mini cards</button>
-  <button class="variant-tab active" data-v="f1">F1: L1 + U1 ★</button>
+  <button class="variant-tab" data-v="f1">F1: L1 + U1</button>
+  <button class="variant-tab active" data-v="f2">F2: calendar + quiet ★</button>
 </div>
 
 <div id="frame">
@@ -728,12 +738,14 @@
   <section id="variant-u2" class="variant pol hh uv u2"><div class="note">U2 — planned releases become small cards in a grid under each month: date, name, issue count and countdown.</div><div class="uslot"></div></section>
   <section id="variant-u3" class="variant pol hh uv u3"><div class="note">U3 — each planned release is its own small separated card with the date block inside, echoing the next-release card at a smaller scale.</div><div class="uslot"></div></section>
 
-  <section id="variant-f1" class="variant active pol f1">
+  <section id="variant-f1" class="variant pol f1">
     <div class="note">F1 — L1's agenda rail (text dates + dots, one-line rows) with U1's quiet planned lines, on S1e's header and windowed track. Overdue → TODAY → next-release card (one figure) → next+1 → planned (quiet, month dividers) → No date → 3 recent released → Show older.</div>
     <div id="f1-head"></div>
     <div id="f1-track"></div>
     <div class="agenda f1-rail" id="f1"></div>
   </section>
+
+  <section id="variant-f2" class="variant active pol hh f2"><div class="note">F2 — calendar blocks are back (S1h rail). Overdue, next, next+1 and undated keep full rows; planned and released releases are quiet lines next to mini calendar blocks: name, then "8 to do · in 12 days" (or "✓ 25 done") — no pill, no avatars.</div><div class="f2slot"></div></section>
 
   <!-- ───────── Variant A2 ───────── -->
   <section id="variant-a2" class="variant">
@@ -1444,6 +1456,17 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     }
     { const h = src.querySelector('.pol-head').cloneNode(true); h.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); document.getElementById('f1-head').appendChild(h);
       const t = src.querySelector('.pol-track').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); document.getElementById('f1-track').appendChild(t); }
+    { const slot = document.querySelector('.f2slot'); slot.appendChild(document.getElementById('s1h-slot').cloneNode(true)); slot.firstChild.removeAttribute('id');
+      slot.querySelectorAll('.pr.mini').forEach(el => {
+        const rel = el.classList.contains('past');
+        const is = el.querySelector('.is').textContent.trim();
+        const cdt = el.querySelector('.pl .pill').textContent.toLowerCase();
+        const meta = rel ? `<b>${is}</b>` : `<b>${is}</b> · ${cdt}`;
+        el.querySelector('.t .sub')?.remove();
+        ['.is', '.tm', '.pl'].forEach(q => el.querySelector(q).remove());
+        el.querySelector('.t').insertAdjacentHTML('afterend', `<span class="m">${meta}</span>`);
+        el.classList.add('q');
+      }); }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
