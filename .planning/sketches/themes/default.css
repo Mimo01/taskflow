@@ -1,0 +1,37 @@
+/* Taskflow sketch theme — mirrors taskflow/src/index.css tokens (neutral shadcn palette, Geist). */
+:root {
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --border: oklch(0.922 0 0);
+  --radius: 0.625rem;
+
+  /* status-only colours (pill tones + graph segments) */
+  --done: #16a34a;
+  --progress: #3b82f6;
+  --todo: oklch(0.922 0 0);
+  --red-bg: #fee2e2;    --red-fg: #b91c1c;
+  --amber-bg: #fef3c7;  --amber-fg: #b45309;
+  --blue-bg: #dbeafe;   --blue-fg: #1d4ed8;
+  --green-bg: #dcfce7;  --green-fg: #15803d;
+  --gray-bg: oklch(0.96 0 0); --gray-fg: oklch(0.45 0 0);
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --todo: oklch(0.32 0 0);
+  --red-bg: #7f1d1d55;   --red-fg: #fca5a5;
+  --amber-bg: #78350f55; --amber-fg: #fcd34d;
+  --blue-bg: #1e3a8a55;  --blue-fg: #93c5fd;
+  --green-bg: #14532d55; --green-fg: #86efac;
+  --gray-bg: oklch(0.27 0 0); --gray-fg: oklch(0.8 0 0);
+  color-scheme: dark;
+}
