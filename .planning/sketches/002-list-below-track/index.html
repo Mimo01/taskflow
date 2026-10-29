@@ -1326,7 +1326,7 @@ const chip4 = (r, cls) => {
   const released = rel2.includes(r);
   if (r === nextRel) return `<div class="tl-chip next" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="k">Next</span><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}<span class="figure">${fig(r)} done</span></div>`;
   if (started(r)) return `<div class="tl-chip ${cls}" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}</div>`;
-  const sub = released ? '✓ done' : `${total(r)} to do`;
+  const sub = released ? '✓ done' : total(r) ? `${total(r)} to do` : 'No issues';
   return `<div class="tl-chip plain ${cls}" title="${r.n}"><span class="n">${parseName(r.n).text}</span><span class="figure" style="font-size:11px">${sub}</span></div>`;
 };
 const tr4 = document.getElementById('a4-track');
@@ -1467,7 +1467,7 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
   names.forEach((nm, i) => {
     const iso = d.toISOString().slice(0, 10);
     const dd = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-    plan.push({ n: `Standard ${dd} - ${nm}`, date: iso, d: 0, p: 0, t: 8 + (i * 7) % 23, pkg: null, team: [['JN','AP'],['RV'],['DK','EH'],['LB','MK','TS']][i % 4] });
+    plan.push({ n: `Standard ${dd} - ${nm}`, date: iso, d: 0, p: 0, t: i < 2 ? [8, 5][i] : 0, pkg: null, team: i < 2 ? [['JN','AP'],['RV']][i] : [] });
     d.setDate(d.getDate() + 7);
   });
   const sorted = [...plan.filter(r => !r.date), ...plan.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date))];
@@ -1655,7 +1655,7 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     };
     const quiet = (r, extra = '') => {
       const rel = rel2.includes(r);
-      const meta = rel ? `<b>✓ ${total(r)} done</b>` : `<b>${total(r)} to do</b> · ${cd(r)[1].toLowerCase()}`;
+      const meta = rel ? `<b>✓ ${total(r)} done</b>` : total(r) ? `<b>${total(r)} to do</b> · ${cd(r)[1].toLowerCase()}` : `No issues yet · ${cd(r)[1].toLowerCase()}`;
       return `<div class="ag-item q ${rel ? 'past' : ''} ${extra}"><div class="ag-date">${qdate(r)}</div><div class="ag-rail"><span class="dot"></span></div>
         <div class="ag-body" title="${r.n}"><span class="nm">${r.n}</span><span class="m">${meta}</span></div></div>`;
     };
