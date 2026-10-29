@@ -706,6 +706,47 @@
   .narrow .f4r .bd .tm, .narrow .f4r .bd .pk { display: none; } .narrow .f4r .bd .rd { width: 100px; }
   .narrow .f4-hero h1 { font-size: 28px; } .narrow .f4-stats { gap: 16px; }
 
+
+  /* ── F5: F1 + light dashboard polish ── */
+  .f5 .pol-track { position: relative; overflow: hidden; border: 0; border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); padding: 14px 16px 6px; }
+  .f5 .pol-track .f5-th { position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .f5 .pol-track .f5-th .f4-title { font-size: 13px; }
+  .f5 .pol-track .pol-range { margin-right: 52px; }
+  .f5 .pol-track .pol-range .btn { border: 0; background: transparent; color: var(--muted-foreground); }
+  .f5 .pol-track .pol-range .btn:hover { background: var(--muted); color: var(--foreground); }
+  .f5 .pol-track .f4-rocket { top: -14px; right: -10px; width: 80px; height: 80px; }
+  .f5 .tl-dot.f5-ring { background: var(--card) !important; border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); width: 12px; height: 12px; box-sizing: border-box; }
+  .f5 .tl-dot.f5-next { background: var(--orange) !important; width: 12px; height: 12px; }
+  .f5 .f5-seg { position: absolute; bottom: 18px; height: 2px; background: var(--orange); transform: translateY(50%); }
+  .f5 .tl-chip.next { box-shadow: none; border-color: var(--orange); }
+  .f5 .tl-chip.next .k { color: var(--orange-fg); }
+  /* rail dots */
+  .f5 .ag-item .dot { background: var(--background); border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); width: 12px; height: 12px; box-sizing: border-box; }
+  .f5 .ag-item.late .dot { border-color: var(--red-fg); }
+  .f5 .ag-item.undated .dot { border-color: var(--amber-fg); border-style: dashed; }
+  .f5 .ag-item.next .dot { background: var(--orange); border-color: var(--orange); width: 13px; height: 13px; }
+  .f5 .ag-item.next .ag-rail::after { content: ''; position: absolute; left: 50%; top: 24px; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--orange); }
+  .f5 .ag-item.f5-after .ag-rail::after { content: ''; position: absolute; left: 50%; top: 0; height: 16px; width: 2px; transform: translateX(-50%); background: var(--orange); }
+  .f5 .ag-item.q .dot { width: 10px; height: 10px; background: var(--background); border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); top: 11px; }
+  .f5 .ag-card { position: relative; overflow: hidden; border: 0; box-shadow: 0 0 0 1px var(--ring); border-radius: 12px; }
+  .f5 .ag-card:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--orange) 55%, transparent); }
+  .f5 .ag-card .kicker { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: color-mix(in srgb, var(--muted-foreground) 70%, transparent); }
+  .f5 .ag-card .f4-rocket { width: 72px; height: 72px; top: -14px; right: -10px; }
+  .f5 .ag-card .l1, .f5 .ag-card .l2, .f5 .ag-card .l3b { position: relative; }
+  .f5 .f1-rail > .ag-item:last-child .ag-rail::before { bottom: calc(100% - 16px); }
+  /* released panel */
+  .f5-rel { margin-top: 28px; border-radius: 12px; background: color-mix(in srgb, var(--muted) 55%, transparent); padding: 12px 8px 8px; }
+  .f5-rel .h { display: flex; align-items: baseline; gap: 8px; padding: 2px 12px 8px; }
+  .f5-rel .h .t { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--green-fg); }
+  .f5-rel .h .n { font-size: 12px; color: var(--muted-foreground); }
+  .f5-rel .r { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 14px; padding: 7px 12px; border-radius: 8px; cursor: pointer; }
+  .f5-rel .r:hover { background: var(--background); }
+  .f5-rel .r .d { text-align: right; font-size: 12.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .f5-rel .r .n { font-size: 13.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .f5-rel .r .m { font-size: 12.5px; font-weight: 500; color: var(--green-fg); white-space: nowrap; }
+  .f5-rel .more { font: inherit; font-size: 12.5px; color: var(--muted-foreground); background: none; border: 0; padding: 6px 12px 4px 100px; cursor: pointer; }
+  .f5-rel .more:hover { color: var(--foreground); }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -763,7 +804,8 @@
   <button class="variant-tab" data-v="f1">F1: L1 + U1</button>
   <button class="variant-tab" data-v="f2">F2: calendar + quiet</button>
   <button class="variant-tab" data-v="f3">F3: calendar for key only</button>
-  <button class="variant-tab active" data-v="f4">F4: F1 + dashboard style ★</button>
+  <button class="variant-tab" data-v="f4">F4: F1 + dashboard style</button>
+  <button class="variant-tab active" data-v="f5">F5: F1 + light polish ★</button>
 </div>
 
 <div id="frame">
@@ -946,7 +988,7 @@
 
   <section id="variant-f3" class="variant pol hh f2 f3"><div class="note">F3 — calendar blocks only for the releases that matter (overdue, next, next+1, undated). Planned and released are quiet lines: a dot on the rail, the date as text, the name, and "8 to do · in 12 days" / "✓ 25 done".</div><div class="f3slot"></div></section>
 
-  <section id="variant-f4" class="variant active f4">
+  <section id="variant-f4" class="variant f4">
     <header class="f4-hero">
       <svg aria-hidden="true" viewBox="0 0 1200 900" preserveAspectRatio="none" class="f4-curves">
         <path d="M -50 220 Q 400 90 1250 -20" stroke="#f97316" stroke-width="1" opacity=".35"/>
@@ -973,6 +1015,14 @@
       <div class="f4-track" id="f4-track"></div>
     </section>
     <div class="f4-rail" id="f4-rail"></div>
+  </section>
+
+  <section id="variant-f5" class="variant active pol f1 f4 f5">
+    <div class="note">F5 — F1's track and timeline list kept as they were, with a light dashboard polish: card header + ambient rocket on the track, solid orange dot for the next release with an orange connector to the one after, hollow rings for planned releases, dashboard kicker + rocket on the next-release card. Released moved out of the timeline into its own panel. Title from F4.</div>
+    <div id="f5-hero"></div>
+    <div id="f5-track"></div>
+    <div class="agenda f1-rail" id="f5-rail"></div>
+    <section class="f5-rel" id="f5-rel"></section>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -1828,6 +1878,48 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
       });
       const undLabel = [...slot.querySelectorAll('.plabel')].find(l => l.textContent.trim().startsWith('No date')); if (undLabel) undLabel.classList.add('undated-l');
       if (relLabel) { relLabel.classList.add('rel-sep'); const prev = relLabel.previousElementSibling; if (prev) prev.classList.add('pre-rel'); const first = relLabel.nextElementSibling; if (first) first.classList.add('first-rel'); }
+    }
+    { // F5 assembly
+      const f5 = document.getElementById('variant-f5');
+      document.getElementById('f5-hero').appendChild(document.querySelector('#variant-f4 .f4-hero').cloneNode(true));
+      document.querySelectorAll('#f5-hero [id]').forEach(e => e.removeAttribute('id'));
+      const t = src.querySelector('.pol-track').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+      const ROCKET = document.querySelector('.f4-rocket').outerHTML;
+      const rng = t.querySelector('.pol-range');
+      rng.insertAdjacentHTML('beforebegin', `<div class="f5-th">${ROCKET}<span class="f4-title">Timeline</span></div>`);
+      t.querySelector('.f5-th').appendChild(rng);
+      document.getElementById('f5-track').appendChild(t);
+      // responsive draw + dashboard dots
+      const tr = t.querySelector('.tl-track'), body = t.querySelector('.tl-body'), range = rng.querySelector('span');
+      const [pb, nb] = rng.querySelectorAll('.btn'); let off = 0, lastW = 0;
+      const draw = () => {
+        const full = body.clientWidth; if (!full) return;
+        body.classList.toggle('tl-compact', full < 620);
+        const W = tr.clientWidth; lastW = W;
+        const weeks = Math.max(3, Math.min(8, Math.floor(W / 115)));
+        const st0 = new Date(weeks <= 5 ? '2026-10-17' : '2026-10-08'); st0.setDate(st0.getDate() + off * 7 * Math.max(1, weeks - 2));
+        const en = new Date(st0); en.setDate(en.getDate() + weeks * 7 + 2);
+        const later = drawTrack(tr, dated, st0, en, () => true);
+        range.textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`;
+        const dots = [...tr.querySelectorAll('.tl-dot')];
+        dots.forEach(d => { const bg = d.style.background; if (bg.includes('--foreground')) d.classList.add('f5-next'); else if (bg.includes('--muted-foreground')) d.classList.add('f5-ring'); });
+        const nd = tr.querySelector('.tl-dot.f5-next');
+        if (nd) { const x = parseFloat(nd.style.left); const nextX = dots.map(d => parseFloat(d.style.left)).filter(v => v > x + .01).sort((a, b) => a - b)[0]; if (nextX !== undefined) tr.insertAdjacentHTML('beforeend', `<div class="f5-seg" style="left:${x}%;width:${nextX - x}%"></div>`); }
+      };
+      pb.onclick = () => { off = Math.max(0, off - 1); draw(); }; nb.onclick = () => { off = Math.min(6, off + 1); draw(); };
+      new ResizeObserver(() => { if (Math.abs(tr.clientWidth - lastW) > 4) draw(); }).observe(body);
+      draw();
+      // rail = F1 rail, released moved to its own panel
+      const rail = document.getElementById('f5-rail'); rail.innerHTML = document.getElementById('f1').innerHTML;
+      const nextItem = rail.querySelector('.ag-item.next'); if (nextItem) { let n = nextItem.nextElementSibling; while (n && !n.classList.contains('ag-item')) n = n.nextElementSibling; if (n) n.classList.add('f5-after'); nextItem.querySelector('.ag-card').insertAdjacentHTML('afterbegin', ROCKET); }
+      const relLbl = [...rail.querySelectorAll('.ag-mo')].find(m => m.textContent.trim().startsWith('Released'));
+      const relRows = []; let n = relLbl?.nextElementSibling; while (n) { const nx = n.nextElementSibling; relRows.push(n); n = nx; }
+      relLbl?.remove();
+      const panel = document.getElementById('f5-rel');
+      panel.innerHTML = `<div class="h"><span class="t">Released</span><span class="n">3 most recent</span></div>` + relRows.filter(r => r.classList.contains('ag-item')).map(r => {
+        const d = r.querySelector('.ag-date').textContent.trim(); const nm = r.querySelector('.nm').textContent; const m = r.querySelector('.m').textContent;
+        return `<div class="r" title="${nm}"><span class="d">${d}</span><span class="n">${nm}</span><span class="m">${m}</span></div>`; }).join('') + `<button class="more">Show older releases ↓</button>`;
+      relRows.forEach(r => r.remove());
     }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }

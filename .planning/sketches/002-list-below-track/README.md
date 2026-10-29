@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "F4"
+winner: "F5"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -107,6 +107,13 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - Title: compact dashboard hero — ambient orange/cyan curves, "Releases" 34px semibold tight, subline "Next up **Statement export** · Tue 03 Nov · in 5 days" (orange), Updated + Refresh on the right, stat strip (Planned / Overdue / No date / Open issues · 4 wks / Released this month) with dashboard uppercase labels.
 - Timeline card: dashboard Card + uppercase muted title + ambient rocket; 12px dots — solid orange for the closest release, orange connector to the next dot, hollow grey rings otherwise, amber ring + dashed amber trail for overdue, green for released; items = date, short name (semibold), timing text, 4px grayscale readiness bar, "N% ready". Responsive weeks + lanes.
 - Rail (F1): L1 stamps, hollow ring dots, orange dot + orange rail segment from next → next+1; timing as text (orange next, amber overdue) instead of pills; grayscale readiness bars + "% ready"; next card with dashboard kicker + ambient rocket; U1 quiet lines for planned; released set apart (divider, green label, dashed green rail).
+
+## Current: F5 — F1 + light dashboard polish (round 15)
+- User: separate released better; "the graph was better in f1, just polish it a little with the style from the dashboard"; "the timeline list was better in f1, just polish with styles from dashboard".
+- Track = F1/S1e chips + bars (responsive), polished: dashboard card header "TIMELINE" + ambient rocket, solid orange dot for the next release + orange connector to the following dot, hollow grey rings for planned, orange outline on the next chip.
+- List = F1 rail (pills, segmented bars, quiet U1 lines, month dividers), polished: hollow ring dots, orange next dot + orange rail segment to next+1, next card with dashboard kicker + ambient rocket.
+- Released moved out of the timeline into its own muted panel (green "RELEASED · 3 most recent" header, date · name · ✓ N done, Show older).
+- Title = F4 compact dashboard hero.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
