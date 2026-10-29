@@ -523,7 +523,7 @@ export function DefectsList({
       <SectionHeading title={title} count={rows.length} className="mb-0 px-4 pt-3 pb-2" />
       {rows.length > 0 ? (
         <div>
-          <div className="sticky top-(--aio-sticky-top) z-10 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))] pr-2">
+          <div className="sticky top-(--aio-sticky-top) z-20 flex w-full items-center border-b bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))] pr-2">
             <SortableHeader
               sortKey="key"
               label="Key"
