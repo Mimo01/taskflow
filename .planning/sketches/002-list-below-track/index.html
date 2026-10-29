@@ -567,6 +567,23 @@
   .f3 .ptoday .rc::after { border-radius: 5px; padding: 2px 6px; }
   .f3 .ptoday .ln { font-size: 12.5px; font-weight: 500; }
 
+
+  /* F3: calendars and stamps share the date column (right-aligned), dots on the rail for every row */
+  .f3 .pol-rail .pr, .f3 .pol-rail .plabel, .f3 .pol-rail .ptoday, .f3 .pol-rail .pmore { grid-template-columns: 64px 34px 1fr; }
+  .f3 .stamp { display: flex; flex-direction: column; align-items: flex-end; }
+  .f3 .stamp .cal { margin: 6px 0; box-shadow: none; color: var(--foreground); text-align: center; }
+  .f3 .pr.next .stamp .cal { margin-top: 16px; box-shadow: 0 0 0 1.5px var(--foreground); }
+  .f3 .pr:not(.q) .rc .rdot { position: relative; margin-top: 26px; width: 9px; height: 9px; border-radius: 50%; background: var(--muted-foreground); box-shadow: 0 0 0 3px var(--background); }
+  .f3 .pr.late .rc .rdot { background: var(--red-fg); }
+  .f3 .pr.undated .rc .rdot { background: var(--amber-fg); }
+  .f3 .pr.next .rc .rdot { background: var(--foreground); width: 11px; height: 11px; margin-top: 37px; }
+  .f3 .pr.q .rc .qdot { margin-top: 13px; }
+  .f3 .ptoday .rc::after { left: 50%; }
+  .f3 .ptoday .stamp { justify-content: center; }
+  .f3 .ptoday .stamp .tb { font-size: var(--lbl-size); font-weight: var(--lbl-weight); letter-spacing: var(--lbl-track); text-transform: uppercase; padding: 2px 6px; border-radius: 5px; background: var(--foreground); color: var(--background); }
+  .f3 .ptoday .rc::after { content: ''; width: 9px; height: 2px; padding: 0; border-radius: 0; background: var(--foreground); }
+  .f3 .ptoday { grid-template-columns: 64px 34px 1fr; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1556,7 +1573,9 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
       slot.querySelectorAll('.pol-rail > .pr, .pol-rail > .plabel, .pol-rail > .ptoday, .pol-rail > .pmore').forEach(el => {
         let html = '';
         if (el.classList.contains('q')) { const t = el.querySelector('.qd').textContent.split(' '); html = `<span class="w">${t[0]}</span><span class="d">${t[1]} ${t[2]}</span>`; }
+        if (el.classList.contains('ptoday')) html = '<span class="tb">Today</span>';
         el.insertAdjacentHTML('afterbegin', `<div class="stamp">${html}</div>`);
+        if (el.classList.contains('pr') && !el.classList.contains('q')) { const c = el.querySelector('.rc .cal'); if (c) { el.querySelector('.stamp').appendChild(c); el.querySelector('.rc').insertAdjacentHTML('beforeend', '<span class="rdot"></span>'); } }
       });
       const undLabel = [...slot.querySelectorAll('.plabel')].find(l => l.textContent.trim().startsWith('No date')); if (undLabel) undLabel.classList.add('undated-l');
       if (relLabel) { relLabel.classList.add('rel-sep'); const prev = relLabel.previousElementSibling; if (prev) prev.classList.add('pre-rel'); const first = relLabel.nextElementSibling; if (first) first.classList.add('first-rel'); }
