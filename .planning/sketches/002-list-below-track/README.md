@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "S1e"
+winner: "S1f"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -53,6 +53,11 @@ open .planning/sketches/002-list-below-track/index.html
 - Rows: hover background + trailing › in a fixed slot (no layout shift); counted section labels ("NO DATE 1", "RELEASED 3 recent"); "Show older releases ↓".
 - Checked in light, dark and 640px.
 - Mini date blocks keep the month line (weekday · day · month) — without it released/planned dates were ambiguous.
+
+## Winner: S1f — app style (round 7)
+- User: "make the releases more separated" + "better match the existing styles of the app".
+- Separation: each release row ends in a hairline `border-b border-border`, rows get py-3 (mini py-2.25), rail blocks get more vertical margin.
+- App tokens (from taskflow/src): compact toolbar header like ReleasesTab (`text-sm font-semibold` title, `text-xs` muted count, "Updated …", text-link Refresh); Card look for track and next-release card (`rounded-xl ring-1 ring-foreground/10`, no shadow); pills = `STATUS_PILL_LAYOUT_CLASS` geometry (rounded 4px, px-1.5 py-0.5, text-xs font-medium, min-w-[5.5rem]) with `CHIP_TONE_CLASS` tints (`bg-X-500/15 text-X-600`, muted = `bg-muted text-muted-foreground`); bars h-1.5 with green-500 / blue-500 segments (as AioCycleList); hover `bg-muted/50`; section labels `text-xs font-semibold` muted with count; month dividers sentence case; uppercase tracking only on the tiny weekday band / kicker (app uses `uppercase tracking-widest text-[10px]`).
 
 ## What to Look For
 - Which reads as a nice overview, not a table

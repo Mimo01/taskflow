@@ -322,6 +322,70 @@
   .narrow .prow .is { width: 110px; } .narrow .prow .pl { width: 96px; }
   .narrow .pcard .r2 .avatars { display: none; }
 
+
+  /* ── S1f: app style (tokens from taskflow/src: statusStyles.ts, card.tsx, ReleaseListRow) ── */
+  .app { --t-green-bg: rgb(34 197 94 / .15); --t-green-fg: #16a34a; --t-blue-bg: rgb(59 130 246 / .15); --t-blue-fg: #2563eb;
+         --t-red-bg: rgb(239 68 68 / .15); --t-red-fg: #dc2626; --t-amber-bg: rgb(245 158 11 / .15); --t-amber-fg: #d97706;
+         --ring: color-mix(in srgb, var(--foreground) 10%, transparent); --done: #22c55e; --progress: #3b82f6; }
+  :root[data-theme='dark'] .app { --t-green-fg: #4ade80; --t-blue-fg: #60a5fa; --t-red-fg: #f87171; --t-amber-fg: #fbbf24; }
+  .app .t-green { background: var(--t-green-bg); color: var(--t-green-fg); } .app .t-blue { background: var(--t-blue-bg); color: var(--t-blue-fg); }
+  .app .t-red { background: var(--t-red-bg); color: var(--t-red-fg); } .app .t-amber { background: var(--t-amber-bg); color: var(--t-amber-fg); }
+  .app .t-muted { background: var(--muted); color: var(--muted-foreground); }
+  .app .pill { border-radius: 4px; padding: 2px 6px; font-size: 12px; font-weight: 500; min-width: 5.5rem; }
+  .app-bar { display: flex; align-items: center; gap: 8px; padding: 6px 4px 10px; }
+  .app-bar .t { font-size: 14px; font-weight: 600; }
+  .app-bar .c { font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .app-link { font: inherit; font-size: 12px; color: var(--muted-foreground); background: none; border: 0; cursor: pointer; padding: 0; }
+  .app-link:hover { color: var(--foreground); }
+  .app .pol-track { border: 0; border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); background: var(--card); padding: 10px 16px 6px; }
+  .app .pol-range { font-size: 12px; }
+  .app .pol-range .btn { border: 0; background: transparent; color: var(--muted-foreground); border-radius: 6px; }
+  .app .pol-range .btn:hover { background: var(--muted); color: var(--foreground); }
+  .app .tl-chip { border-radius: 6px; border: 0; box-shadow: 0 0 0 1px var(--ring); background: var(--background); }
+  .app .tl-chip.late { box-shadow: 0 0 0 1px var(--t-red-fg); }
+  .app .tl-chip.past { box-shadow: 0 0 0 1px color-mix(in srgb, var(--t-green-fg) 45%, transparent); background: var(--t-green-bg); }
+  .app .tl-chip.past .n { color: var(--t-green-fg); }
+  .app .tl-chip.next { box-shadow: 0 0 0 1.5px var(--foreground); }
+  .app .tl-undated .tl-chip { box-shadow: 0 0 0 1px var(--t-amber-fg) !important; border: 0 !important; }
+  .app .tl-chip:hover { box-shadow: 0 0 0 1px var(--muted-foreground); }
+  .app .tl-chip .n { font-size: 12px; font-weight: 500; }
+  .app .bar { height: 6px; } .app .bar.thin { height: 4px; } .app .bar.thick { height: 8px; }
+  .app .tl-today span { border-radius: 4px !important; font-size: 10px; letter-spacing: .06em; }
+  .app .tl-late { background: var(--t-red-fg); }
+  /* rail */
+  .app .pol-rail { margin-top: 14px; }
+  .app .pr { column-gap: 12px; }
+  .app .cal { border-radius: 6px; border: 0; box-shadow: 0 0 0 1px var(--ring); background: var(--card); }
+  .app .cal .wd { font-size: 10px; letter-spacing: .08em; font-weight: 600; }
+  .app .cal.late .wd { background: var(--t-red-bg); color: var(--t-red-fg); }
+  .app .cal.past .wd { background: var(--t-green-bg); color: var(--t-green-fg); }
+  .app .cal.past { box-shadow: 0 0 0 1px color-mix(in srgb, var(--t-green-fg) 35%, transparent); }
+  .app .cal.undated .wd { background: var(--t-amber-bg); color: var(--t-amber-fg); }
+  .app .pr .cal { margin: 12px 0; box-shadow: 0 0 0 1px var(--ring), 0 0 0 4px var(--background); }
+  .app .pr.mini .cal { margin: 9px 0; }
+  .app .pr.next .cal { margin-top: 20px; box-shadow: 0 0 0 4px var(--background), 0 0 0 5.5px var(--foreground); }
+  .app .prow { border-radius: 0; margin: 0; padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .app .prow:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+  .app .pr.mini .prow { padding-top: 9px; padding-bottom: 9px; }
+  .app .prow .nm { font-weight: 500; font-size: 14px; }
+  .app .pr.mini .prow .nm { font-weight: 400; }
+  .app .prow .sub { font-size: 12px; margin-top: 2px; }
+  .app .issues-text { font-size: 12px; }
+  .app .issues-text.done { color: var(--t-green-fg); }
+  .app .figure { font-size: 12px; }
+  .app .pcard { border: 0; border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); background: var(--card); margin: 10px 0; padding: 14px 16px; gap: 8px; }
+  .app .pcard:hover { box-shadow: 0 0 0 1px var(--muted-foreground); background: var(--card); }
+  .app .pcard .kick { font-size: 10px; letter-spacing: .08em; font-weight: 600; }
+  .app .pcard .r1 .nm { font-size: 14px; font-weight: 600; }
+  .app .pr.next + .pr .prow, .app .plabel + .pr .prow { }
+  .app .plabel .tx { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; padding: 18px 8px 6px; border-bottom: 1px solid var(--border); }
+  .app .plabel.month .tx { font-size: 12px; font-weight: 500; padding: 14px 8px 4px; border-bottom: 0; }
+  .app .plabel .tx .n { font-weight: 400; }
+  .app .ptoday .rc::after { border-radius: 4px; font-size: 10px; letter-spacing: .06em; font-weight: 600; padding: 2px 6px; }
+  .app .ptoday .ln { font-size: 12px; }
+  .app .avatars span { width: 20px; height: 20px; font-size: 8.5px; margin-left: -4px; }
+  .app .pmore button { font-size: 12px; padding: 10px 8px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -369,7 +433,8 @@
   <button class="variant-tab" data-v="s1b">S1b: 15 planned — dots + collapsed</button>
   <button class="variant-tab" data-v="s1c">S1c: one rail</button>
   <button class="variant-tab" data-v="s1d">S1d: released last</button>
-  <button class="variant-tab active" data-v="s1e">S1e: polished ★</button>
+  <button class="variant-tab" data-v="s1e">S1e: polished</button>
+  <button class="variant-tab active" data-v="s1f">S1f: app style ★</button>
 </div>
 
 <div id="frame">
@@ -506,7 +571,7 @@
     <div id="s1d"></div>
   </section>
 
-  <section id="variant-s1e" class="variant active pol">
+  <section id="variant-s1e" class="variant pol">
     <div class="pol-head">
       <div><h1>Releases</h1><div class="pol-sum" id="s1e-sum"></div></div>
       <button class="btn">↻ Refresh</button>
@@ -517,6 +582,12 @@
       <div class="tl-body"><div class="tl-undated"><div class="lbl">No date</div><div id="s1e-undated"></div></div><div class="tl-track" id="s1e-track" style="height:168px;margin:6px 0 14px"></div></div>
     </div>
     <div id="s1e" class="pol-rail"></div>
+  </section>
+
+  <section id="variant-s1f" class="variant active pol app">
+    <div class="app-bar"><span class="t">Releases</span><span class="c" id="s1f-sum"></span><span style="flex:1"></span><span class="c">Updated 2 min ago</span><button class="app-link">↻ Refresh</button></div>
+    <div class="note">S1f — S1e restyled with the app's own tokens: compact toolbar header like the shipped Releases tab, Card-style track (rounded-xl, ring-1 ring-foreground/10, no shadow), app pill geometry and muted-tint colours, 6px bars, text-sm rows separated by hairline dividers with more breathing room, hover bg-muted/50.</div>
+    <div id="s1f-slot"></div>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -1108,6 +1179,9 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
   { let offE = 0; const drawE = () => { const st0 = new Date(document.getElementById('frame').classList.contains('narrow') ? '2026-10-17' : '2026-10-08'); st0.setDate(st0.getDate() + offE * 28); const narrow = document.getElementById('frame').classList.contains('narrow'); const en = new Date(st0); en.setDate(en.getDate() + (narrow ? 30 : 58)); const el = document.getElementById('s1e-track'); const later = drawTrack(el, dated, st0, en, () => true); document.getElementById('s1e-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`; };
     document.getElementById('s1e-prev').onclick = () => { offE = Math.max(0, offE - 1); drawE(); }; document.getElementById('s1e-next').onclick = () => { offE = Math.min(3, offE + 1); drawE(); }; drawE(); window.redrawE = drawE;
     document.getElementById('s1e-undated').innerHTML = document.getElementById('s1a-undated').innerHTML; }
+  { const src = document.getElementById('variant-s1e'); const slot = document.getElementById('s1f-slot');
+    [src.querySelector('.pol-track'), src.querySelector('#s1e')].forEach(n => { const c = n.cloneNode(true); c.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1e', 's1f')); if (c.id) c.id = c.id.replace('s1e', 's1f'); slot.appendChild(c); });
+    document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
     const drawC = () => { const st0 = new Date('2026-10-08'); st0.setDate(st0.getDate() + offC * 28); const en = new Date(st0); en.setDate(en.getDate() + 58); const el = document.getElementById('s1c-track'); const later = drawTrack(el, dated, st0, en, () => true); if (later) el.insertAdjacentHTML('beforeend', `<div class="tl-more">+${later} later →</div>`); document.getElementById('s1c-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}`; };
