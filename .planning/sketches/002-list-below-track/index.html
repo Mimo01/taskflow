@@ -788,6 +788,11 @@
   .f5 .f1-rail .ag-item.q .ag-body { padding-top: 6px; padding-bottom: 6px; }
   .f5 .f1-rail .ag-item.q .pill { opacity: .9; }
 
+
+  /* F5 round 6: no repeats, no "No date" box on the graph, quiet countdown text */
+  .f5 .pol-track .tl-undated { display: none; }
+  .f5 .f1-rail .ag-body .pl .when { font-size: 12.5px; color: var(--muted-foreground); white-space: nowrap; padding-right: 6px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1923,6 +1928,8 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     { // F5 assembly
       const f5 = document.getElementById('variant-f5');
       document.getElementById('f5-hero').appendChild(document.querySelector('#variant-f4 .f4-hero').cloneNode(true));
+      { const sub = document.querySelector('#f5-hero .sub'); const late = plan.filter(r => r.date && days(r) < 0).length, und = plan.filter(r => !r.date).length;
+        sub.innerHTML = `<b>${plan.filter(r => r.date).length}</b> planned · <span style="color:var(--red-fg);font-weight:500">${late} overdue</span> · ${und} without date`; }
       document.querySelectorAll('#f5-hero [id]').forEach(e => e.removeAttribute('id'));
       const t = src.querySelector('.pol-track').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
       const ROCKET = document.querySelector('.f4-rocket').outerHTML;
@@ -1945,6 +1952,7 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         const dots = [...tr.querySelectorAll('.tl-dot')];
         dots.forEach(d => { const bg = d.style.background; if (bg.includes('--foreground')) d.classList.add('f5-ring', 'f5-next'); else if (bg.includes('--muted-foreground')) d.classList.add('f5-ring'); });
         dots.forEach(d => { if (d.style.background.includes('--red-fg')) d.classList.add('f5-ring', 'f5-late'); if (d.style.background.includes('--done')) d.classList.add('f5-rel'); });
+        tr.querySelectorAll('.tl-chip:not(.next)').forEach(c => { const b = c.querySelector('.bar'); if (!b) return; const [d0, p0, t0] = JSON.parse(c.dataset.row || '[0,0,0]'); b.outerHTML = `<span class="figure" style="font-size:11px">${d0}/${d0 + p0 + t0} done</span>`; });
         tr.querySelectorAll('.tl-late').forEach(e => e.remove());
         const nd = tr.querySelector('.tl-dot.f5-next'), td = tr.querySelector('.tl-today');
         const upTo = nd ? parseFloat(nd.style.left) : (td ? parseFloat(td.style.left) : 0);
@@ -1964,7 +1972,7 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         const n = parseInt(left, 10);
         const issues = isNaN(n) ? `<span class="issues-text none">No issues yet</span>` : `<span class="issues-text"><b>${n}</b> to do</span>`;
         const when = right ? right.charAt(0).toUpperCase() + right.slice(1) : '';
-        m.outerHTML = `<span class="st">${issues}</span><span class="tm"></span><span class="pl"><span class="pill t-muted">${when}</span></span>`;
+        m.outerHTML = `<span class="st">${issues}</span><span class="tm"></span><span class="pl"><span class="when">${when}</span></span>`;
       });
       // "N to do" in full rows: bold count like quiet rows
       rail.querySelectorAll('.ag-item:not(.q) .st > .issues-text').forEach(e => { const m = e.textContent.match(/^(\d+) to do$/); if (m) e.innerHTML = `<b>${m[1]}</b> to do`; });
