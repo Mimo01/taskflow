@@ -345,7 +345,7 @@ export function SubtaskTemplateRow({
                 <X className="h-4 w-4" />
               </Button>
             ) : (
-              <div className="flex items-center justify-center w-7 h-7 shrink-0">
+              <div className="flex items-center justify-center gap-1 shrink-0">
                 {isCreating && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
                 {isCreated && (
                   <CheckCircle2
@@ -356,6 +356,19 @@ export function SubtaskTemplateRow({
                 )}
                 {isFailed && (
                   <AlertCircle className="size-4 text-destructive" role="img" aria-label="Failed" />
+                )}
+                {/* Pending/failed rows can be dropped; creating/created rows are locked */}
+                {!isDisabled && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    type="button"
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={onRemove}
+                    aria-label="Remove row"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
             )}
