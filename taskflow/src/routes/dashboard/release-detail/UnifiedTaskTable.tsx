@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
-import { Progress } from '@/components/ui/progress';
 import { openExternal } from '@/lib/openExternal';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
@@ -34,7 +33,6 @@ export interface MrFixContext {
 }
 
 export interface UnifiedTaskTableProps {
-  issueCounts: { issuesFixed: number; issuesTotal: number } | undefined;
   versionName: string;
   hasReleaseDate: boolean;
   isLoadingIssues: boolean;
@@ -948,7 +946,6 @@ function TaskRow({
 }
 
 export function UnifiedTaskTable({
-  issueCounts,
   versionName,
   hasReleaseDate,
   isLoadingIssues,
@@ -996,12 +993,7 @@ export function UnifiedTaskTable({
   return (
     <section className="@container">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
-        <h3 className="text-sm font-medium text-muted-foreground">Issues</h3>
-        {issueCounts && (
-          <Badge variant="secondary" className="text-xs tabular-nums">
-            {issueCounts.issuesFixed} / {issueCounts.issuesTotal} done
-          </Badge>
-        )}
+        <h3 className="text-base font-semibold">Issues</h3>
         {!isLoadingDrift && !isLoadingIssues && (brFlaggedCount > 0 || msFlaggedCount > 0) && (
           <div
             className="ml-1.5 flex items-center gap-1.5"
@@ -1048,15 +1040,6 @@ export function UnifiedTaskTable({
           </div>
         )}
       </div>
-
-      {/* Progress bar (Jira-driven) */}
-      {issueCounts && issueCounts.issuesTotal > 0 && (
-        <Progress
-          value={Math.round((issueCounts.issuesFixed / issueCounts.issuesTotal) * 100)}
-          className="max-w-xs mb-4"
-          indicatorClassName="bg-green-500"
-        />
-      )}
 
       {/* Degraded banner (D-16) — one banner, merges the two prior sources.
           CR-06: a FAILED milestone lookup takes precedence over the
