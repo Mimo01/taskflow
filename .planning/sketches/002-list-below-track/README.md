@@ -96,6 +96,7 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - Calendar blocks: overdue, next (ringed, raised card), next+1, undated.
 - Planned + released: dot on the rail (grey / green), text date "Tue 10 Nov", name, "**8 to do** · in 12 days" / "**✓ 25 done**"; hairline between lines.
 - L1 date stamps (user: "i like the date stamps from l1"): planned + released rows show "**10 Nov** / Tue" left of the rail next to their dot (replaces the inline "Tue 10 Nov"); key releases keep calendar blocks on the rail.
+- One label system (user: "make the styles of the labels and calendar match better"): weekday band, stamp weekday, month dividers, NO DATE / RELEASED, NEXT RELEASE kicker and TODAY badge share 10px / 650 / tracked uppercase; stamps mirror the block order (weekday over "10 Nov" in the block's numeral weight); state colours shared — amber undated, green released.
 - Responsive track (user: "on smaller screens the graph gets squished"): weeks shown = track width / ~115px, clamped 3–8; window starts just before the overdue release; ‹ › pan; redraws on resize; side "No date" box hidden under ~620px.
 - Released separated (user: "separate released from unreleased better"): rail ends after the last unreleased item, full-width divider + 26px gap, green "Released · 3 recent" heading, released rail restarts as a dashed green line, rows slightly muted.
 

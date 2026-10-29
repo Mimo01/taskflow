@@ -544,6 +544,29 @@
   .f3 .pr.q .prow .qd { display: none; }
   .f3 .pmore > div:first-child + div + button, .f3 .pmore button { grid-column: 3; }
 
+
+  /* F3: one label system shared by calendar blocks, stamps and labels */
+  .f3 { --lbl-size: 10px; --lbl-weight: 650; --lbl-track: .07em; }
+  .f3 .cal .wd, .f3 .stamp .w, .f3 .plabel .tx, .f3 .pcard .kick, .f3 .ptoday .rc::after {
+    font-size: var(--lbl-size); font-weight: var(--lbl-weight); letter-spacing: var(--lbl-track); text-transform: uppercase; }
+  .f3 .cal .wd { padding: 2px 0 1px; }
+  .f3 .cal .dd { font-size: 16px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+  .f3 .cal .mo { font-size: 11px; font-weight: 500; color: var(--muted-foreground); margin-top: -2px; padding-bottom: 3px; }
+  .f3 .stamp { line-height: 1.2; padding-right: 4px; }
+  .f3 .stamp .w { display: block; color: var(--muted-foreground); margin-bottom: 1px; }
+  .f3 .stamp .d { display: block; font-size: 12.5px; font-weight: 600; color: var(--foreground); font-variant-numeric: tabular-nums; }
+  .f3 .pr.q .stamp { padding-top: 6px; }
+  .f3 .pr.q.past .stamp .w { color: var(--green-fg); opacity: .8; }
+  .f3 .pr.q.past .stamp .d { color: var(--muted-foreground); font-weight: 500; }
+  .f3 .plabel .tx { padding-top: 16px; color: var(--muted-foreground); }
+  .f3 .plabel.month .tx { padding-top: 12px; }
+  .f3 .plabel .tx .n { font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .f3 .plabel.undated-l .tx { color: var(--amber-fg); }
+  .f3 .rel-sep .tx { color: var(--green-fg); }
+  .f3 .pcard .kick { color: var(--muted-foreground); }
+  .f3 .ptoday .rc::after { border-radius: 5px; padding: 2px 6px; }
+  .f3 .ptoday .ln { font-size: 12.5px; font-weight: 500; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -863,7 +886,7 @@ const countdown = r => {
   if (n === 0) return ['today', 'Today'];
   return ['', n === 1 ? 'Tomorrow' : `in ${n} days`];
 };
-const fmt = s => s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '–';
+const fmt = s => s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).replace('Sept', 'Sep') : '–';
 const total = r => r.d + r.p + r.t;
 const bar = (r, cls = '') => {
   const tt = total(r);
@@ -1143,7 +1166,7 @@ const cal = r => {
   const k = relState(r);
   if (!r.date) return `<div class="cal undated"><div class="wd">TBD</div><div class="dd">–</div><div class="mo">&nbsp;</div></div>`;
   const d = new Date(r.date);
-  return `<div class="cal ${k}"><div class="wd">${wd(r.date)}</div><div class="dd">${d.getDate()}</div><div class="mo">${d.toLocaleDateString('en-GB', { month: 'short' })}</div></div>`;
+  return `<div class="cal ${k}"><div class="wd">${wd(r.date)}</div><div class="dd">${d.getDate()}</div><div class="mo">${d.toLocaleDateString('en-GB', { month: 'short' }).replace('Sept', 'Sep')}</div></div>`;
 };
 const dbRow = r => {
   const k = relState(r);
@@ -1532,9 +1555,10 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
       // L1 date stamps: extra left column on every rail row
       slot.querySelectorAll('.pol-rail > .pr, .pol-rail > .plabel, .pol-rail > .ptoday, .pol-rail > .pmore').forEach(el => {
         let html = '';
-        if (el.classList.contains('q')) { const t = el.querySelector('.qd').textContent.split(' '); html = `<b>${t[1]} ${t[2]}</b><br>${t[0]}`; }
+        if (el.classList.contains('q')) { const t = el.querySelector('.qd').textContent.split(' '); html = `<span class="w">${t[0]}</span><span class="d">${t[1]} ${t[2]}</span>`; }
         el.insertAdjacentHTML('afterbegin', `<div class="stamp">${html}</div>`);
       });
+      const undLabel = [...slot.querySelectorAll('.plabel')].find(l => l.textContent.trim().startsWith('No date')); if (undLabel) undLabel.classList.add('undated-l');
       if (relLabel) { relLabel.classList.add('rel-sep'); const prev = relLabel.previousElementSibling; if (prev) prev.classList.add('pre-rel'); const first = relLabel.nextElementSibling; if (first) first.classList.add('first-rel'); }
     }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
