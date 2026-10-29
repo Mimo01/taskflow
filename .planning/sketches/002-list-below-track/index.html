@@ -224,6 +224,26 @@
   .ag-item.s2 .ag-date { padding-top: 12px; }
   .ag-item.s2 .dot { top: 16px; }
 
+
+  /* 15-planned round */
+  .tl-pdot { position: absolute; bottom: 13px; width: 9px; height: 9px; border-radius: 50%; transform: translateX(-50%); background: var(--muted-foreground); border: 2px solid var(--card); cursor: pointer; z-index: 2; }
+  .tl-pdot:hover { transform: translateX(-50%) scale(1.4); }
+  .tl-more { position: absolute; right: 0; top: 40%; font-size: 12px; color: var(--muted-foreground); background: var(--card); padding: 2px 6px; border: 1px dashed var(--border); border-radius: 6px; }
+  .s1-item.compact .railcol .cal { width: 34px; margin: 3px 0; }
+  .s1-item.compact .railcol .cal .wd { font-size: 8px; padding: 1px 0; }
+  .s1-item.compact .railcol .cal .dd { font-size: 13px; line-height: 1.25; }
+  .s1-item.compact .railcol .cal .mo { display: none; }
+  .s1-item.compact .db { padding-top: 3px; padding-bottom: 3px; }
+  .s1-item.compact .db .txt .nm { font-weight: 400; }
+  .s1-item.compact .db .txt .pk { display: none; }
+  .s1-group { display: grid; grid-template-columns: 48px 1fr; gap: 14px; }
+  .s1-group .railcol { position: relative; } .s1-group .railcol::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .s1-group summary { list-style: none; cursor: pointer; padding: 8px 10px; border-radius: 10px; border: 1px dashed var(--border); display: flex; align-items: center; gap: 10px; color: var(--muted-foreground); font-size: 13px; margin: 6px 0; }
+  .s1-group summary::-webkit-details-marker { display: none; }
+  .s1-group summary b { color: var(--foreground); font-weight: 600; }
+  .s1-group details[open] summary { border-style: solid; }
+  .s1-group .inner .s1-item { grid-template-columns: 48px 1fr; margin-left: -62px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -267,6 +287,8 @@
   <button class="variant-tab" data-v="l3">L3: Date blocks</button>
   <button class="variant-tab" data-v="s1">S1: Blocks on rail ★</button>
   <button class="variant-tab" data-v="s2">S2: Rail + stacked rows</button>
+  <button class="variant-tab" data-v="s1a">S1a: 15 planned — window + condensed</button>
+  <button class="variant-tab" data-v="s1b">S1b: 15 planned — dots + collapsed</button>
 </div>
 
 <div id="frame">
@@ -372,6 +394,21 @@
     <div class="note">S2 — L1's slim rail (date text + status dots) with L3's stacked rows (name, package beneath) and L3's raised next-release card.</div>
     <div class="track-slot"></div>
     <div class="agenda" id="s2"></div>
+  </section>
+
+  <section id="variant-s1a" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">S1a — 15 planned releases. Track shows an 8-week window (‹ › to pan, "+N later" at the edge). On the rail, releases 3+ ahead (usually nothing started) condense to a small block + one line; overdue, next and the one after keep full rows.</div>
+    <div class="timeline"><div class="tl-top"><span class="title">Release track</span><span style="display:flex;gap:6px;align-items:center"><span class="muted" style="font-size:12px" id="s1a-range"></span><button class="btn" id="s1a-prev" style="padding:2px 8px">‹</button><button class="btn" id="s1a-next" style="padding:2px 8px">›</button></span></div>
+      <div class="tl-body"><div class="tl-undated"><div class="lbl">No date</div><div id="s1a-undated"></div></div><div class="tl-track" id="s1a-track" style="height:176px;margin:12px 0 14px"></div></div></div>
+    <div id="s1a"></div>
+  </section>
+  <section id="variant-s1b" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">S1b — 15 planned releases. Track spans everything; only overdue / next / next+1 get chips, later ones are dots (hover for name + count). Rail shows the first 4 upcoming; the rest sit in a collapsed "Planned · N more" group of compact rows.</div>
+    <div class="timeline"><div class="tl-top"><span class="title">Release track</span><span class="muted" style="font-size:12px">16 upcoming · 1 overdue · next Tue 03 Nov</span></div>
+      <div class="tl-body"><div class="tl-undated"><div class="lbl">No date</div><div id="s1b-undated"></div></div><div class="tl-track" id="s1b-track" style="height:176px;margin:12px 0 14px"></div></div></div>
+    <div id="s1b"></div>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -778,6 +815,114 @@ document.getElementById('l3').innerHTML = '<div class="sec-label">Upcoming</div>
   document.getElementById('s2').innerHTML = html;
 }
 document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').forEach(sl => { if (!sl.children.length) sl.appendChild(document.getElementById('a4-track').closest('.timeline').cloneNode(true)); });
+
+
+// ── 15 planned releases round ──
+{
+  const names = ['Notifications centre','Fee calculator','Year-end reporting','Card controls','Merchant portal','Loyalty points','Search revamp','Mobile wallet','Invoice templates','Access review','Tax forms','Spending insights','Onboarding v2','Rate limits'];
+  const plan = [up4.find(r => r.n.includes('Partner')), up4.find(r => r.n.includes('Card limits')), up4.find(r => r.n.includes('Statement')), up4.find(r => r.n.includes('Login'))];
+  let d = new Date('2026-11-10');
+  names.forEach((nm, i) => {
+    const iso = d.toISOString().slice(0, 10);
+    const dd = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+    plan.push({ n: `Standard ${dd} - ${nm}`, date: iso, d: 0, p: 0, t: 8 + (i * 7) % 23, pkg: null, team: [['JN','AP'],['RV'],['DK','EH'],['LB','MK','TS']][i % 4] });
+    d.setDate(d.getDate() + 7);
+  });
+  const sorted = [...plan.filter(r => !r.date), ...plan.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date))];
+  const nxt = plan.filter(r => r.date && days(r) >= 0).sort((a, b) => a.date.localeCompare(b.date));
+  const near = new Set([nxt[0], nxt[1]]);
+  const st = r => rel2.includes(r) ? 'past' : !r.date ? 'undated' : days(r) < 0 ? 'late' : r === nxt[0] ? 'next' : '';
+  const calX = r => cal(r).replace('class="cal ' + relState(r), 'class="cal ' + st(r));
+  const rowX = (r, compact) => {
+    const k = st(r);
+    if (k === 'next') return dbRow(r).replace('class="db ', 'class="db next ').replace('class="db next next', 'class="db next');
+    const sub = r.pkg ? pkgText(r) : '';
+    return `<div class="db ${k}" title="${r.n}"><div class="txt"><div class="nm">${r.n}</div>${sub && !compact ? `<div class="pk">${sub}</div>` : ''}</div><span class="st">${issuesCell(r)}</span><span class="tm">${k === 'past' ? '' : av(r.team)}</span><span class="pl">${pl(r, k === 'past')}</span></div>`;
+  };
+  const itemX = (r, compact) => `<div class="s1-item ${st(r)} ${compact ? 'compact' : ''}"><div class="railcol">${calX(r)}</div>${rowX(r, compact)}</div>`;
+  const todayX = `<div class="s1-today"><div class="railcol"></div><div class="ln"><span>Thu 29 Oct</span></div></div>`;
+  const nextRelSaved = nextRel;
+  // dbRow uses nextRel via relState; plan's next is the same object (Statement export)
+
+  // S1a rail: full list, condensed beyond next+1
+  {
+    let html = '<div class="sec-label" style="padding-left:62px">Upcoming · 16</div><div class="s1-list">'; let done = false;
+    sorted.forEach(r => {
+      if (!done && r.date && days(r) >= 0) { html += todayX; done = true; }
+      const compact = r.date && days(r) >= 0 && !near.has(r) && !(r.d + r.p > 0);
+      html += itemX(r, compact);
+    });
+    html += '</div><div class="sec-label" style="padding-left:62px">Released</div><div class="s1-list">' + rel2.map(r => itemX(r, false)).join('') + '</div>';
+    document.getElementById('s1a').innerHTML = html;
+  }
+  // S1b rail: first 4 upcoming (undated + overdue + next + next+1), rest collapsed
+  {
+    const head = sorted.filter(r => !r.date || days(r) < 0 || near.has(r) || r.d + r.p > 0);
+    const rest = sorted.filter(r => !head.includes(r));
+    let html = '<div class="sec-label" style="padding-left:62px">Upcoming · 16</div><div class="s1-list">'; let done = false;
+    head.forEach(r => { if (!done && r.date && days(r) >= 0) { html += todayX; done = true; } html += itemX(r, false); });
+    html += `</div><div class="s1-group"><div class="railcol"></div><details><summary><b>Planned · ${rest.length} more</b><span>${fmtD(rest[0].date)} – ${fmtD(rest[rest.length - 1].date)}</span><span style="margin-left:auto">${rest.reduce((a, r) => a + total(r), 0)} issues to do · ▾</span></summary><div class="inner s1-list">${rest.map(r => itemX(r, true)).join('')}</div></details></div>`;
+    html += '<div class="sec-label" style="padding-left:62px">Released</div><div class="s1-list">' + rel2.map(r => itemX(r, false)).join('') + '</div>';
+    document.getElementById('s1b').innerHTML = html;
+  }
+
+  // Track renderer (shared)
+  const drawTrack = (el, list, start, end, chipFor) => {
+    el.innerHTML = '';
+    const p = x => (new Date(x) - start) / (end - start) * 100;
+    const vis = list.filter(r => new Date(r.date) >= start && new Date(r.date) <= end);
+    const W = el.clientWidth || 880;
+    const place = (lanes, x, w) => { for (let i = 0; i < lanes.length; i++) if (x - w / 2 > lanes[i]) { lanes[i] = x + w / 2 + 4; return i; } return -1; };
+    const tickLanes = [-1e9, -1e9];
+    vis.forEach(r => {
+      const x = p(r.date) / 100 * W, label = chipFor(r) ? fmtD(r.date) : fmt(r.date);
+      const lane = place(tickLanes, x, label.length * 6.2);
+      el.insertAdjacentHTML('beforeend', `<div class="tl-grid" style="left:${p(r.date)}%"></div>${lane < 0 ? '' : `<div class="tl-tick ${lane ? 'low' : ''}" style="left:${p(r.date)}%">${label}</div>`}`);
+    });
+    const chipLanes = [[], [], []];
+    const placeI = (x, w) => { const a = x - w / 2 - 2, b = x + w / 2 + 2; for (let i = 0; i < chipLanes.length; i++) if (chipLanes[i].every(([c, d]) => b < c || a > d)) { chipLanes[i].push([a, b]); return i; } return 0; };
+    // next release claims the top lane first
+    const order = [...vis].sort((a, b) => (b === nxt[0]) - (a === nxt[0]));
+    const laneOf = new Map(order.filter(chipFor).map(r => [r, placeI(p(r.date) / 100 * W, r === nxt[0] ? 104 : 98)]));
+    el.insertAdjacentHTML('beforeend', `<div class="tl-axis"></div>`);
+    if (new Date('2026-10-29') >= start) el.insertAdjacentHTML('beforeend', `<div class="tl-today" style="left:${p('2026-10-29')}%"><span style="bottom:auto;top:-14px;left:-14px">Today</span></div>`);
+    vis.forEach(r => {
+      const released = rel2.includes(r), late = !released && days(r) < 0;
+      if (late) el.insertAdjacentHTML('beforeend', `<div class="tl-late" style="left:${p(r.date)}%;width:${p('2026-10-29') - p(r.date)}%"></div>`);
+      const dot = released ? 'var(--done)' : late ? 'var(--red-fg)' : r === nxt[0] ? 'var(--foreground)' : 'var(--muted-foreground)';
+      if (chipFor(r)) {
+        const lane = laneOf.get(r);
+        const top = [4, 86, 45][lane];
+        el.insertAdjacentHTML('beforeend', `<div class="tl-item" style="left:${p(r.date)}%;top:${top}px">${chip4(r, released ? 'past' : late ? 'late' : '')}</div>`);
+        el.insertAdjacentHTML('beforeend', `<div class="tl-dot" style="position:absolute;left:${p(r.date)}%;bottom:14px;transform:translateX(-50%);background:${dot}"></div>`);
+      } else {
+        el.insertAdjacentHTML('beforeend', `<div class="tl-pdot" title="${r.n}\n${total(r)} to do" style="left:${p(r.date)}%;background:${dot}"></div>`);
+      }
+    });
+    return list.filter(r => new Date(r.date) > end).length;
+  };
+  const dated = [rel2[0], ...plan.filter(r => r.date)];
+  const und = plan.filter(r => !r.date).map(r => chip4(r, '')).join('').replace('class="tl-chip ', 'style="border-color:var(--amber-fg)" class="tl-chip ');
+  document.getElementById('s1a-undated').innerHTML = und;
+  document.getElementById('s1b-undated').innerHTML = und;
+
+  // S1a: 8-week window with pan
+  let off = 0;
+  const drawA = () => {
+    const st0 = new Date('2026-10-08'); st0.setDate(st0.getDate() + off * 28);
+    const en = new Date(st0); en.setDate(en.getDate() + 58);
+    const el = document.getElementById('s1a-track');
+    const later = drawTrack(el, dated, st0, en, () => true);
+    if (later) el.insertAdjacentHTML('beforeend', `<div class="tl-more">+${later} later →</div>`);
+    document.getElementById('s1a-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}`;
+  };
+  document.getElementById('s1a-prev').onclick = () => { off = Math.max(0, off - 1); drawA(); };
+  document.getElementById('s1a-next').onclick = () => { off = Math.min(3, off + 1); drawA(); };
+  drawA();
+  // S1b: whole span, chips only for near
+  drawTrack(document.getElementById('s1b-track'), dated, new Date('2026-10-06'), new Date('2027-02-16'),
+    r => !rel2.includes(r) && (days(r) < 0 || near.has(r)));
+}
 
 // Tooltip (≤4 rows)
 const tip = document.getElementById('tip');

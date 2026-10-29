@@ -30,6 +30,11 @@ open .planning/sketches/002-list-below-track/index.html
 - Released coloured green (user): green weekday band on released date blocks, green outline/tint on the released chip on the track; released rows no longer faded.
 - Final list anatomy: A4 release-date track on top → Upcoming rail (undated first, overdue, TODAY badge, next card, later releases) → Released rail, faded.
 
+## Round 3 — scale: 10–15 releases planned
+- **S1a: window + condensed** — track shows an 8-week window with ‹ › pan and "+N later →"; rail keeps every release but those 3+ ahead (nothing started) condense to a mini date block + one line.
+- **S1b: dots + collapsed** — track spans all ~4 months; only overdue / next / next+1 get chips (next always claims the top lane), the rest are dots with hover; rail shows undated, overdue, next, next+1, then a collapsed "Planned · N more" group (date range + total to do), released below.
+- Both: chips and date labels are placed collision-free (second lane / hidden label when they would overlap).
+
 ## What to Look For
 - Which reads as a nice overview, not a table
 - How clearly the next release stands out without a second "hero" widget
