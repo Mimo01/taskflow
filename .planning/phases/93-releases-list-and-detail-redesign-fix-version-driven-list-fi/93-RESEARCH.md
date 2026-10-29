@@ -223,10 +223,10 @@ export function releasePill(v: {released:boolean; releaseDate?:string}, today: s
 | A3 | ~50 ids per JQL chunk is safe for URL length | Patterns | Low; ids are short; reduce chunk size if a 414 appears |
 | A4 | `useEditRelease` edits cannot change issue membership, so batch invalidation is optional | Pitfalls | Low; adding prefix invalidation is cheap, recommended anyway |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Header graph first paint source** - batch cache via disabled `useQuery` vs detail's own `issueStatusCounts`. Recommendation: use detail's `issueStatusCounts` as the authority and the batch cache only as an instant seed; show a graph skeleton if neither is present.
-2. **Hidden Package column when RM enabled but the active project name is unresolved** - recommendation: keep column (enabled), cell falls to week-only/dash states.
+1. **Header graph first paint source** - batch cache via disabled `useQuery` vs detail's own `issueStatusCounts`. Recommendation: use detail's `issueStatusCounts` as the authority and the batch cache only as an instant seed; show a graph skeleton if neither is present. RESOLVED: adopted in plan 93-05 Task 2 (detail counts authoritative, `['jira-version-counts','breakdown',id]` seed).
+2. **Hidden Package column when RM enabled but the active project name is unresolved** - recommendation: keep column (enabled), cell falls to week-only/dash states. RESOLVED: adopted in plan 93-01 Task 3 and plan 93-04 (column hidden only when RM is not configured).
 
 ## Environment Availability
 
