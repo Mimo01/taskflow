@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 92 (advanced-global-search-prioritized-ranking-current-sprint-up) — COMPLETE
 Plan: 6 of 6
 Status: Phase 92 complete — verification passed (21/21 decisions); live UAT approved; code review CR-01/CR-02 fixed, 9 advisory warnings open in 92-REVIEW.md
-Last activity: 2026-10-29 - Completed quick task 261029-q7k: Remove releases-list Sync packages button
+Last activity: 2026-10-29 - Completed quick task 261029-qez: Add refresh button to AIO cycles and cycle detail pages
 
 ## Performance Metrics
 
@@ -195,6 +195,7 @@ None yet.
 | 261028-n6b | My Tasks rows: container-query responsive tiers (hide SP+labels <1024, icon-only chips <860, shrink/hide time bar <720/<580) | 2026-10-28 | 76c67851 | Verified (UAT approved) | [261028-n6b-my-tasks-view-fix-overlapping-row-column](./quick/261028-n6b-my-tasks-view-fix-overlapping-row-column/) |
 | 261029-oyw | Release detail responsive: task table container-query tiers (compact <860, drop type icon <640 (assignee avatar kept at all widths), MR <520, status <400), peek bar clear of key (pl-2), sidebar side-by-side + compact (80px labels, 256 default, 40% cap) + matching drag bounds, narrow-safe sidebar/breadcrumb | 2026-10-29 | 12664124 | Verified (UAT approved) | [261029-oyw-optimize-release-detail-page-for-smaller](./quick/261029-oyw-optimize-release-detail-page-for-smaller/) |
 | 261029-q7k | Releases list: removed per-row Sync packages button + dead bulk-sync code (executeDeploymentPackageSync, resolveShapesForCandidates, planBulkSync); package chip + release-detail per-row fixes kept | 2026-10-29 | 309770cd | Verified (UAT approved) | [261029-q7k-in-releases-list-remove-the-button-to-sy](./quick/261029-q7k-in-releases-list-remove-the-button-to-sy/) |
+| 261029-qez | AIO Test cycles + cycle detail: Backlog-style Refresh control ("Refreshed: HH:MM:SS" + RefreshCw icon button); upstream-first staged invalidation in lib/aio-refresh.ts (list → summaries; cycle/runs/status-map → summaries/step-summary/defects by numeric id) | 2026-10-29 | d500ca2c | Pending UAT | [261029-qez-add-refresh-button-to-aio-cycles-and-cyc](./quick/261029-qez-add-refresh-button-to-aio-cycles-and-cyc/) |
 
 ## Deferred Items
 
