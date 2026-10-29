@@ -747,6 +747,27 @@
   .f5-rel .more { font: inherit; font-size: 12.5px; color: var(--muted-foreground); background: none; border: 0; padding: 6px 12px 4px 100px; cursor: pointer; }
   .f5-rel .more:hover { color: var(--foreground); }
 
+
+  /* F5 round 2: orange = passed time, filled = released, hollow = not released */
+  .f5 #f5-hero .f4-stats { display: none; }
+  .f5 #f5-hero .f4-hero { padding-bottom: 22px; }
+  .f5 #f5-hero .sub .o { color: var(--foreground); font-weight: 500; }
+  .f5 .f5-passed { position: absolute; left: 0; bottom: 18px; height: 2px; background: var(--orange); z-index: 1; }
+  .f5 .tl-dot { z-index: 2; padding: 0 !important; }
+  .f5 .tl-dot.f5-ring { background: var(--card) !important; border: 2px solid color-mix(in srgb, var(--muted-foreground) 45%, transparent); width: 12px; height: 12px; box-sizing: border-box; }
+  .f5 .tl-dot.f5-ring.f5-next { border-color: var(--foreground); width: 13px; height: 13px; }
+  .f5 .tl-dot.f5-ring.f5-late { border-color: var(--red-fg); }
+  .f5 .tl-dot.f5-rel { background: var(--done) !important; width: 12px !important; height: 12px !important; border: 0 !important; box-sizing: border-box; box-shadow: 0 0 0 2px var(--card); padding: 0 !important; }
+  .f5 .tl-chip.next { border-color: var(--foreground); }
+  .f5 .tl-chip.next .k { color: var(--muted-foreground); }
+  .f5 .ag-item .dot { background: var(--background) !important; }
+  .f5 .ag-item.next .dot { border-color: var(--foreground); }
+  .f5 .ag-item.next .ag-rail::after, .f5 .ag-item.f5-after .ag-rail::after { display: none; }
+  .f5 .f5-past .ag-rail::before, .f5 .f5-past.ag-mo .r::before { background: var(--orange); }
+  .f5 .f5-past.ag-today .mark::before { background: var(--orange); }
+  .f5 .f5-reach .ag-rail::before { background: linear-gradient(to bottom, var(--orange) 0 28px, var(--border) 28px); }
+  .f5 .ag-card:hover { box-shadow: 0 0 0 1px var(--muted-foreground); }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1886,7 +1907,7 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
       const t = src.querySelector('.pol-track').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
       const ROCKET = document.querySelector('.f4-rocket').outerHTML;
       const rng = t.querySelector('.pol-range');
-      rng.insertAdjacentHTML('beforebegin', `<div class="f5-th">${ROCKET}<span class="f4-title">Timeline</span></div>`);
+      rng.insertAdjacentHTML('beforebegin', `<div class="f5-th"><span class="f4-title">Timeline</span></div>`);
       t.querySelector('.f5-th').appendChild(rng);
       document.getElementById('f5-track').appendChild(t);
       // responsive draw + dashboard dots
@@ -1902,16 +1923,20 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         const later = drawTrack(tr, dated, st0, en, () => true);
         range.textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`;
         const dots = [...tr.querySelectorAll('.tl-dot')];
-        dots.forEach(d => { const bg = d.style.background; if (bg.includes('--foreground')) d.classList.add('f5-next'); else if (bg.includes('--muted-foreground')) d.classList.add('f5-ring'); });
-        const nd = tr.querySelector('.tl-dot.f5-next');
-        if (nd) { const x = parseFloat(nd.style.left); const nextX = dots.map(d => parseFloat(d.style.left)).filter(v => v > x + .01).sort((a, b) => a - b)[0]; if (nextX !== undefined) tr.insertAdjacentHTML('beforeend', `<div class="f5-seg" style="left:${x}%;width:${nextX - x}%"></div>`); }
+        dots.forEach(d => { const bg = d.style.background; if (bg.includes('--foreground')) d.classList.add('f5-ring', 'f5-next'); else if (bg.includes('--muted-foreground')) d.classList.add('f5-ring'); });
+        dots.forEach(d => { if (d.style.background.includes('--red-fg')) d.classList.add('f5-ring', 'f5-late'); if (d.style.background.includes('--done')) d.classList.add('f5-rel'); });
+        tr.querySelectorAll('.tl-late').forEach(e => e.remove());
+        const nd = tr.querySelector('.tl-dot.f5-next'), td = tr.querySelector('.tl-today');
+        const upTo = nd ? parseFloat(nd.style.left) : (td ? parseFloat(td.style.left) : 0);
+        tr.insertAdjacentHTML('beforeend', `<div class="f5-passed" style="width:${upTo}%"></div>`);
       };
       pb.onclick = () => { off = Math.max(0, off - 1); draw(); }; nb.onclick = () => { off = Math.min(6, off + 1); draw(); };
       new ResizeObserver(() => { if (Math.abs(tr.clientWidth - lastW) > 4) draw(); }).observe(body);
       draw();
       // rail = F1 rail, released moved to its own panel
       const rail = document.getElementById('f5-rail'); rail.innerHTML = document.getElementById('f1').innerHTML;
-      const nextItem = rail.querySelector('.ag-item.next'); if (nextItem) { let n = nextItem.nextElementSibling; while (n && !n.classList.contains('ag-item')) n = n.nextElementSibling; if (n) n.classList.add('f5-after'); nextItem.querySelector('.ag-card').insertAdjacentHTML('afterbegin', ROCKET); }
+      const nextItem = rail.querySelector('.ag-item.next'); if (nextItem) nextItem.querySelector('.ag-card').insertAdjacentHTML('afterbegin', ROCKET);
+      { let el = rail.firstElementChild; while (el && !el.classList.contains('next')) { el.classList.add('f5-past'); el = el.nextElementSibling; } if (el) el.classList.add('f5-reach'); }
       const relLbl = [...rail.querySelectorAll('.ag-mo')].find(m => m.textContent.trim().startsWith('Released'));
       const relRows = []; let n = relLbl?.nextElementSibling; while (n) { const nx = n.nextElementSibling; relRows.push(n); n = nx; }
       relLbl?.remove();

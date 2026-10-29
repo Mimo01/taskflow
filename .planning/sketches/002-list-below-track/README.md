@@ -114,6 +114,7 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - List = F1 rail (pills, segmented bars, quiet U1 lines, month dividers), polished: hollow ring dots, orange next dot + orange rail segment to next+1, next card with dashboard kicker + ambient rocket.
 - Released moved out of the timeline into its own muted panel (green "RELEASED · 3 most recent" header, date · name · ✓ N done, Show older).
 - Title = F4 compact dashboard hero.
+- Round 16 (user: "this design is the best"): track icon removed; hero stat strip removed; orange marks progress up to the closest release — track axis orange from window start to the next release's dot, rail line orange from the top down to the next release's dot; dots: filled (green) = released, hollow ring = not released (dark ring for next, red ring for overdue, grey for planned); late trail removed; other orange accents neutralised.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
