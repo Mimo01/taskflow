@@ -775,6 +775,21 @@
   .f5 .f1-rail .f5-reach .ag-rail::before { background: var(--border); }
   .f5 .f1-rail .ag-today .mark::after { background: var(--muted-foreground); }
 
+
+  /* F5 round 4: one column system for "bar" rows and "to do" rows */
+  .f5 .f1-rail .ag-body { gap: 16px; }
+  .f5 .f1-rail .ag-body .st { width: 150px; flex: none; display: flex; align-items: center; gap: 8px; }
+  .f5 .f1-rail .ag-body .st .cell-issues { gap: 8px; width: 100%; }
+  .f5 .f1-rail .ag-body .st .bar { flex: none; width: 92px; height: 6px; border-radius: 99px; min-width: 0; }
+  .f5 .f1-rail .ag-body .st .figure { font-size: 12px; font-weight: 500; color: var(--foreground); }
+  .f5 .f1-rail .ag-body .st .issues-text { font-size: 12.5px; color: var(--muted-foreground); }
+  .f5 .f1-rail .ag-body .st .issues-text b { color: var(--foreground); font-weight: 500; }
+  .f5 .f1-rail .ag-body .st .issues-text.none { color: color-mix(in srgb, var(--muted-foreground) 75%, transparent); }
+  .f5 .f1-rail .ag-body .tm { width: 70px; }
+  .f5 .f1-rail .ag-body .pl { width: 100px; }
+  .f5 .f1-rail .ag-item.q .ag-body { padding-top: 6px; padding-bottom: 6px; }
+  .f5 .f1-rail .ag-item.q .pill { opacity: .9; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1944,6 +1959,17 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
       const rail = document.getElementById('f5-rail'); rail.innerHTML = document.getElementById('f1').innerHTML;
       const nextItem = rail.querySelector('.ag-item.next'); if (nextItem) nextItem.querySelector('.ag-card').insertAdjacentHTML('afterbegin', ROCKET);
       { let el = rail.firstElementChild; while (el && !el.classList.contains('next')) { el.classList.add('f5-past'); el = el.nextElementSibling; } if (el) el.classList.add('f5-reach'); }
+      // quiet rows → same columns as full rows (issues · team · timing pill)
+      rail.querySelectorAll('.ag-item.q:not(.past)').forEach(it => {
+        const m = it.querySelector('.m'); if (!m) return;
+        const [left, right] = m.textContent.split(' · ');
+        const n = parseInt(left, 10);
+        const issues = isNaN(n) ? `<span class="issues-text none">No issues yet</span>` : `<span class="issues-text"><b>${n}</b> to do</span>`;
+        const when = right ? right.charAt(0).toUpperCase() + right.slice(1) : '';
+        m.outerHTML = `<span class="st">${issues}</span><span class="tm"></span><span class="pl"><span class="pill t-muted">${when}</span></span>`;
+      });
+      // "N to do" in full rows: bold count like quiet rows
+      rail.querySelectorAll('.ag-item:not(.q) .st > .issues-text').forEach(e => { const m = e.textContent.match(/^(\d+) to do$/); if (m) e.innerHTML = `<b>${m[1]}</b> to do`; });
       const relLbl = [...rail.querySelectorAll('.ag-mo')].find(m => m.textContent.trim().startsWith('Released'));
       const relRows = []; let n = relLbl?.nextElementSibling; while (n) { const nx = n.nextElementSibling; relRows.push(n); n = nx; }
       relLbl?.remove();
