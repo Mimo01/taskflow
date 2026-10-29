@@ -129,6 +129,7 @@ None yet.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 261007-hmj | Time-led epic forecast (time weighted 4x, confidence from time) | 2026-10-07 | d604dd6e | Verified (inline) | [261007-hmj-epic-forecast-time-led](./quick/261007-hmj-epic-forecast-time-led/) |
+| 261029-k8g | Bulk subtask modal: remove-row button | 2026-10-29 | b54b61bd | Verified (inline) | [261029-k8g-bulk-subtask-modal-add-remove-row-option](./quick/261029-k8g-bulk-subtask-modal-add-remove-row-option/) |
 | 261014-jes | AIO cycle priority/severity chart colours (one colour per level) | 2026-10-14 | ca1db2b0 | Verified (inline) | [261014-jes-aio-cycle-priority-severity-chart-colors](./quick/261014-jes-aio-cycle-priority-severity-chart-colors/) |
 | 261014-jzn | AIO cycle detail burndown chart (compact, ideal line) | 2026-10-14 | 844b70d7 | Unverified visually | [261014-jzn-aio-testcase-detail-burndown-chart](./quick/261014-jzn-aio-testcase-detail-burndown-chart/) |
 | 261014-kdp | AIO burndown: working-day calendar, polish, moved into top row | 2026-10-14 | a1884da0 | Verified (screenshots) | [261014-kdp-aio-burndown-working-day-calendar-polish](./quick/261014-kdp-aio-burndown-working-day-calendar-polish/) |
