@@ -1,4 +1,4 @@
-// Quick 261014-eym: derived Deployment package chip on the Releases tab.
+// Quick 261014-eym / Phase 93 D-12: derived Deployment package column on the Releases list.
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -27,24 +27,13 @@ vi.mock('@/hooks/useRmWeekIndex', () => ({ useRmWeekIndex: () => rm }));
 vi.mock('@/services/stronghold', () => ({ readSecret: vi.fn().mockResolvedValue('tok') }));
 vi.mock('@/services/jira', () => ({
   fetchFixVersions: vi.fn(),
-  fetchVersionIssueCounts: vi.fn().mockResolvedValue({ issuesFixed: 0, issuesTotal: 0 }),
+  fetchVersionsStatusBreakdown: vi.fn().mockResolvedValue({}),
   listJiraProjects: vi.fn(),
-}));
-vi.mock('@/services/gitlab', () => ({
-  fetchProjectMilestonesInRange: vi.fn().mockResolvedValue([]),
-  fetchProjectBranches: vi.fn().mockResolvedValue([]),
-}));
-vi.mock('@/services/releaseLinker', () => ({
-  matchGitLabToFixVersion: vi
-    .fn()
-    .mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' }),
 }));
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn(() => ({
     jiraBaseUrl: 'https://jira.example.com',
     activeJiraProject: 'PROJ',
-    gitlabBaseUrl: 'https://gitlab.example.com',
-    activeGitlabProject: 42,
   })),
 }));
 
@@ -63,29 +52,39 @@ describe('ReleasesTab deployment package', () => {
   beforeEach(() => {
     rm.enabled = true;
     vi.mocked(fetchFixVersions).mockResolvedValue([
-      { id: 'v1', name: 'R-43', releaseDate: '2026-10-22', released: false },
+      { id: '10001', name: 'R-43', releaseDate: '2026-10-22', released: false },
     ]);
     vi.mocked(listJiraProjects).mockResolvedValue([{ id: '1', key: 'PROJ', name: 'Core' }]);
   });
 
-  it('shows no package chip without an RM project', async () => {
+  it('hides the Package column and cells without an RM project (D-12)', async () => {
     rm.enabled = false;
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderTab(<ReleasesTab />);
     await screen.findByText('R-43');
+    expect(screen.queryByText('Package')).toBeNull();
     expect(screen.queryByTestId('row-deployment-package')).toBeNull();
-    expect(screen.queryByTestId('row-sync-packages')).toBeNull();
   });
 
-  it('shows the derived RM child for the release-date week', async () => {
+  it('shows the Package header and the derived RM child for the release-date week', async () => {
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    renderTab(<ReleasesTab />);
+    await screen.findByText('Package');
+    await waitFor(() =>
+      expect(screen.getByTestId('row-deployment-package').textContent).toBe(
+        'Week 43 (19.10.2026 – 25.10.2026)RM-11',
+      ),
+    );
+  });
+
+  it('shows the week only when no child matches the project', async () => {
+    vi.mocked(listJiraProjects).mockResolvedValue([{ id: '2', key: 'PROJ', name: 'Unrelated' }]);
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderTab(<ReleasesTab />);
     await waitFor(() =>
       expect(screen.getByTestId('row-deployment-package').textContent).toBe(
-        'Week 43 (19.10.2026 – 25.10.2026) RM-11',
+        'Week 43 (19.10.2026 – 25.10.2026)',
       ),
     );
-    // regression guard: the bulk sync button is gone even with RM enabled
-    expect(screen.queryByTestId('row-sync-packages')).toBeNull();
   });
 });

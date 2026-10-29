@@ -1,67 +1,43 @@
 /**
- * ReleasesTab — PM-03 + PM-04: Fix version rows with GitLab date-matched links and task counts.
+ * ReleasesTab: fix-version-driven release list.
  *
- * Fetches:
- *   1. Jira fix versions for the active project
- *   2. GitLab project milestones
- *   3. Per-version issue counts from Jira relatedIssueCounts endpoint
- *
- * Date matching uses matchGitLabToFixVersion (exact within same day / fuzzy within 1 day / none).
- * Fuzzy matches show a dashed underline indicator with hover tooltip.
- * Name-based matching is not used — only date proximity determines the link.
+ * Rows come from Jira fix versions only. Versions are grouped into
+ * Upcoming / Released on an AioCycleList-style div+flex grid with one status pill per
+ * row. Names, dates and pills render as soon as the fix versions resolve; the RM
+ * deployment package and the small issue graph stream into fixed-size slots (one
+ * batched search per visible chunk, hidden released versions are never fetched).
+ * Cached revisits render instantly and Refresh never blanks the list.
  */
 
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, GitBranch, RefreshCw, Rocket } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { RefreshCw, Rocket } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
-import { findChildForProject, findWeekForDate, formatWeekLabel } from '@/lib/deployment-package';
-import type { GitLabMilestone } from '@/services/gitlab';
-import { fetchProjectBranches, fetchProjectMilestonesInRange } from '@/services/gitlab';
-import type { JiraFixVersion } from '@/services/jira';
-import { fetchFixVersions, fetchVersionIssueCounts, listJiraProjects } from '@/services/jira';
-import type { ReleaseMatch } from '@/services/releaseLinker';
-import { matchGitLabToFixVersion } from '@/services/releaseLinker';
+import { useReleaseBreakdowns } from '@/hooks/useReleaseBreakdowns';
+import { useReleasePackages } from '@/hooks/useReleasePackages';
+import { toLocalDateString } from '@/lib/local-date';
+import { groupReleases, releasePill } from '@/lib/release-list';
+import { refreshReleaseList } from '@/lib/release-refresh';
+import { fetchFixVersions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { ReleasesSkeleton } from './ReleasesSkeleton';
-import { deriveReleaseBranchName, RELEASE_BRANCH_PREFIX } from './release-detail/releaseBranch';
-
-interface MatchedVersion {
-  version: JiraFixVersion;
-  match: ReleaseMatch;
-  issuesFixed: number;
-  issuesTotal: number;
-  branchMissing: boolean;
-  branchPresent: boolean;
-  branchName: string | null;
-  milestoneMissing: boolean;
-}
-
-type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
-
-function getReleaseTimingLabel(releaseDate: string | undefined, released: boolean): TimingLabel {
-  if (released || !releaseDate) return null;
-  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" — timezone-safe
-  if (releaseDate < today) return 'overdue';
-  if (releaseDate === today) return 'due-today';
-  const msPerDay = 86_400_000;
-  const days = Math.round((new Date(releaseDate).getTime() - new Date(today).getTime()) / msPerDay);
-  return { daysUntil: days };
-}
+import {
+  ReleaseGroupLabel,
+  ReleaseListHeader,
+  ReleaseListRow,
+} from './releases-list/ReleaseListRow';
 
 const RELEASED_PAGE_SIZE = 5;
 const RELEASED_LOAD_MORE = 10;
 
 export default function ReleasesTab() {
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const navigate = useNavigate();
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
@@ -74,15 +50,9 @@ export default function ReleasesTab() {
 
   const queryClient = useQueryClient();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
-  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   const [releasedVisible, setReleasedVisible] = useState(RELEASED_PAGE_SIZE);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const loadMoreReleased = () => setReleasedVisible((n) => n + RELEASED_LOAD_MORE);
-
-  // Deployment package (quick 261014-eym): ONE shared RM week index for all rows. Everything
-  // below is inert (no queries, no UI) while no Release Management project is configured.
-  const { enabled: rmEnabled } = useRmWeekIndex();
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -92,24 +62,6 @@ export default function ReleasesTab() {
     }
   }, [jiraBaseUrl]);
 
-  useEffect(() => {
-    if (gitlabBaseUrl) {
-      readSecret('gitlab-pat')
-        .then((t) => setGitlabToken(t))
-        .catch(() => setGitlabToken(null));
-    }
-  }, [gitlabBaseUrl]);
-
-  // Active project's display name, used to pick the RM child ("summary contains project name").
-  const { data: jiraProjects } = useQuery({
-    queryKey: ['jira-projects-rm', jiraBaseUrl],
-    queryFn: () => listJiraProjects(jiraBaseUrl ?? '', jiraToken ?? ''),
-    enabled: rmEnabled && !!jiraBaseUrl && !!jiraToken,
-    staleTime: 10 * 60_000,
-  });
-  const activeProjectName = jiraProjects?.find((p) => p.key === activeJiraProject)?.name ?? null;
-
-  // Fetch fix versions
   const {
     data: fixVersions,
     isLoading: loadingVersions,
@@ -123,507 +75,126 @@ export default function ReleasesTab() {
     staleTime: 5 * 60_000,
   });
 
-  // Date window for milestone matching — derived from Jira fix version dates ± LEEWAY_DAYS.
-  // Milestones are only fetched once fix versions are loaded so we can scope the query.
-  const MILESTONE_LEEWAY_DAYS = 7;
-  const milestoneWindow = (() => {
-    const dates = (fixVersions ?? []).map((v) => v.releaseDate).filter(Boolean) as string[];
-    if (dates.length === 0) return null;
-    const addDays = (d: string, n: number) => {
-      const dt = new Date(d);
-      dt.setDate(dt.getDate() + n);
-      return dt.toISOString().slice(0, 10);
-    };
-    const min = dates.reduce((a, b) => (a < b ? a : b));
-    const max = dates.reduce((a, b) => (a > b ? a : b));
-    return { from: addDays(min, -MILESTONE_LEEWAY_DAYS), to: addDays(max, MILESTONE_LEEWAY_DAYS) };
-  })();
+  const today = toLocalDateString(new Date());
+  const { upcoming, released } = groupReleases(fixVersions ?? []);
+  const visibleReleased = released.slice(0, releasedVisible);
+  const visible = [...upcoming, ...visibleReleased];
 
-  // Fetch GitLab milestones scoped to the fix-version date window.
-  // Uses paginated sorted fetch so large milestone lists don't miss relevant entries.
-  const { data: milestones, isError: milestonesError } = useQuery({
-    queryKey: [
-      'gitlab-milestones',
-      activeGitlabProject,
-      milestoneWindow?.from,
-      milestoneWindow?.to,
-    ],
-    queryFn: () =>
-      fetchProjectMilestonesInRange(
-        gitlabBaseUrl ?? '',
-        gitlabToken ?? '',
-        activeGitlabProject ?? 0,
-        milestoneWindow?.from ?? '',
-        milestoneWindow?.to ?? '',
-      ),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
-    staleTime: 5 * 60_000,
+  const pkgs = useReleasePackages({ dates: visible.map((v) => v.releaseDate) });
+  const { breakdowns, loadingIds, errorIds } = useReleaseBreakdowns({
+    upcomingIds: upcoming.map((v) => v.id),
+    releasedIds: released.map((v) => v.id),
+    releasedVisible,
   });
 
-  // D-18: the entire `release/`-prefixed branch set is fetched in exactly ONE
-  // fully-paginated request regardless of row count, then matched locally per
-  // row. Never a per-row batch-query-hook call (that pattern exists a few
-  // lines below only because Jira issue counts have no batch endpoint) and never an
-  // unfiltered all-branches fetch.
-  const {
-    data: releaseBranches,
-    isSuccess: branchesLoaded,
-    isError: branchesError,
-  } = useQuery({
-    queryKey: ['gitlab-release-branches', activeGitlabProject],
-    queryFn: () =>
-      fetchProjectBranches(
-        gitlabBaseUrl ?? '',
-        gitlabToken ?? '',
-        activeGitlabProject ?? 0,
-        RELEASE_BRANCH_PREFIX,
-      ),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
-    staleTime: 5 * 60_000,
-  });
-
-  const releaseBranchNames = useMemo(
-    () => new Set((releaseBranches ?? []).map((b) => b.name)),
-    [releaseBranches],
-  );
-
-  // Per-version issue counts (parallel queries)
-  const versionCountQueries = useQueries({
-    queries: (fixVersions ?? []).map((v) => ({
-      queryKey: ['jira-version-counts', v.id],
-      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl ?? '', jiraToken ?? '', v.id),
-      enabled: !!jiraBaseUrl && !!jiraToken,
-      staleTime: 5 * 60_000,
-    })),
-  });
-
-  // Build matched versions split into: undated, unreleased (with date), released
-  const { undatedVersions, unreleasedVersions, releasedVersions } = (() => {
-    const versions = fixVersions ?? [];
-    const msList: GitLabMilestone[] = milestones ?? [];
-
-    const candidates = msList.map((m) => ({
-      id: m.id,
-      date: m.due_date,
-      name: m.title,
-      url: m.web_url,
-    }));
-
-    const toMatched = (version: JiraFixVersion): MatchedVersion => {
-      let bestMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
-      for (const cand of candidates) {
-        const match = matchGitLabToFixVersion(version.releaseDate, cand);
-        if (match.type === 'exact') {
-          bestMatch = match;
-          break;
-        }
-        if (match.type === 'fuzzy' && bestMatch.type === 'none') {
-          bestMatch = match;
-        }
-      }
-      const countQuery = versionCountQueries.find(
-        (_, i) => (fixVersions ?? [])[i]?.id === version.id,
-      );
-      const counts = countQuery?.data;
-
-      // D-17/D-18/D-19: derive drift flags locally from the matched milestone
-      // title. D-11 — an unparseable version in the title derives `null` and
-      // shows no branch indicator (nothing is guessed).
-      // WR-04: matching is date-based (matchGitLabToFixVersion), so an undated
-      // version can never match and flagging it would duplicate the existing
-      // "No date set" badge; a historical released version whose milestone was
-      // closed or deleted dilutes the signal for the unreleased versions this
-      // indicator exists to police.
-      const milestoneMissing =
-        bestMatch.type === 'none' && !!version.releaseDate && !version.released;
-      const derived =
-        bestMatch.type === 'none' ? null : deriveReleaseBranchName(bestMatch.candidateName);
-      // CR-01: the drift signal fires only on confirmed absence, never on an
-      // in-flight or errored branch query — a false "no branch" reads as real
-      // drift and would send the user chasing a branch that already exists.
-      // Released versions are excluded for the same reason milestoneMissing
-      // excludes them: release branches are deleted once merged, so every
-      // historical release reports "missing" forever. That is the normal end
-      // state, not drift, and it buries the signal for the unreleased versions
-      // this indicator exists to police.
-      const branchMissing =
-        branchesLoaded && derived !== null && !version.released && !releaseBranchNames.has(derived);
-      // Positive counterpart: a confirmed-present branch. Only meaningful once
-      // the branch set has loaded, so it never flashes during the fetch.
-      const branchPresent = branchesLoaded && derived !== null && releaseBranchNames.has(derived);
-
-      return {
-        version,
-        match: bestMatch,
-        issuesFixed: counts?.issuesFixed ?? 0,
-        issuesTotal: counts?.issuesTotal ?? 0,
-        branchMissing,
-        branchPresent,
-        branchName: derived,
-        milestoneMissing,
-      };
-    };
-
-    const dateDesc = (a: JiraFixVersion, b: JiraFixVersion) =>
-      (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '');
-
-    const undated = versions.filter((v) => !v.released && !v.releaseDate).map(toMatched);
-    const unreleased = versions
-      .filter((v) => !v.released && !!v.releaseDate)
-      .sort(dateDesc)
-      .map(toMatched);
-    const released = versions
-      .filter((v) => v.released)
-      .sort(dateDesc)
-      .map(toMatched);
-
-    return { undatedVersions: undated, unreleasedVersions: unreleased, releasedVersions: released };
-  })();
-
-  // Children (per-application tasks) are loaded lazily, only for the weeks of the rows shown.
-  const { weeks: rmWeeks } = useRmWeekIndex({
-    dates: [...unreleasedVersions, ...releasedVersions.slice(0, releasedVisible)].map(
-      (m) => m.version.releaseDate,
-    ),
-  });
-
-  // Derived deployment package for a release row: the RM child of the WEEK containing the
-  // version's release date. Display only; drift counts live on the detail page.
-  const derivePackage = (releaseDate: string | undefined) => {
-    if (!rmEnabled || !releaseDate || rmWeeks.length === 0) return null;
-    const week = findWeekForDate(rmWeeks, releaseDate);
-    if (!week) return null;
-    const child = activeProjectName
-      ? findChildForProject(week, activeProjectName, activeJiraProject ?? undefined)
-      : null;
-    return { week, child };
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshReleaseList(queryClient, activeJiraProject);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
-    : 'Refreshed: Never';
+    : '';
 
-  const isLoading = loadingVersions;
-  const isError = errorVersions;
+  // Cached data never skeletons: v5 isLoading is isFetching && isPending.
+  const showSkeleton = useDelayedLoading(loadingVersions) && !fixVersions;
 
-  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
-
-  useEffect(() => {
-    if (!isLoading) setIsRefreshing(false);
-  }, [isLoading]);
-
-  // Reset banner dismissal when error state changes
-  useEffect(() => {
-    setBannerDismissed(false);
-  }, []);
+  const renderRow = (v: (typeof visible)[number]) => (
+    <ReleaseListRow
+      key={v.id}
+      version={v}
+      pill={releasePill(v, today)}
+      showPackage={pkgs.enabled}
+      pkg={pkgs.packageFor(v.releaseDate)}
+      pkgLoading={pkgs.isLoading}
+      breakdown={breakdowns.get(v.id)}
+      graphLoading={loadingIds.has(v.id)}
+      graphError={errorIds.has(v.id)}
+      onOpen={handleReleaseClick}
+    />
+  );
 
   return (
-    <div className="flex flex-col gap-3 p-4">
-      {/* Header row */}
-      <div className="flex items-center justify-end gap-2 pb-2">
-        {milestonesError && (
-          <span
-            className="text-xs text-amber-600 dark:text-amber-400"
-            title="GitLab milestone data unavailable — links may not appear"
-          >
-            GitLab unavailable
-          </span>
-        )}
-        {branchesError && (
-          <span
-            className="text-xs text-amber-600 dark:text-amber-400"
-            title="GitLab branch data unavailable — missing-branch warnings are hidden"
-            data-testid="branches-error-chip"
-          >
-            GitLab unavailable
-          </span>
-        )}
-        <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2 px-4 py-1.5">
+        <span className="text-sm font-semibold">Releases</span>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {(fixVersions ?? []).length}
+        </span>
+        <div className="flex-1" />
+        <span className="hidden text-xs text-muted-foreground sm:inline">{lastRefreshed}</span>
         <button
           type="button"
           onClick={() => {
-            setIsRefreshing(true);
-            queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] });
+            void handleRefresh();
           }}
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Refresh"
+          disabled={refreshing}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Refresh releases"
+          title="Refresh releases"
         >
-          <RefreshCw className="size-3" />
-          Refresh
+          <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
         </button>
       </div>
 
-      {/* Loading skeleton */}
-      {showSkeleton && <ReleasesSkeleton />}
+      {showSkeleton && <ReleasesSkeleton showPackage={pkgs.enabled} />}
 
-      {/* Error state — full error when no cached data */}
-      {isError && !fixVersions && (
-        <ErrorState
-          error={versionError}
-          onRetry={() => {
-            setIsRefreshing(true);
-            queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] });
-          }}
-          viewName="releases"
-        />
+      {errorVersions && !fixVersions && (
+        <div className="px-4 pt-3">
+          <ErrorState
+            error={versionError}
+            onRetry={() => {
+              void handleRefresh();
+            }}
+            viewName="releases"
+          />
+        </div>
       )}
 
-      {/* Stale data banner — error with cached data still visible */}
-      {isError && fixVersions && !bannerDismissed && (
-        <StaleDataBanner
-          onRetry={() => {
-            setIsRefreshing(true);
-            queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] });
-          }}
-          onDismiss={() => setBannerDismissed(true)}
-        />
+      {errorVersions && fixVersions && !bannerDismissed && (
+        <div className="px-4 pt-3">
+          <StaleDataBanner
+            onRetry={() => {
+              void handleRefresh();
+            }}
+            onDismiss={() => setBannerDismissed(true)}
+          />
+        </div>
       )}
 
-      {/* Content */}
-      {!showSkeleton &&
-        !isError &&
-        (undatedVersions.length === 0 &&
-        unreleasedVersions.length === 0 &&
-        releasedVersions.length === 0 ? (
+      {fixVersions &&
+        (fixVersions.length === 0 ? (
           <EmptyState
             icon={Rocket}
-            title="No releases found"
-            subtitle="Releases will appear once versions are created in Jira"
+            title="No releases yet"
+            subtitle="Fix versions from your Jira projects will appear here once they are created."
           />
         ) : (
-          <div className="flex flex-col gap-1">
-            {/* Render a single release row */}
-            {(
-              [
-                ...undatedVersions,
-                ...unreleasedVersions,
-                ...releasedVersions.slice(0, releasedVisible),
-              ] as MatchedVersion[]
-            ).map(
-              ({
-                version,
-                match,
-                issuesFixed,
-                issuesTotal,
-                branchMissing,
-                branchPresent,
-                branchName,
-                milestoneMissing,
-              }) => (
-                <button
-                  key={version.id}
-                  type="button"
-                  data-testid="release-row"
-                  onClick={() => handleReleaseClick(version.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleReleaseClick(version.id);
-                  }}
-                  className="flex items-center justify-between rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 hover:bg-muted/50 gap-3 cursor-pointer w-full min-w-0 text-left"
-                >
-                  {/* Version name + badges */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-sm font-medium truncate">{version.name}</span>
-                    {/* Status badge — Released or Unreleased + timing */}
-                    {(() => {
-                      const timing = getReleaseTimingLabel(version.releaseDate, version.released);
-                      if (version.released) {
-                        return (
-                          <Badge tone="green" className="shrink-0">
-                            Released
-                          </Badge>
-                        );
-                      }
-                      if (timing === 'overdue') {
-                        return (
-                          <>
-                            <Badge tone="red" className="shrink-0">
-                              Unreleased
-                            </Badge>
-                            <Badge tone="red" className="shrink-0">
-                              Overdue
-                            </Badge>
-                          </>
-                        );
-                      }
-                      if (timing === 'due-today') {
-                        return (
-                          <>
-                            <Badge tone="blue" className="shrink-0">
-                              Unreleased
-                            </Badge>
-                            <Badge tone="blue" className="shrink-0">
-                              Due today
-                            </Badge>
-                          </>
-                        );
-                      }
-                      if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
-                        return (
-                          <>
-                            <Badge tone="amber" className="shrink-0">
-                              Unreleased
-                            </Badge>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              In {timing.daysUntil} days
-                            </span>
-                          </>
-                        );
-                      }
-                      // Unreleased with no date
-                      return (
-                        <Badge tone="amber" className="shrink-0">
-                          Unreleased
-                        </Badge>
-                      );
-                    })()}
-                    {/* No date warning — solid badge after status, only for undated unreleased */}
-                    {!version.releaseDate && !version.released && (
-                      <Badge tone="orange" className="shrink-0">
-                        ⚠ No date set
-                      </Badge>
-                    )}
-                    {version.releaseDate && (
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {version.releaseDate}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* GitLab match indicator */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    {match.type === 'exact' ? (
-                      match.candidateUrl ? (
-                        <a
-                          href={match.candidateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline truncate max-w-[150px]"
-                          data-testid="gitlab-link-exact"
-                        >
-                          {match.candidateName}
-                        </a>
-                      ) : (
-                        <span
-                          className="text-xs text-foreground truncate max-w-[150px]"
-                          data-testid="gitlab-link-exact"
-                        >
-                          {match.candidateName}
-                        </span>
-                      )
-                    ) : match.type === 'fuzzy' ? (
-                      match.candidateUrl ? (
-                        <a
-                          href={match.candidateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
-                          title={`Fuzzy match: ${match.candidateName}`}
-                          data-testid="gitlab-link-fuzzy"
-                        >
-                          {match.candidateName}
-                        </a>
-                      ) : (
-                        <span
-                          className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
-                          title={`Fuzzy match: ${match.candidateName}`}
-                          data-testid="gitlab-link-fuzzy"
-                        >
-                          {match.candidateName}
-                        </span>
-                      )
-                    ) : (
-                      // The no-match state IS the missing-milestone warning —
-                      // rendering a muted "No GitLab link" next to a separate
-                      // orange triangle said the same thing twice. When the
-                      // absence is worth flagging (dated + unreleased) this
-                      // carries the warning styling; otherwise it stays muted,
-                      // because a closed historical release legitimately has no
-                      // milestone and colouring that orange is noise.
-                      <span
-                        className={
-                          milestoneMissing
-                            ? 'inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400'
-                            : 'text-muted-foreground text-xs'
-                        }
-                        title={milestoneMissing ? 'No GitLab milestone' : undefined}
-                        data-testid={
-                          milestoneMissing ? 'row-missing-milestone' : 'gitlab-link-none'
-                        }
-                      >
-                        {milestoneMissing && (
-                          <AlertTriangle aria-hidden="true" className="size-3 shrink-0" />
-                        )}
-                        No GitLab milestone
-                      </span>
-                    )}
-
-                    {/* Drift indicators (D-17/D-18/D-19) — placed before the task-count
-                      span so a future Phase 89 aggregate drift count can append
-                      after them without a redesign.
-                      Branch indicators only render when a milestone matched: the
-                      branch name is derived from the milestone title, so with no
-                      milestone there is no branch to have an opinion about. */}
-                    {branchPresent && (
-                      <span title={`Release branch ${branchName}`} data-testid="row-branch-present">
-                        <GitBranch
-                          aria-hidden="true"
-                          className="size-3 shrink-0 text-green-600 dark:text-green-400"
-                        />
-                        <span className="sr-only">Release branch exists</span>
-                      </span>
-                    )}
-                    {branchMissing && (
-                      <span title="No release branch" data-testid="row-missing-branch">
-                        <AlertTriangle
-                          aria-hidden="true"
-                          className="size-3 text-orange-600 dark:text-orange-400 shrink-0"
-                        />
-                        <span className="sr-only">No release branch</span>
-                      </span>
-                    )}
-
-                    {/* Derived deployment package (RM child of the release-date week) */}
-                    {(() => {
-                      const pkg = derivePackage(version.releaseDate);
-                      if (!pkg) return null;
-                      return pkg.child ? (
-                        <span
-                          className="text-xs truncate min-w-0"
-                          title={`${pkg.week.summary} (${pkg.child.key} ${pkg.child.summary})`}
-                          data-testid="row-deployment-package"
-                        >
-                          {formatWeekLabel(pkg.week.summary)}{' '}
-                          <span className="font-mono text-muted-foreground">{pkg.child.key}</span>
-                        </span>
-                      ) : (
-                        <span
-                          className="text-xs truncate min-w-0"
-                          title={`${pkg.week.summary} (no matching package)`}
-                          data-testid="row-deployment-package"
-                        >
-                          {formatWeekLabel(pkg.week.summary)}
-                        </span>
-                      );
-                    })()}
-
-                    {/* Task count */}
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {issuesFixed} / {issuesTotal} done
-                    </span>
-                  </div>
-                </button>
-              ),
+          <div className="@container min-w-0">
+            <ReleaseListHeader showPackage={pkgs.enabled} />
+            {upcoming.length > 0 && (
+              <>
+                <ReleaseGroupLabel label="Upcoming" count={upcoming.length} />
+                {upcoming.map(renderRow)}
+              </>
             )}
-
-            {/* Load more released */}
-            {releasedVersions.length > releasedVisible && (
+            {released.length > 0 && (
+              <>
+                <ReleaseGroupLabel label="Released" count={released.length} />
+                {visibleReleased.map(renderRow)}
+              </>
+            )}
+            {released.length > releasedVisible && (
               <button
                 type="button"
-                onClick={loadMoreReleased}
-                className="mt-1 w-full rounded px-3 py-2 density-compact:py-1 density-comfortable:py-3 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-center"
+                onClick={() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE)}
+                className="flex w-full justify-center border-b border-border py-2 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
               >
-                Load {Math.min(RELEASED_LOAD_MORE, releasedVersions.length - releasedVisible)} more
-                released
+                {`Show ${Math.min(RELEASED_LOAD_MORE, released.length - releasedVisible)} more`}
               </button>
             )}
           </div>
