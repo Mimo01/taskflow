@@ -511,6 +511,13 @@
   .f2 .pr.q.past .prow .m b { color: var(--green-fg); }
   .f2 .pr.q .cal { margin: 4px 0; }
 
+
+  /* ── F3: calendar only for key releases ── */
+  .f3 .pr.q .rc .qdot { position: relative; margin-top: 15px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted-foreground); box-shadow: 0 0 0 3px var(--background); }
+  .f3 .pr.q.past .rc .qdot { background: var(--done); }
+  .f3 .pr.q .prow { padding-top: 7px; padding-bottom: 7px; }
+  .f3 .pr.q .prow .qd { width: 78px; flex: none; color: var(--muted-foreground); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -566,7 +573,8 @@
   <button class="variant-tab" data-v="u2">U2: month grid</button>
   <button class="variant-tab" data-v="u3">U3: mini cards</button>
   <button class="variant-tab" data-v="f1">F1: L1 + U1</button>
-  <button class="variant-tab active" data-v="f2">F2: calendar + quiet ★</button>
+  <button class="variant-tab" data-v="f2">F2: calendar + quiet</button>
+  <button class="variant-tab active" data-v="f3">F3: calendar for key only ★</button>
 </div>
 
 <div id="frame">
@@ -745,7 +753,9 @@
     <div class="agenda f1-rail" id="f1"></div>
   </section>
 
-  <section id="variant-f2" class="variant active pol hh f2"><div class="note">F2 — calendar blocks are back (S1h rail). Overdue, next, next+1 and undated keep full rows; planned and released releases are quiet lines next to mini calendar blocks: name, then "8 to do · in 12 days" (or "✓ 25 done") — no pill, no avatars.</div><div class="f2slot"></div></section>
+  <section id="variant-f2" class="variant pol hh f2"><div class="note">F2 — calendar blocks are back (S1h rail). Overdue, next, next+1 and undated keep full rows; planned and released releases are quiet lines next to mini calendar blocks: name, then "8 to do · in 12 days" (or "✓ 25 done") — no pill, no avatars.</div><div class="f2slot"></div></section>
+
+  <section id="variant-f3" class="variant active pol hh f2 f3"><div class="note">F3 — calendar blocks only for the releases that matter (overdue, next, next+1, undated). Planned and released are quiet lines: a dot on the rail, the date as text, the name, and "8 to do · in 12 days" / "✓ 25 done".</div><div class="f3slot"></div></section>
 
   <!-- ───────── Variant A2 ───────── -->
   <section id="variant-a2" class="variant">
@@ -1466,6 +1476,13 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         ['.is', '.tm', '.pl'].forEach(q => el.querySelector(q).remove());
         el.querySelector('.t').insertAdjacentHTML('afterend', `<span class="m">${meta}</span>`);
         el.classList.add('q');
+      }); }
+    { const slot = document.querySelector('.f3slot'); slot.appendChild(document.querySelector('.f2slot').firstChild.cloneNode(true));
+      slot.querySelectorAll('.pr.q').forEach(el => {
+        const c = el.querySelector('.cal');
+        const wdT = c.querySelector('.wd').textContent; const dd = c.querySelector('.dd').textContent.padStart(2, '0'); const mo = c.querySelector('.mo').textContent;
+        c.outerHTML = '<span class="qdot"></span>';
+        el.querySelector('.t').insertAdjacentHTML('beforebegin', `<span class="qd">${wdT[0] + wdT.slice(1).toLowerCase()} ${dd} ${mo}</span>`);
       }); }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
