@@ -558,7 +558,24 @@ export function BulkCreateSubtasksModal({
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', parentKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment', parentKey] });
     }
+
+    // Everything created: nothing left to do here, so close. Partial failures
+    // keep the modal open so "Retry Failed" stays reachable.
+    if (finalStates.every((s) => s.status === 'created')) onClose();
   }
+
+  // The modal stays mounted while closed — reset so reopening starts fresh
+  // instead of showing the previous (already created) rows.
+  useEffect(() => {
+    if (open) return;
+    setRows([]);
+    setRowStates([]);
+    setTotalSkipped(0);
+    setShowProgress(false);
+    setSelectedTemplateId('__adhoc__');
+    setSelectedSubtaskTypeId('');
+    lastResolvedKeyRef.current = null;
+  }, [open]);
 
   function handleRetry() {
     handleCreate();
