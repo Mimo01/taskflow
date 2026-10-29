@@ -6,10 +6,12 @@ import { fetch as mockFetch } from '@tauri-apps/plugin-http';
 
 const BASE = 'https://jira.example.com';
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as never;
-const issue = (cat: string | undefined, ids: string[]) => ({
+type Person = { name?: string; displayName: string; avatarUrls?: { '48x48'?: string } } | null;
+const issue = (cat: string | undefined, ids: string[], assignee?: Person) => ({
   fields: {
     status: cat ? { statusCategory: { key: cat } } : {},
     fixVersions: ids.map((id) => ({ id })),
+    ...(assignee === undefined ? {} : { assignee }),
   },
 });
 const urlOf = (i: number) => vi.mocked(mockFetch).mock.calls[i][0] as string;
@@ -29,8 +31,8 @@ describe('fetchVersionsStatusBreakdown', () => {
     const r = await fetchVersionsStatusBreakdown(BASE, 't', ['101', '102']);
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(urlOf(1)).toContain('startAt=2');
-    expect(r['101']).toEqual({ new: 1, indeterminate: 0, done: 1 });
-    expect(r['102']).toEqual({ new: 0, indeterminate: 1, done: 0 });
+    expect(r['101']).toEqual({ new: 1, indeterminate: 0, done: 1, assignees: [] });
+    expect(r['102']).toEqual({ new: 0, indeterminate: 1, done: 0, assignees: [] });
   });
 
   it('builds the expected request', async () => {
@@ -38,7 +40,7 @@ describe('fetchVersionsStatusBreakdown', () => {
     await fetchVersionsStatusBreakdown(BASE, 't', ['101', '102']);
     const u = urlOf(0);
     expect(jqlOf(u)).toBe('fixVersion in (101,102)');
-    expect(u).toContain('fields=status,fixVersions');
+    expect(u).toContain('fields=status,fixVersions,assignee');
     expect(u).toContain('maxResults=200');
     expect(jqlOf(u).toLowerCase()).not.toContain('subtask');
   });
@@ -58,8 +60,62 @@ describe('fetchVersionsStatusBreakdown', () => {
       ok({ total: 2, issues: [issue('wat', ['101']), issue(undefined, ['101'])] }),
     );
     const r = await fetchVersionsStatusBreakdown(BASE, 't', ['101', '103']);
-    expect(r['101']).toEqual({ new: 2, indeterminate: 0, done: 0 });
-    expect(r['103']).toEqual({ new: 0, indeterminate: 0, done: 0 });
+    expect(r['101']).toEqual({ new: 2, indeterminate: 0, done: 0, assignees: [] });
+    expect(r['103']).toEqual({ new: 0, indeterminate: 0, done: 0, assignees: [] });
+  });
+
+  describe('assignees', () => {
+    const alex = {
+      name: 'alex',
+      displayName: 'Alex Placeholder',
+      avatarUrls: { '48x48': 'a.png' },
+    };
+    const sam = { name: 'sam', displayName: 'Sam Example' };
+
+    it('dedupes by name, counts issues, sorts by count desc then name', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        ok({
+          total: 4,
+          issues: [
+            issue('done', ['101'], sam),
+            issue('new', ['101'], alex),
+            issue('new', ['101'], alex),
+            issue('new', ['101'], { displayName: 'Zed Nameless' }),
+          ],
+        }),
+      );
+      const r = await fetchVersionsStatusBreakdown(BASE, 't', ['101']);
+      expect(r['101'].assignees).toEqual([
+        { key: 'alex', displayName: 'Alex Placeholder', avatarUrl: 'a.png', count: 2 },
+        { key: 'sam', displayName: 'Sam Example', avatarUrl: undefined, count: 1 },
+        { key: 'Zed Nameless', displayName: 'Zed Nameless', avatarUrl: undefined, count: 1 },
+      ]);
+    });
+
+    it('breaks count ties by display name ascending', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        ok({ total: 2, issues: [issue('new', ['101'], sam), issue('new', ['101'], alex)] }),
+      );
+      const r = await fetchVersionsStatusBreakdown(BASE, 't', ['101']);
+      expect(r['101'].assignees.map((a) => a.key)).toEqual(['alex', 'sam']);
+    });
+
+    it('adds the assignee to every requested version of a multi-version issue', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        ok({ total: 1, issues: [issue('done', ['101', '102'], alex)] }),
+      );
+      const r = await fetchVersionsStatusBreakdown(BASE, 't', ['101', '102']);
+      expect(r['101'].assignees).toHaveLength(1);
+      expect(r['102'].assignees).toHaveLength(1);
+    });
+
+    it('unassigned issues count toward status but add no assignee', async () => {
+      vi.mocked(mockFetch).mockResolvedValue(
+        ok({ total: 2, issues: [issue('done', ['101'], null), issue('new', ['101'])] }),
+      );
+      const r = await fetchVersionsStatusBreakdown(BASE, 't', ['101']);
+      expect(r['101']).toEqual({ new: 1, indeterminate: 0, done: 1, assignees: [] });
+    });
   });
 
   it('rejects invalid ids without fetching', async () => {

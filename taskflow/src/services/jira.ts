@@ -1328,11 +1328,19 @@ export async function fetchVersionIssueCounts(
 }
 
 export type VersionStatusBreakdown = { new: number; indeterminate: number; done: number };
+export type VersionAssignee = {
+  key: string;
+  displayName: string;
+  avatarUrl?: string;
+  count: number;
+};
+export type VersionReleaseSummary = VersionStatusBreakdown & { assignees: VersionAssignee[] };
 
 /**
  * Fetch per-fix-version status-category breakdowns for several versions in ONE
- * paginated JQL search (`fixVersion in (...)`, fields=status,fixVersions).
- * An issue carrying several requested versions counts toward each of them.
+ * paginated JQL search (`fixVersion in (...)`, fields=status,fixVersions,assignee).
+ * The same search also yields the distinct assignees per version (the list's team
+ * column, F5). An issue carrying several requested versions counts toward each of them.
  *
  * No subtask exclusion on purpose: it must match fetchVersionIssueCounts so the
  * list and detail N / M figures agree. Pagination is never capped.
@@ -1346,13 +1354,17 @@ export async function fetchVersionsStatusBreakdown(
   baseUrl: string,
   token: string,
   versionIds: string[],
-): Promise<Record<string, VersionStatusBreakdown>> {
+): Promise<Record<string, VersionReleaseSummary>> {
   for (const id of versionIds) {
     if (!/^\d+$/.test(id)) throw new Error(`Invalid versionId: ${id}`);
   }
-  const out: Record<string, VersionStatusBreakdown> = {};
+  const out: Record<string, VersionReleaseSummary> = {};
   if (versionIds.length === 0) return out;
-  for (const id of versionIds) out[id] = { new: 0, indeterminate: 0, done: 0 };
+  const people = new Map<string, Map<string, VersionAssignee>>();
+  for (const id of versionIds) {
+    out[id] = { new: 0, indeterminate: 0, done: 0, assignees: [] };
+    people.set(id, new Map());
+  }
   const wanted = new Set(versionIds);
 
   const base = baseUrl.replace(/\/$/, '');
@@ -1363,7 +1375,7 @@ export async function fetchVersionsStatusBreakdown(
   let seen = 0;
 
   while (true) {
-    const url = `${base}/rest/api/2/search?jql=${jql}&fields=status,fixVersions&maxResults=${maxResults}&startAt=${startAt}`;
+    const url = `${base}/rest/api/2/search?jql=${jql}&fields=status,fixVersions,assignee&maxResults=${maxResults}&startAt=${startAt}`;
     const resp = await apiFetch('jira', url, { headers }, 'Load Release Issue Status');
     if (!resp.ok) throw new Error(`Failed to fetch release issue status: status ${resp.status}`);
 
@@ -1372,6 +1384,11 @@ export async function fetchVersionsStatusBreakdown(
         fields?: {
           status?: { statusCategory?: { key?: string } };
           fixVersions?: { id: string }[];
+          assignee?: {
+            name?: string;
+            displayName: string;
+            avatarUrls?: { '48x48'?: string };
+          } | null;
         };
       }[];
       total: number;
@@ -1379,8 +1396,22 @@ export async function fetchVersionsStatusBreakdown(
     for (const issue of data.issues) {
       const key = issue.fields?.status?.statusCategory?.key;
       const bucket = key === 'done' ? 'done' : key === 'indeterminate' ? 'indeterminate' : 'new';
+      const who = issue.fields?.assignee;
       for (const fv of issue.fields?.fixVersions ?? []) {
-        if (wanted.has(fv.id)) out[fv.id][bucket] += 1;
+        if (!wanted.has(fv.id)) continue;
+        out[fv.id][bucket] += 1;
+        if (!who) continue;
+        const personKey = who.name ?? who.displayName;
+        const map = people.get(fv.id);
+        const existing = map?.get(personKey);
+        if (existing) existing.count += 1;
+        else
+          map?.set(personKey, {
+            key: personKey,
+            displayName: who.displayName,
+            avatarUrl: who.avatarUrls?.['48x48'],
+            count: 1,
+          });
       }
     }
     seen += data.issues.length;
@@ -1388,6 +1419,11 @@ export async function fetchVersionsStatusBreakdown(
     startAt = seen;
   }
 
+  for (const id of versionIds) {
+    out[id].assignees = [...(people.get(id)?.values() ?? [])].sort(
+      (a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName),
+    );
+  }
   return out;
 }
 
