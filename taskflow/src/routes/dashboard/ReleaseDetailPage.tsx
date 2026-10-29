@@ -138,10 +138,17 @@ export default function ReleaseDetailPage() {
   // Drag-to-resize for right panel
   const containerRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  // Mirrors the sidebar's CSS maxWidth cap (max(12.5rem, min(50%, 100% - 30rem))) so a
+  // drag can never grow the stored width past what is rendered (no reverse-drag dead-zone).
+  const sidebarCap = () => {
+    const w = containerRef.current?.offsetWidth ?? 800;
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    return Math.max(12.5 * rem, Math.min(w * 0.5, w - 30 * rem));
+  };
   const { width, isDragging, handleMouseDown } = useResizable({
     initialWidth: releaseDetailPanelWidth,
-    min: 240,
-    max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
+    min: () => Math.min(240, sidebarCap()),
+    max: sidebarCap,
     onCommit: setReleaseDetailPanelWidth,
     direction: 'left',
     getStartWidth: () => sidebarRef.current?.offsetWidth ?? releaseDetailPanelWidth,
