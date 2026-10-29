@@ -519,6 +519,7 @@
   .f3 .pr.q .prow .qd { width: 78px; flex: none; color: var(--muted-foreground); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 
+  .f3 .tl-body.tl-compact .tl-undated { display: none; }
   /* F3: released separated */
   .f3 .rel-sep { margin-top: 26px; padding-top: 4px; border-top: 1px solid var(--border); }
   .f3 .rel-sep .rc::before { display: none; }
@@ -1497,6 +1498,24 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         c.outerHTML = '<span class="qdot"></span>';
         el.querySelector('.t').insertAdjacentHTML('beforebegin', `<span class="qd">${wdT[0] + wdT.slice(1).toLowerCase()} ${dd} ${mo}</span>`);
       });
+      // Responsive track: weeks shown follow the track's own width; redraw on resize
+      { const tr = slot.querySelector('.pol-track .tl-track'), body = slot.querySelector('.pol-track .tl-body'), range = slot.querySelector('.pol-range span');
+        const [prevB, nextB] = slot.querySelectorAll('.pol-range .btn');
+        let off = 0, lastW = 0;
+        const draw = () => {
+          const full = body.clientWidth; if (!full) return;
+          body.classList.toggle('tl-compact', full < 620);
+          const W = tr.clientWidth; lastW = W;
+          const weeks = Math.max(3, Math.min(8, Math.floor(W / 115)));
+          const st0 = new Date(weeks <= 5 ? '2026-10-17' : '2026-10-08'); st0.setDate(st0.getDate() + off * 7 * Math.max(1, weeks - 2));
+          const en = new Date(st0); en.setDate(en.getDate() + weeks * 7 + 2);
+          const later = drawTrack(tr, dated, st0, en, () => true);
+          range.textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`;
+        };
+        prevB.onclick = () => { off = Math.max(0, off - 1); draw(); };
+        nextB.onclick = () => { off = Math.min(6, off + 1); draw(); };
+        new ResizeObserver(() => { if (Math.abs(tr.clientWidth - lastW) > 4) draw(); }).observe(body);
+        draw(); }
       const relLabel = [...slot.querySelectorAll('.plabel')].find(l => l.textContent.trim().startsWith('Released'));
       if (relLabel) { relLabel.classList.add('rel-sep'); const prev = relLabel.previousElementSibling; if (prev) prev.classList.add('pre-rel'); const first = relLabel.nextElementSibling; if (first) first.classList.add('first-rel'); }
     }
