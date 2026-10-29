@@ -1,9 +1,9 @@
 ---
 phase: 93
 slug: releases-list-and-detail-redesign-fix-version-driven-list-fi
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: green
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-10-29
 ---
 
@@ -38,18 +38,18 @@ created: 2026-10-29
 
 | Decision | Behavior | Test Type | Automated Command | File Exists | Status |
 |----------|----------|-----------|-------------------|-------------|--------|
-| D-01/D-02 | List renders no milestone/branch UI, no GitLab calls | component | `npx vitest run src/routes/dashboard/ReleasesTab.test.tsx` | update | ⬜ pending |
-| D-03/D-04 | Group labels; undated first, dated desc, released desc | unit | `npx vitest run src/lib/release-list.test.ts` | ❌ W0 | ⬜ pending |
-| D-05 | Pill precedence/labels/tone, "In 1 day", local-date boundary | unit | `npx vitest run src/lib/release-list.test.ts` | ❌ W0 | ⬜ pending |
-| D-06/D-11 | Batch fetch: pagination, multi-fixVersion grouping, id validation, category mapping | unit | `npx vitest run src/services/jira.versionsBreakdown.test.ts` | ❌ W0 | ⬜ pending |
-| D-08 | 5 released, "Show N more" adds 10; only new chunk fetched | component | ReleasesTab test | update | ⬜ pending |
-| D-09 | Names/pills render before counts/RM resolve; skeleton slots | component | ReleasesTab test | update | ⬜ pending |
-| D-10 | Cached data renders w/o skeleton on refetch; Refresh staged invalidation, spinner | unit + component | `npx vitest run src/lib/release-refresh.test.ts` | ❌ W0 | ⬜ pending |
-| D-12 | Package column absent when RM disabled; child / week-only / none states | component | `ReleasesTab.deploymentPackage.test.tsx` | update | ⬜ pending |
-| D-13 | Header shows pill/date/package/graph + Pin/Edit/Open in Jira; bottom action row gone | component | `ReleaseHeader.test.tsx` | update | ⬜ pending |
-| D-14 | Table header lacks done badge, keeps flagged; sidebar lacks Status/Date rows | component | `UnifiedTaskTable.test.tsx`, `ReleaseDetailSidebar.test.tsx` | update | ⬜ pending |
-| Graph a11y | `role="img"` aria-label "{done} of {total} issues done"; zero → "No issues" | component | `ReleaseIssueGraph.test.tsx` | ❌ W0 | ⬜ pending |
-| Cache contract | `useEditRelease`/mutations invalidate list batch; detail per-id key untouched | unit | `useReleaseDetail.test.tsx` + new | partial | ⬜ pending |
+| D-01/D-02 | List renders no milestone/branch UI, no GitLab calls | component | `npx vitest run src/routes/dashboard/ReleasesTab.test.tsx` | ✅ | ✅ green |
+| D-03/D-04 | Group labels; undated first, dated desc, released desc | unit | `npx vitest run src/lib/release-list.test.ts` | ✅ | ✅ green |
+| D-05 | Pill precedence/labels/tone, "In 1 day", local-date boundary | unit | `npx vitest run src/lib/release-list.test.ts` | ✅ | ✅ green |
+| D-06/D-11 | Batch fetch: pagination, multi-fixVersion grouping, id validation, category mapping | unit | `npx vitest run src/services/jira.versionsBreakdown.test.ts` | ✅ | ✅ green |
+| D-08 | 5 released, "Show N more" adds 10; only new chunk fetched | component | `ReleasesTab.test.tsx` | ✅ | ✅ green |
+| D-09 | Names/pills render before counts/RM resolve; skeleton slots | component | `ReleasesTab.test.tsx` | ✅ | ✅ green |
+| D-10 | Cached data renders w/o skeleton on refetch; Refresh staged invalidation, spinner | unit + component | `npx vitest run src/lib/release-refresh.test.ts` | ✅ | ✅ green |
+| D-12 | Package column absent when RM disabled; child / week-only / none states | component | `ReleasesTab.deploymentPackage.test.tsx`, `ReleasePackageCell.test.tsx`, `ReleaseListRow.test.tsx` | ✅ | ✅ green |
+| D-13 | Header shows pill/date/package/graph + Pin/Edit/Open in Jira; bottom action row gone | component | `ReleaseHeader.test.tsx` | ✅ | ✅ green |
+| D-14 | Table header lacks done badge, keeps flagged; sidebar lacks Status/Date rows | component | `UnifiedTaskTable.test.tsx`, `ReleaseDetailSidebar.test.tsx` | ✅ | ✅ green |
+| Graph a11y | `role="img"` aria-label "{done} of {total} issues done"; zero → "No issues" | component | `ReleaseIssueGraph.test.tsx` | ✅ | ✅ green |
+| Cache contract | `useEditRelease`/mutations invalidate list batch; detail per-id key untouched | unit | `useReleaseDetail.test.tsx`, `useReleaseBreakdowns.test.tsx` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -57,11 +57,11 @@ created: 2026-10-29
 
 ## Wave 0 Requirements
 
-- [ ] `src/lib/release-list.ts` + `.test.ts` — pill, grouping/order, breakdown reducer, tooltip rows
-- [ ] `src/services/jira.versionsBreakdown.test.ts` — new batch fetcher
-- [ ] `src/lib/release-refresh.ts` + test
-- [ ] Shared `ReleaseStatusPill` / `ReleaseIssueGraph` + tests
-- [ ] Rewrite/remove obsolete ReleasesTab tests (milestone/branch testids, `versionCountsParity`) in the same commit as the code change
+- [x] `src/lib/release-list.ts` + `.test.ts` — pill, grouping/order, breakdown reducer, tooltip rows
+- [x] `src/services/jira.versionsBreakdown.test.ts` — new batch fetcher
+- [x] `src/lib/release-refresh.ts` + test
+- [x] Shared `ReleaseStatusPill` / `ReleaseIssueGraph` + tests
+- [x] Rewrite/remove obsolete ReleasesTab tests (milestone/branch testids, `versionCountsParity`) in the same commit as the code change
 
 ---
 
@@ -77,11 +77,11 @@ created: 2026-10-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** automated gate green (247 files / 3911 tests pass; no newly biome-flagged files). `versionCountsParity` contract moved to `jira.versionsBreakdown.test.ts`. Live UAT (Plan 06 Task 2) pending.
