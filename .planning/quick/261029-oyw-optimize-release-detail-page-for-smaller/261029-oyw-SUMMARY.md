@@ -21,7 +21,14 @@ Tiered container-query columns in the release task table, a CSS-capped side-by-s
 ## Verification
 Full vitest suite (pre-commit), biome on touched files, and tsc all pass on both commits.
 
-## Pending human verification (Task 3)
+## Human verification (Task 3) — APPROVED 2026-10-29
 jsdom cannot evaluate container queries. In `npm run tauri dev`, at about 1440/1280/1100/1024px with and without peek: rows stay one line with a visible summary and no sideways scroll; tiers compact then drop in the order above; sidebar stays beside the content, shrinks on peek open and regrows; dragging the capped handle moves immediately; metadata labels stack and branch/tag truncate with tooltip in a narrow sidebar; breadcrumb truncates the release name.
 
 ## Self-Check: PASSED
+
+## UAT follow-ups (inline, 2026-10-29)
+- 89a879e2 assignee avatar kept at every width (column compacts <860 but never drops)
+- f5cdb6fa task rows + header pl-2 so the 3px peek bar no longer overlaps the key; MR sub-lines/secondary strip pl-4 -> pl-6
+- 6d234b51 compact sidebar: p-3, tighter rhythm, 80px label column, labels Date/Milestone/Branch
+- 12664124 narrower sidebar: default 288 -> 256 (v31 migration moves untouched default only), cap/drag bound 50% -> 40%
+- 6de985b7 (review WR-01) hook min/max mirror the CSS cap
