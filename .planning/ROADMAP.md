@@ -154,7 +154,7 @@ Plans:
 **Goal:** The Releases list is a fast, GitLab-free, fix-version-driven list (Upcoming/Released groups; per row version, RM package, date, one status pill and a small issue graph streamed for visible rows only; instant cached revisits), and the release detail page keeps all its information under a header that echoes the list row (pill, date, package, wide graph, Pin/Edit/Open in Jira), with each figure shown once.
 **Requirements**: TBD
 **Depends on:** Phase 92
-**Plans:** 3/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 
@@ -166,8 +166,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 93-04-PLAN.md — Releases list rebuild: grouped grid, overlay rows, pill, package, streamed graph, paging, Refresh
-- [ ] 93-05-PLAN.md — detail row-echo header with Pin/Edit/Open in Jira, single-source done figure, cached first paint
+- [x] 93-04-PLAN.md — Releases list rebuild: grouped grid, overlay rows, pill, package, streamed graph, paging, Refresh
+- [x] 93-05-PLAN.md — detail row-echo header with Pin/Edit/Open in Jira, single-source done figure, cached first paint
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
