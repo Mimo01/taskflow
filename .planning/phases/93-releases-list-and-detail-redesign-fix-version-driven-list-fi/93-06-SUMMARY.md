@@ -1,7 +1,7 @@
 ---
 phase: 93-releases-list-and-detail-redesign-fix-version-driven-list-fi
 plan: 06
-status: partial-awaiting-uat
+status: uat-issues-reported
 ---
 
 # Phase 93 Plan 06: Phase gate (PARTIAL - Task 1 done, Task 2 live UAT pending)
@@ -31,3 +31,11 @@ status: partial-awaiting-uat
 ## Task 2 (pending)
 
 Live UAT by the user. Record "approved" or verbatim issues here.
+
+### UAT result (2026-10-29)
+
+Functional checks pass. Issue reported verbatim:
+
+> "it works but it is too plain. I was imagining something more interesting"
+
+Not approved. Next step chosen by user: sketch 2-3 throwaway HTML mockups of alternative list designs (e.g. next-release hero, timeline, richer rows) before planning gap closure.
