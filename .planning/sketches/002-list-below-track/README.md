@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "S1f"
+winner: "S1g"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -58,6 +58,13 @@ open .planning/sketches/002-list-below-track/index.html
 - User: "make the releases more separated" + "better match the existing styles of the app".
 - Separation: each release row ends in a hairline `border-b border-border`, rows get py-3 (mini py-2.25), rail blocks get more vertical margin.
 - App tokens (from taskflow/src): compact toolbar header like ReleasesTab (`text-sm font-semibold` title, `text-xs` muted count, "Updated …", text-link Refresh); Card look for track and next-release card (`rounded-xl ring-1 ring-foreground/10`, no shadow); pills = `STATUS_PILL_LAYOUT_CLASS` geometry (rounded 4px, px-1.5 py-0.5, text-xs font-medium, min-w-[5.5rem]) with `CHIP_TONE_CLASS` tints (`bg-X-500/15 text-X-600`, muted = `bg-muted text-muted-foreground`); bars h-1.5 with green-500 / blue-500 segments (as AioCycleList); hover `bg-muted/50`; section labels `text-xs font-semibold` muted with count; month dividers sentence case; uppercase tracking only on the tiny weekday band / kicker (app uses `uppercase tracking-widest text-[10px]`).
+
+## Winner: S1g — compact rows (round 8)
+- User: rows looked off; "why say 15 done twice?"; polish and compact more.
+- Every figure once: next card shows bar + "15/24 done" only; Done / In progress / To do breakdown moved to the bar tooltip.
+- One-line rows: full name, RM package inline as muted text after it, issues slot, team, pill, hover ›; hairline between rows; ~43px row height.
+- Mini date blocks (weekday · day · month, 36px) on every row; only the next release keeps the full block.
+- Next card is two lines: name · package · team · pill, then a thick bar + figure.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
