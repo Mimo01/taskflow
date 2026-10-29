@@ -28,7 +28,11 @@ export function ReleaseIssueGraph({
     return (
       <div data-testid="release-graph" className={wrapper}>
         {loading ? (
-          <Skeleton data-testid="release-graph-skeleton" className="h-3 w-full rounded-full" />
+          <>
+            <Skeleton data-testid="release-graph-skeleton" className="h-2 flex-1 rounded-full" />
+            {/* Reserve the figure slot so the bar does not shift when data arrives. */}
+            {variant === 'list' && <span aria-hidden className="w-12 shrink-0" />}
+          </>
         ) : (
           <span className="text-xs text-muted-foreground">–</span>
         )}
