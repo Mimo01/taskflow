@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { releaseBreakdownSeedKey } from '@/hooks/useReleaseBreakdowns';
+import { useReleasePackages } from '@/hooks/useReleasePackages';
+import type { StatusBreakdown } from '@/lib/release-list';
 import {
   compareRefs,
   createBranch,
@@ -14,7 +17,7 @@ import {
   filterMilestonesToRange,
   searchProjectTags,
 } from '@/services/gitlab';
-import { fetchFixVersionIssues, fetchFixVersions, fetchVersionIssueCounts } from '@/services/jira';
+import { fetchFixVersionIssues, fetchFixVersions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -114,18 +117,6 @@ export function useReleaseDetail(versionId: string | undefined) {
 
   // Find the matching version
   const version = fixVersions?.find((v) => v.id === versionId) ?? null;
-
-  // Fetch issue counts for this version
-  const { data: issueCounts } = useQuery({
-    queryKey: ['jira-version-counts', versionId],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
-      return fetchVersionIssueCounts(jiraBaseUrl, token, versionId);
-    },
-    staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!versionId,
-  });
 
   // Fetch GitLab milestones scoped around this version's release date
   const milestoneWindow = computeMilestoneWindow(version?.releaseDate);
@@ -459,7 +450,12 @@ export function useReleaseDetail(versionId: string | undefined) {
   });
 
   // Fetch Jira issues for this fix version
-  const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
+  const {
+    data: fixVersionIssues,
+    isLoading: isLoadingIssues,
+    isError: isIssuesError,
+    isFetching: isFetchingIssues,
+  } = useQuery({
     queryKey: ['jira-fixversion-issues', versionId, storyPointsFieldKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -468,6 +464,14 @@ export function useReleaseDetail(versionId: string | undefined) {
     },
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!versionId,
+  });
+
+  // Cached per-version breakdown written by the releases list (Plan 02).
+  // Fetch-disabled useQuery so a setQueryData re-renders (reactive cache read).
+  const { data: seedBreakdown } = useQuery<StatusBreakdown | undefined>({
+    queryKey: releaseBreakdownSeedKey(versionId ?? ''),
+    queryFn: () => undefined,
+    enabled: false,
   });
 
   // Channel A's lookback window, derived from the releases the app actually
@@ -627,13 +631,26 @@ export function useReleaseDetail(versionId: string | undefined) {
   const labelCoverage = computeLabelCoverage(releaseMrs);
   const mrStateCounts = computeMrStateCounts(releaseMrs);
   const issueStatusCounts = computeIssueStatusCounts(releaseIssues);
+
+  // Header figure (D-14): the detail's own issues are the single source once
+  // loaded; until then show the list's cached per-version breakdown. Presence
+  // of data (not isLoading) decides, so a disabled query never renders
+  // 'No issues'.
+  const headerBreakdown: StatusBreakdown | undefined = fixVersionIssues
+    ? issueStatusCounts
+    : seedBreakdown;
+  const headerBreakdownLoading = !fixVersionIssues && !seedBreakdown && isFetchingIssues;
+  const headerBreakdownError = !fixVersionIssues && !seedBreakdown && isIssuesError;
+
+  // RM deployment package for the header (single-hook rule, P87 D-07)
+  const pkgs = useReleasePackages({ dates: [version?.releaseDate] });
+  const releasePackage = pkgs.packageFor(version?.releaseDate);
   const storyPoints = computeStoryPoints(releaseIssues, storyPointsFieldKey);
   const hasStoryPoints = computeHasStoryPoints(releaseIssues, storyPointsFieldKey);
 
   return {
     version,
     isLoading,
-    issueCounts,
     milestones,
     milestoneWindow,
     gitlabMatch,
@@ -672,5 +689,11 @@ export function useReleaseDetail(versionId: string | undefined) {
     gitlabBaseUrl,
     activeGitlabProject,
     storyPointsFieldKey,
+    headerBreakdown,
+    headerBreakdownLoading,
+    headerBreakdownError,
+    releasePackage,
+    rmEnabled: pkgs.enabled,
+    rmLoading: pkgs.isLoading,
   } as const;
 }

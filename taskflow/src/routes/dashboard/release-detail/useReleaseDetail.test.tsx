@@ -9,6 +9,10 @@ import type { GitLabMilestone } from '@/services/gitlab';
 import { patchMrInChannelCaches } from './useMrFixMutation';
 import { useReleaseDetail } from './useReleaseDetail';
 
+vi.mock('@/hooks/useReleasePackages', () => ({
+  useReleasePackages: () => ({ enabled: false, isLoading: false, packageFor: () => null }),
+}));
+
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -1148,5 +1152,103 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
 
     const gitlab = await import('@/services/gitlab');
     expect(gitlab.searchProjectTags).not.toHaveBeenCalled();
+  });
+
+  describe('header breakdown (D-14)', () => {
+    const SEED_KEY = ['jira-version-counts', 'breakdown', VERSION_ID];
+    const seed = { done: 2, indeterminate: 1, new: 0 };
+    const makeIssue = (key: string, cat: string) =>
+      ({
+        key,
+        fields: { status: { name: cat, statusCategory: { key: cat } } },
+      }) as unknown as Awaited<
+        ReturnType<typeof import('@/services/jira').fetchFixVersionIssues>
+      >[number];
+    const newClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    it('shows the cached seed while the issues query is pending', async () => {
+      await setupMocks();
+      const jira = await import('@/services/jira');
+      vi.mocked(jira.fetchFixVersionIssues).mockReturnValue(new Promise(() => {}));
+      const queryClient = newClient();
+      queryClient.setQueryData(SEED_KEY, seed);
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(queryClient),
+      });
+      await waitFor(() => expect(result.current.version).not.toBeNull());
+      expect(result.current.headerBreakdown).toEqual(seed);
+      expect(result.current.headerBreakdownLoading).toBe(false);
+    });
+
+    it('is undefined and loading with neither seed nor issues', async () => {
+      await setupMocks();
+      const jira = await import('@/services/jira');
+      vi.mocked(jira.fetchFixVersionIssues).mockReturnValue(new Promise(() => {}));
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(newClient()),
+      });
+      await waitFor(() => expect(result.current.headerBreakdownLoading).toBe(true));
+      expect(result.current.headerBreakdown).toBeUndefined();
+    });
+
+    it("the detail's own issues win over the seed once loaded", async () => {
+      await setupMocks();
+      const jira = await import('@/services/jira');
+      vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+        makeIssue('A-1', 'done'),
+        makeIssue('A-2', 'new'),
+        makeIssue('A-3', 'new'),
+      ]);
+      const queryClient = newClient();
+      queryClient.setQueryData(SEED_KEY, seed);
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(queryClient),
+      });
+      await waitFor(() =>
+        expect(result.current.headerBreakdown).toEqual({ done: 1, indeterminate: 0, new: 2 }),
+      );
+    });
+
+    it('flags an error when issues fail and there is no seed', async () => {
+      await setupMocks();
+      const jira = await import('@/services/jira');
+      vi.mocked(jira.fetchFixVersionIssues).mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(newClient()),
+      });
+      await waitFor(() => expect(result.current.headerBreakdownError).toBe(true));
+      expect(result.current.headerBreakdownLoading).toBe(false);
+      expect(result.current.headerBreakdown).toBeUndefined();
+    });
+
+    it('is not loading when Jira is not configured', async () => {
+      await setupMocks();
+      const auth = await import('@/stores/auth.store');
+      vi.mocked(auth.useAuthStore).mockReturnValue({
+        jiraBaseUrl: null,
+        activeJiraProject: null,
+        gitlabBaseUrl: null,
+        activeGitlabProject: null,
+      } as ReturnType<typeof auth.useAuthStore>);
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(newClient()),
+      });
+      expect(result.current.headerBreakdownLoading).toBe(false);
+      expect(result.current.headerBreakdown).toBeUndefined();
+    });
+
+    it('no longer fires the per-version count query and exposes RM package fields', async () => {
+      await setupMocks();
+      const jira = await import('@/services/jira');
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(newClient()),
+      });
+      await waitFor(() => expect(result.current.version).not.toBeNull());
+      expect(jira.fetchVersionIssueCounts).not.toHaveBeenCalled();
+      expect('issueCounts' in result.current).toBe(false);
+      expect(result.current.rmEnabled).toBe(false);
+      expect(result.current.rmLoading).toBe(false);
+      expect(result.current.releasePackage).toBeNull();
+    });
   });
 });
