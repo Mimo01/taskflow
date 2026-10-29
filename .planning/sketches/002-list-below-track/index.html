@@ -253,6 +253,75 @@
   .s1-break .railcol { position: relative; height: 22px; }
   .s1-break .lbl { font-size: 12px; font-weight: 600; color: var(--muted-foreground); padding: 16px 0 4px 10px; }
 
+
+  /* ── S1e polish ── */
+  .pol-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .pol-head h1 { font-size: 22px; font-weight: 650; letter-spacing: -.015em; margin: 0; }
+  .pol-sum { margin-top: 3px; font-size: 13px; color: var(--muted-foreground); display: flex; gap: 6px; flex-wrap: wrap; }
+  .pol-sum b { color: var(--foreground); font-weight: 600; } .pol-sum .late { color: var(--red-fg); font-weight: 600; }
+  .pol-sum .sep { opacity: .5; }
+  .btn.icon { padding: 2px 8px; line-height: 1.2; }
+  .pol-track { border-radius: 14px; padding: 10px 16px 6px; box-shadow: 0 1px 2px rgb(0 0 0 / .04); }
+  .pol-range { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 12px; color: var(--muted-foreground); }
+  .pol-range span { margin-right: 4px; font-variant-numeric: tabular-nums; }
+  .pol-track .tl-today { border-left: 1.5px solid var(--foreground); opacity: 1; }
+  .pol-track .tl-today span { top: -18px !important; left: 0 !important; transform: translateX(-50%); bottom: auto !important; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 99px; background: var(--foreground); color: var(--background); }
+  .pol-track .tl-late { opacity: .35; height: 2px; }
+  .pol-track .tl-chip { border-radius: 9px; transition: border-color .15s, box-shadow .15s; }
+  .pol-track .tl-chip:hover { box-shadow: 0 2px 8px rgb(0 0 0 / .08); }
+  .pol-track .tl-grid { border-left-color: color-mix(in oklch, var(--border) 70%, transparent); }
+  .pol-track .tl-undated { border-right-color: var(--border); }
+
+  .pol-rail { margin-top: 18px; }
+  .pr { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; }
+  .pr .rc { position: relative; display: flex; justify-content: center; }
+  .pr .rc::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .pr.first .rc::before { top: 22px; } .pr.last .rc::before { bottom: calc(100% - 22px); }
+  .pr .cal { position: relative; margin: 7px 0; height: fit-content; box-shadow: 0 0 0 3px var(--background); }
+  .pr.mini .cal { width: 36px; margin: 4px 0; } .pr.mini .cal .wd { font-size: 8px; padding: 1px 0; } .pr.mini .cal .dd { font-size: 13px; line-height: 1.3; } .pr.mini .cal .mo { display: none; }
+  .pr.next .cal { margin-top: 16px; box-shadow: 0 0 0 3px var(--background), 0 0 0 4.5px var(--foreground); }
+  .prow { display: flex; align-items: center; gap: 14px; padding: 9px 12px; margin: 2px 0; border-radius: 10px; cursor: pointer; position: relative; min-width: 0; transition: background .12s; }
+  .prow:hover { background: var(--muted); }
+  .prow .t { flex: 1 1 auto; min-width: 0; }
+  .prow .nm { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prow .sub { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+  .prow .is { width: 180px; flex: none; display: flex; align-items: center; gap: 8px; }
+  .prow .tm { width: 70px; flex: none; display: flex; justify-content: flex-end; }
+  .prow .pl { width: 104px; flex: none; display: flex; justify-content: flex-end; }
+  .prow .chev { width: 12px; flex: none; color: var(--muted-foreground); opacity: 0; transition: opacity .12s; font-size: 15px; }
+  .prow:hover .chev { opacity: 1; }
+  .pr.mini .prow { padding-top: 5px; padding-bottom: 5px; }
+  .pr.mini .prow .nm { font-weight: 400; }
+  .pr.past .prow .nm { color: var(--muted-foreground); font-weight: 400; }
+  .pcard { flex-direction: column; align-items: stretch; gap: 9px; padding: 14px 16px; margin: 8px 0; border: 1px solid var(--border); background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 6px 16px -8px rgb(0 0 0 / .12); }
+  .pcard:hover { background: var(--card); border-color: color-mix(in oklch, var(--muted-foreground) 60%, var(--border)); }
+  .pcard .kick { font-size: 10.5px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); }
+  .pcard .r1 { display: flex; align-items: center; gap: 12px; }
+  .pcard .r1 .nm { flex: 1 1 auto; font-size: 15.5px; font-weight: 600; letter-spacing: -.005em; }
+  .pcard .r2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted-foreground); margin-top: -4px; }
+  .pcard .r3 { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+  .pcard .r3 .figure { min-width: 70px; text-align: right; }
+  .pcard .r4 { font-size: 12px; color: var(--muted-foreground); }
+  .pcard .r4 b { color: var(--foreground); font-weight: 600; }
+  .pcard .chev { position: absolute; right: 12px; top: 14px; }
+  .plabel { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; }
+  .plabel .rc { position: relative; } .plabel .rc::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .plabel.gap .rc::before { display: none; }
+  .plabel .tx { font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); padding: 12px 12px 4px; display: flex; gap: 6px; }
+  .plabel .tx .n { font-weight: 500; letter-spacing: 0; text-transform: none; opacity: .8; }
+  .plabel.month .tx { padding: 10px 12px 2px; font-size: 11px; }
+  .ptoday { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; align-items: center; height: 30px; }
+  .ptoday .rc { position: relative; height: 100%; } .ptoday .rc::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .ptoday .rc::after { content: 'Today'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; background: var(--foreground); color: var(--background); }
+  .ptoday .ln { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted-foreground); }
+  .ptoday .ln::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .pmore { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; padding: 6px 0 4px; }
+  .pmore button { justify-self: start; font: inherit; font-size: 12.5px; color: var(--muted-foreground); background: none; border: 0; padding: 4px 12px; border-radius: 8px; cursor: pointer; }
+  .pmore button:hover { background: var(--muted); color: var(--foreground); }
+  .narrow .prow .tm, .narrow .prow .sub { display: none; }
+  .narrow .prow .is { width: 110px; } .narrow .prow .pl { width: 96px; }
+  .narrow .pcard .r2 .avatars { display: none; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -299,7 +368,8 @@
   <button class="variant-tab" data-v="s1a">S1a: 15 planned — window + condensed</button>
   <button class="variant-tab" data-v="s1b">S1b: 15 planned — dots + collapsed</button>
   <button class="variant-tab" data-v="s1c">S1c: one rail</button>
-  <button class="variant-tab active" data-v="s1d">S1d: released last ★</button>
+  <button class="variant-tab" data-v="s1d">S1d: released last</button>
+  <button class="variant-tab active" data-v="s1e">S1e: polished ★</button>
 </div>
 
 <div id="frame">
@@ -429,11 +499,24 @@
     <div id="s1c"></div>
   </section>
 
-  <section id="variant-s1d" class="variant active">
+  <section id="variant-s1d" class="variant">
     <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
     <div class="note">S1d — one rail that starts with what matters: overdue → TODAY → next → planned → No date. The 3 most recent released versions sit at the very bottom (newest first, compact green blocks), then "Show older releases"; the latest released also stays on the track.</div>
     <div class="track-slot-s1d"></div>
     <div id="s1d"></div>
+  </section>
+
+  <section id="variant-s1e" class="variant active pol">
+    <div class="pol-head">
+      <div><h1>Releases</h1><div class="pol-sum" id="s1e-sum"></div></div>
+      <button class="btn">↻ Refresh</button>
+    </div>
+    <div class="note">S1e — S1d polished: summary in the page header, quieter track chrome, month dividers on the rail, week-based countdowns beyond two weeks, a tidier next-release card, hover chevron with no layout shift, counted section labels.</div>
+    <div class="timeline pol-track">
+      <div class="pol-range"><span id="s1e-range"></span><button class="btn icon" id="s1e-prev">‹</button><button class="btn icon" id="s1e-next">›</button></div>
+      <div class="tl-body"><div class="tl-undated"><div class="lbl">No date</div><div id="s1e-undated"></div></div><div class="tl-track" id="s1e-track" style="height:168px;margin:6px 0 14px"></div></div>
+    </div>
+    <div id="s1e" class="pol-rail"></div>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -922,6 +1005,53 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     document.getElementById('s1d').innerHTML = html;
   }
 
+  // S1e: polished S1d
+  {
+    const cd = r => {
+      const n = days(r);
+      if (n === null) return ['t-amber', 'No date'];
+      if (n < 0) return ['t-red', `${-n} ${-n === 1 ? 'day' : 'days'} late`];
+      if (n === 0) return ['t-blue', 'Today'];
+      if (n === 1) return ['t-muted', 'Tomorrow'];
+      if (n < 14) return ['t-muted', `In ${n} days`];
+      return ['t-muted', `In ${Math.round(n / 7)} weeks`];
+    };
+    const pill = (r, rel) => { const [c, l] = rel ? ['t-green', 'Released'] : cd(r); return `<span class="pill ${c}">${l}</span>`; };
+    const kind = r => rel2.includes(r) ? 'past' : !r.date ? 'undated' : days(r) < 0 ? 'late' : r === nxt[0] ? 'next' : '';
+    const calE = r => cal(r).replace(/class="cal [a-z]*"/, `class="cal ${kind(r)}"`);
+    const chev = '<span class="chev">›</span>';
+    const row = (r, mini, cls = '') => {
+      const k = kind(r), rel = k === 'past';
+      if (k === 'next') return `<div class="pr next ${cls}"><div class="rc">${calE(r)}</div><div class="prow pcard" title="${r.n}">
+        <div class="kick">Next release</div>
+        <div class="r1"><span class="nm">${r.n}</span>${pill(r)}</div>
+        <div class="r2"><span>${r.pkg ? pkgText(r) : 'No RM package'}</span>${av(r.team)}</div>
+        <div class="r3">${bar(r, 'thick')}<span class="figure">${fig(r)} done</span></div>
+        <div class="r4"><b>${r.d}</b> done · ${r.p} in progress · ${r.t} to do</div>${chev}</div></div>`;
+      return `<div class="pr ${k} ${mini ? 'mini' : ''} ${cls}"><div class="rc">${calE(r)}</div><div class="prow" title="${r.n}">
+        <div class="t"><div class="nm">${r.n}</div>${r.pkg && !mini ? `<div class="sub">${pkgText(r)}</div>` : ''}</div>
+        <span class="is">${issuesCell(r)}</span><span class="tm">${rel ? '' : av(r.team)}</span><span class="pl">${pill(r, rel)}</span>${chev}</div></div>`;
+    };
+    const label = (t, n, cls = '') => `<div class="plabel ${cls}"><div class="rc"></div><div class="tx">${t}${n !== undefined ? `<span class="n">${n}</span>` : ''}</div></div>`;
+    const monthName = d => { const x = new Date(d); return x.toLocaleDateString('en-GB', { month: 'long' }) + (x.getFullYear() !== 2026 ? ' ' + x.getFullYear() : ''); };
+    const datedUp = plan.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
+    let html = ''; let today = false; let lastMonth = null;
+    datedUp.forEach((r, i) => {
+      if (!today && days(r) >= 0) { html += `<div class="ptoday"><div class="rc"></div><div class="ln">Thu 29 Oct</div></div>`; today = true; lastMonth = monthName('2026-10-29'); }
+      const m = monthName(r.date);
+      if (today && m !== lastMonth) { html += label(m, undefined, 'month'); lastMonth = m; }
+      const mini = days(r) >= 0 && !near.has(r) && !(r.d + r.p > 0);
+      html += row(r, mini, i === 0 ? 'first' : '');
+    });
+    const und = plan.filter(r => !r.date);
+    if (und.length) html += label('No date', und.length) + und.map(r => row(r, false)).join('');
+    html += label('Released', `${rel2.length} recent`) + rel2.map((r, i) => row(r, true, i === rel2.length - 1 ? 'last' : '')).join('');
+    html += `<div class="pmore"><div></div><button>Show older releases ↓</button></div>`;
+    document.getElementById('s1e').innerHTML = html;
+    const late = plan.filter(r => r.date && days(r) < 0).length;
+    document.getElementById('s1e-sum').innerHTML = `<span><b>${plan.length}</b> upcoming</span><span class="sep">·</span><span class="late">${late} overdue</span><span class="sep">·</span><span>next <b>${fmtD(nxt[0].date)}</b></span>`;
+  }
+
   // Track renderer (shared)
   const drawTrack = (el, list, start, end, chipFor) => {
     el.innerHTML = '';
@@ -975,6 +1105,9 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
   document.getElementById('s1a-prev').onclick = () => { off = Math.max(0, off - 1); drawA(); };
   document.getElementById('s1a-next').onclick = () => { off = Math.min(3, off + 1); drawA(); };
   drawA();
+  { let offE = 0; const drawE = () => { const st0 = new Date(document.getElementById('frame').classList.contains('narrow') ? '2026-10-17' : '2026-10-08'); st0.setDate(st0.getDate() + offE * 28); const narrow = document.getElementById('frame').classList.contains('narrow'); const en = new Date(st0); en.setDate(en.getDate() + (narrow ? 30 : 58)); const el = document.getElementById('s1e-track'); const later = drawTrack(el, dated, st0, en, () => true); document.getElementById('s1e-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}${later ? ` · +${later} later` : ''}`; };
+    document.getElementById('s1e-prev').onclick = () => { offE = Math.max(0, offE - 1); drawE(); }; document.getElementById('s1e-next').onclick = () => { offE = Math.min(3, offE + 1); drawE(); }; drawE(); window.redrawE = drawE;
+    document.getElementById('s1e-undated').innerHTML = document.getElementById('s1a-undated').innerHTML; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
     const drawC = () => { const st0 = new Date('2026-10-08'); st0.setDate(st0.getDate() + offC * 28); const en = new Date(st0); en.setDate(en.getDate() + 58); const el = document.getElementById('s1c-track'); const later = drawTrack(el, dated, st0, en, () => true); if (later) el.insertAdjacentHTML('beforeend', `<div class="tl-more">+${later} later →</div>`); document.getElementById('s1c-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}`; };
@@ -1005,6 +1138,7 @@ document.getElementById('t-theme').onclick = () => {
 document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
   const f = document.getElementById('frame'); f.style.maxWidth = b.dataset.w + 'px';
   f.classList.toggle('narrow', +b.dataset.w <= 700);
+  if (window.redrawE) requestAnimationFrame(() => window.redrawE());
 });
 document.getElementById('t-annot').onclick = () => document.body.classList.toggle('annot');
 </script>

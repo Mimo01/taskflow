@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "S1d"
+winner: "S1e"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -44,6 +44,14 @@ open .planning/sketches/002-list-below-track/index.html
 - User: released are the least important; don't put them on top.
 - Rail starts at the overdue release → TODAY → next (raised card) → next+1 → condensed planned → "No date".
 - Released at the very bottom: the 3 most recent shown (newest first, compact rows with green date blocks), then "Show older releases ↓" (user: "show some released, do not hide all"); the last released version stays on the track as a green chip.
+
+## Winner: S1e — polished S1d (round 6)
+- Page header carries the summary (`18 upcoming · 1 overdue · next Tue 03 Nov`); track loses its "Release track" title.
+- Track: TODAY pill label on a thin line, softer late trail, range label `08 Oct – 05 Dec · +10 later` with ‹ ›; 8-week window wide, 4-week window starting just before the overdue release at ≤700px; redraws on resize.
+- Rail: month dividers (NOVEMBER, DECEMBER, JANUARY 2027…) after TODAY; countdown pill switches to weeks from 14 days ("In 3 weeks"); "N days late" / "Tomorrow" / "Today".
+- Next-release card: kicker, name + pill on one line, package + team on the next, thick bar + "15/24 done", breakdown text.
+- Rows: hover background + trailing › in a fixed slot (no layout shift); counted section labels ("NO DATE 1", "RELEASED 3 recent"); "Show older releases ↓".
+- Checked in light, dark and 640px.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
