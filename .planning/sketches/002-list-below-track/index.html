@@ -721,15 +721,8 @@
   .f5 .tl-chip.next { box-shadow: none; border-color: var(--orange); }
   .f5 .tl-chip.next .k { color: var(--orange-fg); }
   /* rail dots */
-  .f5 .ag-item .dot { background: var(--background); border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); width: 12px; height: 12px; box-sizing: border-box; }
-  .f5 .ag-item.late .dot { border-color: var(--red-fg); }
-  .f5 .ag-item.undated .dot { border-color: var(--amber-fg); border-style: dashed; }
-  .f5 .ag-item.next .dot { background: var(--orange); border-color: var(--orange); width: 13px; height: 13px; }
-  .f5 .ag-item.next .ag-rail::after { content: ''; position: absolute; left: 50%; top: 24px; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--orange); }
-  .f5 .ag-item.f5-after .ag-rail::after { content: ''; position: absolute; left: 50%; top: 0; height: 16px; width: 2px; transform: translateX(-50%); background: var(--orange); }
-  .f5 .ag-item.q .dot { width: 10px; height: 10px; background: var(--background); border: 2px solid color-mix(in srgb, var(--muted-foreground) 40%, transparent); top: 11px; }
   .f5 .ag-card { position: relative; overflow: hidden; border: 0; box-shadow: 0 0 0 1px var(--ring); border-radius: 12px; }
-  .f5 .ag-card:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--orange) 55%, transparent); }
+  .f5 .ag-card:hover { box-shadow: 0 0 0 1px var(--muted-foreground); }
   .f5 .ag-card .kicker { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: color-mix(in srgb, var(--muted-foreground) 70%, transparent); }
   .f5 .ag-card .f4-rocket { width: 72px; height: 72px; top: -14px; right: -10px; }
   .f5 .ag-card .l1, .f5 .ag-card .l2, .f5 .ag-card .l3b { position: relative; }
@@ -761,18 +754,11 @@
   .f5 .tl-dot.f5-rel { background: var(--done) !important; width: 12px !important; height: 12px !important; border: 0 !important; box-sizing: border-box; box-shadow: 0 0 0 2px var(--card); padding: 0 !important; }
   .f5 .tl-chip.next { border-color: var(--foreground); }
   .f5 .tl-chip.next .k { color: var(--muted-foreground); }
-  .f5 .ag-item .dot { background: var(--background) !important; }
-  .f5 .ag-item.next .dot { border-color: var(--foreground); }
-  .f5 .ag-item.next .ag-rail::after, .f5 .ag-item.f5-after .ag-rail::after { display: none; }
-  .f5 .f5-past .ag-rail::before, .f5 .f5-past.ag-mo .r::before { background: var(--orange); }
-  .f5 .f5-past.ag-today .mark::before { background: var(--orange); }
-  .f5 .f5-reach .ag-rail::before { background: linear-gradient(to bottom, var(--orange) 0 28px, var(--border) 28px); }
   .f5 .ag-card:hover { box-shadow: 0 0 0 1px var(--muted-foreground); }
 
 
   /* F5 round 5: graph axis is plain (no coloured line, no circles); colour + circles live on the list rail */
   .f5 .pol-track .f5-passed { display: none; }
-  .f5 .f1-rail .ag-item .dot { display: block; }
 
 
   /* F5 round 4: one column system for "bar" rows and "to do" rows */
