@@ -27,6 +27,7 @@ open .planning/sketches/002-list-below-track/index.html
 ## Winner: S1 (blocks on rail)
 - User liked L1 and S1; chose calendar blocks on the rail and stacked rows (package beneath name).
 - Added L1's "NEXT RELEASE" kicker to S1's raised next-release card.
+- Released coloured green (user): green weekday band on released date blocks, green outline/tint on the released chip on the track; released rows no longer faded.
 - Final list anatomy: A4 release-date track on top → Upcoming rail (undated first, overdue, TODAY badge, next card, later releases) → Released rail, faded.
 
 ## What to Look For

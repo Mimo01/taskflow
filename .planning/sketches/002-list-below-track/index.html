@@ -88,7 +88,8 @@
 
   /* refinement round (A1/A2) */
   .tl-grid { position: absolute; top: 0; bottom: 18px; width: 0; border-left: 1px dashed var(--border); }
-  .tl-chip.past { opacity: .55; }
+  .tl-chip.past { border-color: var(--green-fg); background: var(--green-bg); }
+  .tl-chip.past .n { color: var(--green-fg); }
   .tl-chip.late { border-color: var(--red-fg); }
   .tl-chip .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted-foreground); }
   .weeks { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
@@ -182,6 +183,8 @@
   .cal .mo { font-size: 9.5px; color: var(--muted-foreground); margin-top: -3px; padding-bottom: 2px; }
   .cal.late .wd { background: var(--red-bg); color: var(--red-fg); } .cal.next .wd { background: var(--foreground); color: var(--background); }
   .cal.undated .wd { background: var(--amber-bg); color: var(--amber-fg); }
+  .cal.past .wd { background: var(--green-bg); color: var(--green-fg); }
+  .cal.past { border-color: color-mix(in oklch, var(--green-fg) 35%, var(--border)); }
   .db .txt { flex: 1 1 auto; min-width: 0; }
   .db .txt .nm { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .db .txt .pk { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
@@ -190,7 +193,7 @@
   .db .pl { width: 100px; flex: none; display: flex; justify-content: flex-end; }
   .db.next { border-color: var(--border); background: var(--card); box-shadow: 0 2px 8px rgb(0 0 0 / .07); padding: 12px 12px; margin: 6px 0; }
   .db.next .txt .nm { font-size: 15px; font-weight: 600; }
-  .db.past { opacity: .7; }
+  .db.past .txt .nm { color: var(--muted-foreground); }
   .sec-label { font-size: 12px; font-weight: 600; color: var(--muted-foreground); padding: 14px 10px 6px; }
   .narrow .ag-body .pk, .narrow .wg-row .tm, .narrow .db .tm, .narrow .wg-h .r { display: none; }
   .narrow .wg-row .st, .narrow .db .st { width: 120px; }
