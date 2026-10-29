@@ -792,6 +792,14 @@ export function preprocessJiraMarkup(
   // unaffected because it does not match the \{\{\[...\]\}\} pattern.
   result = result.replace(/\{\{(\[[^\]]*\])\}\}/g, '$1');
 
+  // wiki-mono-leading-space: Jira only opens monospace when `{{` is directly
+  // followed by non-whitespace — `{{ text}}` renders as literal text, braces and
+  // all. jira2md's `\{\{([^}]+)\}\}` accepts any content, so neutralise such an
+  // opener to `&#123;&#123;` (decoded back to `{{` in prose). Only a plain
+  // space/tab disqualifies: `\s` would also match a non-breaking space, which
+  // Jira treats as content (`{{  x}}` IS monospace).
+  result = result.replace(/\{\{(?=[ \t])/g, '&#123;&#123;');
+
   // Underscores inside {{monospace}}: jira2md applies its `_text_` → `*text*` italic rule
   // inside the {{...}} span before emitting the backtick code span, so
   // `{{HW_SALE_FIX}}` renders as `HW*SALE*FIX` (and the Jira escape `\_` leaves a stray
@@ -1283,6 +1291,40 @@ type HastElement = {
 };
 
 /**
+ * wiki-mono-entities: rehype plugin that decodes the entities preprocessJiraMarkup
+ * injects (the raw-source `& < >` HTML escape, plus the `&#43;` / `&#33;`
+ * neutralisers) back to literal characters inside INLINE `<code>` only.
+ *
+ * Prose entities are decoded by the markdown parser, but jira2md turns `{{...}}`
+ * into a backtick code span and markdown never decodes entities inside code
+ * spans — so `{{<TAG>}}` rendered as the literal text `&lt;TAG&gt;`. Code inside
+ * `<pre>` is skipped: {code}/{noformat} bodies are extracted before the escape and
+ * restored verbatim, so decoding them would corrupt a literal `&lt;` the user typed.
+ * The result stays a text node (React re-escapes it), so nothing becomes markup.
+ * `&amp;` is decoded last so an escaped `&amp;lt;` yields `&lt;`, not `<`.
+ */
+function rehypeDecodeInlineCodeEntities() {
+  return (tree: HastElement) => {
+    visit(
+      tree,
+      'element',
+      (node: HastElement, _index: number | undefined, parent: HastElement | undefined) => {
+        if (node.tagName !== 'code' || parent?.tagName === 'pre') return;
+        for (const child of node.children) {
+          if (child.type !== 'text') continue;
+          child.value = child.value
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&#43;/g, '+')
+            .replace(/&#33;/g, '!')
+            .replace(/&amp;/g, '&');
+        }
+      },
+    );
+  };
+}
+
+/**
  * Quick task 260610-fnk (D-02/D-04/D-05): rehype plugin that linkifies bare
  * active-project issue keys in prose text nodes.
  *
@@ -1747,6 +1789,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           // (so text nodes are present) and BEFORE sanitize (so the emitted
           // <issuekeylink> elements are kept by the allowlist).
           rehypeIssueKeys(activeJiraProject),
+          rehypeDecodeInlineCodeEntities,
           [rehypeSanitize, wikiSanitizeSchema],
         ]}
         components={markdownComponents}

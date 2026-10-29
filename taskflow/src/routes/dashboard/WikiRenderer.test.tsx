@@ -2660,5 +2660,43 @@ After quote`;
         unmount();
       }
     });
+
+    it('wiki-mono-entities: <, >, &, + and ! inside {{monospace}} render literally, not as entities', () => {
+      // The raw-source HTML escape (& < > → entities) and the `+`/`!` entity
+      // neutralisers run before jira2md turns {{...}} into a code span, and
+      // markdown never decodes entities inside code spans — so `<TAG>` used to
+      // render as the literal text `&lt;TAG&gt;`.
+      for (const [src, want] of [
+        ['{{<ROOT attr = "x"/>}}', '<ROOT attr = "x"/>'],
+        ['{{<A>v</A>}}', '<A>v</A>'],
+        ['{{a & b}}', 'a & b'],
+        ['{{&lt;}}', '&lt;'],
+        ['{{a+b}}', 'a+b'],
+        ['{{a\\+b}}', 'a+b'],
+        ['{{wow!!}}', 'wow!!'],
+      ]) {
+        const { container, unmount } = render(<WikiRenderer wikiText={src} />);
+        expect(container.querySelector('code')?.textContent).toBe(want);
+        unmount();
+      }
+    });
+
+    it('wiki-mono-leading-space: {{ text}} with a plain space after {{ stays literal (Jira parity)', () => {
+      // Jira only opens monospace when `{{` is followed by non-whitespace; a
+      // non-breaking space (\u00a0) still counts as content.
+      const { container } = render(
+        <WikiRenderer wikiText={'{{\u00a0 <A>}}\n{{ <B>v</B>}}\n{{\t<C/>}}'} />,
+      );
+      const codes = container.querySelectorAll('code');
+      expect(codes).toHaveLength(1);
+      expect(codes[0]?.textContent).toBe('\u00a0 <A>');
+      expect(container.textContent).toContain('{{ <B>v</B>}}');
+      expect(container.textContent).toContain('{{\t<C/>}}');
+    });
+
+    it('wiki-mono-entities: {code} block bodies are not decoded', () => {
+      const { container } = render(<WikiRenderer wikiText={'{code}\na &lt; b\n{code}'} />);
+      expect(container.querySelector('pre code')?.textContent).toContain('a &lt; b');
+    });
   });
 });
