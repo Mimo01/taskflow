@@ -1,6 +1,5 @@
 import {
   AlertTriangle,
-  Calendar,
   Check,
   ExternalLink,
   GitBranch,
@@ -311,25 +310,6 @@ export function ReleaseDetailSidebar({
             Edit
           </Button>
         </div>
-
-        <MetaRow label="Status">
-          {version.released ? (
-            <Badge tone="green">Released</Badge>
-          ) : (
-            <Badge tone="amber">Unreleased</Badge>
-          )}
-        </MetaRow>
-
-        <MetaRow label="Date">
-          {version.releaseDate ? (
-            <span className="flex items-center gap-1.5">
-              <Calendar className="size-3 text-muted-foreground shrink-0" />
-              {version.releaseDate}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">Not set</span>
-          )}
-        </MetaRow>
 
         <MetaRow label="Milestone">
           {gitlabMatch.type === 'exact' ? (

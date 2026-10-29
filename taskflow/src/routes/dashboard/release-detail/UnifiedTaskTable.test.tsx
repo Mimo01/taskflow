@@ -126,7 +126,6 @@ function renderWithClient(
 /** Default props builder — every `it` supplies only the fields it cares about. */
 function defaultProps(overrides: Partial<UnifiedTaskTableProps> = {}): UnifiedTaskTableProps {
   return {
-    issueCounts: undefined,
     versionName: '33.5.0',
     hasReleaseDate: true,
     isLoadingIssues: false,
@@ -1586,14 +1585,14 @@ describe('D-13: secondary table', () => {
 });
 
 describe('D-14/D-15: header', () => {
-  it('the done badge and both br/ms flagged badges render, showing the passed per-category counts', () => {
+  it('both br/ms flagged badges render with no done badge or progress bar, showing the passed per-category counts', () => {
     renderSection({
-      issueCounts: { issuesFixed: 4, issuesTotal: 6 },
       flaggedMrCount: 3,
       brFlaggedCount: 2,
       msFlaggedCount: 1,
     });
-    expect(screen.getByText('4 / 6 done')).toBeInTheDocument();
+    expect(screen.queryByText(/ done$/)).toBeNull();
+    expect(screen.queryByRole('progressbar')).toBeNull();
     expect(screen.getByTestId('flagged-br-badge')).toHaveTextContent('2');
     expect(screen.getByTestId('flagged-ms-badge')).toHaveTextContent('1');
     expect(screen.queryByTestId('flagged-count-badge')).toBeNull();

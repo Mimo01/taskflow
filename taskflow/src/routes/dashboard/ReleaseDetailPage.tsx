@@ -64,7 +64,6 @@ export default function ReleaseDetailPage() {
   const {
     version,
     isLoading,
-    issueCounts,
     gitlabMatch,
     matchedMilestone,
     branchState,
@@ -271,7 +270,6 @@ export default function ReleaseDetailPage() {
                   otherwise carry over from the previous release. */}
               <UnifiedTaskTable
                 key={versionId}
-                issueCounts={issueCounts}
                 versionName={version.name}
                 hasReleaseDate={!!version.releaseDate}
                 isLoadingIssues={isLoadingIssues}
