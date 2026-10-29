@@ -71,6 +71,12 @@ open .planning/sketches/002-list-below-track/index.html
 - S1e look kept (stacked name + package, S1e pills/typography, next-release card).
 - Fixes carried over: next card shows "15/24 done" once (breakdown only in the bar tooltip); releases separated by an inset hairline with slightly more row padding; mini blocks keep the month.
 
+## Round 10 — planned-release row styles (on S1h)
+User: "i dont like the style of upcoming releases" (the planned rows after next+1).
+- **U1: quiet list** — dot on the rail, text date, name, "8 to do · in 12 days" muted; no block, no pill.
+- **U2: month grid** — planned releases as small cards in a grid under each month (date + countdown, name, count + team).
+- **U3: mini cards** — each planned release its own separated card with the mini date block inside.
+
 ## What to Look For
 - Which reads as a nice overview, not a table
 - How clearly the next release stands out without a second "hero" widget

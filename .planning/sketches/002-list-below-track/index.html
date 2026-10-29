@@ -425,6 +425,41 @@
   .hh .pr.mini .cal { margin: 6px 0; }
   .hh .pr.next .cal { margin-top: 18px; }
 
+
+  /* ── U1/U2/U3 planned-row styles ── */
+  .uv .pr.planned { display: none; }
+  /* U1 quiet list */
+  .u1q { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; }
+  .u1q .rc { position: relative; } .u1q .rc::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .u1q .rc::after { content: ''; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--muted-foreground); box-shadow: 0 0 0 3px var(--background); }
+  .u1q .ln { display: flex; align-items: center; gap: 14px; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
+  .u1q .ln:hover { background: var(--muted); }
+  .u1q .d { width: 74px; flex: none; color: var(--muted-foreground); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .u1q .n { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .u1q .m { flex: none; color: var(--muted-foreground); font-size: 12.5px; white-space: nowrap; }
+  .u1q .m b { font-weight: 500; color: var(--foreground); }
+  /* U2 month grid */
+  .u2g { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; }
+  .u2g .rc { position: relative; } .u2g .rc::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .u2g .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; padding: 4px 0 6px; }
+  .u2g .c { border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; background: var(--card); transition: border-color .15s; }
+  .u2g .c:hover { border-color: var(--muted-foreground); }
+  .u2g .c .d { font-size: 11.5px; color: var(--muted-foreground); font-weight: 500; display: flex; justify-content: space-between; }
+  .u2g .c .n { font-size: 13px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .u2g .c .m { font-size: 12px; color: var(--muted-foreground); display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+  /* U3 mini cards */
+  .u3c { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; }
+  .u3c .rc { position: relative; } .u3c .rc::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .u3c .rc::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 2px; transform: translateY(-50%); background: var(--border); }
+  .u3c .card { display: flex; align-items: center; gap: 12px; margin: 4px 0; padding: 7px 12px 7px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); cursor: pointer; transition: border-color .15s; }
+  .u3c .card:hover { border-color: var(--muted-foreground); }
+  .u3c .card .cal { width: 38px; flex: none; }
+  .u3c .card .cal .wd { font-size: 8px; padding: 1px 0; } .u3c .card .cal .dd { font-size: 13px; line-height: 1.2; } .u3c .card .cal .mo { font-size: 8.5px; line-height: 1.1; padding-bottom: 2px; }
+  .u3c .card .n { flex: 1 1 auto; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .u3c .card .is { width: 90px; flex: none; font-size: 12.5px; color: var(--muted-foreground); }
+  .u3c .card .tm { width: 64px; flex: none; display: flex; justify-content: flex-end; }
+  .u3c .card .pl { width: 100px; flex: none; display: flex; justify-content: flex-end; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -475,7 +510,10 @@
   <button class="variant-tab" data-v="s1e">S1e: polished</button>
   <button class="variant-tab" data-v="s1f">S1f: app style</button>
   <button class="variant-tab" data-v="s1g">S1g: compact rows</button>
-  <button class="variant-tab active" data-v="s1h">S1h: from S1e ★</button>
+  <button class="variant-tab" data-v="s1h">S1h: from S1e</button>
+  <button class="variant-tab active" data-v="u1">U1: quiet list</button>
+  <button class="variant-tab" data-v="u2">U2: month grid</button>
+  <button class="variant-tab" data-v="u3">U3: mini cards</button>
 </div>
 
 <div id="frame">
@@ -638,10 +676,14 @@
     <div id="s1g" class="pol-rail cg"></div>
   </section>
 
-  <section id="variant-s1h" class="variant active pol hh">
+  <section id="variant-s1h" class="variant pol hh">
     <div class="note">S1h — branched from S1e. Same look; two fixes only: the next-release card shows "15/24 done" once (breakdown lives in the bar tooltip), and releases are separated by an inset hairline with a touch more padding.</div>
     <div id="s1h-slot"></div>
   </section>
+
+  <section id="variant-u1" class="variant active pol hh uv u1"><div class="note">U1 — planned releases (after next+1) as a quiet list: small dot on the rail, date as text, name, "8 to do · in 12 days" in plain muted text, no pill or block.</div><div class="uslot"></div></section>
+  <section id="variant-u2" class="variant pol hh uv u2"><div class="note">U2 — planned releases become small cards in a grid under each month: date, name, issue count and countdown.</div><div class="uslot"></div></section>
+  <section id="variant-u3" class="variant pol hh uv u3"><div class="note">U3 — each planned release is its own small separated card with the date block inside, echoing the next-release card at a smaller scale.</div><div class="uslot"></div></section>
 
   <!-- ───────── Variant A2 ───────── -->
   <section id="variant-a2" class="variant">
@@ -1279,6 +1321,28 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     { const c = src.querySelector('.pol-track').cloneNode(true); c.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1e', 's1g')); document.getElementById('s1g-track-slot').appendChild(c); }
     { const sh = document.getElementById('s1h-slot');
       [src.querySelector('.pol-head'), src.querySelector('.pol-track'), src.querySelector('#s1e')].forEach(n => { const c = n.cloneNode(true); c.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1e', 's1h')); if (c.id) c.id = c.id.replace('s1e', 's1h'); sh.appendChild(c); }); }
+    { // U1-U3: start from S1h, restyle planned rows (mini, not released)
+      const base = document.getElementById('s1h-slot');
+      document.querySelectorAll('.uv').forEach(sec => {
+        const slot = sec.querySelector('.uslot'); slot.appendChild(base.cloneNode(true)); slot.firstChild.removeAttribute('id');
+        const rail = slot.querySelector('.pol-rail');
+        const planned = [...rail.querySelectorAll('.pr.mini:not(.past)')];
+        const info = el => ({ name: el.querySelector('.nm').textContent, wd: el.querySelector('.cal .wd').textContent, dd: el.querySelector('.cal .dd').textContent, mo: el.querySelector('.cal .mo').textContent,
+          is: el.querySelector('.is').textContent.trim(), av: el.querySelector('.tm').innerHTML, pill: el.querySelector('.pl').innerHTML, cd: el.querySelector('.pl .pill').textContent, calHtml: el.querySelector('.cal').outerHTML });
+        if (sec.classList.contains('u1')) planned.forEach(el => { const i = info(el); el.insertAdjacentHTML('beforebegin', `<div class="u1q"><div class="rc"></div><div class="ln" title="${i.name}"><span class="d">${i.wd[0] + i.wd.slice(1).toLowerCase()} ${i.dd} ${i.mo}</span><span class="n">${i.name}</span><span class="m"><b>${i.is}</b> · ${i.cd.toLowerCase()}</span></div></div>`); el.classList.add('planned'); });
+        if (sec.classList.contains('u3')) planned.forEach(el => { const i = info(el); el.insertAdjacentHTML('beforebegin', `<div class="u3c"><div class="rc"></div><div class="card" title="${i.name}">${i.calHtml}<span class="n">${i.name}</span><span class="is">${i.is}</span><span class="tm">${i.av}</span><span class="pl">${i.pill}</span></div></div>`); el.classList.add('planned'); });
+        if (sec.classList.contains('u2')) {
+          let grid = null;
+          planned.forEach(el => {
+            const i = info(el);
+            const prev = el.previousElementSibling;
+            if (!grid || !(prev && (prev.classList.contains('planned') || prev.classList.contains('u2g')))) { el.insertAdjacentHTML('beforebegin', '<div class="u2g"><div class="rc"></div><div class="grid"></div></div>'); grid = el.previousElementSibling.querySelector('.grid'); }
+            grid.insertAdjacentHTML('beforeend', `<div class="c" title="${i.name}"><div class="d"><span>${i.wd[0] + i.wd.slice(1).toLowerCase()} ${i.dd} ${i.mo}</span><span>${i.cd}</span></div><div class="n">${i.name}</div><div class="m"><span>${i.is}</span>${i.av}</div></div>`);
+            el.classList.add('planned');
+          });
+        }
+      });
+    }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
