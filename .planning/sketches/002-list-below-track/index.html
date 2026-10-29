@@ -768,6 +768,13 @@
   .f5 .f5-reach .ag-rail::before { background: linear-gradient(to bottom, var(--orange) 0 28px, var(--border) 28px); }
   .f5 .ag-card:hover { box-shadow: 0 0 0 1px var(--muted-foreground); }
 
+
+  /* F5 round 3: list rail is plain — no coloured line, no circles */
+  .f5 .f1-rail .ag-item .dot { display: none; }
+  .f5 .f1-rail .f5-past .ag-rail::before, .f5 .f1-rail .f5-past.ag-mo .r::before, .f5 .f1-rail .f5-past.ag-today .mark::before { background: var(--border); }
+  .f5 .f1-rail .f5-reach .ag-rail::before { background: var(--border); }
+  .f5 .f1-rail .ag-today .mark::after { background: var(--muted-foreground); }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }

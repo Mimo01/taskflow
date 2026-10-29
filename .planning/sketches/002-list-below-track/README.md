@@ -115,6 +115,7 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - Released moved out of the timeline into its own muted panel (green "RELEASED · 3 most recent" header, date · name · ✓ N done, Show older).
 - Title = F4 compact dashboard hero.
 - Round 16 (user: "this design is the best"): track icon removed; hero stat strip removed; orange marks progress up to the closest release — track axis orange from window start to the next release's dot, rail line orange from the top down to the next release's dot; dots: filled (green) = released, hollow ring = not released (dark ring for next, red ring for overdue, grey for planned); late trail removed; other orange accents neutralised.
+- Round 17: orange line runs up to the closest release (not just Today); list rail simplified — plain grey line, no orange, no circles (user: "simplify the styles in the graph legend, do not color lines or add circles there"); the graph keeps orange + filled/hollow dots.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
