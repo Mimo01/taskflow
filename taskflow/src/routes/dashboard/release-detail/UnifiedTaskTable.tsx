@@ -379,7 +379,7 @@ function DriftActionCell({
  */
 function ColumnHeaderStrip() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 bg-muted/30">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pl-2 py-1 density-compact:py-0.5 density-comfortable:py-2 bg-muted/30">
       <span className={COL_ICON} aria-hidden="true" />
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Summary</span>
@@ -404,15 +404,15 @@ function ColumnHeaderStrip() {
 /**
  * The SECONDARY (uncovered-MRs) table's header strip (WR-06).
  *
- * A secondary row is an `MrSubLine`: `pl-4` + Key + the MR title + BR + MS.
+ * A secondary row is an `MrSubLine`: `pl-6` + Key + the MR title + BR + MS.
  * It renders no Assignee, Status or MR cell, so labelling those columns —
  * which the shared `ColumnHeaderStrip` did — put three headings over the
- * middle of the title text. The `pl-4` here matches the row's own indent so
+ * middle of the title text. The `pl-6` here matches the row's own indent so
  * the "Key" label sits over the key cell rather than 16px to its left.
  */
 function SecondaryHeaderStrip() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 pl-4 bg-muted/30">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 pl-6 bg-muted/30">
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Merge request</span>
       <span
@@ -501,7 +501,7 @@ function MrSubLine({
     <div
       data-testid="drift-row"
       title={`${mr.author.name} — ${mr.state}`}
-      className={`group/row pl-4 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
+      className={`group/row pl-6 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
     >
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
       <span className={`${COL_SUMMARY} truncate`}>
@@ -873,7 +873,9 @@ function TaskRow({
       data-testid="task-row"
       data-peeked={isPeeked ? 'true' : undefined}
       className={cn(
-        'group/row relative flex items-center gap-2 text-sm py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/40',
+        // pl-2 keeps the first cell clear of the 3px inset peek bar (the icon cell
+        // drops at narrow widths, which would otherwise put the key under it).
+        'group/row relative flex items-center gap-2 text-sm pl-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 hover:bg-muted/40',
         isPeeked && PEEKED_ROW_CLASS,
       )}
     >
