@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sketch 002 — List below the track</title>
+<link rel="stylesheet" href="../themes/default.css" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding-top: 52px; font-family: var(--font-sans); font-size: 14px; background: var(--background); color: var(--foreground); }
+  #variant-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px; background: var(--background); border-bottom: 1px solid var(--border); }
+  .variant-tab { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); cursor: pointer; }
+  .variant-tab.active { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+  #frame { margin: 0 auto; padding: 20px 24px 80px; max-width: 1100px; transition: max-width .2s; }
+  .variant { display: none; } .variant.active { display: block; }
+
+  /* page chrome shared by variants */
+  .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .page-head h1 { font-size: 20px; font-weight: 600; margin: 0; }
+  .btn { font: inherit; font-size: 13px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  .group-label { display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted-foreground); padding: 14px 0 6px; }
+  .group-label .n { font-weight: 400; }
+  .muted { color: var(--muted-foreground); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* pills */
+  .pill { display: inline-flex; justify-content: center; min-width: 84px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .t-red { background: var(--red-bg); color: var(--red-fg); } .t-amber { background: var(--amber-bg); color: var(--amber-fg); }
+  .t-blue { background: var(--blue-bg); color: var(--blue-fg); } .t-green { background: var(--green-bg); color: var(--green-fg); }
+  .t-muted { background: var(--gray-bg); color: var(--gray-fg); }
+
+  /* segmented bar */
+  .bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--todo); flex: 1; min-width: 60px; }
+  .bar.thin { height: 6px; } .bar.thick { height: 10px; }
+  .bar > .d { background: var(--done); } .bar > .p { background: var(--progress); }
+  .figure { font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* badges */
+  .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; padding: 1px 6px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted-foreground); white-space: nowrap; }
+  .badge.blocked { border-color: transparent; background: var(--red-bg); color: var(--red-fg); }
+  .badge.cost { border-style: dashed; }
+  .avatars { display: inline-flex; flex: none; }
+  .avatars span { width: 22px; height: 22px; border-radius: 50%; margin-left: -4px; border: 2px solid var(--background); background: var(--muted); color: var(--muted-foreground); font-size: 9px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .avatars span:first-child { margin-left: 0; }
+
+  /* countdown */
+  .count { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12.5px; }
+  .count.late { color: var(--red-fg); font-weight: 600; }
+  .count.today { color: var(--blue-fg); font-weight: 600; }
+
+  /* rich rows (A + C) */
+  .rows { border-top: 1px solid var(--border); }
+  .row { display: grid; align-items: center; gap: 14px; padding: 9px 10px; border-bottom: 1px solid var(--border); position: relative; cursor: pointer; }
+  .row:hover { background: var(--muted); }
+  .row.accent::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 3px; background: var(--red-fg); }
+  .row.accent.amber::before { background: var(--amber-fg); }
+  .row .name { font-weight: 500; }
+  .hdr { display: grid; gap: 14px; padding: 6px 10px; font-size: 12px; color: var(--muted-foreground); }
+  .grid-c { grid-template-columns: minmax(130px,1.2fr) 140px 100px 64px minmax(150px,1.2fr) 230px; }
+  .grid-a { grid-template-columns: minmax(130px,1.4fr) 140px 64px minmax(170px,1.4fr) 110px 100px; }
+  .grid-rel { grid-template-columns: minmax(140px,1.6fr) 150px 110px 92px minmax(120px,1fr); }
+  .cell-issues { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .cell-meta { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+
+  /* timeline (A) */
+  .timeline { position: relative; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px 10px; margin-bottom: 8px; background: var(--card); }
+  .tl-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .tl-top .title { font-size: 13px; font-weight: 600; }
+  .tl-body { display: flex; gap: 14px; }
+  .tl-undated { width: 120px; flex: none; border-right: 1px dashed var(--border); padding-right: 12px; }
+  .tl-undated .lbl { font-size: 11px; color: var(--muted-foreground); margin-bottom: 6px; }
+  .tl-track { position: relative; flex: 1; height: 132px; }
+  .tl-axis { position: absolute; left: 0; right: 0; bottom: 18px; height: 1px; background: var(--border); }
+  .tl-tick { position: absolute; bottom: 0; font-size: 11px; color: var(--muted-foreground); transform: translateX(-50%); }
+  .tl-tick::before { content: ''; position: absolute; left: 50%; bottom: 17px; height: 5px; width: 1px; background: var(--border); }
+  .tl-today { position: absolute; top: 0; bottom: 18px; width: 0; border-left: 2px solid var(--foreground); opacity: .7; }
+  .tl-today span { position: absolute; bottom: -16px; left: -16px; background: var(--card); padding: 0 3px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+  .tl-late { position: absolute; bottom: 18px; height: 3px; background: var(--red-fg); opacity: .5; }
+  .tl-item { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+  .tl-item .stem { width: 1px; background: var(--border); }
+  .tl-chip { display: flex; flex-direction: column; gap: 3px; padding: 4px 7px; border-radius: 8px; border: 1px solid var(--border); background: var(--background); min-width: 92px; max-width: 98px; }
+  .tl-chip:hover { border-color: var(--muted-foreground); }
+  .tl-chip .bar { flex: none; width: 100%; }
+  .tl-chip .n { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 82px; }
+  .kind { font-size: 11px; font-weight: 500; color: var(--muted-foreground); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+  .tl-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--background); }
+
+  /* refinement round (A1/A2) */
+  .tl-grid { position: absolute; top: 0; bottom: 18px; width: 0; border-left: 1px dashed var(--border); }
+  .tl-chip.past { opacity: .55; }
+  .tl-chip.late { border-color: var(--red-fg); }
+  .tl-chip .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted-foreground); }
+  .weeks { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+  .week { border: 1px solid var(--border); border-radius: 10px; padding: 8px 9px 9px; min-height: 96px; display: flex; flex-direction: column; gap: 6px; background: var(--background); }
+  .week .wk { font-size: 11px; color: var(--muted-foreground); display: flex; justify-content: space-between; }
+  .week.now { border-style: solid; border-color: var(--foreground); box-shadow: 0 0 0 1px var(--foreground) inset; }
+  .week.now .wk b { color: var(--foreground); }
+  .week.empty { border-style: dashed; background: transparent; }
+  .week.empty .slot { margin: auto; font-size: 11.5px; color: var(--muted-foreground); }
+  .week.past { opacity: .6; }
+  .week.now.empty { border-style: solid; }
+  .week .rel { display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
+  .week .rel .bar { flex: none; width: 100%; }
+  .week .rel .n { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .week .rel .meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted-foreground); gap: 4px; }
+  .week.late { border-color: var(--red-fg); }
+  .week.late .meta .l { color: var(--red-fg); font-weight: 600; }
+  .narrow .weeks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .narrow .weeks .week.past { display: none; }
+
+  .grid-a3 { grid-template-columns: minmax(220px,2fr) 120px 92px minmax(150px,1.2fr) 100px 100px; }
+  .narrow .grid-a3 { grid-template-columns: minmax(140px,1fr) 80px minmax(100px,1fr) 92px; }
+  .tl-tick.low { bottom: -14px; }
+  .tl-tick.low::before { height: 19px; bottom: 15px; }
+  .tl-tick.today-tick { font-weight: 600; color: var(--foreground); }
+
+  .tl-chip.next { min-width: 0; width: 104px; max-width: 104px; padding: 5px 8px; border-color: var(--foreground); box-shadow: 0 1px 4px rgb(0 0 0 / .08); }
+  .tl-chip.next .n { max-width: 88px; font-size: 12.5px; }
+  .tl-chip .k { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); }
+  .tl-chip.plain { min-width: 0; padding: 3px 7px; }
+  .tl-chip.plain .meta { margin-top: 0; }
+  .issues-text { font-size: 12.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .issues-text.done { color: var(--green-fg); }
+
+
+  /* ── Sketch 002: list below the track ── */
+  .track-slot .timeline { margin-bottom: 18px; }
+  /* L1 agenda rail */
+  .agenda { position: relative; }
+  .ag-sec { font-size: 12px; font-weight: 600; color: var(--muted-foreground); margin: 14px 0 4px 96px; }
+  .ag-item { display: grid; grid-template-columns: 72px 24px 1fr; align-items: stretch; min-height: 40px; }
+  .ag-date { text-align: right; padding: 10px 0 0; font-size: 12.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ag-date b { color: var(--foreground); font-weight: 600; }
+  .ag-rail { position: relative; }
+  .ag-rail::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .ag-item:first-child .ag-rail::before { top: 16px; } .ag-item:last-child .ag-rail::before { bottom: calc(100% - 16px); }
+  .ag-rail .dot { position: absolute; left: 50%; top: 13px; width: 10px; height: 10px; border-radius: 50%; transform: translateX(-50%); background: var(--muted-foreground); border: 2px solid var(--background); box-sizing: content-box; }
+  .ag-item.late .dot { background: var(--red-fg); } .ag-item.past .dot { background: var(--done); } .ag-item.undated .dot { background: var(--amber-fg); }
+  .ag-item.next .dot { background: var(--foreground); width: 12px; height: 12px; top: 14px; }
+  .ag-body { display: flex; align-items: center; gap: 12px; padding: 7px 10px; margin: 2px 0; border-radius: 8px; cursor: pointer; min-width: 0; }
+  .ag-body:hover { background: var(--muted); }
+  .ag-body .nm { font-weight: 500; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ag-body .pk { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+  .ag-body .st { width: 150px; flex: none; display: flex; align-items: center; gap: 8px; }
+  .ag-item.past .ag-body .nm { color: var(--muted-foreground); font-weight: 400; }
+  .ag-card { flex-direction: column; align-items: stretch; gap: 10px; border: 1px solid var(--border); background: var(--card); padding: 12px 14px; margin: 6px 0; box-shadow: 0 1px 3px rgb(0 0 0 / .06); }
+  .ag-card:hover { background: var(--card); border-color: var(--muted-foreground); }
+  .ag-card .l1 { display: flex; align-items: center; gap: 10px; }
+  .ag-card .l1 .nm { font-size: 15px; font-weight: 600; }
+  .ag-card .kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted-foreground); }
+  .ag-card .l3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted-foreground); }
+  .ag-today { display: grid; grid-template-columns: 72px 24px 1fr; align-items: center; height: 26px; }
+  .ag-today span:first-child { text-align: right; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .ag-today .bar-line { height: 2px; background: var(--foreground); opacity: .7; }
+  .ag-today .mark { position: relative; height: 100%; } .ag-today .mark::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .ag-today .mark::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 2px; transform: translate(-50%, -50%); background: var(--foreground); }
+  /* L2 week groups */
+  .wg { margin-bottom: 14px; }
+  .wg-h { display: flex; align-items: baseline; gap: 10px; padding: 6px 10px; }
+  .wg-h .w { font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+  .wg-h .r { font-size: 12px; color: var(--muted-foreground); }
+  .wg-h .k { margin-left: auto; }
+  .wg-h.past .w { color: var(--muted-foreground); }
+  .wg-h.now .w::after { content: 'This week'; margin-left: 8px; font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 99px; background: var(--foreground); color: var(--background); }
+  .wg-row { display: flex; align-items: center; gap: 14px; padding: 9px 10px; border-radius: 10px; cursor: pointer; }
+  .wg-row:hover { background: var(--muted); }
+  .wg-row .dt { width: 78px; flex: none; font-size: 12.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .wg-row .nm { flex: 1 1 auto; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wg-row .st { width: 190px; flex: none; display: flex; align-items: center; gap: 8px; }
+  .wg-row .tm { width: 76px; flex: none; display: flex; justify-content: flex-end; }
+  .wg-row .pl { width: 100px; flex: none; display: flex; justify-content: flex-end; }
+  .wg-row.next { background: var(--muted); }
+  .wg-row.past .nm { color: var(--muted-foreground); font-weight: 400; }
+  /* L3 date blocks */
+  .db { display: flex; align-items: center; gap: 14px; padding: 8px 10px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
+  .db:hover { background: var(--muted); }
+  .db + .db { margin-top: 2px; }
+  .cal { width: 46px; flex: none; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; text-align: center; background: var(--background); }
+  .cal .wd { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 0; background: var(--muted); color: var(--muted-foreground); }
+  .cal .dd { font-size: 17px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+  .cal .mo { font-size: 9.5px; color: var(--muted-foreground); margin-top: -3px; padding-bottom: 2px; }
+  .cal.late .wd { background: var(--red-bg); color: var(--red-fg); } .cal.next .wd { background: var(--foreground); color: var(--background); }
+  .cal.undated .wd { background: var(--amber-bg); color: var(--amber-fg); }
+  .db .txt { flex: 1 1 auto; min-width: 0; }
+  .db .txt .nm { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .db .txt .pk { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+  .db .st { width: 190px; flex: none; display: flex; align-items: center; gap: 8px; }
+  .db .tm { width: 76px; flex: none; display: flex; justify-content: flex-end; }
+  .db .pl { width: 100px; flex: none; display: flex; justify-content: flex-end; }
+  .db.next { border-color: var(--border); background: var(--card); box-shadow: 0 2px 8px rgb(0 0 0 / .07); padding: 12px 12px; margin: 6px 0; }
+  .db.next .txt .nm { font-size: 15px; font-weight: 600; }
+  .db.past { opacity: .7; }
+  .sec-label { font-size: 12px; font-weight: 600; color: var(--muted-foreground); padding: 14px 10px 6px; }
+  .narrow .ag-body .pk, .narrow .wg-row .tm, .narrow .db .tm, .narrow .wg-h .r { display: none; }
+  .narrow .wg-row .st, .narrow .db .st { width: 120px; }
+
+
+  /* S1 blocks on rail */
+  .db .kick { display: none; font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 2px; }
+  .s1-item .db .kick { display: block; }
+  .s1-item { display: grid; grid-template-columns: 48px 1fr; gap: 14px; position: relative; }
+  .s1-item .railcol { position: relative; display: flex; justify-content: center; }
+  .s1-item .railcol::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .s1-list > .s1-item:first-child .railcol::before { top: 20px; }
+  .s1-list > .s1-item:last-child .railcol::before { bottom: calc(100% - 20px); }
+  .s1-item .railcol .cal { position: relative; margin: 6px 0; height: fit-content; }
+  .s1-item .db { padding-left: 4px; }
+  .s1-item .db .cal { display: none; }
+  .s1-item.next .railcol .cal { margin-top: 14px; box-shadow: 0 0 0 3px var(--background), 0 0 0 4px var(--foreground); }
+  .s1-today { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: center; height: 28px; }
+  .s1-today .railcol { position: relative; height: 100%; } .s1-today .railcol::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .s1-today .railcol::after { content: 'TODAY'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 9.5px; font-weight: 700; letter-spacing: .06em; padding: 1px 5px; border-radius: 4px; background: var(--foreground); color: var(--background); }
+  .s1-today .ln { height: 1px; background: var(--border); position: relative; }
+  .s1-today .ln span { position: absolute; left: 0; top: -9px; background: var(--background); padding-right: 8px; font-size: 11.5px; color: var(--muted-foreground); }
+  /* S2 stacked rows on slim rail */
+  .ag-body .txt { flex: 1 1 auto; min-width: 0; }
+  .ag-body .txt .nm { display: block; }
+  .ag-body .txt .pk2 { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+  .ag-item.s2 { min-height: 52px; }
+  .ag-item.s2 .ag-date { padding-top: 12px; }
+  .ag-item.s2 .dot { top: 16px; }
+
+  /* tiles (B) */
+  .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
+  .summary b { color: var(--foreground); font-weight: 600; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .tile { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--card); display: flex; flex-direction: column; gap: 10px; cursor: pointer; position: relative; overflow: hidden; transition: border-color .15s, transform .15s; }
+  .tile:hover { border-color: var(--muted-foreground); transform: translateY(-1px); }
+  .tile.late { border-top: 3px solid var(--red-fg); } .tile.today { border-top: 3px solid var(--blue-fg); } .tile.undated { border-top: 3px solid var(--amber-fg); }
+  .tile .top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .tile .nm { font-weight: 600; font-size: 15px; }
+  .tile .big { font-size: 22px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tile .big.late { color: var(--red-fg); } .tile .big.today { color: var(--blue-fg); }
+  .tile .sub { font-size: 12px; color: var(--muted-foreground); }
+  .tile .breakdown { display: flex; gap: 10px; white-space: nowrap; font-size: 12px; color: var(--muted-foreground); }
+  .tile .foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 9px; margin-top: auto; }
+
+  /* tooltip */
+  #tip { position: fixed; z-index: 60; pointer-events: none; background: var(--foreground); color: var(--background); border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.55; display: none; min-width: 140px; }
+  #tip .r { display: flex; justify-content: space-between; gap: 14px; }
+
+  /* annotations */
+  .note { display: none; font-size: 11.5px; color: #a16207; background: #fefce8; border: 1px dashed #facc15; border-radius: 6px; padding: 6px 9px; margin: 8px 0; }
+  body.annot .note { display: block; }
+
+  /* narrow */
+  .narrow .hide-narrow { display: none !important; }
+  .narrow .grid-c { grid-template-columns: minmax(120px,1fr) 92px minmax(120px,1fr) 86px; }
+  .narrow .grid-a { grid-template-columns: minmax(120px,1fr) 100px minmax(110px,1fr) 92px; }
+  .narrow .grid-rel { grid-template-columns: minmax(120px,1fr) 92px minmax(100px,1fr); }
+  .narrow .tl-undated { display: none; }
+
+  #sketch-tools { position: fixed; bottom: 12px; right: 12px; z-index: 70; font-family: system-ui; font-size: 12px; background: rgba(0,0,0,.75); color: #fff; padding: 8px 10px; border-radius: 8px; opacity: .45; transition: opacity .2s; display: flex; gap: 6px; align-items: center; }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools button { font: inherit; background: #333; color: #fff; border: 1px solid #555; border-radius: 5px; padding: 3px 7px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="variant-nav">
+  <button class="variant-tab" data-v="a4">Current: A4 table</button>
+  <button class="variant-tab active" data-v="l1">L1: Agenda rail</button>
+  <button class="variant-tab" data-v="l2">L2: Week groups</button>
+  <button class="variant-tab" data-v="l3">L3: Date blocks</button>
+  <button class="variant-tab" data-v="s1">S1: Blocks on rail ★</button>
+  <button class="variant-tab" data-v="s2">S2: Rail + stacked rows</button>
+</div>
+
+<div id="frame">
+  <!-- ───────── Variant A ───────── -->
+  <section id="variant-a" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">A — Time is the primary axis. Upcoming releases sit on a 6-week track with a today line; overdue ones trail a red "late" segment back to their due date. The list below carries the detail. Hover any chip or bar for the ≤4-row tooltip.</div>
+    <div class="timeline">
+      <div class="tl-top"><span class="title">Next 4 weeks</span><span class="muted" style="font-size:12px">6 upcoming · 1 overdue · 1 due today</span></div>
+      <div class="tl-body">
+        <div class="tl-undated"><div class="lbl">No date</div><div id="a-undated"></div></div>
+        <div class="tl-track" id="a-track"></div>
+      </div>
+    </div>
+    <div class="hdr grid-a"><span>Version</span><span class="hide-narrow">Package</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Team</span><span>Status</span></div>
+    <div class="group-label">Upcoming <span class="n">6</span></div>
+    <div class="rows" id="a-up"></div>
+    <div class="group-label">Released <span class="n">4</span></div>
+    <div class="rows" id="a-rel"></div>
+  </section>
+
+  <!-- ───────── Variant A1 ───────── -->
+  <section id="variant-a1" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">A1 — A refined: the axis is gridded on Tuesdays (the usual weekly release day), so on-cadence releases land on a line and one-per-week means a single lane, no stacking. The last two released versions stay on the track, faded, to show the rhythm. Blocked badges removed; Jira issues only, no MR data.</div>
+    <div class="timeline">
+      <div class="tl-top"><span class="title">Release track</span><span class="muted" style="font-size:12px">5 upcoming · 1 overdue · next Tue 03 Nov</span></div>
+      <div class="tl-body">
+        <div class="tl-undated"><div class="lbl">No date</div><div id="a1-undated"></div></div>
+        <div class="tl-track" id="a1-track" style="height:120px;margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="hdr grid-a"><span>Version</span><span class="hide-narrow">Package</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Team</span><span>Status</span></div>
+    <div class="group-label">Upcoming <span class="n">7</span></div>
+    <div class="rows" id="a1-up"></div>
+    <div class="group-label">Released <span class="n">3</span></div>
+    <div class="rows" id="a1-rel"></div>
+  </section>
+
+  <!-- ───────── Variant A3 ───────── -->
+  <section id="variant-a3" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">A3 — A1's track, but gridlines and labels sit on the actual release dates (weekday shown), not a fixed Tuesday grid. Weekly cadence still reads as even spacing; an off-cadence hotfix gets its own line and drops to a second lane when it is close to the previous release. Rows show the full fix-version name.</div>
+    <div class="timeline">
+      <div class="tl-top"><span class="title">Release track</span><span class="muted" style="font-size:12px">6 upcoming · 1 overdue · next Tue 03 Nov</span></div>
+      <div class="tl-body">
+        <div class="tl-undated"><div class="lbl">No date</div><div id="a3-undated"></div></div>
+        <div class="tl-track" id="a3-track" style="height:136px;margin:12px 0 14px"></div>
+      </div>
+    </div>
+    <div class="hdr grid-a3"><span>Version</span><span class="hide-narrow">Package</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Team</span><span>Status</span></div>
+    <div class="group-label">Upcoming <span class="n">7</span></div>
+    <div class="rows" id="a3-up"></div>
+    <div class="group-label">Released <span class="n">3</span></div>
+    <div class="rows" id="a3-rel"></div>
+  </section>
+
+  <!-- ───────── Variant A4 ───────── -->
+  <section id="variant-a4" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">A4 — A3 with realistic progress: usually only the next release has work started, released ones are all done, and releases 2+ ahead have nothing started. Bars appear only where work has started; everything else is a one-word count in the same fixed slot. The next release is the emphasised chip on the track.</div>
+    <div class="timeline">
+      <div class="tl-top"><span class="title">Release track</span><span class="muted" style="font-size:12px">6 upcoming · 1 overdue · next Tue 03 Nov</span></div>
+      <div class="tl-body">
+        <div class="tl-undated"><div class="lbl">No date</div><div id="a4-undated"></div></div>
+        <div class="tl-track" id="a4-track" style="height:150px;margin:12px 0 14px"></div>
+      </div>
+    </div>
+    <div class="hdr grid-a3"><span>Version</span><span class="hide-narrow">Package</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Team</span><span>Status</span></div>
+    <div class="group-label">Upcoming <span class="n">7</span></div>
+    <div class="rows" id="a4-up"></div>
+    <div class="group-label">Released <span class="n">3</span></div>
+    <div class="rows" id="a4-rel"></div>
+  </section>
+
+
+  <section id="variant-l1" class="variant active">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">L1 — The list becomes a vertical agenda that mirrors the horizontal track: date on the left, a connecting rail with status dots, a "Today" marker between overdue and next. The next release opens into a card with the full breakdown; everything else is one quiet line. Released fades below.</div>
+    <div class="track-slot"></div>
+    <div class="agenda" id="l1"></div>
+  </section>
+  <section id="variant-l2" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">L2 — Releases grouped under their release-management week (the RM package becomes the group header, so it is not repeated per row). Soft rows, no column header, no gridlines; the next release row is tinted and carries the bar. Releases with no RM package fall into their calendar week with a "no RM package" hint.</div>
+    <div class="track-slot"></div>
+    <div id="l2"></div>
+  </section>
+  <section id="variant-l3" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">L3 — Each release gets a calendar date block (weekday band + day number) with the full name and package stacked beside it. The next release is a raised card with the bar and breakdown; the rest are flat. Status pill and team on the right.</div>
+    <div class="track-slot"></div>
+    <div id="l3"></div>
+  </section>
+  <section id="variant-s1" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">S1 — L1 + L3: the calendar date blocks sit on the agenda rail and the rail connects them; a TODAY marker splits overdue from next. Next release is the raised card (bar + breakdown); others show name with package beneath; released fades.</div>
+    <div class="track-slot"></div>
+    <div id="s1"></div>
+  </section>
+  <section id="variant-s2" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">S2 — L1's slim rail (date text + status dots) with L3's stacked rows (name, package beneath) and L3's raised next-release card.</div>
+    <div class="track-slot"></div>
+    <div class="agenda" id="s2"></div>
+  </section>
+
+  <!-- ───────── Variant A2 ───────── -->
+  <section id="variant-a2" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">A2 — The track becomes week slots anchored on Tuesdays: one card per week, the current week outlined, past weeks faded. A week with no release shows a dashed empty slot, so a broken cadence is visible. An overdue release stays in its own week with a red outline and "N days late".</div>
+    <div class="timeline">
+      <div class="tl-top"><span class="title">Weekly releases</span><span class="muted" style="font-size:12px">5 upcoming · 1 overdue · 1 undated</span></div>
+      <div class="weeks" id="a2-weeks"></div>
+    </div>
+    <div class="hdr grid-a"><span>Version</span><span class="hide-narrow">Package</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Team</span><span>Status</span></div>
+    <div class="group-label">Upcoming <span class="n">7</span></div>
+    <div class="rows" id="a2-up"></div>
+    <div class="group-label">Released <span class="n">3</span></div>
+    <div class="rows" id="a2-rel"></div>
+  </section>
+
+  <!-- ───────── Variant B ───────── -->
+  <section id="variant-b" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="summary"><span><b>6</b> upcoming</span><span><b style="color:var(--red-fg)">1</b> overdue</span><span><b>2</b> blocked issues</span><span><b>79</b> / 121 issues done</span></div>
+    <div class="note">B — Upcoming releases become tiles: the countdown is the headline, the segmented bar is large, and blockers / team / package sit in the footer. A top border carries the status colour for late / today / undated. Released stays a compact one-line list.</div>
+    <div class="group-label">Upcoming <span class="n">6</span></div>
+    <div class="tiles" id="b-tiles"></div>
+    <div class="group-label" style="padding-top:22px">Released <span class="n">4</span></div>
+    <div class="hdr grid-rel"><span>Version</span><span class="hide-narrow">Package</span><span>Released</span><span class="hide-narrow">Status</span><span>Issues</span></div>
+    <div class="rows" id="b-rel"></div>
+  </section>
+
+  <!-- ───────── Variant C ───────── -->
+  <section id="variant-c" class="variant">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">C — Path of least resistance: the shipped grid, but every row says more. Countdown replaces the bare date, the bar is segmented and wider, blockers / team are inline, and overdue or undated rows get a left accent stripe. The dashed "MRs" badge is the only GitLab-backed element — it would bring GitLab back into the list load.</div>
+    <div class="hdr grid-c"><span>Version</span><span class="hide-narrow">Package</span><span>Status</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Blockers · Team</span></div>
+    <div class="group-label">Upcoming <span class="n">6</span></div>
+    <div class="rows" id="c-up"></div>
+    <div class="group-label">Released <span class="n">4</span></div>
+    <div class="rows" id="c-rel"></div>
+  </section>
+</div>
+
+<div id="tip"></div>
+
+<div id="sketch-tools">
+  <button id="t-theme">◐ Theme</button>
+  <button data-w="640">640</button><button data-w="1100">1100</button><button data-w="1400">Full</button>
+  <button id="t-annot">✎ Notes</button>
+</div>
+
+<script>
+// Placeholder data — today is 2026-10-29
+const TODAY = new Date('2026-10-29');
+const up = [
+  { n: 'Platform 4.12', date: null, d: 10, p: 4, t: 3, blk: 1, pkg: null, team: ['MK','JN','AP'], mr: 2 },
+  { n: 'Mobile 2.3', date: '2026-10-20', d: 18, p: 2, t: 0, blk: 1, pkg: ['Week 44 2026','RM-12'], team: ['LB','MK'], mr: 3 },
+  { n: 'Mobile 2.4', date: '2026-10-29', d: 22, p: 1, t: 1, blk: 0, pkg: ['Week 44 2026', null], team: ['LB','TS','RV'], mr: 1 },
+  { n: 'Web 7.1', date: '2026-10-30', d: 6, p: 5, t: 6, blk: 0, pkg: null, team: ['JN','AP','DK','EH'], mr: 4 },
+  { n: 'API 3.0', date: '2026-11-06', d: 9, p: 8, t: 13, blk: 0, pkg: ['Week 45 2026','RM-14'], team: ['RV'], mr: 0 },
+  { n: 'Web 7.2', date: '2026-11-20', d: 0, p: 1, t: 12, blk: 0, pkg: null, team: ['DK','EH'], mr: 0 },
+];
+const rel = [
+  { n: 'Web 7.0', date: '2026-10-01', d: 25, p: 0, t: 0, pkg: ['Week 40 2026','RM-9'] },
+  { n: 'Mobile 2.2', date: '2026-09-28', d: 14, p: 0, t: 0, pkg: ['Week 39 2026','RM-8'] },
+  { n: 'API 2.9', date: '2026-09-15', d: 31, p: 0, t: 0, pkg: null },
+  { n: 'Web 6.9', date: '2026-09-10', d: 0, p: 0, t: 0, pkg: null },
+];
+const days = r => r.date ? Math.round((new Date(r.date) - TODAY) / 864e5) : null;
+const pill = (r, released) => {
+  if (released) return ['t-green', 'Released'];
+  const n = days(r);
+  if (n === null) return ['t-amber', 'No date'];
+  if (n < 0) return ['t-red', `${-n} days late`];
+  if (n === 0) return ['t-blue', 'Due today'];
+  return ['t-muted', `In ${n} ${n === 1 ? 'day' : 'days'}`];
+};
+const countdown = r => {
+  const n = days(r);
+  if (n === null) return ['', 'No date'];
+  if (n < 0) return ['late', `${-n} days late`];
+  if (n === 0) return ['today', 'Today'];
+  return ['', n === 1 ? 'Tomorrow' : `in ${n} days`];
+};
+const fmt = s => s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '–';
+const total = r => r.d + r.p + r.t;
+const bar = (r, cls = '') => {
+  const tt = total(r);
+  if (!tt) return `<div class="bar ${cls}"></div>`;
+  return `<div class="bar ${cls}" data-tip='${JSON.stringify([r.d, r.p, r.t])}'><div class="d" style="width:${r.d / tt * 100}%"></div><div class="p" style="width:${r.p / tt * 100}%"></div></div>`;
+};
+const fig = r => total(r) ? `${r.d}/${total(r)}` : 'No issues';
+const pkg = r => r.pkg ? `<span class="nowrap">${r.pkg[0]}${r.pkg[1] ? ` <span class="mono muted">${r.pkg[1]}</span>` : ''}</span>` : '<span class="muted">–</span>';
+const av = t => `<span class="avatars">${t.slice(0, 3).map(i => `<span>${i}</span>`).join('')}${t.length > 3 ? `<span>+${t.length - 3}</span>` : ''}</span>`;
+const blk = r => r.blk ? `<span class="badge blocked">⛔ ${r.blk} blocked</span>` : '';
+const health = r => {
+  const n = days(r);
+  if (n === null) return ['t-amber', 'No date'];
+  if (n < 0) return ['t-red', 'Overdue'];
+  if (n <= 3 && r.d / total(r) < 0.8) return ['t-amber', 'At risk'];
+  return ['t-muted', 'On track'];
+};
+const hp = r => { const [c, l] = health(r); return `<span class="pill ${c}">${l}</span>`; };
+const pl = (r, rel) => { const [c, l] = pill(r, rel); return `<span class="pill ${c}">${l}</span>`; };
+
+// Variant A
+const tStart = new Date('2026-10-15'), tEnd = new Date('2026-11-26');
+const pct = s => (new Date(s) - tStart) / (tEnd - tStart) * 100;
+const track = document.getElementById('a-track');
+['2026-10-19','2026-10-26','2026-11-02','2026-11-09','2026-11-16','2026-11-23'].forEach(s => {
+  track.insertAdjacentHTML('beforeend', `<div class="tl-tick" style="left:${pct(s)}%">${fmt(s)}</div>`);
+});
+track.insertAdjacentHTML('beforeend', `<div class="tl-axis"></div><div class="tl-today" style="left:${pct('2026-10-29')}%"><span>Today</span></div>`);
+const lanes = [8, 56, 8, 56, 8, 32];
+up.filter(r => r.date).forEach((r, i) => {
+  const n = days(r);
+  if (n < 0) track.insertAdjacentHTML('beforeend', `<div class="tl-late" style="left:${pct(r.date)}%;width:${pct('2026-10-29') - pct(r.date)}%"></div>`);
+  const [c] = pill(r);
+  const dot = c === 't-red' ? 'var(--red-fg)' : c === 't-blue' ? 'var(--blue-fg)' : 'var(--muted-foreground)';
+  const top = lanes[i % lanes.length];
+  track.insertAdjacentHTML('beforeend', `<div class="tl-item" style="left:${pct(r.date)}%;top:${top}px"><div class="tl-chip" data-row='${JSON.stringify([r.d, r.p, r.t])}' data-name="${r.n}"><span class="n">${r.n}</span>${bar(r, 'thin')}</div><div class="stem" style="height:${132 - 18 - top - 46}px"></div><div class="tl-dot" style="background:${dot}"></div></div>`);
+});
+document.getElementById('a-undated').innerHTML = up.filter(r => !r.date).map(r => `<div class="tl-chip" style="border-color:var(--amber-fg)"><span class="n">${r.n}</span>${bar(r, 'thin')}</div>`).join('');
+document.getElementById('a-up').innerHTML = up.map(r => {
+  const [cc, cl] = countdown(r);
+  const acc = days(r) === null ? 'accent amber' : days(r) < 0 ? 'accent' : '';
+  return `<div class="row grid-a ${acc}"><span class="name nowrap">${r.n}</span><span class="hide-narrow">${pkg(r)}</span><span class="count muted">${fmt(r.date)}</span><span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span>${blk(r)}</span><span class="cell-meta hide-narrow">${av(r.team)}</span><span>${pl(r)}</span></div>`;
+}).join('');
+document.getElementById('a-rel').innerHTML = rel.map(r => `<div class="row grid-a"><span class="name nowrap">${r.n}</span><span class="hide-narrow">${pkg(r)}</span><span class="muted count">${fmt(r.date)}</span><span class="cell-issues">${bar(r, 'thin')}<span class="figure">${fig(r)}</span></span><span class="hide-narrow"></span><span>${pl(r, true)}</span></div>`).join('');
+
+// Variant B
+document.getElementById('b-tiles').innerHTML = up.map(r => {
+  const n = days(r); const [cc, cl] = countdown(r);
+  const k = n === null ? 'undated' : n < 0 ? 'late' : n === 0 ? 'today' : '';
+  const big = n === null ? 'No date set' : n < 0 ? `${-n} days late` : n === 0 ? 'Due today' : n === 1 ? 'Tomorrow' : `${n} days`;
+  return `<div class="tile ${k}">
+    <div class="top"><div><div class="nm">${r.n}</div><div class="sub" style="display:flex;gap:6px;align-items:center;white-space:nowrap">${r.date ? 'Due ' + fmt(r.date) : 'Undated'}${blk(r)}</div></div>${hp(r)}</div>
+    <div class="big ${cc}">${big}</div>
+    <div>${bar(r, 'thick')}</div>
+    <div class="breakdown"><span><b style="color:var(--foreground)">${r.d}</b> / ${total(r)} done</span><span>${r.p} in progress</span><span>${r.t} to do</span></div>
+    <div class="foot"><span style="font-size:12px">${pkg(r)}</span>${av(r.team)}</div>
+  </div>`;
+}).join('');
+document.getElementById('b-rel').innerHTML = rel.map(r => `<div class="row grid-rel"><span class="name nowrap">${r.n}</span><span class="hide-narrow">${pkg(r)}</span><span class="muted count">${fmt(r.date)}</span><span class="hide-narrow">${pl(r, true)}</span><span class="cell-issues">${bar(r, 'thin')}<span class="figure">${fig(r)}</span></span></div>`).join('');
+
+// Variant C
+document.getElementById('c-up').innerHTML = up.map(r => {
+  const [cc, cl] = countdown(r);
+  const acc = days(r) === null ? 'accent amber' : days(r) < 0 ? 'accent' : '';
+  const mr = r.mr ? `<span class="badge cost" title="Needs GitLab">⑂ ${r.mr} MRs</span>` : '';
+  return `<div class="row grid-c ${acc}"><span class="name nowrap">${r.n}</span><span class="hide-narrow">${pkg(r)}</span><span>${pl(r)}</span><span class="count muted">${fmt(r.date)}</span><span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span></span><span class="cell-meta hide-narrow">${blk(r)}${mr}${av(r.team)}</span></div>`;
+}).join('');
+document.getElementById('c-rel').innerHTML = rel.map(r => `<div class="row grid-c"><span class="name nowrap">${r.n}</span><span class="hide-narrow">${pkg(r)}</span><span>${pl(r, true)}</span><span class="muted count">${fmt(r.date)}</span><span class="cell-issues">${bar(r, 'thin')}<span class="figure">${fig(r)}</span></span><span class="hide-narrow"></span></div>`).join('');
+
+// ── Refinement round: weekly Tuesday cadence (A1 / A2) ──
+const up2 = [
+  { n: 'Standard - Partner onboarding', date: null, d: 10, p: 4, t: 3, pkg: null, team: ['MK','JN','AP'] },
+  { n: 'Standard 20.10.2026 - Card limits rework', date: '2026-10-20', d: 18, p: 2, t: 0, pkg: ['WEEK43 (19.10.2026 - 25.10.2026) STANDARD','RM-12'], team: ['LB','MK'] },
+  { n: 'Standard 03.11.2026 - Statement export', date: '2026-11-03', d: 15, p: 5, t: 4, pkg: ['WEEK45 (02.11.2026 - 08.11.2026) STANDARD','RM-14'], team: ['LB','TS','RV'] },
+  { n: 'Hotfix 05.11.2026 - Login timeout', date: '2026-11-05', d: 2, p: 1, t: 0, pkg: ['WEEK45 (02.11.2026 - 08.11.2026) STANDARD','RM-15'], team: ['JN'] },
+  { n: 'Standard 10.11.2026 - Notifications centre', date: '2026-11-10', d: 6, p: 5, t: 6, pkg: null, team: ['JN','AP','DK','EH'] },
+  { n: 'Standard 17.11.2026 - Fee calculator', date: '2026-11-17', d: 9, p: 8, t: 13, pkg: null, team: ['RV'] },
+  { n: 'Standard 01.12.2026 - Year-end reporting', date: '2026-12-01', d: 0, p: 1, t: 12, pkg: null, team: ['DK','EH'] },
+];
+const rel2 = [
+  { n: 'Standard 13.10.2026 - Dashboard filters', date: '2026-10-13', d: 25, p: 0, t: 0, pkg: ['WEEK42 (12.10.2026 - 18.10.2026) STANDARD','RM-11'] },
+  { n: 'Standard 06.10.2026 - Address validation', date: '2026-10-06', d: 14, p: 0, t: 0, pkg: ['WEEK41 (05.10.2026 - 11.10.2026) STANDARD','RM-10'] },
+  { n: 'Standard 29.09.2026 - Audit log', date: '2026-09-29', d: 31, p: 0, t: 0, pkg: null },
+];
+// "Standard 01.01.2026 - short text" -> { kind, text }; the date lives in the Due column only.
+const parseName = n => {
+  const m = n.match(/^(\w+)(?:\s+\d{2}\.\d{2}\.\d{4})?\s+-\s+(.+)$/);
+  return m ? { kind: m[1], text: m[2] } : { kind: null, text: n };
+};
+const nameCell = r => { const { kind, text } = parseName(r.n); return `<span class="name nowrap" title="${r.n}">${text}${kind ? ` <span class="kind">${kind}</span>` : ''}</span>`; };
+const rmPkg = r => {
+  if (!r.pkg) return '<span class="muted">–</span>';
+  const wk = (r.pkg[0].match(/^WEEK(\d+)/) || [])[1];
+  return `<span class="nowrap" title="${r.pkg[0]}">WEEK${wk} <span class="mono muted">${r.pkg[1]}</span></span>`;
+};
+const tue = ['2026-10-06','2026-10-13','2026-10-20','2026-10-27','2026-11-03','2026-11-10','2026-11-17','2026-11-24','2026-12-01'];
+const fmtTue = s => 'Tue ' + fmt(s);
+const upRow = r => {
+  const acc = days(r) === null ? 'accent amber' : days(r) < 0 ? 'accent' : '';
+  return `<div class="row grid-a ${acc}">${nameCell(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="count muted">${r.date ? fmtTue(r.date) : '–'}</span><span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span></span><span class="cell-meta hide-narrow">${av(r.team)}</span><span>${pl(r)}</span></div>`;
+};
+const relRow = r => `<div class="row grid-a">${nameCell(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="muted count">${fmtTue(r.date)}</span><span class="cell-issues">${bar(r, 'thin')}<span class="figure">${fig(r)}</span></span><span class="hide-narrow"></span><span>${pl(r, true)}</span></div>`;
+const chip = (r, cls = '') => `<div class="tl-chip ${cls}" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}</div>`;
+
+// A1
+const t1s = new Date('2026-10-08'), t1e = new Date('2026-12-07');
+const p1 = s => (new Date(s) - t1s) / (t1e - t1s) * 100;
+const tr1 = document.getElementById('a1-track');
+tue.slice(1).forEach(s => tr1.insertAdjacentHTML('beforeend', `<div class="tl-grid" style="left:${p1(s)}%"></div><div class="tl-tick" style="left:${p1(s)}%">${fmtTue(s)}</div>`));
+tr1.insertAdjacentHTML('beforeend', `<div class="tl-axis"></div><div class="tl-today" style="left:${p1('2026-10-29')}%"><span style="bottom:auto;top:-14px;left:-14px">Today</span></div>`);
+// Off-cadence releases within 5 days of the previous one drop to a second lane.
+let prev = null;
+[rel2[0], ...up2.filter(r => r.date)].forEach(r => {
+  const released = rel2.includes(r), late = !released && days(r) < 0;
+  if (late) tr1.insertAdjacentHTML('beforeend', `<div class="tl-late" style="left:${p1(r.date)}%;width:${p1('2026-10-29') - p1(r.date)}%"></div>`);
+  const dot = released ? 'var(--done)' : late ? 'var(--red-fg)' : 'var(--muted-foreground)';
+  const lane2 = prev && (new Date(r.date) - new Date(prev)) / 864e5 < 5;
+  const top = lane2 ? 52 : 4;
+  prev = lane2 ? null : r.date;
+  tr1.insertAdjacentHTML('beforeend', `<div class="tl-item" style="left:${p1(r.date)}%;top:${top}px">${chip(r, released ? 'past' : late ? 'late' : '')}<div class="stem" style="height:${120 - 18 - top - 40}px"></div><div class="tl-dot" style="background:${dot}"></div></div>`);
+});
+document.getElementById('a1-undated').innerHTML = up2.filter(r => !r.date).map(r => chip(r)).join('').replace('class="tl-chip ', 'style="border-color:var(--amber-fg)" class="tl-chip ');
+document.getElementById('a1-up').innerHTML = up2.map(upRow).join('');
+document.getElementById('a1-rel').innerHTML = rel2.map(relRow).join('');
+
+// A2
+const all2 = [...rel2, ...up2.filter(r => r.date)];
+document.getElementById('a2-weeks').innerHTML = tue.slice(1, 8).map(s => {
+  const inWeek = all2.filter(x => x.date && new Date(x.date) >= new Date(s) && new Date(x.date) < new Date(new Date(s).getTime() + 7 * 864e5));
+  const r = inWeek[0];
+  const past = new Date(s) < new Date('2026-10-27');
+  const now = s === '2026-10-27';
+  const head = `<div class="wk"><span>${now ? '<b>This week</b>' : 'Week of'}</span><span>${fmtTue(s)}</span></div>`;
+  if (!r) return `<div class="week empty ${now ? 'now' : ''}">${head}<div class="slot">No release</div></div>`;
+  const released = rel2.includes(r), late = !released && days(r) < 0;
+  const status = released ? `<span style="color:var(--green-fg)">Released</span>` : late ? `<span class="l">${-days(r)}d late</span>` : `<span>in ${days(r)}d</span>`;
+  return `<div class="week ${past && !late ? 'past' : ''} ${late ? 'late' : ''} ${now ? 'now' : ''}">${head}<div class="rel" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}<div class="meta">${status}<span>${fig(r)}</span></div></div>${inWeek.length > 1 ? `<div class="meta" style="font-size:11px;color:var(--muted-foreground)" title="${inWeek.slice(1).map(x => x.n).join('\n')}">+ ${inWeek.length - 1} more (${parseName(inWeek[1].n).kind})</div>` : ''}</div>`;
+}).join('');
+document.getElementById('a2-up').innerHTML = up2.map(upRow).join('');
+document.getElementById('a2-rel').innerHTML = rel2.map(relRow).join('');
+
+// A3: axis labelled at actual release dates
+const wd = s => new Date(s).toLocaleDateString('en-GB', { weekday: 'short' });
+const fmtD = s => `${wd(s)} ${fmt(s)}`;
+const t3s = new Date('2026-10-08'), t3e = new Date('2026-12-06');
+const p3 = s => (new Date(s) - t3s) / (t3e - t3s) * 100;
+const tr3 = document.getElementById('a3-track');
+const onTrack = [rel2[0], ...up2.filter(r => r.date)];
+let prevTick = null;
+onTrack.forEach(r => {
+  const low = prevTick && (new Date(r.date) - new Date(prevTick)) / 864e5 < 5;
+  tr3.insertAdjacentHTML('beforeend', `<div class="tl-grid" style="left:${p3(r.date)}%"></div><div class="tl-tick ${low ? 'low' : ''}" style="left:${p3(r.date)}%">${fmtD(r.date)}</div>`);
+  prevTick = low ? null : r.date;
+});
+tr3.insertAdjacentHTML('beforeend', `<div class="tl-axis"></div><div class="tl-today" style="left:${p3('2026-10-29')}%"><span style="bottom:auto;top:-14px;left:-14px">Today</span></div>`);
+let prev3 = null;
+onTrack.forEach(r => {
+  const released = rel2.includes(r), late = !released && days(r) < 0;
+  if (late) tr3.insertAdjacentHTML('beforeend', `<div class="tl-late" style="left:${p3(r.date)}%;width:${p3('2026-10-29') - p3(r.date)}%"></div>`);
+  const dot = released ? 'var(--done)' : late ? 'var(--red-fg)' : 'var(--muted-foreground)';
+  const lane2 = prev3 && (new Date(r.date) - new Date(prev3)) / 864e5 < 5;
+  const top = lane2 ? 56 : 4;
+  prev3 = lane2 ? null : r.date;
+  tr3.insertAdjacentHTML('beforeend', `<div class="tl-item" style="left:${p3(r.date)}%;top:${top}px">${chip(r, released ? 'past' : late ? 'late' : '')}<div class="stem" style="height:${136 - 18 - top - 40}px"></div><div class="tl-dot" style="background:${dot}"></div></div>`);
+});
+document.getElementById('a3-undated').innerHTML = up2.filter(r => !r.date).map(r => chip(r)).join('').replace('class="tl-chip ', 'style="border-color:var(--amber-fg)" class="tl-chip ');
+const fullName = r => `<span class="name nowrap" title="${r.n}">${r.n}</span>`;
+document.getElementById('a3-up').innerHTML = up2.map(r => {
+  const acc = days(r) === null ? 'accent amber' : days(r) < 0 ? 'accent' : '';
+  return `<div class="row grid-a3 ${acc}">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="count muted">${r.date ? fmtD(r.date) : '–'}</span><span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span></span><span class="cell-meta hide-narrow">${av(r.team)}</span><span>${pl(r)}</span></div>`;
+}).join('');
+document.getElementById('a3-rel').innerHTML = rel2.map(r => `<div class="row grid-a3">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="muted count">${fmtD(r.date)}</span><span class="cell-issues">${bar(r, 'thin')}<span class="figure">${fig(r)}</span></span><span class="hide-narrow"></span><span>${pl(r, true)}</span></div>`).join('');
+
+// A4: realistic progress — only the next release (and anything overdue) has work started
+const up4 = up2.map(r => ({ ...r }));
+const setP = (name, d, p, t) => { const r = up4.find(x => x.n.includes(name)); Object.assign(r, { d, p, t }); };
+setP('Partner onboarding', 0, 0, 17); setP('Notifications centre', 0, 0, 17);
+setP('Fee calculator', 0, 0, 30); setP('Year-end reporting', 0, 0, 13);
+const started = r => r.d + r.p > 0 && r.d < total(r);
+const nextRel = up4.filter(r => r.date && days(r) >= 0).sort((a, b) => a.date.localeCompare(b.date))[0];
+// Fixed slot: bar + figure when work has started, otherwise a one-word count
+const issuesCell = r => {
+  const tt = total(r);
+  if (!tt) return `<span class="issues-text">No issues</span>`;
+  if (started(r)) return `<span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span></span>`;
+  if (r.d === tt) return `<span class="issues-text done">✓ ${tt} done</span>`;
+  return `<span class="issues-text">${tt} to do</span>`;
+};
+const chip4 = (r, cls) => {
+  const released = rel2.includes(r);
+  if (r === nextRel) return `<div class="tl-chip next" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="k">Next</span><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}<span class="figure">${fig(r)} done</span></div>`;
+  if (started(r)) return `<div class="tl-chip ${cls}" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}</div>`;
+  const sub = released ? '✓ done' : `${total(r)} to do`;
+  return `<div class="tl-chip plain ${cls}" title="${r.n}"><span class="n">${parseName(r.n).text}</span><span class="figure" style="font-size:11px">${sub}</span></div>`;
+};
+const tr4 = document.getElementById('a4-track');
+const onTrack4 = [rel2[0], ...up4.filter(r => r.date)];
+let prevTick4 = null;
+onTrack4.forEach(r => {
+  const low = prevTick4 && (new Date(r.date) - new Date(prevTick4)) / 864e5 < 5;
+  tr4.insertAdjacentHTML('beforeend', `<div class="tl-grid" style="left:${p3(r.date)}%"></div><div class="tl-tick ${low ? 'low' : ''}" style="left:${p3(r.date)}%">${fmtD(r.date)}</div>`);
+  prevTick4 = low ? null : r.date;
+});
+tr4.insertAdjacentHTML('beforeend', `<div class="tl-axis"></div><div class="tl-today" style="left:${p3('2026-10-29')}%"><span style="bottom:auto;top:-14px;left:-14px">Today</span></div>`);
+let prev4 = null;
+onTrack4.forEach(r => {
+  const released = rel2.includes(r), late = !released && days(r) < 0;
+  if (late) tr4.insertAdjacentHTML('beforeend', `<div class="tl-late" style="left:${p3(r.date)}%;width:${p3('2026-10-29') - p3(r.date)}%"></div>`);
+  const dot = released ? 'var(--done)' : late ? 'var(--red-fg)' : r === nextRel ? 'var(--foreground)' : 'var(--muted-foreground)';
+  const lane2 = prev4 && (new Date(r.date) - new Date(prev4)) / 864e5 < 5;
+  const top = lane2 ? 72 : 4;
+  prev4 = lane2 ? null : r.date;
+  const h = r === nextRel ? 62 : started(r) ? 40 : 38;
+  tr4.insertAdjacentHTML('beforeend', `<div class="tl-item" style="left:${p3(r.date)}%;top:${top}px">${chip4(r, released ? 'past' : late ? 'late' : '')}</div><div class="tl-dot" style="position:absolute;left:${p3(r.date)}%;bottom:14px;transform:translateX(-50%);background:${dot}"></div>`);
+});
+document.getElementById('a4-undated').innerHTML = up4.filter(r => !r.date).map(r => chip4(r, '')).join('').replace('class="tl-chip ', 'style="border-color:var(--amber-fg)" class="tl-chip ');
+document.getElementById('a4-up').innerHTML = up4.map(r => {
+  const acc = days(r) === null ? 'accent amber' : days(r) < 0 ? 'accent' : '';
+  return `<div class="row grid-a3 ${acc}">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="count muted">${r.date ? fmtD(r.date) : '–'}</span>${issuesCell(r)}<span class="cell-meta hide-narrow">${av(r.team)}</span><span>${pl(r)}</span></div>`;
+}).join('');
+document.getElementById('a4-rel').innerHTML = rel2.map(r => `<div class="row grid-a3">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="muted count">${fmtD(r.date)}</span>${issuesCell(r)}<span class="hide-narrow"></span><span>${pl(r, true)}</span></div>`).join('');
+
+
+// ── Sketch 002 renderers (reuse A4 data: up4, rel2, nextRel, started, issuesCell) ──
+document.querySelectorAll('.track-slot').forEach(sl => sl.appendChild(document.getElementById('a4-track').closest('.timeline').cloneNode(true)));
+const relState = r => rel2.includes(r) ? 'past' : !r.date ? 'undated' : days(r) < 0 ? 'late' : r === nextRel ? 'next' : '';
+const pkgText = r => r.pkg ? `${(r.pkg[0].match(/^WEEK\d+/) || [''])[0]} <span class="mono">${r.pkg[1]}</span>` : '';
+const breakdown = r => `<span><b style="color:var(--foreground)">${r.d}</b> done · ${r.p} in progress · ${r.t} to do</span>`;
+const upSorted = [...up4.filter(r => !r.date), ...up4.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date))];
+
+// L1 agenda
+const agLine = r => {
+  const k = relState(r);
+  const date = r.date ? `<b>${fmt(r.date)}</b><br>${wd(r.date)}` : '<b>No date</b>';
+  if (k === 'next') return `<div class="ag-item next"><div class="ag-date">${date}</div><div class="ag-rail"><span class="dot"></span></div>
+    <div class="ag-body ag-card" title="${r.n}"><div class="kicker">Next release</div>
+      <div class="l1"><span class="nm">${r.n}</span>${pl(r)}</div>
+      <div style="display:flex;align-items:center;gap:10px">${bar(r, 'thick')}<span class="figure">${fig(r)} done</span></div>
+      <div class="l3">${breakdown(r)}<span style="display:flex;align-items:center;gap:10px">${r.pkg ? `<span>${pkgText(r)}</span>` : ''}${av(r.team)}</span></div></div></div>`;
+  return `<div class="ag-item ${k}"><div class="ag-date">${date}</div><div class="ag-rail"><span class="dot"></span></div>
+    <div class="ag-body" title="${r.n}"><span class="nm">${r.n}</span>${r.pkg ? `<span class="pk">${pkgText(r)}</span>` : ''}<span class="st">${issuesCell(r)}</span>${k === 'past' ? '' : av(r.team)}${pl(r, k === 'past')}</div></div>`;
+};
+const todayLine = `<div class="ag-today"><span>Today</span><span class="mark"></span><span class="muted" style="font-size:11.5px;padding-left:10px">Thu 29 Oct</span></div>`;
+{
+  let html = '<div class="ag-sec">Upcoming</div>';
+  let todayDone = false;
+  upSorted.forEach(r => { if (!todayDone && r.date && days(r) >= 0) { html += todayLine; todayDone = true; } html += agLine(r); });
+  html += '<div class="ag-sec">Released</div>' + rel2.map(agLine).join('');
+  document.getElementById('l1').innerHTML = html;
+}
+
+// L2 week groups (group by RM week if present, else ISO week of the date)
+const isoWeek = s => { const d = new Date(s); const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y) / 864e5 + 1) / 7); };
+const monday = s => { const d = new Date(s); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d; };
+const ddmm = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+const wgRow = r => {
+  const k = relState(r);
+  return `<div class="wg-row ${k}" title="${r.n}"><span class="dt">${r.date ? fmtD(r.date) : '–'}</span><span class="nm">${r.n}</span><span class="st">${k === 'next' ? `${bar(r)}<span class="figure">${fig(r)}</span>` : issuesCell(r)}</span><span class="tm">${k === 'past' ? '' : av(r.team)}</span><span class="pl">${pl(r, k === 'past')}</span></div>`;
+};
+const groupWeeks = (list, past) => {
+  const g = new Map();
+  list.forEach(r => { const w = isoWeek(r.date); if (!g.has(w)) g.set(w, []); g.get(w).push(r); });
+  return [...g.entries()].map(([w, rs]) => {
+    const m = monday(rs[0].date), e = new Date(m); e.setDate(e.getDate() + 6);
+    const keys = rs.filter(r => r.pkg).map(r => r.pkg[1]);
+    const now = w === isoWeek('2026-10-29');
+    return `<div class="wg"><div class="wg-h ${past ? 'past' : ''} ${now ? 'now' : ''}"><span class="w">WEEK${w}</span><span class="r">${ddmm(m)} – ${ddmm(e)}</span><span class="k">${keys.length ? keys.map(k => `<span class="mono muted">${k}</span>`).join(' ') : '<span class="muted" style="font-size:12px">no RM package</span>'}</span></div>${rs.map(wgRow).join('')}</div>`;
+  }).join('');
+};
+document.getElementById('l2').innerHTML =
+  `<div class="wg"><div class="wg-h"><span class="w" style="color:var(--amber-fg)">No date</span></div>${up4.filter(r => !r.date).map(wgRow).join('')}</div>` +
+  groupWeeks(up4.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date)), false) +
+  '<div class="sec-label">Released</div>' + groupWeeks(rel2, true);
+
+// L3 date blocks
+const cal = r => {
+  const k = relState(r);
+  if (!r.date) return `<div class="cal undated"><div class="wd">TBD</div><div class="dd">–</div><div class="mo">&nbsp;</div></div>`;
+  const d = new Date(r.date);
+  return `<div class="cal ${k}"><div class="wd">${wd(r.date)}</div><div class="dd">${d.getDate()}</div><div class="mo">${d.toLocaleDateString('en-GB', { month: 'short' })}</div></div>`;
+};
+const dbRow = r => {
+  const k = relState(r);
+  const sub = r.pkg ? pkgText(r) : '';
+  if (k === 'next') return `<div class="db next" title="${r.n}">${cal(r)}<div class="txt"><div class="kick">Next release</div><div class="nm">${r.n}</div><div class="pk">${sub}</div><div style="display:flex;align-items:center;gap:10px;margin-top:8px">${bar(r, 'thick')}<span class="figure">${fig(r)} done</span></div><div class="pk" style="margin-top:6px">${breakdown(r)}</div></div><span class="tm">${av(r.team)}</span><span class="pl">${pl(r)}</span></div>`;
+  return `<div class="db ${k}" title="${r.n}">${cal(r)}<div class="txt"><div class="nm">${r.n}</div>${sub ? `<div class="pk">${sub}</div>` : ''}</div><span class="st">${issuesCell(r)}</span><span class="tm">${k === 'past' ? '' : av(r.team)}</span><span class="pl">${pl(r, k === 'past')}</span></div>`;
+};
+document.getElementById('l3').innerHTML = '<div class="sec-label">Upcoming</div>' + upSorted.map(dbRow).join('') + '<div class="sec-label">Released</div>' + rel2.map(dbRow).join('');
+
+
+// S1: L3 date blocks on L1 rail
+{
+  const item = r => {
+    const k = relState(r);
+    return `<div class="s1-item ${k}"><div class="railcol">${cal(r)}</div>${dbRow(r)}</div>`;
+  };
+  const today = `<div class="s1-today"><div class="railcol"></div><div class="ln"><span>Thu 29 Oct</span></div></div>`;
+  let html = '<div class="sec-label" style="padding-left:62px">Upcoming</div><div class="s1-list">';
+  let done = false;
+  upSorted.forEach(r => { if (!done && r.date && days(r) >= 0) { html += today; done = true; } html += item(r); });
+  html += '</div><div class="sec-label" style="padding-left:62px">Released</div><div class="s1-list">' + rel2.map(item).join('') + '</div>';
+  document.getElementById('s1').innerHTML = html;
+}
+// S2: L1 slim rail + L3 stacked rows / raised next card
+{
+  const line = r => {
+    const k = relState(r);
+    const date = r.date ? `<b>${fmt(r.date)}</b><br>${wd(r.date)}` : '<b>No date</b>';
+    if (k === 'next') return `<div class="ag-item next"><div class="ag-date">${date}</div><div class="ag-rail"><span class="dot"></span></div>
+      <div class="ag-body ag-card" title="${r.n}"><div class="kicker">Next release</div>
+        <div class="l1"><span class="nm">${r.n}</span>${pl(r)}</div>
+        <div class="pk2" style="font-size:12px;color:var(--muted-foreground);margin-top:-6px">${pkgText(r)}</div>
+        <div style="display:flex;align-items:center;gap:10px">${bar(r, 'thick')}<span class="figure">${fig(r)} done</span></div>
+        <div class="l3">${breakdown(r)}${av(r.team)}</div></div></div>`;
+    return `<div class="ag-item s2 ${k}"><div class="ag-date">${date}</div><div class="ag-rail"><span class="dot"></span></div>
+      <div class="ag-body" title="${r.n}"><div class="txt"><span class="nm">${r.n}</span>${r.pkg ? `<div class="pk2">${pkgText(r)}</div>` : ''}</div><span class="st">${issuesCell(r)}</span>${k === 'past' ? '' : av(r.team)}${pl(r, k === 'past')}</div></div>`;
+  };
+  let html = '<div class="ag-sec">Upcoming</div>'; let done = false;
+  upSorted.forEach(r => { if (!done && r.date && days(r) >= 0) { html += todayLine; done = true; } html += line(r); });
+  html += '<div class="ag-sec">Released</div>' + rel2.map(line).join('');
+  document.getElementById('s2').innerHTML = html;
+}
+document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').forEach(sl => { if (!sl.children.length) sl.appendChild(document.getElementById('a4-track').closest('.timeline').cloneNode(true)); });
+
+// Tooltip (≤4 rows)
+const tip = document.getElementById('tip');
+document.addEventListener('mousemove', e => {
+  const el = e.target.closest('[data-tip],[data-row]');
+  if (!el) { tip.style.display = 'none'; return; }
+  const [d, p, t] = JSON.parse(el.dataset.tip || el.dataset.row);
+  tip.innerHTML = `<div class="r"><b>${d + p + t} issues</b></div><div class="r"><span>Done</span><span>${d}</span></div><div class="r"><span>In progress</span><span>${p}</span></div><div class="r"><span>To do</span><span>${t}</span></div>`;
+  tip.style.display = 'block'; tip.style.left = e.clientX + 12 + 'px'; tip.style.top = e.clientY + 12 + 'px';
+});
+
+// Tabs + toolbar
+document.querySelectorAll('.variant-tab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.variant, .variant-tab').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); document.getElementById('variant-' + b.dataset.v).classList.add('active');
+});
+document.getElementById('t-theme').onclick = () => {
+  const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+};
+document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
+  const f = document.getElementById('frame'); f.style.maxWidth = b.dataset.w + 'px';
+  f.classList.toggle('narrow', +b.dataset.w <= 700);
+});
+document.getElementById('t-annot').onclick = () => document.body.classList.toggle('annot');
+</script>
+</body>
+</html>
