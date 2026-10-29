@@ -518,6 +518,19 @@
   .f3 .pr.q .prow { padding-top: 7px; padding-bottom: 7px; }
   .f3 .pr.q .prow .qd { width: 78px; flex: none; color: var(--muted-foreground); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+
+  /* F3: released separated */
+  .f3 .rel-sep { margin-top: 26px; padding-top: 4px; border-top: 1px solid var(--border); }
+  .f3 .rel-sep .rc::before { display: none; }
+  .f3 .rel-sep .tx { color: var(--green-fg); font-size: 12px; padding-top: 14px; }
+  .f3 .rel-sep .tx .n { color: var(--muted-foreground); }
+  .f3 .pre-rel .rc::before { bottom: calc(100% - 22px); }
+  .f3 .pre-rel .prow::after { display: none; }
+  .f3 .pr.q.past .rc::before { background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--green-fg) 45%, transparent) 0 4px, transparent 4px 8px); }
+  .f3 .pr.q.past.first-rel .rc::before { top: 18px; }
+  .f3 .pr.q.past .prow { opacity: .85; }
+  .f3 .pr.q.past .prow .nm { color: var(--muted-foreground); }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -1483,7 +1496,10 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         const wdT = c.querySelector('.wd').textContent; const dd = c.querySelector('.dd').textContent.padStart(2, '0'); const mo = c.querySelector('.mo').textContent;
         c.outerHTML = '<span class="qdot"></span>';
         el.querySelector('.t').insertAdjacentHTML('beforebegin', `<span class="qd">${wdT[0] + wdT.slice(1).toLowerCase()} ${dd} ${mo}</span>`);
-      }); }
+      });
+      const relLabel = [...slot.querySelectorAll('.plabel')].find(l => l.textContent.trim().startsWith('Released'));
+      if (relLabel) { relLabel.classList.add('rel-sep'); const prev = relLabel.previousElementSibling; if (prev) prev.classList.add('pre-rel'); const first = relLabel.nextElementSibling; if (first) first.classList.add('first-rel'); }
+    }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);

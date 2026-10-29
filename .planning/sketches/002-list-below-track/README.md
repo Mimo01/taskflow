@@ -95,6 +95,7 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - User: "calendar only for the most important".
 - Calendar blocks: overdue, next (ringed, raised card), next+1, undated.
 - Planned + released: dot on the rail (grey / green), text date "Tue 10 Nov", name, "**8 to do** · in 12 days" / "**✓ 25 done**"; hairline between lines.
+- Released separated (user: "separate released from unreleased better"): rail ends after the last unreleased item, full-width divider + 26px gap, green "Released · 3 recent" heading, released rail restarts as a dashed green line, rows slightly muted.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
