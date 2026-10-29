@@ -8,7 +8,7 @@ export function MetaRow({ label, children }: { label: string; children: React.Re
       className="flex items-start gap-2 @max-[240px]:flex-col @max-[240px]:gap-0.5"
       data-testid={`meta-row-${slug}`}
     >
-      <span className="text-xs text-muted-foreground w-28 shrink-0 pt-0.5 @max-[240px]:w-auto">
+      <span className="text-xs text-muted-foreground w-20 shrink-0 pt-0.5 @max-[240px]:w-auto">
         {label}
       </span>
       <span className="flex-1 min-w-0">{children}</span>

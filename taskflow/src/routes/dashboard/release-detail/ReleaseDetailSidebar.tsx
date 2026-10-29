@@ -284,7 +284,7 @@ export function ReleaseDetailSidebar({
   return (
     <div
       ref={rootRef}
-      className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
+      className={`relative border-l overflow-auto p-3 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
       // Persisted width is capped at render time (never rewritten): at most half the
       // body, leaving >= 30rem for the main column, never below 12.5rem.
       style={{ width, maxWidth: 'max(12.5rem, min(50%, 100% - 30rem))' }}
@@ -298,7 +298,7 @@ export function ReleaseDetailSidebar({
         className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
       />
       {/* Read-only metadata (editing now happens in the modal below) */}
-      <div className="@container space-y-4 density-compact:space-y-2 density-comfortable:space-y-6 text-sm">
+      <div className="@container space-y-3 density-compact:space-y-1.5 density-comfortable:space-y-5 text-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Details</h3>
           <Button
@@ -320,7 +320,7 @@ export function ReleaseDetailSidebar({
           )}
         </MetaRow>
 
-        <MetaRow label="Release Date">
+        <MetaRow label="Date">
           {version.releaseDate ? (
             <span className="flex items-center gap-1.5">
               <Calendar className="size-3 text-muted-foreground shrink-0" />
@@ -331,7 +331,7 @@ export function ReleaseDetailSidebar({
           )}
         </MetaRow>
 
-        <MetaRow label="GitLab Milestone">
+        <MetaRow label="Milestone">
           {gitlabMatch.type === 'exact' ? (
             gitlabMatch.candidateUrl ? (
               <LinkContextMenu href={gitlabMatch.candidateUrl}>
@@ -385,7 +385,7 @@ export function ReleaseDetailSidebar({
           )}
         </MetaRow>
 
-        <MetaRow label="Release Branch">
+        <MetaRow label="Branch">
           {/* Each state resolves to a single inline element — an action when the
               branch can be created, otherwise the reason it can't. WR-10: the
               per-kind mapping lives in BranchRowContent's exhaustive switch. */}
@@ -566,7 +566,7 @@ export function ReleaseDetailSidebar({
           </MetaRow>
         )}
 
-        <div data-testid="sidebar-descriptions" className="space-y-4 border-t pt-4">
+        <div data-testid="sidebar-descriptions" className="space-y-3 border-t pt-3">
           <DescriptionsSection
             gitlabMatchType={gitlabMatch.type}
             matchedMilestone={matchedMilestone}
