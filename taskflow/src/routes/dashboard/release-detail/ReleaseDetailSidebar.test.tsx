@@ -481,3 +481,45 @@ describe('ReleaseDetailSidebar — descriptions', () => {
     expect(container.getByText('GitLab milestone notes.')).toBeInTheDocument();
   });
 });
+
+describe('ReleaseDetailSidebar — narrow-width layout', () => {
+  it('caps the rendered width with a CSS maxWidth while keeping the hook width', () => {
+    const { container } = renderSidebar({
+      branchState: { kind: 'loading', branchName: 'release/33.5.0' },
+    });
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.width).toBe('320px');
+    expect(root.style.maxWidth).toContain('min(50%');
+  });
+
+  it('wraps the content in an @container and stacks MetaRow label over value when narrow', () => {
+    const { container } = renderSidebar({
+      branchState: { kind: 'loading', branchName: 'release/33.5.0' },
+    });
+    expect(container.querySelector('.\\@container')).not.toBeNull();
+    const row = screen.getAllByTestId(/^meta-row-/)[0];
+    expect(row).toHaveClass('@max-[240px]:flex-col');
+    expect(row.firstElementChild).toHaveClass('@max-[240px]:w-auto');
+  });
+
+  it('truncates the branch name and exposes the full name in a title', () => {
+    renderSidebar({ branchState: { kind: 'exists', branchName: 'release/33.5.0' } });
+    const name = screen.getByTestId('branch-name');
+    expect(name).toHaveClass('truncate');
+    expect(name).toHaveAttribute('title', 'release/33.5.0');
+  });
+
+  it('truncates the tag name with a title', () => {
+    renderSidebar({
+      branchState: {
+        kind: 'released',
+        branchName: 'release/33.5.0',
+        tagName: 'v33.5.0',
+        tagChannel: 'resolved',
+      } as BranchState,
+    });
+    const tag = screen.getByText('v33.5.0');
+    expect(tag).toHaveClass('truncate');
+    expect(tag).toHaveAttribute('title', 'v33.5.0');
+  });
+});

@@ -137,11 +137,17 @@ function BranchRowContent({
     case 'exists':
       return (
         <span
-          className="inline-flex items-center gap-1 text-green-600 dark:text-green-400"
+          className="inline-flex max-w-full min-w-0 items-center gap-1 text-green-600 dark:text-green-400"
           data-testid="branch-status-exists"
         >
           <GitBranch className="size-3 shrink-0" />
-          <span className="font-mono text-xs">{branchState.branchName}</span>
+          <span
+            className="font-mono text-xs truncate"
+            title={branchState.branchName}
+            data-testid="branch-name"
+          >
+            {branchState.branchName}
+          </span>
         </span>
       );
 
@@ -165,20 +171,22 @@ function BranchRowContent({
       return (
         <>
           <span
-            className="inline-flex items-center gap-1 text-muted-foreground text-xs"
+            className="inline-flex max-w-full min-w-0 items-center gap-1 text-muted-foreground text-xs"
             title={tooltipText}
             data-testid="branch-status-released"
           >
             <GitBranch className="size-3 shrink-0" />
             Released
             {branchState.tagName ? (
-              <span className="font-mono">{branchState.tagName}</span>
+              <span className="font-mono truncate" title={branchState.tagName}>
+                {branchState.tagName}
+              </span>
             ) : branchState.tagChannel === 'pending' ? (
-              <span className="italic" data-testid="branch-status-tag-pending">
+              <span className="italic truncate pr-0.5" data-testid="branch-status-tag-pending">
                 · checking tag...
               </span>
             ) : branchState.tagChannel === 'failed' ? (
-              <span className="italic" data-testid="branch-status-tag-failed">
+              <span className="italic truncate pr-0.5" data-testid="branch-status-tag-failed">
                 · tag check failed
               </span>
             ) : null}
@@ -242,6 +250,8 @@ interface ReleaseDetailSidebarProps {
   issueStatusCounts: { new: number; indeterminate: number; done: number };
   hasStoryPoints: boolean;
   storyPoints: { total: number; completed: number };
+  /** Attached to the root so the page can read the RENDERED (capped) width at drag start. */
+  rootRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function ReleaseDetailSidebar({
@@ -269,11 +279,15 @@ export function ReleaseDetailSidebar({
   issueStatusCounts,
   hasStoryPoints,
   storyPoints,
+  rootRef,
 }: ReleaseDetailSidebarProps) {
   return (
     <div
+      ref={rootRef}
       className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
-      style={{ width }}
+      // Persisted width is capped at render time (never rewritten): at most half the
+      // body, leaving >= 30rem for the main column, never below 12.5rem.
+      style={{ width, maxWidth: 'max(12.5rem, min(50%, 100% - 30rem))' }}
     >
       <div
         aria-hidden="true"
@@ -284,7 +298,7 @@ export function ReleaseDetailSidebar({
         className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
       />
       {/* Read-only metadata (editing now happens in the modal below) */}
-      <div className="space-y-4 density-compact:space-y-2 density-comfortable:space-y-6 text-sm">
+      <div className="@container space-y-4 density-compact:space-y-2 density-comfortable:space-y-6 text-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Details</h3>
           <Button

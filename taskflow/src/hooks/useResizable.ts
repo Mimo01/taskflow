@@ -10,6 +10,12 @@ export interface UseResizableOptions {
   /** Called with the final width (px) when the user releases the mouse after a drag. Use to persist to store. */
   onCommit: (width: number) => void;
   /**
+   * Optional: width (px) to start a drag from instead of the stored width. Use when the
+   * rendered width can differ from the stored one (e.g. a CSS max-width cap), so the
+   * handle does not sit in a dead-zone until the cursor catches up.
+   */
+  getStartWidth?: () => number;
+  /**
    * Which edge the drag handle sits on.
    * 'right' (default): handle is on the right edge — dragging right increases width.
    * 'left': handle is on the left edge — dragging left increases width (delta is negated).
@@ -35,7 +41,10 @@ export function useResizable({
   max,
   onCommit,
   direction = 'right',
+  getStartWidth,
 }: UseResizableOptions) {
+  const getStartWidthRef = useRef(getStartWidth);
+  getStartWidthRef.current = getStartWidth;
   // Bounds are read through refs so that inline `() => ...` min/max callbacks —
   // which get a fresh identity every render — do not churn the effects below.
   const minRef = useRef(min);
@@ -76,7 +85,7 @@ export function useResizable({
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    startRef.current = { x: e.clientX, width: widthRef.current };
+    startRef.current = { x: e.clientX, width: getStartWidthRef.current?.() ?? widthRef.current };
     setIsDragging(true);
     // Lock cursor on <html> element so it stays ew-resize even when mouse moves faster
     // than element boundaries (Pitfall 2 in RESEARCH.md)

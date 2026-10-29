@@ -137,12 +137,14 @@ export default function ReleaseDetailPage() {
 
   // Drag-to-resize for right panel
   const containerRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const { width, isDragging, handleMouseDown } = useResizable({
     initialWidth: releaseDetailPanelWidth,
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setReleaseDetailPanelWidth,
     direction: 'left',
+    getStartWidth: () => sidebarRef.current?.offsetWidth ?? releaseDetailPanelWidth,
   });
   const [handleHovered, setHandleHovered] = useState(false);
 
@@ -231,8 +233,8 @@ export default function ReleaseDetailPage() {
       ) : (
         <div ref={containerRef} className="flex flex-1 overflow-hidden">
           {/* Left column */}
-          <div className="flex-1 overflow-auto">
-            <div className="p-6 space-y-6">
+          <div className="@container flex-1 overflow-auto">
+            <div className="p-6 @max-[480px]:p-4 space-y-6">
               {/* Header */}
               <ReleaseTitleHeading versionId={version.id} versionName={version.name} />
 
@@ -345,6 +347,7 @@ export default function ReleaseDetailPage() {
 
           {/* Right sidebar */}
           <ReleaseDetailSidebar
+            rootRef={sidebarRef}
             width={width}
             isDragging={isDragging}
             onResizeMouseDown={handleMouseDown}

@@ -251,4 +251,30 @@ describe('useResizable', () => {
       document.dispatchEvent(makeMouseEvent('mouseup', 50));
     });
   });
+
+  it('starts a drag from getStartWidth() instead of the stored width when provided', () => {
+    const { result } = renderHook(() =>
+      useResizable({
+        initialWidth: 400,
+        min: 100,
+        max: 800,
+        onCommit: vi.fn(),
+        direction: 'left',
+        getStartWidth: () => 300,
+      }),
+    );
+
+    act(() => {
+      result.current.handleMouseDown(makeReactMouseEvent(100));
+    });
+    act(() => {
+      document.dispatchEvent(makeMouseEvent('mousemove', 80));
+    });
+    // left-handle: dragging left by 20 grows by 20 from the rendered 300, not stored 400
+    expect(result.current.width).toBe(320);
+
+    act(() => {
+      document.dispatchEvent(makeMouseEvent('mouseup', 80));
+    });
+  });
 });

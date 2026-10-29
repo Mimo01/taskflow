@@ -16,29 +16,31 @@ export function ReleaseBreadcrumbHeader({
 }: ReleaseBreadcrumbHeaderProps) {
   if (trail.length === 0) return null;
   return (
-    <div className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0">
+    <div className="px-6 py-3 border-b flex min-w-0 items-center gap-2 text-sm flex-shrink-0">
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
+        className="inline-flex shrink-0 items-center justify-center h-7 w-7 rounded hover:bg-muted"
         aria-label="Go back"
       >
         <ArrowLeft className="size-4" />
       </button>
       {trail.map((entry, i) => (
-        <span key={entry.path} className="flex items-center gap-2">
-          {i > 0 && <span className="text-muted-foreground">/</span>}
+        <span key={entry.path} className="flex min-w-0 items-center gap-2">
+          {i > 0 && <span className="shrink-0 text-muted-foreground">/</span>}
           <button
             type="button"
             onClick={() => onBreadcrumbClick(i, entry.path)}
-            className="text-muted-foreground hover:text-foreground"
+            className="min-w-0 truncate text-muted-foreground hover:text-foreground"
           >
             {entry.label}
           </button>
         </span>
       ))}
-      <span className="text-muted-foreground">/</span>
-      <span className="font-medium">{versionName ?? 'Release'}</span>
+      <span className="shrink-0 text-muted-foreground">/</span>
+      <span className="min-w-0 truncate font-medium" title={versionName ?? undefined}>
+        {versionName ?? 'Release'}
+      </span>
     </div>
   );
 }
