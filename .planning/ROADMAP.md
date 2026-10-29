@@ -154,7 +154,7 @@ Plans:
 **Goal:** The Releases list is a fast, GitLab-free, fix-version-driven list (Upcoming/Released groups; per row version, RM package, date, one status pill and a small issue graph streamed for visible rows only; instant cached revisits), and the release detail page keeps all its information under a header that echoes the list row (pill, date, package, wide graph, Pin/Edit/Open in Jira), with each figure shown once.
 **Requirements**: TBD
 **Depends on:** Phase 92
-**Plans:** 8/11 plans executed
+**Plans:** 9/11 plans executed
 
 Plans:
 
@@ -182,7 +182,7 @@ Plans:
 
 **Gap wave 2** *(blocked on 93-07)*
 
-- [ ] 93-09-PLAN.md — shared AmbientCurves + ReleasesHero, agenda rail with next-release card, Released panel
+- [x] 93-09-PLAN.md — shared AmbientCurves + ReleasesHero, agenda rail with next-release card, Released panel
 
 **Gap wave 3** *(blocked on 93-07, 93-08, 93-09)*
 
