@@ -4,7 +4,6 @@ import {
   ExternalLink,
   GitBranch,
   GitMerge,
-  Pencil,
   Plus,
   RefreshCw,
 } from 'lucide-react';
@@ -230,7 +229,6 @@ interface ReleaseDetailSidebarProps {
   onResizeMouseDown: (e: React.MouseEvent) => void;
   handleHovered: boolean;
   setHandleHovered: (b: boolean) => void;
-  onStartEditing: () => void;
   version: JiraFixVersion;
   gitlabMatch: ReleaseMatch;
   matchedMilestone: GitLabMilestone | null;
@@ -259,7 +257,6 @@ export function ReleaseDetailSidebar({
   onResizeMouseDown,
   handleHovered,
   setHandleHovered,
-  onStartEditing,
   version,
   gitlabMatch,
   matchedMilestone,
@@ -298,18 +295,7 @@ export function ReleaseDetailSidebar({
       />
       {/* Read-only metadata (editing now happens in the modal below) */}
       <div className="@container space-y-3 density-compact:space-y-1.5 density-comfortable:space-y-5 text-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Details</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs h-7"
-            onClick={onStartEditing}
-          >
-            <Pencil className="size-3" />
-            Edit
-          </Button>
-        </div>
+        <h3 className="text-sm font-medium">Details</h3>
 
         <MetaRow label="Milestone">
           {gitlabMatch.type === 'exact' ? (

@@ -1,4 +1,10 @@
-import { ArrowLeft, Rocket } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, Pin, PinOff } from 'lucide-react';
+import { ReleaseIssueGraph } from '@/components/release/ReleaseIssueGraph';
+import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
+import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
+import { Button } from '@/components/ui/button';
+import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import type { DerivedPackage, ReleasePill, StatusBreakdown } from '@/lib/release-list';
 import type { TrailEntry } from '@/stores/breadcrumb.store';
 
 interface ReleaseBreadcrumbHeaderProps {
@@ -45,19 +51,94 @@ export function ReleaseBreadcrumbHeader({
   );
 }
 
-interface ReleaseTitleHeadingProps {
-  versionId: string;
-  versionName: string;
+interface ReleaseDetailHeaderProps {
+  name: string;
+  pill: ReleasePill;
+  releaseDate?: string;
+  showPackage: boolean;
+  pkg: DerivedPackage | null;
+  pkgLoading: boolean;
+  breakdown: StatusBreakdown | undefined;
+  breakdownLoading: boolean;
+  breakdownError: boolean;
+  pinned: boolean;
+  onTogglePin: () => void;
+  onEdit: () => void;
+  jiraVersionUrl: string | null;
+  onOpenInJira: () => void;
 }
 
-export function ReleaseTitleHeading({ versionId, versionName }: ReleaseTitleHeadingProps) {
+/** Detail header that echoes the list row; sole owner of the done figure (D-14). */
+export function ReleaseDetailHeader({
+  name,
+  pill,
+  releaseDate,
+  showPackage,
+  pkg,
+  pkgLoading,
+  breakdown,
+  breakdownLoading,
+  breakdownError,
+  pinned,
+  onTogglePin,
+  onEdit,
+  jiraVersionUrl,
+  onOpenInJira,
+}: ReleaseDetailHeaderProps) {
+  const openInJira = (
+    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onOpenInJira}>
+      <ExternalLink className="size-3.5" />
+      Open in Jira
+    </Button>
+  );
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <Rocket className="size-4 text-muted-foreground" />
-        <p className="text-xs font-mono text-muted-foreground">v{versionId}</p>
+    <div data-testid="release-detail-header" className="@container mb-8 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 space-y-1.5">
+          <h2 className="text-xl font-semibold leading-tight truncate" title={name}>
+            {name}
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <ReleaseStatusPill pill={pill} />
+            {releaseDate && (
+              <span className="text-xs tabular-nums text-muted-foreground">{releaseDate}</span>
+            )}
+            {showPackage && (
+              <div className="w-44">
+                <ReleasePackageCell pkg={pkg} loading={pkgLoading} />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            aria-label={pinned ? 'Unpin release' : 'Pin release'}
+            title={pinned ? 'Unpin release' : 'Pin release'}
+            onClick={onTogglePin}
+          >
+            {pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+            {pinned ? 'Unpin' : 'Pin'}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onEdit}>
+            <Pencil className="size-3.5" />
+            Edit
+          </Button>
+          {jiraVersionUrl ? (
+            <LinkContextMenu href={jiraVersionUrl}>{openInJira}</LinkContextMenu>
+          ) : (
+            openInJira
+          )}
+        </div>
       </div>
-      <h2 className="text-xl font-semibold leading-snug">{versionName}</h2>
+      <ReleaseIssueGraph
+        variant="detail"
+        breakdown={breakdown}
+        loading={breakdownLoading}
+        error={breakdownError}
+      />
     </div>
   );
 }

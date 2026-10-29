@@ -42,7 +42,6 @@ function renderSidebar(overrides: { branchState: BranchState } & Record<string, 
       onResizeMouseDown={() => {}}
       handleHovered={false}
       setHandleHovered={() => {}}
-      onStartEditing={() => {}}
       version={makeVersion()}
       gitlabMatch={noneMatch}
       matchedMilestone={null}
@@ -531,5 +530,10 @@ describe('D-14: sidebar omits Status and Date rows', () => {
     expect(screen.queryByText('Date')).toBeNull();
     expect(screen.getByText('Milestone')).toBeInTheDocument();
     expect(screen.getByText('Branch')).toBeInTheDocument();
+  });
+
+  it('renders no Edit button (moved to the header)', () => {
+    renderSidebar({ branchState: { kind: 'unresolvable' } });
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 });
