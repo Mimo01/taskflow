@@ -52,6 +52,7 @@ open .planning/sketches/002-list-below-track/index.html
 - Next-release card: kicker, name + pill on one line, package + team on the next, thick bar + "15/24 done", breakdown text.
 - Rows: hover background + trailing › in a fixed slot (no layout shift); counted section labels ("NO DATE 1", "RELEASED 3 recent"); "Show older releases ↓".
 - Checked in light, dark and 640px.
+- Mini date blocks keep the month line (weekday · day · month) — without it released/planned dates were ambiguous.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
