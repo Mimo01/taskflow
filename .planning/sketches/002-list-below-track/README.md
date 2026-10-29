@@ -117,7 +117,7 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - Round 16 (user: "this design is the best"): track icon removed; hero stat strip removed; orange marks progress up to the closest release — track axis orange from window start to the next release's dot, rail line orange from the top down to the next release's dot; dots: filled (green) = released, hollow ring = not released (dark ring for next, red ring for overdue, grey for planned); late trail removed; other orange accents neutralised.
 - Placeholder data: releases 3+ ahead have no issues yet (user observation) — list reads "No issues yet · in 5 weeks", graph chips "No issues".
 - Row polish (user: "polish the style of then task shows the graph and when just todos"): every row shares one column system — issues slot (bar 92px + "18/20" / "**8** to do" / "No issues yet", same left edge) · team · timing pill; quiet rows now use the same countdown pill as full rows.
-- Round 17: orange line runs up to the closest release (not just Today); list rail simplified — plain grey line, no orange, no circles (user: "simplify the styles in the graph legend, do not color lines or add circles there"); the graph keeps orange + filled/hollow dots.
+- Round 17: orange line runs up to the closest release (not just Today); then swapped (user: "the colored line should be by the list, not by the graph timeline"): graph axis plain — no orange, no dots; list rail carries the orange line down to the closest release and the filled (released) / hollow (not released) circles.
 
 ## What to Look For
 - Which reads as a nice overview, not a table

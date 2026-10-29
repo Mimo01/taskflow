@@ -769,11 +769,9 @@
   .f5 .ag-card:hover { box-shadow: 0 0 0 1px var(--muted-foreground); }
 
 
-  /* F5 round 3: list rail is plain — no coloured line, no circles */
-  .f5 .f1-rail .ag-item .dot { display: none; }
-  .f5 .f1-rail .f5-past .ag-rail::before, .f5 .f1-rail .f5-past.ag-mo .r::before, .f5 .f1-rail .f5-past.ag-today .mark::before { background: var(--border); }
-  .f5 .f1-rail .f5-reach .ag-rail::before { background: var(--border); }
-  .f5 .f1-rail .ag-today .mark::after { background: var(--muted-foreground); }
+  /* F5 round 5: graph axis is plain (no coloured line, no circles); colour + circles live on the list rail */
+  .f5 .pol-track .f5-passed, .f5 .pol-track .tl-dot { display: none; }
+  .f5 .f1-rail .ag-item .dot { display: block; }
 
 
   /* F5 round 4: one column system for "bar" rows and "to do" rows */
