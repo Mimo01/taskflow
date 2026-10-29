@@ -15,7 +15,6 @@ import {
   mergeWeek,
   packageFixLabel,
   parseWeekRange,
-  planBulkSync,
   type RmWeek,
 } from './deployment-package';
 
@@ -213,40 +212,6 @@ describe('computeFixVersionsForFix', () => {
   });
 });
 
-describe('planBulkSync', () => {
-  const story = (key: string, pkg: unknown, type = 'Story', project = 'Core') => ({
-    key,
-    fields: { issuetype: { name: type }, project: { name: project }, customfield_15725: pkg },
-  });
-  const version = { releaseDate: '2026-10-22' };
-
-  it('sets the package on missing or other-week stories, skips ok / non-Story', () => {
-    const plan = planBulkSync(
-      [
-        story('S-1', null),
-        story('S-2', 'RM-21'),
-        story('S-3', 'RM-11'),
-        story('S-4', null, 'Epic'),
-        story('S-5', null, 'Story', 'Unknown'),
-      ],
-      version,
-      weeks,
-      'array',
-    );
-    expect(plan).toEqual([
-      { key: 'S-1', fields: { customfield_15725: ['RM-11'] } },
-      { key: 'S-2', fields: { customfield_15725: ['RM-11'] } },
-    ]);
-  });
-  it('uses the single shape and returns nothing when not editable or undated', () => {
-    expect(planBulkSync([story('S-1', null)], version, weeks, 'single')[0].fields).toEqual({
-      customfield_15725: 'RM-11',
-    });
-    expect(planBulkSync([story('S-1', null)], version, weeks, 'not-editable')).toEqual([]);
-    expect(planBulkSync([story('S-1', null)], {}, weeks, 'array')).toEqual([]);
-  });
-});
-
 describe('extractLinkedIssueKey', () => {
   it('reads string, {key}, {data:{key}} and single-element arrays', () => {
     expect(extractLinkedIssueKey('RM-12')).toBe('RM-12');
@@ -385,26 +350,6 @@ describe('review hardening (WR-01/02/03/06)', () => {
     });
     expect(r.state).toBe('unresolved');
     expect(r.fixes).toEqual([]);
-  });
-
-  it('WR-03/02: bulk sync skips unreadable packages and multi-version stories already consistent', () => {
-    const mk = (key: string, pkg: unknown, fixVersions: (typeof v43)[] = []) => ({
-      key,
-      fields: {
-        issuetype: { name: 'Story' },
-        project: { name: 'Core' },
-        customfield_15725: pkg,
-        fixVersions,
-      },
-    });
-    // release = week 43 (2026-10-22). S-2's package is in week 44 AND it also has a week-44 version.
-    const plan = planBulkSync(
-      [mk('S-1', ['RM-11', 'RM-21']), mk('S-2', 'RM-21', [v43, v44]), mk('S-3', 'RM-21', [v43])],
-      { releaseDate: '2026-10-22' },
-      weeks,
-      'single',
-    );
-    expect(plan.map((p) => p.key)).toEqual(['S-3']);
   });
 });
 

@@ -428,49 +428,6 @@ export function computeFixVersionsForFix(
   return [...kept.map((v) => ({ id: v.id })), { id: targetId }];
 }
 
-/**
- * Bulk plan for the Releases tab. Direction is always fix version -> package:
- * the release's version is authoritative on the release screens. Only Stories
- * are touched; stories already in the version's week or without a resolvable
- * child are skipped.
- */
-export function planBulkSync(
-  stories: PackageStoryLike[],
-  version: { releaseDate?: string },
-  weeks: RmWeek[],
-  shape: PackageEditShape,
-): { key: string; fields: Record<string, unknown> }[] {
-  if (shape === 'not-editable' || !version.releaseDate) return [];
-  const week = findWeekForDate(weeks, version.releaseDate);
-  if (!week) return [];
-  const childToWeek = indexChildToWeek(weeks);
-  const plan: { key: string; fields: Record<string, unknown> }[] = [];
-  for (const s of stories) {
-    if (s.fields.issuetype?.name !== 'Story') continue;
-    const name = s.fields.project?.name ?? s.fields.project?.key ?? '';
-    const child = findChildForProject(week, name, s.fields.project?.key);
-    if (!child) continue;
-    const raw = s.fields[DEPLOYMENT_PACKAGE_FIELD];
-    if (isPackageFieldUnreadable(raw)) continue; // never overwrite a value we can't read
-    const current = extractDeploymentPackageKey(raw);
-    const currentWeek = current ? childToWeek.get(current) : undefined;
-    if (currentWeek?.key === week.key) continue;
-    // Multi-version story: its package already matches another of its fix versions.
-    if (
-      currentWeek &&
-      (s.fields.fixVersions ?? []).some(
-        (v) => v.releaseDate && isDateInWeek(v.releaseDate, currentWeek),
-      )
-    )
-      continue;
-    plan.push({
-      key: s.key,
-      fields: { [DEPLOYMENT_PACKAGE_FIELD]: buildPackageFieldValue(child.key, shape) },
-    });
-  }
-  return plan;
-}
-
 /** Button label for a fix: names the actual target (week + dates), not just an issue key. */
 export function packageFixLabel(fix: PackageFix): string {
   if (fix.kind === 'set-fix-version') {
