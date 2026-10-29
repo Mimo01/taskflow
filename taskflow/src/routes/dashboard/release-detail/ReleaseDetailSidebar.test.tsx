@@ -523,3 +523,13 @@ describe('ReleaseDetailSidebar — narrow-width layout', () => {
     expect(tag).toHaveAttribute('title', 'v33.5.0');
   });
 });
+
+describe('D-14: sidebar omits Status and Date rows', () => {
+  it('has no Status or Date labels but keeps Milestone and Branch', () => {
+    renderSidebar({ branchState: { kind: 'absent' } as unknown as BranchState });
+    expect(screen.queryByText('Status')).toBeNull();
+    expect(screen.queryByText('Date')).toBeNull();
+    expect(screen.getByText('Milestone')).toBeInTheDocument();
+    expect(screen.getByText('Branch')).toBeInTheDocument();
+  });
+});
