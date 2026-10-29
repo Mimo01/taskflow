@@ -2,6 +2,17 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.14] — 2026-10-29
+
+### Added
+
+- **Remove rows in bulk subtask creation** — each pending or failed row in the bulk subtask preview now has an X button to remove it before creating.
+
+### Fixed
+
+- **Bulk subtask modal** — the modal now closes after the subtasks are created, and its state is reset whenever it is closed, so reopening it starts fresh.
+- **AIO defects sticky header** — the sticky column header now stays above the issue key links while scrolling, instead of the keys painting over it.
+
 ## [1.14.13] — 2026-10-28
 
 ### Added
