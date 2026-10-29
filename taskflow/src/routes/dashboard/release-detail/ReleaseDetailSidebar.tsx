@@ -285,9 +285,9 @@ export function ReleaseDetailSidebar({
     <div
       ref={rootRef}
       className={`relative border-l overflow-auto p-3 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
-      // Persisted width is capped at render time (never rewritten): at most half the
+      // Persisted width is capped at render time (never rewritten): at most 40% of the
       // body, leaving >= 30rem for the main column, never below 12.5rem.
-      style={{ width, maxWidth: 'max(12.5rem, min(50%, 100% - 30rem))' }}
+      style={{ width, maxWidth: 'max(12.5rem, min(40%, 100% - 30rem))' }}
     >
       <div
         aria-hidden="true"

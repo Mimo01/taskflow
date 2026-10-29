@@ -489,7 +489,7 @@ describe('ReleaseDetailSidebar — narrow-width layout', () => {
     });
     const root = container.firstElementChild as HTMLElement;
     expect(root.style.width).toBe('320px');
-    expect(root.style.maxWidth).toContain('min(50%');
+    expect(root.style.maxWidth).toContain('min(40%');
   });
 
   it('wraps the content in an @container and stacks MetaRow label over value when narrow', () => {

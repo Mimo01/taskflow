@@ -79,7 +79,7 @@ describe('settings.store — resize panel widths (Phase 50)', () => {
         sidebarWidth: 224,
         issueDetailPanelWidth: null,
         mrDetailPanelWidth: 288,
-        releaseDetailPanelWidth: 288,
+        releaseDetailPanelWidth: 256,
       } as any);
     });
   });
@@ -103,8 +103,8 @@ describe('settings.store — resize panel widths (Phase 50)', () => {
     expect(useSettingsStore.getState().mrDetailPanelWidth).toBe(288);
   });
 
-  it('releaseDetailPanelWidth defaults to 288', () => {
-    expect(useSettingsStore.getState().releaseDetailPanelWidth).toBe(288);
+  it('releaseDetailPanelWidth defaults to 256', () => {
+    expect(useSettingsStore.getState().releaseDetailPanelWidth).toBe(256);
   });
 
   it('setSidebarWidth persists a new value', () => {
@@ -486,15 +486,23 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     });
   });
 
-  it('persist version is 30 (v30 migration smoke — releaseManagementProjectKey added in quick task 261014-eym)', () => {
+  it('v30 migration smoke — releaseManagementProjectKey added in quick task 261014-eym)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     const match = src.match(/version:\s*(\d+),/);
     expect(match).not.toBeNull();
     const version = Number(match?.[1]);
-    expect(version).toBe(30);
+    expect(version).toBeGreaterThanOrEqual(30);
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
+  });
+
+  it('persist version is 31 (v31 migration moves only the untouched 288 release sidebar default to 256)', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
+    expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
+    expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
   });
 
   it('releaseManagementProjectKey defaults to null and is settable', () => {

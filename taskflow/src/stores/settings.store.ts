@@ -53,7 +53,7 @@ const initialSettings = {
   issueDetailPanelWidth: null as number | null,
   peekPanelWidth: null as number | null,
   mrDetailPanelWidth: 288,
-  releaseDetailPanelWidth: 288,
+  releaseDetailPanelWidth: 256,
   aioRunDetailPanelWidth: 320,
   aioEnabled: false,
   tempoEnabled: false,
@@ -372,7 +372,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 30,
+      version: 31,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -492,6 +492,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 30) {
           if (s.releaseManagementProjectKey === undefined) s.releaseManagementProjectKey = null;
+        }
+        if (version < 31) {
+          // Release sidebar default narrowed 288 -> 256 (261029-oyw); move only the
+          // untouched default, never a width the user dragged to.
+          if (s.releaseDetailPanelWidth === 288) s.releaseDetailPanelWidth = 256;
         }
         return persisted as SettingsState;
       },
