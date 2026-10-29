@@ -74,12 +74,12 @@ export interface UnifiedTaskTableProps {
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
 // width + nowrap; widened from 72px so the common PROJ-1234 shape fits without
 // spilling into the summary column.
-const COL_ICON = 'flex-none w-[1.125rem]';
+const COL_ICON = 'flex-none w-[1.125rem] @max-[640px]:hidden';
 const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
-const COL_PERSON = 'flex-none w-[8.75rem] min-w-0';
-const COL_STATE = 'flex-none w-[6rem]';
-const COL_MR = 'flex-none w-[11.875rem] min-w-0';
+const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-5 @max-[640px]:hidden';
+const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
+const COL_MR = 'flex-none w-[11.875rem] min-w-0 @max-[860px]:w-[5.5rem] @max-[520px]:hidden';
 
 const CHANNEL_NAMES: Record<Channel, string> = {
   A: 'Jira link',
@@ -383,7 +383,9 @@ function ColumnHeaderStrip() {
       <span className={COL_ICON} aria-hidden="true" />
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Summary</span>
-      <span className={COL_PERSON}>Assignee</span>
+      <span className={COL_PERSON}>
+        <span className="@max-[860px]:sr-only">Assignee</span>
+      </span>
       <span className={COL_STATE}>Status</span>
       <span className={COL_MR}>MR</span>
       <span
@@ -647,7 +649,7 @@ function TaskMrCell({
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
           <Loader2 className="size-3.5 animate-spin" />
-          loading…
+          <span className="@max-[860px]:sr-only">loading…</span>
         </div>
         {naDriftCells}
       </>
@@ -672,7 +674,10 @@ function TaskMrCell({
           title="GitLab merge request lookup failed — this task's MR status is unknown"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          — MR status unknown
+          <span className="truncate min-w-0 @max-[860px]:sr-only">— MR status unknown</span>
+          <span aria-hidden="true" className="hidden truncate min-w-0 @max-[860px]:inline">
+            — unknown
+          </span>
         </div>
         {naDriftCells}
       </>
@@ -686,8 +691,11 @@ function TaskMrCell({
           data-testid="mr-slot-none"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-orange-600 dark:text-orange-400`}
         >
-          <AlertTriangle className="size-3.5" />
-          No merge request
+          <AlertTriangle className="size-3.5 flex-none" />
+          <span className="truncate min-w-0 @max-[860px]:sr-only">No merge request</span>
+          <span aria-hidden="true" className="hidden truncate min-w-0 @max-[860px]:inline">
+            No MR
+          </span>
         </div>
         {naDriftCells}
       </>
@@ -702,7 +710,10 @@ function TaskMrCell({
           title="No GitLab milestone matched — cannot check for MRs"
           className={`pointer-events-none relative ${COL_MR} flex items-center gap-1.5 text-xs py-1 text-muted-foreground`}
         >
-          — no milestone, not checked
+          <span className="truncate min-w-0 @max-[860px]:sr-only">— no milestone, not checked</span>
+          <span aria-hidden="true" className="hidden truncate min-w-0 @max-[860px]:inline">
+            — not checked
+          </span>
         </div>
         {naDriftCells}
       </>
@@ -766,9 +777,11 @@ function TaskMrCell({
             </button>
           }
         />
-        <Badge variant="outline" className={`pointer-events-none text-[10px] ${stateBadgeClass}`}>
-          {mr.state}
-        </Badge>
+        <span className="@max-[860px]:sr-only">
+          <Badge variant="outline" className={`pointer-events-none text-[10px] ${stateBadgeClass}`}>
+            {mr.state}
+          </Badge>
+        </span>
         {others.length > 0 && (
           /* CR-08: this marker is the ONLY route to the MRs consolidation
              hides — non-selected MRs are attached to a covered task, so
@@ -904,12 +917,14 @@ function TaskRow({
               name={issue.fields.assignee.displayName}
               size={20}
             />
-            <span className="line-clamp-1">{issue.fields.assignee.displayName}</span>
+            <span className="line-clamp-1 @max-[860px]:sr-only">
+              {issue.fields.assignee.displayName}
+            </span>
           </>
         ) : (
           <>
             <CachedAvatar url={null} name="Unassigned" size={20} />
-            <span className="text-muted-foreground">Unassigned</span>
+            <span className="text-muted-foreground @max-[860px]:sr-only">Unassigned</span>
           </>
         )}
       </span>
@@ -977,8 +992,8 @@ export function UnifiedTaskTable({
   const clearFilter = () => setActiveFilter(null);
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-2">
+    <section className="@container">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
         <h3 className="text-sm font-medium text-muted-foreground">Issues</h3>
         {issueCounts && (
           <Badge variant="secondary" className="text-xs tabular-nums">
@@ -996,6 +1011,7 @@ export function UnifiedTaskTable({
                 data-testid="flagged-br-badge"
                 aria-pressed={activeFilter === 'br'}
                 aria-label={`Show ${brFlaggedCount} merge requests targeting the wrong branch`}
+                title={`Show ${brFlaggedCount} merge requests targeting the wrong branch`}
                 onClick={() => setActiveFilter((prev) => (prev === 'br' ? null : 'br'))}
               >
                 <Badge
@@ -1003,7 +1019,8 @@ export function UnifiedTaskTable({
                   className="text-xs tabular-nums gap-1 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700"
                 >
                   <AlertTriangle className="size-3" />
-                  {brFlaggedCount} wrong branch
+                  {brFlaggedCount}
+                  <span className="@max-[520px]:hidden"> wrong branch</span>
                 </Badge>
               </button>
             )}
@@ -1013,6 +1030,7 @@ export function UnifiedTaskTable({
                 data-testid="flagged-ms-badge"
                 aria-pressed={activeFilter === 'ms'}
                 aria-label={`Show ${msFlaggedCount} merge requests with no release milestone`}
+                title={`Show ${msFlaggedCount} merge requests with no release milestone`}
                 onClick={() => setActiveFilter((prev) => (prev === 'ms' ? null : 'ms'))}
               >
                 <Badge
@@ -1020,7 +1038,8 @@ export function UnifiedTaskTable({
                   className="text-xs tabular-nums gap-1 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700"
                 >
                   <AlertTriangle className="size-3" />
-                  {msFlaggedCount} no milestone
+                  {msFlaggedCount}
+                  <span className="@max-[520px]:hidden"> no milestone</span>
                 </Badge>
               </button>
             )}
@@ -1172,7 +1191,7 @@ export function UnifiedTaskTable({
               keyCell = (
                 <span
                   data-testid="secondary-key-flagged"
-                  className={`${COL_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1`}
+                  className={`${COL_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1 overflow-hidden`}
                   title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
                 >
                   <AlertTriangle className="size-3" />
@@ -1196,7 +1215,7 @@ export function UnifiedTaskTable({
               keyCell = (
                 <span
                   data-testid="secondary-key-unevaluated"
-                  className={`${COL_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1`}
+                  className={`${COL_KEY} font-mono text-xs text-muted-foreground inline-flex items-center gap-1 overflow-hidden`}
                   title={`${keys.join(', ')} — not evaluated (MR is ${row.mr.state})`}
                 >
                   {keyLink}

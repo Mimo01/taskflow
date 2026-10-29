@@ -1899,3 +1899,64 @@ describe('D-16: banner', () => {
     expect(screen.getAllByTestId('drift-degraded-banner')).toHaveLength(1);
   });
 });
+
+// jsdom cannot evaluate container queries, so these lock the tier class
+// strings (header strip and rows share the COL_* constants and must stay aligned).
+describe('responsive container tiers', () => {
+  const personTier = ['@max-[860px]:w-5', '@max-[640px]:hidden'];
+
+  it('the section is the @container and header strip carries every tier class', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const { container } = renderSection({ primaryRows: [{ issue, mrs: [] }] });
+    expect(container.querySelector('section')).toHaveClass('@container');
+
+    const taskList = screen.getByTestId('task-list');
+    const strip = taskList.previousElementSibling as HTMLElement;
+    const assignee = within(strip).getByText('Assignee');
+    expect(assignee).toHaveClass('@max-[860px]:sr-only');
+    expect(assignee.parentElement).toHaveClass(...personTier);
+    expect(within(strip).getByText('Status')).toHaveClass('@max-[400px]:hidden');
+    expect(within(strip).getByText('MR')).toHaveClass(
+      '@max-[860px]:w-[5.5rem]',
+      '@max-[520px]:hidden',
+    );
+    expect(strip.firstElementChild).toHaveClass('@max-[640px]:hidden');
+  });
+
+  it('a task row carries the same tier classes and sr-only assignee/MR state', () => {
+    const issue = makeIssue({ key: 'PROJ-1' });
+    const row = makeRow({ mr: makeMR({ iid: 7, state: 'opened' }) });
+    renderSection({ primaryRows: [{ issue, mrs: [row] }] });
+    const taskRow = screen.getByTestId('task-row');
+    const unassigned = within(taskRow).getByText('Unassigned');
+    expect(unassigned).toHaveClass('@max-[860px]:sr-only');
+    expect(unassigned.parentElement).toHaveClass(...personTier);
+    const icon = within(taskRow).getByTestId('task-row-overlay').nextElementSibling;
+    expect(icon).toHaveClass('@max-[640px]:hidden');
+    const badgeWrap = within(taskRow).getByText('opened').parentElement as HTMLElement;
+    expect(badgeWrap).toHaveClass('@max-[860px]:sr-only');
+    expect(screen.getByTestId('mr-cell-link').closest('div')).toHaveClass(
+      '@max-[860px]:w-[5.5rem]',
+      '@max-[520px]:hidden',
+    );
+    const state = within(taskRow).getByText('Status');
+    expect(state.parentElement).toHaveClass('@max-[400px]:hidden');
+  });
+
+  it('slot states keep the long text sr-only and add a short aria-hidden variant', () => {
+    renderWithRows([], { driftUnavailable: true, hasMatchedMilestone: true });
+    const failed = screen.getByTestId('mr-slot-failed');
+    expect(within(failed).getByText('— MR status unknown')).toHaveClass('@max-[860px]:sr-only');
+    const short = within(failed).getByText('— unknown');
+    expect(short).toHaveAttribute('aria-hidden', 'true');
+    expect(short).toHaveClass('hidden', '@max-[860px]:inline');
+  });
+
+  it('flagged badge words hide below 520 while counts and aria-labels remain', () => {
+    renderSection({ flaggedMrCount: 3, brFlaggedCount: 2, msFlaggedCount: 1 });
+    const br = screen.getByTestId('flagged-br-badge');
+    expect(br).toHaveTextContent('2');
+    expect(within(br).getByText('wrong branch')).toHaveClass('@max-[520px]:hidden');
+    expect(br).toHaveAttribute('title', br.getAttribute('aria-label') as string);
+  });
+});
