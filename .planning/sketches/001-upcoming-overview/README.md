@@ -2,7 +2,7 @@
 sketch: 001
 name: upcoming-overview
 question: "How should Upcoming releases be presented so health and timing scan at a glance, without the list feeling plain?"
-winner: "A3"
+winner: "A4"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -41,6 +41,11 @@ open .planning/sketches/001-upcoming-overview/index.html
 - Close releases (< 5 days apart) drop to a second chip lane and a lower tick label.
 - Rows show the **full** fix-version name verbatim (user rejected the split/kind tag). Track chips show the short text after " - " since the axis carries the date (full name on hover) — confirm at planning.
 - No blocked badge, no MR data — Jira issues only.
+
+## Round 5 — winner A4: started-only bars
+- User observation: usually only the next release has work started; released ones are all done; releases 2+ ahead are empty.
+- Issues cell is state-driven in a fixed slot: segmented bar + `N/M` only when work has started (next release, overdue); `17 to do` when nothing started; `✓ 25 done` for released; `No issues` when empty.
+- Track: the next release is the emphasised chip (NEXT label, bar, `15/24 done`, dark border); other chips show name + `17 to do` / `✓ done`; overdue keeps its bar + red outline and red trail to today. Dots pinned to the axis on dashed date gridlines.
 
 ## Data notes
 Blocked/flagged counts, assignees and the Done / In progress / To do split come from the same batched Jira search the list already does (no extra source). MR counts need GitLab.

@@ -115,6 +115,14 @@
   .tl-tick.low::before { height: 19px; bottom: 15px; }
   .tl-tick.today-tick { font-weight: 600; color: var(--foreground); }
 
+  .tl-chip.next { min-width: 0; width: 104px; max-width: 104px; padding: 5px 8px; border-color: var(--foreground); box-shadow: 0 1px 4px rgb(0 0 0 / .08); }
+  .tl-chip.next .n { max-width: 88px; font-size: 12.5px; }
+  .tl-chip .k { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); }
+  .tl-chip.plain { min-width: 0; padding: 3px 7px; }
+  .tl-chip.plain .meta { margin-top: 0; }
+  .issues-text { font-size: 12.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .issues-text.done { color: var(--green-fg); }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -154,7 +162,8 @@
 <div id="variant-nav">
   <button class="variant-tab" data-v="a">A: Timeline + rich rows</button>
   <button class="variant-tab" data-v="a1">A1: Tuesday axis</button>
-  <button class="variant-tab active" data-v="a3">A3: Release-date axis ★</button>
+  <button class="variant-tab" data-v="a3">A3: Release-date axis</button>
+  <button class="variant-tab active" data-v="a4">A4: Started-only bars ★</button>
   <button class="variant-tab" data-v="a2">A2: Week slots</button>
   <button class="variant-tab" data-v="b">B: Release tiles</button>
   <button class="variant-tab" data-v="c">C: Rich rows only</button>
@@ -198,7 +207,7 @@
   </section>
 
   <!-- ───────── Variant A3 ───────── -->
-  <section id="variant-a3" class="variant active">
+  <section id="variant-a3" class="variant">
     <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
     <div class="note">A3 — A1's track, but gridlines and labels sit on the actual release dates (weekday shown), not a fixed Tuesday grid. Weekly cadence still reads as even spacing; an off-cadence hotfix gets its own line and drops to a second lane when it is close to the previous release. Rows show the full fix-version name.</div>
     <div class="timeline">
@@ -213,6 +222,24 @@
     <div class="rows" id="a3-up"></div>
     <div class="group-label">Released <span class="n">3</span></div>
     <div class="rows" id="a3-rel"></div>
+  </section>
+
+  <!-- ───────── Variant A4 ───────── -->
+  <section id="variant-a4" class="variant active">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">A4 — A3 with realistic progress: usually only the next release has work started, released ones are all done, and releases 2+ ahead have nothing started. Bars appear only where work has started; everything else is a one-word count in the same fixed slot. The next release is the emphasised chip on the track.</div>
+    <div class="timeline">
+      <div class="tl-top"><span class="title">Release track</span><span class="muted" style="font-size:12px">6 upcoming · 1 overdue · next Tue 03 Nov</span></div>
+      <div class="tl-body">
+        <div class="tl-undated"><div class="lbl">No date</div><div id="a4-undated"></div></div>
+        <div class="tl-track" id="a4-track" style="height:150px;margin:12px 0 14px"></div>
+      </div>
+    </div>
+    <div class="hdr grid-a3"><span>Version</span><span class="hide-narrow">Package</span><span>Due</span><span>Issues</span><span class="hide-narrow" style="text-align:right">Team</span><span>Status</span></div>
+    <div class="group-label">Upcoming <span class="n">7</span></div>
+    <div class="rows" id="a4-up"></div>
+    <div class="group-label">Released <span class="n">3</span></div>
+    <div class="rows" id="a4-rel"></div>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -468,6 +495,55 @@ document.getElementById('a3-up').innerHTML = up2.map(r => {
   return `<div class="row grid-a3 ${acc}">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="count muted">${r.date ? fmtD(r.date) : '–'}</span><span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span></span><span class="cell-meta hide-narrow">${av(r.team)}</span><span>${pl(r)}</span></div>`;
 }).join('');
 document.getElementById('a3-rel').innerHTML = rel2.map(r => `<div class="row grid-a3">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="muted count">${fmtD(r.date)}</span><span class="cell-issues">${bar(r, 'thin')}<span class="figure">${fig(r)}</span></span><span class="hide-narrow"></span><span>${pl(r, true)}</span></div>`).join('');
+
+// A4: realistic progress — only the next release (and anything overdue) has work started
+const up4 = up2.map(r => ({ ...r }));
+const setP = (name, d, p, t) => { const r = up4.find(x => x.n.includes(name)); Object.assign(r, { d, p, t }); };
+setP('Partner onboarding', 0, 0, 17); setP('Notifications centre', 0, 0, 17);
+setP('Fee calculator', 0, 0, 30); setP('Year-end reporting', 0, 0, 13);
+const started = r => r.d + r.p > 0 && r.d < total(r);
+const nextRel = up4.filter(r => r.date && days(r) >= 0).sort((a, b) => a.date.localeCompare(b.date))[0];
+// Fixed slot: bar + figure when work has started, otherwise a one-word count
+const issuesCell = r => {
+  const tt = total(r);
+  if (!tt) return `<span class="issues-text">No issues</span>`;
+  if (started(r)) return `<span class="cell-issues">${bar(r)}<span class="figure">${fig(r)}</span></span>`;
+  if (r.d === tt) return `<span class="issues-text done">✓ ${tt} done</span>`;
+  return `<span class="issues-text">${tt} to do</span>`;
+};
+const chip4 = (r, cls) => {
+  const released = rel2.includes(r);
+  if (r === nextRel) return `<div class="tl-chip next" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="k">Next</span><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}<span class="figure">${fig(r)} done</span></div>`;
+  if (started(r)) return `<div class="tl-chip ${cls}" title="${r.n}" data-row='${JSON.stringify([r.d, r.p, r.t])}'><span class="n">${parseName(r.n).text}</span>${bar(r, 'thin')}</div>`;
+  const sub = released ? '✓ done' : `${total(r)} to do`;
+  return `<div class="tl-chip plain ${cls}" title="${r.n}"><span class="n">${parseName(r.n).text}</span><span class="figure" style="font-size:11px">${sub}</span></div>`;
+};
+const tr4 = document.getElementById('a4-track');
+const onTrack4 = [rel2[0], ...up4.filter(r => r.date)];
+let prevTick4 = null;
+onTrack4.forEach(r => {
+  const low = prevTick4 && (new Date(r.date) - new Date(prevTick4)) / 864e5 < 5;
+  tr4.insertAdjacentHTML('beforeend', `<div class="tl-grid" style="left:${p3(r.date)}%"></div><div class="tl-tick ${low ? 'low' : ''}" style="left:${p3(r.date)}%">${fmtD(r.date)}</div>`);
+  prevTick4 = low ? null : r.date;
+});
+tr4.insertAdjacentHTML('beforeend', `<div class="tl-axis"></div><div class="tl-today" style="left:${p3('2026-10-29')}%"><span style="bottom:auto;top:-14px;left:-14px">Today</span></div>`);
+let prev4 = null;
+onTrack4.forEach(r => {
+  const released = rel2.includes(r), late = !released && days(r) < 0;
+  if (late) tr4.insertAdjacentHTML('beforeend', `<div class="tl-late" style="left:${p3(r.date)}%;width:${p3('2026-10-29') - p3(r.date)}%"></div>`);
+  const dot = released ? 'var(--done)' : late ? 'var(--red-fg)' : r === nextRel ? 'var(--foreground)' : 'var(--muted-foreground)';
+  const lane2 = prev4 && (new Date(r.date) - new Date(prev4)) / 864e5 < 5;
+  const top = lane2 ? 72 : 4;
+  prev4 = lane2 ? null : r.date;
+  const h = r === nextRel ? 62 : started(r) ? 40 : 38;
+  tr4.insertAdjacentHTML('beforeend', `<div class="tl-item" style="left:${p3(r.date)}%;top:${top}px">${chip4(r, released ? 'past' : late ? 'late' : '')}</div><div class="tl-dot" style="position:absolute;left:${p3(r.date)}%;bottom:14px;transform:translateX(-50%);background:${dot}"></div>`);
+});
+document.getElementById('a4-undated').innerHTML = up4.filter(r => !r.date).map(r => chip4(r, '')).join('').replace('class="tl-chip ', 'style="border-color:var(--amber-fg)" class="tl-chip ');
+document.getElementById('a4-up').innerHTML = up4.map(r => {
+  const acc = days(r) === null ? 'accent amber' : days(r) < 0 ? 'accent' : '';
+  return `<div class="row grid-a3 ${acc}">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="count muted">${r.date ? fmtD(r.date) : '–'}</span>${issuesCell(r)}<span class="cell-meta hide-narrow">${av(r.team)}</span><span>${pl(r)}</span></div>`;
+}).join('');
+document.getElementById('a4-rel').innerHTML = rel2.map(r => `<div class="row grid-a3">${fullName(r)}<span class="hide-narrow">${rmPkg(r)}</span><span class="muted count">${fmtD(r.date)}</span>${issuesCell(r)}<span class="hide-narrow"></span><span>${pl(r, true)}</span></div>`).join('');
 
 // Tooltip (≤4 rows)
 const tip = document.getElementById('tip');

@@ -10,4 +10,4 @@ Current shipped list (Phase 93) screenshots; AioCycleList column grid.
 
 | # | Name | Design Question | Winner | Tags |
 |---|------|----------------|--------|------|
-| 001 | upcoming-overview | How should Upcoming releases scan for health and timing? | A3: release-date axis track + rich rows | layout, releases, list, timeline |
+| 001 | upcoming-overview | How should Upcoming releases scan for health and timing? | A4: release-date axis track, next release emphasised, bars only where work started | layout, releases, list, timeline |
