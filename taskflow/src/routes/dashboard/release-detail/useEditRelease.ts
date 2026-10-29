@@ -163,6 +163,8 @@ export function useEditRelease({
     if (jiraPromise && jiraResult.status === 'fulfilled') {
       queryClient.invalidateQueries({ queryKey: ['jira-fix-versions', activeJiraProject] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts', versionId] });
+      // The per-version key does not reach the list's batch keys.
+      queryClient.invalidateQueries({ queryKey: ['jira-version-counts', 'batch'] });
     }
     if (gitlabPromise && gitlabResult.status === 'fulfilled') {
       queryClient.invalidateQueries({ queryKey: ['gitlab-milestones', activeGitlabProject] });
