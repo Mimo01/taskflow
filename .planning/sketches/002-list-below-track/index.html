@@ -244,6 +244,15 @@
   .s1-group details[open] summary { border-style: solid; }
   .s1-group .inner .s1-item { grid-template-columns: 48px 1fr; margin-left: -62px; }
 
+
+  .s1-earlier { display: grid; grid-template-columns: 48px 1fr; gap: 14px; }
+  .s1-earlier .railcol { position: relative; } .s1-earlier .railcol::before { content: ''; position: absolute; left: 50%; top: 50%; bottom: 0; width: 2px; transform: translateX(-50%); background: repeating-linear-gradient(var(--border) 0 3px, transparent 3px 6px); }
+  .s1-earlier button { justify-self: start; font: inherit; font-size: 12.5px; color: var(--muted-foreground); background: none; border: 1px dashed var(--border); border-radius: 8px; padding: 4px 10px; cursor: pointer; margin: 4px 0 6px; }
+  .s1-earlier button:hover { color: var(--foreground); border-color: var(--muted-foreground); }
+  .s1-break { display: grid; grid-template-columns: 48px 1fr; gap: 14px; }
+  .s1-break .railcol { position: relative; height: 22px; }
+  .s1-break .lbl { font-size: 12px; font-weight: 600; color: var(--muted-foreground); padding: 16px 0 4px 10px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -282,13 +291,14 @@
 <body>
 <div id="variant-nav">
   <button class="variant-tab" data-v="a4">Current: A4 table</button>
-  <button class="variant-tab active" data-v="l1">L1: Agenda rail</button>
+  <button class="variant-tab" data-v="l1">L1: Agenda rail</button>
   <button class="variant-tab" data-v="l2">L2: Week groups</button>
   <button class="variant-tab" data-v="l3">L3: Date blocks</button>
-  <button class="variant-tab" data-v="s1">S1: Blocks on rail ★</button>
+  <button class="variant-tab" data-v="s1">S1: Blocks on rail</button>
   <button class="variant-tab" data-v="s2">S2: Rail + stacked rows</button>
   <button class="variant-tab" data-v="s1a">S1a: 15 planned — window + condensed</button>
   <button class="variant-tab" data-v="s1b">S1b: 15 planned — dots + collapsed</button>
+  <button class="variant-tab active" data-v="s1c">S1c: one rail ★</button>
 </div>
 
 <div id="frame">
@@ -365,7 +375,7 @@
   </section>
 
 
-  <section id="variant-l1" class="variant active">
+  <section id="variant-l1" class="variant">
     <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
     <div class="note">L1 — The list becomes a vertical agenda that mirrors the horizontal track: date on the left, a connecting rail with status dots, a "Today" marker between overdue and next. The next release opens into a card with the full breakdown; everything else is one quiet line. Released fades below.</div>
     <div class="track-slot"></div>
@@ -409,6 +419,13 @@
     <div class="timeline"><div class="tl-top"><span class="title">Release track</span><span class="muted" style="font-size:12px">16 upcoming · 1 overdue · next Tue 03 Nov</span></div>
       <div class="tl-body"><div class="tl-undated"><div class="lbl">No date</div><div id="s1b-undated"></div></div><div class="tl-track" id="s1b-track" style="height:176px;margin:12px 0 14px"></div></div></div>
     <div id="s1b"></div>
+  </section>
+
+  <section id="variant-s1c" class="variant active">
+    <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
+    <div class="note">S1c — S1a with a single rail: one chronological line from the last few releases, through TODAY, to the planned ones; no separate Released list. Older releases load from "Show earlier releases" at the top. Undated releases sit at the end under "No date". Track is S1a's windowed track.</div>
+    <div class="track-slot-s1a"></div>
+    <div id="s1c"></div>
   </section>
 
   <!-- ───────── Variant A2 ───────── -->
@@ -866,6 +883,22 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     document.getElementById('s1b').innerHTML = html;
   }
 
+  // S1c: one chronological rail
+  {
+    let html = '<div class="s1-earlier"><div class="railcol"></div><button>↑ Show earlier releases</button></div><div class="s1-list">';
+    [...rel2].reverse().forEach(r => { html += itemX(r, false); });
+    let done = false;
+    plan.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date)).forEach(r => {
+      if (!done && days(r) >= 0) { html += todayX; done = true; }
+      const compact = days(r) >= 0 && !near.has(r) && !(r.d + r.p > 0);
+      html += itemX(r, compact);
+    });
+    html += '</div>';
+    const und = plan.filter(r => !r.date);
+    if (und.length) html += '<div class="s1-break"><div></div><div class="lbl">No date</div></div><div class="s1-list">' + und.map(r => itemX(r, false)).join('') + '</div>';
+    document.getElementById('s1c').innerHTML = html;
+  }
+
   // Track renderer (shared)
   const drawTrack = (el, list, start, end, chipFor) => {
     el.innerHTML = '';
@@ -919,6 +952,9 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
   document.getElementById('s1a-prev').onclick = () => { off = Math.max(0, off - 1); drawA(); };
   document.getElementById('s1a-next').onclick = () => { off = Math.min(3, off + 1); drawA(); };
   drawA();
+  { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
+    const drawC = () => { const st0 = new Date('2026-10-08'); st0.setDate(st0.getDate() + offC * 28); const en = new Date(st0); en.setDate(en.getDate() + 58); const el = document.getElementById('s1c-track'); const later = drawTrack(el, dated, st0, en, () => true); if (later) el.insertAdjacentHTML('beforeend', `<div class="tl-more">+${later} later →</div>`); document.getElementById('s1c-range').textContent = `${fmt(st0.toISOString())} – ${fmt(en.toISOString())}`; };
+    let offC = 0; document.getElementById('s1c-prev').onclick = () => { offC = Math.max(0, offC - 1); drawC(); }; document.getElementById('s1c-next').onclick = () => { offC = Math.min(3, offC + 1); drawC(); }; }
   // S1b: whole span, chips only for near
   drawTrack(document.getElementById('s1b-track'), dated, new Date('2026-10-06'), new Date('2027-02-16'),
     r => !rel2.includes(r) && (days(r) < 0 || near.has(r)));
