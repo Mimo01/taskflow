@@ -43,7 +43,7 @@ open .planning/sketches/002-list-below-track/index.html
 ## Winner: S1d — released last (round 5)
 - User: released are the least important; don't put them on top.
 - Rail starts at the overdue release → TODAY → next (raised card) → next+1 → condensed planned → "No date".
-- Released live in one collapsed "Released · N recent · last <date>" line at the very bottom (expands newest-first, then "Show older releases"); the last released version stays on the track as a green chip.
+- Released at the very bottom: the 3 most recent shown (newest first, compact rows with green date blocks), then "Show older releases ↓" (user: "show some released, do not hide all"); the last released version stays on the track as a green chip.
 
 ## What to Look For
 - Which reads as a nice overview, not a table

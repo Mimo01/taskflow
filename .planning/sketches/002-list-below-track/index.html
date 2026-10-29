@@ -431,7 +431,7 @@
 
   <section id="variant-s1d" class="variant active">
     <div class="page-head"><h1>Releases</h1><button class="btn">↻ Refresh</button></div>
-    <div class="note">S1d — one rail that starts with what matters: overdue → TODAY → next → planned → No date. Released versions stay on the track (green chip) and sit in a collapsed "Released" line at the very bottom; expanding shows the most recent first.</div>
+    <div class="note">S1d — one rail that starts with what matters: overdue → TODAY → next → planned → No date. The 3 most recent released versions sit at the very bottom (newest first, compact green blocks), then "Show older releases"; the latest released also stays on the track.</div>
     <div class="track-slot-s1d"></div>
     <div id="s1d"></div>
   </section>
@@ -917,7 +917,8 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     html += '</div>';
     const und = plan.filter(r => !r.date);
     if (und.length) html += '<div class="s1-break"><div></div><div class="lbl">No date</div></div><div class="s1-list">' + und.map(r => itemX(r, false)).join('') + '</div>';
-    html += `<div class="s1-group" style="margin-top:10px"><div></div><details><summary><b style="color:var(--green-fg)">Released</b><span>${rel2.length} recent · last ${fmtD(rel2[0].date)}</span><span style="margin-left:auto">▾</span></summary><div class="inner s1-list">${rel2.map(r => itemX(r, false)).join('')}<div style="padding:6px 0 0 62px"><button class="btn" style="font-size:12px">Show older releases</button></div></div></details></div>`;
+    html += '<div class="s1-break"><div></div><div class="lbl" style="color:var(--green-fg)">Released</div></div><div class="s1-list">' + rel2.map(r => itemX(r, true)).join('') + '</div>';
+    html += '<div class="s1-earlier"><div></div><button>Show older releases ↓</button></div>';
     document.getElementById('s1d').innerHTML = html;
   }
 
