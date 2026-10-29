@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "S1h"
+winner: "F1"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -76,6 +76,15 @@ User: "i dont like the style of upcoming releases" (the planned rows after next+
 - **U1: quiet list** — dot on the rail, text date, name, "8 to do · in 12 days" muted; no block, no pill.
 - **U2: month grid** — planned releases as small cards in a grid under each month (date + countdown, name, count + team).
 - **U3: mini cards** — each planned release its own separated card with the mini date block inside.
+
+## Current: F1 — L1 + U1 (round 11)
+- User: "i like l1 the best now. u1 is also good".
+- L1 agenda rail (text date + weekday left, dots on a slim rail, TODAY line) replaces calendar blocks.
+- Overdue / next+1 / No date rows: L1 one-line style with package beneath, bar where started, team, pill.
+- Next release: L1 card — kicker, name + pill, package + team, thick bar + one figure.
+- Planned (nothing started): U1 quiet lines — "Tue 10 Nov · name · **8 to do** · in 12 days", small dot; month dividers.
+- Released: 3 recent as quiet lines with green dots and "✓ 25 done", then "Show older releases ↓".
+- Header summary + windowed track carried from S1e.
 
 ## What to Look For
 - Which reads as a nice overview, not a table

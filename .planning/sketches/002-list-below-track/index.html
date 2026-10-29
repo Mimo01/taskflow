@@ -460,6 +460,48 @@
   .u3c .card .tm { width: 64px; flex: none; display: flex; justify-content: flex-end; }
   .u3c .card .pl { width: 100px; flex: none; display: flex; justify-content: flex-end; }
 
+
+  /* ── F1: L1 + U1 ── */
+  .f1-rail { margin-top: 18px; }
+  .f1 .ag-item { grid-template-columns: 74px 24px 1fr; }
+  .f1 .ag-date { padding-top: 11px; }
+  .f1 .ag-rail .dot { top: 15px; }
+  .f1 .ag-body { padding: 9px 12px; gap: 14px; }
+  .f1 .ag-body .t { flex: 1 1 auto; min-width: 0; }
+  .f1 .ag-body .t .nm { display: block; }
+  .f1 .ag-body .t .pk { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+  .f1 .ag-body .st { width: 160px; }
+  .f1 .ag-body .tm { width: 70px; flex: none; display: flex; justify-content: flex-end; }
+  .f1 .ag-body .pl { width: 100px; flex: none; display: flex; justify-content: flex-end; }
+  .f1 .ag-card .l1 .nm { font-size: 15px; }
+  .f1 .ag-card .l2 { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted-foreground); margin-top: -4px; }
+  .f1 .ag-card .l3b { display: flex; align-items: center; gap: 12px; }
+  .f1 .ag-card .l3b .figure { min-width: 74px; text-align: right; }
+  /* quiet planned line (U1) on the L1 rail */
+  .f1 .ag-item.q { min-height: 32px; }
+  .f1 .ag-item.q .ag-date { padding-top: 7px; font-size: 12px; }
+  .f1 .ag-item.q .ag-date b { font-weight: 500; color: var(--muted-foreground); }
+  .f1 .ag-item.q .dot { top: 12px; width: 7px; height: 7px; background: var(--muted-foreground); }
+  .f1 .ag-item.q .ag-body { padding: 5px 12px; font-size: 13.5px; }
+  .f1 .ag-item.q .ag-body .nm { font-weight: 400; }
+  .f1 .ag-item.q .ag-body .m { flex: none; color: var(--muted-foreground); font-size: 12.5px; white-space: nowrap; }
+  .f1 .ag-item.q .ag-body .m b { font-weight: 500; color: var(--foreground); }
+  .f1 .ag-item.q.past .ag-body .m b { color: var(--green-fg); }
+  .f1 .ag-item.q.past .dot { background: var(--done); }
+  .f1 .ag-mo { display: grid; grid-template-columns: 74px 24px 1fr; }
+  .f1 .ag-mo .r { position: relative; } .f1 .ag-mo .r::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border); }
+  .f1 .ag-mo .tx { font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); padding: 12px 12px 3px; display: flex; gap: 6px; }
+  .f1 .ag-mo .tx .n { font-weight: 500; letter-spacing: 0; text-transform: none; opacity: .8; }
+  .f1 .ag-mo.gap .r::before { display: none; }
+  .f1 .ag-today { grid-template-columns: 74px 24px 1fr; }
+  .f1 .ag-more { display: grid; grid-template-columns: 74px 24px 1fr; padding-top: 4px; }
+  .f1 .ag-more button { justify-self: start; font: inherit; font-size: 12.5px; color: var(--muted-foreground); background: none; border: 0; padding: 4px 12px; border-radius: 8px; cursor: pointer; }
+  .f1 .ag-more button:hover { background: var(--muted); color: var(--foreground); }
+  .f1 .ag-item:first-child .ag-rail::before { top: 16px; }
+  .f1 .last .ag-rail::before { bottom: calc(100% - 14px); }
+  .narrow .f1 .ag-body .tm, .narrow .f1 .ag-body .t .pk { display: none; }
+  .narrow .f1 .ag-body .st { width: 110px; }
+
   /* tiles (B) */
   .summary { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted-foreground); margin: -4px 0 4px; }
   .summary b { color: var(--foreground); font-weight: 600; }
@@ -511,9 +553,10 @@
   <button class="variant-tab" data-v="s1f">S1f: app style</button>
   <button class="variant-tab" data-v="s1g">S1g: compact rows</button>
   <button class="variant-tab" data-v="s1h">S1h: from S1e</button>
-  <button class="variant-tab active" data-v="u1">U1: quiet list</button>
+  <button class="variant-tab" data-v="u1">U1: quiet list</button>
   <button class="variant-tab" data-v="u2">U2: month grid</button>
   <button class="variant-tab" data-v="u3">U3: mini cards</button>
+  <button class="variant-tab active" data-v="f1">F1: L1 + U1 ★</button>
 </div>
 
 <div id="frame">
@@ -681,9 +724,16 @@
     <div id="s1h-slot"></div>
   </section>
 
-  <section id="variant-u1" class="variant active pol hh uv u1"><div class="note">U1 — planned releases (after next+1) as a quiet list: small dot on the rail, date as text, name, "8 to do · in 12 days" in plain muted text, no pill or block.</div><div class="uslot"></div></section>
+  <section id="variant-u1" class="variant pol hh uv u1"><div class="note">U1 — planned releases (after next+1) as a quiet list: small dot on the rail, date as text, name, "8 to do · in 12 days" in plain muted text, no pill or block.</div><div class="uslot"></div></section>
   <section id="variant-u2" class="variant pol hh uv u2"><div class="note">U2 — planned releases become small cards in a grid under each month: date, name, issue count and countdown.</div><div class="uslot"></div></section>
   <section id="variant-u3" class="variant pol hh uv u3"><div class="note">U3 — each planned release is its own small separated card with the date block inside, echoing the next-release card at a smaller scale.</div><div class="uslot"></div></section>
+
+  <section id="variant-f1" class="variant active pol f1">
+    <div class="note">F1 — L1's agenda rail (text dates + dots, one-line rows) with U1's quiet planned lines, on S1e's header and windowed track. Overdue → TODAY → next-release card (one figure) → next+1 → planned (quiet, month dividers) → No date → 3 recent released → Show older.</div>
+    <div id="f1-head"></div>
+    <div id="f1-track"></div>
+    <div class="agenda f1-rail" id="f1"></div>
+  </section>
 
   <!-- ───────── Variant A2 ───────── -->
   <section id="variant-a2" class="variant">
@@ -1260,6 +1310,55 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
     document.getElementById('s1g').innerHTML = html;
   }
 
+  // F1: L1 rail + U1 quiet planned
+  {
+    const cd = r => {
+      const n = days(r);
+      if (n === null) return ['t-amber', 'No date'];
+      if (n < 0) return ['t-red', `${-n} ${-n === 1 ? 'day' : 'days'} late`];
+      if (n === 0) return ['t-blue', 'Today'];
+      if (n === 1) return ['t-muted', 'Tomorrow'];
+      if (n < 14) return ['t-muted', `In ${n} days`];
+      return ['t-muted', `In ${Math.round(n / 7)} weeks`];
+    };
+    const pill = (r, rel) => { const [c, l] = rel ? ['t-green', 'Released'] : cd(r); return `<span class="pill ${c}">${l}</span>`; };
+    const kind = r => rel2.includes(r) ? 'past' : !r.date ? 'undated' : days(r) < 0 ? 'late' : r === nxt[0] ? 'next' : '';
+    const date = r => r.date ? `<b>${fmt(r.date)}</b><br>${wd(r.date)}` : '<b>No date</b>';
+    const qdate = r => `<b>${wd(r.date)} ${fmt(r.date)}</b>`;
+    const full = (r, extra = '') => {
+      const k = kind(r);
+      if (k === 'next') return `<div class="ag-item next ${extra}"><div class="ag-date">${date(r)}</div><div class="ag-rail"><span class="dot"></span></div>
+        <div class="ag-body ag-card" title="${r.n}"><div class="kicker">Next release</div>
+          <div class="l1"><span class="nm">${r.n}</span>${pill(r)}</div>
+          <div class="l2"><span>${r.pkg ? pkgText(r) : 'No RM package'}</span>${av(r.team)}</div>
+          <div class="l3b">${bar(r, 'thick')}<span class="figure">${fig(r)} done</span></div></div></div>`;
+      return `<div class="ag-item ${k} ${extra}"><div class="ag-date">${date(r)}</div><div class="ag-rail"><span class="dot"></span></div>
+        <div class="ag-body" title="${r.n}"><div class="t"><span class="nm">${r.n}</span>${r.pkg ? `<span class="pk">${pkgText(r)}</span>` : ''}</div><span class="st">${issuesCell(r)}</span><span class="tm">${k === 'past' ? '' : av(r.team)}</span><span class="pl">${pill(r, k === 'past')}</span></div></div>`;
+    };
+    const quiet = (r, extra = '') => {
+      const rel = rel2.includes(r);
+      const meta = rel ? `<b>✓ ${total(r)} done</b>` : `<b>${total(r)} to do</b> · ${cd(r)[1].toLowerCase()}`;
+      return `<div class="ag-item q ${rel ? 'past' : ''} ${extra}"><div class="ag-date">${qdate(r)}</div><div class="ag-rail"><span class="dot"></span></div>
+        <div class="ag-body" title="${r.n}"><span class="nm">${r.n}</span><span class="m">${meta}</span></div></div>`;
+    };
+    const mo = (t, n, gap) => `<div class="ag-mo ${gap ? 'gap' : ''}"><div></div><div class="r"></div><div class="tx">${t}${n !== undefined ? `<span class="n">${n}</span>` : ''}</div></div>`;
+    const monthName = d => { const x = new Date(d); return x.toLocaleDateString('en-GB', { month: 'long' }) + (x.getFullYear() !== 2026 ? ' ' + x.getFullYear() : ''); };
+    const datedUp = plan.filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
+    let html = ''; let today = false; let lastMonth = null;
+    datedUp.forEach(r => {
+      if (!today && days(r) >= 0) { html += `<div class="ag-today"><span>Today</span><span class="mark"></span><span class="muted" style="font-size:11.5px;padding-left:10px">Thu 29 Oct</span></div>`; today = true; lastMonth = monthName('2026-10-29'); }
+      const m = monthName(r.date);
+      if (today && m !== lastMonth) { html += mo(m); lastMonth = m; }
+      const isQuiet = days(r) >= 0 && !near.has(r) && !(r.d + r.p > 0);
+      html += isQuiet ? quiet(r) : full(r);
+    });
+    const und = plan.filter(r => !r.date);
+    if (und.length) html += mo('No date', und.length) + und.map(r => full(r)).join('');
+    html += mo('Released', `${rel2.length} recent`) + rel2.map((r, i) => quiet(r, i === rel2.length - 1 ? 'last' : '')).join('');
+    html += `<div class="ag-more"><div></div><div></div><button>Show older releases ↓</button></div>`;
+    document.getElementById('f1').innerHTML = html;
+  }
+
   // Track renderer (shared)
   const drawTrack = (el, list, start, end, chipFor) => {
     el.innerHTML = '';
@@ -1343,6 +1442,8 @@ document.querySelectorAll('#variant-s1 .track-slot, #variant-s2 .track-slot').fo
         }
       });
     }
+    { const h = src.querySelector('.pol-head').cloneNode(true); h.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); document.getElementById('f1-head').appendChild(h);
+      const t = src.querySelector('.pol-track').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); document.getElementById('f1-track').appendChild(t); }
     document.getElementById('s1f-sum').innerHTML = '18 upcoming · <span style="color:var(--t-red-fg)">1 overdue</span> · next Tue 03 Nov'; }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('button').forEach(b => b.disabled = true); document.querySelector('.track-slot-s1d').appendChild(t); }
   { const t = document.getElementById('s1a-track').closest('.timeline').cloneNode(true); t.querySelectorAll('[id]').forEach(e => e.id = e.id.replace('s1a', 's1c')); document.querySelector('.track-slot-s1a').appendChild(t);
