@@ -2,7 +2,7 @@
 sketch: 002
 name: list-below-track
 question: "What should replace the table under the A4 release track so the list feels nicer?"
-winner: "S1c"
+winner: "S1d"
 tags: [layout, releases, list, phase-93]
 ---
 
@@ -39,6 +39,11 @@ open .planning/sketches/002-list-below-track/index.html
 - User: "s1a is the best. but i dont like that there are two timelines - unreleases and released".
 - One chronological rail: "↑ Show earlier releases" → last 3 released (oldest first, green blocks) → overdue → TODAY → next (raised card) → next+1 → condensed planned (mini block, one line) → "No date" section at the end.
 - Track = S1a: 8-week window, ‹ › pan in 4-week steps, "+N later →"; collision-free chip lanes with next release claiming the top lane.
+
+## Winner: S1d — released last (round 5)
+- User: released are the least important; don't put them on top.
+- Rail starts at the overdue release → TODAY → next (raised card) → next+1 → condensed planned → "No date".
+- Released live in one collapsed "Released · N recent · last <date>" line at the very bottom (expands newest-first, then "Show older releases"); the last released version stays on the track as a green chip.
 
 ## What to Look For
 - Which reads as a nice overview, not a table
