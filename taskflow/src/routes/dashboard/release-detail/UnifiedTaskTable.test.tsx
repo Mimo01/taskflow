@@ -1903,7 +1903,7 @@ describe('D-16: banner', () => {
 // jsdom cannot evaluate container queries, so these lock the tier class
 // strings (header strip and rows share the COL_* constants and must stay aligned).
 describe('responsive container tiers', () => {
-  const personTier = ['@max-[860px]:w-5', '@max-[640px]:hidden'];
+  const personTier = ['@max-[860px]:w-5'];
 
   it('the section is the @container and header strip carries every tier class', () => {
     const issue = makeIssue({ key: 'PROJ-1' });
@@ -1931,6 +1931,8 @@ describe('responsive container tiers', () => {
     const unassigned = within(taskRow).getByText('Unassigned');
     expect(unassigned).toHaveClass('@max-[860px]:sr-only');
     expect(unassigned.parentElement).toHaveClass(...personTier);
+    // The avatar stays at every width — the assignee column compacts but never drops.
+    expect(unassigned.parentElement?.className).not.toMatch(/:hidden/);
     const icon = within(taskRow).getByTestId('task-row-overlay').nextElementSibling;
     expect(icon).toHaveClass('@max-[640px]:hidden');
     const badgeWrap = within(taskRow).getByText('opened').parentElement as HTMLElement;

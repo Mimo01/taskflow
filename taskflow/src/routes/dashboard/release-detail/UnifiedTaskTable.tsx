@@ -77,7 +77,7 @@ export interface UnifiedTaskTableProps {
 const COL_ICON = 'flex-none w-[1.125rem] @max-[640px]:hidden';
 const COL_KEY = 'flex-none w-[5.5rem] whitespace-nowrap';
 const COL_SUMMARY = 'flex-1 min-w-0';
-const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-5 @max-[640px]:hidden';
+const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-5';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
 const COL_MR = 'flex-none w-[11.875rem] min-w-0 @max-[860px]:w-[5.5rem] @max-[520px]:hidden';
 
