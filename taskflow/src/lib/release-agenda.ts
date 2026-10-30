@@ -28,6 +28,15 @@ export function releaseCountdown(releaseDate: string | undefined, today: string)
   return { tone: 'muted', label: `In ${Math.round(n / 7)} weeks` };
 }
 
+/** Detail header pill: the list's countdown wording, with Released winning (green). */
+export function releaseHeaderPill(
+  v: { released: boolean; releaseDate?: string },
+  today: string,
+): ReleaseCountdown {
+  if (v.released) return { tone: 'green', label: 'Released' };
+  return releaseCountdown(v.releaseDate, today);
+}
+
 function utcDate(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d));

@@ -6,44 +6,8 @@ import {
   daysBetweenKeys,
   derivePackage,
   groupReleases,
-  releasePill,
   releaseTooltipRows,
 } from './release-list';
-
-const TODAY = '2026-10-29';
-
-describe('releasePill', () => {
-  it('released wins even when past', () => {
-    expect(releasePill({ released: true, releaseDate: '2020-01-01' }, TODAY)).toEqual({
-      tone: 'green',
-      label: 'Released',
-    });
-  });
-  it('no date', () => {
-    expect(releasePill({ released: false }, TODAY)).toEqual({ tone: 'amber', label: 'No date' });
-  });
-  it('overdue', () => {
-    expect(releasePill({ released: false, releaseDate: '2026-10-28' }, TODAY)).toEqual({
-      tone: 'red',
-      label: 'Overdue',
-    });
-  });
-  it('due today', () => {
-    expect(releasePill({ released: false, releaseDate: TODAY }, TODAY)).toEqual({
-      tone: 'blue',
-      label: 'Due today',
-    });
-  });
-  it('in N days with singular', () => {
-    expect(releasePill({ released: false, releaseDate: '2026-10-30' }, TODAY)).toEqual({
-      tone: 'muted',
-      label: 'In 1 day',
-    });
-    expect(releasePill({ released: false, releaseDate: '2026-11-08' }, TODAY).label).toBe(
-      'In 10 days',
-    );
-  });
-});
 
 describe('daysBetweenKeys', () => {
   it('is DST-free', () => {

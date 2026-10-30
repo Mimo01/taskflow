@@ -4,6 +4,7 @@ import {
   buildAgenda,
   dateStamp,
   releaseCountdown,
+  releaseHeaderPill,
   releaseSummary,
   spanLabel,
 } from './release-agenda';
@@ -171,5 +172,27 @@ describe('spanLabel', () => {
     expect(spanLabel(13)).toBe('13 days');
     expect(spanLabel(14)).toBe('2 weeks');
     expect(spanLabel(25)).toBe('4 weeks');
+  });
+});
+
+describe('releaseHeaderPill', () => {
+  it('released wins even when past, in green', () => {
+    expect(releaseHeaderPill({ released: true, releaseDate: '2020-01-01' }, TODAY)).toEqual({
+      tone: 'green',
+      label: 'Released',
+    });
+  });
+  it('unreleased uses the list countdown wording', () => {
+    for (const releaseDate of [undefined, '2026-10-26', TODAY, '2026-10-30', '2026-11-19']) {
+      expect(releaseHeaderPill({ released: false, releaseDate }, TODAY)).toEqual(
+        releaseCountdown(releaseDate, TODAY),
+      );
+    }
+    expect(releaseHeaderPill({ released: false, releaseDate: '2026-10-26' }, TODAY).label).toBe(
+      '3 days late',
+    );
+    expect(releaseHeaderPill({ released: false, releaseDate: '2026-11-19' }, TODAY).label).toBe(
+      'In 3 weeks',
+    );
   });
 });

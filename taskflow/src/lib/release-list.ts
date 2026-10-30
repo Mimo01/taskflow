@@ -17,19 +17,6 @@ export function daysBetweenKeys(fromKey: string, toKey: string): number {
   return Math.round((utc(toKey) - utc(fromKey)) / 86_400_000);
 }
 
-/** One pill per version. Precedence: released > no date > overdue > due today > in N days. */
-export function releasePill(
-  v: { released: boolean; releaseDate?: string },
-  today: string,
-): ReleasePill {
-  if (v.released) return { tone: 'green', label: 'Released' };
-  if (!v.releaseDate) return { tone: 'amber', label: 'No date' };
-  if (v.releaseDate < today) return { tone: 'red', label: 'Overdue' };
-  if (v.releaseDate === today) return { tone: 'blue', label: 'Due today' };
-  const n = daysBetweenKeys(today, v.releaseDate);
-  return { tone: 'muted', label: `In ${n} ${n === 1 ? 'day' : 'days'}` };
-}
-
 const dateDesc = (a: JiraFixVersion, b: JiraFixVersion) =>
   (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '');
 

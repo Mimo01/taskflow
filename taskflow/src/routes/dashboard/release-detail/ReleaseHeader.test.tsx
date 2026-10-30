@@ -80,13 +80,14 @@ describe('ReleaseDetailHeader', () => {
     expect(h).toHaveClass('text-xl', 'font-semibold');
     expect(screen.getAllByTestId('release-status-pill')).toHaveLength(1);
     expect(screen.getByText('In 3 days')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-02')).toBeInTheDocument();
+    // Same stamp as the list row.
+    expect(screen.getByText('Mon 02 Nov')).toBeInTheDocument();
     expect(screen.getByTestId('release-detail-header')).toBeInTheDocument();
   });
 
   it('omits the date text when there is no release date', () => {
     renderHeader({ releaseDate: undefined, pill: { tone: 'amber', label: 'No date' } });
-    expect(screen.queryByText('2026-11-02')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mon 02 Nov')).not.toBeInTheDocument();
   });
 
   it('toggles the package cell with showPackage', () => {

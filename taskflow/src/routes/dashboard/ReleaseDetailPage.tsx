@@ -11,7 +11,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { useResizable } from '@/hooks/useResizable';
 import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
-import { releasePill } from '@/lib/release-list';
+import { releaseHeaderPill } from '@/lib/release-agenda';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -250,7 +250,7 @@ export default function ReleaseDetailPage() {
               {/* Header: owns the done figure (D-14) and the page actions */}
               <ReleaseDetailHeader
                 name={version.name}
-                pill={releasePill(version, toLocalDateString(new Date()))}
+                pill={releaseHeaderPill(version, toLocalDateString(new Date()))}
                 releaseDate={version.releaseDate}
                 showPackage={rmEnabled}
                 pkg={releasePackage}

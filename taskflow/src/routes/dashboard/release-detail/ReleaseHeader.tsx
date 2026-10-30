@@ -4,6 +4,7 @@ import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
 import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
 import { Button } from '@/components/ui/button';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
+import { dateStamp } from '@/lib/release-agenda';
 import type { DerivedPackage, ReleasePill, StatusBreakdown } from '@/lib/release-list';
 import type { TrailEntry } from '@/stores/breadcrumb.store';
 
@@ -103,7 +104,9 @@ export function ReleaseDetailHeader({
           <div className="flex flex-wrap items-center gap-2">
             <ReleaseStatusPill pill={pill} />
             {releaseDate && (
-              <span className="text-xs tabular-nums text-muted-foreground">{releaseDate}</span>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {dateStamp(releaseDate).inline}
+              </span>
             )}
             {showPackage && (
               <div className="w-44">
