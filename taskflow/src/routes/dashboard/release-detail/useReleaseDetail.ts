@@ -756,5 +756,8 @@ export function useReleaseDetail(versionId: string | undefined) {
     issuesError,
     issuesUpdatedAt,
     gitlabConfigured,
+    // Recomputed on every render here; the compiled page would otherwise
+    // cache its own `new Date()` for the life of the mount (94-REVIEW WR-03).
+    today,
   } as const;
 }

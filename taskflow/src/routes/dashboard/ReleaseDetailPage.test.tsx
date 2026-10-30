@@ -119,6 +119,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
     issuesError: false,
     issuesUpdatedAt: 1_700_000_000_000,
     gitlabConfigured: false,
+    today: '2026-10-30',
     ...overrides,
   };
 }

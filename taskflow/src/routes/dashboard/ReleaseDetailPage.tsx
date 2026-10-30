@@ -10,7 +10,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { GitMerge, PackageOpen } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
 import { dateStamp, releaseHeaderPill } from '@/lib/release-agenda';
 import { refreshReleaseDetail } from '@/lib/release-refresh';
@@ -126,6 +125,7 @@ export default function ReleaseDetailPage() {
     issuesError,
     issuesUpdatedAt,
     gitlabConfigured,
+    today,
   } = useReleaseDetail(versionId);
 
   // Edit-modal state, diff builders and combined save (D-07 style co-located hook)
@@ -230,18 +230,17 @@ export default function ReleaseDetailPage() {
   };
 
   const [refreshing, setRefreshing] = useState(false);
-  const handleRefresh = async () => {
+  // 94-REVIEW WR-03: `.finally()` on the promise, not a try/finally statement —
+  // React Compiler cannot lower a TryStatement without a catch (or with a
+  // finalizer) and silently skipped memoising the whole page.
+  const handleRefresh = () => {
     if (!versionId) return;
     setRefreshing(true);
-    try {
-      await refreshReleaseDetail(queryClient, {
-        activeJiraProject,
-        activeGitlabProject,
-        versionId,
-      });
-    } finally {
-      setRefreshing(false);
-    }
+    void refreshReleaseDetail(queryClient, {
+      activeJiraProject,
+      activeGitlabProject,
+      versionId,
+    }).finally(() => setRefreshing(false));
   };
   const lastRefreshed = issuesUpdatedAt ? new Date(issuesUpdatedAt).toLocaleTimeString() : null;
 
@@ -290,7 +289,6 @@ export default function ReleaseDetailPage() {
   // status so it always carries information.
   const showDonut = hasMilestone && donutState !== 'empty';
   const statusRows = deriveReleaseStatusRows(releaseIssues);
-  const today = toLocalDateString(new Date());
   const timelineSummary = {
     done: headerBreakdown?.done ?? 0,
     total: releaseIssues.length,
@@ -391,7 +389,7 @@ export default function ReleaseDetailPage() {
           {/* Header: owns the done figure (D-14) and the page actions */}
           <ReleaseDetailHeader
             name={version.name}
-            pill={releaseHeaderPill(version, toLocalDateString(new Date()))}
+            pill={releaseHeaderPill(version, today)}
             releaseDate={version.releaseDate}
             showPackage={rmEnabled}
             pkg={releasePackage}
