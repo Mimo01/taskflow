@@ -1,5 +1,4 @@
 import { Check, TriangleAlert } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
@@ -10,43 +9,33 @@ export interface MrLabelCount {
   count: number;
 }
 
+/** Rows the list may use: fits beside the 4-row MR-state legend inside the band height. */
+export const MAX_LABEL_ROWS = 5;
 const MAX_UNLABELED_ROWS = 3;
 const MAX_REST_ROWS = 4;
-const CHAR_W = 6.4;
-const CHIP_CHROME = 14 + 4 + 12; // dot + gaps + trailing gap
-const MORE_W = 30;
-const UNLABELED_W = 112;
-const FALLBACK_WIDTH = 400;
-
-/** Estimated width of one "dot name count" chip. */
-export function labelChipWidth(c: MrLabelCount): number {
-  return CHIP_CHROME + (c.label.name.length + String(c.count).length + 1) * CHAR_W;
-}
 
 /**
- * How many label chips fit `width` after reserving room for the unlabelled
- * warning and, when some do not fit, the "+N" overflow. Chips are never dropped
- * to zero while at least one fits.
+ * Splits labels into the rows shown and the overflow. The unlabelled warning
+ * (when any MR lacks a label) always keeps its row, and when labels overflow one
+ * row is spent on the "+N more" entry.
  */
-export function visibleLabelCount(labels: MrLabelCount[], width: number, reserved: number): number {
-  const room = width - reserved;
-  let used = 0;
-  let n = 0;
-  for (const l of labels) {
-    const w = labelChipWidth(l);
-    const needsMore = n + 1 < labels.length ? MORE_W : 0;
-    if (used + w + needsMore > room) break;
-    used += w;
-    n += 1;
-  }
-  return n;
+export function labelRowPlan(
+  labels: MrLabelCount[],
+  missing: number,
+  maxRows = MAX_LABEL_ROWS,
+): { shown: MrLabelCount[]; rest: MrLabelCount[] } {
+  const avail = Math.max(1, maxRows - (missing > 0 ? 1 : 0));
+  if (labels.length <= avail) return { shown: labels, rest: [] };
+  return { shown: labels.slice(0, avail - 1), rest: labels.slice(avail - 1) };
 }
 
 /**
- * One compact line inside the Merge requests cell: the MR labels as quiet
- * "dot name count" chips (GitLab colour only as the dot), a muted "+N" tooltip for
- * the ones that do not fit, and an orange "N unlabelled" warning with the hover
- * list (first 3 + "+N more"). All labelled shows only a tiny check.
+ * Second legend column of the Merge requests cell: the MR labels as a vertical
+ * list styled like the state legend (text-xs, 8px dot in the GitLab colour, name,
+ * right-aligned muted count). The last entry is an orange "unlabelled N" with the
+ * hover list (first 3 + "+N more"); "+N more" overflow has its own tooltip. With
+ * every MR labelled there is no extra entry besides a tiny check when no labels
+ * exist to show.
  */
 export function MrLabels({
   labelSummary,
@@ -57,68 +46,49 @@ export function MrLabels({
   coverage: LabelCoverage | null;
   className?: string;
 }) {
-  const [el, setEl] = useState<HTMLDivElement | null>(null);
-  const [measured, setMeasured] = useState(0);
-  useEffect(() => {
-    if (!el) return;
-    setMeasured(el.getBoundingClientRect().width);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setMeasured(w);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [el]);
-
   const missing = coverage && !coverage.allLabeled ? coverage.unlabeled.length : 0;
-  if (labelSummary.length === 0 && !coverage) return null;
-  const width = measured > 0 ? measured : FALLBACK_WIDTH;
-  const reserved = missing > 0 ? UNLABELED_W : coverage?.allLabeled ? 16 : 0;
-  const fit = visibleLabelCount(labelSummary, width, reserved);
-  const shown = labelSummary.slice(0, fit);
-  const rest = labelSummary.slice(fit);
+  if (labelSummary.length === 0 && missing === 0) return null;
+  const { shown, rest } = labelRowPlan(labelSummary, missing);
 
   return (
     <div
-      ref={setEl}
       data-testid="mr-labels"
-      className={cn(
-        'flex w-full min-w-0 flex-nowrap items-center justify-center gap-x-3 overflow-hidden whitespace-nowrap text-xs',
-        className,
-      )}
+      className={cn('grid min-w-0 w-[7.5rem] gap-1.5 text-xs', className)}
     >
       {shown.map((l) => (
-        <span
+        <div
           key={l.label.name}
-          data-testid="mr-label-chip"
-          className="inline-flex items-center gap-1"
+          data-testid="mr-label-row"
+          className="flex min-w-0 items-center gap-1.5"
           title={`${l.label.name}: ${l.count}`}
         >
           <span
-            aria-hidden
-            className="size-2 flex-none rounded-full"
+            aria-hidden="true"
+            className="size-2 flex-none rounded-sm"
             style={{ backgroundColor: l.label.color }}
           />
-          <span className="text-foreground">{l.label.name}</span>
+          <span className="min-w-0 flex-1 truncate text-foreground">{l.label.name}</span>
           <span className="tabular-nums text-muted-foreground">{l.count}</span>
-        </span>
+        </div>
       ))}
       {rest.length > 0 ? (
         <Tooltip>
           <TooltipTrigger
             delay={0}
-            render={<span />}
+            render={<div />}
             data-testid="mr-labels-more"
             className="text-muted-foreground"
           >
-            +{rest.length}
+            +{rest.length} more
           </TooltipTrigger>
           <TooltipContent>
             <TooltipBody>
               {rest.slice(0, MAX_REST_ROWS).map((l) => (
                 <TooltipRow key={l.label.name} label={l.label.name} value={l.count} />
               ))}
+              {rest.length > MAX_REST_ROWS && (
+                <TooltipRow label={`+${rest.length - MAX_REST_ROWS}`} value="" />
+              )}
             </TooltipBody>
           </TooltipContent>
         </Tooltip>
@@ -127,12 +97,13 @@ export function MrLabels({
         <Tooltip>
           <TooltipTrigger
             delay={0}
-            render={<span />}
+            render={<div />}
             data-testid="mr-labels-unlabeled"
-            className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+            className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400"
           >
-            <TriangleAlert className="size-3 flex-none" aria-hidden />
-            {missing} unlabelled
+            <TriangleAlert className="size-2.5 flex-none" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate">unlabelled</span>
+            <span className="tabular-nums">{missing}</span>
           </TooltipTrigger>
           <TooltipContent>
             <div data-testid="mr-labels-unlabeled-tooltip">
@@ -147,13 +118,13 @@ export function MrLabels({
             </div>
           </TooltipContent>
         </Tooltip>
-      ) : coverage?.allLabeled ? (
+      ) : coverage?.allLabeled && labelSummary.length === 0 ? (
         <span
           data-testid="mr-labels-all"
           title="All MRs labelled"
           className="inline-flex text-green-600 dark:text-green-400"
         >
-          <Check className="size-3 flex-none" aria-hidden />
+          <Check className="size-3 flex-none" aria-hidden="true" />
           <span className="sr-only">All MRs labelled</span>
         </span>
       ) : null}

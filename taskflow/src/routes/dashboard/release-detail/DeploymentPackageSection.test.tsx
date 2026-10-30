@@ -208,7 +208,7 @@ describe('DeploymentPackageSection', () => {
     expect(row2.querySelector('[data-testid="package-assignee"]')).toHaveTextContent('Unassigned');
     expect(row2.querySelector('[data-testid="package-reporter"]')).toHaveTextContent('—');
     const reporter = row1.querySelector('[data-testid="package-reporter"]') as HTMLElement;
-    expect(reporter.className).toContain('@max-[900px]/page:hidden');
+    expect(reporter.className).toContain('@max-[1000px]/page:hidden');
     expect(row1.querySelector('[data-testid="package-assignee"]')?.className).toContain(
       'flex-none',
     );
@@ -225,12 +225,47 @@ describe('DeploymentPackageSection', () => {
     expect(header.className).toContain('border-b');
     // header and row hide their columns together at the same breakpoints
     const row = screen.getByTestId('package-row-S-1');
-    expect(header.innerHTML).toContain('@max-[900px]/page:hidden');
-    expect(row.innerHTML).toContain('@max-[900px]/page:hidden');
+    expect(header.innerHTML).toContain('@max-[1000px]/page:hidden');
+    expect(row.innerHTML).toContain('@max-[1000px]/page:hidden');
     expect(header.innerHTML).toContain('@max-[700px]/page:hidden');
     expect(row.innerHTML).toContain('@max-[700px]/page:hidden');
     const target = row.querySelector('[title*="WEEK44"], [title*="Week 44"]') as HTMLElement | null;
     expect(target?.textContent).toMatch(/Week 44 · RM-21/);
     expect(target?.getAttribute('title')).toContain('RM-21');
+  });
+
+  it('keeps one Fix cell per row with the action in a final right-aligned column', async () => {
+    renderSection([issue('S-1', 'Story', null, [v44])]);
+    const row = await screen.findByTestId('package-row-S-1');
+    const header = screen.getByTestId('package-column-header');
+    expect(row.querySelectorAll('[data-testid="package-fix"]')).toHaveLength(1);
+    const action = row.querySelector('button[aria-label^="Set deployment package"]') as HTMLElement;
+    expect(action.parentElement?.className).toContain('justify-end');
+    // header Fix cell and row Fix cell share the same width class
+    const widthOf = (el: Element | null) => /w-\[250px\]/.test(el?.className ?? '');
+    expect(widthOf(row.querySelector('[data-testid="package-fix"]'))).toBe(true);
+    expect(header.innerHTML).toContain('w-[250px]');
+    expect(header.innerHTML).toContain('w-[4.75rem]');
+  });
+
+  it('two fixes become one "Apply ▾" menu listing both options, each running its fix', async () => {
+    const m = issue('S-3', 'Story', 'RM-11', [v44]);
+    renderSection([m]);
+    const row = await screen.findByTestId('package-row-S-3');
+    // the fix versions load asynchronously, which adds the second option
+    await waitFor(() =>
+      expect(row.querySelector('[data-testid="package-fix"]')?.textContent).toContain(' or '),
+    );
+    expect(row.querySelectorAll('button[aria-label^="Set "]')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a fix' }));
+    const items = await screen.findAllByRole('menuitem');
+    expect(items).toHaveLength(2);
+    fireEvent.click(items[0]);
+    await waitFor(() =>
+      expect(applyFix).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'S-3' }),
+        expect.anything(),
+      ),
+    );
   });
 });

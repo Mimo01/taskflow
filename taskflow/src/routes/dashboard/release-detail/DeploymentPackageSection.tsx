@@ -1,8 +1,14 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
@@ -88,11 +94,15 @@ const COL_ICON = 'size-3.5 flex-none';
 const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[560px]/page:w-[5rem]';
 const COL_STATE = 'w-[84px] flex-none @max-[440px]/page:w-7';
 const COL_ASSIGNEE = 'w-[7.5rem] flex-none min-w-0 @max-[560px]/page:w-5';
-const COL_REPORTER = 'w-[7.5rem] flex-none min-w-0 @max-[900px]/page:hidden';
-const COL_FIX_TARGET = 'w-[190px] flex-none min-w-0 @max-[700px]/page:hidden';
-const COL_FIX_ACTION = 'w-14 flex-none';
+const COL_REPORTER = 'w-[7.5rem] flex-none min-w-0 @max-[1000px]/page:hidden';
+const COL_FIX_TARGET = 'w-[250px] flex-none min-w-0 @max-[700px]/page:hidden';
+const COL_FIX_ACTION = 'flex w-[4.75rem] flex-none justify-end';
 const HEADER_CLASS =
   'flex items-center gap-3 border-b px-2 py-1 @max-[560px]/page:gap-2 text-xs font-medium text-muted-foreground bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]';
+
+function fixKey(fix: PackageFix): string {
+  return fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`;
+}
 
 /** Short, readable target ("Week 45 · RM-18"); the full text stays in the tooltip. */
 function shortFixTarget(fix: PackageFix): string {
@@ -297,7 +307,6 @@ export function DeploymentPackageSection({
 
   const shown = expanded ? rows : rows.slice(0, VISIBLE_ROWS);
   const hiddenCount = rows.length - VISIBLE_ROWS;
-  const fixSlots = Math.max(1, ...rows.map((r) => r.result.fixes.length));
 
   return (
     <section data-testid="deployment-package-section" className="px-6 pt-5">
@@ -319,13 +328,8 @@ export function DeploymentPackageSection({
         </span>
         <span className={COL_REPORTER}>Reporter</span>
         <span className="min-w-[8rem] flex-1 @max-[700px]/page:min-w-[3rem]">Summary</span>
-        {Array.from({ length: fixSlots }, (_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed slot positions
-          <div key={i} className="flex flex-none items-center gap-2">
-            <span className={COL_FIX_TARGET}>{i === 0 ? 'Fix' : ''}</span>
-            <span className={COL_FIX_ACTION} aria-hidden="true" />
-          </div>
-        ))}
+        <span className={COL_FIX_TARGET}>Fix</span>
+        <span className={COL_FIX_ACTION} aria-hidden="true" />
       </div>
       <div className="flex flex-col divide-y border-b">
         {shown.map(({ issue, result }) => (
@@ -370,40 +374,63 @@ export function DeploymentPackageSection({
               >
                 {issue.fields.summary}
               </span>
-              {Array.from({ length: fixSlots }, (_, i) => {
-                const fix = result.fixes[i];
-                return (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: fixed slot positions
-                  <div key={i} className="flex flex-none items-center gap-2 text-xs">
-                    <span
-                      className={`${COL_FIX_TARGET} truncate text-muted-foreground`}
-                      title={fix ? packageFixTarget(fix) : undefined}
-                    >
-                      {fix ? (
-                        <>
-                          <span aria-hidden="true">→ </span>
-                          {shortFixTarget(fix)}
-                        </>
-                      ) : null}
-                    </span>
-                    <span className={COL_FIX_ACTION}>
-                      {fix ? (
+              <span
+                className={`${COL_FIX_TARGET} truncate text-xs text-muted-foreground`}
+                title={result.fixes.map(packageFixTarget).join('\n')}
+                data-testid="package-fix"
+              >
+                {result.fixes.map((fix, i) => (
+                  <span key={fixKey(fix)}>
+                    {i > 0 ? <span aria-hidden="true"> or </span> : null}
+                    <span aria-hidden="true">→ </span>
+                    {shortFixTarget(fix)}
+                  </span>
+                ))}
+              </span>
+              <span className={COL_FIX_ACTION}>
+                {result.fixes.length === 1 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    disabled={pending === issue.key}
+                    aria-label={packageFixLabel(result.fixes[0])}
+                    title={packageFixLabel(result.fixes[0])}
+                    onClick={() => onFix(issue, result.fixes[0])}
+                  >
+                    Apply
+                  </Button>
+                ) : result.fixes.length > 1 ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
                         <Button
                           type="button"
                           variant="outline"
                           size="xs"
                           disabled={pending === issue.key}
-                          aria-label={packageFixLabel(fix)}
-                          title={packageFixLabel(fix)}
+                          aria-label="Choose a fix"
+                          title="Choose a fix"
+                        />
+                      }
+                    >
+                      Apply
+                      <ChevronDown aria-hidden="true" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {result.fixes.map((fix) => (
+                        <DropdownMenuItem
+                          key={fixKey(fix)}
+                          className="cursor-pointer text-xs"
                           onClick={() => onFix(issue, fix)}
                         >
-                          Apply
-                        </Button>
-                      ) : null}
-                    </span>
-                  </div>
-                );
-              })}
+                          {packageFixLabel(fix)}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+              </span>
             </div>
             {errors[issue.key] && (
               <p className="break-words px-2 pb-1.5 text-xs text-destructive" role="alert">

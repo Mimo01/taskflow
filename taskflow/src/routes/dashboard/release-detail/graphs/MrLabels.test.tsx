@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
-import { labelChipWidth, type MrLabelCount, MrLabels, visibleLabelCount } from './MrLabels';
+import { labelRowPlan, type MrLabelCount, MrLabels } from './MrLabels';
 import { ReleaseMrDonut } from './ReleaseMrDonut';
 
 const mr = (i: number) =>
@@ -12,34 +12,41 @@ const lab = (name: string, count: number, color = '#428BCA'): MrLabelCount => ({
   count,
 });
 const labels = [lab('backend', 4), lab('frontend', 4), lab('hotfix', 3)];
+const missing = (n: number) => ({
+  total: 10,
+  labeled: 10 - n,
+  unlabeled: Array.from({ length: n }, (_, i) => mr(i + 1)),
+  allLabeled: n === 0,
+});
 
-describe('MrLabels', () => {
-  it('renders nothing without labels and coverage', () => {
+describe('MrLabels (second legend column)', () => {
+  it('renders nothing without labels and nothing missing', () => {
     const { container } = render(<MrLabels labelSummary={[]} coverage={null} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows quiet chips: GitLab colour only as a dot, name and a muted count', () => {
+  it('lists each label as a legend-style row: colour dot, truncating name, muted count', () => {
     render(<MrLabels labelSummary={labels} coverage={null} />);
-    const chips = screen.getAllByTestId('mr-label-chip');
-    expect(chips).toHaveLength(3);
-    expect(chips[0]).toHaveTextContent('backend4');
-    const dot = chips[0].querySelector('span[aria-hidden]') as HTMLElement;
+    const rows = screen.getAllByTestId('mr-label-row');
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent('backend4');
+    const dot = rows[0].querySelector('span[aria-hidden]') as HTMLElement;
     expect(dot.style.backgroundColor).not.toBe('');
-    expect(chips[0].className).not.toContain('bg-');
+    expect(dot.className).toContain('size-2');
+    expect(rows[0].querySelector('.truncate')).not.toBeNull();
+    expect(rows[0].className).toContain('items-center');
   });
 
-  it('shows an orange "N unlabelled" with a hover list of 3 MRs plus "+2 more"', async () => {
+  it('ends with an orange "unlabelled N" and a hover list of 3 MRs plus "+2 more"', async () => {
     const user = userEvent.setup();
-    render(
-      <MrLabels
-        labelSummary={labels}
-        coverage={{ total: 8, labeled: 3, unlabeled: [1, 2, 3, 4, 5].map(mr), allLabeled: false }}
-      />,
-    );
+    render(<MrLabels labelSummary={labels} coverage={missing(5)} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
-    expect(el).toHaveTextContent('5 unlabelled');
+    expect(el).toHaveTextContent('unlabelled');
+    expect(el).toHaveTextContent('5');
     expect(el.className).toContain('text-orange-600');
+    // last entry of the list
+    const list = screen.getByTestId('mr-labels');
+    expect(list.lastElementChild).toBe(el);
     await user.hover(el);
     const tip = await screen.findByTestId('mr-labels-unlabeled-tooltip');
     expect(tip).toHaveTextContent('!1001');
@@ -47,72 +54,56 @@ describe('MrLabels', () => {
     expect(tip).toHaveTextContent('+2 more');
   });
 
-  it('shows only a tiny check when every MR is labelled', () => {
-    render(
-      <MrLabels
-        labelSummary={labels}
-        coverage={{ total: 3, labeled: 3, unlabeled: [], allLabeled: true }}
-      />,
-    );
-    expect(screen.getByTestId('mr-labels-all')).toBeInTheDocument();
+  it('omits the unlabelled entry when nothing is missing', () => {
+    render(<MrLabels labelSummary={labels} coverage={missing(0)} />);
     expect(screen.queryByTestId('mr-labels-unlabeled')).toBeNull();
+    expect(screen.getAllByTestId('mr-label-row')).toHaveLength(3);
   });
 
-  describe('overflow', () => {
-    const real = Element.prototype.getBoundingClientRect;
-    afterEach(() => {
-      Element.prototype.getBoundingClientRect = real;
-    });
-    it('shows as many chips as fit, then a muted "+N" with a tooltip of the rest', async () => {
-      Element.prototype.getBoundingClientRect = () => ({ width: 120 }) as DOMRect;
-      // the test setup's ResizeObserver mock reports 600; override with the measured width
-      const RealRO = global.ResizeObserver;
-      global.ResizeObserver = class {
-        constructor(private cb: ResizeObserverCallback) {}
-        observe(t: Element) {
-          this.cb(
-            [{ target: t, contentRect: { width: 120 } } as ResizeObserverEntry],
-            this as never,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      } as unknown as typeof ResizeObserver;
-      const user = userEvent.setup();
-      render(<MrLabels labelSummary={labels} coverage={null} />);
-      global.ResizeObserver = RealRO;
-      expect(screen.getAllByTestId('mr-label-chip').length).toBeLessThan(3);
-      const more = screen.getByTestId('mr-labels-more');
-      expect(more.textContent).toMatch(/^\+\d$/);
-      await user.hover(more);
-      expect((await screen.findAllByText('hotfix')).length).toBeGreaterThan(0);
-    });
+  it('caps at 5 rows: labels beyond that collapse into "+N more" with a tooltip', async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: 8 }, (_, i) => lab(`label-${i}`, i + 1));
+    render(<MrLabels labelSummary={many} coverage={missing(2)} />);
+    // 5 rows = 3 labels + "+5 more" + unlabelled
+    expect(screen.getAllByTestId('mr-label-row')).toHaveLength(3);
+    const more = screen.getByTestId('mr-labels-more');
+    expect(more).toHaveTextContent('+5 more');
+    expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
+    await user.hover(more);
+    expect((await screen.findAllByText('label-3')).length).toBeGreaterThan(0);
   });
 });
 
-describe('visibleLabelCount', () => {
-  it('fits all when wide, none+overflow when tiny, reserves room for the warning', () => {
-    expect(visibleLabelCount(labels, 800, 0)).toBe(3);
-    expect(visibleLabelCount(labels, 20, 0)).toBe(0);
-    const w = labels.reduce((n, l) => n + labelChipWidth(l), 0);
-    expect(visibleLabelCount(labels, w + 5, 0)).toBe(3);
-    expect(visibleLabelCount(labels, w + 5, 112)).toBeLessThan(3);
+describe('labelRowPlan', () => {
+  const many = Array.from({ length: 8 }, (_, i) => lab(`l${i}`, 1));
+  it('shows all labels when they fit and reserves a row for the warning', () => {
+    expect(labelRowPlan(many.slice(0, 5), 0).rest).toHaveLength(0);
+    expect(labelRowPlan(many.slice(0, 5), 3).rest.length).toBeGreaterThan(0);
+    expect(labelRowPlan(many.slice(0, 4), 3).rest).toHaveLength(0);
+  });
+  it('never exceeds 5 rows including the overflow and warning rows', () => {
+    for (const miss of [0, 4]) {
+      const { shown, rest } = labelRowPlan(many, miss);
+      const rows = shown.length + (rest.length > 0 ? 1 : 0) + (miss > 0 ? 1 : 0);
+      expect(rows).toBeLessThanOrEqual(5);
+      expect(shown.length + rest.length).toBe(many.length);
+    }
   });
 });
 
-describe('ReleaseMrDonut label line', () => {
+describe('ReleaseMrDonut labels column', () => {
   const counts = { merged: 3, open: 0, draft: 0, closed: 0 };
-  it('sits inside the MR cell under the donut when labels are given', () => {
+  it('sits inside the MR cell next to the state legend', () => {
     render(
       <ReleaseMrDonut
         counts={counts}
         state="ready"
         labelSummary={labels}
-        labelCoverage={{ total: 3, labeled: 1, unlabeled: [mr(1), mr(2)], allLabeled: false }}
+        labelCoverage={missing(2)}
       />,
     );
     const cell = screen.getByTestId('release-graph-mrs');
     expect(cell.contains(screen.getByTestId('mr-labels'))).toBe(true);
-    expect(screen.getByTestId('mr-labels-unlabeled')).toHaveTextContent('2 unlabelled');
+    expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
   });
 });

@@ -262,6 +262,14 @@ describe('ReleaseDetailPage', () => {
     expect(screen.queryByTestId('mr-labels')).toBeNull();
   });
 
+  it('every clickable element on the page gets a pointer cursor from the page wrapper', () => {
+    renderPage();
+    const cls = screen.getByTestId('release-detail-scroll').className;
+    expect(cls).toContain('[&_button:not(:disabled)]:cursor-pointer');
+    expect(cls).toContain('[&_a[href]]:cursor-pointer');
+    expect(cls).toContain('[&_[role=button]]:cursor-pointer');
+  });
+
   it('opens the edit modal from Edit release', async () => {
     renderPage();
     fireEvent.click(screen.getByText('Edit release'));

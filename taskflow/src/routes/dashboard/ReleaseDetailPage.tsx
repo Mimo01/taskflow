@@ -371,7 +371,7 @@ export default function ReleaseDetailPage() {
         <div
           ref={setPageEl}
           data-testid="release-detail-scroll"
-          className="@container/page min-h-0 flex-1 overflow-auto [--release-sticky-top:0px]"
+          className="@container/page min-h-0 flex-1 overflow-auto [--release-sticky-top:0px] [&_[role=button]]:cursor-pointer [&_a[href]]:cursor-pointer [&_button:not(:disabled)]:cursor-pointer"
         >
           {/* Header: owns the done figure (D-14) and the page actions */}
           <ReleaseDetailHeader
@@ -462,10 +462,10 @@ export default function ReleaseDetailPage() {
               {band ? (
                 <div
                   data-testid="release-graph-grid"
-                  className="flex items-stretch gap-8 px-6 pt-4"
+                  className="flex items-stretch gap-6 px-6 pt-4"
                 >
                   {burnupEl}
-                  <div className="flex w-[250px] min-w-0 flex-none flex-col">{mrSlotEl}</div>
+                  <div className="flex w-[340px] min-w-0 flex-none flex-col">{mrSlotEl}</div>
                   <div className="flex min-w-[240px] flex-[1.2] flex-col">{typeEl}</div>
                   <div className="flex min-w-[240px] flex-1 flex-col">{assigneeEl}</div>
                 </div>
