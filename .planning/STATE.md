@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 93
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-10-30
+Last activity: 2026-10-30 - Completed quick task 261030-eic: Releases page skeleton matches actual content
 
 ## Performance Metrics
 
@@ -198,6 +198,7 @@ None yet.
 | 261029-oyw | Release detail responsive: task table container-query tiers (compact <860, drop type icon <640 (assignee avatar kept at all widths), MR <520, status <400), peek bar clear of key (pl-2), sidebar side-by-side + compact (80px labels, 256 default, 40% cap) + matching drag bounds, narrow-safe sidebar/breadcrumb | 2026-10-29 | 12664124 | Verified (UAT approved) | [261029-oyw-optimize-release-detail-page-for-smaller](./quick/261029-oyw-optimize-release-detail-page-for-smaller/) |
 | 261029-q7k | Releases list: removed per-row Sync packages button + dead bulk-sync code (executeDeploymentPackageSync, resolveShapesForCandidates, planBulkSync); package chip + release-detail per-row fixes kept | 2026-10-29 | 309770cd | Verified (UAT approved) | [261029-q7k-in-releases-list-remove-the-button-to-sy](./quick/261029-q7k-in-releases-list-remove-the-button-to-sy/) |
 | 261029-qez | AIO Test cycles + cycle detail: Backlog-style Refresh control ("Refreshed: HH:MM:SS" + RefreshCw icon button); upstream-first staged invalidation in lib/aio-refresh.ts (list → summaries; cycle/runs/status-map → summaries/step-summary/defects by numeric id) | 2026-10-29 | d500ca2c | Verified (UAT approved) | [261029-qez-add-refresh-button-to-aio-cycles-and-cyc](./quick/261029-qez-add-refresh-button-to-aio-cycles-and-cyc/) |
+| 261030-eic | Releases list skeleton mirrors loaded page (Today row, month labels, Next-release card, rail rows, Released panel + show-older; shares ROW_GRID/RAIL_LINE/LABEL_CLASS with ReleaseAgenda) + ReleasesHero summary-line placeholder while loading | 2026-10-30 | 45842716 | Needs Review (visual) | [261030-eic-make-releases-page-skeleton-match-actual](./quick/261030-eic-make-releases-page-skeleton-match-actual/) |
 
 ## Deferred Items
 
