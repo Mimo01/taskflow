@@ -17,7 +17,7 @@ import type { DerivedPackage, ReleasePill, StatusBreakdown } from '@/lib/release
 import { cn } from '@/lib/utils';
 import type { TrailEntry } from '@/stores/breadcrumb.store';
 import { ReleaseDescription } from './ReleaseDescription';
-import { type MetaItem, MetaLine } from './ReleaseFacts';
+import { type MetaItem, MetaLine, PropertyStrip } from './ReleaseFacts';
 
 interface ReleaseBreadcrumbHeaderProps {
   trail: TrailEntry[];
@@ -151,7 +151,6 @@ export function ReleaseDetailHeader({
       ),
     });
   }
-  items.push(...factItems);
   const pinLabel = pinned ? 'Unpin release' : 'Pin release';
   return (
     <div
@@ -210,6 +209,7 @@ export function ReleaseDetailHeader({
         jiraDescription={jiraDescription}
         milestoneDescription={milestoneDescription}
       />
+      <PropertyStrip items={factItems} className="mt-2" />
     </div>
   );
 }

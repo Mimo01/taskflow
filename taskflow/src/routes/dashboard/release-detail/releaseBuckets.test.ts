@@ -6,6 +6,8 @@ import {
   deriveReleaseTypeRows,
   mrDonutSlices,
   statusNameSummary,
+  WAFFLE_LAYOUT,
+  waffleCapacity,
   waffleCells,
   waffleUnit,
 } from './releaseBuckets';
@@ -172,5 +174,28 @@ describe('deriveReleaseStatusRows', () => {
       ['In Progress', 'indeterminate', 1],
       ['To Do', 'new', 1],
     ]);
+  });
+});
+
+describe('waffleCapacity', () => {
+  const { block, gap, nameCol, countCol, rowGap } = WAFFLE_LAYOUT;
+  const rowWidth = (blocks: number) =>
+    nameCol + rowGap + (blocks * (block + gap) - gap) + rowGap + countCol;
+
+  it('never lets a full row exceed the cell width', () => {
+    for (const cell of [200, 280, 347, 460, 640, 900]) {
+      const cap = waffleCapacity(cell);
+      expect(cap).toBeGreaterThanOrEqual(1);
+      if (cell >= rowWidth(1)) expect(rowWidth(cap)).toBeLessThanOrEqual(cell);
+    }
+  });
+
+  it('18 blocks do not fit a ~347px cell, so the unit becomes 2 and the row is 9 blocks', () => {
+    const cap = waffleCapacity(347);
+    expect(cap).toBeLessThan(18);
+    const unit = waffleUnit(18, cap);
+    expect(unit).toBe(2);
+    expect(Math.ceil(18 / unit)).toBeLessThanOrEqual(cap);
+    expect(rowWidth(Math.ceil(18 / unit))).toBeLessThanOrEqual(347);
   });
 });

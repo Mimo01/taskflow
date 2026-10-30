@@ -107,7 +107,7 @@ describe('ReleaseDetailHeader', () => {
     expect(screen.getByTestId('row-deployment-package')).toBeInTheDocument();
   });
 
-  it('orders date, package then facts with n-1 separators', () => {
+  it('subtitle holds only date and package; facts form a separate property strip after the description', () => {
     renderHeader({
       showPackage: true,
       factItems: [
@@ -116,16 +116,19 @@ describe('ReleaseDetailHeader', () => {
       ],
     });
     const line = screen.getByTestId('release-header-date').parentElement as HTMLElement;
-    const order = ['release-header-date', 'row-deployment-package', 'fact-a', 'fact-b'].map((id) =>
-      within(line).getByTestId(id),
-    );
-    for (let i = 0; i < order.length - 1; i++) {
-      expect(
-        order[i].compareDocumentPosition(order[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-    }
+    expect(within(line).getByTestId('row-deployment-package')).toBeInTheDocument();
+    expect(within(line).queryByTestId('fact-a')).toBeNull();
+    const strip = screen.getByTestId('release-property-strip');
+    expect(within(strip).getByTestId('fact-a')).toBeInTheDocument();
+    expect(within(strip).getByTestId('fact-b')).toBeInTheDocument();
     const separators = Array.from(line.children).filter((c) => c.textContent === '·');
-    expect(separators).toHaveLength(3);
+    expect(separators).toHaveLength(1);
+    expect(strip.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
+  it('renders no property strip without facts', () => {
+    renderHeader({ factItems: [] });
+    expect(screen.queryByTestId('release-property-strip')).toBeNull();
   });
 
   it('shows Refreshed text; refresh button fires and is disabled+spinning while refreshing', () => {

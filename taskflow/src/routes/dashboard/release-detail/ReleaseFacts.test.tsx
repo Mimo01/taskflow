@@ -8,7 +8,13 @@ import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import type { MergeBackVerdict } from './mergeBackVerification';
-import { MetaLine, ReleaseFacts, type ReleaseFactsProps, releaseFactItems } from './ReleaseFacts';
+import {
+  MetaLine,
+  PropertyStrip,
+  ReleaseFacts,
+  type ReleaseFactsProps,
+  releaseFactItems,
+} from './ReleaseFacts';
 import type { BranchState } from './releaseBranch';
 
 const openExternal = vi.hoisted(() => vi.fn());
@@ -548,6 +554,33 @@ describe('ReleaseFacts — presence and separators', () => {
     expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
   });
 
+  it('PropertyStrip: labelled columns, no dot separators, nothing for no items', () => {
+    const { container, rerender } = render(
+      <PropertyStrip
+        items={[
+          { id: 'a', node: <span>A</span> },
+          { id: 'b', node: <span>B</span> },
+        ]}
+      />,
+    );
+    expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
+    expect(container.textContent).not.toContain('·');
+    rerender(<PropertyStrip items={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('renders each fact as an uppercase label above its value', () => {
+    renderFacts({
+      branchState: exists,
+      hasStoryPoints: true,
+      storyPoints: { total: 3, completed: 1 },
+    });
+    const label = screen.getByText('Story points');
+    expect(label.className).toContain('uppercase');
+    expect(label.className).toContain('text-[11px]');
+    expect(screen.getByTestId('release-fact-story-points')).toHaveTextContent('3 SP');
+  });
+
   it('does not use font-medium on facts (weight 400)', () => {
     // The outline action Button primitive carries its own weight; assert on
     // the fact text spans only.
@@ -654,8 +687,8 @@ describe('ReleaseFacts — Story points and removed counts', () => {
     renderFacts({ branchState: { kind: 'absent' } as unknown as BranchState });
     expect(screen.queryByText('Status')).toBeNull();
     expect(screen.queryByText('Date')).toBeNull();
-    expect(screen.getByText('Milestone:')).toBeInTheDocument();
-    expect(screen.getByText('Branch:')).toBeInTheDocument();
+    expect(screen.getByText('Milestone')).toBeInTheDocument();
+    expect(screen.getByText('Branch')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 

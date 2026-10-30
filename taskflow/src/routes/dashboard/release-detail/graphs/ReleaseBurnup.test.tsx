@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
-import { BurnupTooltip, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
+import { BurnupTooltip, burnupEndLabelDy, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
 
 vi.mock('../../issue-detail/EpicChartZoom', async (orig) => ({
   ...(await orig<typeof import('../../issue-detail/EpicChartZoom')>()),
@@ -149,5 +149,27 @@ describe('burnupYScale', () => {
       expect(ticks.length).toBeLessThanOrEqual(4);
       expect(top).toBeGreaterThanOrEqual(m);
     }
+  });
+});
+
+describe('burnupEndLabelDy', () => {
+  const gap = (scope: number, done: number, top: number) => {
+    const { scopeDy, doneDy } = burnupEndLabelDy(scope, done, top);
+    return Math.abs(scopeDy - doneDy);
+  };
+  it('keeps the labels at least a label height apart when scope equals done', () => {
+    expect(gap(22, 22, 30)).toBeGreaterThanOrEqual(12);
+    const { scopeDy, doneDy } = burnupEndLabelDy(22, 22, 30);
+    expect(scopeDy).toBeLessThan(0);
+    expect(doneDy).toBeGreaterThan(0);
+  });
+  it('keeps them apart when they differ by 1', () => {
+    expect(gap(22, 21, 30)).toBeGreaterThanOrEqual(12);
+  });
+  it('moves done above scope when done sits on the axis', () => {
+    const { scopeDy, doneDy } = burnupEndLabelDy(28, 0, 30);
+    expect(doneDy).toBeLessThan(scopeDy);
+    expect(gap(28, 0, 30)).toBeGreaterThanOrEqual(12);
+    expect(gap(1, 0, 5)).toBeGreaterThanOrEqual(12);
   });
 });

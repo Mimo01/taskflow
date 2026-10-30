@@ -5,7 +5,7 @@ import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import type { ReleaseStatusRow } from '../releaseBuckets';
-import { ASSIGNEE_ROW_HEIGHT, GraphSlot } from './GraphSlot';
+import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
 
 const MAX_ROWS = 6;
 // Same row rhythm and column split as By assignee, so the two read as one family.
@@ -51,7 +51,7 @@ export function ReleaseStatusRows({
         </div>
       }
     >
-      <div className="flex flex-col">
+      <div className="flex max-w-[640px] flex-col">
         {shown.map((row) => (
           <Tooltip key={`${row.cat}:${row.name}`}>
             <TooltipTrigger
@@ -66,7 +66,7 @@ export function ReleaseStatusRows({
                 <div
                   className={cn(
                     'h-full rounded-full',
-                    row.cat === 'new' ? 'bg-muted-foreground/30' : RELEASE_SEGMENT_CLASS[row.cat],
+                    row.cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[row.cat],
                   )}
                   style={{ width: `${(row.count / max) * 100}%` }}
                 />

@@ -194,3 +194,19 @@ export function deriveReleaseStatusRows(issues: JiraIssue[]): ReleaseStatusRow[]
       a.name.localeCompare(b.name),
   );
 }
+
+/** Layout constants of a By type row: name column, blocks, count column. */
+export const WAFFLE_LAYOUT = { block: 14, gap: 3, nameCol: 96, countCol: 44, rowGap: 12 } as const;
+
+/**
+ * How many blocks fit one row of a cell `cellWidth` px wide: the cell minus the
+ * name and count columns and the two column gaps, divided by the block pitch.
+ * Always at least 1.
+ */
+export function waffleCapacity(cellWidth: number): number {
+  const { block, gap, nameCol, countCol, rowGap } = WAFFLE_LAYOUT;
+  return Math.max(
+    1,
+    Math.floor((cellWidth - nameCol - countCol - 2 * rowGap + gap) / (block + gap)),
+  );
+}

@@ -72,7 +72,7 @@ export function RowAction({
 
 // Why an action is unavailable: the reason helps, a dead control does not.
 function RowUnavailable({ children }: { children: ReactNode }) {
-  return <span className="text-muted-foreground">{children}</span>;
+  return <span className="max-w-[180px] text-muted-foreground">{children}</span>;
 }
 
 /** WR-10 exhaustiveness guard: only callable with a value the switch has
@@ -244,18 +244,32 @@ export interface ReleaseFactsProps {
   storyPoints: { total: number; completed: number };
 }
 
-// Name: value fact. Name muted, value foreground, both weight 400.
+// Property-strip column: small muted uppercase label on top, value or action
+// below (weight 400 throughout). The value row is 24px tall so columns with
+// and without an inline action button line up.
 function Fact({ id, name, children }: { id: string; name: string; children: ReactNode }) {
   return (
-    <span
-      data-testid={`release-fact-${id}`}
-      className="inline-flex min-w-0 flex-wrap items-center gap-1"
-    >
-      <span className="text-muted-foreground">{name}:</span>
-      <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-foreground">
+    <div data-testid={`release-fact-${id}`} className="flex min-w-0 flex-col gap-1">
+      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{name}</span>
+      <span className="inline-flex min-h-6 min-w-0 flex-wrap items-center gap-1 text-xs text-foreground">
         {children}
       </span>
-    </span>
+    </div>
+  );
+}
+
+/** Row of labelled fact columns; columns wrap whole, never splitting label from value. */
+export function PropertyStrip({ items, className }: { items: MetaItem[]; className?: string }) {
+  if (items.length === 0) return null;
+  return (
+    <div
+      data-testid="release-property-strip"
+      className={cn('flex flex-wrap items-start gap-x-8 gap-y-3', className)}
+    >
+      {items.map((it) => (
+        <Fragment key={it.id}>{it.node}</Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -505,5 +519,5 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
 }
 
 export function ReleaseFacts(props: ReleaseFactsProps) {
-  return <MetaLine items={releaseFactItems(props)} />;
+  return <PropertyStrip items={releaseFactItems(props)} />;
 }

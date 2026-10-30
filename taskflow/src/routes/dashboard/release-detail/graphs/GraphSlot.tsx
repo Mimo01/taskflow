@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+/** To-do tone for blocks and bars: stronger than the track so a single block reads on white. */
+export const NEW_TONE_CLASS = 'bg-muted-foreground/30';
 export const BURNUP_HEIGHT = 196;
 export const BURNUP_HEIGHT_NARROW = 160;
 export const DONUT_GRAPH_SIZE = 104;

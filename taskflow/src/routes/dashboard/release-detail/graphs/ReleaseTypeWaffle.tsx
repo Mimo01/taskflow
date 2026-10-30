@@ -1,5 +1,5 @@
 import { Shapes } from 'lucide-react';
-import { useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -10,15 +10,17 @@ import {
   releaseTooltipRows,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
-import { useElementWidth } from '../../issue-detail/EpicChartZoom';
-import { type ReleaseTypeRow, waffleCells, waffleUnit } from '../releaseBuckets';
-import { GraphSlot, WAFFLE_SKELETON_ROWS } from './GraphSlot';
+import {
+  type ReleaseTypeRow,
+  WAFFLE_LAYOUT,
+  waffleCapacity,
+  waffleCells,
+  waffleUnit,
+} from '../releaseBuckets';
+import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
 
-const BLOCK = 14;
-const GAP = 3;
-const NAME_COL = 96;
-const COUNT_COL = 44;
-const ROW_GAP = 12;
+const FALLBACK_WIDTH = 640;
+const { block: BLOCK, gap: GAP, nameCol: NAME_COL, rowGap: ROW_GAP } = WAFFLE_LAYOUT;
 
 /**
  * By type: one row per issue type, one fixed 14px block per issue (done, in
@@ -37,12 +39,22 @@ export function ReleaseTypeWaffle({
   showStoryPoints: boolean;
   className?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const width = useElementWidth(ref);
-  const capacity = Math.max(
-    1,
-    Math.floor((width - NAME_COL - COUNT_COL - 2 * ROW_GAP + GAP) / (BLOCK + GAP)),
-  );
+  // Callback ref: the cell only mounts once the slot is ready, so an effect on a
+  // useRef would never see it and fall back to a wide default width.
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [measured, setMeasured] = useState(0);
+  useEffect(() => {
+    if (!el) return;
+    setMeasured(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setMeasured(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [el]);
+  const capacity = waffleCapacity(measured > 0 ? measured : FALLBACK_WIDTH);
   const maxTotal = rows.reduce((m, r) => Math.max(m, r.total), 0);
   const unit = waffleUnit(maxTotal, capacity);
   const cells = rows.map((r) => waffleCells(r.breakdown, unit));
@@ -69,7 +81,7 @@ export function ReleaseTypeWaffle({
         </div>
       }
     >
-      <div ref={ref} className="flex flex-col gap-2">
+      <div ref={setEl} className="flex min-w-0 flex-col gap-2">
         {rows.map((row, ri) => (
           <Tooltip key={row.typeName}>
             <TooltipTrigger
@@ -80,6 +92,7 @@ export function ReleaseTypeWaffle({
               style={{
                 columnGap: ROW_GAP,
                 gridTemplateColumns: `${NAME_COL}px ${maxBlocks * (BLOCK + GAP) - GAP}px auto`,
+                maxWidth: '100%',
               }}
             >
               <div className="flex min-w-0 items-center gap-1.5">
@@ -94,7 +107,10 @@ export function ReleaseTypeWaffle({
                       key={`${cat}-${i}`}
                       data-testid="waffle-cell"
                       data-cat={cat}
-                      className={cn('flex-none rounded-[3px]', RELEASE_SEGMENT_CLASS[cat])}
+                      className={cn(
+                        'flex-none rounded-[3px]',
+                        cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[cat],
+                      )}
                       style={{ width: BLOCK, height: BLOCK }}
                     />
                   )),

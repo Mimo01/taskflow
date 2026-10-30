@@ -21,7 +21,7 @@ function frac(day: string, start: string, end: string): number {
 /** Left/centre/right anchoring so edge labels stay inside the track. */
 function anchor(f: number): { left: string; transform: string } {
   const transform =
-    f < 0.12 ? 'translateX(0)' : f > 0.88 ? 'translateX(-100%)' : 'translateX(-50%)';
+    f < 0.12 ? 'translateX(-6px)' : f > 0.88 ? 'translateX(calc(-100% + 6px))' : 'translateX(-50%)';
   return { left: `${f * 100}%`, transform };
 }
 
@@ -88,20 +88,23 @@ export function ReleaseTimeline({
           <div className="mt-1 text-xs text-muted-foreground">{cd.small}</div>
         </div>
       </div>
-      <div className="px-1 pb-1" aria-hidden="true">
+      <div className="px-2 pb-1" aria-hidden="true">
         <div className="relative h-14">
-          <div className="absolute inset-x-0 top-[26px] h-1.5 rounded-full bg-muted" />
+          <div className="absolute inset-x-0 top-[27px] h-1.5 -translate-y-1/2 rounded-full bg-muted" />
           <div
-            className="absolute left-0 top-[26px] h-1.5 rounded-full bg-foreground/20"
+            className="absolute left-0 top-[27px] h-1.5 -translate-y-1/2 rounded-full bg-foreground/20"
             style={{ width: `${todayF * 100}%` }}
           />
-          <div className="absolute left-0 top-[22px] size-3.5 rounded-full border-2 border-muted-foreground/60 bg-background" />
+          {/* Start dot only when it is not the same spot as TODAY. */}
+          {todayF > 0 ? (
+            <div className="absolute left-0 top-[27px] size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-muted-foreground/60" />
+          ) : null}
           <div
-            className="absolute top-2 h-9 border-l border-foreground/60"
+            className="absolute top-[27px] size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground"
             style={{ left: `${todayF * 100}%` }}
           />
           <div
-            className="absolute top-0 whitespace-nowrap text-xs uppercase tracking-wide text-muted-foreground"
+            className="absolute top-0 whitespace-nowrap text-xs uppercase tracking-wide text-foreground"
             style={anchor(todayF)}
           >
             Today
@@ -109,7 +112,7 @@ export function ReleaseTimeline({
           {releaseF !== null ? (
             <>
               <div
-                className="absolute top-2 h-9 border-l border-dashed border-muted-foreground"
+                className="absolute top-[27px] size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-muted-foreground bg-background"
                 style={{ left: `${releaseF * 100}%` }}
               />
               <div
@@ -120,7 +123,7 @@ export function ReleaseTimeline({
               </div>
             </>
           ) : null}
-          <div className="absolute bottom-0 left-0 max-w-[45%] truncate text-xs text-muted-foreground">
+          <div className="absolute bottom-0 left-0 max-w-[60%] truncate text-xs text-muted-foreground">
             {axis?.previousName ? `${axis.previousName} · ` : 'Started '}
             {formatDateKey(start)}
           </div>

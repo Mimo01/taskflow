@@ -48,25 +48,44 @@ export function BurnupTooltip({
   );
 }
 
-function endLabel(
-  last: number,
-  n: number,
-  text: string,
-  color: string,
-  flip: boolean,
-  below = false,
-) {
+const PLOT_PX = 110;
+const LABEL_GAP = 13;
+
+/**
+ * Vertical offsets (px, SVG y) for the two end labels. Scope sits above its line
+ * and done below its own, so equal or near-equal values can never collide (the
+ * scope line is always at or above the done line). When done is so close to the
+ * x-axis that a label below would hit the tick row, done goes above the scope
+ * label instead, still at least one label gap apart.
+ */
+export function burnupEndLabelDy(
+  scope: number,
+  done: number,
+  top: number,
+): { scopeDy: number; doneDy: number } {
+  const scopeDy = -5;
+  const doneRoom = (done / Math.max(1, top)) * PLOT_PX;
+  if (doneRoom >= LABEL_GAP + 4) return { scopeDy, doneDy: LABEL_GAP };
+  const gapPx = ((scope - done) / Math.max(1, top)) * PLOT_PX;
+  return { scopeDy, doneDy: scopeDy - gapPx - LABEL_GAP };
+}
+
+function endLabel(last: number, n: number, text: string, color: string, flip: boolean, dy: number) {
   return (p: { x?: number | string; y?: number | string; index?: number }) => {
     const x = Number(p.x);
     const y = Number(p.y);
     if (p.index !== last || Number.isNaN(x) || Number.isNaN(y)) return <g />;
     return (
       <text
-        x={flip ? x - 4 : x + 4}
-        y={below ? y + 12 : y - 4}
+        x={flip ? x - 6 : x + 6}
+        y={y + dy}
         textAnchor={flip ? 'end' : 'start'}
         fontSize={11}
         fill={color}
+        stroke="var(--color-background)"
+        strokeWidth={3}
+        strokeLinejoin="round"
+        paintOrder="stroke"
       >
         {`${n} ${text}`}
       </text>
@@ -112,6 +131,7 @@ export function ReleaseBurnup({
   const ticks = axis ? timeTicks(axis.start, axis.end, width) : [];
   const y = burnupYScale(points.reduce((m, p) => Math.max(m, p.scope), 0));
   const flip = !!axis && axis.seriesEnd === axis.end;
+  const dy = burnupEndLabelDy(last?.scope ?? 0, last?.done ?? 0, y.top);
 
   return (
     <GraphSlot
@@ -205,7 +225,7 @@ export function ReleaseBurnup({
                 strokeDasharray="4 3"
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(points.length - 1, last.scope, 'scope', MUTED, flip)}
+                label={endLabel(points.length - 1, last.scope, 'scope', MUTED, flip, dy.scopeDy)}
               />
               <Line
                 dataKey="done"
@@ -214,14 +234,7 @@ export function ReleaseBurnup({
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(
-                  points.length - 1,
-                  last.done,
-                  'done',
-                  GREEN,
-                  flip,
-                  last.done === last.scope,
-                )}
+                label={endLabel(points.length - 1, last.done, 'done', GREEN, flip, dy.doneDy)}
               />
             </ComposedChart>
           </ChartContainer>
