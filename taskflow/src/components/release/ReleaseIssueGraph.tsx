@@ -30,30 +30,27 @@ export function BreakdownErrorDash() {
   );
 }
 
-/** Slim segmented Done / In Progress / To Do bar with a done/total figure. */
+/**
+ * Release detail header bar: slim segmented Done / In Progress / To Do bar with a
+ * "done / total done" figure. (List rows use ReleaseIssuesSlot instead.)
+ */
 export function ReleaseIssueGraph({
   breakdown,
   loading,
   error,
-  variant,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
   /** Failed fetch with no data: a muted dash whose tooltip names the failure. */
   error: boolean;
-  variant: 'list' | 'detail';
 }) {
-  const wrapper = cn('flex w-full items-center gap-2', variant === 'detail' && 'max-w-xl');
+  const wrapper = 'flex w-full max-w-xl items-center gap-2';
 
   if (!breakdown) {
     return (
       <div data-testid="release-graph" className={wrapper}>
         {loading ? (
-          <>
-            <Skeleton data-testid="release-graph-skeleton" className="h-2 flex-1 rounded-full" />
-            {/* Reserve the figure slot so the bar does not shift when data arrives. */}
-            {variant === 'list' && <span aria-hidden className="w-12 shrink-0" />}
-          </>
+          <Skeleton data-testid="release-graph-skeleton" className="h-2 flex-1 rounded-full" />
         ) : error ? (
           <BreakdownErrorDash />
         ) : (
@@ -74,8 +71,7 @@ export function ReleaseIssueGraph({
   }
 
   const rows = releaseTooltipRows(breakdown);
-  const figure =
-    variant === 'list' ? `${breakdown.done}/${total}` : `${breakdown.done} / ${total} done`;
+  const figure = `${breakdown.done} / ${total} done`;
 
   return (
     <div data-testid="release-graph" className={wrapper}>
@@ -112,14 +108,7 @@ export function ReleaseIssueGraph({
           </TooltipBody>
         </TooltipContent>
       </Tooltip>
-      <span
-        className={cn(
-          'text-xs tabular-nums text-muted-foreground',
-          variant === 'list' ? 'w-12 shrink-0 text-right' : 'shrink-0',
-        )}
-      >
-        {figure}
-      </span>
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{figure}</span>
     </div>
   );
 }

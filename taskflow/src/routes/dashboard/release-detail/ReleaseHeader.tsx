@@ -138,12 +138,7 @@ export function ReleaseDetailHeader({
           )}
         </div>
       </div>
-      <ReleaseIssueGraph
-        variant="detail"
-        breakdown={breakdown}
-        loading={breakdownLoading}
-        error={breakdownError}
-      />
+      <ReleaseIssueGraph breakdown={breakdown} loading={breakdownLoading} error={breakdownError} />
     </div>
   );
 }

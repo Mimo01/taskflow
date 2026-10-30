@@ -17,10 +17,10 @@ describe('ReleaseStatusPill', () => {
 });
 
 describe('ReleaseIssueGraph', () => {
-  it('list variant shows segments, figure and accessible name', () => {
-    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} variant="list" />);
+  it('shows segments, the done / total figure and accessible name', () => {
+    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} />);
     expect(screen.getByRole('img', { name: '3 of 6 issues done' })).toBeInTheDocument();
-    expect(screen.getByText('3/6')).toBeInTheDocument();
+    expect(screen.getByText('3 / 6 done')).toBeInTheDocument();
     const done = screen.getByTestId('release-segment-done');
     const prog = screen.getByTestId('release-segment-indeterminate');
     const todo = screen.getByTestId('release-segment-new');
@@ -31,18 +31,12 @@ describe('ReleaseIssueGraph', () => {
     expect(prog.compareDocumentPosition(todo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('detail variant shows the wide figure', () => {
-    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} variant="detail" />);
-    expect(screen.getByText('3 / 6 done')).toBeInTheDocument();
-  });
-
   it('zero issues renders No issues, never 0/0', () => {
     render(
       <ReleaseIssueGraph
         breakdown={{ done: 0, indeterminate: 0, new: 0 }}
         loading={false}
         error={false}
-        variant="list"
       />,
     );
     expect(screen.getByText('No issues')).toBeInTheDocument();
@@ -51,13 +45,13 @@ describe('ReleaseIssueGraph', () => {
   });
 
   it('loading shows a skeleton and no empty text', () => {
-    render(<ReleaseIssueGraph breakdown={undefined} loading error={false} variant="list" />);
+    render(<ReleaseIssueGraph breakdown={undefined} loading error={false} />);
     expect(screen.getByTestId('release-graph-skeleton')).toBeInTheDocument();
     expect(screen.queryByText('No issues')).toBeNull();
   });
 
   it('error shows a muted dash with a failure tooltip and no skeleton', () => {
-    render(<ReleaseIssueGraph breakdown={undefined} loading={false} error variant="list" />);
+    render(<ReleaseIssueGraph breakdown={undefined} loading={false} error />);
     const dash = screen.getByTestId('release-issues-error');
     expect(dash).toHaveTextContent('–');
     expect(dash).toHaveAttribute('title', "Couldn't load issue counts");
@@ -66,9 +60,7 @@ describe('ReleaseIssueGraph', () => {
   });
 
   it('idle (not loading, no error) shows the plain dash without a failure tooltip', () => {
-    render(
-      <ReleaseIssueGraph breakdown={undefined} loading={false} error={false} variant="list" />,
-    );
+    render(<ReleaseIssueGraph breakdown={undefined} loading={false} error={false} />);
     expect(screen.getByText('–')).toBeInTheDocument();
     expect(screen.queryByTestId('release-issues-error')).toBeNull();
   });
@@ -81,7 +73,7 @@ describe('ReleaseIssueGraph', () => {
       { breakdown: data, loading: false, error: false },
     ];
     const classes = states.map((s) => {
-      const { unmount } = render(<ReleaseIssueGraph {...s} variant="list" />);
+      const { unmount } = render(<ReleaseIssueGraph {...s} />);
       const cls = screen.getByTestId('release-graph').className;
       unmount();
       return cls;
