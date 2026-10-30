@@ -31,14 +31,15 @@ describe('ReleaseDescription', () => {
   it('does not repeat a milestone description equal to the Jira one', () => {
     render(<ReleaseDescription jiraDescription="Same text" milestoneDescription=" Same text " />);
     expect(screen.getAllByText('Same text')).toHaveLength(1);
-    expect(screen.queryByText('MILESTONE')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('GitLab milestone description')).not.toBeInTheDocument();
   });
 
-  it('renders a differing milestone description after a MILESTONE label, as markdown', () => {
+  it('renders a differing milestone description as plain muted text (no caps label), as markdown', () => {
     render(
       <ReleaseDescription jiraDescription="Jira text" milestoneDescription="Notes with **bold**" />,
     );
-    expect(screen.getByText('MILESTONE')).toHaveClass('uppercase', 'tracking-wide', 'text-xs');
+    expect(screen.queryByText('MILESTONE')).toBeNull();
+    expect(screen.getByTitle('GitLab milestone description')).toBeInTheDocument();
     expect(screen.getByText('bold').tagName).toBe('STRONG');
   });
 

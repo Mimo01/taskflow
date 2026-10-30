@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   CalendarDays,
   ExternalLink,
+  Package,
   Pencil,
   Pin,
   PinOff,
@@ -145,7 +146,8 @@ export function ReleaseDetailHeader({
     items.push({
       id: 'package',
       node: (
-        <span className="inline-flex min-w-0">
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <Package className="size-3.5 flex-none" aria-hidden />
           <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />
         </span>
       ),

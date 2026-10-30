@@ -56,8 +56,7 @@ export function ReleaseDescription({
       >
         {jira && <p className="whitespace-pre-wrap">{jira}</p>}
         {milestone && (
-          <div className={cn(jira && 'mt-1')}>
-            <span className="mr-1.5 text-xs uppercase tracking-wide">MILESTONE</span>
+          <div className={cn(jira && 'mt-1')} title="GitLab milestone description">
             <div
               className={cn(
                 expanded

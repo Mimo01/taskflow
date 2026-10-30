@@ -554,7 +554,7 @@ describe('ReleaseFacts — presence and separators', () => {
     expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
   });
 
-  it('PropertyStrip: labelled columns, no dot separators, nothing for no items', () => {
+  it('PropertyStrip: one hairline-edged wrapper per property (clipped at line starts), no dots, nothing for no items', () => {
     const { container, rerender } = render(
       <PropertyStrip
         items={[
@@ -563,22 +563,28 @@ describe('ReleaseFacts — presence and separators', () => {
         ]}
       />,
     );
-    expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
+    const props = screen.getAllByTestId('release-property');
+    expect(props).toHaveLength(2);
+    expect(props[0].className).toContain('before:border-l');
+    expect(screen.getByTestId('release-property-strip').className).toContain('-ml-4');
+    expect(container.firstElementChild?.className).toContain('overflow-hidden');
     expect(container.textContent).not.toContain('·');
     rerender(<PropertyStrip items={[]} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders each fact as an uppercase label above its value', () => {
+  it('renders each fact as icon + value with the name in a title and screen-reader label, no uppercase', () => {
     renderFacts({
       branchState: exists,
       hasStoryPoints: true,
       storyPoints: { total: 3, completed: 1 },
     });
-    const label = screen.getByText('Story points');
-    expect(label.className).toContain('uppercase');
-    expect(label.className).toContain('text-[11px]');
-    expect(screen.getByTestId('release-fact-story-points')).toHaveTextContent('3 SP');
+    const fact = screen.getByTestId('release-fact-story-points');
+    expect(fact).toHaveTextContent('3 SP');
+    expect(fact).toHaveAttribute('title', 'Story points');
+    expect(fact.querySelector('svg')).not.toBeNull();
+    expect(screen.getByText('Story points').className).toContain('sr-only');
+    expect(fact.innerHTML).not.toContain('uppercase');
   });
 
   it('does not use font-medium on facts (weight 400)', () => {

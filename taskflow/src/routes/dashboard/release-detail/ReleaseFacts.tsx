@@ -1,4 +1,16 @@
-import { AlertTriangle, Check, ExternalLink, GitBranch, Plus, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  ExternalLink,
+  Gauge,
+  GitBranch,
+  GitMerge,
+  type LucideIcon,
+  Milestone,
+  Plus,
+  RefreshCw,
+  Tag,
+} from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
@@ -150,7 +162,6 @@ function BranchRowContent({
           className={cn('inline-flex max-w-full min-w-0 items-center gap-1', HEALTHY)}
           data-testid="branch-status-exists"
         >
-          <GitBranch className="size-3 shrink-0" />
           <span
             className="font-mono truncate"
             title={branchState.branchName}
@@ -178,7 +189,6 @@ function BranchRowContent({
             title={tooltipText}
             data-testid="branch-status-released"
           >
-            <GitBranch className="size-3 shrink-0" />
             Released
             {branchState.tagName ? (
               <>
@@ -244,31 +254,56 @@ export interface ReleaseFactsProps {
   storyPoints: { total: number; completed: number };
 }
 
-// Property-strip column: small muted uppercase label on top, value or action
-// below (weight 400 throughout). The value row is 24px tall so columns with
-// and without an inline action button line up.
-function Fact({ id, name, children }: { id: string; name: string; children: ReactNode }) {
+// Icon property: muted icon + value (text-sm, weight 400). The name lives in the
+// title and a screen-reader label; problems keep their colour and actions stay inline.
+function Fact({
+  id,
+  name,
+  icon: Icon,
+  children,
+}: {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  children: ReactNode;
+}) {
   return (
-    <div data-testid={`release-fact-${id}`} className="flex min-w-0 flex-col gap-1">
-      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{name}</span>
-      <span className="inline-flex min-h-6 min-w-0 flex-wrap items-center gap-1 text-xs text-foreground">
-        {children}
-      </span>
+    <div
+      data-testid={`release-fact-${id}`}
+      title={name}
+      className="flex min-h-6 min-w-0 items-center gap-1.5 text-sm text-foreground"
+    >
+      <Icon aria-hidden className="size-3.5 flex-none text-muted-foreground" />
+      <span className="sr-only">{name}</span>
+      <span className="inline-flex min-w-0 flex-wrap items-center gap-1">{children}</span>
     </div>
   );
 }
 
-/** Row of labelled fact columns; columns wrap whole, never splitting label from value. */
+/**
+ * One row of icon properties split by thin vertical hairlines. Each property
+ * draws its own hairline on its left edge; the strip is pulled left by one
+ * gutter inside an overflow-hidden clip, so the hairline of a property that
+ * starts a line is clipped away and wrapped lines never begin with a stray bar.
+ */
 export function PropertyStrip({ items, className }: { items: MetaItem[]; className?: string }) {
   if (items.length === 0) return null;
   return (
-    <div
-      data-testid="release-property-strip"
-      className={cn('flex flex-wrap items-start gap-x-8 gap-y-3', className)}
-    >
-      {items.map((it) => (
-        <Fragment key={it.id}>{it.node}</Fragment>
-      ))}
+    <div className={cn('overflow-hidden py-0.5', className)}>
+      <div
+        data-testid="release-property-strip"
+        className="-ml-4 flex flex-wrap items-center gap-y-2"
+      >
+        {items.map((it) => (
+          <div
+            key={it.id}
+            data-testid="release-property"
+            className="relative min-w-0 pl-4 pr-4 before:absolute before:left-0 before:top-1 before:h-4 before:border-l before:border-border before:content-['']"
+          >
+            {it.node}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -447,7 +482,7 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
     items.push({
       id: 'milestone',
       node: (
-        <Fact id="milestone" name="Milestone">
+        <Fact id="milestone" name="Milestone" icon={Milestone}>
           {milestoneValue(props)}
         </Fact>
       ),
@@ -455,7 +490,7 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
     items.push({
       id: 'branch',
       node: (
-        <Fact id="branch" name="Branch">
+        <Fact id="branch" name="Branch" icon={GitBranch}>
           <BranchRowContent
             branchState={props.branchState}
             defaultBranch={props.defaultBranch}
@@ -469,7 +504,7 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
       items.push({
         id: 'merged-back',
         node: (
-          <Fact id="merged-back" name="Merged back">
+          <Fact id="merged-back" name="Merged back" icon={GitMerge}>
             {mergeBackValue(mergeBackVerdict)}
           </Fact>
         ),
@@ -481,7 +516,7 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
       items.push({
         id: 'mr-labels',
         node: (
-          <Fact id="mr-labels" name="MR labels">
+          <Fact id="mr-labels" name="MR labels" icon={Tag}>
             {props.milestoneMRsLoaded && labelCoverage ? (
               mrLabelsValue(labelCoverage)
             ) : (
@@ -498,7 +533,7 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
     items.push({
       id: 'story-points',
       node: (
-        <Fact id="story-points" name="Story points">
+        <Fact id="story-points" name="Story points" icon={Gauge}>
           <Tooltip>
             <TooltipTrigger delay={0} render={<span />} className="tabular-nums">
               {total} SP
