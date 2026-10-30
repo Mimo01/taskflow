@@ -86,6 +86,8 @@ button { font: inherit; color: inherit; }
 .g-2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 32px; }
 .g-b { display: grid; grid-template-columns: minmax(0,2fr) minmax(260px,1fr); gap: 32px; }
 .g-b .quad { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 28px 32px; }
+.g-b.solo { grid-template-columns: minmax(0,1fr); }
+.g-b .quad > .span2 { grid-column: 1 / -1; }
 .g-c { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr) minmax(0,1fr); gap: 32px; }
 .vr { border-left: 1px solid var(--border); padding-left: 32px; }
 @container page (max-width: 980px) {
@@ -233,4 +235,12 @@ body.notes .note { display: block; }
 }
 @container page (max-width: 440px) {
   .n2 .g-a { grid-template-columns: minmax(0,1fr); }
+}
+@container page (max-width: 640px) {
+  .n2 .g-b .quad { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+  .n2 .g-b .quad > :first-child, .n2 .g-b .quad > .s-people { grid-column: 1 / -1; }
+  .n2 .g-b .quad > .s-people { order: 4; }
+}
+@container page (max-width: 440px) {
+  .n2 .g-b .quad { grid-template-columns: minmax(0,1fr); }
 }

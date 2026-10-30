@@ -2,7 +2,7 @@
 sketch: 003
 name: release-detail-page
 question: "How should the full-width release detail page be arranged: graphs-area layout, type-graph form, facts-strip density, and does the F5 rocket card suit it?"
-winner: null
+winner: "B"
 tags: [layout, release-detail, graphs, phase-94]
 ---
 
@@ -33,3 +33,12 @@ This page is the **hub for 003–005**. It runs full width, with tab rows for La
 ## Data notes
 - Today the MR state counts only cover merged / open / closed. The **draft** slice needs a draft flag read from the MRs.
 - The burnup needs `created` and `resolutiondate` added to `fetchFixVersionIssues` (D-03).
+
+## Winner: B, 2×2 grid + side column (user, 2026-10-30)
+- **Facts:** a row of outlined chips under the summary line (Milestone · Branch · MR labels · Story points). Actions sit inside their chip, and tone appears only on problems.
+- **Graphs:** a 2×2 grid. The burnup and the MR donut share the top row, and by assignee and the by-type waffle share the bottom row.
+- **Side column:** Labels and Deployment package mismatches sit in a quiet right column with a divider. It folds under the graphs at ≤980px.
+- **Type graph:** a waffle with one square per issue, coloured by status.
+- **No MR donut (GitLab not configured):** the burnup spans the full grid row.
+- **No labels and no mismatches:** the side column disappears and the grid takes the full width.
+- **States and widths:** the hub now renders both on B (004 states and 005 Stack/Compact).

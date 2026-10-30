@@ -30,7 +30,7 @@
 <div id="variant-nav">
   <div class="grp"><span class="gl">Layout</span>
     <button class="variant-tab active" data-v="a">A · Burnup leads</button>
-    <button class="variant-tab" data-v="b">B · 2×2 grid + side column</button>
+    <button class="variant-tab" data-v="b">B · 2×2 grid + side column ★</button>
     <button class="variant-tab" data-v="c">C · Release card (rocket)</button>
   </div>
   <div class="grp"><span class="gl">States</span>
@@ -57,7 +57,7 @@
 <script src="render.js"></script>
 <script src="../004-detail-edge-states/states.js"></script>
 <script>
-// One hub for sketches 003–005. States and narrow tabs use layout A (provisional) until a layout is picked.
+// One hub for sketches 003–005. Layout B won (2026-10-30); states and widths render on B.
 const LAYOUT = {
   a: { o: { layout: 'a', facts: 'inline', type: 'columns' },
        cap: 'Facts inline in the header line · burnup full width · then assignee · type columns · MR donut in one row · labels + mismatches side by side · task table.' },
@@ -69,7 +69,7 @@ const LAYOUT = {
 const STATE_CAP = {
   loading: 'Header from cache; every graph slot keeps its final size with a skeleton — nothing shifts when data arrives.',
   noissues: 'Release with no issues yet: one muted "No issues" per slot, empty done track, Create branch inside its fact.',
-  nogitlab: 'GitLab not configured: GitLab facts, MR donut and labels disappear; the graph row becomes two columns.',
+  nogitlab: 'GitLab not configured: GitLab facts, MR donut and labels disappear; the burnup takes the full row and the side column keeps only mismatches.',
   nomrs: 'Fuzzy milestone (dashed, orange, candidate in tooltip), branch check failed + Retry, "No MRs in this milestone".',
   released: 'Green Released pill, branch "Released · v33.4.0", Merged back appears; burnup ends on the release date.',
   undated: 'Amber "No date"; milestone/branch explain why they can\'t be created; burnup starts at the earliest issue.',
@@ -88,8 +88,8 @@ function show(v) {
   } else if (kind === 's') {
     const r = baseRelease();
     STATES[id](r);
-    renderPage(page, r, LAYOUT.a.o);
-    cap.innerHTML = `${STATE_CAP[id]} <span class="k">(on layout A)</span>`;
+    renderPage(page, r, LAYOUT.b.o);
+    cap.innerHTML = `${STATE_CAP[id]} <span class="k">(on layout B)</span>`;
   }
 }
 initChrome(show);
@@ -114,7 +114,8 @@ addEventListener('keydown', (e) => {
   next.click();
   scrollTo(0, 0);
 });
-show('a');
+document.querySelectorAll('.variant-tab').forEach((t) => t.classList.toggle('active', t.dataset.v === 'b'));
+show('b');
 </script>
 </body>
 </html>

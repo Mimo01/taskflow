@@ -364,16 +364,17 @@ const LAYOUTS = {
   // B: graphs as a 2×2 grid on the left, labels + mismatches in a quiet right column; facts as their own chip row
   b(r, o) {
     const dn = donut(r, 104);
+    const side = labelsSec(r) + mismatchSec(r);
     return `${header(r, o)}<div class="donefig">${doneBar(r)}${doneFig(r)}</div>
     <div class="body">
-      <div class="g-b">
+      <div class="g-b${side ? '' : ' solo'}">
         <div class="quad">
-          <section class="sec">${h3('trend', 'Progress', burnAside(r))}${burnupHTML(r)}</section>
-          ${dn ? `<section class="sec">${h3('merge', 'Merge requests')}${dn}</section>` : '<div></div>'}
-          <section class="sec">${h3('users', 'By assignee')}${assignees(r)}</section>
-          <section class="sec">${h3('layers', 'By type')}${(TYPE_FORMS[o.type] || typeWaffle)(r)}</section>
+          <section class="sec${dn ? '' : ' span2'}">${h3('trend', 'Progress', burnAside(r))}${burnupHTML(r)}</section>
+          ${dn ? `<section class="sec s-donut">${h3('merge', 'Merge requests')}${dn}</section>` : ''}
+          <section class="sec s-people">${h3('users', 'By assignee')}${assignees(r)}</section>
+          <section class="sec s-type">${h3('layers', 'By type')}${(TYPE_FORMS[o.type] || typeWaffle)(r)}</section>
         </div>
-        <div class="vr" style="display:flex;flex-direction:column;gap:24px">${labelsSec(r)}${mismatchSec(r)}</div>
+        ${side ? `<div class="vr" style="display:flex;flex-direction:column;gap:24px">${side}</div>` : ''}
       </div>
       ${table(r)}
     </div>`;
