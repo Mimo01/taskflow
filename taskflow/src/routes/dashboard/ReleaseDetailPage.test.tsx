@@ -13,6 +13,25 @@ vi.mock('@/lib/useDetectedBrowsers', () => ({ useDetectedBrowsers: () => [] }));
 vi.mock('@/lib/release-refresh', () => ({ refreshReleaseDetail: vi.fn() }));
 vi.mock('./release-detail/useReleaseDetail', () => ({ useReleaseDetail: vi.fn() }));
 
+// The real section needs an RM project and its own queries; this stand-in
+// renders (and reports) rows on demand, like the real one does once loaded.
+const pkg = vi.hoisted(() => ({ hasRows: false }));
+vi.mock('./release-detail/DeploymentPackageSection', async () => {
+  const { useLayoutEffect } = await import('react');
+  return {
+    DeploymentPackageSection: ({
+      onHasRowsChange,
+    }: {
+      onHasRowsChange?: (hasRows: boolean) => void;
+    }) => {
+      useLayoutEffect(() => {
+        onHasRowsChange?.(pkg.hasRows);
+      }, [onHasRowsChange]);
+      return pkg.hasRows ? <section data-testid="deployment-package-section" /> : null;
+    },
+  };
+});
+
 const mockRefresh = vi.mocked(refreshReleaseDetail);
 const mockHook = vi.mocked(useReleaseDetail);
 
@@ -128,6 +147,7 @@ function gitlabFixture() {
 }
 
 beforeEach(() => {
+  pkg.hasRows = false;
   mockRefresh.mockReset();
   mockRefresh.mockResolvedValue(undefined);
   mockHook.mockReturnValue(fixture() as never);
@@ -257,6 +277,64 @@ describe('ReleaseDetailPage', () => {
     expect(screen.queryByTestId('release-done-bar')).toBeNull();
     expect(screen.queryByTestId('release-graph-grid')).toBeNull();
     expect(screen.queryByTestId('task-column-header')).toBeNull();
+  });
+
+  // 94-REVIEW CR-03: an empty fix version must keep the action surfaces that do
+  // not depend on its issues — the package fix list and uncovered MRs.
+  it('no issues but uncovered MRs: the task table still renders, no empty notice', () => {
+    const mr = {
+      id: 7,
+      iid: 7,
+      project_id: 42,
+      title: 'Unlinked change',
+      source_branch: 'feature/x',
+      target_branch: 'release/33.5.0',
+      state: 'opened',
+      draft: false,
+      author: { id: 1, name: 'Alex Example', username: 'alex', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-10-01T00:00:00Z',
+      web_url: 'https://gitlab.example.com/mr/7',
+      labels: [],
+      milestone: null,
+    };
+    mockHook.mockReturnValue(
+      fixture({
+        fixVersionIssues: [],
+        releaseIssues: [],
+        primaryRows: [],
+        secondaryRows: [
+          {
+            mr,
+            channels: new Set(['C']),
+            evaluated: true,
+            br: 'ok',
+            ms: 'ok',
+            task: 'flag',
+            taskReason: 'no-linked-task',
+            taskKeys: [],
+            flagged: false,
+          },
+        ],
+      }) as never,
+    );
+    renderPage();
+    expect(screen.queryByTestId('release-no-issues')).toBeNull();
+    expect(screen.getByTestId('secondary-section')).toBeInTheDocument();
+    expect(screen.getByText('No issues in this fix version')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-graph-grid')).toBeNull();
+    expect(screen.queryByTestId('release-done-bar')).toBeNull();
+  });
+
+  it('no issues but package mismatches: the package section renders, no empty notice', () => {
+    pkg.hasRows = true;
+    mockHook.mockReturnValue(
+      fixture({ fixVersionIssues: [], releaseIssues: [], primaryRows: [] }) as never,
+    );
+    renderPage();
+    expect(screen.getByTestId('deployment-package-section')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-no-issues')).toBeNull();
+    expect(screen.queryByTestId('release-graph-grid')).toBeNull();
   });
 
   it('shows no MR/status count text outside the graphs (D-06)', () => {

@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ChevronDown } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
@@ -35,6 +35,9 @@ interface DeploymentPackageSectionProps {
   jiraBaseUrl: string | null;
   activeJiraProject: string | null;
   onOpenIssue: (key: string) => void;
+  /** Reports whether the section shows rows, so the page can tell "nothing to
+   *  show" from "only this section has content" (94-REVIEW CR-03). */
+  onHasRowsChange?: (hasRows: boolean) => void;
 }
 
 type Person = { displayName: string; avatarUrls?: { '48x48': string } } | null | undefined;
@@ -141,6 +144,7 @@ export function DeploymentPackageSection({
   jiraBaseUrl,
   activeJiraProject,
   onOpenIssue,
+  onHasRowsChange,
 }: DeploymentPackageSectionProps) {
   const { enabled } = useRmWeekIndex();
 
@@ -288,7 +292,14 @@ export function DeploymentPackageSection({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState(false);
 
-  if (!enabled || rows.length === 0) return null;
+  // Layout effect: the page swaps its empty notice for this section in the same
+  // frame the section appears.
+  const hasRows = enabled && rows.length > 0;
+  useLayoutEffect(() => {
+    onHasRowsChange?.(hasRows);
+  }, [hasRows, onHasRowsChange]);
+
+  if (!hasRows) return null;
 
   const onFix = async (issue: JiraIssue, fix: PackageFix) => {
     setPending(issue.key);

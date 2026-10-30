@@ -297,6 +297,13 @@ export default function ReleaseDetailPage() {
     released: !!version?.released,
   };
   const noIssues = issueGraphState === 'empty';
+  // 94-REVIEW CR-03: an empty fix version still has action surfaces that do not
+  // depend on its issues — package-orphan stories and MRs no task covers. The
+  // friendly notice replaces only the graphs, and shows only when those are
+  // empty too.
+  const [packageHasRows, setPackageHasRows] = useState(false);
+  const showTaskTable = !noIssues || secondaryRows.length > 0;
+  const showNoIssuesNotice = noIssues && !showTaskTable && !packageHasRows;
 
   // Graph slots, built once and placed by the band or the 2x2 layout. `compact`
   // (band mode) shrinks rows, donut and squares and lets the burnup plot fill the
@@ -450,7 +457,7 @@ export default function ReleaseDetailPage() {
             />
           )}
 
-          {noIssues ? (
+          {showNoIssuesNotice ? (
             <div
               data-testid="release-no-issues"
               className="flex flex-col items-center gap-2 px-6 py-16 text-center"
@@ -463,7 +470,8 @@ export default function ReleaseDetailPage() {
                   : 'Graphs and the task list appear once issues are added to the fix version in Jira.'}
               </p>
             </div>
-          ) : (
+          ) : null}
+          {noIssues ? null : (
             <>
               {/* Graph section. Wide containers: ONE band like the AIO cycle stats block
                   (burnup fills the row height set by the lists, then MRs/status, type,
@@ -490,59 +498,65 @@ export default function ReleaseDetailPage() {
                   {typeEl}
                 </div>
               )}
-              {/* Package mismatches as a full-width action list (renders nothing
-                  when empty). */}
-              {/* Stories whose fix version and Deployment package disagree (quick
-                  261014-eym). Renders nothing without an RM project. */}
-              <DeploymentPackageSection
-                stories={releaseIssues}
-                version={version}
-                jiraBaseUrl={jiraBaseUrl}
-                activeJiraProject={activeJiraProject}
-                onOpenIssue={resolvedOnOpenIssue}
-              />
-
-              {/* Unified task table (criterion 1): one Jira-task-keyed table with
-                  every associated MR inline underneath, plus a conditional
-                  secondary table for MRs no task covers. `key` remounts the
-                  table when the release changes — navigating to an
-                  already-cached release skips the skeleton branch above, so
-                  nothing else would remount it, and the per-cell fix state
-                  (`useMrFixMutation`'s local `status`/`errorMessage`) would
-                  otherwise carry over from the previous release. */}
-              <div className="px-6 pt-6 pb-6">
-                <UnifiedTaskTable
-                  key={versionId}
-                  versionName={version.name}
-                  hasReleaseDate={!!version.releaseDate}
-                  isLoadingIssues={isLoadingIssues}
-                  isLoadingDrift={isLoadingDrift}
-                  driftUnavailable={driftUnavailable}
-                  hasMatchedMilestone={hasMatchedMilestone}
-                  milestoneLookupFailed={milestonesFailed}
-                  primaryRows={primaryRows}
-                  secondaryRows={secondaryRows}
-                  flaggedMrCount={flaggedMrCount}
-                  brFlaggedCount={brFlaggedCount}
-                  msFlaggedCount={msFlaggedCount}
-                  onOpenIssue={resolvedOnOpenIssue}
-                  onOpenIssueFull={openIssueFull}
-                  onSeedBreadcrumb={seedReleaseBreadcrumb}
-                  onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
-                  fix={{
-                    projectId: activeGitlabProject ?? null,
-                    baseUrl: gitlabBaseUrl ?? null,
-                    token: gitlabToken,
-                    releaseBranchName,
-                    releaseBranchExists: branchState.kind === 'exists',
-                    matchedMilestone: matchedMilestone
-                      ? { id: matchedMilestone.id, title: matchedMilestone.title }
-                      : null,
-                  }}
-                />
-              </div>
             </>
           )}
+          {/* Package mismatches as a full-width action list (renders nothing
+              when empty). */}
+          {/* Stories whose fix version and Deployment package disagree (quick
+              261014-eym). Renders nothing without an RM project. Kept for an
+              empty fix version too: its no-fix-version stories are exactly the
+              ones to tag (94-REVIEW CR-03). */}
+          <DeploymentPackageSection
+            stories={releaseIssues}
+            version={version}
+            jiraBaseUrl={jiraBaseUrl}
+            activeJiraProject={activeJiraProject}
+            onOpenIssue={resolvedOnOpenIssue}
+            onHasRowsChange={setPackageHasRows}
+          />
+
+          {/* Unified task table (criterion 1): one Jira-task-keyed table with
+              every associated MR inline underneath, plus a conditional
+              secondary table for MRs no task covers. `key` remounts the
+              table when the release changes — navigating to an
+              already-cached release skips the skeleton branch above, so
+              nothing else would remount it, and the per-cell fix state
+              (`useMrFixMutation`'s local `status`/`errorMessage`) would
+              otherwise carry over from the previous release. With no issues
+              it still renders when MRs no task covers exist (CR-03). */}
+          {showTaskTable ? (
+            <div className="px-6 pt-6 pb-6">
+              <UnifiedTaskTable
+                key={versionId}
+                versionName={version.name}
+                hasReleaseDate={!!version.releaseDate}
+                isLoadingIssues={isLoadingIssues}
+                isLoadingDrift={isLoadingDrift}
+                driftUnavailable={driftUnavailable}
+                hasMatchedMilestone={hasMatchedMilestone}
+                milestoneLookupFailed={milestonesFailed}
+                primaryRows={primaryRows}
+                secondaryRows={secondaryRows}
+                flaggedMrCount={flaggedMrCount}
+                brFlaggedCount={brFlaggedCount}
+                msFlaggedCount={msFlaggedCount}
+                onOpenIssue={resolvedOnOpenIssue}
+                onOpenIssueFull={openIssueFull}
+                onSeedBreadcrumb={seedReleaseBreadcrumb}
+                onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
+                fix={{
+                  projectId: activeGitlabProject ?? null,
+                  baseUrl: gitlabBaseUrl ?? null,
+                  token: gitlabToken,
+                  releaseBranchName,
+                  releaseBranchExists: branchState.kind === 'exists',
+                  matchedMilestone: matchedMilestone
+                    ? { id: matchedMilestone.id, title: matchedMilestone.title }
+                    : null,
+                }}
+              />
+            </div>
+          ) : null}
 
           {/* Edit modal */}
           <EditReleaseModal
