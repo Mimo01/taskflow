@@ -127,3 +127,17 @@ Fixed inline:
   - The summary sits under the title (as on My Tasks).
   - Updated/Refresh are on the right.
 - The ambient curves were dropped; only the home dashboard keeps them.
+
+Round 1 follow-up 6 (2026-10-30), user feedback verbatim:
+
+> make the info below reelases in title nicer
+
+Fixed inline:
+- The summary line is now a wrapping row of icon + figure stats (`releases-stat`):
+  - calendar → planned;
+  - alert → overdue (red);
+  - calendar-x → without date (amber);
+  - repeat → cadence;
+  - rocket → last shipped.
+- Figures are medium weight, and colour is used only for status (My Tasks convention).
+- The figures are spaced apart instead of joined with " · ".

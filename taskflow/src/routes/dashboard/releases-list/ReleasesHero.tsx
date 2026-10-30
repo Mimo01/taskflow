@@ -1,4 +1,13 @@
-import { RefreshCw } from 'lucide-react';
+import {
+  CalendarDays,
+  CalendarX,
+  CircleAlert,
+  type LucideIcon,
+  RefreshCw,
+  Repeat,
+  Rocket,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { relativeTime } from '@/lib/relative-time';
 import { type ReleaseSummary, spanLabel } from '@/lib/release-agenda';
 import { cn } from '@/lib/utils';
@@ -7,6 +16,24 @@ function lastShippedLabel(days: number): string {
   if (days === 0) return 'today';
   if (days === 1) return 'yesterday';
   return `${spanLabel(days)} ago`;
+}
+
+/** One summary figure: icon + text; colour only for status (overdue red, undated amber). */
+function Stat({
+  icon: Icon,
+  className,
+  children,
+}: {
+  icon: LucideIcon;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span data-testid="releases-stat" className={cn('inline-flex items-center gap-1.5', className)}>
+      <Icon aria-hidden="true" className="size-3.5 shrink-0 opacity-70" />
+      <span className="font-medium">{children}</span>
+    </span>
+  );
 }
 
 export function ReleasesHero({
@@ -27,28 +54,29 @@ export function ReleasesHero({
       <div className="min-w-0">
         <h1 className="text-xl font-semibold">Releases</h1>
         {summary && (
-          <p data-testid="releases-summary" className="mt-1 text-xs text-muted-foreground">
-            {summary.planned === 0 ? (
-              'No planned releases'
-            ) : (
-              <>
-                <span className="font-semibold text-foreground">{summary.planned}</span> planned
-              </>
-            )}
+          <p
+            data-testid="releases-summary"
+            className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums"
+          >
+            <Stat icon={CalendarDays} className="text-foreground">
+              {summary.planned === 0 ? 'No planned releases' : `${summary.planned} planned`}
+            </Stat>
             {summary.overdue > 0 && (
-              <>
-                {' · '}
-                <span className="font-medium text-red-600 dark:text-red-400">
-                  {summary.overdue} overdue
-                </span>
-              </>
+              <Stat icon={CircleAlert} className="text-red-600 dark:text-red-400">
+                {summary.overdue} overdue
+              </Stat>
             )}
-            {summary.undated > 0 && ` · ${summary.undated} without date`}
-            {summary.cadenceDays !== null &&
-              summary.cadenceDays > 0 &&
-              ` · ships every ~${spanLabel(summary.cadenceDays)}`}
-            {summary.lastShippedDays !== null &&
-              ` · last shipped ${lastShippedLabel(summary.lastShippedDays)}`}
+            {summary.undated > 0 && (
+              <Stat icon={CalendarX} className="text-amber-600 dark:text-amber-400">
+                {summary.undated} without date
+              </Stat>
+            )}
+            {summary.cadenceDays !== null && summary.cadenceDays > 0 && (
+              <Stat icon={Repeat}>ships every ~{spanLabel(summary.cadenceDays)}</Stat>
+            )}
+            {summary.lastShippedDays !== null && (
+              <Stat icon={Rocket}>last shipped {lastShippedLabel(summary.lastShippedDays)}</Stat>
+            )}
           </p>
         )}
       </div>

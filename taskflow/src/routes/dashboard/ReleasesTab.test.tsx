@@ -182,9 +182,11 @@ describe('ReleasesTab (F5)', () => {
     renderTab();
     await screen.findAllByTestId('release-row');
     const summary = screen.getByTestId('releases-summary');
-    expect(summary.textContent).toBe(
-      '5 planned · 1 overdue · 1 without date · last shipped 8 weeks ago',
-    );
+    expect(
+      within(summary)
+        .getAllByTestId('releases-stat')
+        .map((el) => el.textContent),
+    ).toEqual(['5 planned', '1 overdue', '1 without date', 'last shipped 8 weeks ago']);
     expect(summary.textContent).not.toContain('next');
   });
 
