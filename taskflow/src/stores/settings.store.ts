@@ -53,7 +53,6 @@ const initialSettings = {
   issueDetailPanelWidth: null as number | null,
   peekPanelWidth: null as number | null,
   mrDetailPanelWidth: 288,
-  releaseDetailPanelWidth: 256,
   aioRunDetailPanelWidth: 320,
   aioEnabled: false,
   tempoEnabled: false,
@@ -157,8 +156,6 @@ interface SettingsState {
   mrDetailPanelWidth: number;
   setMrDetailPanelWidth: (w: number) => void;
   /** Release detail right panel width in px. Default: 288 (w-72). */
-  releaseDetailPanelWidth: number;
-  setReleaseDetailPanelWidth: (w: number) => void;
   aioRunDetailPanelWidth: number;
   setAioRunDetailPanelWidth: (w: number) => void;
   /** Enable AIO Test Management integration. Default: false. Gates all AIO API calls. */
@@ -270,7 +267,6 @@ export const useSettingsStore = create<SettingsState>()(
       setIssueDetailPanelWidth: (w) => set({ issueDetailPanelWidth: w }),
       setPeekPanelWidth: (w) => set({ peekPanelWidth: w }),
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
-      setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
       setAioRunDetailPanelWidth: (w) => set({ aioRunDetailPanelWidth: w }),
       setAioEnabled: (v) => set({ aioEnabled: v }),
       setTempoEnabled: (v) => set({ tempoEnabled: v }),
@@ -372,7 +368,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 31,
+      version: 32,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -497,6 +493,10 @@ export const useSettingsStore = create<SettingsState>()(
           // Release sidebar default narrowed 288 -> 256 (261029-oyw); move only the
           // untouched default, never a width the user dragged to.
           if (s.releaseDetailPanelWidth === 288) s.releaseDetailPanelWidth = 256;
+        }
+        if (version < 32) {
+          // P94: release detail is full-width; the sidebar width setting is gone.
+          delete s.releaseDetailPanelWidth;
         }
         return persisted as SettingsState;
       },
