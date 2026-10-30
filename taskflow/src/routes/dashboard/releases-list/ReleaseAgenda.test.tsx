@@ -100,6 +100,17 @@ describe('ReleaseAgenda', () => {
     expect(onOpen).toHaveBeenLastCalledWith('A');
   });
 
+  it('puts the full-name tooltip on the hoverable overlay buttons, not the inert name spans', () => {
+    setup();
+    for (const name of ['Alpha overdue release', 'Beta next release', 'Delta planned release']) {
+      expect(screen.getByRole('button', { name: `Open release ${name}` })).toHaveAttribute(
+        'title',
+        name,
+      );
+      expect(screen.getByText(name)).not.toHaveAttribute('title');
+    }
+  });
+
   it('renders the next release as a card with rocket, name, pill and one figure', () => {
     setup();
     const card = screen.getByTestId('next-release-card');

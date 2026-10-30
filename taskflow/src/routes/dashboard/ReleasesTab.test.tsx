@@ -82,7 +82,7 @@ function renderTab(client: QueryClient = makeClient()) {
 }
 
 const rowKinds = () => screen.getAllByTestId('release-row').map((r) => r.dataset.kind);
-const rowNameOf = (r: HTMLElement) => within(r).getAllByTitle(/./)[0].textContent;
+const rowNameOf = (r: HTMLElement) => within(r).getAllByTitle(/./)[0].getAttribute('title') ?? '';
 const rowNames = () => screen.getAllByTestId('release-row').map(rowNameOf);
 
 beforeEach(() => {

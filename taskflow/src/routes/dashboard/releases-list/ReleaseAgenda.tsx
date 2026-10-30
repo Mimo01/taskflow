@@ -111,14 +111,12 @@ function ReleaseRow({
           <button
             type="button"
             aria-label={`Open release ${version.name}`}
+            title={version.name}
             className="absolute inset-0 cursor-pointer rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             onClick={() => onOpen(version.id)}
           />
           <div className="pointer-events-none relative min-w-0 flex-1">
-            <span
-              title={version.name}
-              className={cn('block truncate text-sm', quiet ? 'font-normal' : 'font-medium')}
-            >
+            <span className={cn('block truncate text-sm', quiet ? 'font-normal' : 'font-medium')}>
               {version.name}
             </span>
             {!quiet && showPackage && (

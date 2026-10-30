@@ -219,6 +219,7 @@ export function NextReleaseCard({
       <button
         type="button"
         aria-label={`Open release ${version.name}`}
+        title={version.name}
         className="absolute inset-0 cursor-pointer rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         onClick={() => onOpen(version.id)}
       />
@@ -231,7 +232,7 @@ export function NextReleaseCard({
         Next release
       </div>
       <div className="pointer-events-none relative flex items-center justify-between gap-2.5">
-        <span className="truncate text-base font-semibold" title={version.name}>
+        <span className="truncate text-base font-semibold">
           {version.name}
         </span>
         <ReleaseStatusPill pill={entry.countdown} />
