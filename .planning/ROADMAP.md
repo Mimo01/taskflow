@@ -197,7 +197,7 @@ Plans:
 **Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
 **Requirements**: TBD
 **Depends on:** Phase 93
-**Plans:** 6/8 plans executed
+**Plans:** 7/8 plans executed
 Plans:
 **Wave 1**
 
@@ -213,7 +213,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 94-07-PLAN.md — Full-width page composition + page test; remove releaseDetailPanelWidth (v32) and sidebar files
+- [x] 94-07-PLAN.md — Full-width page composition + page test; remove releaseDetailPanelWidth (v32) and sidebar files
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
