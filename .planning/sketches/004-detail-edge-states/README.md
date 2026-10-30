@@ -2,7 +2,7 @@
 sketch: 004
 name: detail-edge-states
 question: "Do the graph slots and facts stay calm and fixed-size across loading, empty, released, undated, overdue and no-GitLab states?"
-winner: null
+winner: "all"
 tags: [states, release-detail, phase-94]
 ---
 
@@ -28,3 +28,6 @@ The main view is the hub: open .planning/sketches/003-release-detail-page/index.
 - Nothing shifts between the loading and loaded states.
 - Tone appears only on problems.
 - No 0/0 charts.
+
+## Outcome (wrap-up, 2026-10-30)
+All eight states are included as reference behaviour, rendered on 003 winner B in the hub. On B, when GitLab is not configured there is no MR donut, so the burnup spans the grid row. When there are no labels and no mismatches, the side column disappears.
