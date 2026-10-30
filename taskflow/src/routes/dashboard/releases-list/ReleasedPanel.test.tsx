@@ -56,6 +56,15 @@ describe('ReleasedPanel', () => {
     expect(fig.className).toContain('text-green-600');
   });
 
+  it('shows the muted agenda wording, not a green "✓ 0 done", for a release with no issues', () => {
+    setup({ breakdowns: new Map([['1', { done: 0, indeterminate: 0, new: 0 }]]) });
+    const row = screen.getAllByTestId('released-row')[0];
+    expect(row).not.toHaveTextContent('0 done');
+    const empty = screen.getByText('No issues yet');
+    expect(empty.className).toContain('text-muted-foreground/75');
+    expect(empty.className).not.toContain('text-green-600');
+  });
+
   it('shows a skeleton while loading and no figure when unknown', () => {
     setup({ loadingIds: new Set(['2']) });
     const rows = screen.getAllByTestId('released-row');

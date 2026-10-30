@@ -1,7 +1,7 @@
 import { BreakdownErrorDash } from '@/components/release/ReleaseIssueGraph';
 import { Skeleton } from '@/components/ui/skeleton';
 import { dateStamp } from '@/lib/release-agenda';
-import type { StatusBreakdown } from '@/lib/release-list';
+import { breakdownTotal, type StatusBreakdown } from '@/lib/release-list';
 import type { JiraFixVersion } from '@/services/jira';
 
 /** Released versions: their own muted panel below the agenda, never on the rail. */
@@ -47,9 +47,14 @@ export function ReleasedPanel({
               {v.releaseDate ? dateStamp(v.releaseDate).inline : '–'}
             </span>
             <span className="truncate text-[13.5px] text-muted-foreground">{v.name}</span>
-            <span className="text-[12.5px] font-medium whitespace-nowrap text-green-600 dark:text-green-400">
-              {b ? (
-                `✓ ${b.done} done`
+            <span className="text-[12.5px] whitespace-nowrap">
+              {b && breakdownTotal(b) === 0 ? (
+                // Same wording and tone as the agenda's empty slot, never a green "✓ 0 done".
+                <span className="text-muted-foreground/75">No issues yet</span>
+              ) : b ? (
+                <span className="font-medium text-green-600 dark:text-green-400">
+                  {`✓ ${b.done} done`}
+                </span>
               ) : loadingIds.has(v.id) ? (
                 <Skeleton className="h-3 w-14" />
               ) : errorIds.has(v.id) ? (
