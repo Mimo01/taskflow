@@ -10,7 +10,8 @@ import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, ASSIGNEE_SKELETON_ROWS, GraphSlot } from './GraphSlot';
 
 const COMPACT_ROW_HEIGHT = 24;
-const COMPACT_MAX_ROWS = 5;
+/** Row cap in every layout (band, 2×2, single column); the rest go to "+K more". */
+const MAX_ROWS = 5;
 const ROW_GRID =
   'grid grid-cols-[22px_minmax(70px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
 const ROW_GRID_COMPACT =
@@ -27,12 +28,12 @@ export function ReleaseAssigneeRows({
   rows: ReleaseAssigneeRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   showStoryPoints: boolean;
-  /** Band mode: 24px rows, at most COMPACT_MAX_ROWS, the rest summarised as "+K more". */
+  /** Band mode: 24px rows and a 20px avatar. */
   compact?: boolean;
   className?: string;
 }) {
   const rowHeight = compact ? COMPACT_ROW_HEIGHT : ASSIGNEE_ROW_HEIGHT;
-  const shown = compact ? rows.slice(0, COMPACT_MAX_ROWS) : rows;
+  const shown = rows.slice(0, MAX_ROWS);
   const hidden = rows.slice(shown.length);
   return (
     <GraphSlot

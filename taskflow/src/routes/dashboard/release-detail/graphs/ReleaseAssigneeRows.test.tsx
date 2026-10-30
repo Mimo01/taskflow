@@ -83,7 +83,10 @@ describe('ReleaseAssigneeRows', () => {
     expect((await screen.findAllByText('Story points')).length).toBeGreaterThan(0);
   });
 
-  it('compact: shows at most 5 rows plus a "+K more" with a tooltip of the rest (no scroll)', async () => {
+  it.each([
+    true,
+    false,
+  ])('compact=%s: shows at most 5 rows plus a "+K more" with a tooltip of the rest (no scroll)', async (compact) => {
     const many: ReleaseAssigneeRow[] = Array.from({ length: 9 }, (_, i) => ({
       id: `p${i}`,
       name: `Person ${i}`,
@@ -96,7 +99,7 @@ describe('ReleaseAssigneeRows', () => {
     }));
     const user = userEvent.setup();
     const { container } = render(
-      <ReleaseAssigneeRows rows={many} state="ready" showStoryPoints={false} compact />,
+      <ReleaseAssigneeRows rows={many} state="ready" showStoryPoints={false} compact={compact} />,
     );
     expect(container.querySelectorAll('[data-testid^="assignee-row-"]')).toHaveLength(5);
     const more = screen.getByTestId('assignee-more');
@@ -106,7 +109,7 @@ describe('ReleaseAssigneeRows', () => {
     expect((await screen.findAllByText('Person 5')).length).toBeGreaterThan(0);
   });
 
-  it('non-compact shows every row and no "+K more"', () => {
+  it('5 or fewer rows show in full with no "+K more"', () => {
     render(<ReleaseAssigneeRows rows={rows} state="ready" showStoryPoints={false} />);
     expect(screen.queryByTestId('assignee-more')).toBeNull();
   });
