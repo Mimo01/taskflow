@@ -141,3 +141,9 @@ Fixed inline:
   - rocket → last shipped.
 - Figures are medium weight, and colour is used only for status (My Tasks convention).
 - The figures are spaced apart instead of joined with " · ".
+
+Round 1 follow-up 7 (2026-10-30), user feedback verbatim:
+
+> make the releases title bigger, like onp age My tasks
+
+Fixed inline: the title is now `text-3xl font-semibold`, the My Tasks / Standup size for headers that have a summary line.

@@ -48,11 +48,11 @@ export function ReleasesHero({
   onRefresh: () => void;
 }) {
   return (
-    // The app's standard page header bar (Epics, Worklogs, Test cycles), with the
+    // The app's standard page header bar (Epics, Worklogs, Test cycles), with the title size and
     // summary under the title like My Tasks.
     <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-6 py-4">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold">Releases</h1>
+        <h1 className="text-3xl font-semibold">Releases</h1>
         {summary && (
           <p
             data-testid="releases-summary"

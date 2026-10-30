@@ -17,7 +17,7 @@ describe('ReleasesHero', () => {
     );
     const title = screen.getByRole('heading', { level: 1 });
     expect(title.textContent).toBe('Releases');
-    expect(title.className).toBe('text-xl font-semibold');
+    expect(title.className).toBe('text-3xl font-semibold');
     const header = container.querySelector('header');
     expect(header?.className).toContain('border-b');
     expect(header?.className).toContain('px-6 py-4');
