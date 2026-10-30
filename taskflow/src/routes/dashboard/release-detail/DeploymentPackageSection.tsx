@@ -1,6 +1,8 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
   evaluatePackageSync,
@@ -11,11 +13,12 @@ import {
   type PackageFixVersion,
   type PackageSyncResult,
   type PackageSyncState,
+  packageFixLabel,
 } from '@/lib/deployment-package';
 import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions, fetchStoriesWithPackageNoFixVersion } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-import { PackageFixAction } from '../PackageFixAction';
+import { packageFixTarget } from '../PackageFixAction';
 import { useDeploymentPackageSync } from './useDeploymentPackageSync';
 
 interface DeploymentPackageSectionProps {
@@ -26,6 +29,9 @@ interface DeploymentPackageSectionProps {
   activeJiraProject: string | null;
   onOpenIssue: (key: string) => void;
 }
+
+/** Rows shown before the "Show all N" toggle. */
+const VISIBLE_ROWS = 5;
 
 const STATE_LABEL: Record<PackageSyncState, string> = {
   none: '',
@@ -193,6 +199,7 @@ export function DeploymentPackageSection({
 
   const [pending, setPending] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState(false);
 
   if (!enabled || rows.length === 0) return null;
 
@@ -214,16 +221,27 @@ export function DeploymentPackageSection({
     }
   };
 
+  const shown = expanded ? rows : rows.slice(0, VISIBLE_ROWS);
+  const hiddenCount = rows.length - VISIBLE_ROWS;
+
   return (
-    <section data-testid="deployment-package-section">
-      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+    <section data-testid="deployment-package-section" className="px-6 pt-5">
+      <h3 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
         <AlertTriangle className="size-3.5 text-muted-foreground" />
-        Deployment package mismatches ({rows.length})
+        Deployment package mismatches
+        <span className="font-normal text-muted-foreground" data-testid="deployment-package-count">
+          {rows.length}
+        </span>
       </h3>
-      <div className="flex flex-col divide-y">
-        {rows.map(({ issue, result }) => (
-          <div key={issue.key} className="flex min-w-0 flex-col gap-1 py-2 first:pt-0 last:pb-0">
-            <div className="flex min-w-0 items-center gap-2 text-sm">
+      <div className="flex flex-col divide-y border-y">
+        {shown.map(({ issue, result }) => (
+          <div key={issue.key} data-testid={`package-row-${issue.key}`} className="min-w-0">
+            <div className="flex min-h-8 min-w-0 items-center gap-3 px-1 py-1 text-sm transition-colors hover:bg-muted/50">
+              <IssueTypeIcon
+                typeName={issue.fields.issuetype?.name ?? 'Story'}
+                muted
+                className="size-3.5 shrink-0"
+              />
               <button
                 type="button"
                 onClick={() => onOpenIssue(issue.key)}
@@ -231,39 +249,64 @@ export function DeploymentPackageSection({
               >
                 {issue.key}
               </button>
+              <span
+                className="inline-flex w-[84px] shrink-0 @max-[440px]/page:w-7 items-center justify-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400"
+                title={`${result.hint}${result.detail ? ` ${result.detail}` : ''}`}
+                data-testid="package-state"
+              >
+                <AlertTriangle aria-hidden className="hidden size-3 @max-[440px]/page:block" />
+                <span className="@max-[440px]/page:sr-only">{STATE_LABEL[result.state]}</span>
+              </span>
               <span className="min-w-0 flex-1 truncate" title={issue.fields.summary}>
                 {issue.fields.summary}
               </span>
-              <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">
-                {STATE_LABEL[result.state]}
-              </span>
-            </div>
-            <p className="min-w-0 break-words text-xs text-muted-foreground">
-              {result.hint}
-              {result.detail ? ` ${result.detail}` : ''}
-            </p>
-            {result.fixes.length > 0 && (
-              <div className="flex min-w-0 flex-col gap-1.5 text-xs">
-                {result.fixes.map((fix) => (
-                  <PackageFixAction
-                    key={
-                      fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`
-                    }
-                    fix={fix}
+              {result.fixes.map((fix) => (
+                <div
+                  key={
+                    fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`
+                  }
+                  className="flex min-w-0 shrink-0 items-center gap-2 text-xs"
+                >
+                  <span
+                    className="max-w-[320px] min-w-0 truncate text-muted-foreground @max-[640px]/page:hidden"
+                    title={packageFixTarget(fix)}
+                  >
+                    <span aria-hidden="true">→ </span>
+                    {packageFixTarget(fix)}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
                     disabled={pending === issue.key}
-                    onApply={() => onFix(issue, fix)}
-                  />
-                ))}
-              </div>
-            )}
+                    aria-label={packageFixLabel(fix)}
+                    title={packageFixLabel(fix)}
+                    onClick={() => onFix(issue, fix)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              ))}
+            </div>
             {errors[issue.key] && (
-              <p className="break-words text-xs text-destructive" role="alert">
+              <p className="break-words px-1 pb-1.5 text-xs text-destructive" role="alert">
                 {errors[issue.key]}
               </p>
             )}
           </div>
         ))}
       </div>
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          data-testid="package-show-all"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {expanded ? 'Show less' : `Show all ${rows.length}`}
+        </button>
+      )}
     </section>
   );
 }

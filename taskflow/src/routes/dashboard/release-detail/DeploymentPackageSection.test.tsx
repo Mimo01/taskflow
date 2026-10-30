@@ -146,4 +146,45 @@ describe('DeploymentPackageSection', () => {
       expect(fetchFixVersions).toHaveBeenCalledWith('https://jira.example.com', 'tok', 'OTH'),
     );
   });
+
+  it('renders each item as one row: type icon, key, state pill, summary, target and Apply', async () => {
+    renderSection([issue('S-1', 'Story', null, [v44])]);
+    const row = await screen.findByTestId('package-row-S-1');
+    const line = row.firstElementChild as HTMLElement;
+    expect(line.className).toContain('flex');
+    expect(line.className).not.toContain('flex-col');
+    expect(line.querySelector('svg')).not.toBeNull();
+    expect(line.querySelector('button')?.textContent).toBe('S-1');
+    expect(screen.getByTestId('package-state')).toHaveTextContent('No package');
+    expect(screen.getByText('Summary S-1').className).toContain('truncate');
+    expect(line).toHaveTextContent('→');
+    expect(screen.getByRole('button', { name: /set deployment package/i })).toHaveTextContent(
+      'Apply',
+    );
+    expect(screen.getByTestId('deployment-package-count')).toHaveTextContent('1');
+    expect(screen.queryByTestId('package-show-all')).toBeNull();
+  });
+
+  it('shows the first 5 items and a Show all N toggle (no inner scroll)', async () => {
+    const stories = Array.from({ length: 7 }, (_, i) => issue(`S-${i + 1}`, 'Story', null, [v44]));
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <DeploymentPackageSection
+          stories={stories}
+          version={{ releaseDate: '2026-10-29' }}
+          jiraBaseUrl="https://jira.example.com"
+          activeJiraProject="PROJ"
+          onOpenIssue={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+    await screen.findByTestId('package-row-S-1');
+    expect(screen.getAllByTestId(/^package-row-/)).toHaveLength(5);
+    expect(container.innerHTML).not.toContain('overflow-y');
+    fireEvent.click(screen.getByTestId('package-show-all'));
+    expect(screen.getAllByTestId(/^package-row-/)).toHaveLength(7);
+    expect(screen.getByTestId('package-show-all')).toHaveTextContent('Show less');
+    fireEvent.click(screen.getByTestId('package-show-all'));
+    expect(screen.getAllByTestId(/^package-row-/)).toHaveLength(5);
+  });
 });

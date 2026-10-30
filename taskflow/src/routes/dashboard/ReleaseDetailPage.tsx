@@ -477,21 +477,21 @@ export default function ReleaseDetailPage() {
                   {typeEl}
                 </div>
               )}
-              <aside className="flex flex-wrap items-start gap-x-10 gap-y-4 px-6 pt-5 empty:hidden">
-                <LabelSummarySection
-                  milestoneMRsLoaded={!!milestoneMRs}
-                  labelSummary={labelSummary}
-                />
-                {/* Stories whose fix version and Deployment package disagree (quick
-                    261014-eym). Renders nothing without an RM project. */}
-                <DeploymentPackageSection
-                  stories={releaseIssues}
-                  version={version}
-                  jiraBaseUrl={jiraBaseUrl}
-                  activeJiraProject={activeJiraProject}
-                  onOpenIssue={resolvedOnOpenIssue}
-                />
-              </aside>
+              {/* Labels (one compact chip row), then the package mismatches as a
+                  full-width action list. Each renders nothing when empty. */}
+              <LabelSummarySection
+                milestoneMRsLoaded={!!milestoneMRs}
+                labelSummary={labelSummary}
+              />
+              {/* Stories whose fix version and Deployment package disagree (quick
+                  261014-eym). Renders nothing without an RM project. */}
+              <DeploymentPackageSection
+                stories={releaseIssues}
+                version={version}
+                jiraBaseUrl={jiraBaseUrl}
+                activeJiraProject={activeJiraProject}
+                onOpenIssue={resolvedOnOpenIssue}
+              />
 
               {/* Unified task table (criterion 1): one Jira-task-keyed table with
                   every associated MR inline underneath, plus a conditional

@@ -14,8 +14,11 @@ export function LabelSummarySection({
 }: LabelSummarySectionProps) {
   if (!milestoneMRsLoaded || labelSummary.length === 0) return null;
   return (
-    <section>
-      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+    <section
+      data-testid="label-summary-section"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-6 pt-4"
+    >
+      <h3 className="flex items-center gap-1.5 text-sm font-semibold">
         <Tag className="size-3.5 text-muted-foreground" />
         Labels
       </h3>
