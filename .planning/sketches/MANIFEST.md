@@ -12,3 +12,10 @@ Current shipped list (Phase 93) screenshots; AioCycleList column grid.
 |---|------|----------------|--------|------|
 | 001 | upcoming-overview | How should Upcoming releases scan for health and timing? | A4: release-date axis track, next release emphasised, bars only where work started | layout, releases, list, timeline |
 | 002 | list-below-track | What replaces the table under the track? | F5 (F1 track + rail with light dashboard polish, released in its own panel, dashboard-hero title) | layout, releases, list |
+| 003 | release-detail-page | Full-width release detail: graphs arrangement, type-graph form, facts density, rocket card? | — | layout, release-detail, graphs, phase-94 |
+| 004 | detail-edge-states | Do slots/facts stay calm across loading/empty/released/undated/overdue/no-GitLab? | — | states, release-detail, phase-94 |
+| 005 | detail-narrow | How do header, facts and graph grid wrap at 420/640/900px? | — | responsive, release-detail, phase-94 |
+
+## Phase 94 direction (sketches 003–005)
+Release detail page redesign (94-CONTEXT D-01…D-14). Full width, no sidebar. The header mirrors ReleasesHero. Four graphs (burnup, type, assignee, MR donut) count issues; story points appear in tooltips only. Colour encodes status only, no legends, tooltips have ≤4 rows, each figure appears once. 004 and 005 build on 003 variant A as a provisional winner.
+

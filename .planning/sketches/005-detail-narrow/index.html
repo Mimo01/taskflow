@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sketch 005 — Release detail at narrow widths</title>
+<link rel="stylesheet" href="../themes/default.css">
+<link rel="stylesheet" href="../003-release-detail-page/page.css">
+<style>
+  #strip { display: flex; gap: 20px; padding: 16px; overflow-x: auto; align-items: flex-start; }
+  .wframe { flex: none; display: flex; flex-direction: column; gap: 6px; }
+  .wframe .cap { font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .wframe .box { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; height: 920px; }
+  .wframe .box .app-page { height: 920px; }
+  .wframe .note { margin: 0; }
+</style>
+</head>
+<body>
+<div id="variant-nav">
+  <button class="variant-tab active" data-v="n1">N1: Stack</button>
+  <button class="variant-tab" data-v="n2">N2: Compact</button>
+</div>
+<div class="note" style="display:block;margin:16px 16px 0" id="vnote"></div>
+<div id="strip"></div>
+<div id="tip"></div>
+<div id="sketch-tools">
+  <button id="t-theme">◐ Theme</button>
+  <button id="t-annot">✎ Notes</button>
+  <span style="display:none" id="frame"></span>
+</div>
+<script src="../003-release-detail-page/render.js"></script>
+<script>
+// Variant A (provisional winner from 003) shown at 420 / 640 / 900 px. Container queries on the
+// scroll wrapper (not on the element it styles) drive every change.
+const WIDTHS = [420, 640, 900];
+const NOTES = {
+  n1: '<b>N1 — Stack.</b> Header actions wrap under the title; facts wrap inside the summary line and never truncate state words. Graph row goes 3 → 2 columns (donut spans below) at ≤980px, then 1 column at ≤640px; labels + mismatches stack. Burnup keeps full height. Task table columns unchanged (anatomy locked) — assignee name drops to avatar at ≤860px as today.',
+  n2: '<b>N2 — Compact.</b> At ≤640px the header actions shrink to icon buttons pinned top-right (Updated text hidden, Refresh stays), so the title area keeps its height. Assignee rows go full width; type columns + MR donut stay side by side (donut values wrap under it) until ≤440px. Burnup drops to 160px tall.',
+};
+const show = (v) => {
+  document.getElementById('vnote').innerHTML = NOTES[v];
+  const strip = document.getElementById('strip');
+  strip.innerHTML = WIDTHS.map((w) => `<div class="wframe"><span class="cap">${w}px</span><div class="box ${v}" style="width:${w}px"><div data-page></div></div></div>`).join('');
+  strip.querySelectorAll('[data-page]').forEach((el) => renderPage(el, baseRelease(), { layout: 'a', facts: 'inline', type: 'columns' }));
+};
+initChrome(show);
+show('n1');
+</script>
+</body>
+</html>

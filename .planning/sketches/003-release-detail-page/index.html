@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sketch 003 — Release detail page</title>
+<link rel="stylesheet" href="../themes/default.css">
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<div id="variant-nav">
+  <button class="variant-tab active" data-v="a">A: Burnup leads</button>
+  <button class="variant-tab" data-v="b">B: 2×2 grid + side column</button>
+  <button class="variant-tab" data-v="c">C: Release card (rocket)</button>
+</div>
+<div id="frame"><div id="page" data-page></div></div>
+<div id="tip"></div>
+<div id="sketch-tools">
+  <button id="t-theme">◐ Theme</button>
+  <button data-w="640">640</button><button data-w="900">900</button><button data-w="1280">1280</button><button data-w="1600">Full</button>
+  <button id="t-annot">✎ Notes</button>
+</div>
+<script src="render.js"></script>
+<script>
+const V = {
+  a: { layout: 'a', facts: 'inline', type: 'columns',
+       note: '<b>A — Burnup leads.</b> Facts live in the header summary line, after the pill/date/package (D-11: icon · label · value; tone only on problems — here MR labels). Wide bar + "15 / 24 done" directly under the header. Burnup full width, then assignee rows · type <b>columns</b> · MR donut in one row. Labels + package mismatches side by side below the graphs, then the task table (header sticks). Nearest to D-07 ordering.' },
+  b: { layout: 'b', facts: 'row', type: 'waffle',
+       note: '<b>B — 2×2 grid + side column.</b> Facts as their own row of outlined chips (more room for each state word, actions sit inside the chip). Graphs as a 2×2 grid; labels + mismatches in a quiet right column beside the graphs (folds under at ≤980px). Type graph is a <b>waffle</b> — one square per issue, so count and status read together.' },
+  c: { layout: 'c', facts: 'icons', type: 'tiles',
+       note: '<b>C — Release card.</b> The F5 next-release card treatment: rounded Card with the faint rocket, kicker "Next release · in 4 days", the wide bar and the burnup inside. Facts are densest — icon + value only, the label moves to the tooltip. Type graph as <b>tiles</b> (big done figure, thin bar). Note: memory says detail pages use no card panels except KPI tiles — this tests whether the rocket card earns an exception.' },
+};
+const r = baseRelease();
+const show = (v) => renderPage(document.getElementById('page'), r, V[v]);
+initChrome(show);
+show('a');
+</script>
+</body>
+</html>
