@@ -144,7 +144,7 @@ export function ReleaseAgenda(props: Props) {
   });
 
   return (
-    <div className="@container mt-[30px] min-w-0">
+    <div className="@container mt-5 min-w-0">
       {entries.map((entry, i) => {
         if (entry.type === 'release') {
           return (

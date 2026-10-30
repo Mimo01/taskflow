@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 /** First-load skeleton shaped like the F5 agenda rail rows. */
 export function ReleasesSkeleton() {
   return (
-    <div className="mt-[30px] min-w-0">
+    <div className="mt-5 min-w-0">
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <div
           key={i}

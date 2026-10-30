@@ -105,3 +105,14 @@ Fixed inline:
   - `lastShippedDays` is the number of days since the last ship date.
 - The hero appends "ships every ~N days/weeks" and "last shipped today / yesterday / N days ago".
 - The progress bar is a plain `role="img"` bar with no tooltip, so the click forwarding from follow-up 1 is gone.
+
+Round 1 follow-up 4 (2026-10-30), user feedback verbatim:
+
+> better but make the header nicer.
+> also separate it better, there is just a lot of white space between them. See how we do it on other pages
+
+Fixed inline:
+- The hero now follows the dashboard hero: full-bleed, with ambient curves edge to edge, a centered `text-5xl` title and the summary centered beneath it. Updated/Refresh sit in the top-right corner.
+- It ends in `border-b border-border`, the same separator the other pages' header bars use (e.g. AIO "Test cycles").
+- Content sits in its own `px-6` wrapper.
+- The gap from the border to the first row dropped from about 52px to 20px (`mt-5`).

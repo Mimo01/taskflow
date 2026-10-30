@@ -103,7 +103,7 @@ export default function ReleasesTab() {
   const showSkeleton = useDelayedLoading(loadingVersions) && !fixVersions;
 
   return (
-    <div className="flex flex-col px-6 pb-10">
+    <div className="flex flex-col pb-10">
       <ReleasesHero
         summary={summary}
         updatedAt={dataUpdatedAt || undefined}
@@ -113,60 +113,62 @@ export default function ReleasesTab() {
         }}
       />
 
-      {showSkeleton && <ReleasesSkeleton />}
+      <div className="px-6">
+        {showSkeleton && <ReleasesSkeleton />}
 
-      {errorVersions && !fixVersions && (
-        <div className="pt-3">
-          <ErrorState
-            error={versionError}
-            onRetry={() => {
-              void handleRefresh();
-            }}
-            viewName="releases"
-          />
-        </div>
-      )}
-
-      {errorVersions && fixVersions && !bannerDismissed && (
-        <div className="pt-3">
-          <StaleDataBanner
-            onRetry={() => {
-              void handleRefresh();
-            }}
-            onDismiss={() => setBannerDismissed(true)}
-          />
-        </div>
-      )}
-
-      {fixVersions &&
-        (fixVersions.length === 0 ? (
-          <EmptyState
-            icon={Rocket}
-            title="No releases yet"
-            subtitle="Fix versions from your Jira projects will appear here once they are created."
-          />
-        ) : (
-          <div className="@container min-w-0">
-            <ReleaseAgenda
-              entries={agenda.entries}
-              breakdowns={breakdowns}
-              loadingIds={loadingIds}
-              teams={teams}
-              showPackage={pkgs.enabled}
-              pkgLoading={pkgs.isLoading}
-              packageFor={pkgs.packageFor}
-              onOpen={handleReleaseClick}
-            />
-            <ReleasedPanel
-              versions={visibleReleased}
-              breakdowns={breakdowns}
-              loadingIds={loadingIds}
-              hasMore={released.length > releasedVisible}
-              onShowMore={() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE)}
-              onOpen={handleReleaseClick}
+        {errorVersions && !fixVersions && (
+          <div className="pt-3">
+            <ErrorState
+              error={versionError}
+              onRetry={() => {
+                void handleRefresh();
+              }}
+              viewName="releases"
             />
           </div>
-        ))}
+        )}
+
+        {errorVersions && fixVersions && !bannerDismissed && (
+          <div className="pt-3">
+            <StaleDataBanner
+              onRetry={() => {
+                void handleRefresh();
+              }}
+              onDismiss={() => setBannerDismissed(true)}
+            />
+          </div>
+        )}
+
+        {fixVersions &&
+          (fixVersions.length === 0 ? (
+            <EmptyState
+              icon={Rocket}
+              title="No releases yet"
+              subtitle="Fix versions from your Jira projects will appear here once they are created."
+            />
+          ) : (
+            <div className="@container min-w-0">
+              <ReleaseAgenda
+                entries={agenda.entries}
+                breakdowns={breakdowns}
+                loadingIds={loadingIds}
+                teams={teams}
+                showPackage={pkgs.enabled}
+                pkgLoading={pkgs.isLoading}
+                packageFor={pkgs.packageFor}
+                onOpen={handleReleaseClick}
+              />
+              <ReleasedPanel
+                versions={visibleReleased}
+                breakdowns={breakdowns}
+                loadingIds={loadingIds}
+                hasMore={released.length > releasedVisible}
+                onShowMore={() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE)}
+                onOpen={handleReleaseClick}
+              />
+            </div>
+          ))}
+      </div>
     </div>
   );
 }
