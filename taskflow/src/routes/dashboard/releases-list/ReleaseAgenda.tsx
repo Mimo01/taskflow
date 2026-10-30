@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils';
 import type { VersionAssignee } from '@/services/jira';
 import { AgendaDot, NextReleaseCard, ReleaseIssuesSlot, ReleaseTeam } from './ReleaseAgendaParts';
 
-const ROW_GRID = 'grid grid-cols-[74px_24px_minmax(0,1fr)]';
-const RAIL_LINE =
+export const ROW_GRID = 'grid grid-cols-[74px_24px_minmax(0,1fr)]';
+export const RAIL_LINE =
   'relative before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2 before:bg-border';
-const LABEL_CLASS =
+export const LABEL_CLASS =
   'pt-4 pb-1 pl-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground';
 const NO_TEAM: readonly VersionAssignee[] = [];
 
