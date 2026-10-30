@@ -154,14 +154,13 @@ describe('burnupYScale', () => {
 
 describe('burnupEndLabelDy', () => {
   const gap = (scope: number, done: number, top: number) => {
-    const { scopeDy, doneDy } = burnupEndLabelDy(scope, done, top);
-    return Math.abs(scopeDy - doneDy);
+    const { scopeDy, doneDy, merged } = burnupEndLabelDy(scope, done, top);
+    return merged ? 99 : Math.abs(scopeDy - doneDy);
   };
-  it('keeps the labels at least a label height apart when scope equals done', () => {
-    expect(gap(22, 22, 30)).toBeGreaterThanOrEqual(12);
-    const { scopeDy, doneDy } = burnupEndLabelDy(22, 22, 30);
+  it('merges the labels into one when scope equals done', () => {
+    const { merged, scopeDy } = burnupEndLabelDy(22, 22, 30);
+    expect(merged).toBe(true);
     expect(scopeDy).toBeLessThan(0);
-    expect(doneDy).toBeGreaterThan(0);
   });
   it('keeps them apart when they differ by 1', () => {
     expect(gap(22, 21, 30)).toBeGreaterThanOrEqual(12);

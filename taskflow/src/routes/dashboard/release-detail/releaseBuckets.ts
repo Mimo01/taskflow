@@ -133,43 +133,6 @@ export function statusNameSummary(issues: JiraIssue[]): string | null {
 
 const CAT_ORDER = ['done', 'indeterminate', 'new'] as const;
 
-/** Issues per block so the widest type row fits `capacity` blocks (1 = one block per issue). */
-export function waffleUnit(maxTotal: number, capacity: number): number {
-  return Math.max(1, Math.ceil(maxTotal / Math.max(1, capacity)));
-}
-
-/**
- * Blocks per status category for one waffle row at `unit` issues per block.
- * Total is ceil(total / unit); categories are split by largest remainder and
- * every non-empty category keeps at least one block, so a row never shrinks to
- * nothing and the status mix stays visible.
- */
-export function waffleCells(breakdown: StatusBreakdown, unit: number): StatusBreakdown {
-  if (unit <= 1) return { ...breakdown };
-  const total = CAT_ORDER.reduce((n, k) => n + breakdown[k], 0);
-  const out: StatusBreakdown = { done: 0, indeterminate: 0, new: 0 };
-  if (total === 0) return out;
-  const n = Math.ceil(total / unit);
-  const quotas = CAT_ORDER.map((k) => ({ k, q: (breakdown[k] / total) * n }));
-  for (const { k, q } of quotas) out[k] = Math.floor(q);
-  let left = n - CAT_ORDER.reduce((s, k) => s + out[k], 0);
-  for (const { k } of [...quotas].sort((a, b) => (b.q % 1) - (a.q % 1))) {
-    if (left <= 0) break;
-    out[k] += 1;
-    left -= 1;
-  }
-  for (const k of CAT_ORDER) {
-    if (breakdown[k] > 0 && out[k] === 0) {
-      const donor = CAT_ORDER.reduce((a, b) => (out[b] > out[a] ? b : a));
-      if (out[donor] > 1) {
-        out[donor] -= 1;
-        out[k] = 1;
-      }
-    }
-  }
-  return out;
-}
-
 export interface ReleaseStatusRow {
   name: string;
   cat: (typeof CAT_ORDER)[number];
@@ -209,4 +172,9 @@ export function waffleCapacity(cellWidth: number): number {
     1,
     Math.floor((cellWidth - nameCol - countCol - 2 * rowGap + gap) / (block + gap)),
   );
+}
+
+/** Squares per line: the widest row's total, capped by what the cell allows (min 1). */
+export function waffleColumns(maxTotal: number, cellWidth: number): number {
+  return Math.max(1, Math.min(maxTotal, waffleCapacity(cellWidth)));
 }

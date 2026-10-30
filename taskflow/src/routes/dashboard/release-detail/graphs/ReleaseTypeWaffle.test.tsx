@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import type { ReleaseTypeRow } from '../releaseBuckets';
 import { GRAPH_ERROR_TEXT } from './GraphSlot';
 import { ReleaseTypeWaffle } from './ReleaseTypeWaffle';
@@ -67,34 +67,68 @@ describe('ReleaseTypeWaffle', () => {
     expect((await screen.findAllByText('Story points')).length).toBeGreaterThan(0);
   });
 
-  it('never wraps: a wide row switches every row to N issues per block with a note', () => {
-    const wide: ReleaseTypeRow[] = [
-      {
-        typeName: 'Story',
-        breakdown: { done: 22, indeterminate: 4, new: 0 },
-        total: 26,
-        done: 22,
-        sp: 0,
-      },
-      {
-        typeName: 'Bug',
-        breakdown: { done: 0, indeterminate: 2, new: 0 },
-        total: 2,
-        done: 0,
-        sp: 0,
-      },
-    ];
-    render(<ReleaseTypeWaffle rows={wide} state="ready" showStoryPoints={false} />);
-    const note = screen.getByTestId('waffle-scale');
-    expect(note).toHaveTextContent(/1 block = \d+ issues/);
-    expect(
-      screen.getByTestId('type-row-Bug').querySelectorAll('[data-testid="waffle-cell"]'),
-    ).toHaveLength(1);
-    expect(screen.getByTestId('type-row-Story')).toHaveTextContent('22/26');
+  const big = (total: number, done: number, name: string): ReleaseTypeRow => ({
+    typeName: name,
+    breakdown: { done, indeterminate: 0, new: total - done },
+    total,
+    done,
+    sp: 0,
   });
 
-  it('shows no scale note when every issue has its own block', () => {
-    render(<ReleaseTypeWaffle rows={rows} state="ready" showStoryPoints={false} />);
-    expect(screen.queryByTestId('waffle-scale')).toBeNull();
+  it('one square per issue for an 18/18 + 4/4 case, no grouping note', () => {
+    render(
+      <ReleaseTypeWaffle
+        rows={[big(18, 18, 'Story'), big(4, 4, 'Bug')]}
+        state="ready"
+        showStoryPoints={false}
+      />,
+    );
+    const cellsOf = (n: string) =>
+      screen.getByTestId(`type-row-${n}`).querySelectorAll('[data-testid="waffle-cell"]');
+    expect(cellsOf('Story')).toHaveLength(18);
+    expect(cellsOf('Bug')).toHaveLength(4);
+    expect(screen.queryByText(/1 block =/)).toBeNull();
+    expect(screen.getByTestId('type-row-Story')).toHaveTextContent('18/18');
+  });
+
+  describe('at a measured cell width', () => {
+    const real = Element.prototype.getBoundingClientRect;
+    afterEach(() => {
+      Element.prototype.getBoundingClientRect = real;
+    });
+    const at = (w: number) => {
+      Element.prototype.getBoundingClientRect = () => ({ width: w }) as DOMRect;
+    };
+    const colsOf = (n: string) => {
+      const grid = screen.getByTestId(`type-row-${n}`).querySelector('.grid') as HTMLElement;
+      return { grid, cols: grid.style.gridTemplateColumns.match(/repeat\((\d+)/)?.[1] };
+    };
+
+    it('40 issues at ~347px: every issue is a square, wrapped inside the same column grid for all rows', () => {
+      at(347);
+      render(
+        <ReleaseTypeWaffle
+          rows={[big(40, 10, 'Story'), big(4, 1, 'Bug')]}
+          state="ready"
+          showStoryPoints={false}
+        />,
+      );
+      const story = colsOf('Story');
+      const bug = colsOf('Bug');
+      expect(story.grid.querySelectorAll('[data-testid="waffle-cell"]')).toHaveLength(40);
+      expect(bug.grid.querySelectorAll('[data-testid="waffle-cell"]')).toHaveLength(4);
+      expect(Number(story.cols)).toBeLessThan(40);
+      expect(story.cols).toBe(bug.cols);
+    });
+
+    it('narrow cell (200px) still renders all squares, one column at minimum', () => {
+      at(200);
+      render(
+        <ReleaseTypeWaffle rows={[big(9, 0, 'Story')]} state="ready" showStoryPoints={false} />,
+      );
+      const { grid, cols } = colsOf('Story');
+      expect(grid.querySelectorAll('[data-testid="waffle-cell"]')).toHaveLength(9);
+      expect(Number(cols)).toBeGreaterThanOrEqual(1);
+    });
   });
 });

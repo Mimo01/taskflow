@@ -8,8 +8,7 @@ import {
   statusNameSummary,
   WAFFLE_LAYOUT,
   waffleCapacity,
-  waffleCells,
-  waffleUnit,
+  waffleColumns,
 } from './releaseBuckets';
 
 const SP = 'customfield_10016';
@@ -129,36 +128,6 @@ describe('statusNameSummary', () => {
   });
 });
 
-describe('waffleUnit / waffleCells', () => {
-  it('unit is 1 when the widest row fits and ceil(max/capacity) otherwise', () => {
-    expect(waffleUnit(8, 10)).toBe(1);
-    expect(waffleUnit(26, 10)).toBe(3);
-    expect(waffleUnit(26, 0)).toBe(26);
-  });
-
-  it('unit 1 keeps one block per issue', () => {
-    expect(waffleCells({ done: 2, indeterminate: 1, new: 3 }, 1)).toEqual({
-      done: 2,
-      indeterminate: 1,
-      new: 3,
-    });
-  });
-
-  it('aggregates to ceil(total/unit) blocks, preserving the mix', () => {
-    const c = waffleCells({ done: 22, indeterminate: 4, new: 0 }, 3);
-    expect(c.done + c.indeterminate + c.new).toBe(9);
-    expect(c).toEqual({ done: 8, indeterminate: 1, new: 0 });
-  });
-
-  it('never drops a non-empty category to zero blocks', () => {
-    const c = waffleCells({ done: 0, indeterminate: 1, new: 25 }, 3);
-    expect(c.indeterminate).toBe(1);
-    expect(c.done + c.indeterminate + c.new).toBe(9);
-    const bug = waffleCells({ done: 0, indeterminate: 2, new: 0 }, 3);
-    expect(bug).toEqual({ done: 0, indeterminate: 1, new: 0 });
-  });
-});
-
 describe('deriveReleaseStatusRows', () => {
   it('counts per status name, ordered done, in progress, to do then count', () => {
     const rows = deriveReleaseStatusRows([
@@ -190,12 +159,14 @@ describe('waffleCapacity', () => {
     }
   });
 
-  it('18 blocks do not fit a ~347px cell, so the unit becomes 2 and the row is 9 blocks', () => {
-    const cap = waffleCapacity(347);
-    expect(cap).toBeLessThan(18);
-    const unit = waffleUnit(18, cap);
-    expect(unit).toBe(2);
-    expect(Math.ceil(18 / unit)).toBeLessThanOrEqual(cap);
-    expect(rowWidth(Math.ceil(18 / unit))).toBeLessThanOrEqual(347);
+  it('columns never exceed the widest row or the cell, and a 40-issue row wraps at ~347px', () => {
+    expect(waffleColumns(18, 640)).toBe(18);
+    expect(waffleColumns(18, 347)).toBe(waffleCapacity(347));
+    const cols = waffleColumns(40, 347);
+    expect(cols).toBeLessThan(40);
+    expect(rowWidth(cols)).toBeLessThanOrEqual(347);
+    expect(Math.ceil(40 / cols)).toBeGreaterThan(1);
+    expect(waffleColumns(3, 900)).toBe(3);
+    expect(waffleColumns(40, 50)).toBe(1);
   });
 });

@@ -10,23 +10,18 @@ import {
   releaseTooltipRows,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
-import {
-  type ReleaseTypeRow,
-  WAFFLE_LAYOUT,
-  waffleCapacity,
-  waffleCells,
-  waffleUnit,
-} from '../releaseBuckets';
+import { type ReleaseTypeRow, WAFFLE_LAYOUT, waffleColumns } from '../releaseBuckets';
 import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
 
 const FALLBACK_WIDTH = 640;
 const { block: BLOCK, gap: GAP, nameCol: NAME_COL, rowGap: ROW_GAP } = WAFFLE_LAYOUT;
 
 /**
- * By type: one row per issue type, one fixed 14px block per issue (done, in
- * progress, to do). Blocks never wrap or shrink: when the widest row would not
- * fit the cell, every row switches to the same scale of N issues per block and a
- * muted "1 block = N issues" note says so. The count sits right after the blocks.
+ * By type: one row per issue type, exactly one fixed 14px square per issue (done,
+ * in progress, to do), never grouped. The squares area has the same column count
+ * in every row (the widest row, capped by what the measured cell width allows);
+ * longer rows wrap onto further lines, so lines form a clean grid. Label and
+ * count stay on the first line.
  */
 export function ReleaseTypeWaffle({
   rows,
@@ -54,11 +49,8 @@ export function ReleaseTypeWaffle({
     ro.observe(el);
     return () => ro.disconnect();
   }, [el]);
-  const capacity = waffleCapacity(measured > 0 ? measured : FALLBACK_WIDTH);
-  const maxTotal = rows.reduce((m, r) => Math.max(m, r.total), 0);
-  const unit = waffleUnit(maxTotal, capacity);
-  const cells = rows.map((r) => waffleCells(r.breakdown, unit));
-  const maxBlocks = cells.reduce((m, c) => Math.max(m, c.done + c.indeterminate + c.new), 1);
+  const maxTotal = rows.reduce((m, r) => Math.max(m, r.total), 1);
+  const cols = waffleColumns(maxTotal, measured > 0 ? measured : FALLBACK_WIDTH);
   return (
     <GraphSlot
       title="By type"
@@ -82,26 +74,29 @@ export function ReleaseTypeWaffle({
       }
     >
       <div ref={setEl} className="flex min-w-0 flex-col gap-2">
-        {rows.map((row, ri) => (
+        {rows.map((row) => (
           <Tooltip key={row.typeName}>
             <TooltipTrigger
               delay={0}
               render={<div />}
               data-testid={`type-row-${row.typeName}`}
-              className="relative z-10 grid items-center"
+              className="relative z-10 grid items-start"
               style={{
                 columnGap: ROW_GAP,
-                gridTemplateColumns: `${NAME_COL}px ${maxBlocks * (BLOCK + GAP) - GAP}px auto`,
+                gridTemplateColumns: `${NAME_COL}px ${cols * (BLOCK + GAP) - GAP}px auto`,
                 maxWidth: '100%',
               }}
             >
-              <div className="flex min-w-0 items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5" style={{ height: BLOCK }}>
                 <IssueTypeIcon typeName={row.typeName} muted className="size-3.5 shrink-0" />
                 <span className="truncate text-xs">{row.typeName}</span>
               </div>
-              <div className="flex flex-nowrap overflow-hidden" style={{ gap: GAP }}>
+              <div
+                className="grid"
+                style={{ gap: GAP, gridTemplateColumns: `repeat(${cols}, ${BLOCK}px)` }}
+              >
                 {RELEASE_SEGMENT_ORDER.flatMap((cat) =>
-                  Array.from({ length: cells[ri][cat] }, (_, i) => (
+                  Array.from({ length: row.breakdown[cat] }, (_, i) => (
                     <span
                       // biome-ignore lint/suspicious/noArrayIndexKey: cells are identical, order is fixed
                       key={`${cat}-${i}`}
@@ -116,7 +111,10 @@ export function ReleaseTypeWaffle({
                   )),
                 )}
               </div>
-              <span className="text-xs tabular-nums text-muted-foreground">
+              <span
+                className="text-xs tabular-nums leading-none text-muted-foreground"
+                style={{ lineHeight: `${BLOCK}px` }}
+              >
                 {row.done}/{row.total}
               </span>
             </TooltipTrigger>
@@ -130,11 +128,6 @@ export function ReleaseTypeWaffle({
             </TooltipContent>
           </Tooltip>
         ))}
-        {unit > 1 ? (
-          <div data-testid="waffle-scale" className="text-xs text-muted-foreground">
-            1 block = {unit} issues
-          </div>
-        ) : null}
       </div>
     </GraphSlot>
   );

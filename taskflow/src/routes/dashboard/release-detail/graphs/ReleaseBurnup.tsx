@@ -52,43 +52,65 @@ const PLOT_PX = 110;
 const LABEL_GAP = 13;
 
 /**
- * Vertical offsets (px, SVG y) for the two end labels. Scope sits above its line
- * and done below its own, so equal or near-equal values can never collide (the
- * scope line is always at or above the done line). When done is so close to the
- * x-axis that a label below would hit the tick row, done goes above the scope
- * label instead, still at least one label gap apart.
+ * Plan for the two end labels. Equal scope and done collapse into one merged
+ * label ("22 scope · done"). Otherwise scope sits above its own line and done
+ * below its own (the scope line is always at or above the done line), so near
+ * values cannot collide. When done is so close to the x-axis that a label below
+ * would hit the tick row, done goes above the scope label, one label gap apart.
  */
 export function burnupEndLabelDy(
   scope: number,
   done: number,
   top: number,
-): { scopeDy: number; doneDy: number } {
+): { scopeDy: number; doneDy: number; merged: boolean } {
   const scopeDy = -5;
+  if (scope === done) return { scopeDy, doneDy: scopeDy, merged: true };
   const doneRoom = (done / Math.max(1, top)) * PLOT_PX;
-  if (doneRoom >= LABEL_GAP + 4) return { scopeDy, doneDy: LABEL_GAP };
+  if (doneRoom >= LABEL_GAP + 4) return { scopeDy, doneDy: LABEL_GAP, merged: false };
   const gapPx = ((scope - done) / Math.max(1, top)) * PLOT_PX;
-  return { scopeDy, doneDy: scopeDy - gapPx - LABEL_GAP };
+  return { scopeDy, doneDy: scopeDy - gapPx - LABEL_GAP, merged: false };
 }
 
-function endLabel(last: number, n: number, text: string, color: string, flip: boolean, dy: number) {
+const CHAR_W = 5.9;
+
+/**
+ * End label with a solid background rect behind the text (plus a stroke halo).
+ * The rect does not depend on paint-order support, so a dashed or stepped line
+ * can never show through the text in WebKit.
+ */
+function endLabel(
+  last: number,
+  text: string,
+  color: string,
+  flip: boolean,
+  dy: number,
+  hidden = false,
+) {
   return (p: { x?: number | string; y?: number | string; index?: number }) => {
     const x = Number(p.x);
     const y = Number(p.y);
-    if (p.index !== last || Number.isNaN(x) || Number.isNaN(y)) return <g />;
+    if (hidden || p.index !== last || Number.isNaN(x) || Number.isNaN(y)) return <g />;
+    const tw = text.length * CHAR_W;
+    const tx = flip ? x - 6 : x + 6;
+    const ty = y + dy;
+    const rx = flip ? tx - tw - 3 : tx - 3;
     return (
-      <text
-        x={flip ? x - 6 : x + 6}
-        y={y + dy}
-        textAnchor={flip ? 'end' : 'start'}
-        fontSize={11}
-        fill={color}
-        stroke="var(--color-background)"
-        strokeWidth={3}
-        strokeLinejoin="round"
-        paintOrder="stroke"
-      >
-        {`${n} ${text}`}
-      </text>
+      <g>
+        <rect x={rx} y={ty - 11} width={tw + 6} height={14} rx={2} fill="var(--color-background)" />
+        <text
+          x={tx}
+          y={ty}
+          textAnchor={flip ? 'end' : 'start'}
+          fontSize={11}
+          fill={color}
+          stroke="var(--color-background)"
+          strokeWidth={3}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+        >
+          {text}
+        </text>
+      </g>
     );
   };
 }
@@ -225,7 +247,13 @@ export function ReleaseBurnup({
                 strokeDasharray="4 3"
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(points.length - 1, last.scope, 'scope', MUTED, flip, dy.scopeDy)}
+                label={endLabel(
+                  points.length - 1,
+                  dy.merged ? `${last.scope} scope · done` : `${last.scope} scope`,
+                  MUTED,
+                  flip,
+                  dy.scopeDy,
+                )}
               />
               <Line
                 dataKey="done"
@@ -234,7 +262,14 @@ export function ReleaseBurnup({
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(points.length - 1, last.done, 'done', GREEN, flip, dy.doneDy)}
+                label={endLabel(
+                  points.length - 1,
+                  `${last.done} done`,
+                  GREEN,
+                  flip,
+                  dy.doneDy,
+                  dy.merged,
+                )}
               />
             </ComposedChart>
           </ChartContainer>
