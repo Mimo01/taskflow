@@ -43,7 +43,7 @@ created: 2026-10-29
 | D-05 | (**list page superseded by sketch 002 F5 (user-approved 2026-10-29); see F5 rows below.**) Pill precedence/labels/tone, "In 1 day", local-date boundary | unit | `npx vitest run src/lib/release-list.test.ts` | ✅ | ✅ green |
 | D-06/D-11 | Batch fetch: pagination, multi-fixVersion grouping, id validation, category mapping | unit | `npx vitest run src/services/jira.versionsBreakdown.test.ts` | ✅ | ✅ green |
 | D-08 | (**list page superseded by sketch 002 F5 (user-approved 2026-10-29); see F5 rows below. Released first page is now 3.**) 5 released, "Show N more" adds 10; only new chunk fetched | component | `ReleasesTab.test.tsx` | ✅ | ✅ green |
-| D-09 | Names/pills render before counts/RM resolve; skeleton slots | component | `ReleasesTab.test.tsx` | ✅ | ✅ green |
+| D-09 | Names/pills render before counts/RM resolve; skeleton slots (relaxed at UAT: planned rows with issues expand when counts arrive) | component | `ReleasesTab.test.tsx` | ✅ | ✅ green |
 | D-10 | Cached data renders w/o skeleton on refetch; Refresh staged invalidation, spinner | unit + component | `npx vitest run src/lib/release-refresh.test.ts` | ✅ | ✅ green |
 | D-12 | Package column absent when RM disabled; child / week-only / none states | component | `ReleasesTab.deploymentPackage.test.tsx`, `ReleasePackageCell.test.tsx` (ReleaseListRow.test.tsx deleted in 93-10) | ✅ | ✅ green |
 | D-13 | Header shows pill/date/package/graph + Pin/Edit/Open in Jira; bottom action row gone | component | `ReleaseHeader.test.tsx` | ✅ | ✅ green |
@@ -53,8 +53,7 @@ created: 2026-10-29
 | F5 agenda | Agenda order, countdown, quiet/pill rules, summary | unit | `npx vitest run src/lib/release-agenda.test.ts` | ✅ | ✅ green |
 | F5 batch | Batch assignees for team column | unit | `npx vitest run src/services/jira.versionsBreakdown.test.ts` | ✅ | ✅ green |
 | F5 hook | Teams + released first page | unit | `npx vitest run src/hooks/useReleaseBreakdowns.test.tsx` | ✅ | ✅ green |
-| F5 timeline lib | Window, lanes, ticks | unit | `npx vitest run src/lib/release-timeline.test.ts` | ✅ | ✅ green |
-| F5 graph | Timeline graph component | component | `npx vitest run src/routes/dashboard/releases-list/ReleaseTimeline.test.tsx` | ✅ | ✅ green |
+| F5 planned-row expansion | Planned release with issues renders as a full row (UAT round 1; timeline graph removed) | component | `npx vitest run src/routes/dashboard/releases-list/ReleaseAgenda.test.tsx src/routes/dashboard/ReleasesTab.test.tsx` | ✅ | ✅ green |
 | F5 hero | Hero + summary line | component | `npx vitest run src/routes/dashboard/releases-list/ReleasesHero.test.tsx` | ✅ | ✅ green |
 | F5 rail | Agenda rail + next card | component | `npx vitest run src/routes/dashboard/releases-list/ReleaseAgenda.test.tsx` | ✅ | ✅ green |
 | F5 released | Released panel (3 + show older) | component | `npx vitest run src/routes/dashboard/releases-list/ReleasedPanel.test.tsx` | ✅ | ✅ green |
