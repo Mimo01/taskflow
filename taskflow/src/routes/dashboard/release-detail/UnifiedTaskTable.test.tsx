@@ -194,6 +194,13 @@ describe('UnifiedTaskTable', () => {
     expect(rows[1]).not.toHaveAttribute('data-peeked');
   });
 
+  it('column header strip is sticky (P94 D-13)', () => {
+    renderSection({ primaryRows: [{ issue: makeIssue({ key: 'PROJ-1' }), mrs: [] }] });
+    const strip = screen.getByTestId('task-column-header');
+    expect(strip.className).toContain('sticky');
+    expect(strip.className).toContain('top-(--release-sticky-top,0px)');
+  });
+
   it('renders primaryRows in the given order (D-04/D-13 row order is now the component contract)', () => {
     const flagged = makeRow({ mr: makeMR({ id: 1, iid: 10 }), flagged: true, br: 'flag' });
     const clean = makeRow({ mr: makeMR({ id: 2, iid: 5 }) });

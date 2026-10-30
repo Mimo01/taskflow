@@ -377,7 +377,10 @@ function DriftActionCell({
  */
 function ColumnHeaderStrip() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pl-2 py-1 density-compact:py-0.5 density-comfortable:py-2 bg-muted/30">
+    <div
+      data-testid="task-column-header"
+      className="sticky top-(--release-sticky-top,0px) z-10 border-b flex items-center gap-2 text-xs text-muted-foreground font-medium pl-2 py-1 density-compact:py-0.5 density-comfortable:py-2 bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]"
+    >
       <span className={COL_ICON} aria-hidden="true" />
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Summary</span>
