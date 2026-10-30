@@ -469,7 +469,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   // Cached per-version breakdown written by the releases list (Plan 02).
   // Fetch-disabled useQuery so a setQueryData re-renders (reactive cache read).
   const { data: seedBreakdown } = useQuery<StatusBreakdown | undefined>({
-    queryKey: releaseBreakdownSeedKey(versionId ?? ''),
+    queryKey: releaseBreakdownSeedKey(jiraBaseUrl, versionId ?? ''),
     queryFn: () => undefined,
     enabled: false,
   });

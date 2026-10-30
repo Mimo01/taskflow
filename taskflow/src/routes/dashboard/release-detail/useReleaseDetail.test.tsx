@@ -1155,7 +1155,7 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
   });
 
   describe('header breakdown (D-14)', () => {
-    const SEED_KEY = ['jira-version-counts', 'breakdown', VERSION_ID];
+    const SEED_KEY = ['jira-version-counts', 'breakdown', 'https://jira.example.com', VERSION_ID];
     const seed = { done: 2, indeterminate: 1, new: 0 };
     const makeIssue = (key: string, cat: string) =>
       ({

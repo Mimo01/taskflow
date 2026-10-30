@@ -48,8 +48,26 @@ describe('planBreakdownChunks', () => {
   });
   it('sorts a copy for the chunk key', () => {
     const input = ['3', '1', '2'];
-    expect(releaseBreakdownChunkKey(input)).toEqual(['jira-version-counts', 'batch', '1,2,3']);
+    expect(releaseBreakdownChunkKey('https://a', input)).toEqual([
+      'jira-version-counts',
+      'batch',
+      'https://a',
+      '1,2,3',
+    ]);
     expect(input).toEqual(['3', '1', '2']);
+  });
+  it('scopes chunk and seed keys to the Jira instance', () => {
+    expect(releaseBreakdownChunkKey('https://a', ['1'])).not.toEqual(
+      releaseBreakdownChunkKey('https://b', ['1']),
+    );
+    expect(releaseBreakdownSeedKey('https://a', '1')).not.toEqual(
+      releaseBreakdownSeedKey('https://b', '1'),
+    );
+    // Prefix invalidations (release-refresh, useEditRelease) must still reach the chunks.
+    expect(releaseBreakdownChunkKey('https://a', ['1']).slice(0, 2)).toEqual([
+      'jira-version-counts',
+      'batch',
+    ]);
   });
 });
 
@@ -76,7 +94,10 @@ describe('useReleaseBreakdowns', () => {
     );
     await waitFor(() => expect(result.current.breakdowns.size).toBe(7));
     expect(fetchVersionsStatusBreakdown).toHaveBeenCalledTimes(2);
-    expect(qc.getQueryData(releaseBreakdownSeedKey(U[0]))).toEqual({ ...zero, done: 1 });
+    expect(qc.getQueryData(releaseBreakdownSeedKey('https://jira.example.com', U[0]))).toEqual({
+      ...zero,
+      done: 1,
+    });
 
     rerender({ visible: 15 });
     await waitFor(() => expect(result.current.breakdowns.size).toBe(17));
@@ -156,7 +177,10 @@ describe('useReleaseBreakdowns', () => {
     await waitFor(() => expect(result.current.teams.size).toBe(2));
     expect(result.current.teams.get(U[0])).toEqual([alex]);
     expect(result.current.breakdowns.get(U[0])).toEqual({ ...zero, done: 1 });
-    expect(qc.getQueryData(releaseBreakdownSeedKey(U[0]))).toEqual({ ...zero, done: 1 });
+    expect(qc.getQueryData(releaseBreakdownSeedKey('https://jira.example.com', U[0]))).toEqual({
+      ...zero,
+      done: 1,
+    });
   });
 
   it('tolerates old-shape results without assignees', async () => {

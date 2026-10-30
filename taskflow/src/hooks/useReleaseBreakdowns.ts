@@ -9,13 +9,18 @@ import { useAuthStore } from '@/stores/auth.store';
 
 export const BREAKDOWN_CHUNK_MAX = 50;
 
-/** Chunk key. 'batch' keeps it distinct from the per-version detail key. */
-export const releaseBreakdownChunkKey = (ids: readonly string[]) =>
-  ['jira-version-counts', 'batch', [...ids].sort().join(',')] as const;
+/**
+ * Chunk key. 'batch' keeps it distinct from the per-version seed key; the Jira base
+ * URL scopes it to one instance (numeric version ids can overlap across instances).
+ * The base URL sits after 'batch' so ['jira-version-counts', 'batch'] prefix
+ * invalidations still match.
+ */
+export const releaseBreakdownChunkKey = (jiraBaseUrl: string | null, ids: readonly string[]) =>
+  ['jira-version-counts', 'batch', jiraBaseUrl, [...ids].sort().join(',')] as const;
 
 /** Per-version seed written when a chunk resolves (read by the detail header). */
-export const releaseBreakdownSeedKey = (versionId: string) =>
-  ['jira-version-counts', 'breakdown', versionId] as const;
+export const releaseBreakdownSeedKey = (jiraBaseUrl: string | null, versionId: string) =>
+  ['jira-version-counts', 'breakdown', jiraBaseUrl, versionId] as const;
 
 function slices<T>(items: readonly T[], size: number): T[][] {
   const out: T[][] = [];
@@ -68,7 +73,7 @@ export function useReleaseBreakdowns(args: {
 
   return useQueries({
     queries: chunks.map((ids) => ({
-      queryKey: releaseBreakdownChunkKey(ids),
+      queryKey: releaseBreakdownChunkKey(jiraBaseUrl, ids),
       queryFn: async () => {
         const token = await readSecret('jira-pat');
         const res = await fetchVersionsStatusBreakdown(jiraBaseUrl ?? '', token ?? '', ids);
@@ -76,7 +81,7 @@ export function useReleaseBreakdowns(args: {
           const r = res[id];
           // Counts only: the detail header reads this seed as a StatusBreakdown.
           if (r) {
-            queryClient.setQueryData(releaseBreakdownSeedKey(id), {
+            queryClient.setQueryData(releaseBreakdownSeedKey(jiraBaseUrl, id), {
               new: r.new,
               indeterminate: r.indeterminate,
               done: r.done,
