@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import {
   MR_CHANNEL_QUERY_PREFIXES,
@@ -33,15 +33,20 @@ describe('refreshReleaseDetail', () => {
       done = true;
     });
     expect(invalidateQueries.mock.calls.map((c) => c[0].queryKey)).toEqual([
-      ['jira-fix-versions', 'PROJ'],
+      ['jira-fix-versions'],
+      ['jira-projects-rm'],
+      ['rm-week-list'],
       ['gitlab-milestones', 7],
     ]);
     await Promise.resolve();
-    expect(invalidateQueries).toHaveBeenCalledTimes(2);
+    expect(invalidateQueries).toHaveBeenCalledTimes(4);
     for (const r of resolvers.splice(0)) r();
-    await vi.waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(2 + 1 + 3 + 5));
-    const stage2 = invalidateQueries.mock.calls.slice(2).map((c) => c[0].queryKey);
+    await vi.waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(4 + 4 + 3 + 5));
+    const stage2 = invalidateQueries.mock.calls.slice(4).map((c) => c[0].queryKey);
     expect(stage2).toContainEqual(['jira-fixversion-issues', '123']);
+    expect(stage2).toContainEqual(['rm-week-children']);
+    expect(stage2).toContainEqual(['rm-package']);
+    expect(stage2).toContainEqual(['jira-package-no-fixversion', 'PROJ']);
     for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
       expect(stage2).toContainEqual(mrChannelKeys.channelForProject(prefix, 7));
     }
@@ -60,10 +65,37 @@ describe('refreshReleaseDetail', () => {
       versionId: '1',
     });
     for (const r of resolvers.splice(0)) r();
-    await vi.waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(3 + 4));
     for (const r of resolvers.splice(0)) r();
     await p;
     expect(JSON.stringify(invalidateQueries.mock.calls).toLowerCase()).not.toContain('gitlab');
+  });
+});
+
+// 94-REVIEW WR-04: Refresh must also reach the deployment-package data the page
+// shows (header package cell and DeploymentPackageSection), including the
+// cross-project fix-version lists. Real cache: every seeded entry must end up
+// invalidated.
+describe('refreshReleaseDetail — deployment-package sources (WR-04)', () => {
+  it('invalidates RM week, package, orphan-story and cross-project version queries', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const keys = [
+      ['jira-projects-rm', 'https://jira.example.com'],
+      ['rm-week-list', 'RM', 'https://jira.example.com'],
+      ['rm-week-children', 'RM-1', 'https://jira.example.com'],
+      ['rm-package', 'RM-18', 'https://jira.example.com'],
+      ['jira-package-no-fixversion', 'PROJ', 'https://jira.example.com', ['RM-18']],
+      ['jira-fix-versions', 'PROJ'],
+      ['jira-fix-versions', 'OTHER'],
+    ];
+    for (const k of keys) qc.setQueryData(k, []);
+    await refreshReleaseDetail(qc, {
+      activeJiraProject: 'PROJ',
+      activeGitlabProject: null,
+      versionId: '123',
+    });
+    const stale = keys.filter((k) => !qc.getQueryState(k)?.isInvalidated);
+    expect(stale).toEqual([]);
   });
 });
 

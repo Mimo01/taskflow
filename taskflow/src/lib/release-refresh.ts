@@ -35,8 +35,11 @@ const GITLAB_DEPENDENT_PREFIXES = [
 
 /**
  * Refresh the Release detail page (D-11/D-13). Upstream-first: stage 1 awaits the
- * sources (fix versions, GitLab milestones) the dependents are derived from; stage 2
- * invalidates issues, MR channels, branch, tags, compare and project queries.
+ * sources (fix versions, GitLab milestones, RM project and week list) the
+ * dependents are derived from; stage 2 invalidates issues, MR channels, branch,
+ * tags, compare and project queries, and the RM week children, packages and
+ * no-fix-version stories behind the header package cell and
+ * DeploymentPackageSection (94-REVIEW WR-04).
  */
 export async function refreshReleaseDetail(
   queryClient: QueryClient,
@@ -48,7 +51,11 @@ export async function refreshReleaseDetail(
 ): Promise<void> {
   const { activeJiraProject, activeGitlabProject, versionId } = args;
   const stage1: Promise<void>[] = [
-    queryClient.invalidateQueries({ queryKey: ['jira-fix-versions', activeJiraProject] }),
+    // No project segment: DeploymentPackageSection also reads the fix-version
+    // lists of other projects for cross-project stories.
+    queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] }),
+    queryClient.invalidateQueries({ queryKey: ['jira-projects-rm'] }),
+    queryClient.invalidateQueries({ queryKey: ['rm-week-list'] }),
   ];
   if (activeGitlabProject != null) {
     stage1.push(
@@ -59,6 +66,11 @@ export async function refreshReleaseDetail(
 
   const stage2: Promise<void>[] = [
     queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues', versionId] }),
+    queryClient.invalidateQueries({ queryKey: ['rm-week-children'] }),
+    queryClient.invalidateQueries({ queryKey: ['rm-package'] }),
+    queryClient.invalidateQueries({
+      queryKey: ['jira-package-no-fixversion', activeJiraProject],
+    }),
   ];
   if (activeGitlabProject != null) {
     for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
