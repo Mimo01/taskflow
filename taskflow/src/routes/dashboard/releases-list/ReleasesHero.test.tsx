@@ -102,4 +102,23 @@ describe('ReleasesHero', () => {
     expect(btn.disabled).toBe(true);
     expect(btn.querySelector('svg')?.getAttribute('class')).toContain('animate-spin');
   });
+
+  it('shows a summary placeholder only while loading without a summary', () => {
+    const { rerender } = render(<ReleasesHero {...base} summary={null} loading />);
+    const sk = screen.getByTestId('releases-summary-skeleton');
+    expect(sk.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByTestId('releases-summary')).toBeNull();
+    rerender(<ReleasesHero {...base} summary={null} />);
+    expect(screen.queryByTestId('releases-summary-skeleton')).toBeNull();
+    expect(screen.queryByTestId('releases-summary')).toBeNull();
+    rerender(
+      <ReleasesHero
+        {...base}
+        loading
+        summary={{ planned: 1, overdue: 0, undated: 0, ...NO_HISTORY }}
+      />,
+    );
+    expect(screen.getByTestId('releases-summary')).not.toBeNull();
+    expect(screen.queryByTestId('releases-summary-skeleton')).toBeNull();
+  });
 });

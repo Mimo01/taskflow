@@ -108,6 +108,7 @@ export default function ReleasesTab() {
         summary={summary}
         updatedAt={dataUpdatedAt || undefined}
         refreshing={refreshing}
+        loading={showSkeleton}
         onRefresh={() => {
           void handleRefresh();
         }}

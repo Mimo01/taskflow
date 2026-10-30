@@ -8,6 +8,7 @@ import {
   Rocket,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { relativeTime } from '@/lib/relative-time';
 import { type ReleaseSummary, spanLabel } from '@/lib/release-agenda';
 import { cn } from '@/lib/utils';
@@ -41,11 +42,14 @@ export function ReleasesHero({
   updatedAt,
   refreshing,
   onRefresh,
+  loading = false,
 }: {
   summary: ReleaseSummary | null;
   updatedAt: number | undefined;
   refreshing: boolean;
   onRefresh: () => void;
+  /** Show a summary-line placeholder while the first load is pending. */
+  loading?: boolean;
 }) {
   return (
     // The app's standard page header bar (Epics, Worklogs, Test cycles), with the title size and
@@ -77,6 +81,20 @@ export function ReleasesHero({
             {summary.lastShippedDays !== null && (
               <Stat icon={Rocket}>last shipped {lastShippedLabel(summary.lastShippedDays)}</Stat>
             )}
+          </p>
+        )}
+        {!summary && loading && (
+          <p
+            data-testid="releases-summary-skeleton"
+            aria-hidden="true"
+            className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs"
+          >
+            {['w-16', 'w-20', 'w-28'].map((w) => (
+              <span key={w} className="inline-flex items-center gap-1.5">
+                <Skeleton className="size-3.5 rounded" />
+                <Skeleton className={cn('inline-block h-3 align-middle', w)} />
+              </span>
+            ))}
           </p>
         )}
       </div>
