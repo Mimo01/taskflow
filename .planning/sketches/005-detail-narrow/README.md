@@ -9,7 +9,7 @@ tags: [responsive, release-detail, phase-94]
 # Sketch 005: Detail at narrow widths
 
 ## How to View
-open .planning/sketches/005-detail-narrow/index.html (three frames side by side; scroll horizontally)
+The main view is the hub: open .planning/sketches/003-release-detail-page/index.html. Pick a width and Stack/Compact in the bottom-right control. The old side-by-side page is still at 005-detail-narrow/index.html.
 
 ## Variants (on 003 variant A)
 - **N1: Stack.** Header actions wrap under the title, and facts wrap without truncating. The graph row goes from 3 columns to 2 at ≤980px, then to 1 at ≤640px.

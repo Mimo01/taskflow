@@ -14,6 +14,8 @@ Phase 94 D-10: full-width page (no sidebar) with four graphs (burnup, issues by 
 ## How to View
 open .planning/sketches/003-release-detail-page/index.html
 
+This page is the **hub for 003–005**. It runs full width, with tab rows for Layout (A/B/C) and States (from 004). Arrow keys step through the tabs. The bottom-right control sets the width (420 / 640 / 900 / 1280 / Full) and the narrow treatment (Stack = N1, Compact = N2 from 005) for any tab.
+
 `render.js` + `page.css` are shared with sketches 004 and 005.
 
 ## Variants

@@ -239,7 +239,7 @@ function drawBurnups(root, store) {
     g += `<text class="ax" x="${lx}" y="${y(s.scope[n - 1]) - 6}" text-anchor="${an}" style="fill:var(--foreground)">${s.scope[n - 1]} scope</text>`;
     g += `<text class="ax" x="${lx}" y="${y(s.done[n - 1]) + (flip ? 14 : 4)}" text-anchor="${an}" style="fill:var(--done)">${s.done[n - 1]} done</text>`;
     const ti = days(start, TODAY);
-    if (!r.released && ti <= span) g += `<line x1="${x(ti)}" x2="${x(ti)}" y1="${T - 6}" y2="${T + ih}" stroke="var(--foreground)" stroke-width="1" opacity=".55"/><text class="mk" x="${x(ti)}" y="${T - 9}" text-anchor="middle" style="fill:var(--foreground)">Today</text>`;
+    if (!r.released && ti <= span) g += `<line x1="${x(ti)}" x2="${x(ti)}" y1="${T - 6}" y2="${T + ih}" stroke="var(--foreground)" stroke-width="1" opacity=".55"/><text class="mk" x="${x(ti)}" y="${T - 9}" text-anchor="${ti === span ? 'end' : 'middle'}" style="fill:var(--foreground)">Today</text>`;
     if (r.date) {
       const ri = days(start, r.date);
       if (ri <= span && ri !== ti) g += `<line x1="${x(ri)}" x2="${x(ri)}" y1="${T - 6}" y2="${T + ih}" stroke="var(--muted-foreground)" stroke-dasharray="3 3"/><text class="mk" x="${x(ri)}" y="${T - 9}" text-anchor="end">Release</text>`;

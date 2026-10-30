@@ -12,7 +12,7 @@ tags: [states, release-detail, phase-94]
 Phase 94 discretion items: skeletons in fixed slots, the "No issues" and "No MRs" placeholders, the no-GitLab case, a burnup with fewer than 2 points, and every sidebar state carried into the facts.
 
 ## How to View
-open .planning/sketches/004-detail-edge-states/index.html (notes are on by default)
+The main view is the hub: open .planning/sketches/003-release-detail-page/index.html (the States row). The standalone page is still at 004-detail-edge-states/index.html.
 
 ## Variants (states, built on 003 variant A, the provisional winner)
 - **Loading:** the header comes from cache; skeletons hold every slot's final size.

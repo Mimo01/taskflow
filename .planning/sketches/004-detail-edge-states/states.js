@@ -1,0 +1,53 @@
+// Edge states for the release detail sketches; each mutates baseRelease() and returns a note.
+const STATES = {
+  loading: (r) => { r.loading = true; r.loadingMrs = true;
+    return 'First paint from the list: name, pill, date and package come from cache, so the header is real. Every graph slot keeps its final size with a quiet skeleton (no layout shift); the MR donut streams in separately with the MR channels.'; },
+  noissues: (r) => { r.issues = null; r.sp = null; r.mrs = { merged: 0, opened: 0, draft: 0, closed: 0 }; r.labels = []; r.mismatches = []; r.facts.labels = { kind: 'none' };
+    r.name = 'Standard 01.12.2026 - Card limits v2'; r.date = '2026-12-01'; r.next = false; r.pkg = { short: 'WEEK49 RM-18', full: 'WEEK49 (30.11.2026 - 06.12.2026) STANDARD' }; r.desc = null;
+    r.facts.branch = { kind: 'missing' }; r.prev = { name: 'Standard 24.11.2026 - Onboarding', date: '2026-11-24' };
+    return 'Releases 3+ ahead have no issues yet (user observation from Phase 93). One compact muted "No issues" per slot instead of 0/0 charts; the header bar is an empty track. The MR donut says "No MRs in this milestone". Branch missing → the Create branch action sits inside its fact.'; },
+  nogitlab: (r) => { r.gitlab = false; r.labels = [];
+    return 'GitLab not configured: Milestone / Branch / Merged back / MR labels facts disappear, the MR donut slot is hidden (assignee + type take the row), labels section is gone. Story points stays. RM package still shows because an RM project is configured — with none, the package stat hides too (P93 D-12).'; },
+  nomrs: (r) => { r.mrs = { merged: 0, opened: 0, draft: 0, closed: 0 }; r.labels = []; r.facts.labels = { kind: 'none' };
+    r.facts.milestone = { kind: 'fuzzy', name: 'Standard 3.11.2026' }; r.facts.branch = { kind: 'check-failed' };
+    r.tasks = r.tasks.map((t) => [...t.slice(0, 6), ['—', ''], 0, 0]);
+    return 'Milestone matched only fuzzily (dashed underline, orange tone, candidate in the tooltip) and it has no MRs yet. Branch check failed → "Couldn\'t check" with Retry inside the fact. Donut slot keeps its size with "No MRs in this milestone".'; },
+  released: (r) => { r.released = true; r.next = false; r.name = 'Standard 20.10.2026 - Card limits'; r.date = '2026-10-20';
+    r.prev = { name: 'Standard 06.10.2026 - Limits API', date: '2026-10-06' }; r.pkg = { short: 'WEEK43 RM-11', full: 'WEEK43 (19.10.2026 - 25.10.2026) STANDARD' };
+    r.issues = { d: 21, p: 0, n: 0, statuses: { d: [['Done', 19], ['Closed', 2]], p: [], n: [] } }; r.sp = { total: 52, done: 52 };
+    r.types = [{ t: 'Story', d: 11, p: 0, n: 0, sp: 33 }, { t: 'Bug', d: 7, p: 0, n: 0, sp: 12 }, { t: 'Task', d: 3, p: 0, n: 0, sp: 7 }];
+    r.people = [{ nm: 'Martin Kováč', i: 'MK', d: 7, p: 0, n: 0, sp: 18 }, { nm: 'Jana Nováková', i: 'JN', d: 6, p: 0, n: 0, sp: 15 }, { nm: 'Andrej Polák', i: 'AP', d: 5, p: 0, n: 0, sp: 12 }, { nm: 'Lucia Benková', i: 'LB', d: 3, p: 0, n: 0, sp: 7 }];
+    r.mrs = { merged: 22, opened: 0, draft: 0, closed: 1 };
+    r.series = { scope: [14, 15, 15, 17, 17, 17, 18, 19, 20, 20, 21, 21, 21, 21, 21], done: [0, 0, 2, 3, 3, 3, 5, 8, 10, 13, 16, 18, 20, 21, 21], spDone: [0, 0, 5, 8, 8, 8, 13, 20, 26, 33, 40, 45, 50, 52, 52] };
+    r.facts.milestone = { kind: 'exact', name: 'Standard 20.10.2026' }; r.facts.branch = { kind: 'released', name: 'release/20.10.2026', tag: 'v33.4.0' };
+    r.facts.mergeBack = { kind: 'merged', into: 'main', on: '21 Oct', via: '!398' }; r.facts.labels = { kind: 'all', total: 23 };
+    r.mismatches = []; r.desc = 'Raised card limits for business accounts and the new limits API.';
+    r.tasks = r.tasks.map((t) => [t[0], t[1], t[2], t[3], t[4], ['t-green', 'Done'], [t[6][0] === '—' ? '!39' + t[1].slice(-1) : t[6][0], 'm'], 1, 1]);
+    return 'Released: green pill, "Released · v33.4.0" branch fact (branch deleted, tag in the tooltip), Merged back appears (green). Burnup runs from the previous version to the release date — no TODAY marker since today is past the axis.'; },
+  undated: (r) => { r.date = null; r.next = false; r.pkg = null; r.name = 'Platform 4.12';
+    r.facts.milestone = { kind: 'none' }; r.facts.branch = { kind: 'blocked' }; r.facts.labels = { kind: 'none' }; r.labels = []; r.mrs = { merged: 0, opened: 0, draft: 0, closed: 0 };
+    r.prev = null; r.series.start = '2026-10-14';
+    r.series = { start: '2026-10-14', scope: [6, 6, 7, 8, 8, 8, 8, 9, 10, 10, 11, 12, 12, 13, 14, 14, 14], done: [0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6, 8, 9, 10], spDone: [0, 0, 0, 2, 2, 2, 2, 4, 4, 6, 6, 8, 10, 12, 16, 18, 20] };
+    r.issues = { d: 10, p: 1, n: 3, statuses: { d: [['Done', 10]], p: [['In Progress', 1]], n: [['To Do', 3]] } };
+    r.mismatches = []; r.desc = null; r.sp = { total: 24, done: 16 };
+    r.types = [{ t: 'Story', d: 5, p: 1, n: 2, sp: 14 }, { t: 'Task', d: 3, p: 0, n: 1, sp: 6 }, { t: 'Bug', d: 2, p: 0, n: 0, sp: 4 }];
+    r.people = [{ nm: 'Martin Kováč', i: 'MK', d: 4, p: 1, n: 0, sp: 10 }, { nm: 'Jana Nováková', i: 'JN', d: 3, p: 0, n: 1, sp: 7 }, { nm: 'Andrej Polák', i: 'AP', d: 3, p: 0, n: 0, sp: 5 }, { nm: 'Unassigned', i: '', d: 0, p: 0, n: 2, sp: 2 }];
+    return 'No release date: amber pill "No date" + amber "No release date" stat; no package. Milestone shows "Set a release date first", branch "Create the milestone first" (no actions). Burnup has no previous-version anchor → starts at the earliest issue created date and ends today; no Release marker.'; },
+  overdue: (r) => { r.date = '2026-10-27'; r.next = false; r.name = 'Hotfix 27.10.2026 - Statement totals'; r.pkg = { short: 'WEEK44 RM-13', full: 'WEEK44 (26.10.2026 - 01.11.2026) HOTFIX' };
+    r.prev = { name: 'Standard 20.10.2026 - Card limits', date: '2026-10-20' };
+    r.series = { scope: [3, 3, 4, 4, 4, 4, 5, 6, 6, 6, 6], done: [0, 0, 1, 1, 1, 1, 2, 3, 3, 4, 4], spDone: [0, 0, 2, 2, 2, 2, 4, 6, 6, 8, 8] };
+    r.issues = { d: 4, p: 1, n: 1, statuses: { d: [['Done', 4]], p: [['In Review', 1]], n: [['To Do', 1]] } }; r.sp = { total: 13, done: 8 };
+    r.types = [{ t: 'Bug', d: 4, p: 1, n: 1, sp: 13 }];
+    r.people = [{ nm: 'Andrej Polák', i: 'AP', d: 3, p: 1, n: 0, sp: 10 }, { nm: 'Jana Nováková', i: 'JN', d: 1, p: 0, n: 1, sp: 3 }];
+    r.mrs = { merged: 4, opened: 1, draft: 0, closed: 0 };
+    r.facts.milestone = { kind: 'exact', name: 'Hotfix 27.10.2026' }; r.facts.branch = { kind: 'missing' };
+    r.facts.labels = { kind: 'missing', missing: 1, total: 5, mrs: [['!431', 'Fix statement totals for multi-currency']] };
+    r.tasks = r.tasks.slice(2, 4).concat(r.tasks.slice(6, 7)); r.labels = [['backend', 4, '#1f75cb'], ['hotfix', 5, '#dc143c']];
+    return 'Overdue: red pill "Overdue". Axis would end at the release date, but it is in the past while unreleased → it ends today (D-03); the Release marker sits before TODAY. Problems carry tone: branch Missing + Create branch, MR labels 1/5 missing. A single-type release gives one column.'; },
+  short: (r) => { r.prev = { name: 'Standard 29.10.2026 - Quick fixes', date: '2026-10-29' }; r.series = { scope: [5], done: [0], spDone: [0] };
+    r.issues = { d: 0, p: 2, n: 3, statuses: { d: [], p: [['In Progress', 2]], n: [['To Do', 3]] } }; r.sp = { total: 13, done: 0 };
+    r.types = [{ t: 'Story', d: 0, p: 1, n: 2, sp: 8 }, { t: 'Task', d: 0, p: 1, n: 1, sp: 5 }];
+    r.people = [{ nm: 'Martin Kováč', i: 'MK', d: 0, p: 1, n: 1, sp: 5 }, { nm: 'Lucia Benková', i: 'LB', d: 0, p: 1, n: 1, sp: 5 }, { nm: 'Unassigned', i: '', d: 0, p: 0, n: 1, sp: 3 }];
+    r.mrs = { merged: 0, opened: 2, draft: 1, closed: 0 }; r.mismatches = []; r.tasks = r.tasks.slice(3, 8);
+    return 'Previous version shipped yesterday → fewer than 2 data points. The burnup slot keeps its height with a muted placeholder sentence instead of a one-dot chart.'; },
+};
