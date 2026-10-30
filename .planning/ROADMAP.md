@@ -198,14 +198,23 @@ Plans:
 **Requirements**: TBD
 **Depends on:** Phase 93
 **Plans:** 8 plans
-
 Plans:
+**Wave 1**
 
 - [ ] 94-01-PLAN.md — Pure graph derivations (burnup axis/series, assignee/type buckets, MR donut counts) + additive useReleaseDetail fields
 - [ ] 94-02-PLAN.md — Additive created/resolutiondate Jira fields, refreshReleaseDetail, shared primitives (SegmentedBar export, muted IssueTypeIcon, full-width done bar, GraphSlot)
 - [ ] 94-03-PLAN.md — ReleaseFacts meta items (ported sidebar states, D-15 tooltip) + ReleaseDescription clamp
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 94-04-PLAN.md — Progress burnup + Merge requests donut graphs
 - [ ] 94-05-PLAN.md — By assignee rows + By type waffle graphs
 - [ ] 94-06-PLAN.md — CycleHeader-style header + done bar, full-width skeleton, sticky table header, side-column headings
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 94-07-PLAN.md — Full-width page composition + page test; remove releaseDetailPanelWidth (v32) and sidebar files
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 94-08-PLAN.md — Visual verification against the sketch + user approval (checkpoint)

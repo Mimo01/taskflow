@@ -376,15 +376,19 @@ Model the exact prefix set on `useEditRelease.ts` lines 164-174 and `mrChannelKe
 | A5 | `IssueTypeIcon` can be muted with a wrapper class | Pitfall 9 | Needs a prop; small |
 | A6 | `ReleaseStatusPill` / `ReleasePackageCell` render acceptably in the CycleHeader meta line without changes | Reusable components | May need a `compact`/layout prop |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Unlabeled-MR list in the MR labels fact.**
    - Known: sidebar shows an inline clickable list (`!iid` link + title) for each unlabeled MR; UI-SPEC says "tooltip lists unlabeled MRs, <= 4 rows".
    - Unclear: behaviour for > 4 unlabeled MRs and loss of click-through (links inside a tooltip are not reachable).
    - Recommendation: tooltip shows first 3 + "+N more"; and make the fact a `Popover` (click) listing all unlabeled MRs with links if the planner wants zero information loss ("every state reachable" in D-08). Surface to user/planner as a decision; default = Popover on click, tooltip on hover.
+   - RESOLVED: D-15 (user) — hover tooltip only, first 3 + "+N more", no popover/links.
 2. **Page-level "Refresh" scope** - detail has no refresh today; define it as refresh of fix versions, issues, GitLab milestone/MR/branch channels (not RM package queries unless the pkg hook is keyed by something stale).
+   - RESOLVED: plan 94-02 `refreshReleaseDetail` (upstream-first: fix versions, issues, GitLab channels).
 3. **Draft MR slice** - UI-SPEC says "Requires adding a draft flag to `mrStateCounts`". Confirm that donut classifies from channel B (`milestoneMRs`) only (matches what the old MRs row showed).
+   - RESOLVED: plan 94-01 `computeMrDonutCounts` classifies channel B (`milestoneMRs`) only.
 4. **"Updated" source** - use `max(dataUpdatedAt)` of issues + fix-versions queries vs a local timestamp; AIO uses a `lastRefreshed` string.
+   - RESOLVED: plan 94-07 uses the issues query's `dataUpdatedAt` for "Refreshed: HH:MM:SS".
 
 ## Environment Availability
 
