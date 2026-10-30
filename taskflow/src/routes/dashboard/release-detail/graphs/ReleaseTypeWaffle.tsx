@@ -10,11 +10,16 @@ import {
   releaseTooltipRows,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
-import { type ReleaseTypeRow, WAFFLE_LAYOUT, waffleColumns } from '../releaseBuckets';
+import {
+  type ReleaseTypeRow,
+  WAFFLE_LAYOUT,
+  WAFFLE_LAYOUT_COMPACT,
+  waffleColumns,
+} from '../releaseBuckets';
 import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
 
 const FALLBACK_WIDTH = 640;
-const { block: BLOCK, gap: GAP, nameCol: NAME_COL, rowGap: ROW_GAP } = WAFFLE_LAYOUT;
+const MAX_COMPACT_ROWS = 5;
 
 /**
  * By type: one row per issue type, exactly one fixed 14px square per issue (done,
@@ -27,13 +32,20 @@ export function ReleaseTypeWaffle({
   rows,
   state,
   showStoryPoints,
+  compact = false,
   className,
 }: {
   rows: ReleaseTypeRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   showStoryPoints: boolean;
+  /** Band mode: 12px squares, at most 5 type rows. */
+  compact?: boolean;
   className?: string;
 }) {
+  const layout = compact ? WAFFLE_LAYOUT_COMPACT : WAFFLE_LAYOUT;
+  const { block: BLOCK, gap: GAP, nameCol: NAME_COL, rowGap: ROW_GAP } = layout;
+  const shownRows = compact ? rows.slice(0, MAX_COMPACT_ROWS) : rows;
+  const hiddenRows = rows.length - shownRows.length;
   // Callback ref: the cell only mounts once the slot is ready, so an effect on a
   // useRef would never see it and fall back to a wide default width.
   const [el, setEl] = useState<HTMLDivElement | null>(null);
@@ -50,7 +62,7 @@ export function ReleaseTypeWaffle({
     return () => ro.disconnect();
   }, [el]);
   const maxTotal = rows.reduce((m, r) => Math.max(m, r.total), 1);
-  const cols = waffleColumns(maxTotal, measured > 0 ? measured : FALLBACK_WIDTH);
+  const cols = waffleColumns(maxTotal, measured > 0 ? measured : FALLBACK_WIDTH, layout);
   return (
     <GraphSlot
       title="By type"
@@ -74,7 +86,7 @@ export function ReleaseTypeWaffle({
       }
     >
       <div ref={setEl} className="flex min-w-0 flex-col gap-2">
-        {rows.map((row) => (
+        {shownRows.map((row) => (
           <Tooltip key={row.typeName}>
             <TooltipTrigger
               delay={0}
@@ -128,6 +140,11 @@ export function ReleaseTypeWaffle({
             </TooltipContent>
           </Tooltip>
         ))}
+        {hiddenRows > 0 ? (
+          <div data-testid="waffle-more" className="text-xs text-muted-foreground">
+            +{hiddenRows} more {hiddenRows === 1 ? 'type' : 'types'}
+          </div>
+        ) : null}
       </div>
     </GraphSlot>
   );

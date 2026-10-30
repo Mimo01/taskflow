@@ -159,15 +159,38 @@ export function deriveReleaseStatusRows(issues: JiraIssue[]): ReleaseStatusRow[]
 }
 
 /** Layout constants of a By type row: name column, blocks, count column. */
-export const WAFFLE_LAYOUT = { block: 14, gap: 3, nameCol: 96, countCol: 44, rowGap: 12 } as const;
+export interface WaffleLayout {
+  block: number;
+  gap: number;
+  nameCol: number;
+  countCol: number;
+  rowGap: number;
+}
+
+export const WAFFLE_LAYOUT: WaffleLayout = {
+  block: 14,
+  gap: 3,
+  nameCol: 96,
+  countCol: 44,
+  rowGap: 12,
+};
+
+/** Band mode: 12px squares and tighter columns. */
+export const WAFFLE_LAYOUT_COMPACT: WaffleLayout = {
+  block: 12,
+  gap: 3,
+  nameCol: 84,
+  countCol: 40,
+  rowGap: 8,
+};
 
 /**
  * How many blocks fit one row of a cell `cellWidth` px wide: the cell minus the
  * name and count columns and the two column gaps, divided by the block pitch.
  * Always at least 1.
  */
-export function waffleCapacity(cellWidth: number): number {
-  const { block, gap, nameCol, countCol, rowGap } = WAFFLE_LAYOUT;
+export function waffleCapacity(cellWidth: number, layout: WaffleLayout = WAFFLE_LAYOUT): number {
+  const { block, gap, nameCol, countCol, rowGap } = layout;
   return Math.max(
     1,
     Math.floor((cellWidth - nameCol - countCol - 2 * rowGap + gap) / (block + gap)),
@@ -175,6 +198,10 @@ export function waffleCapacity(cellWidth: number): number {
 }
 
 /** Squares per line: the widest row's total, capped by what the cell allows (min 1). */
-export function waffleColumns(maxTotal: number, cellWidth: number): number {
-  return Math.max(1, Math.min(maxTotal, waffleCapacity(cellWidth)));
+export function waffleColumns(
+  maxTotal: number,
+  cellWidth: number,
+  layout: WaffleLayout = WAFFLE_LAYOUT,
+): number {
+  return Math.max(1, Math.min(maxTotal, waffleCapacity(cellWidth, layout)));
 }

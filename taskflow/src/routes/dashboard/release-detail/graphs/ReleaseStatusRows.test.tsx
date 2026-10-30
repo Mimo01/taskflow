@@ -26,4 +26,14 @@ describe('ReleaseStatusRows', () => {
     render(<ReleaseStatusRows rows={many} state="ready" />);
     expect(screen.getByText('+2 more statuses')).toBeInTheDocument();
   });
+
+  it('compact caps at 5 rows', () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      name: `S${i}`,
+      cat: 'new' as const,
+      count: 1,
+    }));
+    render(<ReleaseStatusRows rows={many} state="ready" compact />);
+    expect(screen.getByText('+3 more statuses')).toBeInTheDocument();
+  });
 });

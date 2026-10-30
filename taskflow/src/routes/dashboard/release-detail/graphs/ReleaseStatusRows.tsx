@@ -20,13 +20,17 @@ const ROW_GRID = 'grid grid-cols-[minmax(92px,1fr)_minmax(60px,1.2fr)_40px] item
 export function ReleaseStatusRows({
   rows,
   state,
+  compact = false,
   className,
 }: {
   rows: ReleaseStatusRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
+  /** Band mode: 24px rows and at most 5 of them. */
+  compact?: boolean;
   className?: string;
 }) {
-  const shown = rows.slice(0, MAX_ROWS);
+  const rowHeight = compact ? 24 : ROW_HEIGHT;
+  const shown = rows.slice(0, compact ? 5 : MAX_ROWS);
   const more = rows.length - shown.length;
   const max = rows.reduce((m, r) => Math.max(m, r.count), 1);
   return (
@@ -59,7 +63,7 @@ export function ReleaseStatusRows({
               render={<div />}
               data-testid={`status-row-${row.name}`}
               className={cn(ROW_GRID, 'relative z-10 rounded px-1 hover:bg-muted/50')}
-              style={{ height: ROW_HEIGHT }}
+              style={{ height: rowHeight }}
             >
               <span className="truncate text-xs">{row.name}</span>
               <div className="h-1.5 w-full rounded-full bg-muted">

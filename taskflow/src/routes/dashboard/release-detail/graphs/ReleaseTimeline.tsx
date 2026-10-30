@@ -59,10 +59,12 @@ export function ReleaseTimeline({
   axis,
   summary,
   className,
+  compact = false,
 }: {
   axis: BurnupAxis | null;
   summary: TimelineSummary;
   className?: string;
+  compact?: boolean;
 }) {
   const cd = countdown(summary);
   const end = axis ? axis.end : summary.today;
@@ -77,14 +79,23 @@ export function ReleaseTimeline({
     >
       <div className="flex items-end justify-between gap-4">
         <div>
-          <div className="text-2xl font-semibold tabular-nums leading-none">
+          <div
+            className={cn(
+              'font-semibold tabular-nums leading-none',
+              compact ? 'text-xl' : 'text-2xl',
+            )}
+          >
             {summary.done}
             <span className="text-base font-normal text-muted-foreground"> / {summary.total}</span>
           </div>
           <div className="mt-1 text-xs text-muted-foreground">issues done</div>
         </div>
         <div className="text-right">
-          <div className={cn('text-2xl font-semibold leading-none', cd.tone)}>{cd.big}</div>
+          <div
+            className={cn('font-semibold leading-none', compact ? 'text-xl' : 'text-2xl', cd.tone)}
+          >
+            {cd.big}
+          </div>
           <div className="mt-1 text-xs text-muted-foreground">{cd.small}</div>
         </div>
       </div>

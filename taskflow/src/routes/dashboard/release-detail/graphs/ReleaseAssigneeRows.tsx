@@ -9,21 +9,31 @@ import { SegmentedBar } from '../../releases-list/ReleaseAgendaParts';
 import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, ASSIGNEE_SKELETON_ROWS, GraphSlot } from './GraphSlot';
 
+const COMPACT_ROW_HEIGHT = 24;
+const COMPACT_MAX_ROWS = 5;
 const ROW_GRID =
   'grid grid-cols-[22px_minmax(70px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
+const ROW_GRID_COMPACT =
+  'grid grid-cols-[20px_minmax(72px,1.4fr)_minmax(40px,1fr)_32px] items-center gap-2';
 
 /** By assignee: one avatar row per person with a slim status bar. Counts issues; SP only in the tooltip. */
 export function ReleaseAssigneeRows({
   rows,
   state,
   showStoryPoints,
+  compact = false,
   className,
 }: {
   rows: ReleaseAssigneeRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   showStoryPoints: boolean;
+  /** Band mode: 24px rows, at most COMPACT_MAX_ROWS, the rest summarised as "+K more". */
+  compact?: boolean;
   className?: string;
 }) {
+  const rowHeight = compact ? COMPACT_ROW_HEIGHT : ASSIGNEE_ROW_HEIGHT;
+  const shown = compact ? rows.slice(0, COMPACT_MAX_ROWS) : rows;
+  const hidden = rows.slice(shown.length);
   return (
     <GraphSlot
       title="By assignee"
@@ -48,19 +58,22 @@ export function ReleaseAssigneeRows({
       }
     >
       <div className="flex flex-col">
-        {rows.map((row) => (
+        {shown.map((row) => (
           <Tooltip key={row.id}>
             <TooltipTrigger
               delay={0}
               render={<div />}
               data-testid={`assignee-row-${row.id}`}
-              className={cn(ROW_GRID, 'relative z-10 rounded px-1 hover:bg-muted/50')}
-              style={{ height: ASSIGNEE_ROW_HEIGHT }}
+              className={cn(
+                compact ? ROW_GRID_COMPACT : ROW_GRID,
+                'relative z-10 rounded px-1 hover:bg-muted/50',
+              )}
+              style={{ height: rowHeight }}
             >
               {row.unassigned ? (
                 <span className="size-[22px] rounded-full border border-dashed border-muted-foreground/50" />
               ) : (
-                <CachedAvatar url={row.avatarUrl} name={row.name} size={22} />
+                <CachedAvatar url={row.avatarUrl} name={row.name} size={compact ? 20 : 22} />
               )}
               <span
                 className={cn(
@@ -85,6 +98,28 @@ export function ReleaseAssigneeRows({
             </TooltipContent>
           </Tooltip>
         ))}
+        {hidden.length > 0 ? (
+          <Tooltip>
+            <TooltipTrigger
+              delay={0}
+              render={<div />}
+              data-testid="assignee-more"
+              className="relative z-10 px-1 text-xs text-muted-foreground"
+            >
+              +{hidden.length} more
+            </TooltipTrigger>
+            <TooltipContent>
+              <TooltipBody title={`${hidden.length} more`}>
+                {hidden.slice(0, 3).map((r) => (
+                  <TooltipRow key={r.id} label={r.name} value={`${r.done}/${r.total}`} />
+                ))}
+                {hidden.length > 3 ? (
+                  <TooltipRow label={`+${hidden.length - 3} more`} value="" />
+                ) : null}
+              </TooltipBody>
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
       </div>
     </GraphSlot>
   );

@@ -1,8 +1,9 @@
 import { GitMerge } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { AioDonut, AioDonutSkeleton } from '../../aio-cycle/AioDonut';
 import { mrDonutSlices } from '../releaseBuckets';
-import { DONUT_GRAPH_SIZE, GraphSlot } from './GraphSlot';
+import { COMPACT_DONUT_SIZE, DONUT_GRAPH_SIZE, GraphSlot } from './GraphSlot';
 
 type Counts = { merged: number; open: number; draft: number; closed: number };
 const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
@@ -10,10 +11,12 @@ const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
 export function ReleaseMrDonut({
   counts,
   state,
+  compact = false,
   className,
 }: {
   counts: Counts;
   state: 'loading' | 'empty' | 'ready';
+  compact?: boolean;
   className?: string;
 }) {
   const slices = mrDonutSlices(counts);
@@ -41,10 +44,15 @@ export function ReleaseMrDonut({
         </div>
       }
     >
-      <div className="my-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+      <div
+        className={cn(
+          'my-auto flex flex-wrap items-center justify-center gap-y-3',
+          compact ? 'gap-x-4' : 'gap-x-8',
+        )}
+      >
         <AioDonut
           slices={slices}
-          size={DONUT_GRAPH_SIZE}
+          size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
           testId="release-mr-donut"
           ariaLabel={label}
           center={
@@ -54,7 +62,7 @@ export function ReleaseMrDonut({
             </>
           }
         />
-        <div className="grid min-w-28 gap-1.5">
+        <div className={cn('grid gap-1.5', !compact && 'min-w-28')}>
           {slices.map((s) => (
             <div key={s.key} className="flex items-center gap-1.5 text-xs">
               <span

@@ -82,4 +82,32 @@ describe('ReleaseAssigneeRows', () => {
     await user.hover(screen.getByTestId('assignee-row-a'));
     expect((await screen.findAllByText('Story points')).length).toBeGreaterThan(0);
   });
+
+  it('compact: shows at most 5 rows plus a "+K more" with a tooltip of the rest (no scroll)', async () => {
+    const many: ReleaseAssigneeRow[] = Array.from({ length: 9 }, (_, i) => ({
+      id: `p${i}`,
+      name: `Person ${i}`,
+      avatarUrl: null,
+      unassigned: false,
+      breakdown: { done: 1, indeterminate: 0, new: 1 },
+      total: 2,
+      done: 1,
+      sp: 0,
+    }));
+    const user = userEvent.setup();
+    const { container } = render(
+      <ReleaseAssigneeRows rows={many} state="ready" showStoryPoints={false} compact />,
+    );
+    expect(container.querySelectorAll('[data-testid^="assignee-row-"]')).toHaveLength(5);
+    const more = screen.getByTestId('assignee-more');
+    expect(more).toHaveTextContent('+4 more');
+    expect(container.innerHTML).not.toContain('overflow-y');
+    await user.hover(more);
+    expect((await screen.findAllByText('Person 5')).length).toBeGreaterThan(0);
+  });
+
+  it('non-compact shows every row and no "+K more"', () => {
+    render(<ReleaseAssigneeRows rows={rows} state="ready" showStoryPoints={false} />);
+    expect(screen.queryByTestId('assignee-more')).toBeNull();
+  });
 });

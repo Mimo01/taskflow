@@ -207,6 +207,30 @@ describe('ReleaseDetailPage', () => {
     expect(screen.queryByText(/\d+ in progress/)).toBeNull();
   });
 
+  it('wide container: graphs form one band; narrow: 2x2 grid', () => {
+    const RealRO = global.ResizeObserver;
+    const withWidth = (width: number) =>
+      class {
+        constructor(private cb: ResizeObserverCallback) {}
+        observe(target: Element) {
+          this.cb(
+            [{ target, contentRect: { width, height: 400 } } as ResizeObserverEntry],
+            this as never,
+          );
+        }
+        unobserve() {}
+        disconnect() {}
+      } as unknown as typeof ResizeObserver;
+    global.ResizeObserver = withWidth(1300);
+    const { unmount } = renderPage();
+    expect(screen.getByTestId('release-graph-grid').className).toContain('items-stretch');
+    unmount();
+    global.ResizeObserver = withWidth(900);
+    renderPage();
+    expect(screen.getByTestId('release-graph-grid').className).not.toContain('items-stretch');
+    global.ResizeObserver = RealRO;
+  });
+
   it('opens the edit modal from Edit release', async () => {
     renderPage();
     fireEvent.click(screen.getByText('Edit release'));

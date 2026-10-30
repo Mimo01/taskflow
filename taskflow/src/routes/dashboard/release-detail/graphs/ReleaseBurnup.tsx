@@ -131,6 +131,7 @@ export function ReleaseBurnup({
   state,
   showStoryPoints,
   summary,
+  compact = false,
   className,
 }: {
   axis: BurnupAxis | null;
@@ -139,6 +140,8 @@ export function ReleaseBurnup({
   showStoryPoints: boolean;
   /** Drives the countdown timeline shown instead of the chart on a thin history. */
   summary: TimelineSummary;
+  /** Band mode: the plot fills the row height set by its siblings (min 110px). */
+  compact?: boolean;
   className?: string;
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
@@ -151,7 +154,11 @@ export function ReleaseBurnup({
   const last = points[points.length - 1];
   const enough = state === 'ready' && !!axis && points.length >= 2 && !!last;
   const ticks = axis ? timeTicks(axis.start, axis.end, width) : [];
-  const y = burnupYScale(points.reduce((m, p) => Math.max(m, p.scope), 0));
+  const maxScope = points.reduce((m, p) => Math.max(m, p.scope), 0);
+  const y = burnupYScale(maxScope);
+  // Headroom above a scope that nearly touches the top tick, so the TODAY / RELEASE
+  // labels and the scope end label never meet on a short plot.
+  const domainTop = y.top + (maxScope > y.top * 0.8 ? (y.ticks[1] ?? 5) / 2 : 0);
   const flip = !!axis && axis.seriesEnd === axis.end;
   const dy = burnupEndLabelDy(last?.scope ?? 0, last?.done ?? 0, y.top);
 
@@ -161,21 +168,30 @@ export function ReleaseBurnup({
       icon={TrendingUp}
       aside={aside}
       state={state}
-      height={BURNUP_HEIGHT}
+      height={compact ? 110 : BURNUP_HEIGHT}
       emptyLabel="No issues"
       testId="release-graph-burnup"
       className={className}
     >
       {!enough || !axis ? (
-        <ReleaseTimeline axis={axis} summary={summary} className={PLOT_CLASS} />
+        compact ? (
+          <div className="relative min-h-[132px] flex-1">
+            <ReleaseTimeline axis={axis} summary={summary} className="absolute inset-0" compact />
+          </div>
+        ) : (
+          <ReleaseTimeline axis={axis} summary={summary} className={PLOT_CLASS} />
+        )
       ) : (
         <div
           ref={plotRef}
-          className={PLOT_CLASS}
+          className={compact ? 'relative min-h-[110px] flex-1' : PLOT_CLASS}
           role="img"
           aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
         >
-          <ChartContainer config={{}} className="aspect-auto h-full w-full">
+          <ChartContainer
+            config={{}}
+            className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
+          >
             <ComposedChart data={points} responsive margin={{ ...PLOT_MARGIN, top: 20, right: 40 }}>
               <XAxis
                 type="number"
@@ -194,7 +210,7 @@ export function ReleaseBurnup({
                 axisLine={false}
               />
               <YAxis
-                domain={[0, y.top]}
+                domain={[0, domainTop]}
                 ticks={y.ticks}
                 interval={0}
                 allowDecimals={false}

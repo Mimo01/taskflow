@@ -8,7 +8,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { GitMerge, PackageOpen } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
@@ -37,6 +37,9 @@ import { deriveReleaseStatusRows } from './release-detail/releaseBuckets';
 import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
+
+/** Container width from which the graphs form one band (like the AIO cycle stats block). */
+const BAND_MIN_WIDTH = 1100;
 
 // ---- Main Component ----
 
@@ -258,6 +261,23 @@ export default function ReleaseDetailPage() {
         ? 'loading'
         : 'ready';
 
+  // Band layout needs the page content width (not the window): measure the scroll
+  // wrapper with a callback ref so it works whenever the wrapper mounts.
+  const [pageEl, setPageEl] = useState<HTMLDivElement | null>(null);
+  const [pageWidth, setPageWidth] = useState(0);
+  useEffect(() => {
+    if (!pageEl) return;
+    setPageWidth(pageEl.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setPageWidth(w);
+    });
+    ro.observe(pageEl);
+    return () => ro.disconnect();
+  }, [pageEl]);
+  const band = pageWidth >= BAND_MIN_WIDTH;
+
   const hasMilestone = gitlabConfigured && gitlabMatch.type !== 'none';
   // The MR donut needs a milestone with MRs; otherwise the slot shows issues by
   // status so it always carries information.
@@ -272,6 +292,60 @@ export default function ReleaseDetailPage() {
     released: !!version?.released,
   };
   const noIssues = issueGraphState === 'empty';
+
+  // Graph slots, built once and placed by the band or the 2x2 layout. `compact`
+  // (band mode) shrinks rows, donut and squares and lets the burnup plot fill the
+  // row height.
+  const burnupEl = (
+    <ReleaseBurnup
+      axis={burnupAxis}
+      points={burnupPoints}
+      state={issueGraphState}
+      showStoryPoints={hasStoryPoints}
+      summary={timelineSummary}
+      compact={band}
+      className={band ? 'min-w-[300px] flex-[1.5]' : '@max-[640px]/page:col-span-full'}
+    />
+  );
+  const mrSlotEl = showDonut ? (
+    <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact={band} />
+  ) : (
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <ReleaseStatusRows
+        rows={statusRows}
+        state={issueGraphState}
+        compact={band}
+        className="flex-1"
+      />
+      {hasMilestone ? (
+        <p
+          data-testid="release-mrs-none"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+        >
+          <GitMerge className="size-3.5" aria-hidden="true" />
+          No merge requests in this milestone yet
+        </p>
+      ) : null}
+    </div>
+  );
+  const assigneeEl = (
+    <ReleaseAssigneeRows
+      rows={assigneeRows}
+      state={issueGraphState}
+      showStoryPoints={hasStoryPoints}
+      compact={band}
+      className={band ? 'flex-1' : '@max-[640px]/page:col-span-full @max-[640px]/page:order-4'}
+    />
+  );
+  const typeEl = (
+    <ReleaseTypeWaffle
+      rows={typeRows}
+      state={issueGraphState}
+      showStoryPoints={hasStoryPoints}
+      compact={band}
+      className={band ? 'flex-1' : undefined}
+    />
+  );
 
   if (!versionId) return null;
 
@@ -290,6 +364,7 @@ export default function ReleaseDetailPage() {
         <ReleaseDetailSkeleton />
       ) : (
         <div
+          ref={setPageEl}
           data-testid="release-detail-scroll"
           className="@container/page min-h-0 flex-1 overflow-auto [--release-sticky-top:0px]"
         >
@@ -377,68 +452,46 @@ export default function ReleaseDetailPage() {
             </div>
           ) : (
             <>
-              {/* Graph grid: quad (burnup, MRs, assignees, types) + side column */}
-              <div
-                data-testid="release-graph-grid"
-                className="grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] gap-8 px-6 pt-6 @max-[980px]/page:grid-cols-1 has-[>aside:empty]:grid-cols-1"
-              >
-                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1">
-                  <ReleaseBurnup
-                    axis={burnupAxis}
-                    points={burnupPoints}
-                    state={issueGraphState}
-                    showStoryPoints={hasStoryPoints}
-                    summary={timelineSummary}
-                    className="@max-[640px]/page:col-span-full"
-                  />
-                  {showDonut ? (
-                    <ReleaseMrDonut counts={mrDonutCounts} state={donutState} />
-                  ) : (
-                    <div className="flex min-w-0 flex-col gap-3">
-                      <ReleaseStatusRows
-                        rows={statusRows}
-                        state={issueGraphState}
-                        className="flex-1"
-                      />
-                      {hasMilestone ? (
-                        <p
-                          data-testid="release-mrs-none"
-                          className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                        >
-                          <GitMerge className="size-3.5" aria-hidden="true" />
-                          No merge requests in this milestone yet
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-                  <ReleaseAssigneeRows
-                    rows={assigneeRows}
-                    state={issueGraphState}
-                    showStoryPoints={hasStoryPoints}
-                    className="@max-[640px]/page:col-span-full @max-[640px]/page:order-4"
-                  />
-                  <ReleaseTypeWaffle
-                    rows={typeRows}
-                    state={issueGraphState}
-                    showStoryPoints={hasStoryPoints}
-                  />
+              {/* Graph section. Wide containers: ONE band like the AIO cycle stats block
+                  (burnup fills the row height set by the lists, then MRs/status, type,
+                  assignee). Narrower: 2x2, then single column. Labels and package
+                  mismatches fold under it. */}
+              {band ? (
+                <div
+                  data-testid="release-graph-grid"
+                  className="flex items-stretch gap-8 px-6 pt-4"
+                >
+                  {burnupEl}
+                  <div className="flex w-[250px] min-w-0 flex-none flex-col">{mrSlotEl}</div>
+                  <div className="flex min-w-[240px] flex-[1.2] flex-col">{typeEl}</div>
+                  <div className="flex min-w-[240px] flex-1 flex-col">{assigneeEl}</div>
                 </div>
-                <aside className="flex flex-col gap-6 border-l pl-8 empty:hidden @max-[980px]/page:border-l-0 @max-[980px]/page:pl-0 @max-[980px]/page:border-t @max-[980px]/page:pt-6">
-                  <LabelSummarySection
-                    milestoneMRsLoaded={!!milestoneMRs}
-                    labelSummary={labelSummary}
-                  />
-                  {/* Stories whose fix version and Deployment package disagree (quick
-                      261014-eym). Renders nothing without an RM project. */}
-                  <DeploymentPackageSection
-                    stories={releaseIssues}
-                    version={version}
-                    jiraBaseUrl={jiraBaseUrl}
-                    activeJiraProject={activeJiraProject}
-                    onOpenIssue={resolvedOnOpenIssue}
-                  />
-                </aside>
-              </div>
+              ) : (
+                <div
+                  data-testid="release-graph-grid"
+                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 px-6 pt-6 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1"
+                >
+                  {burnupEl}
+                  {mrSlotEl}
+                  {assigneeEl}
+                  {typeEl}
+                </div>
+              )}
+              <aside className="flex flex-wrap items-start gap-x-10 gap-y-4 px-6 pt-5 empty:hidden">
+                <LabelSummarySection
+                  milestoneMRsLoaded={!!milestoneMRs}
+                  labelSummary={labelSummary}
+                />
+                {/* Stories whose fix version and Deployment package disagree (quick
+                    261014-eym). Renders nothing without an RM project. */}
+                <DeploymentPackageSection
+                  stories={releaseIssues}
+                  version={version}
+                  jiraBaseUrl={jiraBaseUrl}
+                  activeJiraProject={activeJiraProject}
+                  onOpenIssue={resolvedOnOpenIssue}
+                />
+              </aside>
 
               {/* Unified task table (criterion 1): one Jira-task-keyed table with
                   every associated MR inline underneath, plus a conditional

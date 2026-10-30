@@ -131,4 +131,13 @@ describe('ReleaseTypeWaffle', () => {
       expect(Number(cols)).toBeGreaterThanOrEqual(1);
     });
   });
+
+  it('compact: 12px squares, at most 5 types with a "+K more types" line', () => {
+    const many = Array.from({ length: 7 }, (_, i) => big(2, 1, `Type${i}`));
+    render(<ReleaseTypeWaffle rows={many} state="ready" showStoryPoints={false} compact />);
+    expect(screen.getAllByTestId(/^type-row-/)).toHaveLength(5);
+    expect(screen.getByTestId('waffle-more')).toHaveTextContent('+2 more types');
+    const cell = screen.getAllByTestId('waffle-cell')[0] as HTMLElement;
+    expect(cell.style.width).toBe('12px');
+  });
 });
