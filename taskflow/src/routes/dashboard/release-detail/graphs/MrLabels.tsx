@@ -1,21 +1,25 @@
 import { Check, TriangleAlert } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 import type { LabelCoverage } from '../releaseSummaries';
+import { labelPillColors } from './labelColor';
 
 export interface MrLabelCount {
   label: { name: string; color: string; text_color: string };
   count: number;
 }
 
-/** Rows the list may use: fits beside the 4-row MR-state legend inside the band height. */
+/** Rows the list may use (pills + "+N more" + the unlabelled line): fits the band height. */
 export const MAX_LABEL_ROWS = 5;
+/** At most this many pills are ever shown. */
+const MAX_PILLS = 4;
 const MAX_UNLABELED_ROWS = 3;
 const MAX_REST_ROWS = 4;
 
 /**
- * Splits labels into the rows shown and the overflow. The unlabelled warning
+ * Splits labels into the pills shown and the overflow. The unlabelled line
  * (when any MR lacks a label) always keeps its row, and when labels overflow one
  * row is spent on the "+N more" entry.
  */
@@ -24,18 +28,43 @@ export function labelRowPlan(
   missing: number,
   maxRows = MAX_LABEL_ROWS,
 ): { shown: MrLabelCount[]; rest: MrLabelCount[] } {
-  const avail = Math.max(1, maxRows - (missing > 0 ? 1 : 0));
+  const avail = Math.max(1, Math.min(MAX_PILLS, maxRows - (missing > 0 ? 1 : 0)));
   if (labels.length <= avail) return { shown: labels, rest: [] };
   return { shown: labels.slice(0, avail - 1), rest: labels.slice(avail - 1) };
 }
 
 /**
- * Second legend column of the Merge requests cell: the MR labels as a vertical
- * list styled like the state legend (text-xs, 8px dot in the GitLab colour, name,
- * right-aligned muted count). The last entry is an orange "unlabelled N" with the
- * hover list (first 3 + "+N more"); "+N more" overflow has its own tooltip. With
- * every MR labelled there is no extra entry besides a tiny check when no labels
- * exist to show.
+ * GitLab-style label pill: the label colour as a soft tint, a darker (or, in dark
+ * mode, lighter) shade of it for the text, a faint border, the name and the MR
+ * count. The two text shades are CSS variables so the theme switch is pure CSS.
+ */
+function LabelPill({ l }: { l: MrLabelCount }) {
+  const c = labelPillColors(l.label.color);
+  return (
+    <span
+      data-testid="mr-label-pill"
+      title={`${l.label.name}: ${l.count}`}
+      className="inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start rounded-md border px-1.5 text-xs text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]"
+      style={
+        {
+          '--lp-l': c.light,
+          '--lp-d': c.dark,
+          backgroundColor: `color-mix(in srgb, ${c.base} 15%, transparent)`,
+          borderColor: `color-mix(in srgb, ${c.base} 30%, transparent)`,
+        } as CSSProperties
+      }
+    >
+      <span className="min-w-0 truncate">{l.label.name}</span>
+      <span className="font-semibold tabular-nums">{l.count}</span>
+    </span>
+  );
+}
+
+/**
+ * Labels column of the Merge requests cell: separated from the state legend by a
+ * hairline, a vertical stack of GitLab-style pills (no dots), a muted "+N more"
+ * with a tooltip for overflow, and a plain orange "unlabelled N" line with the
+ * hover list (first 3 + "+N more").
  */
 export function MrLabels({
   labelSummary,
@@ -51,22 +80,12 @@ export function MrLabels({
   const { shown, rest } = labelRowPlan(labelSummary, missing);
 
   return (
-    <div data-testid="mr-labels" className={cn('grid min-w-0 w-[7rem] gap-1.5 text-xs', className)}>
+    <div
+      data-testid="mr-labels"
+      className={cn('flex min-w-0 max-w-[9.5rem] flex-col gap-1 border-l pl-3 text-xs', className)}
+    >
       {shown.map((l) => (
-        <div
-          key={l.label.name}
-          data-testid="mr-label-row"
-          className="flex min-w-0 items-center gap-1.5"
-          title={`${l.label.name}: ${l.count}`}
-        >
-          <span
-            aria-hidden="true"
-            className="size-2 flex-none rounded-sm"
-            style={{ backgroundColor: l.label.color }}
-          />
-          <span className="tabular-nums text-foreground">{l.count}</span>
-          <span className="min-w-0 truncate text-muted-foreground">{l.label.name}</span>
-        </div>
+        <LabelPill key={l.label.name} l={l} />
       ))}
       {rest.length > 0 ? (
         <Tooltip>
@@ -96,9 +115,9 @@ export function MrLabels({
             delay={0}
             render={<div />}
             data-testid="mr-labels-unlabeled"
-            className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400"
+            className="flex items-center gap-1 text-orange-600 dark:text-orange-400"
           >
-            <TriangleAlert className="size-2.5 flex-none" aria-hidden="true" />
+            <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
             <span className="tabular-nums">{missing}</span>
             <span className="min-w-0 truncate">unlabelled</span>
           </TooltipTrigger>
