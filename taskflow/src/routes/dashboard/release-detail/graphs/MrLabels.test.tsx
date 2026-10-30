@@ -25,13 +25,14 @@ describe('MrLabels (second legend column)', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders each label as a GitLab-style pill: tinted bg, readable text shade, faint border, name + count', () => {
+  it('renders each label as a squarish GitLab-style pill: tinted bg, readable text shade, no border, name + count', () => {
     render(<MrLabels labelSummary={[lab('backend', 4, '#428BCA')]} coverage={null} />);
     const pill = screen.getByTestId('mr-label-pill');
     expect(pill).toHaveTextContent('backend');
     expect(pill).toHaveTextContent('4');
     expect(pill.style.backgroundColor).toContain('color-mix');
-    expect(pill.style.borderColor).toContain('color-mix');
+    expect(pill.style.borderColor).toBe('');
+    expect(pill.className).toMatch(/(^|\s)rounded(\s|$)/);
     expect(pill.style.getPropertyValue('--lp-l')).toMatch(/^#[0-9a-f]{6}$/);
     expect(pill.style.getPropertyValue('--lp-d')).toMatch(/^#[0-9a-f]{6}$/);
     expect(pill.className).toContain('dark:text-[color:var(--lp-d)]');

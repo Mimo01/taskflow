@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 import type { LabelCoverage } from '../releaseSummaries';
-import { labelPillColors } from './labelColor';
+import { labelPillColors, TINT_ALPHA } from './labelColor';
 
 export interface MrLabelCount {
   label: { name: string; color: string; text_color: string };
@@ -34,9 +34,10 @@ export function labelRowPlan(
 }
 
 /**
- * GitLab-style label pill: the label colour as a soft tint, a darker (or, in dark
- * mode, lighter) shade of it for the text, a faint border, the name and the MR
- * count. The two text shades are CSS variables so the theme switch is pure CSS.
+ * GitLab-style label pill on the app's status-pill geometry (rounded, no border,
+ * font-medium): the label colour as a soft tint, a darker (or, in dark mode,
+ * lighter) shade of it for the text, the name and the MR count. The two text
+ * shades are CSS variables so the theme switch is pure CSS.
  */
 function LabelPill({ l }: { l: MrLabelCount }) {
   const c = labelPillColors(l.label.color);
@@ -44,13 +45,12 @@ function LabelPill({ l }: { l: MrLabelCount }) {
     <span
       data-testid="mr-label-pill"
       title={`${l.label.name}: ${l.count}`}
-      className="inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start rounded-md border px-1.5 text-xs text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]"
+      className="inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start rounded px-1.5 text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]"
       style={
         {
           '--lp-l': c.light,
           '--lp-d': c.dark,
-          backgroundColor: `color-mix(in srgb, ${c.base} 15%, transparent)`,
-          borderColor: `color-mix(in srgb, ${c.base} 30%, transparent)`,
+          backgroundColor: `color-mix(in srgb, ${c.base} ${TINT_ALPHA * 100}%, transparent)`,
         } as CSSProperties
       }
     >

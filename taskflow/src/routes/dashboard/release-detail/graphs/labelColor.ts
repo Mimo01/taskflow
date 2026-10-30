@@ -7,7 +7,8 @@ type Rgb = [number, number, number];
 const WHITE: Rgb = [255, 255, 255];
 // Page background in dark mode (oklch(0.145 0 0) is about #0a0a0a).
 const DARK_BG: Rgb = [10, 10, 10];
-const TINT_ALPHA = 0.15;
+/** Pill background tint; the text shades are solved against this, so the pill must use it too. */
+export const TINT_ALPHA = 0.18;
 const MIN_CONTRAST = 4.5;
 
 export function parseHex(hex: string): Rgb | null {
