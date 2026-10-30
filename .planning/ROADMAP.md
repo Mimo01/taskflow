@@ -197,7 +197,7 @@ Plans:
 **Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
 **Requirements**: TBD
 **Depends on:** Phase 93
-**Plans:** 3/8 plans executed
+**Plans:** 6/8 plans executed
 Plans:
 **Wave 1**
 
@@ -207,9 +207,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 94-04-PLAN.md — Progress burnup + Merge requests donut graphs
-- [ ] 94-05-PLAN.md — By assignee rows + By type waffle graphs
-- [ ] 94-06-PLAN.md — CycleHeader-style header + done bar, full-width skeleton, sticky table header, side-column headings
+- [x] 94-04-PLAN.md — Progress burnup + Merge requests donut graphs
+- [x] 94-05-PLAN.md — By assignee rows + By type waffle graphs
+- [x] 94-06-PLAN.md — CycleHeader-style header + done bar, full-width skeleton, sticky table header, side-column headings
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
