@@ -5,7 +5,7 @@ import { AioDonut, AioDonutSkeleton } from '../../aio-cycle/AioDonut';
 import { mrDonutSlices } from '../releaseBuckets';
 import type { LabelCoverage } from '../releaseSummaries';
 import { COMPACT_DONUT_SIZE, DONUT_GRAPH_SIZE, GraphSlot } from './GraphSlot';
-import { MrLabelsLine } from './MrLabelsLine';
+import { type MrLabelCount, MrLabels } from './MrLabels';
 
 type Counts = { merged: number; open: number; draft: number; closed: number };
 const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
@@ -14,6 +14,7 @@ export function ReleaseMrDonut({
   counts,
   state,
   labelCoverage = null,
+  labelSummary = [],
   compact = false,
   className,
 }: {
@@ -21,6 +22,8 @@ export function ReleaseMrDonut({
   state: 'loading' | 'empty' | 'ready';
   /** Footer line: MRs missing a label (omitted without coverage). */
   labelCoverage?: LabelCoverage | null;
+  /** MR label chips for the footer line. */
+  labelSummary?: MrLabelCount[];
   compact?: boolean;
   className?: string;
 }) {
@@ -82,7 +85,7 @@ export function ReleaseMrDonut({
             ))}
           </div>
         </div>
-        <MrLabelsLine coverage={labelCoverage} />
+        <MrLabels labelSummary={labelSummary} coverage={labelCoverage} />
       </div>
     </GraphSlot>
   );

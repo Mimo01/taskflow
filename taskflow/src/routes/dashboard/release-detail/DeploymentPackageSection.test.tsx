@@ -213,4 +213,24 @@ describe('DeploymentPackageSection', () => {
       'flex-none',
     );
   });
+
+  it('has a column header strip matching the rows, with a short fix text and the full one in a tooltip', async () => {
+    renderSection([issue('S-1', 'Story', null, [v44])]);
+    const header = await screen.findByTestId('package-column-header');
+    for (const label of ['Key', 'State', 'Assignee', 'Reporter', 'Summary', 'Fix']) {
+      expect(header).toHaveTextContent(label);
+    }
+    expect(header.className).toContain('text-xs');
+    expect(header.className).toContain('text-muted-foreground');
+    expect(header.className).toContain('border-b');
+    // header and row hide their columns together at the same breakpoints
+    const row = screen.getByTestId('package-row-S-1');
+    expect(header.innerHTML).toContain('@max-[900px]/page:hidden');
+    expect(row.innerHTML).toContain('@max-[900px]/page:hidden');
+    expect(header.innerHTML).toContain('@max-[700px]/page:hidden');
+    expect(row.innerHTML).toContain('@max-[700px]/page:hidden');
+    const target = row.querySelector('[title*="WEEK44"], [title*="Week 44"]') as HTMLElement | null;
+    expect(target?.textContent).toMatch(/Week 44 · RM-21/);
+    expect(target?.getAttribute('title')).toContain('RM-21');
+  });
 });

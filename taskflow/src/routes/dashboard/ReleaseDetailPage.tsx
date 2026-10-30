@@ -25,7 +25,6 @@ import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
 import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
 import { ReleaseStatusRows } from './release-detail/graphs/ReleaseStatusRows';
 import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
-import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { releaseFactItems } from './release-detail/ReleaseFacts';
 import {
@@ -312,6 +311,7 @@ export default function ReleaseDetailPage() {
       counts={mrDonutCounts}
       state={donutState}
       labelCoverage={labelCoverage}
+      labelSummary={labelSummary}
       compact={band}
     />
   ) : (
@@ -480,12 +480,8 @@ export default function ReleaseDetailPage() {
                   {typeEl}
                 </div>
               )}
-              {/* Labels (one compact chip row), then the package mismatches as a
-                  full-width action list. Each renders nothing when empty. */}
-              <LabelSummarySection
-                milestoneMRsLoaded={!!milestoneMRs}
-                labelSummary={labelSummary}
-              />
+              {/* Package mismatches as a full-width action list (renders nothing
+                  when empty). */}
               {/* Stories whose fix version and Deployment package disagree (quick
                   261014-eym). Renders nothing without an RM project. */}
               <DeploymentPackageSection

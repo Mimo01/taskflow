@@ -231,6 +231,37 @@ describe('ReleaseDetailPage', () => {
     global.ResizeObserver = RealRO;
   });
 
+  it('has no separate Labels row; labels live in the Merge requests cell', () => {
+    const mr = { id: 1, iid: 1, title: 't', state: 'merged', draft: false, labels: [] };
+    mockHook.mockReturnValue({
+      ...gitlabFixture(),
+      milestoneMRs: [mr],
+      releaseMrs: [mr],
+      labelSummary: [
+        { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
+      ],
+      labelCoverage: { total: 1, labeled: 1, unlabeled: [], allLabeled: true },
+    } as never);
+    renderPage();
+    expect(screen.queryByTestId('label-summary-section')).toBeNull();
+    expect(screen.queryByText('Labels')).toBeNull();
+    expect(screen.getByTestId('release-graph-mrs')).toContainElement(
+      screen.getByTestId('mr-labels'),
+    );
+  });
+
+  it('shows no label line when By status replaces the MR cell', () => {
+    mockHook.mockReturnValue({
+      ...fixture(),
+      labelSummary: [
+        { label: { name: 'backend', color: '#428BCA', text_color: '#fff' }, count: 1 },
+      ],
+    } as never);
+    renderPage();
+    expect(screen.getByTestId('release-graph-status')).toBeInTheDocument();
+    expect(screen.queryByTestId('mr-labels')).toBeNull();
+  });
+
   it('opens the edit modal from Edit release', async () => {
     renderPage();
     fireEvent.click(screen.getByText('Edit release'));

@@ -16,7 +16,6 @@ import {
   type PackageSyncState,
   packageFixLabel,
 } from '@/lib/deployment-package';
-import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions, fetchStoriesWithPackageNoFixVersion } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -57,7 +56,7 @@ function PersonCell({
     <span
       data-testid={`package-${label.toLowerCase()}`}
       title={`${label}: ${name ?? none}`}
-      className={`flex w-[7.5rem] min-w-0 flex-none items-center gap-1.5 text-xs ${className ?? ''}`}
+      className={`flex min-w-0 items-center gap-1.5 text-xs ${className ?? ''}`}
     >
       {person ? (
         <>
@@ -80,6 +79,29 @@ function PersonCell({
       )}
     </span>
   );
+}
+
+// Column widths shared by the header strip and every row so they align exactly and
+// hide together at the narrow breakpoints (reporter, then fix text, then the
+// assignee name, then the pill text).
+const COL_ICON = 'size-3.5 flex-none';
+const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[560px]/page:w-[5rem]';
+const COL_STATE = 'w-[84px] flex-none @max-[440px]/page:w-7';
+const COL_ASSIGNEE = 'w-[7.5rem] flex-none min-w-0 @max-[560px]/page:w-5';
+const COL_REPORTER = 'w-[7.5rem] flex-none min-w-0 @max-[900px]/page:hidden';
+const COL_FIX_TARGET = 'w-[190px] flex-none min-w-0 @max-[700px]/page:hidden';
+const COL_FIX_ACTION = 'w-14 flex-none';
+const HEADER_CLASS =
+  'flex items-center gap-3 border-b px-2 py-1 @max-[560px]/page:gap-2 text-xs font-medium text-muted-foreground bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]';
+
+/** Short, readable target ("Week 45 · RM-18"); the full text stays in the tooltip. */
+function shortFixTarget(fix: PackageFix): string {
+  if (fix.kind === 'set-fix-version') {
+    // What it replaces stays in the tooltip (packageFixTarget).
+    return fix.versionName;
+  }
+  const week = fix.weekSummary ? /week\s*(\d+)/i.exec(fix.weekSummary) : null;
+  return week ? `Week ${Number(week[1])} · ${fix.childKey}` : packageFixTarget(fix);
 }
 
 /** Rows shown before the "Show all N" toggle. */
@@ -275,6 +297,7 @@ export function DeploymentPackageSection({
 
   const shown = expanded ? rows : rows.slice(0, VISIBLE_ROWS);
   const hiddenCount = rows.length - VISIBLE_ROWS;
+  const fixSlots = Math.max(1, ...rows.map((r) => r.result.fixes.length));
 
   return (
     <section data-testid="deployment-package-section" className="px-6 pt-5">
@@ -285,24 +308,43 @@ export function DeploymentPackageSection({
           {rows.length}
         </span>
       </h3>
-      <div className="flex flex-col divide-y border-y">
+      <div data-testid="package-column-header" className={HEADER_CLASS}>
+        <span className={COL_ICON} aria-hidden="true" />
+        <span className={COL_KEY}>Key</span>
+        <span className={COL_STATE}>
+          <span className="@max-[440px]/page:sr-only">State</span>
+        </span>
+        <span className={COL_ASSIGNEE}>
+          <span className="@max-[560px]/page:sr-only">Assignee</span>
+        </span>
+        <span className={COL_REPORTER}>Reporter</span>
+        <span className="min-w-[8rem] flex-1 @max-[700px]/page:min-w-[3rem]">Summary</span>
+        {Array.from({ length: fixSlots }, (_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed slot positions
+          <div key={i} className="flex flex-none items-center gap-2">
+            <span className={COL_FIX_TARGET}>{i === 0 ? 'Fix' : ''}</span>
+            <span className={COL_FIX_ACTION} aria-hidden="true" />
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col divide-y border-b">
         {shown.map(({ issue, result }) => (
           <div key={issue.key} data-testid={`package-row-${issue.key}`} className="min-w-0">
-            <div className="flex min-h-8 min-w-0 items-center gap-3 px-1 py-1 text-sm transition-colors hover:bg-muted/50">
+            <div className="flex min-h-8 min-w-0 items-center gap-3 px-2 @max-[560px]/page:gap-2 py-1 text-sm transition-colors hover:bg-muted/50">
               <IssueTypeIcon
                 typeName={issue.fields.issuetype?.name ?? 'Story'}
                 muted
-                className="size-3.5 shrink-0"
+                className={COL_ICON}
               />
               <button
                 type="button"
                 onClick={() => onOpenIssue(issue.key)}
-                className="shrink-0 font-mono text-xs text-primary hover:underline"
+                className={`${COL_KEY} text-left font-mono text-xs text-primary hover:underline`}
               >
                 {issue.key}
               </button>
               <span
-                className="inline-flex w-[84px] shrink-0 @max-[440px]/page:w-7 items-center justify-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400"
+                className={`inline-flex items-center justify-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400 ${COL_STATE}`}
                 title={`${result.hint}${result.detail ? ` ${result.detail}` : ''}`}
                 data-testid="package-state"
               >
@@ -313,51 +355,58 @@ export function DeploymentPackageSection({
                 person={issue.fields.assignee}
                 label="Assignee"
                 none="Unassigned"
-                className="@max-[560px]/page:w-5"
+                className={COL_ASSIGNEE}
                 nameClassName="@max-[560px]/page:sr-only"
               />
               <PersonCell
                 person={issue.fields.reporter}
                 label="Reporter"
                 none="—"
-                className="@max-[900px]/page:hidden"
+                className={COL_REPORTER}
               />
-              <span className="min-w-[8rem] flex-1 truncate" title={issue.fields.summary}>
+              <span
+                className="min-w-[8rem] flex-1 @max-[700px]/page:min-w-[3rem] truncate"
+                title={issue.fields.summary}
+              >
                 {issue.fields.summary}
               </span>
-              {result.fixes.map((fix) => (
-                <div
-                  key={
-                    fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`
-                  }
-                  className="flex min-w-0 shrink-0 items-center gap-2 text-xs"
-                >
-                  <span
-                    className={cn(
-                      'min-w-0 truncate text-muted-foreground @max-[700px]/page:hidden',
-                      result.fixes.length > 1 ? 'max-w-[200px]' : 'max-w-[280px]',
-                    )}
-                    title={packageFixTarget(fix)}
-                  >
-                    <span aria-hidden="true">→ </span>
-                    {packageFixTarget(fix)}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    disabled={pending === issue.key}
-                    aria-label={packageFixLabel(fix)}
-                    title={packageFixLabel(fix)}
-                    onClick={() => onFix(issue, fix)}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              ))}
+              {Array.from({ length: fixSlots }, (_, i) => {
+                const fix = result.fixes[i];
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: fixed slot positions
+                  <div key={i} className="flex flex-none items-center gap-2 text-xs">
+                    <span
+                      className={`${COL_FIX_TARGET} truncate text-muted-foreground`}
+                      title={fix ? packageFixTarget(fix) : undefined}
+                    >
+                      {fix ? (
+                        <>
+                          <span aria-hidden="true">→ </span>
+                          {shortFixTarget(fix)}
+                        </>
+                      ) : null}
+                    </span>
+                    <span className={COL_FIX_ACTION}>
+                      {fix ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="xs"
+                          disabled={pending === issue.key}
+                          aria-label={packageFixLabel(fix)}
+                          title={packageFixLabel(fix)}
+                          onClick={() => onFix(issue, fix)}
+                        >
+                          Apply
+                        </Button>
+                      ) : null}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             {errors[issue.key] && (
-              <p className="break-words px-1 pb-1.5 text-xs text-destructive" role="alert">
+              <p className="break-words px-2 pb-1.5 text-xs text-destructive" role="alert">
                 {errors[issue.key]}
               </p>
             )}
