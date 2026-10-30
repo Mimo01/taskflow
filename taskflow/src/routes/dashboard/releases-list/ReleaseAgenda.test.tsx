@@ -44,6 +44,12 @@ const TEAMS = new Map<string, VersionAssignee[]>([
   ['C', [person(1)]],
 ]);
 
+// Every listed release has a zero breakdown, so no planned row expands.
+const EMPTY_COUNTS = new Map<string, StatusBreakdown>(
+  [...BREAKDOWNS.keys()].map((id) => [id, { done: 0, indeterminate: 0, new: 0 }]),
+);
+const NO_COUNTS = new Map<string, StatusBreakdown>();
+
 const { entries } = buildAgenda(VERSIONS, TODAY);
 
 function setup(over: Partial<ComponentProps<typeof ReleaseAgenda>> = {}) {
@@ -70,7 +76,7 @@ const rowFor = (name: string) =>
 
 describe('ReleaseAgenda', () => {
   it('renders one row per release with kind and quiet flags', () => {
-    setup();
+    setup({ breakdowns: NO_COUNTS });
     const rows = screen.getAllByTestId('release-row');
     expect(rows).toHaveLength(6);
     const flags = Object.fromEntries(
@@ -104,8 +110,8 @@ describe('ReleaseAgenda', () => {
     expect(screen.getAllByText('15/24 done')).toHaveLength(1);
   });
 
-  it('shows pills only on overdue, next, near and undated rows', () => {
-    setup();
+  it('shows pills only on overdue, next, near and undated rows until counts arrive', () => {
+    setup({ breakdowns: NO_COUNTS });
     expect(screen.getAllByTestId('release-status-pill')).toHaveLength(4);
     for (const name of ['Delta planned release', 'Epsilon started release']) {
       const row = rowFor(name);
@@ -124,8 +130,8 @@ describe('ReleaseAgenda', () => {
     expect(started.getByTestId('release-issues-bar')).toBeInTheDocument();
     expect(started.getByText('18/20')).toBeInTheDocument();
     const todo = within(rowFor('Delta planned release'));
-    expect(todo.getByText('8').className).toContain('font-medium');
-    expect(todo.getByText(/to do/)).toBeInTheDocument();
+    expect(todo.getByTestId('release-issues-bar')).toBeInTheDocument();
+    expect(todo.getByText('0/8')).toBeInTheDocument();
     expect(within(rowFor('Gamma near release')).getByText('No issues yet')).toBeInTheDocument();
     expect(within(rowFor('Eta empty release')).getByText('–')).toBeInTheDocument();
   });
@@ -135,7 +141,7 @@ describe('ReleaseAgenda', () => {
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(5);
   });
 
-  it('keeps row metrics identical before and after breakdowns arrive (D-09)', () => {
+  it('keeps rows without issues identical before and after breakdowns arrive (D-09)', () => {
     const snapshot = (container: HTMLElement) =>
       Array.from(container.querySelectorAll('[data-testid="release-row"]')).map((r) => ({
         kind: r.getAttribute('data-kind'),
@@ -159,12 +165,12 @@ describe('ReleaseAgenda', () => {
       <ReleaseAgenda {...props} breakdowns={new Map()} loadingIds={new Set(IDS)} />,
     );
     const before = snapshot(container);
-    rerender(<ReleaseAgenda {...props} breakdowns={BREAKDOWNS} loadingIds={new Set()} />);
+    rerender(<ReleaseAgenda {...props} breakdowns={EMPTY_COUNTS} loadingIds={new Set()} />);
     expect(snapshot(container)).toEqual(before);
   });
 
   it('draws hollow ring dots by kind and size', () => {
-    setup();
+    setup({ breakdowns: NO_COUNTS });
     const dot = (name: string) => within(rowFor(name)).getByTestId('agenda-dot').className;
     expect(dot('Beta next release')).toContain('border-foreground');
     expect(dot('Alpha overdue release')).toContain('border-red-500');
@@ -187,7 +193,7 @@ describe('ReleaseAgenda', () => {
   });
 
   it('shows at most 3 avatars with a +N chip on full rows, nothing on quiet rows', () => {
-    setup();
+    setup({ breakdowns: NO_COUNTS });
     const team = within(rowFor('Alpha overdue release')).getByTestId('release-team');
     expect(within(team).getAllByRole('img')).toHaveLength(3);
     expect(team.textContent).toContain('+2');
@@ -195,7 +201,7 @@ describe('ReleaseAgenda', () => {
   });
 
   it('renders the package line only on full rows when showPackage is true', () => {
-    const { unmount } = setup({ showPackage: true, pkgLoading: true });
+    const { unmount } = setup({ showPackage: true, pkgLoading: true, breakdowns: NO_COUNTS });
     expect(
       within(rowFor('Alpha overdue release')).getByTestId('row-deployment-package'),
     ).toBeInTheDocument();
@@ -208,12 +214,35 @@ describe('ReleaseAgenda', () => {
   });
 
   it('renders stamps per row weight', () => {
-    setup();
+    setup({ breakdowns: NO_COUNTS });
     expect(rowFor('Delta planned release').textContent).toContain('Tue 10 Nov');
     const full = rowFor('Alpha overdue release');
     expect(full.firstElementChild?.textContent).toBe('20 OctTue');
     expect(rowFor('Zeta undated release').firstElementChild?.textContent).toBe('No date');
-    expect(rowFor('Epsilon started release').textContent).toContain('18/20');
+  });
+
+  it('expands planned rows that have issues to full rows, keeps empty ones quiet', () => {
+    setup({
+      showPackage: true,
+      pkgLoading: true,
+      entries: buildAgenda([...VERSIONS, ver('E', 'Eta empty release', '2027-02-01')], TODAY)
+        .entries,
+      breakdowns: new Map([...BREAKDOWNS, ['E', { done: 0, indeterminate: 0, new: 0 }]]),
+    });
+    for (const name of ['Delta planned release', 'Epsilon started release']) {
+      const row = rowFor(name);
+      expect(row.getAttribute('data-quiet')).toBe('false');
+      expect(within(row).getByTestId('release-status-pill')).toBeInTheDocument();
+      expect(within(row).getByTestId('release-issues-bar')).toBeInTheDocument();
+      expect(within(row).getByTestId('row-deployment-package')).toBeInTheDocument();
+      expect(within(row).getByTestId('agenda-dot').className).toContain('size-3');
+    }
+    expect(rowFor('Delta planned release').firstElementChild?.textContent).toBe('10 NovTue');
+    expect(within(rowFor('Delta planned release')).getByTestId('release-team')).toBeInTheDocument();
+    const empty = rowFor('Eta empty release');
+    expect(empty.getAttribute('data-quiet')).toBe('true');
+    expect(within(empty).queryByTestId('release-status-pill')).toBeNull();
+    expect(within(empty).getByText('No issues yet')).toBeInTheDocument();
   });
 
   it('uses the shared column system and no orange', () => {

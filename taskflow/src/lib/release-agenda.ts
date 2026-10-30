@@ -1,9 +1,4 @@
-import {
-  daysBetweenKeys,
-  groupReleases,
-  type ReleasePillTone,
-  type StatusBreakdown,
-} from '@/lib/release-list';
+import { daysBetweenKeys, groupReleases, type ReleasePillTone } from '@/lib/release-list';
 import type { JiraFixVersion } from '@/services/jira';
 
 export type ReleaseCountdown = { tone: ReleasePillTone; label: string };
@@ -54,10 +49,6 @@ function monthLabel(key: string, todayKey: string): string {
   return year === todayKey.slice(0, 4) ? name : `${name} ${year}`;
 }
 
-export function isStarted(b?: StatusBreakdown): boolean {
-  return !!b && b.done + b.indeterminate > 0;
-}
-
 function release(version: JiraFixVersion, kind: AgendaKind, today: string): AgendaRelease {
   return {
     type: 'release',
@@ -70,8 +61,8 @@ function release(version: JiraFixVersion, kind: AgendaKind, today: string): Agen
 }
 
 /**
- * F5 agenda order. Takes no breakdowns on purpose (D-09): row weight is fixed from
- * version data alone so a row never changes weight when its counts arrive.
+ * F5 agenda order. Takes no breakdowns: the base row weight comes from version data
+ * alone. ReleaseAgenda promotes a quiet planned row to a full row once it has issues.
  */
 export function buildAgenda(
   versions: readonly JiraFixVersion[],

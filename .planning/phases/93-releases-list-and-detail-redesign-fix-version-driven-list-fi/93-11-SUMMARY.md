@@ -62,4 +62,14 @@ None. The plan's gates were run as written.
 
 ## UAT result
 
-PENDING — awaiting user verdict
+Round 1 (2026-10-30): not approved. User feedback, verbatim:
+
+> remove the timeline entirely.
+> for future releases, use the expanded style (progress bar, release management, ...) if story has any tasks assigned
+
+Fixed inline (no new plan round):
+- The timeline graph was removed (`ReleaseTimeline` and `release-timeline.ts`, plus their tests).
+- A planned release that has any issues now renders as a full row: full date stamp, pill, RM package line, team, and a progress bar.
+- Not-started releases show a `0/N` bar instead of "N to do".
+- Planned rows with no issues stay quiet.
+- D-09 is relaxed for these rows only: a planned row may expand when its counts arrive.

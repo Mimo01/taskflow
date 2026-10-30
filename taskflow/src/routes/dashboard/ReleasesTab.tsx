@@ -1,13 +1,13 @@
 /**
  * ReleasesTab: F5 fix-version-driven Releases page.
  *
- * Reads top to bottom: hero, timeline graph band, agenda rail, Released panel.
+ * Reads top to bottom: hero, agenda rail, Released panel.
  * Rows come from Jira fix versions only. Names, dates and pills render as
  * soon as the fix versions resolve; counts, team and the RM deployment package stream
  * into fixed-size slots (one batched search per visible chunk, hidden released
- * versions are never fetched). Row weight comes from buildAgenda, which takes no
- * breakdowns, so rows never change shape when counts arrive. Cached revisits render
- * instantly and Refresh never blanks the page.
+ * versions are never fetched). Row weight comes from buildAgenda, except that a
+ * quiet planned row expands to a full row once its counts show it has issues.
+ * Cached revisits render instantly and Refresh never blanks the page.
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,7 +32,6 @@ import { ReleasesSkeleton } from './ReleasesSkeleton';
 import { ReleaseAgenda } from './releases-list/ReleaseAgenda';
 import { ReleasedPanel } from './releases-list/ReleasedPanel';
 import { ReleasesHero } from './releases-list/ReleasesHero';
-import { ReleaseTimeline } from './releases-list/ReleaseTimeline';
 
 const RELEASED_PAGE_SIZE = 3;
 const RELEASED_LOAD_MORE = 10;
@@ -148,26 +147,16 @@ export default function ReleasesTab() {
           />
         ) : (
           <div className="@container min-w-0">
-            <ReleaseTimeline
-              versions={fixVersions}
-              today={today}
-              nextId={agenda.nextId}
+            <ReleaseAgenda
+              entries={agenda.entries}
               breakdowns={breakdowns}
               loadingIds={loadingIds}
+              teams={teams}
+              showPackage={pkgs.enabled}
+              pkgLoading={pkgs.isLoading}
+              packageFor={pkgs.packageFor}
               onOpen={handleReleaseClick}
             />
-            <div className="mt-[30px]">
-              <ReleaseAgenda
-                entries={agenda.entries}
-                breakdowns={breakdowns}
-                loadingIds={loadingIds}
-                teams={teams}
-                showPackage={pkgs.enabled}
-                pkgLoading={pkgs.isLoading}
-                packageFor={pkgs.packageFor}
-                onOpen={handleReleaseClick}
-              />
-            </div>
             <ReleasedPanel
               versions={visibleReleased}
               breakdowns={breakdowns}

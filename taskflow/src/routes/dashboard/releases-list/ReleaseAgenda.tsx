@@ -1,7 +1,7 @@
 import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
 import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
 import { type AgendaEntry, type AgendaRelease, dateStamp } from '@/lib/release-agenda';
-import type { DerivedPackage, StatusBreakdown } from '@/lib/release-list';
+import { breakdownTotal, type DerivedPackage, type StatusBreakdown } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import type { VersionAssignee } from '@/services/jira';
 import { AgendaDot, NextReleaseCard, ReleaseIssuesSlot, ReleaseTeam } from './ReleaseAgendaParts';
@@ -45,10 +45,23 @@ function Stamp({ entry }: { entry: AgendaRelease }) {
   );
 }
 
-function ReleaseRow({ entry, last, props }: { entry: AgendaRelease; last: boolean; props: Props }) {
-  const { version, kind, quiet } = entry;
+function ReleaseRow({
+  entry: base,
+  last,
+  props,
+}: {
+  entry: AgendaRelease;
+  last: boolean;
+  props: Props;
+}) {
   const { breakdowns, loadingIds, teams, showPackage, pkgLoading, packageFor, onOpen } = props;
-  const breakdown = breakdowns.get(version.id);
+  const breakdown = breakdowns.get(base.version.id);
+  // A quiet planned row that has issues gets the full row treatment.
+  const entry =
+    base.quiet && breakdown && breakdownTotal(breakdown) > 0
+      ? { ...base, quiet: false, pill: true }
+      : base;
+  const { version, kind, quiet } = entry;
   const loading = loadingIds.has(version.id);
   const team = teams.get(version.id) ?? NO_TEAM;
 

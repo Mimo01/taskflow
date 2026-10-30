@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
-import { type AgendaKind, type AgendaRelease, isStarted } from '@/lib/release-agenda';
+import type { AgendaKind, AgendaRelease } from '@/lib/release-agenda';
 import {
   breakdownTotal,
   type DerivedPackage,
@@ -93,26 +93,6 @@ export function ReleaseIssuesSlot({
       </div>
     );
   }
-  if (!isStarted(breakdown)) {
-    if (variant === 'card') {
-      return (
-        <div data-testid="release-issues" className={wrapper}>
-          <SegmentedBar breakdown={breakdown} className="h-2 flex-1" />
-          <span className="text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums">
-            0/{total} done
-          </span>
-        </div>
-      );
-    }
-    return (
-      <div data-testid="release-issues" className={wrapper}>
-        <span className="text-[12.5px] whitespace-nowrap text-muted-foreground">
-          <span className="font-medium text-foreground">{total}</span> to do
-        </span>
-      </div>
-    );
-  }
-
   const isCard = variant === 'card';
   return (
     <div data-testid="release-issues" className={wrapper}>

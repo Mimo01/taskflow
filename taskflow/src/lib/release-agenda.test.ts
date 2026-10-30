@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JiraFixVersion } from '@/services/jira';
-import {
-  buildAgenda,
-  dateStamp,
-  isStarted,
-  releaseCountdown,
-  releaseSummary,
-} from './release-agenda';
+import { buildAgenda, dateStamp, releaseCountdown, releaseSummary } from './release-agenda';
 
 const TODAY = '2026-10-29';
 
@@ -60,14 +54,6 @@ describe('dateStamp', () => {
   });
   it('never uses Sept', () => {
     expect(dateStamp('2026-09-08').day).toBe('08 Sep');
-  });
-});
-
-describe('isStarted', () => {
-  it('true when done or in progress work exists', () => {
-    expect(isStarted({ new: 5, indeterminate: 0, done: 0 })).toBe(false);
-    expect(isStarted({ new: 0, indeterminate: 1, done: 0 })).toBe(true);
-    expect(isStarted(undefined)).toBe(false);
   });
 });
 

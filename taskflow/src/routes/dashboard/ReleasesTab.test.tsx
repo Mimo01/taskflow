@@ -82,8 +82,8 @@ function renderTab(client: QueryClient = makeClient()) {
 }
 
 const rowKinds = () => screen.getAllByTestId('release-row').map((r) => r.dataset.kind);
-const rowNames = () =>
-  screen.getAllByTestId('release-row').map((r) => within(r).getAllByTitle(/./)[0].textContent);
+const rowNameOf = (r: HTMLElement) => within(r).getAllByTitle(/./)[0].textContent;
+const rowNames = () => screen.getAllByTestId('release-row').map(rowNameOf);
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -129,7 +129,6 @@ describe('ReleasesTab (F5)', () => {
     expect(screen.getByRole('heading', { name: 'Releases' })).toBeInTheDocument();
     expect(screen.queryByTestId('release-row')).toBeNull();
     expect(screen.queryByTestId('released-row')).toBeNull();
-    expect(screen.queryByTestId('timeline-chip')).toBeNull();
   });
 
   it('makes no GitLab requests and renders no GitLab affordances (D-01, D-02)', async () => {
@@ -212,7 +211,7 @@ describe('ReleasesTab (F5)', () => {
     expect([...seen].sort()).toEqual([...(shown as string[])].sort());
   });
 
-  it('keeps row weight stable while breakdowns load and arrive (D-09)', async () => {
+  it('expands only planned rows with issues when breakdowns arrive (D-09 relaxed at UAT)', async () => {
     let resolveBatch: (v: Record<string, unknown>) => void = () => {};
     vi.mocked(fetchVersionsStatusBreakdown).mockReturnValue(
       new Promise((res) => {
@@ -227,21 +226,26 @@ describe('ReleasesTab (F5)', () => {
         expect(within(r).getAllByTitle(/./).length).toBeGreaterThan(0);
       }
     });
-    const snapshot = () =>
-      screen
-        .getAllByTestId('release-row')
-        .map((r) => [r.dataset.kind, r.dataset.quiet, r.className]);
-    const before = snapshot();
+    const quietBy = () =>
+      Object.fromEntries(
+        screen
+          .getAllByTestId('release-row')
+          .map((r) => [r.dataset.kind + rowNameOf(r), r.dataset.quiet]),
+      );
+    const before = quietBy();
+    expect(before['plannedplanned-far-a']).toBe('true');
+    expect(before['plannedplanned-far-b']).toBe('true');
 
     await act(async () => {
-      // A far-planned release has started work: it must not be promoted to a full row.
+      // planned-far-a has issues and expands; planned-far-b is empty and stays quiet.
       resolveBatch({
-        '10002': { new: 0, indeterminate: 2, done: 1, assignees: [] },
-        '10007': { new: 0, indeterminate: 3, done: 1, assignees: [] },
+        '10002': { new: 0, indeterminate: 0, done: 0, assignees: [] },
+        '10007': { new: 2, indeterminate: 0, done: 0, assignees: [] },
         '10006': { new: 1, indeterminate: 1, done: 1, assignees: [] },
       });
     });
-    expect(snapshot()).toEqual(before);
+    await waitFor(() => expect(quietBy()['plannedplanned-far-a']).toBe('false'));
+    expect(quietBy()).toEqual({ ...before, 'plannedplanned-far-a': 'false' });
   });
 
   it('renders cached fix versions immediately with no skeleton (D-10)', () => {
@@ -277,7 +281,7 @@ describe('ReleasesTab (F5)', () => {
     expect(screen.getAllByTestId('release-row')).toHaveLength(1);
   });
 
-  it('opens a release from a rail row, a graph chip and a released row', async () => {
+  it('opens a release from a rail row and a released row', async () => {
     vi.mocked(fetchFixVersions).mockResolvedValue([
       fv('10001', 'Rel A', '2026-11-15'),
       fv('10002', 'Rel Z', '2026-09-01', true),
@@ -294,11 +298,6 @@ describe('ReleasesTab (F5)', () => {
     fireEvent.click(within(rows[0]).getByRole('button', { name: 'Open release Rel A' }));
     expectBreadcrumb();
     expect(navigateMock).toHaveBeenLastCalledWith('/release/10001');
-
-    seed();
-    fireEvent.click(screen.getAllByTestId('timeline-chip')[0]);
-    expectBreadcrumb();
-    expect(navigateMock).toHaveBeenCalledTimes(2);
 
     seed();
     fireEvent.click(screen.getByTestId('released-row'));
