@@ -94,6 +94,10 @@ Out of scope:
   - The Jira and GitLab dual-save logic is unchanged.
   - Do not add inline field editing (that would be a new capability).
 
+### Decided at plan-phase (2026-10-30, after research)
+- **D-15 (user):** The **MR labels fact exposes unlabeled MRs by hover tooltip only**: the first 3 unlabeled MRs (`!iid` + title) plus "+N more". No click popover and no links; losing click-through to individual MRs is accepted.
+- **D-16 (user):** In the burnup, a **Done issue with no `resolutiondate` counts as done today** (the last point), so the final burnup point matches the page's done count.
+
 ### Claude's Discretion
 - How to show loading for the graphs area:
   - Every graph has a fixed-size slot with a quiet skeleton, so nothing shifts (P93 D-09 spirit).
