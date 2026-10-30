@@ -5,12 +5,12 @@ import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import type { ReleaseStatusRow } from '../releaseBuckets';
-import { GraphSlot } from './GraphSlot';
+import { ASSIGNEE_ROW_HEIGHT, GraphSlot } from './GraphSlot';
 
 const MAX_ROWS = 6;
-const ROW_HEIGHT = 30;
-const ROW_HEIGHT_FEW = 36;
-const ROW_GRID = 'grid grid-cols-[minmax(80px,1.2fr)_minmax(60px,1.6fr)_32px] items-center gap-3';
+// Same row rhythm and column split as By assignee, so the two read as one family.
+const ROW_HEIGHT = ASSIGNEE_ROW_HEIGHT;
+const ROW_GRID = 'grid grid-cols-[minmax(92px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
 
 /**
  * By status: issues per exact Jira status name, bar colour = status category
@@ -28,8 +28,6 @@ export function ReleaseStatusRows({
 }) {
   const shown = rows.slice(0, MAX_ROWS);
   const more = rows.length - shown.length;
-  // Few statuses get taller rows so the slot keeps pace with its neighbour.
-  const rowHeight = shown.length <= 3 ? ROW_HEIGHT_FEW : ROW_HEIGHT;
   const max = rows.reduce((m, r) => Math.max(m, r.count), 1);
   return (
     <GraphSlot
@@ -53,7 +51,7 @@ export function ReleaseStatusRows({
         </div>
       }
     >
-      <div className="my-auto flex flex-col">
+      <div className="flex flex-col">
         {shown.map((row) => (
           <Tooltip key={`${row.cat}:${row.name}`}>
             <TooltipTrigger
@@ -61,10 +59,10 @@ export function ReleaseStatusRows({
               render={<div />}
               data-testid={`status-row-${row.name}`}
               className={cn(ROW_GRID, 'relative z-10 rounded px-1 hover:bg-muted/50')}
-              style={{ height: rowHeight }}
+              style={{ height: ROW_HEIGHT }}
             >
               <span className="truncate text-xs">{row.name}</span>
-              <div className="h-2 w-full rounded-full bg-muted">
+              <div className="h-1.5 w-full rounded-full bg-muted">
                 <div
                   className={cn(
                     'h-full rounded-full',
