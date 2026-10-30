@@ -28,15 +28,16 @@ type StatusFilter = 'ALL' | StatusKey;
 
 const CELL_PADDING = 'py-2 density-compact:py-1 density-comfortable:py-3';
 
-// Shared by the header row and the data rows so columns line up. Runs, assignee and date
-// drop (in that order) as the container narrows, so a row is always exactly one line.
+// Shared by the header row and the data rows so columns line up. Runs and date drop as
+// the container narrows and assignee collapses to an avatar under an "Asg." header (like
+// the release tables), so a row is always exactly one line.
 const COL = {
   key: 'flex-none w-28 pl-4 pr-2',
   title: 'flex-1 min-w-0 px-2',
   status: 'flex-none w-28 px-2',
   defects: 'flex-none w-14 px-2 flex items-center',
   runs: 'flex-none w-12 px-2 hidden @[880px]:flex items-center',
-  assignee: 'flex-none w-44 px-2 hidden @[720px]:flex items-center',
+  assignee: 'flex-none w-11 @[720px]:w-44 px-2 flex items-center',
   executed: 'flex-none w-24 pl-2 pr-4 hidden @[560px]:flex items-center justify-end',
 } as const;
 
@@ -90,6 +91,7 @@ function formatRunDate(run: AioTestRun): string | null {
 function SortHeader({
   sortKey,
   label,
+  compactLabel,
   className,
   activeKey,
   activeDir,
@@ -97,6 +99,8 @@ function SortHeader({
 }: {
   sortKey: SortKey;
   label: string;
+  /** Short label shown below 720px (the full one stays for screen readers). */
+  compactLabel?: string;
   className: string;
   activeKey: SortKey | null;
   activeDir: SortDir;
@@ -111,7 +115,16 @@ function SortHeader({
         className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
         onClick={() => onSort(sortKey)}
       >
-        {label}
+        {compactLabel ? (
+          <>
+            <span className="@[720px]:hidden" aria-hidden>
+              {compactLabel}
+            </span>
+            <span className="sr-only @[720px]:not-sr-only">{label}</span>
+          </>
+        ) : (
+          label
+        )}
         {active &&
           (activeDir === 'asc' ? (
             <ChevronUp className="size-3" data-testid={`executions-sort-indicator-${sortKey}`} />
@@ -210,7 +223,13 @@ function RunRow({
         )}
       >
         {run.assignedToID ? (
-          <UserChip userId={run.assignedToID} jiraBaseUrl={jiraBaseUrl} token={token} size={18} />
+          <UserChip
+            userId={run.assignedToID}
+            jiraBaseUrl={jiraBaseUrl}
+            token={token}
+            size={18}
+            nameClassName="sr-only @[720px]:not-sr-only"
+          />
         ) : null}
       </div>
       <div
@@ -390,6 +409,7 @@ export function ExecutionsList({
             <SortHeader
               sortKey="assignee"
               label="Assignee"
+              compactLabel="Asg."
               className={cn(COL.assignee, headerCell)}
               {...sortProps}
             />

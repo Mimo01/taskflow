@@ -553,7 +553,7 @@ export function DefectsList({
             <SortableHeader
               sortKey="assignee"
               label="Assignee"
-              compactLabel="Asg"
+              compactLabel="Asg."
               compactUntil={880}
               className={cn(COL.assignee, headerCell)}
               {...headerProps}

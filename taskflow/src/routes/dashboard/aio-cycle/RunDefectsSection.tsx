@@ -26,7 +26,7 @@ const COL = {
   summary: 'min-w-0 flex-1',
   steps: 'hidden w-20 flex-none @[640px]:block',
   priority: 'w-24 flex-none',
-  assignee: 'hidden w-40 flex-none @[560px]:flex',
+  assignee: 'flex w-9 flex-none @[560px]:w-40',
   status: 'flex w-28 flex-none justify-end',
 };
 const HEADER_CELL = 'text-xs font-medium text-muted-foreground';
@@ -51,7 +51,12 @@ export function RunDefectsSection({
           <span className={`${COL.summary} ${HEADER_CELL}`}>Summary</span>
           <span className={`${COL.steps} ${HEADER_CELL}`}>Steps</span>
           <span className={`${COL.priority} ${HEADER_CELL}`}>Priority</span>
-          <span className={`${COL.assignee} ${HEADER_CELL}`}>Assignee</span>
+          <span className={`${COL.assignee} ${HEADER_CELL}`}>
+            <span aria-hidden="true" className="@[560px]:hidden">
+              Asg.
+            </span>
+            <span className="sr-only @[560px]:not-sr-only">Assignee</span>
+          </span>
           <span className={`${COL.status} ${HEADER_CELL}`}>Status</span>
         </div>
         <ul className="divide-y divide-border">
@@ -110,10 +115,17 @@ export function RunDefectsSection({
                         name={assignee.displayName}
                         size={20}
                       />
-                      <span className="truncate">{assignee.displayName}</span>
+                      <span className="truncate sr-only @[560px]:not-sr-only">
+                        {assignee.displayName}
+                      </span>
                     </>
                   ) : d.issue ? (
-                    <span>Unassigned</span>
+                    <>
+                      <span aria-hidden="true" className="@[560px]:hidden">
+                        —
+                      </span>
+                      <span className="sr-only @[560px]:not-sr-only">Unassigned</span>
+                    </>
                   ) : null}
                 </div>
                 <div className={`${COL.status} pointer-events-none`}>

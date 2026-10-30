@@ -16,12 +16,15 @@ export function UserChip({
   token,
   size = 18,
   className,
+  nameClassName,
 }: {
   userId: string;
   jiraBaseUrl: string | null | undefined;
   token: string | null | undefined;
   size?: 16 | 18 | 20 | 24;
   className?: string;
+  /** Extra classes for the name, e.g. to drop it to sr-only in an avatar-only column. */
+  nameClassName?: string;
 }) {
   const { data: user, isLoading } = useQuery<JiraAssignableUser | null>({
     queryKey: ['jira', jiraBaseUrl, 'user-by-username', userId],
@@ -34,7 +37,7 @@ export function UserChip({
     return (
       <div className={cn('flex min-w-0 items-center gap-1.5', className)}>
         <Skeleton className="size-[18px] flex-none rounded-full" />
-        <Skeleton className="h-3.5 w-16" />
+        <Skeleton className={cn('h-3.5 w-16', nameClassName)} />
       </div>
     );
   }
@@ -43,7 +46,7 @@ export function UserChip({
   return (
     <div className={cn('flex min-w-0 items-center gap-1.5', className)} data-testid="user-chip">
       <CachedAvatar url={user?.avatarUrls?.['48x48'] ?? null} name={name} size={size} />
-      <span className="truncate" title={name}>
+      <span className={cn('truncate', nameClassName)} title={name}>
         {name}
       </span>
     </div>
