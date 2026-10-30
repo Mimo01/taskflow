@@ -121,6 +121,7 @@ export default function ReleaseDetailPage() {
     typeRows,
     statusNameSummary,
     mrDonutCounts,
+    milestoneMrsFailed,
     issuesError,
     issuesUpdatedAt,
     gitlabConfigured,
@@ -253,12 +254,16 @@ export default function ReleaseDetailPage() {
         : releaseIssues.length === 0
           ? 'empty'
           : 'ready';
-  const donutState: 'loading' | 'empty' | 'ready' =
+  // 94-REVIEW CR-01: a rejected milestone-MR fetch is a failure, not an
+  // in-flight load — without this arm the slot showed its skeleton forever.
+  const donutState: 'loading' | 'error' | 'empty' | 'ready' =
     gitlabMatch.type === 'none' || (milestoneMRs && releaseMrs.length === 0)
       ? 'empty'
-      : !milestoneMRs
-        ? 'loading'
-        : 'ready';
+      : milestoneMrsFailed
+        ? 'error'
+        : !milestoneMRs
+          ? 'loading'
+          : 'ready';
 
   // Band layout needs the page content width (not the window): measure the scroll
   // wrapper with a callback ref so it works whenever the wrapper mounts.

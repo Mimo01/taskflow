@@ -4,11 +4,12 @@ import { cn } from '@/lib/utils';
 import { AioDonut, AioDonutSkeleton } from '../../aio-cycle/AioDonut';
 import { mrDonutSlices } from '../releaseBuckets';
 import type { LabelCoverage } from '../releaseSummaries';
-import { COMPACT_DONUT_SIZE, DONUT_GRAPH_SIZE, GraphSlot } from './GraphSlot';
+import { COMPACT_DONUT_SIZE, DONUT_GRAPH_SIZE, GraphSlot, type GraphSlotState } from './GraphSlot';
 import { type MrLabelCount, MrLabels } from './MrLabels';
 
 type Counts = { merged: number; open: number; draft: number; closed: number };
 const ORDER = ['merged', 'open', 'draft', 'closed'] as const;
+export const MR_ERROR_TEXT = "Couldn't load merge requests. Refresh to try again.";
 
 export function ReleaseMrDonut({
   counts,
@@ -19,7 +20,7 @@ export function ReleaseMrDonut({
   className,
 }: {
   counts: Counts;
-  state: 'loading' | 'empty' | 'ready';
+  state: GraphSlotState;
   /** Footer line: MRs missing a label (omitted without coverage). */
   labelCoverage?: LabelCoverage | null;
   /** MR label chips for the footer line. */
@@ -39,6 +40,7 @@ export function ReleaseMrDonut({
       state={state}
       height={DONUT_GRAPH_SIZE}
       emptyLabel="No MRs in this milestone"
+      errorLabel={MR_ERROR_TEXT}
       testId="release-graph-mrs"
       className={className}
       skeleton={

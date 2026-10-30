@@ -187,6 +187,32 @@ describe('ReleaseDetailPage', () => {
     );
   });
 
+  // 94-REVIEW CR-01: a rejected milestone-MR fetch (Channel B) leaves
+  // milestoneMRs undefined; it must render the error state, not a skeleton
+  // that never resolves.
+  it('a failed milestone-MR fetch shows the MR slot error, not a skeleton forever', () => {
+    mockHook.mockReturnValue({
+      ...gitlabFixture(),
+      milestoneMRs: undefined,
+      milestoneMrsFailed: true,
+    } as never);
+    renderPage();
+    expect(screen.queryByTestId('release-graph-mrs-skeleton')).toBeNull();
+    expect(screen.getByTestId('release-graph-mrs-error')).toHaveTextContent(
+      "Couldn't load merge requests. Refresh to try again.",
+    );
+  });
+
+  it('a milestone-MR fetch still in flight shows the MR slot skeleton', () => {
+    mockHook.mockReturnValue({
+      ...gitlabFixture(),
+      milestoneMRs: undefined,
+      milestoneMrsFailed: false,
+    } as never);
+    renderPage();
+    expect(screen.getByTestId('release-graph-mrs-skeleton')).toBeInTheDocument();
+  });
+
   it('no issues: one friendly empty state, no graphs, done bar or task table', () => {
     mockHook.mockReturnValue(
       fixture({ fixVersionIssues: [], releaseIssues: [], primaryRows: [] }) as never,

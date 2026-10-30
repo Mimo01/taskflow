@@ -728,6 +728,9 @@ export function useReleaseDetail(versionId: string | undefined) {
     typeRows,
     statusNameSummary: statusNames,
     mrDonutCounts,
+    // 94-REVIEW CR-01: Channel B rejected and no cached MRs to show — the MR
+    // donut must render a failure, not a skeleton that never resolves.
+    milestoneMrsFailed: channelBFailed && !milestoneMRs,
     issuesError,
     issuesUpdatedAt,
     gitlabConfigured,

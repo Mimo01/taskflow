@@ -726,6 +726,33 @@ describe('useReleaseDetail — driftUnavailable and milestone-inclusive isLoadin
     await waitFor(() => expect(result.current.driftUnavailable).toBe(true));
   });
 
+  // 94-REVIEW CR-01: the page needs Channel B's failure on its own, not only
+  // folded into driftUnavailable, so the MR donut can show an error state.
+  it('Test 2b (94 CR-01): a rejecting fetchMilestoneMRs sets milestoneMrsFailed', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchMilestoneMRs).mockRejectedValue(new Error('network error'));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.milestoneMrsFailed).toBe(true));
+    expect(result.current.milestoneMRs).toBeUndefined();
+  });
+
+  it('Test 2c (94 CR-01): a resolving fetchMilestoneMRs leaves milestoneMrsFailed false', async () => {
+    await setupMocks();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.milestoneMRs).toEqual([]));
+    expect(result.current.milestoneMrsFailed).toBe(false);
+  });
+
   it('Test 3: a rejecting fetchBranchTargetedMRs (Channel C) terminates driftUnavailable=true', async () => {
     await setupMocks();
     const gitlab = await import('@/services/gitlab');
