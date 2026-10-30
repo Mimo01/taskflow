@@ -93,12 +93,15 @@ function PersonCell({
 const COL_ICON = 'size-3.5 flex-none';
 const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[560px]/page:w-[5rem]';
 const COL_STATE = 'w-[84px] flex-none @max-[440px]/page:w-7';
-const COL_ASSIGNEE = 'w-[7.5rem] flex-none min-w-0 @max-[560px]/page:w-5';
-const COL_REPORTER = 'w-[7.5rem] flex-none min-w-0 @max-[1000px]/page:hidden';
-const COL_FIX_TARGET = 'w-[250px] flex-none min-w-0 @max-[700px]/page:hidden';
+const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[560px]/page:w-5';
+const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[1000px]/page:hidden';
+const COL_FIX_TARGET = 'w-[280px] flex-none min-w-0 @max-[700px]/page:hidden';
+/** Warning-tone outline shared by Apply and "Apply ▾": same width, one clean edge. */
+const APPLY_CLASS =
+  'w-full justify-center border-orange-300 bg-background text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:bg-transparent dark:text-orange-300 dark:hover:bg-orange-500/15 dark:hover:text-orange-200';
 const COL_FIX_ACTION = 'flex w-[4.75rem] flex-none justify-end';
 const HEADER_CLASS =
-  'flex items-center gap-3 border-b px-2 py-1 @max-[560px]/page:gap-2 text-xs font-medium text-muted-foreground bg-[color-mix(in_oklab,var(--color-muted)_10%,var(--color-background))]';
+  'flex items-center gap-3 border-b border-orange-200/70 px-2 py-1 text-xs font-medium text-muted-foreground @max-[560px]/page:gap-2 dark:border-orange-500/20';
 
 function fixKey(fix: PackageFix): string {
   return fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`;
@@ -309,12 +312,21 @@ export function DeploymentPackageSection({
   const hiddenCount = rows.length - VISIBLE_ROWS;
 
   return (
-    <section data-testid="deployment-package-section" className="px-6 pt-5">
-      <h3 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-        <AlertTriangle className="size-3.5 text-muted-foreground" />
+    <section
+      data-testid="deployment-package-section"
+      className="mt-6 border-l-[3px] border-orange-400 bg-orange-50/60 px-6 py-4 dark:border-orange-500/70 dark:bg-orange-500/[0.06]"
+    >
+      <h3 className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
+        <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
         Deployment package mismatches
-        <span className="font-normal text-muted-foreground" data-testid="deployment-package-count">
+        <span
+          className="rounded-full bg-orange-500/15 px-1.5 text-xs font-medium tabular-nums text-orange-700 dark:text-orange-300"
+          data-testid="deployment-package-count"
+        >
           {rows.length}
+        </span>
+        <span className="text-xs font-normal text-muted-foreground @max-[700px]/page:hidden">
+          Issues whose fix version and deployment package disagree. Apply to fix.
         </span>
       </h3>
       <div data-testid="package-column-header" className={HEADER_CLASS}>
@@ -331,13 +343,12 @@ export function DeploymentPackageSection({
         <span className={COL_FIX_TARGET}>Fix</span>
         <span className={COL_FIX_ACTION} aria-hidden="true" />
       </div>
-      <div className="flex flex-col divide-y border-b">
+      <div className="flex flex-col divide-y divide-orange-200/60 dark:divide-orange-500/15">
         {shown.map(({ issue, result }) => (
           <div key={issue.key} data-testid={`package-row-${issue.key}`} className="min-w-0">
-            <div className="flex min-h-8 min-w-0 items-center gap-3 px-2 @max-[560px]/page:gap-2 py-1 text-sm transition-colors hover:bg-muted/50">
+            <div className="flex min-h-8 min-w-0 items-center gap-3 px-2 @max-[560px]/page:gap-2 py-1 text-sm transition-colors hover:bg-orange-100/50 dark:hover:bg-orange-500/10">
               <IssueTypeIcon
                 typeName={issue.fields.issuetype?.name ?? 'Story'}
-                muted
                 className={COL_ICON}
               />
               <button
@@ -393,6 +404,7 @@ export function DeploymentPackageSection({
                     type="button"
                     variant="outline"
                     size="xs"
+                    className={APPLY_CLASS}
                     disabled={pending === issue.key}
                     aria-label={packageFixLabel(result.fixes[0])}
                     title={packageFixLabel(result.fixes[0])}
@@ -408,6 +420,7 @@ export function DeploymentPackageSection({
                           type="button"
                           variant="outline"
                           size="xs"
+                          className={APPLY_CLASS}
                           disabled={pending === issue.key}
                           aria-label="Choose a fix"
                           title="Choose a fix"
@@ -446,7 +459,7 @@ export function DeploymentPackageSection({
           data-testid="package-show-all"
           aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
-          className="mt-1.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
           {expanded ? 'Show less' : `Show all ${rows.length}`}
         </button>

@@ -103,7 +103,7 @@ describe('ReleaseBurnup', () => {
       screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Progress')).toBeInTheDocument();
-    expect(screen.getByText('since v1.2 · Oct 1')).toBeInTheDocument();
+    expect(screen.getByTitle('since v1.2 · Oct 1')).toHaveTextContent('since Oct 1');
     expect(container.querySelector('.recharts-legend-wrapper')).toBeNull();
   });
 

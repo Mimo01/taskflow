@@ -14,7 +14,7 @@ const COMPACT_MAX_ROWS = 5;
 const ROW_GRID =
   'grid grid-cols-[22px_minmax(70px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
 const ROW_GRID_COMPACT =
-  'grid grid-cols-[20px_minmax(72px,1.4fr)_minmax(40px,1fr)_32px] items-center gap-2';
+  'grid grid-cols-[20px_minmax(96px,1.6fr)_minmax(36px,1fr)_30px] items-center gap-2';
 
 /** By assignee: one avatar row per person with a slim status bar. Counts issues; SP only in the tooltip. */
 export function ReleaseAssigneeRows({

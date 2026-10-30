@@ -157,7 +157,7 @@ export function ReleaseDetailHeader({
   return (
     <div
       data-testid="release-detail-header"
-      className="flex flex-none flex-col gap-1 px-6 pt-3 pb-2"
+      className="flex flex-none flex-col gap-1 px-6 pt-3 pb-3"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <div className="flex min-w-0 items-center gap-2">

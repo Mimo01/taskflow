@@ -38,7 +38,7 @@ import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
-const BAND_MIN_WIDTH = 1100;
+const BAND_MIN_WIDTH = 1180;
 
 // ---- Main Component ----
 
@@ -303,7 +303,7 @@ export default function ReleaseDetailPage() {
       showStoryPoints={hasStoryPoints}
       summary={timelineSummary}
       compact={band}
-      className={band ? 'min-w-[300px] flex-[1.5]' : '@max-[640px]/page:col-span-full'}
+      className={band ? undefined : '@max-[640px]/page:col-span-full'}
     />
   );
   const mrSlotEl = showDonut ? (
@@ -339,7 +339,7 @@ export default function ReleaseDetailPage() {
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
       compact={band}
-      className={band ? 'flex-1' : '@max-[640px]/page:col-span-full @max-[640px]/page:order-4'}
+      className={band ? undefined : '@max-[640px]/page:col-span-full @max-[640px]/page:order-4'}
     />
   );
   const typeEl = (
@@ -348,7 +348,7 @@ export default function ReleaseDetailPage() {
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
       compact={band}
-      className={band ? 'flex-1' : undefined}
+      className={undefined}
     />
   );
 
@@ -462,17 +462,17 @@ export default function ReleaseDetailPage() {
               {band ? (
                 <div
                   data-testid="release-graph-grid"
-                  className="flex items-stretch gap-6 px-6 pt-4"
+                  className="grid grid-cols-[minmax(260px,1.5fr)_auto_minmax(210px,1.1fr)_minmax(230px,1fr)] items-stretch gap-x-6 px-6 pt-5"
                 >
                   {burnupEl}
-                  <div className="flex w-[340px] min-w-0 flex-none flex-col">{mrSlotEl}</div>
-                  <div className="flex min-w-[240px] flex-[1.2] flex-col">{typeEl}</div>
-                  <div className="flex min-w-[240px] flex-1 flex-col">{assigneeEl}</div>
+                  <div className="flex min-w-0 flex-col">{mrSlotEl}</div>
+                  <div className="flex min-w-0 flex-col">{typeEl}</div>
+                  <div className="flex min-w-0 flex-col">{assigneeEl}</div>
                 </div>
               ) : (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 px-6 pt-6 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1"
+                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1"
                 >
                   {burnupEl}
                   {mrSlotEl}
@@ -500,7 +500,7 @@ export default function ReleaseDetailPage() {
                   nothing else would remount it, and the per-cell fix state
                   (`useMrFixMutation`'s local `status`/`errorMessage`) would
                   otherwise carry over from the previous release. */}
-              <div className="px-6 pt-8 pb-6">
+              <div className="px-6 pt-6 pb-6">
                 <UnifiedTaskTable
                   key={versionId}
                   versionName={version.name}

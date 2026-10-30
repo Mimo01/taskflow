@@ -996,7 +996,7 @@ export function UnifiedTaskTable({
   return (
     <section className="@container">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
-        <h3 className="text-base font-semibold">Issues</h3>
+        <h3 className="text-sm font-semibold">Issues</h3>
         {!isLoadingDrift && !isLoadingIssues && (brFlaggedCount > 0 || msFlaggedCount > 0) && (
           <div
             className="ml-1.5 flex items-center gap-1.5"

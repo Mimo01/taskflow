@@ -242,9 +242,9 @@ describe('DeploymentPackageSection', () => {
     const action = row.querySelector('button[aria-label^="Set deployment package"]') as HTMLElement;
     expect(action.parentElement?.className).toContain('justify-end');
     // header Fix cell and row Fix cell share the same width class
-    const widthOf = (el: Element | null) => /w-\[250px\]/.test(el?.className ?? '');
+    const widthOf = (el: Element | null) => /w-\[280px\]/.test(el?.className ?? '');
     expect(widthOf(row.querySelector('[data-testid="package-fix"]'))).toBe(true);
-    expect(header.innerHTML).toContain('w-[250px]');
+    expect(header.innerHTML).toContain('w-[280px]');
     expect(header.innerHTML).toContain('w-[4.75rem]');
   });
 
@@ -267,5 +267,29 @@ describe('DeploymentPackageSection', () => {
         expect.anything(),
       ),
     );
+  });
+
+  it('stands out as an action list: warm tint band with an accent bar, count pill, subtitle', async () => {
+    renderSection([issue('S-1', 'Story', null, [v44])]);
+    const section = await screen.findByTestId('deployment-package-section');
+    expect(section.className).toContain('border-l-[3px]');
+    expect(section.className).toContain('bg-orange-50/60');
+    expect(section.className).toContain('dark:bg-orange-500/[0.06]');
+    expect(screen.getByTestId('deployment-package-count').className).toContain('rounded-full');
+    expect(section).toHaveTextContent('Issues whose fix version and deployment package disagree');
+    const heading = section.querySelector('h3') as HTMLElement;
+    expect(heading.className).toContain('text-sm');
+    expect(heading.className).toContain('font-semibold');
+  });
+
+  it('uses the same coloured type icons as the Issues table and one Apply style', async () => {
+    renderSection([issue('S-1', 'Story', null, [v44])]);
+    const row = await screen.findByTestId('package-row-S-1');
+    const icon = row.querySelector('svg') as SVGElement;
+    expect(icon.getAttribute('class')).toContain('text-green-600');
+    expect(icon.getAttribute('class')).not.toContain('text-muted-foreground');
+    const apply = screen.getByRole('button', { name: /set deployment package/i });
+    expect(apply.className).toContain('w-full');
+    expect(apply.className).toContain('border-orange-300');
   });
 });

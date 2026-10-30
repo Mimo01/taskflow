@@ -119,7 +119,7 @@ function markerLabel(text: string) {
   return {
     value: text,
     position: 'top' as const,
-    fontSize: 12,
+    fontSize: 11,
     className: 'uppercase tracking-wide',
     fill: MUTED,
   };
@@ -146,11 +146,18 @@ export function ReleaseBurnup({
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(plotRef);
-  const aside = axis
-    ? axis.previousName
-      ? `since ${axis.previousName} · ${formatDateKey(axis.start)}`
-      : `since ${formatDateKey(axis.start)}`
-    : undefined;
+  // Short meta so it never crowds the title; the full text (previous release) is the tooltip.
+  const aside = axis ? (
+    <span
+      title={
+        axis.previousName
+          ? `since ${axis.previousName} · ${formatDateKey(axis.start)}`
+          : `since ${formatDateKey(axis.start)}`
+      }
+    >
+      since {formatDateKey(axis.start)}
+    </span>
+  ) : undefined;
   const last = points[points.length - 1];
   const enough = state === 'ready' && !!axis && points.length >= 2 && !!last;
   const ticks = axis ? timeTicks(axis.start, axis.end, width) : [];
@@ -192,7 +199,7 @@ export function ReleaseBurnup({
             config={{}}
             className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
           >
-            <ComposedChart data={points} responsive margin={{ ...PLOT_MARGIN, top: 20, right: 40 }}>
+            <ComposedChart data={points} responsive margin={{ ...PLOT_MARGIN, top: 16, right: 40 }}>
               <XAxis
                 type="number"
                 dataKey="t"

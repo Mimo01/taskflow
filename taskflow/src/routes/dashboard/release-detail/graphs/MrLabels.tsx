@@ -51,10 +51,7 @@ export function MrLabels({
   const { shown, rest } = labelRowPlan(labelSummary, missing);
 
   return (
-    <div
-      data-testid="mr-labels"
-      className={cn('grid min-w-0 w-[7.5rem] gap-1.5 text-xs', className)}
-    >
+    <div data-testid="mr-labels" className={cn('grid min-w-0 w-[7rem] gap-1.5 text-xs', className)}>
       {shown.map((l) => (
         <div
           key={l.label.name}
@@ -67,8 +64,8 @@ export function MrLabels({
             className="size-2 flex-none rounded-sm"
             style={{ backgroundColor: l.label.color }}
           />
-          <span className="min-w-0 flex-1 truncate text-foreground">{l.label.name}</span>
-          <span className="tabular-nums text-muted-foreground">{l.count}</span>
+          <span className="tabular-nums text-foreground">{l.count}</span>
+          <span className="min-w-0 truncate text-muted-foreground">{l.label.name}</span>
         </div>
       ))}
       {rest.length > 0 ? (
@@ -102,8 +99,8 @@ export function MrLabels({
             className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400"
           >
             <TriangleAlert className="size-2.5 flex-none" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate">unlabelled</span>
             <span className="tabular-nums">{missing}</span>
+            <span className="min-w-0 truncate">unlabelled</span>
           </TooltipTrigger>
           <TooltipContent>
             <div data-testid="mr-labels-unlabeled-tooltip">

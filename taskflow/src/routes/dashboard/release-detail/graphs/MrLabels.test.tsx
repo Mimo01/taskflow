@@ -25,11 +25,11 @@ describe('MrLabels (second legend column)', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('lists each label as a legend-style row: colour dot, truncating name, muted count', () => {
+  it('lists each label as a legend-style row: colour dot, count, then the truncating name', () => {
     render(<MrLabels labelSummary={labels} coverage={null} />);
     const rows = screen.getAllByTestId('mr-label-row');
     expect(rows).toHaveLength(3);
-    expect(rows[0]).toHaveTextContent('backend4');
+    expect(rows[0]).toHaveTextContent('4backend');
     const dot = rows[0].querySelector('span[aria-hidden]') as HTMLElement;
     expect(dot.style.backgroundColor).not.toBe('');
     expect(dot.className).toContain('size-2');

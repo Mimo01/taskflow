@@ -1,3 +1,4 @@
+import { Milestone } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -56,7 +57,11 @@ export function ReleaseDescription({
       >
         {jira && <p className="whitespace-pre-wrap">{jira}</p>}
         {milestone && (
-          <div className={cn(jira && 'mt-1')} title="GitLab milestone description">
+          <div className={cn(jira && 'mt-0.5')} title="GitLab milestone description">
+            <Milestone
+              aria-hidden="true"
+              className="mr-1.5 inline size-3 -translate-y-px text-muted-foreground/70"
+            />
             <div
               className={cn(
                 expanded
