@@ -96,14 +96,15 @@ function PersonCell({
 // Breakpoints are on the section's own width (@container), like the Issues table:
 // people collapse to avatars at 860, reporter goes at 760, the type icon at 640,
 // the fix text at 600 (Apply keeps it as a tooltip), the state pill turns into an
-// icon at 520. Fix shrinks (truncating) between breakpoints so a row never overflows.
+// icon at 520. Summary and Fix split the leftover width 2:1 (Fix 7rem–280px,
+// truncating), so neither starves and a row never overflows.
 const COL_ICON = 'size-3.5 flex-none @max-[640px]:hidden';
 const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[520px]:w-[5rem]';
 const COL_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
 const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-5';
 const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-5 @max-[760px]:hidden';
-const COL_FIX_TARGET = 'basis-[280px] shrink min-w-[7rem] @max-[600px]:hidden';
-const COL_SUMMARY = 'min-w-[6rem] flex-1 @max-[600px]:min-w-[3rem]';
+const COL_FIX_TARGET = 'flex-[1_1_0%] min-w-[7rem] max-w-[280px] @max-[600px]:hidden';
+const COL_SUMMARY = 'flex-[2_1_0%] min-w-[6rem] @max-[600px]:min-w-[3rem]';
 /** Warning-tone outline shared by Apply and "Apply ▾": same width, one clean edge. */
 const APPLY_CLASS =
   'w-full justify-center border-orange-300 bg-background text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:bg-transparent dark:text-orange-300 dark:hover:bg-orange-500/15 dark:hover:text-orange-200';

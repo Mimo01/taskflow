@@ -241,12 +241,13 @@ describe('DeploymentPackageSection', () => {
     expect(row.querySelectorAll('[data-testid="package-fix"]')).toHaveLength(1);
     const action = row.querySelector('button[aria-label^="Set deployment package"]') as HTMLElement;
     expect(action.parentElement?.className).toContain('justify-end');
-    // header Fix cell and row Fix cell share the same (shrinkable) basis, so they
-    // stay aligned and the row never overflows between breakpoints
+    // header and row cells share one sizing: Summary and Fix split the leftover
+    // width 2:1 with Fix capped at 280px, so Summary never starves and rows align
     const fixCell = row.querySelector('[data-testid="package-fix"]');
-    expect(fixCell?.className).toContain('basis-[280px]');
-    expect(fixCell?.className).toContain('shrink');
-    expect(header.innerHTML).toContain('basis-[280px]');
+    expect(fixCell?.className).toContain('flex-[1_1_0%]');
+    expect(fixCell?.className).toContain('max-w-[280px]');
+    expect(header.innerHTML).toContain('flex-[1_1_0%]');
+    expect(header.innerHTML).toContain('flex-[2_1_0%]');
     expect(header.innerHTML).toContain('w-[4.75rem]');
   });
 
