@@ -6,13 +6,16 @@ const base = { updatedAt: undefined, refreshing: false, onRefresh: () => {} };
 const NO_HISTORY = { cadenceDays: null, lastShippedDays: null };
 
 describe('ReleasesHero', () => {
-  it('renders the title and 8 ambient curves', () => {
+  it('renders the title in the standard page header bar', () => {
     const { container } = render(
       <ReleasesHero {...base} summary={{ planned: 1, overdue: 0, undated: 0, ...NO_HISTORY }} />,
     );
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Releases');
-    const svg = container.querySelector('svg[aria-hidden="true"]');
-    expect(svg?.querySelectorAll('path')).toHaveLength(8);
+    const title = screen.getByRole('heading', { level: 1 });
+    expect(title.textContent).toBe('Releases');
+    expect(title.className).toBe('text-xl font-semibold');
+    const header = container.querySelector('header');
+    expect(header?.className).toContain('border-b');
+    expect(header?.className).toContain('px-6 py-4');
   });
 
   it('renders the summary with emphasised count and red overdue', () => {

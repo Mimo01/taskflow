@@ -116,3 +116,14 @@ Fixed inline:
 - It ends in `border-b border-border`, the same separator the other pages' header bars use (e.g. AIO "Test cycles").
 - Content sits in its own `px-6` wrapper.
 - The gap from the border to the first row dropped from about 52px to 20px (`mt-5`).
+
+Round 1 follow-up 5 (2026-10-30), user feedback verbatim:
+
+> the title should be top left. it needs to be consistent across the app
+
+Fixed inline:
+- `ReleasesHero` is now the app's standard page header bar, the one used by Epics, Worklogs and Test cycles: `flex items-center justify-between border-b border-border px-6 py-4`.
+  - The title is left-aligned, `text-xl font-semibold`.
+  - The summary sits under the title (as on My Tasks).
+  - Updated/Refresh are on the right.
+- The ambient curves were dropped; only the home dashboard keeps them.

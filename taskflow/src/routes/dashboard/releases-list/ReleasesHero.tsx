@@ -1,5 +1,4 @@
 import { RefreshCw } from 'lucide-react';
-import { AmbientCurves } from '@/components/ambient-curves';
 import { relativeTime } from '@/lib/relative-time';
 import { type ReleaseSummary, spanLabel } from '@/lib/release-agenda';
 import { cn } from '@/lib/utils';
@@ -22,14 +21,13 @@ export function ReleasesHero({
   onRefresh: () => void;
 }) {
   return (
-    // Full-bleed like the dashboard hero; the bottom border separates it from the
-    // content the way the other pages' header bars do.
-    <header className="relative shrink-0 overflow-hidden border-b border-border px-8 pt-12 pb-10 text-center">
-      <AmbientCurves />
-      <div className="relative">
-        <h1 className="text-5xl font-semibold tracking-tight text-foreground">Releases</h1>
+    // The app's standard page header bar (Epics, Worklogs, Test cycles), with the
+    // summary under the title like My Tasks.
+    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-6 py-4">
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold">Releases</h1>
         {summary && (
-          <p data-testid="releases-summary" className="mt-2 text-sm text-muted-foreground">
+          <p data-testid="releases-summary" className="mt-1 text-xs text-muted-foreground">
             {summary.planned === 0 ? (
               'No planned releases'
             ) : (
@@ -54,7 +52,7 @@ export function ReleasesHero({
           </p>
         )}
       </div>
-      <div className="absolute top-4 right-6 flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex flex-none items-center gap-3 text-xs text-muted-foreground">
         {updatedAt !== undefined && (
           <span>Updated {relativeTime(new Date(updatedAt).toISOString())}</span>
         )}
