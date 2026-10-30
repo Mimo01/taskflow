@@ -23,6 +23,7 @@ function setup(over: Partial<React.ComponentProps<typeof ReleasedPanel>> = {}) {
       versions={VERSIONS}
       breakdowns={new Map([['1', { done: 25, indeterminate: 0, new: 0 }]])}
       loadingIds={new Set()}
+      errorIds={new Set()}
       hasMore
       onShowMore={onShowMore}
       onOpen={onOpen}
@@ -63,6 +64,15 @@ describe('ReleasedPanel', () => {
     expect(rows[2]).not.toHaveTextContent('done');
   });
 
+  it('marks a failed counts fetch with a titled dash, not an empty cell', () => {
+    setup({ errorIds: new Set(['2']) });
+    const rows = screen.getAllByTestId('released-row');
+    const err = rows[1].querySelector('[data-testid="release-issues-error"]');
+    expect(err).toHaveTextContent('–');
+    expect(err).toHaveAttribute('title', "Couldn't load issue counts");
+    expect(rows[2].querySelector('[data-testid="release-issues-error"]')).toBeNull();
+  });
+
   it('calls onOpen and onShowMore', () => {
     const { onOpen, onShowMore } = setup();
     fireEvent.click(screen.getAllByTestId('released-row')[1]);
@@ -82,6 +92,7 @@ describe('ReleasedPanel', () => {
         versions={[]}
         breakdowns={new Map()}
         loadingIds={new Set()}
+        errorIds={new Set()}
         hasMore={false}
         onShowMore={() => {}}
         onOpen={() => {}}

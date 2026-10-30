@@ -1,4 +1,5 @@
 import { Rocket } from 'lucide-react';
+import { BreakdownErrorDash } from '@/components/release/ReleaseIssueGraph';
 import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
 import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -64,10 +65,13 @@ function SegmentedBar({ breakdown, className }: { breakdown: StatusBreakdown; cl
 export function ReleaseIssuesSlot({
   breakdown,
   loading,
+  error = false,
   variant,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
+  /** The counts fetch failed: a muted dash with a failure tooltip, not the idle dash. */
+  error?: boolean;
   variant: 'row' | 'card';
 }) {
   const wrapper = cn('flex h-5 w-full items-center', variant === 'card' ? 'gap-3' : 'gap-2');
@@ -76,6 +80,8 @@ export function ReleaseIssuesSlot({
       <div data-testid="release-issues" className={wrapper}>
         {loading ? (
           <Skeleton className={variant === 'card' ? 'h-2 w-full' : 'h-1.5 w-[92px]'} />
+        ) : error ? (
+          <BreakdownErrorDash />
         ) : (
           <span className="text-xs text-muted-foreground">–</span>
         )}
@@ -184,6 +190,7 @@ export function NextReleaseCard({
   entry,
   breakdown,
   loading,
+  error = false,
   team,
   showPackage,
   pkg,
@@ -193,6 +200,7 @@ export function NextReleaseCard({
   entry: AgendaRelease;
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
+  error?: boolean;
   team: readonly VersionAssignee[];
   showPackage: boolean;
   pkg: DerivedPackage | null;
@@ -238,7 +246,7 @@ export function NextReleaseCard({
         </span>
       </div>
       <div className="pointer-events-none relative">
-        <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="card" />
+        <ReleaseIssuesSlot breakdown={breakdown} loading={loading} error={error} variant="card" />
       </div>
     </Card>
   );

@@ -103,10 +103,11 @@ export function useReleaseBreakdowns(args: {
               teams.set(id, b.assignees ?? []);
             }
           }
+        } else if (q.isFetching) {
+          // A retry after a failure (e.g. Refresh) shows the skeleton, not the error.
+          for (const id of ids) loadingIds.add(id);
         } else if (q.isError) {
           for (const id of ids) errorIds.add(id);
-        } else if (q.isFetching) {
-          for (const id of ids) loadingIds.add(id);
         }
       });
       return { breakdowns, teams, loadingIds, errorIds };

@@ -17,6 +17,8 @@ type Props = {
   entries: AgendaEntry[];
   breakdowns: ReadonlyMap<string, StatusBreakdown>;
   loadingIds: ReadonlySet<string>;
+  /** Ids whose counts fetch failed (no data, not loading). */
+  errorIds: ReadonlySet<string>;
   teams: ReadonlyMap<string, VersionAssignee[]>;
   showPackage: boolean;
   pkgLoading: boolean;
@@ -54,7 +56,8 @@ function ReleaseRow({
   last: boolean;
   props: Props;
 }) {
-  const { breakdowns, loadingIds, teams, showPackage, pkgLoading, packageFor, onOpen } = props;
+  const { breakdowns, loadingIds, errorIds, teams, showPackage, pkgLoading, packageFor, onOpen } =
+    props;
   const breakdown = breakdowns.get(base.version.id);
   // A quiet planned row that has issues gets the full row treatment.
   const entry =
@@ -63,6 +66,7 @@ function ReleaseRow({
       : base;
   const { version, kind, quiet } = entry;
   const loading = loadingIds.has(version.id);
+  const error = errorIds.has(version.id);
   const team = teams.get(version.id) ?? NO_TEAM;
 
   return (
@@ -77,6 +81,7 @@ function ReleaseRow({
             entry={entry}
             breakdown={breakdown}
             loading={loading}
+            error={error}
             team={team}
             showPackage={showPackage}
             pkg={packageFor(version.releaseDate)}
@@ -112,7 +117,12 @@ function ReleaseRow({
             )}
           </div>
           <div className="flex w-[150px] flex-none items-center">
-            <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="row" />
+            <ReleaseIssuesSlot
+              breakdown={breakdown}
+              loading={loading}
+              error={error}
+              variant="row"
+            />
           </div>
           <div className="hidden w-[104px] flex-none @[640px]:flex">
             {!quiet && <ReleaseTeam assignees={team} max={5} onClick={() => onOpen(version.id)} />}

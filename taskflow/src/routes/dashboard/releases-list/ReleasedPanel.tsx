@@ -1,3 +1,4 @@
+import { BreakdownErrorDash } from '@/components/release/ReleaseIssueGraph';
 import { Skeleton } from '@/components/ui/skeleton';
 import { dateStamp } from '@/lib/release-agenda';
 import type { StatusBreakdown } from '@/lib/release-list';
@@ -8,6 +9,7 @@ export function ReleasedPanel({
   versions,
   breakdowns,
   loadingIds,
+  errorIds,
   hasMore,
   onShowMore,
   onOpen,
@@ -15,6 +17,8 @@ export function ReleasedPanel({
   versions: JiraFixVersion[];
   breakdowns: ReadonlyMap<string, StatusBreakdown>;
   loadingIds: ReadonlySet<string>;
+  /** Ids whose counts fetch failed (no data, not loading). */
+  errorIds: ReadonlySet<string>;
   hasMore: boolean;
   onShowMore: () => void;
   onOpen: (id: string) => void;
@@ -48,6 +52,8 @@ export function ReleasedPanel({
                 `✓ ${b.done} done`
               ) : loadingIds.has(v.id) ? (
                 <Skeleton className="h-3 w-14" />
+              ) : errorIds.has(v.id) ? (
+                <BreakdownErrorDash />
               ) : null}
             </span>
           </button>

@@ -83,7 +83,7 @@ export default function ReleasesTab() {
 
   // The Released panel shows no package, so RM loads for upcoming weeks only.
   const pkgs = useReleasePackages({ dates: upcoming.map((v) => v.releaseDate) });
-  const { breakdowns, loadingIds, teams } = useReleaseBreakdowns({
+  const { breakdowns, loadingIds, errorIds, teams } = useReleaseBreakdowns({
     upcomingIds: upcoming.map((v) => v.id),
     releasedIds: released.map((v) => v.id),
     releasedVisible,
@@ -152,6 +152,7 @@ export default function ReleasesTab() {
                 entries={agenda.entries}
                 breakdowns={breakdowns}
                 loadingIds={loadingIds}
+                errorIds={errorIds}
                 teams={teams}
                 showPackage={pkgs.enabled}
                 pkgLoading={pkgs.isLoading}
@@ -162,6 +163,7 @@ export default function ReleasesTab() {
                 versions={visibleReleased}
                 breakdowns={breakdowns}
                 loadingIds={loadingIds}
+                errorIds={errorIds}
                 hasMore={released.length > releasedVisible}
                 onShowMore={() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE)}
                 onOpen={handleReleaseClick}

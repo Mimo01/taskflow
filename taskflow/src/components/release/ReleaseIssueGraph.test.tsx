@@ -56,10 +56,21 @@ describe('ReleaseIssueGraph', () => {
     expect(screen.queryByText('No issues')).toBeNull();
   });
 
-  it('error shows a muted dash and no skeleton', () => {
+  it('error shows a muted dash with a failure tooltip and no skeleton', () => {
     render(<ReleaseIssueGraph breakdown={undefined} loading={false} error variant="list" />);
-    expect(screen.getByText('–')).toBeInTheDocument();
+    const dash = screen.getByTestId('release-issues-error');
+    expect(dash).toHaveTextContent('–');
+    expect(dash).toHaveAttribute('title', "Couldn't load issue counts");
+    expect(dash.className).toContain('text-muted-foreground');
     expect(screen.queryByTestId('release-graph-skeleton')).toBeNull();
+  });
+
+  it('idle (not loading, no error) shows the plain dash without a failure tooltip', () => {
+    render(
+      <ReleaseIssueGraph breakdown={undefined} loading={false} error={false} variant="list" />,
+    );
+    expect(screen.getByText('–')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-issues-error')).toBeNull();
   });
 
   it('keeps the same outer width class across states', () => {

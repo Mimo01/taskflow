@@ -10,15 +10,36 @@ import {
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 
+export const BREAKDOWN_ERROR_TEXT = "Couldn't load issue counts";
+
+/**
+ * Failed counts fetch: the same muted dash as idle (UI-SPEC: no chip), but with a
+ * tooltip naming the failure. It sits above any row overlay button so the title shows.
+ */
+export function BreakdownErrorDash() {
+  return (
+    <span
+      data-testid="release-issues-error"
+      role="img"
+      title={BREAKDOWN_ERROR_TEXT}
+      aria-label={BREAKDOWN_ERROR_TEXT}
+      className="pointer-events-auto relative z-10 cursor-help text-xs text-muted-foreground"
+    >
+      –
+    </span>
+  );
+}
+
 /** Slim segmented Done / In Progress / To Do bar with a done/total figure. */
 export function ReleaseIssueGraph({
   breakdown,
   loading,
+  error,
   variant,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
-  /** Failed fetch: renders the same muted dash as idle (no data, not loading). */
+  /** Failed fetch with no data: a muted dash whose tooltip names the failure. */
   error: boolean;
   variant: 'list' | 'detail';
 }) {
@@ -33,6 +54,8 @@ export function ReleaseIssueGraph({
             {/* Reserve the figure slot so the bar does not shift when data arrives. */}
             {variant === 'list' && <span aria-hidden className="w-12 shrink-0" />}
           </>
+        ) : error ? (
+          <BreakdownErrorDash />
         ) : (
           <span className="text-xs text-muted-foreground">–</span>
         )}

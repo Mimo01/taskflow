@@ -59,6 +59,7 @@ function setup(over: Partial<ComponentProps<typeof ReleaseAgenda>> = {}) {
     entries,
     breakdowns: BREAKDOWNS,
     loadingIds: new Set(),
+    errorIds: new Set(),
     teams: TEAMS,
     showPackage: false,
     pkgLoading: false,
@@ -137,6 +138,17 @@ describe('ReleaseAgenda', () => {
     expect(within(rowFor('Eta empty release')).getByText('–')).toBeInTheDocument();
   });
 
+  it('marks failed counts with a titled dash on rows and the next card', () => {
+    setup({ breakdowns: NO_COUNTS, errorIds: new Set(['A', 'C']) });
+    const card = screen.getByTestId('next-release-card');
+    const cardErr = within(card).getByTestId('release-issues-error');
+    expect(cardErr).toHaveAttribute('title', "Couldn't load issue counts");
+    expect(cardErr.className).toContain('pointer-events-auto');
+    const failed = within(rowFor('Delta planned release'));
+    expect(failed.getByTestId('release-issues-error')).toHaveTextContent('–');
+    expect(within(rowFor('Gamma near release')).queryByTestId('release-issues-error')).toBeNull();
+  });
+
   it('shows a skeleton while a breakdown is loading', () => {
     const { container } = setup({ breakdowns: new Map(), loadingIds: new Set(IDS) });
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(5);
@@ -156,6 +168,7 @@ describe('ReleaseAgenda', () => {
       }));
     const props = {
       entries,
+      errorIds: new Set<string>(),
       teams: TEAMS,
       showPackage: true,
       pkgLoading: false,
