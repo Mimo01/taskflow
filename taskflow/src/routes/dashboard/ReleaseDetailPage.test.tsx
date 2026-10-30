@@ -339,6 +339,40 @@ describe('ReleaseDetailPage', () => {
     expect(screen.queryByTestId('release-graph-grid')).toBeNull();
   });
 
+  // 94-REVIEW WR-06: an offline first fetch is paused — isLoading false, no
+  // data, no error. That is a check that has not run, not an empty release.
+  it('paused issues query (no data, not loading, no error): loading graphs, no empty notice', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        fixVersionIssues: undefined,
+        releaseIssues: [],
+        primaryRows: [],
+        isLoadingIssues: false,
+        issuesError: false,
+      }) as never,
+    );
+    renderPage();
+    expect(screen.queryByTestId('release-no-issues')).toBeNull();
+    expect(screen.getByTestId('release-graph-burnup-skeleton')).toBeInTheDocument();
+    expect(screen.getByText('Loading issues...')).toBeInTheDocument();
+    expect(screen.queryByText('No issues in this fix version')).toBeNull();
+  });
+
+  it('issues query failed with no data: graphs show the error state', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        fixVersionIssues: undefined,
+        releaseIssues: [],
+        primaryRows: [],
+        isLoadingIssues: false,
+        issuesError: true,
+      }) as never,
+    );
+    renderPage();
+    expect(screen.queryByTestId('release-no-issues')).toBeNull();
+    expect(screen.getByTestId('release-graph-burnup-error')).toBeInTheDocument();
+  });
+
   it('shows no MR/status count text outside the graphs (D-06)', () => {
     mockHook.mockReturnValue(gitlabFixture() as never);
     renderPage();

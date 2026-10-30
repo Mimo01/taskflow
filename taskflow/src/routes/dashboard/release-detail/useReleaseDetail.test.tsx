@@ -897,6 +897,37 @@ describe('useReleaseDetail — milestoneLookup (94 CR-02)', () => {
   });
 });
 
+// 94-REVIEW WR-06 premise: an offline first fetch is paused, which looks
+// neither loading nor failed — the page must branch on data presence instead.
+describe('useReleaseDetail — paused issues query (94 WR-06 premise)', () => {
+  it('offline: no issues data, isLoadingIssues false, issuesError false', async () => {
+    await setupMocks();
+    const { onlineManager } = await import('@tanstack/react-query');
+    onlineManager.setOnline(false);
+    try {
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      queryClient.setQueryData(
+        ['jira-fix-versions', 'PROJ'],
+        [{ id: VERSION_ID, name: '33.5.0', releaseDate: RELEASE_DATE, released: false }],
+      );
+      const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+        wrapper: makeWrapper(queryClient),
+      });
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(['jira-fixversion-issues', VERSION_ID, 'customfield_10016'])
+            ?.fetchStatus,
+        ).toBe('paused'),
+      );
+      expect(result.current.fixVersionIssues).toBeUndefined();
+      expect(result.current.isLoadingIssues).toBe(false);
+      expect(result.current.issuesError).toBe(false);
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+});
+
 describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

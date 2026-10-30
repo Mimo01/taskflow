@@ -85,7 +85,6 @@ export default function ReleaseDetailPage() {
     createMilestoneMutation,
     ownProjectMilestoneList,
     milestoneMRs,
-    isLoadingIssues,
     releaseIssues,
     releaseMrs,
     primaryRows,
@@ -245,15 +244,16 @@ export default function ReleaseDetailPage() {
   const lastRefreshed = issuesUpdatedAt ? new Date(issuesUpdatedAt).toLocaleTimeString() : null;
 
   // Graph slot states: branch on data presence, not isPending (disabled v5
-  // queries stay pending forever).
-  const issueGraphState: 'loading' | 'error' | 'empty' | 'ready' =
-    isLoadingIssues && !fixVersionIssues
-      ? 'loading'
-      : issuesError
-        ? 'error'
-        : releaseIssues.length === 0
-          ? 'empty'
-          : 'ready';
+  // queries stay pending forever). 94-REVIEW WR-06: nor on isLoading — a paused
+  // (offline) first fetch is neither loading nor failed, and must not settle as
+  // "No issues". No data means loading unless the fetch failed.
+  const issueGraphState: 'loading' | 'error' | 'empty' | 'ready' = !fixVersionIssues
+    ? issuesError
+      ? 'error'
+      : 'loading'
+    : fixVersionIssues.length === 0
+      ? 'empty'
+      : 'ready';
   // 94-REVIEW CR-01: a rejected milestone-MR fetch is a failure, not an
   // in-flight load — without this arm the slot showed its skeleton forever.
   const donutState: 'loading' | 'error' | 'empty' | 'ready' =
@@ -530,7 +530,9 @@ export default function ReleaseDetailPage() {
                 key={versionId}
                 versionName={version.name}
                 hasReleaseDate={!!version.releaseDate}
-                isLoadingIssues={isLoadingIssues}
+                // WR-06: same data-presence rule as the graphs, so a paused
+                // first fetch reads as loading rather than "No issues".
+                isLoadingIssues={issueGraphState === 'loading'}
                 isLoadingDrift={isLoadingDrift}
                 driftUnavailable={driftUnavailable}
                 hasMatchedMilestone={hasMatchedMilestone}
