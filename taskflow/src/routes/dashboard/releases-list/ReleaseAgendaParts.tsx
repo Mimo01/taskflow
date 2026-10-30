@@ -4,6 +4,8 @@ import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody } from '@/components/ui/tooltip-body';
 import type { AgendaKind, AgendaRelease } from '@/lib/release-agenda';
 import {
   breakdownTotal,
@@ -107,37 +109,73 @@ export function ReleaseIssuesSlot({
   );
 }
 
-/** Up to `max` overlapping avatars plus a +N chip. */
+/**
+ * Up to `max` overlapping avatars plus a +N chip, busiest first (assignees arrive sorted
+ * by issue count), with the leftmost avatar on top. Hovering lists everyone with their
+ * issue count. The trigger sits above the row's overlay button, so `onClick` opens the release.
+ */
 export function ReleaseTeam({
   assignees,
   max,
+  onClick,
 }: {
   assignees: readonly VersionAssignee[];
   max: number;
+  onClick?: () => void;
 }) {
+  if (assignees.length === 0) return null;
   const shown = assignees.slice(0, max);
   const extra = assignees.length - shown.length;
+  const issues = assignees.reduce((n, a) => n + a.count, 0);
   return (
-    <span
-      data-testid="release-team"
-      className="inline-flex items-center"
-      title={assignees.map((a) => a.displayName).join(', ')}
-    >
-      {shown.map((a) => (
-        <CachedAvatar
-          key={a.key}
-          url={a.avatarUrl}
-          name={a.displayName}
-          size={20}
-          className="-ml-1 rounded-full ring-2 ring-background first:ml-0"
-        />
-      ))}
-      {extra > 0 && (
-        <span className="-ml-1 inline-flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-2 ring-background">
-          +{extra}
-        </span>
-      )}
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        delay={0}
+        render={<span />}
+        data-testid="release-team"
+        aria-label={`Team: ${assignees.map((a) => a.displayName).join(', ')}`}
+        onClick={onClick}
+        className="pointer-events-auto relative z-10 inline-flex cursor-pointer items-center"
+      >
+        {shown.map((a, i) => (
+          <span
+            key={a.key}
+            style={{ zIndex: shown.length - i }}
+            className="relative -ml-1 rounded-full first:ml-0"
+          >
+            <CachedAvatar
+              url={a.avatarUrl}
+              name={a.displayName}
+              size={20}
+              className="rounded-full ring-2 ring-background"
+            />
+          </span>
+        ))}
+        {extra > 0 && (
+          <span className="relative -ml-1 inline-flex size-5 items-center justify-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-2 ring-background">
+            +{extra}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent>
+        <TooltipBody
+          title={`${assignees.length} ${assignees.length === 1 ? 'person' : 'people'} · ${issues} ${issues === 1 ? 'issue' : 'issues'}`}
+        >
+          {assignees.map((a) => (
+            <div key={a.key} data-testid="release-team-row" className="flex items-center gap-2">
+              <CachedAvatar
+                url={a.avatarUrl}
+                name={a.displayName}
+                size={16}
+                className="rounded-full"
+              />
+              <span className="min-w-0 flex-1 truncate">{a.displayName}</span>
+              <span className="pl-3 font-medium tabular-nums">{a.count}</span>
+            </div>
+          ))}
+        </TooltipBody>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -196,7 +234,7 @@ export function NextReleaseCard({
             <span data-testid="row-deployment-package">No RM package</span>
           ))}
         <span className="ml-auto">
-          <ReleaseTeam assignees={team} max={8} />
+          <ReleaseTeam assignees={team} max={8} onClick={() => onOpen(version.id)} />
         </span>
       </div>
       <div className="pointer-events-none relative">

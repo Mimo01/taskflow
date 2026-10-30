@@ -115,7 +115,7 @@ function ReleaseRow({
             <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="row" />
           </div>
           <div className="hidden w-[104px] flex-none @[640px]:flex">
-            {!quiet && <ReleaseTeam assignees={team} max={5} />}
+            {!quiet && <ReleaseTeam assignees={team} max={5} onClick={() => onOpen(version.id)} />}
           </div>
           <div className="flex w-[100px] flex-none justify-end">
             {entry.pill ? (

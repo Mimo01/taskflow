@@ -153,3 +153,9 @@ Round 1 follow-up 8 (2026-10-30), user feedback verbatim:
 > we can show more avatars in the tasks
 
 Fixed inline: `ReleaseTeam` takes a `max`. Rows show up to 5 avatars (team column 70px → 104px) and the next-release card up to 8, each with a +N chip beyond that.
+
+Round 1 follow-up 9 (2026-10-30), user feedback verbatim:
+
+> make the avatar direction opposite (most tasks on left and on top). Add a nice tooltip for them
+
+Fixed inline: avatars stay busiest-first (the fetcher sorts by issue count) and now stack with the leftmost on top (descending z-index). Hovering the group shows a TooltipBody titled "N people · M issues" listing every assignee (avatar, name, issue count). The trigger sits above the overlay button, so clicking it opens the release (the same lesson as follow-up 1).

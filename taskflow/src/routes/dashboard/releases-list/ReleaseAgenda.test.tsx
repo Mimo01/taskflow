@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { buildAgenda } from '@/lib/release-agenda';
@@ -201,6 +202,34 @@ describe('ReleaseAgenda', () => {
     expect(within(cardTeam).getAllByRole('img')).toHaveLength(8);
     expect(cardTeam.textContent).toContain('+2');
     expect(within(rowFor('Delta planned release')).queryByTestId('release-team')).toBeNull();
+  });
+
+  it('stacks avatars busiest-first with the leftmost on top', () => {
+    setup({ breakdowns: NO_COUNTS });
+    const team = within(rowFor('Alpha overdue release')).getByTestId('release-team');
+    const z = [...team.children]
+      .filter((el) => el.getAttribute('style'))
+      .map((el) => Number((el as HTMLElement).style.zIndex));
+    expect(z).toEqual([5, 4, 3, 2, 1]);
+  });
+
+  it('lists the whole team with issue counts on hover, and click opens the release', async () => {
+    const user = userEvent.setup();
+    const { onOpen } = setup({
+      breakdowns: NO_COUNTS,
+      teams: new Map([['O', [{ ...person(1), count: 6 }, { ...person(2), count: 2 }, person(3)]]]),
+    });
+    const team = within(rowFor('Alpha overdue release')).getByTestId('release-team');
+    expect(team).not.toHaveAttribute('title');
+    await user.hover(team);
+    expect(await screen.findByText('3 people · 9 issues')).toBeInTheDocument();
+    expect(screen.getAllByTestId('release-team-row').map((r) => r.textContent)).toEqual([
+      'P1Person 16',
+      'P2Person 22',
+      'P3Person 31',
+    ]);
+    fireEvent.click(team);
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith('O');
   });
 
   it('renders the package line only on full rows when showPackage is true', () => {
