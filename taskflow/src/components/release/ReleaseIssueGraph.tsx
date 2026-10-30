@@ -115,7 +115,18 @@ export function ReleaseIssueGraph({
           </TooltipBody>
         </TooltipContent>
       </Tooltip>
-      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{figure}</span>
+      <span
+        data-testid="release-done-figure"
+        className="shrink-0 text-xs tabular-nums text-muted-foreground"
+      >
+        {fullWidth ? (
+          <>
+            <span className="font-semibold text-foreground">{breakdown.done}</span> / {total} done
+          </>
+        ) : (
+          figure
+        )}
+      </span>
     </div>
   );
 }

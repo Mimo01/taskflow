@@ -236,9 +236,7 @@ export default function ReleaseDetailPage() {
       setRefreshing(false);
     }
   };
-  const lastRefreshed = issuesUpdatedAt
-    ? `Refreshed: ${new Date(issuesUpdatedAt).toLocaleTimeString()}`
-    : null;
+  const lastRefreshed = issuesUpdatedAt ? new Date(issuesUpdatedAt).toLocaleTimeString() : null;
 
   // Graph slot states: branch on data presence, not isPending (disabled v5
   // queries stay pending forever).

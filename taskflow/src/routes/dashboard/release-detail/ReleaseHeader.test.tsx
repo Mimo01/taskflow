@@ -189,7 +189,7 @@ describe('ReleaseDoneBar', () => {
       />,
     );
     expect(screen.getByTestId('release-done-bar')).toHaveClass('border-t', 'px-6', 'pt-4');
-    expect(screen.getByText('4 / 6 done')).toBeInTheDocument();
+    expect(screen.getByTestId('release-done-figure')).toHaveTextContent('4 / 6 done');
     expect(screen.getByRole('img', { name: '4 of 6 issues done' })).toBeInTheDocument();
   });
 

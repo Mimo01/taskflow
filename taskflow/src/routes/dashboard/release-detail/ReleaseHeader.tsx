@@ -138,10 +138,17 @@ export function ReleaseDetailHeader({
       ),
     },
   ];
-  if (showPackage) {
+  // ReleasePackageCell's wrapper is w-full (list cell); inside the wrapping meta
+  // line that forced a line break after the date, so shrink-wrap it. Undated
+  // releases have no package (UI-SPEC Undated state).
+  if (showPackage && releaseDate) {
     items.push({
       id: 'package',
-      node: <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />,
+      node: (
+        <span className="inline-flex min-w-0">
+          <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />
+        </span>
+      ),
     });
   }
   items.push(...factItems);

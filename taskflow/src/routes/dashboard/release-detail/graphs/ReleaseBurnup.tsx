@@ -71,7 +71,7 @@ function endLabel(last: number, n: number, text: string, color: string, flip: bo
 function markerLabel(text: string) {
   return {
     value: text,
-    position: 'insideTopRight' as const,
+    position: 'top' as const,
     fontSize: 12,
     className: 'uppercase tracking-wide',
     fill: MUTED,
@@ -130,7 +130,7 @@ export function ReleaseBurnup({
           aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
         >
           <ChartContainer config={{}} className="aspect-auto h-full w-full">
-            <ComposedChart data={points} responsive margin={{ ...PLOT_MARGIN, right: 40 }}>
+            <ComposedChart data={points} responsive margin={{ ...PLOT_MARGIN, top: 20, right: 40 }}>
               <XAxis
                 type="number"
                 dataKey="t"
