@@ -61,5 +61,13 @@ Task 1 rendered the page through the React Compiler in a scratchpad vite harness
 - Pointer cursor set once on the page scroll wrapper instead of on the shared `Button` (no app-wide change)
 - The VALIDATION sticky, marker, React-Compiler and breakpoint checks were covered by harness and WKWebView renders, then the user's real-app check
 
+## Post-approval narrow-width fixes (user, after phase completion)
+- 07809cac, 5a68d7f9: compact graph mode in every layout (2x2 and single column too); By assignee capped at 5 in the band, 4 below it
+- cfafbbd0, 86069b52: mismatch table measures its own width (@container) and shortens like the Issues table (avatars at 860, type icon 640, fix text 600, state icon 520); Summary and Fix split leftover width 2:1 (Fix 7rem-280px)
+- cfc48ea1, 635d7cac: short "Asg." / "Rep." headers over avatar-only person columns (mismatch + Issues tables); Reporter stays as an avatar instead of hiding
+- fa540af8: same "Asg." treatment on the AIO Defects, Executions and run-defects lists (UserChip `nameClassName`)
+
+User approved the result 2026-10-30.
+
 ## Self-Check: PASSED
 Full suite 4111 passed (hooks on every commit). tsc clean. No harness files or user screenshots in the repo.
