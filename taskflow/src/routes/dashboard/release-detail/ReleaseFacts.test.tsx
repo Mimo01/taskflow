@@ -80,6 +80,7 @@ function makeProps(
     onCreateMilestone: () => {},
     onRetryBranchCheck: () => {},
     canCreateMilestone: true,
+    milestoneLookup: 'resolved',
     hasStoryPoints: false,
     storyPoints: { total: 0, completed: 0 },
     ...overrides,
@@ -469,6 +470,35 @@ describe('ReleaseFacts — Milestone fact', () => {
     renderFacts({ branchState: blocked, canCreateMilestone: false });
     expect(screen.getByTestId('gitlab-link-none')).toHaveTextContent('Set a release date first');
     expect(screen.queryByRole('button', { name: 'Create milestone' })).not.toBeInTheDocument();
+  });
+
+  // 94-REVIEW CR-02: 'none' is only a verified absence once the milestone
+  // lookup resolved. Pending, failed or impossible lookups must not say Missing.
+  it('shows Loading, not Missing, while the milestone lookup is pending', () => {
+    renderFacts({ branchState: blocked, milestoneLookup: 'pending' });
+    const el = screen.getByTestId('gitlab-link-none');
+    expect(el).toHaveTextContent('Loading...');
+    expect(el).not.toHaveTextContent('Missing');
+    expect(screen.queryByRole('button', { name: 'Create milestone' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('release-fact-branch')).toHaveTextContent('Loading...');
+    expect(screen.getByTestId('release-fact-branch')).not.toHaveTextContent(
+      'Create the milestone first',
+    );
+  });
+
+  it.each([
+    'failed',
+    'unavailable',
+  ] as const)("shows Couldn't check, not Missing, when the lookup is %s", (milestoneLookup) => {
+    renderFacts({ branchState: blocked, milestoneLookup });
+    const el = screen.getByTestId('gitlab-link-none');
+    expect(el).toHaveTextContent("Couldn't check");
+    expect(el).not.toHaveTextContent('Missing');
+    expect(el).not.toHaveTextContent('Set a release date first');
+    expect(screen.queryByRole('button', { name: 'Create milestone' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('release-fact-branch')).not.toHaveTextContent(
+      'Create the milestone first',
+    );
   });
 
   it('opens the exact milestone web_url externally', async () => {

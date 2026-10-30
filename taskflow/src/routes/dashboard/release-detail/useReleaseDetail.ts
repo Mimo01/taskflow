@@ -78,12 +78,16 @@ export function useReleaseDetail(versionId: string | undefined) {
   const queryClient = useQueryClient();
 
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  // 94-REVIEW CR-02: distinguishes "token not read yet" from "no token", so the
+  // milestone lookup reads as pending rather than unavailable on every mount.
+  const [gitlabTokenRead, setGitlabTokenRead] = useState(false);
 
   useEffect(() => {
     if (gitlabBaseUrl) {
       readSecret('gitlab-pat')
         .then((t) => setGitlabToken(t))
-        .catch(() => setGitlabToken(null));
+        .catch(() => setGitlabToken(null))
+        .finally(() => setGitlabTokenRead(true));
     }
   }, [gitlabBaseUrl]);
 
@@ -150,6 +154,23 @@ export function useReleaseDetail(versionId: string | undefined) {
     enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
     staleTime: 5 * 60_000,
   });
+
+  // 94-REVIEW CR-02: `resolveGitLabMatch` returns 'none' while the list is
+  // loading, after it failed and when it can never run (no token). Only a
+  // 'resolved' lookup makes 'none' a verified absence, so the milestone fact
+  // (and its Create action) branch on this rather than on the match alone.
+  const milestoneLookup: 'pending' | 'failed' | 'unavailable' | 'resolved' =
+    !gitlabBaseUrl || !activeGitlabProject
+      ? 'unavailable'
+      : milestonesFailed
+        ? 'failed'
+        : allProjectMilestones !== undefined
+          ? 'resolved'
+          : !gitlabTokenRead
+            ? 'pending'
+            : !gitlabToken
+              ? 'unavailable'
+              : 'pending';
 
   // Windowed subset driving resolveGitLabMatch — same predicate
   // `fetchProjectMilestonesInRange` applied server-side-fetched data to, so the
@@ -702,6 +723,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     driftUnavailable,
     hasMatchedMilestone,
     milestonesFailed,
+    milestoneLookup,
     labelSummary,
     labelCoverage,
     mrStateCounts,

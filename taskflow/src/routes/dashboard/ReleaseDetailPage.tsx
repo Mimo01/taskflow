@@ -98,6 +98,7 @@ export default function ReleaseDetailPage() {
     driftUnavailable,
     hasMatchedMilestone,
     milestonesFailed,
+    milestoneLookup,
     labelSummary,
     labelCoverage,
     storyPoints,
@@ -407,7 +408,11 @@ export default function ReleaseDetailPage() {
               // CR-06: with the milestone list unfetched, CreateMilestoneDialog's
               // duplicate guard runs over an empty array and passes for every
               // title — offer the action only once we know what exists.
-              canCreateMilestone: !!version.releaseDate && !milestonesFailed,
+              // 94-REVIEW CR-02: "know what exists" = the lookup resolved (not
+              // merely "did not fail": pending and token-less lookups too).
+              canCreateMilestone:
+                !!version.releaseDate && !milestonesFailed && milestoneLookup === 'resolved',
+              milestoneLookup,
               hasStoryPoints,
               storyPoints,
             })}

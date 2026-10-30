@@ -834,6 +834,69 @@ describe('useReleaseDetail — driftUnavailable and milestone-inclusive isLoadin
   });
 });
 
+// 94-REVIEW CR-02: the milestone fact needs to know whether 'none' is a
+// verified absence or a lookup that is pending, failed or cannot run.
+describe('useReleaseDetail — milestoneLookup (94 CR-02)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('is pending while the milestone fetch is in flight', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchProjectMilestones).mockImplementation(() => new Promise(() => {}));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await waitFor(() => expect(gitlab.fetchProjectMilestones).toHaveBeenCalled());
+    expect(result.current.milestoneLookup).toBe('pending');
+  });
+
+  it('is pending (not unavailable) before the GitLab token has been read', async () => {
+    await setupMocks({ readSecretImpl: () => new Promise(() => {}) });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    expect(result.current.milestoneLookup).toBe('pending');
+  });
+
+  it('is failed when the milestone fetch rejects', async () => {
+    await setupMocks();
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(gitlab.fetchProjectMilestones).mockRejectedValue(new Error('500'));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.milestoneLookup).toBe('failed'));
+  });
+
+  it('is unavailable when the GitLab token cannot be read', async () => {
+    await setupMocks({
+      readSecretImpl: (key: string) =>
+        key === 'gitlab-pat'
+          ? Promise.reject(new Error('keychain locked'))
+          : Promise.resolve('test-token'),
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.milestoneLookup).toBe('unavailable'));
+  });
+
+  it('is resolved once the milestone list has loaded', async () => {
+    await setupMocks();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.milestoneLookup).toBe('resolved'));
+  });
+});
+
 describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

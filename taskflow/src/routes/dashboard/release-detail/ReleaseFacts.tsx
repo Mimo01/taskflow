@@ -246,6 +246,8 @@ export interface ReleaseFactsProps {
   onRetryBranchCheck: () => void;
   onCreateMilestone: () => void;
   canCreateMilestone: boolean;
+  /** 94-REVIEW CR-02: only 'resolved' makes an unmatched milestone a verified absence. */
+  milestoneLookup: 'pending' | 'failed' | 'unavailable' | 'resolved';
   hasStoryPoints: boolean;
   storyPoints: { total: number; completed: number };
 }
@@ -345,6 +347,27 @@ function milestoneValue(props: ReleaseFactsProps): ReactNode {
         data-testid="gitlab-link-fuzzy"
       >
         {gitlabMatch.candidateName}
+      </span>
+    );
+  }
+  // 94-REVIEW CR-02: no match from a lookup that is pending, failed or could not
+  // run is not "Missing" — say so, and offer no Create action.
+  if (props.milestoneLookup === 'pending') {
+    return (
+      <span className="text-muted-foreground" data-testid="gitlab-link-none">
+        Loading...
+      </span>
+    );
+  }
+  if (props.milestoneLookup !== 'resolved') {
+    return (
+      <span
+        className={cn('inline-flex items-center gap-1', PROBLEM)}
+        title="Couldn't load the GitLab milestones"
+        data-testid="gitlab-link-none"
+      >
+        <AlertTriangle className="size-3 shrink-0" />
+        Couldn't check
       </span>
     );
   }
@@ -450,12 +473,24 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
       id: 'branch',
       node: (
         <Fact id="branch" name="Branch" icon={GitBranch}>
-          <BranchRowContent
-            branchState={props.branchState}
-            defaultBranch={props.defaultBranch}
-            onCreateBranch={props.onCreateBranch}
-            onRetryBranchCheck={props.onRetryBranchCheck}
-          />
+          {/* 94-REVIEW CR-02: "Create the milestone first" is only true once the
+              milestone lookup resolved. */}
+          {props.branchState.kind === 'blocked-no-milestone' &&
+          props.milestoneLookup === 'pending' ? (
+            <span className="text-muted-foreground">Loading...</span>
+          ) : props.branchState.kind === 'blocked-no-milestone' &&
+            props.milestoneLookup !== 'resolved' ? (
+            <span className="text-muted-foreground" data-testid="branch-status-milestone-unknown">
+              Couldn't check
+            </span>
+          ) : (
+            <BranchRowContent
+              branchState={props.branchState}
+              defaultBranch={props.defaultBranch}
+              onCreateBranch={props.onCreateBranch}
+              onRetryBranchCheck={props.onRetryBranchCheck}
+            />
+          )}
         </Fact>
       ),
     });

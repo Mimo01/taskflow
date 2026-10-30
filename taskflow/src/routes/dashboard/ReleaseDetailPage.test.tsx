@@ -69,6 +69,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
     driftUnavailable: false,
     hasMatchedMilestone: false,
     milestonesFailed: false,
+    milestoneLookup: 'resolved',
     labelSummary: [],
     labelCoverage: null,
     mrStateCounts: { merged: 0, opened: 0, closed: 0 },
@@ -211,6 +212,38 @@ describe('ReleaseDetailPage', () => {
     } as never);
     renderPage();
     expect(screen.getByTestId('release-graph-mrs-skeleton')).toBeInTheDocument();
+  });
+
+  // 94-REVIEW CR-02: an unmatched milestone only reads as Missing (with Create)
+  // once the lookup resolved; while it is pending the fact says Loading.
+  it('milestone lookup pending: no Missing label and no Create milestone action', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        gitlabConfigured: true,
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        activeGitlabProject: 42,
+        milestoneLookup: 'pending',
+      }) as never,
+    );
+    renderPage();
+    const fact = screen.getByTestId('release-fact-milestone');
+    expect(fact).toHaveTextContent('Loading...');
+    expect(fact).not.toHaveTextContent('Missing');
+    expect(screen.queryByRole('button', { name: 'Create milestone' })).toBeNull();
+  });
+
+  it('milestone lookup resolved with no match: Missing plus Create milestone', () => {
+    mockHook.mockReturnValue(
+      fixture({
+        gitlabConfigured: true,
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        activeGitlabProject: 42,
+        milestoneLookup: 'resolved',
+      }) as never,
+    );
+    renderPage();
+    expect(screen.getByTestId('release-fact-milestone')).toHaveTextContent('Missing');
+    expect(screen.getByRole('button', { name: 'Create milestone' })).toBeInTheDocument();
   });
 
   it('no issues: one friendly empty state, no graphs, done bar or task table', () => {
