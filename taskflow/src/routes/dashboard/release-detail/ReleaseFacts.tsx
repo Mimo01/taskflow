@@ -461,7 +461,9 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
         ),
       });
     }
-    if (gitlabMatch.type !== 'none') {
+    // Loaded with zero MRs there is nothing to label: hide the fact instead of
+    // showing a permanent "Loading…".
+    if (gitlabMatch.type !== 'none' && !(props.milestoneMRsLoaded && !labelCoverage)) {
       items.push({
         id: 'mr-labels',
         node: (

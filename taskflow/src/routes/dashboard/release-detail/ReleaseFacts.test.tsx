@@ -573,6 +573,16 @@ describe('ReleaseFacts — MR labels fact (D-15)', () => {
     expect(screen.getByTestId('release-fact-mr-labels')).toHaveTextContent('Loading…');
   });
 
+  it('is hidden when MRs are loaded but the milestone has none', () => {
+    renderFacts({
+      branchState: exists,
+      gitlabMatch: exactMatch,
+      milestoneMRsLoaded: true,
+      labelCoverage: null,
+    });
+    expect(screen.queryByTestId('release-fact-mr-labels')).not.toBeInTheDocument();
+  });
+
   it('shows a green "All N labeled" when every MR is labeled', () => {
     renderFacts({
       branchState: exists,
