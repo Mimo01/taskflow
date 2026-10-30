@@ -93,18 +93,23 @@ function PersonCell({
 // Column widths shared by the header strip and every row so they align exactly and
 // hide together at the narrow breakpoints (reporter, then fix text, then the
 // assignee name, then the pill text).
-const COL_ICON = 'size-3.5 flex-none';
-const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[560px]/page:w-[5rem]';
-const COL_STATE = 'w-[84px] flex-none @max-[440px]/page:w-7';
-const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[560px]/page:w-5';
-const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[1000px]/page:hidden';
-const COL_FIX_TARGET = 'w-[280px] flex-none min-w-0 @max-[700px]/page:hidden';
+// Breakpoints are on the section's own width (@container), like the Issues table:
+// people collapse to avatars at 860, reporter goes at 760, the type icon at 640,
+// the fix text at 600 (Apply keeps it as a tooltip), the state pill turns into an
+// icon at 520. Fix shrinks (truncating) between breakpoints so a row never overflows.
+const COL_ICON = 'size-3.5 flex-none @max-[640px]:hidden';
+const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[520px]:w-[5rem]';
+const COL_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
+const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-5';
+const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-5 @max-[760px]:hidden';
+const COL_FIX_TARGET = 'basis-[280px] shrink min-w-[7rem] @max-[600px]:hidden';
+const COL_SUMMARY = 'min-w-[6rem] flex-1 @max-[600px]:min-w-[3rem]';
 /** Warning-tone outline shared by Apply and "Apply ▾": same width, one clean edge. */
 const APPLY_CLASS =
   'w-full justify-center border-orange-300 bg-background text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:bg-transparent dark:text-orange-300 dark:hover:bg-orange-500/15 dark:hover:text-orange-200';
 const COL_FIX_ACTION = 'flex w-[4.75rem] flex-none justify-end';
 const HEADER_CLASS =
-  'flex items-center gap-3 border-b border-orange-200/70 px-2 py-1 text-xs font-medium text-muted-foreground @max-[560px]/page:gap-2 dark:border-orange-500/20';
+  'flex items-center gap-3 border-b border-orange-200/70 px-2 py-1 text-xs font-medium text-muted-foreground @max-[860px]:gap-2 dark:border-orange-500/20';
 
 function fixKey(fix: PackageFix): string {
   return fix.kind === 'set-fix-version' ? `fv-${fix.versionId}` : `pkg-${fix.childKey}`;
@@ -325,7 +330,7 @@ export function DeploymentPackageSection({
   return (
     <section
       data-testid="deployment-package-section"
-      className="mt-6 border-l-[3px] border-orange-400 bg-orange-50/60 px-6 py-4 dark:border-orange-500/70 dark:bg-orange-500/[0.06]"
+      className="@container mt-6 border-l-[3px] border-orange-400 bg-orange-50/60 px-6 py-4 dark:border-orange-500/70 dark:bg-orange-500/[0.06]"
     >
       <h3 className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
         <AlertTriangle className="size-3.5 text-orange-600 dark:text-orange-400" />
@@ -336,7 +341,7 @@ export function DeploymentPackageSection({
         >
           {rows.length}
         </span>
-        <span className="text-xs font-normal text-muted-foreground @max-[700px]/page:hidden">
+        <span className="text-xs font-normal text-muted-foreground @max-[760px]:hidden">
           Issues whose fix version and deployment package disagree. Apply to fix.
         </span>
       </h3>
@@ -344,20 +349,22 @@ export function DeploymentPackageSection({
         <span className={COL_ICON} aria-hidden="true" />
         <span className={COL_KEY}>Key</span>
         <span className={COL_STATE}>
-          <span className="@max-[440px]/page:sr-only">State</span>
+          <span className="@max-[520px]:sr-only">State</span>
         </span>
         <span className={COL_ASSIGNEE}>
-          <span className="@max-[560px]/page:sr-only">Assignee</span>
+          <span className="@max-[860px]:sr-only">Assignee</span>
         </span>
-        <span className={COL_REPORTER}>Reporter</span>
-        <span className="min-w-[8rem] flex-1 @max-[700px]/page:min-w-[3rem]">Summary</span>
+        <span className={COL_REPORTER}>
+          <span className="@max-[860px]:sr-only">Reporter</span>
+        </span>
+        <span className={COL_SUMMARY}>Summary</span>
         <span className={COL_FIX_TARGET}>Fix</span>
         <span className={COL_FIX_ACTION} aria-hidden="true" />
       </div>
       <div className="flex flex-col divide-y divide-orange-200/60 dark:divide-orange-500/15">
         {shown.map(({ issue, result }) => (
           <div key={issue.key} data-testid={`package-row-${issue.key}`} className="min-w-0">
-            <div className="flex min-h-8 min-w-0 items-center gap-3 px-2 @max-[560px]/page:gap-2 py-1 text-sm transition-colors hover:bg-orange-100/50 dark:hover:bg-orange-500/10">
+            <div className="flex min-h-8 min-w-0 items-center gap-3 px-2 @max-[860px]:gap-2 py-1 text-sm transition-colors hover:bg-orange-100/50 dark:hover:bg-orange-500/10">
               <IssueTypeIcon
                 typeName={issue.fields.issuetype?.name ?? 'Story'}
                 className={COL_ICON}
@@ -374,26 +381,24 @@ export function DeploymentPackageSection({
                 title={`${result.hint}${result.detail ? ` ${result.detail}` : ''}`}
                 data-testid="package-state"
               >
-                <AlertTriangle aria-hidden className="hidden size-3 @max-[440px]/page:block" />
-                <span className="@max-[440px]/page:sr-only">{STATE_LABEL[result.state]}</span>
+                <AlertTriangle aria-hidden className="hidden size-3 @max-[520px]:block" />
+                <span className="@max-[520px]:sr-only">{STATE_LABEL[result.state]}</span>
               </span>
               <PersonCell
                 person={issue.fields.assignee}
                 label="Assignee"
                 none="Unassigned"
                 className={COL_ASSIGNEE}
-                nameClassName="@max-[560px]/page:sr-only"
+                nameClassName="@max-[860px]:sr-only"
               />
               <PersonCell
                 person={issue.fields.reporter}
                 label="Reporter"
                 none="—"
                 className={COL_REPORTER}
+                nameClassName="@max-[860px]:sr-only"
               />
-              <span
-                className="min-w-[8rem] flex-1 @max-[700px]/page:min-w-[3rem] truncate"
-                title={issue.fields.summary}
-              >
+              <span className={`${COL_SUMMARY} truncate`} title={issue.fields.summary}>
                 {issue.fields.summary}
               </span>
               <span

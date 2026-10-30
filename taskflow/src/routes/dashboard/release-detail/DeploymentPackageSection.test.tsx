@@ -208,7 +208,7 @@ describe('DeploymentPackageSection', () => {
     expect(row2.querySelector('[data-testid="package-assignee"]')).toHaveTextContent('Unassigned');
     expect(row2.querySelector('[data-testid="package-reporter"]')).toHaveTextContent('—');
     const reporter = row1.querySelector('[data-testid="package-reporter"]') as HTMLElement;
-    expect(reporter.className).toContain('@max-[1000px]/page:hidden');
+    expect(reporter.className).toContain('@max-[760px]:hidden');
     expect(row1.querySelector('[data-testid="package-assignee"]')?.className).toContain(
       'flex-none',
     );
@@ -225,10 +225,10 @@ describe('DeploymentPackageSection', () => {
     expect(header.className).toContain('border-b');
     // header and row hide their columns together at the same breakpoints
     const row = screen.getByTestId('package-row-S-1');
-    expect(header.innerHTML).toContain('@max-[1000px]/page:hidden');
-    expect(row.innerHTML).toContain('@max-[1000px]/page:hidden');
-    expect(header.innerHTML).toContain('@max-[700px]/page:hidden');
-    expect(row.innerHTML).toContain('@max-[700px]/page:hidden');
+    expect(header.innerHTML).toContain('@max-[760px]:hidden');
+    expect(row.innerHTML).toContain('@max-[760px]:hidden');
+    expect(header.innerHTML).toContain('@max-[600px]:hidden');
+    expect(row.innerHTML).toContain('@max-[600px]:hidden');
     const target = row.querySelector('[title*="WEEK44"], [title*="Week 44"]') as HTMLElement | null;
     expect(target?.textContent).toMatch(/Week 44 · RM-21/);
     expect(target?.getAttribute('title')).toContain('RM-21');
@@ -241,10 +241,12 @@ describe('DeploymentPackageSection', () => {
     expect(row.querySelectorAll('[data-testid="package-fix"]')).toHaveLength(1);
     const action = row.querySelector('button[aria-label^="Set deployment package"]') as HTMLElement;
     expect(action.parentElement?.className).toContain('justify-end');
-    // header Fix cell and row Fix cell share the same width class
-    const widthOf = (el: Element | null) => /w-\[280px\]/.test(el?.className ?? '');
-    expect(widthOf(row.querySelector('[data-testid="package-fix"]'))).toBe(true);
-    expect(header.innerHTML).toContain('w-[280px]');
+    // header Fix cell and row Fix cell share the same (shrinkable) basis, so they
+    // stay aligned and the row never overflows between breakpoints
+    const fixCell = row.querySelector('[data-testid="package-fix"]');
+    expect(fixCell?.className).toContain('basis-[280px]');
+    expect(fixCell?.className).toContain('shrink');
+    expect(header.innerHTML).toContain('basis-[280px]');
     expect(header.innerHTML).toContain('w-[4.75rem]');
   });
 
