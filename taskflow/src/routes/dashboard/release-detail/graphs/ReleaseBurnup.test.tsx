@@ -1,12 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import { BurnupTooltip, burnupEndLabelDy, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
-
-vi.mock('../../issue-detail/EpicChartZoom', async (orig) => ({
-  ...(await orig<typeof import('../../issue-detail/EpicChartZoom')>()),
-  useElementWidth: () => 600,
-}));
 
 const axis: BurnupAxis = {
   start: '2026-10-01',

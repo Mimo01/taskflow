@@ -1,12 +1,12 @@
 'use no memo';
 
 import { TrendingUp } from 'lucide-react';
-import { useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Area, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { dateKeyMs, formatDateKey, timeTicks } from '@/lib/epic-progress';
-import { PLOT_MARGIN, useElementWidth, Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
+import { PLOT_MARGIN, Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
 import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
@@ -17,6 +17,7 @@ const TOOLTIP_WRAPPER = { zIndex: 50, pointerEvents: 'none' as const };
 const GREEN = 'var(--color-green-500)';
 const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
+const FALLBACK_WIDTH = 640;
 
 /** At most 4 integer ticks (0 plus up to three steps of 5/10/...). */
 export function burnupYScale(max: number): { top: number; ticks: number[] } {
@@ -144,8 +145,23 @@ export function ReleaseBurnup({
   compact?: boolean;
   className?: string;
 }) {
-  const plotRef = useRef<HTMLDivElement>(null);
-  const width = useElementWidth(plotRef);
+  // 94-REVIEW WR-01: callback ref (as in ReleaseTypeWaffle). The plot only mounts
+  // once the slot is ready, so an effect on a useRef ran once with a null ref and
+  // kept the fallback width — and the tick density chosen for it — for good.
+  const [plotEl, setPlotEl] = useState<HTMLDivElement | null>(null);
+  const [measured, setMeasured] = useState(0);
+  useEffect(() => {
+    if (!plotEl) return;
+    setMeasured(plotEl.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setMeasured(w);
+    });
+    ro.observe(plotEl);
+    return () => ro.disconnect();
+  }, [plotEl]);
+  const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
   // Short meta so it never crowds the title; the full text (previous release) is the tooltip.
   const aside = axis ? (
     <span
@@ -190,7 +206,7 @@ export function ReleaseBurnup({
         )
       ) : (
         <div
-          ref={plotRef}
+          ref={setPlotEl}
           className={compact ? 'relative min-h-[110px] flex-1' : PLOT_CLASS}
           role="img"
           aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
