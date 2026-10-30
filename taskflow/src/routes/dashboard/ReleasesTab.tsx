@@ -156,6 +156,7 @@ export default function ReleasesTab() {
                 teams={teams}
                 showPackage={pkgs.enabled}
                 pkgLoading={pkgs.isLoading}
+                pkgError={pkgs.isError}
                 packageFor={pkgs.packageFor}
                 onOpen={handleReleaseClick}
               />

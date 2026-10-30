@@ -103,6 +103,7 @@ export default function ReleaseDetailPage() {
     releasePackage,
     rmEnabled,
     rmLoading,
+    rmError,
   } = useReleaseDetail(versionId);
 
   // Edit-modal state, diff builders and combined save (D-07 style co-located hook)
@@ -254,6 +255,7 @@ export default function ReleaseDetailPage() {
                 showPackage={rmEnabled}
                 pkg={releasePackage}
                 pkgLoading={rmLoading}
+                pkgError={rmError}
                 breakdown={headerBreakdown}
                 breakdownLoading={headerBreakdownLoading}
                 breakdownError={headerBreakdownError}

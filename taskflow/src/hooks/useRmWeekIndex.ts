@@ -80,6 +80,7 @@ export function useRmWeekIndex(
     combine: (results) => ({
       data: results.map((r) => r.data),
       isLoading: results.some((r) => r.isLoading),
+      isError: results.some((r) => r.isError),
     }),
   });
 
@@ -124,6 +125,8 @@ export function useRmWeekIndex(
     enabled,
     isLoading: listQuery.isLoading || children.isLoading || packages.isLoading,
     isError: listQuery.isError,
+    /** A needed week's children failed to load, so its child task is unknown. */
+    childrenError: children.isError,
   };
 }
 

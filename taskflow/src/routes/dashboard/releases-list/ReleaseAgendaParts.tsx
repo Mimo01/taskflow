@@ -195,6 +195,7 @@ export function NextReleaseCard({
   showPackage,
   pkg,
   pkgLoading,
+  pkgError = false,
   onOpen,
 }: {
   entry: AgendaRelease;
@@ -205,6 +206,7 @@ export function NextReleaseCard({
   showPackage: boolean;
   pkg: DerivedPackage | null;
   pkgLoading: boolean;
+  pkgError?: boolean;
   onOpen: (id: string) => void;
 }) {
   const { version } = entry;
@@ -237,7 +239,7 @@ export function NextReleaseCard({
       <div className="pointer-events-none relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
         {showPackage &&
           (pkg || pkgLoading ? (
-            <ReleasePackageCell pkg={pkg} loading={pkgLoading} />
+            <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />
           ) : (
             <span data-testid="row-deployment-package">No RM package</span>
           ))}

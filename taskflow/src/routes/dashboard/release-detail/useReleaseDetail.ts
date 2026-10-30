@@ -695,5 +695,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     releasePackage,
     rmEnabled: pkgs.enabled,
     rmLoading: pkgs.isLoading,
+    rmError: pkgs.isError,
   } as const;
 }

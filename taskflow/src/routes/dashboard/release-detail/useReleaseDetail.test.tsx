@@ -10,7 +10,12 @@ import { patchMrInChannelCaches } from './useMrFixMutation';
 import { useReleaseDetail } from './useReleaseDetail';
 
 vi.mock('@/hooks/useReleasePackages', () => ({
-  useReleasePackages: () => ({ enabled: false, isLoading: false, packageFor: () => null }),
+  useReleasePackages: () => ({
+    enabled: false,
+    isLoading: false,
+    isError: false,
+    packageFor: () => null,
+  }),
 }));
 
 // Mock stronghold

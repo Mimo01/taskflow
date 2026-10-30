@@ -58,6 +58,7 @@ interface ReleaseDetailHeaderProps {
   showPackage: boolean;
   pkg: DerivedPackage | null;
   pkgLoading: boolean;
+  pkgError?: boolean;
   breakdown: StatusBreakdown | undefined;
   breakdownLoading: boolean;
   breakdownError: boolean;
@@ -76,6 +77,7 @@ export function ReleaseDetailHeader({
   showPackage,
   pkg,
   pkgLoading,
+  pkgError = false,
   breakdown,
   breakdownLoading,
   breakdownError,
@@ -105,7 +107,7 @@ export function ReleaseDetailHeader({
             )}
             {showPackage && (
               <div className="w-44">
-                <ReleasePackageCell pkg={pkg} loading={pkgLoading} />
+                <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />
               </div>
             )}
           </div>

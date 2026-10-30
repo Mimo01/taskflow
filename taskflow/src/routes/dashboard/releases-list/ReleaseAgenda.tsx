@@ -22,6 +22,7 @@ type Props = {
   teams: ReadonlyMap<string, VersionAssignee[]>;
   showPackage: boolean;
   pkgLoading: boolean;
+  pkgError?: boolean;
   packageFor: (releaseDate?: string) => DerivedPackage | null;
   onOpen: (id: string) => void;
 };
@@ -56,8 +57,17 @@ function ReleaseRow({
   last: boolean;
   props: Props;
 }) {
-  const { breakdowns, loadingIds, errorIds, teams, showPackage, pkgLoading, packageFor, onOpen } =
-    props;
+  const {
+    breakdowns,
+    loadingIds,
+    errorIds,
+    teams,
+    showPackage,
+    pkgLoading,
+    pkgError = false,
+    packageFor,
+    onOpen,
+  } = props;
   const breakdown = breakdowns.get(base.version.id);
   // A quiet planned row that has issues gets the full row treatment.
   const entry =
@@ -86,6 +96,7 @@ function ReleaseRow({
             showPackage={showPackage}
             pkg={packageFor(version.releaseDate)}
             pkgLoading={pkgLoading}
+            pkgError={pkgError}
             onOpen={onOpen}
           />
         </div>
@@ -112,7 +123,11 @@ function ReleaseRow({
             </span>
             {!quiet && showPackage && (
               <div className="mt-0.5 flex">
-                <ReleasePackageCell pkg={packageFor(version.releaseDate)} loading={pkgLoading} />
+                <ReleasePackageCell
+                  pkg={packageFor(version.releaseDate)}
+                  loading={pkgLoading}
+                  error={pkgError}
+                />
               </div>
             )}
           </div>
