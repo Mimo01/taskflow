@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { ReleaseIssueGraph } from './ReleaseIssueGraph';
 import { ReleaseStatusPill } from './ReleaseStatusPill';
@@ -63,6 +64,36 @@ describe('ReleaseIssueGraph', () => {
     render(<ReleaseIssueGraph breakdown={undefined} loading={false} error={false} />);
     expect(screen.getByText('–')).toBeInTheDocument();
     expect(screen.queryByTestId('release-issues-error')).toBeNull();
+  });
+
+  it('fullWidth drops the max-w-xl cap; default keeps it', () => {
+    const { unmount } = render(
+      <ReleaseIssueGraph breakdown={data} loading={false} error={false} />,
+    );
+    expect(screen.getByTestId('release-graph').className).toContain('max-w-xl');
+    unmount();
+    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} fullWidth />);
+    expect(screen.getByTestId('release-graph').className).not.toContain('max-w-xl');
+  });
+
+  it('tooltip carries a 4th Statuses row only when statusNames is given', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <ReleaseIssueGraph
+        breakdown={data}
+        loading={false}
+        error={false}
+        statusNames="In Review 3"
+      />,
+    );
+    await user.hover(screen.getByRole('img', { name: '3 of 6 issues done' }));
+    expect(await screen.findByText('Statuses')).toBeInTheDocument();
+    expect(screen.getByText('In Review 3')).toBeInTheDocument();
+    unmount();
+    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} statusNames={null} />);
+    await user.hover(screen.getByRole('img', { name: '3 of 6 issues done' }));
+    expect(await screen.findByText('6 issues')).toBeInTheDocument();
+    expect(screen.queryByText('Statuses')).toBeNull();
   });
 
   it('keeps the same outer width class across states', () => {

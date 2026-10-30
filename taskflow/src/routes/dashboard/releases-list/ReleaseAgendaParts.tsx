@@ -40,7 +40,13 @@ export function AgendaDot({ kind, quiet }: { kind: AgendaKind; quiet: boolean })
   );
 }
 
-function SegmentedBar({ breakdown, className }: { breakdown: StatusBreakdown; className: string }) {
+export function SegmentedBar({
+  breakdown,
+  className,
+}: {
+  breakdown: StatusBreakdown;
+  className: string;
+}) {
   const total = breakdownTotal(breakdown);
   return (
     <div
@@ -232,9 +238,7 @@ export function NextReleaseCard({
         Next release
       </div>
       <div className="pointer-events-none relative flex items-center justify-between gap-2.5">
-        <span className="truncate text-base font-semibold">
-          {version.name}
-        </span>
+        <span className="truncate text-base font-semibold">{version.name}</span>
         <ReleaseStatusPill pill={entry.countdown} />
       </div>
       <div className="pointer-events-none relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
