@@ -177,6 +177,29 @@ function header(r, o) {
     <div class="actions"><span>Updated 2 min ago</span><button class="textbtn">${ic('refresh', 's3')}Refresh</button>
     <span style="width:4px"></span><button class="btn" title="Pin">${ic('pin')}<span class="lbl">Pin</span></button><button class="btn" title="Edit">${ic('pencil')}<span class="lbl">Edit</span></button><button class="btn" title="Open in Jira">${ic('ext')}<span class="lbl">Open in Jira</span></button></div></header>`;
 }
+// App-style detail header (mirrors AIO CycleHeader): text-lg title + inline pill, Refreshed + icon
+// refresh + outline sm buttons on the right, then one text-xs muted meta line with "·" separators
+// and "Name: value" fields (value font-medium text-foreground; tone only on problems).
+function headerApp(r) {
+  const [pc, pl] = pillOf(r);
+  const items = [];
+  if (r.date) items.push(`<span class="mi${pc === 't-red' ? ' bad' : ''}">${ic('calendar')}${fmtD(r.date)}</span>`);
+  else items.push(`<span class="mi warn">${ic('calx')}No release date</span>`);
+  if (r.pkg) items.push(`<span class="mi" ${tipAttr('RM package', [{ l: r.pkg.full, v: '' }])}>${ic('pkg')}${r.pkg.short}</span>`);
+  for (const f of factList(r)) {
+    const act = f.action ? `<button class="btn xs">${ic(f.actionIcon || 'plus', 's3')}${f.action}</button>` : '';
+    const v = `<b class="${f.mono ? 'mono' : ''}${f.fuzzy ? ' fz' : ''}${f.link ? ' lk' : ''}">${f.v}</b>`;
+    items.push(`<span class="mi ${f.tone || ''}" ${f.tip || ''}>${f.k}: ${v}${act}</span>`);
+  }
+  const descs = [r.desc && ['', r.desc], r.msDesc && ['Milestone', r.msDesc]].filter(Boolean);
+  const long = descs.map((x) => x[1]).join(' ').length > 160;
+  const desc = descs.length ? `<div class="desc"><span class="txt">${descs.map(([s2, t]) => `${s2 ? `<span class="src">${s2}</span>` : ''}${t}`).join(' ')}</span>${long ? `<button class="more" onclick="this.parentNode.classList.toggle('open');this.textContent=this.parentNode.classList.contains('open')?'less':'more'">more</button>` : ''}</div>` : '';
+  return `<header class="ahdr">
+    <div class="trow"><div class="tl"><h1 title="${esc(r.name)}">${r.name}</h1><span class="pill ${pc}">${pl}</span></div>
+      <div class="actions"><span class="rf">Refreshed: 11:24:05</span><button class="textbtn" title="Refresh release">${ic('refresh', 's3')}</button>
+      <button class="btn" title="Pin to tabs">${ic('pin')}<span class="lbl">Pin</span></button><button class="btn" title="Edit">${ic('pencil')}<span class="lbl">Edit</span></button><button class="btn" title="Open in Jira">${ic('ext')}<span class="lbl">Open in Jira</span></button></div></div>
+    <div class="meta">${items.join('<span class="dot">·</span>')}</div>${desc}</header>`;
+}
 function doneBar(r, cls = 'wide') {
   const i = r.issues;
   if (r.loading) return `<div class="bar ${cls} sk" style="background:var(--muted)"></div>`;
@@ -365,7 +388,7 @@ const LAYOUTS = {
   b(r, o) {
     const dn = donut(r, 104);
     const side = labelsSec(r) + mismatchSec(r);
-    return `${header(r, o)}<div class="donefig">${doneBar(r)}${doneFig(r)}</div>
+    return `${o.header === 'app' ? headerApp(r) : header(r, o)}<div class="donefig">${doneBar(r)}${doneFig(r)}</div>
     <div class="body">
       <div class="g-b${side ? '' : ' solo'}">
         <div class="quad">

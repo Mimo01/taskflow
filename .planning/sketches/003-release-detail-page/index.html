@@ -61,8 +61,8 @@
 const LAYOUT = {
   a: { o: { layout: 'a', facts: 'inline', type: 'columns' },
        cap: 'Facts inline in the header line · burnup full width · then assignee · type columns · MR donut in one row · labels + mismatches side by side · task table.' },
-  b: { o: { layout: 'b', facts: 'row', type: 'waffle' },
-       cap: 'Facts as their own chip row · graphs in a 2×2 grid · labels + mismatches in a right column · type graph is a waffle (one square per issue).' },
+  b: { o: { layout: 'b', facts: 'row', type: 'waffle', header: 'app' },
+       cap: 'App-style header (as AIO cycle detail): text-lg title + pill, facts as Name: value in the meta line · graphs in a 2×2 grid · labels + mismatches in a right column · type graph is a waffle (one square per issue).' },
   c: { o: { layout: 'c', facts: 'icons', type: 'tiles' },
        cap: 'Rocket card (as on the Releases page) holds the done bar + burnup · facts icon + value only (label in tooltip) · type graph as tiles.' },
 };

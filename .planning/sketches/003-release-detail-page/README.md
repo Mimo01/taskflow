@@ -42,3 +42,11 @@ This page is the **hub for 003–005**. It runs full width, with tab rows for La
 - **No MR donut (GitLab not configured):** the burnup spans the full grid row.
 - **No labels and no mismatches:** the side column disappears and the grid takes the full width.
 - **States and widths:** the hub now renders both on B (004 states and 005 Stack/Compact).
+
+## Round 2: app-style header (user: "make the header match the app style")
+- The header mirrors the shipped detail-page header (`aio-cycle/CycleHeader.tsx`, the page D-13 points to). It replaces the ReleasesHero-style 30px title and the chip row.
+- **Title row:** `text-lg font-semibold` title, truncated, with the status pill inline after it.
+- **Title row, right side:** "Refreshed: HH:MM:SS", an icon-only refresh, and outline `sm` buttons Pin · Edit · Open in Jira.
+- **Meta line:** one `text-xs` muted line with `·` separators. It holds the date (calendar icon, red when overdue), the RM package, then `Milestone: value · Branch: value · MR labels: value · Story points: value`. Values use `font-medium text-foreground`; problems get the orange/red tone; actions (Create branch / Create milestone / Retry) sit inline after their field.
+- **Below the meta line:** the description (2-line clamp + more), then a hairline above the wide done bar.
+- **Changes to D-08 and D-11:** facts are `Name: value` meta items, not chips, and the header follows CycleHeader instead of ReleasesHero.
