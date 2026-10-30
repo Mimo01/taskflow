@@ -197,7 +197,7 @@ Plans:
 **Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
 **Requirements**: TBD
 **Depends on:** Phase 93
-**Plans:** 7/8 plans executed
+**Plans:** 8/8 plans complete
 Plans:
 **Wave 1**
 
@@ -217,4 +217,4 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 94-08-PLAN.md — Visual verification against the sketch + user approval (checkpoint)
+- [x] 94-08-PLAN.md — Visual verification against the sketch + user approval (checkpoint)
