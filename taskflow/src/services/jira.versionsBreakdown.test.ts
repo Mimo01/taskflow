@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchVersionIssueCounts, fetchVersionsStatusBreakdown } from './jira';
+import { fetchVersionsStatusBreakdown } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({ fetch: vi.fn() }));
 import { fetch as mockFetch } from '@tauri-apps/plugin-http';
@@ -148,25 +148,5 @@ describe('fetchVersionsStatusBreakdown', () => {
   it('resolves {} for an empty id array with no fetch', async () => {
     expect(await fetchVersionsStatusBreakdown(BASE, 't', [])).toEqual({});
     expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it('agrees with fetchVersionIssueCounts on a shared fixture', async () => {
-    const fixture = [
-      issue('done', ['101']),
-      issue('done', ['101']),
-      issue('new', ['101']),
-      issue('indeterminate', ['101']),
-    ];
-    vi.mocked(mockFetch).mockImplementation((async (url: string) => {
-      if (url.includes('maxResults=0')) {
-        const done = decodeURIComponent(url).includes('statusCategory = Done');
-        return ok({ total: done ? 2 : fixture.length });
-      }
-      return ok({ total: fixture.length, issues: fixture });
-    }) as never);
-    const b = (await fetchVersionsStatusBreakdown(BASE, 't', ['101']))['101'];
-    const c = await fetchVersionIssueCounts(BASE, 't', '101');
-    expect(b.done).toBe(c.issuesFixed);
-    expect(b.done + b.indeterminate + b.new).toBe(c.issuesTotal);
   });
 });

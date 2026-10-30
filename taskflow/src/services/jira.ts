@@ -1275,58 +1275,6 @@ export async function fetchFixVersions(
   return (Array.isArray(data) ? data : []) as JiraFixVersion[];
 }
 
-/** Issue counts for a fix version: total non-subtask issues and how many are Done. */
-export interface VersionIssueCounts {
-  issuesFixed: number;
-  issuesTotal: number;
-}
-
-/**
- * Fetch total and done issue counts for a fix version via two JQL count-only
- * searches. Never throws on an HTTP failure — each request independently
- * falls back to a count of 0, so this always resolves to a counts object.
- *
- * @param baseUrl   - Jira base URL
- * @param token     - Personal Access Token
- * @param versionId - Jira fix version ID (must be numeric)
- * @returns issuesFixed (Done count) and issuesTotal (issue count, including subtasks
- *          that carry this fix version directly)
- */
-export async function fetchVersionIssueCounts(
-  baseUrl: string,
-  token: string,
-  versionId: string,
-): Promise<VersionIssueCounts> {
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  // No subtask exclusion here (unlike the Backlog/Sprint JQL elsewhere in this
-  // file): those views exclude subtasks because they render nested under their
-  // parent story, but the Releases view is a flat issue+MR table with no
-  // parent/subtask nesting, so a subtask carrying this fix version directly
-  // must be counted like any other issue.
-  const baseJql = `fixVersion = ${versionId}`;
-  const totalJql = encodeURIComponent(baseJql);
-  const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
-  const totalUrl = `${base}/rest/api/2/search?jql=${totalJql}&maxResults=0&fields=`;
-  const doneUrl = `${base}/rest/api/2/search?jql=${doneJql}&maxResults=0&fields=`;
-
-  const [totalResult, doneResult] = await Promise.allSettled([
-    apiFetch('jira', totalUrl, { headers }, 'Load Release Issue Counts').then((r) =>
-      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
-    ),
-    apiFetch('jira', doneUrl, { headers }, 'Load Release Issue Counts').then((r) =>
-      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
-    ),
-  ]);
-
-  const issuesTotal = totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
-  const issuesFixed = doneResult.status === 'fulfilled' ? (doneResult.value.total ?? 0) : 0;
-
-  return { issuesFixed, issuesTotal };
-}
-
 export type VersionStatusBreakdown = { new: number; indeterminate: number; done: number };
 export type VersionAssignee = {
   key: string;
@@ -1342,7 +1290,7 @@ export type VersionReleaseSummary = VersionStatusBreakdown & { assignees: Versio
  * The same search also yields the distinct assignees per version (the list's team
  * column, F5). An issue carrying several requested versions counts toward each of them.
  *
- * No subtask exclusion on purpose: it must match fetchVersionIssueCounts so the
+ * No subtask exclusion on purpose: it must match fetchFixVersionIssues so the
  * list and detail N / M figures agree. Pagination is never capped.
  *
  * @param baseUrl    - Jira base URL
@@ -1451,9 +1399,11 @@ export async function fetchFixVersionIssues(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
-  // No subtask exclusion here (see fetchVersionIssueCounts above for why): the
-  // Releases view is a flat issue+MR table, so a subtask carrying this fix
-  // version directly must appear as its own row alongside Stories/Bugs.
+  // No subtask exclusion here (unlike the Backlog/Sprint JQL elsewhere in this
+  // file): those views exclude subtasks because they render nested under their
+  // parent story, but the Releases view is a flat issue+MR table with no
+  // parent/subtask nesting, so a subtask carrying this fix version directly
+  // must appear as its own row alongside Stories/Bugs.
   const jql = `fixVersion = ${versionId} ORDER BY created ASC, key ASC`;
   const fields = [
     'summary',

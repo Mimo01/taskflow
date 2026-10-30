@@ -26,7 +26,6 @@ vi.mock('@/services/stronghold', () => ({
 // Mock jira service
 vi.mock('@/services/jira', () => ({
   fetchFixVersions: vi.fn(),
-  fetchVersionIssueCounts: vi.fn(),
   fetchFixVersionIssues: vi.fn(),
 }));
 
@@ -130,10 +129,6 @@ async function setupMocks(
       released: overrides.released ?? false,
     },
   ]);
-  vi.mocked(jira.fetchVersionIssueCounts).mockResolvedValue({
-    issuesFixed: 0,
-    issuesTotal: 0,
-  });
   vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([]);
 
   const gitlab = await import('@/services/gitlab');
@@ -1242,14 +1237,12 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
       expect(result.current.headerBreakdown).toBeUndefined();
     });
 
-    it('no longer fires the per-version count query and exposes RM package fields', async () => {
+    it('exposes no per-version issue counts and exposes RM package fields', async () => {
       await setupMocks();
-      const jira = await import('@/services/jira');
       const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
         wrapper: makeWrapper(newClient()),
       });
       await waitFor(() => expect(result.current.version).not.toBeNull());
-      expect(jira.fetchVersionIssueCounts).not.toHaveBeenCalled();
       expect('issueCounts' in result.current).toBe(false);
       expect(result.current.rmEnabled).toBe(false);
       expect(result.current.rmLoading).toBe(false);
