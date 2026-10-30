@@ -197,8 +197,15 @@ Plans:
 **Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
 **Requirements**: TBD
 **Depends on:** Phase 93
-**Plans:** 0 plans
+**Plans:** 8 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 94 to break down)
+- [ ] 94-01-PLAN.md — Pure graph derivations (burnup axis/series, assignee/type buckets, MR donut counts) + additive useReleaseDetail fields
+- [ ] 94-02-PLAN.md — Additive created/resolutiondate Jira fields, refreshReleaseDetail, shared primitives (SegmentedBar export, muted IssueTypeIcon, full-width done bar, GraphSlot)
+- [ ] 94-03-PLAN.md — ReleaseFacts meta items (ported sidebar states, D-15 tooltip) + ReleaseDescription clamp
+- [ ] 94-04-PLAN.md — Progress burnup + Merge requests donut graphs
+- [ ] 94-05-PLAN.md — By assignee rows + By type waffle graphs
+- [ ] 94-06-PLAN.md — CycleHeader-style header + done bar, full-width skeleton, sticky table header, side-column headings
+- [ ] 94-07-PLAN.md — Full-width page composition + page test; remove releaseDetailPanelWidth (v32) and sidebar files
+- [ ] 94-08-PLAN.md — Visual verification against the sketch + user approval (checkpoint)
