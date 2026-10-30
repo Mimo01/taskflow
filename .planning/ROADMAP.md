@@ -197,13 +197,13 @@ Plans:
 **Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
 **Requirements**: TBD
 **Depends on:** Phase 93
-**Plans:** 8 plans
+**Plans:** 3/8 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 94-01-PLAN.md — Pure graph derivations (burnup axis/series, assignee/type buckets, MR donut counts) + additive useReleaseDetail fields
-- [ ] 94-02-PLAN.md — Additive created/resolutiondate Jira fields, refreshReleaseDetail, shared primitives (SegmentedBar export, muted IssueTypeIcon, full-width done bar, GraphSlot)
-- [ ] 94-03-PLAN.md — ReleaseFacts meta items (ported sidebar states, D-15 tooltip) + ReleaseDescription clamp
+- [x] 94-01-PLAN.md — Pure graph derivations (burnup axis/series, assignee/type buckets, MR donut counts) + additive useReleaseDetail fields
+- [x] 94-02-PLAN.md — Additive created/resolutiondate Jira fields, refreshReleaseDetail, shared primitives (SegmentedBar export, muted IssueTypeIcon, full-width done bar, GraphSlot)
+- [x] 94-03-PLAN.md — ReleaseFacts meta items (ported sidebar states, D-15 tooltip) + ReleaseDescription clamp
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
