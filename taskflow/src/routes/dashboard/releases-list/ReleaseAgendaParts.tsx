@@ -107,9 +107,15 @@ export function ReleaseIssuesSlot({
   );
 }
 
-/** Up to 3 overlapping avatars plus a +N chip. */
-export function ReleaseTeam({ assignees }: { assignees: readonly VersionAssignee[] }) {
-  const shown = assignees.slice(0, 3);
+/** Up to `max` overlapping avatars plus a +N chip. */
+export function ReleaseTeam({
+  assignees,
+  max,
+}: {
+  assignees: readonly VersionAssignee[];
+  max: number;
+}) {
+  const shown = assignees.slice(0, max);
   const extra = assignees.length - shown.length;
   return (
     <span
@@ -190,7 +196,7 @@ export function NextReleaseCard({
             <span data-testid="row-deployment-package">No RM package</span>
           ))}
         <span className="ml-auto">
-          <ReleaseTeam assignees={team} />
+          <ReleaseTeam assignees={team} max={8} />
         </span>
       </div>
       <div className="pointer-events-none relative">

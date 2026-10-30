@@ -39,8 +39,8 @@ const person = (n: number): VersionAssignee => ({
   count: 1,
 });
 const TEAMS = new Map<string, VersionAssignee[]>([
-  ['O', [person(1), person(2), person(3), person(4), person(5)]],
-  ['A', [person(1)]],
+  ['O', [1, 2, 3, 4, 5, 6, 7].map(person)],
+  ['A', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(person)],
   ['C', [person(1)]],
 ]);
 
@@ -192,11 +192,14 @@ describe('ReleaseAgenda', () => {
     expect(screen.getByTestId('agenda-section').textContent).toBe('No date1');
   });
 
-  it('shows at most 3 avatars with a +N chip on full rows, nothing on quiet rows', () => {
+  it('shows up to 5 avatars on rows and 8 on the next card, with a +N chip', () => {
     setup({ breakdowns: NO_COUNTS });
     const team = within(rowFor('Alpha overdue release')).getByTestId('release-team');
-    expect(within(team).getAllByRole('img')).toHaveLength(3);
+    expect(within(team).getAllByRole('img')).toHaveLength(5);
     expect(team.textContent).toContain('+2');
+    const cardTeam = within(screen.getByTestId('next-release-card')).getByTestId('release-team');
+    expect(within(cardTeam).getAllByRole('img')).toHaveLength(8);
+    expect(cardTeam.textContent).toContain('+2');
     expect(within(rowFor('Delta planned release')).queryByTestId('release-team')).toBeNull();
   });
 
@@ -249,7 +252,7 @@ describe('ReleaseAgenda', () => {
     const { container } = setup();
     expect(container.innerHTML).not.toMatch(/orange/);
     expect(container.innerHTML).toContain('w-[150px]');
-    expect(container.innerHTML).toContain('w-[70px]');
+    expect(container.innerHTML).toContain('w-[104px]');
     expect(container.innerHTML).toContain('w-[100px]');
   });
 });

@@ -147,3 +147,9 @@ Round 1 follow-up 7 (2026-10-30), user feedback verbatim:
 > make the releases title bigger, like onp age My tasks
 
 Fixed inline: the title is now `text-3xl font-semibold`, the My Tasks / Standup size for headers that have a summary line.
+
+Round 1 follow-up 8 (2026-10-30), user feedback verbatim:
+
+> we can show more avatars in the tasks
+
+Fixed inline: `ReleaseTeam` takes a `max`. Rows show up to 5 avatars (team column 70px → 104px) and the next-release card up to 8, each with a +N chip beyond that.
