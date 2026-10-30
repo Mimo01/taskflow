@@ -38,13 +38,19 @@ export function ReleaseIssueGraph({
   breakdown,
   loading,
   error,
+  fullWidth = false,
+  statusNames,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
   /** Failed fetch with no data: a muted dash whose tooltip names the failure. */
   error: boolean;
+  /** Span the full available width (drops the max-w-xl cap). */
+  fullWidth?: boolean;
+  /** Exact status names, shown as a 4th tooltip row. */
+  statusNames?: string | null;
 }) {
-  const wrapper = 'flex w-full max-w-xl items-center gap-2';
+  const wrapper = cn('flex w-full items-center gap-2', !fullWidth && 'max-w-xl');
 
   if (!breakdown) {
     return (
@@ -105,6 +111,7 @@ export function ReleaseIssueGraph({
                 sub={`${Math.round((r.value / total) * 100)}%`}
               />
             ))}
+            {statusNames ? <TooltipRow label="Statuses" value={statusNames} /> : null}
           </TooltipBody>
         </TooltipContent>
       </Tooltip>
