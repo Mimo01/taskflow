@@ -164,6 +164,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ One unified task-keyed release detail table with inline BR/MS drift actions, click-to-filter warning badges, and a secondary table for uncovered MRs — v1.14 Phase 91.1
 - ✓ `/epics` as a single-line portfolio row (creation order, three-segment progress bar, `done/total SP`, priority, child-status breakdown) with fail-closed enrichment streaming behind first paint — v1.14 Phase 91.2
 - ✓ Ranked global search: instant title hits from the cached backlog index, ordered by sprint tier then field (title > description > comment), subtasks grouped under a faded parent, an Epics section, one debounced Jira body request (with highlighted description/comment excerpts on a second line), and Recent Items rows enriched with status/assignee/epic — Phase 92
+- ✓ Fix-version-driven, GitLab-free Releases list as an agenda rail (overdue first, TODAY line, next-release card, month groups, planned rows expanding once they have issues, muted Released panel), in the standard header bar with planned/overdue/undated counts and release cadence; one batched paginated Jira search per visible chunk with instant cached revisits; the release detail header echoes the list row, with each figure shown once — Phase 93
 
 ### Active
 
@@ -186,6 +187,12 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit b7984f2f); Log Work stays on the Worklogs page and issue detail
 
 ## Current State
+
+**Phase 93 complete 2026-10-30** (post-v1.14, standalone): the Releases list was rebuilt from Jira fix versions only, with no GitLab. It loads with one batched, paginated status search per visible chunk, renders instantly from cache, and Refresh never blanks the page. Live UAT judged the first design "too plain", so the list was rebuilt to sketch 002 F5 as an agenda rail. Nine follow-up rounds then removed the timeline graph and the tooltips that blocked clicks. They also moved the page onto the app's standard header bar and established a rule: every page uses the top-left header bar, and the centered hero stays on the home dashboard only. 4 advisory warnings remain in `93-REVIEW.md`:
+- a failed batch looks like "no data";
+- the RM cell shows "week, no task" while its inputs are loading;
+- `title` tooltips on truncated names never appear because of `pointer-events-none`;
+- the detail pill's wording differs from the list's.
 
 **Phase 92 complete 2026-10-16** (post-v1.14, standalone): the command palette became a ranked, cache-backed global search, and the top-bar Recent Items history was rebuilt on the same row component, which batch-enriches any recent issue missing from the index. The live UAT drove an extended polish loop (21 fix commits). The code review's two critical findings were fixed: hyphenated terms broke the body search, and direct-match subtasks were left without their parent. 9 advisory warnings remain in `92-REVIEW.md`.
 
@@ -396,4 +403,4 @@ This document evolves at phase transitions and milestone boundaries.
 | `fetchEpicsBasic` ordering is a per-caller parameter, in the query key (v1.14 Phase 91.2) | The fetcher is shared with the Sidebar, Backlog and Sprint Board pickers under one cache key — this phase's `created ASC` was silently reordering all of them | ✓ Good — defaults to the original `updated DESC`; the two orderings cannot serve each other's cache |
 
 ---
-*Last updated: 2026-10-16 — after Phase 92 (Advanced Global Search)*
+*Last updated: 2026-10-30 — after Phase 93 (Releases list and detail redesign)*
