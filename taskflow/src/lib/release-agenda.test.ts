@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { JiraFixVersion } from '@/services/jira';
-import { buildAgenda, dateStamp, releaseCountdown, releaseSummary } from './release-agenda';
+import {
+  buildAgenda,
+  dateStamp,
+  releaseCountdown,
+  releaseSummary,
+  spanLabel,
+} from './release-agenda';
 
 const TODAY = '2026-10-29';
 
@@ -135,6 +141,35 @@ describe('buildAgenda', () => {
 
 describe('releaseSummary', () => {
   it('counts planned, overdue and undated, ignoring released', () => {
-    expect(releaseSummary(fixture, TODAY)).toEqual({ planned: 6, overdue: 1, undated: 1 });
+    expect(releaseSummary(fixture, TODAY)).toEqual({
+      planned: 6,
+      overdue: 1,
+      undated: 1,
+      cadenceDays: 7,
+      lastShippedDays: 16,
+    });
+  });
+
+  it('cadence is the median gap of the most recent ship dates', () => {
+    const shipped = ['2026-10-27', '2026-10-20', '2026-10-13', '2026-10-12', '2026-09-01'].map(
+      (d, i) => v(`S${i}`, true, d),
+    );
+    // gaps newest first: 7, 7, 1, 41 -> median of [1, 7, 7, 41] = 7
+    expect(releaseSummary(shipped, TODAY)).toMatchObject({ cadenceDays: 7, lastShippedDays: 2 });
+  });
+
+  it('ignores future-dated released versions and needs two dates for a cadence', () => {
+    const one = [v('S1', true, '2026-10-20'), v('S2', true, '2026-11-20')];
+    expect(releaseSummary(one, TODAY)).toMatchObject({ cadenceDays: null, lastShippedDays: 9 });
+    expect(releaseSummary([], TODAY)).toMatchObject({ cadenceDays: null, lastShippedDays: null });
+  });
+});
+
+describe('spanLabel', () => {
+  it('days under two weeks, weeks from 14', () => {
+    expect(spanLabel(1)).toBe('1 day');
+    expect(spanLabel(13)).toBe('13 days');
+    expect(spanLabel(14)).toBe('2 weeks');
+    expect(spanLabel(25)).toBe('4 weeks');
   });
 });

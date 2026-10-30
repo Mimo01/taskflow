@@ -98,18 +98,6 @@ describe('ReleaseAgenda', () => {
     expect(onOpen).toHaveBeenLastCalledWith('A');
   });
 
-  it('opens the release when its progress bar (a tooltip trigger) is clicked', () => {
-    const { onOpen } = setup();
-    for (const [scope, id] of [
-      [rowFor('Alpha overdue release'), 'O'],
-      [screen.getByTestId('next-release-card'), 'A'],
-    ] as const) {
-      onOpen.mockClear();
-      fireEvent.click(within(scope).getByRole('img', { name: /issues done/ }));
-      expect(onOpen).toHaveBeenCalledExactlyOnceWith(id);
-    }
-  });
-
   it('renders the next release as a card with rocket, name, pill and one figure', () => {
     setup();
     const card = screen.getByTestId('next-release-card');

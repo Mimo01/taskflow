@@ -3,11 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { ReleasesHero } from './ReleasesHero';
 
 const base = { updatedAt: undefined, refreshing: false, onRefresh: () => {} };
+const NO_HISTORY = { cadenceDays: null, lastShippedDays: null };
 
 describe('ReleasesHero', () => {
   it('renders the title and 8 ambient curves', () => {
     const { container } = render(
-      <ReleasesHero {...base} summary={{ planned: 1, overdue: 0, undated: 0 }} />,
+      <ReleasesHero {...base} summary={{ planned: 1, overdue: 0, undated: 0, ...NO_HISTORY }} />,
     );
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Releases');
     const svg = container.querySelector('svg[aria-hidden="true"]');
@@ -15,7 +16,9 @@ describe('ReleasesHero', () => {
   });
 
   it('renders the summary with emphasised count and red overdue', () => {
-    render(<ReleasesHero {...base} summary={{ planned: 17, overdue: 1, undated: 1 }} />);
+    render(
+      <ReleasesHero {...base} summary={{ planned: 17, overdue: 1, undated: 1, ...NO_HISTORY }} />,
+    );
     expect(screen.getByTestId('releases-summary').textContent).toBe(
       '17 planned · 1 overdue · 1 without date',
     );
@@ -24,12 +27,49 @@ describe('ReleasesHero', () => {
   });
 
   it('omits zero clauses', () => {
-    render(<ReleasesHero {...base} summary={{ planned: 17, overdue: 0, undated: 0 }} />);
+    render(
+      <ReleasesHero {...base} summary={{ planned: 17, overdue: 0, undated: 0, ...NO_HISTORY }} />,
+    );
     expect(screen.getByTestId('releases-summary').textContent).toBe('17 planned');
   });
 
+  it('adds release cadence and last shipped when there is history', () => {
+    render(
+      <ReleasesHero
+        {...base}
+        summary={{ planned: 9, overdue: 0, undated: 0, cadenceDays: 7, lastShippedDays: 16 }}
+      />,
+    );
+    expect(screen.getByTestId('releases-summary').textContent).toBe(
+      '9 planned · ships every ~7 days · last shipped 2 weeks ago',
+    );
+  });
+
+  it('says today / yesterday for a recent ship and skips a zero cadence', () => {
+    const { rerender } = render(
+      <ReleasesHero
+        {...base}
+        summary={{ planned: 2, overdue: 0, undated: 0, cadenceDays: 0, lastShippedDays: 0 }}
+      />,
+    );
+    expect(screen.getByTestId('releases-summary').textContent).toBe(
+      '2 planned · last shipped today',
+    );
+    rerender(
+      <ReleasesHero
+        {...base}
+        summary={{ planned: 2, overdue: 0, undated: 0, cadenceDays: 3, lastShippedDays: 1 }}
+      />,
+    );
+    expect(screen.getByTestId('releases-summary').textContent).toBe(
+      '2 planned · ships every ~3 days · last shipped yesterday',
+    );
+  });
+
   it('says no planned releases when planned is 0', () => {
-    render(<ReleasesHero {...base} summary={{ planned: 0, overdue: 0, undated: 0 }} />);
+    render(
+      <ReleasesHero {...base} summary={{ planned: 0, overdue: 0, undated: 0, ...NO_HISTORY }} />,
+    );
     expect(screen.getByTestId('releases-summary').textContent).toBe('No planned releases');
   });
 

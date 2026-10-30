@@ -114,20 +114,50 @@ export function buildAgenda(
   return { entries, nextId, nearId, released };
 }
 
-export function releaseSummary(
-  versions: readonly JiraFixVersion[],
-  today: string,
-): { planned: number; overdue: number; undated: number } {
+export type ReleaseSummary = {
+  planned: number;
+  overdue: number;
+  undated: number;
+  /** Median days between the most recent ship dates; null with fewer than 2. */
+  cadenceDays: number | null;
+  /** Days since the latest ship date up to today; null when nothing has shipped. */
+  lastShippedDays: number | null;
+};
+
+const CADENCE_SAMPLE = 9;
+
+/** "1 day" / "N days" under two weeks, "N weeks" from 14 days. */
+export function spanLabel(days: number): string {
+  if (days < 14) return `${days} ${days === 1 ? 'day' : 'days'}`;
+  return `${Math.round(days / 7)} weeks`;
+}
+
+export function releaseSummary(versions: readonly JiraFixVersion[], today: string): ReleaseSummary {
   let planned = 0;
   let overdue = 0;
   let undated = 0;
+  const shipped = new Set<string>();
   for (const v of versions) {
-    if (v.released) continue;
+    if (v.released) {
+      if (v.releaseDate && v.releaseDate <= today) shipped.add(v.releaseDate);
+      continue;
+    }
     if (!v.releaseDate) undated += 1;
     else {
       planned += 1;
       if (v.releaseDate < today) overdue += 1;
     }
   }
-  return { planned, overdue, undated };
+  const dates = [...shipped].sort().reverse().slice(0, CADENCE_SAMPLE);
+  const gaps = dates.slice(1).map((d, i) => daysBetweenKeys(d, dates[i]));
+  gaps.sort((a, b) => a - b);
+  const mid = gaps.length >> 1;
+  const cadenceDays =
+    gaps.length === 0
+      ? null
+      : gaps.length % 2
+        ? gaps[mid]
+        : Math.round((gaps[mid - 1] + gaps[mid]) / 2);
+  const lastShippedDays = dates.length ? daysBetweenKeys(dates[0], today) : null;
+  return { planned, overdue, undated, cadenceDays, lastShippedDays };
 }

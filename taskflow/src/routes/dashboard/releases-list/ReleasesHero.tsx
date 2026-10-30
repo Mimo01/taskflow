@@ -1,7 +1,14 @@
 import { RefreshCw } from 'lucide-react';
 import { AmbientCurves } from '@/components/ambient-curves';
 import { relativeTime } from '@/lib/relative-time';
+import { type ReleaseSummary, spanLabel } from '@/lib/release-agenda';
 import { cn } from '@/lib/utils';
+
+function lastShippedLabel(days: number): string {
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return `${spanLabel(days)} ago`;
+}
 
 export function ReleasesHero({
   summary,
@@ -9,7 +16,7 @@ export function ReleasesHero({
   refreshing,
   onRefresh,
 }: {
-  summary: { planned: number; overdue: number; undated: number } | null;
+  summary: ReleaseSummary | null;
   updatedAt: number | undefined;
   refreshing: boolean;
   onRefresh: () => void;
@@ -40,6 +47,11 @@ export function ReleasesHero({
                 </>
               )}
               {summary.undated > 0 && ` · ${summary.undated} without date`}
+              {summary.cadenceDays !== null &&
+                summary.cadenceDays > 0 &&
+                ` · ships every ~${spanLabel(summary.cadenceDays)}`}
+              {summary.lastShippedDays !== null &&
+                ` · last shipped ${lastShippedLabel(summary.lastShippedDays)}`}
             </p>
           )}
         </div>

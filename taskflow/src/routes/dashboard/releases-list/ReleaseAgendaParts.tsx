@@ -4,15 +4,12 @@ import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import type { AgendaKind, AgendaRelease } from '@/lib/release-agenda';
 import {
   breakdownTotal,
   type DerivedPackage,
   RELEASE_SEGMENT_CLASS,
   RELEASE_SEGMENT_ORDER,
-  releaseTooltipRows,
   type StatusBreakdown,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
@@ -66,13 +63,10 @@ export function ReleaseIssuesSlot({
   breakdown,
   loading,
   variant,
-  onClick,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
   variant: 'row' | 'card';
-  /** Opens the release: the bar's tooltip trigger sits above the row's overlay button. */
-  onClick?: () => void;
 }) {
   const wrapper = cn('flex h-5 w-full items-center', variant === 'card' ? 'gap-3' : 'gap-2');
   if (!breakdown) {
@@ -99,37 +93,13 @@ export function ReleaseIssuesSlot({
   const isCard = variant === 'card';
   return (
     <div data-testid="release-issues" className={wrapper}>
-      <Tooltip>
-        <TooltipTrigger
-          delay={0}
-          render={<div />}
-          role="img"
-          aria-label={`${breakdown.done} of ${total} issues done`}
-          onClick={onClick}
-          className={cn(
-            'pointer-events-auto relative z-10 flex cursor-pointer items-center',
-            isCard && 'flex-1',
-          )}
-        >
-          <SegmentedBar
-            breakdown={breakdown}
-            className={isCard ? 'h-2 w-full' : 'h-1.5 w-[92px]'}
-          />
-        </TooltipTrigger>
-        <TooltipContent>
-          <TooltipBody title={`${total} issues`}>
-            {releaseTooltipRows(breakdown).map((r) => (
-              <TooltipRow
-                key={r.label}
-                color={r.color}
-                label={r.label}
-                value={r.value}
-                sub={`${Math.round((r.value / total) * 100)}%`}
-              />
-            ))}
-          </TooltipBody>
-        </TooltipContent>
-      </Tooltip>
+      <div
+        role="img"
+        aria-label={`${breakdown.done} of ${total} issues done`}
+        className={cn('flex items-center', isCard && 'flex-1')}
+      >
+        <SegmentedBar breakdown={breakdown} className={isCard ? 'h-2 w-full' : 'h-1.5 w-[92px]'} />
+      </div>
       <span className="text-xs font-medium whitespace-nowrap tabular-nums">
         {isCard ? `${breakdown.done}/${total} done` : `${breakdown.done}/${total}`}
       </span>
@@ -224,12 +194,7 @@ export function NextReleaseCard({
         </span>
       </div>
       <div className="pointer-events-none relative">
-        <ReleaseIssuesSlot
-          breakdown={breakdown}
-          loading={loading}
-          variant="card"
-          onClick={() => onOpen(version.id)}
-        />
+        <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="card" />
       </div>
     </Card>
   );

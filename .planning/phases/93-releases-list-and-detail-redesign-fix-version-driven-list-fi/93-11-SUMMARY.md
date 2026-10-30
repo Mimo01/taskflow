@@ -90,3 +90,18 @@ Fixed inline:
 - Released rows and "Show older releases" now have `cursor-pointer`.
 - `ReleasePackageCell` is plain text with no tooltip, on the list and on the detail header, and its `onClick` prop is gone.
 - The progress tooltip question is open with the user.
+
+Round 1 follow-up 3 (2026-10-30), user feedback verbatim:
+
+> under the title there is only X planned most of the time. it fells plain
+
+Decisions (asked):
+- Hero line → "Release cadence".
+- Progress tooltip → "Remove it".
+
+Fixed inline:
+- `releaseSummary` now also returns `cadenceDays` and `lastShippedDays`.
+  - `cadenceDays` is the median gap between the 9 most recent distinct ship dates, counting only dates up to today.
+  - `lastShippedDays` is the number of days since the last ship date.
+- The hero appends "ships every ~N days/weeks" and "last shipped today / yesterday / N days ago".
+- The progress bar is a plain `role="img"` bar with no tooltip, so the click forwarding from follow-up 1 is gone.

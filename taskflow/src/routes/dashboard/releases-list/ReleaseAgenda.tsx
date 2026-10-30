@@ -112,12 +112,7 @@ function ReleaseRow({
             )}
           </div>
           <div className="flex w-[150px] flex-none items-center">
-            <ReleaseIssuesSlot
-              breakdown={breakdown}
-              loading={loading}
-              variant="row"
-              onClick={() => onOpen(version.id)}
-            />
+            <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="row" />
           </div>
           <div className="hidden w-[70px] flex-none @[640px]:flex">
             {!quiet && <ReleaseTeam assignees={team} />}
