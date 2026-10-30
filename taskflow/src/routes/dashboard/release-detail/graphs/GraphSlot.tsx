@@ -60,7 +60,7 @@ export function GraphSlot({
         ) : state === 'empty' ? (
           <div
             data-testid={`${testId}-empty`}
-            className="flex flex-1 items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground"
+            className="flex flex-1 items-center justify-center text-xs text-muted-foreground"
             style={{ minHeight: height }}
           >
             {emptyLabel}

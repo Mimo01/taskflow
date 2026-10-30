@@ -134,7 +134,8 @@ beforeEach(() => {
 
 describe('ReleaseDetailPage', () => {
   it('renders header, done bar, graphs and table in DOM order', () => {
-    mockHook.mockReturnValue(gitlabFixture() as never);
+    const mr = { id: 1, state: 'merged', draft: false };
+    mockHook.mockReturnValue({ ...gitlabFixture(), milestoneMRs: [mr], releaseMrs: [mr] } as never);
     renderPage();
     const ids = [
       'release-detail-header',
@@ -169,11 +170,34 @@ describe('ReleaseDetailPage', () => {
     expect(screen.queryByRole('separator')).toBeNull();
   });
 
-  it('without GitLab: no donut, burnup spans the row, no milestone fact', () => {
+  it('without GitLab: By status takes the MR slot, no milestone fact', () => {
     renderPage();
     expect(screen.queryByTestId('release-graph-mrs')).toBeNull();
-    expect(screen.getByTestId('release-graph-burnup').className).toContain('col-span-full');
+    expect(screen.getByTestId('release-graph-status')).toBeInTheDocument();
     expect(screen.queryByTestId('release-fact-milestone')).toBeNull();
+  });
+
+  it('milestone without MRs: By status plus one friendly line, no dashed box', () => {
+    mockHook.mockReturnValue(gitlabFixture() as never);
+    renderPage();
+    expect(screen.queryByTestId('release-graph-mrs')).toBeNull();
+    expect(screen.getByTestId('release-graph-status')).toBeInTheDocument();
+    expect(screen.getByTestId('release-mrs-none')).toHaveTextContent(
+      'No merge requests in this milestone yet',
+    );
+  });
+
+  it('no issues: one friendly empty state, no graphs, done bar or task table', () => {
+    mockHook.mockReturnValue(
+      fixture({ fixVersionIssues: [], releaseIssues: [], primaryRows: [] }) as never,
+    );
+    renderPage();
+    expect(screen.getByTestId('release-no-issues')).toHaveTextContent(
+      'No issues in this fix version yet',
+    );
+    expect(screen.queryByTestId('release-done-bar')).toBeNull();
+    expect(screen.queryByTestId('release-graph-grid')).toBeNull();
+    expect(screen.queryByTestId('task-column-header')).toBeNull();
   });
 
   it('shows no MR/status count text outside the graphs (D-06)', () => {

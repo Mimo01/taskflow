@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { JiraIssue } from '@/services/jira';
 import {
   deriveReleaseAssigneeRows,
+  deriveReleaseStatusRows,
   deriveReleaseTypeRows,
   mrDonutSlices,
   statusNameSummary,
+  waffleCells,
+  waffleUnit,
 } from './releaseBuckets';
 
 const SP = 'customfield_10016';
@@ -121,5 +124,53 @@ describe('statusNameSummary', () => {
     ];
     expect(statusNameSummary(issues)).toBe('In Review 3 · QA 2 · Blocked 1 · +1 more');
     expect(statusNameSummary(issues.slice(0, 5))).toBe('In Review 3 · QA 2');
+  });
+});
+
+describe('waffleUnit / waffleCells', () => {
+  it('unit is 1 when the widest row fits and ceil(max/capacity) otherwise', () => {
+    expect(waffleUnit(8, 10)).toBe(1);
+    expect(waffleUnit(26, 10)).toBe(3);
+    expect(waffleUnit(26, 0)).toBe(26);
+  });
+
+  it('unit 1 keeps one block per issue', () => {
+    expect(waffleCells({ done: 2, indeterminate: 1, new: 3 }, 1)).toEqual({
+      done: 2,
+      indeterminate: 1,
+      new: 3,
+    });
+  });
+
+  it('aggregates to ceil(total/unit) blocks, preserving the mix', () => {
+    const c = waffleCells({ done: 22, indeterminate: 4, new: 0 }, 3);
+    expect(c.done + c.indeterminate + c.new).toBe(9);
+    expect(c).toEqual({ done: 8, indeterminate: 1, new: 0 });
+  });
+
+  it('never drops a non-empty category to zero blocks', () => {
+    const c = waffleCells({ done: 0, indeterminate: 1, new: 25 }, 3);
+    expect(c.indeterminate).toBe(1);
+    expect(c.done + c.indeterminate + c.new).toBe(9);
+    const bug = waffleCells({ done: 0, indeterminate: 2, new: 0 }, 3);
+    expect(bug).toEqual({ done: 0, indeterminate: 1, new: 0 });
+  });
+});
+
+describe('deriveReleaseStatusRows', () => {
+  it('counts per status name, ordered done, in progress, to do then count', () => {
+    const rows = deriveReleaseStatusRows([
+      issue(1, { status: 'To Do', cat: 'new' }),
+      issue(2, { status: 'Done', cat: 'done' }),
+      issue(3, { status: 'In Review', cat: 'indeterminate' }),
+      issue(4, { status: 'In Review', cat: 'indeterminate' }),
+      issue(5, { status: 'In Progress', cat: 'indeterminate' }),
+    ]);
+    expect(rows.map((r) => [r.name, r.cat, r.count])).toEqual([
+      ['Done', 'done', 1],
+      ['In Review', 'indeterminate', 2],
+      ['In Progress', 'indeterminate', 1],
+      ['To Do', 'new', 1],
+    ]);
   });
 });

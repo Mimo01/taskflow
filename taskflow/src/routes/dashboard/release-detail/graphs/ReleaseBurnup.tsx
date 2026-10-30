@@ -9,6 +9,7 @@ import { dateKeyMs, formatDateKey, timeTicks } from '@/lib/epic-progress';
 import { PLOT_MARGIN, useElementWidth, Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
+import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
 
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
@@ -16,8 +17,6 @@ const TOOLTIP_WRAPPER = { zIndex: 50, pointerEvents: 'none' as const };
 const GREEN = 'var(--color-green-500)';
 const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
-
-export const NOT_ENOUGH_HISTORY = 'Not enough history yet — the burnup starts after the first day';
 
 /** At most 4 integer ticks (0 plus up to three steps of 5/10/...). */
 export function burnupYScale(max: number): { top: number; ticks: number[] } {
@@ -90,12 +89,15 @@ export function ReleaseBurnup({
   points,
   state,
   showStoryPoints,
+  summary,
   className,
 }: {
   axis: BurnupAxis | null;
   points: BurnupPoint[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   showStoryPoints: boolean;
+  /** Drives the countdown timeline shown instead of the chart on a thin history. */
+  summary: TimelineSummary;
   className?: string;
 }) {
   const plotRef = useRef<HTMLDivElement>(null);
@@ -123,12 +125,7 @@ export function ReleaseBurnup({
       className={className}
     >
       {!enough || !axis ? (
-        <div
-          data-testid="release-graph-burnup-thin"
-          className={`flex items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs italic text-muted-foreground ${PLOT_CLASS}`}
-        >
-          {NOT_ENOUGH_HISTORY}
-        </div>
+        <ReleaseTimeline axis={axis} summary={summary} className={PLOT_CLASS} />
       ) : (
         <div
           ref={plotRef}

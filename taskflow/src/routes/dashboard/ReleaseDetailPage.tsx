@@ -7,11 +7,12 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
+import { GitMerge, PackageOpen } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
-import { releaseHeaderPill } from '@/lib/release-agenda';
+import { dateStamp, releaseHeaderPill } from '@/lib/release-agenda';
 import { refreshReleaseDetail } from '@/lib/release-refresh';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
@@ -22,6 +23,7 @@ import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { ReleaseAssigneeRows } from './release-detail/graphs/ReleaseAssigneeRows';
 import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
 import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
+import { ReleaseStatusRows } from './release-detail/graphs/ReleaseStatusRows';
 import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
@@ -31,6 +33,7 @@ import {
   ReleaseDetailHeader,
   ReleaseDoneBar,
 } from './release-detail/ReleaseHeader';
+import { deriveReleaseStatusRows } from './release-detail/releaseBuckets';
 import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
@@ -255,6 +258,21 @@ export default function ReleaseDetailPage() {
         ? 'loading'
         : 'ready';
 
+  const hasMilestone = gitlabConfigured && gitlabMatch.type !== 'none';
+  // The MR donut needs a milestone with MRs; otherwise the slot shows issues by
+  // status so it always carries information.
+  const showDonut = hasMilestone && donutState !== 'empty';
+  const statusRows = deriveReleaseStatusRows(releaseIssues);
+  const today = toLocalDateString(new Date());
+  const timelineSummary = {
+    done: headerBreakdown?.done ?? 0,
+    total: releaseIssues.length,
+    today,
+    releaseDate: version?.releaseDate ?? null,
+    released: !!version?.released,
+  };
+  const noIssues = issueGraphState === 'empty';
+
   if (!versionId) return null;
 
   return (
@@ -335,67 +353,94 @@ export default function ReleaseDetailPage() {
             jiraVersionUrl={jiraVersionUrl}
             onOpenInJira={handleOpenInJira}
           />
-          <ReleaseDoneBar
-            breakdown={headerBreakdown}
-            loading={headerBreakdownLoading}
-            error={headerBreakdownError}
-            statusNames={statusNameSummary}
-          />
+          {noIssues ? null : (
+            <ReleaseDoneBar
+              breakdown={headerBreakdown}
+              loading={headerBreakdownLoading}
+              error={headerBreakdownError}
+              statusNames={statusNameSummary}
+            />
+          )}
 
-          {/* Graph grid: quad (burnup, MRs, assignees, types) + side column */}
-          <div
-            data-testid="release-graph-grid"
-            className="grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] gap-8 px-6 pt-6 @max-[980px]/page:grid-cols-1 has-[>aside:empty]:grid-cols-1"
-          >
-            {issueGraphState === 'empty' ? (
-              // One compact state instead of four lopsided dashed slots.
+          {noIssues ? (
+            <div
+              data-testid="release-no-issues"
+              className="flex flex-col items-center gap-2 px-6 py-16 text-center"
+            >
+              <PackageOpen className="size-8 text-muted-foreground/60" aria-hidden="true" />
+              <p className="text-sm font-semibold">No issues in this fix version yet</p>
+              <p className="max-w-[48ch] text-xs text-muted-foreground">
+                {version.releaseDate && !version.released
+                  ? `Planned for ${dateStamp(version.releaseDate).inline}. Graphs and the task list appear once issues are added to the fix version in Jira.`
+                  : 'Graphs and the task list appear once issues are added to the fix version in Jira.'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Graph grid: quad (burnup, MRs, assignees, types) + side column */}
               <div
-                data-testid="release-graphs-empty"
-                className="flex h-24 items-center justify-center self-start rounded-lg border border-dashed text-xs text-muted-foreground"
+                data-testid="release-graph-grid"
+                className="grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] gap-8 px-6 pt-6 @max-[980px]/page:grid-cols-1 has-[>aside:empty]:grid-cols-1"
               >
-                Graphs appear once issues are added
-              </div>
-            ) : (
-              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1">
-                <ReleaseBurnup
-                  axis={burnupAxis}
-                  points={burnupPoints}
-                  state={issueGraphState}
-                  showStoryPoints={hasStoryPoints}
-                  className={gitlabConfigured ? '@max-[640px]/page:col-span-full' : 'col-span-full'}
-                />
-                {gitlabConfigured && <ReleaseMrDonut counts={mrDonutCounts} state={donutState} />}
-                <ReleaseAssigneeRows
-                  rows={assigneeRows}
-                  state={issueGraphState}
-                  showStoryPoints={hasStoryPoints}
-                  className="@max-[640px]/page:col-span-full @max-[640px]/page:order-4"
-                />
-                <ReleaseTypeWaffle
-                  rows={typeRows}
-                  state={issueGraphState}
-                  showStoryPoints={hasStoryPoints}
-                />
-              </div>
-            )}
-            <aside className="flex flex-col gap-6 border-l pl-8 empty:hidden @max-[980px]/page:border-l-0 @max-[980px]/page:pl-0 @max-[980px]/page:border-t @max-[980px]/page:pt-6">
-              <LabelSummarySection
-                milestoneMRsLoaded={!!milestoneMRs}
-                labelSummary={labelSummary}
-              />
-              {/* Stories whose fix version and Deployment package disagree (quick
+                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1">
+                  <ReleaseBurnup
+                    axis={burnupAxis}
+                    points={burnupPoints}
+                    state={issueGraphState}
+                    showStoryPoints={hasStoryPoints}
+                    summary={timelineSummary}
+                    className="@max-[640px]/page:col-span-full"
+                  />
+                  {showDonut ? (
+                    <ReleaseMrDonut counts={mrDonutCounts} state={donutState} />
+                  ) : (
+                    <div className="flex min-w-0 flex-col gap-3">
+                      <ReleaseStatusRows
+                        rows={statusRows}
+                        state={issueGraphState}
+                        className="flex-1"
+                      />
+                      {hasMilestone ? (
+                        <p
+                          data-testid="release-mrs-none"
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                        >
+                          <GitMerge className="size-3.5" aria-hidden="true" />
+                          No merge requests in this milestone yet
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                  <ReleaseAssigneeRows
+                    rows={assigneeRows}
+                    state={issueGraphState}
+                    showStoryPoints={hasStoryPoints}
+                    className="@max-[640px]/page:col-span-full @max-[640px]/page:order-4"
+                  />
+                  <ReleaseTypeWaffle
+                    rows={typeRows}
+                    state={issueGraphState}
+                    showStoryPoints={hasStoryPoints}
+                  />
+                </div>
+                <aside className="flex flex-col gap-6 border-l pl-8 empty:hidden @max-[980px]/page:border-l-0 @max-[980px]/page:pl-0 @max-[980px]/page:border-t @max-[980px]/page:pt-6">
+                  <LabelSummarySection
+                    milestoneMRsLoaded={!!milestoneMRs}
+                    labelSummary={labelSummary}
+                  />
+                  {/* Stories whose fix version and Deployment package disagree (quick
                       261014-eym). Renders nothing without an RM project. */}
-              <DeploymentPackageSection
-                stories={releaseIssues}
-                version={version}
-                jiraBaseUrl={jiraBaseUrl}
-                activeJiraProject={activeJiraProject}
-                onOpenIssue={resolvedOnOpenIssue}
-              />
-            </aside>
-          </div>
+                  <DeploymentPackageSection
+                    stories={releaseIssues}
+                    version={version}
+                    jiraBaseUrl={jiraBaseUrl}
+                    activeJiraProject={activeJiraProject}
+                    onOpenIssue={resolvedOnOpenIssue}
+                  />
+                </aside>
+              </div>
 
-          {/* Unified task table (criterion 1): one Jira-task-keyed table with
+              {/* Unified task table (criterion 1): one Jira-task-keyed table with
                   every associated MR inline underneath, plus a conditional
                   secondary table for MRs no task covers. `key` remounts the
                   table when the release changes — navigating to an
@@ -403,37 +448,39 @@ export default function ReleaseDetailPage() {
                   nothing else would remount it, and the per-cell fix state
                   (`useMrFixMutation`'s local `status`/`errorMessage`) would
                   otherwise carry over from the previous release. */}
-          <div className="px-6 pt-8 pb-6">
-            <UnifiedTaskTable
-              key={versionId}
-              versionName={version.name}
-              hasReleaseDate={!!version.releaseDate}
-              isLoadingIssues={isLoadingIssues}
-              isLoadingDrift={isLoadingDrift}
-              driftUnavailable={driftUnavailable}
-              hasMatchedMilestone={hasMatchedMilestone}
-              milestoneLookupFailed={milestonesFailed}
-              primaryRows={primaryRows}
-              secondaryRows={secondaryRows}
-              flaggedMrCount={flaggedMrCount}
-              brFlaggedCount={brFlaggedCount}
-              msFlaggedCount={msFlaggedCount}
-              onOpenIssue={resolvedOnOpenIssue}
-              onOpenIssueFull={openIssueFull}
-              onSeedBreadcrumb={seedReleaseBreadcrumb}
-              onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
-              fix={{
-                projectId: activeGitlabProject ?? null,
-                baseUrl: gitlabBaseUrl ?? null,
-                token: gitlabToken,
-                releaseBranchName,
-                releaseBranchExists: branchState.kind === 'exists',
-                matchedMilestone: matchedMilestone
-                  ? { id: matchedMilestone.id, title: matchedMilestone.title }
-                  : null,
-              }}
-            />
-          </div>
+              <div className="px-6 pt-8 pb-6">
+                <UnifiedTaskTable
+                  key={versionId}
+                  versionName={version.name}
+                  hasReleaseDate={!!version.releaseDate}
+                  isLoadingIssues={isLoadingIssues}
+                  isLoadingDrift={isLoadingDrift}
+                  driftUnavailable={driftUnavailable}
+                  hasMatchedMilestone={hasMatchedMilestone}
+                  milestoneLookupFailed={milestonesFailed}
+                  primaryRows={primaryRows}
+                  secondaryRows={secondaryRows}
+                  flaggedMrCount={flaggedMrCount}
+                  brFlaggedCount={brFlaggedCount}
+                  msFlaggedCount={msFlaggedCount}
+                  onOpenIssue={resolvedOnOpenIssue}
+                  onOpenIssueFull={openIssueFull}
+                  onSeedBreadcrumb={seedReleaseBreadcrumb}
+                  onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
+                  fix={{
+                    projectId: activeGitlabProject ?? null,
+                    baseUrl: gitlabBaseUrl ?? null,
+                    token: gitlabToken,
+                    releaseBranchName,
+                    releaseBranchExists: branchState.kind === 'exists',
+                    matchedMilestone: matchedMilestone
+                      ? { id: matchedMilestone.id, title: matchedMilestone.title }
+                      : null,
+                  }}
+                />
+              </div>
+            </>
+          )}
 
           {/* Edit modal */}
           <EditReleaseModal

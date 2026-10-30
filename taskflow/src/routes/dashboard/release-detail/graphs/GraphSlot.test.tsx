@@ -39,11 +39,11 @@ describe('GraphSlot', () => {
     expect(screen.getByTestId('custom')).toBeInTheDocument();
   });
 
-  it('empty shows a dashed box with label and min-height', () => {
+  it('empty shows a plain label (no dashed box) with min-height', () => {
     slot({ state: 'empty' });
     const el = screen.getByTestId('gs-empty');
     expect(el).toHaveTextContent('Nothing yet');
-    expect(el.className).toContain('border-dashed');
+    expect(el.className).not.toContain('border-dashed');
     expect(el.style.minHeight).toBe('196px');
   });
 

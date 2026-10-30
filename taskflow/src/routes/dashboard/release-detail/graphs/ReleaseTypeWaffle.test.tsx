@@ -66,4 +66,35 @@ describe('ReleaseTypeWaffle', () => {
     await user.hover(screen.getByTestId('type-row-Bug'));
     expect((await screen.findAllByText('Story points')).length).toBeGreaterThan(0);
   });
+
+  it('never wraps: a wide row switches every row to N issues per block with a note', () => {
+    const wide: ReleaseTypeRow[] = [
+      {
+        typeName: 'Story',
+        breakdown: { done: 22, indeterminate: 4, new: 0 },
+        total: 26,
+        done: 22,
+        sp: 0,
+      },
+      {
+        typeName: 'Bug',
+        breakdown: { done: 0, indeterminate: 2, new: 0 },
+        total: 2,
+        done: 0,
+        sp: 0,
+      },
+    ];
+    render(<ReleaseTypeWaffle rows={wide} state="ready" showStoryPoints={false} />);
+    const note = screen.getByTestId('waffle-scale');
+    expect(note).toHaveTextContent(/1 block = \d+ issues/);
+    expect(
+      screen.getByTestId('type-row-Bug').querySelectorAll('[data-testid="waffle-cell"]'),
+    ).toHaveLength(1);
+    expect(screen.getByTestId('type-row-Story')).toHaveTextContent('22/26');
+  });
+
+  it('shows no scale note when every issue has its own block', () => {
+    render(<ReleaseTypeWaffle rows={rows} state="ready" showStoryPoints={false} />);
+    expect(screen.queryByTestId('waffle-scale')).toBeNull();
+  });
 });

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
-import { BurnupTooltip, burnupYScale, NOT_ENOUGH_HISTORY, ReleaseBurnup } from './ReleaseBurnup';
+import { BurnupTooltip, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
 
 vi.mock('../../issue-detail/EpicChartZoom', async (orig) => ({
   ...(await orig<typeof import('../../issue-detail/EpicChartZoom')>()),
@@ -24,39 +24,80 @@ const pt = (day: string, t: number, scope: number, done: number): BurnupPoint =>
   done,
   doneSp: done * 2,
 });
+const summary = {
+  done: 2,
+  total: 5,
+  today: '2026-10-10',
+  releaseDate: '2026-10-20',
+  released: false,
+};
 const points = [pt('2026-10-01', 1, 3, 0), pt('2026-10-10', 2, 5, 2)];
 
 describe('ReleaseBurnup', () => {
   it('shows the loading skeleton', () => {
-    render(<ReleaseBurnup axis={null} points={[]} state="loading" showStoryPoints={false} />);
+    render(
+      <ReleaseBurnup
+        axis={null}
+        points={[]}
+        state="loading"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
     expect(screen.getByTestId('release-graph-burnup-skeleton')).toBeInTheDocument();
   });
 
   it('shows the error text', () => {
-    render(<ReleaseBurnup axis={null} points={[]} state="error" showStoryPoints={false} />);
+    render(
+      <ReleaseBurnup
+        axis={null}
+        points={[]}
+        state="error"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
     expect(screen.getByText(/Couldn't load issues/)).toBeInTheDocument();
   });
 
   it('shows No issues when empty', () => {
-    render(<ReleaseBurnup axis={null} points={[]} state="empty" showStoryPoints={false} />);
+    render(
+      <ReleaseBurnup
+        axis={null}
+        points={[]}
+        state="empty"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
     expect(screen.getByText('No issues')).toBeInTheDocument();
   });
 
-  it('shows the not-enough-history sentence for a 1-point series', () => {
+  it('shows the countdown timeline instead of a chart for a 1-point series', () => {
     render(
       <ReleaseBurnup
         axis={axis}
         points={points.slice(0, 1)}
         state="ready"
         showStoryPoints={false}
+        summary={summary}
       />,
     );
-    expect(screen.getByText(NOT_ENOUGH_HISTORY)).toBeInTheDocument();
+    const thin = screen.getByTestId('release-graph-burnup-thin');
+    expect(thin).toHaveTextContent('2');
+    expect(thin).toHaveTextContent('10 days left');
+    expect(thin).toHaveTextContent('until');
   });
 
   it('renders the chart with an aria-label, heading and aside; no legend', () => {
     const { container } = render(
-      <ReleaseBurnup axis={axis} points={points} state="ready" showStoryPoints={false} />,
+      <ReleaseBurnup
+        axis={axis}
+        points={points}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+      />,
     );
     expect(
       screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
@@ -73,6 +114,7 @@ describe('ReleaseBurnup', () => {
         points={points}
         state="ready"
         showStoryPoints={false}
+        summary={summary}
       />,
     );
     expect(screen.getByText('since Oct 1')).toBeInTheDocument();
