@@ -181,6 +181,30 @@ export function computeMrStateCounts(releaseMrs: GitLabMR[]): {
 }
 
 /**
+ * MR donut distribution (P94 D-05) — splits opened MRs into open and draft;
+ * closed and locked fold into "closed".
+ *
+ * @param mrs - GitLab MRs carrying the matched milestone
+ * @returns counts of merged / open / draft / closed
+ */
+export function computeMrDonutCounts(mrs: GitLabMR[]): {
+  merged: number;
+  open: number;
+  draft: number;
+  closed: number;
+} {
+  const counts = { merged: 0, open: 0, draft: 0, closed: 0 };
+  for (const mr of mrs) {
+    if (mr.state === 'merged') counts.merged += 1;
+    else if (mr.state === 'opened') {
+      if (mr.draft) counts.draft += 1;
+      else counts.open += 1;
+    } else counts.closed += 1;
+  }
+  return counts;
+}
+
+/**
  * Issue status distribution from statusCategory.key. Bucket exhaustively so an
  * out-of-union runtime key falls back to 'new' instead of producing NaN.
  *

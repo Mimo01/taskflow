@@ -7,6 +7,7 @@ import {
   computeLabelCoverage,
   computeLabelSummary,
   computeMilestoneWindow,
+  computeMrDonutCounts,
   computeMrStateCounts,
   computeStoryPoints,
 } from './releaseSummaries';
@@ -176,5 +177,20 @@ describe('computeMilestoneWindow', () => {
   it("rolls back across the month boundary for '2026-03-05'", () => {
     const result = computeMilestoneWindow('2026-03-05');
     expect(result).toEqual({ from: '2026-02-26', to: '2026-03-12' });
+  });
+});
+
+describe('computeMrDonutCounts', () => {
+  it('splits opened into open and draft, folds closed and locked', () => {
+    const mrs = [
+      makeMR({ state: 'merged' }),
+      makeMR({ state: 'opened', draft: false }),
+      makeMR({ state: 'opened', draft: true }),
+      makeMR({ state: 'opened', draft: true }),
+      makeMR({ state: 'closed' }),
+      makeMR({ state: 'locked' }),
+    ];
+    expect(computeMrDonutCounts(mrs)).toEqual({ merged: 1, open: 1, draft: 2, closed: 2 });
+    expect(computeMrDonutCounts([])).toEqual({ merged: 0, open: 0, draft: 0, closed: 0 });
   });
 });
