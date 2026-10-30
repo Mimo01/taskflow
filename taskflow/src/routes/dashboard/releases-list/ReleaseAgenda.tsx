@@ -107,11 +107,7 @@ function ReleaseRow({
             </span>
             {!quiet && showPackage && (
               <div className="mt-0.5 flex">
-                <ReleasePackageCell
-                  pkg={packageFor(version.releaseDate)}
-                  loading={pkgLoading}
-                  onClick={() => onOpen(version.id)}
-                />
+                <ReleasePackageCell pkg={packageFor(version.releaseDate)} loading={pkgLoading} />
               </div>
             )}
           </div>

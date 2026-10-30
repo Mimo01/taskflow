@@ -37,7 +37,7 @@ export function ReleasedPanel({
             data-testid="released-row"
             title={v.name}
             onClick={() => onOpen(v.id)}
-            className="grid w-full grid-cols-[74px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-lg px-3 py-[7px] text-left hover:bg-background"
+            className="grid w-full grid-cols-[74px_minmax(0,1fr)_auto] cursor-pointer items-center gap-3.5 rounded-lg px-3 py-[7px] text-left hover:bg-background"
           >
             <span className="text-right text-[12.5px] whitespace-nowrap text-muted-foreground tabular-nums">
               {v.releaseDate ? dateStamp(v.releaseDate).inline : '–'}
@@ -57,7 +57,7 @@ export function ReleasedPanel({
         <button
           type="button"
           onClick={onShowMore}
-          className="py-1.5 pr-3 pl-[100px] text-[12.5px] text-muted-foreground hover:text-foreground"
+          className="cursor-pointer py-1.5 pr-3 pl-[100px] text-[12.5px] text-muted-foreground hover:text-foreground"
         >
           Show older releases ↓
         </button>

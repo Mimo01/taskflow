@@ -1,25 +1,17 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { formatWeekLabel } from '@/lib/deployment-package';
 import type { DerivedPackage } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 
 const WRAPPER = 'flex w-full min-w-0 items-center gap-1.5 text-xs';
 
-/**
- * RM deployment package for a release: child, week-only, none, or loading.
- * `onClick` lets a clickable row keep its click on the tooltip trigger, which sits
- * above the row's overlay button.
- */
+/** RM deployment package for a release: child, week-only, none, or loading. */
 export function ReleasePackageCell({
   pkg,
   loading,
-  onClick,
 }: {
   pkg: DerivedPackage | null;
   loading: boolean;
-  onClick?: () => void;
 }) {
   if (loading && !pkg) {
     return (
@@ -39,31 +31,10 @@ export function ReleasePackageCell({
   const { week, child } = pkg;
   return (
     <div data-testid="row-deployment-package" className={WRAPPER}>
-      <Tooltip>
-        <TooltipTrigger
-          delay={0}
-          render={<div />}
-          onClick={onClick}
-          className={cn(
-            'pointer-events-auto relative z-10 flex min-w-0 items-center gap-1.5',
-            onClick && 'cursor-pointer',
-          )}
-        >
-          <span className={cn('truncate', !child && 'text-muted-foreground')}>
-            {formatWeekLabel(week.summary)}
-          </span>
-          {child && <span className="truncate font-mono text-muted-foreground">{child.key}</span>}
-        </TooltipTrigger>
-        <TooltipContent>
-          <TooltipBody title={week.summary}>
-            {child ? (
-              <TooltipRow label={child.key} value={child.summary} />
-            ) : (
-              <TooltipRow label="Package" value="No matching package" />
-            )}
-          </TooltipBody>
-        </TooltipContent>
-      </Tooltip>
+      <span className={cn('truncate', !child && 'text-muted-foreground')}>
+        {formatWeekLabel(week.summary)}
+      </span>
+      {child && <span className="truncate font-mono text-muted-foreground">{child.key}</span>}
     </div>
   );
 }

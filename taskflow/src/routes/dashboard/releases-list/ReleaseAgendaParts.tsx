@@ -215,7 +215,7 @@ export function NextReleaseCard({
       <div className="pointer-events-none relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
         {showPackage &&
           (pkg || pkgLoading ? (
-            <ReleasePackageCell pkg={pkg} loading={pkgLoading} onClick={() => onOpen(version.id)} />
+            <ReleasePackageCell pkg={pkg} loading={pkgLoading} />
           ) : (
             <span data-testid="row-deployment-package">No RM package</span>
           ))}

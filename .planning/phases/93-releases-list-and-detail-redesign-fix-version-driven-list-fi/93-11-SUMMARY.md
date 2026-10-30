@@ -79,3 +79,14 @@ Round 1 follow-up (2026-10-30), user feedback verbatim:
 > clicking on stuff like progress bar, release management opens its tooltip, it doesnt take me to the release detail
 
 Fixed inline. The bar and package tooltip triggers sit above the row's overlay button. They now take an `onClick` that opens the release, in both rows and the next-release card. The card's package/team row and bar wrapper are now `pointer-events-none`, so clicks on them fall through to the card button.
+
+Round 1 follow-up 2 (2026-10-30), user feedback verbatim:
+
+> released do not have cursor pointer
+> remove release management tooltip, it doesnt really show any new info.
+> is the progress info tooltip also necessary?
+
+Fixed inline:
+- Released rows and "Show older releases" now have `cursor-pointer`.
+- `ReleasePackageCell` is plain text with no tooltip, on the list and on the detail header, and its `onClick` prop is gone.
+- The progress tooltip question is open with the user.

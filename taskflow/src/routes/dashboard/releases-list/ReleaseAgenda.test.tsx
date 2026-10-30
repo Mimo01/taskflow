@@ -98,24 +98,14 @@ describe('ReleaseAgenda', () => {
     expect(onOpen).toHaveBeenLastCalledWith('A');
   });
 
-  it('opens the release when its bar or package line is clicked (tooltip triggers)', () => {
-    const pkg = {
-      week: { key: 'RM-1', summary: 'WEEK45', weekNo: 45, start: '', end: '', children: [] },
-      child: { key: 'RM-14', summary: 'Package' },
-    };
-    const { onOpen } = setup({ showPackage: true, packageFor: () => pkg });
-    for (const [name, id] of [
-      ['Alpha overdue release', 'O'],
-      ['Beta next release', 'A'],
-    ]) {
-      const scope = within(
-        name === 'Beta next release' ? screen.getByTestId('next-release-card') : rowFor(name),
-      );
+  it('opens the release when its progress bar (a tooltip trigger) is clicked', () => {
+    const { onOpen } = setup();
+    for (const [scope, id] of [
+      [rowFor('Alpha overdue release'), 'O'],
+      [screen.getByTestId('next-release-card'), 'A'],
+    ] as const) {
       onOpen.mockClear();
-      fireEvent.click(scope.getByRole('img', { name: /issues done/ }));
-      expect(onOpen).toHaveBeenCalledExactlyOnceWith(id);
-      onOpen.mockClear();
-      fireEvent.click(scope.getByText('RM-14'));
+      fireEvent.click(within(scope).getByRole('img', { name: /issues done/ }));
       expect(onOpen).toHaveBeenCalledExactlyOnceWith(id);
     }
   });
