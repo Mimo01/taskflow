@@ -1,26 +1,29 @@
 /**
  * ReleaseDetailPage -- Full-page route-based release detail view at /release/:versionId.
  *
- * Two-column layout mirroring MergeRequestDetailPage: left column shows release
- * name, status, description, and issue counts; right sidebar shows metadata
- * with inline editing capabilities.
+ * Full-width, single-scroll layout (D-07, D-13): fixed breadcrumb bar, then one
+ * scroll wrapper holding header, done bar, graph grid (quad + side column) and
+ * the unified task table.
  */
 
-import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { useResizable } from '@/hooks/useResizable';
 import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
 import { releaseHeaderPill } from '@/lib/release-agenda';
+import { refreshReleaseDetail } from '@/lib/release-refresh';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
-import { useSettingsStore } from '@/stores/settings.store';
 import { CreateBranchDialog } from './release-detail/CreateBranchDialog';
 import { CreateMilestoneDialog } from './release-detail/CreateMilestoneDialog';
 import { DeploymentPackageSection } from './release-detail/DeploymentPackageSection';
 import { EditReleaseModal } from './release-detail/EditReleaseModal';
+import { ReleaseAssigneeRows } from './release-detail/graphs/ReleaseAssigneeRows';
+import { ReleaseBurnup } from './release-detail/graphs/ReleaseBurnup';
+import { ReleaseMrDonut } from './release-detail/graphs/ReleaseMrDonut';
+import { ReleaseTypeWaffle } from './release-detail/graphs/ReleaseTypeWaffle';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
-import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
 import { releaseFactItems } from './release-detail/ReleaseFacts';
 import {
@@ -53,8 +56,7 @@ export default function ReleaseDetailPage() {
   // indices of everything before it are unaffected.
   const displayTrail = trail.filter((e) => e.path !== `/release/${versionId}`);
 
-  const releaseDetailPanelWidth = useSettingsStore((s) => s.releaseDetailPanelWidth);
-  const setReleaseDetailPanelWidth = useSettingsStore((s) => s.setReleaseDetailPanelWidth);
+  const queryClient = useQueryClient();
 
   // Pinned-release tab support (mirrors AioCycleDetailPage cycle pinning)
   const releaseKey = `REL-${versionId}`;
@@ -93,8 +95,6 @@ export default function ReleaseDetailPage() {
     milestonesFailed,
     labelSummary,
     labelCoverage,
-    mrStateCounts,
-    issueStatusCounts,
     storyPoints,
     hasStoryPoints,
     gitlabToken,
@@ -109,6 +109,16 @@ export default function ReleaseDetailPage() {
     rmEnabled,
     rmLoading,
     rmError,
+    fixVersionIssues,
+    burnupAxis,
+    burnupPoints,
+    assigneeRows,
+    typeRows,
+    statusNameSummary,
+    mrDonutCounts,
+    issuesError,
+    issuesUpdatedAt,
+    gitlabConfigured,
   } = useReleaseDetail(versionId);
 
   // Edit-modal state, diff builders and combined save (D-07 style co-located hook)
@@ -144,26 +154,6 @@ export default function ReleaseDetailPage() {
     activeGitlabProject,
     gitlabToken,
   });
-
-  // Drag-to-resize for right panel
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  // Mirrors the sidebar's CSS maxWidth cap (max(12.5rem, min(40%, 100% - 30rem))) so a
-  // drag can never grow the stored width past what is rendered (no reverse-drag dead-zone).
-  const sidebarCap = () => {
-    const w = containerRef.current?.offsetWidth ?? 800;
-    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    return Math.max(12.5 * rem, Math.min(w * 0.4, w - 30 * rem));
-  };
-  const { width, isDragging, handleMouseDown } = useResizable({
-    initialWidth: releaseDetailPanelWidth,
-    min: () => Math.min(240, sidebarCap()),
-    max: sidebarCap,
-    onCommit: setReleaseDetailPanelWidth,
-    direction: 'left',
-    getStartWidth: () => sidebarRef.current?.offsetWidth ?? releaseDetailPanelWidth,
-  });
-  const [handleHovered, setHandleHovered] = useState(false);
 
   // Create-branch confirm dialog state (D-15/D-16 — dialog closes only on success)
   const [createBranchOpen, setCreateBranchOpen] = useState(false);
@@ -232,10 +222,45 @@ export default function ReleaseDetailPage() {
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    if (!versionId) return;
+    setRefreshing(true);
+    try {
+      await refreshReleaseDetail(queryClient, {
+        activeJiraProject,
+        activeGitlabProject,
+        versionId,
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const lastRefreshed = issuesUpdatedAt
+    ? `Refreshed: ${new Date(issuesUpdatedAt).toLocaleTimeString()}`
+    : null;
+
+  // Graph slot states: branch on data presence, not isPending (disabled v5
+  // queries stay pending forever).
+  const issueGraphState: 'loading' | 'error' | 'empty' | 'ready' =
+    isLoadingIssues && !fixVersionIssues
+      ? 'loading'
+      : issuesError
+        ? 'error'
+        : releaseIssues.length === 0
+          ? 'empty'
+          : 'ready';
+  const donutState: 'loading' | 'empty' | 'ready' =
+    gitlabMatch.type === 'none' || (milestoneMRs && releaseMrs.length === 0)
+      ? 'empty'
+      : !milestoneMRs
+        ? 'loading'
+        : 'ready';
+
   if (!versionId) return null;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* Back + breadcrumb header */}
       <ReleaseBreadcrumbHeader
         trail={displayTrail}
@@ -248,80 +273,110 @@ export default function ReleaseDetailPage() {
       {isLoading || !version ? (
         <ReleaseDetailSkeleton />
       ) : (
-        <div ref={containerRef} className="flex flex-1 overflow-hidden">
-          {/* Left column */}
-          <div className="@container flex-1 overflow-auto">
-            <div className="p-6 @max-[480px]:p-4 space-y-6">
-              {/* Header: owns the done figure (D-14) and the page actions */}
-              <ReleaseDetailHeader
-                name={version.name}
-                pill={releaseHeaderPill(version, toLocalDateString(new Date()))}
-                releaseDate={version.releaseDate}
-                showPackage={rmEnabled}
-                pkg={releasePackage}
-                pkgLoading={rmLoading}
-                pkgError={rmError}
-                factItems={releaseFactItems({
-                  version,
-                  gitlabConfigured: !!gitlabBaseUrl && activeGitlabProject != null,
-                  gitlabMatch,
-                  matchedMilestone,
-                  branchState,
-                  mergeBackVerdict,
-                  defaultBranch,
-                  onCreateBranch: () => {
-                    createBranchMutation.reset();
-                    setCreateBranchOpen(true);
-                  },
-                  onRetryBranchCheck: refetchBranchCheck,
-                  onCreateMilestone: () => {
-                    createMilestoneMutation.reset();
-                    setCreateMilestoneOpen(true);
-                  },
-                  canCreateMilestone: !!version.releaseDate && !milestonesFailed,
-                  milestoneMRsLoaded: !!milestoneMRs,
-                  labelCoverage,
-                  hasStoryPoints,
-                  storyPoints,
-                })}
-                jiraDescription={version.description}
-                milestoneDescription={matchedMilestone?.description ?? null}
-                lastRefreshed={null}
-                refreshing={false}
-                onRefresh={() => {}}
-                pinned={pinned}
-                onTogglePin={() => {
-                  if (pinned) {
-                    removePin(releaseKey);
-                    clearReleaseMeta(releaseKey);
-                  } else {
-                    togglePin(releaseKey);
-                    setPinnedReleaseMeta(releaseKey, {
-                      name: version.name,
-                      versionId: versionId ?? '',
-                      projectKey: activeJiraProject ?? '',
-                    });
-                  }
-                }}
-                onEdit={startEditing}
-                jiraVersionUrl={jiraVersionUrl}
-                onOpenInJira={handleOpenInJira}
-              />
-              <ReleaseDoneBar
-                breakdown={headerBreakdown}
-                loading={headerBreakdownLoading}
-                error={headerBreakdownError}
-                statusNames={null}
-              />
+        <div
+          data-testid="release-detail-scroll"
+          className="@container/page min-h-0 flex-1 overflow-auto [--release-sticky-top:0px]"
+        >
+          {/* Header: owns the done figure (D-14) and the page actions */}
+          <ReleaseDetailHeader
+            name={version.name}
+            pill={releaseHeaderPill(version, toLocalDateString(new Date()))}
+            releaseDate={version.releaseDate}
+            showPackage={rmEnabled}
+            pkg={releasePackage}
+            pkgLoading={rmLoading}
+            pkgError={rmError}
+            factItems={releaseFactItems({
+              version,
+              gitlabConfigured,
+              gitlabMatch,
+              matchedMilestone,
+              branchState,
+              mergeBackVerdict,
+              defaultBranch,
+              onCreateBranch: () => {
+                createBranchMutation.reset();
+                setCreateBranchOpen(true);
+              },
+              onRetryBranchCheck: refetchBranchCheck,
+              onCreateMilestone: () => {
+                createMilestoneMutation.reset();
+                setCreateMilestoneOpen(true);
+              },
+              // CR-06: with the milestone list unfetched, CreateMilestoneDialog's
+              // duplicate guard runs over an empty array and passes for every
+              // title — offer the action only once we know what exists.
+              canCreateMilestone: !!version.releaseDate && !milestonesFailed,
+              milestoneMRsLoaded: !!milestoneMRs,
+              labelCoverage,
+              hasStoryPoints,
+              storyPoints,
+            })}
+            jiraDescription={version.description}
+            milestoneDescription={
+              gitlabMatch.type !== 'none' ? (matchedMilestone?.description ?? null) : null
+            }
+            lastRefreshed={lastRefreshed}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            pinned={pinned}
+            onTogglePin={() => {
+              if (pinned) {
+                removePin(releaseKey);
+                clearReleaseMeta(releaseKey);
+              } else {
+                togglePin(releaseKey);
+                setPinnedReleaseMeta(releaseKey, {
+                  name: version.name,
+                  versionId: versionId ?? '',
+                  projectKey: activeJiraProject ?? '',
+                });
+              }
+            }}
+            onEdit={startEditing}
+            jiraVersionUrl={jiraVersionUrl}
+            onOpenInJira={handleOpenInJira}
+          />
+          <ReleaseDoneBar
+            breakdown={headerBreakdown}
+            loading={headerBreakdownLoading}
+            error={headerBreakdownError}
+            statusNames={statusNameSummary}
+          />
 
-              {/* Label summary from milestone MRs */}
+          {/* Graph grid: quad (burnup, MRs, assignees, types) + side column */}
+          <div
+            data-testid="release-graph-grid"
+            className="grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] gap-8 px-6 pt-6 @max-[980px]/page:grid-cols-1 has-[>aside:empty]:grid-cols-1"
+          >
+            <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1">
+              <ReleaseBurnup
+                axis={burnupAxis}
+                points={burnupPoints}
+                state={issueGraphState}
+                showStoryPoints={hasStoryPoints}
+                className={gitlabConfigured ? '@max-[640px]/page:col-span-full' : 'col-span-full'}
+              />
+              {gitlabConfigured && <ReleaseMrDonut counts={mrDonutCounts} state={donutState} />}
+              <ReleaseAssigneeRows
+                rows={assigneeRows}
+                state={issueGraphState}
+                showStoryPoints={hasStoryPoints}
+                className="@max-[640px]/page:col-span-full @max-[640px]/page:order-4"
+              />
+              <ReleaseTypeWaffle
+                rows={typeRows}
+                state={issueGraphState}
+                showStoryPoints={hasStoryPoints}
+              />
+            </div>
+            <aside className="flex flex-col gap-6 border-l pl-8 empty:hidden @max-[980px]/page:border-l-0 @max-[980px]/page:pl-0 @max-[980px]/page:border-t @max-[980px]/page:pt-6">
               <LabelSummarySection
                 milestoneMRsLoaded={!!milestoneMRs}
                 labelSummary={labelSummary}
               />
-
               {/* Stories whose fix version and Deployment package disagree (quick
-                  261014-eym). Separate from MR drift; renders nothing without an RM project. */}
+                      261014-eym). Renders nothing without an RM project. */}
               <DeploymentPackageSection
                 stories={releaseIssues}
                 version={version}
@@ -329,8 +384,10 @@ export default function ReleaseDetailPage() {
                 activeJiraProject={activeJiraProject}
                 onOpenIssue={resolvedOnOpenIssue}
               />
+            </aside>
+          </div>
 
-              {/* Unified task table (criterion 1): one Jira-task-keyed table with
+          {/* Unified task table (criterion 1): one Jira-task-keyed table with
                   every associated MR inline underneath, plus a conditional
                   secondary table for MRs no task covers. `key` remounts the
                   table when the release changes — navigating to an
@@ -338,77 +395,39 @@ export default function ReleaseDetailPage() {
                   nothing else would remount it, and the per-cell fix state
                   (`useMrFixMutation`'s local `status`/`errorMessage`) would
                   otherwise carry over from the previous release. */}
-              <UnifiedTaskTable
-                key={versionId}
-                versionName={version.name}
-                hasReleaseDate={!!version.releaseDate}
-                isLoadingIssues={isLoadingIssues}
-                isLoadingDrift={isLoadingDrift}
-                driftUnavailable={driftUnavailable}
-                hasMatchedMilestone={hasMatchedMilestone}
-                milestoneLookupFailed={milestonesFailed}
-                primaryRows={primaryRows}
-                secondaryRows={secondaryRows}
-                flaggedMrCount={flaggedMrCount}
-                brFlaggedCount={brFlaggedCount}
-                msFlaggedCount={msFlaggedCount}
-                onOpenIssue={resolvedOnOpenIssue}
-                onOpenIssueFull={openIssueFull}
-                onSeedBreadcrumb={seedReleaseBreadcrumb}
-                onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
-                fix={{
-                  projectId: activeGitlabProject ?? null,
-                  baseUrl: gitlabBaseUrl ?? null,
-                  token: gitlabToken,
-                  releaseBranchName,
-                  releaseBranchExists: branchState.kind === 'exists',
-                  matchedMilestone: matchedMilestone
-                    ? { id: matchedMilestone.id, title: matchedMilestone.title }
-                    : null,
-                }}
-              />
-            </div>
+          <div className="px-6 pt-8 pb-6">
+            <UnifiedTaskTable
+              key={versionId}
+              versionName={version.name}
+              hasReleaseDate={!!version.releaseDate}
+              isLoadingIssues={isLoadingIssues}
+              isLoadingDrift={isLoadingDrift}
+              driftUnavailable={driftUnavailable}
+              hasMatchedMilestone={hasMatchedMilestone}
+              milestoneLookupFailed={milestonesFailed}
+              primaryRows={primaryRows}
+              secondaryRows={secondaryRows}
+              flaggedMrCount={flaggedMrCount}
+              brFlaggedCount={brFlaggedCount}
+              msFlaggedCount={msFlaggedCount}
+              onOpenIssue={resolvedOnOpenIssue}
+              onOpenIssueFull={openIssueFull}
+              onSeedBreadcrumb={seedReleaseBreadcrumb}
+              onNavigateToIssueFromMR={handleNavigateToIssueFromMR}
+              fix={{
+                projectId: activeGitlabProject ?? null,
+                baseUrl: gitlabBaseUrl ?? null,
+                token: gitlabToken,
+                releaseBranchName,
+                releaseBranchExists: branchState.kind === 'exists',
+                matchedMilestone: matchedMilestone
+                  ? { id: matchedMilestone.id, title: matchedMilestone.title }
+                  : null,
+              }}
+            />
           </div>
 
-          {/* Right sidebar */}
-          <ReleaseDetailSidebar
-            rootRef={sidebarRef}
-            width={width}
-            isDragging={isDragging}
-            onResizeMouseDown={handleMouseDown}
-            handleHovered={handleHovered}
-            setHandleHovered={setHandleHovered}
-            version={version}
-            gitlabMatch={gitlabMatch}
-            matchedMilestone={matchedMilestone}
-            branchState={branchState}
-            mergeBackVerdict={mergeBackVerdict}
-            defaultBranch={defaultBranch}
-            onCreateBranch={() => {
-              createBranchMutation.reset();
-              setCreateBranchOpen(true);
-            }}
-            onRetryBranchCheck={refetchBranchCheck}
-            onCreateMilestone={() => {
-              createMilestoneMutation.reset();
-              setCreateMilestoneOpen(true);
-            }}
-            // CR-06: with the milestone list unfetched, CreateMilestoneDialog's
-            // duplicate guard runs over an empty array and passes for every
-            // title — it would happily create a second milestone for a release
-            // that already has one. Offer the action only once we know what exists.
-            canCreateMilestone={!!version.releaseDate && !milestonesFailed}
-            milestoneMRsLoaded={!!milestoneMRs}
-            labelCoverage={labelCoverage}
-            mrStateCounts={mrStateCounts}
-            hasMrs={releaseMrs.length > 0}
-            hasIssues={releaseIssues.length > 0}
-            issueStatusCounts={issueStatusCounts}
-            hasStoryPoints={hasStoryPoints}
-            storyPoints={storyPoints}
-          />
-
-          {/* Edit modal — centered overlay; sidebar stays read-only */}
+          {/* Edit modal */}
           <EditReleaseModal
             open={editing}
             onOpenChange={(o) => {
