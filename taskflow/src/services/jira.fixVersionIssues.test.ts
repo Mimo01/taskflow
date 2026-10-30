@@ -20,7 +20,7 @@ describe('fetchFixVersionIssues URL contract', () => {
     return new URL(vi.mocked(apiFetch).mock.calls[0][1] as string);
   }
 
-  it('requests previous fields plus created and resolutiondate', async () => {
+  it('requests previous fields plus created, resolutiondate and reporter', async () => {
     const fields = (await requestUrl()).searchParams.get('fields')?.split(',') ?? [];
     for (const f of [
       'summary',
@@ -35,6 +35,7 @@ describe('fetchFixVersionIssues URL contract', () => {
       'project',
       'created',
       'resolutiondate',
+      'reporter',
     ]) {
       expect(fields).toContain(f);
     }

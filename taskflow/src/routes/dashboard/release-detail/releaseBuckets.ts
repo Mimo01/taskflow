@@ -205,3 +205,14 @@ export function waffleColumns(
 ): number {
   return Math.max(1, Math.min(maxTotal, waffleCapacity(cellWidth, layout)));
 }
+
+/**
+ * Width (percent) of a By status bar: the status's share of ALL issues in the
+ * release, so a bar only fills the track when one status holds every issue (a
+ * bar scaled to the largest status read as 100% progress). A non-empty status
+ * keeps a visible minimum so a single issue is never invisible.
+ */
+export function statusBarWidth(count: number, total: number): number {
+  if (count <= 0 || total <= 0) return 0;
+  return Math.min(100, Math.max(3, (count / total) * 100));
+}

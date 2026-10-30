@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
-import type { ReleaseStatusRow } from '../releaseBuckets';
+import { type ReleaseStatusRow, statusBarWidth } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
 
 const MAX_ROWS = 6;
@@ -32,7 +32,7 @@ export function ReleaseStatusRows({
   const rowHeight = compact ? 24 : ROW_HEIGHT;
   const shown = rows.slice(0, compact ? 5 : MAX_ROWS);
   const more = rows.length - shown.length;
-  const max = rows.reduce((m, r) => Math.max(m, r.count), 1);
+  const total = rows.reduce((n, r) => n + r.count, 0);
   return (
     <GraphSlot
       title="By status"
@@ -72,7 +72,7 @@ export function ReleaseStatusRows({
                     'h-full rounded-full',
                     row.cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[row.cat],
                   )}
-                  style={{ width: `${(row.count / max) * 100}%` }}
+                  style={{ width: `${statusBarWidth(row.count, total)}%` }}
                 />
               </div>
               <span className="text-right text-xs tabular-nums text-muted-foreground">
@@ -82,6 +82,7 @@ export function ReleaseStatusRows({
             <TooltipContent>
               <TooltipBody title={row.name}>
                 <TooltipRow label="Issues" value={row.count} />
+                <TooltipRow label="Share" value={`${Math.round((row.count / total) * 100)}%`} />
               </TooltipBody>
             </TooltipContent>
           </Tooltip>

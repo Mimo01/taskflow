@@ -2,6 +2,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { useRmWeekIndex } from '@/hooks/useRmWeekIndex';
 import {
@@ -15,6 +16,7 @@ import {
   type PackageSyncState,
   packageFixLabel,
 } from '@/lib/deployment-package';
+import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions, fetchStoriesWithPackageNoFixVersion } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -28,6 +30,56 @@ interface DeploymentPackageSectionProps {
   jiraBaseUrl: string | null;
   activeJiraProject: string | null;
   onOpenIssue: (key: string) => void;
+}
+
+type Person = { displayName: string; avatarUrls?: { '48x48': string } } | null | undefined;
+
+/**
+ * Avatar + name cell (same treatment as the task table's Assignee column: 20px
+ * avatar, truncating name). `none` is the label for a missing person; reporters
+ * have no 'Unassigned' notion, so a missing one is a muted dash.
+ */
+function PersonCell({
+  person,
+  label,
+  none,
+  className,
+  nameClassName,
+}: {
+  person: Person;
+  label: string;
+  none: 'Unassigned' | '—';
+  className?: string;
+  nameClassName?: string;
+}) {
+  const name = person?.displayName;
+  return (
+    <span
+      data-testid={`package-${label.toLowerCase()}`}
+      title={`${label}: ${name ?? none}`}
+      className={`flex w-[7.5rem] min-w-0 flex-none items-center gap-1.5 text-xs ${className ?? ''}`}
+    >
+      {person ? (
+        <>
+          <CachedAvatar
+            url={person.avatarUrls?.['48x48'] ?? null}
+            name={person.displayName}
+            size={20}
+          />
+          <span className={`truncate ${nameClassName ?? ''}`}>{person.displayName}</span>
+        </>
+      ) : none === 'Unassigned' ? (
+        <>
+          <CachedAvatar url={null} name="Unassigned" size={20} />
+          <span className={`truncate text-muted-foreground ${nameClassName ?? ''}`}>
+            Unassigned
+          </span>
+        </>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      )}
+    </span>
+  );
 }
 
 /** Rows shown before the "Show all N" toggle. */
@@ -257,7 +309,20 @@ export function DeploymentPackageSection({
                 <AlertTriangle aria-hidden className="hidden size-3 @max-[440px]/page:block" />
                 <span className="@max-[440px]/page:sr-only">{STATE_LABEL[result.state]}</span>
               </span>
-              <span className="min-w-0 flex-1 truncate" title={issue.fields.summary}>
+              <PersonCell
+                person={issue.fields.assignee}
+                label="Assignee"
+                none="Unassigned"
+                className="@max-[560px]/page:w-5"
+                nameClassName="@max-[560px]/page:sr-only"
+              />
+              <PersonCell
+                person={issue.fields.reporter}
+                label="Reporter"
+                none="—"
+                className="@max-[900px]/page:hidden"
+              />
+              <span className="min-w-[8rem] flex-1 truncate" title={issue.fields.summary}>
                 {issue.fields.summary}
               </span>
               {result.fixes.map((fix) => (
@@ -268,7 +333,10 @@ export function DeploymentPackageSection({
                   className="flex min-w-0 shrink-0 items-center gap-2 text-xs"
                 >
                   <span
-                    className="max-w-[320px] min-w-0 truncate text-muted-foreground @max-[640px]/page:hidden"
+                    className={cn(
+                      'min-w-0 truncate text-muted-foreground @max-[700px]/page:hidden',
+                      result.fixes.length > 1 ? 'max-w-[200px]' : 'max-w-[280px]',
+                    )}
                     title={packageFixTarget(fix)}
                   >
                     <span aria-hidden="true">→ </span>

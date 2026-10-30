@@ -308,7 +308,12 @@ export default function ReleaseDetailPage() {
     />
   );
   const mrSlotEl = showDonut ? (
-    <ReleaseMrDonut counts={mrDonutCounts} state={donutState} compact={band} />
+    <ReleaseMrDonut
+      counts={mrDonutCounts}
+      state={donutState}
+      labelCoverage={labelCoverage}
+      compact={band}
+    />
   ) : (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
       <ReleaseStatusRows
@@ -398,8 +403,6 @@ export default function ReleaseDetailPage() {
               // duplicate guard runs over an empty array and passes for every
               // title — offer the action only once we know what exists.
               canCreateMilestone: !!version.releaseDate && !milestonesFailed,
-              milestoneMRsLoaded: !!milestoneMRs,
-              labelCoverage,
               hasStoryPoints,
               storyPoints,
             })}

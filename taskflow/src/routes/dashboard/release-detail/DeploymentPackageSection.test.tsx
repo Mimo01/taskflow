@@ -187,4 +187,30 @@ describe('DeploymentPackageSection', () => {
     fireEvent.click(screen.getByTestId('package-show-all'));
     expect(screen.getAllByTestId(/^package-row-/)).toHaveLength(5);
   });
+
+  it('shows assignee and reporter (avatar + name), Unassigned and a dash when absent', async () => {
+    const withPeople = issue('S-1', 'Story', null, [v44]);
+    Object.assign(withPeople.fields, {
+      assignee: { displayName: 'Alex Example', avatarUrls: { '48x48': '' } },
+      reporter: { displayName: 'Blake Sample', avatarUrls: { '48x48': '' } },
+    });
+    const bare = issue('S-2', 'Story', null, [v44]);
+    Object.assign(bare.fields, { assignee: null, reporter: null });
+    renderSection([withPeople, bare]);
+    const row1 = await screen.findByTestId('package-row-S-1');
+    expect(row1.querySelector('[data-testid="package-assignee"]')).toHaveTextContent(
+      'Alex Example',
+    );
+    expect(row1.querySelector('[data-testid="package-reporter"]')).toHaveTextContent(
+      'Blake Sample',
+    );
+    const row2 = screen.getByTestId('package-row-S-2');
+    expect(row2.querySelector('[data-testid="package-assignee"]')).toHaveTextContent('Unassigned');
+    expect(row2.querySelector('[data-testid="package-reporter"]')).toHaveTextContent('—');
+    const reporter = row1.querySelector('[data-testid="package-reporter"]') as HTMLElement;
+    expect(reporter.className).toContain('@max-[900px]/page:hidden');
+    expect(row1.querySelector('[data-testid="package-assignee"]')?.className).toContain(
+      'flex-none',
+    );
+  });
 });

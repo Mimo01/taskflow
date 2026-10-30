@@ -36,4 +36,18 @@ describe('ReleaseStatusRows', () => {
     render(<ReleaseStatusRows rows={many} state="ready" compact />);
     expect(screen.getByText('+3 more statuses')).toBeInTheDocument();
   });
+
+  it('bar width is the share of all issues, not of the largest status', () => {
+    const five: ReleaseStatusRow[] = [4, 3, 4, 3, 4].map((count, i) => ({
+      name: `S${i}`,
+      cat: 'indeterminate' as const,
+      count,
+    }));
+    render(<ReleaseStatusRows rows={five} state="ready" />);
+    const fills = ['S0', 'S1'].map(
+      (n) => screen.getByTestId(`status-row-${n}`).querySelector('[style*="width"]') as HTMLElement,
+    );
+    expect(parseFloat(fills[0].style.width)).toBeCloseTo(22.2, 0);
+    expect(parseFloat(fills[1].style.width)).toBeCloseTo(16.7, 0);
+  });
 });

@@ -191,6 +191,8 @@ describe('Release Management lookups', () => {
     expect(jql).toContain('project = "PROJ"');
     expect(jql).toContain('fixVersion is EMPTY');
     expect(jql).toContain('cf[15725] in ("RM-21", "RM-22")');
+    const url = new URL(vi.mocked(mockFetch).mock.calls[0][0] as string);
+    expect(url.searchParams.get('fields')).toContain('assignee,reporter');
   });
 
   it('fetchStoriesWithPackageNoFixVersion: returns [] for no keys or when the query is rejected', async () => {

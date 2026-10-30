@@ -4,7 +4,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
+import type { GitLabMilestone } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import type { MergeBackVerdict } from './mergeBackVerification';
@@ -80,8 +80,6 @@ function makeProps(
     onCreateMilestone: () => {},
     onRetryBranchCheck: () => {},
     canCreateMilestone: true,
-    milestoneMRsLoaded: false,
-    labelCoverage: null,
     hasStoryPoints: false,
     storyPoints: { total: 0, completed: 0 },
     ...overrides,
@@ -90,17 +88,6 @@ function makeProps(
 
 function renderFacts(overrides: { branchState: BranchState } & Partial<ReleaseFactsProps>) {
   return render(<ReleaseFacts {...makeProps(overrides)} />);
-}
-
-function makeMr(i: number): GitLabMR {
-  return {
-    id: i,
-    iid: 1000 + i,
-    title: `Fix thing ${i}`,
-    state: 'merged',
-    web_url: `https://gitlab.example/mr/${1000 + i}`,
-    labels: [],
-  } as unknown as GitLabMR;
 }
 
 describe('ReleaseFacts — Branch fact', () => {
@@ -503,7 +490,7 @@ describe('ReleaseFacts — Milestone fact', () => {
 describe('ReleaseFacts — presence and separators', () => {
   const exists: BranchState = { kind: 'exists', branchName: 'release/33.5.0' };
 
-  it('hides Milestone / Branch / Merged back / MR labels when GitLab is not configured', () => {
+  it('hides Milestone / Branch / Merged back when GitLab is not configured', () => {
     const { container } = renderFacts({
       branchState: exists,
       gitlabConfigured: false,
@@ -512,7 +499,7 @@ describe('ReleaseFacts — presence and separators', () => {
       hasStoryPoints: true,
       storyPoints: { total: 12, completed: 5 },
     });
-    for (const id of ['milestone', 'branch', 'merged-back', 'mr-labels']) {
+    for (const id of ['milestone', 'branch', 'merged-back']) {
       expect(screen.queryByTestId(`release-fact-${id}`)).not.toBeInTheDocument();
     }
     expect(screen.getByTestId('release-fact-story-points')).toBeInTheDocument();
@@ -520,7 +507,7 @@ describe('ReleaseFacts — presence and separators', () => {
     expect(container.textContent).not.toContain('·');
   });
 
-  it('orders the items milestone, branch, merged-back, mr-labels, story-points', () => {
+  it('orders the items milestone, branch, merged-back, story-points', () => {
     const items = releaseFactItems(
       makeProps({
         branchState: exists,
@@ -530,13 +517,7 @@ describe('ReleaseFacts — presence and separators', () => {
         storyPoints: { total: 3, completed: 1 },
       }),
     );
-    expect(items.map((i) => i.id)).toEqual([
-      'milestone',
-      'branch',
-      'merged-back',
-      'mr-labels',
-      'story-points',
-    ]);
+    expect(items.map((i) => i.id)).toEqual(['milestone', 'branch', 'merged-back', 'story-points']);
   });
 
   it('MetaLine renders n-1 separators for n items and none for one item', () => {
@@ -599,61 +580,14 @@ describe('ReleaseFacts — presence and separators', () => {
   });
 });
 
-describe('ReleaseFacts — MR labels fact (D-15)', () => {
-  const exists: BranchState = { kind: 'exists', branchName: 'release/33.5.0' };
-
-  it('is hidden when no milestone matched', () => {
-    renderFacts({ branchState: exists, gitlabMatch: noneMatch });
-    expect(screen.queryByTestId('release-fact-mr-labels')).not.toBeInTheDocument();
-  });
-
-  it('shows Loading… until MRs are loaded with coverage', () => {
-    renderFacts({ branchState: exists, gitlabMatch: exactMatch, milestoneMRsLoaded: false });
-    expect(screen.getByTestId('release-fact-mr-labels')).toHaveTextContent('Loading…');
-  });
-
-  it('is hidden when MRs are loaded but the milestone has none', () => {
+describe('ReleaseFacts — MR labels moved out of the header', () => {
+  it('no longer renders an MR labels fact (it lives in the Merge requests graph footer)', () => {
     renderFacts({
-      branchState: exists,
+      branchState: { kind: 'exists', branchName: 'release/33.5.0' },
       gitlabMatch: exactMatch,
-      milestoneMRsLoaded: true,
-      labelCoverage: null,
     });
     expect(screen.queryByTestId('release-fact-mr-labels')).not.toBeInTheDocument();
-  });
-
-  it('shows a green "All N labeled" when every MR is labeled', () => {
-    renderFacts({
-      branchState: exists,
-      gitlabMatch: exactMatch,
-      milestoneMRsLoaded: true,
-      labelCoverage: { total: 23, labeled: 23, unlabeled: [], allLabeled: true },
-    });
-    const el = screen.getByTestId('release-fact-mr-labels');
-    expect(el).toHaveTextContent('All 23 labeled');
-    expect(el.innerHTML).toContain('text-green-600');
-  });
-
-  it('shows "N/M missing" and a tooltip listing 3 MRs plus "+2 more", with no links or buttons', async () => {
-    const user = userEvent.setup();
-    const unlabeled = [1, 2, 3, 4, 5].map(makeMr);
-    renderFacts({
-      branchState: exists,
-      gitlabMatch: exactMatch,
-      milestoneMRsLoaded: true,
-      labelCoverage: { total: 8, labeled: 3, unlabeled, allLabeled: false },
-    });
-    const fact = screen.getByTestId('release-fact-mr-labels');
-    expect(fact).toHaveTextContent('5/8 missing');
-    expect(fact.innerHTML).toContain('text-orange-600');
-    await user.hover(within(fact).getByText('5/8 missing'));
-    const tip = await screen.findByTestId('mr-labels-unlabeled-tooltip');
-    expect(tip).toHaveTextContent('!1001');
-    expect(tip).toHaveTextContent('Fix thing 3');
-    expect(tip).not.toHaveTextContent('!1004');
-    expect(tip).toHaveTextContent('+2 more');
-    expect(tip.querySelectorAll('a')).toHaveLength(0);
-    expect(within(tip).queryAllByRole('button')).toHaveLength(0);
+    expect(screen.queryByText('MR labels')).toBeNull();
   });
 });
 
@@ -683,8 +617,6 @@ describe('ReleaseFacts — Story points and removed counts', () => {
     const { container } = renderFacts({
       branchState: exists,
       gitlabMatch: exactMatch,
-      milestoneMRsLoaded: true,
-      labelCoverage: { total: 2, labeled: 2, unlabeled: [], allLabeled: true },
     });
     expect(container.textContent).not.toMatch(/\d+ (merged|open|closed|new|in progress|done)/);
   });

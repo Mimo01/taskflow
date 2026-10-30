@@ -9,7 +9,6 @@ import {
   Milestone,
   Plus,
   RefreshCw,
-  Tag,
 } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,6 @@ import type { ReleaseMatch } from '@/services/releaseLinker';
 import type { MergeBackVerdict } from './mergeBackVerification';
 import { formatEvidenceDate, formatVerdictDate } from './mergeBackVerification';
 import type { BranchState } from './releaseBranch';
-import type { LabelCoverage } from './releaseSummaries';
 
 const PROBLEM = 'text-orange-600 dark:text-orange-400';
 const HEALTHY = 'text-green-600 dark:text-green-400';
@@ -248,8 +246,6 @@ export interface ReleaseFactsProps {
   onRetryBranchCheck: () => void;
   onCreateMilestone: () => void;
   canCreateMilestone: boolean;
-  milestoneMRsLoaded: boolean;
-  labelCoverage: LabelCoverage | null;
   hasStoryPoints: boolean;
   storyPoints: { total: number; completed: number };
 }
@@ -307,8 +303,6 @@ export function PropertyStrip({ items, className }: { items: MetaItem[]; classNa
     </div>
   );
 }
-
-const MAX_UNLABELED_ROWS = 3;
 
 function milestoneValue(props: ReleaseFactsProps): ReactNode {
   const { gitlabMatch, canCreateMilestone, onCreateMilestone } = props;
@@ -439,44 +433,9 @@ function mergeBackValue(verdict: MergeBackVerdict): ReactNode {
   return null;
 }
 
-function mrLabelsValue(coverage: LabelCoverage): ReactNode {
-  if (coverage.allLabeled) {
-    return (
-      <span className={cn('inline-flex items-center gap-1', HEALTHY)}>
-        <Check className="size-3 shrink-0" />
-        All {coverage.total} labeled
-      </span>
-    );
-  }
-  const shown = coverage.unlabeled.slice(0, MAX_UNLABELED_ROWS);
-  const more = coverage.unlabeled.length - shown.length;
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        delay={0}
-        render={<span />}
-        className={cn('inline-flex items-center gap-1', PROBLEM)}
-      >
-        <AlertTriangle className="size-3 shrink-0" />
-        {coverage.unlabeled.length}/{coverage.total} missing
-      </TooltipTrigger>
-      <TooltipContent>
-        <div data-testid="mr-labels-unlabeled-tooltip">
-          <TooltipBody>
-            {shown.map((mr) => (
-              <TooltipRow key={mr.id} label={`!${mr.iid}`} value={mr.title} />
-            ))}
-            {more > 0 && <TooltipRow label={`+${more} more`} value="" />}
-          </TooltipBody>
-        </div>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
 export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
   const items: MetaItem[] = [];
-  const { gitlabConfigured, gitlabMatch, mergeBackVerdict, labelCoverage } = props;
+  const { gitlabConfigured, mergeBackVerdict } = props;
 
   if (gitlabConfigured) {
     items.push({
@@ -506,22 +465,6 @@ export function releaseFactItems(props: ReleaseFactsProps): MetaItem[] {
         node: (
           <Fact id="merged-back" name="Merged back" icon={GitMerge}>
             {mergeBackValue(mergeBackVerdict)}
-          </Fact>
-        ),
-      });
-    }
-    // Loaded with zero MRs there is nothing to label: hide the fact instead of
-    // showing a permanent "Loading…".
-    if (gitlabMatch.type !== 'none' && !(props.milestoneMRsLoaded && !labelCoverage)) {
-      items.push({
-        id: 'mr-labels',
-        node: (
-          <Fact id="mr-labels" name="MR labels" icon={Tag}>
-            {props.milestoneMRsLoaded && labelCoverage ? (
-              mrLabelsValue(labelCoverage)
-            ) : (
-              <span className="text-muted-foreground">Loading…</span>
-            )}
           </Fact>
         ),
       });

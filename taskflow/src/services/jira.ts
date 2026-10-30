@@ -166,6 +166,8 @@ export interface JiraIssue {
       statusCategory?: { key: 'new' | 'indeterminate' | 'done' };
     };
     assignee: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
+    /** Requested by fetchFixVersionIssues only (release package-mismatch rows). */
+    reporter?: { displayName: string; name?: string; avatarUrls?: { '48x48': string } } | null;
     customfield_10016: number | null; // story points (most common field key)
     issuetype: {
       /** Numeric id (Phase 72: needed for GH transitions cache lookup; optional
@@ -1418,6 +1420,8 @@ export async function fetchFixVersionIssues(
     // P94 release burnup: additive only, JQL/order unchanged.
     'created',
     'resolutiondate',
+    // Release detail package-mismatch rows show who reported the issue: additive.
+    'reporter',
   ].join(',');
   const maxResults = 200;
   let startAt = 0;
@@ -2825,7 +2829,7 @@ export async function fetchStoriesWithPackageNoFixVersion(
   const jql =
     `project = "${projectKey}" AND issuetype = Story AND fixVersion is EMPTY ` +
     `AND cf[15725] in (${keys.map((k) => `"${k}"`).join(', ')})`;
-  const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725';
+  const fields = 'summary,issuetype,project,status,fixVersions,customfield_15725,assignee,reporter';
   try {
     return await fetchAllSearchPagesConcurrent(
       `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}`,
