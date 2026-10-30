@@ -1,7 +1,8 @@
 ---
 phase: 94
 slug: release-detail-redesign
-status: draft
+status: approved
+reviewed_at: 2026-10-30
 shadcn_initialized: true
 preset: base-nova (neutral, lucide)
 created: 2026-10-30
@@ -101,7 +102,7 @@ Exceptions (sketch-locked, in px): header `pt-3` 12px; quad `gap-y-7` 28px; waff
 | Body (description, row names) | 13px (`text-[13px]`) | 400 | 1.5 |
 | Label (meta line, tooltips, "N / M done", axis, buttons) | 12px (`text-xs`) | 400 | 1.5 |
 | Heading (section h3) | 14px (`text-sm`) | 600 | 1.2 |
-| Display (page title h1) | 18px (`text-lg`) | 600 | 1.2 (28px leading per sketch) |
+| Display (page title h1) | 18px (`text-lg`) | 600 | 28px (`text-lg` default leading, per sketch) |
 
 Weights: exactly two, regular 400 and semibold 600. No `font-medium`; meta-line values and label chips are weight 400 (values differ from names by colour). Uppercase marker labels (TODAY/RELEASE, MILESTONE) are 12px (`text-xs uppercase tracking-wide`), weight 400. Sizes: exactly 12, 13, 14, 18. Italic text inside `truncate` needs `pr-0.5`.
 
@@ -168,11 +169,11 @@ Other fixed strings: "Refreshed: HH:MM:SS"; fact names "Milestone", "Branch", "M
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-10-30 (gsd-ui-checker, revision 1)
