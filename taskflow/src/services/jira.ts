@@ -1415,6 +1415,9 @@ export async function fetchFixVersionIssues(
     'customfield_15725',
     'fixVersions',
     'project',
+    // P94 release burnup: additive only, JQL/order unchanged.
+    'created',
+    'resolutiondate',
   ].join(',');
   const maxResults = 200;
   let startAt = 0;

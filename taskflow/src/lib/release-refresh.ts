@@ -1,4 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
+import {
+  MR_CHANNEL_QUERY_PREFIXES,
+  mrChannelKeys,
+} from '../routes/dashboard/release-detail/mrChannelKeys';
 
 /**
  * Refresh the Releases list. Upstream-first (see aio-refresh.ts): the batch status
@@ -19,4 +23,54 @@ export async function refreshReleaseList(
     queryClient.invalidateQueries({ queryKey: ['rm-week-children'] }),
     queryClient.invalidateQueries({ queryKey: ['jira-version-counts', 'batch'] }),
   ]);
+}
+
+const GITLAB_DEPENDENT_PREFIXES = [
+  'gitlab-project',
+  'gitlab-branch',
+  'gitlab-release-tags',
+  'gitlab-mr-source-branch',
+  'gitlab-compare',
+] as const;
+
+/**
+ * Refresh the Release detail page (D-11/D-13). Upstream-first: stage 1 awaits the
+ * sources (fix versions, GitLab milestones) the dependents are derived from; stage 2
+ * invalidates issues, MR channels, branch, tags, compare and project queries.
+ */
+export async function refreshReleaseDetail(
+  queryClient: QueryClient,
+  args: {
+    activeJiraProject: string | null | undefined;
+    activeGitlabProject: number | null | undefined;
+    versionId: string;
+  },
+): Promise<void> {
+  const { activeJiraProject, activeGitlabProject, versionId } = args;
+  const stage1: Promise<void>[] = [
+    queryClient.invalidateQueries({ queryKey: ['jira-fix-versions', activeJiraProject] }),
+  ];
+  if (activeGitlabProject != null) {
+    stage1.push(
+      queryClient.invalidateQueries({ queryKey: ['gitlab-milestones', activeGitlabProject] }),
+    );
+  }
+  await Promise.all(stage1);
+
+  const stage2: Promise<void>[] = [
+    queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues', versionId] }),
+  ];
+  if (activeGitlabProject != null) {
+    for (const prefix of MR_CHANNEL_QUERY_PREFIXES) {
+      stage2.push(
+        queryClient.invalidateQueries({
+          queryKey: mrChannelKeys.channelForProject(prefix, activeGitlabProject),
+        }),
+      );
+    }
+    for (const k of GITLAB_DEPENDENT_PREFIXES) {
+      stage2.push(queryClient.invalidateQueries({ queryKey: [k, activeGitlabProject] }));
+    }
+  }
+  await Promise.all(stage2);
 }
