@@ -22,7 +22,12 @@ import { EditReleaseModal } from './release-detail/EditReleaseModal';
 import { LabelSummarySection } from './release-detail/LabelSummarySection';
 import { ReleaseDetailSidebar } from './release-detail/ReleaseDetailSidebar';
 import { ReleaseDetailSkeleton } from './release-detail/ReleaseDetailSkeleton';
-import { ReleaseBreadcrumbHeader, ReleaseDetailHeader } from './release-detail/ReleaseHeader';
+import { releaseFactItems } from './release-detail/ReleaseFacts';
+import {
+  ReleaseBreadcrumbHeader,
+  ReleaseDetailHeader,
+  ReleaseDoneBar,
+} from './release-detail/ReleaseHeader';
 import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
@@ -256,9 +261,34 @@ export default function ReleaseDetailPage() {
                 pkg={releasePackage}
                 pkgLoading={rmLoading}
                 pkgError={rmError}
-                breakdown={headerBreakdown}
-                breakdownLoading={headerBreakdownLoading}
-                breakdownError={headerBreakdownError}
+                factItems={releaseFactItems({
+                  version,
+                  gitlabConfigured: !!gitlabBaseUrl && activeGitlabProject != null,
+                  gitlabMatch,
+                  matchedMilestone,
+                  branchState,
+                  mergeBackVerdict,
+                  defaultBranch,
+                  onCreateBranch: () => {
+                    createBranchMutation.reset();
+                    setCreateBranchOpen(true);
+                  },
+                  onRetryBranchCheck: refetchBranchCheck,
+                  onCreateMilestone: () => {
+                    createMilestoneMutation.reset();
+                    setCreateMilestoneOpen(true);
+                  },
+                  canCreateMilestone: !!version.releaseDate && !milestonesFailed,
+                  milestoneMRsLoaded: !!milestoneMRs,
+                  labelCoverage,
+                  hasStoryPoints,
+                  storyPoints,
+                })}
+                jiraDescription={version.description}
+                milestoneDescription={matchedMilestone?.description ?? null}
+                lastRefreshed={null}
+                refreshing={false}
+                onRefresh={() => {}}
                 pinned={pinned}
                 onTogglePin={() => {
                   if (pinned) {
@@ -276,6 +306,12 @@ export default function ReleaseDetailPage() {
                 onEdit={startEditing}
                 jiraVersionUrl={jiraVersionUrl}
                 onOpenInJira={handleOpenInJira}
+              />
+              <ReleaseDoneBar
+                breakdown={headerBreakdown}
+                loading={headerBreakdownLoading}
+                error={headerBreakdownError}
+                statusNames={null}
               />
 
               {/* Label summary from milestone MRs */}

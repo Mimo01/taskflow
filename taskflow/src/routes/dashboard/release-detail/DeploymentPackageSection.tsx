@@ -216,9 +216,9 @@ export function DeploymentPackageSection({
 
   return (
     <section data-testid="deployment-package-section">
-      <h3 className="text-base font-semibold mb-2 flex items-center gap-1.5">
+      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
         <AlertTriangle className="size-3.5 text-muted-foreground" />
-        Deployment package ({rows.length})
+        Deployment package mismatches ({rows.length})
       </h3>
       <div className="flex flex-col divide-y">
         {rows.map(({ issue, result }) => (

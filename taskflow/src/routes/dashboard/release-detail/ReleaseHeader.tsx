@@ -1,4 +1,12 @@
-import { ArrowLeft, ExternalLink, Pencil, Pin, PinOff } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarDays,
+  ExternalLink,
+  Pencil,
+  Pin,
+  PinOff,
+  RefreshCw,
+} from 'lucide-react';
 import { ReleaseIssueGraph } from '@/components/release/ReleaseIssueGraph';
 import { ReleasePackageCell } from '@/components/release/ReleasePackageCell';
 import { ReleaseStatusPill } from '@/components/release/ReleaseStatusPill';
@@ -6,7 +14,10 @@ import { Button } from '@/components/ui/button';
 import { LinkContextMenu } from '@/components/ui/link-context-menu';
 import { dateStamp } from '@/lib/release-agenda';
 import type { DerivedPackage, ReleasePill, StatusBreakdown } from '@/lib/release-list';
+import { cn } from '@/lib/utils';
 import type { TrailEntry } from '@/stores/breadcrumb.store';
+import { ReleaseDescription } from './ReleaseDescription';
+import { type MetaItem, MetaLine } from './ReleaseFacts';
 
 interface ReleaseBreadcrumbHeaderProps {
   trail: TrailEntry[];
@@ -60,17 +71,22 @@ interface ReleaseDetailHeaderProps {
   pkg: DerivedPackage | null;
   pkgLoading: boolean;
   pkgError?: boolean;
-  breakdown: StatusBreakdown | undefined;
-  breakdownLoading: boolean;
-  breakdownError: boolean;
+  factItems: MetaItem[];
+  jiraDescription?: string | null;
+  milestoneDescription?: string | null;
   pinned: boolean;
   onTogglePin: () => void;
   onEdit: () => void;
   jiraVersionUrl: string | null;
   onOpenInJira: () => void;
+  lastRefreshed: string | null;
+  refreshing: boolean;
+  onRefresh: () => void;
 }
 
-/** Detail header that echoes the list row; sole owner of the done figure (D-14). */
+const LABEL = '@max-[640px]/page:sr-only';
+
+/** CycleHeader-style release header: title + pill + actions, meta line, description. */
 export function ReleaseDetailHeader({
   name,
   pill,
@@ -79,57 +95,101 @@ export function ReleaseDetailHeader({
   pkg,
   pkgLoading,
   pkgError = false,
-  breakdown,
-  breakdownLoading,
-  breakdownError,
+  factItems,
+  jiraDescription,
+  milestoneDescription,
   pinned,
   onTogglePin,
   onEdit,
   jiraVersionUrl,
   onOpenInJira,
+  lastRefreshed,
+  refreshing,
+  onRefresh,
 }: ReleaseDetailHeaderProps) {
   const openInJira = (
     <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onOpenInJira}>
       <ExternalLink className="size-3.5" />
-      Open in Jira
+      <span className={LABEL}>Open in Jira</span>
     </Button>
   );
+  const items: MetaItem[] = [
+    {
+      id: 'date',
+      node: releaseDate ? (
+        <span
+          data-testid="release-header-date"
+          className={cn(
+            'flex items-center gap-1 tabular-nums',
+            pill.tone === 'red' && 'text-red-600 dark:text-red-400',
+          )}
+        >
+          <CalendarDays className="size-3.5 flex-none" aria-hidden />
+          {dateStamp(releaseDate).inline}
+        </span>
+      ) : (
+        <span
+          data-testid="release-header-date"
+          className="flex items-center gap-1 text-amber-600 dark:text-amber-400"
+        >
+          <CalendarDays className="size-3.5 flex-none" aria-hidden />
+          No release date
+        </span>
+      ),
+    },
+  ];
+  if (showPackage) {
+    items.push({
+      id: 'package',
+      node: <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />,
+    });
+  }
+  items.push(...factItems);
+  const pinLabel = pinned ? 'Unpin release' : 'Pin release';
   return (
-    <div data-testid="release-detail-header" className="@container mb-8 space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 space-y-1.5">
-          <h2 className="text-xl font-semibold leading-tight truncate" title={name}>
+    <div
+      data-testid="release-detail-header"
+      className="flex flex-none flex-col gap-1 px-6 pt-3 pb-2"
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="min-w-0 truncate text-lg font-semibold" title={name}>
             {name}
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
+          </h1>
+          <div className="flex flex-none">
             <ReleaseStatusPill pill={pill} />
-            {releaseDate && (
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {dateStamp(releaseDate).inline}
-              </span>
-            )}
-            {showPackage && (
-              <div className="w-44">
-                <ReleasePackageCell pkg={pkg} loading={pkgLoading} error={pkgError} />
-              </div>
-            )}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex flex-none items-center gap-1.5">
+          {lastRefreshed && (
+            <span className="hidden text-xs text-muted-foreground sm:inline @max-[640px]/page:hidden">
+              Refreshed: {lastRefreshed}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Refresh release"
+            title="Refresh release"
+          >
+            <RefreshCw className={refreshing ? 'size-3 animate-spin' : 'size-3'} />
+          </button>
           <Button
             variant="outline"
             size="sm"
             className="gap-1.5 text-xs"
-            aria-label={pinned ? 'Unpin release' : 'Pin release'}
-            title={pinned ? 'Unpin release' : 'Pin release'}
+            aria-label={pinLabel}
+            title={pinLabel}
             onClick={onTogglePin}
           >
             {pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
-            {pinned ? 'Unpin' : 'Pin'}
+            <span className={LABEL}>{pinLabel}</span>
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={onEdit}>
             <Pencil className="size-3.5" />
-            Edit
+            <span className={LABEL}>Edit release</span>
           </Button>
           {jiraVersionUrl ? (
             <LinkContextMenu href={jiraVersionUrl}>{openInJira}</LinkContextMenu>
@@ -138,7 +198,36 @@ export function ReleaseDetailHeader({
           )}
         </div>
       </div>
-      <ReleaseIssueGraph breakdown={breakdown} loading={breakdownLoading} error={breakdownError} />
+      <MetaLine items={items} />
+      <ReleaseDescription
+        jiraDescription={jiraDescription}
+        milestoneDescription={milestoneDescription}
+      />
+    </div>
+  );
+}
+
+/** Full-width done bar; sole owner of the "N / M done" figure (D-06). */
+export function ReleaseDoneBar({
+  breakdown,
+  loading,
+  error,
+  statusNames,
+}: {
+  breakdown: StatusBreakdown | undefined;
+  loading: boolean;
+  error: boolean;
+  statusNames: string | null;
+}) {
+  return (
+    <div data-testid="release-done-bar" className="border-t px-6 pt-4">
+      <ReleaseIssueGraph
+        breakdown={breakdown}
+        loading={loading}
+        error={error}
+        fullWidth
+        statusNames={statusNames}
+      />
     </div>
   );
 }

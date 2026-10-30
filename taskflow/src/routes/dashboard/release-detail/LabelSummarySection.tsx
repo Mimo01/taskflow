@@ -15,7 +15,7 @@ export function LabelSummarySection({
   if (!milestoneMRsLoaded || labelSummary.length === 0) return null;
   return (
     <section>
-      <h3 className="text-base font-semibold mb-2 flex items-center gap-1.5">
+      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
         <Tag className="size-3.5 text-muted-foreground" />
         Labels
       </h3>
