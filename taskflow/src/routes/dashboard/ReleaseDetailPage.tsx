@@ -306,8 +306,8 @@ export default function ReleaseDetailPage() {
   const showNoIssuesNotice = noIssues && !showTaskTable && !packageHasRows;
 
   // Graph slots, built once and placed by the band or the 2x2 layout. `compact`
-  // (band mode) shrinks rows, donut and squares and lets the burnup plot fill the
-  // row height.
+  // (every layout) shrinks rows, donut and squares and lets the burnup plot fill
+  // the row height, so narrow widths are as dense as the band.
   const burnupEl = (
     <ReleaseBurnup
       axis={burnupAxis}
@@ -315,7 +315,7 @@ export default function ReleaseDetailPage() {
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
       summary={timelineSummary}
-      compact={band}
+      compact
       className={band ? undefined : '@max-[640px]/page:col-span-full'}
     />
   );
@@ -325,16 +325,11 @@ export default function ReleaseDetailPage() {
       state={donutState}
       labelCoverage={labelCoverage}
       labelSummary={labelSummary}
-      compact={band}
+      compact
     />
   ) : (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <ReleaseStatusRows
-        rows={statusRows}
-        state={issueGraphState}
-        compact={band}
-        className="flex-1"
-      />
+      <ReleaseStatusRows rows={statusRows} state={issueGraphState} compact className="flex-1" />
       {hasMilestone ? (
         <p
           data-testid="release-mrs-none"
@@ -351,7 +346,8 @@ export default function ReleaseDetailPage() {
       rows={assigneeRows}
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
-      compact={band}
+      compact
+      maxRows={band ? 5 : 4}
       className={band ? undefined : '@max-[640px]/page:col-span-full @max-[640px]/page:order-4'}
     />
   );
@@ -360,7 +356,7 @@ export default function ReleaseDetailPage() {
       rows={typeRows}
       state={issueGraphState}
       showStoryPoints={hasStoryPoints}
-      compact={band}
+      compact
       className={undefined}
     />
   );
@@ -490,7 +486,7 @@ export default function ReleaseDetailPage() {
               ) : (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1"
+                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-6 gap-y-5 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-5 @max-[440px]/page:grid-cols-1"
                 >
                   {burnupEl}
                   {mrSlotEl}

@@ -109,6 +109,24 @@ describe('ReleaseAssigneeRows', () => {
     expect((await screen.findAllByText('Person 5')).length).toBeGreaterThan(0);
   });
 
+  it('maxRows lowers the cap (narrow layouts show 4)', () => {
+    const many: ReleaseAssigneeRow[] = Array.from({ length: 6 }, (_, i) => ({
+      id: `q${i}`,
+      name: `Person ${i}`,
+      avatarUrl: null,
+      unassigned: false,
+      breakdown: { done: 1, indeterminate: 0, new: 0 },
+      total: 1,
+      done: 1,
+      sp: 0,
+    }));
+    const { container } = render(
+      <ReleaseAssigneeRows rows={many} state="ready" showStoryPoints={false} compact maxRows={4} />,
+    );
+    expect(container.querySelectorAll('[data-testid^="assignee-row-"]')).toHaveLength(4);
+    expect(screen.getByTestId('assignee-more')).toHaveTextContent('+2 more');
+  });
+
   it('5 or fewer rows show in full with no "+K more"', () => {
     render(<ReleaseAssigneeRows rows={rows} state="ready" showStoryPoints={false} />);
     expect(screen.queryByTestId('assignee-more')).toBeNull();
