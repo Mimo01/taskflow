@@ -98,6 +98,28 @@ describe('ReleaseAgenda', () => {
     expect(onOpen).toHaveBeenLastCalledWith('A');
   });
 
+  it('opens the release when its bar or package line is clicked (tooltip triggers)', () => {
+    const pkg = {
+      week: { key: 'RM-1', summary: 'WEEK45', weekNo: 45, start: '', end: '', children: [] },
+      child: { key: 'RM-14', summary: 'Package' },
+    };
+    const { onOpen } = setup({ showPackage: true, packageFor: () => pkg });
+    for (const [name, id] of [
+      ['Alpha overdue release', 'O'],
+      ['Beta next release', 'A'],
+    ]) {
+      const scope = within(
+        name === 'Beta next release' ? screen.getByTestId('next-release-card') : rowFor(name),
+      );
+      onOpen.mockClear();
+      fireEvent.click(scope.getByRole('img', { name: /issues done/ }));
+      expect(onOpen).toHaveBeenCalledExactlyOnceWith(id);
+      onOpen.mockClear();
+      fireEvent.click(scope.getByText('RM-14'));
+      expect(onOpen).toHaveBeenCalledExactlyOnceWith(id);
+    }
+  });
+
   it('renders the next release as a card with rocket, name, pill and one figure', () => {
     setup();
     const card = screen.getByTestId('next-release-card');

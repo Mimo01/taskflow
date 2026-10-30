@@ -73,3 +73,9 @@ Fixed inline (no new plan round):
 - Not-started releases show a `0/N` bar instead of "N to do".
 - Planned rows with no issues stay quiet.
 - D-09 is relaxed for these rows only: a planned row may expand when its counts arrive.
+
+Round 1 follow-up (2026-10-30), user feedback verbatim:
+
+> clicking on stuff like progress bar, release management opens its tooltip, it doesnt take me to the release detail
+
+Fixed inline. The bar and package tooltip triggers sit above the row's overlay button. They now take an `onClick` that opens the release, in both rows and the next-release card. The card's package/team row and bar wrapper are now `pointer-events-none`, so clicks on them fall through to the card button.

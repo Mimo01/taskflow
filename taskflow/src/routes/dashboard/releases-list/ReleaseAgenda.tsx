@@ -107,12 +107,21 @@ function ReleaseRow({
             </span>
             {!quiet && showPackage && (
               <div className="mt-0.5 flex">
-                <ReleasePackageCell pkg={packageFor(version.releaseDate)} loading={pkgLoading} />
+                <ReleasePackageCell
+                  pkg={packageFor(version.releaseDate)}
+                  loading={pkgLoading}
+                  onClick={() => onOpen(version.id)}
+                />
               </div>
             )}
           </div>
           <div className="flex w-[150px] flex-none items-center">
-            <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="row" />
+            <ReleaseIssuesSlot
+              breakdown={breakdown}
+              loading={loading}
+              variant="row"
+              onClick={() => onOpen(version.id)}
+            />
           </div>
           <div className="hidden w-[70px] flex-none @[640px]:flex">
             {!quiet && <ReleaseTeam assignees={team} />}

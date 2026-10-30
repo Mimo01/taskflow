@@ -7,13 +7,19 @@ import { cn } from '@/lib/utils';
 
 const WRAPPER = 'flex w-full min-w-0 items-center gap-1.5 text-xs';
 
-/** RM deployment package for a release: child, week-only, none, or loading. */
+/**
+ * RM deployment package for a release: child, week-only, none, or loading.
+ * `onClick` lets a clickable row keep its click on the tooltip trigger, which sits
+ * above the row's overlay button.
+ */
 export function ReleasePackageCell({
   pkg,
   loading,
+  onClick,
 }: {
   pkg: DerivedPackage | null;
   loading: boolean;
+  onClick?: () => void;
 }) {
   if (loading && !pkg) {
     return (
@@ -37,7 +43,11 @@ export function ReleasePackageCell({
         <TooltipTrigger
           delay={0}
           render={<div />}
-          className="relative z-10 flex min-w-0 items-center gap-1.5"
+          onClick={onClick}
+          className={cn(
+            'pointer-events-auto relative z-10 flex min-w-0 items-center gap-1.5',
+            onClick && 'cursor-pointer',
+          )}
         >
           <span className={cn('truncate', !child && 'text-muted-foreground')}>
             {formatWeekLabel(week.summary)}

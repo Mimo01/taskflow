@@ -66,10 +66,13 @@ export function ReleaseIssuesSlot({
   breakdown,
   loading,
   variant,
+  onClick,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
   variant: 'row' | 'card';
+  /** Opens the release: the bar's tooltip trigger sits above the row's overlay button. */
+  onClick?: () => void;
 }) {
   const wrapper = cn('flex h-5 w-full items-center', variant === 'card' ? 'gap-3' : 'gap-2');
   if (!breakdown) {
@@ -102,7 +105,11 @@ export function ReleaseIssuesSlot({
           render={<div />}
           role="img"
           aria-label={`${breakdown.done} of ${total} issues done`}
-          className={cn('relative z-10 flex items-center', isCard && 'flex-1')}
+          onClick={onClick}
+          className={cn(
+            'pointer-events-auto relative z-10 flex cursor-pointer items-center',
+            isCard && 'flex-1',
+          )}
         >
           <SegmentedBar
             breakdown={breakdown}
@@ -205,10 +212,10 @@ export function NextReleaseCard({
         </span>
         <ReleaseStatusPill pill={entry.countdown} />
       </div>
-      <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div className="pointer-events-none relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
         {showPackage &&
           (pkg || pkgLoading ? (
-            <ReleasePackageCell pkg={pkg} loading={pkgLoading} />
+            <ReleasePackageCell pkg={pkg} loading={pkgLoading} onClick={() => onOpen(version.id)} />
           ) : (
             <span data-testid="row-deployment-package">No RM package</span>
           ))}
@@ -216,8 +223,13 @@ export function NextReleaseCard({
           <ReleaseTeam assignees={team} />
         </span>
       </div>
-      <div className="relative">
-        <ReleaseIssuesSlot breakdown={breakdown} loading={loading} variant="card" />
+      <div className="pointer-events-none relative">
+        <ReleaseIssuesSlot
+          breakdown={breakdown}
+          loading={loading}
+          variant="card"
+          onClick={() => onOpen(version.id)}
+        />
       </div>
     </Card>
   );
