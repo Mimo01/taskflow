@@ -1,8 +1,44 @@
 import { Milestone } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { type ComponentPropsWithoutRef, useLayoutEffect, useRef, useState } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { openExternal } from '@/lib/openExternal';
 import { cn } from '@/lib/utils';
+
+/**
+ * 94-REVIEW WR-07: a plain markdown `<a href>` navigates the Tauri webview away
+ * from the app. Route links through openExternal (the app's sanctioned
+ * external-URL boundary, as in WikiRenderer); in-document anchors and
+ * href-less links stay plain. No styling change.
+ */
+const MARKDOWN_COMPONENTS: Components = {
+  a: ({
+    href,
+    children,
+    node: _node,
+    ...rest
+  }: ComponentPropsWithoutRef<'a'> & { node?: unknown }) => {
+    if (!href || href.startsWith('#')) {
+      return (
+        <a href={href} {...rest}>
+          {children}
+        </a>
+      );
+    }
+    return (
+      <a
+        href={href}
+        {...rest}
+        onClick={(e) => {
+          e.preventDefault();
+          openExternal(href);
+        }}
+      >
+        {children}
+      </a>
+    );
+  },
+};
 
 interface ReleaseDescriptionProps {
   jiraDescription?: string | null;
@@ -69,7 +105,9 @@ export function ReleaseDescription({
                   : 'inline [&_li]:inline [&_p]:inline [&_ul]:inline',
               )}
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{milestone}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+                {milestone}
+              </ReactMarkdown>
             </div>
           </div>
         )}

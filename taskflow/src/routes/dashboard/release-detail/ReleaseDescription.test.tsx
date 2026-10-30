@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { openExternal } from '@/lib/openExternal';
 import { ReleaseDescription } from './ReleaseDescription';
+
+vi.mock('@/lib/openExternal', () => ({ openExternal: vi.fn() }));
 
 // jsdom has no layout: stub the geometry the overflow check reads.
 function stubGeometry(scrollHeight: number, clientHeight: number) {
@@ -14,6 +17,20 @@ afterEach(() => {
 });
 
 describe('ReleaseDescription', () => {
+  // 94-REVIEW WR-07: a markdown link must open in the external browser, never
+  // navigate the app's own webview away.
+  it('opens milestone-description links externally and keeps the webview in place', () => {
+    vi.mocked(openExternal).mockClear();
+    render(
+      <ReleaseDescription milestoneDescription="See [the notes](https://example.com/notes)" />,
+    );
+    const link = screen.getByRole('link', { name: 'the notes' });
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
+    expect(openExternal).toHaveBeenCalledWith('https://example.com/notes');
+  });
+
   it('renders nothing when both descriptions are empty or whitespace', () => {
     const { container } = render(
       <ReleaseDescription jiraDescription="  " milestoneDescription="" />,
