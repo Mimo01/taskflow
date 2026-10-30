@@ -208,7 +208,8 @@ describe('DeploymentPackageSection', () => {
     expect(row2.querySelector('[data-testid="package-assignee"]')).toHaveTextContent('Unassigned');
     expect(row2.querySelector('[data-testid="package-reporter"]')).toHaveTextContent('—');
     const reporter = row1.querySelector('[data-testid="package-reporter"]') as HTMLElement;
-    expect(reporter.className).toContain('@max-[760px]:hidden');
+    expect(reporter.className).toContain('@max-[860px]:w-9');
+    expect(reporter.className).not.toContain('hidden');
     expect(row1.querySelector('[data-testid="package-assignee"]')?.className).toContain(
       'flex-none',
     );
@@ -225,8 +226,8 @@ describe('DeploymentPackageSection', () => {
     expect(header.className).toContain('border-b');
     // header and row hide their columns together at the same breakpoints
     const row = screen.getByTestId('package-row-S-1');
-    expect(header.innerHTML).toContain('@max-[760px]:hidden');
-    expect(row.innerHTML).toContain('@max-[760px]:hidden');
+    expect(header.innerHTML).toContain('@max-[860px]:w-9');
+    expect(row.innerHTML).toContain('@max-[860px]:w-9');
     expect(header.innerHTML).toContain('@max-[600px]:hidden');
     expect(row.innerHTML).toContain('@max-[600px]:hidden');
     const target = row.querySelector('[title*="WEEK44"], [title*="Week 44"]') as HTMLElement | null;
