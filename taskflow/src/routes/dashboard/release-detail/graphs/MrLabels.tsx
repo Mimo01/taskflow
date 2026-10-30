@@ -36,8 +36,9 @@ export function labelRowPlan(
 /**
  * GitLab-style label pill on the app's status-pill geometry (rounded, no border,
  * font-medium): the label colour as a soft tint, a darker (or, in dark mode,
- * lighter) shade of it for the text, the name and the MR count. The two text
- * shades are CSS variables so the theme switch is pure CSS.
+ * lighter) shade of it for the text, the name and the MR count. The count sits in
+ * its own segment behind a hairline in the label colour, the way GitLab splits
+ * scoped labels. The two text shades are CSS variables so the theme switch is pure CSS.
  */
 function LabelPill({ l }: { l: MrLabelCount }) {
   const c = labelPillColors(l.label.color);
@@ -45,7 +46,7 @@ function LabelPill({ l }: { l: MrLabelCount }) {
     <span
       data-testid="mr-label-pill"
       title={`${l.label.name}: ${l.count}`}
-      className="inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start rounded px-1.5 text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]"
+      className="inline-flex h-5 max-w-full min-w-0 items-stretch self-start overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]"
       style={
         {
           '--lp-l': c.light,
@@ -54,8 +55,14 @@ function LabelPill({ l }: { l: MrLabelCount }) {
         } as CSSProperties
       }
     >
-      <span className="min-w-0 truncate">{l.label.name}</span>
-      <span className="font-semibold tabular-nums">{l.count}</span>
+      <span className="flex min-w-0 items-center truncate px-1.5">{l.label.name}</span>
+      <span
+        data-testid="mr-label-count"
+        className="flex items-center border-l px-1.5 tabular-nums opacity-80"
+        style={{ borderColor: `color-mix(in srgb, ${c.base} 35%, transparent)` }}
+      >
+        {l.count}
+      </span>
     </span>
   );
 }
@@ -93,7 +100,7 @@ export function MrLabels({
             delay={0}
             render={<div />}
             data-testid="mr-labels-more"
-            className="text-muted-foreground"
+            className="flex h-5 items-center px-1.5 text-muted-foreground"
           >
             +{rest.length} more
           </TooltipTrigger>
@@ -115,7 +122,7 @@ export function MrLabels({
             delay={0}
             render={<div />}
             data-testid="mr-labels-unlabeled"
-            className="flex items-center gap-1 text-orange-600 dark:text-orange-400"
+            className="flex h-5 items-center gap-1 px-1.5 text-orange-600 dark:text-orange-400"
           >
             <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
             <span className="tabular-nums">{missing}</span>

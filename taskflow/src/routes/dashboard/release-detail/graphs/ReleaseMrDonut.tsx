@@ -70,20 +70,24 @@ export function ReleaseMrDonut({
             </>
           }
         />
-        <div className={cn('grid gap-1.5', !compact && 'min-w-28')}>
-          {slices.map((s) => (
-            <div key={s.key} className="flex items-center gap-1.5 text-xs">
-              <span
-                className="size-2 rounded-sm"
-                style={{ backgroundColor: s.color }}
-                aria-hidden="true"
-              />
-              <span className="tabular-nums text-foreground">{s.value}</span>
-              <span className="text-muted-foreground">{s.label}</span>
-            </div>
-          ))}
+        {/* Legend + labels top-align as one block (centred against the donut), and the
+            legend rows share the labels column's h-5 / gap-1 rhythm, so the two line up row for row. */}
+        <div className={cn('flex flex-wrap items-start gap-y-3', compact ? 'gap-x-3' : 'gap-x-6')}>
+          <div className={cn('grid gap-1', !compact && 'min-w-28')}>
+            {slices.map((s) => (
+              <div key={s.key} className="flex h-5 items-center gap-1.5 text-xs">
+                <span
+                  className="size-2 rounded-sm"
+                  style={{ backgroundColor: s.color }}
+                  aria-hidden="true"
+                />
+                <span className="tabular-nums text-foreground">{s.value}</span>
+                <span className="text-muted-foreground">{s.label}</span>
+              </div>
+            ))}
+          </div>
+          <MrLabels labelSummary={labelSummary} coverage={labelCoverage} />
         </div>
-        <MrLabels labelSummary={labelSummary} coverage={labelCoverage} />
       </div>
     </GraphSlot>
   );
