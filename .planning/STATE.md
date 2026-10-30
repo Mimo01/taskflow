@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: MVP
-status: milestone_complete
-last_updated: 2026-10-30T08:56:51.899Z
-last_activity: 2026-10-29 -- Phase 93 execution started
+status: Not planned yet
+last_updated: "2026-10-30T10:11:00.376Z"
+last_activity: "2026-10-30 - Completed quick task 261030-eic: Releases page skeleton matches actual content"
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 11
   completed_plans: 11
-  percent: 0
-stopped_at: Milestone complete (Phase 93 was final phase)
+  percent: 50
 ---
 
 # Project State
@@ -21,13 +20,13 @@ stopped_at: Milestone complete (Phase 93 was final phase)
 See: .planning/PROJECT.md (updated 2026-08-13)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Milestone complete
+**Current focus:** Phase 94 — Release detail redesign
 
 ## Current Position
 
-Phase: 93
+Phase: 94
 Plan: Not started
-Status: Milestone complete
+Status: Not planned yet
 Last activity: 2026-10-30 - Completed quick task 261030-eic: Releases page skeleton matches actual content
 
 ## Performance Metrics
@@ -75,6 +74,7 @@ Last activity: 2026-10-30 - Completed quick task 261030-eic: Releases page skele
 - Phase 91.2 inserted after Phase 91: Epics Page Redesign — creation-order sort, quick-search, progress/points/priority/labels/child-status per row (URGENT)
 - Phase 92 added: Advanced Global Search — ranked, cache-backed, grouped results with highlighting
 - Phase 93 added: Releases list and detail redesign (fix-version-driven list, drop milestones/branch, app-consistent styling, fast; detail keeps full info, restyled to match)
+- Phase 94 added: Release detail redesign — nicer professional page with more release graphs, keeps all current info, easy access to existing actions
 
 ### Decisions
 
@@ -225,9 +225,9 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 
 ## Session Continuity
 
-Last session: 2026-10-29T19:41:23.488Z
-Stopped at: Phase 93 UI-SPEC approved
-Resume file: .planning/phases/93-releases-list-and-detail-redesign-fix-version-driven-list-fi/93-UI-SPEC.md
+Last session: 2026-10-30T10:11:00.371Z
+Stopped at: Phase 94 context gathered
+Resume file: .planning/phases/94-release-detail-redesign-nicer-professional-page-with-more-re/94-CONTEXT.md
 
 ## Operator Next Steps
 

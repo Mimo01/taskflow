@@ -191,3 +191,14 @@ Plans:
 **Gap wave 4** *(blocked on 93-10)*
 
 - [x] 93-11-PLAN.md — gap gate: suite, grep gates, validation map, live UAT of the F5 page
+
+### Phase 94: Release detail redesign — nicer professional page with more release graphs, keeps all current info, easy access to existing actions
+
+**Goal:** The release detail page gets a new design to go with the redesigned Releases list. It should be cleaner, more professional and easier to look at, with more graphs about the release. It keeps everything the page shows today, and the actions it already supports (Pin, Edit, Open in Jira, field edits) are easy to reach.
+**Requirements**: TBD
+**Depends on:** Phase 93
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 94 to break down)
