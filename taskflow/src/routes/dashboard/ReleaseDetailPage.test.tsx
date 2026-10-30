@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { refreshReleaseDetail } from '@/lib/release-refresh';
@@ -366,6 +367,57 @@ describe('ReleaseDetailPage', () => {
     renderPage();
     expect(screen.getByTestId('release-graph-grid').className).not.toContain('items-stretch');
     global.ResizeObserver = RealRO;
+  });
+
+  // 94-REVIEW WR-02: the band/2x2 decision must be settled before the browser
+  // paints. Rendered outside act(), the first DOM state a MutationObserver
+  // (a microtask, i.e. before the next task could paint) sees is what paints.
+  it('wide container: the first painted graph grid is already the band', async () => {
+    const RealRO = global.ResizeObserver;
+    global.ResizeObserver = class {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(target: Element) {
+        this.cb(
+          [{ target, contentRect: { width: 1300, height: 400 } } as ResizeObserverEntry],
+          this as never,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    const g = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const prevAct = g.IS_REACT_ACT_ENVIRONMENT;
+    g.IS_REACT_ACT_ENVIRONMENT = false;
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    let firstGridClass: string | null = null;
+    const mo = new MutationObserver(() => {
+      const grid = host.querySelector('[data-testid="release-graph-grid"]');
+      if (grid && firstGridClass === null) firstGridClass = grid.className;
+    });
+    mo.observe(host, { childList: true, subtree: true, attributes: true });
+    const root = createRoot(host);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    try {
+      root.render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter initialEntries={['/release/123']}>
+            <Routes>
+              <Route path="/release/:versionId" element={<ReleaseDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(firstGridClass).not.toBeNull());
+      await new Promise((r) => setTimeout(r, 20));
+      expect(firstGridClass).toContain('items-stretch');
+    } finally {
+      mo.disconnect();
+      root.unmount();
+      host.remove();
+      g.IS_REACT_ACT_ENVIRONMENT = prevAct;
+      global.ResizeObserver = RealRO;
+    }
   });
 
   it('has no separate Labels row; labels live in the Merge requests cell', () => {

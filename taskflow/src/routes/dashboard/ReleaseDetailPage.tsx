@@ -8,7 +8,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { GitMerge, PackageOpen } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { toLocalDateString } from '@/lib/local-date';
 import { openExternal } from '@/lib/openExternal';
@@ -268,9 +268,11 @@ export default function ReleaseDetailPage() {
 
   // Band layout needs the page content width (not the window): measure the scroll
   // wrapper with a callback ref so it works whenever the wrapper mounts.
+  // 94-REVIEW WR-02: a layout effect, so the band/2x2 decision lands before the
+  // first paint — a passive effect let wide windows paint one 2x2 frame first.
   const [pageEl, setPageEl] = useState<HTMLDivElement | null>(null);
   const [pageWidth, setPageWidth] = useState(0);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!pageEl) return;
     setPageWidth(pageEl.getBoundingClientRect().width);
     if (typeof ResizeObserver === 'undefined') return;
