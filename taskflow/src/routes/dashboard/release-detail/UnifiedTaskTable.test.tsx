@@ -1909,7 +1909,7 @@ describe('D-16: banner', () => {
 // jsdom cannot evaluate container queries, so these lock the tier class
 // strings (header strip and rows share the COL_* constants and must stay aligned).
 describe('responsive container tiers', () => {
-  const personTier = ['@max-[860px]:w-5'];
+  const personTier = ['@max-[860px]:w-9'];
 
   it('the section is the @container and header strip carries every tier class', () => {
     const issue = makeIssue({ key: 'PROJ-1' });

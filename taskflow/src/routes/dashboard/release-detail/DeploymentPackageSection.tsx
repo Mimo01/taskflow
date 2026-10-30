@@ -101,8 +101,8 @@ function PersonCell({
 const COL_ICON = 'size-3.5 flex-none @max-[640px]:hidden';
 const COL_KEY = 'w-[5.5rem] flex-none whitespace-nowrap @max-[520px]:w-[5rem]';
 const COL_STATE = 'w-[84px] flex-none @max-[520px]:w-7';
-const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-5';
-const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-5 @max-[760px]:hidden';
+const COL_ASSIGNEE = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-9';
+const COL_REPORTER = 'w-[6.75rem] flex-none min-w-0 @max-[860px]:w-9 @max-[760px]:hidden';
 const COL_FIX_TARGET = 'flex-[1_1_0%] min-w-[7rem] max-w-[280px] @max-[600px]:hidden';
 const COL_SUMMARY = 'flex-[2_1_0%] min-w-[6rem] @max-[600px]:min-w-[3rem]';
 /** Warning-tone outline shared by Apply and "Apply ▾": same width, one clean edge. */
@@ -354,9 +354,15 @@ export function DeploymentPackageSection({
         </span>
         <span className={COL_ASSIGNEE}>
           <span className="@max-[860px]:sr-only">Assignee</span>
+          <span aria-hidden="true" className="hidden @max-[860px]:inline">
+            Asg.
+          </span>
         </span>
         <span className={COL_REPORTER}>
           <span className="@max-[860px]:sr-only">Reporter</span>
+          <span aria-hidden="true" className="hidden @max-[860px]:inline">
+            Rep.
+          </span>
         </span>
         <span className={COL_SUMMARY}>Summary</span>
         <span className={COL_FIX_TARGET}>Fix</span>
