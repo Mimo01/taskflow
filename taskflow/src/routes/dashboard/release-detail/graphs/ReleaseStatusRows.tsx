@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
-import { type ReleaseStatusRow, statusBarWidth } from '../releaseBuckets';
+import { fitStatusRows, type ReleaseStatusRow, statusBarWidth } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
 
 const MAX_ROWS = 6;
@@ -30,8 +30,8 @@ export function ReleaseStatusRows({
   className?: string;
 }) {
   const rowHeight = compact ? 24 : ROW_HEIGHT;
-  const shown = rows.slice(0, compact ? 5 : MAX_ROWS);
-  const more = rows.length - shown.length;
+  // WR-08: on overflow, done statuses collapse first so open work stays visible.
+  const { shown, hidden } = fitStatusRows(rows, compact ? 5 : MAX_ROWS);
   const total = rows.reduce((n, r) => n + r.count, 0);
   return (
     <GraphSlot
@@ -83,12 +83,34 @@ export function ReleaseStatusRows({
               <TooltipBody title={row.name}>
                 <TooltipRow label="Issues" value={row.count} />
                 <TooltipRow label="Share" value={`${Math.round((row.count / total) * 100)}%`} />
+                {row.mergedStatuses ? (
+                  <TooltipRow label="Done statuses" value={row.mergedStatuses} />
+                ) : null}
               </TooltipBody>
             </TooltipContent>
           </Tooltip>
         ))}
-        {more > 0 ? (
-          <div className="px-1 pt-1 text-xs text-muted-foreground">+{more} more statuses</div>
+        {hidden.length > 0 ? (
+          <Tooltip>
+            <TooltipTrigger
+              delay={0}
+              render={<div />}
+              data-testid="status-more"
+              className="relative z-10 px-1 pt-1 text-xs text-muted-foreground"
+            >
+              +{hidden.length} more statuses
+            </TooltipTrigger>
+            <TooltipContent>
+              <TooltipBody title={`${hidden.length} more`}>
+                {hidden.slice(0, 3).map((r) => (
+                  <TooltipRow key={`${r.cat}:${r.name}`} label={r.name} value={r.count} />
+                ))}
+                {hidden.length > 3 ? (
+                  <TooltipRow label={`+${hidden.length - 3} more`} value="" />
+                ) : null}
+              </TooltipBody>
+            </TooltipContent>
+          </Tooltip>
         ) : null}
       </div>
     </GraphSlot>

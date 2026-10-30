@@ -137,6 +137,8 @@ export interface ReleaseStatusRow {
   name: string;
   cat: (typeof CAT_ORDER)[number];
   count: number;
+  /** Set on the single row that stands for several done statuses (fitStatusRows). */
+  mergedStatuses?: number;
 }
 
 /** Issues per exact Jira status name, grouped done, in progress, to do; larger counts first. */
@@ -156,6 +158,34 @@ export function deriveReleaseStatusRows(issues: JiraIssue[]): ReleaseStatusRow[]
       b.count - a.count ||
       a.name.localeCompare(b.name),
   );
+}
+
+/**
+ * 94-REVIEW WR-08: fit status rows into `max` slots. Rows sort done first, so
+ * when they overflow, several done statuses would fill every slot and push the
+ * in-progress and to-do statuses (the actionable ones) out of view. On overflow
+ * all done statuses collapse into one "Done" row first; whatever still does not
+ * fit is returned as `hidden` for the overflow line's tooltip.
+ */
+export function fitStatusRows(
+  rows: ReleaseStatusRow[],
+  max: number,
+): { shown: ReleaseStatusRow[]; hidden: ReleaseStatusRow[] } {
+  if (rows.length <= max) return { shown: rows, hidden: [] };
+  const done = rows.filter((r) => r.cat === 'done');
+  const fitted =
+    done.length > 1
+      ? [
+          {
+            name: 'Done',
+            cat: 'done' as const,
+            count: done.reduce((n, r) => n + r.count, 0),
+            mergedStatuses: done.length,
+          },
+          ...rows.filter((r) => r.cat !== 'done'),
+        ]
+      : rows;
+  return { shown: fitted.slice(0, max), hidden: fitted.slice(max) };
 }
 
 /** Layout constants of a By type row: name column, blocks, count column. */
