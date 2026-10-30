@@ -2,6 +2,27 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.15] — 2026-10-30
+
+### Added
+
+- **Redesigned Releases page** — the Releases list is now driven by fix versions. A hero shows the release cadence and summary stats, an agenda rail lists upcoming releases with a card for the next one, and a Released panel lists shipped versions. Each row shows its status pill, an issue breakdown graph, the RM deployment package and the release team as a stack of avatars, busiest on top. Planned releases expand to show their issues.
+- **Redesigned release detail page** — a full-width, single-scroll page with a cycle-style header, a done bar and a property strip of release facts. A graph band shows a progress burnup, a merge request donut with MR labels, issues by status, by type (one square per issue) and by assignee (capped, with "+K more"). The graphs stay compact at every width, and empty or sparse slots show a short message instead of an empty chart.
+- **Deployment package mismatches** — mismatches between the RM deployment package and the fix version appear as a full-width action list with people, MR labels and a Fix cell per row.
+- **AIO Refresh** — the AIO cycles and cycle detail pages have a Refresh control that reloads from the source first.
+
+### Changed
+
+- **Release task table** — the task table has a sticky column header, drops the done badge and progress bar, and shows the description with a two-line clamp and a toggle only when it overflows. Columns drop in tiers as the page narrows, and the assignee avatar stays at every width.
+- **Narrow person columns** — avatar-only assignee and reporter columns use short "Asg." and "Rep." headers on release and AIO lists.
+- **Sync packages removed** — the bulk Sync packages button is gone from the Releases list.
+
+### Fixed
+
+- **Release detail reliability** — Refresh now also reloads deployment package data, a failed milestone MR fetch shows an error state instead of an empty donut, an unresolved milestone lookup no longer reads as Missing, and a paused issues query shows loading instead of an empty release.
+- **Milestone description links** — links in a milestone description open in the external browser.
+- **Wiki monospace** — `{{monospace}}` renders like Jira: `<`, `>` and `&` stay literal and a leading space does not open it.
+
 ## [1.14.14] — 2026-10-29
 
 ### Added
