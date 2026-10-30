@@ -44,7 +44,7 @@ export function GraphSlot({
   children?: ReactNode;
 }) {
   return (
-    <section data-testid={testId} className={cn('min-w-0', className)}>
+    <section data-testid={testId} className={cn('flex min-w-0 flex-col', className)}>
       <div className="flex items-center gap-1.5">
         <Icon aria-hidden="true" className="size-3.5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">{title}</h3>
@@ -52,7 +52,7 @@ export function GraphSlot({
           <div className="ml-auto truncate text-xs text-muted-foreground">{aside}</div>
         ) : null}
       </div>
-      <div className="mt-3">
+      <div className="mt-3 flex flex-1 flex-col">
         {state === 'loading' ? (
           <div data-testid={`${testId}-skeleton`}>
             {skeleton ?? <Skeleton className="w-full" style={{ height }} />}
@@ -60,7 +60,7 @@ export function GraphSlot({
         ) : state === 'empty' ? (
           <div
             data-testid={`${testId}-empty`}
-            className="flex items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground"
+            className="flex flex-1 items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground"
             style={{ minHeight: height }}
           >
             {emptyLabel}
@@ -68,7 +68,7 @@ export function GraphSlot({
         ) : state === 'error' ? (
           <div
             data-testid={`${testId}-error`}
-            className="flex items-center pr-0.5 text-xs italic text-muted-foreground"
+            className="flex flex-1 items-center pr-0.5 text-xs italic text-muted-foreground"
             style={{ minHeight: height }}
           >
             {errorLabel}

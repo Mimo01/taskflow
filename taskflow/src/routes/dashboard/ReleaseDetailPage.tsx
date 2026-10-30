@@ -347,27 +347,37 @@ export default function ReleaseDetailPage() {
             data-testid="release-graph-grid"
             className="grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] gap-8 px-6 pt-6 @max-[980px]/page:grid-cols-1 has-[>aside:empty]:grid-cols-1"
           >
-            <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1">
-              <ReleaseBurnup
-                axis={burnupAxis}
-                points={burnupPoints}
-                state={issueGraphState}
-                showStoryPoints={hasStoryPoints}
-                className={gitlabConfigured ? '@max-[640px]/page:col-span-full' : 'col-span-full'}
-              />
-              {gitlabConfigured && <ReleaseMrDonut counts={mrDonutCounts} state={donutState} />}
-              <ReleaseAssigneeRows
-                rows={assigneeRows}
-                state={issueGraphState}
-                showStoryPoints={hasStoryPoints}
-                className="@max-[640px]/page:col-span-full @max-[640px]/page:order-4"
-              />
-              <ReleaseTypeWaffle
-                rows={typeRows}
-                state={issueGraphState}
-                showStoryPoints={hasStoryPoints}
-              />
-            </div>
+            {issueGraphState === 'empty' ? (
+              // One compact state instead of four lopsided dashed slots.
+              <div
+                data-testid="release-graphs-empty"
+                className="flex h-24 items-center justify-center self-start rounded-lg border border-dashed text-xs text-muted-foreground"
+              >
+                Graphs appear once issues are added
+              </div>
+            ) : (
+              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-8 gap-y-7 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-6 @max-[440px]/page:grid-cols-1">
+                <ReleaseBurnup
+                  axis={burnupAxis}
+                  points={burnupPoints}
+                  state={issueGraphState}
+                  showStoryPoints={hasStoryPoints}
+                  className={gitlabConfigured ? '@max-[640px]/page:col-span-full' : 'col-span-full'}
+                />
+                {gitlabConfigured && <ReleaseMrDonut counts={mrDonutCounts} state={donutState} />}
+                <ReleaseAssigneeRows
+                  rows={assigneeRows}
+                  state={issueGraphState}
+                  showStoryPoints={hasStoryPoints}
+                  className="@max-[640px]/page:col-span-full @max-[640px]/page:order-4"
+                />
+                <ReleaseTypeWaffle
+                  rows={typeRows}
+                  state={issueGraphState}
+                  showStoryPoints={hasStoryPoints}
+                />
+              </div>
+            )}
             <aside className="flex flex-col gap-6 border-l pl-8 empty:hidden @max-[980px]/page:border-l-0 @max-[980px]/page:pl-0 @max-[980px]/page:border-t @max-[980px]/page:pt-6">
               <LabelSummarySection
                 milestoneMRsLoaded={!!milestoneMRs}

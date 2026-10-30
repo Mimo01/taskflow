@@ -41,7 +41,7 @@ export function ReleaseMrDonut({
         </div>
       }
     >
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="my-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
         <AioDonut
           slices={slices}
           size={DONUT_GRAPH_SIZE}
@@ -54,7 +54,7 @@ export function ReleaseMrDonut({
             </>
           }
         />
-        <div className="grid gap-1.5">
+        <div className="grid min-w-28 gap-1.5">
           {slices.map((s) => (
             <div key={s.key} className="flex items-center gap-1.5 text-xs">
               <span

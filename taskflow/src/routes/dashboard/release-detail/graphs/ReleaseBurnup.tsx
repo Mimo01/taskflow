@@ -49,7 +49,14 @@ export function BurnupTooltip({
   );
 }
 
-function endLabel(last: number, n: number, text: string, color: string, flip: boolean) {
+function endLabel(
+  last: number,
+  n: number,
+  text: string,
+  color: string,
+  flip: boolean,
+  below = false,
+) {
   return (p: { x?: number | string; y?: number | string; index?: number }) => {
     const x = Number(p.x);
     const y = Number(p.y);
@@ -57,7 +64,7 @@ function endLabel(last: number, n: number, text: string, color: string, flip: bo
     return (
       <text
         x={flip ? x - 4 : x + 4}
-        y={y - 4}
+        y={below ? y + 12 : y - 4}
         textAnchor={flip ? 'end' : 'start'}
         fontSize={11}
         fill={color}
@@ -118,7 +125,7 @@ export function ReleaseBurnup({
       {!enough || !axis ? (
         <div
           data-testid="release-graph-burnup-thin"
-          className={`flex items-center justify-center text-xs italic text-muted-foreground ${PLOT_CLASS}`}
+          className={`flex items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs italic text-muted-foreground ${PLOT_CLASS}`}
         >
           {NOT_ENOUGH_HISTORY}
         </div>
@@ -210,7 +217,14 @@ export function ReleaseBurnup({
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(points.length - 1, last.done, 'done', GREEN, flip)}
+                label={endLabel(
+                  points.length - 1,
+                  last.done,
+                  'done',
+                  GREEN,
+                  flip,
+                  last.done === last.scope,
+                )}
               />
             </ComposedChart>
           </ChartContainer>

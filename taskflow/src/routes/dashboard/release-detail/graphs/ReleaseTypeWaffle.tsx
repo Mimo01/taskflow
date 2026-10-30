@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import type { ReleaseTypeRow } from '../releaseBuckets';
 import { GraphSlot, WAFFLE_SKELETON_ROWS } from './GraphSlot';
 
-/** By type: one row per issue type, one 12px square per issue ordered done, in progress, to do. */
+/** By type: one row per issue type, one block per issue (scales with the cell) ordered done, in progress, to do. */
 export function ReleaseTypeWaffle({
   rows,
   state,
@@ -24,6 +24,8 @@ export function ReleaseTypeWaffle({
   showStoryPoints: boolean;
   className?: string;
 }) {
+  // Every row shares one column count so squares line up and scale with the cell.
+  const cols = Math.min(24, Math.max(6, ...rows.map((r) => r.total)));
   return (
     <GraphSlot
       title="By type"
@@ -53,16 +55,16 @@ export function ReleaseTypeWaffle({
               delay={0}
               render={<div />}
               data-testid={`type-row-${row.typeName}`}
-              className="relative z-10 grid grid-cols-[110px_minmax(0,1fr)] items-start gap-2"
+              className="relative z-10 grid grid-cols-[minmax(80px,110px)_minmax(0,1fr)_auto] items-center gap-3"
             >
               <div className="flex min-w-0 items-center gap-1.5">
                 <IssueTypeIcon typeName={row.typeName} muted className="size-3.5 shrink-0" />
                 <span className="truncate text-xs">{row.typeName}</span>
-                <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-                  {row.done}/{row.total}
-                </span>
               </div>
-              <div className="flex flex-wrap gap-[3px] py-0.5">
+              <div
+                className="grid gap-[3px] py-0.5"
+                style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 36px))` }}
+              >
                 {RELEASE_SEGMENT_ORDER.flatMap((cat) =>
                   Array.from({ length: row.breakdown[cat] }, (_, i) => (
                     <span
@@ -70,11 +72,14 @@ export function ReleaseTypeWaffle({
                       key={`${cat}-${i}`}
                       data-testid="waffle-cell"
                       data-cat={cat}
-                      className={cn('size-3 rounded-[3px]', RELEASE_SEGMENT_CLASS[cat])}
+                      className={cn('h-3.5 w-full rounded-[3px]', RELEASE_SEGMENT_CLASS[cat])}
                     />
                   )),
                 )}
               </div>
+              <span className="text-right text-xs tabular-nums text-muted-foreground">
+                {row.done}/{row.total}
+              </span>
             </TooltipTrigger>
             <TooltipContent>
               <TooltipBody title={row.typeName}>
