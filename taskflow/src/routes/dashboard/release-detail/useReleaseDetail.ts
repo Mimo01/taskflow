@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { releaseBreakdownSeedKey } from '@/hooks/useReleaseBreakdowns';
 import { useReleasePackages } from '@/hooks/useReleasePackages';
+import { toLocalDateString } from '@/lib/local-date';
 import type { StatusBreakdown } from '@/lib/release-list';
 import {
   compareRefs,
@@ -42,6 +43,12 @@ import {
   findReleaseTag,
   resolveBranchState,
 } from './releaseBranch';
+import {
+  deriveReleaseAssigneeRows,
+  deriveReleaseTypeRows,
+  statusNameSummary,
+} from './releaseBuckets';
+import { deriveReleaseBurnup, previousVersion, releaseBurnupAxis } from './releaseBurnup';
 import { ownProjectMilestones } from './releaseMilestone';
 import {
   computeHasStoryPoints,
@@ -49,6 +56,7 @@ import {
   computeLabelCoverage,
   computeLabelSummary,
   computeMilestoneWindow,
+  computeMrDonutCounts,
   computeMrStateCounts,
   computeStoryPoints,
   resolveGitLabMatch,
@@ -455,6 +463,7 @@ export function useReleaseDetail(versionId: string | undefined) {
     isLoading: isLoadingIssues,
     isError: isIssuesError,
     isFetching: isFetchingIssues,
+    dataUpdatedAt: issuesUpdatedAt,
   } = useQuery({
     queryKey: ['jira-fixversion-issues', versionId, storyPointsFieldKey],
     queryFn: async () => {
@@ -648,6 +657,22 @@ export function useReleaseDetail(versionId: string | undefined) {
   const storyPoints = computeStoryPoints(releaseIssues, storyPointsFieldKey);
   const hasStoryPoints = computeHasStoryPoints(releaseIssues, storyPointsFieldKey);
 
+  // P94 graph data (additive). Never used in a query key.
+  const today = toLocalDateString(new Date());
+  const prevVersion = version ? previousVersion(fixVersions, version) : null;
+  const burnupAxis = version
+    ? releaseBurnupAxis({ version, previous: prevVersion, issues: releaseIssues, today })
+    : null;
+  const burnupPoints = burnupAxis
+    ? deriveReleaseBurnup(releaseIssues, burnupAxis, storyPointsFieldKey)
+    : [];
+  const assigneeRows = deriveReleaseAssigneeRows(releaseIssues, storyPointsFieldKey);
+  const typeRows = deriveReleaseTypeRows(releaseIssues, storyPointsFieldKey);
+  const statusNames = statusNameSummary(releaseIssues);
+  const mrDonutCounts = computeMrDonutCounts(milestoneMRs ?? []);
+  const issuesError = isIssuesError && !fixVersionIssues;
+  const gitlabConfigured = !!gitlabBaseUrl && activeGitlabProject != null;
+
   return {
     version,
     isLoading,
@@ -696,5 +721,15 @@ export function useReleaseDetail(versionId: string | undefined) {
     rmEnabled: pkgs.enabled,
     rmLoading: pkgs.isLoading,
     rmError: pkgs.isError,
+    previousVersion: prevVersion,
+    burnupAxis,
+    burnupPoints,
+    assigneeRows,
+    typeRows,
+    statusNameSummary: statusNames,
+    mrDonutCounts,
+    issuesError,
+    issuesUpdatedAt,
+    gitlabConfigured,
   } as const;
 }

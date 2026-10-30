@@ -1250,3 +1250,88 @@ describe('useReleaseDetail — merge-back queries (D-05 gating)', () => {
     });
   });
 });
+
+function mrFixture(n: number, state: string, draft: boolean) {
+  return {
+    id: n,
+    iid: n,
+    state,
+    draft,
+    labels: [],
+    title: `PROJ-${n} change`,
+    description: '',
+    source_branch: `feature/PROJ-${n}`,
+    target_branch: 'develop',
+    web_url: `https://gitlab.example.com/mr/${n}`,
+    author: { id: 1, name: 'A', username: 'a', avatar_url: '' },
+    reviewers: [],
+    updated_at: '2026-07-01T00:00:00Z',
+    milestone: null,
+  };
+}
+
+describe('useReleaseDetail P94 graph data', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('exposes additive burnup, bucket, MR donut and status fields', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+    vi.mocked(jira.fetchFixVersions).mockResolvedValue([
+      { id: '9999', name: '33.4.0', releaseDate: '2026-07-01', released: true },
+      { id: VERSION_ID, name: '33.5.0', releaseDate: RELEASE_DATE, released: false },
+    ]);
+    const mk = (n: number, cat: string, type: string, resolutiondate: string | null) =>
+      ({
+        id: String(n),
+        key: `PROJ-${n}`,
+        fields: {
+          summary: 'x',
+          status: { id: '1', name: 'S', statusCategory: { key: cat } },
+          issuetype: { name: type, subtask: false },
+          created: '2026-07-05T10:00:00.000+0000',
+          resolutiondate,
+        },
+      }) as unknown as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>[number];
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([
+      mk(1, 'done', 'Story', '2026-07-10T10:00:00.000+0000'),
+      mk(2, 'done', 'Bug', null),
+      mk(3, 'new', 'Story', null),
+    ]);
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([
+      mrFixture(1, 'opened', true),
+      mrFixture(2, 'merged', false),
+    ] as unknown as Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.releaseIssues).toHaveLength(3));
+    await waitFor(() => expect(result.current.mrDonutCounts.merged).toBe(1));
+
+    expect(result.current.previousVersion?.id).toBe('9999');
+    expect(result.current.burnupAxis?.start).toBe('2026-07-01');
+    const pts = result.current.burnupPoints;
+    expect(pts[pts.length - 1].done).toBe(result.current.issueStatusCounts.done);
+    expect(pts[pts.length - 1].scope).toBe(3);
+    expect(result.current.typeRows).toHaveLength(2);
+    expect(result.current.assigneeRows).toHaveLength(1);
+    expect(result.current.statusNameSummary).toBe('S 1');
+    expect(result.current.mrDonutCounts).toEqual({ merged: 1, open: 0, draft: 1, closed: 0 });
+    expect(result.current.gitlabConfigured).toBe(true);
+    expect(result.current.issuesError).toBe(false);
+    expect(result.current.issuesUpdatedAt).toBeGreaterThan(0);
+  });
+
+  it('gitlabConfigured is false without a project', async () => {
+    await setupMocks({ activeGitlabProject: null });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(new QueryClient({ defaultOptions: { queries: { retry: false } } })),
+    });
+    await waitFor(() => expect(result.current.version).not.toBeNull());
+    expect(result.current.gitlabConfigured).toBe(false);
+  });
+});
