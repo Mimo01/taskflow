@@ -153,10 +153,10 @@ function IssueRow({
             </span>
           </div>
           {showSp && (
-            <div className="flex w-7 shrink-0 justify-end">
+            <div className="flex min-w-7 shrink-0 justify-end">
               <span
                 className={cn(
-                  'inline-flex w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
+                  'inline-flex min-w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
                   sp == null && 'invisible',
                 )}
                 aria-hidden={sp == null}
