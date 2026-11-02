@@ -121,18 +121,15 @@ export function MrLabels({
                 }
               : {})}
             className={cn(
-              'inline-flex h-5 max-w-full min-w-0 items-stretch self-start overflow-hidden rounded bg-orange-500/10 text-xs font-medium text-orange-700 dark:text-orange-300',
-              onToggleLabel && 'cursor-pointer hover:brightness-95',
-              activeLabel === UNLABELED_FILTER && 'ring-2 ring-orange-600 dark:ring-orange-400',
+              'inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start overflow-hidden rounded border border-dashed border-orange-500/60 bg-transparent px-1.5 text-xs font-medium text-orange-700 dark:text-orange-300',
+              onToggleLabel && 'cursor-pointer hover:bg-orange-500/10',
+              activeLabel === UNLABELED_FILTER &&
+                'border-solid border-orange-600 bg-orange-500/15 dark:border-orange-400',
             )}
           >
-            <span className="flex min-w-0 items-center gap-1 truncate px-1.5">
-              <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
-              <span className="truncate">No label</span>
-            </span>
-            <span className="flex items-center border-l border-orange-500/30 px-1.5 tabular-nums opacity-80">
-              {missing}
-            </span>
+            <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
+            <span className="min-w-0 truncate italic">No label</span>
+            <span className="tabular-nums">{missing}</span>
           </TooltipTrigger>
           <TooltipContent>
             <div data-testid="mr-labels-unlabeled-tooltip">
