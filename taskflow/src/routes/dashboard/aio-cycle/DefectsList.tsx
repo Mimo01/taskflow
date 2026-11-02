@@ -1,25 +1,17 @@
-import {
-  Bug,
-  ChevronDown,
-  ChevronUp,
-  FlaskConical,
-  ListFilter,
-  ShieldCheck,
-  X,
-} from 'lucide-react';
+import { Bug, FlaskConical, ListFilter, ShieldCheck, X } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PriorityIcon } from '@/components/ui/priority-icon';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FilterPopover, SortableHeader } from '@/components/ui/table-filter-sort';
 import { severityLabel } from '@/lib/aio-cycle-charts';
 import { compareDefectPriority } from '@/lib/aio-defect-sort';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
+import { nextSort } from '@/lib/table-sort';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira/types';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -62,130 +54,26 @@ function optionsOf(
   return [...new Set(vals)].sort();
 }
 
-function SortableHeader({
-  sortKey,
+/** Header label that shows a short form while the column is icon-only (narrow container). */
+function CompactLabel({
   label,
-  compactLabel,
-  compactUntil = 640,
-  className,
-  activeSortKey,
-  activeSortDir,
-  onSort,
+  compact,
+  until,
 }: {
-  sortKey: SortableKey;
   label: string;
-  /** Short label shown while the column is icon-only (narrow container). */
-  compactLabel?: string;
+  compact: string;
   /** Container width (px) at which the full label replaces the compact one. */
-  compactUntil?: 640 | 880;
-  className: string;
-  activeSortKey: DefectSortKey;
-  activeSortDir: 'asc' | 'desc';
-  onSort: (key: SortableKey) => void;
+  until: 640 | 880;
 }) {
-  const isActive = activeSortKey === sortKey;
   return (
-    <div className={className}>
-      <button
-        type="button"
-        data-testid={`defects-sort-header-${sortKey}`}
-        className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-        onClick={() => onSort(sortKey)}
-      >
-        {compactLabel ? (
-          <>
-            <span
-              className={compactUntil === 640 ? '@[640px]:hidden' : '@[880px]:hidden'}
-              aria-hidden
-            >
-              {compactLabel}
-            </span>
-            <span
-              className={compactUntil === 640 ? 'hidden @[640px]:inline' : 'hidden @[880px]:inline'}
-            >
-              {label}
-            </span>
-          </>
-        ) : (
-          label
-        )}
-        {isActive && activeSortDir === 'asc' && (
-          <ChevronUp className="w-3 h-3" data-testid={`defects-sort-indicator-${sortKey}`} />
-        )}
-        {isActive && activeSortDir === 'desc' && (
-          <ChevronDown className="w-3 h-3" data-testid={`defects-sort-indicator-${sortKey}`} />
-        )}
-      </button>
-    </div>
-  );
-}
-
-function FilterPopover({
-  dimension,
-  testId,
-  options,
-  selected,
-  setSelected,
-}: {
-  dimension: string;
-  testId: string;
-  options: string[];
-  selected: Set<string>;
-  setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
-}) {
-  const isActive = selected.size > 0;
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            variant={isActive ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs gap-1"
-            data-testid={testId}
-          />
-        }
-      >
-        {dimension}
-        {isActive && <span className="ml-0.5 opacity-70">({selected.size})</span>}
-      </PopoverTrigger>
-      <PopoverContent className="w-52 p-2">
-        {options.length === 0 ? (
-          <p className="text-xs text-muted-foreground px-2 py-1">No options available</p>
-        ) : (
-          <ul className="max-h-48 overflow-auto space-y-0.5">
-            {options.map((opt) => {
-              const checked = selected.has(opt);
-              return (
-                <li key={opt}>
-                  <button
-                    type="button"
-                    className={`w-full text-left px-2 py-1 rounded text-xs hover:bg-muted flex items-center gap-2 ${checked ? 'font-medium' : ''}`}
-                    onClick={() => {
-                      setSelected((prev) => {
-                        const n = new Set(prev);
-                        if (n.has(opt)) n.delete(opt);
-                        else n.add(opt);
-                        return n;
-                      });
-                    }}
-                  >
-                    <span
-                      className={`w-3 h-3 border rounded-sm flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-muted-foreground'}`}
-                    >
-                      {checked && (
-                        <span className="text-primary-foreground text-[8px] leading-none">✓</span>
-                      )}
-                    </span>
-                    {opt}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </PopoverContent>
-    </Popover>
+    <>
+      <span className={until === 640 ? '@[640px]:hidden' : '@[880px]:hidden'} aria-hidden>
+        {compact}
+      </span>
+      <span className={until === 640 ? 'hidden @[640px]:inline' : 'hidden @[880px]:inline'}>
+        {label}
+      </span>
+    </>
   );
 }
 
@@ -428,15 +316,9 @@ export function DefectsList({
   const totalOpen = defects.length - totalDone;
 
   const handleSort = (key: SortableKey) => {
-    if (sortKey !== key) {
-      setSortKey(key);
-      setSortDir('asc');
-    } else if (sortDir === 'asc') {
-      setSortDir('desc');
-    } else {
-      setSortKey(null);
-      setSortDir('asc');
-    }
+    const next = nextSort<SortableKey>({ key: sortKey, dir: sortDir }, key);
+    setSortKey(next.key);
+    setSortDir(next.dir);
   };
 
   const activeChips = useMemo(() => {
@@ -501,7 +383,12 @@ export function DefectsList({
   }
 
   const headerCell = cn(CELL_PADDING, 'text-xs font-medium text-muted-foreground');
-  const headerProps = { activeSortKey: sortKey, activeSortDir: sortDir, onSort: handleSort };
+  const headerProps = {
+    activeSortKey: sortKey,
+    activeSortDir: sortDir,
+    onSort: handleSort,
+    testIdPrefix: 'defects',
+  };
 
   const renderSection = ({
     testId,
@@ -533,8 +420,7 @@ export function DefectsList({
             <div className={cn(COL.title, headerCell)}>Title</div>
             <SortableHeader
               sortKey="priority"
-              label="Priority"
-              compactLabel="Pri"
+              label={<CompactLabel label="Priority" compact="Pri" until={640} />}
               className={cn(COL.priority, headerCell)}
               {...headerProps}
             />
@@ -552,9 +438,7 @@ export function DefectsList({
             />
             <SortableHeader
               sortKey="assignee"
-              label="Assignee"
-              compactLabel="Asg."
-              compactUntil={880}
+              label={<CompactLabel label="Assignee" compact="Asg." until={880} />}
               className={cn(COL.assignee, headerCell)}
               {...headerProps}
             />
