@@ -39,8 +39,7 @@ const FALLBACK_WIDTH = 640;
 export const COMPACT_BODY_H = 160;
 /** Denser date axis than the epic charts (72px): a short "Oct 15" label needs ~40px. */
 export const BURNUP_TICK_PX = 52;
-/** One text-sm line (leading-5). */
-const HEADER_H = 20;
+const HEADER_H = 28;
 /** Gap between the countdown header and the plot (mt-2). */
 const PLOT_GAP = 8;
 
@@ -270,7 +269,7 @@ export function ReleaseBurnup({
         className={compact ? 'flex flex-none flex-col' : 'flex min-h-0 flex-1 flex-col'}
         style={compact ? { height: COMPACT_BODY_H } : undefined}
       >
-        <ReleaseProgressHeader summary={summary} />
+        <ReleaseProgressHeader summary={summary} compact={compact} />
         {!enough || !axis ? (
           <ReleaseTimeline axis={axis} summary={summary} className="mt-2" />
         ) : (
