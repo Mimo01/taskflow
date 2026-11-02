@@ -35,6 +35,7 @@ import { deriveReleaseStatusRows } from './release-detail/releaseBuckets';
 import { UnifiedTaskTable } from './release-detail/UnifiedTaskTable';
 import { useEditRelease } from './release-detail/useEditRelease';
 import { useReleaseDetail } from './release-detail/useReleaseDetail';
+import { useTaskIssueFilters } from './release-detail/useTaskIssueFilters';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
 const BAND_MIN_WIDTH = 1180;
@@ -174,6 +175,8 @@ export default function ReleaseDetailPage() {
     labelFilterState && labelFilterState.versionId === versionId ? labelFilterState.name : null;
   const toggleLabelFilter = (name: string) =>
     setLabelFilterState(labelFilter === name ? null : { versionId, name });
+  // Status/type/assignee filters of the Issues table, toggled from the breakdown rows (261102-vuw).
+  const issueFilters = useTaskIssueFilters(versionId);
   const [createBranchOpen, setCreateBranchOpen] = useState(false);
 
   // Create-milestone confirm dialog state (D-15/D-16 — dialog closes only on success)
@@ -344,7 +347,14 @@ export default function ReleaseDetailPage() {
     />
   ) : (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <ReleaseStatusRows rows={statusRows} state={issueGraphState} compact className="flex-1" />
+      <ReleaseStatusRows
+        rows={statusRows}
+        state={issueGraphState}
+        compact
+        className="flex-1"
+        activeValues={issueFilters.statuses}
+        onToggle={(v) => issueFilters.toggle('statuses', v)}
+      />
       {hasMilestone ? (
         <p
           data-testid="release-mrs-none"
@@ -363,6 +373,8 @@ export default function ReleaseDetailPage() {
       showStoryPoints={hasStoryPoints}
       compact
       maxRows={band ? 5 : 4}
+      activeValues={issueFilters.assignees}
+      onToggle={(v) => issueFilters.toggle('assignees', v)}
       className={band ? undefined : '@max-[640px]/page:col-span-full @max-[640px]/page:order-4'}
     />
   );
@@ -373,6 +385,8 @@ export default function ReleaseDetailPage() {
       showStoryPoints={hasStoryPoints}
       compact
       className={undefined}
+      activeValues={issueFilters.types}
+      onToggle={(v) => issueFilters.toggle('types', v)}
     />
   );
 
@@ -548,6 +562,7 @@ export default function ReleaseDetailPage() {
             <div className="px-6 pt-6 pb-6">
               <UnifiedTaskTable
                 key={versionId}
+                issueFilterState={issueFilters}
                 versionName={version.name}
                 hasReleaseDate={!!version.releaseDate}
                 // WR-06: same data-presence rule as the graphs, so a paused

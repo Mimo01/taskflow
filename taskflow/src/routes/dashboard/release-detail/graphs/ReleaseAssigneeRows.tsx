@@ -3,11 +3,13 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
+import { UNASSIGNED_FILTER } from '@/lib/assignee-filter';
 import { releaseTooltipRows } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import { SegmentedBar } from '../../releases-list/ReleaseAgendaParts';
 import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, ASSIGNEE_SKELETON_ROWS, GraphSlot } from './GraphSlot';
+import { rowToggleProps } from './rowToggle';
 
 const COMPACT_ROW_HEIGHT = 24;
 /** Default row cap (band); the rest go to "+K more". Narrower layouts pass a lower `maxRows`. */
@@ -25,6 +27,8 @@ export function ReleaseAssigneeRows({
   compact = false,
   maxRows = MAX_ROWS,
   className,
+  activeValues,
+  onToggle,
 }: {
   rows: ReleaseAssigneeRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
@@ -34,6 +38,9 @@ export function ReleaseAssigneeRows({
   /** Rows shown before "+K more". */
   maxRows?: number;
   className?: string;
+  activeValues?: Set<string>;
+  /** Toggle the table filter values this row stands for (261102-vuw). */
+  onToggle?: (values: string[]) => void;
 }) {
   const rowHeight = compact ? COMPACT_ROW_HEIGHT : ASSIGNEE_ROW_HEIGHT;
   const shown = rows.slice(0, maxRows);
@@ -62,46 +69,56 @@ export function ReleaseAssigneeRows({
       }
     >
       <div className="flex flex-col">
-        {shown.map((row) => (
-          <Tooltip key={row.id}>
-            <TooltipTrigger
-              delay={0}
-              render={<div />}
-              data-testid={`assignee-row-${row.id}`}
-              className={cn(
-                compact ? ROW_GRID_COMPACT : ROW_GRID,
-                'relative z-10 rounded px-1 hover:bg-muted/50',
-              )}
-              style={{ height: rowHeight }}
-            >
-              {row.unassigned ? (
-                <span className="size-[22px] rounded-full border border-dashed border-muted-foreground/50" />
-              ) : (
-                <CachedAvatar url={row.avatarUrl} name={row.name} size={compact ? 20 : 22} />
-              )}
-              <span
+        {shown.map((row) => {
+          // The table matches displayName (or the Unassigned sentinel), never the row id.
+          const toggle = rowToggleProps(
+            [row.unassigned ? UNASSIGNED_FILTER : row.name],
+            activeValues,
+            onToggle,
+          );
+          return (
+            <Tooltip key={row.id}>
+              <TooltipTrigger
+                delay={0}
+                render={toggle.render}
+                data-testid={`assignee-row-${row.id}`}
                 className={cn(
-                  'truncate text-xs',
-                  row.unassigned && 'pr-0.5 italic text-muted-foreground',
+                  compact ? ROW_GRID_COMPACT : ROW_GRID,
+                  'relative z-10 rounded px-1 hover:bg-muted/50',
+                  toggle.className,
                 )}
+                style={{ height: rowHeight }}
+                {...toggle.extra}
               >
-                {row.name}
-              </span>
-              <SegmentedBar breakdown={row.breakdown} className="h-1.5 w-full" />
-              <span className="text-right text-xs tabular-nums text-muted-foreground">
-                {row.done}/{row.total}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <TooltipBody title={row.name}>
-                {releaseTooltipRows(row.breakdown).map((r) => (
-                  <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
-                ))}
-                {showStoryPoints ? <TooltipRow label="Story points" value={row.sp} /> : null}
-              </TooltipBody>
-            </TooltipContent>
-          </Tooltip>
-        ))}
+                {row.unassigned ? (
+                  <span className="size-[22px] rounded-full border border-dashed border-muted-foreground/50" />
+                ) : (
+                  <CachedAvatar url={row.avatarUrl} name={row.name} size={compact ? 20 : 22} />
+                )}
+                <span
+                  className={cn(
+                    'truncate text-xs',
+                    row.unassigned && 'pr-0.5 italic text-muted-foreground',
+                  )}
+                >
+                  {row.name}
+                </span>
+                <SegmentedBar breakdown={row.breakdown} className="h-1.5 w-full" />
+                <span className="text-right text-xs tabular-nums text-muted-foreground">
+                  {row.done}/{row.total}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody title={row.name}>
+                  {releaseTooltipRows(row.breakdown).map((r) => (
+                    <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
+                  ))}
+                  {showStoryPoints ? <TooltipRow label="Story points" value={row.sp} /> : null}
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
         {hidden.length > 0 ? (
           <Tooltip>
             <TooltipTrigger

@@ -17,6 +17,7 @@ import {
   waffleColumns,
 } from '../releaseBuckets';
 import { GraphSlot, NEW_TONE_CLASS, WAFFLE_SKELETON_ROWS } from './GraphSlot';
+import { rowToggleProps } from './rowToggle';
 
 const FALLBACK_WIDTH = 640;
 const MAX_COMPACT_ROWS = 5;
@@ -34,6 +35,8 @@ export function ReleaseTypeWaffle({
   showStoryPoints,
   compact = false,
   className,
+  activeValues,
+  onToggle,
 }: {
   rows: ReleaseTypeRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
@@ -41,6 +44,9 @@ export function ReleaseTypeWaffle({
   /** Band mode: 12px squares, at most 5 type rows. */
   compact?: boolean;
   className?: string;
+  activeValues?: Set<string>;
+  /** Toggle the table filter values this row stands for (261102-vuw). */
+  onToggle?: (values: string[]) => void;
 }) {
   const layout = compact ? WAFFLE_LAYOUT_COMPACT : WAFFLE_LAYOUT;
   const { block: BLOCK, gap: GAP, nameCol: NAME_COL, rowGap: ROW_GAP } = layout;
@@ -86,60 +92,68 @@ export function ReleaseTypeWaffle({
       }
     >
       <div ref={setEl} className="flex min-w-0 flex-col gap-2">
-        {shownRows.map((row) => (
-          <Tooltip key={row.typeName}>
-            <TooltipTrigger
-              delay={0}
-              render={<div />}
-              data-testid={`type-row-${row.typeName}`}
-              className="relative z-10 grid items-start"
-              style={{
-                columnGap: ROW_GAP,
-                gridTemplateColumns: `${NAME_COL}px ${cols * (BLOCK + GAP) - GAP}px auto`,
-                maxWidth: '100%',
-              }}
-            >
-              <div className="flex min-w-0 items-center gap-1.5" style={{ height: BLOCK }}>
-                <IssueTypeIcon typeName={row.typeName} muted className="size-3.5 shrink-0" />
-                <span className="truncate text-xs">{row.typeName}</span>
-              </div>
-              <div
-                className="grid"
-                style={{ gap: GAP, gridTemplateColumns: `repeat(${cols}, ${BLOCK}px)` }}
+        {shownRows.map((row) => {
+          const toggle = rowToggleProps(
+            row.filterValue ? [row.filterValue] : [],
+            activeValues,
+            onToggle,
+          );
+          return (
+            <Tooltip key={row.typeName}>
+              <TooltipTrigger
+                delay={0}
+                render={toggle.render}
+                data-testid={`type-row-${row.typeName}`}
+                className={cn('relative z-10 grid items-start rounded', toggle.className)}
+                {...toggle.extra}
+                style={{
+                  columnGap: ROW_GAP,
+                  gridTemplateColumns: `${NAME_COL}px ${cols * (BLOCK + GAP) - GAP}px auto`,
+                  maxWidth: '100%',
+                }}
               >
-                {RELEASE_SEGMENT_ORDER.flatMap((cat) =>
-                  Array.from({ length: row.breakdown[cat] }, (_, i) => (
-                    <span
-                      // biome-ignore lint/suspicious/noArrayIndexKey: cells are identical, order is fixed
-                      key={`${cat}-${i}`}
-                      data-testid="waffle-cell"
-                      data-cat={cat}
-                      className={cn(
-                        'flex-none rounded-[3px]',
-                        cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[cat],
-                      )}
-                      style={{ width: BLOCK, height: BLOCK }}
-                    />
-                  )),
-                )}
-              </div>
-              <span
-                className="text-xs tabular-nums leading-none text-muted-foreground"
-                style={{ lineHeight: `${BLOCK}px` }}
-              >
-                {row.done}/{row.total}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <TooltipBody title={row.typeName}>
-                {releaseTooltipRows(row.breakdown).map((r) => (
-                  <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
-                ))}
-                {showStoryPoints ? <TooltipRow label="Story points" value={row.sp} /> : null}
-              </TooltipBody>
-            </TooltipContent>
-          </Tooltip>
-        ))}
+                <div className="flex min-w-0 items-center gap-1.5" style={{ height: BLOCK }}>
+                  <IssueTypeIcon typeName={row.typeName} muted className="size-3.5 shrink-0" />
+                  <span className="truncate text-xs">{row.typeName}</span>
+                </div>
+                <div
+                  className="grid"
+                  style={{ gap: GAP, gridTemplateColumns: `repeat(${cols}, ${BLOCK}px)` }}
+                >
+                  {RELEASE_SEGMENT_ORDER.flatMap((cat) =>
+                    Array.from({ length: row.breakdown[cat] }, (_, i) => (
+                      <span
+                        // biome-ignore lint/suspicious/noArrayIndexKey: cells are identical, order is fixed
+                        key={`${cat}-${i}`}
+                        data-testid="waffle-cell"
+                        data-cat={cat}
+                        className={cn(
+                          'flex-none rounded-[3px]',
+                          cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[cat],
+                        )}
+                        style={{ width: BLOCK, height: BLOCK }}
+                      />
+                    )),
+                  )}
+                </div>
+                <span
+                  className="text-xs tabular-nums leading-none text-muted-foreground"
+                  style={{ lineHeight: `${BLOCK}px` }}
+                >
+                  {row.done}/{row.total}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody title={row.typeName}>
+                  {releaseTooltipRows(row.breakdown).map((r) => (
+                    <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
+                  ))}
+                  {showStoryPoints ? <TooltipRow label="Story points" value={row.sp} /> : null}
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
         {hiddenRows > 0 ? (
           <div data-testid="waffle-more" className="text-xs text-muted-foreground">
             +{hiddenRows} more {hiddenRows === 1 ? 'type' : 'types'}

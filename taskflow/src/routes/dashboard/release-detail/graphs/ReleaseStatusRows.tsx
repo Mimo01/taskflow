@@ -6,6 +6,7 @@ import { RELEASE_SEGMENT_CLASS } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
 import { fitStatusRows, type ReleaseStatusRow, statusBarWidth } from '../releaseBuckets';
 import { ASSIGNEE_ROW_HEIGHT, GraphSlot, NEW_TONE_CLASS } from './GraphSlot';
+import { rowToggleProps } from './rowToggle';
 
 const MAX_ROWS = 6;
 // Same row rhythm and column split as By assignee, so the two read as one family.
@@ -24,12 +25,17 @@ export function ReleaseStatusRows({
   state,
   compact = false,
   className,
+  activeValues,
+  onToggle,
 }: {
   rows: ReleaseStatusRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   /** Band mode: 22px rows and at most 5 of them. */
   compact?: boolean;
   className?: string;
+  activeValues?: Set<string>;
+  /** Toggle the table filter values this row stands for (261102-vuw). */
+  onToggle?: (values: string[]) => void;
 }) {
   const rowHeight = compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT;
   // WR-08: on overflow, done statuses collapse first so open work stays visible.
@@ -58,40 +64,48 @@ export function ReleaseStatusRows({
       }
     >
       <div className="flex max-w-[640px] flex-col">
-        {shown.map((row) => (
-          <Tooltip key={`${row.cat}:${row.name}`}>
-            <TooltipTrigger
-              delay={0}
-              render={<div />}
-              data-testid={`status-row-${row.name}`}
-              className={cn(ROW_GRID, 'relative z-10 rounded px-1 hover:bg-muted/50')}
-              style={{ height: rowHeight }}
-            >
-              <span className="truncate text-xs">{row.name}</span>
-              <div className="h-1.5 w-full rounded-full bg-muted">
-                <div
-                  className={cn(
-                    'h-full rounded-full',
-                    row.cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[row.cat],
-                  )}
-                  style={{ width: `${statusBarWidth(row.count, total)}%` }}
-                />
-              </div>
-              <span className="text-right text-xs tabular-nums text-muted-foreground">
-                {row.count}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <TooltipBody title={row.name}>
-                <TooltipRow label="Issues" value={row.count} />
-                <TooltipRow label="Share" value={`${Math.round((row.count / total) * 100)}%`} />
-                {row.mergedStatuses ? (
-                  <TooltipRow label="Done statuses" value={row.mergedStatuses} />
-                ) : null}
-              </TooltipBody>
-            </TooltipContent>
-          </Tooltip>
-        ))}
+        {shown.map((row) => {
+          const toggle = rowToggleProps(row.filterValues, activeValues, onToggle);
+          return (
+            <Tooltip key={`${row.cat}:${row.name}`}>
+              <TooltipTrigger
+                delay={0}
+                render={toggle.render}
+                data-testid={`status-row-${row.name}`}
+                className={cn(
+                  ROW_GRID,
+                  'relative z-10 rounded px-1 hover:bg-muted/50',
+                  toggle.className,
+                )}
+                style={{ height: rowHeight }}
+                {...toggle.extra}
+              >
+                <span className="truncate text-xs">{row.name}</span>
+                <div className="h-1.5 w-full rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      'h-full rounded-full',
+                      row.cat === 'new' ? NEW_TONE_CLASS : RELEASE_SEGMENT_CLASS[row.cat],
+                    )}
+                    style={{ width: `${statusBarWidth(row.count, total)}%` }}
+                  />
+                </div>
+                <span className="text-right text-xs tabular-nums text-muted-foreground">
+                  {row.count}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <TooltipBody title={row.name}>
+                  <TooltipRow label="Issues" value={row.count} />
+                  <TooltipRow label="Share" value={`${Math.round((row.count / total) * 100)}%`} />
+                  {row.mergedStatuses ? (
+                    <TooltipRow label="Done statuses" value={row.mergedStatuses} />
+                  ) : null}
+                </TooltipBody>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
         {hidden.length > 0 ? (
           <Tooltip>
             <TooltipTrigger

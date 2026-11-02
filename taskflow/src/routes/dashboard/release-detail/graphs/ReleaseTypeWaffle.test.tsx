@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReleaseTypeRow } from '../releaseBuckets';
 import { GRAPH_ERROR_TEXT } from './GraphSlot';
 import { ReleaseTypeWaffle } from './ReleaseTypeWaffle';
@@ -141,5 +141,30 @@ describe('ReleaseTypeWaffle', () => {
     expect(screen.getByTestId('waffle-more')).toHaveTextContent('+2 more types');
     const cell = screen.getAllByTestId('waffle-cell')[0] as HTMLElement;
     expect(cell.style.width).toBe('12px');
+  });
+
+  describe('261102-vuw: filter toggle', () => {
+    it('click toggles the issue type; Other (no filter value) is not a button', async () => {
+      const onToggle = vi.fn();
+      const other: ReleaseTypeRow = { ...rows[0], typeName: 'Other', filterValue: null };
+      render(
+        <ReleaseTypeWaffle
+          rows={[rows[0], other]}
+          state="ready"
+          showStoryPoints={false}
+          activeValues={new Set(['Bug'])}
+          onToggle={onToggle}
+        />,
+      );
+      const bug = screen.getByTestId('type-row-Bug');
+      expect(bug.tagName).toBe('BUTTON');
+      expect(bug).toHaveAttribute('aria-pressed', 'true');
+      await userEvent.click(bug);
+      expect(onToggle).toHaveBeenCalledWith(['Bug']);
+      const o = screen.getByTestId('type-row-Other');
+      expect(o.tagName).toBe('DIV');
+      await userEvent.click(o);
+      expect(onToggle).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ReleaseStatusRow } from '../releaseBuckets';
 import { ReleaseStatusRows } from './ReleaseStatusRows';
 
@@ -88,5 +88,72 @@ describe('ReleaseStatusRows', () => {
     );
     expect(parseFloat(fills[0].style.width)).toBeCloseTo(22.2, 0);
     expect(parseFloat(fills[1].style.width)).toBeCloseTo(16.7, 0);
+  });
+
+  describe('261102-vuw: filter toggle', () => {
+    it('click calls onToggle with the exact status name; aria-pressed follows activeValues', async () => {
+      const onToggle = vi.fn();
+      render(
+        <ReleaseStatusRows
+          rows={rows}
+          state="ready"
+          activeValues={new Set(['In Review'])}
+          onToggle={onToggle}
+        />,
+      );
+      const row = screen.getByTestId('status-row-In Review');
+      expect(row.tagName).toBe('BUTTON');
+      expect(row).toHaveAttribute('aria-pressed', 'true');
+      expect(row.className).toContain('bg-muted');
+      expect(screen.getByTestId('status-row-To Do')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('status-row-To Do').className).toContain('opacity-50');
+      expect(row.className).not.toContain('opacity-50');
+      await userEvent.click(row);
+      expect(onToggle).toHaveBeenCalledWith(['In Review']);
+    });
+
+    it('nothing is dimmed when no filter is active; Enter activates', async () => {
+      const onToggle = vi.fn();
+      render(
+        <ReleaseStatusRows
+          rows={rows}
+          state="ready"
+          activeValues={new Set()}
+          onToggle={onToggle}
+        />,
+      );
+      expect(screen.getByTestId('status-row-To Do').className).not.toContain('opacity-50');
+      screen.getByTestId('status-row-To Do').focus();
+      await userEvent.keyboard('{Enter}');
+      expect(onToggle).toHaveBeenCalledWith(['To Do']);
+    });
+
+    it('the merged Done row toggles every collapsed done status', async () => {
+      const onToggle = vi.fn();
+      const doneHeavy: ReleaseStatusRow[] = [
+        'Closed',
+        'Deployed',
+        'Released',
+        'Resolved',
+        'Shipped',
+        'Verified',
+      ].map((n) => ({ name: n, cat: 'done' as const, count: 1, filterValues: [n] }));
+      const open: ReleaseStatusRow[] = [
+        { name: 'In Progress', cat: 'indeterminate', count: 1, filterValues: ['In Progress'] },
+      ];
+      render(
+        <ReleaseStatusRows rows={[...doneHeavy, ...open]} state="ready" onToggle={onToggle} />,
+      );
+      await userEvent.click(screen.getByTestId('status-row-Done'));
+      expect(onToggle).toHaveBeenCalledTimes(1);
+      expect([...onToggle.mock.calls[0][0]].sort()).toEqual(doneHeavy.map((r) => r.name).sort());
+    });
+
+    it('without onToggle rows stay plain divs', () => {
+      render(<ReleaseStatusRows rows={rows} state="ready" />);
+      const row = screen.getByTestId('status-row-Done');
+      expect(row.tagName).toBe('DIV');
+      expect(row).not.toHaveAttribute('aria-pressed');
+    });
   });
 });

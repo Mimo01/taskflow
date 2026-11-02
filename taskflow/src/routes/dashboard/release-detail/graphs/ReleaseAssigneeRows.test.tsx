@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { UNASSIGNED_FILTER } from '@/lib/assignee-filter';
 import type { ReleaseAssigneeRow } from '../releaseBuckets';
 import { GRAPH_ERROR_TEXT } from './GraphSlot';
 import { ReleaseAssigneeRows } from './ReleaseAssigneeRows';
@@ -130,5 +131,28 @@ describe('ReleaseAssigneeRows', () => {
   it('5 or fewer rows show in full with no "+K more"', () => {
     render(<ReleaseAssigneeRows rows={rows} state="ready" showStoryPoints={false} />);
     expect(screen.queryByTestId('assignee-more')).toBeNull();
+  });
+
+  describe('261102-vuw: filter toggle', () => {
+    it('named rows toggle their displayName, not the row id; Unassigned uses the sentinel', async () => {
+      const onToggle = vi.fn();
+      render(
+        <ReleaseAssigneeRows
+          rows={rows}
+          state="ready"
+          showStoryPoints={false}
+          activeValues={new Set(['Dev A'])}
+          onToggle={onToggle}
+        />,
+      );
+      const a = screen.getByTestId('assignee-row-a');
+      expect(a.tagName).toBe('BUTTON');
+      expect(a).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('assignee-row-unassigned').className).toContain('opacity-50');
+      await userEvent.click(a);
+      expect(onToggle).toHaveBeenLastCalledWith(['Dev A']);
+      await userEvent.click(screen.getByTestId('assignee-row-unassigned'));
+      expect(onToggle).toHaveBeenLastCalledWith([UNASSIGNED_FILTER]);
+    });
   });
 });
