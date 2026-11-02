@@ -94,7 +94,7 @@ describe('mrDonutSlices', () => {
     expect(s.map((x) => x.share)).toEqual([67, 33]);
     expect(s[0].color).toBe('var(--color-green-500)');
     expect(s[1].color).toBe('color-mix(in oklab, var(--color-blue-500) 40%, transparent)');
-    expect(s[0].label).toBe('merged');
+    expect(s.map((x) => x.label)).toEqual(['Merged', 'Draft']);
     expect(s[0].rows.length).toBeLessThanOrEqual(4);
   });
   it('returns [] when empty and colours open/closed', () => {

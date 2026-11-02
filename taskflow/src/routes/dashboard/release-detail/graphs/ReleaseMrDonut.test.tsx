@@ -30,6 +30,6 @@ describe('ReleaseMrDonut', () => {
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('MRs')).toBeInTheDocument();
     expect(screen.queryByTestId('release-mr-legend')).toBeNull();
-    expect(screen.queryByText('merged')).toBeNull();
+    expect(screen.queryByText(/^merged$/i)).toBeNull();
   });
 });

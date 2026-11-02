@@ -103,7 +103,8 @@ export function mrDonutSlices(counts: {
     const share = pct(counts[s.key], total);
     return {
       key: s.key,
-      label: s.key,
+      // Tooltip title: sentence case ("Merged"), the key stays lowercase.
+      label: s.key.charAt(0).toUpperCase() + s.key.slice(1),
       value: counts[s.key],
       share,
       color: s.color,
