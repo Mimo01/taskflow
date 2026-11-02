@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-02 - Completed quick task 261102-tg3: release detail MR labels flow into columns (no taller than the donut)
+Last activity: 2026-11-02 - Completed quick task 261102-u5r: release detail Progress graph redo (countdown header, decluttered burnup, no done-bar tooltip)
 
 ## Performance Metrics
 
@@ -235,6 +235,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261102-rzm | Release detail Progress burnup: non-overlapping TODAY/RELEASE + end labels via measured-size layoutBurnupLabels (37-scenario visual matrix) | 2026-11-02 | 88d24fda | Verified (UAT) | [261102-rzm-release-detail-progress-graph-fix-overla](./quick/261102-rzm-release-detail-progress-graph-fix-overla/) |
 | 261102-st4 | Release Progress graph polish: "since <prev> · <date>" aside, end-point dots, softer TODAY/RELEASE, year-aware ticks, short-row room; end labels kept off marker lines | 2026-11-02 | 81a0b5f4 | Verified (UAT) | [261102-st4-release-progress-graph-polish-since-labe](./quick/261102-st4-release-progress-graph-polish-since-labe/) |
 | 261102-tg3 | Release detail MR labels: column-major pill grid capped to the donut height (extra pills open content-sized columns, nothing hidden); unlabelled MRs lead as an orange "N MRs without label" banner (orange accent-bar callout) above a hairline (grid drops to 4 rows) | 2026-11-02 | 35336628 | Verified (UAT approved) | [261102-tg3-release-detail-mr-labels-reduce-height-w](./quick/261102-tg3-release-detail-mr-labels-reduce-height-w/) |
+| 261102-u5r | Release detail Progress graph: shared one-line countdown header over burnup and thin-history track; burnup end labels removed, plot min 110→150px, right margin 40→12, TODAY/RELEASE labels styled as the track; top done bar keeps N / M done but loses its tooltip (statusNames plumbing removed) | 2026-11-02 | 210ca2ec | Needs UAT | [261102-u5r-redo-release-detail-progress-bar-burnup-](./quick/261102-u5r-redo-release-detail-progress-bar-burnup-/) |
 
 ## Session Continuity
 
