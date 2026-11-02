@@ -277,4 +277,89 @@ describe('useResizable', () => {
       document.dispatchEvent(makeMouseEvent('mouseup', 80));
     });
   });
+  describe('keyboard resize', () => {
+    const key = (k: string, shiftKey = false) =>
+      ({ key: k, shiftKey, preventDefault: vi.fn() }) as unknown as React.KeyboardEvent;
+
+    it('ArrowRight grows by 16 and commits once; ArrowLeft shrinks', () => {
+      const onCommit = vi.fn();
+      const { result } = renderHook(() =>
+        useResizable({ initialWidth: 200, min: 100, max: 400, onCommit }),
+      );
+      const e = key('ArrowRight');
+      act(() => result.current.handleKeyDown(e));
+      expect(result.current.width).toBe(216);
+      expect(onCommit).toHaveBeenCalledTimes(1);
+      expect(onCommit).toHaveBeenCalledWith(216);
+      expect(e.preventDefault).toHaveBeenCalled();
+      act(() => result.current.handleKeyDown(key('ArrowLeft')));
+      expect(result.current.width).toBe(200);
+    });
+
+    it('Shift steps by 64', () => {
+      const { result } = renderHook(() =>
+        useResizable({ initialWidth: 200, min: 100, max: 400, onCommit: vi.fn() }),
+      );
+      act(() => result.current.handleKeyDown(key('ArrowRight', true)));
+      expect(result.current.width).toBe(264);
+      act(() => result.current.handleKeyDown(key('ArrowLeft', true)));
+      expect(result.current.width).toBe(200);
+    });
+
+    it("direction 'left' reverses the arrows", () => {
+      const { result } = renderHook(() =>
+        useResizable({
+          initialWidth: 200,
+          min: 100,
+          max: 400,
+          onCommit: vi.fn(),
+          direction: 'left',
+        }),
+      );
+      act(() => result.current.handleKeyDown(key('ArrowLeft')));
+      expect(result.current.width).toBe(216);
+    });
+
+    it('clamps to min/max, evaluating function bounds per press', () => {
+      let maxV = 220;
+      const { result } = renderHook(() =>
+        useResizable({ initialWidth: 200, min: 190, max: () => maxV, onCommit: vi.fn() }),
+      );
+      act(() => result.current.handleKeyDown(key('ArrowRight', true)));
+      expect(result.current.width).toBe(220);
+      maxV = 230;
+      act(() => result.current.handleKeyDown(key('ArrowRight', true)));
+      expect(result.current.width).toBe(230);
+      act(() => result.current.handleKeyDown(key('ArrowLeft', true)));
+      act(() => result.current.handleKeyDown(key('ArrowLeft', true)));
+      expect(result.current.width).toBe(190);
+    });
+
+    it('starts from getStartWidth when provided', () => {
+      const { result } = renderHook(() =>
+        useResizable({
+          initialWidth: 200,
+          min: 100,
+          max: 600,
+          onCommit: vi.fn(),
+          getStartWidth: () => 300,
+        }),
+      );
+      act(() => result.current.handleKeyDown(key('ArrowRight')));
+      expect(result.current.width).toBe(316);
+    });
+
+    it('ignores other keys', () => {
+      const onCommit = vi.fn();
+      const { result } = renderHook(() =>
+        useResizable({ initialWidth: 200, min: 100, max: 400, onCommit }),
+      );
+      const e = key('Enter');
+      act(() => result.current.handleKeyDown(e));
+      act(() => result.current.handleKeyDown(key('a')));
+      expect(result.current.width).toBe(200);
+      expect(onCommit).not.toHaveBeenCalled();
+      expect(e.preventDefault).not.toHaveBeenCalled();
+    });
+  });
 });

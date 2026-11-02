@@ -27,7 +27,8 @@ export interface UseResizableOptions {
  * Drag-to-resize hook for sidebar panels.
  *
  * Encapsulates mousedown/mousemove/mouseup drag logic, bounds clamping, cursor lock,
- * and selection suppression. Width is committed to persistent storage via `onCommit`
+ * and selection suppression. Also exposes `handleKeyDown` for keyboard resizing
+ * (arrow keys, Shift for larger steps). Width is committed to persistent storage via `onCommit`
  * only on mouseup (not on every mousemove) to avoid excessive store writes.
  *
  * @param options.initialWidth — starting width in px (from persisted store)
@@ -51,6 +52,8 @@ export function useResizable({
   const maxRef = useRef(max);
   minRef.current = min;
   maxRef.current = max;
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
 
   const clamp = useCallback((value: number) => {
     const minVal = typeof minRef.current === 'function' ? minRef.current() : minRef.current;
@@ -120,5 +123,22 @@ export function useResizable({
     };
   }, [isDragging, direction, clamp, onCommit]);
 
-  return { width, isDragging, handleMouseDown };
+  // Keyboard resize: ArrowLeft/ArrowRight step 16px (64px with Shift). Same sign
+  // convention as the mouse delta, so direction 'left' reverses the arrows.
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const step = e.shiftKey ? 64 : 16;
+      let delta = e.key === 'ArrowRight' ? step : -step;
+      if (direction === 'left') delta = -delta;
+      const next = clamp((getStartWidthRef.current?.() ?? widthRef.current) + delta);
+      setWidth(next);
+      widthRef.current = next;
+      onCommitRef.current(next);
+    },
+    [direction, clamp],
+  );
+
+  return { width, isDragging, handleMouseDown, handleKeyDown };
 }

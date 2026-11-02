@@ -72,6 +72,17 @@ describe('settings.store — updateCheckInterval (Phase 38)', () => {
   });
 });
 
+describe('settings.store — standupYesterdayWidth', () => {
+  it('defaults to null, is settable, and resets to null', () => {
+    act(() => useSettingsStore.getState().setStandupYesterdayWidth(null));
+    expect(useSettingsStore.getState().standupYesterdayWidth).toBeNull();
+    act(() => useSettingsStore.getState().setStandupYesterdayWidth(500));
+    expect(useSettingsStore.getState().standupYesterdayWidth).toBe(500);
+    act(() => useSettingsStore.getState().setStandupYesterdayWidth(null));
+    expect(useSettingsStore.getState().standupYesterdayWidth).toBeNull();
+  });
+});
+
 describe('settings.store — resize panel widths (Phase 50)', () => {
   beforeEach(() => {
     act(() => {
@@ -487,14 +498,15 @@ describe('settings.store — rankFieldKey (Phase 76)', () => {
     expect(src).toMatch(/if\s*\(version\s*<\s*30\)/);
   });
 
-  it('persist version is 32 (v31 moved the 288 default; v32 drops the field)', () => {
+  it('persist version is 33 (v31 moved the 288 default; v32 drops the field; v33 adds standupYesterdayWidth)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*31\)/);
     expect(src).toMatch(/releaseDetailPanelWidth === 288\) s\.releaseDetailPanelWidth = 256/);
-    expect(src).toMatch(/version: 32,/);
+    expect(src).toMatch(/version: 33,/);
     expect(src).toMatch(/if\s*\(version\s*<\s*32\)/);
+    expect(src).toMatch(/if\s*\(version\s*<\s*33\)/);
   });
 
   it('v31 -> v32 migration deletes the persisted releaseDetailPanelWidth', async () => {

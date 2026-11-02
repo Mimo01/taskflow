@@ -52,6 +52,7 @@ const initialSettings = {
   sidebarWidth: 224,
   issueDetailPanelWidth: null as number | null,
   peekPanelWidth: null as number | null,
+  standupYesterdayWidth: null as number | null,
   mrDetailPanelWidth: 288,
   aioRunDetailPanelWidth: 320,
   aioEnabled: false,
@@ -152,6 +153,9 @@ interface SettingsState {
   /** Peek panel width in px. Null = use default 480 until first drag. */
   peekPanelWidth: number | null;
   setPeekPanelWidth: (w: number) => void;
+  /** Standup Notes Yesterday (left) column width in px. Null = 50/50 split until first drag/keyboard resize. */
+  standupYesterdayWidth: number | null;
+  setStandupYesterdayWidth: (w: number | null) => void;
   /** MR detail right panel width in px. Default: 288 (w-72). */
   mrDetailPanelWidth: number;
   setMrDetailPanelWidth: (w: number) => void;
@@ -266,6 +270,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSidebarWidth: (w) => set({ sidebarWidth: w }),
       setIssueDetailPanelWidth: (w) => set({ issueDetailPanelWidth: w }),
       setPeekPanelWidth: (w) => set({ peekPanelWidth: w }),
+      setStandupYesterdayWidth: (w) => set({ standupYesterdayWidth: w }),
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
       setAioRunDetailPanelWidth: (w) => set({ aioRunDetailPanelWidth: w }),
       setAioEnabled: (v) => set({ aioEnabled: v }),
@@ -368,7 +373,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 32,
+      version: 33,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -497,6 +502,9 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 32) {
           // P94: release detail is full-width; the sidebar width setting is gone.
           delete s.releaseDetailPanelWidth;
+        }
+        if (version < 33) {
+          if (s.standupYesterdayWidth === undefined) s.standupYesterdayWidth = null;
         }
         return persisted as SettingsState;
       },
