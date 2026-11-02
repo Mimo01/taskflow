@@ -63,6 +63,8 @@ export interface EndLabel {
   anchor: 'start' | 'end';
   color: 'scope' | 'done';
   box: Box;
+  /** No placement avoided a marker line: the renderer masks it with a full-height background. */
+  onMarker: boolean;
 }
 export interface BurnupLabelInput {
   chartWidth: number;
@@ -182,7 +184,9 @@ function placeEnds(input: BurnupLabelInput): EndLabel[] {
   const scopeText = merged ? `${end.scope} scope · done` : `${end.scope} scope`;
   const doneText = `${end.done} done`;
   const lineXs = input.markers.map((m) => m.x);
-  const crosses = (b: Box) => lineXs.filter((x) => x > b.x && x < b.x + b.w).length;
+  // A marker line through a label makes it unreadable: treat it like sitting on a
+  // series line (hard cost), so the label flips to the other side instead.
+  const crosses = (b: Box) => lineXs.filter((x) => x > b.x - 2 && x < b.x + b.w + 2).length;
   const centre = (b: Box) => b.y + b.h / 2;
   // On the left of the last point the label lies over the lines; keep it off them.
   const onLine = (b: Box) => {
@@ -205,12 +209,15 @@ function placeEnds(input: BurnupLabelInput): EndLabel[] {
     anchor: side === 'right' ? 'start' : 'end',
     color,
     box,
+    onMarker: crosses(box) > 0,
   });
   const ideal = (b: Box, lineY: number, side: 'right' | 'left') =>
     side === 'right'
       ? Math.abs(centre(b) - lineY)
       : Math.abs(centre(b) - (lineY - (END_H / 2 + 2)));
 
+  let result: EndLabel[] = [];
+  let resultCost = Number.POSITIVE_INFINITY;
   for (const side of ['right', 'left'] as const) {
     const sideCost = side === 'left' ? 100 : 0;
     const sc = endCandidates(scopeText, end.x, side, plot, W, [end.scopeY, end.doneY]);
@@ -221,14 +228,17 @@ function placeEnds(input: BurnupLabelInput): EndLabel[] {
       for (const b of sc) {
         const c =
           ideal(b, end.scopeY, side) +
-          crosses(b) * 20 +
+          crosses(b) * 1000 +
           (onLine(b) + notAbove(b, end.scopeY, side)) * 1000;
         if (c < bestCost) {
           bestCost = c;
           best = b;
         }
       }
-      if (best) return [make(scopeText, best, side, 'scope')];
+      if (best && bestCost + sideCost < resultCost) {
+        resultCost = bestCost + sideCost;
+        result = [make(scopeText, best, side, 'scope')];
+      }
       continue;
     }
     const dc = endCandidates(doneText, end.x, side, plot, W, [end.scopeY, end.doneY]);
@@ -238,7 +248,7 @@ function placeEnds(input: BurnupLabelInput): EndLabel[] {
     for (const s of sc) {
       const cs =
         ideal(s, end.scopeY, side) +
-        crosses(s) * 20 +
+        crosses(s) * 1000 +
         (onLine(s) + notAbove(s, end.scopeY, side)) * 1000;
       if (cs + sideCost >= bestCost) continue;
       for (const d of dc) {
@@ -246,7 +256,7 @@ function placeEnds(input: BurnupLabelInput): EndLabel[] {
         let c =
           cs +
           ideal(d, end.doneY, side) +
-          crosses(d) * 20 +
+          crosses(d) * 1000 +
           (onLine(d) + notAbove(d, end.doneY, side)) * 1000 +
           sideCost;
         if (centre(s) > centre(d)) c += 40;
@@ -256,9 +266,12 @@ function placeEnds(input: BurnupLabelInput): EndLabel[] {
         }
       }
     }
-    if (best) return [make(scopeText, best.s, side, 'scope'), make(doneText, best.d, side, 'done')];
+    if (best && bestCost < resultCost) {
+      resultCost = bestCost;
+      result = [make(scopeText, best.s, side, 'scope'), make(doneText, best.d, side, 'done')];
+    }
   }
-  return [];
+  return result;
 }
 
 /**

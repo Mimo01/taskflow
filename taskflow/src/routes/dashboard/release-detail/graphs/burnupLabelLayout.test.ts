@@ -97,6 +97,35 @@ describe('layoutBurnupLabels examples', () => {
       expect(a.box.y).toBeLessThan(b.box.y);
     }
   });
+  it('never lays an end label across the RELEASE line just after TODAY (1-2 days apart)', () => {
+    for (const w of [400, 560, 760]) {
+      const plot = burnupPlotBox(w, H);
+      for (const gap of [12, 20, 30, 45]) {
+        const tx = plot.right - gap - 5;
+        const rx = tx + gap;
+        for (const [scope, done] of [
+          [30, 12],
+          [45, 44],
+          [22, 22],
+        ]) {
+          const { out } = run(w, H, scope, done, tx, rx);
+          for (const e of out.ends) {
+            expect(rx <= e.box.x - 2 || rx >= e.box.x + e.box.w + 2).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('flags an end label that cannot avoid a marker line (TODAY at the left edge) for masking', () => {
+    const plot = burnupPlotBox(400, H);
+    const tx = plot.left + 15;
+    const { out } = run(400, H, 45, 44, tx, tx + 15);
+    expect(out.ends.some((e) => e.onMarker)).toBe(true);
+    const clear = run(400, H, 30, 12, plot.right - 30, plot.right - 10).out;
+    expect(clear.ends.every((e) => !e.onMarker)).toBe(true);
+  });
+
   it('uses the real plot height: taller plots put the labels at their own lines', () => {
     const small = run(W, 110, 30, 12, 200, null).out.ends[1].box.y;
     const tall = run(W, 240, 30, 12, 200, null).out.ends[1].box.y;

@@ -25,6 +25,8 @@ import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 const TOOLTIP_WRAPPER = { zIndex: 50, pointerEvents: 'none' as const };
+/** Marker lines paint above the done area (100) but under the series lines, end dots and end labels (400). */
+const MARKER_Z = 150;
 const GREEN = 'var(--color-green-500)';
 const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
@@ -118,9 +120,9 @@ function endLabel(last: number, label: EndLabel | undefined) {
       <g>
         <rect
           x={box.x + 1}
-          y={box.y + 2}
+          y={label.onMarker ? box.y : box.y + 2}
           width={box.w - 2}
-          height={box.h - 4}
+          height={label.onMarker ? box.h : box.h - 4}
           rx={2}
           fill="var(--color-background)"
         />
@@ -341,6 +343,7 @@ export function ReleaseBurnup({
                   stroke="var(--color-foreground)"
                   strokeOpacity={0.5}
                   label={markerLabel(todayLabel)}
+                  zIndex={MARKER_Z}
                 />
               ) : null}
               {axis.showRelease && axis.releaseDate ? (
@@ -349,6 +352,7 @@ export function ReleaseBurnup({
                   stroke={MUTED}
                   strokeDasharray="4 3"
                   label={markerLabel(releaseLabel)}
+                  zIndex={MARKER_Z}
                 />
               ) : null}
               <Area
