@@ -72,6 +72,8 @@ describe('MrLabels (second legend column)', () => {
     const list = screen.getByTestId('mr-labels');
     expect(list.firstElementChild).toBe(el);
     expect(screen.getByTestId('mr-labels-grid').contains(el)).toBe(false);
+    // a hairline divides the banner from the pills
+    expect(el.nextElementSibling).toBe(screen.getByTestId('mr-labels-divider'));
     await user.hover(el);
     expect(screen.queryByTestId('mr-labels-unlabeled-tooltip')).toBeNull();
   });
@@ -129,6 +131,7 @@ describe('MrLabels (second legend column)', () => {
     render(<MrLabels labelSummary={[]} coverage={missing(3)} />);
     expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
     expect(screen.queryByTestId('mr-labels-grid')).toBeNull();
+    expect(screen.queryByTestId('mr-labels-divider')).toBeNull();
   });
 });
 

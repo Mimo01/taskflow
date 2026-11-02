@@ -136,6 +136,9 @@ export function MrLabels({
           </span>
         </Banner>
       ) : null}
+      {hasBanner && labelSummary.length > 0 ? (
+        <hr data-testid="mr-labels-divider" className="border-border" />
+      ) : null}
       {labelSummary.length > 0 ? (
         <div
           data-testid="mr-labels-grid"
