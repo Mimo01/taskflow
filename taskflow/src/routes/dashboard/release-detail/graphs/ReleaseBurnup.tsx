@@ -30,6 +30,7 @@ const MARKER_Z = 150;
 const GREEN = 'var(--color-green-500)';
 const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
+const DAY_MS = 86_400_000;
 const FALLBACK_WIDTH = 640;
 
 const yearOf = (key: string) => Number(key.slice(0, 4));
@@ -78,6 +79,15 @@ function endDot(last: number, color: string) {
 }
 
 /** At most 4 integer ticks (0 plus up to three steps of 5/10/...). */
+/**
+ * Series as plotted: every day is a day-wide step, so a closing point one day
+ * after the last one gives the final day (release day / today) its width.
+ */
+export function closeLastDay(points: BurnupPoint[]): BurnupPoint[] {
+  const last = points[points.length - 1];
+  return last ? [...points, { ...last, t: last.t + DAY_MS }] : points;
+}
+
 export function burnupYScale(max: number): { top: number; ticks: number[] } {
   const step = Math.max(5, Math.ceil(Math.max(max, 1) / 3 / 5) * 5);
   const n = Math.max(1, Math.ceil(max / step));
@@ -224,6 +234,12 @@ export function ReleaseBurnup({
   ) : undefined;
   const last = points[points.length - 1];
   const enough = state === 'ready' && !!axis && points.length >= 2 && !!last;
+  // Each day is a day-wide step, so the last day needs a closing point one day on:
+  // without it, issues done on release day (or today) were a zero-width sliver on
+  // the marker line. Markers sit at the end of their day, where the series ends.
+  const plotted = closeLastDay(points);
+  const lastIdx = plotted.length - 1;
+  const dayEnd = (key: string) => dateKeyMs(key) + DAY_MS;
   const plot = burnupPlotBox(width, height);
   const ticks = axis
     ? yearAwareTicks(timeTicks(axis.start, axis.end, plot.right - plot.left), axis.start, axis.end)
@@ -237,21 +253,21 @@ export function ReleaseBurnup({
   const labels = (() => {
     if (!axis || !last) return null;
     const t0 = dateKeyMs(axis.start);
-    const span = Math.max(1, dateKeyMs(axis.end) - t0);
+    const span = Math.max(1, dayEnd(axis.end) - t0);
     const xOf = (t: number) => plot.left + ((t - t0) / span) * (plot.right - plot.left);
     const yOf = (v: number) =>
       plot.bottom - (v / Math.max(1, domainTop)) * (plot.bottom - plot.top);
     const markers: { kind: 'today' | 'release'; x: number }[] = [];
-    if (axis.showToday) markers.push({ kind: 'today', x: xOf(dateKeyMs(axis.seriesEnd)) });
+    if (axis.showToday) markers.push({ kind: 'today', x: xOf(dayEnd(axis.seriesEnd)) });
     if (axis.showRelease && axis.releaseDate)
-      markers.push({ kind: 'release', x: xOf(dateKeyMs(axis.releaseDate)) });
+      markers.push({ kind: 'release', x: xOf(dayEnd(axis.releaseDate)) });
     return layoutBurnupLabels({
       chartWidth: width,
       chartHeight: height,
       plot,
       markers,
       end: {
-        x: xOf(last.t),
+        x: xOf(last.t + DAY_MS),
         scopeY: yOf(last.scope),
         doneY: yOf(last.done),
         scope: last.scope,
@@ -298,12 +314,12 @@ export function ReleaseBurnup({
             config={{}}
             className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
           >
-            <ComposedChart data={points} responsive margin={BURNUP_MARGIN}>
+            <ComposedChart data={plotted} responsive margin={BURNUP_MARGIN}>
               <XAxis
                 type="number"
                 dataKey="t"
                 scale="time"
-                domain={[dateKeyMs(axis.start), dateKeyMs(axis.end)]}
+                domain={[dateKeyMs(axis.start), dayEnd(axis.end)]}
                 allowDataOverflow
                 ticks={ticks.map((x) => x.t)}
                 interval={0}
@@ -339,7 +355,7 @@ export function ReleaseBurnup({
               />
               {axis.showToday ? (
                 <ReferenceLine
-                  x={dateKeyMs(axis.seriesEnd)}
+                  x={dayEnd(axis.seriesEnd)}
                   stroke="var(--color-foreground)"
                   strokeOpacity={0.5}
                   label={markerLabel(todayLabel)}
@@ -348,7 +364,7 @@ export function ReleaseBurnup({
               ) : null}
               {axis.showRelease && axis.releaseDate ? (
                 <ReferenceLine
-                  x={dateKeyMs(axis.releaseDate)}
+                  x={dayEnd(axis.releaseDate)}
                   stroke={MUTED}
                   strokeDasharray="4 3"
                   label={markerLabel(releaseLabel)}
@@ -370,18 +386,18 @@ export function ReleaseBurnup({
                 stroke={MUTED}
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
-                dot={last.scope === last.done ? false : endDot(points.length - 1, MUTED)}
+                dot={last.scope === last.done ? false : endDot(lastIdx, MUTED)}
                 isAnimationActive={false}
-                label={endLabel(points.length - 1, scopeEnd)}
+                label={endLabel(lastIdx, scopeEnd)}
               />
               <Line
                 dataKey="done"
                 type="stepAfter"
                 stroke={GREEN}
                 strokeWidth={2}
-                dot={endDot(points.length - 1, GREEN)}
+                dot={endDot(lastIdx, GREEN)}
                 isAnimationActive={false}
-                label={endLabel(points.length - 1, doneEnd)}
+                label={endLabel(lastIdx, doneEnd)}
               />
             </ComposedChart>
           </ChartContainer>

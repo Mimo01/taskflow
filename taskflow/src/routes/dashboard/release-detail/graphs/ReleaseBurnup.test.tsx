@@ -1,7 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
-import { BurnupTooltip, burnupYScale, ReleaseBurnup, yearAwareTicks } from './ReleaseBurnup';
+import {
+  BurnupTooltip,
+  burnupYScale,
+  closeLastDay,
+  ReleaseBurnup,
+  yearAwareTicks,
+} from './ReleaseBurnup';
 
 const axis: BurnupAxis = {
   start: '2026-10-01',
@@ -229,5 +235,26 @@ describe('yearAwareTicks', () => {
       2026,
     );
     expect(out[0].label).toBe('Jan 2027');
+  });
+});
+
+describe('closeLastDay', () => {
+  it('gives the last day (release day) a full day of width, so its closures are not a sliver', () => {
+    const d = (k: string, scope: number, done: number) => ({
+      day: k,
+      t: Date.UTC(2026, 9, Number(k.slice(8))),
+      scope,
+      done,
+      doneSp: 0,
+    });
+    const pts = [d('2026-10-01', 10, 2), d('2026-10-02', 10, 3), d('2026-10-03', 10, 9)];
+    const out = closeLastDay(pts);
+    expect(out).toHaveLength(4);
+    const [prev, rel, close] = out.slice(-3);
+    expect(close.t - rel.t).toBe(86_400_000);
+    expect(close.done).toBe(9);
+    expect(close.day).toBe('2026-10-03');
+    expect(rel.done - prev.done).toBe(6);
+    expect(closeLastDay([])).toEqual([]);
   });
 });
