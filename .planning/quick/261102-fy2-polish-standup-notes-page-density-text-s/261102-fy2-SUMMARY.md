@@ -32,3 +32,12 @@ Full vitest suite (270 files / 4172 tests), tsc and biome passed via pre-commit 
 None.
 
 ## Self-Check: PASSED
+
+## Post-UAT changes (2026-11-02, user-directed)
+
+- `b768dcc5` SP chip `w-7` → `min-w-7` (review WR-01).
+- `8fa20932` Yesterday status pills removed + fetchIssueMeta status plumbing reverted (status on Today rows only).
+- `120e3a20` / `4406c114` cluster reorder tried and reverted — Today rows use the My Tasks order: status → SP → time bar → avatar.
+- `9c4f34c4` StackedTimeBar extracted from MyTaskRow to `components/jira/StackedTimeBar.tsx`, used on every Today row (Today width `w-24 @max-[30rem]:hidden`); MyTaskRow Flagged/MR chips get `role="img"` (pre-existing a11y lint).
+- `cb81f97b` `alwaysShowTrack`: Today rows show an empty track + "0m" when there's no time data.
+- Screenshots in `screenshots/` predate these changes. Final state approved at UAT.
