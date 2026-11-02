@@ -661,10 +661,11 @@ export function useReleaseDetail(versionId: string | undefined) {
   // (driftRows), so count over that same set — not just milestone MRs — or the
   // pill count undercounts what the filter then shows.
   // The "no label" warning drives the same table filter, so it counts the same set.
+  // The MR donut (centre total + state counts) uses this same union so its total matches the pills.
   const unionMrs = driftRows.map((r) => r.mr);
   const labelSummary = computeLabelSummary(unionMrs);
   const labelCoverage = computeLabelCoverage(unionMrs);
-  const mrStateCounts = computeMrStateCounts(releaseMrs);
+  const mrStateCounts = computeMrStateCounts(unionMrs);
   const issueStatusCounts = computeIssueStatusCounts(releaseIssues);
 
   // Header figure (D-14): the detail's own issues are the single source once
@@ -695,7 +696,7 @@ export function useReleaseDetail(versionId: string | undefined) {
   const assigneeRows = deriveReleaseAssigneeRows(releaseIssues, storyPointsFieldKey);
   const typeRows = deriveReleaseTypeRows(releaseIssues, storyPointsFieldKey);
   const statusNames = statusNameSummary(releaseIssues);
-  const mrDonutCounts = computeMrDonutCounts(milestoneMRs ?? []);
+  const mrDonutCounts = computeMrDonutCounts(unionMrs);
   const issuesError = isIssuesError && !fixVersionIssues;
   const gitlabConfigured = !!gitlabBaseUrl && activeGitlabProject != null;
 

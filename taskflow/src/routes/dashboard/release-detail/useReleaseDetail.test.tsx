@@ -1447,6 +1447,48 @@ describe('useReleaseDetail P94 graph data', () => {
     expect(result.current.issuesUpdatedAt).toBeGreaterThan(0);
   });
 
+  it('MR donut total equals the three-channel union (branch-only and fix-version-only MRs included)', async () => {
+    await setupMocks();
+    const jira = await import('@/services/jira');
+    const gitlab = await import('@/services/gitlab');
+    const issue = (n: number) =>
+      ({
+        id: String(n),
+        key: `PROJ-${n}`,
+        fields: {
+          summary: 'x',
+          status: { id: '1', name: 'S', statusCategory: { key: 'new' } },
+          issuetype: { name: 'Task', subtask: false },
+        },
+      }) as unknown as Awaited<ReturnType<typeof jira.fetchFixVersionIssues>>[number];
+    vi.mocked(jira.fetchFixVersionIssues).mockResolvedValue([issue(1), issue(2), issue(3)]);
+    type MR = Awaited<ReturnType<typeof gitlab.fetchMilestoneMRs>>[number];
+    const msMr = mrFixture(1, 'merged', false) as unknown as MR;
+    // Branch-only: targets the release branch, no milestone, no fix-version key.
+    const branchOnly = {
+      ...mrFixture(2, 'opened', false),
+      title: 'unrelated change',
+      source_branch: 'feature/other',
+      target_branch: 'release/33.5.0',
+    } as unknown as MR;
+    // Fix-version-only: title carries PROJ-3, but no milestone and wrong branch.
+    const fixVersionOnly = mrFixture(3, 'opened', true) as unknown as MR;
+    vi.mocked(gitlab.fetchMilestoneMRs).mockResolvedValue([msMr]);
+    vi.mocked(gitlab.fetchBranchTargetedMRs).mockResolvedValue([branchOnly]);
+    vi.mocked(gitlab.fetchAllProjectMRs).mockResolvedValue([msMr, branchOnly, fixVersionOnly]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.mrDonutCounts.open).toBe(1));
+    const c = result.current.mrDonutCounts;
+    expect(c.merged + c.open + c.draft + c.closed).toBe(3);
+    expect(c).toEqual({ merged: 1, open: 1, draft: 1, closed: 0 });
+    const s = result.current.mrStateCounts;
+    expect(s.merged + s.opened + s.closed).toBe(3);
+  });
+
   it('gitlabConfigured is false without a project', async () => {
     await setupMocks({ activeGitlabProject: null });
     const { result } = renderHook(() => useReleaseDetail(VERSION_ID), {
