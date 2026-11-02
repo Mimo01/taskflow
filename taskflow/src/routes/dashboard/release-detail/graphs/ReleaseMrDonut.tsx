@@ -81,7 +81,10 @@ export function ReleaseMrDonut({
               </>
             }
           />
-          <div data-testid="release-mr-legend" className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <div
+            data-testid="release-mr-legend"
+            className="flex max-w-[12rem] flex-wrap justify-center gap-x-4 gap-y-1 text-xs"
+          >
             {slices.map((s) => (
               <div key={s.key} className="flex items-center gap-1.5">
                 <span
