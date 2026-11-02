@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-02 - Completed quick task 261102-fkr: release detail "Not covered by tasks above" enriched
+Last activity: 2026-11-02 - Completed quick task 261102-fy2: polish standup notes page density, text size, task status
 
 ## Performance Metrics
 
@@ -203,6 +203,7 @@ None yet.
 | 261030-eic | Releases list skeleton mirrors loaded page (Today row, month labels, Next-release card, rail rows, Released panel + show-older; shares ROW_GRID/RAIL_LINE/LABEL_CLASS with ReleaseAgenda) + ReleasesHero summary-line placeholder while loading | 2026-10-30 | 45842716 | Verified (UAT approved) | [261030-eic-make-releases-page-skeleton-match-actual](./quick/261030-eic-make-releases-page-skeleton-match-actual/) |
 | 261102-ers | Release detail: show all MR labels, no +N more collapse | 2026-11-02 | 4dc42bb3 | Verified (inline) | [261102-ers-show-all-mr-labels](./quick/261102-ers-show-all-mr-labels/) |
 | 261102-euc | Release detail: filter tasks by MR label (click label pill) | 2026-11-02 | 31b4d7d0 | Verified (inline) | [261102-euc-on-release-detail-filter-tasks-based-on-](./quick/261102-euc-on-release-detail-filter-tasks-based-on-/) |
+| 261102-fy2 | Standup notes: density/text-size pass + trailing status pills on issue rows | 2026-11-02 | b87c5dce | Needs Review | [261102-fy2-polish-standup-notes-page-density-text-s](./quick/261102-fy2-polish-standup-notes-page-density-text-s/) |
 
 ## Deferred Items
 
