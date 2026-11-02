@@ -1336,12 +1336,6 @@ export function UnifiedTaskTable({
         <div data-testid="secondary-section" className="mt-4 pt-4 border-t border-border/50">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
             <h4 className="text-sm font-medium">Not covered by tasks above</h4>
-            <span
-              data-testid="secondary-count"
-              className="text-xs tabular-nums text-muted-foreground"
-            >
-              {filteredSecondaryRows.length}
-            </span>
             {REASON_ORDER.filter((r) => secondaryReasonCounts[r] > 0).map((r, i) => (
               <Fragment key={r}>
                 {i > 0 && (

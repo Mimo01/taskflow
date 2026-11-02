@@ -2138,10 +2138,10 @@ describe('261102-fkr: secondary header', () => {
     }),
   ];
 
-  it('shows the total and per-reason chips', () => {
+  it('shows per-reason chips (no separate total)', () => {
     renderSection({ secondaryRows: rows() });
     expect(screen.getByText('Not covered by tasks above')).toBeInTheDocument();
-    expect(screen.getByTestId('secondary-count')).toHaveTextContent('4');
+    expect(screen.queryByTestId('secondary-count')).toBeNull();
     expect(screen.getByTestId('secondary-reason-chip-no-linked-task')).toHaveTextContent(
       '2 no linked task',
     );
@@ -2161,7 +2161,7 @@ describe('261102-fkr: secondary header', () => {
 
   it('counts follow the active label filter', () => {
     renderSection({ secondaryRows: rows(), labelFilter: 'a' });
-    expect(screen.getByTestId('secondary-count')).toHaveTextContent('1');
+    expect(screen.queryByTestId('secondary-count')).toBeNull();
     expect(screen.getByTestId('secondary-reason-chip-no-linked-task')).toHaveTextContent(
       '1 no linked task',
     );
