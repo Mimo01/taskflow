@@ -671,6 +671,102 @@ describe('fetchIssueMeta', () => {
     expect(result['PROJ-1']).toBeUndefined();
   });
 
+  it('requests status and maps own + embedded parent status', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockClear();
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: {
+              summary: 'S',
+              issuetype: { name: 'Story', subtask: false },
+              status: { name: 'Code Review', statusCategory: { key: 'indeterminate' } },
+            },
+          },
+          {
+            key: 'PROJ-2',
+            fields: {
+              summary: 'Sub',
+              issuetype: { name: 'Sub-task', subtask: true },
+              status: { name: 'Done', statusCategory: { key: 'done' } },
+              parent: {
+                key: 'PROJ-1',
+                fields: {
+                  status: { name: 'Code Review', statusCategory: { key: 'indeterminate' } },
+                },
+              },
+            },
+          },
+          { key: 'PROJ-3', fields: { summary: 'No status' } },
+        ],
+      }),
+    } as Response);
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-1', 'PROJ-2', 'PROJ-3']);
+    const url = decodeURIComponent(mockFetchFn.mock.calls[0][0] as string);
+    expect(url).toContain('fields=issuetype,summary,parent,subtasks,status');
+    expect(result['PROJ-1']).toMatchObject({
+      statusName: 'Code Review',
+      statusCategoryKey: 'indeterminate',
+    });
+    expect(result['PROJ-2']).toMatchObject({
+      statusName: 'Done',
+      statusCategoryKey: 'done',
+      parentStatusName: 'Code Review',
+      parentStatusCategoryKey: 'indeterminate',
+    });
+    expect(result['PROJ-3'].statusName).toBeUndefined();
+    expect('statusName' in result['PROJ-3']).toBe(false);
+    expect('parentStatusName' in result['PROJ-3']).toBe(false);
+  });
+
+  it('merges the parent status from the follow-up request', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockClear();
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-2',
+            fields: {
+              summary: 'Sub',
+              issuetype: { name: 'Sub-task', subtask: true },
+              parent: { key: 'PROJ-1', fields: { summary: 'Story' } },
+            },
+          },
+        ],
+      }),
+    } as Response);
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: {
+              subtasks: [{ key: 'PROJ-2' }],
+              status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+            },
+          },
+        ],
+      }),
+    } as Response);
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-2']);
+    const url2 = decodeURIComponent(mockFetchFn.mock.calls[1][0] as string);
+    expect(url2).toContain('fields=subtasks,status');
+    expect(result['PROJ-1']).toMatchObject({
+      subtaskKeys: ['PROJ-2'],
+      statusName: 'In Progress',
+      statusCategoryKey: 'indeterminate',
+    });
+  });
+
   it('degrades to an empty map on a non-ok response', async () => {
     const mockFetchFn = vi.mocked(mockFetch);
     mockFetchFn.mockResolvedValueOnce({

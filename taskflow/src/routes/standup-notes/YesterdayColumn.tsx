@@ -33,8 +33,8 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { orderSubtaskKeys } from '@/lib/subtask-order';
 import { buildRecentDayOptions, extractJiraKeyFromMessage, getTodayDate } from '@/lib/standup-date';
+import { orderSubtaskKeys } from '@/lib/subtask-order';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
 import type { JiraActivityItem, JiraCreatedIssue, StandupIssueMeta } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
@@ -81,6 +81,9 @@ interface IssueGroup {
   issueKey: string;
   summary: string;
   issueType?: string;
+  /** Current Jira status (display only — never read by generateMarkdown). */
+  statusName?: string;
+  statusCategoryKey?: string;
   totalSeconds: number;
   subItems: SubItem[];
   /** Sub-task sub-groups: activity partitioned by originating sub-task key.
@@ -298,7 +301,8 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
  *
  * Never uses toLocaleDateString() — date comparisons use .slice(0, 10).
  */
-function buildGroups(
+/** @internal exported for tests */
+export function buildGroups(
   tempoData?: TempoWorklog[],
   jiraData?: JiraActivityItem[],
   commitsData?: GitLabCommit[],
@@ -317,19 +321,42 @@ function buildGroups(
   // Resolve the rollup target for an issue key: a sub-task rolls up to its
   // parent story; everything else stays under its own key. Returns the group's
   // display key/summary/type sourced from metadata when available.
-  function resolveRollup(key: string): { rollupKey: string; summary?: string; type?: string } {
+  function resolveRollup(key: string): {
+    rollupKey: string;
+    summary?: string;
+    type?: string;
+    statusName?: string;
+    statusCategoryKey?: string;
+  } {
     const meta = issueMeta?.[key];
     if (meta?.isSubtask && meta.parentKey) {
-      return { rollupKey: meta.parentKey, summary: meta.parentSummary, type: meta.parentType };
+      // Prefer the parent's own fetched status; fall back to the one embedded on the sub-task.
+      const parentMeta = issueMeta?.[meta.parentKey];
+      const hasParentOwn = !!parentMeta?.statusName;
+      return {
+        rollupKey: meta.parentKey,
+        summary: meta.parentSummary,
+        type: meta.parentType,
+        statusName: hasParentOwn ? parentMeta?.statusName : meta.parentStatusName,
+        statusCategoryKey: hasParentOwn
+          ? parentMeta?.statusCategoryKey
+          : meta.parentStatusCategoryKey,
+      };
     }
-    return { rollupKey: key, summary: meta?.summary, type: meta?.type };
+    return {
+      rollupKey: key,
+      summary: meta?.summary,
+      type: meta?.type,
+      statusName: meta?.statusName,
+      statusCategoryKey: meta?.statusCategoryKey,
+    };
   }
 
   // Get-or-create the rollup group for an issue key, upgrading its summary/type
   // as better information becomes available. Metadata wins; the source-provided
   // fallbacks fill in when metadata hasn't loaded (or for untyped sources).
   function ensureGroup(key: string, fallbackSummary?: string, fallbackType?: string): IssueGroup {
-    const { rollupKey, summary, type } = resolveRollup(key);
+    const { rollupKey, summary, type, statusName, statusCategoryKey } = resolveRollup(key);
     const resolvedSummary = summary ?? fallbackSummary;
     const resolvedType = type ?? fallbackType;
 
@@ -339,12 +366,18 @@ function buildGroups(
         existing.summary = resolvedSummary;
       }
       if (!existing.issueType && resolvedType) existing.issueType = resolvedType;
+      if (!existing.statusName && statusName) {
+        existing.statusName = statusName;
+        existing.statusCategoryKey = statusCategoryKey;
+      }
       return existing;
     }
     const group: IssueGroup = {
       issueKey: rollupKey,
       summary: resolvedSummary ?? rollupKey,
       issueType: resolvedType,
+      statusName,
+      statusCategoryKey,
       totalSeconds: 0,
       subItems: [],
       subTaskGroups: [],
@@ -560,6 +593,8 @@ function buildGroups(
       issueKey: key,
       summary: issueMeta?.[key]?.summary ?? key,
       issueType: issueMeta?.[key]?.type,
+      statusName: issueMeta?.[key]?.statusName,
+      statusCategoryKey: issueMeta?.[key]?.statusCategoryKey,
       subItems: bySubtask.get(key) ?? [],
     }));
   }

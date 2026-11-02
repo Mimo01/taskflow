@@ -60,6 +60,10 @@ export interface SubTaskSubGroup {
   issueKey: string;
   summary: string;
   issueType?: string;
+  /** Current Jira status name — drives the trailing status pill. */
+  statusName?: string;
+  /** Status category key ('new' | 'indeterminate' | 'done') — pill colour. */
+  statusCategoryKey?: string;
   subItems: SubItem[];
 }
 
@@ -68,6 +72,10 @@ export interface IssueActivityGroupProps {
   summary: string;
   /** Jira issue type name — drives the type icon (Story, Bug, Sub-task, Epic, …). */
   issueType?: string;
+  /** Current Jira status name — drives the trailing status pill. */
+  statusName?: string;
+  /** Status category key ('new' | 'indeterminate' | 'done') — pill colour. */
+  statusCategoryKey?: string;
   subItems: SubItem[];
   /** Sub-task sub-groups to render nested below the story's own sub-item list. */
   subTaskGroups?: SubTaskSubGroup[];

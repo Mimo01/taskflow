@@ -1137,6 +1137,13 @@ export interface StandupIssueMeta {
   parentType?: string;
   /** Keys of this issue's sub-tasks in Jira's own sequence (fields.subtasks); drives sub-task ordering. */
   subtaskKeys?: string[];
+  /** Current status name (absent until fetched / when Jira omits it). */
+  statusName?: string;
+  /** Status category key ('new' | 'indeterminate' | 'done') driving the pill colour. */
+  statusCategoryKey?: string;
+  /** Status of the parent issue (present for sub-tasks); used when activity rolls up to the parent. */
+  parentStatusName?: string;
+  parentStatusCategoryKey?: string;
 }
 
 /**
@@ -1159,7 +1166,7 @@ export async function fetchIssueMeta(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const jql = encodeURIComponent(`key in (${keys.join(',')})`);
-  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=${keys.length}&fields=issuetype,summary,parent,subtasks`;
+  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=${keys.length}&fields=issuetype,summary,parent,subtasks,status`;
 
   const response = await apiFetch('jira', url, { headers }, 'Load Standup Issue Meta');
   if (!response.ok) return {};
@@ -1170,8 +1177,16 @@ export async function fetchIssueMeta(
       fields: {
         summary?: string;
         issuetype?: { name: string; subtask?: boolean };
-        parent?: { key: string; fields?: { summary?: string; issuetype?: { name: string } } };
+        parent?: {
+          key: string;
+          fields?: {
+            summary?: string;
+            issuetype?: { name: string };
+            status?: { name: string; statusCategory?: { key: string } };
+          };
+        };
         subtasks?: Array<{ key: string }>;
+        status?: { name: string; statusCategory?: { key: string } };
       };
     }>;
   };
@@ -1186,6 +1201,18 @@ export async function fetchIssueMeta(
       parentSummary: issue.fields.parent?.fields?.summary,
       parentType: issue.fields.parent?.fields?.issuetype?.name,
       ...(issue.fields.subtasks ? { subtaskKeys: issue.fields.subtasks.map((s) => s.key) } : {}),
+      ...(issue.fields.status
+        ? {
+            statusName: issue.fields.status.name,
+            statusCategoryKey: issue.fields.status.statusCategory?.key,
+          }
+        : {}),
+      ...(issue.fields.parent?.fields?.status
+        ? {
+            parentStatusName: issue.fields.parent.fields.status.name,
+            parentStatusCategoryKey: issue.fields.parent.fields.status.statusCategory?.key,
+          }
+        : {}),
     };
   }
 
@@ -1202,7 +1229,7 @@ export async function fetchIssueMeta(
   if (missingParents.length > 0) {
     try {
       const pJql = encodeURIComponent(`key in (${missingParents.join(',')})`);
-      const pUrl = `${base}/rest/api/2/search?jql=${pJql}&maxResults=${missingParents.length}&fields=subtasks`;
+      const pUrl = `${base}/rest/api/2/search?jql=${pJql}&maxResults=${missingParents.length}&fields=subtasks,status`;
       const pResponse = await apiFetch(
         'jira',
         pUrl,
@@ -1211,12 +1238,25 @@ export async function fetchIssueMeta(
       );
       if (pResponse.ok) {
         const pData = (await pResponse.json()) as {
-          issues?: Array<{ key: string; fields?: { subtasks?: Array<{ key: string }> } }>;
+          issues?: Array<{
+            key: string;
+            fields?: {
+              subtasks?: Array<{ key: string }>;
+              status?: { name: string; statusCategory?: { key: string } };
+            };
+          }>;
         };
         for (const p of pData.issues ?? []) {
           const subtasks = p.fields?.subtasks;
-          if (!subtasks) continue;
-          map[p.key] = { ...(map[p.key] ?? {}), subtaskKeys: subtasks.map((s) => s.key) };
+          const status = p.fields?.status;
+          if (!subtasks && !status) continue;
+          map[p.key] = {
+            ...(map[p.key] ?? {}),
+            ...(subtasks ? { subtaskKeys: subtasks.map((s) => s.key) } : {}),
+            ...(status
+              ? { statusName: status.name, statusCategoryKey: status.statusCategory?.key }
+              : {}),
+          };
         }
       }
     } catch {

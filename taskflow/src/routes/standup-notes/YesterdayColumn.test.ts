@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GitLabUserMREvent } from '@/services/gitlab';
 import type { StandupIssueMeta } from '@/services/jira';
 import type { TempoWorklog } from '@/services/tempo';
-import { generateMarkdown } from './YesterdayColumn';
+import { buildGroups, generateMarkdown } from './YesterdayColumn';
 
 const DATE = '2026-05-22';
 
@@ -392,5 +392,126 @@ describe('generateMarkdown — sub-task ordering', () => {
     const md = generateMarkdown({ commitsData, issueMeta: meta(['PX-100', 'PX-99']) }, DATE);
     expect(md.indexOf('  - PX-99:')).toBeGreaterThan(-1);
     expect(md.indexOf('  - PX-99:')).toBeLessThan(md.indexOf('  - PX-100:'));
+  });
+});
+
+describe('buildGroups — status', () => {
+  function wl(key: string): TempoWorklog {
+    return {
+      issue: { key, summary: key },
+      author: { name: 'jdoe' },
+      timeSpentSeconds: 3600,
+      dateStarted: DATE,
+    };
+  }
+  const sub = (extra: Partial<StandupIssueMeta> = {}): StandupIssueMeta => ({
+    type: 'Sub-task',
+    isSubtask: true,
+    summary: 'Sub',
+    parentKey: 'ST-1',
+    parentSummary: 'Story',
+    parentType: 'Story',
+    statusName: 'Done',
+    statusCategoryKey: 'done',
+    ...extra,
+  });
+
+  it('gives an own-key group the status from issueMeta', () => {
+    const { issueGroups } = buildGroups([wl('ST-1')], undefined, undefined, undefined, undefined, {
+      'ST-1': {
+        type: 'Story',
+        summary: 'Story',
+        statusName: 'Code Review',
+        statusCategoryKey: 'indeterminate',
+      },
+    });
+    expect(issueGroups[0]).toMatchObject({
+      statusName: 'Code Review',
+      statusCategoryKey: 'indeterminate',
+    });
+  });
+
+  it('rolls a sub-task up to the PARENT status (parent fetched)', () => {
+    const { issueGroups } = buildGroups([wl('ST-2')], undefined, undefined, undefined, undefined, {
+      'ST-2': sub({ parentStatusName: 'Embedded', parentStatusCategoryKey: 'new' }),
+      'ST-1': {
+        type: 'Story',
+        summary: 'Story',
+        statusName: 'In Progress',
+        statusCategoryKey: 'indeterminate',
+      },
+    });
+    expect(issueGroups[0].issueKey).toBe('ST-1');
+    expect(issueGroups[0].statusName).toBe('In Progress');
+    expect(issueGroups[0].statusCategoryKey).toBe('indeterminate');
+  });
+
+  it('falls back to the embedded parent status when the parent was not fetched', () => {
+    const { issueGroups } = buildGroups([wl('ST-2')], undefined, undefined, undefined, undefined, {
+      'ST-2': sub({ parentStatusName: 'To Do', parentStatusCategoryKey: 'new' }),
+    });
+    expect(issueGroups[0].statusName).toBe('To Do');
+    expect(issueGroups[0].statusCategoryKey).toBe('new');
+  });
+
+  it('gives sub-task sub-groups their own status', () => {
+    const { issueGroups } = buildGroups([wl('ST-2')], undefined, undefined, undefined, undefined, {
+      'ST-2': sub(),
+      'ST-1': {
+        type: 'Story',
+        summary: 'Story',
+        statusName: 'In Progress',
+        statusCategoryKey: 'indeterminate',
+      },
+    });
+    expect(issueGroups[0].subTaskGroups[0]).toMatchObject({
+      issueKey: 'ST-2',
+      statusName: 'Done',
+      statusCategoryKey: 'done',
+    });
+  });
+
+  it('upgrades a group created without status when a later item knows it', () => {
+    // First worklog resolves via a key without meta status; the second (sub-task) carries the parent status.
+    const { issueGroups } = buildGroups(
+      [wl('ST-1'), wl('ST-2')],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        'ST-1': { type: 'Story', summary: 'Story' },
+        'ST-2': sub({ parentStatusName: 'Review', parentStatusCategoryKey: 'indeterminate' }),
+      },
+    );
+    expect(issueGroups).toHaveLength(1);
+    expect(issueGroups[0].statusName).toBe('Review');
+  });
+
+  it('leaves status undefined when meta has none', () => {
+    const { issueGroups } = buildGroups([wl('ST-1')], undefined, undefined, undefined, undefined, {
+      'ST-1': { type: 'Story', summary: 'Story' },
+    });
+    expect(issueGroups[0].statusName).toBeUndefined();
+  });
+
+  it('does not change generateMarkdown output when meta carries status', () => {
+    const tempoData = [wl('ST-2')];
+    const base: Record<string, StandupIssueMeta> = {
+      'ST-2': sub({ statusName: undefined, statusCategoryKey: undefined }),
+      'ST-1': { type: 'Story', summary: 'Story' },
+    };
+    const withStatus: Record<string, StandupIssueMeta> = {
+      'ST-2': sub({ parentStatusName: 'X', parentStatusCategoryKey: 'new' }),
+      'ST-1': {
+        type: 'Story',
+        summary: 'Story',
+        statusName: 'In Progress',
+        statusCategoryKey: 'indeterminate',
+      },
+    };
+    expect(generateMarkdown({ tempoData, issueMeta: withStatus }, DATE)).toBe(
+      generateMarkdown({ tempoData, issueMeta: base }, DATE),
+    );
   });
 });
