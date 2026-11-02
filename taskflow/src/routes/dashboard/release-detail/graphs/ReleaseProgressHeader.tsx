@@ -43,11 +43,9 @@ export function countdown(s: TimelineSummary): { big: string; small: string; ton
  */
 export function ReleaseProgressHeader({
   summary,
-  compact = false,
   className,
 }: {
   summary: TimelineSummary;
-  compact?: boolean;
   className?: string;
 }) {
   const cd = countdown(summary);
@@ -58,8 +56,8 @@ export function ReleaseProgressHeader({
     >
       <span
         className={cn(
-          'shrink-0 whitespace-nowrap font-semibold leading-none',
-          compact ? 'text-lg' : 'text-2xl',
+          // Never larger than the slot's section title (text-sm font-semibold).
+          'shrink-0 whitespace-nowrap text-sm font-medium leading-5',
           cd.tone,
         )}
       >

@@ -43,3 +43,12 @@ describe('ReleaseProgressHeader', () => {
     expect(screen.getByText('No release date')).toHaveClass('text-amber-600');
   });
 });
+
+describe('ReleaseProgressHeader size', () => {
+  it('is never larger than the section title (text-sm)', () => {
+    render(<ReleaseProgressHeader summary={base} />);
+    const big = screen.getByTestId('release-progress-header').firstElementChild as HTMLElement;
+    expect(big.className).toContain('text-sm');
+    expect(big.className).not.toMatch(/text-(lg|xl|2xl)/);
+  });
+});
