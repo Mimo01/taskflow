@@ -131,7 +131,7 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
-| 261102-gyd | AIO cycle detail: stop assignee names wrapping (not-sr-only undid truncate) + wider assignee col ≥1024px | 2026-11-02 | 8a10caef | Pending UAT (inline) | [261102-gyd-allocate-more-space-for-assignee-in-aio-](./quick/261102-gyd-allocate-more-space-for-assignee-in-aio-/) |
+| 261102-gyd | AIO cycle detail: stop assignee names wrapping (not-sr-only undid truncate) + wider assignee col ≥1024px | 2026-11-02 | 8a10caef | Verified (UAT approved) | [261102-gyd-allocate-more-space-for-assignee-in-aio-](./quick/261102-gyd-allocate-more-space-for-assignee-in-aio-/) |
 | 261007-hmj | Time-led epic forecast (time weighted 4x, confidence from time) | 2026-10-07 | d604dd6e | Verified (inline) | [261007-hmj-epic-forecast-time-led](./quick/261007-hmj-epic-forecast-time-led/) |
 | 261102-fkr | Release detail "Not covered by tasks above": reason pill, author/reviewers, state pill, header summary | 2026-11-02 | 29360ad5 | Verified (UAT approved) | [261102-fkr-in-release-detail-make-not-covered-by-ta](./quick/261102-fkr-in-release-detail-make-not-covered-by-ta/) |
 | 261029-k8g | Bulk subtask modal: remove-row button | 2026-10-29 | b54b61bd | Verified (inline) | [261029-k8g-bulk-subtask-modal-add-remove-row-option](./quick/261029-k8g-bulk-subtask-modal-add-remove-row-option/) |
