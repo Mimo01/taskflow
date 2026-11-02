@@ -115,7 +115,7 @@ export function RunDefectsSection({
                         name={assignee.displayName}
                         size={20}
                       />
-                      <span className="truncate sr-only @[560px]:not-sr-only">
+                      <span className="sr-only @[560px]:not-sr-only @[560px]:truncate">
                         {assignee.displayName}
                       </span>
                     </>

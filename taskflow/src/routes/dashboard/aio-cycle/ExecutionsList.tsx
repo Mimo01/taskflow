@@ -37,7 +37,7 @@ const COL = {
   status: 'flex-none w-28 px-2',
   defects: 'flex-none w-14 px-2 flex items-center',
   runs: 'flex-none w-12 px-2 hidden @[880px]:flex items-center',
-  assignee: 'flex-none w-11 @[720px]:w-44 px-2 flex items-center',
+  assignee: 'flex-none w-11 @[720px]:w-44 @[1024px]:w-52 px-2 flex items-center',
   executed: 'flex-none w-24 pl-2 pr-4 hidden @[560px]:flex items-center justify-end',
 } as const;
 
@@ -228,7 +228,9 @@ function RunRow({
             jiraBaseUrl={jiraBaseUrl}
             token={token}
             size={18}
-            nameClassName="sr-only @[720px]:not-sr-only"
+            // not-sr-only resets white-space/overflow, undoing UserChip's truncate; re-apply
+            // it at the same breakpoint (emitted later, so it wins) or long names wrap.
+            nameClassName="sr-only @[720px]:not-sr-only @[720px]:truncate"
           />
         ) : null}
       </div>
