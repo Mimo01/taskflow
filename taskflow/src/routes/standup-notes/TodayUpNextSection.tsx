@@ -10,8 +10,8 @@
  * with my assigned subtasks nested/indented beneath it (Decision 1).
  *
  * Each row (parent + subtask) shows the shared StackedTimeBar (same as My Tasks):
- * progress track + "spent / estimate" caption, an equal-width spacer when there
- * is no time data so every row keeps the column aligned.
+ * progress track + "spent / estimate" caption; rows with no time data still show
+ * an empty track with a "0m" caption.
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
  * returns null (hidden) when 0 rows + not loading + not erroring.
@@ -147,6 +147,7 @@ function IssueRow({
             totalSeconds={issue.fields.timetracking?.originalEstimateSeconds}
             widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
             testId="standup-time-bar"
+            alwaysShowTrack
           />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}

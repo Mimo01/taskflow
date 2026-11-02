@@ -12,6 +12,9 @@ interface StackedTimeBarProps {
   /** Width + responsive-hide classes; shared by the spacer and filled branches. */
   widthClassName?: string;
   testId?: string;
+  /** Render an empty track + "0m" caption instead of a blank spacer when there
+   *  is no time data, so every row shows a bar (standup Today rows). */
+  alwaysShowTrack?: boolean;
 }
 
 /**
@@ -23,11 +26,12 @@ export function StackedTimeBar({
   totalSeconds,
   widthClassName = TIME_BAR_WIDTH_CLASS,
   testId = 'my-task-time-bar',
+  alwaysShowTrack = false,
 }: StackedTimeBarProps) {
   const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
   const hasSpent = spentSeconds > 0;
 
-  if (!hasEst && !hasSpent) {
+  if (!hasEst && !hasSpent && !alwaysShowTrack) {
     return <div className={cn('shrink-0', widthClassName)} data-testid={testId} aria-hidden />;
   }
 
