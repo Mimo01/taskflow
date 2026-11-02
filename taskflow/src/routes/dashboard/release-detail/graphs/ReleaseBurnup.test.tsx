@@ -152,6 +152,23 @@ describe('ReleaseBurnup', () => {
     expect(screen.getByText('v1.2')).toHaveClass('truncate');
   });
 
+  it('draws no end-label text in the chart (values live in the aria-label and tooltip)', () => {
+    const { container } = render(
+      <ReleaseBurnup
+        axis={axis}
+        points={points}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
+    expect(
+      screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
+    ).toBeInTheDocument();
+    const texts = Array.from(container.querySelectorAll('svg text')).map((t) => t.textContent);
+    expect(texts.some((t) => /\d+ (scope|done)/.test(t ?? ''))).toBe(false);
+  });
+
   it('draws end-point dots at the last point only (one when scope equals done)', () => {
     const { container, rerender } = render(
       <ReleaseBurnup

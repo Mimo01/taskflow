@@ -13,8 +13,6 @@ import {
   burnupPlotBox,
   DOT_R,
   DOT_RING,
-  END_H,
-  type EndLabel,
   layoutBurnupLabels,
   type MarkerLabel,
   X_AXIS_HEIGHT,
@@ -26,13 +24,16 @@ import { ReleaseTimeline } from './ReleaseTimeline';
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
 const TOOLTIP_WRAPPER = { zIndex: 50, pointerEvents: 'none' as const };
-/** Marker lines paint above the done area (100) but under the series lines, end dots and end labels (400). */
+/** Marker lines paint above the done area (100) but under the series lines and end dots (400). */
 const MARKER_Z = 150;
 const GREEN = 'var(--color-green-500)';
 const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
 const DAY_MS = 86_400_000;
 const FALLBACK_WIDTH = 640;
+/** Compact (band) plot minimum height; the countdown header sits above it. */
+const COMPACT_PLOT_MIN = 150;
+const HEADER_H = 28;
 
 const yearOf = (key: string) => Number(key.slice(0, 4));
 const withYearLabel = (key: string) => {
@@ -118,43 +119,6 @@ export function BurnupTooltip({
   );
 }
 
-/**
- * End label with a solid background rect behind the text (plus a stroke halo).
- * The rect does not depend on paint-order support, so a dashed or stepped line
- * can never show through the text in WebKit. Position comes from the layout.
- */
-function endLabel(last: number, label: EndLabel | undefined) {
-  return (p: { index?: number }) => {
-    if (!label || p.index !== last) return <g />;
-    const { box } = label;
-    return (
-      <g>
-        <rect
-          x={box.x + 1}
-          y={label.onMarker ? box.y : box.y + 2}
-          width={box.w - 2}
-          height={label.onMarker ? box.h : box.h - 4}
-          rx={2}
-          fill="var(--color-background)"
-        />
-        <text
-          x={label.x}
-          y={label.y}
-          textAnchor={label.anchor}
-          fontSize={11}
-          fill={label.color === 'done' ? GREEN : MUTED}
-          stroke="var(--color-background)"
-          strokeWidth={3}
-          strokeLinejoin="round"
-          paintOrder="stroke"
-        >
-          {label.text}
-        </text>
-      </g>
-    );
-  };
-}
-
 function markerLabel(label: MarkerLabel | undefined) {
   if (!label) return undefined;
   return {
@@ -165,8 +129,7 @@ function markerLabel(label: MarkerLabel | undefined) {
         textAnchor={label.anchor}
         fontSize={10}
         className="uppercase tracking-wide"
-        fill={MUTED}
-        fillOpacity={0.7}
+        fill={label.kind === 'release' ? MUTED : 'var(--color-foreground)'}
       >
         {label.text}
       </text>
@@ -189,7 +152,7 @@ export function ReleaseBurnup({
   showStoryPoints: boolean;
   /** Drives the countdown timeline shown instead of the chart on a thin history. */
   summary: TimelineSummary;
-  /** Band mode: the plot fills the row height set by its siblings (min 110px). */
+  /** Band mode: the plot fills the row height set by its siblings (min COMPACT_PLOT_MIN). */
   compact?: boolean;
   className?: string;
 }) {
@@ -214,7 +177,7 @@ export function ReleaseBurnup({
     return () => ro.disconnect();
   }, [plotEl]);
   const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
-  const height = measuredH > 0 ? Math.round(measuredH) : compact ? 110 : BURNUP_HEIGHT;
+  const height = measuredH > 0 ? Math.round(measuredH) : compact ? COMPACT_PLOT_MIN : BURNUP_HEIGHT;
   // One line, never wraps. With a previous release only its name shows (version
   // names usually carry the date already); the start date stays in the hover title.
   const sinceDate = axis ? withYearLabel(axis.start) : '';
@@ -247,17 +210,11 @@ export function ReleaseBurnup({
     : [];
   const maxScope = points.reduce((m, p) => Math.max(m, p.scope), 0);
   const y = burnupYScale(maxScope);
-  // Headroom above the scope line: enough pixels for an end label above it (the
-  // labels flip left of the last point near the right edge), whatever the plot height.
-  const plotH = Math.max(1, plot.bottom - plot.top);
-  const domainTop = Math.max(y.top, (maxScope * plotH) / Math.max(1, plotH - END_H - 4));
   const labels = (() => {
     if (!axis || !last) return null;
     const t0 = dateKeyMs(axis.start);
     const span = Math.max(1, dayEnd(axis.end) - t0);
     const xOf = (t: number) => plot.left + ((t - t0) / span) * (plot.right - plot.left);
-    const yOf = (v: number) =>
-      plot.bottom - (v / Math.max(1, domainTop)) * (plot.bottom - plot.top);
     const markers: { kind: 'today' | 'release'; x: number }[] = [];
     if (axis.showToday) markers.push({ kind: 'today', x: xOf(dayEnd(axis.seriesEnd)) });
     if (axis.showRelease && axis.releaseDate)
@@ -267,23 +224,11 @@ export function ReleaseBurnup({
       chartHeight: height,
       plot,
       markers,
-      end: {
-        x: xOf(last.t + DAY_MS),
-        scopeY: yOf(last.scope),
-        doneY: yOf(last.done),
-        scope: last.scope,
-        done: last.done,
-      },
     });
   })();
   // A merged label is drawn once, on the first marker line.
-  const mergedBoth = labels?.markers.length === 1 && labels.markers[0].text.includes('·');
-  const todayLabel = mergedBoth
-    ? labels?.markers[0]
-    : labels?.markers.find((m) => m.text === 'TODAY');
-  const releaseLabel = mergedBoth ? undefined : labels?.markers.find((m) => m.text === 'RELEASE');
-  const scopeEnd = labels?.ends.find((e) => e.color === 'scope');
-  const doneEnd = labels?.ends.find((e) => e.color === 'done');
+  const todayLabel = labels?.markers.find((m) => m.kind === 'today' || m.kind === 'both');
+  const releaseLabel = labels?.markers.find((m) => m.kind === 'release');
 
   return (
     <GraphSlot
@@ -291,7 +236,7 @@ export function ReleaseBurnup({
       icon={TrendingUp}
       aside={aside}
       state={state}
-      height={compact ? 110 : BURNUP_HEIGHT}
+      height={compact ? COMPACT_PLOT_MIN + HEADER_H : BURNUP_HEIGHT}
       emptyLabel="No issues"
       testId="release-graph-burnup"
       className={className}
@@ -303,7 +248,7 @@ export function ReleaseBurnup({
         ) : (
           <div
             ref={setPlotEl}
-            className={compact ? 'relative mt-2 min-h-[110px] flex-1' : `${PLOT_CLASS} mt-2`}
+            className={compact ? 'relative mt-2 min-h-[150px] flex-1' : `${PLOT_CLASS} mt-2`}
             role="img"
             aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
           >
@@ -330,7 +275,7 @@ export function ReleaseBurnup({
                   height={X_AXIS_HEIGHT}
                 />
                 <YAxis
-                  domain={[0, domainTop]}
+                  domain={[0, y.top]}
                   ticks={y.ticks}
                   interval={0}
                   allowDecimals={false}
@@ -385,7 +330,6 @@ export function ReleaseBurnup({
                   strokeDasharray="4 3"
                   dot={last.scope === last.done ? false : endDot(lastIdx, MUTED)}
                   isAnimationActive={false}
-                  label={endLabel(lastIdx, scopeEnd)}
                 />
                 <Line
                   dataKey="done"
@@ -394,7 +338,6 @@ export function ReleaseBurnup({
                   strokeWidth={2}
                   dot={endDot(lastIdx, GREEN)}
                   isAnimationActive={false}
-                  label={endLabel(lastIdx, doneEnd)}
                 />
               </ComposedChart>
             </ChartContainer>

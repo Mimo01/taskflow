@@ -1,7 +1,7 @@
 import { PLOT_MARGIN, Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 
 /** Chart margins handed to recharts (top leaves a band for the TODAY / RELEASE labels). */
-export const BURNUP_MARGIN = { ...PLOT_MARGIN, top: 14, right: 40 };
+export const BURNUP_MARGIN = { ...PLOT_MARGIN, top: 14, right: 12 };
 /** XAxis height (tick row below the plot); tighter than recharts' default 30. */
 export const X_AXIS_HEIGHT = 22;
 /** End-point dot radius and the width of its background ring. */
@@ -37,45 +37,28 @@ export const MARKER_PAD = 4;
 export const MARKER_H = 12;
 export const MARKER_BASELINE_Y = 10;
 const MARKER_BOX_Y = 1;
-/** 11px end label (matches the old CHAR_W). */
-export const END_CHAR_W = 5.9;
-export const END_PAD = 6;
-export const END_H = 13;
-/** Baseline offset inside an end label box (box.y + END_BASELINE). */
-export const END_BASELINE = 10;
-/** Clear of the end-point dot (radius + ring). */
-const END_OFFSET = DOT_R + DOT_RING + 2.5;
 const MARKER_OFFSET = 3;
 
 export type MarkerKind = 'today' | 'release';
+export type MarkerLabelKind = MarkerKind | 'both';
 export interface MarkerLabel {
   text: string;
+  /** Which marker the label belongs to ('both' = merged TODAY + RELEASE). */
+  kind: MarkerLabelKind;
   /** Anchor x (text x attribute). */
   x: number;
   y: number;
   anchor: 'start' | 'middle' | 'end';
   box: Box;
 }
-export interface EndLabel {
-  text: string;
-  x: number;
-  y: number;
-  anchor: 'start' | 'end';
-  color: 'scope' | 'done';
-  box: Box;
-  /** No placement avoided a marker line: the renderer masks it with a full-height background. */
-  onMarker: boolean;
-}
 export interface BurnupLabelInput {
   chartWidth: number;
   chartHeight: number;
   plot: PlotBox;
   markers: { kind: MarkerKind; x: number }[];
-  end: { x: number; scopeY: number; doneY: number; scope: number; done: number };
 }
 export interface BurnupLabelLayout {
   markers: MarkerLabel[];
-  ends: EndLabel[];
 }
 
 const MARKER_TEXT: Record<MarkerKind, string> = { today: 'TODAY', release: 'RELEASE' };
@@ -97,9 +80,14 @@ function markerBox(text: string, x: number, anchor: MarkerLabel['anchor']): Box 
         : x - MARKER_OFFSET - w;
   return { x: left, y: MARKER_BOX_Y, w, h: MARKER_H };
 }
-function markerText(text: string, x: number, anchor: MarkerLabel['anchor']): MarkerLabel {
+function markerText(
+  text: string,
+  kind: MarkerLabelKind,
+  x: number,
+  anchor: MarkerLabel['anchor'],
+): MarkerLabel {
   const ax = anchor === 'start' ? x + MARKER_OFFSET : anchor === 'end' ? x - MARKER_OFFSET : x;
-  return { text, x: ax, y: MARKER_BASELINE_Y, anchor, box: markerBox(text, x, anchor) };
+  return { text, kind, x: ax, y: MARKER_BASELINE_Y, anchor, box: markerBox(text, x, anchor) };
 }
 
 const ANCHORS: MarkerLabel['anchor'][] = ['middle', 'end', 'start'];
@@ -113,9 +101,9 @@ function placeMarkers(input: BurnupLabelInput): MarkerLabel[] {
     const m = ms[0];
     const text = MARKER_TEXT[m.kind];
     for (const a of ANCHORS) {
-      if (inside(markerBox(text, m.x, a))) return [markerText(text, m.x, a)];
+      if (inside(markerBox(text, m.x, a))) return [markerText(text, m.kind, m.x, a)];
     }
-    return [clampMarker(text, m.x, W)];
+    return [clampMarker(text, m.kind, m.x, W)];
   }
   const [a, b] = ms;
   const ta = MARKER_TEXT[a.kind];
@@ -129,7 +117,7 @@ function placeMarkers(input: BurnupLabelInput): MarkerLabel[] {
         // A label must not run over the other marker's line.
         if (b.x > ba.x - 2 && b.x < ba.x + ba.w + 2) continue;
         if (a.x > bb.x - 2 && a.x < bb.x + bb.w + 2) continue;
-        return [markerText(ta, a.x, pa), markerText(tb, b.x, pb)];
+        return [markerText(ta, a.kind, a.x, pa), markerText(tb, b.kind, b.x, pb)];
       }
     }
   }
@@ -137,16 +125,17 @@ function placeMarkers(input: BurnupLabelInput): MarkerLabel[] {
   const text = `${ta} · ${tb}`;
   const mx = b.x - a.x < 1 ? a.x : (a.x + b.x) / 2;
   for (const p of ANCHORS) {
-    if (inside(markerBox(text, mx, p))) return [markerText(text, mx, p)];
+    if (inside(markerBox(text, mx, p))) return [markerText(text, 'both', mx, p)];
   }
-  return [clampMarker(text, mx, W)];
+  return [clampMarker(text, 'both', mx, W)];
 }
 
-function clampMarker(text: string, x: number, W: number): MarkerLabel {
+function clampMarker(text: string, kind: MarkerLabelKind, x: number, W: number): MarkerLabel {
   const w = markerWidth(text);
   const left = Math.min(Math.max(1, x - w / 2), W - 1 - w);
   return {
     text,
+    kind,
     x: left + w / 2,
     y: MARKER_BASELINE_Y,
     anchor: 'middle',
@@ -154,132 +143,13 @@ function clampMarker(text: string, x: number, W: number): MarkerLabel {
   };
 }
 
-function endCandidates(
-  text: string,
-  lastX: number,
-  side: 'right' | 'left',
-  plot: PlotBox,
-  W: number,
-  lineYs: number[],
-): Box[] {
-  const w = text.length * END_CHAR_W + END_PAD;
-  const x = side === 'right' ? lastX + END_OFFSET : lastX - END_OFFSET - w;
-  if (x < plot.left || x + w > W - 1) return [];
-  const lo = plot.top;
-  const hi = plot.bottom - END_H;
-  if (hi < lo) return [];
-  const step = END_H + 3;
-  const ys = new Set<number>([lo, hi]);
-  for (const ly of lineYs) {
-    for (const base of [ly - END_H / 2, ly - END_H - 2, ly + 2]) {
-      for (let k = -2; k <= 2; k++) ys.add(Math.min(hi, Math.max(lo, base + k * step)));
-    }
-  }
-  return [...ys].map((y) => ({ x, y, w, h: END_H }));
-}
-
-function placeEnds(input: BurnupLabelInput): EndLabel[] {
-  const { plot, chartWidth: W, end } = input;
-  const merged = end.scope === end.done;
-  const scopeText = merged ? `${end.scope} scope · done` : `${end.scope} scope`;
-  const doneText = `${end.done} done`;
-  const lineXs = input.markers.map((m) => m.x);
-  // A marker line through a label makes it unreadable: treat it like sitting on a
-  // series line (hard cost), so the label flips to the other side instead.
-  const crosses = (b: Box) => lineXs.filter((x) => x > b.x - 2 && x < b.x + b.w + 2).length;
-  const centre = (b: Box) => b.y + b.h / 2;
-  // On the left of the last point the label lies over the lines; keep it off them.
-  const onLine = (b: Box) => {
-    const ys = merged ? [end.scopeY] : [end.scopeY, end.doneY];
-    return ys.filter((y) => y > b.y - 2 && y < b.y + b.h + 2).length;
-  };
-  // Left of the last point both series rise towards it, so only the area above a
-  // line is free of that line: keep the label above its own final value.
-  const notAbove = (b: Box, lineY: number, side: 'right' | 'left') =>
-    side === 'left' && b.y + b.h > lineY - 1 ? 1 : 0;
-  const make = (
-    text: string,
-    box: Box,
-    side: 'right' | 'left',
-    color: 'scope' | 'done',
-  ): EndLabel => ({
-    text,
-    x: side === 'right' ? box.x + END_PAD / 2 : box.x + box.w - END_PAD / 2,
-    y: box.y + END_BASELINE,
-    anchor: side === 'right' ? 'start' : 'end',
-    color,
-    box,
-    onMarker: crosses(box) > 0,
-  });
-  const ideal = (b: Box, lineY: number, side: 'right' | 'left') =>
-    side === 'right'
-      ? Math.abs(centre(b) - lineY)
-      : Math.abs(centre(b) - (lineY - (END_H / 2 + 2)));
-
-  let result: EndLabel[] = [];
-  let resultCost = Number.POSITIVE_INFINITY;
-  for (const side of ['right', 'left'] as const) {
-    const sideCost = side === 'left' ? 100 : 0;
-    const sc = endCandidates(scopeText, end.x, side, plot, W, [end.scopeY, end.doneY]);
-    if (sc.length === 0) continue;
-    if (merged) {
-      let best: Box | null = null;
-      let bestCost = Number.POSITIVE_INFINITY;
-      for (const b of sc) {
-        const c =
-          ideal(b, end.scopeY, side) +
-          crosses(b) * 1000 +
-          (onLine(b) + notAbove(b, end.scopeY, side)) * 1000;
-        if (c < bestCost) {
-          bestCost = c;
-          best = b;
-        }
-      }
-      if (best && bestCost + sideCost < resultCost) {
-        resultCost = bestCost + sideCost;
-        result = [make(scopeText, best, side, 'scope')];
-      }
-      continue;
-    }
-    const dc = endCandidates(doneText, end.x, side, plot, W, [end.scopeY, end.doneY]);
-    if (dc.length === 0) continue;
-    let best: { s: Box; d: Box } | null = null;
-    let bestCost = Number.POSITIVE_INFINITY;
-    for (const s of sc) {
-      const cs =
-        ideal(s, end.scopeY, side) +
-        crosses(s) * 1000 +
-        (onLine(s) + notAbove(s, end.scopeY, side)) * 1000;
-      if (cs + sideCost >= bestCost) continue;
-      for (const d of dc) {
-        if (intersects(s, d, 2)) continue;
-        let c =
-          cs +
-          ideal(d, end.doneY, side) +
-          crosses(d) * 1000 +
-          (onLine(d) + notAbove(d, end.doneY, side)) * 1000 +
-          sideCost;
-        if (centre(s) > centre(d)) c += 40;
-        if (c < bestCost) {
-          bestCost = c;
-          best = { s, d };
-        }
-      }
-    }
-    if (best && bestCost < resultCost) {
-      resultCost = bestCost;
-      result = [make(scopeText, best.s, side, 'scope'), make(doneText, best.d, side, 'done')];
-    }
-  }
-  return result;
-}
-
 /**
  * Pure label layout for the burnup chart, in chart pixel coordinates. Marker
  * labels live in the band above the plot (merged / split-anchored when they
- * would collide, anchored against their line at the chart edges); end labels live
- * inside the plot box, so they can never meet a marker label or the tick row.
+ * would collide, anchored against their line at the chart edges), so they never
+ * sit over the series. The series carry no in-plot labels: exact values are in
+ * the hover tooltip.
  */
 export function layoutBurnupLabels(input: BurnupLabelInput): BurnupLabelLayout {
-  return { markers: placeMarkers(input), ends: placeEnds(input) };
+  return { markers: placeMarkers(input) };
 }
