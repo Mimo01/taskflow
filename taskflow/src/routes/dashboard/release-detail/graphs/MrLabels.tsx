@@ -13,6 +13,9 @@ export interface MrLabelCount {
 
 const MAX_UNLABELED_ROWS = 3;
 
+/** Sentinel passed to onToggleLabel / activeLabel for the "no label" filter. */
+export const UNLABELED_FILTER = '__unlabeled__';
+
 /**
  * GitLab-style label pill on the app's status-pill geometry (rounded, no border,
  * font-medium): the label colour as a soft tint, a darker (or, in dark mode,
@@ -109,13 +112,27 @@ export function MrLabels({
         <Tooltip>
           <TooltipTrigger
             delay={0}
-            render={<div />}
+            render={onToggleLabel ? <button type="button" /> : <div />}
             data-testid="mr-labels-unlabeled"
-            className="flex h-5 items-center gap-1 px-1.5 text-orange-600 dark:text-orange-400"
+            {...(onToggleLabel
+              ? {
+                  'aria-pressed': activeLabel === UNLABELED_FILTER,
+                  onClick: () => onToggleLabel(UNLABELED_FILTER),
+                }
+              : {})}
+            className={cn(
+              'inline-flex h-5 max-w-full min-w-0 items-stretch self-start overflow-hidden rounded bg-orange-500/10 text-xs font-medium text-orange-700 dark:text-orange-300',
+              onToggleLabel && 'cursor-pointer hover:brightness-95',
+              activeLabel === UNLABELED_FILTER && 'ring-2 ring-orange-600 dark:ring-orange-400',
+            )}
           >
-            <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
-            <span className="tabular-nums">{missing}</span>
-            <span className="min-w-0 truncate">unlabelled</span>
+            <span className="flex min-w-0 items-center gap-1 truncate px-1.5">
+              <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
+              <span className="truncate">No label</span>
+            </span>
+            <span className="flex items-center border-l border-orange-500/30 px-1.5 tabular-nums opacity-80">
+              {missing}
+            </span>
           </TooltipTrigger>
           <TooltipContent>
             <div data-testid="mr-labels-unlabeled-tooltip">

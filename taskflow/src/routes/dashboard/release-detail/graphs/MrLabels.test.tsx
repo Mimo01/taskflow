@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
-import { type MrLabelCount, MrLabels } from './MrLabels';
+import { type MrLabelCount, MrLabels, UNLABELED_FILTER } from './MrLabels';
 import { ReleaseMrDonut } from './ReleaseMrDonut';
 
 const mr = (i: number) =>
@@ -65,9 +65,9 @@ describe('MrLabels (second legend column)', () => {
     const user = userEvent.setup();
     render(<MrLabels labelSummary={labels} coverage={missing(5)} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
-    expect(el).toHaveTextContent('unlabelled');
+    expect(el).toHaveTextContent('No label');
     expect(el).toHaveTextContent('5');
-    expect(el.className).toContain('text-orange-600');
+    expect(el.className).toContain('text-orange-700');
     // last entry of the list
     const list = screen.getByTestId('mr-labels');
     expect(list.lastElementChild).toBe(el);
@@ -76,6 +76,14 @@ describe('MrLabels (second legend column)', () => {
     expect(tip).toHaveTextContent('!1001');
     expect(tip).not.toHaveTextContent('!1004');
     expect(tip).toHaveTextContent('+2 more');
+  });
+
+  it('toggles the unlabeled filter sentinel when the No label pill is clicked', async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    render(<MrLabels labelSummary={labels} coverage={missing(2)} onToggleLabel={onToggle} />);
+    await user.click(screen.getByTestId('mr-labels-unlabeled'));
+    expect(onToggle).toHaveBeenCalledWith(UNLABELED_FILTER);
   });
 
   it('omits the unlabelled entry when nothing is missing', () => {

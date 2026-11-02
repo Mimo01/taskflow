@@ -14,6 +14,7 @@ import type { JiraIssue } from '@/services/jira';
 import { extractTicketKeys } from '@/services/linkEngine';
 import { useIsPeeked } from '@/stores/peek.store';
 import type { Channel, DriftMark, DriftRow } from './driftDetection';
+import { UNLABELED_FILTER } from './graphs/MrLabels';
 import { type MrFixAction, useMrFixMutation } from './useMrFixMutation';
 
 /**
@@ -986,7 +987,9 @@ export function UnifiedTaskTable({
         ? (r: DriftRow) => r.ms === 'flag'
         : null;
   const labelPredicate = labelFilter
-    ? (r: DriftRow) => r.mr.labels.some((l) => l.name === labelFilter)
+    ? labelFilter === UNLABELED_FILTER
+      ? (r: DriftRow) => r.mr.labels.length === 0
+      : (r: DriftRow) => r.mr.labels.some((l) => l.name === labelFilter)
     : null;
   // Label and drift filters compose (AND).
   const filterPredicate =
@@ -1129,7 +1132,11 @@ export function UnifiedTaskTable({
                 : activeFilter === 'ms'
                   ? 'no release milestone'
                   : null,
-              labelFilter ? `the label "${labelFilter}"` : null,
+              labelFilter
+                ? labelFilter === UNLABELED_FILTER
+                  ? 'no label'
+                  : `the label "${labelFilter}"`
+                : null,
             ]
               .filter(Boolean)
               .reduce<string>((acc, part) => (acc ? `${acc} and ${part}` : `${part}`), '')
