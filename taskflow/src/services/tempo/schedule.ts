@@ -2,7 +2,12 @@ import { tempoFetch } from './client';
 
 const TEMPO_CORE_API_PATH = '/rest/tempo-core/2';
 
-export type ScheduleDayType = 'WORKING_DAY' | 'NON_WORKING_DAY' | 'HOLIDAY';
+/** Tempo day types. HOLIDAY_AND_NON_WORKING_DAY = a public holiday that falls on a weekend. */
+export type ScheduleDayType =
+  | 'WORKING_DAY'
+  | 'NON_WORKING_DAY'
+  | 'HOLIDAY'
+  | 'HOLIDAY_AND_NON_WORKING_DAY';
 
 /**
  * Fetch the authenticated user's work schedule for the given date range.

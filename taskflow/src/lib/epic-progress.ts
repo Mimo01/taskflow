@@ -327,7 +327,7 @@ export const DEFAULT_CALENDAR: WorkCalendar = {
   source: 'weekends',
 };
 
-const HOLIDAY_TYPES = new Set(['HOLIDAY', 'NON_WORKING_DAY']);
+const HOLIDAY_TYPES = new Set(['HOLIDAY', 'NON_WORKING_DAY', 'HOLIDAY_AND_NON_WORKING_DAY']);
 
 /**
  * Calendar from a Tempo schedule map (date -> day type). Only well-formed date keys and the

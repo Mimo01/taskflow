@@ -139,7 +139,8 @@ function enumerateDays(from: string, to: string): string[] {
 
 /** Returns bg class for a day DATA cell — always solid so brightness filter is visible. */
 function dayColClass(type: ScheduleDayType | undefined, fallbackBg = 'bg-background'): string {
-  if (type === 'HOLIDAY') return 'bg-red-100 dark:bg-red-900';
+  if (type === 'HOLIDAY' || type === 'HOLIDAY_AND_NON_WORKING_DAY')
+    return 'bg-red-100 dark:bg-red-900';
   if (type === 'NON_WORKING_DAY') return 'bg-slate-100 dark:bg-slate-800';
   return fallbackBg;
 }
@@ -173,7 +174,8 @@ const COLUMN_HOVER_CSS = (() => {
 
 /** Returns the full bg (+text) class for a sticky HEADER or FOOTER day cell, replacing bg-muted. */
 function dayHeaderBg(type: ScheduleDayType | undefined): string {
-  if (type === 'HOLIDAY') return 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300';
+  if (type === 'HOLIDAY' || type === 'HOLIDAY_AND_NON_WORKING_DAY')
+    return 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300';
   if (type === 'NON_WORKING_DAY')
     return 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400';
   return 'bg-muted';

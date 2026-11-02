@@ -46,7 +46,8 @@ export function resolveYesterdayDate(tempoSchedule?: Map<string, ScheduleDayType
     }
 
     // Skip Tempo holidays when schedule is provided
-    if (tempoSchedule?.get(dateStr) === 'HOLIDAY') {
+    const dayType = tempoSchedule?.get(dateStr);
+    if (dayType === 'HOLIDAY' || dayType === 'HOLIDAY_AND_NON_WORKING_DAY') {
       candidate.setDate(candidate.getDate() - 1);
       continue;
     }
