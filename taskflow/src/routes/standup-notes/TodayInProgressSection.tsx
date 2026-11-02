@@ -21,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
@@ -137,18 +138,35 @@ function IssueRow({
           {key}
         </button>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
-        {sp != null && (
-          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-            {sp} pts
-          </span>
-        )}
-        <ProgressBar issue={issue} />
-        <CachedAvatar
-          url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
-          name={issue.fields.assignee?.displayName ?? 'Unassigned'}
-          size={20}
-          className="shrink-0"
-        />
+        {/* Trailing cluster never shrinks; fixed-width slots keep pills/columns aligned
+            between rows that do and don't have story points or an estimate. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0">
+            <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+              {issue.fields.status.name}
+            </span>
+          </div>
+          <div className="flex w-14 shrink-0 justify-end">
+            <span
+              className={cn(
+                'inline-flex w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
+                sp == null && 'invisible',
+              )}
+              aria-hidden={sp == null}
+            >
+              {sp ?? 0}
+            </span>
+          </div>
+          <div className="flex w-44 shrink-0 items-center">
+            <ProgressBar issue={issue} />
+          </div>
+          <CachedAvatar
+            url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+            name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+            size={20}
+            className="shrink-0"
+          />
+        </div>
       </div>
     </div>
   );

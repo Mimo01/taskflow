@@ -172,7 +172,9 @@ describe('TodayColumn', () => {
       );
 
       // The parent story summary must appear in In Progress
-      expect(screen.getByText('In Progress')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'In Progress' })).toBeInTheDocument();
+      // The row's own status renders as a pill (distinct from the section heading)
+      expect(screen.getByText('In Progress', { selector: 'span' })).toBeInTheDocument();
       expect(screen.getByText('Summary of PROJ-10')).toBeInTheDocument();
     });
   });

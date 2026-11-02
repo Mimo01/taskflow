@@ -811,6 +811,8 @@ export default function YesterdayColumn({
                     issueKey={group.issueKey}
                     summary={group.summary}
                     issueType={group.issueType}
+                    statusName={group.statusName}
+                    statusCategoryKey={group.statusCategoryKey}
                     subItems={group.subItems}
                     subTaskGroups={group.subTaskGroups}
                     onClick={() => (onOpenIssue ?? onIssueClick)(group.issueKey)}
