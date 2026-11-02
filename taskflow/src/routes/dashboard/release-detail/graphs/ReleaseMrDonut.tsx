@@ -60,28 +60,24 @@ export function ReleaseMrDonut({
         </div>
       }
     >
-      <div
-        className={cn(
-          'my-auto flex flex-wrap items-center justify-center gap-y-3',
-          compact ? 'gap-x-3' : 'gap-x-6',
-        )}
-      >
-        <AioDonut
-          slices={slices}
-          size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
-          testId="release-mr-donut"
-          ariaLabel={label}
-          center={
-            <>
-              <span className="text-lg font-semibold tabular-nums">{total}</span>
-              <span className="text-xs text-muted-foreground">MRs</span>
-            </>
-          }
-        />
-        {/* Legend + labels top-align as one block (centred against the donut), and the
-            legend rows share the labels column's h-5 / gap-1 rhythm, so the two line up row for row. */}
-        <div className={cn('flex flex-wrap items-start gap-y-3', compact ? 'gap-x-3' : 'gap-x-6')}>
-          <div className={cn('grid gap-1', !compact && 'min-w-28')}>
+      <div className="my-auto flex flex-col gap-3">
+        {/* Donut + state legend read as one unit: legend sits tight against the ring and
+            is centred on it. Label pills get their own row below instead of competing for
+            the same column. */}
+        <div className={cn('flex items-center justify-center', compact ? 'gap-x-3' : 'gap-x-5')}>
+          <AioDonut
+            slices={slices}
+            size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
+            testId="release-mr-donut"
+            ariaLabel={label}
+            center={
+              <>
+                <span className="text-lg font-semibold tabular-nums">{total}</span>
+                <span className="text-xs text-muted-foreground">MRs</span>
+              </>
+            }
+          />
+          <div className="grid gap-1" data-testid="release-mr-legend">
             {slices.map((s) => (
               <div key={s.key} className="flex h-5 items-center gap-1.5 text-xs">
                 <span
@@ -94,13 +90,14 @@ export function ReleaseMrDonut({
               </div>
             ))}
           </div>
-          <MrLabels
-            labelSummary={labelSummary}
-            coverage={labelCoverage}
-            activeLabel={activeLabel}
-            onToggleLabel={onToggleLabel}
-          />
         </div>
+        <MrLabels
+          className="max-w-none flex-row flex-wrap justify-center gap-1.5 border-l-0 pl-0"
+          labelSummary={labelSummary}
+          coverage={labelCoverage}
+          activeLabel={activeLabel}
+          onToggleLabel={onToggleLabel}
+        />
       </div>
     </GraphSlot>
   );
