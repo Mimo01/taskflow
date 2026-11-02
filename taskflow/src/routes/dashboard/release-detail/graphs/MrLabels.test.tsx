@@ -61,7 +61,7 @@ describe('MrLabels (second legend column)', () => {
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(2);
   });
 
-  it('ends with an orange "unlabelled N" and a hover list of 3 MRs plus "+2 more"', async () => {
+  it('ends with an orange "unlabelled N" with no hover tooltip', async () => {
     const user = userEvent.setup();
     render(<MrLabels labelSummary={labels} coverage={missing(5)} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
@@ -72,10 +72,7 @@ describe('MrLabels (second legend column)', () => {
     const list = screen.getByTestId('mr-labels');
     expect(list.lastElementChild).toContainElement(el);
     await user.hover(el);
-    const tip = await screen.findByTestId('mr-labels-unlabeled-tooltip');
-    expect(tip).toHaveTextContent('!1001');
-    expect(tip).not.toHaveTextContent('!1004');
-    expect(tip).toHaveTextContent('+2 more');
+    expect(screen.queryByTestId('mr-labels-unlabeled-tooltip')).toBeNull();
   });
 
   it('toggles the unlabeled filter sentinel when the No label pill is clicked', async () => {

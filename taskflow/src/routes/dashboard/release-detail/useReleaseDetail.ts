@@ -660,8 +660,10 @@ export function useReleaseDetail(versionId: string | undefined) {
   // Label pills filter the task table, which runs over the three-channel union
   // (driftRows), so count over that same set — not just milestone MRs — or the
   // pill count undercounts what the filter then shows.
-  const labelSummary = computeLabelSummary(driftRows.map((r) => r.mr));
-  const labelCoverage = computeLabelCoverage(releaseMrs);
+  // The "no label" warning drives the same table filter, so it counts the same set.
+  const unionMrs = driftRows.map((r) => r.mr);
+  const labelSummary = computeLabelSummary(unionMrs);
+  const labelCoverage = computeLabelCoverage(unionMrs);
   const mrStateCounts = computeMrStateCounts(releaseMrs);
   const issueStatusCounts = computeIssueStatusCounts(releaseIssues);
 

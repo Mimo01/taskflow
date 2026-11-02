@@ -1,7 +1,5 @@
 import { Check, TriangleAlert } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { cn } from '@/lib/utils';
 import type { LabelCoverage } from '../releaseSummaries';
 import { labelPillColors, TINT_ALPHA } from './labelColor';
@@ -10,8 +8,6 @@ export interface MrLabelCount {
   label: { name: string; color: string; text_color: string };
   count: number;
 }
-
-const MAX_UNLABELED_ROWS = 3;
 
 /** Sentinel passed to onToggleLabel / activeLabel for the "no label" filter. */
 export const UNLABELED_FILTER = '__unlabeled__';
@@ -110,41 +106,31 @@ export function MrLabels({
       ))}
       {missing > 0 && coverage ? (
         <div className={cn('flex flex-col', labelSummary.length > 0 && 'mt-1.5 border-t pt-2')}>
-          <Tooltip>
-            <TooltipTrigger
-              delay={0}
-              render={onToggleLabel ? <button type="button" /> : <div />}
-              data-testid="mr-labels-unlabeled"
-              {...(onToggleLabel
-                ? {
-                    'aria-pressed': activeLabel === UNLABELED_FILTER,
-                    onClick: () => onToggleLabel(UNLABELED_FILTER),
-                  }
-                : {})}
-              className={cn(
-                'inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start overflow-hidden rounded border border-dashed border-orange-500/60 bg-transparent px-1.5 text-xs font-medium text-orange-700 dark:text-orange-300',
-                onToggleLabel && 'cursor-pointer hover:bg-orange-500/10',
-                activeLabel === UNLABELED_FILTER &&
-                  'border-solid border-orange-600 bg-orange-500/15 dark:border-orange-400',
-              )}
-            >
-              <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
-              <span className="min-w-0 truncate">No label</span>
-              <span className="tabular-nums">{missing}</span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div data-testid="mr-labels-unlabeled-tooltip">
-                <TooltipBody>
-                  {coverage.unlabeled.slice(0, MAX_UNLABELED_ROWS).map((mr) => (
-                    <TooltipRow key={mr.id} label={`!${mr.iid}`} value={mr.title} />
-                  ))}
-                  {missing > MAX_UNLABELED_ROWS && (
-                    <TooltipRow label={`+${missing - MAX_UNLABELED_ROWS} more`} value="" />
-                  )}
-                </TooltipBody>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          {(() => {
+            const Pill = onToggleLabel ? 'button' : 'div';
+            return (
+              <Pill
+                {...(onToggleLabel
+                  ? {
+                      type: 'button' as const,
+                      'aria-pressed': activeLabel === UNLABELED_FILTER,
+                      onClick: () => onToggleLabel(UNLABELED_FILTER),
+                    }
+                  : {})}
+                data-testid="mr-labels-unlabeled"
+                className={cn(
+                  'inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start overflow-hidden rounded border border-dashed border-orange-500/60 bg-transparent px-1.5 text-xs font-medium text-orange-700 dark:text-orange-300',
+                  onToggleLabel && 'cursor-pointer hover:bg-orange-500/10',
+                  activeLabel === UNLABELED_FILTER &&
+                    'border-solid border-orange-600 bg-orange-500/15 dark:border-orange-400',
+                )}
+              >
+                <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
+                <span className="min-w-0 truncate">No label</span>
+                <span className="tabular-nums">{missing}</span>
+              </Pill>
+            );
+          })()}
         </div>
       ) : coverage?.allLabeled && labelSummary.length === 0 ? (
         <span
