@@ -201,6 +201,7 @@ None yet.
 | 261029-qez | AIO Test cycles + cycle detail: Backlog-style Refresh control ("Refreshed: HH:MM:SS" + RefreshCw icon button); upstream-first staged invalidation in lib/aio-refresh.ts (list → summaries; cycle/runs/status-map → summaries/step-summary/defects by numeric id) | 2026-10-29 | d500ca2c | Verified (UAT approved) | [261029-qez-add-refresh-button-to-aio-cycles-and-cyc](./quick/261029-qez-add-refresh-button-to-aio-cycles-and-cyc/) |
 | 261030-eic | Releases list skeleton mirrors loaded page (Today row, month labels, Next-release card, rail rows, Released panel + show-older; shares ROW_GRID/RAIL_LINE/LABEL_CLASS with ReleaseAgenda) + ReleasesHero summary-line placeholder while loading | 2026-10-30 | 45842716 | Verified (UAT approved) | [261030-eic-make-releases-page-skeleton-match-actual](./quick/261030-eic-make-releases-page-skeleton-match-actual/) |
 | 261102-ers | Release detail: show all MR labels, no +N more collapse | 2026-11-02 | 4dc42bb3 | Verified (inline) | [261102-ers-show-all-mr-labels](./quick/261102-ers-show-all-mr-labels/) |
+| 261102-euc | Release detail: filter tasks by MR label (click label pill) | 2026-11-02 | 31b4d7d0 | Verified (inline) | [261102-euc-on-release-detail-filter-tasks-based-on-](./quick/261102-euc-on-release-detail-filter-tasks-based-on-/) |
 
 ## Deferred Items
 
