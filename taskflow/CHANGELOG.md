@@ -2,6 +2,30 @@
 
 All notable changes to Taskflow are documented here.
 
+## [1.14.16] — 2026-11-02
+
+### Added
+
+- **Filter and sort release issues** — the release detail Issues table has a toolbar with search, Status, Type and Assignee filters (including Unassigned), removable filter chips and Clear all. Key, Summary, Assignee and Status headers sort ascending, descending or off. When nothing matches, a short message offers to clear the filters.
+- **Filter release tasks by MR label** — click an MR label pill on the release detail page to show only the tasks with that label. An unlabeled chip filters to tasks whose MRs have no label.
+- **Uncovered MR details** — each uncovered MR row shows why it is uncovered, its author, all reviewers and an Open, Draft, Merged or Closed pill. The section header sums up the count by reason.
+- **Resizable Standup Notes columns** — drag the divider between Yesterday and Today, or use the keyboard, to resize them. The width is remembered, and a double-click resets it.
+- **Standup Today rows** — every In Progress and Up Next row shows the My Tasks time bar, even with no time logged, plus a trailing status pill and story points aligned in columns.
+
+### Changed
+
+- **All MR labels shown** — the release detail page shows every MR label instead of collapsing extras into "+N more". Labels sit to the right of the MR donut, with its legend centred under the ring.
+- **Standup density** — the Standup Notes page uses one density scale throughout, so row padding and group spacing follow the density setting.
+- **Uncovered MR titles** — the leading ticket key is dropped from uncovered MR titles, and the section header no longer repeats the total count.
+
+### Fixed
+
+- **MR label counts** — MR label pills and the unlabeled warning count the same MRs the task filter shows.
+- **Release task table header** — the sticky column header stays above row content while scrolling.
+- **Release team avatars** — a single extra person shows as their avatar instead of a "+1" chip.
+- **AIO assignee names** — assignee names in the AIO Executions and Defects tables truncate with an ellipsis instead of wrapping.
+- **Dark mode app icon** — the app icon tile and sidebar tagline match the dark background and are easier to read.
+
 ## [1.14.15] — 2026-10-30
 
 ### Added
