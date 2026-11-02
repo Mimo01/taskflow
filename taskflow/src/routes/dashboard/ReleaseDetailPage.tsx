@@ -38,9 +38,9 @@ import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
 const BAND_MIN_WIDTH = 1180;
-/** Graph slot cell; DIVIDER draws the hairline between side-by-side slots (gap-x-6 | line | pl-6). */
+/** Graph slot cell; DIVIDER draws the hairline between side-by-side slots (gap-x-4 | line | pl-4). */
 const SLOT_COL = 'flex min-w-0 flex-col';
-const DIVIDER = 'border-l pl-6';
+const DIVIDER = 'border-l pl-4';
 
 // ---- Main Component ----
 
@@ -489,7 +489,7 @@ export default function ReleaseDetailPage() {
               {band ? (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-6 px-6 pt-5"
+                  className="grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-4 px-6 pt-5"
                 >
                   {burnupEl}
                   <div className={`${SLOT_COL} ${DIVIDER}`}>{mrSlotEl}</div>
@@ -499,7 +499,7 @@ export default function ReleaseDetailPage() {
               ) : (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-6 gap-y-5 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-5 @max-[440px]/page:grid-cols-1"
+                  className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-4 gap-y-5 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-x-4 @max-[640px]/page:gap-y-5 @max-[440px]/page:grid-cols-1"
                 >
                   {burnupEl}
                   {/* Right column: MRs beside the burnup (which spans the row below 640),
