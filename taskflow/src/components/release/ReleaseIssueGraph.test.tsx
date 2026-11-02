@@ -76,11 +76,12 @@ describe('ReleaseIssueGraph', () => {
     expect(screen.getByTestId('release-graph').className).not.toContain('max-w-xl');
   });
 
-  it('tooltip lists the three bar counts and nothing else', async () => {
+  it('tooltip has a total header and the three bar counts, nothing else', async () => {
     const user = userEvent.setup();
     render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} />);
     await user.hover(screen.getByRole('img', { name: '3 of 6 issues done' }));
     expect(await screen.findByText('In Progress')).toBeInTheDocument();
+    expect(screen.getByText('6 issues')).toBeInTheDocument();
     expect(screen.getByText('To Do')).toBeInTheDocument();
     expect(screen.queryByText('Statuses')).toBeNull();
     expect(screen.queryByText('50%')).toBeNull();

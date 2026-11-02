@@ -32,7 +32,7 @@ export function BreakdownErrorDash() {
 
 /**
  * Release detail header bar: slim segmented Done / In Progress / To Do bar with a
- * "done / total done" figure; the tooltip lists the bar's three counts. (List rows use ReleaseIssuesSlot instead.)
+ * "done / total done" figure; the tooltip lists the bar's three counts under a total header. (List rows use ReleaseIssuesSlot instead.)
  */
 export function ReleaseIssueGraph({
   breakdown,
@@ -97,7 +97,7 @@ export function ReleaseIssueGraph({
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <TooltipBody>
+          <TooltipBody title={`${total} issues`}>
             {releaseTooltipRows(breakdown).map((r) => (
               <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
             ))}
