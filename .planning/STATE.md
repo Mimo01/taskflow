@@ -132,7 +132,7 @@ None yet.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 261007-hmj | Time-led epic forecast (time weighted 4x, confidence from time) | 2026-10-07 | d604dd6e | Verified (inline) | [261007-hmj-epic-forecast-time-led](./quick/261007-hmj-epic-forecast-time-led/) |
-| 261102-fkr | Release detail "Not covered by tasks above": reason pill, author/reviewers, state pill, header summary | 2026-11-02 | 29360ad5 | Needs Review | [261102-fkr-in-release-detail-make-not-covered-by-ta](./quick/261102-fkr-in-release-detail-make-not-covered-by-ta/) |
+| 261102-fkr | Release detail "Not covered by tasks above": reason pill, author/reviewers, state pill, header summary | 2026-11-02 | 29360ad5 | Verified (UAT approved) | [261102-fkr-in-release-detail-make-not-covered-by-ta](./quick/261102-fkr-in-release-detail-make-not-covered-by-ta/) |
 | 261029-k8g | Bulk subtask modal: remove-row button | 2026-10-29 | b54b61bd | Verified (inline) | [261029-k8g-bulk-subtask-modal-add-remove-row-option](./quick/261029-k8g-bulk-subtask-modal-add-remove-row-option/) |
 | 261014-jes | AIO cycle priority/severity chart colours (one colour per level) | 2026-10-14 | ca1db2b0 | Verified (inline) | [261014-jes-aio-cycle-priority-severity-chart-colors](./quick/261014-jes-aio-cycle-priority-severity-chart-colors/) |
 | 261014-jzn | AIO cycle detail burndown chart (compact, ideal line) | 2026-10-14 | 844b70d7 | Unverified visually | [261014-jzn-aio-testcase-detail-burndown-chart](./quick/261014-jzn-aio-testcase-detail-burndown-chart/) |
