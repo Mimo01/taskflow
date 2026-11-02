@@ -17,7 +17,7 @@ import {
   type MarkerLabel,
   X_AXIS_HEIGHT,
 } from './burnupLabelLayout';
-import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
+import { BURNUP_HEIGHT, COMPACT_DONUT_SIZE, GraphSlot } from './GraphSlot';
 import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
 
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
@@ -31,11 +31,11 @@ const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
 const DAY_MS = 86_400_000;
 const FALLBACK_WIDTH = 640;
 /**
- * Compact (band) body height, plot (or track). Fixed
- * at every width so the Progress slot never sets a taller row than its siblings
- * and never stretches with them.
+ * Compact (band) body height: the plot (or track), equal to the compact MR donut
+ * (120px) so the Progress slot is never taller than its band siblings. Fixed at
+ * every width so it neither drives nor stretches with the row.
  */
-export const COMPACT_BODY_H = 160;
+export const COMPACT_BODY_H = COMPACT_DONUT_SIZE;
 /** Denser date axis than the epic charts (72px): a short "Oct 15" label needs ~40px. */
 export const BURNUP_TICK_PX = 52;
 
