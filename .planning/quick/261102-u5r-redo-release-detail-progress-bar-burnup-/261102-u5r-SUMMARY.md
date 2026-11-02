@@ -39,3 +39,15 @@ None in production code. Notes:
 Each commit passed the pre-commit hook (biome, tsc, full vitest). Not visually UATed; user will do so.
 
 ## Self-Check: PASSED
+
+## UAT follow-ups (2026-11-02, applied inline, approved)
+
+The planned shape changed during UAT; code is the source of truth:
+
+- Countdown header REMOVED from the Progress slot (`ReleaseProgressHeader` deleted) — it duplicated the page header status pill. Section titles stay text-sm (a resize was tried and reverted).
+- Compact Progress body fixed at `COMPACT_DONUT_SIZE` (120px) at every width — never min-h + flex-1 (made it taller than its siblings).
+- Burnup: denser date axis (`timeTicks(..., tickPx)`, burnup uses 52px); TODAY line unlabelled, RELEASE labelled on its own line (two-row layout kept in burnupLabelLayout for when both are labelled); faint shaded band today → release.
+- Top done bar: tooltip kept but simple — "N issues" header + Done / In Progress / To Do counts (no %, no Statuses row; statusNameSummary removed).
+- Graph band: hairline dividers between side-by-side slots (gap-x-4 | border-l | pl-4); band columns 1.1fr/auto/1.1fr/1.1fr (min 220/250/260); skeleton in step.
+- MR donut tooltip titles sentence case (Merged, Open, Draft, Closed).
+- Thin timeline: version names only under the track — previous release left, this release right, same muted style.
