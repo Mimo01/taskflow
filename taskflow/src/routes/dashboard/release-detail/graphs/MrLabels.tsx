@@ -43,7 +43,7 @@ function LabelPill({
           }
         : {})}
       className={cn(
-        'inline-flex h-5 max-w-full min-w-0 items-stretch self-start overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]',
+        'inline-flex h-5 max-w-full min-w-0 items-stretch self-start justify-self-start overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]',
         interactive && 'cursor-pointer ring-offset-0 hover:brightness-95',
         active && 'ring-2 ring-[color:var(--lp-l)] dark:ring-[color:var(--lp-d)]',
       )}
@@ -68,10 +68,16 @@ function LabelPill({
 }
 
 /**
- * Labels column of the Merge requests cell: separated from the state legend by a
- * hairline, a vertical stack of every GitLab-style pill (no dots, never collapsed),
- * and a plain orange "unlabelled N" line with the
- * hover list (first 3 + "+N more").
+ * Max pill rows before extra pills flow into another column: 5 rows of h-5 pills
+ * plus gap-1 is 116px, which fits beside the 120px donut.
+ */
+const MAX_LABEL_ROWS = 5;
+
+/**
+ * Labels block of the Merge requests cell: separated from the state legend by a
+ * hairline, a column-major grid at most 5 rows tall (extra pills flow into more
+ * columns, never collapsed) of every GitLab-style pill, ending with the dashed
+ * orange "No label N" pill.
  */
 export function MrLabels({
   labelSummary,
@@ -91,10 +97,21 @@ export function MrLabels({
   const missing = coverage && !coverage.allLabeled ? coverage.unlabeled.length : 0;
   if (labelSummary.length === 0 && missing === 0) return null;
 
+  const itemCount = labelSummary.length + (missing > 0 ? 1 : 0);
+  const rows = Math.max(1, Math.min(itemCount, MAX_LABEL_ROWS));
+  const Pill = onToggleLabel ? 'button' : 'div';
+
   return (
     <div
       data-testid="mr-labels"
-      className={cn('flex min-w-0 max-w-[9.5rem] flex-col gap-1 border-l pl-3 text-xs', className)}
+      className={cn(
+        'grid min-w-0 grid-flow-col content-start justify-start gap-1 gap-x-1.5 border-l pl-3 text-xs',
+        className,
+      )}
+      style={{
+        gridTemplateRows: `repeat(${rows}, auto)`,
+        gridAutoColumns: 'minmax(0, 9.5rem)',
+      }}
     >
       {labelSummary.map((l) => (
         <LabelPill
@@ -105,33 +122,26 @@ export function MrLabels({
         />
       ))}
       {missing > 0 && coverage ? (
-        <div className={cn('flex flex-col', labelSummary.length > 0 && 'mt-1.5 border-t pt-2')}>
-          {(() => {
-            const Pill = onToggleLabel ? 'button' : 'div';
-            return (
-              <Pill
-                {...(onToggleLabel
-                  ? {
-                      type: 'button' as const,
-                      'aria-pressed': activeLabel === UNLABELED_FILTER,
-                      onClick: () => onToggleLabel(UNLABELED_FILTER),
-                    }
-                  : {})}
-                data-testid="mr-labels-unlabeled"
-                className={cn(
-                  'inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start overflow-hidden rounded border border-dashed border-orange-500/60 bg-transparent px-1.5 text-xs font-medium text-orange-700 dark:text-orange-300',
-                  onToggleLabel && 'cursor-pointer hover:bg-orange-500/10',
-                  activeLabel === UNLABELED_FILTER &&
-                    'border-solid border-orange-600 bg-orange-500/15 dark:border-orange-400',
-                )}
-              >
-                <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
-                <span className="min-w-0 truncate">No label</span>
-                <span className="tabular-nums">{missing}</span>
-              </Pill>
-            );
-          })()}
-        </div>
+        <Pill
+          {...(onToggleLabel
+            ? {
+                type: 'button' as const,
+                'aria-pressed': activeLabel === UNLABELED_FILTER,
+                onClick: () => onToggleLabel(UNLABELED_FILTER),
+              }
+            : {})}
+          data-testid="mr-labels-unlabeled"
+          className={cn(
+            'inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start justify-self-start overflow-hidden rounded border border-dashed border-orange-500/60 bg-transparent px-1.5 text-xs font-medium text-orange-700 dark:text-orange-300',
+            onToggleLabel && 'cursor-pointer hover:bg-orange-500/10',
+            activeLabel === UNLABELED_FILTER &&
+              'border-solid border-orange-600 bg-orange-500/15 dark:border-orange-400',
+          )}
+        >
+          <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
+          <span className="min-w-0 truncate">No label</span>
+          <span className="tabular-nums">{missing}</span>
+        </Pill>
       ) : coverage?.allLabeled && labelSummary.length === 0 ? (
         <span
           data-testid="mr-labels-all"

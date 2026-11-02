@@ -70,7 +70,7 @@ describe('MrLabels (second legend column)', () => {
     expect(el.className).toContain('text-orange-700');
     // last entry of the list
     const list = screen.getByTestId('mr-labels');
-    expect(list.lastElementChild).toContainElement(el);
+    expect(list.lastElementChild).toBe(el);
     await user.hover(el);
     expect(screen.queryByTestId('mr-labels-unlabeled-tooltip')).toBeNull();
   });
@@ -95,6 +95,24 @@ describe('MrLabels (second legend column)', () => {
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(8);
     expect(screen.queryByTestId('mr-labels-more')).toBeNull();
     expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
+  });
+
+  it('caps the grid at 5 rows and flows extra pills into columns', () => {
+    const many = Array.from({ length: 8 }, (_, i) => lab(`label-${i}`, i + 1));
+    render(<MrLabels labelSummary={many} coverage={missing(2)} />);
+    const list = screen.getByTestId('mr-labels');
+    expect(list.style.gridTemplateRows).toBe('repeat(5, auto)');
+    expect(list.className).toContain('grid-flow-col');
+    expect(list.className).toContain('border-l');
+    expect(list.className).not.toContain('flex-col');
+    expect(list.className).not.toContain('max-w-[9.5rem]');
+    expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(8);
+    expect(screen.getByTestId('mr-labels-unlabeled').parentElement).toBe(list);
+  });
+
+  it('uses one row per item when there are fewer than 5', () => {
+    render(<MrLabels labelSummary={labels} coverage={missing(0)} />);
+    expect(screen.getByTestId('mr-labels').style.gridTemplateRows).toBe('repeat(3, auto)');
   });
 });
 
