@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, GitBranch, GitMerge, Loader2, Milestone } from 'lucide-react';
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -69,8 +69,8 @@ export interface UnifiedTaskTableProps {
 //
 // WR-06: the two tables are deliberately DIFFERENT SHAPES, and each has its own
 // header strip. A task row is Key / Summary / Assignee / Status / MR / BR / MS;
-// a secondary MR sub-line is Key / Merge request / BR / MS (consolidation
-// removed its avatar and state cells). Sharing one strip across both put three
+// a secondary MR sub-line is Reason / Key / Merge request / Author / Reviewers /
+// State / BR / MS (261102-fkr). Sharing one strip across both put three
 // column headings — Assignee, Status, MR — over the middle of the MR title
 // text. Do not "re-unify" the strips without also restoring those cells.
 // Keys must never wrap — a Jira key broken at its dash reads as two keys. Fixed
@@ -82,6 +82,133 @@ const COL_SUMMARY = 'flex-1 min-w-0';
 const COL_PERSON = 'flex-none w-[8.75rem] min-w-0 @max-[860px]:w-9';
 const COL_STATE = 'flex-none w-[6rem] @max-[400px]:hidden';
 const COL_MR = 'flex-none w-[11.875rem] min-w-0 @max-[860px]:w-[5.5rem] @max-[520px]:hidden';
+// Secondary (uncovered MR) row columns, explicit widths. The reason and state
+// cells are flex parents so their pills keep their own geometry.
+const COL_REASON = 'flex-none w-[6.5rem] flex items-center @max-[520px]:hidden';
+const COL_REVIEWERS =
+  'flex-none w-[4.5rem] min-w-0 flex items-center overflow-hidden @max-[640px]:hidden';
+const COL_MR_STATE = 'flex-none w-[4rem] flex items-center @max-[400px]:hidden';
+
+function mrStateBadgeClass(state: GitLabMR['state']): string {
+  return state === 'merged'
+    ? 'border-green-500 text-green-600'
+    : state === 'opened'
+      ? 'border-blue-500 text-blue-600'
+      : 'border-gray-400 text-gray-500';
+}
+
+function mrStateLabel(mr: GitLabMR): string {
+  if (mr.state === 'opened') return mr.draft ? 'Draft' : 'Open';
+  if (mr.state === 'merged') return 'Merged';
+  if (mr.state === 'closed') return 'Closed';
+  return 'Locked';
+}
+
+export type SecondaryReason = 'no-linked-task' | 'not-in-fix-version' | 'unevaluated';
+
+/** Why a row is uncovered. Unevaluated rows never get a drift reason (T-91.1-14). */
+export function secondaryReason(row: DriftRow): SecondaryReason {
+  if (row.taskReason === 'not-in-fix-version') return 'not-in-fix-version';
+  if (row.taskReason === 'no-linked-task') return 'no-linked-task';
+  return 'unevaluated';
+}
+
+const REASON_CLASS: Record<SecondaryReason, string> = {
+  'no-linked-task': 'border-amber-400 text-amber-700 dark:border-amber-600 dark:text-amber-400',
+  'not-in-fix-version':
+    'border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400',
+  unevaluated: 'border-border text-muted-foreground',
+};
+const REASON_PILL_LABEL: Record<SecondaryReason, string> = {
+  'no-linked-task': 'No task',
+  'not-in-fix-version': 'Not in version',
+  unevaluated: 'Not evaluated',
+};
+const REASON_CHIP_LABEL: Record<SecondaryReason, string> = {
+  'no-linked-task': 'no linked task',
+  'not-in-fix-version': 'not in fix version',
+  unevaluated: 'not evaluated',
+};
+const REASON_ORDER: SecondaryReason[] = ['no-linked-task', 'not-in-fix-version', 'unevaluated'];
+
+function SecondaryReasonPill({ row, versionName }: { row: DriftRow; versionName: string }) {
+  const reason = secondaryReason(row);
+  let title: string;
+  if (reason === 'not-in-fix-version') {
+    const keys = row.taskKeys.join(', ');
+    title = keys
+      ? `${keys} ${row.taskKeys.length > 1 ? 'are' : 'is'} not in fix version ${versionName}`
+      : `Linked task is not in fix version ${versionName}`;
+  } else if (reason === 'no-linked-task') {
+    title = 'No linked task';
+  } else {
+    title = `Not evaluated (MR is ${row.mr.state})`;
+  }
+  return (
+    <span className={COL_REASON}>
+      <Badge
+        variant="outline"
+        data-testid="secondary-reason-pill"
+        data-reason={reason}
+        title={title}
+        className={`pointer-events-none text-[10px] whitespace-nowrap ${REASON_CLASS[reason]}`}
+      >
+        {REASON_PILL_LABEL[reason]}
+      </Badge>
+    </span>
+  );
+}
+
+function MrAuthorCell({ mr }: { mr: GitLabMR }) {
+  return (
+    <span className={`${COL_PERSON} flex items-center gap-1.5`}>
+      <CachedAvatar url={mr.author.avatar_url || null} name={mr.author.name} size={20} />
+      <span className="line-clamp-1 @max-[860px]:sr-only">{mr.author.name}</span>
+    </span>
+  );
+}
+
+function MrReviewersCell({ mr }: { mr: GitLabMR }) {
+  const reviewers = mr.reviewers ?? [];
+  if (reviewers.length === 0) {
+    return (
+      <span className={`${COL_REVIEWERS} text-muted-foreground`} title="No reviewers">
+        &mdash;
+      </span>
+    );
+  }
+  const label = `Reviewers: ${reviewers.map((r) => r.name).join(', ')}`;
+  return (
+    <span className={COL_REVIEWERS} title={label}>
+      <span className="flex items-center -space-x-1.5">
+        {reviewers.map((r) => (
+          <CachedAvatar
+            key={r.id}
+            url={r.avatar_url || null}
+            name={r.name}
+            size={18}
+            className="ring-1 ring-background rounded-full"
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function MrStatePill({ mr }: { mr: GitLabMR }) {
+  const isDraft = mr.state === 'opened' && mr.draft;
+  return (
+    <span className={COL_MR_STATE}>
+      <Badge
+        variant="outline"
+        data-testid="secondary-mr-state"
+        className={`pointer-events-none text-[10px] ${isDraft ? 'border-dashed border-gray-400 text-gray-500' : mrStateBadgeClass(mr.state)}`}
+      >
+        {mrStateLabel(mr)}
+      </Badge>
+    </span>
+  );
+}
 
 const CHANNEL_NAMES: Record<Channel, string> = {
   A: 'Jira link',
@@ -421,8 +548,12 @@ function ColumnHeaderStrip() {
 function SecondaryHeaderStrip() {
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium py-1 density-compact:py-0.5 density-comfortable:py-2 pl-6 bg-muted/30">
+      <span className={COL_REASON}>Reason</span>
       <span className={COL_KEY}>Key</span>
       <span className={COL_SUMMARY}>Merge request</span>
+      <span className={COL_PERSON}>Author</span>
+      <span className={COL_REVIEWERS}>Reviewers</span>
+      <span className={COL_MR_STATE}>State</span>
       <span
         className="flex-none w-[1.75rem] text-center"
         title="Target branch matches release branch"
@@ -447,11 +578,14 @@ function MrSubLine({
   onNavigateToIssueFromMR,
   fix,
   keyCell,
+  reasonCell,
 }: {
   row: DriftRow;
   onNavigateToIssueFromMR: (key: string) => void;
   fix: MrFixContext;
   keyCell?: React.ReactNode;
+  /** Secondary rows only: reason pill, which also switches on the author/reviewers/state cells. */
+  reasonCell?: React.ReactNode;
 }) {
   const { mr } = row;
   const isFlagged = row.br === 'flag' || row.ms === 'flag';
@@ -508,9 +642,9 @@ function MrSubLine({
   return (
     <div
       data-testid="drift-row"
-      title={`${mr.author.name} — ${mr.state}`}
       className={`group/row pl-6 flex items-center gap-2 text-xs py-1 density-compact:py-0.5 density-comfortable:py-2 ${isFlagged ? 'text-foreground' : 'text-muted-foreground'}`}
     >
+      {reasonCell}
       {keyCell ?? <span className={COL_KEY}>{iidButton}</span>}
       <span className={`${COL_SUMMARY} truncate`}>
         {keyCell ? (
@@ -522,6 +656,13 @@ function MrSubLine({
           titleContent
         )}
       </span>
+      {reasonCell && (
+        <>
+          <MrAuthorCell mr={mr} />
+          <MrReviewersCell mr={mr} />
+          <MrStatePill mr={mr} />
+        </>
+      )}
       {row.evaluated ? (
         <>
           <DriftActionCell mr={mr} action="retarget" mark={row.br} testId="drift-br" fix={fix} />
@@ -744,12 +885,7 @@ function TaskMrCell({
       : mr.state === 'opened'
         ? 'text-blue-600 dark:text-blue-400'
         : 'text-gray-500';
-  const stateBadgeClass =
-    mr.state === 'merged'
-      ? 'border-green-500 text-green-600'
-      : mr.state === 'opened'
-        ? 'border-blue-500 text-blue-600'
-        : 'border-gray-400 text-gray-500';
+  const stateBadgeClass = mrStateBadgeClass(mr.state);
 
   return (
     <>
@@ -1010,6 +1146,14 @@ export function UnifiedTaskTable({
     ? secondaryRows.filter(filterPredicate)
     : secondaryRows;
 
+  // Header counts come from the same filtered array the rows render from.
+  const secondaryReasonCounts: Record<SecondaryReason, number> = {
+    'no-linked-task': 0,
+    'not-in-fix-version': 0,
+    unevaluated: 0,
+  };
+  for (const r of filteredSecondaryRows) secondaryReasonCounts[secondaryReason(r)]++;
+
   const clearFilter = () => {
     setActiveFilter(null);
     onClearLabelFilter?.();
@@ -1190,7 +1334,31 @@ export function UnifiedTaskTable({
 
       {!isLoadingIssues && filteredSecondaryRows.length > 0 && (
         <div data-testid="secondary-section" className="mt-4 pt-4 border-t border-border/50">
-          <h4 className="text-sm font-medium">Not covered by tasks above</h4>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+            <h4 className="text-sm font-medium">Not covered by tasks above</h4>
+            <span
+              data-testid="secondary-count"
+              className="text-xs tabular-nums text-muted-foreground"
+            >
+              {filteredSecondaryRows.length}
+            </span>
+            {REASON_ORDER.filter((r) => secondaryReasonCounts[r] > 0).map((r, i) => (
+              <Fragment key={r}>
+                {i > 0 && (
+                  <span aria-hidden="true" className="text-muted-foreground">
+                    ·
+                  </span>
+                )}
+                <Badge
+                  variant="outline"
+                  data-testid={`secondary-reason-chip-${r}`}
+                  className={`pointer-events-none text-xs tabular-nums ${REASON_CLASS[r]}`}
+                >
+                  {secondaryReasonCounts[r]} {REASON_CHIP_LABEL[r]}
+                </Badge>
+              </Fragment>
+            ))}
+          </div>
           <SecondaryHeaderStrip />
           {filteredSecondaryRows.map((row) => {
             const keys = row.taskKeys;
@@ -1218,7 +1386,6 @@ export function UnifiedTaskTable({
                   className={`${COL_KEY} font-mono text-xs text-orange-600 dark:text-orange-400 inline-flex items-center gap-1 overflow-hidden`}
                   title={`${keys.join(', ')} ${suffix} not in fix version ${versionName}`}
                 >
-                  <AlertTriangle className="size-3" />
                   {keyLink}
                   {keys.length > 1 ? ` +${keys.length - 1}` : ''}
                 </span>
@@ -1254,6 +1421,7 @@ export function UnifiedTaskTable({
                 onNavigateToIssueFromMR={onNavigateToIssueFromMR}
                 fix={fix}
                 keyCell={keyCell}
+                reasonCell={<SecondaryReasonPill row={row} versionName={versionName} />}
               />
             );
           })}

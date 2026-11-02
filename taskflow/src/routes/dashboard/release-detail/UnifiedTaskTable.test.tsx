@@ -551,14 +551,22 @@ describe('WR-06: the secondary table has its own header strip', () => {
     });
   }
 
-  it('labels only the four columns a secondary row actually renders', () => {
+  it('labels the eight columns a secondary row actually renders', () => {
     renderSecondary();
     const secondary = within(screen.getByTestId('secondary-section'));
 
-    expect(secondary.getByText('Key')).toBeInTheDocument();
-    expect(secondary.getByText('Merge request')).toBeInTheDocument();
-    expect(secondary.getByText('BR')).toBeInTheDocument();
-    expect(secondary.getByText('MS')).toBeInTheDocument();
+    for (const label of [
+      'Reason',
+      'Key',
+      'Merge request',
+      'Author',
+      'Reviewers',
+      'State',
+      'BR',
+      'MS',
+    ]) {
+      expect(secondary.getByText(label)).toBeInTheDocument();
+    }
   });
 
   it('does not label Assignee, Status or MR over columns the secondary row dropped', () => {
@@ -2010,5 +2018,153 @@ describe('MR label filter', () => {
       labelFilter: 'nope',
     });
     expect(screen.getByText('No merge requests match this filter')).toBeInTheDocument();
+  });
+});
+
+describe('261102-fkr: secondary row info', () => {
+  const sec = () => within(screen.getByTestId('secondary-section'));
+
+  it('renders a reason pill per row and no AlertTriangle in the flagged key', () => {
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ id: 1, iid: 1 }),
+          taskReason: 'no-linked-task',
+          taskKeys: [],
+        }),
+        makeRow({
+          mr: makeMR({ id: 2, iid: 2 }),
+          taskReason: 'not-in-fix-version',
+          taskKeys: ['PROJ-9'],
+        }),
+        makeRow({
+          mr: makeMR({ id: 3, iid: 3, state: 'merged' }),
+          evaluated: false,
+          taskReason: null,
+          taskKeys: [],
+        }),
+      ],
+    });
+    const pills = sec().getAllByTestId('secondary-reason-pill');
+    expect(pills.map((p) => p.getAttribute('data-reason'))).toEqual([
+      'no-linked-task',
+      'not-in-fix-version',
+      'unevaluated',
+    ]);
+    expect(pills[0]).toHaveTextContent('No task');
+    expect(pills[1]).toHaveTextContent('Not in version');
+    expect(pills[1]).toHaveAttribute('title', 'PROJ-9 is not in fix version 33.5.0');
+    expect(pills[2]).toHaveTextContent('Not evaluated');
+    expect(pills[2]).toHaveAttribute('title', 'Not evaluated (MR is merged)');
+    expect(pills[2].className).not.toContain('orange');
+    expect(sec().getByTestId('secondary-key-flagged').querySelector('svg')).toBeNull();
+  });
+
+  it('shows the author and every reviewer without a +N cap', () => {
+    const reviewers = ['Bob', 'Carol', 'Dan', 'Eve', 'Fay'].map((name, i) => ({
+      id: 10 + i,
+      name,
+      username: name.toLowerCase(),
+      avatar_url: '',
+    }));
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ reviewers }),
+          taskReason: 'no-linked-task',
+          taskKeys: [],
+        }),
+      ],
+    });
+    const row = within(screen.getByTestId('drift-row'));
+    expect(row.getByText('Alice')).toBeInTheDocument();
+    const group = row.getByTitle('Reviewers: Bob, Carol, Dan, Eve, Fay');
+    expect(group.textContent).not.toMatch(/\+\d/);
+    expect(within(group).getAllByRole('img')).toHaveLength(5);
+  });
+
+  it('shows a muted dash when there are no reviewers', () => {
+    renderSection({
+      secondaryRows: [makeRow({ taskReason: 'no-linked-task', taskKeys: [] })],
+    });
+    expect(within(screen.getByTestId('drift-row')).getByTitle('No reviewers')).toHaveTextContent(
+      '—',
+    );
+  });
+
+  it.each([
+    ['opened', false, 'Open'],
+    ['opened', true, 'Draft'],
+    ['merged', false, 'Merged'],
+    ['closed', false, 'Closed'],
+    ['locked', false, 'Locked'],
+  ] as const)('state %s draft=%s renders %s', (state, draft, label) => {
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ state, draft }),
+          evaluated: state === 'opened',
+          taskReason: state === 'opened' ? 'no-linked-task' : null,
+          taskKeys: [],
+        }),
+      ],
+    });
+    expect(sec().getByTestId('secondary-mr-state')).toHaveTextContent(label);
+  });
+});
+
+describe('261102-fkr: secondary header', () => {
+  const rows = () => [
+    makeRow({
+      mr: makeMR({
+        id: 1,
+        iid: 1,
+        labels: [{ name: 'a', color: '#000000', text_color: '#ffffff' }],
+      }),
+      taskReason: 'no-linked-task',
+      taskKeys: [],
+    }),
+    makeRow({ mr: makeMR({ id: 2, iid: 2 }), taskReason: 'no-linked-task', taskKeys: [] }),
+    makeRow({
+      mr: makeMR({ id: 3, iid: 3 }),
+      taskReason: 'not-in-fix-version',
+      taskKeys: ['PROJ-9'],
+    }),
+    makeRow({
+      mr: makeMR({ id: 4, iid: 4, state: 'merged' }),
+      evaluated: false,
+      taskReason: null,
+      taskKeys: [],
+    }),
+  ];
+
+  it('shows the total and per-reason chips', () => {
+    renderSection({ secondaryRows: rows() });
+    expect(screen.getByText('Not covered by tasks above')).toBeInTheDocument();
+    expect(screen.getByTestId('secondary-count')).toHaveTextContent('4');
+    expect(screen.getByTestId('secondary-reason-chip-no-linked-task')).toHaveTextContent(
+      '2 no linked task',
+    );
+    expect(screen.getByTestId('secondary-reason-chip-not-in-fix-version')).toHaveTextContent(
+      '1 not in fix version',
+    );
+    expect(screen.getByTestId('secondary-reason-chip-unevaluated')).toHaveTextContent(
+      '1 not evaluated',
+    );
+  });
+
+  it('omits zero-count chips', () => {
+    renderSection({ secondaryRows: rows().slice(0, 2) });
+    expect(screen.queryByTestId('secondary-reason-chip-not-in-fix-version')).toBeNull();
+    expect(screen.queryByTestId('secondary-reason-chip-unevaluated')).toBeNull();
+  });
+
+  it('counts follow the active label filter', () => {
+    renderSection({ secondaryRows: rows(), labelFilter: 'a' });
+    expect(screen.getByTestId('secondary-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('secondary-reason-chip-no-linked-task')).toHaveTextContent(
+      '1 no linked task',
+    );
+    expect(screen.queryByTestId('secondary-reason-chip-unevaluated')).toBeNull();
   });
 });

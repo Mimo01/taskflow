@@ -521,7 +521,8 @@ export interface GitLabMR {
    */
   draft: boolean;
   author: { id: number; name: string; username: string; avatar_url: string };
-  reviewers: Array<{ id: number; name: string; username: string }>;
+  // avatar_url is returned by GitLab's MR list endpoint; under-declared until now.
+  reviewers: Array<{ id: number; name: string; username: string; avatar_url?: string }>;
   updated_at: string; // ISO 8601 UTC
   web_url: string;
   labels: GitLabLabel[]; // label objects with colors
