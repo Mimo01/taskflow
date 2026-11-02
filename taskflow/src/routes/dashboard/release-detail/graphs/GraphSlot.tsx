@@ -49,10 +49,10 @@ export function GraphSlot({
   return (
     <section data-testid={testId} className={cn('flex min-w-0 flex-col', className)}>
       <div className="flex items-center gap-1.5">
-        <Icon aria-hidden="true" className="size-3.5 text-muted-foreground" />
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <Icon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+        <h3 className="shrink-0 text-sm font-semibold">{title}</h3>
         {aside ? (
-          <div className="ml-auto truncate text-xs text-muted-foreground">{aside}</div>
+          <div className="ml-auto min-w-0 truncate pl-2 text-xs text-muted-foreground">{aside}</div>
         ) : null}
       </div>
       <div className="mt-3 flex flex-1 flex-col">

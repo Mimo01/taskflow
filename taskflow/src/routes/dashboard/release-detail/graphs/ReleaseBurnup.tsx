@@ -11,10 +11,13 @@ import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import {
   BURNUP_MARGIN,
   burnupPlotBox,
+  DOT_R,
+  DOT_RING,
   END_H,
   type EndLabel,
   layoutBurnupLabels,
   type MarkerLabel,
+  X_AXIS_HEIGHT,
 } from './burnupLabelLayout';
 import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
 import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
@@ -26,6 +29,51 @@ const GREEN = 'var(--color-green-500)';
 const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
 const FALLBACK_WIDTH = 640;
+
+const yearOf = (key: string) => Number(key.slice(0, 4));
+const withYearLabel = (key: string) => {
+  const y = yearOf(key);
+  return y === new Date().getFullYear() ? formatDateKey(key) : `${formatDateKey(key)}, ${y}`;
+};
+
+/**
+ * Burnup-local tick labels: the year shows on the first tick when the axis is not
+ * entirely within the current year, and on the first tick of each new year.
+ */
+export function yearAwareTicks(
+  ticks: { t: number; label: string }[],
+  start: string,
+  end: string,
+  currentYear = new Date().getFullYear(),
+): { t: number; label: string }[] {
+  const allCurrent = yearOf(start) === currentYear && yearOf(end) === currentYear;
+  return ticks.map((tk, i) => {
+    const base = tk.label.replace(/,? \d{4}$/, '');
+    const y = new Date(tk.t).getUTCFullYear();
+    const prev = i > 0 ? new Date(ticks[i - 1].t).getUTCFullYear() : y;
+    const show = i === 0 ? !allCurrent : y !== prev;
+    if (!show) return { t: tk.t, label: base };
+    return { t: tk.t, label: /\d/.test(base) ? `${base}, ${y}` : `${base} ${y}` };
+  });
+}
+
+/** End-point dot with a background ring so it reads on the area fill. */
+function endDot(last: number, color: string) {
+  return (p: { index?: number; cx?: number; cy?: number }) => {
+    if (p.index !== last || p.cx === undefined || p.cy === undefined) return <g />;
+    return (
+      <circle
+        data-testid="burnup-end-dot"
+        cx={p.cx}
+        cy={p.cy}
+        r={DOT_R}
+        fill={color}
+        stroke="var(--color-background)"
+        strokeWidth={DOT_RING}
+      />
+    );
+  };
+}
 
 /** At most 4 integer ticks (0 plus up to three steps of 5/10/...). */
 export function burnupYScale(max: number): { top: number; ticks: number[] } {
@@ -69,10 +117,10 @@ function endLabel(last: number, label: EndLabel | undefined) {
     return (
       <g>
         <rect
-          x={box.x}
-          y={box.y}
-          width={box.w}
-          height={box.h}
+          x={box.x + 1}
+          y={box.y + 2}
+          width={box.w - 2}
+          height={box.h - 4}
           rx={2}
           fill="var(--color-background)"
         />
@@ -102,9 +150,10 @@ function markerLabel(label: MarkerLabel | undefined) {
         x={label.x}
         y={label.y}
         textAnchor={label.anchor}
-        fontSize={11}
+        fontSize={10}
         className="uppercase tracking-wide"
         fill={MUTED}
+        fillOpacity={0.7}
       >
         {label.text}
       </text>
@@ -153,22 +202,30 @@ export function ReleaseBurnup({
   }, [plotEl]);
   const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
   const height = measuredH > 0 ? Math.round(measuredH) : compact ? 110 : BURNUP_HEIGHT;
-  // Short meta so it never crowds the title; the full text (previous release) is the tooltip.
+  // One line, never wraps: the previous release name truncates first, the date stays.
+  const sinceDate = axis ? withYearLabel(axis.start) : '';
   const aside = axis ? (
     <span
-      title={
-        axis.previousName
-          ? `since ${axis.previousName} · ${formatDateKey(axis.start)}`
-          : `since ${formatDateKey(axis.start)}`
-      }
+      className="flex min-w-0 items-baseline whitespace-nowrap"
+      title={axis.previousName ? `since ${axis.previousName} · ${sinceDate}` : `since ${sinceDate}`}
     >
-      since {formatDateKey(axis.start)}
+      {axis.previousName ? (
+        <>
+          <span className="shrink-0">since&nbsp;</span>
+          <span className="min-w-0 truncate text-foreground/80">{axis.previousName}</span>
+          <span className="shrink-0">&nbsp;· {sinceDate}</span>
+        </>
+      ) : (
+        `since ${sinceDate}`
+      )}
     </span>
   ) : undefined;
   const last = points[points.length - 1];
   const enough = state === 'ready' && !!axis && points.length >= 2 && !!last;
   const plot = burnupPlotBox(width, height);
-  const ticks = axis ? timeTicks(axis.start, axis.end, plot.right - plot.left) : [];
+  const ticks = axis
+    ? yearAwareTicks(timeTicks(axis.start, axis.end, plot.right - plot.left), axis.start, axis.end)
+    : [];
   const maxScope = points.reduce((m, p) => Math.max(m, p.scope), 0);
   const y = burnupYScale(maxScope);
   // Headroom above the scope line: enough pixels for an end label above it (the
@@ -255,6 +312,7 @@ export function ReleaseBurnup({
                 }
                 tickLine={false}
                 axisLine={false}
+                height={X_AXIS_HEIGHT}
               />
               <YAxis
                 domain={[0, domainTop]}
@@ -308,7 +366,7 @@ export function ReleaseBurnup({
                 stroke={MUTED}
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
-                dot={false}
+                dot={last.scope === last.done ? false : endDot(points.length - 1, MUTED)}
                 isAnimationActive={false}
                 label={endLabel(points.length - 1, scopeEnd)}
               />
@@ -317,7 +375,7 @@ export function ReleaseBurnup({
                 type="stepAfter"
                 stroke={GREEN}
                 strokeWidth={2}
-                dot={false}
+                dot={endDot(points.length - 1, GREEN)}
                 isAnimationActive={false}
                 label={endLabel(points.length - 1, doneEnd)}
               />

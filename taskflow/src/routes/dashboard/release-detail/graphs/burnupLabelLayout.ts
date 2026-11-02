@@ -1,9 +1,12 @@
 import { PLOT_MARGIN, Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 
 /** Chart margins handed to recharts (top leaves a band for the TODAY / RELEASE labels). */
-export const BURNUP_MARGIN = { ...PLOT_MARGIN, top: 16, right: 40 };
-/** recharts' default XAxis height (tick row below the plot). */
-export const X_AXIS_HEIGHT = 30;
+export const BURNUP_MARGIN = { ...PLOT_MARGIN, top: 14, right: 40 };
+/** XAxis height (tick row below the plot); tighter than recharts' default 30. */
+export const X_AXIS_HEIGHT = 22;
+/** End-point dot radius and the width of its background ring. */
+export const DOT_R = 3;
+export const DOT_RING = 1.5;
 
 export interface Box {
   x: number;
@@ -28,19 +31,20 @@ export function burnupPlotBox(width: number, height: number): PlotBox {
   };
 }
 
-/** 11px uppercase tracking-wide marker label. */
-export const MARKER_CHAR_W = 7.6;
+/** 10px uppercase tracking-wide marker label. */
+export const MARKER_CHAR_W = 7;
 export const MARKER_PAD = 4;
-export const MARKER_H = 13;
-export const MARKER_BASELINE_Y = 12;
+export const MARKER_H = 12;
+export const MARKER_BASELINE_Y = 10;
 const MARKER_BOX_Y = 1;
 /** 11px end label (matches the old CHAR_W). */
 export const END_CHAR_W = 5.9;
 export const END_PAD = 6;
-export const END_H = 14;
+export const END_H = 13;
 /** Baseline offset inside an end label box (box.y + END_BASELINE). */
-export const END_BASELINE = 11;
-const END_OFFSET = 3;
+export const END_BASELINE = 10;
+/** Clear of the end-point dot (radius + ring). */
+const END_OFFSET = DOT_R + DOT_RING + 2.5;
 const MARKER_OFFSET = 3;
 
 export type MarkerKind = 'today' | 'release';

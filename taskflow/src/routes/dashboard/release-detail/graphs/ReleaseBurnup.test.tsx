@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
-import { BurnupTooltip, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
+import { BurnupTooltip, burnupYScale, ReleaseBurnup, yearAwareTicks } from './ReleaseBurnup';
 
 const axis: BurnupAxis = {
   start: '2026-10-01',
@@ -98,7 +98,7 @@ describe('ReleaseBurnup', () => {
       screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Progress')).toBeInTheDocument();
-    expect(screen.getByTitle('since v1.2 · Oct 1')).toHaveTextContent('since Oct 1');
+    expect(screen.getByTitle('since v1.2 · Oct 1')).toHaveTextContent('since v1.2 · Oct 1');
     expect(container.querySelector('.recharts-legend-wrapper')).toBeNull();
   });
 
@@ -113,6 +113,48 @@ describe('ReleaseBurnup', () => {
       />,
     );
     expect(screen.getByText('since Oct 1')).toBeInTheDocument();
+  });
+
+  it('aside shows the previous name and a year when the start is not this year', () => {
+    render(
+      <ReleaseBurnup
+        axis={{ ...axis, start: '2025-11-20' }}
+        points={points}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
+    const aside = screen.getByTitle('since v1.2 · Nov 20, 2025');
+    expect(aside).toHaveTextContent('since v1.2 · Nov 20, 2025');
+    expect(screen.getByText('v1.2')).toHaveClass('truncate');
+  });
+
+  it('draws end-point dots at the last point only (one when scope equals done)', () => {
+    const { container, rerender } = render(
+      <ReleaseBurnup
+        axis={axis}
+        points={points}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
+    const n = container.querySelectorAll('[data-testid="burnup-end-dot"]').length;
+    expect(n === 0 || n === 2).toBe(true);
+    const last = points[points.length - 1];
+    rerender(
+      <ReleaseBurnup
+        axis={axis}
+        points={[...points.slice(0, -1), { ...last, scope: last.done }]}
+        state="ready"
+        showStoryPoints={false}
+        summary={summary}
+      />,
+    );
+    expect(container.querySelectorAll('[data-testid="burnup-end-dot"]').length).toBeLessThanOrEqual(
+      1,
+    );
   });
 });
 
@@ -144,5 +186,48 @@ describe('burnupYScale', () => {
       expect(ticks.length).toBeLessThanOrEqual(4);
       expect(top).toBeGreaterThanOrEqual(m);
     }
+  });
+});
+
+describe('yearAwareTicks', () => {
+  const t = (k: string) => Date.parse(`${k}T00:00:00Z`);
+  it('adds no year when the axis is within the current year', () => {
+    const out = yearAwareTicks(
+      [{ t: t('2026-10-01'), label: 'Oct 1' }],
+      '2026-10-01',
+      '2026-10-20',
+      2026,
+    );
+    expect(out[0].label).toBe('Oct 1');
+  });
+  it('puts the year on the first tick when the start is in another year', () => {
+    const out = yearAwareTicks(
+      [{ t: t('2025-12-28'), label: 'Dec 28' }],
+      '2025-12-28',
+      '2025-12-30',
+      2026,
+    );
+    expect(out[0].label).toBe('Dec 28, 2025');
+  });
+  it('puts the year on the first tick of a new year, replacing the shared one', () => {
+    const out = yearAwareTicks(
+      [
+        { t: t('2026-12-20'), label: 'Dec 20 2026' },
+        { t: t('2027-01-03'), label: 'Jan 3 2027' },
+      ],
+      '2026-12-20',
+      '2027-01-05',
+      2026,
+    );
+    expect(out.map((o) => o.label)).toEqual(['Dec 20, 2026', 'Jan 3, 2027']);
+  });
+  it('uses "Mon YYYY" for month ticks', () => {
+    const out = yearAwareTicks(
+      [{ t: t('2027-01-01'), label: 'Jan' }],
+      '2026-12-01',
+      '2027-02-01',
+      2026,
+    );
+    expect(out[0].label).toBe('Jan 2027');
   });
 });
