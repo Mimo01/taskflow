@@ -110,7 +110,7 @@ export function MrLabels({
       )}
       style={{
         gridTemplateRows: `repeat(${rows}, auto)`,
-        gridAutoColumns: 'minmax(0, 9.5rem)',
+        gridAutoColumns: 'fit-content(9.5rem)',
       }}
     >
       {labelSummary.map((l) => (
