@@ -17,3 +17,11 @@ export function relativeTime(iso: string): string {
   }
   return rtf.format(-Math.floor(diffSecs / 86400), 'day');
 }
+
+/** Exact local date+time for hover titles on relative/short date displays. */
+export function exactDateTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}

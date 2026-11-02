@@ -31,6 +31,7 @@ import { apiFetch } from '@/lib/apiFetch';
 import { formatWeekLabel } from '@/lib/deployment-package';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { invalidateLightweightIssue } from '@/lib/issue-lightweight-cache';
+import { exactDateTime } from '@/lib/relative-time';
 import type { JiraIssue, JiraIssueDetail, JiraPriority } from '@/services/jira';
 import {
   fetchIssuePriorityOptions,
@@ -1247,8 +1248,12 @@ export function FieldsSection({
           </MetaRow>
         );
       })()}
-      <MetaRow label="Created">{new Date(f.created).toLocaleDateString()}</MetaRow>
-      <MetaRow label="Updated">{new Date(f.updated).toLocaleDateString()}</MetaRow>
+      <MetaRow label="Created">
+        <span title={exactDateTime(f.created)}>{new Date(f.created).toLocaleDateString()}</span>
+      </MetaRow>
+      <MetaRow label="Updated">
+        <span title={exactDateTime(f.updated)}>{new Date(f.updated).toLocaleDateString()}</span>
+      </MetaRow>
       {f.duedate && (
         <MetaRow label="Due">
           <span className="inline-flex items-center gap-1.5">

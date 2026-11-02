@@ -12,6 +12,7 @@ vi.mock('../IssueDetailContent', () => ({
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { exactDateTime } from '@/lib/relative-time';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { ChangelogHistory } from '@/services/jira';
 import { ChangelogEntry } from './ChangelogEntry';
@@ -163,7 +164,7 @@ describe('ChangelogEntry', () => {
       [{ field: 'assignee', fromString: null, toString: 'Bob' }],
       '2026-01-01T10:03:00.000Z',
     );
-    const expected = new Date(newer.created).toLocaleString();
+    const expected = exactDateTime(newer.created);
     for (const order of [
       [older, newer],
       [newer, older],

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { type ComponentType, useMemo, useState } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { exactDateTime } from '@/lib/relative-time';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { ChangelogHistory } from '@/services/jira';
 import { formatDuration } from '@/services/jira/duration';
@@ -310,10 +311,7 @@ export function ChangelogEntry({ histories }: ChangelogEntryProps) {
         <span aria-hidden className="flex-none text-muted-foreground/60">
           ·
         </span>
-        <span
-          className="flex-none text-muted-foreground"
-          title={new Date(latest.created).toLocaleString()}
-        >
+        <span className="flex-none text-muted-foreground" title={exactDateTime(latest.created)}>
           {relativeTime(latest.created)}
         </span>
       </div>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
+import { exactDateTime } from '@/lib/relative-time';
 import type { JiraWorklog } from '@/services/jira/types';
 import { relativeTime } from '../IssueDetailContent';
 import { DurationInput } from './DurationInput';
@@ -74,10 +75,7 @@ export function WorklogEntry({
         />
         <span className="font-semibold text-sm">{worklog.author.displayName}</span>
         {!isEditing && <Badge variant="secondary">{worklog.timeSpent}</Badge>}
-        <span
-          className="text-xs text-muted-foreground"
-          title={new Date(worklog.started).toLocaleString()}
-        >
+        <span className="text-xs text-muted-foreground" title={exactDateTime(worklog.started)}>
           {relativeTime(worklog.started)}
         </span>
 

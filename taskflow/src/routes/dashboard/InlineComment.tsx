@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
+import { exactDateTime } from '@/lib/relative-time';
 import type { JiraComment } from '@/services/jira';
 import { deleteComment, updateComment } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -206,9 +207,16 @@ export default function InlineComment({
                 {/* Header */}
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-medium text-sm">{c.author.displayName}</span>
-                  <span className="text-muted-foreground">{relativeTime(c.created)}</span>
+                  <span className="text-muted-foreground" title={exactDateTime(c.created)}>
+                    {relativeTime(c.created)}
+                  </span>
                   {c.updated !== c.created && (
-                    <span className="text-muted-foreground italic">(edited)</span>
+                    <span
+                      className="text-muted-foreground italic"
+                      title={`Edited ${exactDateTime(c.updated)}`}
+                    >
+                      (edited)
+                    </span>
                   )}
 
                   {/* 3-dot menu for own comments */}
