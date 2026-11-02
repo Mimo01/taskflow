@@ -180,7 +180,7 @@ function SubItemList({
                 <span className={statusPillClass(item.transition.fromCategory)}>
                   {item.transition.fromStatus}
                 </span>
-                <span className="text-muted-foreground">→</span>
+                <span className="text-xs text-muted-foreground">→</span>
                 <span className={statusPillClass(item.transition.toCategory)}>
                   {item.transition.toStatus}
                 </span>

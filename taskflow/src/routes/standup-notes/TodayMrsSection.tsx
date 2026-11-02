@@ -63,7 +63,7 @@ export default function TodayMrsSection({
   }
 
   return (
-    <div className="mb-4 pt-4">
+    <div>
       <StandupSectionHeader label="MRs Awaiting You" count={items.length} />
 
       {showSkeleton ? (
@@ -89,7 +89,7 @@ export default function TodayMrsSection({
               <button
                 key={`${mr.project_id}/${mr.iid}`}
                 type="button"
-                className="w-full text-left flex items-center gap-2 py-3 density-compact:py-2 density-comfortable:py-4 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="w-full text-left flex items-center gap-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onMRClick(`${mr.project_id}/${mr.iid}`)}
               >
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />

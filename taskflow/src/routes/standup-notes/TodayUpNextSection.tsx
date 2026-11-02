@@ -78,7 +78,7 @@ function ProgressBar({ issue }: ProgressBarProps) {
 
   return (
     <div className="shrink-0 flex items-center gap-2">
-      <Progress value={fillPct} className="w-20" indicatorClassName={indicatorColor} />
+      <Progress value={fillPct} className="w-14" indicatorClassName={indicatorColor} />
       <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {formatDuration(spentSec)} / {formatDuration(originalSec)}
       </span>
@@ -94,6 +94,10 @@ interface IssueRowProps {
   onIssueClick: (key: string) => void;
   onOpenIssue?: (key: string) => void;
   indented?: boolean;
+  /** Reserve the story-points slot (some row in this section has points). */
+  showSp: boolean;
+  /** Reserve the progress slot (some row in this section has an estimate). */
+  showProgress: boolean;
 }
 
 function IssueRow({
@@ -102,6 +106,8 @@ function IssueRow({
   onIssueClick,
   onOpenIssue,
   indented = false,
+  showSp,
+  showProgress,
 }: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
@@ -150,20 +156,24 @@ function IssueRow({
               {issue.fields.status.name}
             </span>
           </div>
-          <div className="flex w-14 shrink-0 justify-end">
-            <span
-              className={cn(
-                'inline-flex w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
-                sp == null && 'invisible',
-              )}
-              aria-hidden={sp == null}
-            >
-              {sp ?? 0}
-            </span>
-          </div>
-          <div className="flex w-44 shrink-0 items-center">
-            <ProgressBar issue={issue} />
-          </div>
+          {showSp && (
+            <div className="flex w-7 shrink-0 justify-end">
+              <span
+                className={cn(
+                  'inline-flex w-7 justify-center rounded border border-border bg-muted px-1 py-0.5 text-xs font-medium text-muted-foreground',
+                  sp == null && 'invisible',
+                )}
+                aria-hidden={sp == null}
+              >
+                {sp ?? 0}
+              </span>
+            </div>
+          )}
+          {showProgress && (
+            <div className="hidden w-36 shrink-0 items-center @[32rem]:flex">
+              <ProgressBar issue={issue} />
+            </div>
+          )}
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
             name={issue.fields.assignee?.displayName ?? 'Unassigned'}
@@ -224,10 +234,18 @@ export default function TodayUpNextSection({
 }: TodayUpNextSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
 
+  // Fixed-width trailing slots are reserved only when some row in the section uses them,
+  // so the pill column stays aligned without wasting width on empty columns.
+  const sectionIssues = rows.flatMap((r) => [r.issue, ...r.subtasks]);
+  const showSp = sectionIssues.some((i) => typeof i.fields[storyPointsFieldKey] === 'number');
+  const showProgress = sectionIssues.some(
+    (i) => (i.fields.timetracking?.originalEstimateSeconds ?? 0) > 0,
+  );
+
   // Unlike the other sections, Up Next always renders — an empty "nothing up
   // next" state is meaningful for standup (it confirms there's no queued work).
   return (
-    <div className="mb-4 pt-4">
+    <div>
       <StandupSectionHeader
         label="Up Next"
         count={rows.length}
@@ -244,7 +262,7 @@ export default function TodayUpNextSection({
           <span>Nothing up next — enjoy the breather</span>
         </div>
       ) : (
-        <div className="[&>*]:py-2 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-3">
+        <div className="flex flex-col gap-1 density-compact:gap-0.5 density-comfortable:gap-2">
           {rows.map((row) => (
             <div key={row.issue.key}>
               <IssueRow
@@ -252,6 +270,8 @@ export default function TodayUpNextSection({
                 storyPointsFieldKey={storyPointsFieldKey}
                 onIssueClick={onIssueClick}
                 onOpenIssue={onOpenIssue}
+                showSp={showSp}
+                showProgress={showProgress}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow
@@ -261,6 +281,8 @@ export default function TodayUpNextSection({
                   onIssueClick={onIssueClick}
                   onOpenIssue={onOpenIssue}
                   indented
+                  showSp={showSp}
+                  showProgress={showProgress}
                 />
               ))}
               {(mrsByStory.get(row.issue.key) ?? []).map((mr) => (

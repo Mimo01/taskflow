@@ -16,9 +16,12 @@ export default function OtherCommitsGroup({ commits }: OtherCommitsGroupProps) {
   if (commits.length === 0) return null;
 
   return (
-    <div className="[&>*]:py-1.5 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-2.5">
+    <div>
       {commits.map((commit) => (
-        <div key={commit.id} className="flex items-center gap-2 px-2">
+        <div
+          key={commit.id}
+          className="flex items-center gap-2 px-2 py-1.5 density-compact:py-1 density-comfortable:py-2.5"
+        >
           <GitBranch className="size-4 shrink-0 text-muted-foreground" />
           <span className="flex-1 min-w-0 truncate text-sm text-foreground">
             {commit.title}{' '}

@@ -799,12 +799,12 @@ export default function YesterdayColumn({
       {/* Populated content renders first; per-source empty/loading/error
           notices fall to the bottom so "nothing here" never sits above data. */}
       {hasAnyData && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-6 density-compact:gap-4 density-comfortable:gap-8">
           {/* Task groups (priority): activity grouped under the issue it belongs to */}
           {issueGroups.length > 0 && (
-            <div className="mb-4">
+            <div>
               <StandupSectionHeader label="Worked On" count={issueGroups.length} />
-              <div className="[&>*]:py-2 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-3">
+              <div className="flex flex-col gap-1 density-compact:gap-0.5 density-comfortable:gap-2">
                 {issueGroups.map((group) => (
                   <IssueActivityGroup
                     key={group.issueKey}
@@ -828,12 +828,12 @@ export default function YesterdayColumn({
 
           {/* Fallback: MR activity that couldn't be matched to a tracked issue */}
           {standaloneMrGroups.length > 0 && (
-            <div className="mb-4 pt-4">
+            <div>
               <StandupSectionHeader
                 label="Other Merge Requests"
                 count={standaloneMrGroups.length}
               />
-              <div className="divide-y divide-border [&>*]:py-2 density-compact:[&>*]:py-1 density-comfortable:[&>*]:py-3">
+              <div className="divide-y divide-border">
                 {standaloneMrGroups.map((mr) => (
                   <StandaloneMrGroup
                     key={mr.iid}
@@ -851,7 +851,7 @@ export default function YesterdayColumn({
 
           {/* Fallback: commits without a linked Jira issue */}
           {otherCommits.length > 0 && (
-            <div className="mb-4 pt-4">
+            <div>
               <StandupSectionHeader label="Other Commits" count={otherCommits.length} />
               <OtherCommitsGroup commits={otherCommits} />
             </div>

@@ -58,9 +58,9 @@ export default function StandupPageHeader({
   onSelectWatched,
 }: StandupPageHeaderProps) {
   return (
-    <header className="px-6 py-4 border-b border-border flex items-center justify-between">
+    <header className="shrink-0 gap-4 px-6 py-4 border-b border-border flex items-center justify-between">
       {/* Left: title + date */}
-      <div>
+      <div className="min-w-0">
         <h1 className="text-3xl font-semibold">Standup notes</h1>
         <p className="mt-1 flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
           <Calendar className="size-3.5 shrink-0" />

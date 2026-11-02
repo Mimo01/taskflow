@@ -304,7 +304,7 @@ export default function TodayColumn({
   const showNotMatchedHint = isWatched && !watchedGitlabUserId && !!gitlabBaseUrl;
 
   return (
-    <div className="flex flex-col h-full px-6 py-4">
+    <div className="@container flex flex-col h-full px-6 py-4">
       {/* Column heading */}
       <div className="mb-2 flex items-baseline gap-2">
         <h2 className="text-2xl font-semibold">Today</h2>
@@ -329,7 +329,7 @@ export default function TodayColumn({
           whole column resolved empty — the full-column empty state takes over so
           Up Next's "nothing up next" doesn't compete with it. */}
       {!allSettledEmpty && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-6 density-compact:gap-4 density-comfortable:gap-8">
           {/* Section 1: In Progress (D-01: fixed order) */}
           <TodayInProgressSection
             rows={inProgress}
