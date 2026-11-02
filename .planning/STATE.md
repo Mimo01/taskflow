@@ -203,7 +203,7 @@ None yet.
 | 261030-eic | Releases list skeleton mirrors loaded page (Today row, month labels, Next-release card, rail rows, Released panel + show-older; shares ROW_GRID/RAIL_LINE/LABEL_CLASS with ReleaseAgenda) + ReleasesHero summary-line placeholder while loading | 2026-10-30 | 45842716 | Verified (UAT approved) | [261030-eic-make-releases-page-skeleton-match-actual](./quick/261030-eic-make-releases-page-skeleton-match-actual/) |
 | 261102-ers | Release detail: show all MR labels, no +N more collapse | 2026-11-02 | 4dc42bb3 | Verified (inline) | [261102-ers-show-all-mr-labels](./quick/261102-ers-show-all-mr-labels/) |
 | 261102-euc | Release detail: filter tasks by MR label (click label pill) | 2026-11-02 | 31b4d7d0 | Verified (inline) | [261102-euc-on-release-detail-filter-tasks-based-on-](./quick/261102-euc-on-release-detail-filter-tasks-based-on-/) |
-| 261102-fy2 | Standup notes: density/text-size pass + status & SP on right of Today rows (not Yesterday) | 2026-11-02 | 120e3a20 | Needs Review | [261102-fy2-polish-standup-notes-page-density-text-s](./quick/261102-fy2-polish-standup-notes-page-density-text-s/) |
+| 261102-fy2 | Standup notes: density/text-size pass + status pill + SP on Today rows in My Tasks order (not Yesterday) | 2026-11-02 | 4406c114 | Needs Review | [261102-fy2-polish-standup-notes-page-density-text-s](./quick/261102-fy2-polish-standup-notes-page-density-text-s/) |
 
 ## Deferred Items
 
