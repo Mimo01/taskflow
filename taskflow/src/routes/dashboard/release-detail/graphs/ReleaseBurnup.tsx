@@ -20,7 +20,8 @@ import {
   X_AXIS_HEIGHT,
 } from './burnupLabelLayout';
 import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
-import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
+import { ReleaseProgressHeader, type TimelineSummary } from './ReleaseProgressHeader';
+import { ReleaseTimeline } from './ReleaseTimeline';
 
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
@@ -295,114 +296,111 @@ export function ReleaseBurnup({
       testId="release-graph-burnup"
       className={className}
     >
-      {!enough || !axis ? (
-        compact ? (
-          <div className="relative min-h-[132px] flex-1">
-            <ReleaseTimeline axis={axis} summary={summary} className="absolute inset-0" compact />
-          </div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <ReleaseProgressHeader summary={summary} compact={compact} />
+        {!enough || !axis ? (
+          <ReleaseTimeline axis={axis} summary={summary} className="mt-2" />
         ) : (
-          <ReleaseTimeline axis={axis} summary={summary} className={PLOT_CLASS} />
-        )
-      ) : (
-        <div
-          ref={setPlotEl}
-          className={compact ? 'relative min-h-[110px] flex-1' : PLOT_CLASS}
-          role="img"
-          aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
-        >
-          <ChartContainer
-            config={{}}
-            className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
+          <div
+            ref={setPlotEl}
+            className={compact ? 'relative mt-2 min-h-[110px] flex-1' : `${PLOT_CLASS} mt-2`}
+            role="img"
+            aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
           >
-            <ComposedChart data={plotted} responsive margin={BURNUP_MARGIN}>
-              <XAxis
-                type="number"
-                dataKey="t"
-                scale="time"
-                domain={[dateKeyMs(axis.start), dayEnd(axis.end)]}
-                allowDataOverflow
-                ticks={ticks.map((x) => x.t)}
-                interval={0}
-                tick={TICK}
-                tickFormatter={(v) =>
-                  ticks.find((x) => x.t === Number(v))?.label ??
-                  formatDateKey(new Date(Number(v)).toISOString().slice(0, 10))
-                }
-                tickLine={false}
-                axisLine={false}
-                height={X_AXIS_HEIGHT}
-              />
-              <YAxis
-                domain={[0, domainTop]}
-                ticks={y.ticks}
-                interval={0}
-                allowDecimals={false}
-                tick={TICK}
-                tickLine={false}
-                axisLine={false}
-                width={Y_AXIS_WIDTH}
-              />
-              <ChartTooltip
-                cursor={CURSOR}
-                wrapperStyle={TOOLTIP_WRAPPER}
-                content={(p) => (
-                  <BurnupTooltip
-                    active={p.active}
-                    payload={p.payload as readonly { payload?: BurnupPoint }[] | undefined}
-                    showStoryPoints={showStoryPoints}
+            <ChartContainer
+              config={{}}
+              className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
+            >
+              <ComposedChart data={plotted} responsive margin={BURNUP_MARGIN}>
+                <XAxis
+                  type="number"
+                  dataKey="t"
+                  scale="time"
+                  domain={[dateKeyMs(axis.start), dayEnd(axis.end)]}
+                  allowDataOverflow
+                  ticks={ticks.map((x) => x.t)}
+                  interval={0}
+                  tick={TICK}
+                  tickFormatter={(v) =>
+                    ticks.find((x) => x.t === Number(v))?.label ??
+                    formatDateKey(new Date(Number(v)).toISOString().slice(0, 10))
+                  }
+                  tickLine={false}
+                  axisLine={false}
+                  height={X_AXIS_HEIGHT}
+                />
+                <YAxis
+                  domain={[0, domainTop]}
+                  ticks={y.ticks}
+                  interval={0}
+                  allowDecimals={false}
+                  tick={TICK}
+                  tickLine={false}
+                  axisLine={false}
+                  width={Y_AXIS_WIDTH}
+                />
+                <ChartTooltip
+                  cursor={CURSOR}
+                  wrapperStyle={TOOLTIP_WRAPPER}
+                  content={(p) => (
+                    <BurnupTooltip
+                      active={p.active}
+                      payload={p.payload as readonly { payload?: BurnupPoint }[] | undefined}
+                      showStoryPoints={showStoryPoints}
+                    />
+                  )}
+                />
+                {axis.showToday ? (
+                  <ReferenceLine
+                    x={dayEnd(axis.seriesEnd)}
+                    stroke="var(--color-foreground)"
+                    strokeOpacity={0.5}
+                    label={markerLabel(todayLabel)}
+                    zIndex={MARKER_Z}
                   />
-                )}
-              />
-              {axis.showToday ? (
-                <ReferenceLine
-                  x={dayEnd(axis.seriesEnd)}
-                  stroke="var(--color-foreground)"
-                  strokeOpacity={0.5}
-                  label={markerLabel(todayLabel)}
-                  zIndex={MARKER_Z}
+                ) : null}
+                {axis.showRelease && axis.releaseDate ? (
+                  <ReferenceLine
+                    x={dayEnd(axis.releaseDate)}
+                    stroke={MUTED}
+                    strokeDasharray="4 3"
+                    label={markerLabel(releaseLabel)}
+                    zIndex={MARKER_Z}
+                  />
+                ) : null}
+                <Area
+                  dataKey="done"
+                  type="stepAfter"
+                  stroke="none"
+                  fill={GREEN}
+                  fillOpacity={0.12}
+                  activeDot={false}
+                  isAnimationActive={false}
                 />
-              ) : null}
-              {axis.showRelease && axis.releaseDate ? (
-                <ReferenceLine
-                  x={dayEnd(axis.releaseDate)}
+                <Line
+                  dataKey="scope"
+                  type="stepAfter"
                   stroke={MUTED}
+                  strokeWidth={1.5}
                   strokeDasharray="4 3"
-                  label={markerLabel(releaseLabel)}
-                  zIndex={MARKER_Z}
+                  dot={last.scope === last.done ? false : endDot(lastIdx, MUTED)}
+                  isAnimationActive={false}
+                  label={endLabel(lastIdx, scopeEnd)}
                 />
-              ) : null}
-              <Area
-                dataKey="done"
-                type="stepAfter"
-                stroke="none"
-                fill={GREEN}
-                fillOpacity={0.12}
-                activeDot={false}
-                isAnimationActive={false}
-              />
-              <Line
-                dataKey="scope"
-                type="stepAfter"
-                stroke={MUTED}
-                strokeWidth={1.5}
-                strokeDasharray="4 3"
-                dot={last.scope === last.done ? false : endDot(lastIdx, MUTED)}
-                isAnimationActive={false}
-                label={endLabel(lastIdx, scopeEnd)}
-              />
-              <Line
-                dataKey="done"
-                type="stepAfter"
-                stroke={GREEN}
-                strokeWidth={2}
-                dot={endDot(lastIdx, GREEN)}
-                isAnimationActive={false}
-                label={endLabel(lastIdx, doneEnd)}
-              />
-            </ComposedChart>
-          </ChartContainer>
-        </div>
-      )}
+                <Line
+                  dataKey="done"
+                  type="stepAfter"
+                  stroke={GREEN}
+                  strokeWidth={2}
+                  dot={endDot(lastIdx, GREEN)}
+                  isAnimationActive={false}
+                  label={endLabel(lastIdx, doneEnd)}
+                />
+              </ComposedChart>
+            </ChartContainer>
+          </div>
+        )}
+      </div>
     </GraphSlot>
   );
 }

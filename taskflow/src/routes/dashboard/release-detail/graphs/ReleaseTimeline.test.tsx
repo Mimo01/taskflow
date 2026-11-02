@@ -21,27 +21,20 @@ const base: TimelineSummary = {
 };
 
 describe('ReleaseTimeline', () => {
-  it('shows done figure, days left, markers and the start label', () => {
+  it('renders the track only: markers and the start label, no figures or countdown', () => {
     render(<ReleaseTimeline axis={axis} summary={base} />);
     const el = screen.getByTestId('release-graph-burnup-thin');
-    expect(el).toHaveTextContent('1 / 3');
-    expect(el).toHaveTextContent('4 days left');
     expect(el).toHaveTextContent('Today');
     expect(el).toHaveTextContent('Release');
     expect(el).toHaveTextContent('Previous release');
+    expect(el).not.toHaveTextContent('issues done');
+    expect(el).not.toHaveTextContent('days left');
   });
 
-  it('released, overdue and undated wording', () => {
-    const { rerender } = render(
-      <ReleaseTimeline
-        axis={axis}
-        summary={{ ...base, released: true, releaseDate: '2026-10-25' }}
-      />,
-    );
-    expect(screen.getByTestId('release-graph-burnup-thin')).toHaveTextContent('Released');
-    rerender(<ReleaseTimeline axis={axis} summary={{ ...base, releaseDate: '2026-10-27' }} />);
-    expect(screen.getByTestId('release-graph-burnup-thin')).toHaveTextContent('3 days overdue');
-    rerender(<ReleaseTimeline axis={null} summary={{ ...base, releaseDate: null }} />);
-    expect(screen.getByTestId('release-graph-burnup-thin')).toHaveTextContent('No release date');
+  it('omits the Release marker without an axis release date', () => {
+    render(<ReleaseTimeline axis={null} summary={{ ...base, releaseDate: null }} />);
+    const el = screen.getByTestId('release-graph-burnup-thin');
+    expect(el).toHaveTextContent('Today');
+    expect(el).not.toHaveTextContent('Release');
   });
 });
