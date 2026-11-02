@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-02 - Completed quick task 261102-rzm: release Progress graph non-overlapping labels
+Last activity: 2026-11-02 - Completed quick task 261102-st4: release Progress graph polish (since label, end dots, softer markers, axis year)
 
 ## Performance Metrics
 
@@ -233,6 +233,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261014-nkt | Hide Fix Versions + Deployment package rows on epic/subtask detail (story-only) | 2026-10-14 | 6830f704 | Verified (inline, test fails pre-fix) | [261014-nkt-hide-fix-version-and-deployment-version-](./quick/261014-nkt-hide-fix-version-and-deployment-version-/) |
 | 261102-rdn | Release detail: drop MR donut legend, enlarge ring 108→120px (matches assignee rows) | 2026-11-02 | d4fc581b | Verified (UAT) | [261102-rdn-on-release-detail-page-remove-the-legend](./quick/261102-rdn-on-release-detail-page-remove-the-legend/) |
 | 261102-rzm | Release detail Progress burnup: non-overlapping TODAY/RELEASE + end labels via measured-size layoutBurnupLabels (37-scenario visual matrix) | 2026-11-02 | 88d24fda | Needs Review | [261102-rzm-release-detail-progress-graph-fix-overla](./quick/261102-rzm-release-detail-progress-graph-fix-overla/) |
+| 261102-st4 | Release Progress graph polish: "since <prev> · <date>" aside, end-point dots, softer TODAY/RELEASE, year-aware ticks, short-row room; end labels kept off marker lines | 2026-11-02 | 81a0b5f4 | Needs Review | [261102-st4-release-progress-graph-polish-since-labe](./quick/261102-st4-release-progress-graph-polish-since-labe/) |
 
 ## Session Continuity
 
