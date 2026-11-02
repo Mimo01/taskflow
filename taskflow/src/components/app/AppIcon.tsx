@@ -14,7 +14,13 @@ export default function AppIcon({ className }: { className?: string }) {
       </defs>
       <g clipPath="url(#app-sq)">
         {/* Tile: white in light mode, blends into the surface in dark mode */}
-        <rect x="100" y="100" width="824" height="824" className="fill-white dark:fill-sidebar" />
+        <rect
+          x="100"
+          y="100"
+          width="824"
+          height="824"
+          className="fill-white dark:fill-background"
+        />
         {/* Blue ribbon (behind) */}
         <path
           d="M 195,390 C 339,283 501,283 512,372 C 523,461 685,461 829,354 L 829,516 C 685,624 523,624 512,534 C 501,445 339,445 195,552 Z"
