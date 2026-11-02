@@ -310,7 +310,7 @@ export default function Sidebar() {
               <span className="text-lg font-extrabold tracking-tight text-foreground">
                 task<span className="text-[#f97316]">flow</span>
               </span>
-              <span className="text-[0.5625rem] font-medium tracking-[0.16em] text-muted-foreground/35 uppercase mt-0.5">
+              <span className="text-[0.5625rem] font-medium tracking-[0.16em] text-muted-foreground/35 dark:text-muted-foreground/70 uppercase mt-0.5">
                 manage &amp; track
               </span>
             </div>
