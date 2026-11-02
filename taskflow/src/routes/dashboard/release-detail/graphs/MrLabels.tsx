@@ -120,10 +120,10 @@ export function MrLabels({
             : {})}
           data-testid="mr-labels-unlabeled"
           className={cn(
-            'flex h-5 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded bg-orange-500/12 px-1.5 text-left text-xs text-orange-800 dark:bg-orange-400/15 dark:text-orange-200',
-            onToggleLabel && 'cursor-pointer hover:bg-orange-500/20',
+            'flex h-5 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-r border-l-[3px] border-orange-500 bg-orange-500/8 px-1.5 text-left text-xs text-orange-800 dark:border-orange-400 dark:bg-orange-400/10 dark:text-orange-200',
+            onToggleLabel && 'cursor-pointer hover:bg-orange-500/15',
             activeLabel === UNLABELED_FILTER &&
-              'bg-orange-500/20 ring-2 ring-orange-500/60 dark:ring-orange-400/60',
+              'bg-orange-500/20 ring-2 ring-orange-500/60 dark:bg-orange-400/20 dark:ring-orange-400/60',
           )}
         >
           <TriangleAlert

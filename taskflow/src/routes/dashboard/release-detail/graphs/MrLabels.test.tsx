@@ -66,7 +66,8 @@ describe('MrLabels (second legend column)', () => {
     render(<MrLabels labelSummary={labels} coverage={missing(5)} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
     expect(el).toHaveTextContent('5 MRs without label');
-    expect(el.className).toContain('bg-orange-500/12');
+    expect(el.className).toContain('border-l-[3px]');
+    expect(el.className).toContain('border-orange-500');
     expect(el.className).toContain('w-full');
     // first entry of the block, outside the label grid
     const list = screen.getByTestId('mr-labels');
