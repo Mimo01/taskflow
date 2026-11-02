@@ -38,6 +38,9 @@ import { useReleaseDetail } from './release-detail/useReleaseDetail';
 
 /** Container width from which the graphs form one band (like the AIO cycle stats block). */
 const BAND_MIN_WIDTH = 1180;
+/** Graph slot cell; DIVIDER draws the hairline between side-by-side slots (gap-x-6 | line | pl-6). */
+const SLOT_COL = 'flex min-w-0 flex-col';
+const DIVIDER = 'border-l pl-6';
 
 // ---- Main Component ----
 
@@ -489,9 +492,9 @@ export default function ReleaseDetailPage() {
                   className="grid grid-cols-[minmax(260px,1.5fr)_auto_minmax(210px,1.1fr)_minmax(230px,1fr)] items-stretch gap-x-6 px-6 pt-5"
                 >
                   {burnupEl}
-                  <div className="flex min-w-0 flex-col">{mrSlotEl}</div>
-                  <div className="flex min-w-0 flex-col">{typeEl}</div>
-                  <div className="flex min-w-0 flex-col">{assigneeEl}</div>
+                  <div className={`${SLOT_COL} ${DIVIDER}`}>{mrSlotEl}</div>
+                  <div className={`${SLOT_COL} ${DIVIDER}`}>{typeEl}</div>
+                  <div className={`${SLOT_COL} ${DIVIDER}`}>{assigneeEl}</div>
                 </div>
               ) : (
                 <div
@@ -499,9 +502,19 @@ export default function ReleaseDetailPage() {
                   className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-6 gap-y-5 px-6 pt-5 @max-[640px]/page:grid-cols-2 @max-[640px]/page:gap-5 @max-[440px]/page:grid-cols-1"
                 >
                   {burnupEl}
-                  {mrSlotEl}
+                  {/* Right column: MRs beside the burnup (which spans the row below 640),
+                      types beside assignees (which drops to its own row below 640). */}
+                  <div
+                    className={`${SLOT_COL} ${DIVIDER} @max-[640px]/page:border-l-0 @max-[640px]/page:pl-0`}
+                  >
+                    {mrSlotEl}
+                  </div>
                   {assigneeEl}
-                  {typeEl}
+                  <div
+                    className={`${SLOT_COL} ${DIVIDER} @max-[440px]/page:border-l-0 @max-[440px]/page:pl-0`}
+                  >
+                    {typeEl}
+                  </div>
                 </div>
               )}
             </>
