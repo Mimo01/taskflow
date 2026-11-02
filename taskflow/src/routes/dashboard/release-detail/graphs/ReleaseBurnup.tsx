@@ -228,8 +228,8 @@ export function ReleaseBurnup({
     const t0 = dateKeyMs(axis.start);
     const span = Math.max(1, dayEnd(axis.end) - t0);
     const xOf = (t: number) => plotX.left + ((t - t0) / span) * (plotX.right - plotX.left);
+    // Only RELEASE is labelled; the TODAY line carries no label.
     const markers: { kind: 'today' | 'release'; x: number }[] = [];
-    if (axis.showToday) markers.push({ kind: 'today', x: xOf(dayEnd(axis.seriesEnd)) });
     if (axis.showRelease && axis.releaseDate)
       markers.push({ kind: 'release', x: xOf(dayEnd(axis.releaseDate)) });
     return layoutBurnupLabels({
@@ -240,8 +240,6 @@ export function ReleaseBurnup({
     });
   })();
   const margin = burnupMargin(labels?.rows ?? 1);
-  // A same-day merged label is drawn once, on the TODAY line.
-  const todayLabel = labels?.markers.find((m) => m.kind === 'today' || m.kind === 'both');
   const releaseLabel = labels?.markers.find((m) => m.kind === 'release');
 
   return (
@@ -332,7 +330,6 @@ export function ReleaseBurnup({
                     x={dayEnd(axis.seriesEnd)}
                     stroke="var(--color-foreground)"
                     strokeOpacity={0.5}
-                    label={markerLabel(todayLabel)}
                     zIndex={MARKER_Z}
                   />
                 ) : null}
