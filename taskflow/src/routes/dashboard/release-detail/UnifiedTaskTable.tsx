@@ -56,6 +56,9 @@ export interface UnifiedTaskTableProps {
   onSeedBreadcrumb: () => void;
   onNavigateToIssueFromMR: (key: string) => void;
   fix: MrFixContext;
+  /** MR label name filtering the table (set by clicking a label pill in the MR graph). */
+  labelFilter?: string | null;
+  onClearLabelFilter?: () => void;
 }
 
 // Shared column grid constants (D-02) — every row that renders a given column
@@ -969,17 +972,27 @@ export function UnifiedTaskTable({
   onSeedBreadcrumb,
   onNavigateToIssueFromMR,
   fix,
+  labelFilter = null,
+  onClearLabelFilter,
 }: UnifiedTaskTableProps) {
   // UAT-91.1-B: local category filter driven by the two work-queue badges.
   // Applied at render time (not to props) — see T-91.1-18 threat disposition.
   const [activeFilter, setActiveFilter] = useState<'br' | 'ms' | null>(null);
 
-  const filterPredicate =
+  const driftPredicate =
     activeFilter === 'br'
       ? (r: DriftRow) => r.br === 'flag'
       : activeFilter === 'ms'
         ? (r: DriftRow) => r.ms === 'flag'
         : null;
+  const labelPredicate = labelFilter
+    ? (r: DriftRow) => r.mr.labels.some((l) => l.name === labelFilter)
+    : null;
+  // Label and drift filters compose (AND).
+  const filterPredicate =
+    driftPredicate || labelPredicate
+      ? (r: DriftRow) => (driftPredicate?.(r) ?? true) && (labelPredicate?.(r) ?? true)
+      : null;
 
   // WR-08: `allMrs` rides along unfiltered so the `+N` marker keeps describing
   // the TASK rather than the current view — filtering it too made MRs appear
@@ -994,7 +1007,10 @@ export function UnifiedTaskTable({
     ? secondaryRows.filter(filterPredicate)
     : secondaryRows;
 
-  const clearFilter = () => setActiveFilter(null);
+  const clearFilter = () => {
+    setActiveFilter(null);
+    onClearLabelFilter?.();
+  };
 
   return (
     <section className="@container">
@@ -1101,15 +1117,23 @@ export function UnifiedTaskTable({
 
       {/* Filter escape hatch (UAT-91.1-B) — needed because a successful fix
           dropping a count to zero hides its own badge. */}
-      {activeFilter && (
+      {(activeFilter || labelFilter) && (
         <div
           data-testid="filter-active-notice"
           className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 mb-4 text-xs"
         >
           <span>
-            {activeFilter === 'br'
-              ? 'Showing only merge requests with a wrong target branch'
-              : 'Showing only merge requests with no release milestone'}
+            {[
+              activeFilter === 'br'
+                ? 'a wrong target branch'
+                : activeFilter === 'ms'
+                  ? 'no release milestone'
+                  : null,
+              labelFilter ? `the label "${labelFilter}"` : null,
+            ]
+              .filter(Boolean)
+              .reduce<string>((acc, part) => (acc ? `${acc} and ${part}` : `${part}`), '')
+              .replace(/^/, 'Showing only merge requests with ')}
           </span>
           <button
             type="button"
@@ -1129,7 +1153,9 @@ export function UnifiedTaskTable({
         </div>
       ) : filteredPrimaryRows.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">
-          {activeFilter ? 'No merge requests match this filter' : 'No issues in this fix version'}
+          {activeFilter || labelFilter
+            ? 'No merge requests match this filter'
+            : 'No issues in this fix version'}
         </p>
       ) : (
         <>

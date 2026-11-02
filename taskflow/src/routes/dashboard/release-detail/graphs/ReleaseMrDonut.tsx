@@ -16,6 +16,8 @@ export function ReleaseMrDonut({
   state,
   labelCoverage = null,
   labelSummary = [],
+  activeLabel = null,
+  onToggleLabel,
   compact = false,
   className,
 }: {
@@ -25,6 +27,10 @@ export function ReleaseMrDonut({
   labelCoverage?: LabelCoverage | null;
   /** MR label chips for the footer line. */
   labelSummary?: MrLabelCount[];
+  /** Label currently filtering the task table. */
+  activeLabel?: string | null;
+  /** Click a label pill to filter the task table by it. */
+  onToggleLabel?: (name: string) => void;
   compact?: boolean;
   className?: string;
 }) {
@@ -88,7 +94,12 @@ export function ReleaseMrDonut({
               </div>
             ))}
           </div>
-          <MrLabels labelSummary={labelSummary} coverage={labelCoverage} />
+          <MrLabels
+            labelSummary={labelSummary}
+            coverage={labelCoverage}
+            activeLabel={activeLabel}
+            onToggleLabel={onToggleLabel}
+          />
         </div>
       </div>
     </GraphSlot>

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
 import { type MrLabelCount, MrLabels } from './MrLabels';
 import { ReleaseMrDonut } from './ReleaseMrDonut';
@@ -107,5 +107,30 @@ describe('ReleaseMrDonut labels column', () => {
     const cell = screen.getByTestId('release-graph-mrs');
     expect(cell.contains(screen.getByTestId('mr-labels'))).toBe(true);
     expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
+  });
+});
+
+describe('MrLabels label filter toggle', () => {
+  it('renders pills as pressed-state buttons that report the clicked label', async () => {
+    const onToggle = vi.fn();
+    render(
+      <MrLabels
+        labelSummary={labels}
+        coverage={null}
+        activeLabel="frontend"
+        onToggleLabel={onToggle}
+      />,
+    );
+    const pills = screen.getAllByRole('button');
+    expect(pills).toHaveLength(3);
+    expect(pills[1]).toHaveAttribute('aria-pressed', 'true');
+    expect(pills[0]).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(pills[0]);
+    expect(onToggle).toHaveBeenCalledWith('backend');
+  });
+
+  it('stays non-interactive without a toggle handler', () => {
+    render(<MrLabels labelSummary={labels} coverage={null} />);
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 });

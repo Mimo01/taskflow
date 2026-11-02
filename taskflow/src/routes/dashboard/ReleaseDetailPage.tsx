@@ -162,6 +162,16 @@ export default function ReleaseDetailPage() {
   });
 
   // Create-branch confirm dialog state (D-15/D-16 — dialog closes only on success)
+  // MR label filter, set from the label pills in the MR graph. Keyed by release
+  // so navigating to another release never inherits a stale filter.
+  const [labelFilterState, setLabelFilterState] = useState<{
+    versionId?: string;
+    name: string;
+  } | null>(null);
+  const labelFilter =
+    labelFilterState && labelFilterState.versionId === versionId ? labelFilterState.name : null;
+  const toggleLabelFilter = (name: string) =>
+    setLabelFilterState(labelFilter === name ? null : { versionId, name });
   const [createBranchOpen, setCreateBranchOpen] = useState(false);
 
   // Create-milestone confirm dialog state (D-15/D-16 — dialog closes only on success)
@@ -325,6 +335,8 @@ export default function ReleaseDetailPage() {
       state={donutState}
       labelCoverage={labelCoverage}
       labelSummary={labelSummary}
+      activeLabel={labelFilter}
+      onToggleLabel={toggleLabelFilter}
       compact
     />
   ) : (
@@ -538,6 +550,8 @@ export default function ReleaseDetailPage() {
                 flaggedMrCount={flaggedMrCount}
                 brFlaggedCount={brFlaggedCount}
                 msFlaggedCount={msFlaggedCount}
+                labelFilter={labelFilter}
+                onClearLabelFilter={() => setLabelFilterState(null)}
                 onOpenIssue={resolvedOnOpenIssue}
                 onOpenIssueFull={openIssueFull}
                 onSeedBreadcrumb={seedReleaseBreadcrumb}

@@ -1968,3 +1968,45 @@ describe('responsive container tiers', () => {
     expect(br).toHaveAttribute('title', br.getAttribute('aria-label') as string);
   });
 });
+
+describe('MR label filter', () => {
+  const lbl = (name: string) => ({ name, color: '#428BCA', text_color: '#fff' });
+
+  it('keeps only tasks with an MR carrying the label, shows the notice, and clears via the escape hatch', () => {
+    const onClear = vi.fn();
+    renderSection({
+      primaryRows: [
+        {
+          issue: makeIssue({ key: 'PROJ-1' }),
+          mrs: [makeRow({ mr: makeMR({ id: 1, iid: 1, labels: [lbl('hotfix')] }) })],
+        },
+        {
+          issue: makeIssue({ key: 'PROJ-2' }),
+          mrs: [makeRow({ mr: makeMR({ id: 2, iid: 2, labels: [lbl('backend')] }) })],
+        },
+        { issue: makeIssue({ key: 'PROJ-3' }), mrs: [] },
+      ],
+      isLoadingDrift: false,
+      labelFilter: 'hotfix',
+      onClearLabelFilter: onClear,
+    });
+    expect(screen.getAllByTestId('task-group')).toHaveLength(1);
+    expect(screen.getByTestId('filter-active-notice')).toHaveTextContent('"hotfix"');
+    fireEvent.click(screen.getByTestId('filter-clear'));
+    expect(onClear).toHaveBeenCalled();
+  });
+
+  it('shows the empty message when no MR carries the label', () => {
+    renderSection({
+      primaryRows: [
+        {
+          issue: makeIssue({ key: 'PROJ-1' }),
+          mrs: [makeRow({ mr: makeMR({ labels: [lbl('backend')] }) })],
+        },
+      ],
+      isLoadingDrift: false,
+      labelFilter: 'nope',
+    });
+    expect(screen.getByText('No merge requests match this filter')).toBeInTheDocument();
+  });
+});

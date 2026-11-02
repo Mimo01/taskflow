@@ -20,13 +20,34 @@ const MAX_UNLABELED_ROWS = 3;
  * its own segment behind a hairline in the label colour, the way GitLab splits
  * scoped labels. The two text shades are CSS variables so the theme switch is pure CSS.
  */
-function LabelPill({ l }: { l: MrLabelCount }) {
+function LabelPill({
+  l,
+  active,
+  onToggle,
+}: {
+  l: MrLabelCount;
+  active?: boolean;
+  onToggle?: (name: string) => void;
+}) {
   const c = labelPillColors(l.label.color);
+  const interactive = !!onToggle;
+  const Tag = interactive ? 'button' : 'span';
   return (
-    <span
+    <Tag
       data-testid="mr-label-pill"
-      title={`${l.label.name}: ${l.count}`}
-      className="inline-flex h-5 max-w-full min-w-0 items-stretch self-start overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]"
+      title={interactive ? `Filter tasks by ${l.label.name}` : `${l.label.name}: ${l.count}`}
+      {...(interactive
+        ? {
+            type: 'button' as const,
+            'aria-pressed': !!active,
+            onClick: () => onToggle(l.label.name),
+          }
+        : {})}
+      className={cn(
+        'inline-flex h-5 max-w-full min-w-0 items-stretch self-start overflow-hidden rounded text-xs font-medium text-[color:var(--lp-l)] dark:text-[color:var(--lp-d)]',
+        interactive && 'cursor-pointer ring-offset-0 hover:brightness-95',
+        active && 'ring-2 ring-[color:var(--lp-l)] dark:ring-[color:var(--lp-d)]',
+      )}
       style={
         {
           '--lp-l': c.light,
@@ -43,7 +64,7 @@ function LabelPill({ l }: { l: MrLabelCount }) {
       >
         {l.count}
       </span>
-    </span>
+    </Tag>
   );
 }
 
@@ -57,10 +78,16 @@ export function MrLabels({
   labelSummary,
   coverage,
   className,
+  activeLabel = null,
+  onToggleLabel,
 }: {
   labelSummary: MrLabelCount[];
   coverage: LabelCoverage | null;
   className?: string;
+  /** Label currently filtering the task table; its pill renders pressed. */
+  activeLabel?: string | null;
+  /** When set, pills are toggle buttons that filter the task table by label. */
+  onToggleLabel?: (name: string) => void;
 }) {
   const missing = coverage && !coverage.allLabeled ? coverage.unlabeled.length : 0;
   if (labelSummary.length === 0 && missing === 0) return null;
@@ -71,7 +98,12 @@ export function MrLabels({
       className={cn('flex min-w-0 max-w-[9.5rem] flex-col gap-1 border-l pl-3 text-xs', className)}
     >
       {labelSummary.map((l) => (
-        <LabelPill key={l.label.name} l={l} />
+        <LabelPill
+          key={l.label.name}
+          l={l}
+          active={activeLabel === l.label.name}
+          onToggle={onToggleLabel}
+        />
       ))}
       {missing > 0 && coverage ? (
         <Tooltip>
