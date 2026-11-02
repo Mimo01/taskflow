@@ -18,8 +18,7 @@ import {
   X_AXIS_HEIGHT,
 } from './burnupLabelLayout';
 import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
-import { ReleaseProgressHeader, type TimelineSummary } from './ReleaseProgressHeader';
-import { ReleaseTimeline } from './ReleaseTimeline';
+import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
 
 const TICK = { fontSize: 11, fill: 'var(--color-muted-foreground)' };
 const CURSOR = { stroke: 'var(--color-muted-foreground)', strokeDasharray: '3 3' };
@@ -32,16 +31,13 @@ const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
 const DAY_MS = 86_400_000;
 const FALLBACK_WIDTH = 640;
 /**
- * Compact (band) body height, countdown header + plot (or track) together. Fixed
+ * Compact (band) body height, plot (or track). Fixed
  * at every width so the Progress slot never sets a taller row than its siblings
  * and never stretches with them.
  */
 export const COMPACT_BODY_H = 160;
 /** Denser date axis than the epic charts (72px): a short "Oct 15" label needs ~40px. */
 export const BURNUP_TICK_PX = 52;
-const HEADER_H = 28;
-/** Gap between the countdown header and the plot (mt-2). */
-const PLOT_GAP = 8;
 
 const yearOf = (key: string) => Number(key.slice(0, 4));
 const withYearLabel = (key: string) => {
@@ -158,7 +154,7 @@ export function ReleaseBurnup({
   points: BurnupPoint[];
   state: 'loading' | 'error' | 'empty' | 'ready';
   showStoryPoints: boolean;
-  /** Drives the countdown timeline shown instead of the chart on a thin history. */
+  /** Drives the start -> today -> release track shown instead of the chart on a thin history. */
   summary: TimelineSummary;
   /**
    * Band mode: a fixed COMPACT_BODY_H body (header + plot) at every width, so the
@@ -188,12 +184,7 @@ export function ReleaseBurnup({
     return () => ro.disconnect();
   }, [plotEl]);
   const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
-  const height =
-    measuredH > 0
-      ? Math.round(measuredH)
-      : compact
-        ? COMPACT_BODY_H - HEADER_H - PLOT_GAP
-        : BURNUP_HEIGHT;
+  const height = measuredH > 0 ? Math.round(measuredH) : compact ? COMPACT_BODY_H : BURNUP_HEIGHT;
   // One line, never wraps. With a previous release only its name shows (version
   // names usually carry the date already); the start date stays in the hover title.
   const sinceDate = axis ? withYearLabel(axis.start) : '';
@@ -269,13 +260,12 @@ export function ReleaseBurnup({
         className={compact ? 'flex flex-none flex-col' : 'flex min-h-0 flex-1 flex-col'}
         style={compact ? { height: COMPACT_BODY_H } : undefined}
       >
-        <ReleaseProgressHeader summary={summary} compact={compact} />
         {!enough || !axis ? (
-          <ReleaseTimeline axis={axis} summary={summary} className="mt-2" />
+          <ReleaseTimeline axis={axis} summary={summary} className="my-auto" />
         ) : (
           <div
             ref={setPlotEl}
-            className={compact ? 'relative mt-2 min-h-0 flex-1' : `${PLOT_CLASS} mt-2`}
+            className={compact ? 'relative min-h-0 flex-1' : PLOT_CLASS}
             role="img"
             aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
           >

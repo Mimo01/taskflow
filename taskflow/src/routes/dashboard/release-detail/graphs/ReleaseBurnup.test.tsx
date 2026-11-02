@@ -85,14 +85,11 @@ describe('ReleaseBurnup', () => {
         summary={summary}
       />,
     );
-    const header = screen.getAllByTestId('release-progress-header');
-    expect(header).toHaveLength(1);
-    expect(header[0]).toHaveTextContent('10 days left');
-    expect(header[0]).toHaveTextContent('until');
     expect(screen.getByTestId('release-graph-burnup-thin')).toBeInTheDocument();
+    expect(screen.queryByText(/days left/)).toBeNull();
   });
 
-  it('shows the countdown header above the chart too, with no done figure', () => {
+  it('shows no countdown above the chart (the page header carries it)', () => {
     render(
       <ReleaseBurnup
         axis={axis}
@@ -102,7 +99,7 @@ describe('ReleaseBurnup', () => {
         summary={summary}
       />,
     );
-    expect(screen.getByTestId('release-progress-header')).toHaveTextContent('10 days left');
+    expect(screen.queryByText(/days left/)).toBeNull();
     expect(screen.getByRole('img', { name: /Release burnup/ })).toBeInTheDocument();
     expect(screen.queryByText(/issues done/)).toBeNull();
   });

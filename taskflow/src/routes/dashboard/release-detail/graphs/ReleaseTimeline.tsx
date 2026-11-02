@@ -1,8 +1,12 @@
 import { dateKeyMs, formatDateKey } from '@/lib/epic-progress';
 import type { BurnupAxis } from '../releaseBurnup';
-import type { TimelineSummary } from './ReleaseProgressHeader';
-
-export type { TimelineSummary };
+export interface TimelineSummary {
+  done: number;
+  total: number;
+  today: string;
+  releaseDate: string | null;
+  released: boolean;
+}
 
 function frac(day: string, start: string, end: string): number {
   const span = dateKeyMs(end) - dateKeyMs(start);
@@ -19,7 +23,8 @@ function anchor(f: number): { left: string; transform: string } {
 
 /**
  * Stands in for the burnup while the release has fewer than two days of
- * history: a start -> today -> release track (the countdown header is shared).
+ * history: a start -> today -> release track. (The countdown lives in the page
+ * header's status pill, not here.)
  */
 export function ReleaseTimeline({
   axis,
