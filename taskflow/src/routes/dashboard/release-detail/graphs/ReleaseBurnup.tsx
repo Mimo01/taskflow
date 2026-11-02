@@ -33,6 +33,8 @@ const DAY_MS = 86_400_000;
 const FALLBACK_WIDTH = 640;
 /** Compact (band) plot minimum height; the countdown header sits above it. */
 const COMPACT_PLOT_MIN = 150;
+/** Denser date axis than the epic charts (72px): a short "Oct 15" label needs ~40px. */
+export const BURNUP_TICK_PX = 52;
 const HEADER_H = 28;
 
 const yearOf = (key: string) => Number(key.slice(0, 4));
@@ -209,7 +211,11 @@ export function ReleaseBurnup({
   const dayEnd = (key: string) => dateKeyMs(key) + DAY_MS;
   const plot = burnupPlotBox(width, height);
   const ticks = axis
-    ? yearAwareTicks(timeTicks(axis.start, axis.end, plot.right - plot.left), axis.start, axis.end)
+    ? yearAwareTicks(
+        timeTicks(axis.start, axis.end, plot.right - plot.left, BURNUP_TICK_PX),
+        axis.start,
+        axis.end,
+      )
     : [];
   const maxScope = points.reduce((m, p) => Math.max(m, p.scope), 0);
   const y = burnupYScale(maxScope);

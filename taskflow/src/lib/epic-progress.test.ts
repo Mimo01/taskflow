@@ -2080,6 +2080,13 @@ describe('zoom range matrix (261002-0xf)', () => {
   });
 
   describe('timeTicks', () => {
+    it('a smaller tickPx gives a denser axis on the same range', () => {
+      // 6 weeks over 360px: 72px/tick allows 5 (biweekly Mondays), 52px allows 6 (weekly).
+      const sparse = timeTicks('2026-09-01', '2026-10-15', 360);
+      const dense = timeTicks('2026-09-01', '2026-10-15', 360, 52);
+      expect(dense.length).toBeGreaterThan(sparse.length);
+      for (const x of dense) expect(new Date(x.t).getUTCDay()).toBe(1);
+    });
     it('single-day range gives one tick at from', () => {
       expect(timeTicks('2026-09-14', '2026-09-14', 600)).toEqual([
         { t: dateKeyMs('2026-09-14'), label: 'Sep 14' },

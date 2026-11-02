@@ -1885,8 +1885,14 @@ const TICK_LADDER: TickUnit[] = [
  * calendar, so they stay put while panning. Labels carry the year on the first tick when the
  * range crosses a year, and on any tick whose year differs from the previous one.
  */
-export function timeTicks(from: string, to: string, widthPx: number): AxisTick[] {
-  const target = Math.max(3, Math.floor(widthPx / TICK_PX));
+export function timeTicks(
+  from: string,
+  to: string,
+  widthPx: number,
+  /** Minimum pixels per tick; lower = denser axis (release burnup uses a denser one). */
+  tickPx = TICK_PX,
+): AxisTick[] {
+  const target = Math.max(3, Math.floor(widthPx / tickPx));
   const span = Math.max(0, diffDays(from, to));
   const days: { ms: number; y: number; m: number; d: number }[] = [];
   for (let i = 0; i <= span; i++) {

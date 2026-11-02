@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { timeTicks } from '@/lib/epic-progress';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import { burnupPlotBox } from './burnupLabelLayout';
-import { ReleaseBurnup } from './ReleaseBurnup';
+import { BURNUP_TICK_PX, ReleaseBurnup } from './ReleaseBurnup';
 
 vi.mock('@/lib/epic-progress', async (orig) => {
   const real = await orig<typeof import('@/lib/epic-progress')>();
@@ -81,5 +81,6 @@ describe('ReleaseBurnup plot width (WR-01)', () => {
     // The tick density is chosen for the inner plot (chart minus y-axis and right margin).
     const { left, right } = burnupPlotBox(PLOT_WIDTH, 196);
     expect(calls[calls.length - 1]?.[2]).toBe(right - left);
+    expect(calls[calls.length - 1]?.[3]).toBe(BURNUP_TICK_PX);
   });
 });
