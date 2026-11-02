@@ -60,11 +60,15 @@ export function ReleaseMrDonut({
         </div>
       }
     >
-      <div className="my-auto flex flex-col gap-3">
-        {/* Donut + state legend read as one unit: legend sits tight against the ring and
-            is centred on it. Label pills get their own row below instead of competing for
-            the same column. */}
-        <div className={cn('flex items-center justify-center', compact ? 'gap-x-3' : 'gap-x-5')}>
+      <div
+        className={cn(
+          'my-auto flex flex-wrap items-center justify-center gap-y-3',
+          compact ? 'gap-x-3' : 'gap-x-6',
+        )}
+      >
+        {/* Donut with its legend tucked underneath as a 2x2 grid: the ring stays the focal
+            point and the legend reads as its caption. Label pills stay in their own column. */}
+        <div className="flex flex-col items-center gap-2.5">
           <AioDonut
             slices={slices}
             size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
@@ -77,9 +81,9 @@ export function ReleaseMrDonut({
               </>
             }
           />
-          <div className="grid gap-1" data-testid="release-mr-legend">
+          <div data-testid="release-mr-legend" className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
             {slices.map((s) => (
-              <div key={s.key} className="flex h-5 items-center gap-1.5 text-xs">
+              <div key={s.key} className="flex items-center gap-1.5">
                 <span
                   className="size-2 rounded-sm"
                   style={{ backgroundColor: s.color }}
@@ -92,7 +96,6 @@ export function ReleaseMrDonut({
           </div>
         </div>
         <MrLabels
-          className="max-w-none flex-row flex-wrap justify-center gap-1.5 border-l-0 pl-0"
           labelSummary={labelSummary}
           coverage={labelCoverage}
           activeLabel={activeLabel}
