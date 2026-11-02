@@ -98,7 +98,7 @@ describe('ReleaseBurnup', () => {
       screen.getByRole('img', { name: 'Release burnup: 5 scope, 2 done' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Progress')).toBeInTheDocument();
-    expect(screen.getByTitle('since v1.2 · Oct 1')).toHaveTextContent('since v1.2 · Oct 1');
+    expect(screen.getByTitle('since v1.2 · Oct 1')).toHaveTextContent(/^since\s+v1\.2$/);
     expect(container.querySelector('.recharts-legend-wrapper')).toBeNull();
   });
 
@@ -115,7 +115,7 @@ describe('ReleaseBurnup', () => {
     expect(screen.getByText('since Oct 1')).toBeInTheDocument();
   });
 
-  it('aside shows the previous name and a year when the start is not this year', () => {
+  it('aside shows only the previous name; the date (with year) is in the title', () => {
     render(
       <ReleaseBurnup
         axis={{ ...axis, start: '2025-11-20' }}
@@ -126,7 +126,7 @@ describe('ReleaseBurnup', () => {
       />,
     );
     const aside = screen.getByTitle('since v1.2 · Nov 20, 2025');
-    expect(aside).toHaveTextContent('since v1.2 · Nov 20, 2025');
+    expect(aside).toHaveTextContent(/^since\s+v1\.2$/);
     expect(screen.getByText('v1.2')).toHaveClass('truncate');
   });
 

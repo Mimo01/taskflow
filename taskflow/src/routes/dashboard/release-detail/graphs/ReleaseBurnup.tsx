@@ -204,7 +204,8 @@ export function ReleaseBurnup({
   }, [plotEl]);
   const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
   const height = measuredH > 0 ? Math.round(measuredH) : compact ? 110 : BURNUP_HEIGHT;
-  // One line, never wraps: the previous release name truncates first, the date stays.
+  // One line, never wraps. With a previous release only its name shows (version
+  // names usually carry the date already); the start date stays in the hover title.
   const sinceDate = axis ? withYearLabel(axis.start) : '';
   const aside = axis ? (
     <span
@@ -215,7 +216,6 @@ export function ReleaseBurnup({
         <>
           <span className="shrink-0">since&nbsp;</span>
           <span className="min-w-0 truncate text-foreground/80">{axis.previousName}</span>
-          <span className="shrink-0">&nbsp;· {sinceDate}</span>
         </>
       ) : (
         `since ${sinceDate}`
