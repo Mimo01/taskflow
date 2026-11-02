@@ -199,6 +199,8 @@ describe('UnifiedTaskTable', () => {
     const strip = screen.getByTestId('task-column-header');
     expect(strip.className).toContain('sticky');
     expect(strip.className).toContain('top-(--release-sticky-top,0px)');
+    // Row cells use relative z-10 (click overlay convention); header must outrank them.
+    expect(strip.className).toContain('z-20');
   });
 
   it('renders primaryRows in the given order (D-04/D-13 row order is now the component contract)', () => {
