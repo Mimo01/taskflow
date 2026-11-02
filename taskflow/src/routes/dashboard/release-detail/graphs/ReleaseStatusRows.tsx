@@ -11,7 +11,7 @@ const MAX_ROWS = 6;
 // Same row rhythm and column split as By assignee, so the two read as one family.
 const ROW_HEIGHT = ASSIGNEE_ROW_HEIGHT;
 // Compact rows sit tighter than By assignee (no avatar to fit), 261102-vpm.
-const COMPACT_ROW_HEIGHT = 20;
+const COMPACT_ROW_HEIGHT = 22;
 const ROW_GRID = 'grid grid-cols-[minmax(92px,1fr)_minmax(60px,1.2fr)_40px] items-center gap-2';
 
 /**
@@ -27,7 +27,7 @@ export function ReleaseStatusRows({
 }: {
   rows: ReleaseStatusRow[];
   state: 'loading' | 'error' | 'empty' | 'ready';
-  /** Band mode: 20px rows and at most 5 of them. */
+  /** Band mode: 22px rows and at most 5 of them. */
   compact?: boolean;
   className?: string;
 }) {
