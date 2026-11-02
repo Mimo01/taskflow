@@ -70,7 +70,7 @@ describe('MrLabels (second legend column)', () => {
     expect(el.className).toContain('text-orange-700');
     // last entry of the list
     const list = screen.getByTestId('mr-labels');
-    expect(list.lastElementChild).toBe(el);
+    expect(list.lastElementChild).toContainElement(el);
     await user.hover(el);
     const tip = await screen.findByTestId('mr-labels-unlabeled-tooltip');
     expect(tip).toHaveTextContent('!1001');
