@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { GitLabMR } from '@/services/gitlab';
-import { labelRowPlan, type MrLabelCount, MrLabels } from './MrLabels';
+import { type MrLabelCount, MrLabels } from './MrLabels';
 import { ReleaseMrDonut } from './ReleaseMrDonut';
 
 const mr = (i: number) =>
@@ -84,36 +84,12 @@ describe('MrLabels (second legend column)', () => {
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(3);
   });
 
-  it('caps at 5 rows: labels beyond that collapse into "+N more" with a tooltip', async () => {
-    const user = userEvent.setup();
+  it('shows every label as a pill, never collapsing into "+N more"', () => {
     const many = Array.from({ length: 8 }, (_, i) => lab(`label-${i}`, i + 1));
     render(<MrLabels labelSummary={many} coverage={missing(2)} />);
-    // 5 rows = 3 pills + "+5 more" + the plain unlabelled line
-    expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(3);
-    const more = screen.getByTestId('mr-labels-more');
-    expect(more).toHaveTextContent('+5 more');
+    expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(8);
+    expect(screen.queryByTestId('mr-labels-more')).toBeNull();
     expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
-    await user.hover(more);
-    expect((await screen.findAllByText('label-3')).length).toBeGreaterThan(0);
-  });
-});
-
-describe('labelRowPlan', () => {
-  const many = Array.from({ length: 8 }, (_, i) => lab(`l${i}`, 1));
-  it('shows all labels when they fit and reserves a row for the warning', () => {
-    expect(labelRowPlan(many.slice(0, 4), 0).rest).toHaveLength(0);
-    expect(labelRowPlan(many.slice(0, 5), 0).rest.length).toBeGreaterThan(0);
-    expect(labelRowPlan(many.slice(0, 4), 3).rest).toHaveLength(0);
-    expect(labelRowPlan(many.slice(0, 5), 3).rest.length).toBeGreaterThan(0);
-  });
-  it('never exceeds 4 pills and 5 rows including the overflow and warning rows', () => {
-    for (const miss of [0, 4]) {
-      const { shown, rest } = labelRowPlan(many, miss);
-      const rows = shown.length + (rest.length > 0 ? 1 : 0) + (miss > 0 ? 1 : 0);
-      expect(rows).toBeLessThanOrEqual(5);
-      expect(shown.length).toBeLessThanOrEqual(4);
-      expect(shown.length + rest.length).toBe(many.length);
-    }
   });
 });
 
