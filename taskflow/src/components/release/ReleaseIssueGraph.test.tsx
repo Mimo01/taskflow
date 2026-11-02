@@ -76,14 +76,14 @@ describe('ReleaseIssueGraph', () => {
     expect(screen.getByTestId('release-graph').className).not.toContain('max-w-xl');
   });
 
-  it('has no tooltip', async () => {
+  it('tooltip lists the three bar counts and nothing else', async () => {
     const user = userEvent.setup();
     render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} />);
     await user.hover(screen.getByRole('img', { name: '3 of 6 issues done' }));
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByText('6 issues')).toBeNull();
+    expect(await screen.findByText('In Progress')).toBeInTheDocument();
+    expect(screen.getByText('To Do')).toBeInTheDocument();
     expect(screen.queryByText('Statuses')).toBeNull();
-    expect(screen.getByText('3 / 6 done')).toBeInTheDocument();
+    expect(screen.queryByText('50%')).toBeNull();
   });
 
   it('keeps the same outer width class across states', () => {

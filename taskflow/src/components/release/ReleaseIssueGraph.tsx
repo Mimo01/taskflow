@@ -1,8 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   breakdownTotal,
   RELEASE_SEGMENT_CLASS,
   RELEASE_SEGMENT_ORDER,
+  releaseTooltipRows,
   type StatusBreakdown,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
@@ -29,7 +32,7 @@ export function BreakdownErrorDash() {
 
 /**
  * Release detail header bar: slim segmented Done / In Progress / To Do bar with a
- * "done / total done" figure and no tooltip. (List rows use ReleaseIssuesSlot instead.)
+ * "done / total done" figure; the tooltip lists the bar's three counts. (List rows use ReleaseIssuesSlot instead.)
  */
 export function ReleaseIssueGraph({
   breakdown,
@@ -74,22 +77,33 @@ export function ReleaseIssueGraph({
 
   return (
     <div data-testid="release-graph" className={wrapper}>
-      <div
-        role="img"
-        aria-label={`${breakdown.done} of ${total} issues done`}
-        className="flex-1 py-1"
-      >
-        <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-          {RELEASE_SEGMENT_ORDER.filter((k) => breakdown[k] > 0).map((k) => (
-            <div
-              key={k}
-              data-testid={`release-segment-${k}`}
-              className={cn('h-full', RELEASE_SEGMENT_CLASS[k])}
-              style={{ width: `${(breakdown[k] / total) * 100}%` }}
-            />
-          ))}
-        </div>
-      </div>
+      <Tooltip>
+        <TooltipTrigger
+          delay={0}
+          render={<div />}
+          role="img"
+          aria-label={`${breakdown.done} of ${total} issues done`}
+          className="relative z-10 flex-1 py-1"
+        >
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+            {RELEASE_SEGMENT_ORDER.filter((k) => breakdown[k] > 0).map((k) => (
+              <div
+                key={k}
+                data-testid={`release-segment-${k}`}
+                className={cn('h-full', RELEASE_SEGMENT_CLASS[k])}
+                style={{ width: `${(breakdown[k] / total) * 100}%` }}
+              />
+            ))}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <TooltipBody>
+            {releaseTooltipRows(breakdown).map((r) => (
+              <TooltipRow key={r.label} color={r.color} label={r.label} value={r.value} />
+            ))}
+          </TooltipBody>
+        </TooltipContent>
+      </Tooltip>
       <span
         data-testid="release-done-figure"
         className="shrink-0 text-xs tabular-nums text-muted-foreground"
