@@ -5,9 +5,9 @@ import type { ReleaseStatusRow } from '../releaseBuckets';
 import { ReleaseStatusRows } from './ReleaseStatusRows';
 
 const rows: ReleaseStatusRow[] = [
-  { name: 'Done', cat: 'done', count: 4 },
-  { name: 'In Review', cat: 'indeterminate', count: 2 },
-  { name: 'To Do', cat: 'new', count: 1 },
+  { name: 'Done', cat: 'done', count: 4, filterValues: ['Done'] },
+  { name: 'In Review', cat: 'indeterminate', count: 2, filterValues: ['In Review'] },
+  { name: 'To Do', cat: 'new', count: 1, filterValues: ['To Do'] },
 ];
 
 describe('ReleaseStatusRows', () => {
@@ -23,6 +23,7 @@ describe('ReleaseStatusRows', () => {
       name: `S${i}`,
       cat: 'new' as const,
       count: 1,
+      filterValues: [`S${i}`],
     }));
     render(<ReleaseStatusRows rows={many} state="ready" />);
     expect(screen.getByText('+2 more statuses')).toBeInTheDocument();
@@ -33,6 +34,7 @@ describe('ReleaseStatusRows', () => {
       name: `S${i}`,
       cat: 'new' as const,
       count: 1,
+      filterValues: [`S${i}`],
     }));
     render(<ReleaseStatusRows rows={many} state="ready" compact />);
     expect(screen.getByText('+3 more statuses')).toBeInTheDocument();
@@ -42,13 +44,13 @@ describe('ReleaseStatusRows', () => {
   // fill every slot and push the actionable ones into an inert "+N more".
   it('compact: many done statuses collapse into one Done row so open work stays visible', () => {
     const doneHeavy: ReleaseStatusRow[] = [
-      { name: 'Closed', cat: 'done', count: 5 },
-      { name: 'Deployed', cat: 'done', count: 4 },
-      { name: 'Done', cat: 'done', count: 3 },
-      { name: 'Released', cat: 'done', count: 2 },
-      { name: 'Resolved', cat: 'done', count: 1 },
-      { name: 'In Progress', cat: 'indeterminate', count: 2 },
-      { name: 'To Do', cat: 'new', count: 1 },
+      { name: 'Closed', cat: 'done', count: 5, filterValues: ['Closed'] },
+      { name: 'Deployed', cat: 'done', count: 4, filterValues: ['Deployed'] },
+      { name: 'Done', cat: 'done', count: 3, filterValues: ['Done'] },
+      { name: 'Released', cat: 'done', count: 2, filterValues: ['Released'] },
+      { name: 'Resolved', cat: 'done', count: 1, filterValues: ['Resolved'] },
+      { name: 'In Progress', cat: 'indeterminate', count: 2, filterValues: ['In Progress'] },
+      { name: 'To Do', cat: 'new', count: 1, filterValues: ['To Do'] },
     ];
     render(<ReleaseStatusRows rows={doneHeavy} state="ready" compact />);
     expect(screen.getByTestId('status-row-In Progress')).toHaveTextContent('2');
@@ -64,6 +66,7 @@ describe('ReleaseStatusRows', () => {
       name: `S${i}`,
       cat: 'new' as const,
       count: 1,
+      filterValues: [`S${i}`],
     }));
     render(<ReleaseStatusRows rows={many} state="ready" compact />);
     const more = screen.getByTestId('status-more');
@@ -77,6 +80,7 @@ describe('ReleaseStatusRows', () => {
       name: `S${i}`,
       cat: 'indeterminate' as const,
       count,
+      filterValues: [`S${i}`],
     }));
     render(<ReleaseStatusRows rows={five} state="ready" />);
     const fills = ['S0', 'S1'].map(

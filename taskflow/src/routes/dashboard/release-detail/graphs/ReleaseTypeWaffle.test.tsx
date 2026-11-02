@@ -8,6 +8,7 @@ import { ReleaseTypeWaffle } from './ReleaseTypeWaffle';
 const rows: ReleaseTypeRow[] = [
   {
     typeName: 'Bug',
+    filterValue: 'Bug',
     breakdown: { done: 2, indeterminate: 1, new: 3 },
     total: 6,
     done: 2,
@@ -69,6 +70,7 @@ describe('ReleaseTypeWaffle', () => {
 
   const big = (total: number, done: number, name: string): ReleaseTypeRow => ({
     typeName: name,
+    filterValue: name,
     breakdown: { done, indeterminate: 0, new: total - done },
     total,
     done,

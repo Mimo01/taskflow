@@ -34,6 +34,7 @@ import {
   type TaskSortKey,
 } from './taskTableFilters';
 import { type MrFixAction, useMrFixMutation } from './useMrFixMutation';
+import { type TaskIssueFilterState, useTaskIssueFilters } from './useTaskIssueFilters';
 
 /**
  * Every write input the BR/MS action cells need, resolved upstream by
@@ -52,6 +53,8 @@ export interface MrFixContext {
 }
 
 export interface UnifiedTaskTableProps {
+  /** Lifted status/type/assignee filters so the release graphs can toggle them (261102-vuw). */
+  issueFilterState?: TaskIssueFilterState;
   versionName: string;
   hasReleaseDate: boolean;
   isLoadingIssues: boolean;
@@ -1175,6 +1178,7 @@ export function UnifiedTaskTable({
   fix,
   labelFilter = null,
   onClearLabelFilter,
+  issueFilterState,
 }: UnifiedTaskTableProps) {
   // UAT-91.1-B: local category filter driven by the two work-queue badges.
   // Applied at render time (not to props) — see T-91.1-18 threat disposition.
@@ -1183,9 +1187,11 @@ export function UnifiedTaskTable({
   // 261102-h1i: issue-level search/filters + column sort (same controls as the
   // AIO Defects tab). Local state — the page keys this component by versionId.
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
-  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
-  const [assigneeFilter, setAssigneeFilter] = useState<Set<string>>(new Set());
+  const ownIssueFilters = useTaskIssueFilters();
+  const f = issueFilterState ?? ownIssueFilters;
+  const { statuses: statusFilter, setStatuses: setStatusFilter } = f;
+  const { types: typeFilter, setTypes: setTypeFilter } = f;
+  const { assignees: assigneeFilter, setAssignees: setAssigneeFilter } = f;
   const [sort, setSort] = useState<TaskSort>({ key: null, dir: 'asc' });
 
   const filterOptions = buildTaskFilterOptions(primaryRows);

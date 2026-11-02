@@ -3,8 +3,10 @@ import { UNASSIGNED_FILTER } from '@/lib/assignee-filter';
 import type { JiraIssue } from '@/services/jira';
 import {
   buildTaskFilterOptions,
+  isFilterGroupActive,
   matchesTaskFilters,
   sortTaskRows,
+  toggleFilterValues,
   type TaskFilters,
 } from './taskTableFilters';
 
@@ -170,5 +172,35 @@ describe('sortTaskRows', () => {
     const copy = [...rows];
     sortTaskRows(rows, 'key', 'asc');
     expect(rows).toEqual(copy);
+  });
+});
+
+describe('toggleFilterValues / isFilterGroupActive (261102-vuw)', () => {
+  it('adds then removes a single value without mutating the input', () => {
+    const empty = new Set<string>();
+    const added = toggleFilterValues(empty, ['A']);
+    expect([...added]).toEqual(['A']);
+    expect(empty.size).toBe(0);
+    expect([...toggleFilterValues(new Set(['A', 'B']), ['A'])]).toEqual(['B']);
+  });
+  it('group: adds all unless all are present, then removes all', () => {
+    expect([...toggleFilterValues(new Set(['Closed']), ['Closed', 'Released'])].sort()).toEqual([
+      'Closed',
+      'Released',
+    ]);
+    expect([
+      ...toggleFilterValues(new Set(['Closed', 'Released', 'X']), ['Closed', 'Released']),
+    ]).toEqual(['X']);
+  });
+  it('empty values leave a copy unchanged', () => {
+    const s = new Set(['A']);
+    const out = toggleFilterValues(s, []);
+    expect(out).not.toBe(s);
+    expect([...out]).toEqual(['A']);
+  });
+  it('isFilterGroupActive needs non-empty values all selected', () => {
+    expect(isFilterGroupActive(new Set(['A']), [])).toBe(false);
+    expect(isFilterGroupActive(new Set(['A']), ['A', 'B'])).toBe(false);
+    expect(isFilterGroupActive(new Set(['A', 'B']), ['A', 'B'])).toBe(true);
   });
 });

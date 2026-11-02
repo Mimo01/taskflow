@@ -4,6 +4,7 @@ import {
   deriveReleaseAssigneeRows,
   deriveReleaseStatusRows,
   deriveReleaseTypeRows,
+  fitStatusRows,
   mrDonutSlices,
   WAFFLE_LAYOUT,
   waffleCapacity,
@@ -85,6 +86,11 @@ describe('deriveReleaseTypeRows', () => {
     expect(rows[0].breakdown).toEqual({ new: 1, indeterminate: 1, done: 0 });
     expect(rows[1]).toMatchObject({ total: 1, done: 1, sp: 1 });
   });
+  it('carries the exact issuetype name as filterValue, null for Other', () => {
+    const rows = deriveReleaseTypeRows([issue(1, { type: 'Bug' }), issue(2, { type: null })], SP);
+    expect(rows.find((r) => r.typeName === 'Bug')?.filterValue).toBe('Bug');
+    expect(rows.find((r) => r.typeName === 'Other')?.filterValue).toBeNull();
+  });
 });
 
 describe('mrDonutSlices', () => {
@@ -122,6 +128,28 @@ describe('deriveReleaseStatusRows', () => {
       ['In Progress', 'indeterminate', 1],
       ['To Do', 'new', 1],
     ]);
+    expect(rows.map((r) => r.filterValues)).toEqual([
+      ['Done'],
+      ['In Review'],
+      ['In Progress'],
+      ['To Do'],
+    ]);
+  });
+  it('an issue without a status name yields the Unknown row with no filter values', () => {
+    const i = issue(1);
+    (i.fields as unknown as { status: unknown }).status = undefined;
+    const rows = deriveReleaseStatusRows([i]);
+    expect(rows[0]).toMatchObject({ name: 'Unknown', filterValues: [] });
+  });
+  it('fitStatusRows overflow: merged Done row carries every collapsed done status name', () => {
+    const rows = deriveReleaseStatusRows([
+      issue(1, { status: 'Closed', cat: 'done' }),
+      issue(2, { status: 'Released', cat: 'done' }),
+      issue(3, { status: 'In Review', cat: 'indeterminate' }),
+    ]);
+    const { shown } = fitStatusRows(rows, 2);
+    expect(shown[0]).toMatchObject({ name: 'Done', mergedStatuses: 2 });
+    expect([...shown[0].filterValues].sort()).toEqual(['Closed', 'Released']);
   });
 });
 

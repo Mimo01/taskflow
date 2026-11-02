@@ -20,7 +20,7 @@
 //     TASK-cell title for not-in-fix-version") and have no counterpart here.
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { act } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +29,7 @@ import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { usePeekStore } from '@/stores/peek.store';
 import type { DriftRow } from './driftDetection';
+import { useTaskIssueFilters } from './useTaskIssueFilters';
 import {
   matchTicketKeyInTitle,
   stripLeadingTicketKeys,
@@ -2383,5 +2384,13 @@ describe('261102-h1i: issue filter + sort', () => {
     fireEvent.click(screen.getByTestId('task-filter-clear'));
     expect(visibleKeys()).toHaveLength(3);
     expect(screen.getByTestId('task-column-header')).toBeInTheDocument();
+  });
+
+  it('261102-vuw: a controlled issueFilterState filters rows and shows its chip', () => {
+    const { result } = renderHook(() => useTaskIssueFilters('v1'));
+    act(() => result.current.toggle('statuses', ['In Progress']));
+    renderIssues({ issueFilterState: result.current });
+    expect(visibleKeys()).toEqual(['PROJ-9']);
+    expect(screen.getByTestId('task-filter-chip-status-In Progress')).toBeInTheDocument();
   });
 });

@@ -19,6 +19,8 @@ export interface ReleaseAssigneeRow {
 
 export interface ReleaseTypeRow {
   typeName: string;
+  /** Exact issuetype name for the table's Type filter; null for the 'Other' fallback. */
+  filterValue: string | null;
   breakdown: StatusBreakdown;
   total: number;
   done: number;
@@ -61,6 +63,7 @@ export function deriveReleaseTypeRows(issues: JiraIssue[], spKey: string): Relea
     if (!row) {
       row = {
         typeName,
+        filterValue: issue.fields.issuetype?.name || null,
         breakdown: { new: 0, indeterminate: 0, done: 0 },
         total: 0,
         done: 0,
@@ -122,6 +125,8 @@ export interface ReleaseStatusRow {
   name: string;
   cat: (typeof CAT_ORDER)[number];
   count: number;
+  /** Exact status names this row stands for (table Status filter keys); empty for 'Unknown'. */
+  filterValues: string[];
   /** Set on the single row that stands for several done statuses (fitStatusRows). */
   mergedStatuses?: number;
 }
@@ -135,7 +140,13 @@ export function deriveReleaseStatusRows(issues: JiraIssue[]): ReleaseStatusRow[]
     const key = `${cat}:${name}`;
     const row = map.get(key);
     if (row) row.count += 1;
-    else map.set(key, { name, cat, count: 1 });
+    else
+      map.set(key, {
+        name,
+        cat,
+        count: 1,
+        filterValues: issue.fields.status?.name ? [issue.fields.status.name] : [],
+      });
   }
   return [...map.values()].sort(
     (a, b) =>
@@ -165,6 +176,7 @@ export function fitStatusRows(
             name: 'Done',
             cat: 'done' as const,
             count: done.reduce((n, r) => n + r.count, 0),
+            filterValues: done.flatMap((r) => r.filterValues),
             mergedStatuses: done.length,
           },
           ...rows.filter((r) => r.cat !== 'done'),

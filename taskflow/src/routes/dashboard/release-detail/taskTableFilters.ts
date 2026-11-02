@@ -100,3 +100,23 @@ export function sortTaskRows<T extends { issue: JiraIssue }>(
     compareNullsLast(sortValue(a.issue, key), sortValue(b.issue, key), dir),
   );
 }
+
+/**
+ * Group toggle used by the release graph rows (261102-vuw): when every value is
+ * already selected they are all removed, otherwise all are added. Returns a new Set.
+ */
+export function toggleFilterValues(set: Set<string>, values: string[]): Set<string> {
+  const next = new Set(set);
+  if (values.length === 0) return next;
+  if (values.every((v) => set.has(v))) {
+    for (const v of values) next.delete(v);
+  } else {
+    for (const v of values) next.add(v);
+  }
+  return next;
+}
+
+/** True iff `values` is non-empty and every value is selected. */
+export function isFilterGroupActive(set: Set<string>, values: string[]): boolean {
+  return values.length > 0 && values.every((v) => set.has(v));
+}
