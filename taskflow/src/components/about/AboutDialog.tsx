@@ -6,6 +6,7 @@
  */
 
 import { ArrowUpCircle, CheckCircle } from 'lucide-react';
+import AppIcon from '@/components/app/AppIcon';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { buildInfo } from '@/lib/build-info';
@@ -36,7 +37,7 @@ export function AboutDialog({ open, onClose }: AboutDialogProps) {
     >
       <DialogContent className="max-w-sm" showCloseButton={false}>
         {/* App icon */}
-        <img src="/app-icon.svg" alt="Taskflow" className="h-16 w-16 mx-auto" />
+        <AppIcon className="h-16 w-16 mx-auto" />
 
         {/* App name */}
         <DialogTitle className="text-lg font-semibold text-center">Taskflow</DialogTitle>

@@ -52,7 +52,7 @@ describe('AboutDialog', () => {
 
   it('renders app icon', () => {
     render(<AboutDialog open={true} onClose={() => {}} />);
-    expect(screen.getByAltText('Taskflow')).toBeInTheDocument();
+    expect(document.body.querySelector('svg.h-16.w-16')).toBeInTheDocument();
   });
 
   it('shows "Up to date" when status is idle', () => {
