@@ -31,6 +31,7 @@ import { usePeekStore } from '@/stores/peek.store';
 import type { DriftRow } from './driftDetection';
 import {
   matchTicketKeyInTitle,
+  stripLeadingTicketKeys,
   type MrFixContext,
   selectDisplayMr,
   UnifiedTaskTable,
@@ -2166,5 +2167,39 @@ describe('261102-fkr: secondary header', () => {
       '1 no linked task',
     );
     expect(screen.queryByTestId('secondary-reason-chip-unevaluated')).toBeNull();
+  });
+});
+
+describe('261102-fkr: secondary title drops the leading key', () => {
+  it.each([
+    ['PROJ-1 Fix the thing', 'Fix the thing'],
+    ['[PROJ-1] Fix the thing', 'Fix the thing'],
+    ['PROJ-1: Fix the thing', 'Fix the thing'],
+    ['proj 1 - Fix the thing', 'Fix the thing'],
+    ['(PROJ-1) \u2014 Fix the thing', 'Fix the thing'],
+  ])('strips the prefix of %s', (title, expected) => {
+    expect(stripLeadingTicketKeys(title, ['PROJ-1'])).toBe(expected);
+  });
+
+  it('keeps keys that are not a leading prefix, and never empties the title', () => {
+    expect(stripLeadingTicketKeys('Fix PROJ-1 properly', ['PROJ-1'])).toBe('Fix PROJ-1 properly');
+    expect(stripLeadingTicketKeys('PROJ-1', ['PROJ-1'])).toBe('PROJ-1');
+    expect(stripLeadingTicketKeys('Other', [])).toBe('Other');
+  });
+
+  it('renders the secondary row title without the key prefix', () => {
+    renderSection({
+      secondaryRows: [
+        makeRow({
+          mr: makeMR({ title: 'PROJ-9: Tidy the cache' }),
+          taskReason: 'not-in-fix-version',
+          taskKeys: ['PROJ-9'],
+        }),
+      ],
+    });
+    const row = within(screen.getByTestId('secondary-section')).getByTestId('drift-row');
+    expect(row).toHaveTextContent('Tidy the cache');
+    expect(row).not.toHaveTextContent('PROJ-9: Tidy');
+    expect(within(row).getAllByText('PROJ-9')).toHaveLength(1);
   });
 });

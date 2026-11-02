@@ -240,6 +240,29 @@ export function matchTicketKeyInTitle(
   return m ? { index: m.index, text: m[0] } : null;
 }
 
+/**
+ * Drop the ticket key(s) a title merely starts with — "[PROJ-1] Fix x",
+ * "PROJ-1: Fix x", "PROJ-1 - Fix x" → "Fix x". Used by the secondary table,
+ * whose Key column already shows the key, so repeating it in the title is noise.
+ * Only a LEADING prefix is removed (keys later in the title stay as links), and
+ * the title is left untouched if stripping would leave nothing.
+ */
+export function stripLeadingTicketKeys(title: string, keys: string[]): string {
+  let rest = title;
+  for (let n = 0; n < keys.length; n++) {
+    const hit = keys
+      .map((k) => matchTicketKeyInTitle(rest, k))
+      .find((m) => m !== null && /^[\s[(]*$/.test(rest.slice(0, m.index)));
+    if (!hit) break;
+    const next = rest
+      .slice(hit.index + hit.text.length)
+      .replace(/^[\])]?\s*[:\-\u2013\u2014,/]*\s*/, '');
+    if (!next) break;
+    rest = next;
+  }
+  return rest;
+}
+
 function channelsTitle(channels: Set<Channel>): string {
   const names = (['A', 'B', 'C'] as Channel[])
     .filter((c) => channels.has(c))
@@ -603,11 +626,13 @@ function MrSubLine({
     </LinkContextMenu>
   );
 
+  // Secondary rows already show the key in their Key column — don't repeat it as a title prefix.
+  const displayTitle = keyCell ? stripLeadingTicketKeys(mr.title, row.taskKeys) : mr.title;
   const titleContent = (() => {
-    const keys = extractTicketKeys(mr.title);
-    if (keys.length === 0) return mr.title;
+    const keys = extractTicketKeys(displayTitle);
+    if (keys.length === 0) return displayTitle;
     const parts: React.ReactNode[] = [];
-    let remaining = mr.title;
+    let remaining = displayTitle;
     for (const k of keys) {
       // `extractTicketKeys` NORMALISES what it returns: it uppercases the key
       // and rewrites the space form ("PROJ 123") to the dash form
