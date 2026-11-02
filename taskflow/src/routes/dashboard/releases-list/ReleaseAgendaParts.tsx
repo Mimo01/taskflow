@@ -136,7 +136,8 @@ export function ReleaseTeam({
   onClick?: () => void;
 }) {
   if (assignees.length === 0) return null;
-  const shown = assignees.slice(0, max);
+  // A lone "+1" chip is as wide as the avatar it hides, so show that avatar instead.
+  const shown = assignees.slice(0, assignees.length === max + 1 ? max + 1 : max);
   const extra = assignees.length - shown.length;
   const issues = assignees.reduce((n, a) => n + a.count, 0);
   return (
