@@ -9,26 +9,25 @@
  * Each row is a grouped SprintRow: the parent story is the top-level button,
  * with my assigned subtasks nested/indented beneath it (Decision 1).
  *
- * Each row (parent + subtask) shows a progress bar (shared ui/Progress) when an
- * original estimate exists: value = timeSpentSeconds / originalEstimateSeconds
- * (clamped 100%), with a "spent / estimate" caption (Decision 2).
+ * Each row (parent + subtask) shows the shared StackedTimeBar (same as My Tasks):
+ * progress track + "spent / estimate" caption, an equal-width spacer when there
+ * is no time data so every row keeps the column aligned.
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
  * returns null (hidden) when 0 rows + not loading + not erroring.
  */
 
 import { Coffee, GitBranch } from 'lucide-react';
+import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
-import { formatDuration } from '@/services/jira/duration';
 import type { SprintRow } from './filterSprintItems';
 import type { NestedMr } from './mrMatching';
 import StandupSectionHeader from './StandupSectionHeader';
@@ -60,31 +59,8 @@ function LoadingSkeletons() {
   );
 }
 
-// ─── Progress bar ─────────────────────────────────────────────────────────────
-
-interface ProgressBarProps {
-  issue: JiraIssue;
-}
-
-function ProgressBar({ issue }: ProgressBarProps) {
-  const tt = issue.fields.timetracking;
-  const originalSec = tt?.originalEstimateSeconds;
-  if (!originalSec || originalSec <= 0) return null;
-
-  const spentSec = tt?.timeSpentSeconds ?? 0;
-  const fillPct = Math.min(100, Math.round((spentSec / originalSec) * 100));
-  const indicatorColor =
-    spentSec >= originalSec ? 'bg-red-500' : fillPct >= 75 ? 'bg-amber-500' : 'bg-green-500';
-
-  return (
-    <div className="shrink-0 flex items-center gap-2">
-      <Progress value={fillPct} className="w-14" indicatorClassName={indicatorColor} />
-      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-        {formatDuration(spentSec)} / {formatDuration(originalSec)}
-      </span>
-    </div>
-  );
-}
+// Today column is ~half the page: narrower bar, hidden only when the column is cramped.
+const TODAY_TIME_BAR_WIDTH_CLASS = 'w-24 @max-[30rem]:hidden';
 
 // ─── Issue row (reused for parent and subtask) ────────────────────────────────
 
@@ -96,8 +72,6 @@ interface IssueRowProps {
   indented?: boolean;
   /** Reserve the story-points slot (some row in this section has points). */
   showSp: boolean;
-  /** Reserve the progress slot (some row in this section has an estimate). */
-  showProgress: boolean;
 }
 
 function IssueRow({
@@ -107,7 +81,6 @@ function IssueRow({
   onOpenIssue,
   indented = false,
   showSp,
-  showProgress,
 }: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
@@ -169,11 +142,12 @@ function IssueRow({
               </span>
             </div>
           )}
-          {showProgress && (
-            <div className="hidden w-36 shrink-0 items-center @[32rem]:flex">
-              <ProgressBar issue={issue} />
-            </div>
-          )}
+          <StackedTimeBar
+            spentSeconds={issue.fields.timetracking?.timeSpentSeconds ?? 0}
+            totalSeconds={issue.fields.timetracking?.originalEstimateSeconds}
+            widthClassName={TODAY_TIME_BAR_WIDTH_CLASS}
+            testId="standup-time-bar"
+          />
           <CachedAvatar
             url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
             name={issue.fields.assignee?.displayName ?? 'Unassigned'}
@@ -238,9 +212,6 @@ export default function TodayUpNextSection({
   // so the pill column stays aligned without wasting width on empty columns.
   const sectionIssues = rows.flatMap((r) => [r.issue, ...r.subtasks]);
   const showSp = sectionIssues.some((i) => typeof i.fields[storyPointsFieldKey] === 'number');
-  const showProgress = sectionIssues.some(
-    (i) => (i.fields.timetracking?.originalEstimateSeconds ?? 0) > 0,
-  );
 
   // Unlike the other sections, Up Next always renders — an empty "nothing up
   // next" state is meaningful for standup (it confirms there's no queued work).
@@ -271,7 +242,6 @@ export default function TodayUpNextSection({
                 onIssueClick={onIssueClick}
                 onOpenIssue={onOpenIssue}
                 showSp={showSp}
-                showProgress={showProgress}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow
@@ -282,7 +252,6 @@ export default function TodayUpNextSection({
                   onOpenIssue={onOpenIssue}
                   indented
                   showSp={showSp}
-                  showProgress={showProgress}
                 />
               ))}
               {(mrsByStory.get(row.issue.key) ?? []).map((mr) => (

@@ -29,17 +29,16 @@
  */
 
 import { Flag, GitPullRequest, Tag } from 'lucide-react';
+import { StackedTimeBar } from '@/components/jira/StackedTimeBar';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { PriorityIcon } from '@/components/ui/priority-icon';
-import { Progress } from '@/components/ui/progress';
 import { doneSummaryClass } from '@/lib/issueDisplayUtils';
 import { PEEKED_ROW_CLASS } from '@/lib/peek-highlight';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import { isIssueFlagged } from '@/services/jira';
-import { formatDuration } from '@/services/jira/duration';
 import type { ReviewHealth } from '@/services/linkEngine';
 import { useIsPeeked } from '@/stores/peek.store';
 
@@ -57,62 +56,6 @@ const MR_HEALTH_LABEL: Record<ReviewHealth, string> = {
 
 const CHIP_BASE =
   'inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-xs shrink-0';
-
-// ── Stacked time bar ──────────────────────────────────────────────────────────
-
-// Shared by the empty-spacer and filled branches so rows stay column-aligned.
-const TIME_BAR_WIDTH_CLASS = 'w-[144px] @max-[720px]:w-24 @max-[580px]:hidden';
-
-interface StackedTimeBarProps {
-  spentSeconds: number;
-  totalSeconds: number | undefined;
-}
-
-function StackedTimeBar({ spentSeconds, totalSeconds }: StackedTimeBarProps) {
-  const hasEst = typeof totalSeconds === 'number' && totalSeconds > 0;
-  const hasSpent = spentSeconds > 0;
-
-  // Equal-width spacer so all rows align even when there's no time data
-  if (!hasEst && !hasSpent) {
-    return (
-      <div
-        className={cn('shrink-0', TIME_BAR_WIDTH_CLASS)}
-        data-testid="my-task-time-bar"
-        aria-hidden
-      />
-    );
-  }
-
-  const est = hasEst ? (totalSeconds as number) : 0;
-  const fillPct = hasEst ? Math.min(100, Math.round((spentSeconds / est) * 100)) : 0;
-  const indicatorColor = hasEst
-    ? spentSeconds >= est
-      ? 'bg-red-500 rounded-full'
-      : fillPct >= 75
-        ? 'bg-amber-500 rounded-full'
-        : 'bg-green-500 rounded-full'
-    : undefined;
-
-  const caption = hasEst
-    ? `${formatDuration(spentSeconds)} / ${formatDuration(est)}`
-    : formatDuration(spentSeconds);
-
-  return (
-    <div
-      className={cn('shrink-0 flex flex-col gap-0.5', TIME_BAR_WIDTH_CLASS)}
-      data-testid="my-task-time-bar"
-    >
-      <Progress
-        value={hasEst ? fillPct : 0}
-        className="h-1.5 w-full rounded-full"
-        indicatorClassName={indicatorColor}
-      />
-      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap truncate">
-        {caption}
-      </span>
-    </div>
-  );
-}
 
 // ── Label chips ───────────────────────────────────────────────────────────────
 
@@ -416,6 +359,7 @@ export function MyTaskRow({
               CHIP_BASE,
               'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30',
             )}
+            role="img"
             aria-label="Flagged"
             title="Flagged"
           >
@@ -435,6 +379,7 @@ export function MyTaskRow({
               mrHealth === 'waiting_for_review' &&
                 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400',
             )}
+            role="img"
             aria-label={`MR: ${MR_HEALTH_LABEL[mrHealth]}`}
             title={`MR: ${MR_HEALTH_LABEL[mrHealth]}`}
           >
