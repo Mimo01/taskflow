@@ -66,38 +66,19 @@ export function ReleaseMrDonut({
           compact ? 'gap-x-3' : 'gap-x-6',
         )}
       >
-        {/* Donut with its legend tucked underneath as a 2x2 grid: the ring stays the focal
-            point and the legend reads as its caption. Label pills stay in their own column. */}
-        <div className="flex flex-col items-center gap-2.5">
-          <AioDonut
-            slices={slices}
-            size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
-            testId="release-mr-donut"
-            ariaLabel={label}
-            center={
-              <>
-                <span className="text-lg font-semibold tabular-nums">{total}</span>
-                <span className="text-xs text-muted-foreground">MRs</span>
-              </>
-            }
-          />
-          <div
-            data-testid="release-mr-legend"
-            className="flex max-w-[12rem] flex-wrap justify-center gap-x-4 gap-y-1 text-xs"
-          >
-            {slices.map((s) => (
-              <div key={s.key} className="flex items-center gap-1.5">
-                <span
-                  className="size-2 rounded-sm"
-                  style={{ backgroundColor: s.color }}
-                  aria-hidden="true"
-                />
-                <span className="tabular-nums text-foreground">{s.value}</span>
-                <span className="text-muted-foreground">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* No legend: slice counts come from the hover tooltip and the aria-label. */}
+        <AioDonut
+          slices={slices}
+          size={compact ? COMPACT_DONUT_SIZE : DONUT_GRAPH_SIZE}
+          testId="release-mr-donut"
+          ariaLabel={label}
+          center={
+            <>
+              <span className="text-lg font-semibold tabular-nums">{total}</span>
+              <span className="text-xs text-muted-foreground">MRs</span>
+            </>
+          }
+        />
         <MrLabels
           labelSummary={labelSummary}
           coverage={labelCoverage}

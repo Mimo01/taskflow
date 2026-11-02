@@ -25,12 +25,11 @@ describe('ReleaseMrDonut', () => {
     expect(screen.getByText('Merge requests')).toBeInTheDocument();
   });
 
-  it('shows total and MRs in the centre and non-zero values beside it', () => {
+  it('shows total and MRs in the centre with no legend', () => {
     render(<ReleaseMrDonut counts={counts} state="ready" />);
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('MRs')).toBeInTheDocument();
-    expect(screen.getByText('merged')).toBeInTheDocument();
-    expect(screen.getByText('draft')).toBeInTheDocument();
-    expect(screen.queryByText('closed')).toBeNull();
+    expect(screen.queryByTestId('release-mr-legend')).toBeNull();
+    expect(screen.queryByText('merged')).toBeNull();
   });
 });
