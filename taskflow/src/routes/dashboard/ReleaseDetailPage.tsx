@@ -118,7 +118,6 @@ export default function ReleaseDetailPage() {
     burnupPoints,
     assigneeRows,
     typeRows,
-    statusNameSummary,
     mrDonutCounts,
     milestoneMrsFailed,
     issuesError,
@@ -461,7 +460,6 @@ export default function ReleaseDetailPage() {
               breakdown={headerBreakdown}
               loading={headerBreakdownLoading}
               error={headerBreakdownError}
-              statusNames={statusNameSummary}
             />
           )}
 

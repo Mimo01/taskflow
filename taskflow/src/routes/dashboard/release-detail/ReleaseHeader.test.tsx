@@ -188,7 +188,6 @@ describe('ReleaseDoneBar', () => {
         breakdown={{ done: 4, indeterminate: 1, new: 1 }}
         loading={false}
         error={false}
-        statusNames={null}
       />,
     );
     expect(screen.getByTestId('release-done-bar')).toHaveClass('border-t', 'px-6', 'pt-4');
@@ -197,7 +196,7 @@ describe('ReleaseDoneBar', () => {
   });
 
   it('shows a skeleton while loading', () => {
-    render(<ReleaseDoneBar breakdown={undefined} loading error={false} statusNames={null} />);
+    render(<ReleaseDoneBar breakdown={undefined} loading error={false} />);
     expect(screen.getByTestId('release-graph-skeleton')).toBeInTheDocument();
   });
 });

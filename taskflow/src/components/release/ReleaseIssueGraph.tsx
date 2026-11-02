@@ -1,11 +1,8 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import {
   breakdownTotal,
   RELEASE_SEGMENT_CLASS,
   RELEASE_SEGMENT_ORDER,
-  releaseTooltipRows,
   type StatusBreakdown,
 } from '@/lib/release-list';
 import { cn } from '@/lib/utils';
@@ -32,14 +29,13 @@ export function BreakdownErrorDash() {
 
 /**
  * Release detail header bar: slim segmented Done / In Progress / To Do bar with a
- * "done / total done" figure. (List rows use ReleaseIssuesSlot instead.)
+ * "done / total done" figure and no tooltip. (List rows use ReleaseIssuesSlot instead.)
  */
 export function ReleaseIssueGraph({
   breakdown,
   loading,
   error,
   fullWidth = false,
-  statusNames,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
@@ -47,8 +43,6 @@ export function ReleaseIssueGraph({
   error: boolean;
   /** Span the full available width (drops the max-w-xl cap). */
   fullWidth?: boolean;
-  /** Exact status names, shown as a 4th tooltip row. */
-  statusNames?: string | null;
 }) {
   const wrapper = cn('flex w-full items-center gap-2', !fullWidth && 'max-w-xl');
 
@@ -76,45 +70,26 @@ export function ReleaseIssueGraph({
     );
   }
 
-  const rows = releaseTooltipRows(breakdown);
   const figure = `${breakdown.done} / ${total} done`;
 
   return (
     <div data-testid="release-graph" className={wrapper}>
-      <Tooltip>
-        <TooltipTrigger
-          delay={0}
-          render={<div />}
-          role="img"
-          aria-label={`${breakdown.done} of ${total} issues done`}
-          className="relative z-10 flex-1 py-1"
-        >
-          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-            {RELEASE_SEGMENT_ORDER.filter((k) => breakdown[k] > 0).map((k) => (
-              <div
-                key={k}
-                data-testid={`release-segment-${k}`}
-                className={cn('h-full', RELEASE_SEGMENT_CLASS[k])}
-                style={{ width: `${(breakdown[k] / total) * 100}%` }}
-              />
-            ))}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <TooltipBody title={`${total} issues`}>
-            {rows.map((r) => (
-              <TooltipRow
-                key={r.label}
-                color={r.color}
-                label={r.label}
-                value={r.value}
-                sub={`${Math.round((r.value / total) * 100)}%`}
-              />
-            ))}
-            {statusNames ? <TooltipRow label="Statuses" value={statusNames} /> : null}
-          </TooltipBody>
-        </TooltipContent>
-      </Tooltip>
+      <div
+        role="img"
+        aria-label={`${breakdown.done} of ${total} issues done`}
+        className="flex-1 py-1"
+      >
+        <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+          {RELEASE_SEGMENT_ORDER.filter((k) => breakdown[k] > 0).map((k) => (
+            <div
+              key={k}
+              data-testid={`release-segment-${k}`}
+              className={cn('h-full', RELEASE_SEGMENT_CLASS[k])}
+              style={{ width: `${(breakdown[k] / total) * 100}%` }}
+            />
+          ))}
+        </div>
+      </div>
       <span
         data-testid="release-done-figure"
         className="shrink-0 text-xs tabular-nums text-muted-foreground"

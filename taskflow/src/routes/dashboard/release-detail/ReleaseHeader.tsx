@@ -221,22 +221,14 @@ export function ReleaseDoneBar({
   breakdown,
   loading,
   error,
-  statusNames,
 }: {
   breakdown: StatusBreakdown | undefined;
   loading: boolean;
   error: boolean;
-  statusNames: string | null;
 }) {
   return (
     <div data-testid="release-done-bar" className="border-t px-6 pt-4">
-      <ReleaseIssueGraph
-        breakdown={breakdown}
-        loading={loading}
-        error={error}
-        fullWidth
-        statusNames={statusNames}
-      />
+      <ReleaseIssueGraph breakdown={breakdown} loading={loading} error={error} fullWidth />
     </div>
   );
 }

@@ -43,11 +43,7 @@ import {
   findReleaseTag,
   resolveBranchState,
 } from './releaseBranch';
-import {
-  deriveReleaseAssigneeRows,
-  deriveReleaseTypeRows,
-  statusNameSummary,
-} from './releaseBuckets';
+import { deriveReleaseAssigneeRows, deriveReleaseTypeRows } from './releaseBuckets';
 import { deriveReleaseBurnup, previousVersion, releaseBurnupAxis } from './releaseBurnup';
 import { ownProjectMilestones } from './releaseMilestone';
 import {
@@ -695,7 +691,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     : [];
   const assigneeRows = deriveReleaseAssigneeRows(releaseIssues, storyPointsFieldKey);
   const typeRows = deriveReleaseTypeRows(releaseIssues, storyPointsFieldKey);
-  const statusNames = statusNameSummary(releaseIssues);
   const mrDonutCounts = computeMrDonutCounts(unionMrs);
   const issuesError = isIssuesError && !fixVersionIssues;
   const gitlabConfigured = !!gitlabBaseUrl && activeGitlabProject != null;
@@ -754,7 +749,6 @@ export function useReleaseDetail(versionId: string | undefined) {
     burnupPoints,
     assigneeRows,
     typeRows,
-    statusNameSummary: statusNames,
     mrDonutCounts,
     // 94-REVIEW CR-01: Channel B rejected and no cached MRs to show — the MR
     // donut must render a failure, not a skeleton that never resolves.

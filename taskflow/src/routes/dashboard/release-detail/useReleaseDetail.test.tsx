@@ -1440,7 +1440,6 @@ describe('useReleaseDetail P94 graph data', () => {
     expect(pts[pts.length - 1].scope).toBe(3);
     expect(result.current.typeRows).toHaveLength(2);
     expect(result.current.assigneeRows).toHaveLength(1);
-    expect(result.current.statusNameSummary).toBe('S 1');
     expect(result.current.mrDonutCounts).toEqual({ merged: 1, open: 0, draft: 1, closed: 0 });
     expect(result.current.gitlabConfigured).toBe(true);
     expect(result.current.issuesError).toBe(false);

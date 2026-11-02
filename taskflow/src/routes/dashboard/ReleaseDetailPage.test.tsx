@@ -114,7 +114,6 @@ function fixture(overrides: Record<string, unknown> = {}) {
     burnupPoints: [],
     assigneeRows: [],
     typeRows: [],
-    statusNameSummary: null,
     mrDonutCounts: { merged: 0, open: 0, draft: 0, closed: 0 },
     issuesError: false,
     issuesUpdatedAt: 1_700_000_000_000,

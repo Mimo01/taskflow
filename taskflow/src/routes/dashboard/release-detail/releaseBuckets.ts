@@ -115,22 +115,6 @@ export function mrDonutSlices(counts: {
   });
 }
 
-/** Exact status names of not-done issues, e.g. "In Review 3 · QA 2 · +1 more". */
-export function statusNameSummary(issues: JiraIssue[]): string | null {
-  const counts = new Map<string, number>();
-  for (const issue of issues) {
-    if (catOf(issue) === 'done') continue;
-    const name = issue.fields.status?.name || 'Unknown';
-    counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  if (counts.size === 0) return null;
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const head = sorted.slice(0, 3).map(([n, c]) => `${n} ${c}`);
-  const more = sorted.length - 3;
-  if (more > 0) head.push(`+${more} more`);
-  return head.join(' · ');
-}
-
 const CAT_ORDER = ['done', 'indeterminate', 'new'] as const;
 
 export interface ReleaseStatusRow {

@@ -5,7 +5,6 @@ import {
   deriveReleaseStatusRows,
   deriveReleaseTypeRows,
   mrDonutSlices,
-  statusNameSummary,
   WAFFLE_LAYOUT,
   waffleCapacity,
   statusBarWidth,
@@ -105,27 +104,6 @@ describe('mrDonutSlices', () => {
       'var(--color-blue-500)',
       'var(--color-muted-foreground)',
     ]);
-  });
-});
-
-describe('statusNameSummary', () => {
-  it('returns null when everything is done or empty', () => {
-    expect(statusNameSummary([])).toBeNull();
-    expect(statusNameSummary([issue(1, { cat: 'done' })])).toBeNull();
-  });
-  it('groups not-done by name, top 3 with +N more', () => {
-    const issues = [
-      issue(1, { cat: 'indeterminate', status: 'In Review' }),
-      issue(2, { cat: 'indeterminate', status: 'In Review' }),
-      issue(3, { cat: 'indeterminate', status: 'In Review' }),
-      issue(4, { cat: 'indeterminate', status: 'QA' }),
-      issue(5, { cat: 'indeterminate', status: 'QA' }),
-      issue(6, { cat: 'new', status: 'Open' }),
-      issue(7, { cat: 'new', status: 'Blocked' }),
-      issue(8, { cat: 'done', status: 'Closed' }),
-    ];
-    expect(statusNameSummary(issues)).toBe('In Review 3 · QA 2 · Blocked 1 · +1 more');
-    expect(statusNameSummary(issues.slice(0, 5))).toBe('In Review 3 · QA 2');
   });
 });
 

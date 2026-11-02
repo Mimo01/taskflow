@@ -76,24 +76,14 @@ describe('ReleaseIssueGraph', () => {
     expect(screen.getByTestId('release-graph').className).not.toContain('max-w-xl');
   });
 
-  it('tooltip carries a 4th Statuses row only when statusNames is given', async () => {
+  it('has no tooltip', async () => {
     const user = userEvent.setup();
-    const { unmount } = render(
-      <ReleaseIssueGraph
-        breakdown={data}
-        loading={false}
-        error={false}
-        statusNames="In Review 3"
-      />,
-    );
+    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} />);
     await user.hover(screen.getByRole('img', { name: '3 of 6 issues done' }));
-    expect(await screen.findByText('Statuses')).toBeInTheDocument();
-    expect(screen.getByText('In Review 3')).toBeInTheDocument();
-    unmount();
-    render(<ReleaseIssueGraph breakdown={data} loading={false} error={false} statusNames={null} />);
-    await user.hover(screen.getByRole('img', { name: '3 of 6 issues done' }));
-    expect(await screen.findByText('6 issues')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('6 issues')).toBeNull();
     expect(screen.queryByText('Statuses')).toBeNull();
+    expect(screen.getByText('3 / 6 done')).toBeInTheDocument();
   });
 
   it('keeps the same outer width class across states', () => {
