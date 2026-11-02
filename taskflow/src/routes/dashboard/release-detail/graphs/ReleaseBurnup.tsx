@@ -152,7 +152,10 @@ export function ReleaseBurnup({
   showStoryPoints: boolean;
   /** Drives the countdown timeline shown instead of the chart on a thin history. */
   summary: TimelineSummary;
-  /** Band mode: the plot fills the row height set by its siblings (min COMPACT_PLOT_MIN). */
+  /**
+   * Band mode: the plot fills the row height set by its siblings, between
+   * COMPACT_PLOT_MIN and 200px (a tall waffle/donut row must not stretch it).
+   */
   compact?: boolean;
   className?: string;
 }) {
@@ -248,7 +251,9 @@ export function ReleaseBurnup({
         ) : (
           <div
             ref={setPlotEl}
-            className={compact ? 'relative mt-2 min-h-[150px] flex-1' : `${PLOT_CLASS} mt-2`}
+            className={
+              compact ? 'relative mt-2 min-h-[150px] max-h-[200px] flex-1' : `${PLOT_CLASS} mt-2`
+            }
             role="img"
             aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
           >
