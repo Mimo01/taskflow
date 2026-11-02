@@ -4,6 +4,7 @@ import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import {
   BurnupTooltip,
   burnupYScale,
+  COMPACT_BODY_H,
   closeLastDay,
   ReleaseBurnup,
   yearAwareTicks,
@@ -289,5 +290,26 @@ describe('closeLastDay', () => {
     expect(close.day).toBe('2026-10-03');
     expect(rel.done - prev.done).toBe(6);
     expect(closeLastDay([])).toEqual([]);
+  });
+});
+
+describe('ReleaseBurnup compact height', () => {
+  it('has the same fixed body height with a chart and with the thin timeline', () => {
+    for (const pts of [points, points.slice(0, 1)]) {
+      const { unmount } = render(
+        <ReleaseBurnup
+          axis={axis}
+          points={pts}
+          state="ready"
+          showStoryPoints={false}
+          summary={summary}
+          compact
+        />,
+      );
+      const body = screen.getByTestId('release-burnup-body');
+      expect(body.style.height).toBe(`${COMPACT_BODY_H}px`);
+      expect(body.className).not.toContain('flex-1');
+      unmount();
+    }
   });
 });

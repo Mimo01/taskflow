@@ -21,12 +21,20 @@ export interface PlotBox {
   bottom: number;
 }
 
+/** Extra top band per additional marker label row (TODAY and RELEASE too close for one row). */
+export const MARKER_ROW_H = 12;
+
+/** Chart margins for a label band of `rows` rows (1 or 2). */
+export function burnupMargin(rows = 1): typeof BURNUP_MARGIN {
+  return { ...BURNUP_MARGIN, top: BURNUP_MARGIN.top + (rows - 1) * MARKER_ROW_H };
+}
+
 /** Inner plot rectangle in chart (SVG) coordinates for a chart of `width` x `height`. */
-export function burnupPlotBox(width: number, height: number): PlotBox {
+export function burnupPlotBox(width: number, height: number, rows = 1): PlotBox {
   return {
     left: Y_AXIS_WIDTH + BURNUP_MARGIN.left,
     right: width - BURNUP_MARGIN.right,
-    top: BURNUP_MARGIN.top,
+    top: burnupMargin(rows).top,
     bottom: height - X_AXIS_HEIGHT,
   };
 }
@@ -59,6 +67,8 @@ export interface BurnupLabelInput {
 }
 export interface BurnupLabelLayout {
   markers: MarkerLabel[];
+  /** Label rows above the plot: 2 when TODAY and RELEASE need a row each. */
+  rows: 1 | 2;
 }
 
 const MARKER_TEXT: Record<MarkerKind, string> = { today: 'TODAY', release: 'RELEASE' };
@@ -70,7 +80,7 @@ function intersects(a: Box, b: Box, gap = 0): boolean {
 }
 const markerWidth = (text: string) => text.length * MARKER_CHAR_W + MARKER_PAD;
 
-function markerBox(text: string, x: number, anchor: MarkerLabel['anchor']): Box {
+function markerBox(text: string, x: number, anchor: MarkerLabel['anchor'], row = 0): Box {
   const w = markerWidth(text);
   const left =
     anchor === 'middle'
@@ -78,32 +88,41 @@ function markerBox(text: string, x: number, anchor: MarkerLabel['anchor']): Box 
       : anchor === 'start'
         ? x + MARKER_OFFSET
         : x - MARKER_OFFSET - w;
-  return { x: left, y: MARKER_BOX_Y, w, h: MARKER_H };
+  return { x: left, y: MARKER_BOX_Y + row * MARKER_ROW_H, w, h: MARKER_H };
 }
 function markerText(
   text: string,
   kind: MarkerLabelKind,
   x: number,
   anchor: MarkerLabel['anchor'],
+  row = 0,
 ): MarkerLabel {
   const ax = anchor === 'start' ? x + MARKER_OFFSET : anchor === 'end' ? x - MARKER_OFFSET : x;
-  return { text, kind, x: ax, y: MARKER_BASELINE_Y, anchor, box: markerBox(text, x, anchor) };
+  return {
+    text,
+    kind,
+    x: ax,
+    y: MARKER_BASELINE_Y + row * MARKER_ROW_H,
+    anchor,
+    box: markerBox(text, x, anchor, row),
+  };
 }
 
 const ANCHORS: MarkerLabel['anchor'][] = ['middle', 'end', 'start'];
 
-function placeMarkers(input: BurnupLabelInput): MarkerLabel[] {
+function placeMarkers(input: BurnupLabelInput): BurnupLabelLayout {
   const W = input.chartWidth;
   const inside = (b: Box) => b.x >= 1 && b.x + b.w <= W - 1;
   const ms = [...input.markers].sort((a, b) => a.x - b.x);
-  if (ms.length === 0) return [];
+  if (ms.length === 0) return { markers: [], rows: 1 };
   if (ms.length === 1) {
     const m = ms[0];
     const text = MARKER_TEXT[m.kind];
     for (const a of ANCHORS) {
-      if (inside(markerBox(text, m.x, a))) return [markerText(text, m.kind, m.x, a)];
+      if (inside(markerBox(text, m.x, a)))
+        return { markers: [markerText(text, m.kind, m.x, a)], rows: 1 };
     }
-    return [clampMarker(text, m.kind, m.x, W)];
+    return { markers: [clampMarker(text, m.kind, m.x, W)], rows: 1 };
   }
   const [a, b] = ms;
   const ta = MARKER_TEXT[a.kind];
@@ -117,17 +136,32 @@ function placeMarkers(input: BurnupLabelInput): MarkerLabel[] {
         // A label must not run over the other marker's line.
         if (b.x > ba.x - 2 && b.x < ba.x + ba.w + 2) continue;
         if (a.x > bb.x - 2 && a.x < bb.x + bb.w + 2) continue;
-        return [markerText(ta, a.kind, a.x, pa), markerText(tb, b.kind, b.x, pb)];
+        return {
+          markers: [markerText(ta, a.kind, a.x, pa), markerText(tb, b.kind, b.x, pb)],
+          rows: 1,
+        };
       }
     }
+    // Too tight for one row (e.g. one day apart): a row each, every label still
+    // anchored on its own line, the left one leaning left and the right one right.
+    const placeOwn = (kind: MarkerKind, x: number, prefs: MarkerLabel['anchor'][], row: number) => {
+      const t = MARKER_TEXT[kind];
+      for (const p of prefs)
+        if (inside(markerBox(t, x, p, row))) return markerText(t, kind, x, p, row);
+      return null;
+    };
+    const la = placeOwn(a.kind, a.x, ['end', 'middle', 'start'], 0);
+    const lb = placeOwn(b.kind, b.x, ['start', 'middle', 'end'], 1);
+    if (la && lb) return { markers: [la, lb], rows: 2 };
   }
-  // Same day or too tight: one merged label.
+  // Same day: one merged label.
   const text = `${ta} · ${tb}`;
-  const mx = b.x - a.x < 1 ? a.x : (a.x + b.x) / 2;
+  const mx = a.x;
   for (const p of ANCHORS) {
-    if (inside(markerBox(text, mx, p))) return [markerText(text, 'both', mx, p)];
+    if (inside(markerBox(text, mx, p)))
+      return { markers: [markerText(text, 'both', mx, p)], rows: 1 };
   }
-  return [clampMarker(text, 'both', mx, W)];
+  return { markers: [clampMarker(text, 'both', mx, W)], rows: 1 };
 }
 
 function clampMarker(text: string, kind: MarkerLabelKind, x: number, W: number): MarkerLabel {
@@ -145,11 +179,11 @@ function clampMarker(text: string, kind: MarkerLabelKind, x: number, W: number):
 
 /**
  * Pure label layout for the burnup chart, in chart pixel coordinates. Marker
- * labels live in the band above the plot (merged / split-anchored when they
- * would collide, anchored against their line at the chart edges), so they never
+ * labels live in the band above the plot (split-anchored or on two rows when
+ * they would collide, merged only on the same day, anchored against their line at the chart edges), so they never
  * sit over the series. The series carry no in-plot labels: exact values are in
  * the hover tooltip.
  */
 export function layoutBurnupLabels(input: BurnupLabelInput): BurnupLabelLayout {
-  return { markers: placeMarkers(input) };
+  return placeMarkers(input);
 }

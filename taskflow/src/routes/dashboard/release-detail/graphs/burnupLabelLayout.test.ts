@@ -24,6 +24,20 @@ describe('layoutBurnupLabels examples', () => {
     expect(out.markers[0].text).toBe('TODAY · RELEASE');
     expect(out.markers[0].kind).toBe('both');
   });
+  it('gives TODAY and RELEASE one day apart a row each, on their own lines', () => {
+    const { right, left } = burnupPlotBox(W, H);
+    const day = (right - left) / 30;
+    const { out } = run(W, H, right - day, right);
+    expect(out.rows).toBe(2);
+    expect(out.markers.map((m) => m.kind)).toEqual(['today', 'release']);
+    expect(out.markers[0].x).toBeCloseTo(right - day - 3);
+    expect(out.markers[1].x).toBeCloseTo(right - 3);
+    expect(out.markers[1].y).toBeGreaterThan(out.markers[0].y);
+  });
+  it('keeps one row and one merged label only on the same day', () => {
+    const { out } = run(W, H, right, right);
+    expect(out.rows).toBe(1);
+  });
   it('splits near markers to opposite sides of their lines', () => {
     const { out } = run(W, 110 + 90, 200, 215);
     expect(out.markers.map((m) => m.text)).toEqual(['TODAY', 'RELEASE']);
@@ -61,8 +75,14 @@ describe('layoutBurnupLabels properties', () => {
               expect(b.x).toBeGreaterThanOrEqual(0);
               expect(b.x + b.w).toBeLessThanOrEqual(W);
               expect(b.y).toBeGreaterThanOrEqual(0);
-              expect(b.y + b.h).toBeLessThanOrEqual(plot.top);
+              expect(b.y + b.h).toBeLessThanOrEqual(burnupPlotBox(W, H, out.rows).top);
               expect(['today', 'release', 'both']).toContain(m.kind);
+              // Every split label is anchored on its own marker line.
+              if (m.kind !== 'both') {
+                const x = m.kind === 'today' ? tx : rx;
+                expect(x).not.toBeNull();
+                expect(Math.abs(m.x - (x as number))).toBeLessThanOrEqual(3);
+              }
             }
             if (out.markers.length === 2) {
               expect(hit(out.markers[0].box, out.markers[1].box)).toBe(false);

@@ -2,14 +2,14 @@
 
 import { TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Area, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { Area, ComposedChart, Line, ReferenceArea, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { dateKeyMs, formatDateKey, timeTicks } from '@/lib/epic-progress';
 import { Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
 import {
-  BURNUP_MARGIN,
+  burnupMargin,
   burnupPlotBox,
   DOT_R,
   DOT_RING,
@@ -31,11 +31,17 @@ const MUTED = 'var(--color-muted-foreground)';
 const PLOT_CLASS = 'h-[196px] @max-[640px]/page:h-[160px]';
 const DAY_MS = 86_400_000;
 const FALLBACK_WIDTH = 640;
-/** Compact (band) plot minimum height; the countdown header sits above it. */
-const COMPACT_PLOT_MIN = 150;
+/**
+ * Compact (band) body height, countdown header + plot (or track) together. Fixed
+ * at every width so the Progress slot never sets a taller row than its siblings
+ * and never stretches with them.
+ */
+export const COMPACT_BODY_H = 160;
 /** Denser date axis than the epic charts (72px): a short "Oct 15" label needs ~40px. */
 export const BURNUP_TICK_PX = 52;
 const HEADER_H = 28;
+/** Gap between the countdown header and the plot (mt-2). */
+const PLOT_GAP = 8;
 
 const yearOf = (key: string) => Number(key.slice(0, 4));
 const withYearLabel = (key: string) => {
@@ -155,8 +161,8 @@ export function ReleaseBurnup({
   /** Drives the countdown timeline shown instead of the chart on a thin history. */
   summary: TimelineSummary;
   /**
-   * Band mode: the plot fills the row height set by its siblings, between
-   * COMPACT_PLOT_MIN and 200px (a tall waffle/donut row must not stretch it).
+   * Band mode: a fixed COMPACT_BODY_H body (header + plot) at every width, so the
+   * slot matches the band row instead of driving or following its height.
    */
   compact?: boolean;
   className?: string;
@@ -182,7 +188,12 @@ export function ReleaseBurnup({
     return () => ro.disconnect();
   }, [plotEl]);
   const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
-  const height = measuredH > 0 ? Math.round(measuredH) : compact ? COMPACT_PLOT_MIN : BURNUP_HEIGHT;
+  const height =
+    measuredH > 0
+      ? Math.round(measuredH)
+      : compact
+        ? COMPACT_BODY_H - HEADER_H - PLOT_GAP
+        : BURNUP_HEIGHT;
   // One line, never wraps. With a previous release only its name shows (version
   // names usually carry the date already); the start date stays in the hover title.
   const sinceDate = axis ? withYearLabel(axis.start) : '';
@@ -209,10 +220,12 @@ export function ReleaseBurnup({
   const plotted = closeLastDay(points);
   const lastIdx = plotted.length - 1;
   const dayEnd = (key: string) => dateKeyMs(key) + DAY_MS;
-  const plot = burnupPlotBox(width, height);
+  // Marker x positions depend only on the plot's left/right, so the label rows
+  // (which move the plot top) are laid out on the one-row box first.
+  const plotX = burnupPlotBox(width, height);
   const ticks = axis
     ? yearAwareTicks(
-        timeTicks(axis.start, axis.end, plot.right - plot.left, BURNUP_TICK_PX),
+        timeTicks(axis.start, axis.end, plotX.right - plotX.left, BURNUP_TICK_PX),
         axis.start,
         axis.end,
       )
@@ -223,7 +236,7 @@ export function ReleaseBurnup({
     if (!axis || !last) return null;
     const t0 = dateKeyMs(axis.start);
     const span = Math.max(1, dayEnd(axis.end) - t0);
-    const xOf = (t: number) => plot.left + ((t - t0) / span) * (plot.right - plot.left);
+    const xOf = (t: number) => plotX.left + ((t - t0) / span) * (plotX.right - plotX.left);
     const markers: { kind: 'today' | 'release'; x: number }[] = [];
     if (axis.showToday) markers.push({ kind: 'today', x: xOf(dayEnd(axis.seriesEnd)) });
     if (axis.showRelease && axis.releaseDate)
@@ -231,11 +244,12 @@ export function ReleaseBurnup({
     return layoutBurnupLabels({
       chartWidth: width,
       chartHeight: height,
-      plot,
+      plot: plotX,
       markers,
     });
   })();
-  // A merged label is drawn once, on the first marker line.
+  const margin = burnupMargin(labels?.rows ?? 1);
+  // A same-day merged label is drawn once, on the TODAY line.
   const todayLabel = labels?.markers.find((m) => m.kind === 'today' || m.kind === 'both');
   const releaseLabel = labels?.markers.find((m) => m.kind === 'release');
 
@@ -245,21 +259,23 @@ export function ReleaseBurnup({
       icon={TrendingUp}
       aside={aside}
       state={state}
-      height={compact ? COMPACT_PLOT_MIN + HEADER_H : BURNUP_HEIGHT}
+      height={compact ? COMPACT_BODY_H : BURNUP_HEIGHT}
       emptyLabel="No issues"
       testId="release-graph-burnup"
       className={className}
     >
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        data-testid="release-burnup-body"
+        className={compact ? 'flex flex-none flex-col' : 'flex min-h-0 flex-1 flex-col'}
+        style={compact ? { height: COMPACT_BODY_H } : undefined}
+      >
         <ReleaseProgressHeader summary={summary} compact={compact} />
         {!enough || !axis ? (
           <ReleaseTimeline axis={axis} summary={summary} className="mt-2" />
         ) : (
           <div
             ref={setPlotEl}
-            className={
-              compact ? 'relative mt-2 min-h-[150px] max-h-[200px] flex-1' : `${PLOT_CLASS} mt-2`
-            }
+            className={compact ? 'relative mt-2 min-h-0 flex-1' : `${PLOT_CLASS} mt-2`}
             role="img"
             aria-label={`Release burnup: ${last.scope} scope, ${last.done} done`}
           >
@@ -267,7 +283,7 @@ export function ReleaseBurnup({
               config={{}}
               className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
             >
-              <ComposedChart data={plotted} responsive margin={BURNUP_MARGIN}>
+              <ComposedChart data={plotted} responsive margin={margin}>
                 <XAxis
                   type="number"
                   dataKey="t"
@@ -306,6 +322,21 @@ export function ReleaseBurnup({
                     />
                   )}
                 />
+                {axis.showToday &&
+                axis.showRelease &&
+                axis.releaseDate &&
+                axis.releaseDate > axis.seriesEnd ? (
+                  // Time left until release: a faint band so TODAY and RELEASE read as two
+                  // lines even one day apart.
+                  <ReferenceArea
+                    x1={dayEnd(axis.seriesEnd)}
+                    x2={dayEnd(axis.releaseDate)}
+                    fill={MUTED}
+                    fillOpacity={0.08}
+                    stroke="none"
+                    ifOverflow="hidden"
+                  />
+                ) : null}
                 {axis.showToday ? (
                   <ReferenceLine
                     x={dayEnd(axis.seriesEnd)}
