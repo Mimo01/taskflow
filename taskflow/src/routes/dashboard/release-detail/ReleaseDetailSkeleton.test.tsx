@@ -40,7 +40,7 @@ describe('ReleaseDetailSkeleton', () => {
     const graphs = screen.getByTestId('skeleton-graphs').className;
     expect(graphs).toContain('grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]');
     expect(graphs).toContain(
-      '@min-[1180px]/page:grid-cols-[minmax(260px,1.5fr)_auto_minmax(210px,1.1fr)_minmax(230px,1fr)]',
+      '@min-[1180px]/page:grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)]',
     );
     expect(screen.getByTestId('skeleton-property-strip')).toBeInTheDocument();
   });

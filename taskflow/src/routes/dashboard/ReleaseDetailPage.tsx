@@ -489,7 +489,7 @@ export default function ReleaseDetailPage() {
               {band ? (
                 <div
                   data-testid="release-graph-grid"
-                  className="grid grid-cols-[minmax(260px,1.5fr)_auto_minmax(210px,1.1fr)_minmax(230px,1fr)] items-stretch gap-x-6 px-6 pt-5"
+                  className="grid grid-cols-[minmax(220px,1.1fr)_auto_minmax(250px,1.1fr)_minmax(260px,1.1fr)] items-stretch gap-x-6 px-6 pt-5"
                 >
                   {burnupEl}
                   <div className={`${SLOT_COL} ${DIVIDER}`}>{mrSlotEl}</div>
