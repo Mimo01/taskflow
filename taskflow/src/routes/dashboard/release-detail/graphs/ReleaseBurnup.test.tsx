@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
-import { BurnupTooltip, burnupEndLabelDy, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
+import { BurnupTooltip, burnupYScale, ReleaseBurnup } from './ReleaseBurnup';
 
 const axis: BurnupAxis = {
   start: '2026-10-01',
@@ -144,26 +144,5 @@ describe('burnupYScale', () => {
       expect(ticks.length).toBeLessThanOrEqual(4);
       expect(top).toBeGreaterThanOrEqual(m);
     }
-  });
-});
-
-describe('burnupEndLabelDy', () => {
-  const gap = (scope: number, done: number, top: number) => {
-    const { scopeDy, doneDy, merged } = burnupEndLabelDy(scope, done, top);
-    return merged ? 99 : Math.abs(scopeDy - doneDy);
-  };
-  it('merges the labels into one when scope equals done', () => {
-    const { merged, scopeDy } = burnupEndLabelDy(22, 22, 30);
-    expect(merged).toBe(true);
-    expect(scopeDy).toBeLessThan(0);
-  });
-  it('keeps them apart when they differ by 1', () => {
-    expect(gap(22, 21, 30)).toBeGreaterThanOrEqual(12);
-  });
-  it('moves done above scope when done sits on the axis', () => {
-    const { scopeDy, doneDy } = burnupEndLabelDy(28, 0, 30);
-    expect(doneDy).toBeLessThan(scopeDy);
-    expect(gap(28, 0, 30)).toBeGreaterThanOrEqual(12);
-    expect(gap(1, 0, 5)).toBeGreaterThanOrEqual(12);
   });
 });

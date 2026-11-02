@@ -6,8 +6,16 @@ import { Area, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from 'recharts
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { TOOLTIP_SURFACE, TooltipBody, TooltipRow } from '@/components/ui/tooltip-body';
 import { dateKeyMs, formatDateKey, timeTicks } from '@/lib/epic-progress';
-import { PLOT_MARGIN, Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
+import { Y_AXIS_WIDTH } from '../../issue-detail/EpicChartZoom';
 import type { BurnupAxis, BurnupPoint } from '../releaseBurnup';
+import {
+  BURNUP_MARGIN,
+  burnupPlotBox,
+  END_H,
+  type EndLabel,
+  layoutBurnupLabels,
+  type MarkerLabel,
+} from './burnupLabelLayout';
 import { BURNUP_HEIGHT, GraphSlot } from './GraphSlot';
 import { ReleaseTimeline, type TimelineSummary } from './ReleaseTimeline';
 
@@ -49,80 +57,58 @@ export function BurnupTooltip({
   );
 }
 
-const PLOT_PX = 110;
-const LABEL_GAP = 13;
-
-/**
- * Plan for the two end labels. Equal scope and done collapse into one merged
- * label ("22 scope · done"). Otherwise scope sits above its own line and done
- * below its own (the scope line is always at or above the done line), so near
- * values cannot collide. When done is so close to the x-axis that a label below
- * would hit the tick row, done goes above the scope label, one label gap apart.
- */
-export function burnupEndLabelDy(
-  scope: number,
-  done: number,
-  top: number,
-): { scopeDy: number; doneDy: number; merged: boolean } {
-  const scopeDy = -5;
-  if (scope === done) return { scopeDy, doneDy: scopeDy, merged: true };
-  const doneRoom = (done / Math.max(1, top)) * PLOT_PX;
-  if (doneRoom >= LABEL_GAP + 4) return { scopeDy, doneDy: LABEL_GAP, merged: false };
-  const gapPx = ((scope - done) / Math.max(1, top)) * PLOT_PX;
-  return { scopeDy, doneDy: scopeDy - gapPx - LABEL_GAP, merged: false };
-}
-
-const CHAR_W = 5.9;
-
 /**
  * End label with a solid background rect behind the text (plus a stroke halo).
  * The rect does not depend on paint-order support, so a dashed or stepped line
- * can never show through the text in WebKit.
+ * can never show through the text in WebKit. Position comes from the layout.
  */
-function endLabel(
-  last: number,
-  text: string,
-  color: string,
-  flip: boolean,
-  dy: number,
-  hidden = false,
-) {
-  return (p: { x?: number | string; y?: number | string; index?: number }) => {
-    const x = Number(p.x);
-    const y = Number(p.y);
-    if (hidden || p.index !== last || Number.isNaN(x) || Number.isNaN(y)) return <g />;
-    const tw = text.length * CHAR_W;
-    const tx = flip ? x - 6 : x + 6;
-    const ty = y + dy;
-    const rx = flip ? tx - tw - 3 : tx - 3;
+function endLabel(last: number, label: EndLabel | undefined) {
+  return (p: { index?: number }) => {
+    if (!label || p.index !== last) return <g />;
+    const { box } = label;
     return (
       <g>
-        <rect x={rx} y={ty - 11} width={tw + 6} height={14} rx={2} fill="var(--color-background)" />
+        <rect
+          x={box.x}
+          y={box.y}
+          width={box.w}
+          height={box.h}
+          rx={2}
+          fill="var(--color-background)"
+        />
         <text
-          x={tx}
-          y={ty}
-          textAnchor={flip ? 'end' : 'start'}
+          x={label.x}
+          y={label.y}
+          textAnchor={label.anchor}
           fontSize={11}
-          fill={color}
+          fill={label.color === 'done' ? GREEN : MUTED}
           stroke="var(--color-background)"
           strokeWidth={3}
           strokeLinejoin="round"
           paintOrder="stroke"
         >
-          {text}
+          {label.text}
         </text>
       </g>
     );
   };
 }
 
-function markerLabel(text: string) {
+function markerLabel(label: MarkerLabel | undefined) {
+  if (!label) return undefined;
   return {
-    value: text,
-    position: 'top' as const,
-    fontSize: 11,
-    className: 'uppercase tracking-wide',
-    fill: MUTED,
+    content: () => (
+      <text
+        x={label.x}
+        y={label.y}
+        textAnchor={label.anchor}
+        fontSize={11}
+        className="uppercase tracking-wide"
+        fill={MUTED}
+      >
+        {label.text}
+      </text>
+    ),
   };
 }
 
@@ -150,18 +136,23 @@ export function ReleaseBurnup({
   // kept the fallback width — and the tick density chosen for it — for good.
   const [plotEl, setPlotEl] = useState<HTMLDivElement | null>(null);
   const [measured, setMeasured] = useState(0);
+  const [measuredH, setMeasuredH] = useState(0);
   useEffect(() => {
     if (!plotEl) return;
-    setMeasured(plotEl.getBoundingClientRect().width);
+    const r = plotEl.getBoundingClientRect();
+    setMeasured(r.width);
+    setMeasuredH(r.height);
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setMeasured(w);
+      const rect = entries[0]?.contentRect;
+      if (rect?.width) setMeasured(rect.width);
+      if (rect?.height) setMeasuredH(rect.height);
     });
     ro.observe(plotEl);
     return () => ro.disconnect();
   }, [plotEl]);
   const width = measured > 0 ? Math.round(measured) : FALLBACK_WIDTH;
+  const height = measuredH > 0 ? Math.round(measuredH) : compact ? 110 : BURNUP_HEIGHT;
   // Short meta so it never crowds the title; the full text (previous release) is the tooltip.
   const aside = axis ? (
     <span
@@ -176,14 +167,47 @@ export function ReleaseBurnup({
   ) : undefined;
   const last = points[points.length - 1];
   const enough = state === 'ready' && !!axis && points.length >= 2 && !!last;
-  const ticks = axis ? timeTicks(axis.start, axis.end, width) : [];
+  const plot = burnupPlotBox(width, height);
+  const ticks = axis ? timeTicks(axis.start, axis.end, plot.right - plot.left) : [];
   const maxScope = points.reduce((m, p) => Math.max(m, p.scope), 0);
   const y = burnupYScale(maxScope);
-  // Headroom above a scope that nearly touches the top tick, so the TODAY / RELEASE
-  // labels and the scope end label never meet on a short plot.
-  const domainTop = y.top + (maxScope > y.top * 0.8 ? (y.ticks[1] ?? 5) / 2 : 0);
-  const flip = !!axis && axis.seriesEnd === axis.end;
-  const dy = burnupEndLabelDy(last?.scope ?? 0, last?.done ?? 0, y.top);
+  // Headroom above the scope line: enough pixels for an end label above it (the
+  // labels flip left of the last point near the right edge), whatever the plot height.
+  const plotH = Math.max(1, plot.bottom - plot.top);
+  const domainTop = Math.max(y.top, (maxScope * plotH) / Math.max(1, plotH - END_H - 4));
+  const labels = (() => {
+    if (!axis || !last) return null;
+    const t0 = dateKeyMs(axis.start);
+    const span = Math.max(1, dateKeyMs(axis.end) - t0);
+    const xOf = (t: number) => plot.left + ((t - t0) / span) * (plot.right - plot.left);
+    const yOf = (v: number) =>
+      plot.bottom - (v / Math.max(1, domainTop)) * (plot.bottom - plot.top);
+    const markers: { kind: 'today' | 'release'; x: number }[] = [];
+    if (axis.showToday) markers.push({ kind: 'today', x: xOf(dateKeyMs(axis.seriesEnd)) });
+    if (axis.showRelease && axis.releaseDate)
+      markers.push({ kind: 'release', x: xOf(dateKeyMs(axis.releaseDate)) });
+    return layoutBurnupLabels({
+      chartWidth: width,
+      chartHeight: height,
+      plot,
+      markers,
+      end: {
+        x: xOf(last.t),
+        scopeY: yOf(last.scope),
+        doneY: yOf(last.done),
+        scope: last.scope,
+        done: last.done,
+      },
+    });
+  })();
+  // A merged label is drawn once, on the first marker line.
+  const mergedBoth = labels?.markers.length === 1 && labels.markers[0].text.includes('·');
+  const todayLabel = mergedBoth
+    ? labels?.markers[0]
+    : labels?.markers.find((m) => m.text === 'TODAY');
+  const releaseLabel = mergedBoth ? undefined : labels?.markers.find((m) => m.text === 'RELEASE');
+  const scopeEnd = labels?.ends.find((e) => e.color === 'scope');
+  const doneEnd = labels?.ends.find((e) => e.color === 'done');
 
   return (
     <GraphSlot
@@ -215,7 +239,7 @@ export function ReleaseBurnup({
             config={{}}
             className={compact ? 'absolute inset-0 aspect-auto' : 'aspect-auto h-full w-full'}
           >
-            <ComposedChart data={points} responsive margin={{ ...PLOT_MARGIN, top: 16, right: 40 }}>
+            <ComposedChart data={points} responsive margin={BURNUP_MARGIN}>
               <XAxis
                 type="number"
                 dataKey="t"
@@ -258,7 +282,7 @@ export function ReleaseBurnup({
                   x={dateKeyMs(axis.seriesEnd)}
                   stroke="var(--color-foreground)"
                   strokeOpacity={0.5}
-                  label={markerLabel('TODAY')}
+                  label={markerLabel(todayLabel)}
                 />
               ) : null}
               {axis.showRelease && axis.releaseDate ? (
@@ -266,7 +290,7 @@ export function ReleaseBurnup({
                   x={dateKeyMs(axis.releaseDate)}
                   stroke={MUTED}
                   strokeDasharray="4 3"
-                  label={markerLabel('RELEASE')}
+                  label={markerLabel(releaseLabel)}
                 />
               ) : null}
               <Area
@@ -286,13 +310,7 @@ export function ReleaseBurnup({
                 strokeDasharray="4 3"
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(
-                  points.length - 1,
-                  dy.merged ? `${last.scope} scope · done` : `${last.scope} scope`,
-                  MUTED,
-                  flip,
-                  dy.scopeDy,
-                )}
+                label={endLabel(points.length - 1, scopeEnd)}
               />
               <Line
                 dataKey="done"
@@ -301,14 +319,7 @@ export function ReleaseBurnup({
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
-                label={endLabel(
-                  points.length - 1,
-                  `${last.done} done`,
-                  GREEN,
-                  flip,
-                  dy.doneDy,
-                  dy.merged,
-                )}
+                label={endLabel(points.length - 1, doneEnd)}
               />
             </ComposedChart>
           </ChartContainer>
