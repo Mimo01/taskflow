@@ -307,6 +307,7 @@ export default function ReleaseDetailPage() {
     today,
     releaseDate: version?.releaseDate ?? null,
     released: !!version?.released,
+    versionName: version?.name ?? null,
   };
   const noIssues = issueGraphState === 'empty';
   // 94-REVIEW CR-03: an empty fix version still has action surfaces that do not

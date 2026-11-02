@@ -31,6 +31,17 @@ describe('ReleaseTimeline', () => {
     expect(el).not.toHaveTextContent('days left');
   });
 
+  it('shows version names only under the track: previous left, this release right', () => {
+    render(
+      <ReleaseTimeline axis={axis} summary={{ ...base, versionName: 'Release 2026-11-03' }} />,
+    );
+    expect(screen.getByTestId('timeline-previous-name')).toHaveTextContent(/^Previous release$/);
+    expect(screen.getByTestId('timeline-version-name')).toHaveTextContent(/^Release 2026-11-03$/);
+    // No start date ("Oct 20") and no "Started" fallback.
+    expect(screen.getByTestId('release-graph-burnup-thin')).not.toHaveTextContent('Oct 20');
+    expect(screen.queryByText(/Started/)).toBeNull();
+  });
+
   it('omits the Release marker without an axis release date', () => {
     render(<ReleaseTimeline axis={null} summary={{ ...base, releaseDate: null }} />);
     const el = screen.getByTestId('release-graph-burnup-thin');

@@ -1,4 +1,4 @@
-import { dateKeyMs, formatDateKey } from '@/lib/epic-progress';
+import { dateKeyMs } from '@/lib/epic-progress';
 import type { BurnupAxis } from '../releaseBurnup';
 export interface TimelineSummary {
   done: number;
@@ -6,6 +6,8 @@ export interface TimelineSummary {
   today: string;
   releaseDate: string | null;
   released: boolean;
+  /** This release's version name, shown under the right end of the track. */
+  versionName?: string | null;
 }
 
 function frac(day: string, start: string, end: string): number {
@@ -77,10 +79,23 @@ export function ReleaseTimeline({
               </div>
             </>
           ) : null}
-          <div className="absolute bottom-0 left-0 max-w-[60%] truncate text-xs text-muted-foreground">
-            {axis?.previousName ? `${axis.previousName} · ` : 'Started '}
-            {formatDateKey(start)}
-          </div>
+          {/* Version names only (no dates): previous release left, this one right. */}
+          {axis?.previousName ? (
+            <div
+              data-testid="timeline-previous-name"
+              className="absolute bottom-0 left-0 max-w-[48%] truncate text-xs text-muted-foreground"
+            >
+              {axis.previousName}
+            </div>
+          ) : null}
+          {summary.versionName ? (
+            <div
+              data-testid="timeline-version-name"
+              className="absolute bottom-0 right-0 max-w-[48%] truncate text-right text-xs font-medium text-foreground/80"
+            >
+              {summary.versionName}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
