@@ -62,7 +62,7 @@ export function ReleaseMrDonut({
     >
       <div
         className={cn(
-          'my-auto flex flex-wrap items-center justify-center gap-y-3',
+          'my-auto flex flex-wrap items-start justify-center gap-y-3',
           compact ? 'gap-x-3' : 'gap-x-6',
         )}
       >
