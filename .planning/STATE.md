@@ -231,7 +231,7 @@ Acknowledged and deferred at v1.14 milestone close (2026-08-13) — 111 open art
 | 261014-j3s | AIO cycle defect summary: larger Status donut + legend, Priority\|Severity side by side below, wider block | 2026-10-14 | e1863f8a | Verified (UAT by user) | [261014-j3s-aio-cycle-defect-summary-layout](./quick/261014-j3s-aio-cycle-defect-summary-layout/) |
 | 261014-n5a | Optimize AIO cycle detail for smaller screens (4 tiles in a row, Execution beside Defects, no h-dividers, captioned donuts) | 2026-10-14 | e3e74dd7 | Verified (user UAT) | [261014-n5a-optimize-aio-cycle-detail-for-smaller-sc](./quick/261014-n5a-optimize-aio-cycle-detail-for-smaller-sc/) |
 | 261014-nkt | Hide Fix Versions + Deployment package rows on epic/subtask detail (story-only) | 2026-10-14 | 6830f704 | Verified (inline, test fails pre-fix) | [261014-nkt-hide-fix-version-and-deployment-version-](./quick/261014-nkt-hide-fix-version-and-deployment-version-/) |
-| 261102-rdn | Release detail: drop MR donut legend, enlarge ring 108→120px (matches assignee rows) | 2026-11-02 | d4fc581b | Needs Review (UAT) | [261102-rdn-on-release-detail-page-remove-the-legend](./quick/261102-rdn-on-release-detail-page-remove-the-legend/) |
+| 261102-rdn | Release detail: drop MR donut legend, enlarge ring 108→120px (matches assignee rows) | 2026-11-02 | d4fc581b | Verified (UAT) | [261102-rdn-on-release-detail-page-remove-the-legend](./quick/261102-rdn-on-release-detail-page-remove-the-legend/) |
 
 ## Session Continuity
 
