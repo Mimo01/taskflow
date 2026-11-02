@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 Phase: 94
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-11-02 - Completed quick task 261102-h1i: filter + sort the release detail Issues table
+Last activity: 2026-11-02 - Completed quick task 261102-pk9: exact date+time on hover in issue detail
 
 ## Performance Metrics
 
@@ -131,6 +131,7 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
+| 261102-pk9 | Issue detail: exact date+time on hover for Created/Updated, comment time/(edited), worklog + changelog (shared exactDateTime) | 2026-11-02 | 6ef21fb1 | Pending UAT | [261102-pk9-date-hover-exact-time](./quick/261102-pk9-date-hover-exact-time/) |
 | 261102-h1i | Release detail Issues table: search + Status/Type/Assignee filters + sortable Key/Summary/Assignee/Status (shared FilterPopover/SortableHeader extracted from AIO Defects) | 2026-11-02 | 702b512a | Verified (UAT approved) | [261102-h1i-release-detail-table-filter-sort](./quick/261102-h1i-release-detail-table-filter-sort/) |
 | 261102-gyd | AIO cycle detail: stop assignee names wrapping (not-sr-only undid truncate) + wider assignee col ≥1024px | 2026-11-02 | 8a10caef | Verified (UAT approved) | [261102-gyd-allocate-more-space-for-assignee-in-aio-](./quick/261102-gyd-allocate-more-space-for-assignee-in-aio-/) |
 | 261007-hmj | Time-led epic forecast (time weighted 4x, confidence from time) | 2026-10-07 | d604dd6e | Verified (inline) | [261007-hmj-epic-forecast-time-led](./quick/261007-hmj-epic-forecast-time-led/) |
