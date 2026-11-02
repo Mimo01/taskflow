@@ -61,18 +61,24 @@ describe('MrLabels (second legend column)', () => {
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(2);
   });
 
-  it('ends with an orange "unlabelled N" with no hover tooltip', async () => {
+  it('leads with an orange "N MRs without label" banner, apart from the pill grid', async () => {
     const user = userEvent.setup();
     render(<MrLabels labelSummary={labels} coverage={missing(5)} />);
     const el = screen.getByTestId('mr-labels-unlabeled');
-    expect(el).toHaveTextContent('No label');
-    expect(el).toHaveTextContent('5');
-    expect(el.className).toContain('text-orange-700');
-    // last entry of the list
+    expect(el).toHaveTextContent('5 MRs without label');
+    expect(el.className).toContain('bg-orange-500/12');
+    expect(el.className).toContain('w-full');
+    // first entry of the block, outside the label grid
     const list = screen.getByTestId('mr-labels');
-    expect(list.lastElementChild).toBe(el);
+    expect(list.firstElementChild).toBe(el);
+    expect(screen.getByTestId('mr-labels-grid').contains(el)).toBe(false);
     await user.hover(el);
     expect(screen.queryByTestId('mr-labels-unlabeled-tooltip')).toBeNull();
+  });
+
+  it('uses the singular for one unlabelled MR', () => {
+    render(<MrLabels labelSummary={labels} coverage={missing(1)} />);
+    expect(screen.getByTestId('mr-labels-unlabeled')).toHaveTextContent('1 MR without label');
   });
 
   it('toggles the unlabeled filter sentinel when the No label pill is clicked', async () => {
@@ -99,20 +105,30 @@ describe('MrLabels (second legend column)', () => {
 
   it('caps the grid at 5 rows and flows extra pills into columns', () => {
     const many = Array.from({ length: 8 }, (_, i) => lab(`label-${i}`, i + 1));
-    render(<MrLabels labelSummary={many} coverage={missing(2)} />);
-    const list = screen.getByTestId('mr-labels');
-    expect(list.style.gridTemplateRows).toBe('repeat(5, auto)');
-    expect(list.className).toContain('grid-flow-col');
-    expect(list.className).toContain('border-l');
-    expect(list.className).not.toContain('flex-col');
-    expect(list.className).not.toContain('max-w-[9.5rem]');
+    render(<MrLabels labelSummary={many} coverage={missing(0)} />);
+    const grid = screen.getByTestId('mr-labels-grid');
+    expect(grid.style.gridTemplateRows).toBe('repeat(5, auto)');
+    expect(grid.className).toContain('grid-flow-col');
+    expect(screen.getByTestId('mr-labels').className).toContain('border-l');
     expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(8);
-    expect(screen.getByTestId('mr-labels-unlabeled').parentElement).toBe(list);
+  });
+
+  it('gives the banner one row of the budget: 4 grid rows when it shows', () => {
+    const many = Array.from({ length: 8 }, (_, i) => lab(`label-${i}`, i + 1));
+    render(<MrLabels labelSummary={many} coverage={missing(2)} />);
+    expect(screen.getByTestId('mr-labels-grid').style.gridTemplateRows).toBe('repeat(4, auto)');
+    expect(screen.getAllByTestId('mr-label-pill')).toHaveLength(8);
   });
 
   it('uses one row per item when there are fewer than 5', () => {
     render(<MrLabels labelSummary={labels} coverage={missing(0)} />);
-    expect(screen.getByTestId('mr-labels').style.gridTemplateRows).toBe('repeat(3, auto)');
+    expect(screen.getByTestId('mr-labels-grid').style.gridTemplateRows).toBe('repeat(3, auto)');
+  });
+
+  it('renders only the banner when no MR has a label', () => {
+    render(<MrLabels labelSummary={[]} coverage={missing(3)} />);
+    expect(screen.getByTestId('mr-labels-unlabeled')).toBeInTheDocument();
+    expect(screen.queryByTestId('mr-labels-grid')).toBeNull();
   });
 });
 

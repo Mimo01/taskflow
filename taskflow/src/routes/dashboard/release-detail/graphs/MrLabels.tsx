@@ -68,16 +68,16 @@ function LabelPill({
 }
 
 /**
- * Max pill rows before extra pills flow into another column: 5 rows of h-5 pills
- * plus gap-1 is 116px, which fits beside the 120px donut.
+ * Max rows (banner included) before extra pills flow into another column: 5 rows
+ * of h-5 pills plus gap-1 is 116px, which fits beside the 120px donut.
  */
 const MAX_LABEL_ROWS = 5;
 
 /**
- * Labels block of the Merge requests cell: separated from the state legend by a
- * hairline, a column-major grid at most 5 rows tall (extra pills flow into more
- * columns, never collapsed) of every GitLab-style pill, ending with the dashed
- * orange "No label N" pill.
+ * Labels block of the Merge requests cell, behind a hairline: an orange "N MRs
+ * without label" warning banner on top spanning the full width (when any MR is
+ * unlabelled), then a column-major grid of every GitLab-style pill (never
+ * collapsed) whose row cap leaves room for the banner within the donut height.
  */
 export function MrLabels({
   labelSummary,
@@ -97,51 +97,63 @@ export function MrLabels({
   const missing = coverage && !coverage.allLabeled ? coverage.unlabeled.length : 0;
   if (labelSummary.length === 0 && missing === 0) return null;
 
-  const itemCount = labelSummary.length + (missing > 0 ? 1 : 0);
-  const rows = Math.max(1, Math.min(itemCount, MAX_LABEL_ROWS));
-  const Pill = onToggleLabel ? 'button' : 'div';
+  const hasBanner = missing > 0;
+  // The banner takes one row of the donut-height budget, so the grid gets one fewer.
+  const maxRows = hasBanner ? MAX_LABEL_ROWS - 1 : MAX_LABEL_ROWS;
+  const rows = Math.max(1, Math.min(labelSummary.length, maxRows));
+  const Banner = onToggleLabel ? 'button' : 'div';
 
   return (
     <div
       data-testid="mr-labels"
-      className={cn(
-        'grid min-w-0 grid-flow-col content-start justify-start gap-1 gap-x-1.5 border-l pl-3 text-xs',
-        className,
-      )}
-      style={{
-        gridTemplateRows: `repeat(${rows}, auto)`,
-        gridAutoColumns: 'fit-content(9.5rem)',
-      }}
+      className={cn('flex min-w-0 flex-col gap-1 border-l pl-3 text-xs', className)}
     >
-      {labelSummary.map((l) => (
-        <LabelPill
-          key={l.label.name}
-          l={l}
-          active={activeLabel === l.label.name}
-          onToggle={onToggleLabel}
-        />
-      ))}
-      {missing > 0 && coverage ? (
-        <Pill
+      {hasBanner ? (
+        <Banner
           {...(onToggleLabel
             ? {
                 type: 'button' as const,
                 'aria-pressed': activeLabel === UNLABELED_FILTER,
                 onClick: () => onToggleLabel(UNLABELED_FILTER),
+                title: 'Filter tasks to MRs without a label',
               }
             : {})}
           data-testid="mr-labels-unlabeled"
           className={cn(
-            'inline-flex h-5 max-w-full min-w-0 items-center gap-1 self-start justify-self-start overflow-hidden rounded border border-dashed border-orange-500/60 bg-transparent px-1.5 text-xs font-medium text-orange-700 dark:text-orange-300',
-            onToggleLabel && 'cursor-pointer hover:bg-orange-500/10',
+            'flex h-5 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded bg-orange-500/12 px-1.5 text-left text-xs text-orange-800 dark:bg-orange-400/15 dark:text-orange-200',
+            onToggleLabel && 'cursor-pointer hover:bg-orange-500/20',
             activeLabel === UNLABELED_FILTER &&
-              'border-solid border-orange-600 bg-orange-500/15 dark:border-orange-400',
+              'bg-orange-500/20 ring-2 ring-orange-500/60 dark:ring-orange-400/60',
           )}
         >
-          <TriangleAlert className="size-3 flex-none" aria-hidden="true" />
-          <span className="min-w-0 truncate">No label</span>
-          <span className="tabular-nums">{missing}</span>
-        </Pill>
+          <TriangleAlert
+            className="size-3 flex-none text-orange-500 dark:text-orange-400"
+            aria-hidden="true"
+          />
+          <span className="min-w-0 truncate">
+            <span className="font-semibold tabular-nums">{missing}</span>{' '}
+            {missing === 1 ? 'MR' : 'MRs'} without label
+          </span>
+        </Banner>
+      ) : null}
+      {labelSummary.length > 0 ? (
+        <div
+          data-testid="mr-labels-grid"
+          className="grid min-w-0 grid-flow-col content-start justify-start gap-1 gap-x-1.5"
+          style={{
+            gridTemplateRows: `repeat(${rows}, auto)`,
+            gridAutoColumns: 'fit-content(9.5rem)',
+          }}
+        >
+          {labelSummary.map((l) => (
+            <LabelPill
+              key={l.label.name}
+              l={l}
+              active={activeLabel === l.label.name}
+              onToggle={onToggleLabel}
+            />
+          ))}
+        </div>
       ) : coverage?.allLabeled && labelSummary.length === 0 ? (
         <span
           data-testid="mr-labels-all"
