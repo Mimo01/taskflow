@@ -40,6 +40,15 @@ describe('ReleaseTimeline', () => {
     // No start date ("Oct 20") and no "Started" fallback.
     expect(screen.getByTestId('release-graph-burnup-thin')).not.toHaveTextContent('Oct 20');
     expect(screen.queryByText(/Started/)).toBeNull();
+    // Both names share one style.
+    const cls = (id: string) =>
+      screen
+        .getByTestId(id)
+        .className.replace(/\b(left|right)-0\b|\btext-right\b/g, '')
+        .trim();
+    expect(cls('timeline-version-name').split(/\s+/).sort()).toEqual(
+      cls('timeline-previous-name').split(/\s+/).sort(),
+    );
   });
 
   it('omits the Release marker without an axis release date', () => {

@@ -91,7 +91,7 @@ export function ReleaseTimeline({
           {summary.versionName ? (
             <div
               data-testid="timeline-version-name"
-              className="absolute bottom-0 right-0 max-w-[48%] truncate text-right text-xs font-medium text-foreground/80"
+              className="absolute bottom-0 right-0 max-w-[48%] truncate text-right text-xs text-muted-foreground"
             >
               {summary.versionName}
             </div>
