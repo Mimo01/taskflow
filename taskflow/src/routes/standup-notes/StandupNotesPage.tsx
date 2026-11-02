@@ -40,6 +40,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { resolveEffectiveIdentity } from './effectiveIdentity';
 import StandupPageHeader from './StandupPageHeader';
+import StandupSplit from './StandupSplit';
 import TodayColumn, { generateTodayMarkdown, todayQueryKeys } from './TodayColumn';
 import YesterdayColumn, { generateMarkdown } from './YesterdayColumn';
 
@@ -566,10 +567,9 @@ export default function StandupNotesPage() {
         onSelectWatched={setWatchedUser}
       />
 
-      {/* Two-column body: Yesterday (left) | Today (right) */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left column — Yesterday recap (50%) */}
-        <div className="w-1/2 overflow-auto border-r border-border px-6 py-4">
+      {/* Resizable two-column body: Yesterday (left) | Today (right) */}
+      <StandupSplit
+        left={
           <YesterdayColumn
             tempoEnabled={tempoEnabled}
             yesterdayDate={yesterdayDate}
@@ -589,10 +589,8 @@ export default function StandupNotesPage() {
             watchedDisplayName={id.jiraUserDisplayName}
             watchedGitlabResolved={id.isWatched && resolvedId.gitlabUserId !== null}
           />
-        </div>
-
-        {/* Right column — Today (50%) */}
-        <div className="w-1/2 overflow-auto">
+        }
+        right={
           <TodayColumn
             onIssueClick={onIssueClick}
             onOpenIssue={onOpenIssue}
@@ -601,8 +599,8 @@ export default function StandupNotesPage() {
             watchedDisplayName={id.jiraUserDisplayName}
             isWatched={id.isWatched}
           />
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }
