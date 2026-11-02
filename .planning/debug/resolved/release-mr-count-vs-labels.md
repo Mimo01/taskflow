@@ -1,5 +1,5 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "On release detail page, the merge request count shows fewer mrs than the labels"
 created: 2026-11-02
 updated: 2026-11-02
@@ -41,3 +41,6 @@ updated: 2026-11-02
 - fix: useReleaseDetail.ts now computes mrDonutCounts and mrStateCounts over the deduped union (driftRows.map(r=>r.mr)). Pills and per-label counting unchanged; Releases list untouched.
 - verification: new test 'MR donut total equals the three-channel union' fails pre-fix (open=0 vs 1), passes post-fix; src/routes/dashboard vitest 1749 passed; biome + tsc clean.
 - files_changed: taskflow/src/routes/dashboard/release-detail/useReleaseDetail.ts, useReleaseDetail.test.tsx
+- commit: 295f28ee
+- user_verified: 2026-11-02 (approved)
+- follow_up_not_done: donut empty-state check in ReleaseDetailPage.tsx still uses milestone-only MRs ("No merge requests in this milestone yet")
